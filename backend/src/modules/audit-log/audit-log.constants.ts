@@ -152,6 +152,8 @@ export const auditLogActions = {
   knowledgeCategoryArchived: 'knowledge.category.archived',
   knowledgeCategoryRestored: 'knowledge.category.restored',
   knowledgeArticleDraftedFromReply: 'knowledge.article.drafted_from_reply',
+  /** Val 2 (M14/B1): pri upisu članka iz odgovora server je morao zamijeniti lične podatke. */
+  knowledgeArticleReplyRedacted: 'knowledge.article.reply_redacted',
 } as const;
 
 export const auditLogEntityTypes = {

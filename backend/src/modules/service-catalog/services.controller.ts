@@ -15,7 +15,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import {
+  readPrincipalContext,
+  type AuthenticatedHttpRequest,
+} from '../authentication/authenticated-request';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -31,6 +34,7 @@ import { TransitionServiceLifecycleDto } from './dto/transition-service-lifecycl
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { readCatalogMutationContext } from './read-catalog-mutation-context';
 import { ServiceCatalogService } from './service-catalog.service';
+import { visibleServiceLifecycles } from './service-visible-lifecycles';
 import type { ServiceResponse } from './service-catalog.types';
 
 @AdminConfigDomains('catalog')
@@ -58,15 +62,32 @@ export class ServicesController {
 
   @Get()
   @RequireRoles(...catalogTicketCreateReadRoles)
-  list(@Query() query: ListServicesQueryDto): Promise<readonly ServiceResponse[]> {
-    return this.serviceCatalogService.list(query);
+  list(
+    @Query() query: ListServicesQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly ServiceResponse[]> {
+    // Val 2 (M6/B2): nacrti nisu javni — vidljivost se filtrira po roli pozivaoca.
+    // Ako kontekst iz nekog razloga nije tu, `[]` daje najuži skup (fail-closed).
+    return this.serviceCatalogService.list({
+      ...query,
+      visibleLifecycles: visibleServiceLifecycles(
+        readPrincipalContext(request)?.roleKeys ?? [],
+      ),
+    });
   }
 
   @Get(':serviceId')
   @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
-  getById(@Param('serviceId') serviceId: string): Promise<ServiceResponse> {
-    return this.serviceCatalogService.getById(serviceId);
+  getById(
+    @Param('serviceId') serviceId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<ServiceResponse> {
+    return this.serviceCatalogService.getById(
+      serviceId,
+      new Date(),
+      readPrincipalContext(request)?.roleKeys ?? [],
+    );
   }
 
   @Patch(':serviceId')

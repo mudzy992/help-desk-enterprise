@@ -50,18 +50,34 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - name: Check tracked files are client-neutral (Paket 4.1 §9)
+      - name: Check tracked files are client-neutral (Paket 4.1 §9, 4.1a §6)
         run: node ../scripts/check-client-neutral.mjs
+      - name: Test the client-neutral guard itself (Paket 4.1a §6.4)
+        run: node --test ../scripts/check-client-neutral.test.mjs
       - name: Check .env.example is authoritative (Paket 4.1 §7a)
         run: node ../scripts/check-env-example.mjs
-      - name: Check ticket screens for raw identifiers
+      - name: Check screens for raw identifiers or raw grouping keys
         run: node ../scripts/check-ticket-id-leaks.mjs
+      - name: Test the raw-identifier guard itself
+        run: node --test ../scripts/check-ticket-id-leaks.test.mjs
       - name: Check the Pulse design system (tokens, colours, radius, i18n)
         run: node ../scripts/check-pulse-design-system.mjs
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)
         run: node ../scripts/check-theme-contrast.mjs
       - name: Check static accessibility rules (Paket 2.8 §5.2)
         run: node ../scripts/check-a11y-static.mjs
+      - name: Check no hook runs after an early return (React #310)
+        run: node ../scripts/check-hooks-order.mjs
+      - name: Test the hooks-order guard itself
+        run: node --test ../scripts/check-hooks-order.test.mjs
+      - name: Check docs content and mirror sync (Faza 3, DOCS_MODULE.md §9)
+        run: node ../scripts/check-docs-content.mjs
+      - name: Check the ticket-list page size against the API maximum (val 1)
+        run: node ../scripts/check-ticket-list-page-size.mjs
+      - name: Check workflow YAML for unquoted colons
+        run: node ../scripts/check-workflows-yaml.mjs
+      - name: Test the workflow-YAML guard itself
+        run: node --test ../scripts/check-workflows-yaml.test.mjs
       - run: npm test
       - run: npm run build
 

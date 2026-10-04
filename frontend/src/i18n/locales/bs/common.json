@@ -29,7 +29,8 @@
     "assets": "Imovina",
     "myAssets": "Moja oprema",
     "problems": "Problemi",
-    "changes": "Promjene"
+    "changes": "Promjene",
+    "docs": "Dokumentacija"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -1158,6 +1159,7 @@
         "private.readOnlyMode.enabled": "Glavni prekidač za admin režim samo-za-čitanje; isključeno briše sve brave modula.",
         "private.readOnlyMode.modulesCsv": "Admin moduli koji se smiju zaključati dok je uključen režim samo-za-čitanje.",
         "private.reports.enabled": "Uključi izvoz unaprijed definisanih paketa izvještaja (CSV/JSON).",
+        "private.reports.defaultWindowDays": "Podrazumijevani period (dani) za preglede i izvoz paketa izvještaja.",
         "private.reports.exportFormatsCsv": "Dozvoljeni formati izvoza izvještaja, odvojeni zarezom (csv, json).",
         "private.reports.packsJson": "JSON niz ključeva omogućenih paketa izvještaja.",
         "private.reports.pingPongThreshold": "Broj prosljeđivanja nakon kojeg se tiket u izvještaju označava kao ping-pong.",
@@ -1204,7 +1206,7 @@
         "private.ticket.attachments.maxFileSizeMb": "Maksimalna veličina privitka u megabajtima.",
         "private.ticket.attachments.maxFilesPerMessage": "Maksimalan broj privitaka na jednoj poruci tiketa.",
         "private.ticket.attachments.maxFilesPerTicket": "Maksimalan broj privitaka na jednom tiketu.",
-        "private.ticket.attachments.retentionDays": "Koliko dana se čuvaju privici tiketa. Zastarjelo: koristite „Zaštita ličnih podataka → zadržavanje\".",
+        "private.ticket.attachments.retentionDays": "Zastarjelo i bez dejstva: priloge briše modul „Zaštita ličnih podataka → zadržavanje“ (private.privacy.retention.attachmentsDays).",
         "private.ticket.autoAssign.enabled": "Automatski dodijeli rutirane grupne tikete podobnom agentu.",
         "private.ticket.autoAssign.strategy": "Globalna strategija auto-dodjele kad je strategija usluge NONE (least_busy ili round_robin).",
         "private.ticket.bulkActions.allowCrossOuForSuperAdmin": "Dozvoli SuperAdminu masovne radnje preko više organizacijskih jedinica.",
@@ -1698,7 +1700,6 @@
   "dashboard": {
     "intro": "Operativni pregled tiketa kojima imate pristup.",
     "reportsAction": "Izvještaji",
-    "reportsActionDisabledHint": "Izvještaji će biti dostupni kad se doda ruta.",
     "emptyTitle": "Još nema tiketa",
     "emptyBody": "Kad se kreira prvi tiket, brojači i nedavna aktivnost pojavit će se ovdje.",
     "recentHeading": "Nedavni tiketi",
@@ -1737,6 +1738,7 @@
     "statusChartCenter": "tiketa ukupno",
     "volumeChartTitle": "Tok tiketa — zadnjih 14 dana",
     "volumeChartSubtitle": "Kreirani naspram riješenih, iz istog niza tiketa",
+    "volumeTruncatedHint": "U periodu ima više tiketa nego što staje u jedan prikaz — brojevi na grafiku su donja granica.",
     "volumeCreated": "Kreirani",
     "volumeResolved": "Riješeni",
     "chartsEmptyTitle": "Nema podataka za grafikone",
@@ -1774,8 +1776,6 @@
     "forbiddenBody": "Izvještaji i izvoz dostupni su administratorima s reports.export ili audit.export.",
     "emptyTitle": "Još nema tiketa",
     "emptyBody": "Kad se kreira prvi tiket, agregacije izvještaja pojavit će se ovdje.",
-    "exportAction": "Izvoz paketa",
-    "exportDisabledHint": "Izvoz paketa dolazi u Fazi 8.",
     "window15d": "Zadnjih 15 dana",
     "window30d": "Zadnjih 30 dana",
     "window6m": "Zadnjih 6 mjeseci",
@@ -1811,6 +1811,12 @@
     "volumeTitleCustom": "Obim po usluzi",
     "volumeSubtitle": "Usluge s najvećim obimom u odabranom periodu",
     "volumeEmpty": "Nema kreiranih tiketa u periodu",
+    "unitVolumeTitle": "Tiketi po organizacionoj jedinici",
+    "unitVolumeSubtitle": "Kreirani u odabranom periodu",
+    "unitVolumeEmpty": "U periodu nema kreiranih tiketa.",
+    "workloadTitle": "Opterećenje admina",
+    "workloadSubtitle": "Otvoreni tiketi po izvršiocu (stanje sada)",
+    "workloadEmpty": "Nijedan otvoreni tiket nije dodijeljen osobi.",
     "flowTitle": "Tok i starenje backloga",
     "flowSubtitle": "Tok kreiranih i riješenih uz raspodjelu starosti otvorenih tiketa",
     "flowCreated": "Kreirani",
@@ -1822,8 +1828,55 @@
     "agingGt7": "> 7 dana",
     "agingWaitingHint": "{{count}} tiketa starijih od 7 dana je u statusu „Čeka korisnika“.",
     "unroutedGroup": "Neusmjereni",
+    "csat": {
+      "title": "CSAT",
+      "retry": "Pokušaj ponovo",
+      "emptyTitle": "Još nema CSAT ocjena",
+      "emptyBody": "Kad korisnici počnu ocjenjivati riješene tikete, prosjek i razrez po jedinici, servisu i grupi pojavit će se ovdje.",
+      "byUnit": "Po organizacionoj jedinici",
+      "byService": "Po servisu",
+      "byGroup": "Po grupi",
+      "dimensionSubtitle": "Prosječna ocjena i veličina uzorka",
+      "dimensionEmpty": "Nema ocjena u ovoj dimenziji.",
+      "averageLabel": "Prosječna ocjena (od {{max}})",
+      "averageHint": "Sve ocjene u vašem vidnom polju, bez obzira na period",
+      "sampleLabel": "Broj ocjena",
+      "sampleHint": "Prag „zadovoljan“ je {{min}}",
+      "targetLabel": "Prag zadovoljan",
+      "targetHint": "Ocjena {{min}} i više na skali do {{max}}",
+      "columnKey": "Naziv",
+      "columnSample": "Uzorak",
+      "columnAverage": "Prosjek (od {{max}})",
+      "belowTarget": "ispod praga"
+    },
+    "bottlenecks": {
+      "title": "Uska grla",
+      "disabledTitle": "Prikaz uskih grla je isključen",
+      "retry": "Pokušaj ponovo",
+      "emptyTitle": "Nema tiketa u zastoju",
+      "emptyBody": "U odabranom periodu i opsegu nema tiketa koji čekaju odobrenje ili korisnika, nisu usmjereni ili su prekoračeni.",
+      "byUnit": "Po organizacionoj jedinici",
+      "byService": "Po servisu",
+      "byPriority": "Po prioritetu",
+      "breakdownSubtitle": "Ukupno tiketa u zastoju (zbir sva četiri brojača)",
+      "breakdownEmpty": "Nema tiketa u zastoju u ovoj dimenziji.",
+      "trendTitle": "Dnevni trend",
+      "trendSubtitle": "Novi tiketi i stanje zastoja po danu",
+      "trendEmpty": "U periodu nema dnevnih zapisa.",
+      "trendDate": "Datum",
+      "trendCreated": "Kreirano",
+      "overdueHint": "Prekoračen rok odziva ili rješavanja",
+      "counters": {
+        "pendingApproval": "Čeka odobrenje",
+        "waitingForUser": "Čeka korisnika",
+        "unrouted": "Neusmjereno",
+        "overdue": "Prekoračeno"
+      }
+    },
     "tabs": {
       "overview": "Pregled",
+      "bottlenecks": "Uska grla",
+      "csat": "CSAT",
       "packs": "Paketi izvještaja",
       "trends": "Trendovi",
       "schedules": "Zakazani"
@@ -1978,6 +2031,7 @@
       "REPORT_GRANULARITY_INVALID": "Granularnost nije podržana.",
       "REPORT_TRENDS_DISABLED": "Trendovi su isključeni u postavkama izvještaja.",
       "REPORTS_DISABLED": "Izvještaji su isključeni u postavkama.",
+      "BOTTLENECKS_DISABLED": "Prikaz uskih grla je isključen u postavkama („Agregacije uskih grla na kontrolnoj tabli“).",
       "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND": "Organizaciona jedinica nije pronađena ili nije u vašem opsegu.",
       "REPORT_FORMAT_NOT_ALLOWED": "Ovaj format izvoza nije dozvoljen.",
       "REPORT_SCHEDULE_DISABLED": "Zakazani izvještaji su isključeni u postavkama.",
@@ -3384,6 +3438,8 @@
         "emptyComments": "Nema otvorenih komentara."
       },
       "fromReply": {
+        "redactedOnSave": "Server je zamijenio lične podatke pri čuvanju.",
+        "redactedOnSaveCount": "U tekstu koji je poslan bilo je {{count}} ličnih podataka koje pregled nije pokazao; zamijenjeni su prije upisa. Članak je sačuvan kao nacrt.",
         "action": "Napravi članak",
         "title": "Članak iz odgovora",
         "hint": "Tekst odgovora postaje nacrt članka. Lični podaci su zamijenjeni oznakama; pregledajte tekst prije spremanja.",
@@ -3800,7 +3856,15 @@
       "unknownUser": "Nepoznat korisnik",
       "unknownGroup": "Nepoznata grupa",
       "unknownOrigin": "Nepoznata organizaciona jedinica",
-      "formVersionValue": "v{{version}}"
+      "formVersionValue": "v{{version}}",
+      "title": "Detalji",
+      "expandAll": "Proširi sve",
+      "collapseAll": "Skupi sve",
+      "cards": {
+        "summary": "Sažetak",
+        "actions": "Radnje",
+        "related": "Povezano i tok"
+      }
     },
     "csat": {
       "title": "CSAT ocjena",
@@ -3847,7 +3911,12 @@
       "namePlaceholder": "Naziv pogleda",
       "makeDefault": "Postavi kao default",
       "save": "Sačuvaj trenutni filter",
-      "delete": "Obriši pogled"
+      "delete": "Obriši pogled",
+      "manage": "Upravljaj pogledima…",
+      "manageHint": "Pogled čuva trenutne filtere liste; zadani se primjenjuje pri otvaranju liste.",
+      "empty": "Još nema sačuvanih pogleda.",
+      "removeLabel": "Obriši pogled: {{name}}",
+      "nameLabel": "Naziv pogleda"
     },
     "messageType": {
       "USER_REPLY": "Odgovor korisnika",
@@ -4242,6 +4311,8 @@
     "errorLinkMerged": "Spojeni tiket se ne može povezivati — koristite glavni tiket.",
     "errorLinkLimit": "Dostignut je maksimalan broj veza za ovaj tiket.",
     "errorLinkNote": "Napomena veze je predugačka.",
+    "errorTemplateInactive": "Šablon je deaktiviran; izaberite drugi ili ga ponovo uključite u administraciji šablona.",
+    "errorTemplateKind": "Ovaj šablon nije za ovu vrstu poruke (interna bilješka i javni odgovor koriste različite šablone).",
     "interceptVoteHelpful": "Hvala, zabilježeno je da vam je članak pomogao. Ako je problem riješen, odaberite „Članak je riješio moj problem“ ispod.",
     "interceptVoteNotHelpful": "Hvala, zabilježeno je da članak nije pomogao. Možete nastaviti sa slanjem zahtjeva.",
     "errorAssetNotSelectable": "Izabrana oprema se ne može koristiti za ovaj tiket. Osvježite stranicu i pokušajte ponovo."
@@ -4601,6 +4672,7 @@
       "TEMPLATE_BODY_INVALID": "Tekst šablona je prazan ili predug (najviše 10 000 znakova).",
       "TEMPLATE_UNKNOWN_VARIABLE": "Šablon koristi varijablu koja ne postoji.",
       "TEMPLATE_KIND_MISMATCH": "Ovaj šablon nije za ovu vrstu poruke.",
+      "TEMPLATE_INACTIVE": "Šablon je deaktiviran i više se ne može koristiti.",
       "TEMPLATE_SCOPE_INVALID": "Servis, kategorija ili grupa u opsegu ne postoji.",
       "TEMPLATE_SCOPE_FORBIDDEN": "Opseg izlazi izvan servisa kojima smijete upravljati. Globalne šablone uređuje SuperAdmin.",
       "TEMPLATE_TAGS_INVALID": "Dozvoljeno je najviše 10 oznaka do 40 znakova.",
@@ -7693,6 +7765,61 @@
       "simulatorOff": "Simulator radi samo u režimu simulatora uz uključen addon.",
       "forbidden": "Nemate pravo na ovu akciju.",
       "generic": "Došlo je do greške. Pokušajte ponovo."
+    }
+  },
+  "docs": {
+    "title": "Dokumentacija",
+    "navigationLabel": "Stranice dokumentacije",
+    "toc": "Na ovoj stranici",
+    "tocLabel": "Sadržaj stranice",
+    "breadcrumbsLabel": "Putanja",
+    "pagerLabel": "Listanje stranica",
+    "previous": "Prethodna",
+    "next": "Sljedeća",
+    "searchLabel": "Pretraga dokumentacije",
+    "searchPlaceholder": "Pretraži dokumentaciju…",
+    "searchHint": "Pretraga pokriva naslove, tekst i tagove; upisujte najmanje dva znaka.",
+    "searching": "Pretraga…",
+    "noResults": "Nema rezultata za „{{query}}“.",
+    "loading": "Učitavanje dokumentacije…",
+    "updatedAt": "Ažurirano: {{date}}",
+    "updatedAtUnknown": "Ažurirano: —",
+    "retry": "Pokušaj ponovo",
+    "backToDocs": "Na početak dokumentacije",
+    "emptyTitle": "Nema dostupnih stranica",
+    "emptyBody": "Vaša uloga trenutno ne vidi nijednu stranicu dokumentacije.",
+    "recent": "Nedavno posjećeno",
+    "print": "Štampaj / PDF",
+    "helpLabel": "Otvori dokumentaciju za ovaj ekran",
+    "languageNotice": "Sadržaj dokumenata je za sada samo na bosanskom jeziku.",
+    "feedback": {
+      "label": "Povratna informacija o stranici",
+      "question": "Je li vam ova stranica pomogla?",
+      "yes": "Da",
+      "no": "Ne",
+      "thanks": "Hvala na povratnoj informaciji."
+    },
+    "emptyFilter": "Nijedna stranica ne odgovara odabranoj publici.",
+    "notFoundTitle": "Stranica nije pronađena",
+    "notFoundBody": "Stranica ne postoji ili joj vaša uloga nema pristup.",
+    "unavailableTitle": "Dokumentacija trenutno nije dostupna",
+    "unavailableBody": "Sadržaj dokumentacije nije učitan na serveru. Pokušajte kasnije ili prijavite administratoru.",
+    "errorTitle": "Greška pri učitavanju dokumentacije",
+    "hiddenByFilter": "Ova stranica ne pripada odabranoj publici.",
+    "audience": {
+      "label": "Publika",
+      "all": "Sve",
+      "user": "Korisnik",
+      "agent": "Agent",
+      "admin": "Administrator"
+    },
+    "parts": {
+      "pocetak": "Početak",
+      "korisnik": "Korisnik",
+      "agent": "Agent",
+      "administrator": "Administrator",
+      "operativa": "Operativa",
+      "referenca": "Referenca"
     }
   }
 }

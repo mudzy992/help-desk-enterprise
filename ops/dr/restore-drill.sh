@@ -8,16 +8,17 @@
 #   DRILL_DB       ciljna baza (default servicedesk-drill) — mora sadržati "drill"
 #   DUMP_FILE      Coolify backup (.dmp custom format ili .sql / .sql.gz)  [obavezno]
 #   UPLOADS_ARCHIVE uploads-YYYY-MM-DD.tar.gz                            [obavezno]
-#   DRILL_UPLOADS_VOLUME  volumen za drill stack (default ephd-drill-uploads)
+#   DRILL_UPLOADS_VOLUME  volumen za drill stack (default servicedesk-drill-uploads)
 # Ispisuje starost backupa (RPO) i trajanje; rezultat ide u zapisnik.
 set -euo pipefail
 
 : "${PG_CONTAINER:?}"; : "${DUMP_FILE:?}"; : "${UPLOADS_ARCHIVE:?}"
 PG_USER="${PG_USER:-admin}"
 DRILL_DB="${DRILL_DB:-servicedesk-drill}"
-DRILL_UPLOADS_VOLUME="${DRILL_UPLOADS_VOLUME:-ephd-drill-uploads}"
+DRILL_UPLOADS_VOLUME="${DRILL_UPLOADS_VOLUME:-servicedesk-drill-uploads}"
 
 case "$DRILL_DB" in *drill*) ;; *) echo "DRILL_DB mora sadržati 'drill' (zaštita od prepisivanja)"; exit 2;; esac
+case "$DRILL_UPLOADS_VOLUME" in *drill*) ;; *) echo "DRILL_UPLOADS_VOLUME mora sadržati 'drill' (zaštita od prepisivanja)"; exit 2;; esac
 [ -f "$DUMP_FILE" ] && [ -f "$UPLOADS_ARCHIVE" ] || { echo "Dump ili arhiva ne postoje"; exit 2; }
 if [ -f "${UPLOADS_ARCHIVE}.sha256" ]; then
   ( cd "$(dirname "$UPLOADS_ARCHIVE")" && sha256sum -c "$(basename "$UPLOADS_ARCHIVE").sha256" )

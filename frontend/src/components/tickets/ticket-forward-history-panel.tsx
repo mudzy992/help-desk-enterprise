@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import {
@@ -31,17 +31,17 @@ export function TicketForwardHistoryPanel({
       setItems([]);
       return;
     }
-    let active = true;
+    let cancelled = false;
     listForwardHistory(ticketId)
       .then((response) => {
-        if (active) {
+        if (!cancelled) {
           setItems(response);
         }
       })
       // History is informational; a failure must not break the ticket screen.
       .catch(() => undefined);
     return () => {
-      active = false;
+      cancelled = true;
     };
   }, [ticketId, versionKey, visible]);
 
@@ -49,12 +49,13 @@ export function TicketForwardHistoryPanel({
     return null;
   }
   return (
-    <Card className="fade-in" data-testid="forward-history">
-      <CardHeader
-        title={t("tickets.forward.historyTitle")}
-        subtitle={ticketText(t, "tickets.forward.historyCount", { count: items.length })}
-      />
-      <ol className="grid gap-3 px-4 py-4">
+    <DetailSection
+      id="forward"
+      testId="forward-history"
+      title={t("tickets.forward.historyTitle")}
+      subtitle={ticketText(t, "tickets.forward.historyCount", { count: items.length })}
+    >
+      <ol className="grid gap-3">
         {items.map((item) => (
           <li key={item.id} className="grid gap-1 text-[12px]">
             <div className="flex flex-wrap items-center gap-1.5 text-foreground">
@@ -92,6 +93,6 @@ export function TicketForwardHistoryPanel({
           </li>
         ))}
       </ol>
-    </Card>
+    </DetailSection>
   );
 }

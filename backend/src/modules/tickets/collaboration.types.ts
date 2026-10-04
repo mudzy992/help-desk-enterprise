@@ -39,6 +39,8 @@ export type TicketMessageRecord = {
   readonly source?: 'APP' | 'EMAIL' | 'TEAMS';
   /** Paket 2.6: set when anonymization replaced names in the body. */
   readonly redactedAt?: Date | null;
+  /** Paket 1.4: the template the text started from; absent when none was used. */
+  readonly responseTemplateId?: string | null;
 };
 
 export type TicketMessageResponse = {

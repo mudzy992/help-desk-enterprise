@@ -19,6 +19,11 @@ export const defaultReportPackKeys = [
 export const defaultReportPacksJson = JSON.stringify([...defaultReportPackKeys]);
 export const defaultReportExportFormatsCsv = 'csv,json';
 export const defaultBottleneckWindowDays = 30;
+/**
+ * Val 1 (M15/B3): period paketa izvještaja je ranije dijelio ključ sa uskim
+ * grlima, pa je promjena „prozora za uska grla“ tiho pomjerala i pakete.
+ */
+export const defaultPackWindowDays = 30;
 /** Package 1.6: a ticket forwarded at least this many times is "ping-pong". */
 export const defaultPingPongThreshold = 3;
 export const pingPongThresholdRange = { min: 2, max: 20 } as const;
@@ -165,6 +170,15 @@ export const reportsSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: '07:00',
     assertValue: assertSendTime,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsDefaultWindowDays,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'Default window in days for report pack previews and exports',
+    isRequired: true,
+    defaultValue: defaultPackWindowDays,
+    assertValue: assertPositiveInteger,
   }),
   definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksEnabled,

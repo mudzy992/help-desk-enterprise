@@ -54,6 +54,8 @@ export class PreviewResponseTemplateDto {
 
 export class RenderResponseTemplateDto {
   @IsOptional() @IsIn(templateLocales) locale?: 'bs' | 'en';
+  /** Val 2 (M13/B1): composer mode — server odbija šablon drugog tipa. */
+  @IsOptional() @IsIn(['REPLY', 'INTERNAL']) kind?: 'REPLY' | 'INTERNAL';
 }
 
 export class PlaybookStepDto {

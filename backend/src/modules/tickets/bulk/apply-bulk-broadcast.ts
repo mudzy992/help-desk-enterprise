@@ -11,6 +11,8 @@ import { bulkBroadcastRateLimiter } from './bulk-broadcast-rate-limiter';
 import type { ExecuteTicketBulkInput, TicketBulkConfiguration } from './bulk.types';
 import { formatBulkBroadcastMessage } from './format-bulk-broadcast-message';
 import { dispatchBroadcastEmail } from './broadcast-email-channel';
+import { redactBroadcastText, scanBroadcastText } from './redact-bulk-broadcast';
+import { recordRedactionWarning } from '../redaction/record-redaction-warning';
 
 export async function applyBulkBroadcast(input: {
   readonly prisma: PrismaService;
@@ -38,8 +40,22 @@ export async function applyBulkBroadcast(input: {
   ) {
     throw new TicketsError('BULK_RATE_LIMITED');
   }
-  const body = formatBulkBroadcastMessage(input.body, input.configuration);
+  // Val 2 (M12/B2): the broadcast text is a public message like any other —
+  // scan it and redact what looks like a secret before it is stored or mailed,
+  // and leave a warning on every affected ticket when something was replaced.
+  const rawBody = formatBulkBroadcastMessage(input.body, input.configuration);
+  const scan = scanBroadcastText(rawBody);
+  const body = scan.matches.length === 0 ? rawBody : redactBroadcastText(rawBody);
   for (const ticket of input.tickets) {
+    if (scan.matches.length > 0) {
+      await recordRedactionWarning({
+        prisma: input.prisma,
+        ticketId: ticket.id,
+        actorUserId: input.actor.actorUserId,
+        scan,
+        messages: input.messages,
+      });
+    }
     if (input.configuration.broadcastEnableInApp) {
       input.messages.push(
         await input.prisma.ticketMessage.create({

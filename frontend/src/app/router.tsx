@@ -64,6 +64,7 @@ const AccountNotificationsPage = lazyPage(
 const PrivacyPage = lazyPage(() => import("@/pages/privacy-page"), "PrivacyPage");
 const PrivacyNoticePage = lazyPage(() => import("@/pages/privacy-notice-page"), "PrivacyNoticePage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
+const DocsPage = lazyPage(() => import("@/pages/docs-page"), "DocsPage");
 const StatusPage = lazyPage(() => import("@/pages/status-page"), "StatusPage");
 const OnCallPage = lazyPage(() => import("@/pages/on-call-page"), "OnCallPage");
 const AnnouncementsPage = lazyPage(() => import("@/pages/announcements-page"), "AnnouncementsPage");
@@ -124,6 +125,9 @@ export function AppRouter() {
             <Route path="services" element={<ServicesPage />} />
             {/* Paket 2.7 (§8): every signed-in user; managing is gated server-side. */}
             <Route path="status" element={<StatusPage />} />
+            {/* Faza 3 (c): Dokumentacija — svaki prijavljeni korisnik; uloge filtrira server. */}
+            <Route path="docs" element={<DocsPage />} />
+            <Route path="docs/:slug" element={<DocsPage />} />
             {/* Paket 2.9 (K2): archive for everyone; managing is gated server-side. */}
             <Route path="announcements" element={<AnnouncementsPage />} />
             {/* Paket 2.9 (K3): on-call calendar, holders of oncall.read. */}

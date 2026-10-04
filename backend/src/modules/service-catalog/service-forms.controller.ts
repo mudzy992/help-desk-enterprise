@@ -12,7 +12,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import {
+  readPrincipalContext,
+  type AuthenticatedHttpRequest,
+} from '../authentication/authenticated-request';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -64,8 +67,15 @@ export class ServiceFormsController {
   @Get(':serviceId/form')
   @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
-  getForm(@Param('serviceId') serviceId: string): Promise<ServiceFormResponse> {
-    return this.serviceFormsService.getForm(serviceId);
+  getForm(
+    @Param('serviceId') serviceId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<ServiceFormResponse> {
+    // Val 2 (M6/B2): šema forme nacrta nije javna (RAW `:304`).
+    return this.serviceFormsService.getForm(
+      serviceId,
+      readPrincipalContext(request)?.roleKeys ?? [],
+    );
   }
 
   @Post(':serviceId/form/versions')
@@ -89,8 +99,13 @@ export class ServiceFormsController {
   getFormVersion(
     @Param('serviceId') serviceId: string,
     @Param('formVersionRef') formVersionRef: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
-    return this.serviceFormsService.getFormVersion(serviceId, formVersionRef);
+    return this.serviceFormsService.getFormVersion(
+      serviceId,
+      formVersionRef,
+      readPrincipalContext(request)?.roleKeys ?? [],
+    );
   }
 
   @Patch(':serviceId/form/versions/:formVersionRef')

@@ -2,7 +2,7 @@ import { Hourglass, Pause, Timer } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge, MetaBadge, type BadgeTone } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { Progress } from "@/components/ui/progress";
 import {
   formatSlaRemainingTime,
@@ -54,9 +54,8 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
       return null;
     }
     return (
-      <Card className="fade-in">
-        <CardHeader title={ticketText(t, "tickets.detail.sla.title")} />
-        <div className="space-y-1.5 px-4 py-4 text-[12px] leading-5">
+      <DetailSection id="sla" title={ticketText(t, "tickets.detail.sla.title")}>
+        <div className="space-y-1.5 text-[12px] leading-5">
           <p className="flex items-center gap-1.5 font-medium text-foreground/90">
             <Hourglass size={12} aria-hidden="true" />{" "}
             {ticketText(t, "tickets.detail.sla.unavailableTitle")}
@@ -70,16 +69,16 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
             </p>
           ) : null}
         </div>
-      </Card>
+      </DetailSection>
     );
   }
   return (
-    <Card className="fade-in">
-      <CardHeader
-        title={ticketText(t, "tickets.detail.sla.title")}
-        subtitle={slaSubtitle(context, t)}
-      />
-      <div className="space-y-4 px-4 py-4">
+    <DetailSection
+      id="sla"
+      title={ticketText(t, "tickets.detail.sla.title")}
+      subtitle={slaSubtitle(context, t)}
+    >
+      <div className="space-y-4">
         <SlaTimerBlock
           icon={<Hourglass size={12} />}
           label={ticketText(t, "tickets.detail.sla.firstResponse")}
@@ -118,7 +117,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
           )}
         </div>
       </div>
-    </Card>
+    </DetailSection>
   );
 }
 

@@ -41,6 +41,8 @@ export function createInMemoryInstallSeedPrisma() {
   const prisma = {
     user: users.prisma.user,
     role: users.prisma.role,
+    permission: users.prisma.permission,
+    rolePermission: users.prisma.rolePermission,
     organizationalUnit: createInMemoryInstallSeedUnitDelegate(units, nextId, now),
     group: createInMemoryInstallSeedGroupDelegate(groups, nextId, now),
     serviceCategory: createInMemoryServiceCategoryDelegate(
@@ -96,6 +98,8 @@ export function createInMemoryInstallSeedPrisma() {
 
   return {
     prisma,
+    getRoleByKey: users.getRoleByKey,
+    listRolePermissionKeys: users.listRolePermissionKeys,
     seedUser: users.seedUser,
     seedUnit: (unit: InMemoryOrganizationalUnit) => units.set(unit.id, unit),
     seedGroup: (group: InMemoryInstallSeedGroup) => groups.set(group.id, group),

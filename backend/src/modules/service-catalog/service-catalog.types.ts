@@ -107,6 +107,8 @@ export type ListServicesInput = {
   readonly lifecycle?: ServiceLifecycle;
   readonly categoryId?: string;
   readonly offeredOnly?: boolean;
+  /** Val 2 (M6/B2): šta pozivalac smije vidjeti; `undefined` = bez filtera. */
+  readonly visibleLifecycles?: readonly ServiceLifecycle[];
 };
 
 export type TransitionServiceLifecycleInput = {

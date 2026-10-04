@@ -58,7 +58,10 @@ export function createInMemoryServiceDelegate(
     findMany: async ({
       where,
     }: {
-      where?: { lifecycle?: ServiceLifecycle; categoryId?: string };
+      where?: {
+        lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
+        categoryId?: string;
+      };
     } = {}) =>
       [...services.values()]
         .filter((item) => matchesServiceWhere(item, where))
@@ -138,9 +141,21 @@ function countByServiceId(
 
 function matchesServiceWhere(
   item: ServiceRecord,
-  where?: { lifecycle?: ServiceLifecycle; categoryId?: string },
+  where?: {
+    lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
+    categoryId?: string;
+  },
 ): boolean {
-  if (where?.lifecycle !== undefined && item.lifecycle !== where.lifecycle) {
+  // Val 2 (M6/B2): listServices filtrira vidljiva stanja preko `in`.
+  const lifecycle = where?.lifecycle;
+  if (typeof lifecycle === 'string' && item.lifecycle !== lifecycle) {
+    return false;
+  }
+  if (
+    lifecycle !== undefined &&
+    typeof lifecycle === 'object' &&
+    !lifecycle.in.includes(item.lifecycle)
+  ) {
     return false;
   }
   if (where?.categoryId !== undefined && item.categoryId !== where.categoryId) {

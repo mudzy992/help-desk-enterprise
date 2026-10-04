@@ -36,7 +36,7 @@ describe('composeTicketEmail', () => {
       References: '<ticket-ticket-1@example.com>',
       'Auto-Submitted': 'auto-generated',
       'X-Auto-Response-Suppress': 'All',
-      'X-EPHD-Ticket': 'HD-1',
+      'X-Service-Desk-Ticket': 'HD-1',
     });
     expect(email.replyTo).toBeUndefined();
     expect(email.text).toContain('https://desk.example.com/tickets/ticket-1');

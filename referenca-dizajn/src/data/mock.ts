@@ -51,20 +51,20 @@ export interface User {
 }
 
 export const USERS: User[] = [
-  { id: "u-emir", name: "Emir Kovač", email: "emir.kovac@ep.ba", role: "SuperAdmin", roleTone: "super", ouId: "ou-it", openLoad: 4, mfa: true, active: true },
-  { id: "u-amar", name: "Amar Softić", email: "amar.softic@ep.ba", role: "Agent L1", roleTone: "agent", ouId: "ou-it", groupId: "g-l1", policyPack: "IT", openLoad: 11, mfa: true, active: true },
-  { id: "u-lejla", name: "Lejla Hadžić", email: "lejla.hadzic@ep.ba", role: "Agent L2", roleTone: "agent", ouId: "ou-it-infra", groupId: "g-l2", policyPack: "IT", openLoad: 7, mfa: true, active: true },
-  { id: "u-adnan", name: "Adnan Begić", email: "adnan.begic@ep.ba", role: "Sistem inženjer", roleTone: "agent", ouId: "ou-it-infra", groupId: "g-sys", policyPack: "IT", openLoad: 3, mfa: true, active: true },
-  { id: "u-alma", name: "Alma Dizdarević", email: "alma.dizdarevic@ep.ba", role: "Sigurnosni analitičar", roleTone: "agent", ouId: "ou-it", groupId: "g-soc", policyPack: "IT", openLoad: 2, mfa: true, active: true },
-  { id: "u-selma", name: "Selma Jahić", email: "selma.jahic@ep.ba", role: "HR servisni agent", roleTone: "agent", ouId: "ou-hr", groupId: "g-hr", policyPack: "HR", openLoad: 5, mfa: true, active: true },
-  { id: "u-faris", name: "Faris Mujić", email: "faris.mujic@ep.ba", role: "Finansijski agent", roleTone: "agent", ouId: "ou-fin", groupId: "g-fin", policyPack: "FIN", openLoad: 6, mfa: false, active: true },
-  { id: "u-dzenana", name: "Dženana Softić", email: "dzenana.softic@ep.ba", role: "Menadžer usluga", roleTone: "manager", ouId: "ou-it", openLoad: 1, mfa: true, active: true },
-  { id: "u-aida", name: "Aida Čengić", email: "aida.cengic@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-op-tz", openLoad: 0, mfa: true, active: true },
-  { id: "u-mirza", name: "Mirza Delić", email: "mirza.delic@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-fin", openLoad: 0, mfa: false, active: true },
-  { id: "u-nedim", name: "Nedim Krupalija", email: "nedim.krupalija@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-op-sa", openLoad: 0, mfa: true, active: true },
-  { id: "u-lamija", name: "Lamija Omerović", email: "lamija.omerovic@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-hr", openLoad: 0, mfa: true, active: true },
-  { id: "u-haris", name: "Haris Dautović", email: "haris.dautovic@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-prodaja", openLoad: 0, mfa: false, active: false },
-  { id: "u-sanja", name: "Sanja Krišto", email: "sanja.kristo@ep.ba", role: "Korisnik", roleTone: "user", ouId: "ou-op-mo", openLoad: 0, mfa: true, active: true },
+  { id: "u-emir", name: "Emir Kovač", email: "emir.kovac@example.com", role: "SuperAdmin", roleTone: "super", ouId: "ou-it", openLoad: 4, mfa: true, active: true },
+  { id: "u-amar", name: "Amar Softić", email: "amar.softic@example.com", role: "Agent L1", roleTone: "agent", ouId: "ou-it", groupId: "g-l1", policyPack: "IT", openLoad: 11, mfa: true, active: true },
+  { id: "u-lejla", name: "Lejla Hadžić", email: "lejla.hadzic@example.com", role: "Agent L2", roleTone: "agent", ouId: "ou-it-infra", groupId: "g-l2", policyPack: "IT", openLoad: 7, mfa: true, active: true },
+  { id: "u-adnan", name: "Adnan Begić", email: "adnan.begic@example.com", role: "Sistem inženjer", roleTone: "agent", ouId: "ou-it-infra", groupId: "g-sys", policyPack: "IT", openLoad: 3, mfa: true, active: true },
+  { id: "u-alma", name: "Alma Dizdarević", email: "alma.dizdarevic@example.com", role: "Sigurnosni analitičar", roleTone: "agent", ouId: "ou-it", groupId: "g-soc", policyPack: "IT", openLoad: 2, mfa: true, active: true },
+  { id: "u-selma", name: "Selma Jahić", email: "selma.jahic@example.com", role: "HR servisni agent", roleTone: "agent", ouId: "ou-hr", groupId: "g-hr", policyPack: "HR", openLoad: 5, mfa: true, active: true },
+  { id: "u-faris", name: "Faris Mujić", email: "faris.mujic@example.com", role: "Finansijski agent", roleTone: "agent", ouId: "ou-fin", groupId: "g-fin", policyPack: "FIN", openLoad: 6, mfa: false, active: true },
+  { id: "u-dzenana", name: "Dženana Softić", email: "dzenana.softic@example.com", role: "Menadžer usluga", roleTone: "manager", ouId: "ou-it", openLoad: 1, mfa: true, active: true },
+  { id: "u-aida", name: "Aida Čengić", email: "aida.cengic@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-op-tz", openLoad: 0, mfa: true, active: true },
+  { id: "u-mirza", name: "Mirza Delić", email: "mirza.delic@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-fin", openLoad: 0, mfa: false, active: true },
+  { id: "u-nedim", name: "Nedim Krupalija", email: "nedim.krupalija@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-op-sa", openLoad: 0, mfa: true, active: true },
+  { id: "u-lamija", name: "Lamija Omerović", email: "lamija.omerovic@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-hr", openLoad: 0, mfa: true, active: true },
+  { id: "u-haris", name: "Haris Dautović", email: "haris.dautovic@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-prodaja", openLoad: 0, mfa: false, active: false },
+  { id: "u-sanja", name: "Sanja Krišto", email: "sanja.kristo@example.com", role: "Korisnik", roleTone: "user", ouId: "ou-op-mo", openLoad: 0, mfa: true, active: true },
 ];
 
 export const userById = (id: string) => USERS.find((u) => u.id === id)!;
@@ -357,7 +357,7 @@ const T = "2026-02-12";
 
 export const TICKETS: Ticket[] = [
   {
-    id: "EP-1043",
+    id: "HD-1043",
     title: "Ne radi VPN konekcija od jutros — cijeli tim Tuzla",
     serviceId: "sv-vpn", originUnitId: "ou-op-tz", requesterId: "u-aida",
     status: "IN_PROGRESS", impact: "HIGH", urgency: "HIGH", priority: "CRITICAL",
@@ -390,7 +390,7 @@ export const TICKETS: Ticket[] = [
     ],
   },
   {
-    id: "EP-1042",
+    id: "HD-1042",
     title: "Sumnjiv phishing email — lažna faktura dobavljača",
     serviceId: "sv-phish", originUnitId: "ou-fin", requesterId: "u-mirza",
     status: "ASSIGNED", impact: "HIGH", urgency: "HIGH", priority: "CRITICAL",
@@ -414,7 +414,7 @@ export const TICKETS: Ticket[] = [
     attachments: [{ id: "at1", name: "email-headers.eml", size: "38 KB", kind: "doc", classification: "Povjerljivo", byId: "u-mirza", at: `${T}T09:12:00` }],
   },
   {
-    id: "EP-1041",
+    id: "HD-1041",
     title: "Zahtjev za pristup SAP FI modulu — unos faktura",
     serviceId: "sv-sap", originUnitId: "ou-fin", requesterId: "u-mirza",
     status: "PENDING", impact: "MEDIUM", urgency: "MEDIUM", priority: "MEDIUM",
@@ -440,7 +440,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1039",
+    id: "HD-1039",
     title: "Pristup zajedničkom disku za tim Pravnih poslova",
     serviceId: "sv-disk", originUnitId: "ou-pravni", requesterId: "u-lamija",
     status: "WAITING_USER", impact: "LOW", urgency: "LOW", priority: "LOW",
@@ -461,7 +461,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1037",
+    id: "HD-1037",
     title: "Novi zaposlenik — priprema radne stanice (Razvoj)",
     serviceId: "sv-onboard", originUnitId: "ou-it-dev", requesterId: "u-dzenana",
     status: "IN_PROGRESS", impact: "MEDIUM", urgency: "MEDIUM", priority: "MEDIUM",
@@ -472,17 +472,17 @@ export const TICKETS: Ticket[] = [
     watchers: ["u-amar"], timeSpentMin: 55,
     messages: [
       { id: "m1", at: "2026-02-11T10:00:00", authorId: "u-dzenana", kind: "PUBLIC", body: "Novi backend inženjer počinje u ponedjeljak 16. 02. Potreban laptop + dock, domena, SAP HR pregled i pristup Git repozitorijima." },
-      { id: "m2", at: `${T}T08:40:00`, authorId: "u-selma", kind: "PUBLIC", body: "Nalog je kreiran, oprema rezervisana iz skladišta. Čekam još samo potvrdu od Razvoja o listi repozitorija. Pod-tiket za IT opremu: EP-1038." },
+      { id: "m2", at: `${T}T08:40:00`, authorId: "u-selma", kind: "PUBLIC", body: "Nalog je kreiran, oprema rezervisana iz skladišta. Čekam još samo potvrdu od Razvoja o listi repozitorija. Pod-tiket za IT opremu: HD-1038." },
     ],
     activities: [
-      { id: "a1", at: "2026-02-11T10:01:00", actor: "Sistem", text: "tiket podijeljen: kreiran pod-tiket EP-1038 (nabavka opreme) — parent/child veza", kind: "edit" },
+      { id: "a1", at: "2026-02-11T10:01:00", actor: "Sistem", text: "tiket podijeljen: kreiran pod-tiket HD-1038 (nabavka opreme) — parent/child veza", kind: "edit" },
       { id: "a2", at: `${T}T08:40:00`, actor: "Selma Jahić", text: "zabilježeno vrijeme rada: 55 min", kind: "edit" },
     ],
     timeLogs: [{ id: "tl1", userId: "u-selma", minutes: 55, note: "Kreiranje naloga, rezervacija opreme", at: `${T}T08:40:00` }],
     attachments: [],
   },
   {
-    id: "EP-1033",
+    id: "HD-1033",
     title: "Spore radne stanice u operaterskom centru Sarajevo",
     serviceId: "sv-incident", originUnitId: "ou-op-sa", requesterId: "u-nedim",
     status: "PENDING", impact: "HIGH", urgency: "MEDIUM", priority: "HIGH",
@@ -502,7 +502,7 @@ export const TICKETS: Ticket[] = [
     attachments: [{ id: "at1", name: "task-manager-snimak.png", size: "340 KB", kind: "img", classification: "Interno", byId: "u-nedim", at: `${T}T10:53:00` }],
   },
   {
-    id: "EP-1031",
+    id: "HD-1031",
     title: "Izmjena podataka o bankovnom računu zaposlenika",
     serviceId: "sv-odsustvo", originUnitId: "ou-hr", requesterId: "u-lamija",
     status: "ASSIGNED", impact: "MEDIUM", urgency: "HIGH", priority: "HIGH",
@@ -523,7 +523,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1028",
+    id: "HD-1028",
     title: "Neispravan projektor u sali B2 — treperi slika",
     serviceId: "sv-projektor", originUnitId: "ou-dir", requesterId: "u-haris",
     status: "RESOLVED", impact: "LOW", urgency: "MEDIUM", priority: "LOW",
@@ -543,7 +543,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1024",
+    id: "HD-1024",
     title: "Reset lozinke — zaključan domena nalog",
     serviceId: "sv-lozinka", originUnitId: "ou-prodaja", requesterId: "u-haris",
     status: "CLOSED", impact: "LOW", urgency: "HIGH", priority: "MEDIUM",
@@ -563,7 +563,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1040",
+    id: "HD-1040",
     title: "Refundacija putnog naloga — relacija Sarajevo–Beč",
     serviceId: "sv-refund", originUnitId: "ou-prodaja", requesterId: "u-haris",
     status: "WAITING_USER", impact: "LOW", urgency: "LOW", priority: "LOW",
@@ -582,7 +582,7 @@ export const TICKETS: Ticket[] = [
     attachments: [{ id: "at1", name: "putni-nalog-2026-014.pdf", size: "96 KB", kind: "pdf", classification: "Povjerljivo", byId: "u-haris", at: "2026-02-10T11:31:00" }],
   },
   {
-    id: "EP-1038",
+    id: "HD-1038",
     title: "Onboarding: nabavka laptopa za novog inženjera",
     serviceId: "sv-nabavka", originUnitId: "ou-it-dev", requesterId: "u-dzenana",
     status: "ASSIGNED", impact: "MEDIUM", urgency: "MEDIUM", priority: "MEDIUM",
@@ -592,18 +592,18 @@ export const TICKETS: Ticket[] = [
     slaPaused: false, slaState: "OK", channel: "Portal", formVersion: "v6",
     watchers: ["u-selma"], timeSpentMin: 40,
     messages: [
-      { id: "m1", at: "2026-02-11T10:01:00", authorId: "system", kind: "SYSTEM", body: "Pod-tiket kreiran dijeljenjem iz EP-1037 (roditelj). Odobrenja: 1/2 završeno, 2/2 u toku." },
+      { id: "m1", at: "2026-02-11T10:01:00", authorId: "system", kind: "SYSTEM", body: "Pod-tiket kreiran dijeljenjem iz HD-1037 (roditelj). Odobrenja: 1/2 završeno, 2/2 u toku." },
       { id: "m2", at: `${T}T09:35:00`, authorId: "u-faris", kind: "PUBLIC", body: "Cijena je unutar CAPEX praga za standardni dev laptop. Nakon odobrenja menadžera usluga ide narudžba dobavljaču — rok isporuke 2 radna dana." },
     ],
     activities: [
-      { id: "a1", at: "2026-02-11T10:01:00", actor: "Sistem", text: "kreiran dijeljenjem iz EP-1037", kind: "edit" },
+      { id: "a1", at: "2026-02-11T10:01:00", actor: "Sistem", text: "kreiran dijeljenjem iz HD-1037", kind: "edit" },
       { id: "a2", at: "2026-02-11T13:15:00", actor: "Dženana Softić", text: "odobrenje 1/2 (budžetska linija CAPEX 2026)", kind: "approval" },
     ],
     timeLogs: [{ id: "tl1", userId: "u-faris", minutes: 40, note: "Upit dobavljaču, poređenje cijena", at: `${T}T09:35:00` }],
     attachments: [{ id: "at1", name: "ponuda-laptop-dev.xlsx", size: "18 KB", kind: "xls", classification: "Interno", byId: "u-faris", at: `${T}T09:35:00` }],
   },
   {
-    id: "EP-1035",
+    id: "HD-1035",
     title: "Korekcija godišnjeg odmora — pogrešan broj dana",
     serviceId: "sv-odsustvo", originUnitId: "ou-hr", requesterId: "u-sanja",
     status: "RESOLVED", impact: "LOW", urgency: "MEDIUM", priority: "LOW",
@@ -620,7 +620,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1045",
+    id: "HD-1045",
     title: "Prekid rada Outlook kalendara nakon update-a",
     serviceId: "sv-incident", originUnitId: "ou-dir", requesterId: "u-nedim",
     status: "PENDING", impact: "MEDIUM", urgency: "HIGH", priority: "HIGH",
@@ -637,7 +637,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1044",
+    id: "HD-1044",
     title: "Tražim prenos licenciranog AutoCAD profila na novu stanicu",
     serviceId: "sv-autocad", originUnitId: "ou-it-dev", requesterId: "u-haris",
     status: "CLOSED", impact: "LOW", urgency: "LOW", priority: "LOW",
@@ -654,7 +654,7 @@ export const TICKETS: Ticket[] = [
     attachments: [],
   },
   {
-    id: "EP-1021",
+    id: "HD-1021",
     title: "Email se ne sinhronizuje na službenom telefonu",
     serviceId: "sv-lozinka", originUnitId: "ou-op-mo", requesterId: "u-sanja",
     status: "CLOSED", impact: "LOW", urgency: "MEDIUM", priority: "LOW",
@@ -845,7 +845,7 @@ export interface BhCalendar {
 
 export const CALENDARS: BhCalendar[] = [
   {
-    id: "cal-bh", name: "Radno vrijeme EP (BiH)", schedule: "pon–pet · 08:00–16:00", timezone: "Europe/Sarajevo (UTC+1)",
+    id: "cal-bh", name: "Radno vrijeme (BiH)", schedule: "pon–pet · 08:00–16:00", timezone: "Europe/Sarajevo (UTC+1)",
     holidays: [
       { date: "2026-03-01", name: "Dan nezavisnosti BiH" },
       { date: "2026-05-01", name: "Praznik rada" },
@@ -884,12 +884,12 @@ export interface AppNotification {
 }
 
 export const NOTIFICATIONS: AppNotification[] = [
-  { id: "n1", title: "SLA prekoračenje: EP-1031", body: "Resolution rok prekoračen prije 3 sata — povjerljiv tiket, HR Servisi.", at: "2026-02-12T07:30:00", unread: true, kind: "sla", routeTo: "ticket:EP-1031" },
-  { id: "n2", title: "Čeka vaše odobrenje (2/2)", body: "EP-1041 · Pristup SAP FI modulu — Mirza Delić.", at: "2026-02-12T10:20:00", unread: true, kind: "approval", routeTo: "ticket:EP-1041" },
-  { id: "n3", title: "Novi tiket u neusmjerenom redu", body: "EP-1033 · Incident radne stanice, Operateri/Sarajevo.", at: "2026-02-12T10:52:00", unread: true, kind: "ticket", routeTo: "inbox" },
+  { id: "n1", title: "SLA prekoračenje: HD-1031", body: "Resolution rok prekoračen prije 3 sata — povjerljiv tiket, HR Servisi.", at: "2026-02-12T07:30:00", unread: true, kind: "sla", routeTo: "ticket:HD-1031" },
+  { id: "n2", title: "Čeka vaše odobrenje (2/2)", body: "HD-1041 · Pristup SAP FI modulu — Mirza Delić.", at: "2026-02-12T10:20:00", unread: true, kind: "approval", routeTo: "ticket:HD-1041" },
+  { id: "n3", title: "Novi tiket u neusmjerenom redu", body: "HD-1033 · Incident radne stanice, Operateri/Sarajevo.", at: "2026-02-12T10:52:00", unread: true, kind: "ticket", routeTo: "inbox" },
   { id: "n4", title: "Routing pravilo izmijenjeno", body: "Lejla Hadžić: (Tuzla + VPN) → IT Podrška L2.", at: "2026-02-09T16:22:00", unread: false, kind: "system", routeTo: "routing" },
   { id: "n5", title: "Email red: 1 zadatak u DLQ", body: "BullMQ 'email-out' — maksimalan broj pokušaja dostignut.", at: "2026-02-11T22:14:00", unread: false, kind: "system", routeTo: "admin:ops" },
-  { id: "n6", title: "Tiket EP-1028 riješen", body: "Adnan Begić: zamjena dijela — sala B2 spremna.", at: "2026-02-11T16:00:00", unread: false, kind: "ticket", routeTo: "ticket:EP-1028" },
+  { id: "n6", title: "Tiket HD-1028 riješen", body: "Adnan Begić: zamjena dijela — sala B2 spremna.", at: "2026-02-11T16:00:00", unread: false, kind: "ticket", routeTo: "ticket:HD-1028" },
 ];
 
 export interface ChangeLogEntry {
@@ -945,9 +945,9 @@ export interface IntegrationJob {
 }
 
 export const INTEGRATION_JOBS: IntegrationJob[] = [
-  { id: "job-01", name: "email-out · obavještenje EP-1042", queue: "email-out", status: "COMPLETED", attempts: 1, maxAttempts: 5, at: "2026-02-12T10:45:04" },
+  { id: "job-01", name: "email-out · obavještenje HD-1042", queue: "email-out", status: "COMPLETED", attempts: 1, maxAttempts: 5, at: "2026-02-12T10:45:04" },
   { id: "job-02", name: "ad-sync · manual_only očitavanje", queue: "ad-sync", status: "COMPLETED", attempts: 1, maxAttempts: 3, at: "2026-02-12T06:00:00", note: "throttle 15 min, cache 24 h" },
-  { id: "job-03", name: "email-out · eskalacija EP-1031", queue: "email-out", status: "FAILED", attempts: 5, maxAttempts: 5, at: "2026-02-11T22:14:00", note: "SMTP 5.7.60 — token istekao; u DLQ, čeka retry" },
+  { id: "job-03", name: "email-out · eskalacija HD-1031", queue: "email-out", status: "FAILED", attempts: 5, maxAttempts: 5, at: "2026-02-11T22:14:00", note: "SMTP 5.7.60 — token istekao; u DLQ, čeka retry" },
   { id: "job-04", name: "sla-tick · provjera tajmera", queue: "sla-engine", status: "ACTIVE", attempts: 1, maxAttempts: 2, at: "2026-02-12T11:40:00" },
   { id: "job-05", name: "teams-stub · notifikacija (feature flag)", queue: "teams-stub", status: "DELAYED", attempts: 0, maxAttempts: 1, at: "2026-02-12T11:30:00", note: "stub — bez isporuke, samo audit" },
   { id: "job-06", name: "audit-hash · lančana provjera", queue: "audit", status: "WAITING", attempts: 0, maxAttempts: 2, at: "2026-02-12T12:00:00" },
@@ -991,13 +991,13 @@ export const VOLUME_14D = [
 ];
 
 export const ACTIVITY_FEED = [
-  { id: "f1", at: "2026-02-12T11:20:00", who: "Aida Čengić", what: "dodala komentar na EP-1043 (VPN — Tuzla)", tone: "primary" as const },
-  { id: "f2", at: "2026-02-12T11:05:00", who: "Nedim Krupalija", what: "kreirao EP-1045 — Outlook kalendar", tone: "info" as const },
-  { id: "f3", at: "2026-02-12T10:52:00", who: "RoutingService", what: "EP-1033 → UNROUTED red (nema pravila)", tone: "danger" as const },
-  { id: "f4", at: "2026-02-12T10:20:00", who: "Sistem", what: "SLA pauziran na EP-1041 (čeka odobrenje 2/2)", tone: "warning" as const },
-  { id: "f5", at: "2026-02-12T09:50:00", who: "Faris Mujić", what: "odobrio korak 1/2 na EP-1041", tone: "success" as const },
-  { id: "f6", at: "2026-02-12T08:14:00", who: "Lejla Hadžić", what: "objavila javni odgovor na EP-1043", tone: "primary" as const },
-  { id: "f7", at: "2026-02-12T07:30:00", who: "Sistem", what: "SLA prekoračenje EP-1031 — eskalacija HR", tone: "danger" as const },
+  { id: "f1", at: "2026-02-12T11:20:00", who: "Aida Čengić", what: "dodala komentar na HD-1043 (VPN — Tuzla)", tone: "primary" as const },
+  { id: "f2", at: "2026-02-12T11:05:00", who: "Nedim Krupalija", what: "kreirao HD-1045 — Outlook kalendar", tone: "info" as const },
+  { id: "f3", at: "2026-02-12T10:52:00", who: "RoutingService", what: "HD-1033 → UNROUTED red (nema pravila)", tone: "danger" as const },
+  { id: "f4", at: "2026-02-12T10:20:00", who: "Sistem", what: "SLA pauziran na HD-1041 (čeka odobrenje 2/2)", tone: "warning" as const },
+  { id: "f5", at: "2026-02-12T09:50:00", who: "Faris Mujić", what: "odobrio korak 1/2 na HD-1041", tone: "success" as const },
+  { id: "f6", at: "2026-02-12T08:14:00", who: "Lejla Hadžić", what: "objavila javni odgovor na HD-1043", tone: "primary" as const },
+  { id: "f7", at: "2026-02-12T07:30:00", who: "Sistem", what: "SLA prekoračenje HD-1031 — eskalacija HR", tone: "danger" as const },
 ];
 
 /* Policy packovi — aditivne dodjele dozvola (nikad SuperAdmin) */

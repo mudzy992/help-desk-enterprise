@@ -53,8 +53,12 @@ export class ServiceFormsService {
     );
   }
 
-  getForm(serviceId: string): Promise<ServiceFormResponse> {
-    return this.execute(() => getServiceForm(this.prisma, serviceId));
+  getForm(
+    serviceId: string,
+    /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
+    roleKeys?: readonly string[],
+  ): Promise<ServiceFormResponse> {
+    return this.execute(() => getServiceForm(this.prisma, serviceId, roleKeys));
   }
 
   createFormVersion(
@@ -76,9 +80,11 @@ export class ServiceFormsService {
   getFormVersion(
     serviceId: string,
     formVersionRef: string,
+    /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
+    roleKeys?: readonly string[],
   ): Promise<FormVersionResponse> {
     return this.execute(() =>
-      getServiceFormVersion(this.prisma, serviceId, formVersionRef),
+      getServiceFormVersion(this.prisma, serviceId, formVersionRef, roleKeys),
     );
   }
 

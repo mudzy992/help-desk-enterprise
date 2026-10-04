@@ -13,6 +13,21 @@ export const authorizationRoleKeys = {
   changeManager: 'CHANGE_MANAGER',
 } as const;
 
+/**
+ * Display names of the seven system roles — the only place they are written
+ * down. Used when a role row is created (installation, first user with that
+ * role) so every entry point names the same role the same way.
+ */
+export const authorizationRoleNames: Readonly<Record<string, string>> = {
+  [authorizationRoleKeys.user]: 'User',
+  [authorizationRoleKeys.agent]: 'Agent',
+  [authorizationRoleKeys.admin]: 'Admin',
+  [authorizationRoleKeys.superAdmin]: 'SuperAdmin',
+  [authorizationRoleKeys.assetManager]: 'AssetManager',
+  [authorizationRoleKeys.problemManager]: 'ProblemManager',
+  [authorizationRoleKeys.changeManager]: 'ChangeManager',
+};
+
 export const permissionKeys = {
   ticketForwardCrossOu: 'ticket.forward.cross_ou',
   ticketMerge: 'ticket.merge',

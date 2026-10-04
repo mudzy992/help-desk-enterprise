@@ -105,4 +105,58 @@ describe('Article from a public agent reply (K1c)', () => {
     ]);
     expect(audits).toHaveLength(1);
   });
+
+  it('val 2 (M14/B1): zamjenjuje lične podatke i pri upisu, ne samo u pregledu', async () => {
+    const { service, audits } = setup();
+    // Klijent je poslao tekst u koji je vraćeno ime i kontakt (izmijenjen editor,
+    // skripta ili „vrati“ u polju) — server to ne smije upisati u članak.
+    const created = await service.createFromReply(
+      {
+        ticketId: 'ticket-1',
+        messageId: 'msg-1',
+        title: 'VPN za Amra Hodžić',
+        body: 'Amra Hodžić, javite se na amra.hodzic@example.com ili +387 33 123 456; server 10.1.2.3.',
+        serviceId: knowledgeBaseTestIds.serviceVpn,
+        organizationalUnitId: knowledgeBaseTestIds.ouIt,
+        ownerUserId: knowledgeBaseTestIds.agentIt,
+        reason: 'Iz odgovora',
+      },
+      agent,
+    );
+
+    expect(created.title).toBe('VPN za [korisnik]');
+    expect(created.body).toBe(
+      '[korisnik], javite se na [e-mail] ili [telefon]; server [IP adresa].',
+    );
+    // Brojači su serverovi (ono što je stvarno zamijenjeno), ne klijentovi.
+    expect(created.replacements).toEqual({ email: 1, person: 2, ip: 1, phone: 1 });
+    expect(created.sanitized).toBe(true);
+    // Trag u auditu: bez njega promjena ne bi bila vidljiva poslije objave.
+    expect(audits.map((entry) => (entry as { action?: string }).action)).toContain(
+      'knowledge.article.reply_redacted',
+    );
+  });
+
+  it('val 2 (M14/B1): ne bilježi ništa kad je poslani tekst čist', async () => {
+    const { service, audits } = setup();
+    const created = await service.createFromReply(
+      {
+        ticketId: 'ticket-1',
+        messageId: 'msg-1',
+        title: '  VPN klijent  ',
+        body: 'Pokrenite klijent.',
+        serviceId: knowledgeBaseTestIds.serviceVpn,
+        organizationalUnitId: knowledgeBaseTestIds.ouIt,
+        ownerUserId: knowledgeBaseTestIds.agentIt,
+        reason: 'Iz odgovora',
+      },
+      agent,
+    );
+    expect(created.replacements).toEqual({ email: 0, person: 0, ip: 0, phone: 0 });
+    expect(created.sanitized).toBe(false);
+    // Samo trag o kreiranju; razmak na ivici nije „zamjena“.
+    expect(audits.map((entry) => (entry as { action?: string }).action)).toEqual([
+      'knowledge.article.drafted_from_reply',
+    ]);
+  });
 });

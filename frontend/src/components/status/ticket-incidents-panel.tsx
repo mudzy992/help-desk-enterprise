@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { hintClassName } from "@/components/ui/control";
 import { Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -111,20 +111,21 @@ export function TicketIncidentsPanel({ ticketId, serviceId, versionKey }: Ticket
   }
 
   return (
-    <Card className="fade-in" data-testid="ticket-incidents">
-      <CardHeader
-        title={t("status.ticketPanel.title")}
-        subtitle={state.incidents.length === 0 ? t("status.ticketPanel.none") : undefined}
-        actions={
-          canManage ? (
-            <Button size="xs" variant="ghost" onClick={() => setCreateOpen(true)} disabled={busy}>
-              <Plus />
-              {t("status.ticketPanel.create")}
-            </Button>
-          ) : undefined
-        }
-      />
-      <div className="grid gap-2.5 px-4 py-3">
+    <DetailSection
+      id="incidents"
+      testId="ticket-incidents"
+      title={t("status.ticketPanel.title")}
+      subtitle={state.incidents.length === 0 ? t("status.ticketPanel.none") : undefined}
+      actions={
+        canManage ? (
+          <Button size="xs" variant="ghost" onClick={() => setCreateOpen(true)} disabled={busy}>
+            <Plus />
+            {t("status.ticketPanel.create")}
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="grid gap-2.5">
         {state.incidents.map((incident) => (
           <div key={incident.id} className="flex items-start justify-between gap-2 text-[12.5px]">
             <div className="min-w-0">
@@ -190,6 +191,6 @@ export function TicketIncidentsPanel({ ticketId, serviceId, versionKey }: Ticket
           onSaved={() => void load()}
         />
       ) : null}
-    </Card>
+    </DetailSection>
   );
 }

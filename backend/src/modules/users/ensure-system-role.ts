@@ -1,23 +1,13 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { authorizationRoleNames } from '../authorization/authorization.constants';
 import { UsersError } from './users.error';
-
-const systemRoleNames: Readonly<Record<string, string>> = {
-  [authorizationRoleKeys.user]: 'User',
-  [authorizationRoleKeys.agent]: 'Agent',
-  [authorizationRoleKeys.admin]: 'Admin',
-  [authorizationRoleKeys.superAdmin]: 'SuperAdmin',
-  [authorizationRoleKeys.assetManager]: 'AssetManager',
-  [authorizationRoleKeys.problemManager]: 'ProblemManager',
-  [authorizationRoleKeys.changeManager]: 'ChangeManager',
-};
 
 export async function ensureSystemRole(
   prisma: PrismaService,
   roleKey: string,
 ): Promise<string> {
   const key = roleKey.trim();
-  const name = systemRoleNames[key];
+  const name = authorizationRoleNames[key];
   if (name === undefined) {
     throw new UsersError('ROLE_NOT_FOUND');
   }

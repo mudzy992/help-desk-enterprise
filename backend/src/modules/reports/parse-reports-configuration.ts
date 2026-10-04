@@ -25,6 +25,10 @@ export function parseReportsConfiguration(input: {
   readonly allowedFormatsCsv: unknown;
   readonly bottlenecksEnabled: unknown;
   readonly defaultWindowDays: unknown;
+  /** Val 1 (M15/B3): kad nije zadat, paketi nasljeđuju `defaultWindowDays`. */
+  readonly packWindowDays?: unknown;
+  /** Val 1 (M9/B3): skala CSAT-a; van 2–10 pada na zadanu vrijednost. */
+  readonly csatScaleMax?: unknown;
   readonly pingPongThreshold?: unknown;
   /** Paket 3.2 C9b: `private.addons.cmdb`; true adds the CMDB packs. */
   readonly cmdbEnabled?: unknown;
@@ -56,8 +60,26 @@ export function parseReportsConfiguration(input: {
     ),
     bottlenecksEnabled: input.bottlenecksEnabled,
     defaultWindowDays: parseWindowDays(input.defaultWindowDays),
+    packWindowDays:
+      input.packWindowDays === undefined
+        ? parseWindowDays(input.defaultWindowDays)
+        : parseWindowDays(input.packWindowDays, parseWindowDays(input.defaultWindowDays)),
+    csatScaleMax: parseCsatScaleMax(input.csatScaleMax),
     pingPongThreshold: parsePingPongThreshold(input.pingPongThreshold),
   };
+}
+
+/**
+ * Val 1 (M9/B3): ista pravila kao `parseTicketCsatConfiguration` — skala je
+ * cijeli broj 2–10; neispravna vrijednost vraća se na zadanu (5).
+ */
+function parseCsatScaleMax(value: unknown): number {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 2 &&
+    value <= 10
+    ? value
+    : 5;
 }
 
 function parsePingPongThreshold(value: unknown): number {
@@ -110,9 +132,9 @@ function parseFormats(value: string): readonly ReportExportFormat[] {
   return formats as ReportExportFormat[];
 }
 
-function parseWindowDays(value: unknown): number {
+function parseWindowDays(value: unknown, fallback = defaultBottleneckWindowDays): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
-    return defaultBottleneckWindowDays;
+    return fallback;
   }
   return value;
 }

@@ -139,13 +139,13 @@ Iza svakog koraka piše šta se očekuje. Rezultate unesite u zapisnik (§5).
 Tenant preduzeća nije potreban. Svaki Microsoft nalog može napraviti vlastiti **Entra ID Free** tenant:
 
 1. Na <https://portal.azure.com> se prijavite privatnim Microsoft nalogom. Ako nemate Azure pretplatu, napravite je. Entra ID Free se ne naplaćuje, a kartica se traži samo za verifikaciju identiteta.
-2. Otvorite **Microsoft Entra ID → Manage tenants → Create → Microsoft Entra ID** i dajte mu naziv, npr. `ephd-test` (domen `ephdtest.onmicrosoft.com`).
+2. Otvorite **Microsoft Entra ID → Manage tenants → Create → Microsoft Entra ID** i dajte mu naziv, npr. `servicedesk-test` (domen `sdtest.onmicrosoft.com`).
 3. Prebacite se u novi tenant i otvorite **App registrations → New registration**:
    - naziv `Service Desk (test)`, *Accounts in this organizational directory only*;
    - Redirect URI: platforma **Single-page application**, `https://desk.ba101.top/auth/callback`. Za lokalni razvoj dodajte i `http://localhost:5173/auth/callback`.
 4. Na stranici **Overview** kopirajte *Directory (tenant) ID* i *Application (client) ID*. Client secret se **ne** pravi, jer je SPA javni klijent i koristi PKCE.
 5. Na stranici **Token configuration → Add optional claim → ID** dodajte `email` i `upn`.
-6. Pod **Users → New user** napravite 2–3 testna korisnika, npr. `test.agent@ephdtest.onmicrosoft.com`.
+6. Pod **Users → New user** napravite 2–3 testna korisnika, npr. `test.agent@sdtest.onmicrosoft.com`.
 
 U aplikaciji, kao SUPER_ADMIN:
 
@@ -179,7 +179,7 @@ Odluka iz dizajna je zasebna baza na istom Postgres serveru i privremeni Coolify
 |---|---|
 | `backup-uploads.sh` | Dnevna arhiva volumena `uploads`, SHA-256, manifest i retention (cron na hostu). |
 | `export-config.sh` | Config verzija „DR backup YYYY-MM-DD" i snapshot JSON, bez tajni. |
-| `restore-drill.sh` | Dump u bazu `servicedesk-drill` (ime mora sadržavati „drill"), uploads u volumen `ephd-drill-uploads`. Ispisuje RPO, trajanje i ID-ove za verifikaciju. |
+| `restore-drill.sh` | Dump u bazu `servicedesk-drill` (ime mora sadržavati „drill"), uploads u volumen `servicedesk-drill-uploads`. Ispisuje RPO, trajanje i ID-ove za verifikaciju. |
 | `verify-restore.mjs` | 4 provjere (login, novi tiket, stari prilog, audit export), PASS/FAIL i JSON za zapisnik. `--dry` preskače kreiranje tiketa. |
 
 Postupak:
@@ -193,12 +193,12 @@ UPLOADS_ARCHIVE=/var/backups/servicedesk/uploads-2026-10-03.tar.gz \
 
 Privremeni stack u Coolifyju:
 
-1. **Clone** postojećeg resursa aplikacije (ili novi resurs iz istog repoa/grane), npr. `ephd-drill`.
+1. **Clone** postojećeg resursa aplikacije (ili novi resurs iz istog repoa/grane), npr. `servicedesk-drill`.
 2. Environment:
    - `DATABASE_URL` pokazuje na bazu `servicedesk-drill`;
    - vlastiti domeni, npr. `drill.desk.ba101.top` i `api.drill.desk.ba101.top`;
    - `VITE_API_BASE_URL` i `CORS_ORIGINS` prilagoditi tim domenima.
-3. Volumen `uploads` zamijeniti postojećim volumenom `ephd-drill-uploads`.
+3. Volumen `uploads` zamijeniti postojećim volumenom `servicedesk-drill-uploads`.
 4. **Worker ne pokretati** (ili ga pokrenuti uz Redis s drugim prefiksom), da drill ne šalje e-mailove i ne izvršava jobove.
 5. Deploy, pa verifikacija naredbom koju je ispisao `restore-drill.sh`:
 
@@ -208,7 +208,7 @@ ATTACHMENT_TICKET_ID=… ATTACHMENT_ID=… AUDIT_OU_ID=… \
   node ops/dr/verify-restore.mjs --json=drill-2026-10-03.json
 ```
 
-6. Nakon zapisnika: obrisati Coolify resurs `ephd-drill`, bazu (`DROP DATABASE "servicedesk-drill"`) i volumen (`docker volume rm ephd-drill-uploads`).
+6. Nakon zapisnika: obrisati Coolify resurs `servicedesk-drill`, bazu (`DROP DATABASE "servicedesk-drill"`) i volumen (`docker volume rm servicedesk-drill-uploads`).
 
 ---
 

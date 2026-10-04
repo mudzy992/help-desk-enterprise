@@ -1,7 +1,7 @@
 import { GitMerge } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketStatus } from "@/services/tickets-api";
@@ -19,9 +19,12 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
   }
   const dateFormat = new Intl.DateTimeFormat(i18n.language === "en" ? "en-GB" : "bs-BA", { day: "2-digit", month: "2-digit", year: "numeric" });
   return (
-    <Card className="fade-in" data-testid="ticket-merged-card">
-      <CardHeader title={ticketText(t, "tickets.merge.cardTitle", { count: items.length })} />
-      <ul className="divide-y divide-border/40 px-4 py-1.5 text-[12px]">
+    <DetailSection
+      id="merged"
+      testId="ticket-merged-card"
+      title={ticketText(t, "tickets.merge.cardTitle", { count: items.length })}
+    >
+      <ul className="divide-y divide-border/40 text-[12px]">
         {items.map((item) => {
           const statusKey = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[item.status as TicketStatus];
           return (
@@ -45,6 +48,6 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
           );
         })}
       </ul>
-    </Card>
+    </DetailSection>
   );
 }

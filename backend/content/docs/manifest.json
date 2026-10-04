@@ -1,0 +1,2867 @@
+{
+  "parts": [
+    {
+      "key": "pocetak",
+      "order": 1,
+      "pages": [
+        "pocetak-rad",
+        "instalacija",
+        "prijava-i-mfa",
+        "precice-i-pristupacnost",
+        "pregled-modula"
+      ]
+    },
+    {
+      "key": "korisnik",
+      "order": 2,
+      "pages": [
+        "tiketi",
+        "odobrenja-i-csat",
+        "status-incidenti-i-planirani-prekidi",
+        "baza-znanja",
+        "najave"
+      ]
+    },
+    {
+      "key": "agent",
+      "order": 3,
+      "pages": [
+        "prosljedjivanje-tiketa",
+        "sabloni-i-playbooks",
+        "realtime-i-obavjestenja",
+        "dezurstva"
+      ]
+    },
+    {
+      "key": "administrator",
+      "order": 4,
+      "pages": [
+        "katalog-usluga-i-forme",
+        "usmjeravanje-i-prioritet",
+        "sla",
+        "korisnici-oj-i-grupe",
+        "uloge-i-permisije",
+        "policy-paketi",
+        "posta",
+        "nadzorna-ploca-i-izvjestaji",
+        "imovina",
+        "problemi",
+        "promjene"
+      ]
+    },
+    {
+      "key": "referenca",
+      "order": 6,
+      "pages": [
+        "uloge-i-dozvole",
+        "cesta-pitanja",
+        "rjecnik",
+        "sta-je-novo"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "pocetak-rad",
+      "title": "Početak rada",
+      "module": "—",
+      "part": "pocetak",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 5,
+      "tags": [
+        "pocetak",
+        "prijava",
+        "meni",
+        "tiket",
+        "obavjestenja",
+        "pomoc"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 647,
+      "source": "docs/user-guide/pocetak-rad.md"
+    },
+    {
+      "slug": "instalacija",
+      "title": "Instalacija (prvi start)",
+      "module": "M1",
+      "part": "pocetak",
+      "audience": [
+        "Administrator",
+        "Operativa"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 10,
+      "tags": [
+        "instalacija",
+        "install-token",
+        "superadmin",
+        "smtp",
+        "dodaci"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 3,
+          "text": "Prije početka",
+          "id": "prije-pocetka"
+        },
+        {
+          "level": 3,
+          "text": "Otključavanje",
+          "id": "otkljucavanje"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. SuperAdmin nalog",
+          "id": "1-superadmin-nalog"
+        },
+        {
+          "level": 3,
+          "text": "2. Način prijave",
+          "id": "2-nacin-prijave"
+        },
+        {
+          "level": 3,
+          "text": "3. SMTP",
+          "id": "3-smtp"
+        },
+        {
+          "level": 3,
+          "text": "4. Početni podaci",
+          "id": "4-pocetni-podaci"
+        },
+        {
+          "level": 3,
+          "text": "5. Dodaci",
+          "id": "5-dodaci"
+        },
+        {
+          "level": 3,
+          "text": "6. Završi podešavanje",
+          "id": "6-zavrsi-podesavanje"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1346,
+      "source": "docs/user-guide/instalacija.md"
+    },
+    {
+      "slug": "prijava-i-mfa",
+      "title": "Prijava i potvrda u dva koraka (MFA)",
+      "module": "M2",
+      "part": "pocetak",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 20,
+      "tags": [
+        "prijava",
+        "mfa",
+        "totp",
+        "lozinka",
+        "sesija",
+        "rezervni-kodovi"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Prijava lokalnim nalogom",
+          "id": "prijava-lokalnim-nalogom"
+        },
+        {
+          "level": 3,
+          "text": "Prijava Microsoft nalogom (kada je tako podešeno)",
+          "id": "prijava-microsoft-nalogom-kada-je-tako-podeseno"
+        },
+        {
+          "level": 3,
+          "text": "Prisilna promjena lozinke",
+          "id": "prisilna-promjena-lozinke"
+        },
+        {
+          "level": 3,
+          "text": "Prvi upis potvrde u dva koraka",
+          "id": "prvi-upis-potvrde-u-dva-koraka"
+        },
+        {
+          "level": 3,
+          "text": "Prijava s uključenom potvrdom u dva koraka",
+          "id": "prijava-s-ukljucenom-potvrdom-u-dva-koraka"
+        },
+        {
+          "level": 3,
+          "text": "Sigurnost naloga (svoj nalog)",
+          "id": "sigurnost-naloga-svoj-nalog"
+        },
+        {
+          "level": 3,
+          "text": "Za administratore: tudji nalog",
+          "id": "za-administratore-tudji-nalog"
+        },
+        {
+          "level": 3,
+          "text": "Za administratore: politika (Admin → Postavke)",
+          "id": "za-administratore-politika-admin-postavke"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1462,
+      "source": "docs/user-guide/prijava-i-mfa.md"
+    },
+    {
+      "slug": "precice-i-pristupacnost",
+      "title": "Prečice na tastaturi i pristupačnost",
+      "module": "—",
+      "part": "pocetak",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 30,
+      "tags": [
+        "precice",
+        "tastatura",
+        "pristupacnost",
+        "citac-ekrana",
+        "kontrast"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Uključivanje i isključivanje prečica",
+          "id": "ukljucivanje-i-iskljucivanje-precica"
+        },
+        {
+          "level": 3,
+          "text": "Lista prečica",
+          "id": "lista-precica"
+        },
+        {
+          "level": 3,
+          "text": "Čitač ekrana",
+          "id": "citac-ekrana"
+        },
+        {
+          "level": 3,
+          "text": "Visoki kontrast i uvećanje",
+          "id": "visoki-kontrast-i-uvecanje"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 966,
+      "source": "docs/user-guide/precice-i-pristupacnost.md"
+    },
+    {
+      "slug": "pregled-modula",
+      "title": "Pregled modula",
+      "module": "—",
+      "part": "pocetak",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 40,
+      "tags": [
+        "pregled",
+        "moduli",
+        "mapa",
+        "navigacija",
+        "stranice"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 744,
+      "source": "docs/user-guide/pregled-modula.md"
+    },
+    {
+      "slug": "tiketi",
+      "title": "Tiketi",
+      "module": "M8",
+      "part": "korisnik",
+      "audience": [
+        "Korisnik",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 10,
+      "tags": [
+        "tiketi",
+        "statusi",
+        "prilozi",
+        "grupne-akcije",
+        "povjerljivi-tiketi",
+        "saved-views"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Prijava tiketa (korisnik)",
+          "id": "1-prijava-tiketa-korisnik"
+        },
+        {
+          "level": 3,
+          "text": "2. Rad iz grupnog inboxa (agent)",
+          "id": "2-rad-iz-grupnog-inboxa-agent"
+        },
+        {
+          "level": 3,
+          "text": "3. Rad u detalju tiketa",
+          "id": "3-rad-u-detalju-tiketa"
+        },
+        {
+          "level": 3,
+          "text": "4. Spajanje i razdvajanje",
+          "id": "4-spajanje-i-razdvajanje"
+        },
+        {
+          "level": 3,
+          "text": "5. Dijeljenje tiketa (split)",
+          "id": "5-dijeljenje-tiketa-split"
+        },
+        {
+          "level": 3,
+          "text": "6. Skupne akcije (agent/admin)",
+          "id": "6-skupne-akcije-agent-admin"
+        },
+        {
+          "level": 3,
+          "text": "7. Sačuvani pogledi",
+          "id": "7-sacuvani-pogledi"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Tiket",
+          "id": "tiket"
+        },
+        {
+          "level": 3,
+          "text": "Statusi i dozvoljeni prelazi",
+          "id": "statusi-i-dozvoljeni-prelazi"
+        },
+        {
+          "level": 3,
+          "text": "Automatika i rokovi",
+          "id": "automatika-i-rokovi"
+        },
+        {
+          "level": 3,
+          "text": "Poruke i prilozi",
+          "id": "poruke-i-prilozi"
+        },
+        {
+          "level": 3,
+          "text": "Skupne akcije, izvoz i mjerenje vremena",
+          "id": "skupne-akcije-izvoz-i-mjerenje-vremena"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1708,
+      "source": "docs/user-guide/tiketi.md"
+    },
+    {
+      "slug": "odobrenja-i-csat",
+      "title": "Odobrenja i CSAT",
+      "module": "M9",
+      "part": "korisnik",
+      "audience": [
+        "Korisnik",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 20,
+      "tags": [
+        "odobrenja",
+        "csat",
+        "ocjena",
+        "komentar",
+        "nps"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Kako tiket dođe u „Čeka odobrenje“",
+          "id": "1-kako-tiket-dode-u-ceka-odobrenje"
+        },
+        {
+          "level": 3,
+          "text": "2. Odluka o odobrenju",
+          "id": "2-odluka-o-odobrenju"
+        },
+        {
+          "level": 3,
+          "text": "3. Ocjenjivanje tiketa (CSAT)",
+          "id": "3-ocjenjivanje-tiketa-csat"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Odobrenje",
+          "id": "odobrenje"
+        },
+        {
+          "level": 3,
+          "text": "CSAT",
+          "id": "csat"
+        },
+        {
+          "level": 3,
+          "text": "Povezani statusi tiketa",
+          "id": "povezani-statusi-tiketa"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1382,
+      "source": "docs/user-guide/odobrenja-i-csat.md"
+    },
+    {
+      "slug": "status-incidenti-i-planirani-prekidi",
+      "title": "Status servisa: incident ili zakazani prekid?",
+      "module": "—",
+      "part": "korisnik",
+      "audience": [
+        "Svi korisnici",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 30,
+      "tags": [
+        "status-servisa",
+        "incidenti",
+        "planirani-prekidi",
+        "odrzavanje",
+        "dostupnost"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Kako rade zajedno",
+          "id": "kako-rade-zajedno"
+        },
+        {
+          "level": 3,
+          "text": "Posebni slučaj: incident s uticajem „Održavanje“",
+          "id": "posebni-slucaj-incident-s-uticajem-odrzavanje"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Vidljivost incidenta",
+          "id": "vidljivost-incidenta"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 820,
+      "source": "docs/user-guide/status-incidenti-i-planirani-prekidi.md"
+    },
+    {
+      "slug": "baza-znanja",
+      "title": "Baza znanja",
+      "module": "M14",
+      "part": "korisnik",
+      "audience": [
+        "Korisnik",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 40,
+      "tags": [
+        "baza-znanja",
+        "clanci",
+        "kategorije",
+        "ocjene",
+        "review-cycle"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Pretraga i čitanje (svaki korisnik)",
+          "id": "1-pretraga-i-citanje-svaki-korisnik"
+        },
+        {
+          "level": 3,
+          "text": "2. Ocjena i komentar (svaki korisnik)",
+          "id": "2-ocjena-i-komentar-svaki-korisnik"
+        },
+        {
+          "level": 3,
+          "text": "3. Presretanje pri kreiranju tiketa (korisnik)",
+          "id": "3-presretanje-pri-kreiranju-tiketa-korisnik"
+        },
+        {
+          "level": 3,
+          "text": "4. Pisanje i objava članka (agent/administrator)",
+          "id": "4-pisanje-i-objava-clanka-agent-administrator"
+        },
+        {
+          "level": 3,
+          "text": "5. Kategorije i FAQ (administrator)",
+          "id": "5-kategorije-i-faq-administrator"
+        },
+        {
+          "level": 3,
+          "text": "6. Uvidi u sadržaj (urednici)",
+          "id": "6-uvidi-u-sadrzaj-urednici"
+        },
+        {
+          "level": 3,
+          "text": "7. Članak iz odgovora (agent)",
+          "id": "7-clanak-iz-odgovora-agent"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Članak",
+          "id": "clanak"
+        },
+        {
+          "level": 3,
+          "text": "Statusi i prelazi",
+          "id": "statusi-i-prelazi"
+        },
+        {
+          "level": 3,
+          "text": "Postavke (grupa **Baza znanja**)",
+          "id": "postavke-grupa-baza-znanja"
+        },
+        {
+          "level": 3,
+          "text": "Poruke grešaka koje možete sresti",
+          "id": "poruke-gresaka-koje-mozete-sresti"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 2055,
+      "source": "docs/user-guide/baza-znanja.md"
+    },
+    {
+      "slug": "najave",
+      "title": "Najave",
+      "module": "—",
+      "part": "korisnik",
+      "audience": [
+        "Svi korisnici",
+        "Administrator",
+        "Agent"
+      ],
+      "roles": [],
+      "order": 50,
+      "tags": [
+        "najave",
+        "potvrda-citanja",
+        "publika",
+        "teams",
+        "podsjetnik"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Za sve korisnike",
+          "id": "za-sve-korisnike"
+        },
+        {
+          "level": 3,
+          "text": "Za administratore (i agente, ako je dozvoljeno)",
+          "id": "za-administratore-i-agente-ako-je-dozvoljeno"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 912,
+      "source": "docs/user-guide/najave.md"
+    },
+    {
+      "slug": "prosljedjivanje-tiketa",
+      "title": "Prosljeđivanje tiketa — uputstvo za agente",
+      "module": "—",
+      "part": "agent",
+      "audience": [
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [
+        "AGENT",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 10,
+      "tags": [
+        "prosljedjivanje",
+        "grupe",
+        "cross-ou",
+        "razlog",
+        "preraspodjela"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Prosljeđivanje jednog tiketa",
+          "id": "prosljedivanje-jednog-tiketa"
+        },
+        {
+          "level": 3,
+          "text": "Dodjela kolegi iz iste grupe",
+          "id": "dodjela-kolegi-iz-iste-grupe"
+        },
+        {
+          "level": 3,
+          "text": "Grupna akcija",
+          "id": "grupna-akcija"
+        },
+        {
+          "level": 3,
+          "text": "Šta se dešava poslije prosljeđivanja",
+          "id": "sta-se-desava-poslije-prosljedivanja"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 936,
+      "source": "docs/user-guide/prosljedjivanje-tiketa.md"
+    },
+    {
+      "slug": "sabloni-i-playbooks",
+      "title": "Šabloni i playbooks",
+      "module": "M13",
+      "part": "agent",
+      "audience": [
+        "Agent",
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "AGENT",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 20,
+      "tags": [
+        "sabloni",
+        "playbooks",
+        "odgovori",
+        "varijable",
+        "checklist"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Ubacivanje šablona u odgovor (agent)",
+          "id": "1-ubacivanje-sablona-u-odgovor-agent"
+        },
+        {
+          "level": 3,
+          "text": "2. Čuvanje svog šablona (agent)",
+          "id": "2-cuvanje-svog-sablona-agent"
+        },
+        {
+          "level": 3,
+          "text": "3. Uređivanje zajedničkog šablona (administrator)",
+          "id": "3-uredivanje-zajednickog-sablona-administrator"
+        },
+        {
+          "level": 3,
+          "text": "4. Playbook (administrator)",
+          "id": "4-playbook-administrator"
+        },
+        {
+          "level": 3,
+          "text": "5. Checklista na tiketu (agent)",
+          "id": "5-checklista-na-tiketu-agent"
+        },
+        {
+          "level": 3,
+          "text": "6. Rješavanje tiketa sa obaveznim koracima",
+          "id": "6-rjesavanje-tiketa-sa-obaveznim-koracima"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Šablon",
+          "id": "sablon"
+        },
+        {
+          "level": 3,
+          "text": "Dozvoljene varijable",
+          "id": "dozvoljene-varijable"
+        },
+        {
+          "level": 3,
+          "text": "Playbook",
+          "id": "playbook"
+        },
+        {
+          "level": 3,
+          "text": "Režimi obaveznih koraka",
+          "id": "rezimi-obaveznih-koraka"
+        },
+        {
+          "level": 3,
+          "text": "Poruke grešaka koje možete sresti",
+          "id": "poruke-gresaka-koje-mozete-sresti"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1518,
+      "source": "docs/user-guide/sabloni-i-playbooks.md"
+    },
+    {
+      "slug": "realtime-i-obavjestenja",
+      "title": "Realtime i obavještenja",
+      "module": "M11",
+      "part": "agent",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 30,
+      "tags": [
+        "obavjestenja",
+        "websocket",
+        "tihi-sati",
+        "sazetak",
+        "kanali"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Pregled i filtriranje",
+          "id": "1-pregled-i-filtriranje"
+        },
+        {
+          "level": 3,
+          "text": "2. Označavanje kao pročitano",
+          "id": "2-oznacavanje-kao-procitano"
+        },
+        {
+          "level": 3,
+          "text": "3. Šta se dešava samo od sebe",
+          "id": "3-sta-se-desava-samo-od-sebe"
+        },
+        {
+          "level": 3,
+          "text": "4. Kada se obavještenje ne prikazuje",
+          "id": "4-kada-se-obavjestenje-ne-prikazuje"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Zvono i panel",
+          "id": "zvono-i-panel"
+        },
+        {
+          "level": 3,
+          "text": "Tipovi obavještenja (naslovi u listi)",
+          "id": "tipovi-obavjestenja-naslovi-u-listi"
+        },
+        {
+          "level": 3,
+          "text": "Sadržaj i privatnost",
+          "id": "sadrzaj-i-privatnost"
+        },
+        {
+          "level": 3,
+          "text": "Kada obavještenje stigne odmah, a kada uz provjeru",
+          "id": "kada-obavjestenje-stigne-odmah-a-kada-uz-provjeru"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1309,
+      "source": "docs/user-guide/realtime-i-obavjestenja.md"
+    },
+    {
+      "slug": "dezurstva",
+      "title": "Dežurstva (on-call)",
+      "module": "—",
+      "part": "agent",
+      "audience": [
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [
+        "AGENT",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 40,
+      "tags": [
+        "dezurstva",
+        "on-call",
+        "smjene",
+        "zamjena",
+        "ical",
+        "eskalacija"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Za agente",
+          "id": "za-agente"
+        },
+        {
+          "level": 3,
+          "text": "Za administratore",
+          "id": "za-administratore"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 563,
+      "source": "docs/user-guide/dezurstva.md"
+    },
+    {
+      "slug": "katalog-usluga-i-forme",
+      "title": "Katalog usluga i forme",
+      "module": "M6",
+      "part": "administrator",
+      "audience": [
+        "Korisnik",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 10,
+      "tags": [
+        "katalog",
+        "usluge",
+        "forme",
+        "verzije",
+        "dostupnost",
+        "onboarding"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Grupe usluga (kategorije)",
+          "id": "1-grupe-usluga-kategorije"
+        },
+        {
+          "level": 3,
+          "text": "2. Nova usluga",
+          "id": "2-nova-usluga"
+        },
+        {
+          "level": 3,
+          "text": "3. Forma i verzije",
+          "id": "3-forma-i-verzije"
+        },
+        {
+          "level": 3,
+          "text": "4. Aktivacija usluge",
+          "id": "4-aktivacija-usluge"
+        },
+        {
+          "level": 3,
+          "text": "5. Onboarding čarobnjak",
+          "id": "5-onboarding-carobnjak"
+        },
+        {
+          "level": 3,
+          "text": "6. Status dostupnosti i prekidi",
+          "id": "6-status-dostupnosti-i-prekidi"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Usluga",
+          "id": "usluga"
+        },
+        {
+          "level": 3,
+          "text": "Forma",
+          "id": "forma"
+        },
+        {
+          "level": 3,
+          "text": "Statusi usluge",
+          "id": "statusi-usluge"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1542,
+      "source": "docs/user-guide/katalog-usluga-i-forme.md"
+    },
+    {
+      "slug": "usmjeravanje-i-prioritet",
+      "title": "Usmjeravanje i prioritet",
+      "module": "M7",
+      "part": "administrator",
+      "audience": [
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 20,
+      "tags": [
+        "rutiranje",
+        "prioritet",
+        "matrica",
+        "neusmjereno",
+        "override"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Novo pravilo usmjeravanja",
+          "id": "1-novo-pravilo-usmjeravanja"
+        },
+        {
+          "level": 3,
+          "text": "2. Izmjena i brisanje pravila",
+          "id": "2-izmjena-i-brisanje-pravila"
+        },
+        {
+          "level": 3,
+          "text": "3. Matrica pokrivanja",
+          "id": "3-matrica-pokrivanja"
+        },
+        {
+          "level": 3,
+          "text": "4. Test rezolucije",
+          "id": "4-test-rezolucije"
+        },
+        {
+          "level": 3,
+          "text": "5. Matrica prioriteta (ekran SLA)",
+          "id": "5-matrica-prioriteta-ekran-sla"
+        },
+        {
+          "level": 3,
+          "text": "6. Ručna promjena prioriteta tiketa",
+          "id": "6-rucna-promjena-prioriteta-tiketa"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Pravilo usmjeravanja",
+          "id": "pravilo-usmjeravanja"
+        },
+        {
+          "level": 3,
+          "text": "Ishod rutanja",
+          "id": "ishod-rutanja"
+        },
+        {
+          "level": 3,
+          "text": "Prioritet",
+          "id": "prioritet"
+        },
+        {
+          "level": 3,
+          "text": "Statusi tiketa vezani za rutanje",
+          "id": "statusi-tiketa-vezani-za-rutanje"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1383,
+      "source": "docs/user-guide/usmjeravanje-i-prioritet.md"
+    },
+    {
+      "slug": "sla",
+      "title": "SLA (rokovi, kalendari i eskalacije)",
+      "module": "M10",
+      "part": "administrator",
+      "audience": [
+        "Administrator",
+        "SUPER_ADMIN",
+        "Agent"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 30,
+      "tags": [
+        "sla",
+        "rokovi",
+        "kalendari",
+        "pravila",
+        "eskalacije",
+        "pauze"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 3,
+          "text": "Permisije i pristup",
+          "id": "permisije-i-pristup"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Napravite BH kalendar",
+          "id": "1-napravite-bh-kalendar"
+        },
+        {
+          "level": 3,
+          "text": "2. Napravite SLA profil",
+          "id": "2-napravite-sla-profil"
+        },
+        {
+          "level": 3,
+          "text": "3. Dodajte pravila (ciljevi po prioritetu)",
+          "id": "3-dodajte-pravila-ciljevi-po-prioritetu"
+        },
+        {
+          "level": 3,
+          "text": "4. Podesite eskalacije",
+          "id": "4-podesite-eskalacije"
+        },
+        {
+          "level": 3,
+          "text": "5. Podesite matricu prioriteta",
+          "id": "5-podesite-matricu-prioriteta"
+        },
+        {
+          "level": 3,
+          "text": "6. Šta se dešava na tiketu",
+          "id": "6-sta-se-desava-na-tiketu"
+        },
+        {
+          "level": 3,
+          "text": "7. Provjerite usklađenost",
+          "id": "7-provjerite-uskladenost"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "BH kalendar",
+          "id": "bh-kalendar"
+        },
+        {
+          "level": 3,
+          "text": "SLA profil",
+          "id": "sla-profil"
+        },
+        {
+          "level": 3,
+          "text": "SLA pravilo",
+          "id": "sla-pravilo"
+        },
+        {
+          "level": 3,
+          "text": "Eskalaciono pravilo",
+          "id": "eskalaciono-pravilo"
+        },
+        {
+          "level": 3,
+          "text": "Matrica prioriteta",
+          "id": "matrica-prioriteta"
+        },
+        {
+          "level": 3,
+          "text": "Stanja i poruke na tiketu",
+          "id": "stanja-i-poruke-na-tiketu"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 2139,
+      "source": "docs/user-guide/sla.md"
+    },
+    {
+      "slug": "korisnici-oj-i-grupe",
+      "title": "Korisnici, organizacione jedinice i grupe",
+      "module": "M3",
+      "part": "administrator",
+      "audience": [
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 40,
+      "tags": [
+        "korisnici",
+        "organizacione-jedinice",
+        "grupe",
+        "ad-sync",
+        "uloge"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Dodavanje korisnika",
+          "id": "dodavanje-korisnika"
+        },
+        {
+          "level": 3,
+          "text": "Uređivanje korisnika",
+          "id": "uredivanje-korisnika"
+        },
+        {
+          "level": 3,
+          "text": "Reset lozinke, reset MFA-a, odjava sesija (Administracija naloga)",
+          "id": "reset-lozinke-reset-mfa-a-odjava-sesija-administracija-naloga"
+        },
+        {
+          "level": 3,
+          "text": "Povezivanje s AD nalogom (samo SUPER_ADMIN)",
+          "id": "povezivanje-s-ad-nalogom-samo-super-admin"
+        },
+        {
+          "level": 3,
+          "text": "Organizacione jedinice",
+          "id": "organizacione-jedinice"
+        },
+        {
+          "level": 3,
+          "text": "Grupe",
+          "id": "grupe"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1554,
+      "source": "docs/user-guide/korisnici-oj-i-grupe.md"
+    },
+    {
+      "slug": "uloge-i-permisije",
+      "title": "Uloge i permisije (RBAC)",
+      "module": "M4",
+      "part": "administrator",
+      "audience": [
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 50,
+      "tags": [
+        "rbac",
+        "uloge",
+        "permisije",
+        "scope",
+        "read-only",
+        "preview"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Promjena permisija jedne role",
+          "id": "promjena-permisija-jedne-role"
+        },
+        {
+          "level": 3,
+          "text": "Dodjela role s OU/service scope-om",
+          "id": "dodjela-role-s-ou-service-scope-om"
+        },
+        {
+          "level": 3,
+          "text": "Read-only režim",
+          "id": "read-only-rezim"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1117,
+      "source": "docs/user-guide/uloge-i-permisije.md"
+    },
+    {
+      "slug": "policy-paketi",
+      "title": "Policy paketi (paketi politika)",
+      "module": "M5",
+      "part": "administrator",
+      "audience": [
+        "SUPER_ADMIN",
+        "Administrator"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 60,
+      "tags": [
+        "policy-paketi",
+        "bundle",
+        "primjena",
+        "audit",
+        "scope"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Pregled paketa",
+          "id": "pregled-paketa"
+        },
+        {
+          "level": 3,
+          "text": "Primjena paketa",
+          "id": "primjena-paketa"
+        },
+        {
+          "level": 3,
+          "text": "Šta se tačno mijenja",
+          "id": "sta-se-tacno-mijenja"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 933,
+      "source": "docs/user-guide/policy-paketi.md"
+    },
+    {
+      "slug": "posta",
+      "title": "Pošta (e-mail)",
+      "module": "M12",
+      "part": "administrator",
+      "audience": [
+        "Korisnik",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 70,
+      "tags": [
+        "email",
+        "smtp",
+        "sabloni",
+        "dolazna-posta",
+        "broadcast",
+        "odsustvo"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Uključivanje e-mail kanala (administrator)",
+          "id": "1-ukljucivanje-e-mail-kanala-administrator"
+        },
+        {
+          "level": 3,
+          "text": "2. Uređivanje teksta e-maila (administrator)",
+          "id": "2-uredivanje-teksta-e-maila-administrator"
+        },
+        {
+          "level": 3,
+          "text": "3. Odgovor na e-mail (korisnik)",
+          "id": "3-odgovor-na-e-mail-korisnik"
+        },
+        {
+          "level": 3,
+          "text": "4. Pregled dolazne pošte (administrator)",
+          "id": "4-pregled-dolazne-poste-administrator"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Postavke kanala",
+          "id": "postavke-kanala"
+        },
+        {
+          "level": 3,
+          "text": "Polja šablona",
+          "id": "polja-sablona"
+        },
+        {
+          "level": 3,
+          "text": "Statusi dolazne poruke",
+          "id": "statusi-dolazne-poruke"
+        },
+        {
+          "level": 3,
+          "text": "Zašto poruka može biti odbijena",
+          "id": "zasto-poruka-moze-biti-odbijena"
+        },
+        {
+          "level": 3,
+          "text": "Kada obavještenje stigne odmah, a kada u sažetku",
+          "id": "kada-obavjestenje-stigne-odmah-a-kada-u-sazetku"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1715,
+      "source": "docs/user-guide/posta.md"
+    },
+    {
+      "slug": "nadzorna-ploca-i-izvjestaji",
+      "title": "Nadzorna ploča i izvještaji",
+      "module": "M15",
+      "part": "administrator",
+      "audience": [
+        "Administrator",
+        "SUPER_ADMIN",
+        "Agent"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 80,
+      "tags": [
+        "dashboard",
+        "izvjestaji",
+        "trendovi",
+        "zakazani",
+        "uska-grla",
+        "sla"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "1. Čitanje nadzorne ploče",
+          "id": "1-citanje-nadzorne-ploce"
+        },
+        {
+          "level": 3,
+          "text": "2. Praćenje SLA-a i grupnog reda (osoblje)",
+          "id": "2-pracenje-sla-a-i-grupnog-reda-osoblje"
+        },
+        {
+          "level": 3,
+          "text": "3. Pregled izvještaja (KPI i grafikoni)",
+          "id": "3-pregled-izvjestaja-kpi-i-grafikoni"
+        },
+        {
+          "level": 3,
+          "text": "3a. Uska grla",
+          "id": "3a-uska-grla"
+        },
+        {
+          "level": 3,
+          "text": "3b. CSAT razrez",
+          "id": "3b-csat-razrez"
+        },
+        {
+          "level": 3,
+          "text": "4. Trendovi",
+          "id": "4-trendovi"
+        },
+        {
+          "level": 3,
+          "text": "5. Paketi izvještaja i preuzimanje",
+          "id": "5-paketi-izvjestaja-i-preuzimanje"
+        },
+        {
+          "level": 3,
+          "text": "6. Zakazani izvještaji",
+          "id": "6-zakazani-izvjestaji"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Brojači na nadzornoj ploči (`dashboard.metric*`)",
+          "id": "brojaci-na-nadzornoj-ploci-dashboard-metric"
+        },
+        {
+          "level": 3,
+          "text": "KPI kartice (Pregled)",
+          "id": "kpi-kartice-pregled"
+        },
+        {
+          "level": 3,
+          "text": "Paketi izvještaja",
+          "id": "paketi-izvjestaja"
+        },
+        {
+          "level": 3,
+          "text": "Poruke i greške",
+          "id": "poruke-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 2825,
+      "source": "docs/user-guide/nadzorna-ploca-i-izvjestaji.md"
+    },
+    {
+      "slug": "imovina",
+      "title": "Imovina (CMDB)",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 90,
+      "tags": [
+        "imovina",
+        "cmdb",
+        "oprema",
+        "prenosnice",
+        "licence",
+        "ugovori",
+        "ad"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Za sve korisnike",
+          "id": "za-sve-korisnike"
+        },
+        {
+          "level": 3,
+          "text": "Za upravitelje imovine i agente",
+          "id": "za-upravitelje-imovine-i-agente"
+        },
+        {
+          "level": 3,
+          "text": "Za administratore",
+          "id": "za-administratore"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1304,
+      "source": "docs/user-guide/imovina.md"
+    },
+    {
+      "slug": "problemi",
+      "title": "Problemi (problem management)",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "Agent",
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "AGENT",
+        "PROBLEM_MANAGER",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 100,
+      "tags": [
+        "problemi",
+        "uzrok",
+        "poznata-greska",
+        "workaround",
+        "problem-grupa"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Podešavanje (administrator)",
+          "id": "podesavanje-administrator"
+        },
+        {
+          "level": 3,
+          "text": "Prijava",
+          "id": "prijava"
+        },
+        {
+          "level": 3,
+          "text": "Preuzimanje i rješavanje",
+          "id": "preuzimanje-i-rjesavanje"
+        },
+        {
+          "level": 3,
+          "text": "Registar",
+          "id": "registar"
+        },
+        {
+          "level": 3,
+          "text": "Veze (servisi, oprema, incidenti)",
+          "id": "veze-servisi-oprema-incidenti"
+        },
+        {
+          "level": 3,
+          "text": "Izvještaji",
+          "id": "izvjestaji"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 755,
+      "source": "docs/user-guide/problemi.md"
+    },
+    {
+      "slug": "promjene",
+      "title": "Promjene (change management)",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "Agent",
+        "Administrator",
+        "SUPER_ADMIN"
+      ],
+      "roles": [
+        "AGENT",
+        "CHANGE_MANAGER",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 110,
+      "tags": [
+        "promjene",
+        "cab",
+        "rizik",
+        "zamrzavanje",
+        "konflikti",
+        "kalendar"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Podešavanje (administrator)",
+          "id": "podesavanje-administrator"
+        },
+        {
+          "level": 3,
+          "text": "Tipovi promjena",
+          "id": "tipovi-promjena"
+        },
+        {
+          "level": 3,
+          "text": "Tok",
+          "id": "tok"
+        },
+        {
+          "level": 3,
+          "text": "Konflikti i zamrzavanje",
+          "id": "konflikti-i-zamrzavanje"
+        },
+        {
+          "level": 3,
+          "text": "Prekidi servisa i održavanje",
+          "id": "prekidi-servisa-i-odrzavanje"
+        },
+        {
+          "level": 3,
+          "text": "Kalendar",
+          "id": "kalendar"
+        },
+        {
+          "level": 3,
+          "text": "Šabloni",
+          "id": "sabloni"
+        },
+        {
+          "level": 3,
+          "text": "Veze s problemima i opremom",
+          "id": "veze-s-problemima-i-opremom"
+        },
+        {
+          "level": 3,
+          "text": "Izvještaji",
+          "id": "izvjestaji"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1185,
+      "source": "docs/user-guide/promjene.md"
+    },
+    {
+      "slug": "uloge-i-dozvole",
+      "title": "Uloge i dozvole",
+      "module": "—",
+      "part": "referenca",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 10,
+      "tags": [
+        "uloge",
+        "permisije",
+        "rbac",
+        "scope",
+        "pristup"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 620,
+      "source": "docs/user-guide/uloge-i-dozvole.md"
+    },
+    {
+      "slug": "cesta-pitanja",
+      "title": "Česta pitanja",
+      "module": "—",
+      "part": "referenca",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 20,
+      "tags": [
+        "faq",
+        "cesta-pitanja",
+        "greske",
+        "poruke",
+        "pomoc"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 3,
+          "text": "Prijava i potvrda u dva koraka (MFA) ([vodič](prijava-i-mfa.md))",
+          "id": "prijava-i-potvrda-u-dva-koraka-mfa-vodic-prijava-i-mfa-md"
+        },
+        {
+          "level": 3,
+          "text": "Prečice na tastaturi i pristupačnost ([vodič](precice-i-pristupacnost.md))",
+          "id": "precice-na-tastaturi-i-pristupacnost-vodic-precice-i-pristupacnost-md"
+        },
+        {
+          "level": 3,
+          "text": "Tiketi ([vodič](tiketi.md))",
+          "id": "tiketi-vodic-tiketi-md"
+        },
+        {
+          "level": 3,
+          "text": "Odobrenja i CSAT ([vodič](odobrenja-i-csat.md))",
+          "id": "odobrenja-i-csat-vodic-odobrenja-i-csat-md"
+        },
+        {
+          "level": 3,
+          "text": "Status servisa: incident ili zakazani prekid? ([vodič](status-incidenti-i-planirani-prekidi.md))",
+          "id": "status-servisa-incident-ili-zakazani-prekid-vodic-status-incidenti-i-planirani-prekidi-md"
+        },
+        {
+          "level": 3,
+          "text": "Baza znanja ([vodič](baza-znanja.md))",
+          "id": "baza-znanja-vodic-baza-znanja-md"
+        },
+        {
+          "level": 3,
+          "text": "Najave ([vodič](najave.md))",
+          "id": "najave-vodic-najave-md"
+        },
+        {
+          "level": 3,
+          "text": "Realtime i obavještenja ([vodič](realtime-i-obavjestenja.md))",
+          "id": "realtime-i-obavjestenja-vodic-realtime-i-obavjestenja-md"
+        },
+        {
+          "level": 3,
+          "text": "Katalog usluga i forme ([vodič](katalog-usluga-i-forme.md))",
+          "id": "katalog-usluga-i-forme-vodic-katalog-usluga-i-forme-md"
+        },
+        {
+          "level": 3,
+          "text": "Pošta (e-mail) ([vodič](posta.md))",
+          "id": "posta-e-mail-vodic-posta-md"
+        },
+        {
+          "level": 3,
+          "text": "Imovina (CMDB) ([vodič](imovina.md))",
+          "id": "imovina-cmdb-vodic-imovina-md"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1332,
+      "source": "docs/user-guide/cesta-pitanja.md"
+    },
+    {
+      "slug": "rjecnik",
+      "title": "Rječnik",
+      "module": "—",
+      "part": "referenca",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 30,
+      "tags": [
+        "rjecnik",
+        "pojmovi",
+        "tiket",
+        "sla",
+        "csat",
+        "cmdb"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 879,
+      "source": "docs/user-guide/rjecnik.md"
+    },
+    {
+      "slug": "sta-je-novo",
+      "title": "Šta je novo",
+      "module": "—",
+      "part": "referenca",
+      "audience": [
+        "Svi korisnici",
+        "Agent",
+        "Administrator"
+      ],
+      "roles": [],
+      "order": 40,
+      "tags": [
+        "novo",
+        "promjene",
+        "izdanja",
+        "changelog"
+      ],
+      "updatedAt": "2026-10-03",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 422,
+      "source": "docs/user-guide/sta-je-novo.md"
+    }
+  ]
+}

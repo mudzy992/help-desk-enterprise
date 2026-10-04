@@ -12,9 +12,15 @@ import type { ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsChartsProperties {
   readonly preset: ReportPreset;
+  /** Val 1 (M15/B1): kad je postavka isključena, kartica se ne prikazuje. */
+  readonly bottleneckEnabled: boolean;
   readonly bottleneckItems: readonly HorizontalBarItem[];
   readonly bottleneckLabel: string | null;
   readonly serviceItems: readonly HorizontalBarItem[];
+  /** Val 1 (M15 gap): razrez po organizacionoj jedinici. */
+  readonly unitItems: readonly HorizontalBarItem[];
+  /** Val 1 (M15 gap): otvoreni tiketi po izvršiocu. */
+  readonly workloadItems: readonly HorizontalBarItem[];
   readonly volume: readonly GroupedBarDatum[];
   readonly agingItems: readonly HorizontalBarItem[];
   readonly waitingOverSevenDays: number;
@@ -29,9 +35,12 @@ const windowShortKeys = {
 
 export function ReportsCharts({
   preset,
+  bottleneckEnabled,
   bottleneckItems,
   bottleneckLabel,
   serviceItems,
+  unitItems,
+  workloadItems,
   volume,
   agingItems,
   waitingOverSevenDays,
@@ -43,33 +52,35 @@ export function ReportsCharts({
       : t("reports.volumeTitle", { window: t(windowShortKeys[preset]) });
   return (
     <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-      <Card className="fade-in">
-        <CardHeader
-          title={t("reports.bottleneckTitle")}
-          subtitle={t("reports.bottleneckSubtitle")}
-          actions={
-            bottleneckLabel === null ? undefined : (
-              <Badge tone="warning" dot>
-                {t("reports.bottleneckBadge", { label: bottleneckLabel })}
-              </Badge>
-            )
-          }
-        />
-        <div className="px-4 py-4">
-          {bottleneckItems.length === 0 ? (
-            <EmptyState
-              title={t("reports.bottleneckEmpty")}
-              action={
-                <Button asChild size="sm" variant="outline">
-                  <Link to="/tickets">{t("reports.openTickets")}</Link>
-                </Button>
-              }
-            />
-          ) : (
-            <HBars items={[...bottleneckItems]} />
-          )}
-        </div>
-      </Card>
+      {bottleneckEnabled ? (
+        <Card className="fade-in">
+          <CardHeader
+            title={t("reports.bottleneckTitle")}
+            subtitle={t("reports.bottleneckSubtitle")}
+            actions={
+              bottleneckLabel === null ? undefined : (
+                <Badge tone="warning" dot>
+                  {t("reports.bottleneckBadge", { label: bottleneckLabel })}
+                </Badge>
+              )
+            }
+          />
+          <div className="px-4 py-4">
+            {bottleneckItems.length === 0 ? (
+              <EmptyState
+                title={t("reports.bottleneckEmpty")}
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/tickets">{t("reports.openTickets")}</Link>
+                  </Button>
+                }
+              />
+            ) : (
+              <HBars items={[...bottleneckItems]} />
+            )}
+          </div>
+        </Card>
+      ) : null}
       <Card className="fade-in">
         <CardHeader
           title={volumeTitle}
@@ -87,6 +98,32 @@ export function ReportsCharts({
             />
           ) : (
             <HBars items={[...serviceItems]} />
+          )}
+        </div>
+      </Card>
+      <Card className="fade-in">
+        <CardHeader
+          title={t("reports.unitVolumeTitle")}
+          subtitle={t("reports.unitVolumeSubtitle")}
+        />
+        <div className="px-4 py-4">
+          {unitItems.length === 0 ? (
+            <EmptyState title={t("reports.unitVolumeEmpty")} />
+          ) : (
+            <HBars items={[...unitItems]} />
+          )}
+        </div>
+      </Card>
+      <Card className="fade-in">
+        <CardHeader
+          title={t("reports.workloadTitle")}
+          subtitle={t("reports.workloadSubtitle")}
+        />
+        <div className="px-4 py-4">
+          {workloadItems.length === 0 ? (
+            <EmptyState title={t("reports.workloadEmpty")} />
+          ) : (
+            <HBars items={[...workloadItems]} />
           )}
         </div>
       </Card>

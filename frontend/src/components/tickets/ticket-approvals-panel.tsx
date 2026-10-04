@@ -2,7 +2,7 @@ import { Check, CheckCheck, Clock3, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { textareaClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
@@ -45,12 +45,12 @@ export function TicketApprovalsPanel({
   };
 
   return (
-    <Card className="fade-in">
-      <CardHeader
-        title={t("tickets.detail.approvals")}
-        subtitle={`${done} / ${items.length}`}
-      />
-      <ul className="space-y-0 px-4 py-3">
+    <DetailSection
+      id="approvals"
+      title={t("tickets.detail.approvals")}
+      subtitle={`${done} / ${items.length}`}
+    >
+      <ul className="space-y-0">
         {items.map((item, index) => {
           const name =
             item.approverUserId === null
@@ -135,6 +135,6 @@ export function TicketApprovalsPanel({
           );
         })}
       </ul>
-    </Card>
+    </DetailSection>
   );
 }

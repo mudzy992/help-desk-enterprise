@@ -36,5 +36,12 @@ README.md (ovaj fajl)
 5. Nikad ne tražite "napravi cijeli sistem" u jednom promptu — pratite TASKS.md fazu po fazu. Cursor rules eksplicitno zabranjuju agentu da "preskoči" ili radi "brzo i prljavo" (vidi 00-core.mdc), ali disciplina oko obima zadataka je na vama kroz TASKS.md.
 6. Kad MVP (Faze 0–5) bude gotov i testiran, tek onda otvarate Fazu 6 (Edge ekstenzija, WebSocket real-time, auto-assignment) — po mogućnosti u novom razgovoru s pročitanim `docs/03-edge-extension.md`.
 
+## Dokumentacija i doprinosi
+
+Korisnička dokumentacija koju vidi aplikacija (meni **Dokumentacija**, ruta `/docs`) živi u
+`docs/user-guide/**`; `backend/content/docs/**` je generisani ogledalo koje čita backend modul `docs`
+(dizajn: `docs/DOCS_MODULE.md`). **Izmjena funkcionalnosti povlači izmjenu odgovarajuće stranice u istom
+commitu** — pravilo, komande i provjere su u [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Budžetska napomena
 Cursor Pro ($20/mj) uključuje neograničen Auto mode i Tab completion, plus $20 vrijednosti frontier-model korištenja. Realno, za projekat ove veličine (enterprise CRUD + routing + WS + auth), jedan mjesec Pro-a je ostvariv cilj AKO se strogo drži gornjeg workflow-a (Auto mode za rutinu, frontier model štedljivo, uvijek fazno, nikad "sve odjednom"). Ako u prve dvije sedmice budete dosljedno blizu limita, razmislite o Pro+ za taj mjesec — ali prvo probajte disciplinu, ne plan.

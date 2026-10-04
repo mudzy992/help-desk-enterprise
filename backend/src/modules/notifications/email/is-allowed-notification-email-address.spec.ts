@@ -2,7 +2,7 @@ import { isAllowedNotificationEmailAddress } from './is-allowed-notification-ema
 
 const restricted = {
   internalOnly: true,
-  internalDomains: ['example.com', 'ep-grupa.ba'],
+  internalDomains: ['example.com', 'example.org'],
   allowedExternalDomains: ['partner.example'],
   allowedExternalEmails: ['guest@external.test'],
 };
@@ -10,7 +10,7 @@ const restricted = {
 describe('isAllowedNotificationEmailAddress', () => {
   it('restricted: allows every configured internal domain, case-insensitively', () => {
     expect(isAllowedNotificationEmailAddress('Agent.IT@EXAMPLE.COM', restricted)).toBe(true);
-    expect(isAllowedNotificationEmailAddress('ops@ep-grupa.ba', restricted)).toBe(true);
+    expect(isAllowedNotificationEmailAddress('ops@example.org', restricted)).toBe(true);
   });
 
   it('restricted: also allows the extra domains and individual addresses', () => {

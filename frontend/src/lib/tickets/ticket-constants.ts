@@ -2,6 +2,14 @@ import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
 export const ticketListPageSize = 25;
 
+/**
+ * Gornja granica koju server prihvata za `GET /tickets?pageSize=`. DTO je
+ * odbija sa `VALIDATION` iznad ove vrijednosti
+ * (`backend/src/modules/tickets/dto/list-tickets-query.dto.ts`, `@Max(50)`),
+ * pa svaki pozivalac mora ostati ispod nje — vidi `load-dashboard-volume.ts`.
+ */
+export const ticketListMaxPageSize = 50;
+
 export const ticketWorkspaceViews = [
   "inbox",
   "assigned",

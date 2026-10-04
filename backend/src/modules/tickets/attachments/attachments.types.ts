@@ -44,7 +44,6 @@ export type TicketAttachmentConfiguration = {
   readonly maxFilesPerTicket: number;
   readonly maxFilesPerMessage: number;
   readonly dangerousExtensions: readonly string[];
-  readonly retentionDays: number;
 };
 
 export type TicketAttachmentStorage = {

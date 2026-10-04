@@ -29,13 +29,12 @@ Postgres **nije** u `docker-compose.yml`. Coolify Database resurs → Backups:
 
 Named volume `uploads` (compose) mountan na `/usr/app/uploads` na **backend i worker** (`UPLOAD_ROOT`). Database backup **ne** uključuje fajlove. U DB je samo path.
 
-Daily, read-only volume → arhiva na istu off-box destinaciju kao Postgres, ime `uploads-YYYY-MM-DD.tar.gz`. Primjer (ime volume-a prilagodi `docker volume ls`):
+Daily, read-only volumen → arhiva na istu off-box destinaciju kao Postgres, ime `uploads-YYYY-MM-DD.tar.gz`.
+Umjesto ručne komande koristi `ops/dr/backup-uploads.sh` (ista radnja + SHA-256, manifest, retention 14 dana);
+instalacija na host je u odjeljku „Instalacija cron-a" ispod.
 
 ```bash
-docker run --rm \
-  -v uploads:/data:ro \
-  -v /var/backups/servicedesk:/backup \
-  alpine tar -C /data -czf /backup/uploads-$(date -u +%F).tar.gz .
+UPLOADS_VOLUME=<ime iz `docker volume ls`> ops/dr/backup-uploads.sh
 ```
 
 Briši lokalne arhive starije od retention-a nakon što je off-box kopija potvrđena.
@@ -92,11 +91,57 @@ Nema matrix foldera za ovaj runbook. Config snapshot API: `.cursor/docs/matrices
 
 Automatizovani koraci iz ovog runbooka su u `ops/dr/`:
 - `backup-uploads.sh` — dnevna arhiva uploads volumena (cron na hostu);
-- `export-config.sh` — config snapshot „DR backup YYYY-MM-DD";
-- `restore-drill.sh` — restore u zasebnu bazu `servicedesk-drill` i volumen `ephd-drill-uploads`;
+- `export-config.sh` — config snapshot „DR backup YYYY-MM-DD" (lozinku čita iz `ADMIN_PASSWORD` ili `ADMIN_PASSWORD_FILE`);
+- `verify-backups.sh` — kontrola svježine i SHA-256 za oba backupa (exit 1 = problem; za cron/monitoring);
+- `cron.example` — gotove cron linije za `/etc/cron.d/servicedesk-backups`;
+- `restore-drill.sh` — restore u zasebnu bazu `servicedesk-drill` i volumen `servicedesk-drill-uploads`;
 - `verify-restore.mjs` — četiri provjere (login, tiket, stari prilog, audit export) i JSON za zapisnik.
 
 Postupak mjesečnog drilla s privremenim Coolify stackom i obrazac zapisnika su u `docs/ops/test-okruzenje-1.8.md` (§4 i §5).
+
+## Instalacija cron-a (obavezan korak na svakoj instalaciji)
+
+**Nalaz (2026-10-02, prolazak A9 korak 6):** na staging hostu nije postojao nijedan cron koji zove `backup-uploads.sh`
+ili `export-config.sh`, ni direktoriji `/opt/servicedesk` i `/var/backups/servicedesk`, pa se uploads i config snapshot
+**nisu arhivirali**. Skripte su u repou; ovim postupkom se hvataju na host. Ponoviti na svakoj novoj instalaciji.
+
+1. **Repo na host:** `/opt/servicedesk` (npr. `git clone` pa `git fetch && git checkout master`, ili kopija fajlova).
+   Skripte se ne mijenjaju često, pa je dovoljno osvježiti ih uz veće nadogradnje.
+2. **Ime uploads volumena:** `docker volume ls | grep -i uploads` → `<IME_VOLUMENA>` (Coolify ga nasumično imenuje).
+3. **Lozinka za config snapshot:** nalog s `settings.write` (najbolje zaseban ADMIN za DR, ne lični SUPER_ADMIN).
+   ```bash
+   sudo install -d -m 700 /etc/servicedesk
+   sudo install -m 600 /dev/null /etc/servicedesk/admin-password
+   sudo sh -c 'read -rsp "Lozinka: " p && printf %s "$p" > /etc/servicedesk/admin-password'   # ne ispisuje se
+   sudo ls -l /etc/servicedesk/admin-password                                                  # -rw------- root
+   ```
+4. **Cron:** uredi `ops/dr/cron.example` (volumen, e-mail, domen), pa
+   `sudo install -m 0644 ops/dr/cron.example /etc/cron.d/servicedesk-backups`.
+   Cron.d traži prazan red na kraju i korisnika `root` u svakoj liniji (docker + čitanje tajne).
+5. **Logovi i rotacija:**
+   ```bash
+   sudo touch /var/log/servicedesk-uploads-backup.log /var/log/servicedesk-config-export.log
+   sudo tee /etc/logrotate.d/servicedesk-backups >/dev/null <<'EOF'
+   /var/log/servicedesk-uploads-backup.log /var/log/servicedesk-config-export.log {
+     weekly
+     rotate 12
+     compress
+     missingok
+     notifempty
+   }
+   EOF
+   ```
+6. **Prvi prolaz ručno** (isti env kao u cronu), pa provjera:
+   ```bash
+   sudo env UPLOADS_VOLUME=<IME_VOLUMENA> /opt/servicedesk/ops/dr/backup-uploads.sh
+   sudo API_URL=https://api.desk.ba101.top ADMIN_EMAIL=<ADMIN_EMAIL> \
+     ADMIN_PASSWORD_FILE=/etc/servicedesk/admin-password /opt/servicedesk/ops/dr/export-config.sh
+   sudo /opt/servicedesk/ops/dr/verify-backups.sh      # očekivano: [verify-backups] OK
+   ```
+7. **Off-box kopija:** prebaciti arhive s hosta (Coolify backup storage, rclone/S3/NAS). Lokalni disk **nije** backup;
+   retention na hostu (14 dana) smije brisati tek kad je off-box kopija potvrđena.
+8. **Monitoring (opciono, preporuka):** uključiti liniju 3 iz `cron.example` (`verify-backups.sh`, dnevno) i vezati
+   exit ≠ 0 na postojeći kanal alarma (npr. Push monitor u Uptime Kumi, `ops/monitoring/uptime-kuma.md`).
 
 ## Paket 2.1: ključ za MFA
 

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 
 interface TicketFormDataViewProperties {
   readonly formData: unknown;
@@ -15,9 +15,8 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
     return null;
   }
   return (
-    <Card className="fade-in">
-      <CardHeader title={t("tickets.detail.formData")} />
-      <dl className="space-y-2.5 px-4 py-4 text-[12px]">
+    <DetailSection id="formData" title={t("tickets.detail.formData")} count={entries.length}>
+      <dl className="space-y-2.5 text-[12px]">
         {entries.map(([key, value]) => (
           <div key={key} className="flex items-start justify-between gap-3">
             <dt className="shrink-0 text-muted-foreground">{key}</dt>
@@ -27,6 +26,6 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
           </div>
         ))}
       </dl>
-    </Card>
+    </DetailSection>
   );
 }

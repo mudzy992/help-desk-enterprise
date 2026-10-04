@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
+import { getServiceForm } from './get-service-form';
 import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
 import { ServiceCatalogService } from './service-catalog.service';
 import type { ServiceLifecycleConfiguration } from './service-catalog.types';
@@ -71,6 +72,71 @@ describe('ServiceCatalogService lifecycle', () => {
     const offeredAfter = await catalog.list({ offeredOnly: true });
     expect(offeredAfter.map((item) => item.slug)).toEqual(['vpn-access']);
     expect(offeredAfter.map((item) => item.slug)).not.toContain(second.slug);
+  });
+
+  it('val 2 (M6/B2): vidljivost po roli — nacrt nikad ne prolazi do korisnika', async () => {
+    const { catalog, memory } = createHarness();
+    const active = await createDraft(catalog);
+    await catalog.transitionLifecycle(active.id, { lifecycle: 'ACTIVE' });
+    const deprecated = await catalog.create({
+      name: 'Legacy mail',
+      slug: 'legacy-mail',
+      categoryId: active.categoryId,
+    });
+    await catalog.transitionLifecycle(deprecated.id, { lifecycle: 'ACTIVE' });
+    await catalog.transitionLifecycle(deprecated.id, { lifecycle: 'DEPRECATED' });
+    const draft = await catalog.create({
+      name: 'Not yet published',
+      slug: 'not-yet-published',
+      categoryId: active.categoryId,
+    });
+
+    const requester = ['USER'];
+    const agent = ['AGENT'];
+    const admin = ['ADMIN'];
+
+    // Korisnik vidi samo objavljeno.
+    expect(
+      (await catalog.list({ visibleLifecycles: ['ACTIVE'] })).map((item) => item.slug),
+    ).toEqual(['vpn-access']);
+    // Agent vidi i zastarjelo (tiketi na tim servisima još postoje), ali ne nacrt.
+    expect(
+      (await catalog.list({ visibleLifecycles: ['ACTIVE', 'DEPRECATED'] })).map(
+        (item) => item.slug,
+      ),
+    ).toEqual(['legacy-mail', 'vpn-access']);
+    // Administrator vidi sve.
+    expect(
+      (await catalog.list({ visibleLifecycles: ['DRAFT', 'ACTIVE', 'DEPRECATED'] })).map(
+        (item) => item.slug,
+      ),
+    ).toContain(draft.slug);
+    // Interni poziv (bez role) ostaje bez filtera — isto kao prije popravke.
+    expect((await catalog.list({})).map((item) => item.slug)).toContain(draft.slug);
+
+    // Eksplicitni zahtjev za skriveno stanje ne otkriva redove.
+    expect(await catalog.list({ lifecycle: 'DRAFT', visibleLifecycles: ['ACTIVE'] })).toEqual(
+      [],
+    );
+
+    // Direktan pogled na nacrt: za korisnika i agenta „ne postoji“.
+    await expect(
+      catalog.getById(draft.id, new Date(), requester),
+    ).rejects.toMatchObject({ response: { code: 'NOT_FOUND' } });
+    await expect(
+      catalog.getById(draft.id, new Date(), agent),
+    ).rejects.toMatchObject({ response: { code: 'NOT_FOUND' } });
+    await expect(catalog.getById(draft.id, new Date(), admin)).resolves.toMatchObject({
+      slug: draft.slug,
+    });
+    // Isto za šemu forme nacrta (RAW `:304`).
+    // Funkcija je bez `execute` omotača, pa greška dolazi u svom obliku.
+    await expect(
+      getServiceForm(memory.prisma as never, draft.id, requester),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      getServiceForm(memory.prisma as never, active.id, requester),
+    ).resolves.toBeDefined();
   });
 
   it('rejects invalid transitions including draft to deprecated', async () => {

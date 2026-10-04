@@ -8,7 +8,7 @@ import { reportPackKeyList } from './reports.constants';
 import { ReportsService } from './reports.service';
 import type { ReportsConfiguration } from './reports.types';
 
-export function createReportsServiceHarness() {
+export function createReportsServiceHarness(overrides: Partial<ReportsConfiguration> = {}) {
   const memory = createInMemoryTicketsPrisma();
   seedTicketsHarnessCatalog(memory);
   memory.seedUnit({
@@ -40,7 +40,10 @@ export function createReportsServiceHarness() {
     allowedFormats: ['csv', 'json'],
     bottlenecksEnabled: true,
     pingPongThreshold: 3,
-        defaultWindowDays: 30,
+    defaultWindowDays: 30,
+    packWindowDays: 30,
+    csatScaleMax: 5,
+    ...overrides,
   };
   const reports = new ReportsService(prisma as never, {
     load: async () => configuration,

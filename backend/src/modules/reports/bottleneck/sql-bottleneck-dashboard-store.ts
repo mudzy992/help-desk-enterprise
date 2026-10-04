@@ -23,6 +23,9 @@ type BreakdownSqlRow = CountsSqlRow & {
   /** 0 = total, 1 = unit, 2 = service, 3 = priority. */
   readonly g: NumberLike;
   readonly key: string | null;
+  /** Val 1 (M15/B2): nazivi se čitaju uz same grupe (MAX zbog GROUPING SETS). */
+  readonly unitName: string | null;
+  readonly serviceName: string | null;
 };
 
 type TrendSqlRow = CountsSqlRow & { readonly d: string; readonly n: NumberLike };
@@ -52,6 +55,8 @@ export async function loadBottleneckDashboardFromSql(
   const standing = sqltag`
     FROM "Ticket" t
     LEFT JOIN "TicketSlaState" s ON s."ticketId" = t.id
+    LEFT JOIN "OrganizationalUnit" ou ON ou.id = t."originUnitId"
+    LEFT JOIN "Service" sv ON sv.id = t."serviceId"
     WHERE t."originUnitId" = ANY(${units}::text[]) AND t.status::text <> 'ARCHIVED'`;
   const [breakdownRows, trendRows] = await Promise.all([
     prisma.$queryRaw<BreakdownSqlRow[]>`
@@ -62,6 +67,8 @@ export async function loadBottleneckDashboardFromSql(
                ELSE 0
              END AS g,
              COALESCE(t."originUnitId", t."serviceId", t.priority::text) AS key,
+             MAX(ou.name) AS "unitName",
+             MAX(sv.name) AS "serviceName",
              ${counts}
       ${standing}
         AND (t.status::text = ANY(${statuses}::text[])
@@ -73,18 +80,25 @@ export async function loadBottleneckDashboardFromSql(
         AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
       GROUP BY 1`,
   ]);
-  const breakdown = (group: number): readonly BottleneckBreakdownRow[] =>
+  const breakdown = (
+    group: number,
+    /** Prioritet nema šifarnik, pa mu je labela sam ključ (kao u referentnoj agregaciji). */
+    labelFor: (row: BreakdownSqlRow, key: string) => string = (_row, key) => key,
+  ): readonly BottleneckBreakdownRow[] =>
     breakdownRows
       .filter((row) => toNumber(row.g) === group)
-      .map((row) => ({ key: row.key ?? '', ...toCounts(row) }))
+      .map((row) => {
+        const key = row.key ?? '';
+        return { key, label: labelFor(row, key), ...toCounts(row) };
+      })
       .sort((left, right) => left.key.localeCompare(right.key));
   const total = breakdownRows.find((row) => toNumber(row.g) === 0);
   const trendByDate = new Map(trendRows.map((row) => [row.d, row]));
   return {
     window: { from: window.from.toISOString(), to: window.to.toISOString() },
     counts: total === undefined ? toCounts(null) : toCounts(total),
-    byOrganizationalUnit: breakdown(1),
-    byService: breakdown(2),
+    byOrganizationalUnit: breakdown(1, (row, key) => row.unitName ?? key),
+    byService: breakdown(2, (row, key) => row.serviceName ?? key),
     byPriority: breakdown(3),
     trend: enumerateUtcDateKeys(window).map((date) => {
       const row = trendByDate.get(date);

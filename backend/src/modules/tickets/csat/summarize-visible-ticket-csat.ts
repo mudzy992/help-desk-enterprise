@@ -4,8 +4,13 @@ import { listTicketsWithin } from '../list-tickets';
 import { csatSummaryTicketLimit } from './csat.constants';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { aggregateTicketCsat } from './aggregate-ticket-csat';
-import type { TicketCsatRecord, TicketCsatSummary } from './csat.types';
+import type {
+  TicketCsatConfiguration,
+  TicketCsatRecord,
+  TicketCsatSummary,
+} from './csat.types';
 import { loadTicketCsatSubmissions } from './load-ticket-csat-submissions';
+import { loadTicketDisplayLabels } from '../load-ticket-display-labels';
 import type { TicketArchiveConfiguration } from '../archive/archive.types';
 
 export async function summarizeVisibleTicketCsat(input: {
@@ -13,6 +18,8 @@ export async function summarizeVisibleTicketCsat(input: {
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly context: TicketMutationContext;
   readonly archive: TicketArchiveConfiguration;
+  /** Val 1 (M9/B3): skala dolazi iz CSAT konfiguracije. */
+  readonly csat: Pick<TicketCsatConfiguration, 'scaleMax'>;
 }): Promise<TicketCsatSummary> {
   // Phase 1.1: only tickets that actually have a submission can contribute a
   // row, and the read is capped, so the summary no longer lists the table.
@@ -35,5 +42,16 @@ export async function summarizeVisibleTicketCsat(input: {
       rows.push({ ticket, submission });
     }
   }
-  return aggregateTicketCsat(rows);
+  // Val 1 (M9/B3): razrez po OU/servisu/grupi prikazuje nazive, ne ID-eve.
+  const labels = await loadTicketDisplayLabels(
+    input.prisma,
+    rows.map((row) => row.ticket),
+  );
+  return aggregateTicketCsat(rows, input.csat.scaleMax, {
+    originUnits: new Map(
+      [...labels.originUnits.entries()].map(([id, unit]) => [id, unit.name]),
+    ),
+    services: labels.services,
+    groups: labels.groups,
+  });
 }

@@ -1,8 +1,9 @@
 # Handoff — Paket 4.1, faza A9 (prelazak na stagingu)
 
-Stanje na dan 2026-10-02. Grana prve sesije, `arena/01a0d46c-help-desk-enterprise`, već je na `master` (`585dd8f`).
-**Grana tekuće sesije je `arena/01a0fe12-help-desk-enterprise`** (ime zadaje sesija; radi se i pusha samo na nju). Odatle ide
-fast-forward na `master` (Coolify gradi master).
+Stanje na dan 2026-10-02. Grane ranijih sesija (`arena/01a0d46c-…`) već su na `master`. **Grana tekuće sesije je
+`arena/01a0feaa-help-desk-enterprise`** (ime zadaje sesija; radi se i pusha samo na nju). Odatle ide fast-forward na `master`
+(Coolify gradi master). Posljednji commit prethodne sesije (`arena/01a0fe12-…`, `47ee7a3`: zapis provjera prije koraka 7)
+prenesen je na ovu granu cherry-pick-om (`abbb1a7`), jer je ta grana stala na njemu.
 Dizajn paketa: `docs/plans/modules/4.1-audit-vise-klijenata.md`. Odluke su u §0, prelazak u §7, a bilješke po fazama u §11 i §12.
 
 ## 1. Gotovo
@@ -66,6 +67,12 @@ Zadani direktorij u `ops/dr/*` je sada `/var/backups/servicedesk`. Provjeriti `c
 poziva `backup-uploads.sh` ili `export-config.sh`, treba mu dodati `BACKUP_DIR=/var/backups/ephelpdesk`
 (odnosno `OUT_DIR=…`) ili premjestiti direktorij.
 
+**2.10.2026. (poslije nalaza):** pripremljeni su `ops/dr/cron.example` (dvije dnevne linije za
+`/etc/cron.d/servicedesk-backups` + opciona kontrolna), `ops/dr/verify-backups.sh` (RPO 24 h + SHA-256, exit 1 na
+problem) i `ADMIN_PASSWORD_FILE` u `export-config.sh` (lozinka iz fajla 600, nikad u cron liniji). Uputstvo korak po
+korak: `ops/DR.md` §„Instalacija cron-a“. Instalacija na hostu je obaveza korisnika (nije dio A9); DR praznina iz
+Paketa 1.8 zatvara se kad `verify-backups.sh` na hostu vrati `OK`.
+
 ### Korak 7 — čišćenje (najranije 24 h nakon koraka 4, tek uz potvrdu korisnika)
 
 Vremenska kapija: korak 4 je završen prije 2026-10-02 19:21 UTC, kad je ovaj handoff pushan na master. Zato je 24 h sigurno prošlo
@@ -128,3 +135,45 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
 - **Korak 7 (2026-10-02, poslije 21:04 UTC):** korisnik je napisao „možeš kreniti i sa korakom 7“. Kapija od 24 h tada još nije bila
   prošla, pa se počinje samo provjerama koje ništa ne mijenjaju (klijenti po korisniku, broj starih ključeva, `ACL LIST` bez
   hash-eva). Brisanje (`UNLINK`, `ACL DELUSER`) tek uz izričitu potvrdu korisnika da se kapija preskače, ili poslije kapije.
+- **Provjere prije brisanja (2026-10-02, poslije 21:54 UTC, samo čitanje):**
+  - Klijenti po korisniku: `default` 1 (naša sesija), `inventory-v2` 10 (ispis ga skraćuje na `inventory`, jer obrazac `[a-z]*`
+    staje na `-`), `servicedesk` 72, **`ephelpdesk` 0**.
+  - Ključevi za brisanje: `ephelpdesk:*` 14 i `bull:ephelpdesk:*` 415. Novi, koji se ne diraju: `servicedesk:*` 16 i
+    `bull:servicedesk:*` 360.
+  - ACL obrasci stare korisnice su bez dvotočke (`~ephelpdesk*`, `~bull:ephelpdesk*`), a SCAN gore ide s dvotočkom. Prije brisanja
+    provjeriti da širi obrazac daje isti broj (da nema ključeva izvan `ephelpdesk:` i `bull:ephelpdesk:`).
+  - `ACL LIST` prije brisanja (hash-evi sakriveni), pravila korisnika koji se briše i koji ujedno služe kao recept za povrat
+    (`ACL SETUSER ephelpdesk on >STARA_LOZINKA` plus ova pravila, lozinka je u starim vrijednostima u Coolifyju):
+    `~ephelpdesk* ~bull:ephelpdesk* &* +@all -flushall -flushdb -config -shutdown -acl -debug -save -bgsave -bgrewriteaof
+    -replicaof -slaveof -monitor -module -failover`. Pravila korisnika `servicedesk` su ista, uz obrasce `~servicedesk*` i
+    `~bull:servicedesk*`.
+  - Usput: korisnik `inventory-v2` ima `~bull:*` i `&bull:*`, što tehnički pokriva i `bull:servicedesk:*`. To nije dio A9 i ne dira se.
+  - Odluka o brisanju: čeka odgovor korisnika, „brisati odmah“ (kapija se svjesno preskače, zapisati u §12) ili „čekamo“ (kapija
+    2026-10-03 19:22 UTC).
+
+### Sesija 3 (2026-10-02, poslije 22:10 UTC)
+
+- Provjereno stanje: koraci 1–6 su zatvoreni; u koraku 7 bile su urađene samo read-only provjere (gore). CI na `master` je
+  zelen (`e9ca5d0`, run `37070461993`).
+- **Odluke korisnika (2.10.2026.) i ishod:** (a) korak 7 — **čekamo kapiju**, brisanje tek poslije 2026-10-03 19:22 UTC
+  (ranije samo ako se u Coolifyju vidi tačno vrijeme deploya iz koraka 4); (b) 4.1a **odobren** i implementiran (faze
+  B1–B4, commiti `45c80d3`…`d5d7bcd`), a odgovor na E1 je „nema mail pravila“ → šalje se samo `X-Service-Desk-Ticket`.
+- 4.1a ne dira Redis ni bazu, pa ne traži novi prelaz: deploy ide uz prvi sljedeći push na `master`. Provjera na stagingu
+  poslije deploya: jedna notifikacija tiketa mora nositi `X-Service-Desk-Ticket: HD-…`; povratni Entra tok traži Entra
+  aplikaciju, pa ga pokriva samo spec (ime ključa i kruženje konfiguracije).
+
+### Sesija 4 (2026-10-03)
+
+- **4.2 dio A je na `master`** (`d4ff532`, CI run `37075361145` zelen) — korisnik ga je deployao; sačuvani pogledi su sada
+  kontrola u redu filtera, tabela je puna širina.
+- **4.2 dio B (detalji tiketa) je spreman na grani** (`b575055` kod, `ed43a1a` dokumentacija; dizajn §3.5–§3.6).
+  Nema API/migracija/permisija. Poslije deploya na stagingu vrijedi provjeriti: (a) tri kartice i sklopive sekcije,
+  (b) „Proširi/Skupi sve“ i pamćenje stanja poslije reloada, (c) CSAT traku preko tiketa kad je tiket riješen.
+- **Otpor na E2E:** paneli koji se otvaraju sami (prosljeđivanja, imovina, playbook, spojeni) moraju ostati vidljivi odmah
+  — zato su po zadanom otvoreni; sklopljene su samo tri dopunske sekcije. E2E job se vrti samo na `master`, pa to
+  provjerava prvi deploy.
+- **Popravka poslije prvog deploya dijela B:** stranica detalja je padala s React error 310 (hook ispod ranog
+  `return`-a za učitavanje). Popravljeno u `ticket-detail-page.tsx`, a uz to je dodata CI provjera
+  `scripts/check-hooks-order.mjs` (+ test) koja tu klasu greške hvata prije deploya; detalji u §3.7 dizajna 4.2.
+- Neizmijenjeno čeka korisnika: **korak 7** poslije 2026-10-03 19:22 UTC, 4.1a provjera zaglavlja `X-Service-Desk-Ticket`
+  na stagingu, i **instalacija DR cron-a na hostu** (`ops/DR.md`, poglavlje „Instalacija cron-a“).

@@ -102,11 +102,16 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
     async (item: ResponseTemplatePickerItem): Promise<RenderedTemplate> => {
       const cached = previews.get(`${item.id}:${locale}`);
       if (cached !== undefined) return cached;
-      const rendered = await renderTicketTemplate(ticketId, item.id, locale === "auto" ? undefined : locale);
+      const rendered = await renderTicketTemplate(
+        ticketId,
+        item.id,
+        locale === "auto" ? undefined : locale,
+        kind,
+      );
       setPreviews((map) => new Map(map).set(`${item.id}:${locale}`, rendered));
       return rendered;
     },
-    [locale, previews, ticketId],
+    [kind, locale, previews, ticketId],
   );
 
   // Debounced preview of the highlighted template.

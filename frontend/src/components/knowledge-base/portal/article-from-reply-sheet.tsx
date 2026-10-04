@@ -110,11 +110,25 @@ export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: A
         categoryId: categoryId === "" ? undefined : categoryId,
         reason: reason.trim(),
       });
-      toast({
-        tone: "success",
-        title: t("knowledgeBase.portal.fromReply.created"),
-        description: created.title,
-      });
+      // Val 2 (M14/B1): server ponovo zamjenjuje lične podatke pri upisu. Ako je
+      // u tekstu bilo nečega što pregled nije vidio (izmijenjen editor, skripta),
+      // korisnik to mora saznati — članak je već objavljiv svakom prijavljenom.
+      const extra = created.sanitized ? totalReplacements(created.replacements) : 0;
+      toast(
+        extra > 0
+          ? {
+              tone: "warning",
+              title: t("knowledgeBase.portal.fromReply.redactedOnSave"),
+              description: t("knowledgeBase.portal.fromReply.redactedOnSaveCount", {
+                count: extra,
+              }),
+            }
+          : {
+              tone: "success",
+              title: t("knowledgeBase.portal.fromReply.created"),
+              description: created.title,
+            },
+      );
       onOpenChange(false);
     } catch (error) {
       setErrorKey(mapKnowledgeArticleError(error));

@@ -18,6 +18,28 @@ export function filtersFromSavedView(
   };
 }
 
+/**
+ * Does the list currently show exactly this saved view? Fields the view does not
+ * store (workspace view, forwarded/personal/hide-merged) are ignored, so the
+ * "active view" badge disappears as soon as the user edits one of its filters.
+ */
+export function savedViewMatchesFilters(
+  view: SavedViewResponse,
+  filters: TicketListFilters,
+): boolean {
+  const saved = filtersFromSavedView(filters, view);
+  return (
+    saved.search === filters.search &&
+    saved.status === filters.status &&
+    saved.priority === filters.priority &&
+    saved.serviceId === filters.serviceId &&
+    saved.assignedUserId === filters.assignedUserId &&
+    saved.createdFrom === filters.createdFrom &&
+    saved.createdTo === filters.createdTo &&
+    saved.overdue === filters.overdue
+  );
+}
+
 export function savedViewInputFromFilters(
   name: string,
   filters: TicketListFilters,

@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transition';
+import { requestedServiceLifecycles } from './service-visible-lifecycles';
 import { countOpenTicketsByService } from './count-open-tickets-by-service';
 import { loadServiceDowntimeWindowsForServices } from './load-service-downtime-windows';
 import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
@@ -16,9 +17,16 @@ export async function listServices(
   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
   approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
 ): Promise<readonly ServiceResponse[]> {
+  // Val 2 (M6/B2): drafts (and, for requesters, deprecated services) are filtered
+  // in the query itself, not after mapping — a caller asking for a state they may
+  // not see gets an empty list instead of a 403 that would reveal it exists.
+  const lifecycles = requestedServiceLifecycles(input);
+  if (lifecycles.length === 0) {
+    return [];
+  }
   const records = await prisma.service.findMany({
     where: {
-      ...(input.lifecycle === undefined ? {} : { lifecycle: input.lifecycle }),
+      lifecycle: { in: [...lifecycles] },
       ...(input.categoryId === undefined ? {} : { categoryId: input.categoryId }),
     },
     orderBy: [{ name: 'asc' }],

@@ -34,6 +34,10 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   INVALID_MESSAGE_TYPE: 'Ticket message type is invalid',
   INVALID_MESSAGE_BODY: 'Ticket message body is invalid',
   MESSAGE_TYPE_NOT_ALLOWED: 'You cannot create this ticket message type',
+  RESPONSE_TEMPLATE_NOT_FOUND: 'The response template was not found',
+  RESPONSE_TEMPLATE_INACTIVE: 'The response template is deactivated',
+  RESPONSE_TEMPLATE_KIND_MISMATCH:
+    'The response template cannot be used in this composer mode',
   TIME_LOG_NOT_FOUND: 'Ticket time log was not found',
   OVERLAPPING_TIMER: 'An active timer already exists for this user and ticket',
   TIME_LOG_NOT_ACTIVE: 'Ticket time log is not active',

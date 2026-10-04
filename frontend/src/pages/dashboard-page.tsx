@@ -16,9 +16,15 @@ import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
+import { canOpenReports } from "@/lib/session/route-access";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const capabilities = useSessionCapabilities();
+  // Val 1 (M15/B5): dugme je bilo trajno onemogućeno uz poruku da ruta ne
+  // postoji, iako `/reports` postoji; sada je link, uz isto pravilo pristupa.
+  const reportsVisible = canOpenReports(capabilities);
   const {
     isStaff,
     summary,
@@ -44,16 +50,13 @@ export function DashboardPage() {
         subtitle={t("dashboard.intro")}
         actions={
           <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled
-              aria-disabled
-              title={t("dashboard.reportsActionDisabledHint")}
-            >
-              <ArrowUpRight size={14} /> {t("dashboard.reportsAction")}
-            </Button>
+            {reportsVisible ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/reports">
+                  <ArrowUpRight size={14} /> {t("dashboard.reportsAction")}
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm">
               <Link to="/tickets/new">
                 <Plus size={14} /> {t("tickets.createAction")}

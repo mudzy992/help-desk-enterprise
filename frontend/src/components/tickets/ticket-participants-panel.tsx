@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { hintClassName, selectClassName } from "@/components/ui/control";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type {
@@ -59,19 +59,19 @@ export function TicketParticipantsPanel({
   };
 
   return (
-    <Card className="fade-in">
-      <CardHeader
-        title={t("tickets.detail.participants")}
-        subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
-        actions={
-          canManage ? (
-            <Button type="button" variant="ghost" size="xs" onClick={() => setAdding(true)}>
-              {t("tickets.detail.addWatcher")}
-            </Button>
-          ) : null
-        }
-      />
-      <div className="flex flex-wrap gap-2 px-4 py-4">
+    <DetailSection
+      id="participants"
+      title={t("tickets.detail.participants")}
+      subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
+      actions={
+        canManage ? (
+          <Button type="button" variant="ghost" size="xs" onClick={() => setAdding(true)}>
+            {t("tickets.detail.addWatcher")}
+          </Button>
+        ) : null
+      }
+    >
+      <div className="flex flex-wrap gap-2">
         {items.map((item) => {
           const name =
             item.userId !== null
@@ -126,6 +126,6 @@ export function TicketParticipantsPanel({
           </Button>
         </form>
       ) : null}
-    </Card>
+    </DetailSection>
   );
 }

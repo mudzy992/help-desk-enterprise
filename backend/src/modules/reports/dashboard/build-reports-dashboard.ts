@@ -6,7 +6,9 @@ import { resolveReportWindow } from '../resolve-report-window';
 import type { ReportScopeQuery, ReportsConfiguration } from '../reports.types';
 import {
   aggregateAgingBuckets,
+  aggregateAssigneeWorkload,
   aggregateBottleneckHoursByGroup,
+  aggregateOriginUnitVolume,
   aggregateServiceVolume,
   rankBottleneckBars,
   rankNamedBars,
@@ -23,6 +25,12 @@ import {
   type ReportDashboardVolumePoint,
 } from './aggregate-report-volume-series';
 import { loadReportsDashboardAggregates } from './sql-reports-dashboard-store';
+import {
+  loadGroupNames,
+  loadOrganizationalUnitNames,
+  loadServiceNames,
+  loadUserNames,
+} from '../load-report-lookups';
 import type {
   ReportDashboardAging,
   ReportDashboardNamedBar,
@@ -33,8 +41,21 @@ export type ReportsDashboard = {
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;
   readonly kpis: ReportDashboardKpis;
+  /**
+   * Val 1 (M15/B1): postavka `private.dashboard.bottlenecks.enabled` mora
+   * stvarno isključiti i **podatke** i prikaz, ne samo `GET /reports/bottlenecks`.
+   * Zato odgovor nosi i zastavicu, da UI zna zašto je lista prazna.
+   */
+  readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
+  /** Val 1 (M15 gap): tiketi kreirani u prozoru, po organizacionoj jedinici. */
+  readonly originUnitVolume: readonly ReportDashboardNamedBar[];
+  /**
+   * Val 1 (M15 gap): „opterećenje admina“ — otvoreni tiketi po izvršiocu
+   * (stanje sada; tiketi bez izvršioca imaju vlastiti brojač).
+   */
+  readonly assigneeWorkload: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
   readonly aging: ReportDashboardAging;
 };
@@ -72,13 +93,34 @@ export async function buildReportsDashboard(input: {
         to: previousWindow.to.toISOString(),
       },
       ticketCount: aggregates.ticketCount,
-      kpis: reportDashboardKpisFromTotals({ ...aggregates.kpis, kbHelpedCount }),
-      bottleneckByGroup: rankBottleneckBars(aggregates.groups, unroutedLabel),
+      kpis: reportDashboardKpisFromTotals({
+        ...aggregates.kpis,
+        kbHelpedCount,
+        csatScaleMax: input.configuration.csatScaleMax,
+      }),
+      bottlenecksEnabled: input.configuration.bottlenecksEnabled,
+      bottleneckByGroup: input.configuration.bottlenecksEnabled
+        ? rankBottleneckBars(aggregates.groups, unroutedLabel)
+        : [],
       serviceVolume: rankNamedBars(
         aggregates.services.map((service) => ({
           key: service.key,
           label: service.name ?? service.key,
           value: service.count,
+        })),
+      ),
+      originUnitVolume: rankNamedBars(
+        aggregates.originUnits.map((unit) => ({
+          key: unit.key,
+          label: unit.name ?? unit.key,
+          value: unit.count,
+        })),
+      ),
+      assigneeWorkload: rankNamedBars(
+        aggregates.assignees.map((assignee) => ({
+          key: assignee.key,
+          label: assignee.name ?? assignee.key,
+          value: assignee.count,
         })),
       ),
       volumeSeries: buildReportVolumeSeries({
@@ -91,16 +133,27 @@ export async function buildReportsDashboard(input: {
   }
   // Reference path (in-memory test clients without `$queryRaw`).
   const tickets = await loadScopedReportTickets(input.prisma, scopedIds, false);
-  const [csatByTicketId, groupNames, serviceNames, kbHelpedCount] =
-    await Promise.all([
-      loadTicketCsatSubmissions(
-        input.prisma,
-        tickets.map((ticket) => ticket.id),
-      ),
-      loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
-      loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
-      countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
-    ]);
+  const [
+    csatByTicketId,
+    groupNames,
+    serviceNames,
+    unitNames,
+    userNames,
+    kbHelpedCount,
+  ] = await Promise.all([
+    loadTicketCsatSubmissions(
+      input.prisma,
+      tickets.map((ticket) => ticket.id),
+    ),
+    loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
+    loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
+    loadOrganizationalUnitNames(
+      input.prisma,
+      tickets.map((ticket) => ticket.originUnitId),
+    ),
+    loadUserNames(input.prisma, tickets.map((ticket) => ticket.assignedUserId)),
+    countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
+  ]);
   return {
     window: {
       from: window.from.toISOString(),
@@ -117,18 +170,28 @@ export async function buildReportsDashboard(input: {
       window,
       previousWindow,
       kbHelpedCount,
+      csatScaleMax: input.configuration.csatScaleMax,
     }),
-    bottleneckByGroup: aggregateBottleneckHoursByGroup({
-      tickets,
-      window,
-      groupNames,
-      unroutedLabel,
-    }),
+    bottlenecksEnabled: input.configuration.bottlenecksEnabled,
+    bottleneckByGroup: input.configuration.bottlenecksEnabled
+      ? aggregateBottleneckHoursByGroup({
+          tickets,
+          window,
+          groupNames,
+          unroutedLabel,
+        })
+      : [],
     serviceVolume: aggregateServiceVolume({
       tickets,
       window,
       serviceNames,
     }),
+    originUnitVolume: aggregateOriginUnitVolume({
+      tickets,
+      window,
+      unitNames,
+    }),
+    assigneeWorkload: aggregateAssigneeWorkload({ tickets, userNames }),
     volumeSeries: aggregateReportVolumeSeries({ tickets, window }),
     aging: aggregateAgingBuckets({ tickets, now }),
   };
@@ -150,34 +213,3 @@ async function countKnowledgeInterceptResolutions(
   });
 }
 
-async function loadGroupNames(
-  prisma: PrismaService,
-  groupIds: readonly (string | null)[],
-): Promise<ReadonlyMap<string, string>> {
-  const uniqueIds = [
-    ...new Set(groupIds.filter((id): id is string => id !== null && id.length > 0)),
-  ];
-  if (uniqueIds.length === 0) {
-    return new Map();
-  }
-  const groups = (await prisma.group.findMany({
-    where: { id: { in: uniqueIds } },
-    select: { id: true, name: true },
-  })) as Array<{ id: string; name: string }>;
-  return new Map(groups.map((group) => [group.id, group.name]));
-}
-
-async function loadServiceNames(
-  prisma: PrismaService,
-  serviceIds: readonly string[],
-): Promise<ReadonlyMap<string, string>> {
-  const uniqueIds = [...new Set(serviceIds.filter((id) => id.length > 0))];
-  if (uniqueIds.length === 0) {
-    return new Map();
-  }
-  const services = (await prisma.service.findMany({
-    where: { id: { in: uniqueIds } },
-    select: { id: true, name: true },
-  })) as Array<{ id: string; name: string }>;
-  return new Map(services.map((service) => [service.id, service.name]));
-}

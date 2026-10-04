@@ -15,7 +15,7 @@ import type { AuthenticationProviders } from "@/services/auth-api";
 
 export type EntraClientConfiguration = NonNullable<AuthenticationProviders["entra"]>;
 
-const CONFIGURATION_STORAGE_KEY = "ephd.entra.configuration";
+const CONFIGURATION_STORAGE_KEY = "service-desk.entra.configuration";
 export const ENTRA_CALLBACK_PATH = "/auth/callback";
 
 let cached: { readonly key: string; readonly instance: Promise<IPublicClientApplication> } | null = null;

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, ticketIdClassName } from "@/components/ui/control";
 import { Input } from "@/components/ui/field";
@@ -88,12 +88,13 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
     add.mutate();
   };
   return (
-    <Card className="fade-in" data-testid="ticket-links-panel">
-      <CardHeader
-        title={t("tickets.collaboration.links.title")}
-        subtitle={t("tickets.collaboration.links.count", { count: total })}
-      />
-      <div className="grid gap-2 px-4 py-3">
+    <DetailSection
+      id="links"
+      testId="ticket-links-panel"
+      title={t("tickets.collaboration.links.title")}
+      subtitle={t("tickets.collaboration.links.count", { count: total })}
+    >
+      <div className="grid gap-2">
         {data.related.map((item) => (
           <LinkRow key={`${item.relation}-${item.ticketNumber}`} side={item} badge={ticketText(t, relationKey[item.relation])} />
         ))}
@@ -172,7 +173,7 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
           if (removing !== null) remove.mutate(removing.id);
         }}
       />
-    </Card>
+    </DetailSection>
   );
 }
 

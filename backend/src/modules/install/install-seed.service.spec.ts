@@ -96,6 +96,25 @@ describe('InstallSeedService', () => {
     expect(memory.countFormVersions()).toBe(1);
   });
 
+  it('creates the system roles with their default permissions (finding M4/B1)', async () => {
+    const { service, memory } = await createInstallSeedHarness();
+    await service.seed();
+    // Before Val 0 nothing wrote `defaultRolePermissionKeys`, so a fresh
+    // installation left ADMIN/AGENT without a single permission.
+    expect(memory.listRolePermissionKeys('ADMIN')).toEqual(
+      expect.arrayContaining(['settings.write', 'reports.export', 'audit.export']),
+    );
+    expect(memory.listRolePermissionKeys('AGENT')).toEqual(
+      expect.arrayContaining(['ticket.templates.use', 'knowledge.article.write']),
+    );
+    expect(memory.listRolePermissionKeys('USER')).toEqual(
+      expect.arrayContaining(['ticket.message.send']),
+    );
+    expect(memory.listRolePermissionKeys('SUPER_ADMIN').length).toBeGreaterThan(
+      memory.listRolePermissionKeys('ADMIN').length,
+    );
+  });
+
   it('returns seeded status after a successful seed', async () => {
     const { service } = await createInstallSeedHarness();
     await service.seed();

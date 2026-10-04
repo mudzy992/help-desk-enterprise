@@ -21,6 +21,17 @@ export type InMemoryInstallUserRole = {
   roleId: string;
 };
 
+export type InMemoryInstallPermission = {
+  id: string;
+  key: string;
+};
+
+export type InMemoryInstallRolePermission = {
+  id: string;
+  roleId: string;
+  permissionId: string;
+};
+
 export function pickInstallSelectedFields<T extends object>(
   record: T,
   select: Record<string, boolean> | undefined,

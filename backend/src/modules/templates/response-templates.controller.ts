@@ -124,7 +124,7 @@ export class TicketResponseTemplatesController {
     @Req() request: AuthenticatedHttpRequest,
   ) {
     return executeTemplatesOperation(() =>
-      this.templates.render(ticketId, templateId, body.locale, readActor(request)),
+      this.templates.render(ticketId, templateId, body.locale, readActor(request), body.kind),
     );
   }
 }

@@ -58,6 +58,11 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
             aLabel={t("dashboard.volumeCreated")}
             bLabel={t("dashboard.volumeResolved")}
           />
+          {summary.volumeTruncated ? (
+            <p className="mt-3 border-t border-border/70 pt-3 text-[11px] leading-[18px] text-muted-foreground">
+              {t("dashboard.volumeTruncatedHint")}
+            </p>
+          ) : null}
         </div>
       </Card>
     </div>

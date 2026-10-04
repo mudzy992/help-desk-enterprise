@@ -27,6 +27,7 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'SAVED_VIEW_NOT_FOUND',
   'LINK_NOT_FOUND',
   'LINK_TARGET_NOT_FOUND',
+  'RESPONSE_TEMPLATE_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [

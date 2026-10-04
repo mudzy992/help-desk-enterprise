@@ -124,6 +124,8 @@ export class ServiceCatalogService {
   getById(
     serviceId: string,
     evaluatedAt: Date = new Date(),
+    /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
+    roleKeys?: readonly string[],
   ): Promise<ServiceResponse> {
     return this.execute(async () =>
       getService(
@@ -131,6 +133,7 @@ export class ServiceCatalogService {
         serviceId,
         await this.evaluation(evaluatedAt),
         await this.approvalsConfiguration(),
+        roleKeys,
       ),
     );
   }

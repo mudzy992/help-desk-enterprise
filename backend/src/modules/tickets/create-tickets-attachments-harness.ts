@@ -12,7 +12,7 @@ import { vpnCreateInput } from './vpn-create-input';
 
 export function createTicketsAttachmentsHarness() {
   const harness = createTicketsServiceHarness();
-  const uploadRoot = mkdtempSync(path.join(tmpdir(), 'ep-ticket-attachments-'));
+  const uploadRoot = mkdtempSync(path.join(tmpdir(), 'service-desk-ticket-attachments-'));
   const attachments = new TicketsAttachmentsService(
     harness.memory.prisma as never,
     harness.authorizationContextLoader as never,

@@ -439,6 +439,7 @@ export const settingKeys = {
   privateReportsEnabled: 'private.reports.enabled',
   privateReportsPacksJson: 'private.reports.packsJson',
   privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',
+  privateReportsDefaultWindowDays: 'private.reports.defaultWindowDays',
   privateReportsTimeZone: 'private.reports.timeZone',
   privateReportsPingPongThreshold: 'private.reports.pingPongThreshold',
   privateReportsTrendsEnabled: 'private.reports.trends.enabled',

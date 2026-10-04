@@ -12,7 +12,13 @@ export function parseTicketAttachmentConfiguration(input: {
   readonly maxFilesPerTicket: unknown;
   readonly maxFilesPerMessage: unknown;
   readonly dangerousExtensionsCsv: unknown;
-  readonly retentionDays: unknown;
+  /**
+   * Val 2 (M8/B1): `retentionDays` se nekada čitao ovdje, ali ga nijedan posao
+   * nije primjenjivao — brisanje priloga radi isključivo modul privatnosti
+   * (`private.privacy.retention.attachmentsDays`, kategorija `attachments`).
+   * Polje se zato više ne prima: postavka je označena kao zastarjela i bez
+   * dejstva, a drugi rok ne postoji.
+   */
 }): TicketAttachmentConfiguration {
   if (typeof input.enabled !== 'boolean') {
     return { ...defaultTicketAttachmentConfiguration };
@@ -40,10 +46,6 @@ export function parseTicketAttachmentConfiguration(input: {
       input.dangerousExtensionsCsv,
       defaultTicketAttachmentConfiguration.dangerousExtensions,
     ).map(normalizeExtension),
-    retentionDays: parsePositiveInteger(
-      input.retentionDays,
-      defaultTicketAttachmentConfiguration.retentionDays,
-    ),
   };
 }
 

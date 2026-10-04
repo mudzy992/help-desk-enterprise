@@ -33,9 +33,6 @@ export class TicketAttachmentConfigurationLoader {
         dangerousExtensionsCsv: await this.settingsService.getSetting(
           settingKeys.privateTicketAttachmentsDangerousExtensionsBlocklistCsv,
         ),
-        retentionDays: await this.settingsService.getSetting(
-          settingKeys.privateTicketAttachmentsRetentionDays,
-        ),
       });
     } catch {
       return { ...defaultTicketAttachmentConfiguration };

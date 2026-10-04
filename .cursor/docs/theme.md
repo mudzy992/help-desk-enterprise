@@ -126,7 +126,7 @@ Da bi `primary` kao tekst držao 4.5:1 na `surface`, njegova luminancija mora bi
 njemu držao 4.5:1, mora biti ≤ 0.183. Taj interval je prazan — jedan token ne može zadovoljiti oba pravila.
 Zato se pravilo §22.3 sprovodi tamo gdje može: konstitucija §22.1 kaže da `text-primary` **nije** za tekst na
 neutralnoj površini (za to je `text-link`, ovdje 6.68:1). Preostale dvije upotrebe `text-primary` na neutralnoj
-površini (srednja tačka u wordmarku `EP·HelpDesk`, `brand-mark.tsx` i `login-page.tsx`) prebačene su na
+površini (srednja tačka u wordmarku, `brand-mark.tsx` i `login-page.tsx`) prebačene su na
 `text-link`. Provjeru sprovedi automatski: `node scripts/check-theme-contrast.mjs` (radi u CI-ju) mjeri sve
 parove u 12 kombinacija paleta i zabranjuje `text-primary` van primary ispune.
 

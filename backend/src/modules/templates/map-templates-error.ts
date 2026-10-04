@@ -19,6 +19,7 @@ const messages: Record<TemplatesErrorCode, string> = {
   TEMPLATE_BODY_INVALID: 'The template text is empty or too long',
   TEMPLATE_UNKNOWN_VARIABLE: 'The template uses a variable that does not exist',
   TEMPLATE_KIND_MISMATCH: 'The template cannot be used in this composer mode',
+  TEMPLATE_INACTIVE: 'The template is deactivated',
   TEMPLATE_SCOPE_INVALID: 'A service, category or group in the scope does not exist',
   TEMPLATE_SCOPE_FORBIDDEN: 'The scope is outside the services you may manage',
   TEMPLATE_TAGS_INVALID: 'At most 10 tags of up to 40 characters are allowed',

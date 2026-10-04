@@ -62,6 +62,8 @@ export type TicketErrorKey =
   | "tickets.errorLinkMerged"
   | "tickets.errorLinkLimit"
   | "tickets.errorLinkNote"
+  | "tickets.errorTemplateInactive"
+  | "tickets.errorTemplateKind"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -109,6 +111,9 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   INVALID_MESSAGE_BODY: "tickets.errorValidation",
   INVALID_MESSAGE_TYPE: "tickets.errorValidation",
   MESSAGE_TYPE_NOT_ALLOWED: "tickets.errorForbidden",
+  RESPONSE_TEMPLATE_NOT_FOUND: "tickets.errorNotFound",
+  RESPONSE_TEMPLATE_INACTIVE: "tickets.errorTemplateInactive",
+  RESPONSE_TEMPLATE_KIND_MISMATCH: "tickets.errorTemplateKind",
   PARTICIPANTS_DISABLED: "tickets.errorForbidden",
   ATTACHMENTS_DISABLED: "tickets.errorForbidden",
   APPROVALS_DISABLED: "tickets.errorForbidden",

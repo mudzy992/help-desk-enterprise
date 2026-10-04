@@ -34,7 +34,13 @@ export type SubmitTicketCsatInput = {
 export type TicketCsatGroupKey = 'originUnitId' | 'serviceId' | 'assignedGroupId';
 
 export type TicketCsatBucket = {
+  /** Sirovi ključ: `originUnitId`, `serviceId` ili `assignedGroupId`. */
   readonly key: string;
+  /**
+   * Val 1 (M9/B3): naziv za prikaz iz šifarnika. Nikad prazno — kad naziva
+   * nema (obrisana grupa, servis van šifarnika), labela je ključ.
+   */
+  readonly label: string;
   readonly count: number;
   readonly average: number;
 };
@@ -42,6 +48,12 @@ export type TicketCsatBucket = {
 export type TicketCsatSummary = {
   readonly count: number;
   readonly average: number | null;
+  /**
+   * Val 1 (M9/B3): skala i prag „zadovoljan“ dolaze iz `private.csat.scaleMax`
+   * (prag je 80 % skale, kao 4 od 5 do sada), pa UI ne mora pretpostavljati 5.
+   */
+  readonly scaleMax: number;
+  readonly satisfiedMinRating: number;
   readonly byOriginUnit: readonly TicketCsatBucket[];
   readonly byService: readonly TicketCsatBucket[];
   readonly byGroup: readonly TicketCsatBucket[];

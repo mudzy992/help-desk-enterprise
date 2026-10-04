@@ -368,7 +368,7 @@ function SettingsTab() {
           />
           <div className={cn("space-y-2.5 px-4 py-4 text-[12px]", !smtp && "opacity-40 pointer-events-none")}>
             <p className="flex items-center justify-between"><span className="text-muted">Host</span><span className="tnum text-text/90">smtp.office365.com:587</span></p>
-            <p className="flex items-center justify-between"><span className="text-muted">Korisnik</span><span className="tnum text-text/90">helpdesk@ep.ba</span></p>
+            <p className="flex items-center justify-between"><span className="text-muted">Korisnik</span><span className="tnum text-text/90">helpdesk@example.com</span></p>
             <p className="flex items-center justify-between">
               <span className="text-muted">Lozinka (secret)</span>
               <span className="flex items-center gap-1.5 tnum text-text/90">

@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import { Filter, Search } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Chip } from "@/components/ui/chip";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
@@ -89,6 +90,11 @@ interface TicketListFiltersBarProperties {
   readonly onChange: (filters: TicketListFilters) => void;
   /** Package 1.6: the "forwarded" filter is staff-only. */
   readonly isStaff?: boolean;
+  /**
+   * UX 2026-10-02: the saved-views control lives in the filter row instead of a
+   * permanent column (it is a filter preset, so it belongs next to the filters).
+   */
+  readonly savedViewsSlot?: ReactNode;
 }
 
 export function TicketListFiltersBar({
@@ -96,6 +102,7 @@ export function TicketListFiltersBar({
   services,
   onChange,
   isStaff = false,
+  savedViewsSlot,
 }: TicketListFiltersBarProperties) {
   const { t } = useTranslation();
   return (
@@ -117,6 +124,7 @@ export function TicketListFiltersBar({
           placeholder={t("tickets.filters.searchPlaceholder")}
         />
       </div>
+      {savedViewsSlot}
       <div className="flex flex-wrap items-center gap-1.5">
         <Filter size={13} className="text-muted-foreground" aria-hidden="true" />
         <Chip

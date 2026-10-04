@@ -13,7 +13,7 @@ import {
 import { TicketListTable, directoryAssigneeNames } from "@/components/tickets/ticket-list-table";
 import { TicketWorkspaceNav } from "@/components/tickets/ticket-workspace-nav";
 import { TicketBulkBar } from "@/components/tickets/ticket-bulk-bar";
-import { TicketSavedViewsPanel } from "@/components/tickets/ticket-saved-views-panel";
+import { TicketSavedViewsMenu } from "@/components/tickets/ticket-saved-views-menu";
 import { Button } from "@/components/ui/button";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
@@ -114,99 +114,103 @@ export function TicketListPage() {
             inboxHidden={list.inboxHidden}
             isStaff={list.isStaff}
           />
-          <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-            <TicketSavedViewsPanel
-              filters={list.filters}
-              onApply={list.setFilters}
-              onError={list.setErrorKey}
+          {/* UX 2026-10-02: one full-width column. Saved views used to sit in a
+              permanent 220px rail, which squeezed the table on laptops and stacked
+              above it on smaller screens; they are now a compact control inside the
+              filter row (see `TicketSavedViewsMenu`). */}
+          <div className="mt-4 min-w-0">
+            <UnderlineTabs
+              className="mb-3"
+              active={ticketListTabKey(list.filters)}
+              onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
+              items={ticketStatusTabItems(t, list.counts, riskCount)}
             />
-            <div className="min-w-0">
-              <UnderlineTabs
-                className="mb-3"
-                active={ticketListTabKey(list.filters)}
-                onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
-                items={ticketStatusTabItems(t, list.counts, riskCount)}
-              />
-              <TicketListFiltersBar
-                filters={list.filters}
-                services={list.services}
-                onChange={list.setFilters}
-                isStaff={list.isStaff}
-              />
-              <TicketBulkBar
-                selectedIds={list.selectedIds}
-                ticketNumbers={new Map(list.pageItems.map((ticket) => [ticket.id, ticket.ticketNumber]))}
-                ticketSummaries={
-                  new Map(
-                    list.pageItems.map((ticket) => [
-                      ticket.id,
-                      { id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority },
-                    ]),
-                  )
-                }
-                onClear={() => list.setSelectedIds(new Set())}
-                onError={list.setErrorKey}
-                onComplete={() => {
-                  list.setSelectedIds(new Set());
-                  void list.load();
-                }}
-              />
-              {list.isLoading ? (
-                <TicketLoadingState />
-              ) : list.errorKey ? (
-                <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
-              ) : list.total === 0 ? (
-                <div className="rounded-lg border border-border bg-surface shadow-card">
-                  <TicketEmptyState
-                    title={t("tickets.emptyFilterTitle")}
-                    body={t("tickets.emptyFilterHint")}
-                    action={
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => list.setFilters(clearedTicketListFilters(list.filters))}
-                      >
-                        {t("tickets.clearFilters")}
-                      </Button>
-                    }
-                  />
-                </div>
-              ) : (
-                <TicketListTable
-                  tickets={list.pageItems}
-                  serviceNames={list.serviceNames}
-                  assigneeNames={assigneeNames}
-                  selectedIds={list.selectedIds}
-                  onToggleSelected={list.toggleSelected}
-                  onTogglePage={(selected) =>
-                    list.setSelectedIds(
-                      selected ? new Set(list.pageItems.map((ticket) => ticket.id)) : new Set(),
-                    )
+            <TicketListFiltersBar
+              filters={list.filters}
+              services={list.services}
+              onChange={list.setFilters}
+              isStaff={list.isStaff}
+              savedViewsSlot={
+                <TicketSavedViewsMenu
+                  filters={list.filters}
+                  onApply={list.setFilters}
+                  onError={list.setErrorKey}
+                />
+              }
+            />
+            <TicketBulkBar
+              selectedIds={list.selectedIds}
+              ticketNumbers={new Map(list.pageItems.map((ticket) => [ticket.id, ticket.ticketNumber]))}
+              ticketSummaries={
+                new Map(
+                  list.pageItems.map((ticket) => [
+                    ticket.id,
+                    { id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority },
+                  ]),
+                )
+              }
+              onClear={() => list.setSelectedIds(new Set())}
+              onError={list.setErrorKey}
+              onComplete={() => {
+                list.setSelectedIds(new Set());
+                void list.load();
+              }}
+            />
+            {list.isLoading ? (
+              <TicketLoadingState />
+            ) : list.errorKey ? (
+              <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
+            ) : list.total === 0 ? (
+              <div className="rounded-lg border border-border bg-surface shadow-card">
+                <TicketEmptyState
+                  title={t("tickets.emptyFilterTitle")}
+                  body={t("tickets.emptyFilterHint")}
+                  action={
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => list.setFilters(clearedTicketListFilters(list.filters))}
+                    >
+                      {t("tickets.clearFilters")}
+                    </Button>
                   }
                 />
-              )}
-              {list.totalPages > 1 ? (
-                <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
-                  <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
-                    {t("tickets.previous")}
-                  </Button>
-                  <span className="tnum">{ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", { page: list.page, total: list.totalPages })}</span>
-                  <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
-                    {t("tickets.next")}
-                  </Button>
-                </div>
-              ) : (
-                <p className="mt-3 text-[11.5px] text-muted-foreground">
-                  {ticketText(t, list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
-                </p>
-              )}
-              {canExport ? (
-                <p className="mt-1 text-[11.5px] text-muted-foreground">
-                  {t("tickets.exportAuditedHint")}
-                </p>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              <TicketListTable
+                tickets={list.pageItems}
+                serviceNames={list.serviceNames}
+                assigneeNames={assigneeNames}
+                selectedIds={list.selectedIds}
+                onToggleSelected={list.toggleSelected}
+                onTogglePage={(selected) =>
+                  list.setSelectedIds(
+                    selected ? new Set(list.pageItems.map((ticket) => ticket.id)) : new Set(),
+                  )
+                }
+              />
+            )}
+            {list.totalPages > 1 ? (
+              <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
+                <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
+                  {t("tickets.previous")}
+                </Button>
+                <span className="tnum">{ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", { page: list.page, total: list.totalPages })}</span>
+                <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
+                  {t("tickets.next")}
+                </Button>
+              </div>
+            ) : (
+              <p className="mt-3 text-[11.5px] text-muted-foreground">
+                {ticketText(t, list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
+              </p>
+            )}
+            {canExport ? (
+              <p className="mt-1 text-[11.5px] text-muted-foreground">
+                {t("tickets.exportAuditedHint")}
+              </p>
+            ) : null}
           </div>
         </>
       )}

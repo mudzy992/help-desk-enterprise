@@ -7,6 +7,26 @@ import type {
 
 export const reportHoursSuffix = "h";
 
+/**
+ * Val 1 (M15/B1): koje sekcije pregleda izvještaja ima smisla crtati.
+ * Postavka `private.dashboard.bottlenecks.enabled` mora važiti i za prikaz —
+ * server tada vraća prazan razrez, a ovdje se kartica uopšte ne renderuje
+ * (umjesto praznog stanja koje izgleda kao „nema podataka“).
+ */
+export function dashboardChartSections(dashboard: {
+  readonly bottlenecksEnabled: boolean;
+}): readonly ("bottleneck" | "volume" | "unit" | "workload" | "flow")[] {
+  return dashboard.bottlenecksEnabled
+    ? ["bottleneck", "volume", "unit", "workload", "flow"]
+    : ["volume", "unit", "workload", "flow"];
+}
+
+export function showBottleneckChart(dashboard: {
+  readonly bottlenecksEnabled: boolean;
+}): boolean {
+  return dashboardChartSections(dashboard).includes("bottleneck");
+}
+
 export type ReportAgingLabels = {
   readonly lessThanOneDay: string;
   readonly oneToThreeDays: string;
@@ -39,6 +59,35 @@ export function mapServiceVolumeBars(
     label: row.label,
     value: row.value,
     color: SEMANTIC_DOT_HEX.primary,
+  }));
+}
+
+/**
+ * Val 1 (M15 gap): brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
+ * vrijednost je broj tiketa, a ne sati.
+ */
+export function mapCountBars(
+  rows: readonly ReportDashboardNamedBar[],
+): readonly HorizontalBarItem[] {
+  return rows.map((row) => ({
+    label: row.label,
+    value: row.value,
+    color: SEMANTIC_DOT_HEX.primary,
+  }));
+}
+
+/** Opterećenje: najopterećeniji izvršilac nosi upozorenje, ostali primarnu boju. */
+export function mapWorkloadBars(
+  rows: readonly ReportDashboardNamedBar[],
+): readonly HorizontalBarItem[] {
+  const max = rows[0]?.value;
+  return rows.map((row) => ({
+    label: row.label,
+    value: row.value,
+    color:
+      max !== undefined && row.value === max
+        ? SEMANTIC_DOT_HEX.warning
+        : SEMANTIC_DOT_HEX.primary,
   }));
 }
 

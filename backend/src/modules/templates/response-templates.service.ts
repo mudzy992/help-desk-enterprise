@@ -34,6 +34,10 @@ import {
 import { TemplatesConfigurationLoader } from './templates-configuration.loader';
 import { loadTemplateEnvironment, resolveTemplateLocale } from './templates-environment';
 import { TemplatesError } from './templates.error';
+import {
+  assertResponseTemplateUsable,
+  type UsableTemplateKind,
+} from './assert-response-template-usable';
 
 const templateInclude = {
   services: { select: { serviceId: true } },
@@ -155,8 +159,17 @@ export class ResponseTemplatesService {
     templateId: string,
     locale: TemplateLocale | undefined,
     actor: Actor,
+    kind?: UsableTemplateKind,
   ): Promise<RenderedTemplate> {
     const context = await this.requireUse(actor);
+    // Val 2 (M13/B1): render used to load a template by id alone, so a
+    // deactivated one (or an INTERNAL one in a public composer) still returned
+    // text. The write path repeats this check against the real message type.
+    await assertResponseTemplateUsable(this.prisma, {
+      templateId,
+      actorUserId: context.subjectId,
+      ...(kind === undefined ? {} : { kind }),
+    });
     const template = await this.prisma.responseTemplate.findFirst({
       where: {
         id: templateId,

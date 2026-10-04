@@ -117,6 +117,12 @@ export type KnowledgeDraftFromReply = {
   readonly replacements: ReplyScrubCounts;
 };
 
+export type KnowledgeArticleFromReplyResponse = KnowledgeArticleResponse & {
+  /** Val 2 (M14/B1): šta je server zamijenio u onome što je klijent poslao. */
+  readonly replacements: ReplyScrubCounts;
+  readonly sanitized: boolean;
+};
+
 export type CreateArticleFromReplyInput = Omit<
   CreateKnowledgeArticleInput,
   'sourceTicketId' | 'sourceMessageId'
@@ -124,6 +130,23 @@ export type CreateArticleFromReplyInput = Omit<
   readonly ticketId: string;
   readonly messageId: string;
 };
+
+/** Sums the per-kind counters of one or two scrubbed texts. */
+function sumScrubCounts(...counters: readonly ReplyScrubCounts[]): ReplyScrubCounts {
+  return counters.reduce<ReplyScrubCounts>(
+    (total, current) => ({
+      email: total.email + current.email,
+      person: total.person + current.person,
+      ip: total.ip + current.ip,
+      phone: total.phone + current.phone,
+    }),
+    { email: 0, person: 0, ip: 0, phone: 0 },
+  );
+}
+
+function totalScrubCounts(counts: ReplyScrubCounts): number {
+  return counts.email + counts.person + counts.ip + counts.phone;
+}
 
 /** Insight thresholds (design §2.4): fixed, documented; not worth a setting. */
 export const knowledgeInsightThresholds = { minRatings: 5, notViewedDays: 90, listSize: 10 } as const;
@@ -489,14 +512,39 @@ export class KnowledgePortalService {
   createFromReply(
     input: CreateArticleFromReplyInput,
     context: KnowledgeArticleMutationContext,
-  ): Promise<KnowledgeArticleResponse> {
+  ): Promise<KnowledgeArticleFromReplyResponse> {
     return executeKnowledgeBaseOperation(async () => {
       const source = await this.loadReplySource(input.ticketId, input.messageId, context);
       const { ticketId, messageId, ...article } = input;
+      // Val 2 (M14/B1): the preview replaced personal data, but the write took
+      // whatever the client sent — an edited (or scripted) request could put
+      // somebody's name, e-mail, phone or IP into a published article. The
+      // submitted text is scrubbed again here, with the same people set, and
+      // the counters come back so the editor can tell what changed.
+      const labels = replyScrubLabels[source.locale];
+      const cleanBody = scrubReplyPersonalData(article.body, source.people, labels);
+      const cleanTitle = scrubReplyPersonalData(article.title, source.people, labels);
+      // Only a real replacement counts as „sanitized“ — leading/trailing space
+      // must not produce an audit entry of its own.
+      if (
+        article.body.trim() !== cleanBody.text.trim() ||
+        article.title.trim() !== cleanTitle.text.trim()
+      ) {
+        await this.recordExtraRedaction(context, ticketId, messageId, {
+          body: cleanBody.counts,
+          title: cleanTitle.counts,
+        });
+      }
       const created = await createKnowledgeArticle(
         this.prisma,
         this.loader,
-        { ...article, sourceTicketId: ticketId, sourceMessageId: messageId },
+        {
+          ...article,
+          title: cleanTitle.text.trim(),
+          body: cleanBody.text.trim(),
+          sourceTicketId: ticketId,
+          sourceMessageId: messageId,
+        },
         context,
       );
       // Internal trace on the ticket (SYSTEM_EVENT is staff only).
@@ -513,8 +561,37 @@ export class KnowledgePortalService {
         context,
         { ticketNumber: source.ticketNumber, messageId },
       );
-      return toKnowledgeArticleResponse(created);
+      const replacements = sumScrubCounts(cleanTitle.counts, cleanBody.counts);
+      return {
+        ...toKnowledgeArticleResponse(created),
+        replacements,
+        sanitized: totalScrubCounts(replacements) > 0,
+      };
     });
+  }
+
+  /**
+   * Val 2 (M14/B1): the audit entry says the server had to replace something
+   * the editor sent — without this record the change would be invisible when
+   * the article is published later.
+   */
+  private async recordExtraRedaction(
+    context: KnowledgeArticleMutationContext,
+    ticketId: string,
+    messageId: string,
+    counts: { readonly title: ReplyScrubCounts; readonly body: ReplyScrubCounts },
+  ): Promise<void> {
+    await this.audit(
+      auditLogActions.knowledgeArticleReplyRedacted,
+      auditLogEntityTypes.knowledgeArticle,
+      ticketId,
+      context,
+      {
+        messageId,
+        title: totalScrubCounts(counts.title),
+        body: totalScrubCounts(counts.body),
+      },
+    );
   }
 
   // ---------------------------------------------------------------- helpers

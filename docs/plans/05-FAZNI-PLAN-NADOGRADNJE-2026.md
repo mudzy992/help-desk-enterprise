@@ -1,4 +1,4 @@
-# Fazni plan nadogradnje EP·HelpDesk — 2026
+# Fazni plan nadogradnje Service Desk — 2026
 
 Osnova: `docs/PROJEKTNI-ZADATAK-GAP-2026-09-25.md` (audit usklađenosti) i odluke vlasnika:
 
@@ -108,18 +108,18 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ## FAZA 2 — Funkcionalnosti help-deska ovog obima
 
-### 2.1 Sigurnost naloga  · ~3 RD
+### 2.1 Sigurnost naloga  · ~3 RD · dizajn: `modules/2.1-sigurnost-naloga.md` · ✅ implementirano 2026-09-26 (§10 dizajna)
 - **MFA (TOTP)** obavezno za SUPER_ADMIN, opcionalno za ostale lokalne naloge; recovery kodovi;
   reset MFA samo od drugog SUPER_ADMIN-a uz audit.
 - Pregled aktivnih sesija korisnika + „odjavi sve uređaje" (nadogradnja na opoziv iz reviewa).
 - Politika lozinki za lokalne naloge (dužina, historija, istek za break-glass nalog).
 
-### 2.2 Notifikacije po mjeri korisnika  · ~2 RD
+### 2.2 Notifikacije po mjeri korisnika  · ~2 RD · dizajn: `modules/2.2-notifikacije-po-mjeri.md` · ✅ implementirano (§10 dizajna)
 - Lične postavke: koji događaji e-mailom / in-app, „tihi sati", dnevni sažetak (digest) umjesto
   pojedinačnih e-mailova za agente.
 - Admin može zaključati obavezne notifikacije (npr. odobrenja).
 
-### 2.2a Sedmični pregled tiketa agentima (e-mail)  · ~1,5 RD · dizajn: `modules/2.2a-sedmicni-pregled-tiketa-agentima.md`
+### 2.2a Sedmični pregled tiketa agentima (e-mail)  · ~1,5 RD · dizajn: `modules/2.2a-sedmicni-pregled-tiketa-agentima.md` · ✅ implementirano
 - Pojašnjenje klijenta (2026-09-27): sedmično agentu lista otvorenih tiketa u kojima je učesnik (dodijeljen/gost), sa statusom — podsjetnik šta treba riješiti.
 
 ### 2.3 Odgovor e-mailom (inbound)  · ~5,5 RD · dizajn: `modules/2.3-odgovor-emailom.md` · **implementirano**
@@ -224,10 +224,17 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   dokumentacija); neutralni naziv proizvoda „Service Desk“; potpuno preimenovanje tehničkih identifikatora i na
   stagingu; CI provjera protiv povratka.
 
-### 4.1a Preostale skraćenice klijenta (dopuna audita)  · ~0,75 RD · dizajn: `modules/4.1a-skracenice-klijenta.md` · čeka odobrenje
+### 4.1a Preostale skraćenice klijenta (dopuna audita)  · ~0,75 RD · dizajn: `modules/4.1a-skracenice-klijenta.md` · ✅ implementirano 2026-10-02 (B1–B4; provjera na stagingu uz prvi deploy)
 - Popis oblika iz 4.1 nije bio potpun: ostale su kratke oznake klijenta, njegove druge domene i oznaka marke sa srednjom
   tačkom, ukupno 22 fajla (u radnom kodu jedno e-mail zaglavlje i jedan ključ sessionStorage-a). Zamjene, proširenje CI
   provjere i test same provjere.
+
+### 4.2 UX liste i detalja tiketa (zahtjev vlasnika 2026-10-02)  · dizajn: `modules/4.2-ux-lista-i-detalji-tiketa.md`
+- **A) Lista tiketa:** sačuvani pogledi iz trajne kolone (220 px) prebačeni u kompaktnu kontrolu u redu filtera —
+  ✅ implementirano 2026-10-02.
+- **B) Detalji tiketa:** odobreno 2026-10-02 i ✅ implementirano 2026-10-03 — desna kolona je 13 ravnopravnih
+  kartica zamijenila s tri (Sažetak / Radnje / Povezano i tok) sa sklopivim sekcijama koje pamte stanje po
+  korisniku, a CSAT je traka preko cijelog tiketa. Bez gubitka funkcionalnosti.
 
 ## Zavisnosti i redoslijed
 
@@ -250,17 +257,21 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
 | 3 | 3.1–3.4 | ~26 RD |
 | **Ukupno** | 21 paket | **~70 RD** |
 
-## Otvorena pitanja (odgovoriti prije razrade pojedinog paketa)
+## Otvorena pitanja
 
-1. (1.1) Da li „eskalacija" znači samo prosljeđivanje višem nivou ili i automatsku eskalaciju
-   (već postoji kroz SLA eskalacije)? Ko definiše „viši nivo" — po grupi ili po servisu?
-2. (1.5 / 2.3) ~~Koji sandučić~~ — odlučeno 2026-09-25: oba načina (bez odgovora / zajednički
-   sandučić) biraju se u postavkama, provajderi su modularni (O365, Gmail, vlastiti SMTP).
-   Otvoreno za 2.3: pristup sandučiću (IMAP ili Microsoft Graph) i ko registruje aplikaciju u tenantu.
-3. (2.1) MFA samo za SUPER_ADMIN ili i za ADMIN? (Entra korisnici već imaju MFA kroz Microsoft.)
-4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku klijenta?
+Riješena tokom implementacije:
+
+1. ~~(1.1) „Eskalacija"~~ — odlučeno: eskalacija = prosljeđivanje na grupu s potrebnim ovlastima; automatske SLA eskalacije ostaju zaseban mehanizam (`modules/1.1-prosljedjivanje-tiketa.md` §3).
+2. ~~(1.5 / 2.3) sandučić~~ — odlučeno 2026-09-25: oba načina (bez odgovora / zajednički sandučić) biraju se u postavkama, provajderi su modularni (Graph, IMAP, Gmail); **aplikaciju u tenantu registruje IT klijenta** (`modules/2.3-odgovor-emailom.md` §3, uputstvo `docs/ops/inbound-email.md`).
+3. ~~(2.1) MFA za ADMIN-e~~ — odlučeno: obavezan MFA za lokalne ADMIN i SUPER_ADMIN naloge; sve preporuke iz §9 prihvaćene i implementirane 2026-09-26.
+
+Čeka klijenta:
+
+4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku klijenta (upitnik `docs/privacy/DPO-UPITNIK.md`).
 5. (3.2) Postoji li postojeći popis imovine (Excel, drugi sistem, Intune) za početni import?
 6. (3.4) Postoji li CAB (odbor za promjene) i ko su članovi?
+
+Uz to, live režim 3.1 (Teams) i 2.3 (inbound pošta) traži registraciju aplikacije u tenantu klijenta — checkliste su u dizajnima (3.1 §18, `docs/ops/inbound-email.md`).
 
 ---
 

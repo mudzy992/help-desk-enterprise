@@ -159,7 +159,13 @@ export function createKnowledgeArticleFromReply(input: {
   readonly ownerUserId?: string;
   readonly categoryId?: string;
   readonly reason: string;
-}): Promise<KnowledgeArticleResponse> {
+}): Promise<
+  KnowledgeArticleResponse & {
+    /** Val 2 (M14/B1): šta je server zamijenio u poslanom tekstu. */
+    readonly replacements: KnowledgeReplyReplacements;
+    readonly sanitized: boolean;
+  }
+> {
   return apiRequest(`${base}/from-reply`, { method: "POST", body: JSON.stringify(input) });
 }
 

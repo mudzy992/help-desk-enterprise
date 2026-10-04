@@ -23,6 +23,12 @@ const emptyCounts: BottleneckCounts = {
 export function aggregateBottleneckDashboard(input: {
   readonly tickets: readonly ReportTicketSnapshot[];
   readonly window: ReportWindow;
+  /**
+   * Val 1 (M15/B2): nazivi za razrez; bez mape ili bez pogotka labela je ključ.
+   * Prioritet nema šifarnik — njegova labela je vrijednost enuma.
+   */
+  readonly unitNames?: ReadonlyMap<string, string>;
+  readonly serviceNames?: ReadonlyMap<string, string>;
 }): BottleneckDashboard {
   const standing = input.tickets.filter(
     (ticket) => ticket.status !== 'ARCHIVED',
@@ -33,9 +39,21 @@ export function aggregateBottleneckDashboard(input: {
       to: input.window.to.toISOString(),
     },
     counts: countBottlenecks(standing),
-    byOrganizationalUnit: breakdown(standing, (ticket) => ticket.originUnitId),
-    byService: breakdown(standing, (ticket) => ticket.serviceId),
-    byPriority: breakdown(standing, (ticket) => ticket.priority),
+    byOrganizationalUnit: breakdown(
+      standing,
+      (ticket) => ticket.originUnitId,
+      (key) => input.unitNames?.get(key) ?? key,
+    ),
+    byService: breakdown(
+      standing,
+      (ticket) => ticket.serviceId,
+      (key) => input.serviceNames?.get(key) ?? key,
+    ),
+    byPriority: breakdown(
+      standing,
+      (ticket) => ticket.priority,
+      (key) => key,
+    ),
     trend: buildTrend(standing, input.window),
   };
 }
@@ -52,6 +70,7 @@ export function countBottlenecks(
 function breakdown(
   tickets: readonly ReportTicketSnapshot[],
   keyFor: (ticket: ReportTicketSnapshot) => string,
+  labelFor: (key: string) => string,
 ): readonly BottleneckBreakdownRow[] {
   const grouped = new Map<string, ReportTicketSnapshot[]>();
   for (const ticket of tickets) {
@@ -64,7 +83,7 @@ function breakdown(
     grouped.set(key, current);
   }
   return [...grouped.entries()]
-    .map(([key, rows]) => ({ key, ...countBottlenecks(rows) }))
+    .map(([key, rows]) => ({ key, label: labelFor(key), ...countBottlenecks(rows) }))
     .sort((left, right) => left.key.localeCompare(right.key));
 }
 

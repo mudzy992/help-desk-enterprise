@@ -34,6 +34,8 @@ describe('ticket CSAT feedback', () => {
     expect(summary.count).toBe(1);
     expect(summary.average).toBe(5);
     expect(summary.byService[0]?.key).toBe(ticketsTestIds.serviceVpn);
+    // Val 1 (M9/B3): razrez nosi naziv servisa, ne ID (tab CSAT je prikazivao ID).
+    expect(summary.byService[0]?.label).toBe('VPN access');
     const events = [...harness.memory.messages.values()].map((item) => item.body);
     expect(events.some((body) => body.startsWith(ticketSystemEventActions.csatSubmitted))).toBe(
       true,

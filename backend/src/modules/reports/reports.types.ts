@@ -15,7 +15,12 @@ export type ReportsConfiguration = {
   readonly enabledPacks: readonly ReportPackKey[];
   readonly allowedFormats: readonly ReportExportFormat[];
   readonly bottlenecksEnabled: boolean;
+  /** Prozor uskih grla i pregleda (ključ `private.dashboard.bottlenecks.*`). */
   readonly defaultWindowDays: number;
+  /** Prozor paketa izvještaja (ključ `private.reports.defaultWindowDays`). */
+  readonly packWindowDays: number;
+  /** Val 1 (M9/B3): skala CSAT ocjena (`private.csat.scaleMax`), 2–10. */
+  readonly csatScaleMax: number;
   readonly pingPongThreshold: number;
 };
 
@@ -128,7 +133,13 @@ export type BottleneckCounts = {
 };
 
 export type BottleneckBreakdownRow = BottleneckCounts & {
+  /** Sirovi ključ razreza: `originUnitId`, `serviceId` ili vrijednost prioriteta. */
   readonly key: string;
+  /**
+   * Val 1 (M15/B2): naziv za prikaz (OU/servis iz šifarnika); za prioritet je
+   * to vrijednost enuma, koju UI prevodi. Nikad prazno — bez naziva je `key`.
+   */
+  readonly label: string;
 };
 
 export type BottleneckTrendRow = BottleneckCounts & {

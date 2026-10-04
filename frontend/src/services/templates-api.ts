@@ -111,10 +111,15 @@ export function renderTicketTemplate(
   ticketId: string,
   templateId: string,
   locale?: TemplateLocale,
+  /** Val 2 (M13/B1): server odbija šablon koji ne odgovara režimu sastavljača. */
+  kind?: "REPLY" | "INTERNAL",
 ): Promise<RenderedTemplate> {
   return apiRequest(`/tickets/${ticketId}/response-templates/${templateId}/render`, {
     method: "POST",
-    body: JSON.stringify(locale === undefined ? {} : { locale }),
+    body: JSON.stringify({
+      ...(locale === undefined ? {} : { locale }),
+      ...(kind === undefined ? {} : { kind }),
+    }),
   });
 }
 

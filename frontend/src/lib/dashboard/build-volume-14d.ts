@@ -2,6 +2,12 @@ import type { TicketResponse } from "@/services/tickets-api";
 
 export const dashboardVolumeDayCount = 14;
 
+/**
+ * Val 1 (M15/B6): grafik se broji iz tiketa kreiranih u periodu. Stranice,
+ * njihov broj i granica „donja granica“ žive u `load-dashboard-volume.ts` —
+ * veličina stranice tamo prati ono što API stvarno prihvata.
+ */
+
 export type TicketVolumeDay = {
   readonly d: string;
   readonly created: number;

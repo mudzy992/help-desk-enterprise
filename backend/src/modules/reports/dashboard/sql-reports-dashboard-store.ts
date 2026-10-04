@@ -20,6 +20,10 @@ export type ReportsDashboardAggregates = {
     readonly count: number;
   }[];
   readonly services: readonly { readonly key: string; readonly name: string | null; readonly count: number }[];
+  /** Val 1 (M15 gap): tiketi kreirani u prozoru, po OU. */
+  readonly originUnits: readonly { readonly key: string; readonly name: string | null; readonly count: number }[];
+  /** Val 1 (M15 gap): otvoreni tiketi po izvršiocu (stanje sada). */
+  readonly assignees: readonly { readonly key: string; readonly name: string | null; readonly count: number }[];
   readonly createdByDay: ReadonlyMap<string, number>;
   readonly resolvedByDay: ReadonlyMap<string, number>;
   readonly aging: ReportDashboardAging;
@@ -41,7 +45,7 @@ type KpiSqlRow = {
 };
 
 type BarSqlRow = {
-  readonly k: 'g' | 's';
+  readonly k: 'g' | 's' | 'u' | 'w';
   readonly key: string | null;
   readonly name: string | null;
   readonly h: NumberLike;
@@ -75,6 +79,10 @@ const openTicketStatuses: readonly string[] = Object.values(TicketStatus).filter
  * ticket of the unit into Node. These four statements return the same numbers
  * as the in-memory aggregation (`aggregate-report-dashboard-*`), which stays as
  * the reference definition and the fallback for clients without `$queryRaw`.
+ *
+ * Val 1 adds two more branches to the bar statement: `'u'` (created tickets per
+ * origin unit) and `'w'` (open tickets per assignee) — the same definitions as
+ * `aggregateOriginUnitVolume` / `aggregateAssigneeWorkload`.
  *
  * Same population as before: tickets of the scoped units, not ARCHIVED
  * (merged children included, as the dashboard always counted them). Window
@@ -147,7 +155,22 @@ export async function loadReportsDashboardAggregates(
       LEFT JOIN "Service" sv ON sv.id = t."serviceId"
       WHERE ${scope}
         AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
-      GROUP BY t."serviceId", sv.name`,
+      GROUP BY t."serviceId", sv.name
+      UNION ALL
+      SELECT 'u' AS k, t."originUnitId" AS key, ou.name AS name, 0 AS h, count(*) AS n
+      FROM "Ticket" t
+      LEFT JOIN "OrganizationalUnit" ou ON ou.id = t."originUnitId"
+      WHERE ${scope}
+        AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
+      GROUP BY t."originUnitId", ou.name
+      UNION ALL
+      SELECT 'w' AS k, t."assignedUserId" AS key, u."displayName" AS name, 0 AS h, count(*) AS n
+      FROM "Ticket" t
+      LEFT JOIN "User" u ON u.id = t."assignedUserId"
+      WHERE ${scope}
+        AND t."assignedUserId" IS NOT NULL
+        AND t.status = ANY(${[...openTicketStatuses]}::"TicketStatus"[])
+      GROUP BY t."assignedUserId", u."displayName"`,
     prisma.$queryRaw<DaySqlRow[]>`
       SELECT 'c' AS k, to_char(date_trunc('day', t."createdAt"), 'YYYY-MM-DD') AS d, count(*) AS n
       FROM "Ticket" t
@@ -211,6 +234,12 @@ export async function loadReportsDashboardAggregates(
       })),
     services: barRows
       .filter((row) => row.k === 's' && row.key !== null)
+      .map((row) => ({ key: row.key as string, name: row.name, count: toNumber(row.n) })),
+    originUnits: barRows
+      .filter((row) => row.k === 'u' && row.key !== null)
+      .map((row) => ({ key: row.key as string, name: row.name, count: toNumber(row.n) })),
+    assignees: barRows
+      .filter((row) => row.k === 'w' && row.key !== null)
       .map((row) => ({ key: row.key as string, name: row.name, count: toNumber(row.n) })),
     createdByDay,
     resolvedByDay,

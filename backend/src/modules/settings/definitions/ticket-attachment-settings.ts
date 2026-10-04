@@ -67,7 +67,8 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
     key: settingKeys.privateTicketAttachmentsRetentionDays,
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
-    description: 'Retention window for ticket attachments in days',
+    description:
+      'Deprecated and without effect: attachment retention is a privacy decision, set it in private.privacy.retention.attachmentsDays',
     isRequired: true,
     defaultValue: 365,
   }),

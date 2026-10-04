@@ -1,9 +1,37 @@
+---
+title: Najave
+slug: najave
+module: —
+part: korisnik
+audience: [Svi korisnici, Administrator, Agent]
+roles: []
+order: 50
+tags: [najave, potvrda-citanja, publika, teams, podsjetnik]
+---
 # Najave
+
+## Čemu služi ovaj modul
 
 Najave su obavještenja organizacije (planirani radovi, promjene, važne informacije) koja se prikazuju
 kao traka iznad sadržaja aplikacije, a po potrebi i kao prozor koji traži potvrdu čitanja.
 
-## Za sve korisnike
+## Kome je namijenjen
+
+- **Svim korisnicima** — vide traku/prozor i potvrđuju čitanje; lista u meniju prikazuje najave iz zadnjih
+  90 dana.
+- **Administratorima** — kreiraju, objavljuju i povlače najave, prate potvrde i isporuku.
+- **Agentima** — samo ako je uključena postavka `private.announcements.agentsMayPublish`, i to za svoju
+  organizacionu jedinicu i njene podjedinice.
+
+## Kako doći
+
+- **Za korisnike:** traka iznad sadržaja aplikacije (kad postoji aktivna najava) i meni → **Najave**.
+- **Za administratore:** **Najave → Upravljanje → Nova najava**.
+
+## Korak po korak
+
+### Za sve korisnike
+
 - **Traka** se pojavi kad postoji aktivna najava za vas. Više najava → brojač „1 od 3“ i strelice.
 - **„Prikaži detalje“** otvara cijeli tekst.
 - **„Zatvori“** sakriva najavu bez potvrde (više se ne prikazuje).
@@ -13,7 +41,8 @@ kao traka iznad sadržaja aplikacije, a po potrebi i kao prozor koji traži potv
 - **Meni → Najave** prikazuje sve najave iz zadnjih 90 dana i koje ste potvrdili.
 - Nova ili povučena najava se pojavi/nestane najkasnije za minutu.
 
-## Za administratore (i agente, ako je dozvoljeno)
+### Za administratore (i agente, ako je dozvoljeno)
+
 1. **Najave → Upravljanje → Nova najava.** Unesite naslov, tekst (podržan jednostavan markdown), težinu,
    početak i kraj (najduže `private.announcements.maxDurationDays`, zadano 90 dana).
 2. **Publika:** uloge, organizacione jedinice (sa svim podjedinicama) i grupe. Bez odabira najava ide
@@ -31,6 +60,8 @@ kao traka iznad sadržaja aplikacije, a po potrebi i kao prozor koji traži potv
    slana e-mailom, podsjetnik ide i e-mailom). Sekcija **Isporuka** pokazuje koliko je e-mailova poslano,
    preskočeno (lične postavke, e-mail policy) ili neuspjelo, te rezultat Teams objave.
 
+## Polja, validacije i statusi
+
 **Ko dobija e-mail:** korisnik koji je e-mail za „Najave“ isključio u svojim postavkama obavještenja ga ne
 dobija. Korisnici sa sažetkom ili tihim satima dobiju e-mail samo za **kritične** najave; ostale vide u
 aplikaciji. E-mail šablone „Najava“ i „Najava: podsjetnik na potvrdu“ uređujete u editoru e-mail šablona.
@@ -38,7 +69,6 @@ aplikaciji. E-mail šablone „Najava“ i „Najava: podsjetnik na potvrdu“ u
 **Agenti** objavljuju samo ako je uključena postavka `private.announcements.agentsMayPublish`, i to samo
 za svoju organizacionu jedinicu i njene podjedinice.
 
-## Postavke (Postavke → Tok rada)
 | Ključ | Zadano | Značenje |
 |---|---|---|
 | `private.announcements.enabled` | isključeno | modul najava |
@@ -52,6 +82,33 @@ za svoju organizacionu jedinicu i njene podjedinice.
 when a webhook request is received“), kopirajte URL i upišite ga u `private.announcements.teamsWebhookUrl`
 (ili ostavite prazno ako se koristi isti kanal kao za alarme), pa uključite `private.announcements.teamsEnabled`.
 
-## Privatnost
-Potvrde i zatvaranja ulaze u izvoz podataka nosioca (DSAR). Anonimizacija ih briše, ali broj potvrda
-u izvještaju ostaje. Retencija ne briše podatke korisnika pod zakonskim zadržavanjem (legal hold).
+**Statusi najave:** **nacrt** → **objavljena** (vidljiva od početka prikaza) → **povučena** (uz razlog).
+
+## Česta pitanja i greške
+
+- **„Zatvorio sam najavu — zašto je nema više?“** — **Zatvori** sakriva najavu bez potvrde i ona se više ne
+  prikazuje; ako tražite najavu kasnije, otvorite je u meniju **Najave**.
+- **„Prozor se vraća iako sam ga zatvorio.“** — Prozor se vraća pri sljedećoj navigaciji najviše **3 puta po
+  prijavi**; nakon toga ostaje samo traka. Za najave s potvrdom traka traje dok ne potvrdite.
+- **„Nisam dobio e-mail za najavu.“** — Provjerite svoje postavke obavještenja: isključen e-mail za „Najave“,
+  sažetak ili tihi sati znače da se šalje samo e-mail za **kritične** najave, ostalo vidite u aplikaciji.
+- **„Podsjetnik ne radi.“** — Dugme **Podsjeti one koji nisu potvrdili** radi najviše **jednom u 24 sata**.
+- **„Promijenio sam tekst najave, a prozor se vratio.“** — Nakon izmjene teksta prozor se ponovo prikazuje;
+  prethodna verzija je sačuvana.
+
+## Poznata ograničenja
+
+- **Nakon objave publika i potvrda čitanja se ne mogu mijenjati** — mijenja se samo tekst.
+- **Izvještaj računa Y kao publiku u trenutku objave**; ako se grupe/OJ kasnije mijenjaju, broj „X od Y“ ostaje
+  vezan za taj snímak.
+- **E-mail i Teams kartica odlaze tek kad najava počne** (u roku od nekoliko minuta), ne u trenutku objave.
+- **Retencija ne briše podatke korisnika pod zakonskim zadržavanjem (legal hold).**
+
+## Povezani moduli
+
+- Pošta (e-mail kanal i šablone „Najava“): `posta.md`
+- Realtime i obavještenja (lične postavke, sažetak, tihi sati): `realtime-i-obavjestenja.md`
+- Privatnost — potvrde i zatvaranja ulaze u izvoz podataka nosioca (DSAR); anonimizacija ih briše, ali broj
+  potvrda u izvještaju ostaje: `docs/privacy/` i `TEZE-ZA-DOKUMENTACIJU.md`
+- Teze: **T11**, **T12**, **T13**, **T14**
+- Dizajn paketa: `docs/plans/modules/2.9-dodatne-nadogradnje.md`

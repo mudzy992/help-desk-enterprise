@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Paket 1.8 (A6) — dnevna arhiva uploads volumena + SHA-256 + retention.
 # Cron na Coolify hostu (primjer, 02:15 UTC):
-#   15 2 * * * /opt/servicedesk/ops/dr/backup-uploads.sh >> /var/log/ephd-uploads-backup.log 2>&1
+#   15 2 * * * /opt/servicedesk/ops/dr/backup-uploads.sh >> /var/log/servicedesk-uploads-backup.log 2>&1
 #
 # Varijable:
 #   UPLOADS_VOLUME   ime Docker volumena (docker volume ls | grep uploads)  [obavezno]

@@ -1,0 +1,20 @@
+# Service Desk — dnevni DR backup (paket 1.8 A6). Ovo je PRIMJER koji se instalira na host.
+# Uputstvo i provjera: ops/DR.md, odjeljak „Instalacija cron-a“.
+#
+#   sudo install -m 0644 ops/dr/cron.example /etc/cron.d/servicedesk-backups
+#
+# Prije instalacije zamijeniti <IME_VOLUMENA>, <ADMIN_EMAIL> i (ako treba) domene i putanje.
+# U cron.d svaka linija ima korisnika (root: treba docker i čitanje tajne iz /etc/servicedesk).
+# Lozinka se NIKAD ne upisuje u ovu datoteku — export-config.sh je čita iz fajla s pravima 600.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+
+# 1) uploads volumen -> /var/backups/servicedesk/uploads-YYYY-MM-DD.tar.gz (+ SHA-256, manifest, retention 14 dana)
+15 2 * * * root UPLOADS_VOLUME=<IME_VOLUMENA> /opt/servicedesk/ops/dr/backup-uploads.sh >> /var/log/servicedesk-uploads-backup.log 2>&1
+
+# 2) config snapshot (postavke, routing, SLA, servisi) — pola sata poslije arhive
+45 2 * * * root API_URL=https://api.desk.ba101.top ADMIN_EMAIL=<ADMIN_EMAIL> ADMIN_PASSWORD_FILE=/etc/servicedesk/admin-password /opt/servicedesk/ops/dr/export-config.sh >> /var/log/servicedesk-config-export.log 2>&1
+
+# 3) Kontrola svježine (RPO 24 h, SHA-256): exit 0 = ok, 1 = problem. Uključiti kad se veže na monitoring.
+# 0 9 * * * root /opt/servicedesk/ops/dr/verify-backups.sh >> /var/log/servicedesk-backup-verify.log 2>&1

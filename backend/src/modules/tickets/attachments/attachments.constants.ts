@@ -43,7 +43,6 @@ export const defaultTicketAttachmentConfiguration = {
     'com',
     'scr',
   ],
-  retentionDays: 365,
 } as const;
 
 /**

@@ -133,21 +133,21 @@ describe('asset viewer scope (§14)', () => {
       context([{ roleKey: 'AGENT', permissionKeys: ['asset.read', 'ticket.merge'], organizationalUnitId: null, organizationalUnitPath: null, serviceId: null }]),
       'u1',
     );
-    const scope = resolveAssetScope(agent, 'asset.read', 'EP/Sarajevo');
-    expect(isPathInScope(scope, 'EP/Sarajevo/IT')).toBe(true);
-    expect(isPathInScope(scope, 'EP/Sarajevo2')).toBe(false);
-    expect(resolveAssetScope(agent, 'asset.import', 'EP/Sarajevo')).toEqual({ all: false, paths: [] });
+    const scope = resolveAssetScope(agent, 'asset.read', 'Org/Sarajevo');
+    expect(isPathInScope(scope, 'Org/Sarajevo/IT')).toBe(true);
+    expect(isPathInScope(scope, 'Org/Sarajevo2')).toBe(false);
+    expect(resolveAssetScope(agent, 'asset.import', 'Org/Sarajevo')).toEqual({ all: false, paths: [] });
     expect(agent.grants.map((grant) => grant.permission)).toEqual(['asset.read']);
   });
 
   it('a scoped ASSET_MANAGER grant uses its unit; an empty scope matches nothing', () => {
     const manager = assetViewerFromContext(
       context([
-        { roleKey: 'ASSET_MANAGER', permissionKeys: ['asset.manage'], organizationalUnitId: 'ou1', organizationalUnitPath: 'EP/Mostar', serviceId: null },
+        { roleKey: 'ASSET_MANAGER', permissionKeys: ['asset.manage'], organizationalUnitId: 'ou1', organizationalUnitPath: 'Org/Mostar', serviceId: null },
       ]),
       'u1',
     );
-    expect(resolveAssetScope(manager, 'asset.manage', 'EP/Sarajevo')).toEqual({ all: false, paths: ['EP/Mostar'] });
+    expect(resolveAssetScope(manager, 'asset.manage', 'Org/Sarajevo')).toEqual({ all: false, paths: ['Org/Mostar'] });
     expect(unitScopeWhere({ all: false, paths: [] })).toEqual({ ouPath: '\u0000no-scope' });
     expect(unitScopeWhere({ all: true })).toBeNull();
   });

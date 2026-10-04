@@ -29,7 +29,8 @@
     "assets": "Assets",
     "myAssets": "My equipment",
     "problems": "Problems",
-    "changes": "Changes"
+    "changes": "Changes",
+    "docs": "Documentation"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -1148,6 +1149,7 @@
         "private.readOnlyMode.enabled": "Master switch for admin read-only mode; off clears all module locks.",
         "private.readOnlyMode.modulesCsv": "Admin modules that may be locked while read-only mode is on.",
         "private.reports.enabled": "Enable predefined report pack CSV/JSON exports.",
+        "private.reports.defaultWindowDays": "Default window in days for report pack previews and exports.",
         "private.reports.exportFormatsCsv": "Allowed report export formats, comma-separated (csv, json).",
         "private.reports.packsJson": "JSON array of enabled report pack keys.",
         "private.reports.pingPongThreshold": "Number of forwards after which a ticket is flagged as ping-pong in reports.",
@@ -1194,7 +1196,7 @@
         "private.ticket.attachments.maxFileSizeMb": "Maximum attachment size in megabytes.",
         "private.ticket.attachments.maxFilesPerMessage": "Maximum attachments on a single ticket message.",
         "private.ticket.attachments.maxFilesPerTicket": "Maximum attachments stored on one ticket.",
-        "private.ticket.attachments.retentionDays": "How many days ticket attachments are retained. Deprecated: use \"Privacy → retention\".",
+        "private.ticket.attachments.retentionDays": "Deprecated and without effect: attachments are deleted by Privacy → retention (private.privacy.retention.attachmentsDays).",
         "private.ticket.autoAssign.enabled": "Automatically assign routed group tickets to an eligible agent.",
         "private.ticket.autoAssign.strategy": "Global auto-assign strategy when the service strategy is NONE (least_busy or round_robin).",
         "private.ticket.bulkActions.allowCrossOuForSuperAdmin": "Allow SuperAdmin to run bulk actions across organizational units.",
@@ -1687,7 +1689,6 @@
   "dashboard": {
     "intro": "Operational overview of the tickets you can access.",
     "reportsAction": "Reports",
-    "reportsActionDisabledHint": "Reports will be available once the route is added.",
     "emptyTitle": "No tickets yet",
     "emptyBody": "Once the first ticket is created, counters and recent activity appear here.",
     "recentHeading": "Recent tickets",
@@ -1726,6 +1727,7 @@
     "statusChartCenter": "tickets total",
     "volumeChartTitle": "Ticket flow — last 14 days",
     "volumeChartSubtitle": "Created versus resolved, from the same ticket list",
+    "volumeTruncatedHint": "The window holds more tickets than one page — the chart numbers are a lower bound.",
     "volumeCreated": "Created",
     "volumeResolved": "Resolved",
     "chartsEmptyTitle": "No chart data",
@@ -1762,8 +1764,6 @@
     "forbiddenBody": "Reports and exports are available to administrators with reports.export or audit.export.",
     "emptyTitle": "No tickets yet",
     "emptyBody": "Once the first ticket is created, report aggregations appear here.",
-    "exportAction": "Export pack",
-    "exportDisabledHint": "Pack export comes in Phase 8.",
     "window15d": "Last 15 days",
     "window30d": "Last 30 days",
     "window6m": "Last 6 months",
@@ -1799,6 +1799,12 @@
     "volumeTitleCustom": "Volume by service",
     "volumeSubtitle": "Services with the highest volume in the selected period",
     "volumeEmpty": "No tickets created in this period",
+    "unitVolumeTitle": "Tickets by organizational unit",
+    "unitVolumeSubtitle": "Created in the selected period",
+    "unitVolumeEmpty": "No tickets were created in the period.",
+    "workloadTitle": "Admin workload",
+    "workloadSubtitle": "Open tickets per assignee (current state)",
+    "workloadEmpty": "No open ticket is assigned to a person.",
     "flowTitle": "Flow and backlog aging",
     "flowSubtitle": "Created vs resolved flow with age distribution of open tickets",
     "flowCreated": "Created",
@@ -1810,8 +1816,55 @@
     "agingGt7": "> 7 days",
     "agingWaitingHint": "{{count}} tickets older than 7 days are in Waiting for user.",
     "unroutedGroup": "Unrouted",
+    "csat": {
+      "title": "CSAT",
+      "retry": "Try again",
+      "emptyTitle": "No CSAT ratings yet",
+      "emptyBody": "Once requesters start rating resolved tickets, the average and the breakdown by unit, service and group will appear here.",
+      "byUnit": "By organizational unit",
+      "byService": "By service",
+      "byGroup": "By group",
+      "dimensionSubtitle": "Average rating and sample size",
+      "dimensionEmpty": "No ratings in this dimension.",
+      "averageLabel": "Average rating (of {{max}})",
+      "averageHint": "All ratings you may see, regardless of the period",
+      "sampleLabel": "Ratings",
+      "sampleHint": "The satisfied threshold is {{min}}",
+      "targetLabel": "Satisfied threshold",
+      "targetHint": "Rating {{min}} or above on a scale up to {{max}}",
+      "columnKey": "Name",
+      "columnSample": "Sample",
+      "columnAverage": "Average (of {{max}})",
+      "belowTarget": "below target"
+    },
+    "bottlenecks": {
+      "title": "Bottlenecks",
+      "disabledTitle": "Bottleneck reporting is off",
+      "retry": "Try again",
+      "emptyTitle": "No tickets stuck",
+      "emptyBody": "In the selected period and scope no ticket is waiting for approval or the requester, unrouted, or overdue.",
+      "byUnit": "By organizational unit",
+      "byService": "By service",
+      "byPriority": "By priority",
+      "breakdownSubtitle": "Tickets stuck in total (sum of all four counters)",
+      "breakdownEmpty": "No stuck tickets in this dimension.",
+      "trendTitle": "Daily trend",
+      "trendSubtitle": "New tickets and stuck state per day",
+      "trendEmpty": "No daily records in the period.",
+      "trendDate": "Date",
+      "trendCreated": "Created",
+      "overdueHint": "Response or resolution target breached",
+      "counters": {
+        "pendingApproval": "Waiting for approval",
+        "waitingForUser": "Waiting for requester",
+        "unrouted": "Unrouted",
+        "overdue": "Overdue"
+      }
+    },
     "tabs": {
       "overview": "Overview",
+      "bottlenecks": "Bottlenecks",
+      "csat": "CSAT",
       "packs": "Report packs",
       "trends": "Trends",
       "schedules": "Scheduled"
@@ -1965,6 +2018,7 @@
       "REPORT_GRANULARITY_INVALID": "The granularity is not supported.",
       "REPORT_TRENDS_DISABLED": "Trends are disabled in the report settings.",
       "REPORTS_DISABLED": "Reports are disabled in the settings.",
+      "BOTTLENECKS_DISABLED": "Bottleneck reporting is turned off in the settings („Bottleneck aggregations on the dashboard“).",
       "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND": "The organizational unit was not found or is outside your scope.",
       "REPORT_FORMAT_NOT_ALLOWED": "This export format is not allowed.",
       "REPORT_SCHEDULE_DISABLED": "Scheduled reports are disabled in the settings.",
@@ -3362,6 +3416,8 @@
         "emptyComments": "No open comments."
       },
       "fromReply": {
+        "redactedOnSave": "The server replaced personal data while saving.",
+        "redactedOnSaveCount": "The submitted text contained {{count}} pieces of personal data the preview had not shown; they were replaced before saving. The article was saved as a draft.",
         "action": "Make article",
         "title": "Article from reply",
         "hint": "The reply text becomes an article draft. Personal data has been replaced with placeholders; review the text before saving.",
@@ -3778,7 +3834,15 @@
       "unknownUser": "Unknown user",
       "unknownGroup": "Unknown group",
       "unknownOrigin": "Unknown organizational unit",
-      "formVersionValue": "v{{version}}"
+      "formVersionValue": "v{{version}}",
+      "title": "Details",
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all",
+      "cards": {
+        "summary": "Summary",
+        "actions": "Actions",
+        "related": "Related and flow"
+      }
     },
     "csat": {
       "title": "CSAT rating",
@@ -3825,7 +3889,12 @@
       "namePlaceholder": "View name",
       "makeDefault": "Set as default",
       "save": "Save current filters",
-      "delete": "Delete view"
+      "delete": "Delete view",
+      "manage": "Manage views…",
+      "manageHint": "A view stores the current list filters; the default one is applied when the list opens.",
+      "empty": "No saved views yet.",
+      "removeLabel": "Delete view: {{name}}",
+      "nameLabel": "View name"
     },
     "messageType": {
       "USER_REPLY": "User reply",
@@ -4218,6 +4287,8 @@
     "errorLinkMerged": "A merged ticket cannot be linked — use the main ticket.",
     "errorLinkLimit": "This ticket has reached the maximum number of links.",
     "errorLinkNote": "The link note is too long.",
+    "errorTemplateInactive": "The template is deactivated; pick another one or re-enable it in template administration.",
+    "errorTemplateKind": "This template does not fit this message type (internal notes and public replies use different templates).",
     "interceptVoteHelpful": "Thanks, we noted that the article helped. If the problem is solved, choose “The article solved my problem” below.",
     "interceptVoteNotHelpful": "Thanks, we noted that the article did not help. You can continue sending the request.",
     "errorAssetNotSelectable": "The selected equipment cannot be used for this ticket. Refresh the page and try again."
@@ -4574,6 +4645,7 @@
       "TEMPLATE_BODY_INVALID": "The template text is empty or too long (max 10,000 characters).",
       "TEMPLATE_UNKNOWN_VARIABLE": "The template uses a variable that does not exist.",
       "TEMPLATE_KIND_MISMATCH": "This template is not meant for this kind of message.",
+      "TEMPLATE_INACTIVE": "The template is deactivated and can no longer be used.",
       "TEMPLATE_SCOPE_INVALID": "A service, category or group in the scope does not exist.",
       "TEMPLATE_SCOPE_FORBIDDEN": "The scope reaches outside the services you may manage. Global templates are edited by a SuperAdmin.",
       "TEMPLATE_TAGS_INVALID": "At most 10 tags of up to 40 characters are allowed.",
@@ -7618,6 +7690,61 @@
       "simulatorOff": "The simulator works only in simulator mode with the addon on.",
       "forbidden": "You are not allowed to do this.",
       "generic": "Something went wrong. Please try again."
+    }
+  },
+  "docs": {
+    "title": "Documentation",
+    "navigationLabel": "Documentation pages",
+    "toc": "On this page",
+    "tocLabel": "Page contents",
+    "breadcrumbsLabel": "Breadcrumbs",
+    "pagerLabel": "Page navigation",
+    "previous": "Previous",
+    "next": "Next",
+    "searchLabel": "Search documentation",
+    "searchPlaceholder": "Search the documentation…",
+    "searchHint": "Search covers titles, text and tags; type at least two characters.",
+    "searching": "Searching…",
+    "noResults": "No results for “{{query}}”.",
+    "loading": "Loading documentation…",
+    "updatedAt": "Updated: {{date}}",
+    "updatedAtUnknown": "Updated: —",
+    "retry": "Try again",
+    "backToDocs": "Back to documentation",
+    "emptyTitle": "No pages available",
+    "emptyBody": "Your role currently sees no documentation pages.",
+    "recent": "Recently visited",
+    "print": "Print / PDF",
+    "helpLabel": "Open documentation for this screen",
+    "languageNotice": "Documentation content is currently available in Bosnian only.",
+    "feedback": {
+      "label": "Page feedback",
+      "question": "Did this page help you?",
+      "yes": "Yes",
+      "no": "No",
+      "thanks": "Thanks for your feedback."
+    },
+    "emptyFilter": "No page matches the selected audience.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page does not exist or your role cannot open it.",
+    "unavailableTitle": "Documentation is currently unavailable",
+    "unavailableBody": "The documentation content was not loaded on the server. Try again later or report it to an administrator.",
+    "errorTitle": "Could not load the documentation",
+    "hiddenByFilter": "This page is not part of the selected audience.",
+    "audience": {
+      "label": "Audience",
+      "all": "All",
+      "user": "Requester",
+      "agent": "Agent",
+      "admin": "Administrator"
+    },
+    "parts": {
+      "pocetak": "Getting started",
+      "korisnik": "Requester",
+      "agent": "Agent",
+      "administrator": "Administrator",
+      "operativa": "Operations",
+      "referenca": "Reference"
     }
   }
 }

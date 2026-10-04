@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseInline, parseMarkdown, safeHref } from "./simple-markdown";
+import { highlightCode, parseInline, parseMarkdown, safeHref } from "./simple-markdown";
 
 describe("parseMarkdown", () => {
   it("parses the blocks used by the generated notice", () => {
@@ -18,20 +18,20 @@ describe("parseMarkdown", () => {
   });
 
   it("parses bold, italic, code and links", () => {
-    expect(parseInline("**Rukovalac:** _EP_ `x` [web](https://ep.ba)")).toEqual([
+    expect(parseInline("**Rukovalac:** _Org_ `x` [web](https://example.com)")).toEqual([
       { kind: "strong", children: [{ kind: "text", text: "Rukovalac:" }] },
       { kind: "text", text: " " },
-      { kind: "em", children: [{ kind: "text", text: "EP" }] },
+      { kind: "em", children: [{ kind: "text", text: "Org" }] },
       { kind: "text", text: " " },
       { kind: "code", text: "x" },
       { kind: "text", text: " " },
-      { kind: "link", href: "https://ep.ba", children: [{ kind: "text", text: "web" }] },
+      { kind: "link", href: "https://example.com", children: [{ kind: "text", text: "web" }] },
     ]);
   });
 
   it("drops unsafe link targets but keeps their text", () => {
     expect(parseInline("[klik](javascript:alert(1))")).toEqual([{ kind: "text", text: "klik" }, { kind: "text", text: ")" }]);
-    expect(safeHref("mailto:dpo@ep.ba")).toBe("mailto:dpo@ep.ba");
+    expect(safeHref("mailto:dpo@example.com")).toBe("mailto:dpo@example.com");
     expect(safeHref("data:text/html,x")).toBeNull();
   });
 
@@ -43,5 +43,52 @@ describe("parseMarkdown", () => {
 
   it("leaves an unmatched delimiter as text", () => {
     expect(parseInline("5 * 3 i **otvoreno")).toEqual([{ kind: "text", text: "5 * 3 i **otvoreno" }]);
+  });
+});
+
+describe("Faza 3 (c): tabele, kod, callouti i slike", () => {
+  it("parses a markdown table with a separator row", () => {
+    const blocks = parseMarkdown("| Polje | Obavezno |\n|---|---|\n| Naslov | da |\n| Opis | ne |");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({ kind: "table" });
+    if (blocks[0].kind !== "table") throw new Error("expected table");
+    expect(blocks[0].header.map((cell) => cell[0])).toEqual([
+      { kind: "text", text: "Polje" },
+      { kind: "text", text: "Obavezno" },
+    ]);
+    expect(blocks[0].rows).toHaveLength(2);
+  });
+
+  it("keeps a pipe line as a paragraph when there is no separator", () => {
+    expect(parseMarkdown("| nije | tabela |").map((block) => block.kind)).toEqual(["paragraph"]);
+  });
+
+  it("parses a fenced code block with its language", () => {
+    const blocks = parseMarkdown("```json\n{ \"a\": 1 }\n```");
+    expect(blocks).toEqual([{ kind: "codeBlock", language: "json", text: '{ "a": 1 }' }]);
+  });
+
+  it("turns labelled quotes into callouts and leaves other quotes alone", () => {
+    expect(parseMarkdown("> **Napomena:** nešto").map((block) => block.kind)).toEqual(["callout"]);
+    expect(parseMarkdown("> **Napomena:** nešto")[0]).toMatchObject({ tone: "info" });
+    expect(parseMarkdown("> **Upozorenje:** pazi")[0]).toMatchObject({ tone: "warning" });
+    expect(parseMarkdown("> **NACRT**\n> tekst")[0]).toMatchObject({ kind: "quote" });
+  });
+
+  it("accepts relative images and refuses schemes or absolute paths", () => {
+    expect(parseInline("![šema](assets/sema.png)")).toEqual([
+      { kind: "image", src: "assets/sema.png", alt: "šema" },
+    ]);
+    expect(parseInline("![x](https://example.com/x.png)")).toEqual([{ kind: "text", text: "x" }]);
+    expect(parseInline("![x](/etc/passwd)")).toEqual([{ kind: "text", text: "x" }]);
+    expect(parseInline("![x](../docs/plans/raw.md)")).toEqual([{ kind: "text", text: "x" }]);
+  });
+
+  it("highlights strings, comments, numbers and known keywords", () => {
+    const tokens = highlightCode('const a = 1; // komentar\n"tekst"', "ts");
+    expect(tokens.filter((token) => token.kind === "keyword").map((token) => token.text)).toEqual(["const"]);
+    expect(tokens.some((token) => token.kind === "comment" && token.text.includes("komentar"))).toBe(true);
+    expect(tokens.some((token) => token.kind === "string" && token.text === '"tekst"')).toBe(true);
+    expect(tokens.some((token) => token.kind === "number" && token.text === "1")).toBe(true);
   });
 });
