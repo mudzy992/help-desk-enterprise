@@ -127,6 +127,7 @@
     "clear": "Clear",
     "selectAll": "Select all",
     "loading": "Loading…",
+    "dateValue": "{{month}} {{day}}, {{year}}",
     "filters": {
       "advanced": "Advanced search",
       "reset": "Reset filters",
@@ -5564,6 +5565,7 @@
   },
   "onCall": {
     "title": "On-call",
+    "timeWithWeekday": "{{weekday}} {{day}}/{{month}} {{time}}",
     "subtitle": "Who is on call per group, rotation schedules, overrides and shift swap requests.",
     "loading": "Loading on-call…",
     "refresh": "Refresh",
@@ -7710,7 +7712,6 @@
     "loading": "Loading documentation…",
     "updatedAt": "Updated: {{date}}",
     "updatedAtUnknown": "Updated: —",
-    "updatedAtValue": "{{month}} {{day}}, {{year}}",
     "retry": "Try again",
     "backToDocs": "Back to documentation",
     "emptyTitle": "No pages available",

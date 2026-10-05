@@ -127,6 +127,7 @@
     "clear": "Očisti",
     "selectAll": "Odaberi sve",
     "loading": "Učitavanje…",
+    "dateValue": "{{day}}. {{month}} {{year}}.",
     "filters": {
       "advanced": "Napredna pretraga",
       "reset": "Poništi filtere",
@@ -5604,6 +5605,7 @@
   },
   "onCall": {
     "title": "Dežurstva",
+    "timeWithWeekday": "{{weekday}} {{day}}.{{month}}. {{time}}",
     "subtitle": "Ko je dežuran po grupama, raspored rotacije, zamjene i zahtjevi za zamjenu smjene.",
     "loading": "Učitavanje dežurstava…",
     "refresh": "Osvježi",
@@ -7785,7 +7787,6 @@
     "loading": "Učitavanje dokumentacije…",
     "updatedAt": "Ažurirano: {{date}}",
     "updatedAtUnknown": "Ažurirano: —",
-    "updatedAtValue": "{{day}}. {{month}} {{year}}.",
     "retry": "Pokušaj ponovo",
     "backToDocs": "Na početak dokumentacije",
     "emptyTitle": "Nema dostupnih stranica",

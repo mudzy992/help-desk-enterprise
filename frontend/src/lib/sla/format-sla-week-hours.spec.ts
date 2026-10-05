@@ -4,6 +4,7 @@ import {
   formatSlaHolidayDate,
   formatSlaHourLabel,
 } from "@/lib/sla/format-sla-week-hours";
+import { fakeDateTranslator } from "@/lib/format-civil-date.spec";
 
 describe("formatSlaHourLabel", () => {
   it("drops whole-hour minutes", () => {
@@ -32,7 +33,14 @@ describe("formatSlaDayHours", () => {
 });
 
 describe("formatSlaHolidayDate", () => {
+  // Prije: `Intl.DateTimeFormat(locale, { dateStyle: "medium" })` → u runtimeu
+  // bez bosanskih CLDR podataka ispadne „2026 M1 1“.
   it("formats an ISO date without timezone shift", () => {
-    expect(formatSlaHolidayDate("2026-01-01", "en")).toMatch(/Jan/);
+    expect(formatSlaHolidayDate("2026-01-01", fakeDateTranslator("en"))).toBe("January 1, 2026");
+    expect(formatSlaHolidayDate("2026-01-01", fakeDateTranslator("bs"))).toBe("1. januar 2026.");
+  });
+
+  it("keeps the original value when the date is not parseable", () => {
+    expect(formatSlaHolidayDate("nije-datum", fakeDateTranslator("bs"))).toBe("nije-datum");
   });
 });

@@ -1,6 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { formatOnCallClock, type OnCallDay } from "@/lib/on-call/on-call-view";
+import {
+  formatOnCallClock,
+  formatOnCallDayLabel,
+  formatOnCallWeekday,
+  type OnCallDay,
+} from "@/lib/on-call/on-call-view";
 
 interface OnCallCalendarProperties {
   readonly days: readonly OnCallDay[];
@@ -16,9 +21,8 @@ interface OnCallCalendarProperties {
 export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendarProperties) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-GB" : "bs-BA";
-  const weekdayFormat = new Intl.DateTimeFormat(locale, { timeZone, weekday: "short" });
+  // Samo brojevi (bez naziva mjeseca/dana) — sigurno i sa krnjim ICU podacima.
   const dateFormat = new Intl.DateTimeFormat(locale, { timeZone, day: "2-digit", month: "2-digit" });
-  const longFormat = new Intl.DateTimeFormat(locale, { timeZone, weekday: "long", day: "numeric", month: "long" });
 
   return (
     <ol className="grid grid-cols-1 gap-1.5 sm:grid-cols-7" aria-label={t("onCall.calendar.label")} data-testid="on-call-calendar">
@@ -32,9 +36,9 @@ export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendar
           aria-current={day.isToday ? "date" : undefined}
         >
           <p className="flex items-baseline justify-between gap-1 text-[11.5px] text-muted-foreground">
-            <span className="sr-only">{longFormat.format(day.date)}</span>
+            <span className="sr-only">{formatOnCallDayLabel(day.date, timeZone, t)}</span>
             <span aria-hidden="true" className="font-medium uppercase">
-              {weekdayFormat.format(day.date)}
+              {formatOnCallWeekday(day.date, timeZone, t, "short")}
             </span>
             <span aria-hidden="true" className="tabular-nums">
               {dateFormat.format(day.date)}

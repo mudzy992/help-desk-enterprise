@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { ApiError } from "@/services/api";
 import type { OnCallSegmentView } from "@/services/on-call-api";
 
@@ -127,16 +128,57 @@ export function fromDateTimeLocalValue(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export function formatOnCallTime(iso: string, locale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "bs-BA", {
-    ...(timeZone ? { timeZone } : {}),
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(iso));
+/** Indeks dana u sedmici u `timeZone`, 0 = ponedjeljak … 6 = nedjelja. */
+export function onCallWeekdayIndex(date: Date, timeZone: string): number {
+  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [number, number, number];
+  // `civilDateKey` već daje datum u zoni, pa je dan u sedmici jednoznačan.
+  return (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
+}
+
+/**
+ * Naziv dana iz prijevoda, ne iz `Intl`: u runtimeu bez bosanskih CLDR podataka
+ * `Intl.DateTimeFormat("bs-BA", { weekday: "short" })` ispiše „Mon“.
+ */
+export function formatOnCallWeekday(
+  date: Date,
+  timeZone: string,
+  t: TFunction,
+  form: "short" | "long",
+): string {
+  return t(
+    `changes.calendar.weekdays.${form}${onCallWeekdayIndex(date, timeZone)}` as "changes.calendar.weekdays.short0",
+  );
+}
+
+/** Puni label dana (za `sr-only`): „ponedjeljak, 5. oktobar 2026.“ */
+export function formatOnCallDayLabel(date: Date, timeZone: string, t: TFunction): string {
+  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [number, number, number];
+  return t("changes.calendar.dayLabel", {
+    weekday: formatOnCallWeekday(date, timeZone, t, "long"),
+    day,
+    month: t(`changes.calendar.months.m${month - 1}` as "changes.calendar.months.m0"),
+    year,
+  });
+}
+
+/**
+ * Dan, mjesec i vrijeme u zoni (npr. „pon 05.10. 08:00“). Prije je cijeli
+ * string dolazio iz `Intl` sa `weekday: "short"`, pa je na bosanskom ispisivao
+ * engleski naziv dana.
+ */
+export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [, month, day] = civilDateKey(date, zone).split("-").map(Number) as [number, number, number];
+  return t("onCall.timeWithWeekday", {
+    weekday: formatOnCallWeekday(date, zone, t, "short"),
+    day,
+    month,
+    time: formatOnCallClock(iso, "en-GB", zone),
+  });
 }
 
 export function formatOnCallClock(iso: string, locale: string, timeZone?: string): string {

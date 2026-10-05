@@ -16,7 +16,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDocsNavigation, useDocsPage, useDocsSearch } from "@/lib/docs/use-docs";
 import { matchesDocsAudience, type DocsAudience } from "@/lib/docs/docs-audience";
 import { readRecentDocs, rememberRecentDoc } from "@/lib/docs/docs-local";
-import { formatDocsDate } from "@/lib/docs/format-docs-date";
+import { formatCivilDate } from "@/lib/format-civil-date";
 import { cn } from "@/lib/utils";
 import { MarkdownView } from "@/components/privacy/markdown-view";
 
@@ -49,7 +49,7 @@ export function DocsPage() {
   const formattedDate =
     updatedAt === null
       ? t("docs.updatedAtUnknown")
-      : (formatDocsDate(updatedAt, t) ?? t("docs.updatedAtUnknown"));
+      : (formatCivilDate(updatedAt, t) ?? t("docs.updatedAtUnknown"));
 
   useEffect(() => {
     setRecentSlugs(readRecentDocs());

@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { formatCivilDate } from "@/lib/format-civil-date";
 import type { WeeklyHours } from "@/services/sla-types";
 
 export function formatSlaHourLabel(value: string): string {
@@ -22,14 +24,11 @@ export function formatSlaDayHours(
     .join(", ");
 }
 
-export function formatSlaHolidayDate(value: string, locale: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  const date =
-    match === null
-      ? new Date(value)
-      : new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
+/**
+ * Datum praznika na jeziku interfejsa. Prije je koristio
+ * `Intl.DateTimeFormat(locale, { dateStyle: "medium" })`, što u runtimeu bez
+ * bosanskih CLDR podataka ispiše `2026 M10 4` (vidi `lib/format-civil-date.ts`).
+ */
+export function formatSlaHolidayDate(value: string, t: TFunction): string {
+  return formatCivilDate(value, t) ?? value;
 }

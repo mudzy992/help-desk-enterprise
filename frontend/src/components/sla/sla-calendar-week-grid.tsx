@@ -19,7 +19,7 @@ interface SlaCalendarWeekGridProperties {
 }
 
 export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <div className="px-4 py-3.5">
@@ -56,7 +56,7 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
               >
                 <span className="text-foreground/85">{holiday.name}</span>
                 <span className="tnum text-muted-foreground">
-                  {formatSlaHolidayDate(holiday.date, i18n.language)}
+                  {formatSlaHolidayDate(holiday.date, t)}
                 </span>
               </li>
             ))}

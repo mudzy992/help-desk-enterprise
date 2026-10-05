@@ -221,7 +221,7 @@ export function OnCallPage() {
                   {t("onCall.mine.now")}
                 </Badge>
                 <span className="font-medium text-foreground">{shift.groupName}</span>
-                <span className={hintClassName}>{t("onCall.until", { time: formatOnCallTime(shift.endsAt, i18n.language) })}</span>
+                <span className={hintClassName}>{t("onCall.until", { time: formatOnCallTime(shift.endsAt, t) })}</span>
               </p>
             ))}
             {me?.next ? (
@@ -229,7 +229,7 @@ export function OnCallPage() {
                 <Badge tone="neutral">{t("onCall.mine.next")}</Badge>
                 <span className="font-medium text-foreground">{me.next.groupName}</span>
                 <span className={hintClassName}>
-                  {formatOnCallTime(me.next.startsAt, i18n.language)} – {formatOnCallTime(me.next.endsAt, i18n.language)}
+                  {formatOnCallTime(me.next.startsAt, t)} – {formatOnCallTime(me.next.endsAt, t)}
                 </span>
               </p>
             ) : null}
@@ -249,7 +249,7 @@ export function OnCallPage() {
                       : t("onCall.swaps.outgoing", { name: swap.colleague.displayName, group: swap.groupName })}
                   </p>
                   <p className={hintClassName}>
-                    {formatOnCallTime(swap.startsAt, i18n.language)} – {formatOnCallTime(swap.endsAt, i18n.language)} · {swap.reason}
+                    {formatOnCallTime(swap.startsAt, t)} – {formatOnCallTime(swap.endsAt, t)} · {swap.reason}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {swap.direction === "incoming" ? (
@@ -277,7 +277,7 @@ export function OnCallPage() {
                   {recentSwaps.map((swap) => (
                     <li key={swap.id} className={hintClassName}>
                       {swap.groupName}: {swap.requester.displayName} → {swap.colleague.displayName} ·{" "}
-                      {formatOnCallTime(swap.startsAt, i18n.language)} · {t(`onCall.swaps.status.${swap.status}` as never) as unknown as string}
+                      {formatOnCallTime(swap.startsAt, t)} · {t(`onCall.swaps.status.${swap.status}` as never) as unknown as string}
                     </li>
                   ))}
                 </ul>
@@ -323,7 +323,7 @@ export function OnCallPage() {
                             ? t("onCall.nobody")
                             : t("onCall.groups.current", {
                                 name: group.current.displayName,
-                                time: formatOnCallTime(group.current.endsAt, i18n.language),
+                                time: formatOnCallTime(group.current.endsAt, t),
                               })}
                     </span>
                   </span>
@@ -399,7 +399,7 @@ export function OnCallPage() {
                     : detail.current?.person
                       ? t("onCall.detail.current", {
                           name: detail.current.person.displayName,
-                          time: formatOnCallTime(detail.current.endsAt, i18n.language),
+                          time: formatOnCallTime(detail.current.endsAt, t),
                         })
                       : t("onCall.detail.gap")}
                 </div>
@@ -455,7 +455,7 @@ export function OnCallPage() {
                         <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 px-3 py-1.5 text-[12.5px]">
                           <span className="font-medium text-foreground">{item.person?.displayName ?? "—"}</span>
                           <span className={hintClassName}>
-                            {formatOnCallTime(item.startsAt, i18n.language)} – {formatOnCallTime(item.endsAt, i18n.language)}
+                            {formatOnCallTime(item.startsAt, t)} – {formatOnCallTime(item.endsAt, t)}
                           </span>
                           {item.fromSwap ? <Badge tone="info">{t("onCall.override.fromSwap")}</Badge> : null}
                           <span className={cn("min-w-0 flex-1 truncate", hintClassName)} title={item.reason}>
@@ -486,7 +486,7 @@ export function OnCallPage() {
                       {detail.swaps.map((swap) => (
                         <li key={swap.id} className={hintClassName}>
                           {swap.requester?.displayName ?? "—"} → {swap.colleague?.displayName ?? "—"} ·{" "}
-                          {formatOnCallTime(swap.startsAt, i18n.language)} – {formatOnCallTime(swap.endsAt, i18n.language)}
+                          {formatOnCallTime(swap.startsAt, t)} – {formatOnCallTime(swap.endsAt, t)}
                         </li>
                       ))}
                     </ul>

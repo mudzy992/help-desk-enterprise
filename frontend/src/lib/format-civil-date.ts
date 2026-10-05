@@ -1,20 +1,19 @@
 import type { TFunction } from "i18next";
 
 /**
- * „Ažurirano: <datum>“ u dokumentaciji.
+ * Datum bez vremena (`YYYY-MM-DD`) na jeziku interfejsa.
  *
- * `updatedAt` iz manifesta je datum bez vremena (`YYYY-MM-DD`, vidi
- * `scripts/generate-docs-content.mjs`), pa se čita iz samog stringa:
- *  - `Intl.DateTimeFormat` se **ne** koristi, jer u runtimeu sa krnjim ICU
- *    podacima bosanski ispadne kao `2026 M10 4` (isti slučaj koji
- *    `report-trends-view.ts` rješava vlastitim imenima mjeseci);
- *  - `new Date("2026-10-04")` se tumači kao UTC ponoć, pa bi u vremenskim
- *    zonama zapadno od UTC prikazao prethodni dan.
+ * `Intl.DateTimeFormat` se **ne** koristi za ime mjeseca: u runtimeu sa krnjim
+ * ICU podacima bosanski ispadne kao `2026 M10 4` (isti slučaj koji
+ * `report-trends-view.ts:153–160`, `announcement-view.ts:117` i
+ * `asset-view.ts:209` već rješavaju na svoj način). Uz to bi
+ * `new Date("2026-10-04")` bio UTC ponoć, pa bi zapadno od UTC prikazao
+ * prethodni dan.
  *
  * Vraća `null` kad datum nije ispravan (`YYYY-MM-DD`, uz opcionalni dio s
  * vremenom koji se ignorše) — pozivalac tada prikazuje „—“.
  */
-export function formatDocsDate(value: string, t: TFunction): string | null {
+export function formatCivilDate(value: string, t: TFunction): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(value.trim());
   if (match === null) {
     return null;
@@ -33,5 +32,5 @@ export function formatDocsDate(value: string, t: TFunction): string | null {
   const monthName = t(
     `changes.calendar.months.m${month - 1}` as "changes.calendar.months.m0",
   );
-  return t("docs.updatedAtValue", { day, month: monthName, year });
+  return t("ui.dateValue", { day, month: monthName, year });
 }
