@@ -6254,9 +6254,9 @@ dana), jer se popis iz prve poruke odnosio na raniji prolaz; zato se nijedan pad
 
 | Provjera | Komanda | Rezultat |
 |---|---|---|
-| Samotest sažetka | `cd e2e && node --test scripts/summarize-playwright-json.test.mjs` | **10/10** (novi: `errorDetail` čuva `Expected pattern`/`Received string`, granica na 40 linija, `formatSummary` ispisuje detalje i `SKIPPED`, `collectSkipped` daje punu putanju `20 privacy › needs SMTP`) |
+| Samotest sažetka | `cd e2e && node --test scripts/summarize-playwright-json.test.mjs` | **12/12** (novi: `errorDetail` čuva `Expected pattern`/`Received string`, granica na 40 linija, `formatSummary` ispisuje detalje i `SKIPPED`, `collectSkipped` daje punu putanju `20 privacy › needs SMTP`) |
 | e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | **0 grešaka** (poslije izmjena u `helpers/create-ticket.ts`, `helpers/api-client.ts`, `tests/10`, `tests/18`) |
-| Prikaz izlaza (stvarni render) | `node --input-type=module -e "…formatSummary…"` nad uzorkom s axe nalazima i `skipped` | Ispisuje `FAIL 22-accessibility.spec.ts:60 …`, dvije linije axe nalaza i `SKIPPED 1 test(s) — a skip is not a pass` |
+| Prikaz izlaza (stvarni render) | `node --input-type=module -e "…formatSummary…"` nad uzorkom s axe nalazima i `skipped` | Ispisuje `FAIL 22-accessibility.spec.ts:60 …`, dvije linije axe nalaza, `SKIPPED 1 test(s) — a skip is not a pass` i `NEXT TRIAGE RUN: specs=15,22 …` |
 | Workflow YAML s novim inputom | `node scripts/check-workflows-yaml.mjs`, `bash -n` nad svim `run` blokovima, `npx js-yaml` (parse) | OK; `inputs.specs` pročitan iz parsiranog YAML-a, `env.E2E_SPECS` vezan na `${{ inputs.specs }}`, zadnja linija `npx playwright test "${args[@]}" "${files[@]}"`; simulacija s `specs=10,18,22` daje tri fajla, `99` daje grešku |
 | Statika kontrasta | `node scripts/check-theme-contrast.mjs` | 12 paleta × 23 para unutar praga, 0 upotreba `text-primary` na neutralnoj površini (dakle runtime axe nalaz iz speca 22 dolazi iz DOM-a, ne iz palete — čeka artefakt) |
 

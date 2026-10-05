@@ -1684,7 +1684,7 @@ metode, putanje i `cause`.
 | `e2e/tests/18-reports-schedules.spec.ts` | Razdvojen na „bez pošte“ i „pošalji test“ (vidljiv skip uz `EMAIL_CHANNEL_DISABLED`) | `backend/src/modules/reports/schedules/scheduled-report.runner.ts:137` |
 | `REVIEW_ANALIZA.md` | Novi odjeljak „Val 5 — trijaža prvog crvenog e2e prolaza“ (D-14…D-18, dokazi, otvoreno) | ova izmjena |
 | `.github/workflows/ci.yml` | Novi `workflow_dispatch` input `specs` (npr. `10,18,22`): trijaža se svodi na te fajlove, nepoznat broj ruši korak | `node scripts/check-workflows-yaml.mjs`, parse YAML-a, `bash -n` nad `run` blokovima |
-| `e2e/README.md` | Uz trijažni režim opisan i `specs` input | isti workflow |
+| `e2e/README.md` | Uz trijažni režim opisan i `specs` input; sažetak ispisuje `NEXT TRIAGE RUN: specs=…` spremno za kopiranje | `e2e/scripts/summarize-playwright-json.mjs` (`triageSpecNumbers`) |
 
 ### Ostaje otvoreno
 

@@ -6,6 +6,7 @@ import {
   errorDetail,
   firstErrorLine,
   formatSummary,
+  triageSpecNumbers,
 } from './summarize-playwright-json.mjs';
 
 function reportWith({ specs }) {
@@ -140,4 +141,24 @@ test('collectSkipped lists every skipped test with its suite trail', () => {
     reportWith({ specs: [passedSpec('fine'), skippedSpec('needs SMTP')] }),
   );
   assert.deepEqual(skipped, ['20 privacy › needs SMTP']);
+});
+
+test('triageSpecNumbers lists the failing spec files once, in numeric order', () => {
+  assert.deepEqual(
+    triageSpecNumbers([
+      { file: '22-accessibility.spec.ts' },
+      { file: '10-forward-cross-ou.spec.ts' },
+      { file: '22-accessibility.spec.ts' },
+      { file: 'install.setup.ts' },
+    ]),
+    ['10', '22'],
+  );
+  assert.deepEqual(triageSpecNumbers([]), []);
+});
+
+test('formatSummary prints the ready-to-copy triage dispatch line', () => {
+  const text = formatSummary(
+    reportWith({ specs: [failedSpec('a', 1, 'boom'), failedSpec('b', 2, 'boom'), failedSpec('c', 3, 'boom')] }),
+  );
+  assert.match(text, /NEXT TRIAGE RUN: specs=20 /);
 });

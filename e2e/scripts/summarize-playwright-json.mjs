@@ -46,6 +46,20 @@ export function errorDetail(error, maxLines = 15) {
   return detail;
 }
 
+/**
+ * Triage helper (2026-10-05): the workflow can re-run only the files that failed
+ * (`workflow_dispatch` input `specs=10,18,22`, ~2 min instead of ~35). The summary
+ * prints that line ready to copy, so nobody has to count numbers by hand.
+ */
+export function triageSpecNumbers(failures) {
+  const numbers = new Set();
+  for (const failure of failures) {
+    const match = /^(\d+)-/.exec(failure.file ?? '');
+    if (match) numbers.add(match[1]);
+  }
+  return [...numbers].sort((left, right) => Number(left) - Number(right));
+}
+
 /** Skipped specs, so a `test.skip(...)` never hides inside a green run. */
 export function collectSkipped(report) {
   const skipped = [];
@@ -118,6 +132,13 @@ export function formatSummary(report, fileName = 'results.json') {
     lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
     lines.push(`     ${failure.error}`);
     for (const line of failure.detail ?? []) lines.push(line);
+  }
+  const triage = triageSpecNumbers(failures);
+  if (triage.length > 0 && triage.length < 36) {
+    lines.push('');
+    lines.push(
+      `NEXT TRIAGE RUN: specs=${triage.join(',')} (Actions → CI → Run workflow, max_failures=8, retries=0)`,
+    );
   }
   const skippedTitles = collectSkipped(report);
   if (skippedTitles.length > 0) {
