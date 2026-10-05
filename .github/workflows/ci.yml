@@ -18,6 +18,10 @@ on:
         description: "E2E only: retries per failing test (0 = no retry)"
         required: false
         default: "1"
+      specs:
+        description: "E2E only: comma-separated spec numbers, e.g. 10,18,22 (empty = all 36 files)"
+        required: false
+        default: ""
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -207,15 +211,36 @@ jobs:
           E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '1' }}
+          E2E_SPECS: ${{ inputs.specs }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
         run: |
+          # Triage (2026-10-05): a full run is 70 tests / ~35 min, so a red run can
+          # be narrowed to the files that failed, e.g. specs=10,18,22. Numbers map
+          # to `e2e/tests/<number>-*.spec.ts`; an unknown number fails loudly
+          # instead of silently running everything.
+          files=()
+          if [ -n "${E2E_SPECS:-}" ]; then
+            IFS=',' read -ra parts <<< "$E2E_SPECS"
+            for part in "${parts[@]}"; do
+              number="$(echo "$part" | tr -d '[:space:]')"
+              [ -z "$number" ] && continue
+              matches=(tests/"$number"-*.spec.ts)
+              if [ ! -e "${matches[0]}" ]; then
+                echo "::error title=Unknown spec::No tests/$number-*.spec.ts in e2e/ — check the dispatch input."
+                exit 1
+              fi
+              files+=("${matches[@]}")
+            done
+            echo "Triage mode: running ${#files[@]} spec file(s): ${files[*]}"
+          fi
+
           max_failures="${{ inputs.max_failures || '0' }}"
+          args=(--reporter=list,json)
           if [ "$max_failures" != "0" ] && [ -n "$max_failures" ]; then
             echo "Triage mode: stopping after $max_failures failed test(s), retries=$E2E_RETRIES."
-            npx playwright test --reporter=list,json --max-failures="$max_failures"
-          else
-            npx playwright test --reporter=list,json
+            args+=(--max-failures="$max_failures")
           fi
+          npx playwright test "${args[@]}" "${files[@]}"
       # Always, so a red run leaves a readable trace in the log and as an artifact.
       - name: Summarize failures (JSON report)
         if: ${{ always() }}

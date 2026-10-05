@@ -125,6 +125,10 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - **Triage mode** (Actions → CI → *Run workflow*): `max_failures=8` stops after eight failures and `retries=0`
   does not retry them. A red run then takes a few minutes instead of ~35; the defaults (`0` / `1`) keep the full,
   strict run.
+- **Narrow the run**: the `specs` input takes comma-separated spec numbers, e.g. `specs=10,18,22`, and runs only
+  `e2e/tests/10-*.spec.ts`, `18-*` and `22-*` (global setup still runs, so accounts and the install are prepared).
+  An unknown number fails the step with `Unknown spec` instead of quietly running everything. Use it to re-check a
+  fix in ~2 minutes instead of a full pass.
 - **Classify before fixing.** Each failure belongs to one of three groups: **(A) environment** — an add-on, SMTP
   or a permission is missing on that stack, so the spec (or the stack) must be adjusted; **(B) spec assumption**
   — the screen/API changed on purpose and the spec still expects the old shape; **(C) product bug** — the spec is
