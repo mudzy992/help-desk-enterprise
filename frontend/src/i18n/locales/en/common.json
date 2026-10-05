@@ -7710,6 +7710,7 @@
     "loading": "Loading documentation…",
     "updatedAt": "Updated: {{date}}",
     "updatedAtUnknown": "Updated: —",
+    "updatedAtValue": "{{month}} {{day}}, {{year}}",
     "retry": "Try again",
     "backToDocs": "Back to documentation",
     "emptyTitle": "No pages available",

@@ -7785,6 +7785,7 @@
     "loading": "Učitavanje dokumentacije…",
     "updatedAt": "Ažurirano: {{date}}",
     "updatedAtUnknown": "Ažurirano: —",
+    "updatedAtValue": "{{day}}. {{month}} {{year}}.",
     "retry": "Pokušaj ponovo",
     "backToDocs": "Na početak dokumentacije",
     "emptyTitle": "Nema dostupnih stranica",

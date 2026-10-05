@@ -37,6 +37,7 @@
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
+| — | 2026-10-05 | Dokumentacija — prikaz datuma | `frontend/src/lib/docs/format-docs-date.ts` (nov), `frontend/src/pages/docs-page.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/docs/format-docs-date.spec.ts` (nov), ovaj dokument | **„Ažurirano: 2026 M10 4“ zamijenjeno stvarnim datumom („Ažurirano: 4. oktobar 2026.“) — datum se čita iz manifesta, bez `Intl.DateTimeFormat` i bez pomjeranja zbog vremenske zone** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
@@ -1353,3 +1354,20 @@ u commitovanom manifestu. Lokalno (pun klon) provjera je prolazila, u CI-ju nije
 pokrenite generator`; poslije popravke isti klon prolazi (`Docs provjera: OK (29 stranica, 9 provjera).` uz
 napomenu o plitkom klonu). Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
 "run" u istom bloku — GitHub odbija cijeli workflow`, a na popravljenom fajlu je čist.
+
+## Dokumentacija — prikaz datuma „Ažurirano“ (2026-10-05)
+
+Zaglavlje stranice dokumentacije prikazivalo je datum iz manifesta kroz
+`new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" })`. U runtimeu bez bosanskih CLDR podataka to
+izlazi kao **„Ažurirano: 2026 M10 4“** (isto ograničenje koje `announcement-view.ts:117` i
+`asset-view.ts:209–210` već opisuju za svoje ekrane), a `new Date("2026-10-04")` se tumači kao UTC ponoć, pa
+zapadno od UTC prikaže prethodni dan.
+
+**Šta je urađeno:**
+
+- `frontend/src/lib/docs/format-docs-date.ts` (nov): `formatDocsDate(value, t)` čita datum iz stringa
+  (`YYYY-MM-DD`, uz opcionalni dio s vremenom), provjerava da je datum stvaran (npr. `2026-02-30` → `null`) i
+  ime mjeseca uzima iz prijevoda `changes.calendar.months.m<indeks>` — bez `Intl.DateTimeFormat`;
+- `docs-page.tsx`: neispravan ili nepoznat datum prikazuje „Ažurirano: —“ (ključ `docs.updatedAtUnknown`);
+- novi ključ `docs.updatedAtValue` u `bs` („{{day}}. {{month}} {{year}}.“) i `en` („{{month}} {{day}}, {{year}}“);
+- `frontend/src/lib/docs/format-docs-date.spec.ts` (nov): 4 testa (bs/en, dio s vremenom, neispravni datumi).

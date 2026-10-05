@@ -5604,3 +5604,39 @@ stanje (Redis, baza) i prebacivao filtre u upite.
 - **M12 B1 ostaje bez migracije:** preuzimanje koristi postojeći `updatedAt`; ako se u međuvremenu doda
   `claimedAt`, filter treba prebaciti na njega.
 - **18 registriranih postavki bez potrošača** i **EN sadržaj vodiča** — čekaju odluku vlasnika (bez promjene).
+
+# Popravke prije vala 4 — CI i prikaz datuma u dokumentaciji (2026-10-05)
+
+Dvije popravke između vala 3 i vala 4. Prva je otklonila crveni CI (od vala 3 nijedna izmjena nije bila
+provjerena), druga neispravan datum u zaglavlju stranice dokumentacije.
+
+## 1. Popravljeno
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **CI-1** — GitHub odbija cijeli `.github/workflows/ci.yml` | Run je završavao **bez ijednog joba** („This run likely failed because of a workflow file issue“) | `.github/workflows/ci.yml:76` — korak „Check docs content and mirror sync“ imao je **dva `run:` ključa** (drugi je trebao biti novi korak); duplikat ključa u istom bloku je neispravan YAML | Nijedna izmjena nije prolazila CI; lokalne provjere nisu mogle zamijeniti e2e | Test je vlastiti korak „Test the docs-content guard itself“; `check-workflows-yaml.mjs` sada hvata **ponovljeni ključ u istom bloku** (+ test koji reprodukuje tačno ovaj propust) | **VISOKO** |
+| **CI-2** — `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` | Korak dokumentacije padao je i na `master` (`95e98d2e`, `08d07231`) iako je ogledalo bilo tačno | `scripts/generate-docs-content.mjs:118` (`gitUpdatedAt`) — `actions/checkout` po zadanom radi **plitak** klon (`fetch-depth: 1`), a `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za svaki fajl, pa CI izračuna druge datume od commitovanih | Crven CI od vala 3; „dokazi“ iz vala 3 nisu bili provjereni u CI-ju | `frontend` job radi **pun checkout** (`fetch-depth: 0`); `isShallowRepository()` + `sameManifestIgnoringDates()` — u plitkom klonu se datumi ne porede, uz napomenu u izlazu; **manifest je imao i 8 zastarjelih datuma** (2026-10-02) jer je posljednji put generisan iz plitkog klona → sada stvarni 2026-10-04 | **VISOKO** |
+| **D-1** — „Ažurirano: 2026 M10 4“ u zaglavlju stranice dokumentacije | Datum iz manifesta (`YYYY-MM-DD`) prikazan je kroz `Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" })` | `frontend/src/pages/docs-page.tsx:47–50` (prije popravke); u runtimeu bez bosanskih CLDR podataka `medium` se renderuje kao `2026 M10 4` — ista pojava koju `announcement-view.ts:117` i `asset-view.ts:209` već opisuju i zaobilaze | Korisnik u zaglavlju dokumentacije vidi neispravan datum; `new Date("2026-10-04")` je uz to UTC ponoć, pa zapadno od UTC prikaže prethodni dan | Novi `frontend/src/lib/docs/format-docs-date.ts`: datum se čita iz samog stringa, ime mjeseca iz prijevoda `changes.calendar.months.m<indeks>` (isti mehanizam kao `report-trends-view.ts:153–160`); novi ključ `docs.updatedAtValue` (**bs** `{{day}}. {{month}} {{year}}.` / **en** `{{month}} {{day}}, {{year}}`); 4 testa u `format-docs-date.spec.ts` | **SREDNJE** |
+
+## 2. Dokazi (izvršeno u ovom okruženju)
+
+- **CI na `master`, commit `c052cec`:** `gh run list` → **success**; sva tri joba prošla — *Backend build + test*,
+  *Frontend build + test* (korak „Check docs content and mirror sync“ zelen), *E2E critical flows*.
+- **Dokaz kvara CI-2:** stari skripti u plitkom klonu (`git clone --depth 1` bez izmjena) padaju sa
+  `Docs provjera: 1 problem(a): [sinhronizacija] manifest.json se razlikuje — pokrenite generator`; poslije
+  popravke isti klon prolazi uz napomenu `plitki klon: updatedAt u manifestu se ne provjerava`.
+- **Dokaz kvara CI-1:** novi guard na starom `ci.yml` vraća
+  `.github/workflows/ci.yml:76 ponovljeni ključ "run" u istom bloku — GitHub odbija cijeli workflow`; na
+  popravljenom fajlu je čist. `npx js-yaml .github/workflows/ci.yml` → validan YAML.
+- **Dokaz D-1:** `npx vitest run src/lib/docs/format-docs-date.spec.ts` → **4/4**
+  (`2026-10-04` → `4. oktobar 2026.`, `October 4, 2026` za `en`, `2026-02-30` → `null`); `tsc -b` → **0**;
+  `vitest run` → **158 fajlova / 632 testa**, 0 padova; `check-pulse-design-system.mjs` → i18n parnost
+  `bs`/`en` OK (3926 statičkih ključeva), `check-workflows-yaml.mjs` OK, `check-docs-content.mjs` OK
+  (29 stranica, 9 provjera).
+
+## 3. Ista klasa greške ostaje otvorena (nije dirano bez odluke)
+
+| Mjesto | Linija | Zašto je isto | Predloženi fix |
+|---|---|---|---|
+| SLA — prikaz radnog vremena | `frontend/src/lib/sla/format-sla-week-hours.ts:34` (`dateStyle: "medium"`) | Ime mjeseca iz `Intl` bez rezerve za `bs` → `M10` u runtimeu bez CLDR podataka | Isti obrazac kao `asset-view.ts:209`: eksplicitna polja (`day/month/year: "2-digit"/"numeric"`) ili ime mjeseca iz prijevoda |
+| Kalendar dežurstava | `frontend/src/components/on-call/on-call-calendar.tsx:19,21` (`weekday: "short"/"long"`, `month: "long"`) | Isto, ali za nazive dana i mjeseca | Isto: ručna imena iz prijevoda ili numerička polja |
