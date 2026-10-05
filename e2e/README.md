@@ -94,6 +94,30 @@ and **continues** only if `E2E_SUPERADMIN_TOTP_SECRET` is present (otherwise it 
   Set E2E_DATABASE_URL to a connection string that is reachable from GitHub runners: …
 ```
 
+### Triage: reading a red run
+
+Every run now writes `results.json` and prints a compact summary at the end, so the reason is in the log even
+before the artifact is opened:
+
+```
+Playwright (results.json): 60 passed, 10 failed, 0 flaky, 0 skipped.
+
+FAIL 20-privacy.spec.ts:41 — 20 privacy › a DSR travels the list and the timeline
+     Error: expect(received).toBe(expected)
+```
+
+- **Artifacts** (`playwright-report`, `test-results`, `results.json`) are uploaded on every run, also on failure;
+  `test-results` holds the traces of failed attempts (`trace: 'on-first-retry'`).
+- **Triage mode** (Actions → CI → *Run workflow*): `max_failures=8` stops after eight failures and `retries=0`
+  does not retry them. A red run then takes a few minutes instead of ~35; the defaults (`0` / `1`) keep the full,
+  strict run.
+- **Classify before fixing.** Each failure belongs to one of three groups: **(A) environment** — an add-on, SMTP
+  or a permission is missing on that stack, so the spec (or the stack) must be adjusted; **(B) spec assumption**
+  — the screen/API changed on purpose and the spec still expects the old shape; **(C) product bug** — the spec is
+  right and the code is wrong. The fix differs completely, so the first pass records the group, not the patch.
+- Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
+  way, so a list like `10, 11, 12` maps straight onto files.
+
 ## Test accounts (important)
 
 `global-setup` changes the configured accounts:

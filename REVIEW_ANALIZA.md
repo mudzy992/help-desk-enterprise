@@ -6208,3 +6208,26 @@ jedna je **naš propust iz vala 5** (uklonjen dodatak koji je harness i dalje sl
    postoji; za pravi prolaz vrijednost treba biti javni URL frontenda.
 3. Ponoviti workflow; **Preflight** sada u logu pokaže `set`/`empty` po imenu, razrješenje oba hosta i
    `GET /health`, pa se svaki sljedeći zastoj vidi prije Playwrighta.
+
+## 4. Prvi pravi prolaz je crven — i to je očekivano (trijaža)
+
+Prvi izvršeni e2e prolaz (run `37309632260`, grana `master` = `0fd159c`) prijavio je padove u specovima
+**10, 11, 12, 17, 18, 20–23, 26, 27 i dalje**. Nijedan od njih **nije regresija iz vala 5**:
+
+- val 5 dira tikete (tip zahtjeva, rok), postavke, policy pakete i notifikacije; ovi specovi pokrivaju
+  prosljeđivanje, e-mail šablone, izvještaje, privatnost, status, pristupačnost i imovinu;
+- do sada e2e job **nikad nije izvršio nijedan spec** (lažno zelen, `exit 0` bez `E2E_API_URL`), pa je ovo prvi
+  prolaz ovih specova protiv živog stacka — crven blok je očekivan polaz, ne dokaz kvara.
+
+**Šta je urađeno da trijaža bude moguća (umjesto pogađanja):**
+
+| Alat | Fajl | Šta radi |
+|---|---|---|
+| Sažetak padova u logu | `e2e/scripts/summarize-playwright-json.mjs` (+ `*.test.mjs`, 5 testova) | čita Playwright JSON i ispisuje po padu `fajl:linija — test` i **prvu liniju greške** (bez ANSI kodova) |
+| Izvještaj i tragovi kao artefakt | `.github/workflows/ci.yml` | `--reporter=list,json`, `PLAYWRIGHT_JSON_OUTPUT_NAME=results.json`, `upload-artifact` (`playwright-report`, `test-results`, `results.json`) uz `if: always()` — **ranije se HTML izvještaj nije uploadovao** |
+| Trijaž režim | `.github/workflows/ci.yml` (`workflow_dispatch` inputi) | `max_failures=8` zaustavlja run poslije 8 padova, `retries=0` ih ne ponavlja → crven run traje minute, ne ~35 |
+| Protokol klasifikacije | `e2e/README.md` („Triage: reading a red run“) | svaki pad ide u **(A) okruženje**, **(B) pretpostavka speca** ili **(C) bug u proizvodu**; prvi prolaz samo klasifikuje, popravke idu po grupi |
+
+**Prvi sljedeći korak (vlasnik):** pokrenuti workflow s `max_failures=8`, `retries=0` i poslati sažetak iz loga
+(copy/paste bloka `Playwright (results.json): …`). Iz njega se svaki pad klasifikuje i dobija popravku s dokazom.
+

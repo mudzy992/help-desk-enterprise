@@ -6,6 +6,18 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      # Triage (2026-10-05): a red run of 70 specs takes ~35 min; these make the
+      # first look cheaper. `max_failures` stops the run after N failures, and
+      # `retries: 0` does not retry them. Defaults keep the full, strict run.
+      max_failures:
+        description: "E2E only: stop after this many failed tests (0 = run all)"
+        required: false
+        default: "0"
+      retries:
+        description: "E2E only: retries per failing test (0 = no retry)"
+        required: false
+        default: "1"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -194,4 +206,31 @@ jobs:
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
           E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
-        run: npm test
+          E2E_RETRIES: ${{ inputs.retries || '1' }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: |
+          max_failures="${{ inputs.max_failures || '0' }}"
+          if [ "$max_failures" != "0" ] && [ -n "$max_failures" ]; then
+            echo "Triage mode: stopping after $max_failures failed test(s), retries=$E2E_RETRIES."
+            npx playwright test --reporter=list,json --max-failures="$max_failures"
+          else
+            npx playwright test --reporter=list,json
+          fi
+      # Always, so a red run leaves a readable trace in the log and as an artifact.
+      - name: Summarize failures (JSON report)
+        if: ${{ always() }}
+        run: node scripts/summarize-playwright-json.mjs results.json
+      - name: Upload the Playwright report and traces
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            e2e/results.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test the JSON summarizer itself
+        if: ${{ always() }}
+        run: node --test scripts/summarize-playwright-json.test.mjs
