@@ -729,7 +729,7 @@
         "odrzavanje",
         "dostupnost"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -787,7 +787,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 820,
+      "wordCount": 815,
       "source": "docs/user-guide/status-incidenti-i-planirani-prekidi.md"
     },
     {
@@ -1007,7 +1007,7 @@
         "razlog",
         "preraspodjela"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1070,7 +1070,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 936,
+      "wordCount": 935,
       "source": "docs/user-guide/prosljedjivanje-tiketa.md"
     },
     {
@@ -2860,7 +2860,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 684,
+      "wordCount": 757,
       "source": "docs/user-guide/sta-je-novo.md"
     }
   ]

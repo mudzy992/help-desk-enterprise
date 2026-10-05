@@ -26,6 +26,8 @@ koristi kao podsjetnik na izmjene koje traže akciju (npr. pokretanje alata na s
 
 | Datum | Šta se promijenilo | Za koga | Detalji |
 |---|---|---|---|
+| 2026-10-05 | **Datum „Ažurirano“ u zaglavlju dokumentacije.** Prikazuje se stvarni datum izdanja stranice („Ažurirano: 4. oktobar 2026.“), umjesto neispravnog oblika „2026 M10 4“ koji je davao preglednik bez bosanskih jezičkih podataka. | Svi | [pocetak-rad.md](/docs/pocetak-rad) |
+| 2026-10-05 | **Napomene o dostupnosti u vodičima.** Dvije napomene („važi od …“) prepisane su u korisnički jezik: sada piše od kojeg datuma je mogućnost dostupna, bez tehničkih oznaka verzija. | Svi | [status-incidenti-i-planirani-prekidi.md](/docs/status-incidenti-i-planirani-prekidi), [prosljedjivanje-tiketa.md](/docs/prosljedjivanje-tiketa) |
 | 2026-10-05 | **Zajednički limiti umjesto po-procesnih (Val 3).** Ograničenje masovnog broadcasta i testnog slanja e-maila sada se drži u Redisu, pa vrijedi za sve instance i ne resetuje se restartom. | Agent, Administrator | [tiketi.md](/docs/tiketi), [posta.md](/docs/posta) |
 | 2026-10-05 | **Obavijesti e-mailom pouzdanije (Val 3).** Zaglavljena isporuka se preuzima ponovo (pločica **Operativno zdravlje** prikazuje broj takvih zapisa), SMTP veza se dijeli umjesto da se otvara po e-mailu, a oznake polja u obavijesti prate jezik pošiljaoca/primaoca. | Svi, Administrator, Operativa | [posta.md](/docs/posta) |
 | 2026-10-05 | **Veze u dokumentaciji i provjera ažurnosti.** Reference na stranice u tabelama i vodičima su klikabilne, a CI provjerava da stranica „Šta je novo“ ne zaostaje za `DOCS_CHANGELOG.md`. | Svi | [pocetak-rad.md](/docs/pocetak-rad) |
