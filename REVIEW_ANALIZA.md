@@ -4982,7 +4982,7 @@ modula):
 | **0 — odmah** | Default mapping rola → permisije u instalaciji + test | M4 B1 | ~0,5 RD |
 | **1 — nadzor i tačnost brojeva** ✅ **isporučen 2026-10-03** | Ekran uskih grla u `/reports`; postavka koja stvarno isključuje prikaz; grafik i liste iz server agregata; CSAT po OU/servisu/grupi; razrez „tiketi po OU“ i „opterećenje admina“; link umjesto onemogućenog dugmeta | M15 B1, B2, B3, B5, B6; M9 B3 (prvi dio); **M15 gapovi 8 i 9 zatvoreni** — otvoreno: M15 B4, fiksna skala na trendovima (dio M9 B3) | ~4–5 RD (stvarno: ~1,5 RD) |
 | **2 — sigurnost i vidljivost** | Serverska provjera šablona pri slanju; zamjena ličnih podataka i pri upisu članka; redakcija broadcasta; `DRAFT` samo adminima; kapija odobrenja za `UNROUTED` i obavještenje odobravaocima; retention priloga; eskalacije s ciljevima i retroaktivni satovi | M13 B1; M14 B1; M12 B2; M6 B2; M9 B1, B2; M8 B1; M10 B1, B2, B4 | ~5–6 RD |
-| **3 — pouzdanost i skaliranje** | Isporuka e-pošte „tačno jednom“ s alarmom; SMTP pooling; članstvo u soba­ma iz baze i rate limit za `ticket:join`; rate limiter broadcasta u Redis; paginacija i limiti na listama (KB, šabloni, pickers) | M12 B1, B3, B4; M11 B1, B2; M8 B2; M14 B5; M13 B2 | ~4–5 RD |
+| **3 — pouzdanost i skaliranje** | Isporuka e-pošte „tačno jednom“ s alarmom; SMTP pooling; članstvo u sobama iz baze i rate limit za `ticket:join`; rate limiter broadcasta u Redis; paginacija i limiti na listama (KB, šabloni, pickers) | M12 B1, B3, B4; M11 B1, B2; M8 B2; M14 B5; M13 B2 | ~4–5 RD |
 | **4 — testovi i CI** | e2e za portal znanja, nadzornu ploču i poštu; spec za servise šablona i bottleneck | M14, M15, M12 gapovi; M13 gapovi | ~2–3 RD |
 | **5 — RAW zaostaci (opseg)** | Policy paket kao pun bundle + dodjela servisu ili OU + postavke; tip zahtjeva i rok na tiketu; preview rutanja u wizardu; postavke prioriteta i change loga; mjerenje kanala po RAW-u | M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 (dio) | ~8–10 RD |
 
@@ -5739,11 +5739,39 @@ ne može provjeriti da li su negdje postavljeni.
   workera `viewCount` ostaje 0. Zato spec 34 provjerava prihvatanje pregleda (204), a ocjenu (koja se piše
   odmah) provjerava kroz listu portala.
 
-## 6. Šta ostaje otvoreno poslije vala 4
+## 6. Unit sloj šablona i playbooka (dio 2, 2026-10-05)
 
-- **Unit sloj šablona i playbooka** (`backend/src/modules/templates/response-templates.service.ts` 615
-  linija, `playbooks/playbooks.service.ts` 335, `ticket-playbooks/ticket-playbooks.service.ts` 403 — bez
-  ijednog `*.spec.ts`): kandidat iz plana vala 4, čeka odluku o prioritetu (e2e je bio zadan i isporučen).
-- **E-1:** repozitorijske varijable i secreti za e2e (odluka vlasnika) — do tada e2e ostaje zelen bez
-  izvršavanja.
+Korisnik je poslije izvještaja o e2e dijelu odabrao **unit sloj** kao sljedeći prioritet. Tri servisa koja su
+radila bez ijednog testa (`response-templates.service.ts` 615 linija, `playbooks/playbooks.service.ts` 335,
+`ticket-playbooks/ticket-playbooks.service.ts` 403) sada imaju specove koji drže stvarno ponašanje — ne
+snimke implementacije: provjeravaju se odluke (dozvole, opsezi, verzioniranje, dnevnik izmjena, sistemske
+poruke), a ne privatne funkcije.
+
+| Spec (nov) | Testova | Šta pokriva |
+|---|---|---|
+| `src/modules/templates/response-templates.service.spec.ts` | 26 | Kapije (isključen modul, `ticket.templates.use`, nepoznat akter, SUPER_ADMIN bez dodjele); picker (sastav opsega upita, rangiranje 3/2/1/0/−1 i dijeljeni prije ličnih kod istog ranga, odbacivanje van opsega bez `all`, `FORBIDDEN` za ne-staff vidljivost tiketa); `render` (provjera upotrebljivosti prije učitavanja, bs/en tijelo s rezervom, `TEMPLATE_NOT_FOUND`); pregled (dozvole, nepoznate varijable se prijavljuju, poznata bez vrijednosti se prazni i prijavljuje u `missing`); upravljanje (tuđi lični šablon „ne postoji“, lična lista filtrira po vlasniku, obavezan razlog za dijeljeni i `personal_template` za lični, zauzeto ime, nepostojeći opseg, zabrana pisanja van opsega, upis opsega i zapisa u dnevnik izmjena, zamjena cijelog opsega pri izmjeni uz before/after, soft delete, `ownership`/`variables`/`canEdit` u odgovoru) |
+| `src/modules/templates/playbooks/playbooks.service.spec.ts` | 19 | `PLAYBOOKS_DISABLED`/`FORBIDDEN`; lista (filteri stanja/traženja/usluge, `activeTicketCount` iz `groupBy`, `canEdit` iz opsega, bez upita kad je lista prazna); `create` (razlog, nepostojeći opseg, reference — **samo dijeljeni** šabloni i postojeći članci, zauzeto ime, zabrana globalnog opsega servisno ograničenom adminu, redoslijed koraka i zapis u dnevnik); `update` (verzija raste **samo** kad se mijenja ono što pokrenuta lista kopira, zamjena opsega i brisanje uklonjenih koraka, provjera starog i novog opsega, before/after u dnevniku); `remove` (soft delete i zapis, zabrana van opsega) |
+| `src/modules/templates/ticket-playbooks/ticket-playbooks.service.spec.ts` | 22 | `get` (isključen modul bez učitavanja tiketa, staff vidljivost i dozvola, zatvoren tiket je read-only bez ponuda, rangiranje ponuda servis → kategorija → ostalo, lista s označenim koracima, imenima i napretkom); `attach`/`detach` (delegiranje pomoćnom modulu, `writable: true`, read-only odbijanje, obavezan razlog, označavanje kao otkačenog + zapis + sistemska poruka + realtime, gubitak trke); `upgrade` (`UP_TO_DATE`, `NOT_APPLICABLE`, čuvanje završenih koraka čiji ključ preživi, nova verzija u zapisu, jednolinijski naziv u događaju); `setStep` (nepoznat korak, idempotencija bez upisa, označavanje/odznačavanje s pozicijom u događaju, objava završetka samo kad su svi koraci gotovi); `sanitize` |
+
+Dokazi: `npx tsc --noEmit` → **0**; `npx jest src/modules/templates` → **6 suita / 91 test** (prije: 3 / 24);
+puna backend provjera `npx jest --maxWorkers=2` → **517 prošla + 5 preskočenih suita (522)**, **2505 prošlo /
+2536 testova** (31 preskočen) — prije ovog dijela 514+5/519 suita i 2438/2469 testova. Napomena za sljedeći
+rad: `jest --runInBand` u ovom okruženju (~3,9 GB) pada na `OOM`; `--maxWorkers=2` prolazi u ~38 s.
+
+## 7. Ostale ispravke u e2e projektu (nađene pišući spisak za CI)
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-4** — mrtve zavisnosti `bcrypt` i `@types/bcrypt` | Harness više ne piše heševe lozinki u bazu (radi kroz API), ali su obje zavisnosti ostale | `e2e/package.json` (prije popravke) — nijedan `.ts` fajl ih ne uvozi (`grep -rn bcrypt e2e --include=*.ts` → prazno) | Zavisnost od `bcrypt` je sugerisala put pisanja u bazu koji je odavno napušten i držala native zavisnost u `npm ci` | Uklonjene (`npm uninstall bcrypt @types/bcrypt`); `e2e/package-lock.json` −49 linija; `tsc --noEmit` → 0; `playwright test --list` → 68 testova u 35 fajlova | **NISKO** |
+| **D-5** — e2e README opisivao je harness koji ne postoji | Tvrdio da `global-setup` „provisions local USER/AGENT via Prisma (`DATABASE_URL`) with bcrypt password hashes. No new production User-password API“ | `e2e/README.md` (prije popravke); stvarni kod: `helpers/provision-test-actors.ts` koristi `POST /users` → `POST /users/:id/reset-password` → `POST /auth/change-password`, a `DATABASE_URL` služi samo za brisanje MFA superadmina (`helpers/reset-super-admin-mfa.ts`) | Čitalac bi zaključio da su lozinke van dometa politike lozinki i da je baza obavezna za provizioniranje | README prepisan (jasan tok kroz API, uloga `DATABASE_URL`, uslovi za lozinke iz `password-policy.ts`); zastarjeli docstring u `helpers/disposable-account.ts` ispravljen | **NISKO** |
+
+Uz to je u `e2e/README.md` dodat **tačan spisak repozitorijskih varijabli i secreta** koje e2e job traži
+(`E2E_API_URL`, `E2E_BASE_URL`; `E2E_SUPERADMIN_*`, `E2E_USER_*`, `E2E_AGENT_*`, `E2E_DATABASE_URL`,
+`E2E_INSTALL_TOKEN`) sa koracima za postavljanje i upozorenjem da zelen job bez `E2E_API_URL` ništa ne
+dokazuje — to je deliverable iz tačke 2 korisnikovog odgovora (spisak priprema agent, postavlja vlasnik).
+
+## 8. Šta ostaje otvoreno poslije vala 4
+
+- **E-1:** repozitorijske varijable i secreti za e2e (odluka i radnja vlasnika) — uputstvo je sada u
+  `e2e/README.md`; do tada e2e job ostaje zelen bez izvršavanja.
 - Ranije otvoreno (nepromijenjeno): M10 B5, M15 B4, M9 B3-2, 18 postavki bez potrošača, EN sadržaj vodiča.
