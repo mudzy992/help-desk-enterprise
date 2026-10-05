@@ -30,7 +30,7 @@ database access for accounts. `DATABASE_URL` is used **only** to clear the test 
 
 Unit gate is `.github/workflows/ci.yml` (backend + frontend). E2E is a **separate** job (`E2E critical flows`)
 on `workflow_dispatch` / `main` / `master` that expects a **live stack** — it does not start Postgres/Redis in
-GitHub-hosted runners (Coolify contract). See `HANDOFF.md`.
+GitHub-hosted runners (Coolify contract). See `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`.
 
 The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs `npm test`.
 
