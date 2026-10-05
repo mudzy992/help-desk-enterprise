@@ -13,6 +13,9 @@ export type DocsHeading = {
   readonly id: string;
 };
 
+/** Jezik sadržaja: `en` vraća prevod kad postoji, inače bosanski uz `translated: false`. */
+export type DocsLocale = "bs" | "en";
+
 export type DocsNavigationItem = {
   readonly slug: string;
   readonly title: string;
@@ -51,6 +54,9 @@ export type DocsPage = {
   readonly toc: readonly DocsHeading[];
   readonly previous: DocsPageLink | null;
   readonly next: DocsPageLink | null;
+  /** Jezik vraćenog teksta (traženi `en` bez prevoda pada na `bs`). */
+  readonly locale: DocsLocale;
+  readonly translated: boolean;
 };
 
 export type DocsExcerptPart = {
@@ -75,12 +81,12 @@ export type DocsSearchResponse = {
   readonly results: readonly DocsSearchResult[];
 };
 
-export function getDocsNavigation(): Promise<DocsNavigation> {
-  return apiRequest<DocsNavigation>("/docs/navigation");
+export function getDocsNavigation(locale: DocsLocale = "bs"): Promise<DocsNavigation> {
+  return apiRequest<DocsNavigation>(`/docs/navigation?locale=${locale}`);
 }
 
-export function getDocsPage(slug: string): Promise<DocsPage> {
-  return apiRequest<DocsPage>(`/docs/pages/${encodeURIComponent(slug)}`);
+export function getDocsPage(slug: string, locale: DocsLocale = "bs"): Promise<DocsPage> {
+  return apiRequest<DocsPage>(`/docs/pages/${encodeURIComponent(slug)}?locale=${locale}`);
 }
 
 export function searchDocs(query: string, limit?: number): Promise<DocsSearchResponse> {

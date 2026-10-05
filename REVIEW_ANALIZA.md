@@ -5881,3 +5881,21 @@ Playwright browseri, pa je ovdje provjeren `tsc --noEmit` (0) i `--list`.
 (spec 36 ✅) je time zatvorena; serverski testovi za servise šablona dodati su u valu 4 (dio 2), a `bottleneck`
 je već imao specove (`reports/bottleneck/sql-bottleneck-dashboard-store.spec.ts`,
 `aggregate-bottleneck-dashboard.spec.ts`).
+
+## 7. EN stranice vodiča — prevodi i `?locale=` (must-have tačka 7, val 5)
+
+Odluka vlasnika (2026-10-05): prevesti **ključne** stranice, ostatak ostavlja postojeću obavijest.
+
+| Dio | Šta je urađeno | Dokaz |
+|---|---|---|
+| Izvor prevoda | `docs/user-guide/en/<slug>.md` — isti slug i isti obavezni frontmatter (8 polja) kao bosanska stranica; naslov je engleski | `docs/user-guide/en/{pocetak-rad,prijava-i-mfa,tiketi,uloge-i-dozvole,cesta-pitanja}.md` |
+| Generator | `scripts/generate-docs-content.mjs` čita `en/`, piše `backend/content/docs/en/<slug>.md`, u manifest dodaje `englishTitle` (naslov prevoda ili `null`); provjera `--check` i „višak“ rade rekurzivno (i za `en/`) | `buildDocsContent`, `readEnglishTranslations`, `mirrorFiles` |
+| Validacija | 10. provjera: prevod bez bosanskog originala, ime fajla različito od sluga i neslaganje naslova iz frontmattera s `#` naslovom su greške | `scripts/check-docs-content.mjs` (`validateTranslation`) + test `scripts/check-docs-content.test.mjs` (8/8 ✅) |
+| API | `GET /docs/pages/:slug?locale=en` vraća prevod kad postoji, inače bosanski uz `translated: false`; `GET /docs/navigation?locale=en` prevodi naslove prevedenih stranica; `locale` van `{bs,en}` je 400 | `docs.controller.ts`, `docs.service.ts`, `docs-content.repository.ts` (`readPage`, `titleFor`), `dto/docs-locale-query.dto.ts` |
+| UI | Jezik sadržaja prati jezik UI-a (`i18n.language.startsWith("en")`); obavijest `docs.languageNotice` prikazuje se **samo** kad je stranica bez prevoda (`translated === false`) | `frontend/src/pages/docs-page.tsx`, `lib/docs/use-docs.ts`, `services/docs-api.ts` |
+| Dokazi | backend `tsc --noEmit` 0; `jest src/modules/docs` **4 suita / 23 testa** (bilo 18); frontend `tsc -b` 0 i `vitest` **158 fajlova / 649 testova**; `Docs provjera: OK (29 stranica, 5 prevoda, 10 provjera)`; `node --test scripts/check-docs-content.test.mjs` 8/8 | — |
+
+**Prevedeno (5):** Početak rada → *Getting started*, Prijava i MFA → *Sign-in and two-step verification (MFA)*,
+Tiketi → *Tickets*, Uloge i dozvole → *Roles and permissions*, Česta pitanja → *Frequently asked questions*.
+Ostale 24 stranice ostaju bosanske i to se u UI-u vidi (obavijest), a navigacija za njih zadržava bosanske naslove
+— prevod je podatak, ne nova stranica.

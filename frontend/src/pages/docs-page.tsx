@@ -34,12 +34,18 @@ export function DocsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentSlugs, setRecentSlugs] = useState<readonly string[]>([]);
   const searching = query.trim().length >= 2;
-  // EN sadržaj stranica nije preveden (dizajn §10): kad je UI na engleskom,
-  // korisnik to mora znati prije nego što počne čitati.
-  const contentLanguageNotice = i18n.language.startsWith("en");
+  // Val 5: prevodi postoje za ključne stranice. Kad je UI na engleskom, server
+  // vraća engleski tekst ako prevod postoji; obavijest ostaje samo za stranice
+  // koje su i dalje bosanske (`translated === false`).
+  const docsLocale = i18n.language.startsWith("en") ? "en" : "bs";
 
-  const { navigation, loading: navigationLoading, error: navigationError, reload } = useDocsNavigation();
-  const { page, loading: pageLoading, error: pageError } = useDocsPage(searching ? null : (slug ?? null));
+  const { navigation, loading: navigationLoading, error: navigationError, reload } =
+    useDocsNavigation(docsLocale);
+  const { page, loading: pageLoading, error: pageError } = useDocsPage(
+    searching ? null : (slug ?? null),
+    docsLocale,
+  );
+  const contentLanguageNotice = docsLocale === "en" && page !== null && !page.translated;
   const { response, loading: searchLoading, error: searchError } = useDocsSearch(query);
 
   const parts = navigation?.parts ?? [];

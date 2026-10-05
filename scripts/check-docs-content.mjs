@@ -22,6 +22,7 @@ import { buildDocsContent, isShallowRepository, slugifyHeading } from './generat
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = path.join(repoRoot, 'docs', 'user-guide');
+const englishSourceDir = path.join(sourceDir, 'en');
 const mirrorDir = path.join(repoRoot, 'backend', 'content', 'docs');
 const technicalSource = 'TEZE-ZA-DOKUMENTACIJU.md';
 
@@ -143,9 +144,10 @@ function checkSync() {
   if (shallow) {
     notes.push('plitki klon: `updatedAt` u manifestu se ne provjerava (puni checkout: git fetch --unshallow)');
   }
-  const { manifest, documents } = buildDocsContent();
+  const { manifest, documents, englishDocuments } = buildDocsContent();
   const expected = new Map();
   for (const [slug, body] of documents) expected.set(`${slug}.md`, body);
+  for (const [slug, body] of englishDocuments) expected.set(`en/${slug}.md`, body);
   expected.set('manifest.json', `${JSON.stringify(manifest, null, 2)}\n`);
   for (const [name, content] of expected) {
     const target = path.join(mirrorDir, name);
@@ -161,9 +163,77 @@ function checkSync() {
       fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
     }
   }
-  for (const name of readdirSync(mirrorDir)) {
+  for (const name of mirrorFiles(mirrorDir)) {
     if (!expected.has(name)) fail('sinhronizacija', `${name} je višak u ogledalu`);
   }
+}
+
+/** Svi fajlovi ogledala s relativnim putanjama; uključuje `en/`. */
+function mirrorFiles(directory, prefix = '') {
+  const found = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const relative = `${prefix}${entry.name}`;
+    if (entry.isDirectory()) {
+      found.push(...mirrorFiles(path.join(directory, entry.name), `${relative}/`));
+    } else {
+      found.push(relative);
+    }
+  }
+  return found;
+}
+
+/**
+ * Prevodi (`docs/user-guide/en/*.md`): isti slug kao bosanska stranica, isti
+ * obavezni frontmatter, i naslov iz frontmattera mora odgovarati `#` naslovu.
+ * Ostale provjere (veze, tajne, anchori) rade nad bosanskim izvorima, jer su
+ * prevodi isti dokument na drugom jeziku.
+ */
+/**
+ * Čista provjera jednog prevoda, izdvojena radi testa: vraća listu problema.
+ * `bosnianSlugs` su slugovi iz `docs/user-guide/*.md` (prevod bez originala je
+ * greška, a ne nova stranica).
+ */
+export function validateTranslation({ file, meta, body, title }, bosnianSlugs) {
+  const problems = [];
+  const slug = String(meta.slug ?? '');
+  if (!bosnianSlugs.has(slug)) {
+    problems.push(`en/${file}: slug "${slug}" nema bosanske stranice`);
+  }
+  if (file !== `${slug}.md`) {
+    problems.push(`en/${file}: ime fajla mora biti "<slug>.md"`);
+  }
+  if (title !== undefined && title !== String(meta.title)) {
+    problems.push(`en/${file}: naslov u frontmatteru i naslov "#" se razlikuju`);
+  }
+  return problems;
+}
+
+function checkTranslations() {
+  if (!existsSync(englishSourceDir)) {
+    return 0;
+  }
+  const bosnianSlugs = new Set(
+    readdirSync(sourceDir)
+      .filter((name) => name.endsWith('.md') && name !== technicalSource)
+      .map((name) => name.replace(/\.md$/, '')),
+  );
+  const files = readdirSync(englishSourceDir).filter((name) => name.endsWith('.md')).sort();
+  for (const file of files) {
+    const content = readFileSync(path.join(englishSourceDir, file), 'utf8');
+    const parsed = frontmatterOf(content);
+    if (parsed === null) {
+      fail('prevodi', `en/${file}: nema YAML bloka`);
+      continue;
+    }
+    const { meta, body } = parsed;
+    for (const problem of validateTranslation(
+      { file, meta, body, title: body.match(/^#\s+(.+)$/m)?.[1]?.trim() },
+      bosnianSlugs,
+    )) {
+      fail('prevodi', problem);
+    }
+  }
+  return files.length;
 }
 
 function checkLinksAndImages(files) {
@@ -463,6 +533,7 @@ function main() {
     .filter((name) => name.endsWith('.md') && name !== technicalSource)
     .sort();
   const slugs = checkFrontmatter(files);
+  const translationCount = checkTranslations();
   checkSync();
   checkLinksAndImages(files);
   checkAnchors(files);
@@ -480,7 +551,9 @@ function main() {
     }
     process.exit(1);
   }
-  console.log(`Docs provjera: OK (${files.length} stranica, 9 provjera).`);
+  console.log(
+    `Docs provjera: OK (${files.length} stranica, ${translationCount} prevoda, 10 provjera).`,
+  );
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -14,6 +14,7 @@ const page = (slug: string, roles: string[]): DocsPageRecord => ({
   headings: [],
   wordCount: 0,
   source: `docs/user-guide/${slug}.md`,
+  englishTitle: null,
 });
 
 describe('DocsAccessService (Faza 3, korak b)', () => {

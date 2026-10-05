@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DocsAccessService } from './docs-access.service';
@@ -29,6 +29,7 @@ const page = (
   headings: [{ level: 2, text: 'Kako doći', id: 'kako-doci' }],
   wordCount: 10,
   source: `docs/user-guide/${slug}.md`,
+  englishTitle: null,
 });
 
 function buildService(): DocsService {
@@ -48,14 +49,27 @@ function buildService(): DocsService {
       body: '# Tiketi\n\ntiket prati zahtjev korisnika.\n',
     },
     {
+      record: {
+        ...page('cesta-pitanja', 'korisnik', 30, [], 'Česta pitanja'),
+        englishTitle: 'Frequently asked questions',
+      },
+      body: '# Česta pitanja\n\nkratka pitanja i odgovori.\n',
+    },
+    {
       record: page('uloge-i-permisije', 'korisnik', 20, ['ADMIN', 'SUPER_ADMIN'], 'Uloge i permisije'),
       body: '# Uloge i permisije\n\npermisije i role mijenja administrator.\n',
     },
   ];
+  mkdirSync(path.join(root, 'en'), { recursive: true });
+  writeFileSync(
+    path.join(root, 'en', 'cesta-pitanja.md'),
+    '# Frequently asked questions\n\nshort questions and answers.\n',
+    'utf8',
+  );
   const manifest: DocsManifest = {
     parts: [
       { key: 'pocetak', order: 1, pages: ['pocetak-rad', 'instalacija'] },
-      { key: 'korisnik', order: 2, pages: ['tiketi', 'uloge-i-permisije'] },
+      { key: 'korisnik', order: 2, pages: ['tiketi', 'uloge-i-permisije', 'cesta-pitanja'] },
     ],
     pages: pages.map((entry) => entry.record),
   };
@@ -82,11 +96,18 @@ describe('DocsService (Faza 3, korak b)', () => {
     expect(user.parts.map((part) => part.key)).toEqual(['pocetak', 'korisnik']);
     expect(user.parts[0]).toMatchObject({ key: 'pocetak', label: 'Početak' });
     expect(user.parts[0].pages.map((entry) => entry.slug)).toEqual(['pocetak-rad']);
-    expect(user.parts[1].pages.map((entry) => entry.slug)).toEqual(['tiketi']);
+    expect(user.parts[1].pages.map((entry) => entry.slug)).toEqual([
+      'tiketi',
+      'cesta-pitanja',
+    ]);
 
     const admin = docs.navigation(['ADMIN']);
     expect(admin.parts[0].pages.map((entry) => entry.slug)).toEqual(['pocetak-rad', 'instalacija']);
-    expect(admin.parts[1].pages.map((entry) => entry.slug)).toEqual(['tiketi', 'uloge-i-permisije']);
+    expect(admin.parts[1].pages.map((entry) => entry.slug)).toEqual([
+      'tiketi',
+      'uloge-i-permisije',
+      'cesta-pitanja',
+    ]);
     expect(admin.parts[0].pages[0].updatedAt).toBe('2026-10-03');
   });
 
@@ -99,6 +120,39 @@ describe('DocsService (Faza 3, korak b)', () => {
     const user = docs.readPage('pocetak-rad', ['USER']);
     expect(user.next).toBeNull();
     expect(user.roles).toEqual([]);
+  });
+
+  it('na `en` vraća prevod i engleski naslov, a stranicu bez prevoda ostavlja bosansku (val 5)', () => {
+    const translated = docs.readPage('cesta-pitanja', ['USER'], 'en');
+    expect(translated.locale).toBe('en');
+    expect(translated.translated).toBe(true);
+    expect(translated.markdown).toContain('short questions and answers');
+    expect(translated.title).toBe('Frequently asked questions');
+
+    const fallback = docs.readPage('tiketi', ['USER'], 'en');
+    expect(fallback.locale).toBe('bs');
+    expect(fallback.translated).toBe(false);
+    expect(fallback.markdown).toContain('tiket prati zahtjev');
+    expect(fallback.title).toBe('Tiketi');
+
+    // Bosanski ostaje bosanski i kad prevod postoji.
+    const bosnian = docs.readPage('cesta-pitanja', ['USER']);
+    expect(bosnian.locale).toBe('bs');
+    expect(bosnian.title).toBe('Česta pitanja');
+  });
+
+  it('navigacija na `en` miješa engleske naslove prevedenih i bosanske ostalih (val 5)', () => {
+    const english = docs.navigation(['USER'], 'en');
+    const titles = english.parts.flatMap((part) =>
+      part.pages.map((entry) => `${entry.slug}:${entry.title}`),
+    );
+    expect(titles).toContain('cesta-pitanja:Frequently asked questions');
+    expect(titles).toContain('tiketi:Tiketi');
+
+    const bosnian = docs.navigation(['USER']);
+    expect(
+      bosnian.parts.flatMap((part) => part.pages.map((entry) => entry.title)),
+    ).toContain('Česta pitanja');
   });
 
   it('nepoznat i nedozvoljen slug daju istu grešku (404), a nesiguran slug svoju', () => {

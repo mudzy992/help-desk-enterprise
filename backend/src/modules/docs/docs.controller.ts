@@ -5,7 +5,8 @@ import {
   type AuthenticatedHttpRequest,
 } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { docsLimits } from './docs.constants';
+import { docsLimits, parseDocsLocale } from './docs.constants';
+import { DocsLocaleQueryDto } from './dto/docs-locale-query.dto';
 import { runDocs } from './docs.error';
 import { DocsService } from './docs.service';
 import type { DocsNavigation, DocsPageResponse, DocsSearchResponse } from './docs.types';
@@ -25,17 +26,25 @@ export class DocsController {
 
   @Get('navigation')
   @Header('Cache-Control', 'no-store')
-  navigation(@Req() request: AuthenticatedHttpRequest): Promise<DocsNavigation> {
-    return runDocs(() => this.docs.navigation(roleKeysOf(request)));
+  navigation(
+    @Query() query: DocsLocaleQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<DocsNavigation> {
+    return runDocs(() =>
+      this.docs.navigation(roleKeysOf(request), parseDocsLocale(query.locale)),
+    );
   }
 
   @Get('pages/:slug')
   @Header('Cache-Control', 'no-store')
   page(
     @Param('slug') slug: string,
+    @Query() query: DocsLocaleQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<DocsPageResponse> {
-    return runDocs(() => this.docs.readPage(slug, roleKeysOf(request)));
+    return runDocs(() =>
+      this.docs.readPage(slug, roleKeysOf(request), parseDocsLocale(query.locale)),
+    );
   }
 
   @Get('search')

@@ -39,6 +39,7 @@
 | — | 2026-10-05 | Postavke i čarobnjak — mrtvi prekidači | `user-guide/instalacija.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M15, `# Popravke poslije vala 4`), ovaj dokument | **Uklonjeno 11 postavki bez potrošača (4 dodatka iz čarobnjaka, 5 iz „Dnevnika izmjena“, naziv/opis Teams aplikacije); sažetak ploče više ne prima neiskorišteni `scope`; ispravljena tvrdnja da su postavke održavanja mrtve — one rade (banner i picker)** |
 | — | 2026-10-05 | Mrtve površine (M9 B4, M8 B3, M7 B2) | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, §M8, §M9, `# Popravke poslije vala 4` §5), ovaj dokument | **Preview rutanja sada radi u koraku pregleda tiketa; uklonjene dvije postavke bez efekta (`allowRequesterManager`, `allowSharing`); `roleSource` ostaje dokumentovano odstupanje** |
 | — | 2026-10-05 | E2E pokrivenost pošte (M12) | `REVIEW_ANALIZA.md` (`# Popravke poslije vala 4` §6), ovaj dokument, `e2e/tests/36-notifications-email.spec.ts` (nov) | **Novi e2e spec: kanal e-pošte u `/ops/alerts/test`, `components.email` u `/ops/health` i pločica e-pošte u kartici Operativno zdravlje** |
+| — | 2026-10-05 | EN stranice vodiča (prevodi, `?locale=`) | `docs/user-guide/en/*.md` (novo, 5 fajlova), `docs/DOCS_MODULE.md` (§9, §10), `backend/content/docs/en/*` (ogledalo), `REVIEW_ANALIZA.md` (`# Popravke poslije vala 4` §7), ovaj dokument | **Pet ključnih stranica prevedeno (Početak rada, Prijava i MFA, Tiketi, Uloge i dozvole, Česta pitanja); `?locale=en` vraća prevod ili bosanski uz `translated: false`, obavijest ostaje samo za neprevedene** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1529,3 +1530,26 @@ vanjskog kanala:
 
 **Dokazi:** `npx tsc --noEmit -p tsconfig.json` u `e2e/` → 0; `npx playwright test --list` → **70 testova u 36
 fajlova** (prije 68/35). Spec se izvršava samo na živom stacku (`E2E_API_URL`).
+
+## EN stranice vodiča — prevodi i izbor jezika (2026-10-05, val 5)
+
+Dizajn Docs modula (§10) predviđao je prevode kao `docs/user-guide/en/<slug>.md`, a korak (d) ih je ostavio za
+„odvojen posao“ uz obavijest `docs.languageNotice`. Odluka vlasnika 2026-10-05: prevesti **ključne** stranice.
+
+**Prevedeno (5 stranica):** Početak rada, Prijava i potvrda u dva koraka (MFA), Tiketi, Uloge i dozvole, Česta
+pitanja. Nazivi na engleskom: *Getting started*, *Sign-in and two-step verification (MFA)*, *Tickets*, *Roles and
+permissions*, *Frequently asked questions*.
+
+**Kako radi.** Prevod je isti dokument na drugom jeziku: isti slug, isti obavezni frontmatter, tijelo na
+engleskom. Generator ga piše u `backend/content/docs/en/<slug>.md`, a u manifest dodaje `englishTitle` (naslov
+prevoda, `null` kad prevoda nema). API prima `?locale=bs|en`: `GET /docs/pages/:slug?locale=en` vraća engleski
+tekst kad prevod postoji, a inače bosanski uz `translated: false`; `GET /docs/navigation?locale=en` mijenja naslove
+samo onih stranica koje imaju prevod. Nepoznata vrijednost `locale` je 400. Prevoda bez bosanskog originala nema —
+provjera pada ako se pojavi.
+
+**UI.** Jezik sadržaja prati jezik interfejsa. Obavijest „Sadržaj dokumenata je za sada samo na bosanskom jeziku“
+sada se prikazuje **samo** na stranicama bez prevoda, pa čitalac na engleskom zna šta ga čeka.
+
+**Dokazi:** backend `tsc --noEmit` → 0; `npx jest src/modules/docs --maxWorkers=2` → **4 suita / 23 testa**
+(prije 18); frontend `tsc -b` → 0 i `vitest` → **158 fajlova / 649 testova**; `Docs provjera: OK (29 stranica,
+5 prevoda, 10 provjera)`; `node --test scripts/check-docs-content.test.mjs` → 8/8.

@@ -5,6 +5,7 @@ import {
   getDocsNavigation,
   getDocsPage,
   searchDocs,
+  type DocsLocale,
   type DocsNavigation,
   type DocsPage,
   type DocsSearchResponse,
@@ -32,7 +33,7 @@ function toLoadError(caught: unknown): DocsLoadError {
   };
 }
 
-export function useDocsNavigation() {
+export function useDocsNavigation(locale: DocsLocale = "bs") {
   const [navigation, setNavigation] = useState<DocsNavigation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<DocsLoadError | null>(null);
@@ -40,7 +41,7 @@ export function useDocsNavigation() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      setNavigation(await getDocsNavigation());
+      setNavigation(await getDocsNavigation(locale));
       setError(null);
     } catch (caught) {
       setNavigation(null);
@@ -52,12 +53,12 @@ export function useDocsNavigation() {
 
   useEffect(() => {
     void reload();
-  }, [reload]);
+  }, [reload, locale]);
 
   return { navigation, loading, error, reload };
 }
 
-export function useDocsPage(slug: string | null) {
+export function useDocsPage(slug: string | null, locale: DocsLocale = "bs") {
   const [page, setPage] = useState<DocsPage | null>(null);
   const [loading, setLoading] = useState(slug !== null);
   const [error, setError] = useState<DocsLoadError | null>(null);
@@ -71,7 +72,7 @@ export function useDocsPage(slug: string | null) {
     }
     let active = true;
     setLoading(true);
-    void getDocsPage(slug)
+    void getDocsPage(slug, locale)
       .then((loaded) => {
         if (!active) return;
         setPage(loaded);
@@ -88,7 +89,8 @@ export function useDocsPage(slug: string | null) {
     return () => {
       active = false;
     };
-  }, [slug]);
+    // `locale` je u zavisnostima: promjena jezika ponovo učitava stranicu.
+  }, [slug, locale]);
 
   return { page, loading, error };
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { docsErrorCodes } from './docs.constants';
@@ -24,6 +24,7 @@ function page(overrides: Partial<DocsPageRecord> & Pick<DocsPageRecord, 'slug' |
     headings: [],
     wordCount: 0,
     source: `docs/user-guide/${overrides.slug}.md`,
+    englishTitle: null,
     ...overrides,
   };
 }
@@ -46,6 +47,12 @@ function writeFixture(pages: { record: DocsPageRecord; body: string }[]): string
   return root;
 }
 
+/** Dodaje prevod (`en/<slug>.md`) u već napisan fixture. */
+function writeTranslation(root: string, slug: string, body: string): void {
+  mkdirSync(path.join(root, 'en'), { recursive: true });
+  writeFileSync(path.join(root, 'en', `${slug}.md`), body, 'utf8');
+}
+
 afterAll(() => {
   for (const root of roots) {
     rmSync(root, { recursive: true, force: true });
@@ -66,6 +73,60 @@ describe('DocsContentRepository (Faza 3, korak b)', () => {
     expect(repository.listPages().map((entry) => entry.slug)).toEqual(['tiketi']);
     expect(repository.readPage('tiketi')?.markdown).toContain('zahtjev korisnika');
     expect(repository.readPage('nepoznato')).toBeNull();
+  });
+
+  it('vraća bosanski tekst i za `en` kad prevoda nema, uz `translated: false` (val 5)', () => {
+    const root = writeFixture([
+      {
+        record: page({ slug: 'tiketi', part: 'korisnik', title: 'Tiketi' }),
+        body: '# Tiketi\n\ntiket i zahtjev.\n',
+      },
+    ]);
+    const repository = new DocsContentRepository(root);
+    repository.onModuleInit();
+
+    const bosnian = repository.readPage('tiketi');
+    expect(bosnian?.locale).toBe('bs');
+    expect(bosnian?.translated).toBe(false);
+
+    const fallback = repository.readPage('tiketi', 'en');
+    expect(fallback?.markdown).toContain('tiket i zahtjev');
+    expect(fallback?.locale).toBe('bs');
+    expect(fallback?.translated).toBe(false);
+    expect(repository.titleFor(fallback!.page, 'en')).toBe('Tiketi');
+  });
+
+  it('vraća prevod kad `en/<slug>.md` postoji, i naslov prevoda za navigaciju (val 5)', () => {
+    const root = writeFixture([
+      {
+        record: page({
+          slug: 'tiketi',
+          part: 'korisnik',
+          title: 'Tiketi',
+          englishTitle: 'Tickets',
+        }),
+        body: '# Tiketi\n\ntiket i zahtjev.\n',
+      },
+      {
+        record: page({ slug: 'cesta-pitanja', part: 'korisnik', title: 'Česta pitanja' }),
+        body: '# Česta pitanja\n\nnajčešća pitanja.\n',
+      },
+    ]);
+    writeTranslation(root, 'tiketi', '# Tickets\n\nticket and request.\n');
+    const repository = new DocsContentRepository(root);
+    repository.onModuleInit();
+
+    const translated = repository.readPage('tiketi', 'en');
+    expect(translated?.markdown).toContain('ticket and request');
+    expect(translated?.locale).toBe('en');
+    expect(translated?.translated).toBe(true);
+    expect(repository.titleFor(translated!.page, 'en')).toBe('Tickets');
+    expect(repository.titleFor(translated!.page, 'bs')).toBe('Tiketi');
+
+    // Stranica bez prevoda ostaje bosanska i u EN navigaciji zadržava naslov.
+    const untranslated = repository.readPage('cesta-pitanja', 'en');
+    expect(untranslated?.translated).toBe(false);
+    expect(repository.titleFor(untranslated!.page, 'en')).toBe('Česta pitanja');
   });
 
   it('ne ruši start kad je ogledalo neispravno, a rute vraćaju DOCS_CONTENT_UNAVAILABLE', () => {

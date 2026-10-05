@@ -7,6 +7,7 @@ import {
   changelogEntryDates,
   docsReferencesIn,
   sameManifestIgnoringDates,
+  validateTranslation,
   whatsNewEntryDates,
 } from "./check-docs-content.mjs";
 
@@ -126,4 +127,38 @@ test("u plitkom klonu se datumi u manifestu ne porede, ostalo mora", () => {
     false,
   );
   assert.equal(sameManifestIgnoringDates("nije json", manifest("2026-10-05")), false);
+});
+
+// Val 5 (EN stranice): prevod je isti dokument na drugom jeziku, pa mora imati
+// bosanski original i ime fajla jednako slugu; naslov iz frontmattera mora
+// odgovarati `#` naslovu (isti uslov kao za bosanske stranice).
+test("prevod bez bosanske stranice, pogrešno ime fajla i različit naslov su greške", () => {
+  const bosnian = new Set(["tiketi"]);
+  const valid = validateTranslation(
+    { file: "tiketi.md", meta: { slug: "tiketi", title: "Tickets" }, body: "# Tickets\n", title: "Tickets" },
+    bosnian,
+  );
+  assert.deepEqual(valid, []);
+
+  assert.deepEqual(
+    validateTranslation(
+      { file: "nepoznato.md", meta: { slug: "nepoznato", title: "X" }, body: "# X\n", title: "X" },
+      bosnian,
+    ),
+    ['en/nepoznato.md: slug "nepoznato" nema bosanske stranice'],
+  );
+  assert.deepEqual(
+    validateTranslation(
+      { file: "drugi.md", meta: { slug: "tiketi", title: "X" }, body: "# X\n", title: "X" },
+      bosnian,
+    ),
+    ['en/drugi.md: ime fajla mora biti "<slug>.md"'],
+  );
+  assert.deepEqual(
+    validateTranslation(
+      { file: "tiketi.md", meta: { slug: "tiketi", title: "Tickets" }, body: "# Tiketi\n", title: "Tiketi" },
+      bosnian,
+    ),
+    ['en/tiketi.md: naslov u frontmatteru i naslov "#" se razlikuju'],
+  );
 });

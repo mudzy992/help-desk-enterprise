@@ -10,6 +10,7 @@ import type {
   DocsPageRecord,
   DocsPageResponse,
   DocsSearchResponse,
+  DocsLocale,
 } from './docs.types';
 
 /**
@@ -24,7 +25,7 @@ export class DocsService {
     private readonly access: DocsAccessService,
   ) {}
 
-  navigation(roleKeys: readonly string[]): DocsNavigation {
+  navigation(roleKeys: readonly string[], locale: DocsLocale = 'bs'): DocsNavigation {
     const visible = this.access.visiblePages(this.repository.listPages(), roleKeys);
     const parts = new Map<string, DocsPageRecord[]>();
     for (const page of visible) {
@@ -42,7 +43,7 @@ export class DocsService {
             .sort((a, b) => (a.order === b.order ? a.title.localeCompare(b.title) : a.order - b.order))
             .map((page) => ({
               slug: page.slug,
-              title: page.title,
+              title: this.repository.titleFor(page, locale),
               module: page.module,
               order: page.order,
               roles: page.roles,
@@ -52,8 +53,8 @@ export class DocsService {
     };
   }
 
-  readPage(slug: string, roleKeys: readonly string[]): DocsPageResponse {
-    const content = this.loadPage(slug, roleKeys);
+  readPage(slug: string, roleKeys: readonly string[], locale: DocsLocale = 'bs'): DocsPageResponse {
+    const content = this.loadPage(slug, roleKeys, locale);
     const visible = this.access.visiblePages(this.repository.listPages(), roleKeys);
     const siblings = visible
       .filter((page) => page.part === content.page.part)
@@ -61,7 +62,7 @@ export class DocsService {
     const index = siblings.findIndex((page) => page.slug === content.page.slug);
     return {
       slug: content.page.slug,
-      title: content.page.title,
+      title: this.repository.titleFor(content.page, content.locale),
       module: content.page.module,
       part: content.page.part,
       audience: content.page.audience,
@@ -70,8 +71,14 @@ export class DocsService {
       updatedAt: content.page.updatedAt,
       markdown: content.markdown,
       toc: content.page.headings,
-      previous: index > 0 ? linkOf(siblings[index - 1]) : null,
-      next: index >= 0 && index < siblings.length - 1 ? linkOf(siblings[index + 1]) : null,
+      previous:
+        index > 0 ? linkOf(siblings[index - 1], this.repository, locale) : null,
+      next:
+        index >= 0 && index < siblings.length - 1
+          ? linkOf(siblings[index + 1], this.repository, locale)
+          : null,
+      locale: content.locale,
+      translated: content.translated,
     };
   }
 
@@ -95,14 +102,18 @@ export class DocsService {
     return { query: effective, total: matches.length, results: matches };
   }
 
-  private loadPage(slug: string, roleKeys: readonly string[]): DocsPageContent {
+  private loadPage(
+    slug: string,
+    roleKeys: readonly string[],
+    locale: DocsLocale,
+  ): DocsPageContent {
     // Slugs come from the URL: validate before any lookup, so `..` or a path
     // can never reach the filesystem layer (which reads only from the manifest,
     // but the check keeps the error taxonomy honest).
     if (!isSafeDocsSlug(slug)) {
       throw new DocsError(docsErrorCodes.invalidSlug);
     }
-    const content = this.repository.readPage(slug);
+    const content = this.repository.readPage(slug, locale);
     if (content === null || !this.access.canRead(content.page, roleKeys)) {
       throw new DocsError(docsErrorCodes.pageNotFound);
     }
@@ -110,8 +121,12 @@ export class DocsService {
   }
 }
 
-function linkOf(page: DocsPageRecord): DocsPageLink {
-  return { slug: page.slug, title: page.title };
+function linkOf(
+  page: DocsPageRecord,
+  repository: DocsContentRepository,
+  locale: DocsLocale,
+): DocsPageLink {
+  return { slug: page.slug, title: repository.titleFor(page, locale) };
 }
 
 function partOrder(key: string): number {

@@ -5,6 +5,7 @@ import { docsContentRootEnvKey, docsErrorCodes, docsLimits } from './docs.consta
 import { DocsError } from './docs.error';
 import type {
   DocsExcerptPart,
+  DocsLocale,
   DocsManifest,
   DocsPageContent,
   DocsPageRecord,
@@ -27,6 +28,7 @@ export class DocsContentRepository implements OnModuleInit {
   private readonly logger = new Logger(DocsContentRepository.name);
   private manifest: DocsManifest | null = null;
   private readonly documents = new Map<string, string>();
+  private readonly englishDocuments = new Map<string, string>();
   private readonly tokensBySlug = new Map<string, Map<string, number>>();
 
   constructor(
@@ -47,17 +49,30 @@ export class DocsContentRepository implements OnModuleInit {
     return this.manifest?.pages ?? [];
   }
 
-  readPage(slug: string): DocsPageContent | null {
+  /**
+   * Sadržaj stranice: `en` vraća prevod kad postoji, a inače bosanski tekst uz
+   * `translated: false` (UI na osnovu toga prikazuje obavijest o jeziku).
+   */
+  readPage(slug: string, locale: DocsLocale = 'bs'): DocsPageContent | null {
     this.ensureLoaded();
     const page = this.manifest?.pages.find((entry) => entry.slug === slug);
     if (page === undefined) {
       return null;
     }
+    const english = this.englishDocuments.get(slug);
+    if (locale === 'en' && english !== undefined) {
+      return { page, markdown: english, locale: 'en', translated: true };
+    }
     const markdown = this.documents.get(slug);
     if (markdown === undefined) {
       return null;
     }
-    return { page, markdown };
+    return { page, markdown, locale: 'bs', translated: false };
+  }
+
+  /** Naslov za navigaciju na traženom jeziku (prevod kad postoji). */
+  titleFor(page: DocsPageRecord, locale: DocsLocale): string {
+    return locale === 'en' && page.englishTitle !== null ? page.englishTitle : page.title;
   }
 
   /**
@@ -154,6 +169,22 @@ export class DocsContentRepository implements OnModuleInit {
       }
       this.documents.set(page.slug, body);
       this.tokensBySlug.set(page.slug, tokenCounts(body));
+    }
+    // Prevodi: `en/<slug>.md`. Nedostajući fajl nije greška — stranica tada
+    // ostaje bosanska (manifest nosi `englishTitle` samo kad prevod postoji).
+    this.englishDocuments.clear();
+    for (const page of manifest.pages) {
+      if (page.englishTitle === null || page.englishTitle === undefined) {
+        continue;
+      }
+      try {
+        this.englishDocuments.set(
+          page.slug,
+          readFileSync(path.join(root, 'en', `${page.slug}.md`), 'utf8'),
+        );
+      } catch {
+        continue;
+      }
     }
   }
 

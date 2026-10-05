@@ -125,7 +125,8 @@
         }
       ],
       "wordCount": 647,
-      "source": "docs/user-guide/pocetak-rad.md"
+      "source": "docs/user-guide/pocetak-rad.md",
+      "englishTitle": "Getting started"
     },
     {
       "slug": "instalacija",
@@ -232,7 +233,8 @@
         }
       ],
       "wordCount": 1340,
-      "source": "docs/user-guide/instalacija.md"
+      "source": "docs/user-guide/instalacija.md",
+      "englishTitle": null
     },
     {
       "slug": "prijava-i-mfa",
@@ -338,7 +340,8 @@
         }
       ],
       "wordCount": 1462,
-      "source": "docs/user-guide/prijava-i-mfa.md"
+      "source": "docs/user-guide/prijava-i-mfa.md",
+      "englishTitle": "Sign-in and two-step verification (MFA)"
     },
     {
       "slug": "precice-i-pristupacnost",
@@ -423,7 +426,8 @@
         }
       ],
       "wordCount": 966,
-      "source": "docs/user-guide/precice-i-pristupacnost.md"
+      "source": "docs/user-guide/precice-i-pristupacnost.md",
+      "englishTitle": null
     },
     {
       "slug": "pregled-modula",
@@ -488,7 +492,8 @@
         }
       ],
       "wordCount": 744,
-      "source": "docs/user-guide/pregled-modula.md"
+      "source": "docs/user-guide/pregled-modula.md",
+      "englishTitle": null
     },
     {
       "slug": "tiketi",
@@ -613,8 +618,9 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1757,
-      "source": "docs/user-guide/tiketi.md"
+      "wordCount": 1764,
+      "source": "docs/user-guide/tiketi.md",
+      "englishTitle": "Tickets"
     },
     {
       "slug": "odobrenja-i-csat",
@@ -709,7 +715,8 @@
         }
       ],
       "wordCount": 1420,
-      "source": "docs/user-guide/odobrenja-i-csat.md"
+      "source": "docs/user-guide/odobrenja-i-csat.md",
+      "englishTitle": null
     },
     {
       "slug": "status-incidenti-i-planirani-prekidi",
@@ -788,7 +795,8 @@
         }
       ],
       "wordCount": 815,
-      "source": "docs/user-guide/status-incidenti-i-planirani-prekidi.md"
+      "source": "docs/user-guide/status-incidenti-i-planirani-prekidi.md",
+      "englishTitle": null
     },
     {
       "slug": "baza-znanja",
@@ -908,7 +916,8 @@
         }
       ],
       "wordCount": 2097,
-      "source": "docs/user-guide/baza-znanja.md"
+      "source": "docs/user-guide/baza-znanja.md",
+      "englishTitle": null
     },
     {
       "slug": "najave",
@@ -983,7 +992,8 @@
         }
       ],
       "wordCount": 912,
-      "source": "docs/user-guide/najave.md"
+      "source": "docs/user-guide/najave.md",
+      "englishTitle": null
     },
     {
       "slug": "prosljedjivanje-tiketa",
@@ -1071,7 +1081,8 @@
         }
       ],
       "wordCount": 935,
-      "source": "docs/user-guide/prosljedjivanje-tiketa.md"
+      "source": "docs/user-guide/prosljedjivanje-tiketa.md",
+      "englishTitle": null
     },
     {
       "slug": "sabloni-i-playbooks",
@@ -1195,7 +1206,8 @@
         }
       ],
       "wordCount": 1547,
-      "source": "docs/user-guide/sabloni-i-playbooks.md"
+      "source": "docs/user-guide/sabloni-i-playbooks.md",
+      "englishTitle": null
     },
     {
       "slug": "realtime-i-obavjestenja",
@@ -1300,7 +1312,8 @@
         }
       ],
       "wordCount": 1348,
-      "source": "docs/user-guide/realtime-i-obavjestenja.md"
+      "source": "docs/user-guide/realtime-i-obavjestenja.md",
+      "englishTitle": null
     },
     {
       "slug": "dezurstva",
@@ -1379,7 +1392,8 @@
         }
       ],
       "wordCount": 563,
-      "source": "docs/user-guide/dezurstva.md"
+      "source": "docs/user-guide/dezurstva.md",
+      "englishTitle": null
     },
     {
       "slug": "katalog-usluga-i-forme",
@@ -1490,7 +1504,8 @@
         }
       ],
       "wordCount": 1580,
-      "source": "docs/user-guide/katalog-usluga-i-forme.md"
+      "source": "docs/user-guide/katalog-usluga-i-forme.md",
+      "englishTitle": null
     },
     {
       "slug": "usmjeravanje-i-prioritet",
@@ -1513,7 +1528,7 @@
         "neusmjereno",
         "override"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1607,7 +1622,8 @@
         }
       ],
       "wordCount": 1389,
-      "source": "docs/user-guide/usmjeravanje-i-prioritet.md"
+      "source": "docs/user-guide/usmjeravanje-i-prioritet.md",
+      "englishTitle": null
     },
     {
       "slug": "sla",
@@ -1746,7 +1762,8 @@
         }
       ],
       "wordCount": 2134,
-      "source": "docs/user-guide/sla.md"
+      "source": "docs/user-guide/sla.md",
+      "englishTitle": null
     },
     {
       "slug": "korisnici-oj-i-grupe",
@@ -1843,7 +1860,8 @@
         }
       ],
       "wordCount": 1554,
-      "source": "docs/user-guide/korisnici-oj-i-grupe.md"
+      "source": "docs/user-guide/korisnici-oj-i-grupe.md",
+      "englishTitle": null
     },
     {
       "slug": "uloge-i-permisije",
@@ -1926,7 +1944,8 @@
         }
       ],
       "wordCount": 1117,
-      "source": "docs/user-guide/uloge-i-permisije.md"
+      "source": "docs/user-guide/uloge-i-permisije.md",
+      "englishTitle": null
     },
     {
       "slug": "policy-paketi",
@@ -2008,7 +2027,8 @@
         }
       ],
       "wordCount": 933,
-      "source": "docs/user-guide/policy-paketi.md"
+      "source": "docs/user-guide/policy-paketi.md",
+      "englishTitle": null
     },
     {
       "slug": "posta",
@@ -2119,7 +2139,8 @@
         }
       ],
       "wordCount": 1841,
-      "source": "docs/user-guide/posta.md"
+      "source": "docs/user-guide/posta.md",
+      "englishTitle": null
     },
     {
       "slug": "nadzorna-ploca-i-izvjestaji",
@@ -2248,7 +2269,8 @@
         }
       ],
       "wordCount": 2741,
-      "source": "docs/user-guide/nadzorna-ploca-i-izvjestaji.md"
+      "source": "docs/user-guide/nadzorna-ploca-i-izvjestaji.md",
+      "englishTitle": null
     },
     {
       "slug": "imovina",
@@ -2330,7 +2352,8 @@
         }
       ],
       "wordCount": 1304,
-      "source": "docs/user-guide/imovina.md"
+      "source": "docs/user-guide/imovina.md",
+      "englishTitle": null
     },
     {
       "slug": "problemi",
@@ -2430,7 +2453,8 @@
         }
       ],
       "wordCount": 755,
-      "source": "docs/user-guide/problemi.md"
+      "source": "docs/user-guide/problemi.md",
+      "englishTitle": null
     },
     {
       "slug": "promjene",
@@ -2546,7 +2570,8 @@
         }
       ],
       "wordCount": 1185,
-      "source": "docs/user-guide/promjene.md"
+      "source": "docs/user-guide/promjene.md",
+      "englishTitle": null
     },
     {
       "slug": "uloge-i-dozvole",
@@ -2611,7 +2636,8 @@
         }
       ],
       "wordCount": 620,
-      "source": "docs/user-guide/uloge-i-dozvole.md"
+      "source": "docs/user-guide/uloge-i-dozvole.md",
+      "englishTitle": "Roles and permissions"
     },
     {
       "slug": "cesta-pitanja",
@@ -2731,7 +2757,8 @@
         }
       ],
       "wordCount": 1332,
-      "source": "docs/user-guide/cesta-pitanja.md"
+      "source": "docs/user-guide/cesta-pitanja.md",
+      "englishTitle": "Frequently asked questions"
     },
     {
       "slug": "rjecnik",
@@ -2797,7 +2824,8 @@
         }
       ],
       "wordCount": 879,
-      "source": "docs/user-guide/rjecnik.md"
+      "source": "docs/user-guide/rjecnik.md",
+      "englishTitle": null
     },
     {
       "slug": "sta-je-novo",
@@ -2861,7 +2889,8 @@
         }
       ],
       "wordCount": 757,
-      "source": "docs/user-guide/sta-je-novo.md"
+      "source": "docs/user-guide/sta-je-novo.md",
+      "englishTitle": null
     }
   ]
 }

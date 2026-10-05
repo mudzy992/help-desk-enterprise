@@ -1,5 +1,10 @@
 /** Tipovi Docs modula (Faza 3, korak b) — ogledalo manifesta iz `scripts/generate-docs-content.mjs`. */
 
+/** Jezik sadržaja; `en` vraća prevod kad postoji, inače bosanski uz `translated: false`. */
+export type DocsLocale = 'bs' | 'en';
+
+export const docsLocales = ['bs', 'en'] as const satisfies readonly DocsLocale[];
+
 export type DocsHeading = {
   readonly level: number;
   readonly text: string;
@@ -19,6 +24,8 @@ export type DocsPageRecord = {
   readonly headings: readonly DocsHeading[];
   readonly wordCount: number;
   readonly source: string;
+  /** Naslov prevoda (`docs/user-guide/en/<slug>.md`); `null` kad prevoda nema. */
+  readonly englishTitle: string | null;
 };
 
 export type DocsManifest = {
@@ -29,6 +36,10 @@ export type DocsManifest = {
 export type DocsPageContent = {
   readonly page: DocsPageRecord;
   readonly markdown: string;
+  /** Jezik teksta koji je stvarno vraćen (traženi `en` bez prevoda pada na `bs`). */
+  readonly locale: DocsLocale;
+  /** `true` samo kad je vraćen engleski tekst. */
+  readonly translated: boolean;
 };
 
 export type DocsNavigationItem = {
@@ -69,6 +80,8 @@ export type DocsPageResponse = {
   readonly toc: readonly DocsHeading[];
   readonly previous: DocsPageLink | null;
   readonly next: DocsPageLink | null;
+  readonly locale: DocsLocale;
+  readonly translated: boolean;
 };
 
 /** Isječak kao podaci: klijent gradi `<mark>` za dijelove sa `match: true`. */

@@ -5,7 +5,9 @@
   Izvor je `docs/user-guide/**` (jedini izvor istine, odluka D1). Ovaj skript:
     1. parsira YAML frontmatter svake stranice,
     2. piše tijelo stranice u `backend/content/docs/<slug>.md`,
-    3. piše `backend/content/docs/manifest.json` (metapodaci, TOC, `updatedAt` iz gita).
+    3. piše `backend/content/docs/manifest.json` (metapodaci, TOC, `updatedAt` iz gita),
+    4. prevode drži u `docs/user-guide/en/<slug>.md` (isti slug = ista stranica na engleskom) i piše ih u
+       `backend/content/docs/en/<slug>.md`; stranica bez prevoda ostaje bosanska uz `englishTitle: null`.
 
   Pokretanje:
     node scripts/generate-docs-content.mjs           # piše ogledalo
@@ -22,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = path.join(repoRoot, 'docs', 'user-guide');
+const englishSourceDir = path.join(sourceDir, 'en');
 const outputDir = path.join(repoRoot, 'backend', 'content', 'docs');
 const technicalSource = 'TEZE-ZA-DOKUMENTACIJU.md';
 
@@ -185,6 +188,31 @@ export function rewriteDocsLinks(body, knownSlugs) {
   );
 }
 
+/**
+ * Prevodi: `docs/user-guide/en/<slug>.md`. Zahtjevi su isti kao za bosansku
+ * stranicu (isti `requiredFields`) i slug mora postojati u bosanskom izvoru —
+ * prevod bez originala je greška, a ne nova stranica.
+ */
+function readEnglishTranslations(knownSlugs) {
+  if (!existsSync(englishSourceDir)) {
+    return new Map();
+  }
+  const translations = new Map();
+  for (const name of readdirSync(englishSourceDir).filter((entry) => entry.endsWith('.md')).sort()) {
+    const file = path.join(englishSourceDir, name);
+    const { meta, body } = parseFrontmatter(file, readFileSync(file, 'utf8'));
+    const slug = String(meta.slug);
+    if (!knownSlugs.has(slug)) {
+      throw new Error(`en/${name}: slug "${slug}" nema bosanske stranice`);
+    }
+    if (translations.has(slug)) {
+      throw new Error(`en/${name}: dva prevoda za slug "${slug}"`);
+    }
+    translations.set(slug, { title: String(meta.title), body });
+  }
+  return translations;
+}
+
 export function buildDocsContent() {
   const previous = previousUpdatedAt();
   const files = readdirSync(sourceDir)
@@ -226,6 +254,15 @@ export function buildDocsContent() {
     documents.set(slug, rewriteDocsLinks(body, slugs));
   }
 
+  const translations = readEnglishTranslations(slugs);
+  const englishDocuments = new Map();
+  for (const [slug, translation] of translations) {
+    englishDocuments.set(slug, rewriteDocsLinks(translation.body, slugs));
+  }
+  for (const page of pages) {
+    page.englishTitle = translations.get(page.slug)?.title ?? null;
+  }
+
   pages.sort((a, b) => {
     const byPart = partOrder[a.part] - partOrder[b.part];
     if (byPart !== 0) {
@@ -247,22 +284,39 @@ export function buildDocsContent() {
       .filter((part) => part.pages.length > 0),
     pages,
   };
-  return { manifest, documents };
+  return { manifest, documents, englishDocuments };
 }
 
 function renderOutputs() {
-  const { manifest, documents } = buildDocsContent();
+  const { manifest, documents, englishDocuments } = buildDocsContent();
   const outputs = new Map();
   for (const [slug, body] of documents) {
     outputs.set(`${slug}.md`, body);
   }
+  for (const [slug, body] of englishDocuments) {
+    outputs.set(`${path.posix.join('en', `${slug}.md`)}`, body);
+  }
   outputs.set('manifest.json', `${JSON.stringify(manifest, null, 2)}\n`);
-  return outputs;
+  return { outputs, pageCount: documents.size, translationCount: englishDocuments.size };
+}
+
+/** Sve fajlove u ogledalu, s relativnim putanjama (uključuje `en/`). */
+function mirrorFiles(directory, prefix = '') {
+  const found = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const relative = `${prefix}${entry.name}`;
+    if (entry.isDirectory()) {
+      found.push(...mirrorFiles(path.join(directory, entry.name), `${relative}/`));
+    } else {
+      found.push(relative);
+    }
+  }
+  return found;
 }
 
 function main() {
   const checkOnly = process.argv.includes('--check');
-  const outputs = renderOutputs();
+  const { outputs, pageCount, translationCount } = renderOutputs();
   const differences = [];
   for (const [name, content] of outputs) {
     const target = path.join(outputDir, name);
@@ -272,7 +326,7 @@ function main() {
     }
   }
   if (existsSync(outputDir)) {
-    for (const name of readdirSync(outputDir)) {
+    for (const name of mirrorFiles(outputDir)) {
       if (!outputs.has(name)) {
         differences.push(`${name} (višak)`);
       }
@@ -288,7 +342,7 @@ function main() {
       console.error('Pokrenite: node scripts/generate-docs-content.mjs');
       process.exit(1);
     }
-    console.log(`Ogledalo je u sinhronizaciji (${outputs.size - 1} stranica + manifest).`);
+    console.log(`Ogledalo je u sinhronizaciji (${pageCount} stranica, ${translationCount} prevoda + manifest).`);
     return;
   }
 
@@ -301,15 +355,19 @@ function main() {
 
   mkdirSync(outputDir, { recursive: true });
   for (const [name, content] of outputs) {
-    writeFileSync(path.join(outputDir, name), content, 'utf8');
+    const target = path.join(outputDir, name);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, content, 'utf8');
   }
-  for (const name of readdirSync(outputDir)) {
+  for (const name of mirrorFiles(outputDir)) {
     if (!outputs.has(name)) {
       console.warn(`Uklonjen zastarjeli fajl u ogledalu: ${name}`);
       writeFileSync(path.join(outputDir, name), '', 'utf8');
     }
   }
-  console.log(`Generisano ${outputs.size - 1} stranica i manifest u backend/content/docs.`);
+  console.log(
+    `Generisano ${pageCount} stranica, ${translationCount} prevoda i manifest u backend/content/docs.`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

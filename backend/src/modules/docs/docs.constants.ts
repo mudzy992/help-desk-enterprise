@@ -43,6 +43,11 @@ export const docsPartLabels: Readonly<Record<string, string>> = {
   referenca: 'Referenca',
 };
 
+/** Traženi jezik iz upita; nepoznata vrijednost se odbija (400 iz ValidationPipe-a). */
+export function parseDocsLocale(value: string | undefined): 'bs' | 'en' {
+  return value === 'en' ? 'en' : 'bs';
+}
+
 export const docsSlugPattern = new RegExp(`^[a-z0-9-]{1,${docsLimits.slugMaxLength}}$`);
 
 /** Vraća `true` ako je slug bezbjedan za pretragu (bez `..`, `/`, velikih slova). */

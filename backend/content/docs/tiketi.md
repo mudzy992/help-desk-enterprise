@@ -179,7 +179,7 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 - **Kolona „Prvi odgovor“** puni se pri prvom agentskom odgovoru i ne zavisi od SLA modula.
 - **Ograničenje slanja broadcasta drži se u Redisu**, po korisniku i minuti, pa vrijedi za sve instance; ako
   Redis nije dostupan, limit se i dalje drži lokalno. (Nalaz B2 — zatvoren u valu 3.)
-- **Dijeljenje sačuvanih pogleda je isključeno** bez obzira na postavku; pogledi su uvijek lični. (Nalaz B3.)
+- **Dijeljenje sačuvanih pogleda ne postoji**: pogledi su uvijek lični, a neiskorištena postavka `allowSharing` je uklonjena. (Nalaz B3 — zatvoren u valu 5.)
 - **Lista po defaultu prikazuje i spojenu djecu** dok se ne uključi filter **Sakrij spojene**. (Nalaz B4.)
 - **Ukupan broj tiketa u listi može zaostajati do 30 sekundi** (broj se kratko kešira zbog performansi); redovi
   su uvijek svježi. (Nalaz B5.)
@@ -201,4 +201,4 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: Tiketi (M8)*
+*Ažurirano: 2026-10-05 · Modul: Tiketi (M8)*

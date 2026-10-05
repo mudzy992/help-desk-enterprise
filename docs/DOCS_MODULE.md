@@ -343,10 +343,20 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
    postojeći naslov;
 9. **sta-je-novo** (dopuna 2026-10-05) — zadnji datum u tabeli „Šta je novo“ ne smije biti stariji od zadnjeg
    datuma u `DOCS_CHANGELOG.md` (redovi označeni `[interno]` se preskaču), a svaka referenca iz kolone
-   *Detalji* mora biti objavljena stranica.
+   *Detalji* mora biti objavljena stranica;
+10. **prevodi** (dopuna 2026-10-05, val 5) — `docs/user-guide/en/<slug>.md` mora imati bosanski original
+   (`docs/user-guide/<slug>.md`), ime fajla jednako slugu i naslov u frontmatteru jednak `#` naslovu.
 
 U ogledalu (`backend/content/docs/**`) generator prevodi relativne `.md` veze na objavljene stranice u rute
 `/docs/<slug>`; renderer ih u aplikaciji prikazuje kroz router (vidi `simple-markdown.ts` `safeHref`).
+
+**Prevodi (val 5, 2026-10-05).** Engleski tekst stranice je `docs/user-guide/en/<slug>.md` — isti slug, isti
+obavezni frontmatter, isto tijelo na drugom jeziku. Generator ih piše u `backend/content/docs/en/<slug>.md`, a u
+manifest dodaje `englishTitle` (naslov prevoda ili `null`). Ruta `GET /docs/pages/:slug?locale=en` vraća prevod
+kad postoji, a inače bosanski tekst uz `translated: false`; `GET /docs/navigation?locale=en` mijenja naslove
+prevedenih stranica i ostavlja bosanske naslove ostalih. Nepoznata vrijednost `locale` je 400. Prevoda bez
+bosanskog originala nema: provjera (tačka 10) pada ako se pojavi. Kada je UI na engleskom, obavijest iz
+`docs.languageNotice` prikazuje se **samo** na stranicama bez prevoda.
 
 Pravilo za repozitorij (dodaje se u `README.md`/`CONTRIBUTING.md` u koraku d): **izmjena funkcionalnosti
 povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §1 već traži za teze; konkretne
@@ -362,7 +372,7 @@ obaveze (red u „Šta je novo“, `[interno]`, rute, regeneracija ogledala posl
 | Feedback („je li stranica pomogla?“) | dvije ikone na dnu stranice; zapis u postojeću audit/obavijesnu tabelu — **odluka u koraku d** | nema novih tabela ako se ne odobri |
 | Nedavno posjećeno | lista zadnjih 5 stranica u `localStorage` (bez servera, bez ličnih podataka) | nema |
 | Štampa / PDF | `window.print()` + print CSS (bez server PDF-a) | nema |
-| i18n sadržaja | EN verzije stranica kao `docs/user-guide/en/<slug>.md`; jezik se bira u zaglavlju modula, fallback BS | prevod: odvojen posao, ne u ovom zadatku |
+| i18n sadržaja | EN verzije stranica kao `docs/user-guide/en/<slug>.md`; jezik prati jezik UI-a (`en` → prevod kad postoji), fallback BS uz `translated: false` | ✅ **isporučeno u valu 5 (2026-10-05)** za pet ključnih stranica: Početak rada, Prijava i MFA, Tiketi, Uloge i dozvole, Česta pitanja; ostale stranice ostaju bosanske uz obavijest |
 
 ### Odluke donesene u koraku (d)
 
@@ -372,7 +382,7 @@ obaveze (red u „Šta je novo“, `[interno]`, rute, regeneracija ogledala posl
 | Kako radi kontekstualna „?“ pomoć | Dugme u zaglavlju ekrana (`PageHeader`) vodi na `/docs/<slug>`; mapa ruta→stranica je u `frontend/src/lib/docs/docs-slug.ts` (20 ruta), a `check-docs-content.mjs` pada ako slug ili anchor ne postoji | Jedna integraciona tačka pokriva sve ekrane; mapa je podatak, ne copy sadržaja |
 | Nedavno posjećeno | Zadnjih 5 slugova u `localStorage`, filtrirano i po publici i po onome što server vraća | Bez servera i bez ličnih podataka — isto pravilo kao feedback |
 | Štampa / PDF | `window.print()` + `print:hidden` na lijevom navu, TOC-u, pretrazi, pageru i feedbacku | Bez serverskog PDF-a (nema zavisnosti); čita se kao stranica |
-| i18n sadržaja | UI okvir postoji u BS/EN; sadržaj je BS, a kad je UI na engleskom prikazuje se obavještenje iz `docs.languageNotice` | Prevod stranica je odvojen posao (nije dio ovog zadatka) |
+| i18n sadržaja | UI okvir postoji u BS/EN; prevodi su u `docs/user-guide/en/<slug>.md`, bira ih `?locale=`, a obavještenje iz `docs.languageNotice` prikazuje se samo za stranice bez prevoda | Val 5 je preveo pet ključnih stranica; ostatak se prevodi po potrebi, bez izmjene koda |
 
 ---
 
