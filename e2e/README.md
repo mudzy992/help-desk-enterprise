@@ -100,14 +100,28 @@ Every run now writes `results.json` and prints a compact summary at the end, so 
 before the artifact is opened:
 
 ```
-Playwright (results.json): 60 passed, 10 failed, 0 flaky, 0 skipped.
+Playwright (results.json): 58 passed, 10 failed, 2 flaky, 0 skipped.
 
 FAIL 20-privacy.spec.ts:41 — 20 privacy › a DSR travels the list and the timeline
-     Error: expect(received).toBe(expected)
+     Error: expect(received).toMatch(expected)
+       Expected pattern: /^\[HD-2026-000123\] /
+       Received string:  "[EPHD-2026-000123] Nova poruka"
+
+SKIPPED 1 test(s) — a skip is not a pass:
+     18 scheduled reports › send test to me needs a configured e-mail channel
 ```
 
+- The failure block is deliberately longer than one line: Playwright keeps `Expected`/`Received`, the axe rule
+  list and the wrapped `cause` on the following lines, and those are usually the whole answer
+  (`e2e/scripts/summarize-playwright-json.mjs`, `errorDetail`). Output is capped at 15 lines per failure.
+- **A skip is printed too** (`collectSkipped`): a spec that skips itself on a stack without SMTP must not look
+  like coverage. A skip still means the step was *not* verified.
 - **Artifacts** (`playwright-report`, `test-results`, `results.json`) are uploaded on every run, also on failure;
   `test-results` holds the traces of failed attempts (`trace: 'on-first-retry'`).
+- A network-level failure is never a bare `TypeError: fetch failed` any more: `ApiClient` (`send`) raises
+  `NETWORK <METHOD> <path> failed: … (cause: ECONNREFUSED …) — the API at <url> was not reachable from the
+  runner.` An **idempotent `GET` is retried once** (2 s apart), because the e2e job runs against a live stack
+  that can be redeploying at that moment; writes are never retried.
 - **Triage mode** (Actions → CI → *Run workflow*): `max_failures=8` stops after eight failures and `retries=0`
   does not retry them. A red run then takes a few minutes instead of ~35; the defaults (`0` / `1`) keep the full,
   strict run.

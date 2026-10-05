@@ -7,6 +7,7 @@ import { signIn } from '../helpers/sign-in';
 type UnitNode = {
   readonly id: string;
   readonly name: string;
+  readonly distinguishedName: string;
   readonly children?: readonly UnitNode[];
 };
 
@@ -131,12 +132,19 @@ async function ensureChildUnit(api: ApiClient, root: UnitNode, name: string): Pr
   if (existing !== undefined) {
     return existing.id;
   }
+  // First real e2e run (2026-10-05): the DN used to be hardcoded as `,OU=E2E`,
+  // but the installation's root is `OU=Direkcija,DC=local`
+  // (`backend/src/modules/install/install-seed.constants.ts:5`) and the API
+  // requires the child DN to end with the parent DN
+  // (`assert-distinguished-name-matches-parent.ts`) → `DISTINGUISHED_NAME_PARENT_MISMATCH`.
+  // The relative part must also survive `normalizeDistinguishedName` (no comma, no slash).
+  const relativeName = name.replace(/[^A-Za-z0-9]/g, '');
   const created = await api.requestJson<{ id: string }>('/organizational-units', {
     method: 'POST',
     body: JSON.stringify({
       name,
       type: 'OFFICE',
-      distinguishedName: `OU=${name.replace(/\s+/g, '')},OU=E2E`,
+      distinguishedName: `OU=${relativeName},${root.distinguishedName}`,
       parentId: root.id,
     }),
   });

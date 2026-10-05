@@ -86,6 +86,20 @@ export async function firstServiceCategoryId(api: ApiClient): Promise<string> {
  * A new service starts as DRAFT without a form, and tickets need an ACTIVE
  * service with an ACTIVE form version. This creates all three steps.
  */
+/**
+ * The API slug contract is `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`
+ * (`backend/src/modules/service-catalog/normalize-service-slug.ts`), so a label
+ * with a space ("Unrouted target") must be turned into `unrouted-target` before
+ * it goes into the slug — a raw label fails with `INVALID_SLUG` (first real e2e
+ * run, 2026-10-05: spec 15 failed twice on exactly that).
+ */
+export function slugifyServiceLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export async function createOfferedService(
   api: ApiClient,
   input: { readonly label: string; readonly requiresApproval?: boolean },
@@ -95,7 +109,7 @@ export async function createOfferedService(
     method: 'POST',
     body: JSON.stringify({
       name: `E2E ${input.label} ${stamp}`,
-      slug: `e2e-${input.label.toLowerCase()}-${stamp}`,
+      slug: `e2e-${slugifyServiceLabel(input.label)}-${stamp}`,
       categoryId: await firstServiceCategoryId(api),
       classification: 'INTERNAL',
       ...(input.requiresApproval === true ? { requiresApproval: true } : {}),

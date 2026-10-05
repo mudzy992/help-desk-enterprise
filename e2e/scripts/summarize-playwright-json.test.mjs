@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   collectFailures,
+  collectSkipped,
+  errorDetail,
   firstErrorLine,
   formatSummary,
 } from './summarize-playwright-json.mjs';
@@ -36,6 +38,12 @@ const passedSpec = (title) => ({
   title,
   line: 1,
   tests: [{ results: [{ status: 'passed' }] }],
+});
+
+const skippedSpec = (title) => ({
+  title,
+  line: 1,
+  tests: [{ results: [{ status: 'skipped' }] }],
 });
 
 test('firstErrorLine strips ANSI codes and keeps the first line', () => {
@@ -80,4 +88,56 @@ test('formatSummary lists every failure with file and first error line', () => {
   );
   assert.match(text, /FAIL 20-privacy\.spec\.ts:41 — 20 privacy › a DSR travels the timeline/);
   assert.match(text, /Error: expected 200, received 403/);
+});
+
+test('errorDetail keeps the lines that explain the failure', () => {
+  const message = [
+    'Error: expect(received).toMatch(expected)',
+    '',
+    'Expected pattern: /^\[HD-2026-000123\] /',
+    'Received string:  "[EPHD-2026-000123] Nova poruka"',
+  ].join('\n');
+  const detail = errorDetail({ message });
+  assert.equal(detail.length, 2);
+  assert.match(detail[0], /Expected pattern/);
+  assert.match(detail[1], /Received string/);
+});
+
+test('errorDetail bounds long output and says where the rest is', () => {
+  const message = ['Error: axe', ...Array.from({ length: 40 }, (_, index) => `  serious rule-${index}`)].join('\n');
+  const detail = errorDetail({ message }, 5);
+  assert.equal(detail.length, 6);
+  assert.match(detail.at(-1), /35 more line\(s\)/);
+});
+
+test('errorDetail survives missing errors', () => {
+  assert.deepEqual(errorDetail(undefined), []);
+  assert.deepEqual(errorDetail({ message: '' }), []);
+});
+
+test('formatSummary prints detail lines and never hides a skip', () => {
+  const text = formatSummary(
+    reportWith({
+      specs: [
+        failedSpec(
+          'API: preview hides confidential data',
+          33,
+          'Error: expect(received).toMatch(expected)\nExpected pattern: /^\[HD-2026-000123\] /\nReceived string: "[EPHD]"',
+        ),
+        skippedSpec('send test to me (e-mail channel disabled)'),
+      ],
+    }),
+  );
+  assert.match(text, /FAIL 20-privacy\.spec\.ts:33/);
+  assert.ok(text.includes('Expected pattern: /^[HD-2026-000123] /'), text);
+  assert.ok(text.includes('Received string: "[EPHD]"'), text);
+  assert.match(text, /SKIPPED 1 test\(s\) — a skip is not a pass:/);
+  assert.match(text, /send test to me \(e-mail channel disabled\)/);
+});
+
+test('collectSkipped lists every skipped test with its suite trail', () => {
+  const skipped = collectSkipped(
+    reportWith({ specs: [passedSpec('fine'), skippedSpec('needs SMTP')] }),
+  );
+  assert.deepEqual(skipped, ['20 privacy › needs SMTP']);
 });

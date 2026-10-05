@@ -6231,3 +6231,53 @@ Prvi izvršeni e2e prolaz (run `37309632260`, grana `master` = `0fd159c`) prijav
 **Prvi sljedeći korak (vlasnik):** pokrenuti workflow s `max_failures=8`, `retries=0` i poslati sažetak iz loga
 (copy/paste bloka `Playwright (results.json): …`). Iz njega se svaki pad klasifikuje i dobija popravku s dokazom.
 
+# Val 5 — trijaža prvog crvenog e2e prolaza: popravke u e2e sloju (2026-10-05)
+
+Prvi pravi e2e prolaz (70 testova / 36 fajlova protiv živog stacka) završio je s **58 passed / 10 failed /
+2 flaky**. Ovaj odjeljak bilježi šta je iz tog prolaza **popravljeno odmah** i šta **čeka artefakt**.
+
+Dva popisa padova se razlikuju: korisnikov popis iz prve poruke (10, 11, 12, 17, 18, 20–23, 26, 27) i sažetak
+iz loga (10, 11, 14, 15×2, 18, 22×4, 23, 24). **Mjerodavan je `results.json`** (`e2e/results.json`, retention 14
+dana), jer se popis iz prve poruke odnosio na raniji prolaz; zato se nijedan pad ne popravlja „po sjećanju“.
+
+## 1. Nalazi (uzrok, fajl, linija, uticaj, fix, ozbiljnost)
+
+| # | Nalaz | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-14** | Spec **15** padao dva puta s `INVALID_SLUG` | `e2e/helpers/create-ticket.ts` je gradio slug kao `e2e-${label.toLowerCase()}-${stamp}`; labele `'Unrouted target'` (`tests/15:78`) i `'Realtime rule'` (`tests/15:117`) ostavljaju razmak, a API traži `/^[a-z0-9]+(?:-[a-z0-9]+)*$/` (`backend/src/modules/service-catalog/normalize-service-slug.ts:5`) | Spec nije mogao ni da napravi uslugu → pad prije provjere koju test stvarno tvrdi | Nova funkcija `slugifyServiceLabel` (`helpers/create-ticket.ts:96`): `[^a-z0-9]+` → `-`, trim vodećih/pratećih crtica; slug se gradi na `helpers/create-ticket.ts:112` | **SREDNJE** (e2e fikstura, ne proizvod) |
+| **D-15** | Spec **10** padao s `DISTINGUISHED_NAME_PARENT_MISMATCH` | `ensureChildUnit` je gradio DN `OU=<ime>,OU=E2E` (`tests/10:139`, prije popravke), a pravilo traži da DN **završava** DN-om roditelja (`backend/src/modules/organizational-units/assert-distinguished-name-matches-parent.ts:17`, `is-descendant-distinguished-name.ts`); instalirani korijen je `OU=Direkcija,DC=local` (`backend/src/modules/install/install-seed.constants.ts:5`) | Prosljeđivanje između organizacionih jedinica nije se moglo provjeriti | DN se izvodi iz roditelja: `OU=${relativeName},${root.distinguishedName}` (`tests/10:147`), a tip `UnitNode` dobio `distinguishedName` (`tests/10:10`) jer ga API vraća (`to-organizational-unit-response.ts:13`); relativni dio čisti `normalizeDistinguishedName` (bez zapete i kose crte) | **SREDNJE** (e2e fikstura, ne proizvod) |
+| **D-16** | Dva pada su u logu bila samo `TypeError: fetch failed` (specovi 23 i 24, linije 33 i 26, oba preko `withSettings`) | `ApiClient.request` je zvao `fetch` bez `try/catch`, pa nije bilo ni metode, ni putanje, ni `cause` | Iz loga se nije moglo razlikovati „API nedostupan” od DNS/TLS kvara — trijaža je bila pogađanje | Novi privatni `send` (`helpers/api-client.ts:111`): hvata `cause`, ispisuje `NETWORK <METHOD> <path> failed: … (cause: <code> …) — the API at <url> …`; **`GET` se ponavlja jednom** (2 s), ostalo odmah pada da se upis ne udvostruči (`request` ostaje nepromijenjen kao ulaz, `helpers/api-client.ts:84`) | **SREDNJE** (vidljivost) |
+| **D-17** | Sažetak u logu nije imao `Received`/axe nalaze, a `skipped` se nije vidio | `firstErrorLine` vraća samo prvu liniju (`scripts/summarize-playwright-json.mjs:15`) | Za padove tipa `expect(...).toMatch(...)` i axe prekršaje prva linija ne nosi odgovor → artefakt se morao otvarati ručno | Novi `errorDetail` (`:34`, do 15 linija + „… N more line(s)”) i `collectSkipped` (`:50`); `collectFailures` sada nosi `detail` (`:91`), a `formatSummary` ispisuje detalje i blok `SKIPPED … — a skip is not a pass` (`:125`) | **SREDNJE** (vidljivost) |
+| **D-18** | Spec **18** je tvrdio da „pošalji test” mora uspjeti, a stack nema SMTP | `scheduled-report.runner.ts:137` vraća `{ sent: false, reason: 'EMAIL_CHANNEL_DISABLED' }` kad je kanal isključen (`load-email-channel-configuration.ts` → `resolveEmailChannelEnabled`), pa je cijeli spec padao — i dio koji pošti ne treba | Zelenilo speca je zavisilo od SMTP-a na stacku, a poruka o kvaru nije govorila šta je isključeno | Spec razdvojen na dva testa: „create in UI → next slot → audit → user refused” bez pošte (`tests/18:32`) i „send test to me needs a configured e-mail channel” (`:98`) koji se **vidljivo preskače** (`test.skip`, `:142`) samo kad stack vrati `EMAIL_CHANNEL_DISABLED`; audit `report.schedule.test_sent` se tada ne provjerava (to je zapisano u razlogu skipa) | **SREDNJE** (kontrakt speca) |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Samotest sažetka | `cd e2e && node --test scripts/summarize-playwright-json.test.mjs` | **10/10** (novi: `errorDetail` čuva `Expected pattern`/`Received string`, granica na 40 linija, `formatSummary` ispisuje detalje i `SKIPPED`, `collectSkipped` daje punu putanju `20 privacy › needs SMTP`) |
+| e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | **0 grešaka** (poslije izmjena u `helpers/create-ticket.ts`, `helpers/api-client.ts`, `tests/10`, `tests/18`) |
+| Prikaz izlaza (stvarni render) | `node --input-type=module -e "…formatSummary…"` nad uzorkom s axe nalazima i `skipped` | Ispisuje `FAIL 22-accessibility.spec.ts:60 …`, dvije linije axe nalaza i `SKIPPED 1 test(s) — a skip is not a pass` |
+| Statika kontrasta | `node scripts/check-theme-contrast.mjs` | 12 paleta × 23 para unutar praga, 0 upotreba `text-primary` na neutralnoj površini (dakle runtime axe nalaz iz speca 22 dolazi iz DOM-a, ne iz palete — čeka artefakt) |
+
+## 3. Šta je otvoreno i zašto (ne pogađa se)
+
+| Spec | Šta se zna | Šta treba za popravku |
+|---|---|---|
+| **11** | Pada `expect(normal.subject).toMatch(/^\[HD-2026-000123\] /)` (`tests/11:45`) ili `overview.keys` bez `ticket.broadcast`; serverska fikstura postoji (`email-template-preview.ts:19`, `build-template-variables.ts:114`) i unit spec je zelen | `Received`/`Expected` iz artefakta — od sada je u logu (`errorDetail`) |
+| **12** | Nema detalja u proslijeđenom sažetku | artefakt |
+| **14** | `toContainText` na lokatoru (spec 14) | tekst koji je stigao (`Received string`) |
+| **17** | Nema detalja u proslijeđenom sažetku | artefakt |
+| **18** | Popravljeno u dijelu koji ne zavisi od pošte (D-18); ostaje da se vidi da li je pad bio na pošti ili na kreiranju | novi prolaz |
+| **20–23** | 22 ×4 su axe nalazi (`user-notifications-light/dark`, `admin-settings-light/dark`); `serious`/`critical` padaju, `moderate`/`minor` ne (`helpers/a11y.ts`) | spisak pravila i selektora iz `test-results/a11y-report.jsonl` ili attachmenta `axe-<label>` |
+| **23, 24** | `TypeError: fetch failed` (D-16) | nova poruka `NETWORK …` iz sljedećeg prolaza |
+| **26, 27** | Nema detalja u proslijeđenom sažetku | artefakt |
+
+**Ništa od ovoga se ne popravlja u backendu**: `INVALID_SLUG` (D-14) i `DISTINGUISHED_NAME_PARENT_MISMATCH` (D-15)
+su posljedica e2e fikstura — backend ih odbija **ispravno**.
+
+## 4. Sljedeći korak (vlasnik)
+
+Pokrenuti workflow u trijažnom režimu: **Actions → CI → Run workflow**, `max_failures=8`, `retries=0`. Sažetak u
+logu sada nosi i detalje (Expected/Received, axe pravila, `cause` mrežne greške), pa se svaki pad klasifikuje bez
+otvaranja artefakta; artefakt ostaje dokaz (`playwright-report`, `test-results`, `results.json`).
+

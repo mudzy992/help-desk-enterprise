@@ -94,6 +94,47 @@ export class ApiClient {
     if (this.authorization !== null) {
       headers.set('Authorization', `Bearer ${this.authorization}`);
     }
-    return fetch(`${this.apiUrl}${path}`, { ...init, headers });
+    return this.send(path, init, headers, 0);
+  }
+
+  /**
+   * First real e2e run (2026-10-05): two asset specs failed with a bare
+   * `TypeError: fetch failed` — no method, no path, no cause, so the job log did
+   * not say whether the API was unreachable (a redeploy?) or the TLS/DNS broke.
+   * Every network-level failure now names the request and carries the cause
+   * (`ECONNREFUSED`, `ENOTFOUND`, `UND_ERR_SOCKET`, …).
+   *
+   * A `GET` is retried once, because the e2e job runs against a live stack that
+   * can be redeploying at the same moment; anything else fails immediately so a
+   * retry can never duplicate a write.
+   */
+  private async send(
+    path: string,
+    init: RequestInit,
+    headers: Headers,
+    attempt: number,
+  ): Promise<Response> {
+    const method = (init.method ?? 'GET').toUpperCase();
+    try {
+      return await fetch(`${this.apiUrl}${path}`, { ...init, headers });
+    } catch (error) {
+      const cause = (error as { readonly cause?: unknown }).cause;
+      const causeCode =
+        typeof cause === 'object' && cause !== null && 'code' in cause
+          ? String((cause as { readonly code?: unknown }).code)
+          : '';
+      const causeMessage = cause instanceof Error ? cause.message : String(cause ?? '');
+      const detail = [causeCode, causeMessage].filter((part) => part.length > 0).join(' / ');
+      if (method === 'GET' && attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+        return this.send(path, init, headers, attempt + 1);
+      }
+      throw new Error(
+        `NETWORK ${method} ${path} failed: ${error instanceof Error ? error.message : String(error)}` +
+          (detail.length > 0 ? ` (cause: ${detail})` : '') +
+          ` — the API at ${this.apiUrl} was not reachable from the runner.`,
+        { cause: error },
+      );
+    }
   }
 }

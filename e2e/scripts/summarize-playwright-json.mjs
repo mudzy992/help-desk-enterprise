@@ -24,6 +24,48 @@ export function firstErrorLine(error) {
 }
 
 /**
+ * First real e2e run (2026-10-05): the log carried only the first line of each
+ * failure, which was enough for `expect(received).toMatch(expected)` and
+ * `Error: INVALID_SLUG` but not for the questions that mattered — *what* was
+ * received, *which* axe rule fired, *why* `fetch failed`. The detail lines hold
+ * exactly that (Playwright puts `Expected string` / `Received string`, the axe
+ * violation list and the wrapped `cause` there).
+ */
+export function errorDetail(error, maxLines = 15) {
+  if (error === undefined || error === null) return [];
+  const message = typeof error === 'string' ? error : (error.message ?? String(error));
+  const clean = message
+    .replace(/\u001b\[[0-9;]*m/g, '')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0);
+  const rest = clean.slice(1, maxLines + 1);
+  const hidden = clean.length - 1 - rest.length;
+  const detail = rest.map((line) => `       ${line.length > 300 ? `${line.slice(0, 297)}…` : line}`);
+  if (hidden > 0) detail.push(`       … ${hidden} more line(s) — see the artifact (results.json / playwright-report).`);
+  return detail;
+}
+
+/** Skipped specs, so a `test.skip(...)` never hides inside a green run. */
+export function collectSkipped(report) {
+  const skipped = [];
+  const walk = (suite, trail) => {
+    const titles = suite.title === '' ? trail : [...trail, suite.title];
+    for (const spec of suite.specs ?? []) {
+      const testTitles = [...titles, spec.title];
+      for (const test of spec.tests ?? []) {
+        if ((test.results ?? []).some((result) => result.status === 'skipped')) {
+          skipped.push(testTitles.filter((part) => part.length > 0).join(' › '));
+        }
+      }
+    }
+    for (const child of suite.suites ?? []) walk(child, titles);
+  };
+  for (const suite of report.suites ?? []) walk(suite, []);
+  return skipped;
+}
+
+/**
  * Every failed test in the report, flattened:
  * `{ file, line, title, status, error }`.
  */
@@ -46,6 +88,7 @@ export function collectFailures(report) {
           status: last.status,
           retries: failed.length - 1,
           error: firstErrorLine(last.error),
+          detail: errorDetail(last.error),
         });
       }
     }
@@ -74,6 +117,13 @@ export function formatSummary(report, fileName = 'results.json') {
     const retryNote = failure.retries > 0 ? ` (after ${failure.retries} retry/retries)` : '';
     lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
     lines.push(`     ${failure.error}`);
+    for (const line of failure.detail ?? []) lines.push(line);
+  }
+  const skippedTitles = collectSkipped(report);
+  if (skippedTitles.length > 0) {
+    lines.push('');
+    lines.push(`SKIPPED ${skippedTitles.length} test(s) — a skip is not a pass:`);
+    for (const title of skippedTitles) lines.push(`     ${title}`);
   }
   return lines.join('\n');
 }

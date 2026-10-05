@@ -1663,3 +1663,32 @@ izgledala kao dokaz da specovi prolaze.
   GitHub Actions (izvještaj i artefakt).
 - **Specovi se u sandboksu ne mogu izvršiti** — provjereni su tipovi (`tsc --noEmit` → 0) i kompletan spisak
   (`playwright test --list`).
+
+## E2E trijaža prvog crvenog prolaza — popravke u e2e sloju (2026-10-05, val 5)
+
+**Zašto:** prvi pravi prolaz (70 testova / 36 fajlova) završio je s 58 passed / 10 failed / 2 flaky. Proslijeđeni
+sažetak iz loga nosio je samo prvu liniju greške, pa se za dio padova (11, 14, 17, 22, 26, 27) nije znalo šta je
+stiglo, a `skipped` se nije vidio uopšte. Uz to su dva pada (`TypeError: fetch failed`, specovi 23 i 24) bila bez
+metode, putanje i `cause`.
+
+**Dokazi:** `cd e2e && npx tsc --noEmit -p tsconfig.json` → 0; `node --test scripts/summarize-playwright-json.test.mjs`
+→ 10/10; `node scripts/check-docs-content.mjs` → OK (29 stranica, 5 prevoda, 10 provjera).
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `e2e/README.md` | Odjeljak „Triage: reading a red run“: uzorak izlaza sada pokazuje detalje (Expected/Received) i blok `SKIPPED … — a skip is not a pass`; dodata su tri pravila — detalj do 15 linija, mrežna greška imenuje metodu/putanju/`cause`, `GET` se ponavlja jednom | `e2e/scripts/summarize-playwright-json.mjs` (`errorDetail`, `collectSkipped`), `e2e/helpers/api-client.ts` (`send`) |
+| `e2e/helpers/create-ticket.ts` | Nova `slugifyServiceLabel`; slug usluge više ne nosi razmak iz labele | `backend/src/modules/service-catalog/normalize-service-slug.ts:5` (`INVALID_SLUG`, spec 15 ×2) |
+| `e2e/tests/10-forward-cross-ou.spec.ts` | DN djeteta se izvodi iz `root.distinguishedName` umjesto fiksnog `,OU=E2E` | `backend/src/modules/organizational-units/assert-distinguished-name-matches-parent.ts:17` |
+| `e2e/helpers/api-client.ts` | `NETWORK <METHOD> <path> failed: … (cause: …)` + jedan ponovljeni `GET` | padovi specova 23 i 24 (`TypeError: fetch failed`) |
+| `e2e/scripts/summarize-playwright-json.mjs` (+ `*.test.mjs`) | `errorDetail` i `collectSkipped`, `detail` u `collectFailures`, ispis u `formatSummary` | 10/10 samotest |
+| `e2e/tests/18-reports-schedules.spec.ts` | Razdvojen na „bez pošte“ i „pošalji test“ (vidljiv skip uz `EMAIL_CHANNEL_DISABLED`) | `backend/src/modules/reports/schedules/scheduled-report.runner.ts:137` |
+| `REVIEW_ANALIZA.md` | Novi odjeljak „Val 5 — trijaža prvog crvenog e2e prolaza“ (D-14…D-18, dokazi, otvoreno) | ova izmjena |
+
+### Ostaje otvoreno
+
+- **Specovi 11, 12, 14, 17, 20–23, 26, 27** čekaju novi prolaz: sažetak u logu sada nosi detalje, a artefakt
+  (`playwright-report`, `test-results`, `results.json`) ostaje dokaz.
+- **Axe nalazi (22 ×4)** traže spisak pravila i selektora iz `test-results/a11y-report.jsonl`; statička provjera
+  kontrasta je zelena (`node scripts/check-theme-contrast.mjs`), pa nalaz dolazi iz DOM-a, ne iz palete.
+- **Prvi zelen prolaz** je kapija za merge na `master` (radi vlasnik).
+
