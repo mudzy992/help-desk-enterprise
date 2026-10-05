@@ -5753,10 +5753,14 @@ poruke), a ne privatne funkcije.
 | `src/modules/templates/playbooks/playbooks.service.spec.ts` | 19 | `PLAYBOOKS_DISABLED`/`FORBIDDEN`; lista (filteri stanja/traženja/usluge, `activeTicketCount` iz `groupBy`, `canEdit` iz opsega, bez upita kad je lista prazna); `create` (razlog, nepostojeći opseg, reference — **samo dijeljeni** šabloni i postojeći članci, zauzeto ime, zabrana globalnog opsega servisno ograničenom adminu, redoslijed koraka i zapis u dnevnik); `update` (verzija raste **samo** kad se mijenja ono što pokrenuta lista kopira, zamjena opsega i brisanje uklonjenih koraka, provjera starog i novog opsega, before/after u dnevniku); `remove` (soft delete i zapis, zabrana van opsega) |
 | `src/modules/templates/ticket-playbooks/ticket-playbooks.service.spec.ts` | 22 | `get` (isključen modul bez učitavanja tiketa, staff vidljivost i dozvola, zatvoren tiket je read-only bez ponuda, rangiranje ponuda servis → kategorija → ostalo, lista s označenim koracima, imenima i napretkom); `attach`/`detach` (delegiranje pomoćnom modulu, `writable: true`, read-only odbijanje, obavezan razlog, označavanje kao otkačenog + zapis + sistemska poruka + realtime, gubitak trke); `upgrade` (`UP_TO_DATE`, `NOT_APPLICABLE`, čuvanje završenih koraka čiji ključ preživi, nova verzija u zapisu, jednolinijski naziv u događaju); `setStep` (nepoznat korak, idempotencija bez upisa, označavanje/odznačavanje s pozicijom u događaju, objava završetka samo kad su svi koraci gotovi); `sanitize` |
 
-Dokazi: `npx tsc --noEmit` → **0**; `npx jest src/modules/templates` → **6 suita / 91 test** (prije: 3 / 24);
-puna backend provjera `npx jest --maxWorkers=2` → **517 prošla + 5 preskočenih suita (522)**, **2505 prošlo /
-2536 testova** (31 preskočen) — prije ovog dijela 514+5/519 suita i 2438/2469 testova. Napomena za sljedeći
-rad: `jest --runInBand` u ovom okruženju (~3,9 GB) pada na `OOM`; `--maxWorkers=2` prolazi u ~38 s.
+Dokazi: `npx tsc --noEmit` → **0**; `npx jest src/modules/templates` → **6 suita / 91 test**; isti poziv uz
+izuzimanje tri nova speca daje **3 suita / 24 testa** (toliko ih je bilo prije). Puna backend provjera
+`npx jest --maxWorkers=2` → **517 prošla + 5 preskočenih suita (522)**, **2505 prošlo / 2536 testova** (31
+preskočen; izmjereno 2026-10-05). Napomena za sljedeći rad: `jest --runInBand` u ovom okruženju (~3,9 GB) pada
+na `OOM`; `--maxWorkers=2` obično prođe u ~38 s, ali kad sandbox uspori (jedan mjereni prolaz trajao je 20 min)
+jedan nezavisan, vremenski osjetljiv suite (`src/modules/tickets/tickets.authorization.spec.ts`, 6 testova) može
+prijaviti pad pod opterećenjem — ponovno pokretanje (`jest --onlyFailures`) prošlo je za 10,7 s, pa pad nije
+posljedica ovog dijela rada.
 
 ## 7. Ostale ispravke u e2e projektu (nađene pišući spisak za CI)
 
