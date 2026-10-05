@@ -128,11 +128,12 @@
 
 ## Poznata ograničenja
 
-- **Prava se u aktivnoj vezi ne provjeravaju ponovo.** Članstvo u grupama i administratorska rola čitaju se u
-  trenutku povezivanja; ako vam je članstvo ili rola ukinuta, prestajete dobijati te događaje tek nakon
-  ponovnog povezivanja (odjava/prijava ili prekid i uspostava veze). (Nalaz B1 iz §M11.)
-- **Nema ograničenja koliko često se može tražiti ulazak u sobu tiketa** (za razliku od „kucanja“/prisustva,
-  koje je ograničeno). (Nalaz B2.)
+- **Članstvo u grupnim sobama i admin rola provjeravaju se ponovo tokom veze.** Aktivna veza sama provjerava
+  svoje grupne i admin sobe najviše svakih pet minuta; ukinuto članstvo ili rola prestaju dobijati te događaje
+  najkasnije u tom roku, bez ponovnog povezivanja. Sobe pojedinačnih tiketa se ne diraju — one se otvaraju
+  kroz `ticket:join` uz provjeru prava pri svakom ulasku. (Nalaz B1 iz §M11 — zatvoren u valu 3.)
+- **Ulazak u sobu tiketa i izlazak iz nje ograničeni su na 30 poruka u minuti po vezi** (isti prozor kao za
+  „kucanje“); prekoračenje se odbija i broji u dnevniku. (Nalaz B2 — zatvoren u valu 3.)
 - **Brojači opterećenja veze se samo bilježe** — server ih ne upozorava automatski, pa neuobičajen saobraćaj
   nije alarm. (Nalaz B3.)
 - **Prelazni režim tokom nadogradnje je uključen po defaultu:** dok ga administrator ne isključi, grupne sobe

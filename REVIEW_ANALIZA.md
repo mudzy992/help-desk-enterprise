@@ -32,6 +32,8 @@
 | 8 | **Faza 3** — Docs modul u aplikaciji (korak (d): Faza 2 modula, pravilo, evidencija) | ✅ Korak (d) isporučen 2026-10-03 · Faza 3 zatvorena — vidi `# Faza 3 — korak (d)` |
 | 9 | **Faza 3 — zatvorena** (4 koraka) | ✅ Zatvorena 2026-10-03 · preostaju popravke po valovima 1–5 — vidi `# Faza 3 — korak (d)` i `# Zaključak Faze 2` |
 | 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · dopuna iste večeri (nazivi razreza umjesto ID-eva, §2b.1) · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
+| 11 | **Val 2** — sigurnost i vidljivost (M6 B2; M8 B1; M9 B1, B2; M10 B1, B2, B4; M12 B2; M13 B1; M14 B1) | ✅ Isporučen 2026-10-04 · deset nalaza · dokumentacija i ogledalo ažurirani — vidi `# Val 2 — sigurnost i vidljivost` |
+| 12 | **Val 3** — pouzdanost i performanse (M8 B2; M11 B1, B2; M12 B1, B3, B4, B5; M13 B2; M14 B5 + guard za Redis auth) | ✅ Isporučen 2026-10-05 · devet nalaza i jedan preventivni guard — vidi `# Val 3 — pouzdanost i performanse` |
 
 ---
 
@@ -2264,7 +2266,7 @@ export, saved views).
   retentionom upravlja modul privatnosti.
 - **Ozbiljnost:** SREDNJE.
 
-### B2 — SREDNJE — Rate limiter broadcasta je u memoriji procesa i bez evikcije
+### B2 — SREDNJE — Rate limiter broadcasta je u memoriji procesa i bez evikcije → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl/linija:** `backend/src/modules/tickets/bulk/bulk-broadcast-rate-limiter.ts:1–18` (module-level `Map`,
   `consume` nikad ne uklanja ključ), limit iz postavke `bulk.constants.ts:13` (`broadcastRateLimitPerMinute: 10`).
@@ -3312,7 +3314,7 @@ jednokoračno odobrenje.
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-### B1 — SREDNJE — Članstvo u sobama i „admin“ rola su snimak iz trenutka spajanja
+### B1 — SREDNJE — Članstvo u sobama i „admin“ rola su snimak iz trenutka spajanja → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/websocket/socket-group-membership.service.ts:8–25`,
   `backend/src/modules/websocket/websocket.gateway.ts:145–191`,
@@ -3331,7 +3333,7 @@ jednokoračno odobrenje.
   tokom aktivne konekcije.
 - **Ozbiljnost:** SREDNJE.
 
-### B2 — SREDNJE — `ticket:join` nema ograničenje frekvencije
+### B2 — SREDNJE — `ticket:join` nema ograničenje frekvencije → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/websocket/ticket-chat.gateway.ts:99–126`,
   `backend/src/modules/tickets/tickets-collaboration.service.ts:189–202`
@@ -3687,7 +3689,7 @@ jednokoračno odobrenje.
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-### B1 — SREDNJE — Zaglavljen zahtjev za isporuku trajno gubi e-mail, bez alarma
+### B1 — SREDNJE — Zaglavljen zahtjev za isporuku trajno gubi e-mail, bez alarma → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/notifications/email/persist-notification-email-delivery.ts:12–30,42–53`,
   `backend/src/modules/notifications/email/deliver-notification-email.ts:34–42`,
@@ -3719,7 +3721,7 @@ jednokoračno odobrenje.
   prije upisa i prije slanja, i upisati upozorenje (`recordRedactionWarning`) kad je uzorak nađen.
 - **Ozbiljnost:** SREDNJE.
 
-### B3 — NISKO — Nova SMTP veza za svaki e-mail
+### B3 — NISKO — Nova SMTP veza za svaki e-mail → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/notifications/email/smtp-mail-transport.ts:7–17,38–40`
 - **Opis:** `createTransport` se poziva **unutar** `send`, a `transporter.close()` u `finally` — nema
@@ -3731,7 +3733,7 @@ jednokoračno odobrenje.
   postavki treba invalidirati keš.
 - **Ozbiljnost:** NISKO.
 
-### B4 — NISKO — Ograničenje testnog slanja postoji samo u memoriji instance
+### B4 — NISKO — Ograničenje testnog slanja postoji samo u memoriji instance → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/notifications/email-templates/email-templates.service.ts:61–66,159`,
   `backend/src/modules/notifications/email-templates/email-templates.controller.ts:75–83`
@@ -3743,7 +3745,7 @@ jednokoračno odobrenje.
   sa ključem `test:<admin>:<slot>`.
 - **Ozbiljnost:** NISKO.
 
-### B5 — NISKO — Oznake polja u broadcast tekstu su hardkodirane na engleskom
+### B5 — NISKO — Oznake polja u broadcast tekstu su hardkodirane na engleskom → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/tickets/bulk/format-bulk-broadcast-message.ts:26–33`,
   `backend/src/modules/notifications/email/send-broadcast-emails.ts:79`
@@ -4018,7 +4020,7 @@ jednokoračno odobrenje.
   (`REPLY`/`INTERNAL`/`ANY` prema `USER_REPLY`/`AGENT_REPLY`/`INTERNAL_NOTE`), uz grešku koja se mapira u UI.
 - **Ozbiljnost:** SREDNJE.
 
-### B2 — NISKO — Picker i lista playbooka čitaju fiksni broj redova bez redoslijeda
+### B2 — NISKO — Picker i lista playbooka čitaju fiksni broj redova bez redoslijeda → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/templates/response-templates.service.ts:111–139`,
   `backend/src/modules/templates/ticket-playbooks/attach-playbook-to-ticket.ts:18–36`
@@ -4423,7 +4425,7 @@ jednokoračno odobrenje.
   opcionalno zahtijevati minimalno vrijeme u zahtjevu; zadržati dnevni agregat kakav jeste.
 - **Ozbiljnost:** NISKO.
 
-### B5 — NISKO — Liste i presretanje ne ograničavaju upit, a vidljivost provjeravaju po članku
+### B5 — NISKO — Liste i presretanje ne ograničavaju upit, a vidljivost provjeravaju po članku → ✅ **popravljeno u valu 3 (2026-10-04)**
 
 - **Fajl:** `backend/src/modules/knowledge-base/list-knowledge-articles.ts:18–27`,
   `backend/src/modules/knowledge-base/fetch-knowledge-articles-for-list.ts:30–33`,
@@ -4923,7 +4925,10 @@ M9 B3 — prvi dio), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 34 SREDNJE / 51 N
 vala 0 bio je F **7,9**; poslije vala 1 ide na **F 8,0 / K 8,2 / S 7,8**), a poslije **vala 2** zatvoreno je
 još **10 nalaza** (M6 B2; M8 B1; M9 B1, B2; M10 B1, B2, B4; M12 B2; M13 B1; M14 B1) — svi `SREDNJE` — pa je
 otvoreno **0 KRITIČNO / 0 VISOKO / 24 SREDNJE / 51 NISKO**, uz prosjek **F 8,5 / K 8,4 / S 7,9** (dokazi u
-`# Val 2 — sigurnost i vidljivost`). Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+`# Val 2 — sigurnost i vidljivost`). Poslije **vala 3** zatvoreno je još **9 nalaza** (M8 B2, M11 B1/B2,
+M12 B1/B3/B4/B5, M13 B2, M14 B5 — četiri `SREDNJE` i pet `NISKO`) **i jedan preventivni guard** (Redis auth
+greška u `subscribeRedisChannel`), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 20 SREDNJE / 46 NISKO** (dokazi u
+`# Val 3 — pouzdanost i performanse`). Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
 ne u tome da funkcija ne postoji.
@@ -5533,3 +5538,63 @@ podataka pri upisu članka), `user-guide/posta.md` (redakcija broadcasta), `user
 | # | Stavka | Zašto nije zatvorena | Procjena |
 |---|---|---|---|
 | 1 | **18 registriranih postavki bez ijedne reference van definicija** — `publicMaintenance*` (7), `privateChangeLog*` (5), `privateAddons*` (4), `privateIntegrationsTeamsAppShortName` / `…AppDescription` | Nije greška u ponašanju (nijedan ekran ih ne obećava), ali je mrtva površina u registru postavki; uklanjanje je odluka vlasnika (neke su priprema za Teams/održavanje). Zabilježeno ovdje da se ne otkriva ponovo | ~0,5 RD (odluka + uklanjanje ili oznaka) |
+
+---
+
+# Val 3 — pouzdanost i performanse (2026-10-04 – 2026-10-05)
+
+Treći val popravki iz zaključka Faze 2 (`# Zaključak Faze 2`, §4). Nalazi su dijelili isti obrazac: **stanje je
+držano tamo gdje ne preživi restart i gdje ga druga instanca ne vidi (memorija procesa), a skup podataka se
+čitao cijeli i provjeravao red po red.** Zato val 3 nije dodavao funkcije nego ih je premještao u dijeljeno
+stanje (Redis, baza) i prebacivao filtre u upite.
+
+## 1. Šta je popravljeno
+
+| Nalaz | Popravka | Dokaz (kod) |
+|---|---|---|
+| **M11 B1** (`SREDNJE`) — članstvo u sobama i „admin“ rola su snimak iz trenutka spajanja | Nova `socket-room-revalidation.ts`: aktivna veza sama provjerava svoje **grupne i admin sobe** (default svakih 5 min), napušta one za koje više ne ispunjava uslov i ulazi u nove; sobe pojedinačnih tiketa se ne diraju jer ih `ticket:join` već provjerava pri ulasku | `backend/src/modules/websocket/socket-room-revalidation.ts` (nov, + spec), `websocket.gateway.ts` |
+| **M11 B2** (`SREDNJE`) — `ticket:join` nema ograničenje frekvencije | Novi `join-leave-rate-limiter.ts`: `ticket:join`/`ticket:leave` dijele prozor sa „kucanjem“ (**30 poruka/min po vezi**); odbijanja se broje u `socket.data` i ispisuju u dnevniku | `backend/src/modules/websocket/join-leave-rate-limiter.ts` (nov, + spec), `ticket-chat.gateway.ts` |
+| **Redis auth greška** (preventivno, iz incidenta 2026-10-04) — pretplata je mogla završiti neuhvaćenom greškom autentikacije i oboriti proces | `subscribeRedisChannel` hvata i loguje grešku pretplate, `duplicate()` klijent ima `error` listener; kanal se ne ruši tiho | `backend/src/common/redis/subscribe-redis-channel.ts` (+ spec), `edge-event-realtime.subscriber.ts`, `ticket-realtime-bridge.subscriber.ts` |
+| **M8 B2** (`SREDNJE`) — rate limiter broadcasta je u memoriji procesa i bez evikcije | Novi `bulk-broadcast-rate-limiter.ts`: Redis bucket po korisniku i minuti (`INCR` + `PEXPIRE`), memorijski klizni prozor kao rezerva uz sweep; `BulkBroadcastRateLimiterBootstrap` veže dijeljeni klijent pri bootu | `backend/src/modules/tickets/bulk/bulk-broadcast-rate-limiter.ts` (nov, + spec + `.bootstrap.ts`), `bulk/apply-bulk-broadcast.ts`, `tickets/tickets.module.ts` |
+| **M12 B1** (`SREDNJE`) — zaglavljen zahtjev za isporuku trajno gubi e-mail, bez alarma | `claimNotificationEmailDelivery` prvo **preuzima** zapis koji je u `CLAIMED` duže od 10 min (atomarno, `updateMany`), pa upisuje novi; `countStuckNotificationEmailDeliveries` hrani novi `components.email.stuckClaims`, a pločica **Operativno zdravlje** prelazi u `warning` i prikazuje broj | `backend/src/modules/notifications/email/persist-notification-email-delivery.ts` (+ spec), `email/deliver-notification-email.spec.ts`, `ops-health/ops-health.service.ts`, `frontend/src/services/ops-health-api.ts`, `frontend/src/components/admin/ops-health-card.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json` |
+| **M12 B3** (`NISKO`) — nova SMTP veza za svaki e-mail | `SmtpMailTransport` drži **pool po konfiguraciji** (`pool: true`); ključ je `host:port:tls:korisnik:sha256(lozinka)`, pa rotacija lozinke gradi novi transporter; keš je ograničen na 4 konfiguracije (LRU), neiskorišten pool se zatvara poslije 10 min, `onModuleDestroy` zatvara sve | `backend/src/modules/notifications/email/smtp-mail-transport.ts` (+ spec) |
+| **M12 B4** (`NISKO`) — ograničenje testnog slanja postoji samo u memoriji instance | Novi `test-email-rate-limiter.ts`: Redis ključ `test-email-rate:<admin>:<bucket>` (`INCR` + `PEXPIRE`) dijeli limit „5 u 10 minuta“ na sve instance; ako Redis odbije komandu, isti limit se drži u memorijskom prozoru | `backend/src/modules/notifications/email-templates/test-email-rate-limiter.ts` (nov, + spec), `email-templates.service.ts` |
+| **M12 B5** (`NISKO`) — oznake polja u broadcast tekstu su hardkodirane na engleskom | Oznake su lokalizovane (`bs`/`en`); zapis u tiketu se piše na jeziku pošiljaoca, a e-mail kanal dobija redigovane `parts` i renderuje ih **po jeziku primaoca**; polja se rediguju pojedinačno, pa su tiket i e-mail isti | `backend/src/modules/tickets/bulk/format-bulk-broadcast-message.ts`, `redact-bulk-broadcast.ts`, `broadcast-email-channel.ts`, `apply-bulk-broadcast.ts`, `backend/src/modules/notifications/email/send-broadcast-emails.ts` (+ specovi) |
+| **M13 B2** (`NISKO`) — picker i lista playbooka čitaju fiksni broj redova bez redoslijeda | Novi `picker-candidate-where.ts` prevodi opseg u `where` (globalni + servis/kategorija/grupa; `pickerOffScopeWhere` za „prikaži sve“); picker upit dobija `orderBy [{usageCount desc}, {name asc}]` i `take: pickerLimit` (200); lista playbooka već je bila uređena po nazivu | `backend/src/modules/templates/picker-candidate-where.ts` (nov, + spec), `templates/response-templates.service.ts` |
+| **M14 B5** (`NISKO`) — liste i presretanje ne ograničavaju upit, a vidljivost provjeravaju po članku | `loadKnowledgeArticleVisibilities` rješava vidljivost cijele stranice u grupisanim upitima (OU put iz keširanog kataloga, usluge i članovi grupa po jedan upit); tekstualni filter liste je dio upita; presretanje uzima **500 najsvježijih** objavljenih članaka usluge (`interceptCandidateLimit`) | `backend/src/modules/knowledge-base/load-knowledge-article-scope.ts`, `list-knowledge-articles.ts`, `intercept-knowledge-articles.ts`, `fetch-knowledge-articles-for-list.ts`, `knowledge-base.constants.ts` (+ `knowledge-base.visibility-batch.spec.ts`), `tickets/create-in-memory-group-member-delegate.ts` |
+
+**Dokumentacija:** `docs/user-guide/posta.md` (B1/B3/B4/B5), `realtime-i-obavjestenja.md` (B1/B2),
+`tiketi.md` (B2), `sabloni-i-playbooks.md` (B2 i uklonjena zastarjela tvrdnja iz vala 2 o B1),
+`baza-znanja.md` (B5), `sta-je-novo.md` (nove izmjene + naknadno upisan **val 2**, koji je tamo nedostajao),
+`DOCS_CHANGELOG.md` i ogledalo `backend/content/docs/**` (regenerisano).
+
+## 2. Dokazi (izvršeno u ovom okruženju)
+
+- **Backend:** `npx tsc --noEmit` → **0** poslije svake grupe popravki; `jest src/modules/websocket` → 15 suita
+  / 65 testova; `jest src/common/redis src/modules/integration-queue` → 13 / 37; `jest src/modules/tickets`
+  → 128 / 704 (uključuje bulk i broadcast testove); `jest src/modules/notifications` → 31 / 155;
+  `jest src/modules/knowledge-base` → 12 / 42; `jest src/modules/templates` → 3 / 24; `jest src/modules/ops-health`
+  → 6 prošlo + 1 skip / 51.
+- **Puna backend provjera poslije zadnjeg commita:** `npx tsc --noEmit` → **0**; `jest --runInBand` →
+  **514 prošla + 5 preskočenih suita (519)**, **2438 prošlo / 2469 testova** (31 preskočen).
+- **Frontend:** `tsc -b` → **0**; `vitest run` → **157 fajlova / 627 testova, 0 padova**; svi
+  `scripts/check-*.mjs` prolaze (10 skripti, uključujući `check-docs-content`, `check-pulse-design-system` i
+  `check-ticket-id-leaks`).
+- **Statička provjera dokumentacije:** `node scripts/check-docs-content.mjs` → OK (29 stranica, 7 provjera).
+- **Sopstvene greške u istom valu (zapisane da se ne ponove):** prva verzija `M12 B3` keša nije zatvarala stari
+  transporter pri promjeni postavki (pool je ostajao otvoren) — dodan TTL neiskorištenog poola; prvi
+  `M11 B2` spec je koristio lažni socket bez `data` objekta; prva verzija `M13 B2` upita koristila je
+  `AND` kao niz, što Prisma tip odbija (`ResponseTemplateWhereInput[]`) — razdvojen je `baseAnd` niz.
+- **Frontend `tsc -b` nije bio pokrenut uz M12 B1:** pločica je prosljeđivala `count: number | null | undefined`
+  u `t()` (i18next traži `number | undefined`). Ispravljeno u istom valu (`count: … ?? 0`); puna frontend
+  provjera (`tsc -b` + `vitest` 157/627 + svi `check-*.mjs`) pokrenuta poslije toga — lekcija: uz svaku
+  frontend izmjenu odmah `tsc -b`, ne samo vitest.
+
+## 3. Šta ostaje otvoreno poslije vala 3
+
+- **M10 B5** (`NISKO`) — uzorak dnevnika skenera prijavljuje netačno „preostalo“.
+- **M15 B4** (`NISKO`) — opseg sažetka postoji u API-ju, ali ga klijent ne koristi.
+- **M9 B3 — drugi dio** (`NISKO`) — CSAT serije na tabu Trendovi i dalje koriste konstantnu skalu.
+- **M12 B1 ostaje bez migracije:** preuzimanje koristi postojeći `updatedAt`; ako se u međuvremenu doda
+  `claimedAt`, filter treba prebaciti na njega.
+- **18 registriranih postavki bez potrošača** i **EN sadržaj vodiča** — čekaju odluku vlasnika (bez promjene).

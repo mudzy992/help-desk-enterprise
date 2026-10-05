@@ -189,8 +189,10 @@
   članak koji je stvarno pomogao; greška poziva se ne prikazuje. (Nalaz B3.)
 - **Pregledi se broje odmah pri otvaranju** (bez pravila „5 sekundi ili skrol“), pa uvidi i izvještaj mogu
   precijeniti čitanost. (Nalaz B4.)
-- **Lista članaka nema paginaciju**, a vidljivost se provjerava po članku — na velikom fondu lista i
-  presretanje mogu biti sporiji. (Nalaz B5.)
+- **Lista i presretanje rade u jednom prolazu.** Vidljivost za cijelu stranicu rješava se grupnim čitanjem
+  (OU put iz keširanog kataloga, usluge i članovi grupa u jednom upitu po delegatu), pretraga je dio upita, a
+  presretanje gleda najviše 500 najsvježijih objavljenih članaka usluge. Sama lista i dalje nema paginaciju.
+  (Nalaz B5 — zatvoren u valu 3.)
 - **Kolona „zastarjelo“ u bazi se ne održava** — oznaka se računa pri čitanju, pa odgovor poslije izmjene
   članka može nakratko pokazati pogrešno stanje. (Nalaz B6.)
 - **Arhiviranje kategorije nije zaštićeno kako piše u uputi** — server dozvoljava arhiviranje i kad

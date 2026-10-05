@@ -165,11 +165,10 @@ upozorenje. Varijabla bez vrijednosti postaje prazna i prijavljuje se prije slan
   `RESPONSE_TEMPLATE_INACTIVE` i `RESPONSE_TEMPLATE_KIND_MISMATCH`; brojač korištenja raste **samo** kad je
   odgovor zaista poslan s tim šablonom.
 
-- **Slanje ne provjerava tip i aktivnost šablona.** Pregled nudi samo aktivne šablone koji odgovaraju načinu
-  pisanja, ali server pri slanju ne ponavlja tu provjeru — deaktiviran ili „interni“ šablon može se poslati
-  kao javni odgovor ako se pozove direktno. (Nalaz B1 iz §M13.)
-- **Ponuda šablona čita prvih 500 zapisa bez redoslijeda** (isto i playbookovi, 1000). Na instalaciji sa
-  velikim brojem šablona neki se mogu ne prikazati. (Nalaz B2.)
+- **Ponuda šablona filtrira opseg i redoslijed u upitu.** Pregled traži samo šablone koji odgovaraju tiketu
+  (globalni ili po servisu, kategoriji i grupi), sortira ih po korištenju i nazivu i čita najviše 200; šabloni
+  vezani za drugi opseg dolaze samo uz „prikaži sve“. Lista playbookova se čita po nazivu. (Nalaz B2 —
+  zatvoren u valu 3.)
 - **Jedinstvenost naziva nije zaštićena u bazi**, samo provjerom u aplikaciji; dva istovremena upisa mogu dati
   duplikat. (Nalaz B3.)
 - **Playbook se veže automatski samo pri kreiranju tiketa** — tiketi koji su već u toku dobijaju checklistu

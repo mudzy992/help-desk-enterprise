@@ -177,8 +177,8 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
   *Zadržavanje priloga* u modulu Tiketi je označena kao **zastarjela i bez dejstva** i ne briše ništa — ako je
   trebate, uključite kategoriju u **Zaštita ličnih podataka → zadržavanje**. (Nalaz B1 iz §M8 — zatvoren u valu 2.)
 - **Kolona „Prvi odgovor“** puni se pri prvom agentskom odgovoru i ne zavisi od SLA modula.
-- **Ograničenje slanja broadcasta je po procesu**, pa u okruženju s više instanci stvarni limit može biti veći od
-  podešenog. (Nalaz B2.)
+- **Ograničenje slanja broadcasta drži se u Redisu**, po korisniku i minuti, pa vrijedi za sve instance; ako
+  Redis nije dostupan, limit se i dalje drži lokalno. (Nalaz B2 — zatvoren u valu 3.)
 - **Dijeljenje sačuvanih pogleda je isključeno** bez obzira na postavku; pogledi su uvijek lični. (Nalaz B3.)
 - **Lista po defaultu prikazuje i spojenu djecu** dok se ne uključi filter **Sakrij spojene**. (Nalaz B4.)
 - **Ukupan broj tiketa u listi može zaostajati do 30 sekundi** (broj se kratko kešira zbog performansi); redovi

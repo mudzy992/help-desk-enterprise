@@ -178,16 +178,19 @@ tags: [email, smtp, sabloni, dolazna-posta, broadcast, odsustvo]
   ista pravila kao za odgovor u tiketu. Ako se pogodak nađe, tekst se u poruci zamjenjuje oznakom `[REDACTED]`,
   a u tiket se upisuje sistemski događaj upozorenja (`ticket_redaction_warned`) — po tiketu, ne po primaocu.
 
-- **Zapis o isporuci nema rok.** Ako proces padne tačno između preuzimanja i slanja, taj e-mail se neće poslati
-  ni pri ponovnom pokušaju, a nigdje se ne prikazuje kao neuspjeh. (Nalaz B1 iz §M12.)
+- **Zapis o isporuci se preuzima ponovo.** Ako proces padne tačno između preuzimanja i slanja, zapis koji je
+  tako zaglavljen duže od 10 minuta preuzima sljedeći pokušaj i e-mail se šalje; broj takvih zapisa prikazuje
+  pločica **Operativno zdravlje** (ključ `stuckClaims`). (Nalaz B1 iz §M12 — zatvoren u valu 3.)
 - **Bulk obavijest (broadcast)** skenira se i rediguje prije slanja; pogodak se u tiketu bilježi kao sistemski
   događaj upozorenja. (Nalaz B2 iz §M12 — zatvoren u valu 2.)
-- **Svaki e-mail otvara novu vezu prema SMTP serveru** — kod većeg broja primalaca to je sporije i povećava
-  rizik od ograničenja provajdera. (Nalaz B3.)
-- **Ograničenje testnog slanja (pet u deset minuta) vrijedi po pokrenutom procesu**, pa se restartom resetuje.
-  (Nalaz B4.)
-- **Oznake polja u bulk obavijesti su na engleskom** („What happened“, „Who is affected“, „ETA“), i u
-  bosanskom e-mailu. (Nalaz B5.)
+- **SMTP veza se dijeli.** Jedan pool se drži po konfiguraciji (host, port, TLS, korisnik i otisak lozinke),
+  pa se za više primalaca ne otvara nova veza po e-mailu; promjena postavki gradi novi pool, a stari se
+  zatvara kad ostane neiskorišten. (Nalaz B3 — zatvoren u valu 3.)
+- **Ograničenje testnog slanja (pet u deset minuta) drži se u Redisu** — vrijedi za sve instance i ne
+  resetuje se restartom; ako Redis nije dostupan, limit se i dalje drži lokalno. (Nalaz B4 — zatvoren u
+  valu 3.)
+- **Oznake polja u bulk obavijesti prate jezik** — zapis u tiketu je na jeziku pošiljaoca, a e-mail na jeziku
+  primaoca. (Nalaz B5 — zatvoren u valu 3.)
 - **Google Workspace konektor (Gmail API) nije isporučen** — za Google instalacije koristi se IMAP sa lozinkom
   aplikacije ili OAuth2 prijavom.
 - **E-mail šabloni se ne prevode automatski** — ako tekst postoji samo na jednom jeziku, primaocu se šalje

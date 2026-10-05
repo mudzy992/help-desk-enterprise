@@ -33,6 +33,7 @@
 | **F3 (c)** | 2026-10-03 | **Docs modul — `/docs` UI** | `frontend/src/pages/docs-page.tsx` (nov), `frontend/src/components/docs/**` (nov), `frontend/src/lib/docs/**` (nov), `frontend/src/services/docs-api.ts` (nov), `frontend/src/lib/navigation.ts`, `frontend/src/lib/session/route-access.ts`, `frontend/src/app/router.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/privacy/simple-markdown.ts`, `frontend/src/components/privacy/markdown-view.tsx`, `backend/src/modules/docs/**`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (c)`), ovaj dokument | **Meni Dokumentacija, ruta `/docs`, nav/TOC/breadcrumbs/pager, pretraga sa isticanjem, filter po publici, 404 i prazno stanje, prošireni renderer; i18n BS/EN** |
 | **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
 | **Val 2** | 2026-10-04 | **Sigurnost i vidljivost (M6, M8, M9, M10, M12, M13, M14)** | `user-guide/odobrenja-i-csat.md`, `user-guide/sla.md`, `user-guide/tiketi.md`, `user-guide/posta.md`, `user-guide/baza-znanja.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/katalog-usluga-i-forme.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M6, §M8, §M9, §M10, §M12, §M13, §M14, `# Val 2`), ovaj dokument | **Deset nalaza zatvoreno: provjera šablona pri slanju, zamjena ličnih podataka i pri upisu članka, redakcija broadcasta, nacrti usluga samo adminima, jedan izvor retencije priloga, obavještenje o odobrenju i kapija za `UNROUTED`, eskalacije s primaocem, retroaktivni satovi i prvi odgovor nezavisan od SLA-a** |
+| **Val 3** | 2026-10-04 – 2026-10-05 | **Pouzdanost i performanse (M8, M11, M12, M13, M14)** | `user-guide/posta.md`, `user-guide/realtime-i-obavjestenja.md`, `user-guide/tiketi.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/baza-znanja.md`, `user-guide/sta-je-novo.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M8, §M11, §M12, §M13, §M14, `# Val 3`), ovaj dokument | **Devet nalaza i jedan preventivni guard: Redis limiteri (broadcast, testno slanje), preuzimanje zaglavljene isporuke e-maila + pločica Operativno zdravlje, dijeljeni SMTP pool, dvojezične oznake obavijesti, provjera soba tokom veze i limit ulaska u sobu, opseg u upitu pickera, vidljivost baze znanja u jednom prolazu; „Šta je novo“ dopunjeno i za val 2 (nedostajao)** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
@@ -1240,3 +1241,58 @@ su **samo administratorima**; skriveno stanje se preko API-ja vraća kao „nije
   re-ocjene u tabeli, nova sekcija `# Val 2 — sigurnost i vidljivost`.
 - `TEZE-ZA-DOKUMENTACIJU.md` nije mijenjan u ovom valu: nijedna teza nije oborena, samo su nalazi prešli iz
   „poznatog ograničenja“ u opis stvarnog ponašanja.
+
+---
+
+## Val 3 (2026-10-04 – 2026-10-05): pouzdanost i performanse — devet nalaza, jedan guard, šest stranica
+
+**Zašto:** val 3 je popravljao stanje koje ne preživi restart i koje druga instanca ne vidi (limiteri u
+memoriji, SMTP veza po e-mailu), zaglavljenu isporuku e-maila bez alarma i upite koji su čitali cijeli skup pa
+provjeravali red po red. Dokumentacija je morala promijeniti svaku tvrdnju koja je opisivala staro ponašanje —
+uključujući jednu tvrdnju iz vala 2 koja je ostala kao „poznato ograničenje“ iako je popravka već bila u kodu.
+
+**Pošta (`user-guide/posta.md`)** — četiri stavke iz „Poznatih ograničenja“ zamijenjene opisom stvarnog
+ponašanja:
+
+- **B1 (M12)** — zaglavljen zapis o isporuci se **preuzima ponovo** poslije 10 minuta i e-mail se šalje; broj
+  takvih zapisa prikazuje pločica **Operativno zdravlje** (`stuckClaims`);
+- **B3** — **SMTP veza se dijeli** (pool po konfiguraciji, keš po `host:port:tls:korisnik` i otisku lozinke;
+  promjena postavki gradi novi, stari se zatvara kad ostane neiskorišten);
+- **B4** — **ograničenje testnog slanja (pet u deset minuta) drži se u Redisu**, vrijedi za sve instance i ne
+  resetuje se restartom (lokalna rezerva ako Redis nije dostupan);
+- **B5** — **oznake polja prate jezik**: zapis u tiketu na jeziku pošiljaoca, e-mail na jeziku primaoca.
+
+**Realtime i obavještenja (`user-guide/realtime-i-obavjestenja.md`)** — (B1, M11) članstvo u grupnim sobama i
+admin rola **provjeravaju se ponovo tokom veze** (najviše svakih pet minuta), uz napomenu da se sobe
+pojedinačnih tiketa ne diraju jer ih `ticket:join` provjerava pri svakom ulasku; (B2) ulazak/izlazak iz sobe
+tiketa **ograničen na 30 poruka u minuti po vezi**, isto kao „kucanje“.
+
+**Tiketi (`user-guide/tiketi.md`)** — (B2, M8) ograničenje broadcasta **drži se u Redisu po korisniku i
+minuti**, pa vrijedi za sve instance.
+
+**Šabloni i playbooks (`user-guide/sabloni-i-playbooks.md`)** — (B2, M13) picker **filtrira opseg i redoslijed
+u upitu** (globalni ili po servisu/kategoriji/grupi, `usageCount` pa naziv, najviše 200; opseg „drugdje“ samo
+uz „prikaži sve“), lista playbooka po nazivu. Uklonjena je i **zastarjela tvrdnja iz vala 2** da „slanje ne
+provjerava tip i aktivnost šablona“ — ta provjera postoji od vala 2, ali je stara rečenica ostala u
+„Poznatim ograničenjima“.
+
+**Baza znanja (`user-guide/baza-znanja.md`)** — (B5, M14) vidljivost cijele stranice rješava se **grupnim
+čitanjem** (OU put iz keširanog kataloga, usluge i članovi grupa po jedan upit), pretraga je dio upita, a
+presretanje gleda **500 najsvježijih** objavljenih članaka usluge; lista i dalje nema paginaciju (navedeno).
+
+**Šta je novo (`user-guide/sta-je-novo.md`) — dopuna i za val 2 i za val 3.** Provjera je pokazala da stranica
+nije bila ažurirana za **val 2**: zadnji red je bio `2026-10-03`, iako `DOCS_CHANGELOG.md` val 2 opisuje od
+2026-10-04 i vodiči su tada mijenjani (odgovor na pitanje vlasnika). Dodata su četiri reda: val 2 (deset
+nalaza) i tri reda vala 3 (zajednički limiti; pouzdanost e-maila; realtime/šabloni/baza znanja), svaki sa
+linkom na stranice koje detalj objašnjavaju.
+
+**Evidencija:**
+
+- `REVIEW_ANALIZA.md` — devet naslova nalaza označeno „✅ popravljeno u valu 3“, novi redovi 11 (val 2) i 12
+  (val 3) u tabeli „Stanje po iteracijama“, ažurirana raspodjela ozbiljnosti (**0 / 0 / 20 SREDNJE / 46
+  NISKO**) i nova sekcija `# Val 3 — pouzdanost i performanse` (tabela nalaz→popravka→dokaz, dokazi iz
+  testova, sopstvene greške, šta ostaje otvoreno).
+- `backend/content/docs/**` — ogledalo regenerisano (`node scripts/generate-docs-content.mjs`), a
+  `check-docs-content.mjs` prolazi (29 stranica, 7 provjera).
+- `TEZE-ZA-DOKUMENTACIJU.md` nije mijenjan: nijedna teza nije oborena, nalazi su samo prešli iz „poznatog
+  ograničenja“ u opis stvarnog ponašanja (isto pravilo kao u valu 2).
