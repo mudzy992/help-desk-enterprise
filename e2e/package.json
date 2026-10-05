@@ -10,10 +10,8 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.55.0",
-    "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.23.1",
-    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.2",
     "pg": "^8.16.0",
     "typescript": "^5.7.2"

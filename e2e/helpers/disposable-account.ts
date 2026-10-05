@@ -1,8 +1,9 @@
 /**
- * The harness rewrites test accounts directly in Postgres: global-setup deletes
- * the super admin's MFA (a fresh secret then lives only in .auth/mfa.json) and
- * overwrites the USER/AGENT password hashes. Pointed at a real person's account
- * that silently locks them out of MFA or replaces their password.
+ * The harness rewrites test accounts: global-setup deletes the super admin's
+ * MFA in Postgres (a fresh secret then lives only in .auth/mfa.json) and resets
+ * the USER/AGENT password through the API (admin reset + forced change). Pointed
+ * at a real person's account that silently locks them out of MFA or replaces
+ * their password.
  *
  * Allowed: local part starting with "e2e." (e2e.superadmin@…), or an address
  * listed on purpose in E2E_ALLOW_REAL_ACCOUNTS (comma-separated).
