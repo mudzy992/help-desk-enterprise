@@ -44,6 +44,12 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Puna istorija: `updatedAt` u manifestu ogledala dolazi iz
+          # `git log -1 -- <fajl>` (scripts/generate-docs-content.mjs).
+          # U plitkom klonu (zadano) datum je datum vršnog commita za svaki
+          # fajl, pa bi provjera sinhronizacije padala bez stvarnog razloga.
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -72,7 +78,8 @@ jobs:
         run: node --test ../scripts/check-hooks-order.test.mjs
       - name: Check docs content and mirror sync (Faza 3, DOCS_MODULE.md §9)
         run: node ../scripts/check-docs-content.mjs
-        # Faza 3 (dopuna): provjera „Šta je novo“/ruta ima i svoj test.
+      # Faza 3 (dopuna) — provjera „Šta je novo“/ruta ima i svoj test.
+      - name: Test the docs-content guard itself
         run: node --test ../scripts/check-docs-content.test.mjs
       - name: Check the ticket-list page size against the API maximum (val 1)
         run: node ../scripts/check-ticket-list-page-size.mjs

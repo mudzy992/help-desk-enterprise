@@ -115,7 +115,38 @@ function collectHeadings(body) {
   return headings;
 }
 
+/**
+ * Plitki klon (`git clone --depth 1`, zadano ponašanje `actions/checkout`)
+ * nema istoriju: `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za
+ * svaki fajl, pa bi `updatedAt` u manifestu bio pogrešan za sve stranice.
+ * U tom slučaju datum se ne izmišlja — koristi se vrijednost iz postojećeg
+ * manifesta (vidi `previousUpdatedAt`), a CI radi pun checkout.
+ */
+export function isShallowRepository() {
+  try {
+    const value = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+let shallowRepository = null;
+function isShallow() {
+  if (shallowRepository === null) {
+    shallowRepository = isShallowRepository();
+  }
+  return shallowRepository;
+}
+
 function gitUpdatedAt(file) {
+  if (isShallow()) {
+    return null;
+  }
   try {
     const value = execFileSync('git', ['log', '-1', '--format=%cs', '--', path.relative(repoRoot, file)], {
       cwd: repoRoot,
@@ -259,6 +290,13 @@ function main() {
     }
     console.log(`Ogledalo je u sinhronizaciji (${outputs.size - 1} stranica + manifest).`);
     return;
+  }
+
+  if (isShallow()) {
+    console.warn(
+      'Upozorenje: plitak klon — `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg ' +
+        'manifesta. Prije commit-a ogledala pusti `git fetch --unshallow` (CI ima punu istoriju i poredi datume).',
+    );
   }
 
   mkdirSync(outputDir, { recursive: true });

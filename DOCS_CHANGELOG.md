@@ -37,6 +37,7 @@
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
+| — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
 ---
@@ -1322,3 +1323,33 @@ kolona *Detalji* navodi fajlove kao običan tekst, pa se u aplikaciji ne mogu ot
 
 **Dokaz da provjera hvata propust:** sa simuliranim starim sadržajem (bez redova za 2026-10-04/05) provjera
 pada sa `[sta-je-novo] DOCS_CHANGELOG.md ima unos 2026-10-05, a „Šta je novo“ zadnji red 2026-10-03`.
+
+## Dokumentacija — automatika i veze: CI popravka (2026-10-05)
+
+Poslije commita automatike (`3b2b726`) CI je pao **bez ijednog joba** — GitHub je odbio cijeli
+`.github/workflows/ci.yml` jer je korak „Check docs content and mirror sync“ imao **dva `run:` ključa**
+(prvi je puštao provjeru, drugi test provjere). To je ista klasa greške kao 2026-10-03 (dvotočka u
+neukotvljenoj vrijednosti) — GitHub validira workflow tek poslije pusha, pa tipfeler tiho ugasi CI.
+
+Odvojeno od toga, `master` je bio crven od vala 3 (`95e98d2e`, `08d07231`): korak „Check docs content and
+mirror sync“ padao je sa `[sinhronizacija] manifest.json se razlikuje — pokrenite generator`. Uzrok nije bio
+sadržaj, nego **plitak klon**: `actions/checkout` po zadanom uzima samo vršni commit, a `git log -1 -- <fajl>`
+tada vraća datum tog vršnog commita za **svaki** fajl, pa generator u CI-ju izračuna druge datume nego što su
+u commitovanom manifestu. Lokalno (pun klon) provjera je prolazila, u CI-ju nije.
+
+**Šta je urađeno:**
+
+- `.github/workflows/ci.yml`: test provjere je vlastiti korak („Test the docs-content guard itself“), a
+  `frontend` job radi **pun checkout** (`with: fetch-depth: 0`) — datum iz gita je tada stvaran;
+- `generate-docs-content.mjs`: `isShallowRepository()` — u plitkom klonu se datum **ne izmišlja**, nego se
+  preuzme vrijednost iz postojećeg manifesta (`previousUpdatedAt`);
+- `check-docs-content.mjs`: u plitkom klonu se porede svi podaci osim `updatedAt`
+  (`sameManifestIgnoringDates`) + ispisuje se napomena `plitki klon: updatedAt ... (git fetch --unshallow)`;
+- `check-workflows-yaml.mjs`: sada hvata i **ponovljeni ključ u istom bloku** (lista je vlastita mapa, pa su
+  dva `- name:` koraka ispravna), uz test koji reprodukuje tačno ovaj propust;
+- `DOCS_MODULE.md` §3.3 i `CONTRIBUTING.md`: zapisano da CI koristi punu istoriju i šta znači plitak klon.
+
+**Dokaz:** stari skripti u plitkom klonu (`git clone --depth 1`) padaju sa `manifest.json se razlikuje —
+pokrenite generator`; poslije popravke isti klon prolazi (`Docs provjera: OK (29 stranica, 9 provjera).` uz
+napomenu o plitkom klonu). Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
+"run" u istom bloku — GitHub odbija cijeli workflow`, a na popravljenom fajlu je čist.

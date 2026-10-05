@@ -18,7 +18,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { buildDocsContent, slugifyHeading } from './generate-docs-content.mjs';
+import { buildDocsContent, isShallowRepository, slugifyHeading } from './generate-docs-content.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceDir = path.join(repoRoot, 'docs', 'user-guide');
@@ -114,10 +114,34 @@ function checkFrontmatter(files) {
   return slugs;
 }
 
+/**
+ * U plitkom klonu (npr. `git clone --depth 1`) datum zadnjeg commita nije
+ * pouzdan — `git log -1` vraća vršni commit za svaki fajl. Zato se tada
+ * porede svi podaci osim `updatedAt`; ostalo mora biti identično.
+ */
+export function sameManifestIgnoringDates(actualJson, expectedJson) {
+  const normalize = (text) => {
+    const parsed = JSON.parse(text);
+    for (const page of parsed.pages ?? []) {
+      page.updatedAt = null;
+    }
+    return JSON.stringify(parsed);
+  };
+  try {
+    return normalize(actualJson) === normalize(expectedJson);
+  } catch {
+    return false;
+  }
+}
+
 function checkSync() {
   if (!existsSync(mirrorDir)) {
     fail('sinhronizacija', 'ogledalo backend/content/docs ne postoji — pokrenite generator');
     return;
+  }
+  const shallow = isShallowRepository();
+  if (shallow) {
+    notes.push('plitki klon: `updatedAt` u manifestu se ne provjerava (puni checkout: git fetch --unshallow)');
   }
   const { manifest, documents } = buildDocsContent();
   const expected = new Map();
@@ -129,7 +153,11 @@ function checkSync() {
       fail('sinhronizacija', `nedostaje ${name} — pokrenite generator`);
       continue;
     }
-    if (readFileSync(target, 'utf8') !== content) {
+    const actual = readFileSync(target, 'utf8');
+    const inSync =
+      actual === content ||
+      (name === 'manifest.json' && shallow && sameManifestIgnoringDates(actual, content));
+    if (!inSync) {
       fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
     }
   }

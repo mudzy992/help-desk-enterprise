@@ -46,3 +46,34 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
   ].join("\n");
   assert.deepEqual(findWorkflowProblems(source), []);
 });
+
+// Stvarna regresija (2026-10-05): korak je dobio drugi `run:` umjesto novog
+// koraka — GitHub je odbio cijeli workflow (run je završio bez ijednog joba).
+test("hvata ponovljeni ključ u istom bloku, a ne u susjednim koracima", () => {
+  const duplicated = [
+    "jobs:",
+    "  frontend:",
+    "    steps:",
+    "      - name: Check docs content and mirror sync",
+    "        run: node ../scripts/check-docs-content.mjs",
+    "        run: node --test ../scripts/check-docs-content.test.mjs",
+  ].join("\n");
+  assert.deepEqual(findWorkflowProblems(duplicated, "ci.yml"), [
+    'ci.yml:6 ponovljeni ključ "run" u istom bloku — GitHub odbija cijeli workflow',
+  ]);
+
+  // Isti ključ u dva različita koraka (ili dva elementa liste) je ispravan.
+  const separate = [
+    "jobs:",
+    "  frontend:",
+    "    steps:",
+    "      - uses: actions/checkout@v5",
+    "        with:",
+    "          fetch-depth: 0",
+    "      - name: Check docs content and mirror sync",
+    "        run: node ../scripts/check-docs-content.mjs",
+    "      - name: Test the docs-content guard itself",
+    "        run: node --test ../scripts/check-docs-content.test.mjs",
+  ].join("\n");
+  assert.deepEqual(findWorkflowProblems(separate, "ci.yml"), []);
+});

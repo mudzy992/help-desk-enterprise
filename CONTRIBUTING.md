@@ -33,6 +33,10 @@ Redoslijed:
    node scripts/generate-docs-content.mjs --check   # ne piše; pada ako se ogledalo razlikuje
    ```
 
+   Generator uzima `updatedAt` iz **istorije gita**, pa radi u punom klonu; ako je klon plitak
+   (`git clone --depth 1`), prvo pusti `git fetch --unshallow`, inače generator ne može izračunati datum i
+   zadrži stari (CI, koji ima punu istoriju, onda prijavi razliku).
+
 3. Provjeri sadržaj:
 
    ```bash
@@ -69,7 +73,8 @@ node scripts/check-ticket-list-page-size.mjs   node scripts/check-workflows-yaml
 
 Dvije provjere iz zadnjeg reda čuvaju greške koje su se stvarno desile: `check-ticket-list-page-size.mjs`
 drži veličinu stranice liste tiketa ispod server maksimuma (staging je vratio `pageSize must not be greater
-than 50`), a `check-workflows-yaml.mjs` traži dvotočku u neukotvljenoj vrijednosti u `.github/workflows/**`
-(GitHub je odbio cijeli workflow zbog `name: … (val 1 regresija: pageSize 100)`).
+than 50`), a `check-workflows-yaml.mjs` traži dvotočku u neukotvljenoj vrijednosti i **ponovljeni ključ u
+istom bloku** u `.github/workflows/**` (GitHub je odbio cijeli workflow i zbog `name: … (val 1 regresija:
+pageSize 100)` i zbog koraka sa dva `run:` ključa).
 
 Sve skripte iz `scripts/check-*.mjs` moraju proći prije commita; iste se pokreću i u CI-u.

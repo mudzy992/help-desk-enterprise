@@ -8,11 +8,17 @@
 // line 73"). GitHub validates workflows only after the push, so a typo here
 // silently disables CI; this script catches it locally and in CI.
 //
+// 2026-10-05: the same happened with a **duplicate key** — a step got a second
+// `run:` line instead of a new step, and GitHub again refused the whole file
+// (the run had no jobs at all). Duplicate keys are now caught too, per mapping
+// scope (a list item is its own mapping, so two `- name:` lines are fine).
+//
 // It is deliberately narrow — a full YAML parser is not available in the
 // repository. What it checks:
 //  - a plain (unquoted) scalar value may not contain ": " nor end with ":";
 //  - indentation may not use tabs;
-//  - block scalars (`|`, `>`) are skipped, so their content is free-form.
+//  - block scalars (`|`, `>`) are skipped, so their content is free-form;
+//  - the same key may not appear twice in one mapping (same block).
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -29,6 +35,8 @@ export function findWorkflowProblems(source, file = "workflow.yml") {
   const problems = [];
   const lines = source.split("\n");
   let blockScalarIndent = null;
+  /** Mapa po bloku: ključevi se broje unutar iste razine uvlačenja. */
+  const scopes = [];
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index];
     const lineNumber = index + 1;
@@ -59,6 +67,27 @@ export function findWorkflowProblems(source, file = "workflow.yml") {
     if (match === null) {
       continue;
     }
+
+    // Dupli ključ u istom bloku: GitHub odbija cijeli workflow. Element liste
+    // (`- name: x`) otvara vlastitu mapu na uvlačenju +2.
+    const isListItem = content.startsWith("- ");
+    const mappingIndent = isListItem ? indent + 2 : indent;
+    while (scopes.length > 0 && scopes[scopes.length - 1].indent > mappingIndent) {
+      scopes.pop();
+    }
+    if (isListItem || scopes.length === 0 || scopes[scopes.length - 1].indent < mappingIndent) {
+      scopes.push({ indent: mappingIndent, keys: new Set() });
+    }
+    const scope = scopes[scopes.length - 1];
+    const key = match[1];
+    if (scope.keys.has(key)) {
+      problems.push(
+        `${file}:${lineNumber} ponovljeni ključ "${key}" u istom bloku — GitHub odbija cijeli workflow`,
+      );
+    } else {
+      scope.keys.add(key);
+    }
+
     const value = match[2];
     if (value === undefined) {
       continue;
@@ -96,7 +125,7 @@ function main() {
     for (const problem of problems) console.error(`  - ${problem}`);
     process.exit(1);
   }
-  console.log("Provjera GitHub workflow YAML-a: OK (dvotočke pod navodnicima, bez tabova)");
+  console.log("Provjera GitHub workflow YAML-a: OK (dvotočke, dupli ključevi, tabovi)");
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {

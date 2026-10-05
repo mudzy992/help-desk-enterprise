@@ -6,6 +6,7 @@ import {
   auditWhatsNew,
   changelogEntryDates,
   docsReferencesIn,
+  sameManifestIgnoringDates,
   whatsNewEntryDates,
 } from "./check-docs-content.mjs";
 
@@ -105,4 +106,24 @@ test("ogledalo prevodi samo veze na objavljene stranice", () => {
     rewriteDocsLinks(body, new Set(["posta", "tiketi"])),
     "Vidi [Poštu](/docs/posta), [teze](TEZE-ZA-DOKUMENTACIJU.md) i [dio](/docs/tiketi#uvod).",
   );
+});
+
+// CI je crven od vala 3 (2026-10-05): `actions/checkout` je plitak klon, pa je
+// `git log -1` za svaki fajl vraćao datum vršnog commita — provjera
+// sinhronizacije je padala iako je ogledalo bilo tačno. U plitkom klonu se
+// `updatedAt` ne poredi, sve ostalo mora biti identično.
+test("u plitkom klonu se datumi u manifestu ne porede, ostalo mora", () => {
+  const manifest = (dates, title = "Početak rada") =>
+    JSON.stringify({
+      pages: [{ slug: "pocetak-rad", title, updatedAt: dates }],
+    });
+  assert.equal(
+    sameManifestIgnoringDates(manifest("2026-10-05"), manifest("2026-10-02")),
+    true,
+  );
+  assert.equal(
+    sameManifestIgnoringDates(manifest("2026-10-05"), manifest("2026-10-05", "Drugi naslov")),
+    false,
+  );
+  assert.equal(sameManifestIgnoringDates("nije json", manifest("2026-10-05")), false);
 });

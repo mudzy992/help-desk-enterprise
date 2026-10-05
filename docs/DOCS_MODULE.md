@@ -106,8 +106,13 @@ Pravila:
 ### 3.3 `updatedAt` i `module` se ne pišu rukom
 
 `updatedAt` **nije** u frontmatteru izvora: generator ga izvodi iz gita (`git log -1 --format=%cs -- <fajl>`),
-pa se ne može zaboraviti ažurirati. Ako git istorija nije dostupna (shallow klon), generator zadržava
+pa se ne može zaboraviti ažurirati. Ako git istorija nije dostupna (plitki klon), `git log -1` vraća datum
+**vršnog** commita za svaki fajl — zato generator tada ne računa datum (`isShallowRepository`), nego zadržava
 vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje `null` i UI prikazuje „—“.
+
+Iz istog razloga `frontend` job u CI-ju radi **pun checkout** (`actions/checkout` sa `fetch-depth: 0`): u
+plitkom klonu bi provjera sinhronizacije padala bez stvarnog razloga. Kad provjera radi u plitkom klonu
+(ručno), ispiše napomenu `plitki klon: updatedAt ... (git fetch --unshallow)` i poredi sve osim datuma.
 
 ### 3.4 Pokrivenost stranica
 
@@ -327,7 +332,8 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
 
 1. **frontmatter** — sva obavezna polja, `slug` jedinstven i u `[a-z0-9-]`, `part` iz dozvoljene liste,
    `roles` samo poznate role, `order` broj;
-2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove (`git diff --exit-code` u CI);
+2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove; u plitkom klonu se `updatedAt`
+   u manifestu ne poredi (vidi §3.3);
 3. **veze** — svaki relativni markdown link unutar `docs/user-guide/**` pokazuje na postojeći fajl/anchor;
 4. **slike** — svaka referenca postoji i nije izvan `docs/user-guide/assets/`;
 5. **tajne** — obrasci iz §6;
