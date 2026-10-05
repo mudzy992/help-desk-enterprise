@@ -6124,3 +6124,55 @@ Vlasnik je varijable i secrete postavio (E-1 zatvoren s njegove strane); job se 
 - **Nalazi van opsega valova 0–5** ostaju zapisani u svojim modulima (npr. §M4 B2–B5, §M7 B1/B4/B6/B7,
   §M10 B3) — val 5 je zatvorio tačno svoj opseg iz plana.
 - **`roleSource`** ostaje dokumentovano odstupanje od RAW-a (bez promjene koda).
+
+# Val 5 — ispravka poslije CI-ja: worker modul bez novog loadera (2026-10-05)
+
+Prvi push grane pokrenuo je CI **na `master`** (job `Backend build + test`) i pao je — ovdje je zapisano šta je
+puklo, zašto to lokalna provjera nije uhvatila i šta je popravljeno.
+
+## 1. Nalaz CI-ja
+
+```
+FAIL ./worker.module.spec.ts
+  ● WorkerModule › boots Redis, Prisma, and every scheduled job without HTTP or websocket
+    Nest can't resolve dependencies of the TicketsService (… TicketSafeLoggingConfigurationLoader,
+    ?, TicketArchiveConfigurationLoader, …) … argument TicketPriorityMatrixConfigurationLoader
+    at index [12] is available in the TicketsWorkerCoreModule module.
+```
+
+- **Uzrok:** `backend/src/modules/tickets/worker-core/tickets-worker-core.module.ts` **namjerno** ne uvozi
+  `TicketsModule` (worker nema kontrolere ni gateway) nego sam nabraja providere. M7 B5 je loader dodao u
+  `TicketsModule` (`tickets.module.ts:130`) i u `TicketsService` (`tickets.service.ts:73`), ali **ne i u tu
+  listu** — pa je `WorkerModule` ostao bez njega, a DI graf se ruši pri `builder.compile()`
+  (`src/worker.module.spec.ts:131`).
+- **Fix:** `TicketPriorityMatrixConfigurationLoader` je dodat u `providers` worker modula
+  (import `../priority/ticket-priority-matrix-configuration.loader`, unos uz `TicketSafeLoggingConfigurationLoader`).
+  Worker tako čita **istu** postavku kao API — bez toga bi odgovor stigao e-poštom i prioritet bi se računao po
+  drugoj logici nego u UI-ju.
+- **Ozbiljnost:** SREDNJE (ruši boot worker procesa; API je bio ispravan).
+
+## 2. Zašto lokalna provjera nije uhvatila (i pravilo za dalje)
+
+| Provjera tokom vala 5 | Zašto nije dovoljna |
+|---|---|
+| `npx tsc --noEmit` | Tipovi su bili ispravni — `@Optional()` na parametru i `as never` u harnessima skrivaju DI graf |
+| `npx jest src/modules/tickets src/modules/problems src/modules/settings …` | Specovi po modulima instanciraju servise **ručno** (`new TicketsService(...)`, `as never`); nijedan ne kompajlira Nest modul |
+| `worker.module.spec.ts` / `app.module.spec.ts` | Ovi specovi **kompajliraju cijeli DI graf** i jedini bi uhvatili grešku — nisu bili u lokalnom krugu |
+
+**Pravilo (dodato u praksu ovog vala):** svaka izmjena liste providera (`providers:`/`exports:`) mora u istom
+prolazu pokrenuti `npx jest src/worker.module.spec.ts src/app.module.spec.ts`.
+
+## 3. Dokazi poslije popravke (2026-10-05, ovo okruženje)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Modul-specovi (oni koji su pali u CI-ju) | `npx jest src/worker.module.spec.ts src/app.module.spec.ts --maxWorkers=2` | **2 suita / 3 testa — prolaze** |
+| Tipovi i build | `npx tsc --noEmit`; `npm run build` | 0 grešaka; `nest build` prolazi |
+| Lint | `npm run lint` | 0 grešaka (16 postojećih upozorenja) |
+| Puna backend suita | `npx jest --ci --coverage=false --maxWorkers=2 --shard=1/2` i `--shard=2/2` | **534 suita (5 preskočenih), 2596 prošlih / 2627 testova** |
+| Frontend | `npx tsc -b`; `npx vitest run`; `npm run build` | 0 grešaka; 160 fajlova / 653 testa; `vite build` prolazi |
+| e2e | `npx tsc --noEmit -p tsconfig.json` | 0 grešaka |
+| Guards (CI frontend job) | svih 10 `scripts/check-*.mjs` + 5 pratećih `node --test` | OK |
+
+**Napomena o okruženju:** puna suita u jednom prolazu u sandboksu ubije jedan jest worker (`SIGKILL` — OOM), pa
+je provjerena u dvije polovine (`--shard`); to nije pad testa i u CI-ju se ne pojavljuje.

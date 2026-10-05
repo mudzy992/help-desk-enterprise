@@ -20,6 +20,7 @@ import { TicketConfidentialConfigurationLoader } from '../confidential/ticket-co
 import { TicketCsatConfigurationLoader } from '../csat/ticket-csat-configuration.loader';
 import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
 import { TicketLabelCacheService } from '../labels/ticket-label-cache.service';
+import { TicketPriorityMatrixConfigurationLoader } from '../priority/ticket-priority-matrix-configuration.loader';
 import { TicketRedactionConfigurationLoader } from '../redaction/ticket-redaction-configuration.loader';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
 import { TicketsReopenService } from '../reopen/tickets-reopen.service';
@@ -67,6 +68,9 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     TicketGuardrailsConfigurationLoader,
     TicketConfidentialConfigurationLoader,
     TicketSafeLoggingConfigurationLoader,
+    // M7 B5: workers must read the same switch as the API, otherwise a reply
+    // arriving by e-mail would calculate the priority from a different rule.
+    TicketPriorityMatrixConfigurationLoader,
     TicketArchiveConfigurationLoader,
     TicketCsatConfigurationLoader,
     TicketAssignmentConfigurationLoader,
