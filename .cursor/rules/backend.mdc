@@ -21,5 +21,9 @@ Svaki modul u `src/modules/<domain>/` mora imati:
 - TicketRoutingService i TicketAssignmentService su odvojeni servisi — nikad ne miješaj routing i assignment logiku u jednu funkciju.
 - Vidi `docs/02-routing-logic.md` prije bilo kakve izmjene u routing/assignment servisima.
 
+## DI graf i modul-specovi
+- Uz svaku izmjenu liste `providers:`/`exports:` pokreni i `npx jest src/worker.module.spec.ts src/app.module.spec.ts` — ti specovi jedini kompajliraju Nest DI graf (specovi po modulima servise instanciraju ručno i grešku ne vide).
+- Moduli koji ne uvoze `TicketsModule` (npr. `tickets/worker-core/tickets-worker-core.module.ts`) sami nabrajaju providere — novi provider iz `TicketsModule` ne stiže automatski, dodaj ga i tamo (CI: `worker.module.spec.ts`).
+
 ## Error handling
 Standardni format: `{ code, message, details }` kroz globalni ExceptionFilter — ne bacaj sirove greške.
