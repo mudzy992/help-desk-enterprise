@@ -114,7 +114,9 @@ async function ensureUser(
     });
     return existing.id;
   }
-  const created = await api.requestJson<{ id: string }>('/users', {
+  // `POST /users` answers `{ user, temporaryPassword, temporaryPasswordDelivery }`
+  // (see backend/src/modules/users/users.types.ts), not the user itself.
+  const created = await api.requestJson<{ user: { id: string } }>('/users', {
     method: 'POST',
     body: JSON.stringify({
       email: input.email,
@@ -123,7 +125,7 @@ async function ensureUser(
       organizationalUnitId: input.organizationalUnitId,
     }),
   });
-  return created.id;
+  return created.user.id;
 }
 
 function firstUnitId(
