@@ -16,12 +16,23 @@ export type ReportTrendsConfiguration = {
   readonly cacheSeconds: number;
   readonly slaTargetPercent: number;
   readonly csatMinSample: number;
+  /**
+   * M9/B3 (drugi dio): skala dolazi iz `private.csat.scaleMax`, pa serije
+   * trendova koriste isti prag „zadovoljan” kao Pregled i tab CSAT.
+   */
+  readonly csatScaleMax: number;
   readonly timeZone: string;
 };
 
 /** What the data source is asked for (already scoped and bucketed). */
 export type ReportTrendLoadInput = {
   readonly organizationalUnitIds: readonly string[];
+  /**
+   * M9/B3 (drugi dio): prag „zadovoljan” (`satisfiedMinRating(scaleMax)`) koji
+   * izvori koriste da razvrstaju ocjene; do sada su SQL i in-memory izvor imali
+   * konstantu 4 bez obzira na postavku.
+   */
+  readonly csatSatisfiedMinRating: number;
   readonly serviceId?: string;
   readonly groupId?: string;
   readonly priority?: ReportTrendPriority;

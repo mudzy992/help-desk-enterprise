@@ -1,4 +1,3 @@
-import { reportCsatSatisfiedMinRating } from './report-trends.constants';
 import type {
   ReportTrendCsatRow,
   ReportTrendFlowKind,
@@ -145,7 +144,7 @@ export class InMemoryReportTrendSource implements ReportTrendSource {
         bucket,
         count: current.count + 1,
         ratingSum: current.ratingSum + rating.rating,
-        satisfied: current.satisfied + (rating.rating >= reportCsatSatisfiedMinRating ? 1 : 0),
+        satisfied: current.satisfied + (rating.rating >= input.csatSatisfiedMinRating ? 1 : 0),
       });
     }
 

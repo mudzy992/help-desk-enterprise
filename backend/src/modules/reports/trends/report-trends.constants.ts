@@ -30,9 +30,16 @@ export const reportTrendSettingRanges = {
   cacheSeconds: { min: 60, max: 3600 },
   slaTargetPercent: { min: 50, max: 100 },
   csatMinSample: { min: 1, max: 50 },
+  /** Ista granica kao `parseCsatScaleMax` i CSAT modul (`private.csat.scaleMax`). */
+  csatScaleMax: { min: 2, max: 10 },
 } as const;
 
-/** CSAT „zadovoljan” = ocjena ≥ 4 na skali 1–5 (design §12 pitanje 8). */
+/**
+ * CSAT skala i prag „zadovoljan” (design §12 pitanje 8) sada dolaze iz
+ * `private.csat.scaleMax` (M9/B3, drugi dio). Ove dvije konstante ostaju kao
+ * **rezerva** za slučaj da postavka nije pročitana — istu vrijednost vraća i
+ * `parseCsatScaleMax` za neispravan unos.
+ */
 export const reportCsatSatisfiedMinRating = 4;
 export const reportCsatScaleMax = 5;
 

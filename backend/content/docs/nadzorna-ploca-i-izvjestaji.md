@@ -261,9 +261,6 @@ a e-mail to navodi.
 
 ## Poznata ograničenja
 
-- **Skala na trendovima je fiksna.** Tab **Pregled** i tab **CSAT** koriste skalu iz postavke
-  `private.csat.scaleMax`, ali serije na tabu **Trendovi** i dalje računaju „zadovoljan“ kao ocjenu ≥ 4
-  na skali do 5 — promjena skale na 10 tamo još ne mijenja ni prikaz ni prag.
 - **Opseg sažetka se ne koristi.** API prima `all`, `assignedToMe`, `requestedByMe` i `unassigned`, a ploča
   uvijek traži `all`; „Dodijeljeni meni“ i „Moji zahtjevi“ su brojači iz istog odgovora. Razlog: ploča
   prikazuje jedan zajednički pregled, a ne četiri odvojena.

@@ -191,10 +191,13 @@ const configuration: ReportTrendsConfiguration = {
   cacheSeconds: 600,
   slaTargetPercent: 90,
   csatMinSample: 5,
+  csatScaleMax: 5,
   timeZone: zone,
 };
 
-function createService(overrides: { enabled?: boolean; reportsEnabled?: boolean } = {}) {
+function createService(
+  overrides: { enabled?: boolean; reportsEnabled?: boolean; csatScaleMax?: number } = {},
+) {
   const audit: unknown[] = [];
   const prisma = {
     organizationalUnit: {
@@ -230,7 +233,13 @@ function createService(overrides: { enabled?: boolean; reportsEnabled?: boolean 
         pingPongThreshold: 3,
       }),
     } as never,
-    { load: async () => ({ ...configuration, enabled: overrides.enabled ?? true }) } as never,
+    {
+      load: async () => ({
+        ...configuration,
+        enabled: overrides.enabled ?? true,
+        csatScaleMax: overrides.csatScaleMax ?? configuration.csatScaleMax,
+      }),
+    } as never,
     cache as never,
     new InMemoryReportTrendSource(() => dataset),
   );
@@ -258,6 +267,15 @@ describe('ReportTrendsService with the reference source (design §3 definitions)
     expect(february?.csat).toMatchObject({ count: 1, average: 5, satisfiedPercent: 100, lowSample: true });
     // The HR rating is outside the unit scope.
     expect(march?.csat).toMatchObject({ count: 1, average: 3, satisfiedPercent: 0, lowSample: true });
+  });
+
+  it('takes the CSAT scale and the "satisfied" threshold from the setting (M9/B3, drugi dio)', async () => {
+    const { service } = createService({ csatScaleMax: 10 });
+    const trends = await service.trends(query, now);
+    // Skala 10 -> prag "zadovoljan" je 8 (80%), pa ocjena 5 više nije zadovoljna.
+    expect(trends.settings).toMatchObject({ csatScaleMax: 10, csatSatisfiedMinRating: 8 });
+    // Ocjena 5 je data u februaru (isti dataset kao prvi test).
+    expect(trends.points[1]?.csat).toMatchObject({ count: 1, average: 5, satisfiedPercent: 0 });
     expect(trends.points.every((point) => !point.partial)).toBe(true);
   });
 

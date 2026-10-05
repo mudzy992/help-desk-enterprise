@@ -93,7 +93,7 @@ rolu.
 | Broj ocjena | **Jedna po tiketu** |
 | Komentar | Opcionalan, do 2000 znakova; prolazi provjeru osjetljivog sadržaja |
 | Izmjena | Nije moguća (nema izmjene ni brisanja) |
-| Gdje se vidi | **Izvještaji → Pregled** (KPI kartica **CSAT**) i **Izvještaji → CSAT** (prosjek na važećoj skali, broj ocjena, prag zadovoljan i razrez po jedinici, servisu i grupi — sa **nazivima**, ne ID-evima) |
+| Gdje se vidi | **Izvještaji → Pregled** (KPI kartica **CSAT**), **Izvještaji → CSAT** (prosjek na važećoj skali, broj ocjena, prag zadovoljan i razrez po jedinici, servisu i grupi — sa **nazivima**, ne ID-evima) i **Izvještaji → Trendovi** (serije po vremenu; skala i prag prate istu postavku) |
 
 ### Povezani statusi tiketa
 
@@ -135,8 +135,6 @@ rolu.
   API-ju. Za razrez po vremenu koristite tab **Trendovi** (serije).
 - **Naziv razreza se čita iz šifarnika u trenutku prikaza.** Ako je jedinica, servis ili grupa obrisana, red
   prikazuje ID iz same ocjene — nikad prazno polje; istorijski naziv se ne čuva.
-- **Serije na tabu Trendovi** su i dalje vezane na skalu 5 i prag ≥ 4, bez obzira na postavku
-  `private.csat.scaleMax`; **tab Pregled i tab CSAT** poštuju postavku. (Preostali dio nalaza B3.)
 - **Postavka „koristi manager-a naručioca kao odobravaoca“** je vidljiva u postavkama, ali ne mijenja ponašanje.
   (Nalaz B4.)
 - **Zapis u change logu za ocjenu ne pokazuje razliku** (prije i poslije su identični); sama ocjena je vidljiva u

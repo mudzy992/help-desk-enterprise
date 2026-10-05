@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { empty, sqltag } from '@prisma/client/runtime/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { reportCsatSatisfiedMinRating } from './report-trends.constants';
 import type {
   ReportTrendCsatRow,
   ReportTrendFlowKind,
@@ -107,7 +106,7 @@ export class SqlReportTrendSource implements ReportTrendSource {
         SELECT width_bucket(r."createdAt", ${thresholds}::timestamp(3)[]) AS i,
                count(*)::int AS n,
                sum(r.rating)::int AS s,
-               count(*) FILTER (WHERE r.rating >= ${reportCsatSatisfiedMinRating})::int AS ok
+               count(*) FILTER (WHERE r.rating >= ${input.csatSatisfiedMinRating})::int AS ok
         FROM "TicketCsat" r
         JOIN "Ticket" t ON t.id = r."ticketId"
         WHERE ${scope}

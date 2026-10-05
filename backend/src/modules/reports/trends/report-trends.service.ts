@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { satisfiedMinRating } from '../../tickets/csat/aggregate-ticket-csat';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { reportErrorCodes, type ReportExportFormat } from '../reports.constants';
 import { ReportsConfigurationLoader } from '../reports-configuration.loader';
@@ -149,6 +150,8 @@ export class ReportTrendsService {
       zone: configuration.timeZone,
       sla: configuration.slaTargetPercent,
       csat: configuration.csatMinSample,
+      // M9/B3 (drugi dio): promjena skale mijenja i „zadovoljan”, pa ulazi u ključ.
+      csatScale: configuration.csatScaleMax,
     });
     const cached = await this.cache.read(cacheKey);
     if (cached !== null) {
@@ -156,6 +159,7 @@ export class ReportTrendsService {
     }
     const raw = await this.source.load({
       organizationalUnitIds: scopedIds,
+      csatSatisfiedMinRating: satisfiedMinRating(configuration.csatScaleMax),
       serviceId: query.serviceId,
       groupId: query.groupId,
       priority: query.priority,
@@ -169,6 +173,7 @@ export class ReportTrendsService {
       timeZone: configuration.timeZone,
       slaTargetPercent: configuration.slaTargetPercent,
       csatMinSample: configuration.csatMinSample,
+      csatScaleMax: configuration.csatScaleMax,
       now,
     });
     await this.cache.write(cacheKey, trends, configuration.cacheSeconds);

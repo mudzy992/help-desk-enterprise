@@ -1,9 +1,6 @@
+import { satisfiedMinRating } from '../../tickets/csat/aggregate-ticket-csat';
 import type { ReportTrendBucketPlan } from './build-report-trend-buckets';
-import {
-  reportCsatSatisfiedMinRating,
-  reportCsatScaleMax,
-  reportTrendTopServiceLimit,
-} from './report-trends.constants';
+import { reportTrendTopServiceLimit } from './report-trends.constants';
 import type {
   ReportTrendCsat,
   ReportTrendCsatRow,
@@ -26,6 +23,8 @@ export function assembleReportTrends(input: {
   readonly timeZone: string;
   readonly slaTargetPercent: number;
   readonly csatMinSample: number;
+  /** M9/B3 (drugi dio): skala iz `private.csat.scaleMax` (prag se izvodi iz nje). */
+  readonly csatScaleMax: number;
   readonly now: Date;
   readonly unknownServiceLabel?: string;
 }): ReportTrends {
@@ -110,8 +109,8 @@ export function assembleReportTrends(input: {
     settings: {
       slaTargetPercent: input.slaTargetPercent,
       csatMinSample: input.csatMinSample,
-      csatScaleMax: reportCsatScaleMax,
-      csatSatisfiedMinRating: reportCsatSatisfiedMinRating,
+      csatScaleMax: input.csatScaleMax,
+      csatSatisfiedMinRating: satisfiedMinRating(input.csatScaleMax),
     },
   };
 }

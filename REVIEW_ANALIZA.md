@@ -5601,7 +5601,8 @@ stanje (Redis, baza) i prebacivao filtre u upite.
 - ~~**M10 B5** (`NISKO`) — uzorak dnevnika skenera prijavljuje netačno „preostalo“~~ ✅ **zatvoreno 2026-10-05**
   (vidi `# Popravke poslije vala 4`, §2).
 - **M15 B4** (`NISKO`) — opseg sažetka postoji u API-ju, ali ga klijent ne koristi.
-- **M9 B3 — drugi dio** (`NISKO`) — CSAT serije na tabu Trendovi i dalje koriste konstantnu skalu.
+- ~~**M9 B3 — drugi dio** (`NISKO`) — CSAT serije na tabu Trendovi i dalje koriste konstantnu skalu~~ ✅
+  **zatvoreno 2026-10-05** (vidi `# Popravke poslije vala 4`, §3).
 - **M12 B1 ostaje bez migracije:** preuzimanje koristi postojeći `updatedAt`; ako se u međuvremenu doda
   `claimedAt`, filter treba prebaciti na njega.
 - **18 registriranih postavki bez potrošača** i **EN sadržaj vodiča** — čekaju odluku vlasnika (bez promjene).
@@ -5792,8 +5793,8 @@ dokazuje — to je deliverable iz tačke 2 korisnikovog odgovora (spisak priprem
 
 - **E-1:** repozitorijske varijable i secreti za e2e (odluka i radnja vlasnika) — uputstvo je sada u
   `e2e/README.md`; do tada e2e job ostaje zelen bez izvršavanja.
-- Ranije otvoreno (nepromijenjeno): ~~M10 B5~~ ✅ **zatvoreno 2026-10-05** (`# Popravke poslije vala 4`, §2),
-  M15 B4, M9 B3-2, 18 postavki bez potrošača (od toga 4 addon prekidača koja nešto obećavaju), EN sadržaj vodiča.
+- Ranije otvoreno: ~~M10 B5~~ ✅ i ~~M9 B3-2~~ ✅ **zatvoreno 2026-10-05** (`# Popravke poslije vala 4`, §2 i §3),
+  M15 B4, mrtve postavke (odluka vlasnika: ukloniti), EN sadržaj vodiča (odluka: prevesti ključne stranice).
 
 # Popravke poslije vala 4 — crveni lint u CI i dnevnik skenera SLA (2026-10-05)
 
@@ -5822,3 +5823,15 @@ Imena polja u logu (`sla_scan_duration_ms`, `sla_scan_processed`, `sla_scan_batc
 mijenjana, pa postojeći log pipeline i `PERFORMACE_PHASE_PLAN.md` ostaju tačni. Iz `docs/user-guide/sla.md` uklonjeno
 je ograničenje koje je ovim prestalo da važi; unos u `DOCS_CHANGELOG.md` je označen `[interno]` jer korisnik ne vidi
 promjenu (mijenja se samo sadržaj linije u logu radnika).
+
+## 3. M9 B3 (drugi dio) — CSAT skala i prag i na serijama Trendova
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **M9 B3-2** | Pregled i tab CSAT poštuju `private.csat.scaleMax`, tab **Trendovi** ne | `backend/src/modules/reports/trends/report-trends.constants.ts:36–37` (konstante `reportCsatSatisfiedMinRating = 4`, `reportCsatScaleMax = 5`) korištene u `assemble-report-trends.ts:113–114`, `sql-report-trend-source.ts:110` i `in-memory-report-trend-source.ts:148` (prije popravke) | Na skali 10 trendovi su i dalje brojali „zadovoljan“ kao ≥ 4 i crtali skalu do 5 — ista postavka davala je dvije različite slike | `report-trends-configuration.loader.ts` čita `private.csat.scaleMax` (parser `parseCsatScaleMax`, izvezen iz `reports/parse-reports-configuration.ts:76`); `csatScaleMax` ulazi u `ReportTrendsConfiguration`, prag se izvodi kroz `satisfiedMinRating()` iz `tickets/csat/aggregate-ticket-csat.ts:68`; **oba izvora** dobijaju prag kroz `ReportTrendLoadInput.csatSatisfiedMinRating`; keš ključ dobija `csatScale` | **NISKO** |
+
+Dokazi: `npx jest src/modules/reports` → **26 suita / 132 testa** (nov
+`report-trends-configuration.loader.spec.ts` — 3 testa; `report-trends.spec.ts` — nov test sa skalom 10 traži
+`settings { csatScaleMax: 10, csatSatisfiedMinRating: 8 }` i da ocjena 5 nije „zadovoljna“); `npx tsc --noEmit` → 0.
+Iz vodiča su uklonjena oba zapisa o fiksnoj skali, a `odobrenja-i-csat.md` sada navodi i **Trendovi** među
+mjestima gdje se CSAT vidi; `DOCS_CHANGELOG.md` ima unos, ogledalo regenerisano (`Docs provjera: OK (29 stranica, 9 provjera)`).

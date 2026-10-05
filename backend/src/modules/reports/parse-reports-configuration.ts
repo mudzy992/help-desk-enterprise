@@ -72,8 +72,11 @@ export function parseReportsConfiguration(input: {
 /**
  * Val 1 (M9/B3): ista pravila kao `parseTicketCsatConfiguration` — skala je
  * cijeli broj 2–10; neispravna vrijednost vraća se na zadanu (5).
+ *
+ * Val 5 (M9/B3, drugi dio): izvezena da je i `ReportTrendsConfigurationLoader`
+ * koristi — jedan parser za sve tri površine (Pregled, CSAT, Trendovi).
  */
-function parseCsatScaleMax(value: unknown): number {
+export function parseCsatScaleMax(value: unknown): number {
   return typeof value === 'number' &&
     Number.isInteger(value) &&
     value >= 2 &&

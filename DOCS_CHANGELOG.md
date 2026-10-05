@@ -35,6 +35,7 @@
 | **Val 2** | 2026-10-04 | **Sigurnost i vidljivost (M6, M8, M9, M10, M12, M13, M14)** | `user-guide/odobrenja-i-csat.md`, `user-guide/sla.md`, `user-guide/tiketi.md`, `user-guide/posta.md`, `user-guide/baza-znanja.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/katalog-usluga-i-forme.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M6, §M8, §M9, §M10, §M12, §M13, §M14, `# Val 2`), ovaj dokument | **Deset nalaza zatvoreno: provjera šablona pri slanju, zamjena ličnih podataka i pri upisu članka, redakcija broadcasta, nacrti usluga samo adminima, jedan izvor retencije priloga, obavještenje o odobrenju i kapija za `UNROUTED`, eskalacije s primaocem, retroaktivni satovi i prvi odgovor nezavisan od SLA-a** |
 | **Val 3** | 2026-10-04 – 2026-10-05 | **Pouzdanost i performanse (M8, M11, M12, M13, M14)** | `user-guide/posta.md`, `user-guide/realtime-i-obavjestenja.md`, `user-guide/tiketi.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/baza-znanja.md`, `user-guide/sta-je-novo.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M8, §M11, §M12, §M13, §M14, `# Val 3`), ovaj dokument | **Devet nalaza i jedan preventivni guard: Redis limiteri (broadcast, testno slanje), preuzimanje zaglavljene isporuke e-maila + pločica Operativno zdravlje, dijeljeni SMTP pool, dvojezične oznake obavijesti, provjera soba tokom veze i limit ulaska u sobu, opseg u upitu pickera, vidljivost baze znanja u jednom prolazu; „Šta je novo“ dopunjeno i za val 2 (nedostajao)** |
 | M10 | 2026-10-05 | SLA — dnevnik skenera (B5) | `user-guide/sla.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M10, `# Popravke poslije vala 4`), ovaj dokument | **[interno]** Uzorak ciklusa prijavljuje stvarni broj stanja koja čekaju sljedeći ciklus (do sada uvijek 0); ograničenje uklonjeno iz vodiča |
+| M9 | 2026-10-05 | Odobrenja i CSAT; Nadzorna ploča | `user-guide/odobrenja-i-csat.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, `# Popravke poslije vala 4`), ovaj dokument | **Skala i prag „zadovoljan“ sada važe i na serijama taba Trendovi; ograničenje uklonjeno iz vodiča** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1415,3 +1416,31 @@ izraz praktično uvijek **0** i nadzor je davao sliku da nema zaostatka — baš
 
 **Iz vodiča uklonjeno:** `docs/user-guide/sla.md` više ne navodi ograničenje „uzorak može prikazati da nema
 zaostatka“ — ono je ovim zatvoreno.
+
+## CSAT na trendovima prati skalu iz postavke, M9 B3 drugi dio (2026-10-05)
+
+**Nalaz (NISKO, otvoren od vala 1):** tab **Pregled** i tab **CSAT** čitali su skalu iz postavke
+`private.csat.scaleMax`, ali **serije na tabu Trendovi** računale su „zadovoljan“ kao ocjenu ≥ 4 na skali do 5 —
+konstante `reportCsatSatisfiedMinRating = 4` i `reportCsatScaleMax = 5`. Promjena skale na 10 mijenjala je
+Pregled i CSAT, a trendove ne.
+
+**Šta je urađeno (backend):**
+
+- `reports/trends/report-trends-configuration.loader.ts` čita i `private.csat.scaleMax` (parser
+  `parseCsatScaleMax` je izvezen iz `reports/parse-reports-configuration.ts` — jedan parser za sve tri površine,
+  granica 2–10, neispravno → 5);
+- `ReportTrendsConfiguration` nosi `csatScaleMax`, a prag se izvodi u `assemble-report-trends.ts` preko
+  `satisfiedMinRating(scaleMax)` (80 % skale, isto pravilo kao CSAT modul);
+- **oba izvora** koriste isti prag: SQL (`count(*) FILTER (WHERE r.rating >= ${input.csatSatisfiedMinRating})`)
+  i in-memory izvor; ranije su imali konstantu;
+- keš ključ trendova sada sadrži i skalu (`csatScale`), pa promjena postavke ne vraća stari proračun iz keša;
+- konstante `reportCsatScaleMax`/`reportCsatSatisfiedMinRating` ostaju **samo kao rezerva** i dokumentovane su tako.
+
+**Testovi:** `report-trends.spec.ts` — nov test sa `csatScaleMax: 10` (prag 8, ocjena 5 nije „zadovoljna“, a
+`settings` vraća 10/8) i `csatScaleMax` u osnovnoj konfiguraciji; nov
+`report-trends-configuration.loader.spec.ts` (3 testa: validna skala, rezerva za neispravan unos, ostale postavke
+nepromijenjene).
+
+**Iz vodiča uklonjeno:** `user-guide/nadzorna-ploca-i-izvjestaji.md` i `user-guide/odobrenja-i-csat.md` više ne
+navode „skala na trendovima je fiksna“; tabela u `odobrenja-i-csat.md` sada pominje i **Trendovi** kao mjesto gdje
+se CSAT vidi.
