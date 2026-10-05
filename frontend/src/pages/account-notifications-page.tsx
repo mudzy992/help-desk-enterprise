@@ -180,17 +180,17 @@ export function AccountNotificationsPage() {
       {draft && policy ? (
         <div className="space-y-5">
           {!editable ? (
-            <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground">
+            <p className="rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground">
               {t("account.notifications.disabledByAdmin")}
             </p>
           ) : null}
           {!policy.emailChannelAvailable ? (
-            <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground">
+            <p className="rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground">
               {t("account.notifications.emailUnavailable")}
             </p>
           ) : null}
           {showTeams && teamsConnected !== null ? (
-            <p className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="teams-connection">
+            <p className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="teams-connection">
               <span className="font-medium text-foreground">{t("account.notifications.teamsLabel")}</span>
               <Badge tone={teamsConnected ? "success" : "neutral"} dot>
                 {teamsConnected ? t("account.notifications.teamsConnected") : t("account.notifications.teamsNotInstalled")}

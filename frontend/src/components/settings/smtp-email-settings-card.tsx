@@ -17,7 +17,6 @@ import {
   readStringSetting,
 } from "@/lib/settings/read-setting-entry";
 import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
-import { cn } from "@/lib/utils";
 import {
   emailChannelSettingKeys,
   type SettingRegistryEntry,
@@ -96,12 +95,19 @@ export function SmtpEmailSettingsCard({
             />
           }
         />
-        <div
-          className={cn(
-            "space-y-2.5 px-4 pt-4 text-[12px]",
-            !effectiveEnabled && "pointer-events-none opacity-40",
-          )}
-        >
+        {/*
+          No `opacity-40` here: it dropped every value in this block below 4.5:1
+          (measured 2.3:1 for `text-foreground/90`, 1.8:1 for the muted labels),
+          and axe reported all of it as `serious color-contrast` in the 2026-10-05
+          run. Disabling is now carried by the note below and by the disabled
+          button, so the information stays readable while the channel is off.
+        */}
+        <div className="space-y-2.5 px-4 pt-4 text-[12px]">
+          {!effectiveEnabled ? (
+            <p className="text-muted-foreground" data-testid="smtp-disabled-note">
+              {t("settings.smtp.disabledNote")}
+            </p>
+          ) : null}
           <p className="flex items-center justify-between">
             <span className="text-muted-foreground">{t("settings.smtp.provider")}</span>
             <span className="text-foreground/90" data-testid="smtp-provider">
@@ -145,6 +151,7 @@ export function SmtpEmailSettingsCard({
             size="xs"
             variant="outline"
             className="mt-1"
+            disabled={!effectiveEnabled}
             onClick={() => setDrawerOpen(true)}
           >
             {t("settings.smtp.editDetails")}

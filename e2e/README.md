@@ -118,6 +118,10 @@ SKIPPED 1 test(s) — a skip is not a pass:
   like coverage. A skip still means the step was *not* verified.
 - **Artifacts** (`playwright-report`, `test-results`, `results.json`) are uploaded on every run, also on failure;
   `test-results` holds the traces of failed attempts (`trace: 'on-first-retry'`).
+- **Retry policy** (`ApiClient.send`): a `GET` is always repeated once (2 s apart), and **any method** is repeated
+  when the connection never opened (`UND_ERR_CONNECT_TIMEOUT`, `ECONNREFUSED`, `ENOTFOUND`, `EAI_AGAIN`, …) — a
+  request that never reached the API cannot have written anything. A reset after sending is never repeated for a
+  write. Specs 23 and 24 were lost to a 10 s connect timeout on `POST /auth/login` in the 2026-10-05 run.
 - A network-level failure is never a bare `TypeError: fetch failed` any more: `ApiClient` (`send`) raises
   `NETWORK <METHOD> <path> failed: … (cause: ECONNREFUSED …) — the API at <url> was not reachable from the
   runner.` An **idempotent `GET` is retried once** (2 s apart), because the e2e job runs against a live stack
@@ -125,6 +129,9 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - **Triage mode** (Actions → CI → *Run workflow*): `max_failures=8` stops after eight failures and `retries=0`
   does not retry them. A red run then takes a few minutes instead of ~35; the defaults (`0` / `1`) keep the full,
   strict run.
+- **Dialogs: click the button, not its position.** `ModalContent` renders the X close button *after* the footer
+  (`frontend/src/components/ui/modal.tsx`), so `getByRole('button').last()` inside a dialog clicks **close**. Use
+  `getByTestId('confirm-dialog-confirm')` (or `'confirm-dialog-cancel'`) — spec 14 failed on every run until it did.
 - **Narrow the run**: the `specs` input takes comma-separated spec numbers, e.g. `specs=10,18,22`, and runs only
   `e2e/tests/10-*.spec.ts`, `18-*` and `22-*` (global setup still runs, so accounts and the install are prepared).
   An unknown number fails the step with `Unknown spec` instead of quietly running everything. Use it to re-check a

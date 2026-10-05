@@ -893,6 +893,7 @@
     "smtp": {
       "title": "SMTP / Email channel",
       "subtitle": "Secret settings stay encrypted; turning SMTP off stops outbound mail",
+      "disabledNote": "The channel is off — the values below are not used and the fields are locked.",
       "enabled": "SMTP enabled",
       "host": "Host",
       "username": "Username",

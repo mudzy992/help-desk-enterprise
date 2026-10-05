@@ -1,6 +1,19 @@
 import { readE2EEnvironment } from './environment';
 import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from './mfa';
 
+/**
+ * Connect-phase network errors: the request never reached the API, so repeating
+ * it cannot duplicate a write (undici throws these from the connector).
+ */
+const connectFailures = new Set([
+  'UND_ERR_CONNECT_TIMEOUT',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+]);
+
 export type ApiErrorBody = {
   readonly code?: string;
   readonly message?: string;
@@ -104,9 +117,15 @@ export class ApiClient {
    * Every network-level failure now names the request and carries the cause
    * (`ECONNREFUSED`, `ENOTFOUND`, `UND_ERR_SOCKET`, …).
    *
-   * A `GET` is retried once, because the e2e job runs against a live stack that
-   * can be redeploying at the same moment; anything else fails immediately so a
-   * retry can never duplicate a write.
+   * Retry policy, both cases once with a 2 s pause:
+   *
+   * - a `GET` is always safe to repeat;
+   * - **any method is repeated when the connection never opened** — the full run
+   *   of 2026-10-05 lost specs 23 and 24 to `UND_ERR_CONNECT_TIMEOUT` after 57
+   *   minutes, and a request that never reached the API cannot have written
+   *   anything. `CONNECT_FAILURES` lists exactly the connect-phase codes;
+   *   a reset/timeout after sending (`UND_ERR_SOCKET`, `ECONNRESET`) is never
+   *   repeated for a write.
    */
   private async send(
     path: string,
@@ -125,7 +144,8 @@ export class ApiClient {
           : '';
       const causeMessage = cause instanceof Error ? cause.message : String(cause ?? '');
       const detail = [causeCode, causeMessage].filter((part) => part.length > 0).join(' / ');
-      if (method === 'GET' && attempt === 0) {
+      const retryable = method === 'GET' || connectFailures.has(causeCode);
+      if (retryable && attempt === 0) {
         await new Promise((resolve) => setTimeout(resolve, 2_000));
         return this.send(path, init, headers, attempt + 1);
       }

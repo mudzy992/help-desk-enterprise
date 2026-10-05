@@ -903,6 +903,7 @@
     "smtp": {
       "title": "SMTP / Email kanal",
       "subtitle": "Secret postavke se čuvaju šifrovane; isključivanje gasi odlazni mail",
+      "disabledNote": "Kanal je isključen — vrijednosti ispod se ne koriste, a polja su zaključana.",
       "enabled": "SMTP uključen",
       "host": "Host",
       "username": "Korisnik",

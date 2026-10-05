@@ -42,7 +42,13 @@ test.describe('11 e-mail templates', () => {
       method: 'POST',
       body: JSON.stringify({ key: 'ticket.message', locale: 'bs' }),
     });
-    expect(normal.subject).toMatch(/^\[HD-2026-000123\] /);
+    // `render-email-message.ts` prefixes `[number] ` only when the filled subject
+    // does not already contain the ticket number, and the stored template
+    // registry on a live stack may differ from the built-in default. The product
+    // guarantee is that the ticket is identifiable in the subject — that is what
+    // is asserted here (run 2026-10-05: the strict `/^\[HD-…\] /` was flaky for
+    // exactly that reason: "Nova poruka na HD-2026-000123").
+    expect(normal.subject).toContain('HD-2026-000123');
     expect(normal.html).toContain('<!DOCTYPE html>');
     expect(normal.text).toContain('VPN ne radi');
 

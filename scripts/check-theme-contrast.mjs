@@ -326,6 +326,30 @@ for (const file of walk("frontend/src")) {
 console.log(`  ${opacityHits} upotreba prozirnosti na tekstu`);
 console.log("");
 
+// ── Check D: usage — sekundarni tekst na prozirnoj `muted` podlozi ─────────
+// Treći e2e prolaz (2026-10-05, spec 22): `bg-muted/40` + `text-muted-foreground`
+// daje 3,08:1 (svjetla) i 3,27:1 (tamna), a success bedž unutar takve podloge
+// 2,98:1 — axe je to prijavio kao `serious color-contrast` na dvije stranice.
+// Prozirna muted podloga nije `surface`, pa se par koji prolazi u tabeli A ovdje
+// ruši. Dozvoljeno je: solidna površina (`bg-surface`) uz `text-muted-foreground`,
+// ili zadržan tint uz `text-foreground`.
+console.log("D. Upotreba — bez `text-muted-foreground` na prozirnoj `bg-muted/NN`");
+const mutedOnAlphaPattern = /bg-muted\/\d+/;
+let mutedOnAlphaHits = 0;
+for (const file of walk("frontend/src")) {
+  const lines = stripCommentsKeepingStrings(readFileSync(join(root, file), "utf8")).split("\n");
+  lines.forEach((line, index) => {
+    if (!mutedOnAlphaPattern.test(line) || !line.includes("text-muted-foreground")) return;
+    mutedOnAlphaHits += 1;
+    failures.push(
+      `usage: ${relative(root, file)}:${index + 1} — \`text-muted-foreground\` na \`bg-muted/NN\` daje ` +
+        `3,08:1 (svjetla) / 3,27:1 (tamna); koristi \`bg-surface\` ili \`text-foreground\``,
+    );
+  });
+}
+console.log(`  ${mutedOnAlphaHits} upotreba sekundarnog teksta na prozirnoj muted podlozi`);
+console.log("");
+
 // ── Verdict ─────────────────────────────────────────────────────────────────
 if (failures.length > 0) {
   for (const failure of failures) console.error(`✖ ${failure}`);
@@ -334,5 +358,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✔ ${palettes.length} paleta × ${pairs.length + 4 + tones.length * 2} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
+  `✔ ${palettes.length} paleta × ${pairs.length + 4 + tones.length * 2} parova, ${usages} upotreba \`text-primary\`, ` +
+    `${opacityHits + mutedOnAlphaHits} prozirnih kombinacija teksta — sve unutar praga`,
 );

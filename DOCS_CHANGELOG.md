@@ -125,6 +125,45 @@ MANUAL`, bez timera nema POST-a, greška se propagira); `cd e2e && npx tsc --noE
 | `e2e/tests/10-forward-cross-ou.spec.ts` | `withSettings` fiksira auto-dodjelu i grupni inbox; tvrdnja na `:90` nosi poruku s putem provjere | `backend/src/modules/tickets/forwarding/tickets-forwarding.service.ts:75–77` |
 | `REVIEW_ANALIZA.md` | Nalazi **D-20** i **D-21**, dokazi, status otvorenog | ova izmjena |
 
+### Treći (puni) e2e prolaz: AA kontrast, klik na potvrdu i mrežna robusnost (D-22 … D-25)
+
+**Zašto:** puni prolaz (71 test, 57 min) dao je 62 passed / 6 failed / 2 flaky / 1 skipped. Šest padova ima tri
+korijena, svi popravljeni; **četiri su bila u frontend kodu**, ne u testovima:
+
+- **D-22 (spec 22 ×4, `serious color-contrast`)** — obavijesti na `/account/notifications` bile su `bg-muted/40`
+  s `text-muted-foreground` (**3,08:1** svjetla / **3,27:1** tamna), success bedž unutar prve **2,98:1** (zato ga
+  je axe prijavio samo u svjetloj temi), a SMTP kartica u isključenom stanju nosila je `opacity-40` preko cijelog
+  informacionog bloka (**2,30:1**, **1,80:1**). Popravka: obavijesti na `bg-surface`, `opacity-40` uklonjen uz
+  čitljivu notu i `disabled` na dugmetu, a isti dokazani par uklonjen i na dvije lokacije van skeniranih stranica.
+- **D-23 (spec 14)** — `ModalContent` renderuje X dugme **poslije** footera, pa je `getByRole('button').last()`
+  kliktao zatvaranje umjesto potvrde; timer je ostajao na starom tiketu. `ConfirmDialog` sada ima `data-testid`
+  za oba dugmeta, a spec klikne potvrdu po imenu.
+- **D-24 (spec 11)** — subject dobija `[broj] ` prefiks **samo ako broj nije već u njemu**
+  (`render-email-message.ts:136–141`), pa je stroga tvrdnja bila flaky kad se registar šablona na stacku razlikuje
+  od ugrađenog defaulta. Tvrdnja sada provjerava garanciju: broj tiketa je u subjectu.
+- **D-25 (specovi 23 i 24)** — `UND_ERR_CONNECT_TIMEOUT` na `POST /auth/login` (API nedostupan 10 s). `ApiClient`
+  sada ponavlja **svaki metod** jednom kada je uzrok connect-faza (zahtjev nikad nije stigao do API-ja, pa ponavljanje
+  ne može udvostručiti upis); prekid poslije slanja i dalje se ponavlja samo za `GET`.
+
+**Dokazi:** `node /tmp/contrast-check.mjs` reprodukuje stare vrijednosti (3,08 / 2,98 / 2,30 / 1,80) i pokazuje nove
+(5,85 / 5,50 / 5,85 / 13,75) u obje teme; `node /tmp/api-retry-check.cjs` → 5/5; `frontend`: `tsc -b` 0, vitest
+**160 fajlova / 653 testa**, `check-theme-contrast` (12 paleta × 23 para), `check-a11y-static`, `check-hooks-order`
+svi OK; `e2e`: `tsc` 0, samotest summarizera 12/12, `--list` 71 test u 36 fajlova; `check-client-neutral` i
+`check-docs-content` zeleni.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `frontend/src/pages/account-notifications-page.tsx` | Tri obavijesti: `bg-muted/40` → `bg-surface` | axe nalaz `.bg-muted\/40.rounded-lg.py-2` + izmjereni kontrast |
+| `frontend/src/components/settings/smtp-email-settings-card.tsx` | Uklonjen `opacity-40` i `pointer-events-none`; dodata nota i `disabled` na dugmetu | axe nalaz `.opacity-40 > …` (9 elemenata) |
+| `frontend/src/i18n/locales/{bs,en}/common.json` | Nova `settings.smtp.disabledNote` | tekst note u kartici |
+| `frontend/src/components/ui/confirm-dialog.tsx` | `data-testid` za potvrdu i otkaz | `frontend/src/components/ui/modal.tsx:36` (X poslije footera) |
+| `frontend/src/components/services/service-catalog-read-only-banner.tsx`, `frontend/src/components/tickets/ticket-detail-conversation.tsx` | Isti dokazani par: tekst na `text-foreground`, tint ostaje | izmjereni kontrast 3,08:1 → 10,04:1 |
+| `e2e/tests/14-time-tracking.spec.ts` | Klik na `confirm-dialog-confirm` | D-23 |
+| `e2e/tests/11-email-templates.spec.ts` | Subject: provjera sadrži broj tiketa | `render-email-message.ts:136–141` |
+| `e2e/helpers/api-client.ts` | Ponavljanje i za upise kada je uzrok connect-faza | `UND_ERR_CONNECT_TIMEOUT` u punom prolazu |
+| `scripts/check-theme-contrast.mjs` | Nova provjera **D**: `text-muted-foreground` na `bg-muted/NN` (izmjereno 3,08:1 / 3,27:1) pada CI, uz uputu na `bg-surface` ili `text-foreground` | negativna kontrola: guard padne kad se stari par vrati, prolazi poslije ispravke |
+| `REVIEW_ANALIZA.md` | Nalazi D-22 … D-26, dokazi, stanje pokrivenosti | ova izmjena |
+
 ### Ostaje otvoreno `[NEJASNO]`
 
 1. RAW upućuje na `.cursor/docs/04-install-wizard.md`; taj fajl ne postoji u repou (`.cursor/docs/` sadrži

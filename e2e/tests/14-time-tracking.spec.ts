@@ -67,7 +67,12 @@ test.describe('14 time tracking guard', () => {
     await page.getByTestId('time-start').click();
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toContainText(firstView.ticketNumber);
-    await dialog.getByRole('button').last().click();
+    // Run 2026-10-05: `getByRole('button').last()` clicked the dialog's X button,
+    // because `ModalContent` renders it *after* the footer
+    // (`frontend/src/components/ui/modal.tsx`). The dialog then just closed and
+    // the timer stayed on the first ticket, so the next assertion saw the old
+    // number. The confirm button has an explicit test id now.
+    await dialog.getByTestId('confirm-dialog-confirm').click();
     await expect(page.getByTestId('active-timer-indicator')).toContainText(secondView.ticketNumber);
     const firstLogs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
     expect(firstLogs.every((log) => log.endedAt !== null)).toBe(true);

@@ -43,6 +43,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant="secondary"
+            data-testid="confirm-dialog-cancel"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
@@ -51,6 +52,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant={intent === "danger" ? "danger" : "primary"}
+            data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
             disabled={isPending}
           >

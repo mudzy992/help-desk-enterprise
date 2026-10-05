@@ -94,7 +94,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
       </div>
       {props.ticket.status === "ARCHIVED" ? null : props.ticket.mergedIntoTicketId ? (
         // Package 1.2 (M3): a merged child is read-only; replies go to the parent.
-        <p className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="ticket-merged-composer-notice">
+        <p className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-foreground" data-testid="ticket-merged-composer-notice">
           {t("tickets.merge.composerNotice")}{" "}
           <Link className="tnum font-medium text-link hover:underline" to={`/tickets/${props.ticket.mergedIntoTicketId}`}>
             {props.ticket.mergedIntoTicketNumber ?? t("tickets.merge.parentFallback")}
