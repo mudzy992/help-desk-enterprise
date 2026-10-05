@@ -18,6 +18,7 @@ export const auditLogListMaxTake = 200;
 
 export const auditLogActions = {
   policyPackApply: 'policy_pack.apply',
+  policyPackUnapply: 'policy_pack.unapply',
   ticketConfidentialViewed: 'ticket_confidential_viewed',
   ticketConfidentialDenied: 'ticket_confidential_denied',
   ticketConfidentialBreakGlass: 'ticket_confidential_break_glass',

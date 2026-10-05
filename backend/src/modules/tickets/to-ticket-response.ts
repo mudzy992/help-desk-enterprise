@@ -18,6 +18,8 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     impact: record.impact,
     urgency: record.urgency,
     classification: record.classification,
+    requestType: record.requestType ?? null,
+    dueAt: toIso(record.dueAt ?? null),
     isConfidential: record.isConfidential,
     formData: toJsonValue(record.formData),
     originUnitId: record.originUnitId,

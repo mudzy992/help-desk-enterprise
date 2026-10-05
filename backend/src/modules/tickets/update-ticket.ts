@@ -4,6 +4,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { changeLogActions } from '../change-log/change-log.constants';
 import { assertPatchTicketStatus } from './assert-patch-ticket-status';
+import { normalizeOptionalTicketRequestType } from './normalize-ticket-request-type';
+import { parseTicketDueAt } from './parse-ticket-due-at';
 import { assertTicketVisible } from './authorize-ticket-actor';
 import { resolveTicketPriority } from './resolve-ticket-priority';
 import { applyTicketResolution } from './close-codes/apply-ticket-resolution';
@@ -114,6 +116,13 @@ export async function updateTicket(
       : normalizeTicketDescription(input.description);
   const formData =
     input.formData === undefined ? current.formData : input.formData;
+  // M8 #3 (val 5): undefined keeps the value, null clears it.
+  const requestType =
+    input.requestType === undefined
+      ? current.requestType
+      : normalizeOptionalTicketRequestType(input.requestType);
+  const dueAt =
+    input.dueAt === undefined ? current.dueAt : parseTicketDueAt(input.dueAt);
   const scan = scanTicketContent({
     configuration: policies?.redaction ?? { enabled: false, mode: 'warn_only', applyToFields: [], patterns: [] },
     title: input.title === undefined ? undefined : title,
@@ -163,6 +172,8 @@ export async function updateTicket(
           ? await resolveTicketPriority(transaction as PrismaService, impact, urgency)
           : current.priority,
         status: nextStatus,
+        requestType,
+        dueAt,
         formData: toTicketFormDataInput(formData),
         closeCodeId: resolution.closeCodeId,
         resolutionNote: resolution.resolutionNote,

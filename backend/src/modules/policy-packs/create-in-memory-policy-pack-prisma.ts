@@ -9,6 +9,7 @@ import type {
   InMemoryRolePermissionRecord,
   InMemoryRoleRecord,
   InMemoryUserRole,
+  InMemorySlaProfileRecord,
 } from './in-memory-policy-pack.types';
 import { mapInMemoryPolicyPackAssignments } from './map-in-memory-policy-pack-assignments';
 
@@ -22,6 +23,7 @@ export function createInMemoryPolicyPackPrisma() {
     rolePermissions: [],
     userRoles: [],
     policyPacks: new Map(),
+    slaProfiles: new Map(),
   };
   let nextIdentifier = 1;
   const nextId = (prefix: string) => `${prefix}-${nextIdentifier++}`;
@@ -56,6 +58,8 @@ export function createInMemoryPolicyPackPrisma() {
     seedRolePermission: (record: InMemoryRolePermissionRecord) =>
       stores.rolePermissions.push(record),
     seedUserRole: (record: InMemoryUserRole) => stores.userRoles.push(record),
+    seedSlaProfile: (profile: InMemorySlaProfileRecord) =>
+      stores.slaProfiles.set(profile.id, profile),
     getOrganizationalUnit: (id: string) => stores.units.get(id),
     getService: (id: string) => stores.services.get(id),
     listUserRoles: () => [...stores.userRoles],

@@ -11,6 +11,8 @@ import {
   assertCanCreateTicket,
   resolveCreateOriginUnitId,
 } from './assert-can-create-ticket';
+import { normalizeOptionalTicketRequestType } from './normalize-ticket-request-type';
+import { parseTicketDueAt } from './parse-ticket-due-at';
 import { resolveTicketPriority } from './resolve-ticket-priority';
 import {
   nextTicketNumber,
@@ -186,6 +188,11 @@ export async function createTicket(
             impact: input.impact,
             urgency: input.urgency,
             classification: input.classification ?? service.classification,
+            // M8 #3 (val 5): RAW's explicit request type and requested deadline.
+            requestType: normalizeOptionalTicketRequestType(
+              input.requestType ?? null,
+            ),
+            dueAt: parseTicketDueAt(input.dueAt ?? null),
             isConfidential: resolveCreateConfidentialFlag({
               requested: input.isConfidential,
               serviceId,

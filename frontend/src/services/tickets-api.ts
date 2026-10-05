@@ -43,6 +43,9 @@ export type TicketResponse = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly classification: string;
+  /** M8 #3: RAW's request type and the requested deadline (separate from the SLA). */
+  readonly requestType: string | null;
+  readonly dueAt: string | null;
   readonly isConfidential: boolean;
   readonly formData: unknown;
   readonly originUnitId: string;
@@ -151,6 +154,9 @@ export type CreateTicketInput = {
   readonly formData?: Record<string, unknown>;
   readonly acknowledgeDuplicate?: boolean;
   readonly assetId?: string;
+  /** M8 #3: the requester's own words for what this is, and the wished deadline. */
+  readonly requestType?: string;
+  readonly dueAt?: string;
 };
 
 export type UpdateTicketInput = {
@@ -159,6 +165,9 @@ export type UpdateTicketInput = {
   readonly impact?: TicketImpact;
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
+  /** M8 #3: `null` clears the value. */
+  readonly requestType?: string | null;
+  readonly dueAt?: string | null;
   readonly formData?: Record<string, unknown>;
   readonly closeCode?: string;
   readonly resolutionNote?: string;

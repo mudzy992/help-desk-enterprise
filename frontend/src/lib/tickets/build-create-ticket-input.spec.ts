@@ -16,6 +16,8 @@ const draft = {
   formVersionRef: "form-1",
   formData: { hostname: "pc-1" },
   assetId: "",
+  requestType: "",
+  dueAt: "",
 };
 
 describe("buildCreateTicketInput", () => {
@@ -34,6 +36,19 @@ describe("buildCreateTicketInput", () => {
       formData: { hostname: "pc-1" },
     });
     expect(knowledgeInterceptQuery(draft)).toBe("VPN issue Cannot connect");
+    // M8 #3: both fields are optional and absent from the payload when empty.
+    expect(buildCreateTicketInput(draft)).not.toHaveProperty("requestType");
+    expect(buildCreateTicketInput(draft)).not.toHaveProperty("dueAt");
+    expect(
+      buildCreateTicketInput({
+        ...draft,
+        requestType: "  VPN pristup ",
+        dueAt: "2026-10-08",
+      }),
+    ).toMatchObject({
+      requestType: "VPN pristup",
+      dueAt: new Date("2026-10-08").toISOString(),
+    });
     expect(buildCreateTicketInput({ ...draft, formVersionRef: null, formData: {} })).toEqual({
       title: "VPN issue",
       description: "Cannot connect",

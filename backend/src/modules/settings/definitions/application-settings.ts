@@ -22,6 +22,7 @@ import { reportsSettings } from './reports-settings';
 import { privacySettings } from './privacy-settings';
 import { opsSettings } from './ops-settings';
 import { observabilitySettings } from './observability-settings';
+import { policyPackSettings } from './policy-pack-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
 import { notificationEmailSettings } from './notification-email-settings';
@@ -67,6 +68,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...accountSecuritySettings,
   ...directoryLdapsSettings,
   ...ticketSlaSettings,
+  ...policyPackSettings,
   ...ticketAssignmentSettings,
   ...ticketCollaborationSettings,
   ...ticketAttachmentSettings,

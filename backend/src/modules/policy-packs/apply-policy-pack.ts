@@ -5,10 +5,12 @@ import {
   auditLogEntityTypes,
 } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
+import { applyPolicyPackServicePolicy } from './apply-policy-pack-service-policy';
 import { applyPolicyPackUserGrants } from './apply-policy-pack-user-grants';
 import { bindPolicyPackTargets } from './bind-policy-pack-targets';
 import { ensurePolicyPackCatalog } from './ensure-policy-pack-catalog';
 import { planPolicyPackAssignments } from './plan-policy-pack-apply';
+import { planPolicyPackServicePolicy } from './plan-policy-pack-service-policy';
 import { resolvePolicyPackApplyTarget } from './resolve-policy-pack-apply-target';
 import type {
   PolicyPackApplyInput,
@@ -27,6 +29,7 @@ export async function applyPolicyPack(
 ): Promise<PolicyPackApplyResult> {
   const target = await resolvePolicyPackApplyTarget(prisma, input);
   const plannedAssignments = planPolicyPackAssignments(target);
+  const servicePolicyPlan = await planPolicyPackServicePolicy(prisma, target);
   // Phase 2.2: collected inside the transaction, used after it commits. Kept out
   // of the response: the client has no business with the invalidation bookkeeping.
   let affectedUserIds: readonly string[] = [];
@@ -43,6 +46,15 @@ export async function applyPolicyPack(
       plannedAssignments,
     );
     affectedUserIds = userGrants.affectedUserIds;
+    const servicePolicy =
+      servicePolicyPlan.plan === null
+        ? null
+        : await applyPolicyPackServicePolicy(
+            transaction as PrismaService,
+            target,
+            servicePolicyPlan.plan,
+            servicePolicyPlan.slaProfileId,
+          );
     await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.policyPackApply,
       entityType: auditLogEntityTypes.policyPack,
@@ -52,6 +64,18 @@ export async function applyPolicyPack(
         serviceId: target.serviceId,
         createdRolePermissionCount: catalog.createdRolePermissionCount,
         createdUserRoleCount: userGrants.createdUserRoleCount,
+        // M5 B1: what the bundle part replaced on the service, so the old
+        // values are not lost when apply overwrites them.
+        ...(servicePolicy === null
+          ? {}
+          : {
+              servicePolicyBefore: servicePolicy.before,
+              servicePolicyAfter: {
+                classification: servicePolicy.plan.classification,
+                requiresApproval: servicePolicy.plan.requiresApproval,
+                slaProfileId: servicePolicyPlan.slaProfileId,
+              },
+            }),
       },
       actorUserId: actor.actorUserId,
       requestId: actor.requestId,
@@ -67,6 +91,7 @@ export async function applyPolicyPack(
       existingUserRoleCount: userGrants.existingUserRoleCount,
       createdRolePermissionCount: catalog.createdRolePermissionCount,
       existingRolePermissionCount: catalog.existingRolePermissionCount,
+      servicePolicy: servicePolicyPlan.plan,
       plannedAssignments,
     };
   });

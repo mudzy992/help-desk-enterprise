@@ -618,7 +618,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1764,
+      "wordCount": 1923,
       "source": "docs/user-guide/tiketi.md",
       "englishTitle": "Tickets"
     },
@@ -1977,6 +1977,11 @@
         },
         {
           "level": 2,
+          "text": "Isključivanje paketa postavkom",
+          "id": "iskljucivanje-paketa-postavkom"
+        },
+        {
+          "level": 2,
           "text": "Kome je namijenjen",
           "id": "kome-je-namijenjen"
         },
@@ -1999,6 +2004,11 @@
           "level": 3,
           "text": "Primjena paketa",
           "id": "primjena-paketa"
+        },
+        {
+          "level": 3,
+          "text": "Povlačenje paketa",
+          "id": "povlacenje-paketa"
         },
         {
           "level": 3,
@@ -2026,7 +2036,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 933,
+      "wordCount": 1578,
       "source": "docs/user-guide/policy-paketi.md",
       "englishTitle": null
     },

@@ -3,6 +3,7 @@ import { PolicyPackError } from './policy-pack.error';
 import { assertPolicyPackDefinition } from './assert-policy-pack-definition';
 import {
   readPolicyPackApplyTargetInput,
+  readPolicyPackUnapplyTargetInput,
   resolvePolicyPackFromInput,
 } from './plan-policy-pack-apply';
 import type {
@@ -10,13 +11,20 @@ import type {
   PolicyPackApplyTarget,
 } from './policy-pack.types';
 
-export async function resolvePolicyPackApplyTarget(
+async function resolveTarget(
   prisma: PrismaService,
   input: PolicyPackApplyInput,
+  readTarget: (
+    pack: ReturnType<typeof resolvePolicyPackFromInput>,
+    input: PolicyPackApplyInput,
+  ) => Pick<
+    PolicyPackApplyTarget,
+    'organizationalUnitId' | 'serviceId' | 'userIds'
+  >,
 ): Promise<PolicyPackApplyTarget> {
   const pack = resolvePolicyPackFromInput(input);
   assertPolicyPackDefinition(pack);
-  const parsed = readPolicyPackApplyTargetInput(pack, input);
+  const parsed = readTarget(pack, input);
   let organizationalUnitPath: string | null = null;
   if (parsed.organizationalUnitId !== null) {
     const organizationalUnit = await prisma.organizationalUnit.findUnique({
@@ -56,4 +64,22 @@ export async function resolvePolicyPackApplyTarget(
     serviceId: parsed.serviceId,
     userIds: parsed.userIds,
   };
+}
+
+export function resolvePolicyPackApplyTarget(
+  prisma: PrismaService,
+  input: PolicyPackApplyInput,
+): Promise<PolicyPackApplyTarget> {
+  return resolveTarget(prisma, input, readPolicyPackApplyTargetInput);
+}
+
+/**
+ * M5 B5 (val 5): unapply mirrors apply, but decides nothing about what the pack
+ * *needs* — it removes what the given target has got.
+ */
+export function resolvePolicyPackUnapplyTarget(
+  prisma: PrismaService,
+  input: PolicyPackApplyInput,
+): Promise<PolicyPackApplyTarget> {
+  return resolveTarget(prisma, input, readPolicyPackUnapplyTargetInput);
 }

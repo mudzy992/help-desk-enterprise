@@ -24,6 +24,10 @@ const messages: Record<PolicyPackErrorCode, string> = {
   MISSING_ORGANIZATIONAL_UNIT: 'Organizational unit is required for this pack',
   UNKNOWN_ORGANIZATIONAL_UNIT: 'Organizational unit was not found',
   MISSING_SERVICE: 'Service is required for this pack',
+  MISSING_TARGET:
+    'An organizational unit, a service, or both is required',
+  PACK_DISABLED:
+    'This policy pack is switched off in settings (private.policyPacks.disabledKeysCsv)',
   UNKNOWN_SERVICE: 'Service was not found',
   UNKNOWN_USER: 'User was not found',
 };

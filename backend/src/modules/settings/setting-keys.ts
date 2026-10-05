@@ -68,6 +68,8 @@ export const settingKeys = {
   privateServicesLifecycleDefaultStateOnCreate:
     'private.services.lifecycle.defaultStateOnCreate',
   privateServicesAvailabilityEnabled: 'private.services.availability.enabled',
+  privatePolicyPacksDisabledKeysCsv:
+    'private.policyPacks.disabledKeysCsv',
   privateServicesAvailabilityAllowedStatusesCsv:
     'private.services.availability.allowedStatusesCsv',
   privateServicesAvailabilityShowStatusInCatalog:

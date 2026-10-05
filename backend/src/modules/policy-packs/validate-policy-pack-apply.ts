@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { planPolicyPackAssignments } from './plan-policy-pack-apply';
+import { planPolicyPackServicePolicy } from './plan-policy-pack-service-policy';
 import { resolvePolicyPackApplyTarget } from './resolve-policy-pack-apply-target';
 import type {
   PolicyPackApplyInput,
@@ -11,6 +12,7 @@ export async function validatePolicyPackApply(
   input: PolicyPackApplyInput,
 ): Promise<PolicyPackValidateResult> {
   const target = await resolvePolicyPackApplyTarget(prisma, input);
+  const servicePolicy = await planPolicyPackServicePolicy(prisma, target);
   return {
     packKey: target.pack.key,
     name: target.pack.name,
@@ -19,6 +21,7 @@ export async function validatePolicyPackApply(
     organizationalUnitPath: target.organizationalUnitPath,
     serviceId: target.serviceId,
     userIds: target.userIds,
+    servicePolicy: servicePolicy.plan,
     plannedAssignments: planPolicyPackAssignments(target),
   };
 }

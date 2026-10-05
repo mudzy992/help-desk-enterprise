@@ -5899,3 +5899,120 @@ Odluka vlasnika (2026-10-05): prevesti **ključne** stranice, ostatak ostavlja p
 Tiketi → *Tickets*, Uloge i dozvole → *Roles and permissions*, Česta pitanja → *Frequently asked questions*.
 Ostale 24 stranice ostaju bosanske i to se u UI-u vidi (obavijest), a navigacija za njih zadržava bosanske naslove
 — prevod je podatak, ne nova stranica.
+
+# Val 5 — M5: policy paketi kao stvarni bundle (2026-10-05)
+
+Prvi dio vala 5 (RAW zaostaci). Modul M5 je imao šest nalaza; ovdje su zatvoreni **B1, B2, B3, B4, B5 i B6**
+iz `REVIEW_ANALIZA.md` §M5, uz pripadajuće testove i izmjene u vodiču `docs/user-guide/policy-paketi.md`.
+
+## 1. Zatvoreni nalazi
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **M5 B3** | Dodjela paketa samo servisu nije bila moguća: DTO je tražio `organizationalUnitId`, a `OuAccessGuard` je fiksirao OU scope | `backend/src/modules/policy-packs/dto/apply-policy-pack.dto.ts` (OU obavezan), `policy-packs.controller.ts:47–58` (`@UseGuards(OuAccessGuard)` + `@RequireOrganizationalUnitScope`), `frontend/src/components/policy-packs/policy-pack-apply-form.tsx:37` (OU obavezan u formi) | Domen (`plan-policy-pack-apply.ts`) je već podržavao `null` OU, pa je zahtjev bez OU padао na 403 `missingOrganizationalUnitScope` iako paket traži samo servis | OU je opcionalan u DTO-u i formi; guard je skinut s `validate`/`apply` (odluku nosi domen: `MISSING_ORGANIZATIONAL_UNIT` / `MISSING_SERVICE`, 400); forma traži „OJ, servis ili oboje“ i šalje samo izabrane id-eve (`policy-pack-apply-target.ts`) | **SREDNJE** |
+| **M5 B4** | UI je pisao „Samo SuperAdmin“, a API je dozvoljavao ADMIN-u uz `settings.write` | `frontend/src/components/policy-packs/policy-packs-panel.tsx:22–26` vs `policy-packs.controller.ts` (`@RequireRoles(authorizationRoleKeys.admin)`) | Admin je mogao primijeniti paket koji UI nije ni prikazivao — nesklad između onoga što piše i onoga što radi | `validate` i `apply` traže rolu **SUPER_ADMIN** (`@RequireRoles(authorizationRoleKeys.superAdmin)`) uz `settings.write`; u vodiču zamijenjen red o API-ju | **NISKO** |
+| **M5 B5** | Primjena paketa je bila nepovratna — nije postojao `unapply` | `backend/src/modules/policy-packs/apply-policy-pack.ts` (samo upis), `policy-packs.controller.ts` (nema rute) | Poslije greške u izboru paketa ostajale su dodjele i veza `policyPackId` bez ikakvog kontrolisanog puta nazad | Nova ruta `POST /policy-packs/unapply` + `unapply-policy-pack.ts`, `remove-policy-pack-user-grants.ts`, `unbind-policy-pack-targets.ts` (veza se skida **samo** ako pokazuje na taj paket), audit `policy_pack.unapply`; UI dugme **Povuci paket** uz plan; role i permisije se ne uklanjaju (globalni zapisi — dokumentovano) | **SREDNJE** |
+| **M5 B6** | `apply` nije tražio prethodni `validate` ni vraćao plan | `policy-packs.controller.ts` (`apply` bez plana), `frontend/src/components/policy-packs/policy-pack-apply-form.tsx` (jedno dugme) | Admin je mogao primijeniti paket bez da vidi šta će se tačno upisati | `validate` vraća plan (`plannedAssignments`, `servicePolicy`); u UI-u dugme **Provjeri** prikazuje plan, a **Primijeni paket**/**Povuci paket** su aktivni samo dok plan postoji; svaka promjena cilja briše plan (`policyPacks.errorValidationRequired`) | **NISKO** |
+| **M5 B1** | Paket nije bio bundle: `defaultClassification` i `requiresApproval` su se samo zapisivali, `slaProfileId` nikad postavljan | `backend/src/modules/policy-packs/policy-pack.types.ts:14–21`, `ensure-policy-pack-catalog.ts:52–68`, `list-policy-packs.ts` | Ključna obećanja modula (SLA, klasifikacija, odobrenje) nisu imala efekta; primjena paketa je mijenjala samo role i permisije | `PolicyPackDefinition.slaProfileKey` (registar: `STANDARD_REQUEST`, `HR`, `FINANCE` — profili koje instalacija sije); `planPolicyPackServicePolicy()` + `applyPolicyPackServicePolicy()` upisuju na **servis** klasifikaciju, odobrenje i SLA profil (SLA samo ako profil postoji, inače `slaProfileResolved: false`); plan i rezultat vraćaju `servicePolicy`; audit pamti `servicePolicyBefore`/`servicePolicyAfter`; **obavezna polja tiketa ostaju izvan paketa** (žive u `private.workflow.requiredFields.byServiceJson`) — dokumentovano u vodiču | **SREDNJE** |
+| **M5 B2** | Nije bilo nijednog `private.policyPacks.*` ključa — registar je bio potpuno hardkodiran | `backend/src/modules/settings/setting-keys.ts` (nema ključa), `policy-pack.registry.ts` (definicije u kodu) | Instalacija nije mogla isključiti paket bez izmjene koda i novog izdanja | Nova postavka `private.policyPacks.disabledKeysCsv` (kategorija `private.services`, tip `string`, default prazno) + `readDisabledPolicyPackKeys()`; `validate`/`apply` vraćaju `PACK_DISABLED` (400), `list` vraća `isDisabled`, UI označava paket; **`unapply` namjerno nije blokiran** da se isključeni paket može očistiti; dodavanje novih paketa i dalje ide kroz kod — dokumentovano | **SREDNJE** |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Backend tipovi | `cd backend && npx tsc --noEmit` | 0 grešaka |
+| Policy paketi | `npx jest src/modules/policy-packs --maxWorkers=2` | **11 suite-a, 43 testa — svi prolaze** (prije vala 5: 6 suite-a, 22 testa) |
+| Postavke | `npx jest src/modules/settings --maxWorkers=2` | 29 suite-a, 99 testova — svi prolaze (nova postavka ne ruši registar) |
+| Autorizacija | `npx jest src/modules/authorization --maxWorkers=2` | 23 suite-a, 100 testova — svi prolaze |
+| Frontend tipovi | `cd frontend && npx tsc -b` | 0 grešaka |
+| Frontend testovi | `npx vitest run` | **160 fajlova, 653 testa — svi prolaze** (prije vala 5: 649) |
+| e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | 0 grešaka |
+| Dokumentacija | `node scripts/generate-docs-content.mjs && node scripts/check-docs-content.mjs` | 29 stranica, 5 prevoda, 10 provjera — OK |
+| Testovi skripti | `node --test scripts/check-docs-content.test.mjs` | 8/8 |
+
+Novi test fajlovi: `plan-policy-pack-apply.spec.ts`, `policy-packs.unapply.spec.ts`, `policy-packs.service-bundle.spec.ts`,
+`policy-packs.disabled.spec.ts`, `read-disabled-policy-pack-keys.spec.ts` (backend) i
+`frontend/src/lib/policy-packs/policy-pack-apply-target.spec.ts` (frontend).
+
+## 3. Šta ostaje otvoreno iz M5
+
+- **Obavezna polja tiketa nisu dio paketa.** Paket nosi role, permisije, klasifikaciju, odobrenje i SLA profil;
+  obavezna polja se i dalje uređuju postavkom `private.workflow.requiredFields.byServiceJson`. Spajanje tih
+  dviju površina je samostalan posao (pisanje u tuđu postavku iz modula paketa), pa je zapisano u vodiču kao
+  poznato ograničenje.
+- **Nema novih paketa kroz UI/postavke.** Registar je i dalje u kodu; postavka samo isključuje postojeće.
+- **Povlačenje ne vraća klasifikaciju/odobrenje/SLA servisa** na prethodne vrijednosti — one su od primjene dio
+  konfiguracije servisa; stare vrijednosti ostaju u auditu (`servicePolicyBefore`).
+
+# Val 5 — M13: serverski testovi za sedam notifications servisa (2026-10-05)
+
+Gap iz vala 4 („M13 — servisi bez specova“) i must-have tačka 6 („serverski testovi za servise bez njih“).
+Sedam servisa je imalo nula direktnih specova; logika koju su nosili — keš brojača, dva realtime događaja po
+čitanju, dva kanala fan-outa koji ne smiju srušiti jedan drugog, retencija, dnevni sažetak, sedmični izvještaj
+i korisničke postavke — provjeravala se samo posredno.
+
+## 1. Dodati specovi
+
+| Servis | Spec | Šta je pokriveno |
+|---|---|---|
+| `notifications.service.ts` | `notifications.service.spec.ts` | Keš brojač (pogodak/miss), brojanje u bazi, pad keša pri `markRead`, `markAllRead` s `readAll`, oba realtime događaja, prosljeđivanje liste kroz mapiranje grešaka |
+| `fan-out/notifications-fan-out.service.ts` | `fan-out/notifications-fan-out.service.spec.ts` | Pretplata na hub i odjava u `onModuleDestroy`, jedan čitač postavki po događaju za oba kanala, izolacija grešaka (in-app pad ne ruši e-mail i obratno), invalidacija brojača po korisniku i epohe po grupi, SLA kanal, broadcast e-mail kroz red integracija ili inline |
+| `notification-retention.scheduler.service.ts` | `notification-retention.scheduler.service.spec.ts` | Registracija dnevnog posla (id, cron, attempts, backoff, removeOn*) i preživljavanje pada Redis-a |
+| `preferences/notification-digest.scheduler.service.ts` | `preferences/notification-digest.scheduler.service.spec.ts` | Registracija 5-minutnog posla i preživljavanje pada Redis-a |
+| `preferences/notification-digest.service.ts` | `preferences/notification-digest.service.spec.ts` | Ništa se ne šalje kad je kanal isključen (stavke ostaju), due digest + upis `lastDigestSentAt`, quiet flush + `lastQuietFlushAt`, deaktiviran nalog (stavke se brišu), greška po korisniku ne prekida prolaz, `sendTest` razlozi (`EMAIL_CHANNEL_DISABLED`, `USER_NOT_FOUND`) i `[TEST]` prefiks |
+| `preferences/notification-preferences.service.ts` | `preferences/notification-preferences.service.spec.ts` | Prikaz kategorija s defaultima i SLA/policy poljima, izvedeni default kad korisnik nema zapis, „vrijednost = default → `null`“, upis rasporeda, kapija `NOTIFICATION_PREFERENCES_DISABLED`, sve validacione greške odjednom (nepoznata kategorija, duplikat, „always on“, rola, zaključan e-mail, digest za izvještaj, loš sat), sažetak i reset |
+| `preferences/weekly-ticket-report.service.ts` | `preferences/weekly-ticket-report.service.spec.ts` | Defaulti za neispravnu konfiguraciju, isključen izvještaj/kanal, preskakanje zakašnjelog slota (>24 h), slanje s `weekly:2026-W41` dedupe ključem i upisom slota, opt-out po kategoriji, prazan izvještaj (`sendWhenEmpty`), administratorski lock ne gasi opt-out, greška adrese = `failures` + slot potrošen, `sendTest` razlozi |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Tipovi | `cd backend && npx tsc --noEmit` | 0 grešaka |
+| Notifications modul | `npx jest src/modules/notifications --maxWorkers=2` | **38 suite-a, 199 testova — svi prolaze** (prije: 31 suite, 155 testova) |
+| Novi specovi | isti prolaz | 7 novih fajlova, **44 nova testa** |
+
+Nijedna izmjena proizvodnog koda nije bila potrebna — specovi su potvrdili postojeće ponašanje, uključujući
+namjerne odluke (slot se troši i kad je izvještaj preskočen; zaključan opt-out ne važi za `report.weeklyTickets`).
+
+# Val 5 — M8 #3: tip zahtjeva i željeni rok na tiketu (2026-10-05)
+
+Posljednji RAW zaostatak tiketa iz opsega vala 5: `service -> request type -> due date` (`RAW :54`). Do sada je
+gap tabela §M8 red 3 stajala kao **„Odstupa“** — tip zahtjeva nosila je forma usluge, a `Ticket.dueAt` je
+postojao u šemi od prve migracije i **nikada ga niko nije upisivao**.
+
+## 1. Šta je dodato
+
+| Dio | Fajl | Šta radi |
+|---|---|---|
+| Polje tipa zahtjeva | `backend/prisma/schema/ticketing.prisma` (`requestType String? @db.VarChar(80)`), migracija `20270306090000_ticket_request_type` | Eksplicitno polje na tiketu, nezavisno od forme usluge |
+| Željeni rok | `Ticket.dueAt` (postojeća kolona) + `backend/src/modules/tickets/parse-ticket-due-at.ts` | Konačno se upisuje; odbija neispravan datum i datum u prošlosti (1 min tolerancije) |
+| Normalizacija | `backend/src/modules/tickets/normalize-ticket-request-type.ts` | Trim + sažimanje razmaka, prazno/duže od 80 znakova → `INVALID_REQUEST_TYPE` |
+| Kreiranje | `backend/src/modules/tickets/create-ticket.ts`, `dto/create-ticket.dto.ts` | Prihvata oba polja (opciona) i upisuje ih u transakciji |
+| Izmjena | `backend/src/modules/tickets/update-ticket.ts`, `dto/update-ticket.dto.ts` | `undefined` čuva, `null` briše vrijednost |
+| Odgovor | `backend/src/modules/tickets/to-ticket-response.ts`, `tickets.types.ts` | `requestType` i `dueAt` u API odgovoru |
+| Frontend | `frontend/src/lib/tickets/build-create-ticket-input.ts`, `components/tickets/create-ticket-fields.tsx`, `components/tickets/ticket-detail-sidebar.tsx`, `services/tickets-api.ts` | Polja u koraku **Detalji** (tip zahtjeva + datum) i prikaz u sekciji **Svojstva** detalja; prazna vrijednost se ne šalje |
+| i18n | `frontend/src/i18n/locales/{bs,en}/common.json` | `tickets.requestTypeField`, `requestTypePlaceholder`, `dueAtField`, `dueAtHint`, `requestType`, `dueAt`, `dueAtNone`, `detail.notSet` |
+| Dokumentacija | `docs/user-guide/tiketi.md` | Korak prijave, tabela polja, FAQ i dva poznata ograničenja (tip ≠ forma, željeni rok ≠ SLA rok); uklonjeno staro ograničenje koje je tvrdilo da polja ne postoje |
+
+**Namjerno nije rađeno:** tip zahtjeva nije postao enumeracija ni veza na katalog — RAW ga opisuje kao korak
+usluga → tip → rok, a u kodu usluga već nosi klasifikaciju i formu; slobodan tekst (do 80 znakova) drži polje
+upotrebljivim bez migracije podataka i bez novog ekrana za administraciju tipova.
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Tipovi | `cd backend && npx tsc --noEmit` | 0 grešaka |
+| Tiketi | `npx jest src/modules/tickets --maxWorkers=2` | **98 suite-a, 555 testova — svi prolaze** (novi `tickets.request-type-and-due-date.spec.ts`, 6 testa) |
+| Frontend tipovi | `cd frontend && npx tsc -b` | 0 grešaka |
+| Frontend testovi | `npx vitest run` | 160 fajlova, **653 testa — svi prolaze** (novi test u `build-create-ticket-input.spec.ts`) |
+| e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | 0 grešaka |
+| Dokumentacija | `node scripts/generate-docs-content.mjs && node scripts/check-docs-content.mjs` | 29 stranica, 5 prevoda, 10 provjera — OK |
+
+## 3. Šta ostaje
+
+- **M8 gap red 3 je zatvoren** za ono što RAW traži (eksplicitna polja); veza „tip zahtjeva → katalog“ nije
+  tražena i nije rađena.
+- **`dueAt` i dalje ne pokreće ništa automatski** — nije SLA cilj niti okidač eskalacije. To je i dokumentovano
+  kao razlika između željenog i SLA roka.
+

@@ -40,6 +40,9 @@
 | — | 2026-10-05 | Mrtve površine (M9 B4, M8 B3, M7 B2) | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, §M8, §M9, `# Popravke poslije vala 4` §5), ovaj dokument | **Preview rutanja sada radi u koraku pregleda tiketa; uklonjene dvije postavke bez efekta (`allowRequesterManager`, `allowSharing`); `roleSource` ostaje dokumentovano odstupanje** |
 | — | 2026-10-05 | E2E pokrivenost pošte (M12) | `REVIEW_ANALIZA.md` (`# Popravke poslije vala 4` §6), ovaj dokument, `e2e/tests/36-notifications-email.spec.ts` (nov) | **Novi e2e spec: kanal e-pošte u `/ops/alerts/test`, `components.email` u `/ops/health` i pločica e-pošte u kartici Operativno zdravlje** |
 | — | 2026-10-05 | EN stranice vodiča (prevodi, `?locale=`) | `docs/user-guide/en/*.md` (novo, 5 fajlova), `docs/DOCS_MODULE.md` (§9, §10), `backend/content/docs/en/*` (ogledalo), `REVIEW_ANALIZA.md` (`# Popravke poslije vala 4` §7), ovaj dokument | **Pet ključnih stranica prevedeno (Početak rada, Prijava i MFA, Tiketi, Uloge i dozvole, Česta pitanja); `?locale=en` vraća prevod ili bosanski uz `translated: false`, obavijest ostaje samo za neprevedene** |
+| **Val 5 (M5)** | 2026-10-05 | Policy paketi | `user-guide/policy-paketi.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (`# Val 5 — M5`), ovaj dokument | **Zatvoreno šest nalaza: dodjela paketa servisu bez OJ (B3), SuperAdmin kapija na API-ju (B4), povlačenje paketa `unapply` s auditom (B5), plan iz `validate` prije primjene (B6), paket kao bundle — klasifikacija, odobrenje i SLA profil na servisu (B1), postavka `private.policyPacks.disabledKeysCsv` (B2)** |
+| **Val 5 (M13)** | 2026-10-05 | Serverski testovi (obavještenja) | `REVIEW_ANALIZA.md` (`# Val 5 — M13`), ovaj dokument | **Sedam notifications servisa dobilo specove (44 nova testa): keš brojača i realtime događaji, fan-out izolacija kanala i broadcast kroz red, retencija i digest scheduler, dnevni sažetak, sedmični izvještaj i korisničke postavke** |
+| **Val 5 (M8)** | 2026-10-05 | Tiketi — tip zahtjeva i željeni rok | `user-guide/tiketi.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (`# Val 5 — M8 #3`), ovaj dokument | **RAW `service → request type → due date` zatvoren: nova kolona `Ticket.requestType`, `dueAt` se konačno upisuje, oba polja u formi i u detalju tiketa, normalizacija i validacija, i jasna razlika željeni rok ≠ SLA rok** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1553,3 +1556,64 @@ sada se prikazuje **samo** na stranicama bez prevoda, pa čitalac na engleskom z
 **Dokazi:** backend `tsc --noEmit` → 0; `npx jest src/modules/docs --maxWorkers=2` → **4 suita / 23 testa**
 (prije 18); frontend `tsc -b` → 0 i `vitest` → **158 fajlova / 649 testova**; `Docs provjera: OK (29 stranica,
 5 prevoda, 10 provjera)`; `node --test scripts/check-docs-content.test.mjs` → 8/8.
+
+## Policy paketi — bundle, povlačenje i isključivanje (2026-10-05, val 5, M5)
+
+**Zašto:** vodič `policy-paketi.md` je opisivao modul koji je stvarno radio samo pola posla — paket je nosio role
+i permisije, a polja paketa (klasifikacija, odobrenje, SLA profil) i povlačenje primjene nisu postojali. Šest
+nalaza iz `REVIEW_ANALIZA.md` §M5 zatvoreno je u kodu, a stranica je prepisana tako da opisuje novo stanje.
+
+### Izmijenjeno
+
+| Dokument | Šta je izmijenjeno | Izvor u kodu (dokaz) |
+|---|---|---|
+| `docs/user-guide/policy-paketi.md` | Cilj primjene je **OJ, servis ili oboje** (nova sekcija *Isključivanje paketa postavkom*, red u tabeli validacija, ispravljen FAQ); tok primjene ima korak **Provjeri** i plan iznad dugmadi; nova sekcija **Povlačenje paketa** (šta se uklanja, šta ostaje, veza se skida samo ako pokazuje na taj paket); paket opisuje i kao bundle (klasifikacija, odobrenje, SLA profil na servisu, `servicePolicyResolved`); uklonjena su četiri „poznata ograničenja“ (B1 djelimično, B2 djelimično, B3, B4, B5, B6) i zamijenjena onim što stvarno ostaje otvoreno (obavezna polja tiketa, novi paketi kroz postavke, povratak servisnih polja) | `backend/src/modules/policy-packs/{policy-packs.controller.ts, policy-packs.service.ts, apply-policy-pack.ts, unapply-policy-pack.ts, apply-policy-pack-service-policy.ts, plan-policy-pack-service-policy.ts, remove-policy-pack-user-grants.ts, unbind-policy-pack-targets.ts, list-policy-packs.ts, read-disabled-policy-pack-keys.ts}`, `backend/src/modules/settings/definitions/policy-pack-settings.ts`, `frontend/src/components/policy-packs/policy-pack-apply-form.tsx`, `frontend/src/lib/policy-packs/policy-pack-apply-target.ts` |
+| `backend/content/docs/**` (ogledalo) | Regenerisan manifest i stranica iz izvora | `node scripts/generate-docs-content.mjs` |
+| `REVIEW_ANALIZA.md` | Nova sekcija `# Val 5 — M5: policy paketi kao stvarni bundle` — tabela nalaza B1–B6, dokazi (komande i rezultati) i šta ostaje otvoreno | `npx jest src/modules/policy-packs --maxWorkers=2` → 11 suite-a / 43 testa; `npx vitest run` → 653 testa |
+
+### Ostaje otvoreno
+
+- **Obavezna polja tiketa nisu dio paketa** — žive u `private.workflow.requiredFields.byServiceJson`; spajanje te
+  postavke s paketima je samostalan posao.
+- **Novi paketi se ne dodaju kroz postavke** — registar je i dalje u kodu; postavka samo isključuje postojeće.
+- **Povlačenje ne vraća klasifikaciju, odobrenje i SLA profil servisa** — stare vrijednosti ostaju u auditu
+  (`servicePolicyBefore` / `servicePolicyAfter` u `policy_pack.apply`).
+
+## Serverski testovi za sedam notifications servisa (2026-10-05, val 5, M13)
+
+**Zašto:** must-have tačka 6 traži serverske testove za servise bez njih. Sedam servisa u modulu obavještenja
+nije imalo nijedan direktan spec, a nose odluke koje korisnik osjeti (brojač nepročitanih, dva kanala koji ne
+smiju srušiti jedan drugog, dnevni i sedmični sažetak, korisničke postavke).
+
+### Dodato
+
+| Dokument | Šta je dodato | Izvor u kodu (dokaz) |
+|---|---|---|
+| `REVIEW_ANALIZA.md` (`# Val 5 — M13`) | Tabela sedam specova sa pokrivenim ponašanjem, dokazi (komande i brojevi) i napomena da proizvodni kod nije mijenjan | `npx jest src/modules/notifications --maxWorkers=2` → 38 suite-a / 199 testova (prije 31 / 155) |
+| `backend/src/modules/notifications/**` (specovi) | `notifications.service.spec.ts`, `fan-out/notifications-fan-out.service.spec.ts`, `notification-retention.scheduler.service.spec.ts`, `preferences/notification-digest.scheduler.service.spec.ts`, `preferences/notification-digest.service.spec.ts`, `preferences/notification-preferences.service.spec.ts`, `preferences/weekly-ticket-report.service.spec.ts` | `npx tsc --noEmit` → 0 grešaka |
+
+### Ostaje otvoreno
+
+- **Nijedna korisnička dokumentacija nije mijenjana** — specovi nisu promijenili ponašanje, pa nije bilo osnova
+  za izmjenu vodiča (pravilo „izmjena funkcionalnosti = izmjena Docs stranice“ nije aktivirano).
+
+## Tiketi — tip zahtjeva i željeni rok (2026-10-05, val 5, M8 #3)
+
+**Zašto:** `docs/user-guide/tiketi.md` je do sada nosio „poznato ograničenje“ da polja **tip zahtjeva** i
+**rok (due date)** iz projektnog zadatka ne postoje kao zasebna polja. Kod je sada dobio oba (`requestType` je
+nova kolona, `dueAt` je postojao u šemi ali se nikad nije upisivao), pa je ograničenje zamijenjeno pravilima i
+razlikovanjem dva roka.
+
+### Izmijenjeno
+
+| Dokument | Šta je izmijenjeno | Izvor u kodu (dokaz) |
+|---|---|---|
+| `docs/user-guide/tiketi.md` | Korak prijave dobio **Tip zahtjeva** i **Željeni rok**; tabela polja dobila oba reda s pravilima i kodovima grešaka (`INVALID_REQUEST_TYPE`, `INVALID_DUE_AT`, `DUE_AT_IN_PAST`); sekcija **Svojstva** opisuje prikaz u detalju; FAQ dobio dvije stavke; „poznato ograničenje“ zamijenjeno objema stvarnim ograničenjima (tip ≠ forma usluge, željeni rok ≠ SLA rok) | `backend/src/modules/tickets/{create-ticket.ts, update-ticket.ts, normalize-ticket-request-type.ts, parse-ticket-due-at.ts, to-ticket-response.ts}`, `frontend/src/components/tickets/{create-ticket-fields.tsx, ticket-detail-sidebar.tsx}` |
+| `backend/content/docs/**` (ogledalo) | Regenerisan manifest i stranica iz izvora | `node scripts/generate-docs-content.mjs` |
+| `REVIEW_ANALIZA.md` | Nova sekcija `# Val 5 — M8 #3` — tabela dodataka, dokazi i šta ostaje | `npx jest src/modules/tickets --maxWorkers=2` → 98 suite-a / 555 testova; `npx vitest run` → 653 testa |
+
+### Ostaje otvoreno
+
+- **Tip zahtjeva je slobodan tekst** (do 80 znakova), ne šifarnik; RAW ne traži administraciju tipova.
+- **Željeni rok ne pokreće automatiku** (nema eskalacije ni SLA veze) — i dokumentovan je kao razlika prema SLA roku.
+

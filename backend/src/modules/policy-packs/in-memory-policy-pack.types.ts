@@ -14,7 +14,13 @@ export type InMemoryPolicyPackOrganizationalUnit = {
 export type InMemoryPolicyPackService = {
   id: string;
   policyPackId: string | null;
+  /** M5 B1 (val 5): the bundle fields a pack writes onto a service. */
+  classification?: string;
+  requiresApproval?: boolean;
+  slaProfileId?: string | null;
 };
+
+export type InMemorySlaProfileRecord = { id: string; key: string };
 
 export type InMemoryUserRole = {
   id: string;
@@ -49,4 +55,5 @@ export type InMemoryPolicyPackStores = {
   readonly rolePermissions: InMemoryRolePermissionRecord[];
   readonly userRoles: InMemoryUserRole[];
   readonly policyPacks: Map<string, InMemoryPolicyPackRecord>;
+  readonly slaProfiles: Map<string, InMemorySlaProfileRecord>;
 };

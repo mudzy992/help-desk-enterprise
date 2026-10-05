@@ -51,8 +51,9 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 1. Otvorite **Prijavi tiket**.
 2. Izaberite **uslugu**; forma usluge se učitava automatski (v. *Katalog usluga i forme*).
-3. Popunite **naslov**, **opis**, **uticaj** i **hitnost**, te polja forme. Ako postoji sličan tiket, sistem
-   prikazuje **upozorenje o duplikatu** i traži potvrdu.
+3. Popunite **naslov**, **opis**, **uticaj** i **hitnost**, te polja forme. Opciono dodajte **Tip zahtjeva**
+   (npr. „Pristup VPN-u“) i **Željeni rok** — željeni rok je vaša želja i **ne mijenja SLA rok** koji računa
+   sistem. Ako postoji sličan tiket, sistem prikazuje **upozorenje o duplikatu** i traži potvrdu.
 4. Pregledajte sažetak (prioritet, routing ishod, odobrenja, SLA) i pošaljite.
 5. Tiket dobija broj (`T-000001`), grupu i status — **Na čekanju** ili **Nije usmjereno**.
 
@@ -107,11 +108,16 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 ### Tiket
 
+U detalju tiketa, sekcija **Svojstva** prikazuje i **Tip zahtjeva** i **Željeni rok** (ako su uneseni; inače
+stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
+
 | Polje | Pravilo |
 |---|---|
 | Naslov | obavezno, do 200 znakova |
 | Opis | obavezno, do 8000 znakova |
 | Uticaj / Hitnost | obavezni, izbor: Nizak, Srednji, Visok, Kritičan |
+| Tip zahtjeva | opciono, do 80 znakova; razmaci se svode na jedan i tekst se trimuje |
+| Željeni rok | opciono, datum (ISO-8601); odbija se datum u prošlosti (`DUE_AT_IN_PAST`), neispravan datum daje `INVALID_DUE_AT`; `null` polje briše. **Nije** SLA rok |
 | Usluga | obavezna; usluga mora biti aktivna i imati aktivnu formu |
 | Povjerljivo | prekidač (može biti i podrazumijevano po usluzi) |
 | Prilog | politika: tipovi, ekstenzije, veličina, broj po tiketu i poruci |
@@ -178,6 +184,8 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
   dostignut limit slanja.
 - **„Ponovno otvaranje nije moguće.“** — prošao je rok (podrazumijevano 7 dana) ili je funkcija isključena; u
   nekim slučajevima sistem otvara **novi** tiket povezan s originalom.
+- **„Tip zahtjeva je odbijen.“** — polje je prazno (samo razmaci) ili duže od 80 znakova (`INVALID_REQUEST_TYPE`).
+- **„Željeni rok je odbijen.“** — datum nije ispravan (`INVALID_DUE_AT`) ili je u prošlosti (`DUE_AT_IN_PAST`).
 - **„Prilog je odbijen.“** — tip/ekstenzija nije na dozvoljenoj listi, fajl je veći od 25 MB, prekoračen je broj
   priloga ili je skeniranje označilo fajl kao problematičan.
 
@@ -195,8 +203,10 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
   su uvijek svježi. (Nalaz B5.)
 - **Dugme za ponovno otvaranje ne prati postavku** `reopen.enabled` u listi dozvoljenih akcija — server će
   odbiti zahtjev ako je funkcija isključena. (Nalaz B7.)
-- **Polja „tip zahtjeva“ i „rok (due date)“** iz projektnog zadatka ne postoje kao zasebna polja tiketa; tip
-  zahtjeva nosi usluga i njena forma.
+- **Tip zahtjeva ne zamjenjuje formu usluge.** To je slobodan tekst radi filtriranja i izvještaja; detalji i dalje
+  idu kroz polja forme usluge.
+- **Željeni rok i SLA rok su dva različita datuma.** Željeni rok je želja podnosioca (polje `dueAt` na tiketu), a
+  SLA rok računa modul SLA iz profila, kalendara i prioriteta; istekao željeni rok ne pokreće eskalaciju.
 
 ## Povezani moduli
 

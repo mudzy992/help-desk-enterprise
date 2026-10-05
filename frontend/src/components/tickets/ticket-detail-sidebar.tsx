@@ -103,6 +103,29 @@ export function TicketDetailSidebar({
         </span>
       ),
     },
+    // M8 #3 (val 5): the request type and the wished deadline the requester gave.
+    {
+      label: t("tickets.requestType"),
+      value:
+        ticket.requestType === null || ticket.requestType === undefined ? (
+          <span className="text-muted-foreground">{t("tickets.detail.notSet")}</span>
+        ) : (
+          <span data-testid="ticket-request-type">{ticket.requestType}</span>
+        ),
+    },
+    {
+      label: t("tickets.dueAt"),
+      value:
+        ticket.dueAt === null || ticket.dueAt === undefined ? (
+          <span className="text-muted-foreground">{t("tickets.dueAtNone")}</span>
+        ) : (
+          <span data-testid="ticket-due-at">
+            {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+              new Date(ticket.dueAt),
+            )}
+          </span>
+        ),
+    },
     {
       label: t("tickets.detail.impactUrgency"),
       value: `${ticketText(t, ticketSeverityLabelKey[ticket.impact])} × ${ticketText(t, ticketSeverityLabelKey[ticket.urgency])}`,

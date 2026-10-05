@@ -55,6 +55,7 @@ export const ticketConstants = {
   maximumTitleLength: 200,
   maximumDescriptionLength: 8000,
   maximumMessageBodyLength: 8000,
+  maximumRequestTypeLength: 80,
   ticketNumberPrefix: 'T-',
   ticketNumberPad: 6,
 } as const;

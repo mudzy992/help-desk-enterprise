@@ -26,6 +26,8 @@ export type TicketRecord = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly classification: DataClassification;
+  /** M8 #3 (val 5), optional so fixtures without it stay valid. */
+  readonly requestType?: string | null;
   readonly isConfidential: boolean;
   readonly formData: unknown;
   readonly originUnitId: string;
@@ -39,6 +41,8 @@ export type TicketRecord = {
   readonly reopenedFromTicketId: string | null;
   readonly closeCodeId: string | null;
   readonly resolutionNote: string | null;
+  /** M8 #3 (val 5), optional for the same reason as `requestType`. */
+  readonly dueAt?: Date | null;
   readonly resolvedAt: Date | null;
   readonly closedAt: Date | null;
   readonly archivedAt: Date | null;
@@ -74,6 +78,9 @@ export type TicketResponse = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly classification: DataClassification;
+  /** M8 #3 (val 5): RAW's request type and requested deadline. */
+  readonly requestType: string | null;
+  readonly dueAt: string | null;
   readonly isConfidential: boolean;
   readonly formData: JsonValue | null;
   readonly originUnitId: string;
@@ -154,6 +161,9 @@ export type CreateTicketInput = {
   readonly parentTicketId?: string;
   readonly assignedGroupId?: string;
   readonly classification?: DataClassification;
+  /** M8 #3 (val 5): RAW's request type and requested deadline. */
+  readonly requestType?: string | null;
+  readonly dueAt?: string | null;
   readonly isConfidential?: boolean;
   readonly acknowledgeDuplicate?: boolean;
   /** Paket 3.2 (§8): requester's own equipment. */
@@ -166,6 +176,9 @@ export type UpdateTicketInput = {
   readonly impact?: TicketImpact;
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
+  /** M8 #3 (val 5): `null` clears, `undefined` keeps. */
+  readonly requestType?: string | null;
+  readonly dueAt?: string | null;
   readonly formData?: unknown;
   readonly closeCode?: string;
   readonly resolutionNote?: string;

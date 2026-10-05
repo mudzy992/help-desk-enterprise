@@ -94,6 +94,27 @@ export function CreateTicketFields({
           </p>
         )}
         <CreateTicketAssetPicker value={draft.assetId} onChange={(assetId) => onChange({ ...draft, assetId })} />
+        {/* M8 #3 (val 5): RAW's `request type` and the wished deadline. */}
+        <label className={labelClassName}>
+          <span>{t("tickets.requestTypeField")}</span>
+          <input
+            className={controlClassName}
+            value={draft.requestType}
+            maxLength={80}
+            onChange={(event) => onChange({ ...draft, requestType: event.target.value })}
+            placeholder={t("tickets.requestTypePlaceholder")}
+          />
+        </label>
+        <label className={labelClassName}>
+          <span>{t("tickets.dueAtField")}</span>
+          <input
+            className={controlClassName}
+            type="date"
+            value={draft.dueAt}
+            onChange={(event) => onChange({ ...draft, dueAt: event.target.value })}
+          />
+          <span className={hintClassName}>{t("tickets.dueAtHint")}</span>
+        </label>
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.descriptionField")}

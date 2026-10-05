@@ -23,9 +23,9 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 describe('policy pack validation', () => {
-  it('lists registry packs without writing', () => {
+  it('lists registry packs without writing', async () => {
     const { service } = createPolicyPackTestWorld();
-    const packs = service.list();
+    const packs = await service.list();
     expect(packs.map((pack) => pack.key)).toEqual([
       policyPackKeys.itStandard,
       policyPackKeys.hrRestricted,
@@ -47,6 +47,30 @@ describe('policy pack validation', () => {
       policyPackTestIds.localUser,
     ]);
     expect(result.plannedAssignments).toHaveLength(4);
+  });
+
+  it('reports a missing OU as a domain error, not as a forbidden request (val 5, M5 B3)', async () => {
+    const { service } = createPolicyPackTestWorld();
+    // Pre vala 5 je OuAccessGuard odbijao zahtjev bez OU prije servisa (403);
+    // sada odluku nosi domenski sloj, a poruka kaže šta paket stvarno traži.
+    await expectErrorCode(
+      service.validate({
+        packKey: policyPackKeys.itStandard,
+        organizationalUnitId: undefined,
+        serviceId: undefined,
+        userIds: [policyPackTestIds.localUser],
+      }),
+      'MISSING_ORGANIZATIONAL_UNIT',
+    );
+    await expectErrorCode(
+      service.validate({
+        packKey: policyPackKeys.hrRestricted,
+        organizationalUnitId: undefined,
+        serviceId: policyPackTestIds.service,
+        userIds: [policyPackTestIds.localUser],
+      }),
+      'MISSING_ORGANIZATIONAL_UNIT',
+    );
   });
 
   it('requires a service for HR and Finance packs', async () => {

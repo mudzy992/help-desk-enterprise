@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsEnum,
+  IsISO8601,
   IsObject,
   IsOptional,
   IsString,
@@ -47,6 +48,18 @@ export class CreateTicketDto {
   @IsOptional()
   @IsObject()
   formData?: Record<string, unknown>;
+
+  /** M8 #3 (val 5): RAW's explicit request type. */
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(ticketConstants.maximumRequestTypeLength)
+  requestType?: string;
+
+  /** M8 #3 (val 5): requested deadline (ISO-8601), separate from the SLA. */
+  @IsOptional()
+  @IsISO8601()
+  dueAt?: string;
 
   @IsOptional()
   @IsBoolean()

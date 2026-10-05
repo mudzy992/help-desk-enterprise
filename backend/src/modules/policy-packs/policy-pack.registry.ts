@@ -18,6 +18,8 @@ const itStandardPack: PolicyPackDefinition = {
     'Standard IT operations pack: AGENT and ADMIN roles scoped to the target organizational unit.',
   defaultClassification: DataClassification.INTERNAL,
   requiresApproval: false,
+  // Starting SLA profiles seeded by the install wizard (`starting-sla.constants.ts`).
+  slaProfileKey: 'STANDARD_REQUEST',
   grants: [
     {
       roleKey: authorizationRoleKeys.admin,
@@ -41,6 +43,7 @@ const hrRestrictedPack: PolicyPackDefinition = {
     'Restricted HR pack: AGENT role scoped to the target organizational unit and service.',
   defaultClassification: DataClassification.RESTRICTED,
   requiresApproval: true,
+  slaProfileKey: 'HR',
   grants: [
     {
       roleKey: authorizationRoleKeys.agent,
@@ -61,6 +64,7 @@ const financeRestrictedPack: PolicyPackDefinition = {
     'Restricted Finance pack: AGENT and ADMIN roles scoped to the target organizational unit and service.',
   defaultClassification: DataClassification.CONFIDENTIAL,
   requiresApproval: true,
+  slaProfileKey: 'FINANCE',
   grants: [
     {
       roleKey: authorizationRoleKeys.admin,

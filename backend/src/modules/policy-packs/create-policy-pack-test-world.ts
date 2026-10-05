@@ -1,3 +1,4 @@
+import type { SettingsService } from '../settings/settings.service';
 import { createInMemoryPolicyPackPrisma } from './create-in-memory-policy-pack-prisma';
 import { PolicyPacksService } from './policy-packs.service';
 
@@ -17,6 +18,11 @@ export function createPolicyPackTestWorld(
      * a policy pack apply triggers for the users it granted roles to.
      */
     readonly invalidateUser?: (userId: string) => Promise<unknown>;
+    /**
+     * M5 B2 (val 5): the disabled-packs setting is read through
+     * `SettingsService`; tests that exercise it pass a stub here.
+     */
+    readonly settingValues?: Readonly<Record<string, string>>;
   } = {},
 ): {
   memory: ReturnType<typeof createInMemoryPolicyPackPrisma>;
@@ -60,6 +66,12 @@ export function createPolicyPackTestWorld(
       options.invalidateUser === undefined
         ? undefined
         : ({ invalidateUser: options.invalidateUser } as never),
+      options.settingValues === undefined
+        ? undefined
+        : ({
+            getSecretForInternalUse: async (key: string) =>
+              options.settingValues?.[key],
+          } as unknown as SettingsService),
     ),
   };
 }

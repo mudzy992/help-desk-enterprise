@@ -12,9 +12,15 @@ export class ApplyPolicyPackDto {
   @MinLength(1)
   packKey!: string;
 
+  /**
+   * M5 B3: the pack may be assigned to a service, to an OU, or to both — which
+   * one the pack needs is decided by its grant scopes
+   * (`plan-policy-pack-apply.ts`), so the field is optional here.
+   */
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  organizationalUnitId!: string;
+  organizationalUnitId?: string;
 
   @IsOptional()
   @IsString()

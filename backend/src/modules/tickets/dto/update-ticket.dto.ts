@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsISO8601,
   IsObject,
   IsOptional,
   IsString,
@@ -37,6 +38,17 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsEnum(TicketStatus)
   status?: TicketStatus;
+
+  /** M8 #3 (val 5): `null` clears the request type. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(ticketConstants.maximumRequestTypeLength)
+  requestType?: string | null;
+
+  /** M8 #3 (val 5): `null` clears the requested deadline. */
+  @IsOptional()
+  @IsISO8601()
+  dueAt?: string | null;
 
   @IsOptional()
   @IsObject()

@@ -5,6 +5,7 @@ import type {
   InMemoryRolePermissionRecord,
   InMemoryRoleRecord,
   InMemoryUserRole,
+  InMemorySlaProfileRecord,
 } from './in-memory-policy-pack.types';
 
 function sameNullable(left: string | null, right: string | null): boolean {
@@ -52,22 +53,75 @@ export function createInMemoryPolicyPackDelegates(
       },
     },
     service: {
-      findUnique: async ({ where }: { where: { id: string } }) =>
-        stores.services.get(where.id) ?? null,
+      findUnique: async ({
+        where,
+        select,
+      }: {
+        where: { id: string };
+        select?: {
+          id?: boolean;
+          policyPackId?: boolean;
+          classification?: boolean;
+          requiresApproval?: boolean;
+          slaProfileId?: boolean;
+        };
+      }) => {
+        const service = stores.services.get(where.id) ?? null;
+        if (service === null || select === undefined) {
+          return service;
+        }
+        return {
+          ...(select.id === true ? { id: service.id } : {}),
+          ...(select.policyPackId === true
+            ? { policyPackId: service.policyPackId }
+            : {}),
+          ...(select.classification === true
+            ? { classification: service.classification ?? null }
+            : {}),
+          ...(select.requiresApproval === true
+            ? { requiresApproval: service.requiresApproval ?? null }
+            : {}),
+          ...(select.slaProfileId === true
+            ? { slaProfileId: service.slaProfileId ?? null }
+            : {}),
+        };
+      },
       update: async ({
         where,
         data,
       }: {
         where: { id: string };
-        data: { policyPackId: string | null };
+        data: {
+          policyPackId?: string | null;
+          classification?: string;
+          requiresApproval?: boolean;
+          slaProfileId?: string | null;
+        };
       }) => {
         const service = stores.services.get(where.id);
         if (service === undefined) {
           return null;
         }
-        service.policyPackId = data.policyPackId;
+        if (data.policyPackId !== undefined) {
+          service.policyPackId = data.policyPackId;
+        }
+        if (data.classification !== undefined) {
+          service.classification = data.classification;
+        }
+        if (data.requiresApproval !== undefined) {
+          service.requiresApproval = data.requiresApproval;
+        }
+        if (data.slaProfileId !== undefined) {
+          service.slaProfileId = data.slaProfileId;
+        }
         return service;
       },
+    },
+    slaProfile: {
+      findUnique: async ({ where }: { where: { key: string } }) =>
+        [...stores.slaProfiles.values()].find(
+          (profile) => profile.key === where.key,
+        ) ?? null,
     },
     user: {
       findMany: async ({
@@ -162,6 +216,33 @@ export function createInMemoryPolicyPackDelegates(
         return created;
       },
       findMany: async () => [...stores.userRoles],
+      deleteMany: async ({
+        where,
+      }: {
+        where: {
+          userId: string;
+          roleId: string;
+          organizationalUnitId: string | null;
+          serviceId: string | null;
+        };
+      }) => {
+        const kept = stores.userRoles.filter(
+          (item) =>
+            !(
+              item.userId === where.userId &&
+              item.roleId === where.roleId &&
+              sameNullable(
+                item.organizationalUnitId,
+                where.organizationalUnitId,
+              ) &&
+              sameNullable(item.serviceId, where.serviceId)
+            ),
+        );
+        const count = stores.userRoles.length - kept.length;
+        stores.userRoles.length = 0;
+        stores.userRoles.push(...kept);
+        return { count };
+      },
     },
     policyPack: {
       upsert: async ({

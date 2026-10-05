@@ -63,6 +63,30 @@ export function readPolicyPackApplyTargetInput(
   };
 }
 
+/**
+ * M5 B5: what unapply may be pointed at. Unlike apply, the pack's own grant
+ * scopes are not a requirement here — but a target is: without one the call
+ * could only mean "somewhere", and that is not something this module deletes.
+ */
+export function readPolicyPackUnapplyTargetInput(
+  _pack: PolicyPackDefinition,
+  input: PolicyPackApplyInput,
+): Pick<
+  PolicyPackApplyTarget,
+  'organizationalUnitId' | 'serviceId' | 'userIds'
+> {
+  const organizationalUnitId = readOptionalId(input.organizationalUnitId);
+  const serviceId = readOptionalId(input.serviceId);
+  if (organizationalUnitId === null && serviceId === null) {
+    throw new PolicyPackError('MISSING_TARGET');
+  }
+  return {
+    organizationalUnitId,
+    serviceId,
+    userIds: sortPolicyPackTokens(input.userIds ?? []),
+  };
+}
+
 export function planPolicyPackAssignments(
   target: PolicyPackApplyTarget,
 ): readonly PolicyPackPlannedAssignment[] {

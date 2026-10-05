@@ -11,6 +11,9 @@ export type CreateTicketDraft = {
   readonly formData: Record<string, unknown>;
   /** Paket 3.2 (§8): own equipment, "" = none. */
   readonly assetId: string;
+  /** M8 #3: what the request is about, and the wished deadline ("" = none). */
+  readonly requestType: string;
+  readonly dueAt: string;
 };
 
 export const emptyCreateTicketDraft: CreateTicketDraft = {
@@ -23,6 +26,8 @@ export const emptyCreateTicketDraft: CreateTicketDraft = {
   formVersionRef: null,
   formData: {},
   assetId: "",
+  requestType: "",
+  dueAt: "",
 };
 
 export function isCreateTicketDraftReady(
@@ -67,6 +72,13 @@ export function buildCreateTicketInput(
       : { formVersionRef: draft.formVersionRef }),
     ...(Object.keys(draft.formData).length === 0 ? {} : { formData: draft.formData }),
     ...(draft.assetId.length > 0 ? { assetId: draft.assetId } : {}),
+    // `?? ""` keeps older callers (and persisted drafts) working.
+    ...((draft.requestType ?? "").trim().length > 0
+      ? { requestType: (draft.requestType ?? "").trim() }
+      : {}),
+    ...((draft.dueAt ?? "").length > 0
+      ? { dueAt: new Date(draft.dueAt).toISOString() }
+      : {}),
     ...(options.acknowledgeDuplicate === true ? { acknowledgeDuplicate: true } : {}),
   };
 }

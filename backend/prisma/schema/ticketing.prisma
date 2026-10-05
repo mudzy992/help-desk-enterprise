@@ -10,6 +10,9 @@ model Ticket {
   impact               TicketImpact
   urgency              TicketUrgency
   classification       DataClassification         @default(INTERNAL)
+  /// M8 #3 (val 5): RAW `service -> request type -> due date`. Free text set at
+  /// creation and editable later; the service form still carries the detail.
+  requestType          String?                    @db.VarChar(80)
   isConfidential       Boolean                    @default(false)
   formData             Json?
   originUnitId         String
@@ -24,6 +27,9 @@ model Ticket {
   reopenedFromTicketId String?
   closeCodeId          String?
   resolutionNote       String?
+  /// M8 #3 (val 5): the requested deadline, separate from the SLA calculation
+  /// (`TicketSlaState.resolutionDueAt`). It was in the schema from the start and
+  /// nothing ever wrote it; create/update now do, and an agent can change it.
   dueAt                DateTime?
   firstResponseAt      DateTime?
   resolvedAt           DateTime?

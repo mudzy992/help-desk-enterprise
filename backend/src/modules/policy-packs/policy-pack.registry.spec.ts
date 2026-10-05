@@ -87,6 +87,7 @@ describe('policy pack registry', () => {
       description: 'invalid',
       defaultClassification: 'INTERNAL',
       requiresApproval: false,
+      slaProfileKey: null,
       grants: [
         {
           roleKey: authorizationRoleKeys.superAdmin,
