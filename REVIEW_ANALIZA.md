@@ -5866,3 +5866,18 @@ Dokazi: `npx jest --maxWorkers=2` → **519 prošlih + 5 preskočenih suita (524
 | **`roleSource`** | RAW `:479` navodi `entra_groups`, a kod dozvoljava `local_db` \| `ad_groups` | `directory-sync/ldaps/ldaps-directory.types.ts:51`, `settings/definitions/directory-ldaps-settings.ts:16,178` | Nijedna — funkcionalnost (role iz AD grupa) postoji | **Bez promjene koda**: `ad_groups` je vrijednost koja već stoji u bazama instalacija; zadržano kao dokumentovano odstupanje od RAW-a (§M8, napomena uz B7) | **NISKO (nije bug)** |
 
 Dokazi za ovaj blok: backend `npx tsc --noEmit` → 0; `npx jest src/modules/tickets src/modules/settings src/modules/notifications --maxWorkers=2` → **148 suita / 768 testova**; frontend `npx tsc -b` → 0 i `npx vitest run` → **159 fajlova / 649 testova** (6 novih u `describe-routing-preview.spec.ts`).
+
+## 6. E2E pokrivenost pošte (M12) — novi spec 36
+
+| Spec | Testovi | Šta pokriva |
+|---|---|---|
+| `e2e/tests/36-notifications-email.spec.ts` (nov) | „the health payload and the test alarm expose the e-mail channel“; „the ops card shows the e-mail tile and reports the test alarm channels“ | **M12 e2e (must-have tačka 6):** `/ops/health` → `components.email` (`lastSentAt` je `null` ili ISO datum, `stuckClaims` cijeli broj ≥ 0 — ulaz u alarm iz M12 B1); `POST /ops/alerts/test` vraća kanal `email` sa statusom iz skupa `sent/partial/failed/skipped`, a `skipped` mora nositi poznat razlog (`email_channel_disabled` / `no_recipients` / `not_configured`) — dakle isključen SMTP ne ruši poziv; `inApp` je `sent` i red `ops.alert` se pojavi u listi obavijesti, nakon čega `POST /notifications/:id/read` vraća `isRead: true` i broj nepročitanih ne raste. UI dio: pločica **Slanje e-maila** u kartici **Operativno zdravlje** prikazuje jedno od tri stanja („Još nije poslan nijedan e-mail“ / „Posljednji poslan …“ / „Zaglavljeno u redu: n“), a dugme **Pošalji testni alarm** u toastu ispiše red po kanalu, uključujući `E-mail: …` |
+
+Stanje e2e sloja poslije ovog speca: `npx playwright test --list` → **70 testova u 36 fajlova**
+(prije: 68/35). Pokretanje i dalje traži živ stack (`E2E_API_URL`); u sandboxu se ne mogu instalirati
+Playwright browseri, pa je ovdje provjeren `tsc --noEmit` (0) i `--list`.
+
+**Zaostaje iz must-have tačke 6:** e2e pokrivenost portala (spec 34 ✅) i nadzorne ploče (spec 35 ✅) i pošte
+(spec 36 ✅) je time zatvorena; serverski testovi za servise šablona dodati su u valu 4 (dio 2), a `bottleneck`
+je već imao specove (`reports/bottleneck/sql-bottleneck-dashboard-store.spec.ts`,
+`aggregate-bottleneck-dashboard.spec.ts`).

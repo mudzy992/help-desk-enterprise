@@ -38,6 +38,7 @@
 | M9 | 2026-10-05 | Odobrenja i CSAT; Nadzorna ploča | `user-guide/odobrenja-i-csat.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, `# Popravke poslije vala 4`), ovaj dokument | **Skala i prag „zadovoljan“ sada važe i na serijama taba Trendovi; ograničenje uklonjeno iz vodiča** |
 | — | 2026-10-05 | Postavke i čarobnjak — mrtvi prekidači | `user-guide/instalacija.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M15, `# Popravke poslije vala 4`), ovaj dokument | **Uklonjeno 11 postavki bez potrošača (4 dodatka iz čarobnjaka, 5 iz „Dnevnika izmjena“, naziv/opis Teams aplikacije); sažetak ploče više ne prima neiskorišteni `scope`; ispravljena tvrdnja da su postavke održavanja mrtve — one rade (banner i picker)** |
 | — | 2026-10-05 | Mrtve površine (M9 B4, M8 B3, M7 B2) | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, §M8, §M9, `# Popravke poslije vala 4` §5), ovaj dokument | **Preview rutanja sada radi u koraku pregleda tiketa; uklonjene dvije postavke bez efekta (`allowRequesterManager`, `allowSharing`); `roleSource` ostaje dokumentovano odstupanje** |
+| — | 2026-10-05 | E2E pokrivenost pošte (M12) | `REVIEW_ANALIZA.md` (`# Popravke poslije vala 4` §6), ovaj dokument, `e2e/tests/36-notifications-email.spec.ts` (nov) | **Novi e2e spec: kanal e-pošte u `/ops/alerts/test`, `components.email` u `/ops/health` i pločica e-pošte u kartici Operativno zdravlje** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1509,3 +1510,22 @@ prikaz ishoda rutanja pri kreiranju.
 
 **Dokazi:** backend `tsc --noEmit` → 0; `npx jest src/modules/tickets src/modules/settings src/modules/notifications
 --maxWorkers=2` → 148 suita / 768 testova; frontend `tsc -b` → 0, `vitest` → 159 fajlova / 649 testova.
+
+## E2E pokrivenost pošte — spec 36 (2026-10-05, M12)
+
+Must-have tačka 6 tražila je e2e za module koji ga nisu imali; portal znanja (34) i nadzorna ploča (35) dobili su
+specove u valu 4, a **pošta** je ostala bez njih. Novi `e2e/tests/36-notifications-email.spec.ts` pinuje ugovor
+vanjskog kanala:
+
+- `/ops/health` → `components.email` (`lastSentAt` je `null` ili ISO datum; `stuckClaims` je cijeli broj ≥ 0 — to je
+  ulaz u upozorenje iz M12 B1);
+- `POST /ops/alerts/test` → kanal `email` sa statusom iz skupa `sent/partial/failed/skipped`; ako je `skipped`,
+  razlog mora biti poznat (`email_channel_disabled`, `no_recipients`, `not_configured`), pa **isključen SMTP ne
+  ruši poziv** i administratorski ekran i dalje dobija odgovor po kanalima;
+- `inApp` kanal je `sent`, red tipa `ops.alert` se pojavi u listi obavijesti, a `POST /notifications/:id/read`
+  vraća `isRead: true` (broj nepročitanih ne raste);
+- UI: pločica **Slanje e-maila** prikazuje jedno od tri stanja, a **Pošalji testni alarm** u toastu ispiše
+  `E-mail: <status> (<n>)` uz ostale kanale.
+
+**Dokazi:** `npx tsc --noEmit -p tsconfig.json` u `e2e/` → 0; `npx playwright test --list` → **70 testova u 36
+fajlova** (prije 68/35). Spec se izvršava samo na živom stacku (`E2E_API_URL`).
