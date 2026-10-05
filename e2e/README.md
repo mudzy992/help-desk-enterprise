@@ -137,6 +137,21 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
   way, so a list like `10, 11, 12` maps straight onto files.
 
+## State the suite owns and must reset
+
+A run is executed against a **live** stack that people also use, so tests must not inherit what an earlier run (or a
+person clicking around) left behind. Two rules, both learned from real failures on 2026-10-05:
+
+- **Running timers are cleared by `globalSetup`** (`clearStaleTimers`, `helpers/time-tracking.ts` → `stopRunningTimer`,
+  `GET /me/active-timer` + `POST …/stop`). Only one timer may run per agent, so a timer left by a failed run makes the
+  *next* run's first `time-start` open the switch dialog and the header keep the old ticket number — a failure that
+  looks like broken time tracking but is stale state. Spec 14 also clears its own timer, so a retry cannot inherit
+  the timer its own failed attempt left.
+- **A spec that depends on a setting pins it** for the duration of the test and restores it (`withSettings`,
+  `helpers/assets.ts`), instead of assuming how the installation is configured. Spec 10 does this for
+  `private.ticket.autoAssign.enabled` (a forward deliberately applies the target group's auto-assign strategy) and
+  `private.ticket.groupInbox.enabled` (the flow needs an unassigned ticket in the group inbox).
+
 ## Test accounts (important)
 
 `global-setup` changes the configured accounts:

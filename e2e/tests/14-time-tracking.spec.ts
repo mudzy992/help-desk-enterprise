@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
+import { stopRunningTimer } from '../helpers/time-tracking';
 import { signIn } from '../helpers/sign-in';
 
 type TicketView = { readonly id: string; readonly ticketNumber: string; readonly originUnitId: string };
@@ -31,6 +32,11 @@ test.describe('14 time tracking guard', () => {
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
+    // Run 37353690845 (2026-10-05): the previous run failed with a timer running,
+    // so this spec's first `time-start` only opened the switch dialog and the
+    // header kept the old ticket number. Clear it here as well, so a retry of
+    // *this* spec cannot inherit the timer its own failed attempt left behind.
+    await stopRunningTimer(adminApi);
     const userApi = new ApiClient();
     await userApi.login(env.userEmail, env.userPassword);
     const catalog = await loadSeedCatalog(userApi);

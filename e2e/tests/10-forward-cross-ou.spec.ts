@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
+import { withSettings } from '../helpers/assets';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
@@ -43,9 +44,33 @@ test.describe('10 forward cross-OU', () => {
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
 
-    const tree = await adminApi.requestJson<UnitNode | UnitNode[]>(
-      '/organizational-units/tree',
+    // Run 37353690845 (2026-10-05): the forward itself was correct, but the
+    // ticket came back *assigned* — after a forward the target group's own
+    // auto-assign strategy is applied deliberately
+    // (`backend/src/modules/tickets/forwarding/tickets-forwarding.service.ts`:
+    // "The target group's own auto-assign strategy applies, as for a new ticket").
+    // The flow this spec covers — an unassigned ticket in the group inbox that
+    // the agent claims — only exists while auto-assignment is off, and that is a
+    // per-installation setting. Pinning it (and the group inbox) keeps the spec
+    // independent of how the stack is configured; `withSettings` restores both.
+    await withSettings(
+      adminApi,
+      e2eForwardSettings,
+      'E2E 10: prosljeđivanje kroz organizacione jedinice',
+      () => runForwardFlow(page, adminApi, env),
+      e2eForwardSettings,
     );
+  });
+});
+
+async function runForwardFlow(
+  page: Page,
+  adminApi: ApiClient,
+  env: ReturnType<typeof readE2EEnvironment>,
+): Promise<void> {
+  const tree = await adminApi.requestJson<UnitNode | UnitNode[]>(
+    '/organizational-units/tree',
+  );
     const root = (Array.isArray(tree) ? tree : [tree])[0];
     expect(root, 'organizational unit tree root').toBeDefined();
     const targetUnitId = await ensureChildUnit(adminApi, root, targetUnitName);
@@ -87,7 +112,12 @@ test.describe('10 forward cross-OU', () => {
 
     const forwarded = await adminApi.requestJson<TicketView>(`/tickets/${created.id}`);
     expect(forwarded.assignedGroupId).toBe(targetGroupId);
-    expect(forwarded.assignedUserId).toBeNull();
+    expect(
+      forwarded.assignedUserId,
+      'prosljeđivanje ne smije dodijeliti korisnika dok je auto-dodjela isključena; ' +
+        'ako padne, provjeri i dežurstva ciljne grupe — resolveOutsideHoursOnCallAssignee ' +
+        'dodjeljuje i kad je postavka private.ticket.autoAssign.enabled isključena',
+    ).toBeNull();
     expect(forwarded.status).toBe('PENDING');
     const history = await adminApi.requestJson<Array<{ isCrossOu: boolean; reason: string }>>(
       `/tickets/${created.id}/forward-history`,
@@ -124,8 +154,13 @@ test.describe('10 forward cross-OU', () => {
       `/tickets/${created.id}/forward-history`,
     );
     expect(route.map((item) => item.toGroupId)).toEqual([originGroupId, targetGroupId]);
-  });
-});
+}
+
+/** Settings the flow needs; see the comment in the test. */
+const e2eForwardSettings = {
+  'private.ticket.autoAssign.enabled': false,
+  'private.ticket.groupInbox.enabled': true,
+} as const;
 
 async function ensureChildUnit(api: ApiClient, root: UnitNode, name: string): Promise<string> {
   const existing = (root.children ?? []).find((child) => child.name === name);

@@ -94,6 +94,33 @@ pa su svi kasniji koraci **i cijeli e2e job** bili preskočeni (`needs: [backend
 | `e2e/scripts/summarize-playwright-json.test.mjs` | Isti neutralni broj u tri linije (fixture + tvrdnja) | isto |
 | `REVIEW_ANALIZA.md` | Nalaz **D-19** u tabeli trijaže | ova izmjena |
 
+### Drugi e2e prolaz: auto-dodjela poslije prosljeđivanja i zaostali timer (D-20, D-21)
+
+**Zašto:** run `37353690845` (sužen na 7 testova) završio je s 4 passed / 2 failed / 1 skipped. Oba pada su
+popravljena u **e2e sloju** — proizvod radi kako je dizajniran:
+
+- **D-20 (spec 10):** poslije prosljeđivanja backend namjerno primijeni strategiju auto-dodjele ciljne grupe
+  (`tickets-forwarding.service.ts:75`), a spec je tražio **nedodijeljen** tiket u grupi; to zavisi od postavke
+  instalacije. Spec sada fiksira `private.ticket.autoAssign.enabled` i `private.ticket.groupInbox.enabled`
+  preko `withSettings` i vraća ih poslije testa.
+- **D-21 (spec 14):** prethodni run je ostavio **pokrenut timer**, pa je prvi `time-start` otvorio dijalog za
+  prebacivanje i indikator je zadržao stari tiket (`T-000162` vs `T-000164`). Novi `e2e/helpers/time-tracking.ts`
+  (`stopRunningTimer`) čisti timer u `globalSetup`-u (sva tri naloga) i na početku samog speca, pa ni retry ne
+  nasljeđuje vlastito zaostalo stanje.
+
+**Dokazi:** `node --experimental-strip-types /tmp/timer-check.mjs` → **6/6** (jedan POST na pravi put, `reason:
+MANUAL`, bez timera nema POST-a, greška se propagira); `cd e2e && npx tsc --noEmit -p tsconfig.json` → 0;
+`npx playwright test --list` → **71 test u 36 fajlova**; `node scripts/check-client-neutral.mjs` → zeleno;
+`node scripts/check-docs-content.mjs` → OK.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `e2e/helpers/time-tracking.ts` | Novi `stopRunningTimer` (idempotentan) | `backend/src/modules/tickets/time-tracking/tickets-time-tracking.controller.ts:140` (`GET /me/active-timer`), `:84` (`POST …/stop`) |
+| `e2e/global-setup.ts` | Novi korak `clearStaleTimers` za sva tri naloga; greška je upozorenje | run `37353690845`, spec 14 |
+| `e2e/tests/14-time-tracking.spec.ts` | Čisti vlastiti timer prije prvog koraka (retry ne nasljeđuje stanje) | isto |
+| `e2e/tests/10-forward-cross-ou.spec.ts` | `withSettings` fiksira auto-dodjelu i grupni inbox; tvrdnja na `:90` nosi poruku s putem provjere | `backend/src/modules/tickets/forwarding/tickets-forwarding.service.ts:75–77` |
+| `REVIEW_ANALIZA.md` | Nalazi **D-20** i **D-21**, dokazi, status otvorenog | ova izmjena |
+
 ### Ostaje otvoreno `[NEJASNO]`
 
 1. RAW upućuje na `.cursor/docs/04-install-wizard.md`; taj fajl ne postoji u repou (`.cursor/docs/` sadrži

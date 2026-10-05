@@ -5929,6 +5929,9 @@ iz `REVIEW_ANALIZA.md` §M5, uz pripadajuće testove i izmjene u vodiču `docs/u
 
 | **D-19** | CI je pao na `check-client-neutral` (korak 5 frontend joba) zbog **mojih** primjera izlaza: `e2e/README.md:108` i tri linije u `e2e/scripts/summarize-playwright-json.test.mjs` | Kada sam pisao uzorak sažetka (D-17), prepisao sam iz loga stvarni primjer `Received string` s klijentskom skraćenicom u broju tiketa; pravilo `ep[ _-]?hd\b` (`scripts/check-client-neutral.mjs:43`) to hvata kao klijentsku skraćenicu | Frontend job padne, pa CI **preskoči sve ostale korake i cijeli e2e job** (`needs: [backend, frontend]`) — dva nova runa (`37341585574`, `37347025852`) nisu izvršila nijedan e2e test | Primjer je neutralan: `Received string: "[HD-2026-000124] Nova poruka"` (README i test), a tvrdnja testa provjerava upravo taj broj; **`node scripts/check-client-neutral.mjs` je sada zelen** | **SREDNJE** (guard je radio tačno kako treba — uhvatio je moj propust prije merge-a sadržaja u `master`) |
 
+| **D-20** | Spec **10** pao na `expect(forwarded.assignedUserId).toBeNull()`; stigao je CUID korisnika | Poslije prosljeđivanja backend **namjerno** primijeni strategiju auto-dodjele ciljne grupe („The target group's own auto-assign strategy applies, as for a new ticket“, `backend/src/modules/tickets/forwarding/tickets-forwarding.service.ts:75`, poziv `applyAfterCreate` na `:77`); `apply-ticket-auto-assignment.ts:37–42` tada dodijeli jedinog člana grupe. Globalna postavka je na tom stacku uključena (`private.ticket.autoAssign.enabled`, zadano `false` — `settings/definitions/ticket-assignment-settings.ts:14`), a tok koji spec pokriva (**nedodijeljen** tiket u grupi kojeg agent preuzima) postoji samo dok je auto-dodjela isključena | Spec je zavisio od konfiguracije instalacije; prvi put je došao do te tvrdnje jer ga je ranije zaustavljao `DISTINGUISHED_NAME_PARENT_MISMATCH` (D-15) | Spec sada fiksira postavke koje njegov tok zahtijeva (`withSettings`, `tests/10:56–62`, ključevi u `e2eForwardSettings:156`), a `withSettings` ih vraća u `finally`; tvrdnja na `tests/10:90` nosi poruku koja za sljedeći pad kaže i da se provjere dežurstva grupe (`resolveOutsideHoursOnCallAssignee` dodjeljuje i kad je postavka isključena) | **SREDNJE** (pretpostavka speca, ne bug u proizvodu) |
+| **D-21** | Spec **14** pao jer je indikator pokazivao **stari** tiket (`T-000162`, 01:14) umjesto novog (`T-000164`) | Prethodni run je pao između `time-start` i `time-stop` i **ostavio timer pokrenut**; samo jedan timer smije raditi po agentu, pa prvi `time-start` u novom runu otvori dijalog za prebacivanje, a zaglavlje zadrži stari tiket. Playwright retry je stanje naslijedio od prvog pokušaja — zato „after 1 retry“ | Pad je izgledao kao greška u mjerenju vremena, a uzrok je bilo zagađeno stanje iz prethodnog runa | Novi `e2e/helpers/time-tracking.ts` (`stopRunningTimer`, `:28`): `GET /me/active-timer` → ako timer postoji, `POST /tickets/:id/time-logs/:logId/stop` s `reason: MANUAL` (dozvoljene vrijednosti: `StopTimeLogDto`). Zove ga `global-setup.ts:14` (`clearStaleTimers`, za sva tri naloga, greška je upozorenje) **i** sam spec prije prvog koraka (`tests/14:39`) — tako ni retry ne nasljeđuje vlastiti timer | **SREDNJE** (higijena stanja harnessa) |
+
 ## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
 
 | Provjera | Komanda | Rezultat |
@@ -6260,6 +6263,8 @@ dana), jer se popis iz prve poruke odnosio na raniji prolaz; zato se nijedan pad
 | e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | **0 grešaka** (poslije izmjena u `helpers/create-ticket.ts`, `helpers/api-client.ts`, `tests/10`, `tests/18`) |
 | Prikaz izlaza (stvarni render) | `node --input-type=module -e "…formatSummary…"` nad uzorkom s axe nalazima i `skipped` | Ispisuje `FAIL 22-accessibility.spec.ts:60 …`, dvije linije axe nalaza, `SKIPPED 1 test(s) — a skip is not a pass` i `NEXT TRIAGE RUN: specs=15,22 …` |
 | Workflow YAML s novim inputom | `node scripts/check-workflows-yaml.mjs`, `bash -n` nad svim `run` blokovima, `npx js-yaml` (parse) | OK; `inputs.specs` pročitan iz parsiranog YAML-a, `env.E2E_SPECS` vezan na `${{ inputs.specs }}`, zadnja linija `npx playwright test "${args[@]}" "${files[@]}"`; simulacija s `specs=10,18,22` daje tri fajla, `99` daje grešku |
+| Logika `stopRunningTimer` | `node --experimental-strip-types /tmp/timer-check.mjs` (6 provjera nad `helpers/time-tracking.ts`, lažni klijent) | **6/6** — zaustavi zaostali timer tačno jednim POST-om na `/tickets/:id/time-logs/:logId/stop`, s `reason: MANUAL`; bez timera **ne** šalje POST; greška se propagira (global setup je hvata i upozori) |
+| e2e tipovi i spisak | `cd e2e && npx tsc --noEmit -p tsconfig.json`; `npx playwright test --list` | **0 grešaka**; **71 test u 36 fajlova** (spec 18 je razdvojen na dva testa, otuda 71 umjesto 70) |
 | Guard klijentske neutralnosti | `node scripts/check-client-neutral.mjs` + `node --test scripts/check-client-neutral.test.mjs` | **zeleno** („no client-specific names in tracked files“); samotest guarda 3/3 |
 | Statika kontrasta | `node scripts/check-theme-contrast.mjs` | 12 paleta × 23 para unutar praga, 0 upotreba `text-primary` na neutralnoj površini (dakle runtime axe nalaz iz speca 22 dolazi iz DOM-a, ne iz palete — čeka artefakt) |
 
@@ -6267,23 +6272,32 @@ dana), jer se popis iz prve poruke odnosio na raniji prolaz; zato se nijedan pad
 
 | Spec | Šta se zna | Šta treba za popravku |
 |---|---|---|
+| ~~**10**~~ | **Zatvoreno (D-20)**: pad nije bio bug u proizvodu — prosljeđivanje namjerno primijeni auto-dodjelu ciljne grupe, a spec je zavisio od postavke instalacije. Postavke su sada fiksirane u specu | — |
 | **11** | Pada `expect(normal.subject).toMatch(/^\[HD-2026-000123\] /)` (`tests/11:45`) ili `overview.keys` bez `ticket.broadcast`; serverska fikstura postoji (`email-template-preview.ts:19`, `build-template-variables.ts:114`) i unit spec je zelen | `Received`/`Expected` iz artefakta — od sada je u logu (`errorDetail`) |
 | **12** | Nema detalja u proslijeđenom sažetku | artefakt |
-| **14** | `toContainText` na lokatoru (spec 14) | tekst koji je stigao (`Received string`) |
 | **17** | Nema detalja u proslijeđenom sažetku | artefakt |
 | **18** | Popravljeno u dijelu koji ne zavisi od pošte (D-18); ostaje da se vidi da li je pad bio na pošti ili na kreiranju | novi prolaz |
 | **20–23** | 22 ×4 su axe nalazi (`user-notifications-light/dark`, `admin-settings-light/dark`); `serious`/`critical` padaju, `moderate`/`minor` ne (`helpers/a11y.ts`) | spisak pravila i selektora iz `test-results/a11y-report.jsonl` ili attachmenta `axe-<label>` |
 | **23, 24** | `TypeError: fetch failed` (D-16) | nova poruka `NETWORK …` iz sljedećeg prolaza |
 | **26, 27** | Nema detalja u proslijeđenom sažetku | artefakt |
 
-**Ništa od ovoga se ne popravlja u backendu**: `INVALID_SLUG` (D-14) i `DISTINGUISHED_NAME_PARENT_MISMATCH` (D-15)
-su posljedica e2e fikstura — backend ih odbija **ispravno**.
+| ~~**14**~~ | **Zatvoreno (D-21)**: pad je bio zaostali timer iz prethodnog runa, ne greška mjerenja vremena; harness ga sada čisti | — |
+
+**Ništa od ovoga se ne popravlja u backendu**: `INVALID_SLUG` (D-14), `DISTINGUISHED_NAME_PARENT_MISMATCH` (D-15),
+auto-dodjela poslije prosljeđivanja (D-20) i zaostali timer (D-21) su posljedica e2e fikstura i stanja okruženja —
+backend radi **tačno ono što je dizajnirano** (auto-dodjela je dokumentovana u kodu, a timer je pravilo proizvoda).
+
+**Drugi prolaz (run `37353690845`, `f8565ff`, sužen na 7 testova):** 4 passed / 2 failed / 1 skipped. Pao je
+**10** (D-20) i **14** (D-21), a **18** se vidljivo preskočio (`EMAIL_CHANNEL_DISABLED`) — skip lista je u sažetku,
+kako je i zamišljeno. Koji je tačno podskup pokrenut ne vidi se iz sažetka (GH API ne vraća `inputs` za taj run),
+pa se status specova 11, 12, 15, 17, 20–24, 26 i 27 iz ovog prolaza **ne izvodi**.
 
 ## 4. Sljedeći korak (vlasnik)
 
-Pokrenuti workflow u trijažnom režimu: **Actions → CI → Run workflow**, `max_failures=8`, `retries=0`, i — kad se
-provjerava jedan popravljeni spec — `specs=10,18,22` (novi `workflow_dispatch` input, mapa na
-`e2e/tests/<broj>-*.spec.ts`; nepoznat broj ruši korak s `Unknown spec`). Cijeli prolaz traje ~35 min, trijažni
-podskup nekoliko minuta, jer `globalSetup` pripremi naloge pa Playwright izvrši samo te fajlove. Sažetak u
+1. **Provjera popravki (~2 min):** **Actions → CI → Run workflow**, `specs = 10,14`, `max_failures=8`, `retries=0`.
+   Očekivano: oba zelena (D-20 i D-21 su popravljeni i imaju dokaz u kodu/logici), a `NEXT TRIAGE RUN` se ne pojavi.
+2. **Puni prolaz (kapija, ~35 min):** bez `specs`, `max_failures=0`, `retries=1` (defaulti) — 71 test u 36 fajlova.
+3. Sažetak iz koraka **Summarize failures (JSON report)** nosi `Expected`/`Received`, axe nalaze, `cause` mrežne
+   greške, `SKIPPED` listu i gotovu `specs=` liniju za sljedeći trijažni run. Sažetak u
 logu sada nosi i detalje (Expected/Received, axe pravila, `cause` mrežne greške), pa se svaki pad klasifikuje bez
 otvaranja artefakta; artefakt ostaje dokaz (`playwright-report`, `test-results`, `results.json`).
