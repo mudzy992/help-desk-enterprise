@@ -79,6 +79,21 @@ izričito traži (`RAW_PROJECT.md:1063`). Analiza: `REVIEW_ANALIZA.md` §M1.
 
 - Ništa.
 
+### Popravka guarda klijentske neutralnosti (D-19)
+
+**Zašto:** CI je pao na `check-client-neutral` jer su primjeri izlaza u `e2e/README.md` i u samotestu summarizera
+sadržavali klijentsku skraćenicu u broju tiketa — prepisanu iz stvarnog loga. Frontend job je pao na koraku 5,
+pa su svi kasniji koraci **i cijeli e2e job** bili preskočeni (`needs: [backend, frontend]`).
+
+**Dokazi:** `node scripts/check-client-neutral.mjs` → zeleno; `node --test scripts/check-client-neutral.test.mjs` → 3/3;
+`node --test scripts/summarize-playwright-json.test.mjs` → 12/12.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `e2e/README.md` | Uzorak izlaza: `[HD-2026-000124]` umjesto klijentske skraćenice | `scripts/check-client-neutral.mjs:43` (`ep[ _-]?hd\b`) |
+| `e2e/scripts/summarize-playwright-json.test.mjs` | Isti neutralni broj u tri linije (fixture + tvrdnja) | isto |
+| `REVIEW_ANALIZA.md` | Nalaz **D-19** u tabeli trijaže | ova izmjena |
+
 ### Ostaje otvoreno `[NEJASNO]`
 
 1. RAW upućuje na `.cursor/docs/04-install-wizard.md`; taj fajl ne postoji u repou (`.cursor/docs/` sadrži
@@ -1693,4 +1708,3 @@ metode, putanje i `cause`.
 - **Axe nalazi (22 ×4)** traže spisak pravila i selektora iz `test-results/a11y-report.jsonl`; statička provjera
   kontrasta je zelena (`node scripts/check-theme-contrast.mjs`), pa nalaz dolazi iz DOM-a, ne iz palete.
 - **Prvi zelen prolaz** je kapija za merge na `master` (radi vlasnik).
-

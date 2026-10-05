@@ -96,7 +96,7 @@ test('errorDetail keeps the lines that explain the failure', () => {
     'Error: expect(received).toMatch(expected)',
     '',
     'Expected pattern: /^\[HD-2026-000123\] /',
-    'Received string:  "[EPHD-2026-000123] Nova poruka"',
+    'Received string:  "[HD-2026-000124] Nova poruka"',
   ].join('\n');
   const detail = errorDetail({ message });
   assert.equal(detail.length, 2);
@@ -123,7 +123,7 @@ test('formatSummary prints detail lines and never hides a skip', () => {
         failedSpec(
           'API: preview hides confidential data',
           33,
-          'Error: expect(received).toMatch(expected)\nExpected pattern: /^\[HD-2026-000123\] /\nReceived string: "[EPHD]"',
+          'Error: expect(received).toMatch(expected)\nExpected pattern: /^\[HD-2026-000123\] /\nReceived string: "[HD-2026-000124]"',
         ),
         skippedSpec('send test to me (e-mail channel disabled)'),
       ],
@@ -131,7 +131,7 @@ test('formatSummary prints detail lines and never hides a skip', () => {
   );
   assert.match(text, /FAIL 20-privacy\.spec\.ts:33/);
   assert.ok(text.includes('Expected pattern: /^[HD-2026-000123] /'), text);
-  assert.ok(text.includes('Received string: "[EPHD]"'), text);
+  assert.ok(text.includes('Received string: "[HD-2026-000124]"'), text);
   assert.match(text, /SKIPPED 1 test\(s\) — a skip is not a pass:/);
   assert.match(text, /send test to me \(e-mail channel disabled\)/);
 });

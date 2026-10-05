@@ -105,7 +105,7 @@ Playwright (results.json): 58 passed, 10 failed, 2 flaky, 0 skipped.
 FAIL 20-privacy.spec.ts:41 — 20 privacy › a DSR travels the list and the timeline
      Error: expect(received).toMatch(expected)
        Expected pattern: /^\[HD-2026-000123\] /
-       Received string:  "[EPHD-2026-000123] Nova poruka"
+       Received string:  "[HD-2026-000124] Nova poruka"
 
 SKIPPED 1 test(s) — a skip is not a pass:
      18 scheduled reports › send test to me needs a configured e-mail channel
