@@ -36,7 +36,9 @@ export async function ensureInstall(api: ApiClient): Promise<void> {
     method: 'POST',
     body: JSON.stringify({
       addons: {
-        sla: true,
+        // `sla` was removed from the catalog in val 5 (it never had a switch of
+        // its own: SLA is turned on by the profile, not by an add-on), and the
+        // endpoint rejects unknown keys with `unsupportedAddon`.
         csat: true,
         approvals: true,
         confidential: true,

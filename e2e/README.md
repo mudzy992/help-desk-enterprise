@@ -32,11 +32,13 @@ Unit gate is `.github/workflows/ci.yml` (backend + frontend). E2E is a **separat
 on `workflow_dispatch` / `main` / `master` that expects a **live stack** — it does not start Postgres/Redis in
 GitHub-hosted runners (Coolify contract). See `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`.
 
-The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs `npm test`.
+The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs a **Preflight** step
+(prints `set`/`empty` per name — never a value — resolves the API and database hosts and calls
+`$E2E_API_URL/health`), then `npm test`.
 
-> **A green E2E job now means the specs ran.** When the repository variable `E2E_API_URL` is empty the run
-> step fails with `::error title=E2E did not run`, instead of silently passing (the earlier `exit 0` skip made a
-> green checkmark meaningless). Configure the variables and secrets below before relying on this job.
+> **A green E2E job now means the specs ran.** When the repository variable `E2E_API_URL` is empty the
+> Preflight step fails with `::error title=E2E did not run`, instead of silently passing (the earlier `exit 0`
+> skip made a green checkmark meaningless).
 
 ### What the job needs: repository variables and secrets
 
@@ -47,22 +49,50 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
 | `E2E_SUPERADMIN_EMAIL`, `E2E_SUPERADMIN_PASSWORD` | secret | Super admin that already exists on that stack; the harness only signs in (and clears MFA when `E2E_DATABASE_URL` is set). |
 | `E2E_USER_EMAIL`, `E2E_USER_PASSWORD` | secret | Disposable USER account of that stack; created and set up by the harness. |
 | `E2E_AGENT_EMAIL`, `E2E_AGENT_PASSWORD` | secret | Disposable AGENT account of that stack; created and set up by the harness. |
-| `E2E_DATABASE_URL` | secret | Postgres of that stack (same database as the API), used only to clear the super admin's MFA. |
+| `E2E_DATABASE_URL` | secret | Postgres of that stack (same database as the API), used only to clear the super admin's MFA. **The host must resolve from a GitHub runner** — see *Database reachability* below. The workflow also accepts a secret named `DATABASE_URL` as a fallback. |
+| `E2E_SUPERADMIN_TOTP_SECRET` | secret (optional) | Base32 TOTP secret of the test super admin. With it the run does not need database access at all (no MFA reset). |
+| `E2E_SSH_HOST`, `E2E_SSH_PORT`, `E2E_SSH_USER`, `E2E_SSH_PRIVATE_KEY`, `E2E_SSH_DB_PORT` | secrets (optional) | With all of them set, the runner opens an SSH tunnel `127.0.0.1:15432 → <host>:<db port>` before the specs, so Postgres never has to be public. Then `E2E_DATABASE_URL` must point at `127.0.0.1:15432`. |
 | `E2E_INSTALL_TOKEN` | secret | Only if the stack's install wizard is still open; must match the backend `INSTALL_TOKEN`. |
 
 Steps (repository admin):
 
 1. GitHub → repository → **Settings → Secrets and variables → Actions**.
 2. **Variables** tab → *New repository variable*: add `E2E_API_URL`, `E2E_BASE_URL`.
-3. **Secrets** tab → *New repository secret*: add the eight secrets from the table (use disposable
+3. **Secrets** tab → *New repository secret*: add the secrets from the table (use disposable
    `e2e.*@example.com` accounts for user/agent; the passwords must satisfy the local password policy —
    see *Test accounts* below).
-4. Run the workflow on `master` (or *Run workflow*), open the **Run E2E** step and check that it did not fail
-   with `E2E did not run`. Failures upload `playwright-report/` as the job artifact.
+4. Run the workflow on `master` (or *Run workflow*), open **Preflight** and check that it did not fail with
+   `E2E did not run` or `E2E stack unreachable`. Failures upload `playwright-report/` as the job artifact.
+
+> **Repository, not environment.** `E2E_API_URL` and `E2E_BASE_URL` must be **repository variables**
+> (Settings → Secrets and variables → Actions → **Variables**). A variable created under
+> *Settings → Environments* is visible only to a job that declares that environment, and this job does not,
+> so `${{ vars.E2E_API_URL }}` would be an empty string and Preflight fails with `E2E did not run`.
 
 The stack must be reachable from GitHub-hosted runners (public HTTPS or a tunnel on the runner). Specs that
 depend on scheduled jobs (for example the 15-minute flush of article views) behave differently when the worker
 is not running next to the API.
+
+### Database reachability (why the job can fail with `getaddrinfo EAI_AGAIN`)
+
+`global-setup` clears the test super admin's MFA through `E2E_DATABASE_URL`. That host is resolved **on the
+GitHub runner**, which has no route into the stack's Docker network: an internal Coolify/Docker name (a bare
+26-character service id such as `hgpchekxb6dutalsyctu42al`) fails with
+`Error: getaddrinfo EAI_AGAIN <host>` before a single spec starts. Pick one:
+
+| Option | What to do | Trade-off |
+|---|---|---|
+| **Public Postgres port** | In Coolify, publish the Postgres port and put it into `E2E_DATABASE_URL` (public host + port, same credentials). | The database is reachable from the internet; protect it with a strong password and, if possible, an allow-list. |
+| **SSH tunnel** | Set `E2E_SSH_*` (see the table) and point `E2E_DATABASE_URL` at `127.0.0.1:15432`; the job opens the tunnel itself. | Nothing has to be public; the runner needs an SSH key that may only forward ports. |
+| **No database** | Leave `E2E_DATABASE_URL` empty and set `E2E_SUPERADMIN_TOTP_SECRET` for the account. | No DB exposure, but MFA cannot be reset between runs — the secret must stay valid. |
+
+When the database is configured but unreachable, the harness now prints this instead of the bare DNS error,
+and **continues** only if `E2E_SUPERADMIN_TOTP_SECRET` is present (otherwise it stops with the same text):
+
+```
+[e2e] MFA reset skipped: the host "<host>" does not resolve from a GitHub-hosted runner.
+  Set E2E_DATABASE_URL to a connection string that is reachable from GitHub runners: …
+```
 
 ## Test accounts (important)
 
@@ -71,7 +101,8 @@ is not running next to the API.
 - it **overwrites the password** of `E2E_USER_EMAIL` and `E2E_AGENT_EMAIL` through the API (admin
   reset → temporary password → forced change), only when the configured password does not work;
 - with `DATABASE_URL` set, it **deletes the MFA** of `E2E_SUPERADMIN_EMAIL`, so the next login
-  re-enrols it. The TOTP secrets exist only in `.auth/mfa.json`.
+  re-enrols it. The TOTP secrets exist only in `.auth/mfa.json` — or, when the database is not reachable,
+  in the `E2E_SUPERADMIN_TOTP_SECRET` secret.
 
 Use the reserved domain **`example.com`** (RFC 2606) for all three, e.g. `e2e.user@example.com`. No
 real mailbox exists and the e-mail policy does not deliver there, so no mail leaves the system and the

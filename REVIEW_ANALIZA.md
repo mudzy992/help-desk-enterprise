@@ -6176,3 +6176,35 @@ prolazu pokrenuti `npx jest src/worker.module.spec.ts src/app.module.spec.ts`.
 
 **Napomena o okruženju:** puna suita u jednom prolazu u sandboksu ubije jedan jest worker (`SIGKILL` — OOM), pa
 je provjerena u dvije polovine (`--shard`); to nije pad testa i u CI-ju se ne pojavljuje.
+# Val 5 — e2e u CI-ju: scope varijabli, nedostupna baza i dodatak `sla` (2026-10-05)
+
+Prvi pravi e2e prolaz otkrio je tri stvari koje unit sloj ne može vidjeti. Dvije su greške u konfiguraciji i
+jedna je **naš propust iz vala 5** (uklonjen dodatak koji je harness i dalje slao).
+
+## 1. Nalazi
+
+| # | Nalaz | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-11** | `E2E_API_URL` postoji u repou, a job ga vidi kao prazan | Varijabla je napravljena pod **Settings → Environments → Environment variables**; environment-scoped vrijednosti vidi samo job koji deklarira taj environment, a `jobs.e2e` ga ne deklarira — pa `${{ vars.E2E_API_URL }}` daje prazan string | Kapija ispravno pada (`E2E did not run`), ali korisnik ne vidi zašto kad je vrijednost očigledno postavljena | Poruka kapije sada kaže da se koristi **repository** varijabla, a ne environment; novi **Preflight** korak ispisuje `set`/`empty` za svako ime (nikad vrijednost); `e2e/README.md` dobio odjeljak „Repository, not environment“ | **NISKO** (konfiguracija, ne kod) |
+| **D-12** | `E2E_DATABASE_URL` pokazuje na hostname koji postoji samo unutar Coolify mreže (`hgpchekxb6dutalsyctu42al`); `pg` pada s `getaddrinfo EAI_AGAIN <host>` | `e2e/helpers/reset-super-admin-mfa.ts:20` (`client.connect()` bez `try/catch`); host dolazi iz `readE2EEnvironment` (`helpers/environment.ts:40`) | **Prvi pravi e2e prolaz je stao prije ijednog speca**, s porukom iz koje se ne vidi šta popraviti | Novi `e2e/helpers/database-diagnostic.ts` (`databaseHost`, `isDnsFailure`, `planUnreachableDatabase`): poruka imenuje host (nikad lozinku), objašnjava da interni Docker/Coolify nazivi ne rade s runnera i nudi tri izlaza; run **nastavlja** samo ako je poznat `E2E_SUPERADMIN_TOTP_SECRET`, inače staje s istim tekstom. Uz to opcioni **SSH tunel** korak (`E2E_SSH_*`) i README odjeljak „Database reachability“ | **SREDNJE** |
+| **D-13** | `e2e/helpers/ensure-install.ts` je i dalje slao `addons.sla = true` | `validateInstallAddons` odbija nepoznat ključ (`install-addons.error` → `unsupportedAddon`), a `sla` je uklonjen iz kataloga u valu 5 (D-9: četiri mrtva prekidača) | Na **svježem** stacku e2e global setup bi pao na `/install/addons`; na postojećem se ne vidi jer je instalacija završena | Ključ uklonjen iz payloada; u komentaru objašnjeno zašto ga nema | **SREDNJE** (latentno) |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Čista logika dijagnostike | `node --experimental-strip-types /tmp/diag-check.mjs` (12 provjera nad `helpers/database-diagnostic.ts`) | **12/12** — host bez kredencijala, `ENOTFOUND`/`EAI_AGAIN` prepoznati kao DNS, greška autentikacije **nije** DNS, `continueAnyway` po TOTP secretu, poruka sadrži host i **ne sadrži lozinku** |
+| Stvarni put harnessa | `npx tsc -p tsconfig.json --outDir /tmp/e2eout --module commonjs` pa `resetSuperAdminMfa()` s internim hostom | Ispisana je tačno nova poruka (`[e2e] MFA reset skipped: the host "…" does not resolve from a GitHub-hosted runner`), `cause` je zadržan; s `E2E_SUPERADMIN_TOTP_SECRET` **ne baca** (nastavlja), bez `DATABASE_URL` samo upozorava |
+| e2e tipovi | `cd e2e && npx tsc --noEmit -p tsconfig.json` | 0 grešaka |
+| Shell blokovi iz workflowa | `bash -n` nad izvučenim `run` skriptama (Preflight, tunel) | sintaksa OK |
+| Workflow YAML | `node scripts/check-workflows-yaml.mjs` + `js-yaml.load` | provjera OK; parse potvrđuje red koraka, `if` tunela i `env` |
+| Dokumentacija | `node scripts/check-docs-content.mjs` | 29 stranica, 5 prevoda, 10 provjera — OK |
+
+## 3. Šta ostaje (radnja vlasnika)
+
+1. **Izabrati kako runner dolazi do baze** (README, „Database reachability“): javni Postgres port, SSH tunel
+   (`E2E_SSH_*`) ili bez baze (`E2E_SUPERADMIN_TOTP_SECRET`).
+2. **`E2E_BASE_URL` može biti prazan** — harness tada koristi `http://localhost:5173`, što s runnera ne
+   postoji; za pravi prolaz vrijednost treba biti javni URL frontenda.
+3. Ponoviti workflow; **Preflight** sada u logu pokaže `set`/`empty` po imenu, razrješenje oba hosta i
+   `GET /health`, pa se svaki sljedeći zastoj vidi prije Playwrighta.

@@ -95,6 +95,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     needs: [backend, frontend]
+    env:
+      # Optional: with these four/five secrets set, the runner opens an SSH
+      # tunnel to the database instead of requiring a public Postgres port.
+      # See e2e/README.md ("Kada je E2E_DATABASE_URL dovoljan").
+      E2E_SSH_PRIVATE_KEY: ${{ secrets.E2E_SSH_PRIVATE_KEY }}
+      E2E_SSH_HOST: ${{ secrets.E2E_SSH_HOST }}
+      E2E_SSH_PORT: ${{ secrets.E2E_SSH_PORT }}
+      E2E_SSH_USER: ${{ secrets.E2E_SSH_USER }}
+      E2E_SSH_DB_PORT: ${{ secrets.E2E_SSH_DB_PORT }}
     defaults:
       run:
         working-directory: e2e
@@ -108,6 +117,69 @@ jobs:
       - run: npm ci
       - name: Typecheck E2E specs and helpers
         run: npx tsc --noEmit -p tsconfig.json
+      # Fails before Playwright starts, with a readable reason. Never prints a
+      # value: only "set" / "empty" per name, resolved hosts and the health code.
+      - name: Preflight — variables, secrets and stack reachability
+        env:
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_API_URL: ${{ vars.E2E_API_URL }}
+          E2E_SUPERADMIN_EMAIL: ${{ secrets.E2E_SUPERADMIN_EMAIL }}
+          E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
+          E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
+          E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
+        run: |
+          set -u
+          for name in E2E_BASE_URL E2E_API_URL E2E_SUPERADMIN_EMAIL E2E_SUPERADMIN_PASSWORD \
+            E2E_USER_EMAIL E2E_USER_PASSWORD E2E_AGENT_EMAIL E2E_AGENT_PASSWORD DATABASE_URL E2E_INSTALL_TOKEN; do
+            if [ -n "${!name:-}" ]; then echo "$name: set"; else echo "$name: empty"; fi
+          done
+
+          if [ -z "${E2E_API_URL:-}" ]; then
+            echo "::error title=E2E did not run::E2E_API_URL is empty. Use a REPOSITORY variable (Settings -> Secrets and variables -> Actions -> Variables tab). A variable created under Settings -> Environments is only visible to a job that declares that environment, and this job does not."
+            exit 1
+          fi
+
+          api_host=$(node -e "process.stdout.write(new URL(process.argv[1]).hostname)" "$E2E_API_URL")
+          echo "API host: $api_host -> $(getent hosts "$api_host" | head -1 || echo 'NOT RESOLVABLE from this runner')"
+          if [ -n "${DATABASE_URL:-}" ]; then
+            db_host=$(node -e "process.stdout.write(new URL(process.argv[1]).hostname)" "$DATABASE_URL" 2>/dev/null || echo '?')
+            echo "Database host: $db_host -> $(getent hosts "$db_host" | head -1 || echo 'NOT RESOLVABLE from this runner (internal Coolify/Docker names do not work here)')"
+          fi
+
+          health_code=$(curl -sS -o /tmp/e2e-health.json -w '%{http_code}' -m 20 "$E2E_API_URL/health" || echo 000)
+          echo "GET $E2E_API_URL/health -> $health_code $(head -c 200 /tmp/e2e-health.json 2>/dev/null)"
+          if [ "$health_code" != "200" ]; then
+            echo "::error title=E2E stack unreachable::The API did not answer /health with 200 from a GitHub runner. Check the public DNS, the reverse proxy and any IP allow-listing between the runner and $E2E_API_URL."
+            exit 1
+          fi
+      # Optional, only when E2E_SSH_* secrets exist: no public Postgres port is
+      # then needed. Point E2E_DATABASE_URL at 127.0.0.1:15432.
+      - name: Open an SSH tunnel to the database (optional)
+        if: ${{ env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$E2E_SSH_PRIVATE_KEY" > ~/.ssh/e2e-db
+          chmod 600 ~/.ssh/e2e-db
+          ssh -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes -f -N \
+            -i ~/.ssh/e2e-db -p "${E2E_SSH_PORT:-22}" \
+            -L "15432:127.0.0.1:${E2E_SSH_DB_PORT:-5432}" \
+            "${E2E_SSH_USER:-root}@${E2E_SSH_HOST}"
+          echo "SSH tunnel is up: 127.0.0.1:15432 -> ${E2E_SSH_HOST}:${E2E_SSH_DB_PORT:-5432}."
+          if [ -n "${DATABASE_URL:-}" ]; then
+            db_host=$(node -e "process.stdout.write(new URL(process.argv[1]).hostname)" "$DATABASE_URL" 2>/dev/null || echo '?')
+            if [ "$db_host" != "127.0.0.1" ] && [ "$db_host" != "localhost" ]; then
+              echo "::warning title=E2E tunnel unused::E2E_DATABASE_URL still points at \"$db_host\". While the tunnel is open it must point at 127.0.0.1:15432, otherwise the tunnel is bypassed and the MFA reset fails on the internal host."
+            else
+              echo "E2E_DATABASE_URL points at the tunnel (127.0.0.1:15432)."
+            fi
+          fi
       - run: npx playwright install --with-deps chromium
       - name: Run E2E (requires live stack secrets)
         env:
@@ -119,11 +191,7 @@ jobs:
           E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
           E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
           E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
-          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
+          E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
-        run: |
-          if [ -z "$E2E_API_URL" ]; then
-            echo "::error title=E2E did not run::E2E_API_URL (repository variable) is not configured, so the live suite cannot run (Coolify/stack contract). A skipped suite must not pass: set the variable and the secrets from e2e/README.md, or drop this job's gate deliberately."
-            exit 1
-          fi
-          npm test
+        run: npm test
