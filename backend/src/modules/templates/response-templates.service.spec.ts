@@ -13,11 +13,8 @@ jest.mock('./build-template-variables', () => ({
   sampleTemplateVariables: jest.fn(() => ({ ticketNumber: 'SAMPLE-1' })),
 }));
 
-// eslint-disable-next-line import/first
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
-// eslint-disable-next-line import/first
 import { assertResponseTemplateUsable } from './assert-response-template-usable';
-// eslint-disable-next-line import/first
 import { buildTemplateVariables, sampleTemplateVariables } from './build-template-variables';
 
 const loadTicketMock = loadAccessibleTicket as jest.Mock;

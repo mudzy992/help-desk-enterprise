@@ -13,9 +13,7 @@ jest.mock('./attach-playbook-to-ticket', () => ({
   loadPlaybookCandidates: jest.fn(async () => []),
 }));
 
-// eslint-disable-next-line import/first
 import { loadAccessibleTicket } from '../../tickets/load-accessible-ticket';
-// eslint-disable-next-line import/first
 import { attachPlaybookToTicket, loadPlaybookCandidates } from './attach-playbook-to-ticket';
 
 const loadTicketMock = loadAccessibleTicket as jest.Mock;

@@ -5753,6 +5753,14 @@ poruke), a ne privatne funkcije.
 | `src/modules/templates/playbooks/playbooks.service.spec.ts` | 19 | `PLAYBOOKS_DISABLED`/`FORBIDDEN`; lista (filteri stanja/traženja/usluge, `activeTicketCount` iz `groupBy`, `canEdit` iz opsega, bez upita kad je lista prazna); `create` (razlog, nepostojeći opseg, reference — **samo dijeljeni** šabloni i postojeći članci, zauzeto ime, zabrana globalnog opsega servisno ograničenom adminu, redoslijed koraka i zapis u dnevnik); `update` (verzija raste **samo** kad se mijenja ono što pokrenuta lista kopira, zamjena opsega i brisanje uklonjenih koraka, provjera starog i novog opsega, before/after u dnevniku); `remove` (soft delete i zapis, zabrana van opsega) |
 | `src/modules/templates/ticket-playbooks/ticket-playbooks.service.spec.ts` | 22 | `get` (isključen modul bez učitavanja tiketa, staff vidljivost i dozvola, zatvoren tiket je read-only bez ponuda, rangiranje ponuda servis → kategorija → ostalo, lista s označenim koracima, imenima i napretkom); `attach`/`detach` (delegiranje pomoćnom modulu, `writable: true`, read-only odbijanje, obavezan razlog, označavanje kao otkačenog + zapis + sistemska poruka + realtime, gubitak trke); `upgrade` (`UP_TO_DATE`, `NOT_APPLICABLE`, čuvanje završenih koraka čiji ključ preživi, nova verzija u zapisu, jednolinijski naziv u događaju); `setStep` (nepoznat korak, idempotencija bez upisa, označavanje/odznačavanje s pozicijom u događaju, objava završetka samo kad su svi koraci gotovi); `sanitize` |
 
+**Ispravka poslije prvog CI prolaza (2026-10-05):** u dva nova speca ostala su **5 komentara
+`// eslint-disable-next-line import/first`** (navika iz frontend konfiguracije). Backend `eslint.config.mjs`
+ne registruje `import/first`, pa ESLint prijavljuje *„Definition for rule 'import/first' was not found“* kao
+**grešku** i `npm run lint` pada — CI na masteru je zbog toga bio crven (`Backend build + test`, 5 failure
+anotacija), a `npm test` i e2e job nisu se uopšte izvršili. Komentari su uklonjeni (postojeći backend specovi,
+npr. `announcements/announcement-delivery.spec.ts:1–3`, drže isti raspored `jest.mock` prije importa bez
+ikakvih direktiva); `npm run lint` → **0 grešaka / 14 postojećih upozorenja**.
+
 Dokazi: `npx tsc --noEmit` → **0**; `npx jest src/modules/templates` → **6 suita / 91 test**; isti poziv uz
 izuzimanje tri nova speca daje **3 suita / 24 testa** (toliko ih je bilo prije). Puna backend provjera
 `npx jest --maxWorkers=2` → **517 prošla + 5 preskočenih suita (522)**, **2505 prošlo / 2536 testova** (31
