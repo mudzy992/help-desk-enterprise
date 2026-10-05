@@ -44,6 +44,7 @@
 | **Val 5 (M13)** | 2026-10-05 | Serverski testovi (obavještenja) | `REVIEW_ANALIZA.md` (`# Val 5 — M13`), ovaj dokument | **Sedam notifications servisa dobilo specove (44 nova testa): keš brojača i realtime događaji, fan-out izolacija kanala i broadcast kroz red, retencija i digest scheduler, dnevni sažetak, sedmični izvještaj i korisničke postavke** |
 | **Val 5 (M8)** | 2026-10-05 | Tiketi — tip zahtjeva i željeni rok | `user-guide/tiketi.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (`# Val 5 — M8 #3`), ovaj dokument | **RAW `service → request type → due date` zatvoren: nova kolona `Ticket.requestType`, `dueAt` se konačno upisuje, oba polja u formi i u detalju tiketa, normalizacija i validacija, i jasna razlika željeni rok ≠ SLA rok** |
 | **Val 5 (M7)** | 2026-10-05 | Usmjeravanje i prioritet — mrtva postavka i prekidač matrice | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/sla.md`, `user-guide/sta-je-novo.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, `# Val 5 — M7 B2/B5`), ovaj dokument | **M7 zatvoren: nova postavka `private.ticket.priorityMatrix.enabled` stvarno isključuje matricu (vrijedi i za prioritet problema), pet mrtvih `private.changeLog.*` postavki je uklonjeno zajedno s tvrdnjom u vodiču, a ose Nizak–Kritičan ostaju dokumentovano odstupanje od RAW-a** |
+| — | 2026-10-05 | E2E kapija u CI-ju — bez tihog preskakanja | `e2e/README.md`, `.github/workflows/ci.yml`, `REVIEW_ANALIZA.md` (`# Val 5 — izvještaj vala`), ovaj dokument | **Kad `E2E_API_URL` nije postavljen, korak `Run E2E` pada s `::error` (`exit 1`) umjesto `exit 0`; zelen e2e job sada znači da su specovi izvršeni** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1639,3 +1640,23 @@ mijenja ponašanje (B2) i da se matrica prioriteta ne može isključiti (B5).
 - **Ose matrice ostaju `TicketImpact`/`TicketUrgency`** (Nizak–Kritičan), a ne `self/team/unit/company` i
   `low/medium/high` iz RAW-a — promjena bi bila izmjena šeme i podataka, pa je zadržano postojeće stanje.
 - **Nijedna stranica EN vodiča nije dirana** — izmjena je u BS izvoru; ogledalo i prevodi prate generator.
+
+## E2E kapija u CI-ju — nema više tihog preskakanja (2026-10-05, val 5)
+
+**Zašto:** e2e job je mogao biti zelen bez ijednog izvršenog testa — bez repozitorijske varijable
+`E2E_API_URL` korak je ispisivao `::notice` i izlazio s `exit 0`. Nalaz je bio kritičan jer je zelena kvačica
+izgledala kao dokaz da specovi prolaze.
+
+### Izmijenjeno
+
+| Dokument | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `e2e/README.md` | Upozorenje „zelen job ništa ne dokazuje“ zamijenjeno tvrdim ugovorom: bez `E2E_API_URL` job **pada** s `E2E did not run`; tabela varijabli i koraci 4. ažurirani | `.github/workflows/ci.yml` (korak **Run E2E**: `::error … exit 1`) |
+| `.github/workflows/ci.yml` | `::notice` + `exit 0` → `::error` + `exit 1` | nema izvršnog dokaza u sandboksu; YAML korak je jedina izmjena |
+
+### Ostaje otvoreno
+
+- **Prvi živi prolaz** (70 testova u 36 fajlova) pokreće vlasnik na `master` poslije spajanja grane; dokaz je
+  GitHub Actions (izvještaj i artefakt).
+- **Specovi se u sandboksu ne mogu izvršiti** — provjereni su tipovi (`tsc --noEmit` → 0) i kompletan spisak
+  (`playwright test --list`).

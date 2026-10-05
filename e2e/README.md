@@ -34,15 +34,15 @@ GitHub-hosted runners (Coolify contract). See `.cursor/plans/quality-e2e-critica
 
 The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs `npm test`.
 
-> **A green E2E job does not by itself prove that the specs pass.** When the repository variable
-> `E2E_API_URL` is empty the run step prints `E2E did not run` (a `::notice`) and exits 0, so nothing is
-> executed. Look for that line in the step log before trusting the checkmark.
+> **A green E2E job now means the specs ran.** When the repository variable `E2E_API_URL` is empty the run
+> step fails with `::error title=E2E did not run`, instead of silently passing (the earlier `exit 0` skip made a
+> green checkmark meaningless). Configure the variables and secrets below before relying on this job.
 
 ### What the job needs: repository variables and secrets
 
 | Name | Kind | Purpose |
 |---|---|---|
-| `E2E_API_URL` | variable | Base URL of the stack API (e.g. `https://api.desk.ba101.top`). **Empty → the suite is skipped.** |
+| `E2E_API_URL` | variable | Base URL of the stack API (e.g. `https://api.desk.ba101.top`). **Empty → the job fails with `E2E did not run`.** |
 | `E2E_BASE_URL` | variable | Frontend base URL (e.g. `https://desk.ba101.top`); defaults to `http://localhost:5173`. |
 | `E2E_SUPERADMIN_EMAIL`, `E2E_SUPERADMIN_PASSWORD` | secret | Super admin that already exists on that stack; the harness only signs in (and clears MFA when `E2E_DATABASE_URL` is set). |
 | `E2E_USER_EMAIL`, `E2E_USER_PASSWORD` | secret | Disposable USER account of that stack; created and set up by the harness. |
@@ -57,8 +57,8 @@ Steps (repository admin):
 3. **Secrets** tab → *New repository secret*: add the eight secrets from the table (use disposable
    `e2e.*@example.com` accounts for user/agent; the passwords must satisfy the local password policy —
    see *Test accounts* below).
-4. Run the workflow on `master` (or *Run workflow*), open the **Run E2E** step and check that it does not
-   print `E2E did not run`. Failures upload `playwright-report/` as the job artifact.
+4. Run the workflow on `master` (or *Run workflow*), open the **Run E2E** step and check that it did not fail
+   with `E2E did not run`. Failures upload `playwright-report/` as the job artifact.
 
 The stack must be reachable from GitHub-hosted runners (public HTTPS or a tunnel on the runner). Specs that
 depend on scheduled jobs (for example the 15-minute flush of article views) behave differently when the worker

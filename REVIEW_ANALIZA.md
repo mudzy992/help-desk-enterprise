@@ -34,6 +34,8 @@
 | 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · dopuna iste večeri (nazivi razreza umjesto ID-eva, §2b.1) · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
 | 11 | **Val 2** — sigurnost i vidljivost (M6 B2; M8 B1; M9 B1, B2; M10 B1, B2, B4; M12 B2; M13 B1; M14 B1) | ✅ Isporučen 2026-10-04 · deset nalaza · dokumentacija i ogledalo ažurirani — vidi `# Val 2 — sigurnost i vidljivost` |
 | 12 | **Val 3** — pouzdanost i performanse (M8 B2; M11 B1, B2; M12 B1, B3, B4, B5; M13 B2; M14 B5 + guard za Redis auth) | ✅ Isporučen 2026-10-05 · devet nalaza i jedan preventivni guard — vidi `# Val 3 — pouzdanost i performanse` |
+| 13 | **Val 4** — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“ (uz prateće ispravke datuma) | ✅ Isporučen 2026-10-05 · specovi 34–35; E-1 (e2e kapija) zatvoren u valu 5 — vidi `# Val 4 — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“` |
+| 14 | **Val 5** — RAW zaostaci (M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 dio) + M13 specovi, mrtve postavke i površine, EN stranice | ✅ Isporučen 2026-10-05 · svi nalazi opsega zatvoreni; u sandboksu nije moguć živ e2e prolaz — vidi `# Val 5 — izvještaj vala` |
 
 ---
 
@@ -6062,3 +6064,63 @@ ne mijenja ponašanje (`user-guide/usmjeravanje-i-prioritet.md`, „Poznata ogra
 - **M7 je zatvoren** (B2 uklonjen, B3 popravljen ranije u valu 5, B5 prekidač dodat; ose i B1/B4/B6/B7 stoje kao
   dokumentovana ograničenja/zapisi u vodiču).
 - Iz vala 5 ostaje **M12 B1 (dio — e2e pošta)** i **izvještaj vala**.
+
+# Val 5 — izvještaj vala (2026-10-05)
+
+Peti val je zatvorio **RAW zaostatke** iz plana (`# Zaključak Faze 2`, §4, red „Val 5 — RAW zaostaci“):
+**M5 B1–B6, M8 3, M7 B2/B3/B5 i dio M12 B1** (e2e pošta). Uz to su u istom valu isporučeni dogovoreni prateći
+poslovi: serverski specovi za sedam notifications servisa (M13), uklanjanje mrtvih postavki i površina
+(M9 B4, M8 B3, M15 B4), prijevodi pet ključnih stranica vodiča na engleski i **tvrda kapija** e2e joba.
+
+Sve izmjene vala 5 su na grani `arena/01a0feaa-help-desk-enterprise`: skup od 75 stavki u commitu
+`e2bbf04a` (M5, M13, M8 #3) i commit `951c745b` (M7 B2/B5 + kapija), oba pushovana na `origin`.
+
+## 1. Šta je isporučeno
+
+| Tačka | Šta je urađeno | Dokaz u ovom dokumentu |
+|---|---|---|
+| **M5 B1–B6** | Policy paket je postao stvarni bundle: dodjela servisu bez OJ, SuperAdmin kapija na API-ju, povlačenje paketa (`unapply`) s auditom, plan iz `validate` prije primjene, klasifikacija/odobrenje/SLA profil na servisu i `private.policyPacks.disabledKeysCsv` | `# Val 5 — M5` |
+| **M13** | Sedam servisa obavještenja dobilo specove (44 nova testa): keš brojača i realtime događaji, fan-out i izolacija kanala, broadcast kroz red, retencija, dnevni sažetak, sedmični izvještaj, korisničke postavke | `# Val 5 — M13` |
+| **M8 3** | Tiket je dobio `requestType` (nova kolona, ≤ 80 znakova) i upisivi `dueAt`; oba polja u formi (**Detalji**) i u detalju (**Svojstva**), normalizacija i validacija (`INVALID_REQUEST_TYPE`, `INVALID_DUE_AT`, `DUE_AT_IN_PAST`), željeni rok ≠ SLA rok | `# Val 5 — M8 #3` |
+| **M7 B3** | Preview rutanja se stvarno koristi u koraku pregleda tiketa (hook, čisto mapiranje i prikaz grupe, fallbacka, SLA profila i neusmjerenog reda) | `# Popravke poslije vala 4` §5 |
+| **M7 B5** | Nova postavka `private.ticket.priorityMatrix.enabled`: kad je isključena, prioritet se računa ugrađenom formulom i tabela se ne čita (kreiranje, izmjena, „Vrati na matricu“ i prioritet problema); ose Nizak–Kritičan ostaju dokumentovano odstupanje | `# Val 5 — M7 B2/B5` §1 |
+| **M7 B2** | Zatvoren uklanjanjem: pet mrtvih `private.changeLog.*` postavki ne postoji, a vodič više ne tvrdi da prekidač nešto mijenja | `# Val 5 — M7 B2/B5` §2 |
+| **M12 B1 (dio)** | e2e spec `36-notifications-email.spec.ts` pokriva kanal e-pošte (`/ops/health`, `/ops/alerts/test`, čitanje obavijesti, pločica u kartici **Operativno zdravlje**); e2e kapija više ne dopušta tiho preskakanje | `# Popravke poslije vala 4` §6; §3 ovog izvještaja |
+| **Mrtve postavke i površine** | Uklonjeno 11 postavki bez potrošača (4 addon prekidača, 5 `private.changeLog.*`, Teams metapodaci) i dvije iz mrtvih površina (`allowRequesterManager`, `allowSharing`); `scope` sažetka uklonjen; **7 `public.maintenance.*` zadržano** jer stvarno rade | `# Popravke poslije vala 4` §4–§5 |
+| **Ostalo iz vala** | M10 B5 (uzorak skenera), M9 B3-2 (CSAT skala na trendovima), M15 B4 (`scope`), EN prevodi pet ključnih stranica uz `?locale=` | `# Popravke poslije vala 4` §2–§4, §7 |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Sloj | Komanda | Rezultat |
+|---|---|---|
+| Backend tipovi | `cd backend && npx tsc --noEmit` | 0 grešaka |
+| Backend testovi (šire) | `npx jest src/modules/tickets src/modules/problems src/modules/settings src/modules/sla src/modules/assets src/modules/status-page --maxWorkers=2` | **170 suita (1 preskočen), 865 testova — svi prolaze** |
+| Policy paketi | `npx jest src/modules/policy-packs --maxWorkers=2` | 11 suita / 43 testa |
+| Obavještenja | `npx jest src/modules/notifications --maxWorkers=2` | 38 suita / 199 testova (M13) |
+| Frontend tipovi | `cd frontend && npx tsc -b` | 0 grešaka |
+| Frontend testovi | `npx vitest run` | **160 fajlova / 653 testa — svi prolaze** |
+| e2e tipovi i spisak | `cd e2e && npx tsc --noEmit -p tsconfig.json && npx playwright test --list` | 0 grešaka; **70 testova u 36 fajlova** |
+| Dokumentacija | `node scripts/generate-docs-content.mjs && node scripts/check-docs-content.mjs` | 29 stranica, 5 prevoda, 10 provjera — OK |
+
+**Ograničenje okruženja:** e2e specovi se u sandboksu ne mogu izvršiti (nema živog stacka; Playwright/Chromium
+se ne instalira), pa su provjereni tipovi i kompletan spisak — prvi živi prolaz je korak vlasnika (§3).
+
+## 3. Prvi pravi e2e prolaz (M12) — šta je promijenjeno
+
+Do sada je e2e job mogao biti zelen **bez ijednog izvršenog testa**: kad `E2E_API_URL` nije postavljen, korak je
+ispisivao `::notice` i izlazio s `exit 0`. Kapija je sada tvrda:
+
+- `.github/workflows/ci.yml` (korak **Run E2E**): bez `E2E_API_URL` korak pada s
+  `::error title=E2E did not run` (`exit 1`) — zelen e2e job sada znači da su specovi izvršeni.
+- `e2e/README.md`: tabela varijabli i uputstvo opisuju novo ponašanje (nema više tihog preskakanja).
+
+Vlasnik je varijable i secrete postavio (E-1 zatvoren s njegove strane); job se pokreće na `master` (ili ručno
+`workflow_dispatch`), a očekivani obim je **70 testova u 36 fajlova** — uključujući spec 36 (M12).
+
+## 4. Šta ostaje otvoreno poslije vala 5
+
+- **Prvi živi e2e prolaz** izvršava se poslije spajanja grane na `master` (van sandboka); ako padne, dokaz su
+  izvještaj i artefakt iz GitHub Actions.
+- **Nalazi van opsega valova 0–5** ostaju zapisani u svojim modulima (npr. §M4 B2–B5, §M7 B1/B4/B6/B7,
+  §M10 B3) — val 5 je zatvorio tačno svoj opseg iz plana.
+- **`roleSource`** ostaje dokumentovano odstupanje od RAW-a (bez promjene koda).
