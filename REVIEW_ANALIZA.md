@@ -5653,3 +5653,97 @@ teksta), a ogledalo je regenerisano poslije commita stranica.
 |---|---|---|---|
 | SLA — prikaz radnog vremena | `frontend/src/lib/sla/format-sla-week-hours.ts:34` (`dateStyle: "medium"`) | Ime mjeseca iz `Intl` bez rezerve za `bs` → `M10` u runtimeu bez CLDR podataka | Isti obrazac kao `asset-view.ts:209`: eksplicitna polja (`day/month/year: "2-digit"/"numeric"`) ili ime mjeseca iz prijevoda |
 | Kalendar dežurstava | `frontend/src/components/on-call/on-call-calendar.tsx:19,21` (`weekday: "short"/"long"`, `month: "long"`) | Isto, ali za nazive dana i mjeseca | Isto: ručna imena iz prijevoda ili numerička polja |
+
+---
+
+# Val 4 — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“ (2026-10-05)
+
+Četvrti val: praznine u e2e sloju (portal baze znanja, pločica „Operativno zdravlje“) i prateći nalaz D-3
+(datumi kroz `Intl`). Uz same specove otkrivene su i **dvije greške u e2e harnessu** koje bi oborile globalnu
+pripremu prije prvog testa, i **dokaz da e2e job u CI-ju ne izvršava nijedan spec**.
+
+## 1. D-3 — Intl bez bosanskih CLDR podataka (zatvoren u ovom valu)
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-3a** — radno vrijeme SLA ispisuje „M10“ umjesto naziva mjeseca | Prikaz sedmice radnog vremena na detaljima SLA politike | `frontend/src/lib/sla/format-sla-week-hours.ts:34` — `Intl.DateTimeFormat(…, { dateStyle: "medium" })` bez rezerve za `bs` | U runtimeu bez bosanskih CLDR podataka korisnik vidi `2026 M10 4` | `formatSlaHolidayDate(value, t)` — dan/broj iz stringa, ime mjeseca iz prijevoda; 10 testova u `format-sla-week-hours.spec.ts` | **SREDNJE** |
+| **D-3b** — kalendar dežurstava ispisuje engleske kratice dana | Kolone sedmice i naslovi dana u kalendaru | `frontend/src/components/on-call/on-call-calendar.tsx:19,21` — `weekday: "short"/"long"`, `month: "long"` | Dan i mjesec se prikazuju na engleskom („Mon“) i pored `bs` prijevoda | Novi `frontend/src/lib/on-call/on-call-view.ts`: `onCallWeekdayIndex`, `formatOnCallWeekday`, `formatOnCallDayLabel`, `formatOnCallTime`; 12 poziva u `on-call-page.tsx` sada prosljeđuje `t` (ne `i18n.language`); novi ključevi `ui.dateValue` i `onCall.timeWithWeekday` (**bs**/**en**) | **SREDNJE** |
+
+Dokazi: `npx tsc -b` → **0**; `npx vitest run` → **158 fajlova / 645 testova**, 0 padova; svi
+`scripts/check-*.mjs` (uključujući i18n parnost) → exit 0. Commit `202e5499`
+(`fix(datumi): nazivi dana i mjeseci iz prijevoda, bez Intl-a (val 4, prateći nalaz)`), grana
+`arena/01a0feaa-help-desk-enterprise`. Time je tabela „Ista klasa greške ostaje otvorena“ iz prethodne
+sekcije zatvorena u oba reda; `frontend/src/lib/docs/format-docs-date.ts` (unesen prije vala 4) i
+`frontend/src/lib/format-civil-date.ts` (nov) dijele isti mehanizam, a `fakeDateTranslator` iz
+`format-civil-date.spec.ts` koriste i novi specovi.
+
+## 2. Novi e2e specovi
+
+| Spec | Testovi | Šta pokriva |
+|---|---|---|
+| `e2e/tests/34-knowledge-portal.spec.ts` (nov) | „a user sees a published article, opens it and rates it“; „a draft stays out of the portal and a plain user cannot create articles“ | Prvi e2e za portal baze znanja: admin kroz API objavljuje članak u kategoriji (kreiranje → `submit-review` → `approve-review` → `publish`), korisnik ga vidi u portalu, otvori karticu kategorije, otvori članak, pregled se prihvati (204) i ocjena od 5 zvjezdica se upiše; nacrt se ne pojavljuje u portalu, a korisnik dobija 403 na kreiranje članka |
+| `e2e/tests/35-ops-health.spec.ts` (nov) | „the admin sees live component health and can refresh it“; „a plain user has no access to operations health“ | Pločica „Operativno zdravlje“: `/ops/health` vraća `api`/`database`/`redis` = `ok`, kartica prikazuje zaglavlje „Komponente“ i pločice API / Baza podataka / Redis, dugme „Osvježi“ ne obara karticu; korisnik dobija 403 na `/ops/health` i `/ops/alerts` i ne vidi karticu na `/admin?tab=ops` |
+
+**Ispravka polazne pretpostavke:** pločica nije bila potpuno bez e2e — `e2e/tests/21-status-monitoring.spec.ts:65`
+već provjerava da je kartica vidljiva i da testni alarm ima `inApp` kanal. Novi spec 35 zato pokriva **sadržaj**
+kartice (pločice komponenti, osvježavanje) i **negativan pristup**, a ne samo vidljivost.
+
+## 3. Greške u e2e harnessu (otkrivene pri pokretanju, popravljene)
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **H-1** — globalna priprema pada kad test-korisnici još ne postoje | `provisionTestActors` pukne sa `USER_NOT_FOUND` na `POST /users/:id/reset-password` | `e2e/helpers/provision-test-actors.ts:117` (prije popravke) čitao je `created.id`, a `POST /users` vraća `{ user, temporaryPassword, temporaryPasswordDelivery }` (`backend/src/modules/users/users.types.ts:65–69`) → `undefined` ide u `reset-password` | Prvi e2e run na svježem stacku pada **prije ijednog speca**; na postojećem stacku se ne primijeti jer se koristi grana za postojeće korisnike | `created.user.id` (+ napomena o obliku odgovora); `e2e/helpers/provision-test-actors.ts:117–128` | **VISOKO** |
+| **H-2** — zadane lozinke test-korisnika ne prolaze politiku lozinki | `ChangeMeE2eUser1!` / `ChangeMeE2eAgent1!` | `e2e/helpers/environment.ts:24,26` (prije) — lozinka sadrži dio e-maila (`user`, `agent`), a `password-policy.ts:80–82` odbija to kao `CONTAINS_EMAIL_NAME`; provjeru primjenjuje `POST /auth/change-password` (`backend/src/modules/authentication/security/password-change.service.ts:26`) | Harness ne može postaviti lozinku test-korisnika → globalna priprema pada i lokalno (dokumentovani `.env.example` scenarij) | Nove zadane lozinke `Kamen-Opseg-2026-U1!` / `…-A1!` (`e2e/helpers/environment.ts:35,37`, `e2e/.env.example:7,9`) + komentar zašto politika to zahtijeva; lozinka superadmina ostaje nepromijenjena jer je postavlja čarobnjak za instalaciju (provjerava samo dužinu, `backend/src/modules/install/validate-install-super-admin-credentials.ts:22–27`) | **VISOKO** |
+| **H-3** — e2e projekat se nije tipizirao | `npx tsc --noEmit -p e2e/tsconfig.json` → `error TS7016: Could not find a declaration file for module 'pg'` | `e2e/package.json` nije imao `@types/pg`, a `e2e/helpers/reset-super-admin-mfa.ts:19` uvozi `pg` | Tipovi u specovima nikad nisu provjeravani; greška u specu se vidjela tek u izvršavanju | Dodan `@types/pg` u `e2e/devDependencies` i korak **Typecheck E2E specs and helpers** u CI (`.github/workflows/ci.yml:109`) → `tsc` exit 0 | **NISKO** |
+
+## 4. Dokaz da e2e job u CI-ju ne izvršava nijedan spec (E-1, otvoreno za odluku)
+
+| Nalaz | Dokaz | Posljedica |
+|---|---|---|
+| **E-1** — „E2E critical flows“ je zelen iako nijedan od 33 speca (sada 35) nije pokrenut | Run `37277534681`, job „E2E critical flows“, korak „Run E2E“: početak **07:26:23Z**, kraj **07:26:23Z** = **0 sekundi**; u koraku stoji `E2E_API_URL not configured — skipping live E2E…` i `exit 0` (`.github/workflows/ci.yml:125–129`) | Zelena kvačica ne dokazuje ništa o specovima; e2e se izvršava samo ako je repozitorijska varijabla `E2E_API_URL` postavljena |
+
+Popravljeno u ovom valu **koliko se smije bez odluke vlasnika**: skip je sada vidljiv u logu
+(`::notice title=E2E did not run::…`, `.github/workflows/ci.yml:126`), a projekat se prije toga tipizira.
+Postavljanje varijable `E2E_API_URL` (i secreta `E2E_*`, `E2E_DATABASE_URL`, `E2E_INSTALL_TOKEN`) ostaje
+odluka vlasnika — token ovog okruženja ne vidi repozitorijske varijable ni secrete (`gh api` → 403), pa se
+ne može provjeriti da li su negdje postavljeni.
+
+## 5. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+- **Registracija specova:** `npx playwright test --list` → **68 testova u 35 fajlova** (prije: 64 u 33);
+  `npx tsc --noEmit -p e2e/tsconfig.json` → exit **0**.
+- **Lokalni stack (bez Dockera):** Postgres 18.4 (embedded, port 55432), Redis 7.2.5 (6379), backend
+  `dist/src/main.js` (10001), Vite (5173); 42 migracije / 136 tabela; `/health` → `{"status":"ok"}`.
+- **Globalna priprema harnessa protiv živog stacka (poslije H-1 i H-2):** kompajliran `e2e/global-setup.ts`
+  pokrenut iz `node` → **`GLOBAL SETUP: OK`** (instalacija prepoznata, MFA superadmina resetovan kroz bazu,
+  `e2e.user` i `e2e.agent` provizionirani novim lozinkama kroz `POST /auth/change-password`). Prije popravki
+  isti poziv je vraćao `GLOBAL SETUP FAILED: USER_NOT_FOUND …`.
+- **Dokaz H-2 iz same politike:** `node -e "checkPassword(…)"` nad kompajliranim
+  `backend/dist/src/modules/authentication/security/password-policy.js`:
+  `ChangeMeE2eUser1!` → `["CONTAINS_EMAIL_NAME"]`, `Kamen-Opseg-2026-U1!` → `[]` (isto za agenta i superadmina);
+  protiv žive API-ja `POST /auth/change-password` sa starom lozinkom → **400** `INVALID_PASSWORD`,
+  `violations: ["CONTAINS_EMAIL_NAME"]`.
+- **Izvršavanje API-dijela novih specova bez browsera:** privremeni spec s istim tokovima
+  (`ApiClient` + `readE2EEnvironment`, bez `page`) → **2 prošla**; dokazi iz izlaza: kreiranje kategorije →
+  članak → `submit-review`/`approve-review`/`publish` (201), portalu korisnika članak vidljiv,
+  `POST /knowledge-base/portal/articles/:id/view` → **204**, ocjena 5 → red u listi
+  `{"averageRating":5,"ratingCount":1}`; nacrt se ne pojavljuje u portalu; korisnik dobija **403** na
+  `/ops/health`, `/ops/alerts` i na kreiranje članka; admin `GET /ops/health` → `api/database/redis = ok`.
+  Privremeni spec je poslije provjere obrisan.
+- **Ograničenje mjerenja:** Playwright browseri se u ovom okruženju **ne mogu instalirati**
+  (`cdn.playwright.dev` → `ECONNRESET`, `@playwright/browser-chromium` pada u `postinstall`, sistemskog
+  browsera nema), pa `page`-dio novih specova nije izvršen lokalno — on ide kroz CI kad `E2E_API_URL` postoji.
+- **Nalaz o brojaču pregleda (nije greška, utiče na dizajn testa):** `POST …/view` vraća 204, ali
+  `viewCount` se u bazi povećava tek kad worker isprazni Redis brojače (na 15 minuta,
+  `backend/src/modules/knowledge-base/portal/knowledge-article-views.ts:10–16`); u lokalnom stacku bez
+  workera `viewCount` ostaje 0. Zato spec 34 provjerava prihvatanje pregleda (204), a ocjenu (koja se piše
+  odmah) provjerava kroz listu portala.
+
+## 6. Šta ostaje otvoreno poslije vala 4
+
+- **Unit sloj šablona i playbooka** (`backend/src/modules/templates/response-templates.service.ts` 615
+  linija, `playbooks/playbooks.service.ts` 335, `ticket-playbooks/ticket-playbooks.service.ts` 403 — bez
+  ijednog `*.spec.ts`): kandidat iz plana vala 4, čeka odluku o prioritetu (e2e je bio zadan i isporučen).
+- **E-1:** repozitorijske varijable i secreti za e2e (odluka vlasnika) — do tada e2e ostaje zelen bez
+  izvršavanja.
+- Ranije otvoreno (nepromijenjeno): M10 B5, M15 B4, M9 B3-2, 18 postavki bez potrošača, EN sadržaj vodiča.
