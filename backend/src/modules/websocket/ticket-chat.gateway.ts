@@ -1,4 +1,4 @@
-import { OnModuleDestroy, Optional } from '@nestjs/common';
+import { Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { TicketPresenceService } from '../tickets/collaboration-extras/presence/ticket-presence.service';
 import { allowPresenceMessage } from '../tickets/collaboration-extras/presence/presence-rate-limiter';
 import { parsePresenceUpdate } from '../tickets/collaboration-extras/presence/ticket-presence.types';
@@ -31,6 +31,10 @@ import {
   broadcastSettingsUpdated,
 } from './broadcast-user-realtime';
 import { isSocketPrincipal } from './is-socket-principal';
+import {
+  allowJoinLeaveMessage,
+  countJoinLeaveRejections,
+} from './join-leave-rate-limiter';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import {
   parseTicketSocketPayload,
@@ -48,6 +52,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   @WebSocketServer()
   server!: Server;
 
+  private readonly logger = new Logger(TicketChatGateway.name);
   private readonly unsubscribers: Array<() => void> = [];
 
   constructor(
@@ -100,7 +105,10 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   async handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
-  ): Promise<{ ok: true; visibility: 'public' | 'staff' }> {
+  ): Promise<{ ok: boolean; visibility?: 'public' | 'staff' }> {
+    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.join)) {
+      return { ok: false };
+    }
     const ticketId = requireTicketId(payload);
     const access = await this.authorize(client, ticketId);
     await client.join(ticketRoomName(ticketId));
@@ -116,7 +124,10 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   async handleLeave(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
-  ): Promise<{ ok: true }> {
+  ): Promise<{ ok: boolean }> {
+    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.leave)) {
+      return { ok: false };
+    }
     const ticketId = requireTicketId(payload);
     await this.leavePresence(client, ticketId);
     await client.leave(ticketRoomName(ticketId));
@@ -167,6 +178,22 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     for (const ticketId of client.data.presenceTickets ?? []) {
       await this.leavePresence(client, ticketId);
     }
+  }
+
+  /**
+   * Val 3 (M11/B2): `ticket:join` and `ticket:leave` each run a full authorization
+   * pass, so they share one per-socket window (30/min, the same as `presence`).
+   * Over the limit the answer is `{ ok: false }` and the log carries a real
+   * rejection counter instead of a bare denial.
+   */
+  private allowJoinLeave(client: Socket, event: string): boolean {
+    if (allowJoinLeaveMessage(client.data)) {
+      return true;
+    }
+    this.logger.warn(
+      `ws_join_leave_rate_limited event=${event} connectionId=${client.id} rejections=${countJoinLeaveRejections(client.data)}`,
+    );
+    return false;
   }
 
   private async leavePresence(client: Socket, ticketId: string): Promise<void> {

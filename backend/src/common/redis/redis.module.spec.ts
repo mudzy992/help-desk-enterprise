@@ -25,6 +25,10 @@ describe('RedisModule', () => {
     expect(configuration.host).toBe('redis-core');
     expect(configuration.queuePrefix).toBe('bull:servicedesk');
     expect(redisService.getClient().status).toBe('wait');
+    // Val 3: the shared client must own an `error` listener, otherwise every
+    // failed reconnect is an "[ioredis] Unhandled error event" print instead of
+    // a log line (and, for duplicated clients, a process-killing rejection).
+    expect(redisService.getClient().listenerCount('error')).toBeGreaterThan(0);
     await moduleRef.close();
     expect(redisService.getClient().status).toBe('end');
   });

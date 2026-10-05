@@ -4,6 +4,7 @@ import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
 import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 import { SettingsRealtimeHub } from '../settings/settings-realtime.hub';
+import { joinLeaveRateLimit } from './join-leave-rate-limiter';
 import { TicketChatGateway } from './ticket-chat.gateway';
 import {
   ticketPublicRoomName,
@@ -69,6 +70,25 @@ describe('TicketChatGateway', () => {
     await expect(gateway.handleJoin(foreign, {})).rejects.toBeInstanceOf(
       WsException,
     );
+  });
+
+  it('limits ticket:join and ticket:leave per socket (Val 3, M11/B2)', async () => {
+    authorizeSocketJoin.mockResolvedValue({ visibility: 'public' });
+    const client = createClient('user-agent-it');
+    for (let i = 0; i < joinLeaveRateLimit.maxMessagesPerMinute; i += 1) {
+      await expect(
+        gateway.handleJoin(client, { ticketId: 'ticket-1' }),
+      ).resolves.toEqual({ ok: true, visibility: 'public' });
+    }
+    const authorizations = authorizeSocketJoin.mock.calls.length;
+    await expect(
+      gateway.handleJoin(client, { ticketId: 'ticket-1' }),
+    ).resolves.toEqual({ ok: false });
+    // Over the limit nothing is authorized and nothing is joined.
+    expect(authorizeSocketJoin).toHaveBeenCalledTimes(authorizations);
+    await expect(
+      gateway.handleLeave(client, { ticketId: 'ticket-1' }),
+    ).resolves.toEqual({ ok: false });
   });
 
   it('leaves previously joined ticket rooms', async () => {

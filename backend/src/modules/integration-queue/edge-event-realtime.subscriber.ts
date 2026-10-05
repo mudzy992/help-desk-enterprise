@@ -6,8 +6,11 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type Redis from 'ioredis';
-import { closeRedisClient } from '../../common/redis/close-redis-client';
 import { redisTokens } from '../../common/redis/redis.tokens';
+import {
+  subscribeRedisChannel,
+  type RedisChannelSubscription,
+} from '../../common/redis/subscribe-redis-channel';
 import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 import { edgeEventRedisChannel } from './integration-queue.constants';
 import {
@@ -20,7 +23,7 @@ export class EdgeEventRealtimeSubscriber
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(EdgeEventRealtimeSubscriber.name);
-  private subscriber: Redis | null = null;
+  private subscription: RedisChannelSubscription | null = null;
 
   constructor(
     @Inject(redisTokens.client) private readonly redisClient: Redis,
@@ -28,23 +31,22 @@ export class EdgeEventRealtimeSubscriber
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const subscriber = this.redisClient.duplicate();
-    this.subscriber = subscriber;
-    if (subscriber.status === 'wait') {
-      await subscriber.connect();
-    }
-    await subscriber.subscribe(edgeEventRedisChannel);
-    subscriber.on('message', (_channel, message) => {
-      this.dispatch(message);
+    // Val 3: a Redis that rejects AUTH must degrade this bridge, not kill the API
+    // (`subscribeRedisChannel` logs, retries and returns a no-op subscription).
+    this.subscription = await subscribeRedisChannel({
+      source: this.redisClient,
+      channel: edgeEventRedisChannel,
+      label: 'edge_event_realtime',
+      logger: this.logger,
+      onMessage: (_channel, message) => {
+        this.dispatch(message);
+      },
     });
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.subscriber === null) {
-      return;
-    }
-    await closeRedisClient(this.subscriber);
-    this.subscriber = null;
+    await this.subscription?.close();
+    this.subscription = null;
   }
 
   private dispatch(message: string): void {

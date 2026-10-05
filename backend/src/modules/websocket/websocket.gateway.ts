@@ -24,6 +24,7 @@ import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
+import { startSocketRoomRevalidation } from './socket-room-revalidation';
 import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 import {
   startWebsocketEmitCountReporter,
@@ -53,6 +54,7 @@ export class WebsocketGateway
 
   private stopClientCountReporter: (() => void) | null = null;
   private stopEmitCountReporter: (() => void) | null = null;
+  private stopRoomRevalidation: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   /**
@@ -101,6 +103,13 @@ export class WebsocketGateway
     );
     // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
     this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
+    // Val 3 (M11/B1): membership and the admin role are read at handshake; this
+    // re-reads them every 5 minutes so a revoked room is actually left.
+    this.stopRoomRevalidation = startSocketRoomRevalidation(
+      server,
+      this.socketGroupMembershipService,
+      this.logger,
+    );
   }
 
   onModuleDestroy(): void {
@@ -108,6 +117,8 @@ export class WebsocketGateway
     this.stopClientCountReporter = null;
     this.stopEmitCountReporter?.();
     this.stopEmitCountReporter = null;
+    this.stopRoomRevalidation?.();
+    this.stopRoomRevalidation = null;
     void this.realtimeAdapter?.close();
     this.realtimeAdapter = null;
   }

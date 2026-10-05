@@ -6,8 +6,11 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type Redis from 'ioredis';
-import { closeRedisClient } from '../../common/redis/close-redis-client';
 import { redisTokens } from '../../common/redis/redis.tokens';
+import {
+  subscribeRedisChannel,
+  type RedisChannelSubscription,
+} from '../../common/redis/subscribe-redis-channel';
 import { parseTicketRealtimeBridgePayload } from './parse-ticket-realtime-bridge-payload';
 import { ticketRealtimeBridgeChannel } from './ticket-realtime-bridge.constants';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
@@ -20,7 +23,7 @@ import { TicketRealtimeHub } from './ticket-realtime.hub';
 @Injectable()
 export class TicketRealtimeBridgeSubscriber implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TicketRealtimeBridgeSubscriber.name);
-  private subscriber: Redis | null = null;
+  private subscription: RedisChannelSubscription | null = null;
 
   constructor(
     @Inject(redisTokens.client) private readonly redisClient: Redis,
@@ -28,23 +31,22 @@ export class TicketRealtimeBridgeSubscriber implements OnModuleInit, OnModuleDes
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const subscriber = this.redisClient.duplicate();
-    this.subscriber = subscriber;
-    if (subscriber.status === 'wait') {
-      await subscriber.connect();
-    }
-    await subscriber.subscribe(ticketRealtimeBridgeChannel);
-    subscriber.on('message', (_channel, message) => {
-      this.dispatch(message);
+    // Val 3: same contract as the edge-event subscriber — a rejected subscription
+    // is logged and retried, never thrown out of `onModuleInit`.
+    this.subscription = await subscribeRedisChannel({
+      source: this.redisClient,
+      channel: ticketRealtimeBridgeChannel,
+      label: 'ticket_realtime_bridge',
+      logger: this.logger,
+      onMessage: (_channel, message) => {
+        this.dispatch(message);
+      },
     });
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.subscriber === null) {
-      return;
-    }
-    await closeRedisClient(this.subscriber);
-    this.subscriber = null;
+    await this.subscription?.close();
+    this.subscription = null;
   }
 
   private dispatch(message: string): void {
