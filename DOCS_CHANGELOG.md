@@ -37,6 +37,7 @@
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
+| — | 2026-10-05 | Dokumentacija — napomene o dostupnosti u vodičima | `user-guide/status-incidenti-i-planirani-prekidi.md`, `user-guide/prosljedjivanje-tiketa.md`, `user-guide/sta-je-novo.md`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Dvije napomene „važi od verzije sa…“ prepisane u korisnički jezik („dostupno u verzijama od 28.09.2026.“ / „od 26.09.2026.“), uz provjeru datuma u istoriji koda** |
 | — | 2026-10-05 | Dokumentacija — prikaz datuma | `frontend/src/lib/docs/format-docs-date.ts` (nov), `frontend/src/pages/docs-page.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/docs/format-docs-date.spec.ts` (nov), ovaj dokument | **„Ažurirano: 2026 M10 4“ zamijenjeno stvarnim datumom („Ažurirano: 4. oktobar 2026.“) — datum se čita iz manifesta, bez `Intl.DateTimeFormat` i bez pomjeranja zbog vremenske zone** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
@@ -1371,3 +1372,22 @@ zapadno od UTC prikaže prethodni dan.
 - `docs-page.tsx`: neispravan ili nepoznat datum prikazuje „Ažurirano: —“ (ključ `docs.updatedAtUnknown`);
 - novi ključ `docs.updatedAtValue` u `bs` („{{day}}. {{month}} {{year}}.“) i `en` („{{month}} {{day}}, {{year}}“);
 - `frontend/src/lib/docs/format-docs-date.spec.ts` (nov): 4 testa (bs/en, dio s vremenom, neispravni datumi).
+
+## Vodiči — napomene o dostupnosti u korisničkom jeziku (2026-10-05)
+
+Dvije korisničke stranice nosile su napomenu s **tehničkim oznakama** koje čitalac-vodiča ne može provjeriti:
+
+- `docs/user-guide/status-incidenti-i-planirani-prekidi.md:13` — „Paket 2.7 · važi od verzije s modulom
+  `status-page` (commit 1cb86d6 i dalje)“;
+- `docs/user-guide/prosljedjivanje-tiketa.md:13` — „Paket 1.1 · važi od verzije sa migracijom
+  `20260926090000_ticket_forward_event`“.
+
+**Provjera u istoriji koda (dokaz da su datumi tačni):** modul `status-page` uveden je commitima `415925fb`
+(API) i `2aa25f15` (UI), oba **28.09.2026**; `1cb86d6` (28.09.2026) je popravka kojom su `/status` rute za
+čitanje postale dostupne **prijavljenim korisnicima** — prije nje ih je `RoleGuard` odbijao jer nemaju
+`@RequirePermissions`. Prosljeđivanje tiketa uvedeno je commitom `9667689d` (**25.09.2026**) s migracijom
+`20260926090000_ticket_forward_event` (**26.09.2026**).
+
+**Šta je urađeno:** obje napomene su prepisane u korisnički jezik, s datumom od kojeg je mogućnost dostupna
+(„dostupno u verzijama od 28.09.2026.“ i „od 26.09.2026.“); tehnički commit/migracija ostaju u `REVIEW_ANALIZA.md`
+i u istoriji koda. Ponašanje aplikacije se ne mijenja.

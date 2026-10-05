@@ -10,7 +10,7 @@ tags: [prosljedjivanje, grupe, cross-ou, razlog, preraspodjela]
 ---
 # Prosljeđivanje tiketa — uputstvo za agente
 
-> Paket 1.1 · važi od verzije sa migracijom `20260926090000_ticket_forward_event`.
+> Paket 1.1 · dostupno u verzijama od 26.09.2026.
 
 ## Čemu služi ovaj modul
 

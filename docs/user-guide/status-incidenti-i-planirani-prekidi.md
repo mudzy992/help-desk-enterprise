@@ -10,7 +10,7 @@ tags: [status-servisa, incidenti, planirani-prekidi, odrzavanje, dostupnost]
 ---
 # Status servisa: incident ili zakazani prekid?
 
-> Paket 2.7 · važi od verzije s modulom `status-page` (commit 1cb86d6 i dalje).
+> Paket 2.7 · dostupno u verzijama od 28.09.2026.
 
 ## Čemu služi ovaj modul
 

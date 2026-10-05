@@ -5634,6 +5634,19 @@ provjerena), druga neispravan datum u zaglavlju stranice dokumentacije.
   `bs`/`en` OK (3926 statičkih ključeva), `check-workflows-yaml.mjs` OK, `check-docs-content.mjs` OK
   (29 stranica, 9 provjera).
 
+## 3. Napomene o dostupnosti u vodičima (D-2, provjera tačnosti)
+
+Dvije korisničke stranice nosile su napomenu s tehničkim oznakama; provjereno je **da su datumi tačni**, pa su
+napomene prepisane u korisnički jezik (bez hasheva, koji čitaocu vodiča ništa ne znače).
+
+| Stranica | Prije | Poslije | Dokaz iz istorije koda |
+|---|---|---|---|
+| `docs/user-guide/status-incidenti-i-planirani-prekidi.md:13` | „Paket 2.7 · važi od verzije s modulom `status-page` (commit 1cb86d6 i dalje)“ | „Paket 2.7 · dostupno u verzijama od 28.09.2026.“ | `415925fb` (API) i `2aa25f15` (UI) — oba **28.09.2026**; `1cb86d6` je popravka kojom `/status` rute za čitanje postaju dostupne prijavljenim korisnicima (`RoleGuard` ih je prije odbijao) |
+| `docs/user-guide/prosljedjivanje-tiketa.md:13` | „Paket 1.1 · važi od verzije sa migracijom `20260926090000_ticket_forward_event“ | „Paket 1.1 · dostupno u verzijama od 26.09.2026.“ | `9667689d` (**25.09.2026**) uvodi funkcionalnost; migracija `20260926090000_ticket_forward_event` (**26.09.2026**) |
+
+Ponašanje aplikacije se ne mijenja; obje stranice su dobile i red u „Šta je novo“ (korisnik osjeti izmjenu
+teksta), a ogledalo je regenerisano poslije commita stranica.
+
 ## 3. Ista klasa greške ostaje otvorena (nije dirano bez odluke)
 
 | Mjesto | Linija | Zašto je isto | Predloženi fix |
