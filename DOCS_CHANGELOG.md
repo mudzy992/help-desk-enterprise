@@ -108,6 +108,10 @@ popravljena u **e2e sloju** — proizvod radi kako je dizajniran:
   (`stopRunningTimer`) čisti timer u `globalSetup`-u (sva tri naloga) i na početku samog speca, pa ni retry ne
   nasljeđuje vlastito zaostalo stanje.
 
+**Potvrđeno u istom prolazu (`specs=10,14,15,18`, 7 testova → 4 passed / 2 failed / 1 skipped):** spec **15 je 3/3
+zelen** (D-14, slugifikacija), a spec **18 je 1 passed + 1 vidljivo preskočen** (D-18) — oba nalaza iz prve trijaže
+su time provjerena na živom stacku, ne samo u kodu.
+
 **Dokazi:** `node --experimental-strip-types /tmp/timer-check.mjs` → **6/6** (jedan POST na pravi put, `reason:
 MANUAL`, bez timera nema POST-a, greška se propagira); `cd e2e && npx tsc --noEmit -p tsconfig.json` → 0;
 `npx playwright test --list` → **71 test u 36 fajlova**; `node scripts/check-client-neutral.mjs` → zeleno;

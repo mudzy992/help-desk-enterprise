@@ -6287,10 +6287,17 @@ dana), jer se popis iz prve poruke odnosio na raniji prolaz; zato se nijedan pad
 auto-dodjela poslije prosljeđivanja (D-20) i zaostali timer (D-21) su posljedica e2e fikstura i stanja okruženja —
 backend radi **tačno ono što je dizajnirano** (auto-dodjela je dokumentovana u kodu, a timer je pravilo proizvoda).
 
-**Drugi prolaz (run `37353690845`, `f8565ff`, sužen na 7 testova):** 4 passed / 2 failed / 1 skipped. Pao je
-**10** (D-20) i **14** (D-21), a **18** se vidljivo preskočio (`EMAIL_CHANNEL_DISABLED`) — skip lista je u sažetku,
-kako je i zamišljeno. Koji je tačno podskup pokrenut ne vidi se iz sažetka (GH API ne vraća `inputs` za taj run),
-pa se status specova 11, 12, 15, 17, 20–24, 26 i 27 iz ovog prolaza **ne izvodi**.
+**Drugi prolaz (run `37353690845`, `f8565ff`, `specs=10,14,15,18` — 7 testova):** 4 passed / 2 failed / 1 skipped.
+Podskup je naknadno potvrđen (vlasnik), pa se status po specovima **izvodi**:
+
+| Spec | Testova u fajlu | Ishod u ovom prolazu | Zaključak |
+|---|---|---|---|
+| **10** | 1 | **failed** — `expect(...).toBeNull()`, stigao CUID | Nalaz **D-20**; popravljen u `f98a29e` (fiksirane postavke u specu) |
+| **14** | 1 | **failed** — indikator pokazivao `T-000162` | Nalaz **D-21**; popravljen u `f98a29e` (`stopRunningTimer`) |
+| **15** | 3 | **3 × passed** | ✅ **D-14 potvrđen na živom stacku** — slugifikacija radi, `INVALID_SLUG` se više ne pojavljuje |
+| **18** | 2 | **1 passed + 1 skipped** | ✅ **D-18 potvrđen** — dio bez pošte prolazi, „pošalji test“ se vidljivo preskače uz `EMAIL_CHANNEL_DISABLED` (skip je u sažetku, ne krije se) |
+
+Neprovjereni iz ovog prolaza (nisu bili u podskupu): **11, 12, 17, 20–24, 26, 27** — njihov status daje puni prolaz.
 
 ## 4. Sljedeći korak (vlasnik)
 
