@@ -169,7 +169,9 @@ export async function updateTicket(
         impact,
         urgency,
         priority: matrixApplies
-          ? await resolveTicketPriority(transaction as PrismaService, impact, urgency)
+          ? await resolveTicketPriority(transaction as PrismaService, impact, urgency, {
+              matrixEnabled: context.priorityMatrixEnabled,
+            })
           : current.priority,
         status: nextStatus,
         requestType,

@@ -184,6 +184,7 @@ export async function createTicket(
               transaction as PrismaService,
               input.impact,
               input.urgency,
+              { matrixEnabled: context.priorityMatrixEnabled },
             ),
             impact: input.impact,
             urgency: input.urgency,

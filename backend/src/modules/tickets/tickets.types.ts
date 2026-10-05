@@ -212,6 +212,11 @@ export type TicketMutationContext = {
   readonly confidential?: TicketConfidentialConfiguration;
   readonly safeLogging?: TicketSafeLoggingConfiguration;
   readonly archive?: TicketArchiveConfiguration;
+  /**
+   * M7 B5 (val 5): comes from `private.ticket.priorityMatrix.enabled`. Left
+   * `undefined` (every existing caller, harness and worker) means "matrix on".
+   */
+  readonly priorityMatrixEnabled?: boolean;
   readonly slaTimers?: TicketSlaTimersPort;
   /** Paket 2.3: set only by the inbound e-mail worker, never from HTTP. */
   readonly messageSource?: 'APP' | 'EMAIL' | 'TEAMS';

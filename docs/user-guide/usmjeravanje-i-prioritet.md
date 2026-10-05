@@ -88,6 +88,9 @@ tags: [rutiranje, prioritet, matrica, neusmjereno, override]
 2. Za svaku ćeliju **Uticaj × Hitnost** izaberite prioritet (**Nizak**, **Srednji**, **Visok**, **Kritičan**).
 3. Upišite **Razlog izmjene matrice** i kliknite **Sačuvaj matricu** — upisuju se samo izmijenjene ćelije, izmjena
    ide u change log.
+4. Prekidačem **`private.ticket.priorityMatrix.enabled`** (**Administracija → Postavke**, kategorija
+   **Privatno: Tiketi**) isključujete čitanje matrice: prioritet se tada računa ugrađenom formulom (zbir težina
+   uticaja i hitnosti). Ćelije ostaju sačuvane i važe čim prekidač ponovo uključite.
 
 ### 6. Ručna promjena prioriteta tiketa
 
@@ -159,12 +162,11 @@ tags: [rutiranje, prioritet, matrica, neusmjereno, override]
 
 - **Matrica pokrivanja prikazuje i neaktivne usluge** (nacrte i ukinute) i učitava **sve** kombinacije OU × usluga
   bez filtera i paginacije. (Nalaz B1 iz §M7.)
-- **Postavka „change log za routing“ ne mijenja ponašanje**: zapis izmjena pravila je uvijek uključen.
-  (Nalaz B2.)
 - **Dvije definicije „neusmjerenog“:** brojač `unrouted` broji samo status `UNROUTED`, dok upozorenja i filter
   **Nerutirani preko roka** uključuju i tikete preusmjerene u ciljnu grupu. (Nalaz B4.)
-- **Matrica prioriteta se ne može isključiti** prekidačem; ose su Nizak–Kritičan, bez dodatnih opcija.
-  (Nalaz B5.)
+- **Matrica prioriteta nema ose iz RAW-a**: kolone su **Uticaj** i **Hitnost**, a vrijednosti Nizak–Kritičan
+  (RAW je predviđao `self/team/unit/company` i `low/medium/high`). Prekidač za isključivanje matrice postoji
+  (`private.ticket.priorityMatrix.enabled`, vidi §5). (Nalaz B5 — ose ostaju dokumentovano odstupanje.)
 - **Ekrani za čitanje rutanja** (matrica, test, pravila, change log) traže samo administratorsku rolu, bez
   posebne permisije za čitanje. (Nalaz B6.)
 - **Prvo otvaranje matrice prioriteta upisuje nedostajuće ćelije** u bazu ako matrica još nije popunjena.

@@ -23,6 +23,7 @@ import { privacySettings } from './privacy-settings';
 import { opsSettings } from './ops-settings';
 import { observabilitySettings } from './observability-settings';
 import { policyPackSettings } from './policy-pack-settings';
+import { ticketPriorityMatrixSettings } from './ticket-priority-matrix-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
 import { notificationEmailSettings } from './notification-email-settings';
@@ -69,6 +70,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...directoryLdapsSettings,
   ...ticketSlaSettings,
   ...policyPackSettings,
+  ...ticketPriorityMatrixSettings,
   ...ticketAssignmentSettings,
   ...ticketCollaborationSettings,
   ...ticketAttachmentSettings,

@@ -7,6 +7,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { resolveTicketPriority } from '../tickets/resolve-ticket-priority';
+import { TicketPriorityMatrixConfigurationLoader } from '../tickets/priority/ticket-priority-matrix-configuration.loader';
 import { ProblemAccessService, type ProblemConfiguration, type ProblemScope, type ProblemViewer } from './problem-access.service';
 import {
   allowedProblemTransitions,
@@ -133,7 +134,15 @@ export class ProblemsService {
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
     @Optional() private readonly notifier?: ProblemNotifier,
+    @Optional()
+    private readonly priorityMatrixLoader?: TicketPriorityMatrixConfigurationLoader,
   ) {}
+
+  /** M7 B5: `private.ticket.priorityMatrix.enabled`, on when unavailable. */
+  private async priorityMatrixEnabled(): Promise<boolean> {
+    const configuration = await this.priorityMatrixLoader?.load();
+    return configuration?.enabled ?? true;
+  }
 
   private notify(label: string, operation: (notifier: ProblemNotifier) => Promise<unknown>): void {
     const notifier = this.notifier;
@@ -265,7 +274,9 @@ export class ProblemsService {
     await this.assertReferences({ serviceId });
     const impact = input.impact ?? 'MEDIUM';
     const urgency = input.urgency ?? 'MEDIUM';
-    const priority = await resolveTicketPriority(this.prisma, impact, urgency);
+    const priority = await resolveTicketPriority(this.prisma, impact, urgency, {
+      matrixEnabled: await this.priorityMatrixEnabled(),
+    });
     const targetAt = await computeProblemTarget(this.prisma, configuration, priority, new Date());
     const title = input.title.trim();
     const description = input.description.trim();
@@ -392,7 +403,9 @@ export class ProblemsService {
     if (input.impact !== undefined || input.urgency !== undefined) {
       data.impact = input.impact ?? current.impact;
       data.urgency = input.urgency ?? current.urgency;
-      data.priority = await resolveTicketPriority(this.prisma, data.impact, data.urgency);
+      data.priority = await resolveTicketPriority(this.prisma, data.impact, data.urgency, {
+        matrixEnabled: await this.priorityMatrixEnabled(),
+      });
     }
     // P5 (§10): a new priority moves a running target (counted from creation).
     if (data.priority !== undefined && data.priority !== current.priority && isTargetRunning(current.status)) {

@@ -1892,17 +1892,21 @@ loaderu (odbrambeni `typeof`) — vjerovatno zbog test-double-a, ali u produkcij
 - **Fix:** filtrirati aktivne usluge (ili vratiti kolonu statusa), dodati server-side filtere i paginaciju.
 - **Ozbiljnost:** SREDNJE.
 
-### B2 — SREDNJE — `private.changeLog.routing.enabled` je registrovana, ali je niko ne čita
+### B2 — SREDNJE — `private.changeLog.routing.enabled` je registrovana, ali je niko ne čita → ✅ **zatvoreno u valu 5 (2026-10-05) uklanjanjem svih pet mrtvih `private.changeLog.*` postavki**
 
-- **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts:209`,
+- **Fajl/linija (stanje prije popravke):** `backend/src/modules/settings/setting-keys.ts:209`,
   `backend/src/modules/settings/definitions/change-log-settings.ts:16`; zapis se izvodi bez provjere u
   `backend/src/modules/routing/persist-routing-rule-change.ts:44–56`, `update-routing-rule.ts:64–76`,
-  `delete-routing-rule.ts:79–91`.
+  `delete-routing-rule.ts:79–91`. Danas: nijedan `private.changeLog.*` ključ ne postoji u registru
+  (`grep -rn "changeLog" backend/src/modules/settings/setting-keys.ts` → nula pogodaka).
 - **Opis:** RAW (`:726`) traži prekidač „change log za routing pravila (default true)“, ali nijedan potrošač ne
   čita ključ; svaka izmjena pravila se uvijek bilježi.
 - **Uticaj:** admin koji isključi zapis ne dobija nikakvu promjenu ponašanja — tiha neusklađenost postavke i
   stvarnog rada.
-- **Fix:** čitati postavku u tri mutacije prije `recordChangeLog` ili ukloniti ključ i dokumentovati odluku.
+- **Odluka (2026-10-05):** zapis izmjena je **namjerno bezuslovan** (dnevnik je auditni trag modula), pa prekidač
+  nije dobio potrošača; uklonjeno je pet postavki bez efekta (`settings.enabled`, `routing.enabled`, `sla.enabled`,
+  `includeDiff`, `requireReason`) zajedno s kategorijom „Dnevnik izmjena“ i prijevodima — vidi
+  `# Popravke poslije vala 4` §4.
 - **Ozbiljnost:** SREDNJE.
 
 ### B3 — SREDNJE — Preview rutanja postoji, ali ga ekran za prijavu ne koristi → ✅ **popravljeno u valu 5 (2026-10-05)**
@@ -1933,16 +1937,21 @@ loaderu (odbrambeni `typeof`) — vjerovatno zbog test-double-a, ali u produkcij
 - **Fix:** uskladiti definicije (tab prikazuje oba skupa uz jasne oznake) ili preimenovati brojače.
 - **Ozbiljnost:** SREDNJE.
 
-### B5 — NISKO — Postavke `private.ticket.priorityMatrix.*` ne postoje, a ose se razlikuju od RAW-a
+### B5 — NISKO — Postavke `private.ticket.priorityMatrix.*` ne postoje, a ose se razlikuju od RAW-a → ✅ **prekidač dodat u valu 5 (2026-10-05); ose ostaju dokumentovano odstupanje**
 
 - **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts` (nema nijednog `priorityMatrix` ključa);
-  `backend/src/modules/tickets/resolve-ticket-priority.ts:26–34` (uvijek čita tabelu, fallback na formulu);
+  `backend/src/modules/tickets/resolve-ticket-priority.ts:28–44` (uvijek čita tabelu, fallback na formulu);
   `backend/prisma/schema/enums.prisma:28–40` (`TicketImpact`/`TicketUrgency` = `LOW|MEDIUM|HIGH|CRITICAL`).
 - **Opis:** RAW (`:496–499`) traži `enabled`, CSV liste osa i `rulesJson`; u kodu je matrica tabela bez
   prekidača, a ose su numeričke umjesto `self,team,unit,company` / `low,medium,high`.
 - **Uticaj:** matrica se ne može isključiti; očekivanja iz RAW-a o osama nisu ispunjena (kod je sam sa sobom
   konzistentan, uključujući validaciju i snapshot).
-- **Fix:** dodati `enabled` postavku ili dokumentovati odluku o osama i odsustvu prekidača.
+- **Fix (isporučeno):** dodata je postavka `private.ticket.priorityMatrix.enabled`
+  (`backend/src/modules/settings/definitions/ticket-priority-matrix-settings.ts`), loader
+  `backend/src/modules/tickets/priority/ticket-priority-matrix-configuration.loader.ts` i opcija
+  `matrixEnabled` u `resolveTicketPriority`; kad je isključena, prioritet se računa ugrađenom formulom i tabela se
+  **ne čita**, a ćelije ostaju u bazi. Ose (`TicketImpact`/`TicketUrgency` = Nizak–Kritičan) ostaju odstupanje od
+  RAW-a i stoje u vodiču kao poznato ograničenje.
 - **Ozbiljnost:** NISKO.
 
 ### B6 — NISKO — Čitanje rutanja nije vezano na permisiju ni OU scope
@@ -6016,3 +6025,40 @@ upotrebljivim bez migracije podataka i bez novog ekrana za administraciju tipova
 - **`dueAt` i dalje ne pokreće ništa automatski** — nije SLA cilj niti okidač eskalacije. To je i dokumentovano
   kao razlika između željenog i SLA roka.
 
+# Val 5 — M7 B2/B5: mrtva postavka change loga i prekidač matrice prioriteta (2026-10-05)
+
+## 1. M7 B5 — prekidač matrice prioriteta (RAW `:496–499`)
+
+| Sloj | Promjena | Fajl/linija |
+|---|---|---|
+| Registar | nova privatna postavka `private.ticket.priorityMatrix.enabled` (boolean, default `true`) | `backend/src/modules/settings/setting-keys.ts:208–209`, `backend/src/modules/settings/definitions/ticket-priority-matrix-settings.ts`, registracija u `definitions/application-settings.ts:26,73` |
+| Loader | `TicketPriorityMatrixConfigurationLoader.load()` → `{ enabled }`; greška ili vrijednost koja nije `false` daje „uključeno“ (instalacija bez postavke ostaje ista) | `backend/src/modules/tickets/priority/ticket-priority-matrix-configuration.loader.ts` |
+| Odluka | `resolveTicketPriority(..., { matrixEnabled: false })` preskače `priorityMatrixRule.findUnique` i vraća formulu; bez opcije ponašanje je nepromijenjeno | `backend/src/modules/tickets/resolve-ticket-priority.ts:22–44` |
+| Kapija | postavka se čita jednom po mutaciji, uz ostale access policy loadere; eksplicitna vrijednost na kontekstu (worker/harness) ima prednost | `backend/src/modules/tickets/with-ticket-access-policies.ts:25–42`, `ticket-access-policy-binder.ts:15–31`, `tickets.service.ts:73,393–400` |
+| Potrošači | kreiranje (`create-ticket.ts:183–188`), izmjena uticaja/hitnosti (`update-ticket.ts:171–175`), „Vrati na matricu“ (`priority/override-ticket-priority.ts:76–81,143–156`) i prioritet **problema** (`problems/problems.service.ts:141–145,277–279,406–408`) | vidi lijevu kolonu |
+| Vodič | `user-guide/usmjeravanje-i-prioritet.md` §5 (korak 4) i tabela u `user-guide/sla.md` §Matrica prioriteta; ograničenje B5 prepisano | ogledalo regenerisano (`backend/content/docs/**`) |
+
+**Ose ostaju odstupanje:** kolone su `TicketImpact`/`TicketUrgency` (Nizak–Kritičan), a RAW traži
+`self,team,unit,company` / `low,medium,high`; promjena osa bi bila promjena šeme i podataka, pa je zadržano
+postojeće stanje uz zapis u „Poznatim ograničenjima“.
+
+## 2. M7 B2 — mrtva postavka change loga (zatvorena uklanjanjem)
+
+Pet postavki `private.changeLog.*` uklonjeno je u bloku `# Popravke poslije vala 4` §4 (bez potrošača, dnevnik je
+bezuslovan auditni trag). Time je i ovaj nalaz zatvoren; u vodiču je obrisana rečenica da „change log za routing“
+ne mijenja ponašanje (`user-guide/usmjeravanje-i-prioritet.md`, „Poznata ograničenja“).
+
+## 3. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Sloj | Komanda | Rezultat |
+|---|---|---|
+| Backend tipovi | `cd backend && npx tsc --noEmit` | 0 grešaka |
+| Backend testovi | `npx jest src/modules/tickets src/modules/problems src/modules/settings src/modules/sla src/modules/assets src/modules/status-page --maxWorkers=2` | **170 suita (1 preskočen), 865 testova — svi prolaze** (novi `with-ticket-access-policies.spec.ts` 4 testa, `priority/ticket-priority-matrix-configuration.loader.spec.ts` 4 testa, `resolve-ticket-priority.spec.ts` +2) |
+| i18n | `npx vitest run src/i18n/settings-registry-keys.spec.ts` | ključ ima opis u BS i EN (spec traži opis za svaki ključ iz registra) |
+| Dokumentacija | `node scripts/generate-docs-content.mjs && node scripts/check-docs-content.mjs` | 29 stranica, 5 prevoda, 10 provjera — OK |
+
+## 4. Šta ostaje
+
+- **M7 je zatvoren** (B2 uklonjen, B3 popravljen ranije u valu 5, B5 prekidač dodat; ose i B1/B4/B6/B7 stoje kao
+  dokumentovana ograničenja/zapisi u vodiču).
+- Iz vala 5 ostaje **M12 B1 (dio — e2e pošta)** i **izvještaj vala**.

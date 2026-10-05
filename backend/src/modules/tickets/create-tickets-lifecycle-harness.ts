@@ -50,6 +50,8 @@ export function createTicketsLifecycleHarness(input: {
     input.guardrailsLoader as never,
     input.confidentialLoader as never,
     input.safeLoggingLoader as never,
+    // M7 B5: the harness always keeps the impact/urgency matrix on.
+    { load: async () => ({ enabled: true }) } as never,
     input.archiveLoader as never,
     csatLoader as never,
     input.slaTimers as never,

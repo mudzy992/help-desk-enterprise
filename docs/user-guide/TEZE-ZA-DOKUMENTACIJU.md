@@ -935,13 +935,15 @@ To je kriterij kompletnosti.
 - **Zašto:** prioritet mora biti predvidiv, a svako odstupanje objašnjivo i popravljivo.
 - **Primjer:** Agent podigne hitnost s Niske na Kritičnu: prioritet skoči iz matrice; prethodno ručno postavljen
   prioritet ostaje nepromijenjen dok ga agent eksplicitno ne vrati na matricu.
-- **Postavke / permisije:** `ticket.priority.override`; izmjena matrice traži `sla.write` (ekran **SLA**).
+- **Postavke / permisije:** `ticket.priority.override`; izmjena matrice traži `sla.write` (ekran **SLA**);
+  prekidač matrice je `private.ticket.priorityMatrix.enabled` (**Administracija → Postavke**).
 - **Ekran:** detalj tiketa → **Promjena prioriteta**; **Administracija → SLA → Matrica prioriteta**.
-- **Izvori:** `backend/src/modules/tickets/resolve-ticket-priority.ts:22–34`,
-  `calculate-ticket-priority.ts:8–23`, `priority/override-ticket-priority.ts:41–134`,
-  `update-ticket.ts:139–164`, `backend/src/modules/sla/list-priority-matrix.ts:24–50`,
+- **Izvori:** `backend/src/modules/tickets/resolve-ticket-priority.ts:28–44`,
+  `calculate-ticket-priority.ts:8–23`, `priority/override-ticket-priority.ts:41–141`,
+  `update-ticket.ts:148–175`, `backend/src/modules/sla/list-priority-matrix.ts:24–50`,
   `sla/patch-priority-matrix.ts:30–60`, `backend/prisma/schema/catalog.prisma:132–141`.
-- **Status:** Važi (uz B5: nema prekidača za matricu)
+- **Status:** Važi (B5 zatvoren 2026-10-05: prekidač `private.ticket.priorityMatrix.enabled` isključuje
+  čitanje matrice, a prioritet se tada računa ugrađenom formulom; ose Nizak–Kritičan ostaju odstupanje od RAW-a)
 - **Wiki stranica:** Usmjeravanje → Prioritet i matrica
 
 ### T47 — Konfiguracija rutanja: žive postavke, validacija snapshot-a, realtime i read-only

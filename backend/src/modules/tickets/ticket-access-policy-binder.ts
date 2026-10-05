@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+import { TicketPriorityMatrixConfigurationLoader } from './priority/ticket-priority-matrix-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
 import { TicketSlaTimersService } from '../sla/ticket-sla-timers.service';
@@ -16,6 +17,8 @@ export class TicketAccessPolicyBinder {
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
     private readonly archiveLoader: TicketArchiveConfigurationLoader,
     private readonly slaTimers: TicketSlaTimersService,
+    @Optional()
+    private readonly priorityMatrixLoader?: TicketPriorityMatrixConfigurationLoader,
   ) {}
 
   async bind(context: TicketMutationContext): Promise<TicketAccessPolicyContext> {
@@ -23,6 +26,7 @@ export class TicketAccessPolicyBinder {
       confidential: this.confidentialLoader,
       safeLogging: this.safeLoggingLoader,
       archive: this.archiveLoader,
+      priorityMatrix: this.priorityMatrixLoader,
     });
     return { ...gated, slaTimers: this.slaTimers };
   }

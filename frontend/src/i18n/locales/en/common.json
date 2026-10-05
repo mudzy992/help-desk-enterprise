@@ -1227,6 +1227,7 @@
         "private.ticket.closeCodes.allowedCodesCsv": "Allowed close-code keys used on resolve and close.",
         "private.ticket.closeCodes.enabled": "Require resolution codes from the allow-list when resolving tickets.",
         "private.ticket.closeCodes.requireOnResolve": "Require a close code when a ticket moves to RESOLVED.",
+        "private.ticket.priorityMatrix.enabled": "Calculate priority from the impact × urgency matrix; off uses the built-in score formula.",
         "private.ticket.confidential.allowedViewerGroupIdsCsv": "Group ids that may view confidential tickets without break-glass (still within OU/service scope).",
         "private.ticket.confidential.allowedViewerRolesCsv": "Roles that may view confidential tickets without break-glass (still within OU/service scope).",
         "private.ticket.confidential.auditViews": "Audit every confidential ticket view and denied access.",

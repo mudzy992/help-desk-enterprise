@@ -1237,6 +1237,7 @@
         "private.ticket.closeCodes.allowedCodesCsv": "Dozvoljeni ključevi close-code pri rješavanju i zatvaranju.",
         "private.ticket.closeCodes.enabled": "Zahtijevaj kodove rješenja s allow-liste pri rješavanju tiketa.",
         "private.ticket.closeCodes.requireOnResolve": "Zahtijevaj close code kad tiket pređe u RESOLVED.",
+        "private.ticket.priorityMatrix.enabled": "Prioritet se računa iz matrice uticaj × hitnost; isključeno koristi ugrađenu formulu zbira.",
         "private.ticket.confidential.allowedViewerGroupIdsCsv": "Id grupa koje smiju vidjeti povjerljive tikete bez break-glass (i dalje unutar OU/usluge).",
         "private.ticket.confidential.allowedViewerRolesCsv": "Uloge koje smiju vidjeti povjerljive tikete bez break-glass (i dalje unutar OU/usluge).",
         "private.ticket.confidential.auditViews": "Evidentiraj svaki pregled i odbijeni pristup povjerljivom tiketu.",

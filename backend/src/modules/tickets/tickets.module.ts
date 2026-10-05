@@ -59,6 +59,7 @@ import { TicketSavedViewsConfigurationLoader } from './saved-views/ticket-saved-
 import { TicketsSavedViewsController } from './saved-views/tickets-saved-views.controller';
 import { TicketsSavedViewsService } from './saved-views/tickets-saved-views.service';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
+import { TicketPriorityMatrixConfigurationLoader } from './priority/ticket-priority-matrix-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
 import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { TicketsConfidentialController } from './confidential/tickets-confidential.controller';
@@ -126,6 +127,7 @@ import { TicketPresenceService } from './collaboration-extras/presence/ticket-pr
     TicketGuardrailsConfigurationLoader,
     TicketConfidentialConfigurationLoader,
     TicketSafeLoggingConfigurationLoader,
+    TicketPriorityMatrixConfigurationLoader,
     TicketArchiveConfigurationLoader,
     TicketCsatConfigurationLoader,
     TicketLabelCacheService,
@@ -181,6 +183,9 @@ import { TicketPresenceService } from './collaboration-extras/presence/ticket-pr
     TicketAccessPolicyBinder,
     TicketCloseCodesConfigurationLoader,
     TicketApprovalsConfigurationLoader,
+    // M7 B5: problems read the same impact/urgency matrix through
+    // resolveTicketPriority, so the switch has to travel with it.
+    TicketPriorityMatrixConfigurationLoader,
   ],
 })
 export class TicketsModule {}

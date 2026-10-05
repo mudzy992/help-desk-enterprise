@@ -1621,7 +1621,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1389,
+      "wordCount": 1424,
       "source": "docs/user-guide/usmjeravanje-i-prioritet.md",
       "englishTitle": null
     },
@@ -1761,7 +1761,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2134,
+      "wordCount": 2158,
       "source": "docs/user-guide/sla.md",
       "englishTitle": null
     },
@@ -1968,7 +1968,7 @@
         "audit",
         "scope"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -2898,7 +2898,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 757,
+      "wordCount": 849,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

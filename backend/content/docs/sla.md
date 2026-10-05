@@ -170,6 +170,10 @@
 | **Prioritet** | Kritičan / Visok / Srednji / Nizak |
 | **Razlog izmjene matrice** | Obavezan |
 
+Prekidač `private.ticket.priorityMatrix.enabled` (**Administracija → Postavke**) isključuje čitanje matrice:
+prioritet se tada računa ugrađenom formulom, a popunjene ćelije ostaju sačuvane (vidi **Usmjeravanje i
+prioritet** §5).
+
 ### Stanja i poruke na tiketu
 
 | Element | Značenje |

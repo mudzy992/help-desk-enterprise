@@ -73,7 +73,12 @@ export async function overrideTicketPriority(input: {
     input.redaction === undefined
       ? normalizedReason
       : redactSensitiveText(normalizedReason, input.redaction);
-  const plan = await planPriority(input.prisma, ticket, input.body);
+  const plan = await planPriority(
+    input.prisma,
+    ticket,
+    input.body,
+    input.context.priorityMatrixEnabled,
+  );
   const now = new Date();
   const updated = await input.prisma.$transaction(async (transaction) => {
     const tx = transaction as PrismaService;
@@ -139,13 +144,16 @@ async function planPriority(
   prisma: PrismaService,
   ticket: TicketRecord,
   body: OverrideTicketPriorityInput,
+  matrixEnabled: boolean | undefined,
 ): Promise<{ readonly priority: TicketPriority; readonly reset: boolean }> {
   if (body.resetToMatrix === true) {
     if (ticket.priorityOverridden !== true) {
       throw new TicketsError('PRIORITY_NOT_OVERRIDDEN');
     }
     return {
-      priority: await resolveTicketPriority(prisma, ticket.impact, ticket.urgency),
+      priority: await resolveTicketPriority(prisma, ticket.impact, ticket.urgency, {
+        matrixEnabled,
+      }),
       reset: true,
     };
   }

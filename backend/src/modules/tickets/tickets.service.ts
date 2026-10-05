@@ -33,6 +33,7 @@ import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction
 import { scanTicketContent } from './redaction/assert-ticket-content-redaction';
 import { TicketRequiredFieldsConfigurationLoader } from './required-fields/ticket-required-fields-configuration.loader';
 import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
+import { TicketPriorityMatrixConfigurationLoader } from './priority/ticket-priority-matrix-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
 import { runTicketsServiceCreate } from './run-tickets-service-create';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
@@ -69,6 +70,7 @@ export class TicketsService {
     private readonly guardrailsConfigurationLoader: TicketGuardrailsConfigurationLoader,
     private readonly confidentialLoader: TicketConfidentialConfigurationLoader,
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
+    private readonly priorityMatrixLoader: TicketPriorityMatrixConfigurationLoader,
     private readonly archiveLoader: TicketArchiveConfigurationLoader,
     private readonly csatLoader: TicketCsatConfigurationLoader,
     private readonly slaTimers: TicketSlaTimersService,
@@ -392,6 +394,7 @@ export class TicketsService {
     return withTicketAccessPolicies(context, {
       confidential: this.confidentialLoader,
       safeLogging: this.safeLoggingLoader,
+      priorityMatrix: this.priorityMatrixLoader,
       archive: this.archiveLoader,
     }).then((gated) => ({ ...gated, slaTimers: this.slaTimers }));
   }

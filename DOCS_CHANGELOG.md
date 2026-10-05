@@ -43,6 +43,7 @@
 | **Val 5 (M5)** | 2026-10-05 | Policy paketi | `user-guide/policy-paketi.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (`# Val 5 — M5`), ovaj dokument | **Zatvoreno šest nalaza: dodjela paketa servisu bez OJ (B3), SuperAdmin kapija na API-ju (B4), povlačenje paketa `unapply` s auditom (B5), plan iz `validate` prije primjene (B6), paket kao bundle — klasifikacija, odobrenje i SLA profil na servisu (B1), postavka `private.policyPacks.disabledKeysCsv` (B2)** |
 | **Val 5 (M13)** | 2026-10-05 | Serverski testovi (obavještenja) | `REVIEW_ANALIZA.md` (`# Val 5 — M13`), ovaj dokument | **Sedam notifications servisa dobilo specove (44 nova testa): keš brojača i realtime događaji, fan-out izolacija kanala i broadcast kroz red, retencija i digest scheduler, dnevni sažetak, sedmični izvještaj i korisničke postavke** |
 | **Val 5 (M8)** | 2026-10-05 | Tiketi — tip zahtjeva i željeni rok | `user-guide/tiketi.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (`# Val 5 — M8 #3`), ovaj dokument | **RAW `service → request type → due date` zatvoren: nova kolona `Ticket.requestType`, `dueAt` se konačno upisuje, oba polja u formi i u detalju tiketa, normalizacija i validacija, i jasna razlika željeni rok ≠ SLA rok** |
+| **Val 5 (M7)** | 2026-10-05 | Usmjeravanje i prioritet — mrtva postavka i prekidač matrice | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/sla.md`, `user-guide/sta-je-novo.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, `# Val 5 — M7 B2/B5`), ovaj dokument | **M7 zatvoren: nova postavka `private.ticket.priorityMatrix.enabled` stvarno isključuje matricu (vrijedi i za prioritet problema), pet mrtvih `private.changeLog.*` postavki je uklonjeno zajedno s tvrdnjom u vodiču, a ose Nizak–Kritičan ostaju dokumentovano odstupanje od RAW-a** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1617,3 +1618,24 @@ razlikovanjem dva roka.
 - **Tip zahtjeva je slobodan tekst** (do 80 znakova), ne šifarnik; RAW ne traži administraciju tipova.
 - **Željeni rok ne pokreće automatiku** (nema eskalacije ni SLA veze) — i dokumentovan je kao razlika prema SLA roku.
 
+## Usmjeravanje i prioritet — mrtva postavka change loga i prekidač matrice prioriteta (2026-10-05, val 5, M7 B2/B5)
+
+**Zašto:** vodič je nosio dva ograničenja koja kod više ne opravdava — da postavka „change log za routing“ ne
+mijenja ponašanje (B2) i da se matrica prioriteta ne može isključiti (B5).
+
+### Dodato / izmijenjeno
+
+| Dokument | Šta je izmijenjeno | Izvor u kodu (dokaz) |
+|---|---|---|
+| `docs/user-guide/usmjeravanje-i-prioritet.md` | §5 dobio korak 4: prekidač `private.ticket.priorityMatrix.enabled` isključuje čitanje matrice, prioritet tada računa ugrađena formula, ćelije ostaju sačuvane; iz „Poznatih ograničenja“ **uklonjena** rečenica o change logu (B2), a ograničenje B5 prepisano (ose Nizak–Kritičan ostaju odstupanje) | `backend/src/modules/tickets/priority/ticket-priority-matrix-configuration.loader.ts`, `backend/src/modules/tickets/resolve-ticket-priority.ts:28–44` |
+| `docs/user-guide/sla.md` | Ispod tabele **Matrica prioriteta** dodata napomena o prekidaču i ugrađenoj formuli | isto |
+| `docs/user-guide/sta-je-novo.md` | Dva nova reda za 2026-10-05: tip zahtjeva i željeni rok (M8 #3) i prekidač matrice prioriteta (M7 B5) | `docs/user-guide/tiketi.md`, `docs/user-guide/usmjeravanje-i-prioritet.md` |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T46: status „Važi“ bez ograde o prekidaču + osvježeni izvori (`resolve-ticket-priority.ts:28–44`, `override-ticket-priority.ts:41–141`, `update-ticket.ts:148–175`) | `backend/src/modules/tickets/**` |
+| `backend/content/docs/**` (ogledalo) | Regenerisan manifest i stranice iz izvora | `node scripts/generate-docs-content.mjs` |
+| `REVIEW_ANALIZA.md` | §M7: B2 označen kao zatvoren (uklanjanje), B5 kao popravljen; nova sekcija `# Val 5 — M7 B2/B5` s tabelom slojeva i dokazima | `npx jest src/modules/tickets src/modules/problems src/modules/settings src/modules/sla src/modules/assets src/modules/status-page --maxWorkers=2` → **170 suita / 865 testova** |
+
+### Ostaje otvoreno
+
+- **Ose matrice ostaju `TicketImpact`/`TicketUrgency`** (Nizak–Kritičan), a ne `self/team/unit/company` i
+  `low/medium/high` iz RAW-a — promjena bi bila izmjena šeme i podataka, pa je zadržano postojeće stanje.
+- **Nijedna stranica EN vodiča nije dirana** — izmjena je u BS izvoru; ogledalo i prevodi prate generator.

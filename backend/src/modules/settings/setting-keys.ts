@@ -205,6 +205,8 @@ export const settingKeys = {
   privateTicketBulkActionsAuditBatchIdEnabled:
     'private.ticket.bulkActions.auditBatchIdEnabled',
   privateTicketSlaEnabled: 'private.ticket.sla.enabled',
+  privateTicketPriorityMatrixEnabled:
+    'private.ticket.priorityMatrix.enabled',
   privateTicketSlaAllowServiceOverrides:
     'private.ticket.sla.allowServiceOverrides',
   privateTicketSlaAllowOuOverrides: 'private.ticket.sla.allowOuOverrides',
