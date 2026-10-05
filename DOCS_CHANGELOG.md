@@ -1293,6 +1293,9 @@ linkom na stranice koje detalj objašnjavaju.
   NISKO**) i nova sekcija `# Val 3 — pouzdanost i performanse` (tabela nalaz→popravka→dokaz, dokazi iz
   testova, sopstvene greške, šta ostaje otvoreno).
 - `backend/content/docs/**` — ogledalo regenerisano (`node scripts/generate-docs-content.mjs`), a
-  `check-docs-content.mjs` prolazi (29 stranica, 7 provjera).
+  `check-docs-content.mjs` prolazi (29 stranica, 7 provjera). **Napomena za svaki sljedeći val:** generator
+  izvodi `updatedAt` iz datuma zadnjeg commita izvorne stranice, pa se ogledalo mora regenerisati **poslije**
+  commita stranica i manifest commitovati zasebno — prvi commit vala 3 to nije uradio, pa je `updatedAt`
+  zaostajao (uhvaćeno na re-verifikaciji 2026-10-05 i ispravljeno u `docs(val 3): manifest…`).
 - `TEZE-ZA-DOKUMENTACIJU.md` nije mijenjan: nijedna teza nije oborena, nalazi su samo prešli iz „poznatog
   ograničenja“ u opis stvarnog ponašanja (isto pravilo kao u valu 2).

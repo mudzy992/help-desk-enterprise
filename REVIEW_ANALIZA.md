@@ -5580,7 +5580,13 @@ stanje (Redis, baza) i prebacivao filtre u upite.
 - **Frontend:** `tsc -b` → **0**; `vitest run` → **157 fajlova / 627 testova, 0 padova**; svi
   `scripts/check-*.mjs` prolaze (10 skripti, uključujući `check-docs-content`, `check-pulse-design-system` i
   `check-ticket-id-leaks`).
-- **Statička provjera dokumentacije:** `node scripts/check-docs-content.mjs` → OK (29 stranica, 7 provjera).
+- **Statička provjera dokumentacije:** `node scripts/check-docs-content.mjs` → OK (29 stranica, 7 provjera) —
+  poslije zasebnog commita `docs(val 3): manifest…` (vidi sljedeću tačku).
+- **Ogledalo se mora regenerisati POSLIJE commita stranica:** generator izvodi `updatedAt` iz
+  `git log -1 --format=%cs` izvorne stranice, pa je prvi commit vala 3 nosio datume iz trenutka prije commita
+  (isti propust ostavio je zastarjele datume još iz vala 2 — `check-docs-content` je to uhvatio na
+  re-verifikaciji commitovanog stanja, 2026-10-05). Popravka: regeneracija + zaseban commit manifesta; od
+  tada provjera prolazi iz čistog kloniranog stanja.
 - **Sopstvene greške u istom valu (zapisane da se ne ponove):** prva verzija `M12 B3` keša nije zatvarala stari
   transporter pri promjeni postavki (pool je ostajao otvoren) — dodan TTL neiskorištenog poola; prvi
   `M11 B2` spec je koristio lažni socket bez `data` objekta; prva verzija `M13 B2` upita koristila je
