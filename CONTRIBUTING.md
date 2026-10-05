@@ -5,7 +5,19 @@ Kratka pravila za ovaj repozitorij. Detalji o modulu Dokumentacija su u
 
 ## Dokumentacija ide uz kod (obavezno)
 
-**Izmjena funkcionalnosti povlači izmjenu stranice dokumentacije u istom commitu.** Ako promjena mijenja
+
+**Izmjena funkcionalnosti povlači izmjenu stranice dokumentacije u istom commitu.** Konkretno:
+
+- promjena koju korisnik osjeti dobija i red u `docs/user-guide/sta-je-novo.md` (datum + kratak opis + link na
+  stranicu modula); ako je izmjena samo interna, u `DOCS_CHANGELOG.md` se označava `[interno]` i red u
+  „Šta je novo“ nije obavezan — **CI (`check-docs-content`) pada ako je zadnji datum u `DOCS_CHANGELOG.md`
+  noviji od zadnjeg reda u „Šta je novo“**;
+- link na drugu stranicu vodiča piše se kao ruta (`[Pošta](/docs/posta)`); relativne `.md` veze se u ogledalu
+  prevode u rute automatski, a CI provjerava da svaka ruta pogodi objavljenu stranicu i postojeći naslov;
+- ogledalo (`backend/content/docs/**`) se regeneriše **poslije** commita stranica (`updatedAt` se čita iz
+  gita), pa se `manifest.json` commit-uje u zasebnom commitu.
+
+Ako promjena mijenja
 ponašanje opisano u `docs/user-guide/**` (ekran, polje, validacija, status, dozvola, tok koraka), ista izmjena
 mora ažurirati i tu stranicu. Isto pravilo `TEZE-ZA-DOKUMENTACIJU.md` §1 traži za teze.
 

@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { highlightCode, parseMarkdown, type BlockNode, type InlineNode } from "@/lib/privacy/simple-markdown";
 import { slugifyHeading } from "@/lib/docs/slugify-heading";
 import { cn } from "@/lib/utils";
@@ -50,12 +51,20 @@ function renderInline(nodes: readonly InlineNode[]): ReactNode {
             {node.text}
           </code>
         );
-      case "link":
-        return (
-          <a key={index} href={node.href} className="text-link underline underline-offset-2 hover:decoration-2" rel="noopener noreferrer" target="_blank">
+      case "link": {
+        const classes = "text-link underline underline-offset-2 hover:decoration-2";
+        // Interna ruta vodiča ostaje u aplikaciji (SPA navigacija); vanjski
+        // linkovi se otvaraju u novom tabu, kao i do sada.
+        return node.href.startsWith("/docs/") ? (
+          <Link key={index} to={node.href} className={classes}>
+            {renderInline(node.children)}
+          </Link>
+        ) : (
+          <a key={index} href={node.href} className={classes} rel="noopener noreferrer" target="_blank">
             {renderInline(node.children)}
           </a>
         );
+      }
       case "image":
         return (
           <img

@@ -141,6 +141,19 @@ function previousUpdatedAt() {
   }
 }
 
+/**
+ * U izvorima vodiči jedan drugog zovu relativnom vezom (`[vodič](tiketi.md)`),
+ * a aplikacija čita ogledalo i ne zna gdje je taj fajl — zato se u ogledalu
+ * veza na **objavljenu** stranicu prevodi u rutu `/docs/<slug>` (renderer je
+ * prikazuje kao interni link). Veze na fajlove koji nisu stranice (npr.
+ * `TEZE-ZA-DOKUMENTACIJU.md`) ostaju kakve jesu.
+ */
+export function rewriteDocsLinks(body, knownSlugs) {
+  return body.replace(/\]\(([a-z0-9-]+)\.md(#[a-z0-9-]+)?\)/g, (match, slug, anchor) =>
+    knownSlugs.has(slug) ? `](/docs/${slug}${anchor ?? ''})` : match,
+  );
+}
+
 export function buildDocsContent() {
   const previous = previousUpdatedAt();
   const files = readdirSync(sourceDir)
@@ -176,6 +189,10 @@ export function buildDocsContent() {
       source: `docs/user-guide/${name}`,
     });
     documents.set(slug, body);
+  }
+
+  for (const [slug, body] of documents) {
+    documents.set(slug, rewriteDocsLinks(body, slugs));
   }
 
   pages.sort((a, b) => {

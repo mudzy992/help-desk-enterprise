@@ -35,6 +35,22 @@ describe("parseMarkdown", () => {
     expect(safeHref("data:text/html,x")).toBeNull();
   });
 
+  it("allows internal docs routes (clickable guides) but nothing else relative", () => {
+    expect(safeHref("/docs/posta")).toBe("/docs/posta");
+    expect(safeHref("/docs/realtime-i-obavjestenja#poznata-ogranicenja")).toBe(
+      "/docs/realtime-i-obavjestenja#poznata-ogranicenja",
+    );
+    expect(parseInline("[Pošta](/docs/posta)")).toEqual([
+      { kind: "link", href: "/docs/posta", children: [{ kind: "text", text: "Pošta" }] },
+    ]);
+    // Relativna .md veza se prevodi u rutu još u ogledalu (generator), pa ovdje
+    // ostaje odbijena; tako isto i sve što izlazi iz /docs/ prostora.
+    expect(safeHref("posta.md")).toBeNull();
+    expect(safeHref("/docs/../secrets")).toBeNull();
+    expect(safeHref("/docs/posta?x=1")).toBeNull();
+    expect(safeHref("/admin/users")).toBeNull();
+  });
+
   it("shows HTML as plain text", () => {
     expect(parseMarkdown("<script>alert(1)</script>")).toEqual([
       { kind: "paragraph", children: [{ kind: "text", text: "<script>alert(1)</script>" }] },

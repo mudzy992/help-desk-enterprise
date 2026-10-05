@@ -36,14 +36,15 @@ koristi kao podsjetnik na izmjene koje traže akciju (npr. pokretanje alata na s
 
 | Datum | Šta se promijenilo | Za koga | Detalji |
 |---|---|---|---|
-| 2026-10-04 | **Zajednički limiti umjesto po-procesnih (Val 3).** Ograničenje masovnog broadcasta i testnog slanja e-maila sada se drži u Redisu, pa vrijedi za sve instance i ne resetuje se restartom. | Agent, Administrator | `tiketi.md`, `posta.md` |
-| 2026-10-04 | **Obavijesti e-mailom pouzdanije (Val 3).** Zaglavljena isporuka se preuzima ponovo (pločica **Operativno zdravlje** prikazuje broj takvih zapisa), SMTP veza se dijeli umjesto da se otvara po e-mailu, a oznake polja u obavijesti prate jezik pošiljaoca/primaoca. | Svi, Administrator, Operativa | `posta.md` |
-| 2026-10-04 | **Realtime, šabloni i baza znanja (Val 3).** Članstvo u grupnim sobama i admin rola provjeravaju se ponovo tokom veze, ulazak u sobu tiketa je ograničen na 30 poruka u minuti, ponuda šablona filtrira opseg u upitu, a lista baze znanja i presretanje rade u jednom prolazu. | Agent, Administrator | `realtime-i-obavjestenja.md`, `sabloni-i-playbooks.md`, `baza-znanja.md` |
-| 2026-10-04 | **Val 2 — sigurnost i vidljivost (deset nalaza).** Provjera šablona pri slanju, zamjena ličnih podataka i pri upisu članka, redakcija broadcasta, nacrti usluga samo adminima, jedan izvor retencije priloga, obavještenje o odobrenju i kapija za `UNROUTED`, eskalacije s primaocem, satovi od `createdAt` i prvi odgovor nezavisan od SLA-a. | Svi, Administrator | `sabloni-i-playbooks.md`, `odobrenja-i-csat.md`, `sla.md`, `tiketi.md`, `posta.md`, `baza-znanja.md`, `katalog-usluga-i-forme.md` |
-| 2026-10-03 | **Default permisije se upisuju pri instalaciji.** Svježa instalacija više ne daje ADMIN/AGENT naloge bez permisija; za starije instalacije postoji alat koji to dopuni. | Administrator, Operativa | `instalacija.md`, `uloge-i-permisije.md` |
-| 2026-10-03 | **Poravnati vodiči `instalacija.md` i `prijava-i-mfa.md`** na istu strukturu kao ostali (dodate sekcije „Čemu služi“, „Kome je namijenjen“, „Kako doći“, „Polja, validacije i statusi“, „Česta pitanja i greške“, „Povezani moduli“). | Svi | `instalacija.md`, `prijava-i-mfa.md` |
-| 2026-10-03 | **Nova stranica „Dokumentacija“ u aplikaciji** (u izradi): pregled, pretraga i navigacija kroz ove vodiče. | Svi | `pocetak-rad.md`, `pregled-modula.md` |
-| 2026-10-03 | **Završena Faza 2 dokumentacije:** vodiči za 15 modula (M1–M15) i tehničke teze. | Svi | `pregled-modula.md` |
+| 2026-10-05 | **Zajednički limiti umjesto po-procesnih (Val 3).** Ograničenje masovnog broadcasta i testnog slanja e-maila sada se drži u Redisu, pa vrijedi za sve instance i ne resetuje se restartom. | Agent, Administrator | [tiketi.md](/docs/tiketi), [posta.md](/docs/posta) |
+| 2026-10-05 | **Obavijesti e-mailom pouzdanije (Val 3).** Zaglavljena isporuka se preuzima ponovo (pločica **Operativno zdravlje** prikazuje broj takvih zapisa), SMTP veza se dijeli umjesto da se otvara po e-mailu, a oznake polja u obavijesti prate jezik pošiljaoca/primaoca. | Svi, Administrator, Operativa | [posta.md](/docs/posta) |
+| 2026-10-05 | **Veze u dokumentaciji i provjera ažurnosti.** Reference na stranice u tabelama i vodičima su klikabilne, a CI provjerava da stranica „Šta je novo“ ne zaostaje za `DOCS_CHANGELOG.md`. | Svi | [pocetak-rad.md](/docs/pocetak-rad) |
+| 2026-10-05 | **Realtime, šabloni i baza znanja (Val 3).** Članstvo u grupnim sobama i admin rola provjeravaju se ponovo tokom veze, ulazak u sobu tiketa je ograničen na 30 poruka u minuti, ponuda šablona filtrira opseg u upitu, a lista baze znanja i presretanje rade u jednom prolazu. | Agent, Administrator | [realtime-i-obavjestenja.md](/docs/realtime-i-obavjestenja), [sabloni-i-playbooks.md](/docs/sabloni-i-playbooks), [baza-znanja.md](/docs/baza-znanja) |
+| 2026-10-04 | **Val 2 — sigurnost i vidljivost (deset nalaza).** Provjera šablona pri slanju, zamjena ličnih podataka i pri upisu članka, redakcija broadcasta, nacrti usluga samo adminima, jedan izvor retencije priloga, obavještenje o odobrenju i kapija za `UNROUTED`, eskalacije s primaocem, satovi od `createdAt` i prvi odgovor nezavisan od SLA-a. | Svi, Administrator | [sabloni-i-playbooks.md](/docs/sabloni-i-playbooks), [odobrenja-i-csat.md](/docs/odobrenja-i-csat), [sla.md](/docs/sla), [tiketi.md](/docs/tiketi), [posta.md](/docs/posta), [baza-znanja.md](/docs/baza-znanja), [katalog-usluga-i-forme.md](/docs/katalog-usluga-i-forme) |
+| 2026-10-03 | **Default permisije se upisuju pri instalaciji.** Svježa instalacija više ne daje ADMIN/AGENT naloge bez permisija; za starije instalacije postoji alat koji to dopuni. | Administrator, Operativa | [instalacija.md](/docs/instalacija), [uloge-i-permisije.md](/docs/uloge-i-permisije) |
+| 2026-10-03 | **Poravnati vodiči `instalacija.md` i `prijava-i-mfa.md`** na istu strukturu kao ostali (dodate sekcije „Čemu služi“, „Kome je namijenjen“, „Kako doći“, „Polja, validacije i statusi“, „Česta pitanja i greške“, „Povezani moduli“). | Svi | [instalacija.md](/docs/instalacija), [prijava-i-mfa.md](/docs/prijava-i-mfa) |
+| 2026-10-03 | **Nova stranica „Dokumentacija“ u aplikaciji** (u izradi): pregled, pretraga i navigacija kroz ove vodiče. | Svi | [pocetak-rad.md](/docs/pocetak-rad), [pregled-modula.md](/docs/pregled-modula) |
+| 2026-10-03 | **Završena Faza 2 dokumentacije:** vodiči za 15 modula (M1–M15) i tehničke teze. | Svi | [pregled-modula.md](/docs/pregled-modula) |
 
 **Napomena:** tabela prikazuje samo izmjene koje korisnik osjeti; izmjene koje se tiču isključivo interne
 implementacije nisu ovdje (vidi `DOCS_CHANGELOG.md`).
@@ -59,8 +60,10 @@ implementacije nisu ovdje (vidi `DOCS_CHANGELOG.md`).
 
 ## Poznata ograničenja
 
-- **Ova stranica se ne ažurira automatski** — izmjene se u nju dodaju kad se mijenja i `DOCS_CHANGELOG.md`
-  (pravilo: izmjena funkcionalnosti povlači izmjenu dokumentacije u istom commitu).
+- **Ova stranica se ne generiše automatski** — redovi se dodaju ručno kad se mijenja i `DOCS_CHANGELOG.md`
+  (pravilo: izmjena funkcionalnosti povlači izmjenu dokumentacije u istom commitu). CI (`check-docs-content`)
+  provjerava da zadnji datum u tabeli nije stariji od zadnjeg datuma u `DOCS_CHANGELOG.md`; za unose koji su
+  samo interni koristi se oznaka `[interno]`.
 - **Ne prikazuje izmjene iz `docs/plans/**`** — planovi i dizajn dokumenti nisu korisnička dokumentacija.
 - **Nema filtera po datumu ili modulu** u prvoj verziji; koristite pretragu Dokumentacije.
 

@@ -31,39 +31,39 @@ stranice kad znate šta tražite, ali ne i gdje je opisano.
 
 | Modul | Čemu služi | Stranica |
 |---|---|---|
-| M1 | Prvi start: SuperAdmin nalog, način prijave, SMTP i minimalni podaci. | [Instalacija (prvi start)](instalacija.md) |
-| M2 | Prijava, potvrda u dva koraka, sesije i sigurnost naloga. | [Prijava i potvrda u dva koraka (MFA)](prijava-i-mfa.md) |
-| M3 | Nalozi, organizacione jedinice i grupe, uz sinhronizaciju s direktorijem. | [Korisnici, organizacione jedinice i grupe](korisnici-oj-i-grupe.md) |
-| M4 | Role, permisije, OU/servis scope i read-only režim. | [Uloge i permisije (RBAC)](uloge-i-permisije.md) |
-| M5 | Paketi konfiguracije koji dodjeljuju role i permisije. | [Policy paketi](policy-paketi.md) |
-| M6 | Kategorije, usluge, forme i verzije formi. | [Katalog usluga i forme](katalog-usluga-i-forme.md) |
-| M7 | Pravila usmjeravanja, matrica prioriteta i neusmjereni red. | [Usmjeravanje i prioritet](usmjeravanje-i-prioritet.md) |
-| M8 | Životni ciklus tiketa, grupni inbox, spajanje i skupne akcije. | [Tiketi](tiketi.md) |
-| M9 | Odluka o zahtjevu (odobrenje) i ocjena zadovoljstva (CSAT). | [Odobrenja i CSAT](odobrenja-i-csat.md) |
-| M10 | Rokovi, kalendari, pravila i eskalacije. | [SLA](sla.md) |
-| M11 | Obavještenja u aplikaciji i veza u realnom vremenu. | [Realtime i obavještenja](realtime-i-obavjestenja.md) |
-| M12 | E-mail kanal, šabloni, dolazna pošta i masovna obavještenja. | [Pošta (e-mail)](posta.md) |
-| M13 | Gotovi odgovori i tokovi rješavanja s koracima. | [Šabloni i playbooks](sabloni-i-playbooks.md) |
-| M14 | Članci, portal znanja, ocjene i ciklus pregleda. | [Baza znanja](baza-znanja.md) |
-| M15 | Nadzorna ploča, izvještaji, trendovi i zakazani izvještaji. | [Nadzorna ploča i izvještaji](nadzorna-ploca-i-izvjestaji.md) |
+| M1 | Prvi start: SuperAdmin nalog, način prijave, SMTP i minimalni podaci. | [Instalacija (prvi start)](/docs/instalacija) |
+| M2 | Prijava, potvrda u dva koraka, sesije i sigurnost naloga. | [Prijava i potvrda u dva koraka (MFA)](/docs/prijava-i-mfa) |
+| M3 | Nalozi, organizacione jedinice i grupe, uz sinhronizaciju s direktorijem. | [Korisnici, organizacione jedinice i grupe](/docs/korisnici-oj-i-grupe) |
+| M4 | Role, permisije, OU/servis scope i read-only režim. | [Uloge i permisije (RBAC)](/docs/uloge-i-permisije) |
+| M5 | Paketi konfiguracije koji dodjeljuju role i permisije. | [Policy paketi](/docs/policy-paketi) |
+| M6 | Kategorije, usluge, forme i verzije formi. | [Katalog usluga i forme](/docs/katalog-usluga-i-forme) |
+| M7 | Pravila usmjeravanja, matrica prioriteta i neusmjereni red. | [Usmjeravanje i prioritet](/docs/usmjeravanje-i-prioritet) |
+| M8 | Životni ciklus tiketa, grupni inbox, spajanje i skupne akcije. | [Tiketi](/docs/tiketi) |
+| M9 | Odluka o zahtjevu (odobrenje) i ocjena zadovoljstva (CSAT). | [Odobrenja i CSAT](/docs/odobrenja-i-csat) |
+| M10 | Rokovi, kalendari, pravila i eskalacije. | [SLA](/docs/sla) |
+| M11 | Obavještenja u aplikaciji i veza u realnom vremenu. | [Realtime i obavještenja](/docs/realtime-i-obavjestenja) |
+| M12 | E-mail kanal, šabloni, dolazna pošta i masovna obavještenja. | [Pošta (e-mail)](/docs/posta) |
+| M13 | Gotovi odgovori i tokovi rješavanja s koracima. | [Šabloni i playbooks](/docs/sabloni-i-playbooks) |
+| M14 | Članci, portal znanja, ocjene i ciklus pregleda. | [Baza znanja](/docs/baza-znanja) |
+| M15 | Nadzorna ploča, izvještaji, trendovi i zakazani izvještaji. | [Nadzorna ploča i izvještaji](/docs/nadzorna-ploca-i-izvjestaji) |
 
 **Ostale stranice** (moduli izvan audita i referentne stranice):
 
 | Dio | Stranica | Čemu služi |
 |---|---|---|
-| Početak | [Početak rada](pocetak-rad.md) | prvi koraci: prijava, meni, otvaranje i praćenje tiketa |
-| Početak | [Prečice na tastaturi i pristupačnost](precice-i-pristupacnost.md) | rad tastaturom, čitač ekrana, uvećanje i prečice |
-| Korisnik | [Status servisa: incident ili zakazani prekid?](status-incidenti-i-planirani-prekidi.md) | razlika između najavljenog prekida i incidenta |
-| Korisnik | [Najave](najave.md) | obavještenja organizacije i potvrda čitanja |
-| Agent | [Prosljeđivanje tiketa](prosljedjivanje-tiketa.md) | slanje tiketa drugoj grupi i vraćanje |
-| Agent | [Dežurstva (on-call)](dezurstva.md) | raspored smjena grupe, zamjene i rupe |
-| Administracija | [Imovina (CMDB)](imovina.md) | oprema, prenosnice, licence i ugovori |
-| Administracija | [Problemi](problemi.md) | više tiketa s istim uzrokom i grupno rješavanje |
-| Administracija | [Promjene](promjene.md) | planirane izmjene, CAB, konflikti i zamrzavanje |
-| Referenca | [Uloge i dozvole](uloge-i-dozvole.md) | kratak pregled ko šta smije |
-| Referenca | [Česta pitanja](cesta-pitanja.md) | najčešća pitanja i poruke grešaka |
-| Referenca | [Rječnik](rjecnik.md) | pojmovi koji se koriste u aplikaciji |
-| Referenca | [Šta je novo](sta-je-novo.md) | izmjene koje korisnik osjeti |
+| Početak | [Početak rada](/docs/pocetak-rad) | prvi koraci: prijava, meni, otvaranje i praćenje tiketa |
+| Početak | [Prečice na tastaturi i pristupačnost](/docs/precice-i-pristupacnost) | rad tastaturom, čitač ekrana, uvećanje i prečice |
+| Korisnik | [Status servisa: incident ili zakazani prekid?](/docs/status-incidenti-i-planirani-prekidi) | razlika između najavljenog prekida i incidenta |
+| Korisnik | [Najave](/docs/najave) | obavještenja organizacije i potvrda čitanja |
+| Agent | [Prosljeđivanje tiketa](/docs/prosljedjivanje-tiketa) | slanje tiketa drugoj grupi i vraćanje |
+| Agent | [Dežurstva (on-call)](/docs/dezurstva) | raspored smjena grupe, zamjene i rupe |
+| Administracija | [Imovina (CMDB)](/docs/imovina) | oprema, prenosnice, licence i ugovori |
+| Administracija | [Problemi](/docs/problemi) | više tiketa s istim uzrokom i grupno rješavanje |
+| Administracija | [Promjene](/docs/promjene) | planirane izmjene, CAB, konflikti i zamrzavanje |
+| Referenca | [Uloge i dozvole](/docs/uloge-i-dozvole) | kratak pregled ko šta smije |
+| Referenca | [Česta pitanja](/docs/cesta-pitanja) | najčešća pitanja i poruke grešaka |
+| Referenca | [Rječnik](/docs/rjecnik) | pojmovi koji se koriste u aplikaciji |
+| Referenca | [Šta je novo](/docs/sta-je-novo) | izmjene koje korisnik osjeti |
 
 ## Česta pitanja i greške
 
@@ -71,7 +71,7 @@ stranice kad znate šta tražite, ali ne i gdje je opisano.
   tehničke stranice (npr. instalacija) i administratorski moduli traže odgovarajuću rolu.
 - **„Modul nije u tabeli.“** — Tabela **Moduli iz audita** pokriva M1–M15; moduli izvan audita su u tabeli
   **Ostale stranice**.
-- **„Odakle početi?“** — Otvorite [Početak rada](pocetak-rad.md).
+- **„Odakle početi?“** — Otvorite [Početak rada](/docs/pocetak-rad).
 - **„Gdje je tehnički opis?“** — Tehničke teze (`TEZE-ZA-DOKUMENTACIJU.md`) i dizajn paketa
   (`docs/plans/modules/**`) nisu dio korisničke dokumentacije u aplikaciji.
 

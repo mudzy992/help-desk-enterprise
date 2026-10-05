@@ -322,7 +322,8 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
 | Validacija | `node scripts/check-docs-content.mjs` | lokalno i u CI (uz postojećih 7 `check-*`) |
 | Build slike | `backend/Dockerfile`: dodati `COPY --from=builder /usr/app/content ./content` u runtime stage | jednom, kao integraciona tačka |
 
-Šta `check-docs-content.mjs` provjerava:
+Šta `check-docs-content.mjs` provjerava (9 provjera; test logike:
+`node --test scripts/check-docs-content.test.mjs`, pokreće ga CI):
 
 1. **frontmatter** — sva obavezna polja, `slug` jedinstven i u `[a-z0-9-]`, `part` iz dozvoljene liste,
    `roles` samo poznate role, `order` broj;
@@ -330,11 +331,20 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
 3. **veze** — svaki relativni markdown link unutar `docs/user-guide/**` pokazuje na postojeći fajl/anchor;
 4. **slike** — svaka referenca postoji i nije izvan `docs/user-guide/assets/`;
 5. **tajne** — obrasci iz §6;
-6. **slugovi i anchori iz koda** — svaki slug iz mape ekran→stranica (`frontend/src/lib/docs/docs-slug.ts`)
-7. **anchori** — jedinstveni unutar stranice.
+6. **slugovi i anchori iz koda** — svaki slug iz mape ekran→stranica (`frontend/src/lib/docs/docs-slug.ts`);
+7. **anchori** — jedinstveni unutar stranice;
+8. **rute** (dopuna 2026-10-05) — svaka veza `/docs/<slug>(#anchor)` u vodiču pokazuje na objavljenu stranicu i
+   postojeći naslov;
+9. **sta-je-novo** (dopuna 2026-10-05) — zadnji datum u tabeli „Šta je novo“ ne smije biti stariji od zadnjeg
+   datuma u `DOCS_CHANGELOG.md` (redovi označeni `[interno]` se preskaču), a svaka referenca iz kolone
+   *Detalji* mora biti objavljena stranica.
+
+U ogledalu (`backend/content/docs/**`) generator prevodi relativne `.md` veze na objavljene stranice u rute
+`/docs/<slug>`; renderer ih u aplikaciji prikazuje kroz router (vidi `simple-markdown.ts` `safeHref`).
 
 Pravilo za repozitorij (dodaje se u `README.md`/`CONTRIBUTING.md` u koraku d): **izmjena funkcionalnosti
-povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §1 već traži za teze.
+povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §1 već traži za teze; konkretne
+obaveze (red u „Šta je novo“, `[interno]`, rute, regeneracija ogledala poslije commita) su u `CONTRIBUTING.md`.
 
 ---
 

@@ -44,7 +44,10 @@ const calloutLabels: ReadonlyArray<{ readonly pattern: RegExp; readonly tone: Ca
 
 export function safeHref(url: string): string | null {
   const trimmed = url.trim();
-  return /^(https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : null;
+  if (/^(https?:\/\/|mailto:)/i.test(trimmed)) return trimmed;
+  // Faza 3 (dopuna): internoj ruti dokumentacije vjerujemo — `MarkdownView` je
+  // prikazuje kroz router, pa vodič može uputiti na drugu stranicu vodiča.
+  return /^\/docs\/[a-z0-9-]+(#[a-z0-9-]+)?$/.test(trimmed) ? trimmed : null;
 }
 
 /**

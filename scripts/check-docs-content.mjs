@@ -17,7 +17,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildDocsContent, slugifyHeading } from './generate-docs-content.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -148,6 +148,8 @@ function checkLinksAndImages(files) {
     for (const match of content.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
       const target = match[1];
       if (/^(https?:|mailto:)/i.test(target)) continue;
+      // Rute `/docs/...` nisu fajlovi u izvoru — njih provjerava `checkWhatsNewAndRoutes`.
+      if (target.startsWith('/docs/')) continue;
       const isImage = match[0].startsWith('!');
       const [filePart, anchor] = target.split('#');
       if (filePart.length === 0 && anchor !== undefined) {
@@ -201,6 +203,160 @@ function checkSecrets(files) {
         fail('tajne', `${file}: obrazac "${name}" (${match[0].slice(0, 40)}…)`);
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Faza 3 (dopuna, 2026-10-05): dvije provjere koje su nedostajale.
+//
+//  1. `rute` — veza `/docs/<slug>(#anchor)` u vodiču mora pogoditi objavljenu
+//     stranicu i postojeći naslov (kucanje u ruti se ranije nije hvatalo nigdje).
+//  2. `sta-je-novo` — tabela „Šta je novo“ je ručna, pa je val 2 (2026-10-04)
+//     prošao bez ijednog reda u njoj. Sada CI traži da zadnji datum u toj tabeli
+//     nije stariji od zadnjeg datuma u `DOCS_CHANGELOG.md`; redovi koji su samo
+//     interni označavaju se `[interno]` i preskaču se.
+// ---------------------------------------------------------------------------
+
+const docsChangelog = path.join(repoRoot, 'DOCS_CHANGELOG.md');
+const whatsNewFile = path.join(sourceDir, 'sta-je-novo.md');
+
+/** Sve `YYYY-MM-DD` vrijednosti u tekstu. */
+export function isoDates(value) {
+  return [...value.matchAll(/\d{4}-\d{2}-\d{2}/g)].map((match) => match[0]);
+}
+
+/** Datumi iz tabele „Pregled“ u `DOCS_CHANGELOG.md`, bez `[interno]` redova. */
+export function changelogEntryDates(markdown) {
+  const dates = [];
+  let inOverview = false;
+  for (const line of markdown.split('\n')) {
+    if (line.startsWith('## ')) {
+      inOverview = line.trim() === '## Pregled';
+      continue;
+    }
+    if (!inOverview || !line.startsWith('|')) continue;
+    if (line.includes('[interno]')) continue;
+    const cells = line.split('|');
+    if (cells.length < 4) continue;
+    dates.push(...isoDates(cells[2] ?? ''));
+  }
+  return dates;
+}
+
+/** Datumi iz prve tabele na stranici „Šta je novo“. */
+export function whatsNewEntryDates(markdown) {
+  const dates = [];
+  for (const line of markdown.split('\n')) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.split('|');
+    if (cells.length < 3) continue;
+    const cell = (cells[1] ?? '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cell)) dates.push(cell);
+  }
+  return dates;
+}
+
+/** Reference na stranice u jednoj ćeliji: `x.md` (kod) ili `/docs/x` (link). */
+export function docsReferencesIn(value) {
+  const references = [];
+  for (const match of value.matchAll(/`([a-z0-9-]+)\.md`/g)) {
+    references.push({ slugOrFile: match[1], anchor: null });
+  }
+  for (const match of value.matchAll(/\/docs\/([a-z0-9-]+)(#[a-z0-9-]+)?/g)) {
+    references.push({ slugOrFile: match[1], anchor: match[2]?.slice(1) ?? null });
+  }
+  return references;
+}
+
+/** Redovi (datum, ćelija sa detaljima) iz tabele „Šta je novo“. */
+export function whatsNewRows(markdown) {
+  const rows = [];
+  for (const line of markdown.split('\n')) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.split('|');
+    if (cells.length < 5) continue;
+    const date = (cells[1] ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    rows.push({ date, details: cells[4] ?? '' });
+  }
+  return rows;
+}
+
+/** Vraća spisak problema (prazan niz = provjera prolazi). */
+export function auditWhatsNew({ changelogMarkdown, whatsNewMarkdown, slugs, anchors }) {
+  const problems = [];
+  const entryDates = changelogEntryDates(changelogMarkdown);
+  const rows = whatsNewRows(whatsNewMarkdown);
+  const newestEntry = entryDates.sort().at(-1) ?? null;
+  const newestRow = rows.map((row) => row.date).sort().at(-1) ?? null;
+  if (newestEntry !== null && (newestRow === null || newestRow < newestEntry)) {
+    problems.push(
+      `DOCS_CHANGELOG.md ima unos ${newestEntry}, a „Šta je novo“ zadnji red ${newestRow ?? '—'}` +
+        ' — dodajte red ili označite unos sa `[interno]`',
+    );
+  }
+  for (const row of rows) {
+    for (const reference of docsReferencesIn(row.details)) {
+      if (!slugs.has(reference.slugOrFile)) {
+        problems.push(
+          `${row.date}: „${reference.slugOrFile}“ iz kolone Detalji nije objavljena stranica`,
+        );
+        continue;
+      }
+      if (reference.anchor !== null && !(anchors.get(reference.slugOrFile)?.has(reference.anchor) ?? false)) {
+        problems.push(
+          `${row.date}: anchor #${reference.anchor} ne postoji na stranici „${reference.slugOrFile}“`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+/**
+ * Veze na rute `/docs/…` unutar izvornih vodiča: slug i anchor moraju postojati.
+ */
+export function auditDocsRoutes({ files, readFile, slugs, anchors }) {
+  const problems = [];
+  for (const file of files) {
+    const content = readFile(file);
+    for (const match of content.matchAll(/\]\(\/docs\/([a-z0-9-]+)(#[a-z0-9-]+)?\)/g)) {
+      const slug = match[1];
+      const anchor = match[2]?.slice(1) ?? null;
+      if (!slugs.has(slug)) {
+        problems.push(`${file}: ruta „/docs/${slug}“ nema objavljenu stranicu`);
+        continue;
+      }
+      if (anchor !== null && !(anchors.get(slug)?.has(anchor) ?? false)) {
+        problems.push(`${file}: ruta „/docs/${slug}#${anchor}“ — anchor ne postoji`);
+      }
+    }
+  }
+  return problems;
+}
+
+function checkWhatsNewAndRoutes(slugs) {
+  const anchors = anchorsBySlug();
+  const readGuide = (file) => readFileSync(path.join(sourceDir, file), 'utf8');
+  for (const problem of auditDocsRoutes({
+    files: readdirSync(sourceDir).filter((name) => name.endsWith('.md')).sort(),
+    readFile: readGuide,
+    slugs,
+    anchors,
+  })) {
+    fail('rute', problem);
+  }
+  if (!existsSync(docsChangelog) || !existsSync(whatsNewFile)) {
+    fail('sta-je-novo', 'nema DOCS_CHANGELOG.md ili docs/user-guide/sta-je-novo.md');
+    return;
+  }
+  for (const problem of auditWhatsNew({
+    changelogMarkdown: readFileSync(docsChangelog, 'utf8'),
+    whatsNewMarkdown: readFileSync(whatsNewFile, 'utf8'),
+    slugs,
+    anchors,
+  })) {
+    fail('sta-je-novo', problem);
   }
 }
 
@@ -284,6 +440,7 @@ function main() {
   checkAnchors(files);
   checkSecrets(files);
   checkCodeSlugs(slugs);
+  checkWhatsNewAndRoutes(slugs);
 
   for (const note of notes) {
     console.log(`– ${note}`);
@@ -295,7 +452,9 @@ function main() {
     }
     process.exit(1);
   }
-  console.log(`Docs provjera: OK (${files.length} stranica, 7 provjera).`);
+  console.log(`Docs provjera: OK (${files.length} stranica, 9 provjera).`);
 }
 
-main();
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
