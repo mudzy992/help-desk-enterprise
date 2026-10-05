@@ -12,12 +12,6 @@ import type {
  * use, so a number here and the list it links to never disagree; the client only
  * formats them.
  */
-export type DashboardSummaryScope =
-  | "all"
-  | "assignedToMe"
-  | "requestedByMe"
-  | "unassigned";
-
 export type TicketStatusCount = {
   readonly status: TicketStatus;
   readonly count: number;
@@ -29,7 +23,6 @@ export type TicketPriorityCount = {
 };
 
 export type DashboardSummaryCounts = {
-  readonly scope: DashboardSummaryScope;
   readonly generatedAt: string;
   readonly total: number;
   readonly open: number;
@@ -72,13 +65,13 @@ export type SlaSummaryResponse = {
   readonly profiles: readonly SlaProfileExposure[];
 };
 
-/** Counters for the dashboard (phase 2.4). `scope` mirrors the ticket views. */
-export function fetchDashboardSummary(
-  scope: DashboardSummaryScope = "all",
-): Promise<DashboardSummaryCounts> {
-  return apiRequest(
-    `/reports/dashboard/summary?scope=${encodeURIComponent(scope)}`,
-  );
+/**
+ * Counters for the dashboard (phase 2.4). M15 B4 (val 5): the unused `?scope=`
+ * parameter is gone; the personal counters (`assignedToMe`, `requestedByMe`)
+ * arrive in this same payload.
+ */
+export function fetchDashboardSummary(): Promise<DashboardSummaryCounts> {
+  return apiRequest("/reports/dashboard/summary");
 }
 
 /** Exposure per SLA profile and priority (phase 2.4), for the SLA screen. */

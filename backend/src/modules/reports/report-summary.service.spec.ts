@@ -28,18 +28,18 @@ function createFakeCache() {
   const store = new Map<string, unknown>();
   // Same shape as `dashboardSummaryCacheKey`: the reporting zone is part of the
   // key, so a payload must not survive a change of the day boundary.
-  const dashboardKey = (userId: string, scope: string, timeZone: string) =>
-    `dashboard:${userId}:${scope}:${timeZone}`;
+  const dashboardKey = (userId: string, timeZone: string) =>
+    `dashboard:${userId}:${timeZone}`;
   const cache: ReportSummaryCache = {
-    readDashboardSummary: async (userId: string, scope: string, timeZone: string) =>
-      (store.get(dashboardKey(userId, scope, timeZone)) as DashboardSummaryResponse) ??
+    readDashboardSummary: async (userId: string, timeZone: string) =>
+      (store.get(dashboardKey(userId, timeZone)) as DashboardSummaryResponse) ??
       null,
     writeDashboardSummary: async (
       userId: string,
       summary: DashboardSummaryResponse,
       timeZone: string,
     ) => {
-      store.set(dashboardKey(userId, summary.scope, timeZone), summary);
+      store.set(dashboardKey(userId, timeZone), summary);
     },
     readSlaSummary: async (userId: string) =>
       (store.get(`sla:${userId}`) as SlaSummaryResponse) ?? null,
@@ -191,7 +191,6 @@ describe('ReportSummaryService', () => {
     );
     const summary = await service.loadDashboardSummary({
       actorUserId: ticketsTestIds.requester,
-      scope: 'all',
       now,
     });
 
@@ -204,7 +203,6 @@ describe('ReportSummaryService', () => {
     expect(summary.requestedByMe).toBe(2);
     expect(summary.assignedToMe).toBe(0);
     expect(summary.openedToday).toBe(1);
-    expect(summary.scope).toBe('all');
     expect(summary.generatedAt).toBe(now.toISOString());
   });
 
@@ -224,39 +222,12 @@ describe('ReportSummaryService', () => {
     );
     await service.loadDashboardSummary({
       actorUserId: ticketsTestIds.agentIt,
-      scope: 'all',
       now,
     });
 
     const listWhere = (findMany.mock.calls[0]?.[0] as { where: unknown }).where;
     const summaryWhere = (groupBy.mock.calls[0]?.[0] as { where: unknown }).where;
     expect(normalize(summaryWhere)).toEqual(normalize(listWhere));
-  });
-
-  it('narrows a scope exactly like the matching list view', async () => {
-    const world = createTicketsServiceHarness();
-    seedTickets(world);
-    const { service } = createService(world);
-
-    const page = await listTicketsPage(
-      world.memory.prisma as never,
-      world.authorizationContextLoader as never,
-      { assignedUserId: ticketsTestIds.agentIt },
-      { actorUserId: ticketsTestIds.agentIt },
-      defaultTicketArchiveConfiguration,
-    );
-    const summary = await service.loadDashboardSummary({
-      actorUserId: ticketsTestIds.agentIt,
-      scope: 'assignedToMe',
-      now,
-    });
-
-    // Only the IT ticket is assigned to the agent, and it is the only one that
-    // is both visible and assigned — exactly what the view lists.
-    expect(summary.total).toBe(1);
-    expect(summary.total).toBe(page.total);
-    expect(summary.assignedToMe).toBe(1);
-    expect(summary.requestedByMe).toBe(0);
   });
 
   it('serves the second call from the cache without querying again', async () => {
@@ -267,13 +238,11 @@ describe('ReportSummaryService', () => {
 
     const first = await service.loadDashboardSummary({
       actorUserId: ticketsTestIds.requester,
-      scope: 'all',
       now,
     });
     const callsAfterFirst = groupBy.mock.calls.length;
     const second = await service.loadDashboardSummary({
       actorUserId: ticketsTestIds.requester,
-      scope: 'all',
       now,
     });
 
@@ -282,7 +251,7 @@ describe('ReportSummaryService', () => {
     expect(second).toEqual(first);
     // No settings service in this construction: the installation default zone.
     expect(
-      store.get(`dashboard:${ticketsTestIds.requester}:all:${defaultReportsTimeZone}`),
+      store.get(`dashboard:${ticketsTestIds.requester}:${defaultReportsTimeZone}`),
     ).toEqual(first);
   });
 
@@ -297,7 +266,6 @@ describe('ReportSummaryService', () => {
       const { service } = createService(world, settingsTimeZone);
       await service.loadDashboardSummary({
         actorUserId: ticketsTestIds.requester,
-        scope: 'all',
         now,
       });
       // Calls in order: openedToday, requestedByMe, overdue.
@@ -323,7 +291,7 @@ describe('ReportSummaryService', () => {
     const { service } = createService(world);
 
     await expect(
-      service.loadDashboardSummary({ actorUserId: 'user-ghost', scope: 'all', now }),
+      service.loadDashboardSummary({ actorUserId: 'user-ghost', now }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -384,7 +352,7 @@ describe('ReportSummaryService single flight', () => {
     const world = createTicketsServiceHarness();
     const { service } = createService(world);
     const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
-    const input = { actorUserId: ticketsTestIds.requester, scope: 'all' as const, now };
+    const input = { actorUserId: ticketsTestIds.requester, now };
 
     const [first, second, third] = await Promise.all([
       service.loadDashboardSummary(input),

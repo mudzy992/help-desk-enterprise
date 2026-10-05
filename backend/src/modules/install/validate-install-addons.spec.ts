@@ -6,17 +6,17 @@ describe('validateInstallAddons', () => {
   it('accepts known catalog keys', () => {
     expect(
       validateInstallAddons({
-        addons: { sla: false, email: true, autoAssign: true },
+        addons: { approvals: false, email: true, cmdb: true },
       }),
     ).toEqual({
-      addons: { sla: false, email: true, autoAssign: true },
+      addons: { approvals: false, email: true, cmdb: true },
     });
   });
 
   it('rejects unsupported addon keys before persistence', () => {
     expect(() =>
       validateInstallAddons({
-        addons: { sla: true, ticketing: true },
+        addons: { approvals: true, ticketing: true },
       }),
     ).toThrow(new InstallAddonsError(installAddonsErrorCodes.unsupportedAddon));
   });
@@ -24,14 +24,14 @@ describe('validateInstallAddons', () => {
   it('rejects non-boolean addon values and non-object payloads', () => {
     expect(() =>
       validateInstallAddons({
-        addons: { sla: 'true' as unknown as boolean },
+        addons: { approvals: 'true' as unknown as boolean },
       }),
     ).toThrow(
       new InstallAddonsError(installAddonsErrorCodes.invalidConfiguration),
     );
     expect(() =>
       validateInstallAddons({
-        addons: ['sla'] as unknown as Record<string, boolean>,
+        addons: ['approvals'] as unknown as Record<string, boolean>,
       }),
     ).toThrow(
       new InstallAddonsError(installAddonsErrorCodes.invalidConfiguration),

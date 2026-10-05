@@ -5,18 +5,13 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
 import type { SettingsService } from '../settings/settings.service';
 import { defaultTicketArchiveConfiguration } from '../tickets/archive/archive.constants';
-import {
-  buildTicketListWhere,
-  withTicketWhereClause,
-} from '../tickets/list/build-ticket-list-where';
+import { buildTicketListWhere } from '../tickets/list/build-ticket-list-where';
 import { TicketsError } from '../tickets/tickets.error';
 import { ReportSummaryCache } from './report-summary.cache';
 import { loadDashboardSummaryCounts } from './summary/load-dashboard-summary-counts';
 import { loadSlaSummaryCounts } from './summary/load-sla-summary-counts';
-import { ticketSummaryScopeClause } from './summary/ticket-summary-scope-clause';
 import type {
   DashboardSummaryResponse,
-  DashboardSummaryScope,
   SlaSummaryResponse,
 } from './summary/report-summary.types';
 
@@ -26,7 +21,8 @@ import type {
  *
  * Both endpoints reuse the ticket list's scope (`buildTicketListWhere`) — the
  * same RBAC and visibility clauses, not a copy of them — and cache the answer
- * for fifteen seconds per user (and scope). The dashboard's "opened today"
+ * for a minute per user. M15 B4 (val 5): the old `scope` parameter is gone; the
+ * personal counters are fields of the same payload. The dashboard's "opened today"
  * boundary comes from the installation's reporting zone
  * (`settingKeys.privateReportsTimeZone`), never from the process `TZ`. The full visibility rules stay in
  * one place: the counters are a different projection of the same query, never a
@@ -61,50 +57,42 @@ export class ReportSummaryService {
 
   async loadDashboardSummary(input: {
     readonly actorUserId: string;
-    readonly scope: DashboardSummaryScope;
     /** Injected by the tests; the endpoints always use "now". */
     readonly now?: Date;
   }): Promise<DashboardSummaryResponse> {
     const timeZone = await this.resolveTimeZone();
     const cached = await this.cache.readDashboardSummary(
       input.actorUserId,
-      input.scope,
       timeZone,
     );
     if (cached !== null) {
       return cached;
     }
-    return this.dashboardFlights.get(
-      `${input.actorUserId}:${input.scope}:${timeZone}`,
-      () => this.computeDashboardSummary(input, timeZone),
+    return this.dashboardFlights.get(`${input.actorUserId}:${timeZone}`, () =>
+      this.computeDashboardSummary(input, timeZone),
     );
   }
 
   private async computeDashboardSummary(
     input: {
       readonly actorUserId: string;
-      readonly scope: DashboardSummaryScope;
       readonly now?: Date;
     },
     timeZone: string,
   ): Promise<DashboardSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
-    const scopeClause = ticketSummaryScopeClause(input.scope, input.actorUserId);
+    // M15 B4 (val 5): no scope clause any more — the counters match the ticket
+    // list with an empty query (visibility from `buildTicketListWhere`), and the
+    // personal counters travel inside the same payload.
     const counts = await loadDashboardSummaryCounts(this.prisma, {
-      where:
-        where === null
-          ? { id: { in: [] } }
-          : scopeClause === null
-            ? where
-            : withTicketWhereClause(where, scopeClause),
+      where: where === null ? { id: { in: [] } } : where,
       actorUserId: input.actorUserId,
       now,
       timeZone,
     });
     const response: DashboardSummaryResponse = {
       ...counts,
-      scope: input.scope,
       generatedAt: now.toISOString(),
     };
     await this.cache.writeDashboardSummary(input.actorUserId, response, timeZone);

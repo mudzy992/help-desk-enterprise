@@ -7,10 +7,9 @@ import {
 
 /** One representative key per category (first two segments of the setting key). */
 const SAMPLE_BY_CATEGORY = {
-  "private.addons": "private.addons.sla",
+  "private.addons": "private.addons.csat",
   "private.audit": "private.audit.export.enabled",
   "private.auth": "private.auth.mode",
-  "private.changeLog": "private.changeLog.requireReason",
   "private.configVersioning": "private.configVersioning.enabled",
   "private.csat": "private.csat.enabled",
   "private.dashboard": "private.dashboard.bottlenecks.enabled",
@@ -73,6 +72,6 @@ describe("resolveRegistry i18n catalogs", () => {
   );
 
   it("covers every category with a sample key", () => {
-    expect(Object.keys(SAMPLE_BY_CATEGORY)).toHaveLength(24);
+    expect(Object.keys(SAMPLE_BY_CATEGORY)).toHaveLength(23);
   });
 });

@@ -71,7 +71,7 @@ describe('InstallAddonsService', () => {
       ]),
     );
     expect(
-      settingsMemory.getStored(settingKeys.privateAddonsSla),
+      settingsMemory.getStored(settingKeys.privateAddonsApprovals),
     ).toBeUndefined();
     expect(
       settingsMemory.getStored(settingKeys.privateAddonsEmail),
@@ -81,23 +81,23 @@ describe('InstallAddonsService', () => {
   it('persists enable and disable through the settings registry', async () => {
     const { service, settingsMemory } = await createHarness();
     const saved = await service.save({
-      addons: catalogPayload({ sla: false, autoAssign: true, csat: false }),
+      addons: catalogPayload({ approvals: false, cmdb: true, csat: false }),
     });
-    expect(itemEnabled(saved.items, 'sla')).toBe(false);
-    expect(itemEnabled(saved.items, 'autoAssign')).toBe(true);
+    expect(itemEnabled(saved.items, 'approvals')).toBe(false);
+    expect(itemEnabled(saved.items, 'cmdb')).toBe(true);
     expect(itemEnabled(saved.items, 'csat')).toBe(false);
-    expect(settingsMemory.getStored(addonSettingKey('sla'))).toMatchObject({
+    expect(settingsMemory.getStored(addonSettingKey('approvals'))).toMatchObject({
       value: false,
       isSecret: false,
     });
     expect(
-      settingsMemory.getStored(addonSettingKey('autoAssign')),
+      settingsMemory.getStored(addonSettingKey('cmdb')),
     ).toMatchObject({ value: true });
     expect(
       settingsMemory.changeLogs.some(
         (entry) =>
           entry.entityType === 'setting' &&
-          entry.entityId === addonSettingKey('sla') &&
+          entry.entityId === addonSettingKey('approvals') &&
           entry.reason === 'install_wizard',
       ),
     ).toBe(true);
@@ -157,12 +157,12 @@ describe('InstallAddonsService', () => {
   it('rejects unsupported addon keys without writing catalog settings', async () => {
     const { service, settingsMemory } = await createHarness();
     await expect(
-      service.save({ addons: { sla: true, unknownAddon: true } }),
+      service.save({ addons: { approvals: true, unknownAddon: true } }),
     ).rejects.toMatchObject({
       response: { code: 'UNSUPPORTED_ADDON_KEY' },
     });
     expect(
-      settingsMemory.getStored(settingKeys.privateAddonsSla),
+      settingsMemory.getStored(settingKeys.privateAddonsApprovals),
     ).toBeUndefined();
   });
 

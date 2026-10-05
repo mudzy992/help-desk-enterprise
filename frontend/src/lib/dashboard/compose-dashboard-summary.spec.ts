@@ -39,7 +39,6 @@ function counts(
   overrides: Partial<DashboardSummaryCounts> = {},
 ): DashboardSummaryCounts {
   return {
-    scope: "all",
     generatedAt: "2026-09-14T15:00:00.000Z",
     total: 0,
     open: 0,

@@ -1,8 +1,4 @@
 export const installAddonCopyKeys = {
-  sla: {
-    label: "install.addons.catalog.sla.label",
-    description: "install.addons.catalog.sla.description",
-  },
   email: {
     label: "install.addons.catalog.email.label",
     description: "install.addons.catalog.email.description",
@@ -15,10 +11,6 @@ export const installAddonCopyKeys = {
     label: "install.addons.catalog.csat.label",
     description: "install.addons.catalog.csat.description",
   },
-  autoAssign: {
-    label: "install.addons.catalog.autoAssign.label",
-    description: "install.addons.catalog.autoAssign.description",
-  },
   approvals: {
     label: "install.addons.catalog.approvals.label",
     description: "install.addons.catalog.approvals.description",
@@ -30,10 +22,6 @@ export const installAddonCopyKeys = {
   kbIntercept: {
     label: "install.addons.catalog.kbIntercept.label",
     description: "install.addons.catalog.kbIntercept.description",
-  },
-  timeTracking: {
-    label: "install.addons.catalog.timeTracking.label",
-    description: "install.addons.catalog.timeTracking.description",
   },
   ticketSplit: {
     label: "install.addons.catalog.ticketSplit.label",
@@ -50,10 +38,6 @@ export const installAddonCopyKeys = {
   reports: {
     label: "install.addons.catalog.reports.label",
     description: "install.addons.catalog.reports.description",
-  },
-  serviceDowntime: {
-    label: "install.addons.catalog.serviceDowntime.label",
-    description: "install.addons.catalog.serviceDowntime.description",
   },
   cmdb: {
     label: "install.addons.catalog.cmdb.label",

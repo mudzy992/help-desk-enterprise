@@ -271,9 +271,6 @@ a e-mail to navodi.
 
 ## Poznata ograničenja
 
-- **Opseg sažetka se ne koristi.** API prima `all`, `assignedToMe`, `requestedByMe` i `unassigned`, a ploča
-  uvijek traži `all`; „Dodijeljeni meni“ i „Moji zahtjevi“ su brojači iz istog odgovora. Razlog: ploča
-  prikazuje jedan zajednički pregled, a ne četiri odvojena.
 - **Grafik zadnjih 14 dana se broji u pregledaču** iz dohvaćenih stranica (do 300 tiketa: šest stranica po
   50), pa je na vrlo aktivnoj instalaciji to **donja granica** — ekran to i piše ispod grafikona. Liste (nedavni, prekoračeni,
   dodijeljeni meni, bez izvršioca) dolaze iz ciljanih serverskih upita i nisu ograničene na prvi ekran.

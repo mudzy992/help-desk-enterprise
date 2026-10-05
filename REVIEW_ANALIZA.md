@@ -5537,7 +5537,7 @@ podataka pri upisu članka), `user-guide/posta.md` (redakcija broadcasta), `user
 
 | # | Stavka | Zašto nije zatvorena | Procjena |
 |---|---|---|---|
-| 1 | **18 registriranih postavki bez ijedne reference van definicija** — `publicMaintenance*` (7), `privateChangeLog*` (5), `privateAddons*` (4), `privateIntegrationsTeamsAppShortName` / `…AppDescription` | Nije greška u ponašanju (nijedan ekran ih ne obećava), ali je mrtva površina u registru postavki; uklanjanje je odluka vlasnika (neke su priprema za Teams/održavanje). Zabilježeno ovdje da se ne otkriva ponovo | ~0,5 RD (odluka + uklanjanje ili oznaka) |
+| 1 | **11 registriranih postavki bez ijedne reference van definicija** — `privateChangeLog*` (5), `private.addons.{sla,autoAssign,timeTracking,serviceDowntime}` (4), `privateIntegrationsTeamsAppShortName` / `…AppDescription` (2) | Nije greška u ponašanju, ali je mrtva površina u registru postavki. **Ispravka (2026-10-05):** ranije je ovdje pisalo 18 i u tom broju su bila i sedam postavki `public.maintenance.*`; njih **čita frontend** (`frontend/src/lib/maintenance/parse-public-maintenance.ts`, banner i oznaka servisa u izboru servisa), pa su žive i ostaju. Prva provjera je gledala samo backend. Ostalih 11 je uklonjeno odlukom vlasnika (`# Popravke poslije vala 4`, §4) | ~0,5 RD (izvršeno) |
 
 ---
 
@@ -5600,7 +5600,8 @@ stanje (Redis, baza) i prebacivao filtre u upite.
 
 - ~~**M10 B5** (`NISKO`) — uzorak dnevnika skenera prijavljuje netačno „preostalo“~~ ✅ **zatvoreno 2026-10-05**
   (vidi `# Popravke poslije vala 4`, §2).
-- **M15 B4** (`NISKO`) — opseg sažetka postoji u API-ju, ali ga klijent ne koristi.
+- ~~**M15 B4** (`NISKO`) — opseg sažetka postoji u API-ju, ali ga klijent ne koristi~~ ✅ **zatvoreno 2026-10-05**
+  (vidi `# Popravke poslije vala 4`, §4).
 - ~~**M9 B3 — drugi dio** (`NISKO`) — CSAT serije na tabu Trendovi i dalje koriste konstantnu skalu~~ ✅
   **zatvoreno 2026-10-05** (vidi `# Popravke poslije vala 4`, §3).
 - **M12 B1 ostaje bez migracije:** preuzimanje koristi postojeći `updatedAt`; ako se u međuvremenu doda
@@ -5793,8 +5794,9 @@ dokazuje — to je deliverable iz tačke 2 korisnikovog odgovora (spisak priprem
 
 - **E-1:** repozitorijske varijable i secreti za e2e (odluka i radnja vlasnika) — uputstvo je sada u
   `e2e/README.md`; do tada e2e job ostaje zelen bez izvršavanja.
-- Ranije otvoreno: ~~M10 B5~~ ✅ i ~~M9 B3-2~~ ✅ **zatvoreno 2026-10-05** (`# Popravke poslije vala 4`, §2 i §3),
-  M15 B4, mrtve postavke (odluka vlasnika: ukloniti), EN sadržaj vodiča (odluka: prevesti ključne stranice).
+- Ranije otvoreno poslije vala 4: ~~M10 B5~~ ✅, ~~M9 B3-2~~ ✅, ~~M15 B4~~ ✅, ~~mrtve postavke~~ ✅ (sve
+  zatvoreno 2026-10-05 — `# Popravke poslije vala 4`, §2–§4); ostaju **EN sadržaj vodiča** (odluka: prevesti
+  ključne stranice) i mrtve površine iz must-have liste (M9 B4, M8 B3, M7 B2, `roleSource`).
 
 # Popravke poslije vala 4 — crveni lint u CI i dnevnik skenera SLA (2026-10-05)
 
@@ -5835,3 +5837,20 @@ Dokazi: `npx jest src/modules/reports` → **26 suita / 132 testa** (nov
 `settings { csatScaleMax: 10, csatSatisfiedMinRating: 8 }` i da ocjena 5 nije „zadovoljna“); `npx tsc --noEmit` → 0.
 Iz vodiča su uklonjena oba zapisa o fiksnoj skali, a `odobrenja-i-csat.md` sada navodi i **Trendovi** među
 mjestima gdje se CSAT vidi; `DOCS_CHANGELOG.md` ima unos, ogledalo regenerisano (`Docs provjera: OK (29 stranica, 9 provjera)`).
+
+## 4. Postavke bez potrošača (11) i `scope` sažetka (M15 B4) — uklanjanje
+
+Odluka vlasnika 2026-10-05: sve što registar nudi, a nijedan kod ne čita — **ukloniti**; `scope` sažetka —
+**ukloniti iz API-ja i keša**.
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-8 (ispravka D-1 iz vala 2)** | Tvrdnja „18 postavki bez reference“ bila je preširoka | Prvobitna provjera `grep`-om po **backend/src**; potrošač održavanja je u frontend-u: `frontend/src/lib/maintenance/parse-public-maintenance.ts:1–10` (ključevi), `use-public-maintenance.ts:42`, `maintenance-banner.tsx`, `create-ticket-service-picker.tsx` | Sedam živih postavki bilo je predloženo za brisanje; da su obrisane, banner održavanja i oznaka servisa u izboru servisa prestali bi raditi | Provjera ponovljena u **cijelom** repou (backend, frontend, e2e, skripte) po literalima i konstantama; `public.maintenance.*` **zadržano**, a nalaz u §Val 2 ispravljen na 11 | **SREDNJE** (nalaz, ne kod) |
+| **D-9** — 4 mrtva addon prekidača | `private.addons.{sla,autoAssign,timeTracking,serviceDowntime}` prikazivani u čarobnjaku i registru s opisom „uključuje/isključuje dodatak“; nijedan kod ih ne čita | `backend/src/modules/settings/addon-catalog.ts` (katalog), `definitions/addon-settings.ts` (definicije iz kataloga); funkcije se vode drugdje: `autoAssignStrategy` po servisu, `private.timeTracking.*`, `private.services.downtimeScheduling.*` | Prekidač obećava on/off koji se ne dešava | Uklonjeni iz kataloga (čarobnjak ih ne prikazuje jer listu dobija s API-ja), iz `setting-keys.ts`, iz `install-addon-copy.ts` i iz prijevoda; `resolve-install-addons-state.spec.ts` sada provjerava **katalog** umjesto ručnog spiska | **NISKO** |
+| **D-10** — 5 mrtvih postavki dnevnika izmjena | `private.changeLog.*` u registru; dnevnik se upisuje bezuslovno, razlog se traži u kodu toka | `backend/src/modules/settings/definitions/change-log-settings.ts` (obrisan), `setting-keys.ts` | Prazna površina u registru | Definicije i ključevi uklonjeni; kategorija `private.changeLog` uklonjena jer ostaje bez ijedne postavke | **NISKO** |
+| **D-11** — 2 mrtve Teams postavke | `private.integrations.teams.appShortName` / `…appDescription` | `definitions/teams-integration-settings.ts` (prije popravke); paket čita brending | Isto | Uklonjene definicije i polja iz `teamsDefaults` | **NISKO** |
+| **M15 B4** | `GET /reports/dashboard/summary?scope=` (4 vrijednosti) i 4 keš ključa, a ploča uvijek traži `all` | `backend/src/modules/reports/dto/report-summary-query.dto.ts` (obrisan), `report-summary.controller.ts:45–54`, `report-summary.service.ts` (`loadDashboardSummary`), `summary/report-summary-cache.ts` (`dashboardSummaryCacheKey`), `summary/report-summary.types.ts` (`scope` u odgovoru) | Mrtva površina i 4× više keš unosa za jedan te isti odgovor | Uklonjeni: parametar i DTO, `summary/ticket-summary-scope-clause.ts` (obrisan), segment `scope` iz keš ključa, polje `scope` iz odgovora i njegova provjera u `parse-report-summary-cache.ts`; frontend `fetchDashboardSummary()` bez argumenta | **NISKO** |
+
+Dokazi: `npx jest --maxWorkers=2` → **519 prošlih + 5 preskočenih suita (524)**, **2510 prošlo / 2541 test**,
+0 padova; `npx tsc --noEmit` → 0; `npm run lint` → 0 grešaka / 14 postojećih upozorenja; frontend `tsc -b` → 0,
+`vitest` → **158 fajlova / 643 testa**; `Docs provjera: OK (29 stranica, 9 provjera)`.

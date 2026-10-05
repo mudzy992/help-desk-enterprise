@@ -1,3 +1,4 @@
+import { installAddonCatalog } from '../settings/addon-catalog';
 import { resolveInstallAddonsState } from './resolve-install-addons-state';
 
 describe('resolveInstallAddonsState', () => {
@@ -7,31 +8,21 @@ describe('resolveInstallAddonsState', () => {
       stored: {},
       requested: {},
     });
-    expect(resolved.sla).toBe(true);
-    expect(resolved.email).toBe(false);
-    expect(resolved.edge).toBe(false);
-    expect(resolved.teams).toBe(false);
-    expect(resolved.csat).toBe(true);
-    expect(resolved.autoAssign).toBe(false);
-    expect(resolved.approvals).toBe(true);
-    expect(resolved.confidential).toBe(true);
-    expect(resolved.kbIntercept).toBe(true);
-    expect(resolved.timeTracking).toBe(true);
-    expect(resolved.ticketSplit).toBe(true);
-    expect(resolved.bulkActions).toBe(true);
-    expect(resolved.savedViews).toBe(true);
-    expect(resolved.reports).toBe(true);
-    expect(resolved.serviceDowntime).toBe(true);
+    // Val 5: umjesto ručnog spiska (koji je zaostajao za katalogom) provjerava se
+    // tačno ono što katalog nudi — jedan izvor istine.
+    for (const item of installAddonCatalog) {
+      expect([item.key, resolved[item.key]]).toEqual([item.key, item.defaultEnabled]);
+    }
   });
 
   it('applies requested enable and disable over stored values', () => {
     const resolved = resolveInstallAddonsState({
       smtpEnabled: true,
-      stored: { sla: true, autoAssign: false, email: false },
-      requested: { sla: false, autoAssign: true, email: true },
+      stored: { approvals: true, cmdb: false, email: false },
+      requested: { approvals: false, cmdb: true, email: true },
     });
-    expect(resolved.sla).toBe(false);
-    expect(resolved.autoAssign).toBe(true);
+    expect(resolved.approvals).toBe(false);
+    expect(resolved.cmdb).toBe(true);
     expect(resolved.email).toBe(true);
   });
 

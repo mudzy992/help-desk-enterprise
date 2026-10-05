@@ -28,12 +28,12 @@ const parseNumber = (value: unknown): number | null =>
   typeof value === 'number' ? value : null;
 
 describe('report summary cache', () => {
-  it('keys by user and scope', () => {
-    expect(dashboardSummaryCacheKey('user-1', 'all', 'Europe/Sarajevo')).toBe(
-      'reports:dashboard-summary:user-1:all:Europe/Sarajevo',
+  it('keys by user and installation zone (M15 B4: no scope segment)', () => {
+    expect(dashboardSummaryCacheKey('user-1', 'Europe/Sarajevo')).toBe(
+      'reports:dashboard-summary:user-1:Europe/Sarajevo',
     );
-    expect(dashboardSummaryCacheKey('user-1', 'all', 'UTC')).not.toBe(
-      dashboardSummaryCacheKey('user-1', 'all', 'Europe/Sarajevo'),
+    expect(dashboardSummaryCacheKey('user-1', 'UTC')).not.toBe(
+      dashboardSummaryCacheKey('user-1', 'Europe/Sarajevo'),
     );
     expect(slaSummaryCacheKey('user-1')).toBe('reports:sla-summary:user-1');
   });

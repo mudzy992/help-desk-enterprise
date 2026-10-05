@@ -985,7 +985,6 @@
         "private.addons": "Add-ons",
         "private.audit": "Audit",
         "private.auth": "Sign-in and directory",
-        "private.changeLog": "Change log",
         "private.configVersioning": "Configuration versions",
         "private.csat": "Customer satisfaction (CSAT)",
         "private.dashboard": "Dashboard",
@@ -1016,7 +1015,6 @@
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
-        "private.addons.autoAssign": "Turns the automatic ticket assignment add-on on or off.",
         "private.addons.bulkActions": "Turns the bulk ticket actions add-on on or off.",
         "private.addons.confidential": "Turns the confidential tickets add-on on or off.",
         "private.addons.csat": "Turns the customer satisfaction (CSAT) add-on on or off.",
@@ -1025,10 +1023,7 @@
         "private.addons.kbIntercept": "Turns the knowledge-base intercept suggestions add-on on or off.",
         "private.addons.reports": "Turns the reports add-on on or off.",
         "private.addons.savedViews": "Turns the saved ticket views add-on on or off.",
-        "private.addons.serviceDowntime": "Turns the service downtime scheduling add-on on or off.",
-        "private.addons.sla": "Turns the SLA tracking add-on on or off.",
         "private.addons.ticketSplit": "Turns the ticket split add-on on or off.",
-        "private.addons.timeTracking": "Turns the time tracking add-on on or off.",
         "private.audit.export.allowedFormatsCsv": "Allowed audit export formats, as a comma-separated list (csv, json).",
         "private.audit.export.enabled": "Allow exporting the OU-scoped audit log as CSV or JSON.",
         "private.audit.tamperEvident.enabled": "Protect audit logs with a tamper-evident hash chain.",
@@ -1061,11 +1056,6 @@
         "private.auth.ouMappingOverridesJson": "JSON rules that map an AD path or Company/Department to an organisational unit manually.",
         "private.auth.ouMappingStrategy": "How the organisational unit is determined: by_dn_ou_path (OU path from the DN) or by_company_department.",
         "private.auth.roleSource": "Role source: local_db (roles managed in the app) or ad_groups (from AD group membership).",
-        "private.changeLog.includeDiff": "Store a before/after diff on each change-log entry.",
-        "private.changeLog.requireReason": "Require an explicit reason for settings and routing changes.",
-        "private.changeLog.routing.enabled": "Write a change-log entry when routing configuration changes succeed.",
-        "private.changeLog.settings.enabled": "Write a change-log entry when settings changes succeed.",
-        "private.changeLog.sla.enabled": "Write a change-log entry when SLA calendar, profile, or rule changes succeed.",
         "private.configVersioning.allowRollback": "Allow permitted users to roll back to a previous configuration version.",
         "private.configVersioning.enabled": "Enable configuration snapshots, validation, and rollback.",
         "private.configVersioning.scopesCsv": "Comma-separated snapshot scopes (settings, routing, sla, service_catalog, service_forms).",
@@ -1466,8 +1456,6 @@
         "private.integrations.teams.channelIncludeTitle": "Shows the ticket title in channel cards (channels never show the description or messages). Off by default.",
         "private.integrations.teams.ticketCreateEnabled": "Allows creating tickets from Teams (personal chat command and message action).",
         "private.integrations.teams.actionsEnabled": "Shows action buttons on cards (claim, reply, approve, vote); off means cards only link to the application.",
-        "private.integrations.teams.appShortName": "Short name of the Teams app in the generated package (empty = application name from branding).",
-        "private.integrations.teams.appDescription": "Short description of the Teams app in the generated package (empty = generic description).",
         "private.addons.teams": "Turns the Microsoft Teams connector on or off: notifications, card actions and ticket creation from Teams. Off by default.",
         "public.branding.tagline": "Short line under the name on the sign-in page and in the sidebar. Empty = default description.",
         "public.branding.organizationName": "Organisation operating the service desk (privacy notice, e-mail footer, reports).",
@@ -2753,10 +2741,6 @@
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The add-ons cannot be saved right now.",
       "catalog": {
-        "sla": {
-          "label": "SLA",
-          "description": "SLA profiles, calendars, and overdue escalation."
-        },
         "email": {
           "label": "Email",
           "description": "Outbound email channel. Requires SMTP to be enabled."
@@ -2769,10 +2753,6 @@
           "label": "CSAT",
           "description": "Satisfaction survey after a ticket is closed."
         },
-        "autoAssign": {
-          "label": "Auto-assign",
-          "description": "Least Busy / Round Robin assignment inside a group."
-        },
         "approvals": {
           "label": "Approvals",
           "description": "Approval flows on services that require them."
@@ -2784,10 +2764,6 @@
         "kbIntercept": {
           "label": "KB intercept",
           "description": "Show knowledge base articles before submitting a ticket."
-        },
-        "timeTracking": {
-          "label": "Time tracking",
-          "description": "Track time spent on a ticket."
         },
         "ticketSplit": {
           "label": "Ticket split",
@@ -2804,10 +2780,6 @@
         "reports": {
           "label": "Reports",
           "description": "Report packs and bottleneck overview."
-        },
-        "serviceDowntime": {
-          "label": "Service downtime",
-          "description": "Scheduled downtime windows for services."
         },
         "cmdb": {
           "label": "CMDB (assets)",

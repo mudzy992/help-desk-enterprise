@@ -1,10 +1,8 @@
 import type {
   DashboardSummaryResponse,
-  DashboardSummaryScope,
   SlaExposureCounts,
   SlaSummaryResponse,
 } from './report-summary.types';
-import { dashboardSummaryScopes } from './report-summary.types';
 
 /**
  * Shape checks for the cached payloads.
@@ -18,7 +16,7 @@ export function parseDashboardSummaryResponse(
   if (!isRecord(value)) {
     return null;
   }
-  if (!isScope(value.scope) || typeof value.generatedAt !== 'string') {
+  if (typeof value.generatedAt !== 'string') {
     return null;
   }
   const numbers = [
@@ -76,13 +74,6 @@ function isExposure(value: unknown): value is SlaExposureCounts {
     typeof value.onTrack === 'number' &&
     typeof value.atRisk === 'number' &&
     typeof value.breached === 'number'
-  );
-}
-
-function isScope(value: unknown): value is DashboardSummaryScope {
-  return (
-    typeof value === 'string' &&
-    dashboardSummaryScopes.includes(value as DashboardSummaryScope)
   );
 }
 

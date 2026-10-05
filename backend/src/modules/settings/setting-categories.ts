@@ -6,7 +6,6 @@ export type SettingCategoryId =
   | 'private.addons'
   | 'private.audit'
   | 'private.auth'
-  | 'private.changeLog'
   | 'private.configVersioning'
   | 'private.csat'
   | 'private.dashboard'
@@ -45,7 +44,6 @@ export const settingCategoryIds = {
   privateAddons: 'private.addons',
   privateAudit: 'private.audit',
   privateAuth: 'private.auth',
-  privateChangeLog: 'private.changeLog',
   privateConfigVersioning: 'private.configVersioning',
   privateCsat: 'private.csat',
   privateDashboard: 'private.dashboard',
@@ -96,7 +94,6 @@ export const settingCategoryCatalog: readonly SettingCategory[] = [
   { id: settingCategoryIds.privateCsat, icon: 'smile', priority: 140 },
   { id: settingCategoryIds.privateIntegrations, icon: 'plug', priority: 150 },
   { id: settingCategoryIds.privateEdgeExtension, icon: 'monitor', priority: 160 },
-  { id: settingCategoryIds.privateChangeLog, icon: 'scroll-text', priority: 170 },
   { id: settingCategoryIds.privateConfigVersioning, icon: 'history', priority: 180 },
   { id: settingCategoryIds.privateReports, icon: 'bar-chart-3', priority: 190 },
   { id: settingCategoryIds.privateDashboard, icon: 'layout-dashboard', priority: 200 },

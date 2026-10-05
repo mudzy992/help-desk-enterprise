@@ -11,7 +11,6 @@ import { serviceAvailabilitySettings } from './service-availability-settings';
 import { serviceFormsSettings } from './service-forms-settings';
 import { serviceLifecycleSettings } from './service-lifecycle-settings';
 import { serviceOnboardingSettings } from './service-onboarding-settings';
-import { changeLogSettings } from './change-log-settings';
 import { configVersioningSettings } from './config-versioning-settings';
 import { onCallSettings } from './on-call-settings';
 import { announcementSettings } from './announcement-settings';
@@ -86,7 +85,6 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...guardrailsSettings,
   ...ticketCsatSettings,
   ...dataLifecycleSettings,
-  ...changeLogSettings,
   ...configVersioningSettings,
   ...onCallSettings,
   ...announcementSettings,

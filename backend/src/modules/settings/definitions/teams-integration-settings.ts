@@ -18,8 +18,6 @@ export const teamsDefaults = {
   channelIncludeTitle: false,
   ticketCreateEnabled: true,
   actionsEnabled: true,
-  appShortName: '',
-  appDescription: '',
 } as const;
 
 const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,12 +26,6 @@ function optionalGuid(label: string) {
   return (value: unknown) => {
     if (value === undefined || value === null || value === '') return;
     if (typeof value !== 'string' || !guid.test(value.trim())) throw new SettingsError(`${label}: a GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) or empty`);
-  };
-}
-
-function maxText(max: number, label: string) {
-  return (value: unknown) => {
-    if (typeof value !== 'string' || value.length > max) throw new SettingsError(`${label}: text up to ${max} characters`);
   };
 }
 
@@ -122,23 +114,5 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
     description: 'Show action buttons on cards (claim, reply, approve, vote); off = cards only link to the application',
     isRequired: true,
     defaultValue: teamsDefaults.actionsEnabled,
-  }),
-  definePrivateSetting({
-    key: settingKeys.privateIntegrationsTeamsAppShortName,
-    categoryId: category,
-    valueType: 'string',
-    description: 'Short name of the Teams app in the generated package (empty = application name from branding)',
-    isRequired: false,
-    defaultValue: teamsDefaults.appShortName,
-    assertValue: maxText(30, 'Short name'),
-  }),
-  definePrivateSetting({
-    key: settingKeys.privateIntegrationsTeamsAppDescription,
-    categoryId: category,
-    valueType: 'string',
-    description: 'Short description of the Teams app in the generated package (empty = generic description)',
-    isRequired: false,
-    defaultValue: teamsDefaults.appDescription,
-    assertValue: maxText(80, 'Description'),
   }),
 ];

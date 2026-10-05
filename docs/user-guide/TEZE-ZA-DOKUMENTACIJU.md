@@ -968,7 +968,7 @@ To je kriterij kompletnosti.
   `routing/routing-configuration.loader.ts:12–45`, `unrouted/unrouted-queue-configuration.loader.ts:9–53`,
   `common/admin-realtime/admin-config-domain.decorator.ts:7–16`,
   `config-versioning/validate-routing-snapshot.ts:57–58`.
-- **Status:** Važi (uz B2: `private.changeLog.routing.enabled` je bez potrošača)
+- **Status:** Važi (B2 zatvoren 2026-10-05: postavke `private.changeLog.*` bez potrošača su uklonjene iz registra, a dnevnik izmjena se i dalje upisuje — razlog se traži u kodu toka)
 - **Wiki stranica:** Usmjeravanje → Postavke i konfiguracija
 
 ### T48 — Tok statusa tiketa je podatak, a ne niz uslova

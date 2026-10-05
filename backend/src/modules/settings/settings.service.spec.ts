@@ -127,12 +127,11 @@ describe('SettingsService', () => {
       }
     }
     expect(privateSettings).toMatchObject({
-      [settingKeys.privateAddonsSla]: true,
+      [settingKeys.privateAddonsCsat]: true,
       [settingKeys.privateAddonsEmail]: false,
       [settingKeys.privateAddonsEdge]: false,
       [settingKeys.privateAddonsTeams]: false,
-      [settingKeys.privateAddonsCsat]: true,
-      [settingKeys.privateAddonsAutoAssign]: false,
+      [settingKeys.privateAddonsApprovals]: true,
     });
   });
 

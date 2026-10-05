@@ -14,7 +14,6 @@ import {
 } from './summary/parse-report-summary-cache';
 import type {
   DashboardSummaryResponse,
-  DashboardSummaryScope,
   SlaSummaryResponse,
 } from './summary/report-summary.types';
 
@@ -29,12 +28,11 @@ export class ReportSummaryCache {
 
   async readDashboardSummary(
     userId: string,
-    scope: DashboardSummaryScope,
     timeZone: string,
   ): Promise<DashboardSummaryResponse | null> {
     return readReportSummaryCache(
       await this.client(),
-      dashboardSummaryCacheKey(userId, scope, timeZone),
+      dashboardSummaryCacheKey(userId, timeZone),
       parseDashboardSummaryResponse,
     );
   }
@@ -46,7 +44,7 @@ export class ReportSummaryCache {
   ): Promise<void> {
     await writeReportSummaryCache(
       await this.client(),
-      dashboardSummaryCacheKey(userId, summary.scope, timeZone),
+      dashboardSummaryCacheKey(userId, timeZone),
       summary,
     );
   }

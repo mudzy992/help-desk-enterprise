@@ -92,10 +92,10 @@ posljednjeg, gdje je **Završi**).
 
 - Uključuju/isključuju se opcioni moduli. Jezgro (tiketi, usmjeravanje, inbox, RBAC, audit, in-app obavijesti,
   prilozi) ostaje uvijek uključeno.
-- Zadano uključeni: SLA, CSAT, odobrenja, povjerljivi tiketi, KB intercept, mjerenje vremena, razdvajanje tiketa,
-  grupne akcije, sačuvani pogledi, izvještaji, prekidi servisa.
-- Zadano isključeni: **Email** (traži uključen SMTP), **Edge**, **auto-dodjela**, **CMDB (imovina)**,
-  **Problemi**, **Promjene**, **Microsoft Teams**.
+- Zadano uključeni: CSAT, odobrenja, povjerljivi tiketi, KB intercept, razdvajanje tiketa, grupne akcije,
+  sačuvani pogledi, izvještaji.
+- Zadano isključeni: **Email** (traži uključen SMTP), **Edge**, **CMDB (imovina)**, **Problemi**, **Promjene**,
+  **Microsoft Teams**.
 - Isključen dodatak se kasnije može uključiti u Admin → Postavke.
 
 ### 6. Završi podešavanje

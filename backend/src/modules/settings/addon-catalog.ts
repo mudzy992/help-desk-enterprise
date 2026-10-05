@@ -1,9 +1,11 @@
+/**
+ * Addons offered by the install wizard. Only flags that **some code reads** stay
+ * here (val 5, odluka vlasnika 2026-10-05): `sla`, `autoAssign`, `timeTracking`
+ * and `serviceDowntime` were displayed as working switches but no code consumed
+ * them — their features are configured elsewhere (`autoAssignStrategy` per
+ * service, `private.timeTracking.*`, `private.services.downtimeScheduling.*`).
+ */
 export const installAddonCatalog = [
-  {
-    key: 'sla',
-    defaultEnabled: true,
-    description: 'SLA addon flag from the install wizard catalog',
-  },
   {
     key: 'email',
     defaultEnabled: false,
@@ -22,11 +24,6 @@ export const installAddonCatalog = [
     description: 'CSAT addon flag from the install wizard catalog',
   },
   {
-    key: 'autoAssign',
-    defaultEnabled: false,
-    description: 'Auto-assign addon flag from the install wizard catalog',
-  },
-  {
     key: 'approvals',
     defaultEnabled: true,
     description: 'Approvals addon flag from the install wizard catalog',
@@ -40,11 +37,6 @@ export const installAddonCatalog = [
     key: 'kbIntercept',
     defaultEnabled: true,
     description: 'Knowledge-base intercept addon flag from the install wizard catalog',
-  },
-  {
-    key: 'timeTracking',
-    defaultEnabled: true,
-    description: 'Time tracking addon flag from the install wizard catalog',
   },
   {
     key: 'ticketSplit',
@@ -65,11 +57,6 @@ export const installAddonCatalog = [
     key: 'reports',
     defaultEnabled: true,
     description: 'Reports addon flag from the install wizard catalog',
-  },
-  {
-    key: 'serviceDowntime',
-    defaultEnabled: true,
-    description: 'Service downtime addon flag from the install wizard catalog',
   },
   {
     // Paket 3.2: the whole CMDB module (off until the right moment).

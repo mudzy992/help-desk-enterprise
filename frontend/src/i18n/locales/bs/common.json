@@ -995,7 +995,6 @@
         "private.addons": "Dodaci",
         "private.audit": "Revizija",
         "private.auth": "Prijava i direktorij",
-        "private.changeLog": "Dnevnik izmjena",
         "private.configVersioning": "Verzije konfiguracije",
         "private.csat": "Zadovoljstvo korisnika (CSAT)",
         "private.dashboard": "Kontrolna tabla",
@@ -1026,7 +1025,6 @@
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
-        "private.addons.autoAssign": "Uključuje ili isključuje dodatak za automatsku dodjelu tiketa.",
         "private.addons.bulkActions": "Uključuje ili isključuje dodatak za masovne radnje nad tiketima.",
         "private.addons.confidential": "Uključuje ili isključuje dodatak za povjerljive tikete.",
         "private.addons.csat": "Uključuje ili isključuje dodatak za zadovoljstvo korisnika (CSAT).",
@@ -1035,10 +1033,7 @@
         "private.addons.kbIntercept": "Uključuje ili isključuje dodatak za prijedloge iz baze znanja.",
         "private.addons.reports": "Uključuje ili isključuje dodatak za izvještaje.",
         "private.addons.savedViews": "Uključuje ili isključuje dodatak za sačuvane prikaze tiketa.",
-        "private.addons.serviceDowntime": "Uključuje ili isključuje dodatak za zakazivanje nedostupnosti usluga.",
-        "private.addons.sla": "Uključuje ili isključuje dodatak za praćenje SLA-a.",
         "private.addons.ticketSplit": "Uključuje ili isključuje dodatak za dijeljenje tiketa.",
-        "private.addons.timeTracking": "Uključuje ili isključuje dodatak za praćenje vremena.",
         "private.audit.export.allowedFormatsCsv": "Dozvoljeni formati izvoza revizije, odvojeni zarezom (csv, json).",
         "private.audit.export.enabled": "Dozvoli izvoz revizijskog dnevnika (po OU) kao CSV ili JSON.",
         "private.audit.tamperEvident.enabled": "Zaštiti revizijski dnevnik hash-lancem koji otkriva manipulaciju.",
@@ -1071,11 +1066,6 @@
         "private.auth.ouMappingOverridesJson": "JSON pravila koja ručno preslikavaju AD putanju ili Company/Department na organizacijsku jedinicu.",
         "private.auth.ouMappingStrategy": "Način određivanja organizacijske jedinice: by_dn_ou_path (po OU putanji iz DN-a) ili by_company_department.",
         "private.auth.roleSource": "Izvor uloga: local_db (uloge se dodjeljuju u aplikaciji) ili ad_groups (iz članstva u AD grupama).",
-        "private.changeLog.includeDiff": "Sačuvaj prije/poslije razliku uz svaki zapis u dnevniku izmjena.",
-        "private.changeLog.requireReason": "Zahtijevaj eksplicitan razlog za izmjene postavki i rutiranja.",
-        "private.changeLog.routing.enabled": "Upisuj dnevnik izmjena kad uspije izmjena rutiranja.",
-        "private.changeLog.settings.enabled": "Upisuj dnevnik izmjena kad uspije izmjena postavki.",
-        "private.changeLog.sla.enabled": "Upisuj dnevnik izmjena kad uspije izmjena SLA kalendara, profila ili pravila.",
         "private.configVersioning.allowRollback": "Dozvoli ovlaštenim korisnicima povratak na prethodnu verziju konfiguracije.",
         "private.configVersioning.enabled": "Uključi snimke konfiguracije, validaciju i povratak na prethodnu verziju.",
         "private.configVersioning.scopesCsv": "Opsezi snimke odvojeni zarezom (settings, routing, sla, service_catalog, service_forms).",
@@ -1476,8 +1466,6 @@
         "private.integrations.teams.channelIncludeTitle": "Prikazuje naslov tiketa u karticama kanala (kanal nikad ne prikazuje opis ni poruke). Zadano isključeno.",
         "private.integrations.teams.ticketCreateEnabled": "Dozvoljava kreiranje tiketa iz Teamsa (komanda u ličnom chatu i akcija nad porukom).",
         "private.integrations.teams.actionsEnabled": "Prikazuje dugmad akcija na karticama (preuzmi, odgovori, odobri, glasaj); isključeno znači da kartice samo vode u aplikaciju.",
-        "private.integrations.teams.appShortName": "Kratki naziv Teams aplikacije u generisanom paketu (prazno = naziv aplikacije iz brendinga).",
-        "private.integrations.teams.appDescription": "Kratki opis Teams aplikacije u generisanom paketu (prazno = opšti opis).",
         "private.addons.teams": "Uključuje ili isključuje Microsoft Teams konektor: obavijesti, akcije na karticama i kreiranje tiketa iz Teamsa. Zadano isključeno.",
         "public.branding.tagline": "Kratki red ispod naziva na stranici prijave i u bočnoj traci. Prazno = zadani opis.",
         "public.branding.organizationName": "Organizacija koja koristi servisni centar (obavještenje o privatnosti, podnožje e-maila, izvještaji).",
@@ -2770,10 +2758,6 @@
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Dodatke trenutno nije moguće sačuvati.",
       "catalog": {
-        "sla": {
-          "label": "SLA",
-          "description": "SLA profili, kalendari i eskalacije prekoračenja."
-        },
         "email": {
           "label": "Email",
           "description": "Odlazni email kanal. Zahtijeva uključen SMTP."
@@ -2786,10 +2770,6 @@
           "label": "CSAT",
           "description": "Anketa zadovoljstva nakon zatvaranja tiketa."
         },
-        "autoAssign": {
-          "label": "Automatska dodjela",
-          "description": "Least Busy / Round Robin dodjela tiketa u grupi."
-        },
         "approvals": {
           "label": "Odobrenja",
           "description": "Tokovi odobrenja na servisima koji to zahtijevaju."
@@ -2801,10 +2781,6 @@
         "kbIntercept": {
           "label": "KB presretanje",
           "description": "Prikaz baze znanja prije slanja novog tiketa."
-        },
-        "timeTracking": {
-          "label": "Evidencija vremena",
-          "description": "Praćenje utrošenog vremena na tiketu."
         },
         "ticketSplit": {
           "label": "Podjela tiketa",
@@ -2821,10 +2797,6 @@
         "reports": {
           "label": "Izvještaji",
           "description": "Paketi izvještaja i bottleneck pregled."
-        },
-        "serviceDowntime": {
-          "label": "Nedostupnost servisa",
-          "description": "Zakazivanje downtime prozora na servisima."
         },
         "cmdb": {
           "label": "CMDB (imovina)",

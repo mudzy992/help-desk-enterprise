@@ -6,24 +6,20 @@ import {
 } from './addon-catalog';
 
 describe('installAddonCatalog', () => {
-  it('matches the install-wizard specification keys and defaults', () => {
+  it('offers only addons some code reads, with their defaults', () => {
     expect(
       installAddonCatalog.map((item) => [item.key, item.defaultEnabled]),
     ).toEqual([
-      ['sla', true],
       ['email', false],
       ['edge', false],
       ['csat', true],
-      ['autoAssign', false],
       ['approvals', true],
       ['confidential', true],
       ['kbIntercept', true],
-      ['timeTracking', true],
       ['ticketSplit', true],
       ['bulkActions', true],
       ['savedViews', true],
       ['reports', true],
-      ['serviceDowntime', true],
       ['cmdb', false],
       ['problems', false],
       ['changes', false],
@@ -34,7 +30,7 @@ describe('installAddonCatalog', () => {
   it('maps catalog keys to Settings Registry private.addons.<key> keys', () => {
     expect(addonSettingKey('email')).toBe('private.addons.email');
     expect(addonSettingKey('teams')).toBe('private.addons.teams');
-    expect(isInstallAddonKey('sla')).toBe(true);
+    expect(isInstallAddonKey('csat')).toBe(true);
     expect(isInstallAddonKey('ticketing')).toBe(false);
   });
 

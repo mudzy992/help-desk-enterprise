@@ -113,7 +113,7 @@ export function useDashboardSummary(): DashboardSummaryState {
         await Promise.all([
           queryClient.fetchQuery({
             queryKey: queryKeys.dashboardSummary("all", dayKey),
-            queryFn: () => fetchDashboardSummary("all"),
+            queryFn: () => fetchDashboardSummary(),
           }),
           queryClient.fetchQuery({
             queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),

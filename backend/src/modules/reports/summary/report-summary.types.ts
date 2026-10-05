@@ -8,19 +8,6 @@ import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enu
  * (`DashboardSummary` counters, `SlaExposureCounts`), so the screens change only
  * their data source and not a single label.
  */
-export type DashboardSummaryScope =
-  | 'all'
-  | 'assignedToMe'
-  | 'requestedByMe'
-  | 'unassigned';
-
-export const dashboardSummaryScopes: readonly DashboardSummaryScope[] = [
-  'all',
-  'assignedToMe',
-  'requestedByMe',
-  'unassigned',
-];
-
 export type TicketStatusCount = {
   readonly status: TicketStatus;
   readonly count: number;
@@ -50,7 +37,6 @@ export type DashboardSummaryCounts = {
 };
 
 export type DashboardSummaryResponse = DashboardSummaryCounts & {
-  readonly scope: DashboardSummaryScope;
   readonly generatedAt: string;
 };
 

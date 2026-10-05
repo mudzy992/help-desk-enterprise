@@ -5,7 +5,6 @@ import {
 } from './parse-report-summary-cache';
 
 const dashboardPayload: DashboardSummaryResponse = {
-  scope: 'all',
   generatedAt: '2026-09-24T10:00:00.000Z',
   total: 1,
   open: 1,
@@ -31,7 +30,6 @@ describe('parseDashboardSummaryResponse', () => {
 
   it.each([
     ['not an object', 'nope'],
-    ['unknown scope', { ...dashboardPayload, scope: 'team' }],
     ['missing counter', { ...dashboardPayload, overdue: undefined }],
     ['counter as string', { ...dashboardPayload, total: '4' }],
     ['statusCounts not an array', { ...dashboardPayload, statusCounts: null }],

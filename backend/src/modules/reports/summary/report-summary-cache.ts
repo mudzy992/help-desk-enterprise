@@ -1,6 +1,7 @@
 /**
  * Phase 2.4 (plan §2.4): the dashboard/SLA counters are cached for fifteen
- * seconds, keyed by user and scope.
+ * seconds, keyed by user (M15 B4, val 5: the per-scope key is gone with the
+ * parameter — the surface multiplied four keys for one payload).
  *
  * Fifteen rather than thirty: the plan allows 15–30 s and the acceptance is
  * "counters refresh within 30 s", so the shorter end of the band keeps the
@@ -38,17 +39,16 @@ export interface ReportSummaryCacheClient {
 }
 
 /**
- * `…:<user>:<scope>:<zone>` — the installation zone is part of the key on
- * purpose: the counters carry a day boundary ("opened today"), so a payload
- * computed in the old zone must not be served for the fifteen seconds after
- * the setting changes. Two zones, two keys.
+ * `…:<user>:<zone>` — the installation zone is part of the key on purpose: the
+ * counters carry a day boundary ("opened today"), so a payload computed in the
+ * old zone must not be served for the minute after the setting changes. Two
+ * zones, two keys.
  */
 export function dashboardSummaryCacheKey(
   userId: string,
-  scope: string,
   timeZone: string,
 ): string {
-  return `${dashboardSummaryCacheKeyPrefix}:${userId}:${scope}:${timeZone}`;
+  return `${dashboardSummaryCacheKeyPrefix}:${userId}:${timeZone}`;
 }
 
 export function slaSummaryCacheKey(userId: string): string {

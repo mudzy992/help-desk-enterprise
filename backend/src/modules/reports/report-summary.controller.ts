@@ -2,7 +2,6 @@ import {
   Controller,
   ForbiddenException,
   Get,
-  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -13,7 +12,6 @@ import {
   type AuthenticatedHttpRequest,
 } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { ReportSummaryQueryDto } from './dto/report-summary-query.dto';
 import { ReportSummaryService } from './report-summary.service';
 import type {
   DashboardSummaryResponse,
@@ -42,14 +40,18 @@ import type {
 export class ReportSummaryController {
   constructor(private readonly summaries: ReportSummaryService) {}
 
+  /**
+   * M15 B4 (val 5): the old `?scope=` query (all | assignedToMe | requestedByMe |
+   * unassigned) is gone — the dashboard always asked for `all` and read the two
+   * personal counters (`assignedToMe`, `requestedByMe`) from the same payload,
+   * so the parameter only multiplied cache keys.
+   */
   @Get('dashboard/summary')
   async dashboardSummary(
-    @Query() query: ReportSummaryQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<DashboardSummaryResponse> {
     return this.summaries.loadDashboardSummary({
       actorUserId: readActorUserId(request),
-      scope: query.scope ?? 'all',
     });
   }
 

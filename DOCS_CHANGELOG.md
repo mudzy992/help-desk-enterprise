@@ -36,6 +36,7 @@
 | **Val 3** | 2026-10-04 – 2026-10-05 | **Pouzdanost i performanse (M8, M11, M12, M13, M14)** | `user-guide/posta.md`, `user-guide/realtime-i-obavjestenja.md`, `user-guide/tiketi.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/baza-znanja.md`, `user-guide/sta-je-novo.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M8, §M11, §M12, §M13, §M14, `# Val 3`), ovaj dokument | **Devet nalaza i jedan preventivni guard: Redis limiteri (broadcast, testno slanje), preuzimanje zaglavljene isporuke e-maila + pločica Operativno zdravlje, dijeljeni SMTP pool, dvojezične oznake obavijesti, provjera soba tokom veze i limit ulaska u sobu, opseg u upitu pickera, vidljivost baze znanja u jednom prolazu; „Šta je novo“ dopunjeno i za val 2 (nedostajao)** |
 | M10 | 2026-10-05 | SLA — dnevnik skenera (B5) | `user-guide/sla.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M10, `# Popravke poslije vala 4`), ovaj dokument | **[interno]** Uzorak ciklusa prijavljuje stvarni broj stanja koja čekaju sljedeći ciklus (do sada uvijek 0); ograničenje uklonjeno iz vodiča |
 | M9 | 2026-10-05 | Odobrenja i CSAT; Nadzorna ploča | `user-guide/odobrenja-i-csat.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, `# Popravke poslije vala 4`), ovaj dokument | **Skala i prag „zadovoljan“ sada važe i na serijama taba Trendovi; ograničenje uklonjeno iz vodiča** |
+| — | 2026-10-05 | Postavke i čarobnjak — mrtvi prekidači | `user-guide/instalacija.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M15, `# Popravke poslije vala 4`), ovaj dokument | **Uklonjeno 11 postavki bez potrošača (4 dodatka iz čarobnjaka, 5 iz „Dnevnika izmjena“, naziv/opis Teams aplikacije); sažetak ploče više ne prima neiskorišteni `scope`; ispravljena tvrdnja da su postavke održavanja mrtve — one rade (banner i picker)** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1444,3 +1445,40 @@ nepromijenjene).
 **Iz vodiča uklonjeno:** `user-guide/nadzorna-ploca-i-izvjestaji.md` i `user-guide/odobrenja-i-csat.md` više ne
 navode „skala na trendovima je fiksna“; tabela u `odobrenja-i-csat.md` sada pominje i **Trendovi** kao mjesto gdje
 se CSAT vidi.
+
+## Postavke bez potrošača i `scope` sažetka — uklanjanje, M15 B4 i ispravka nalaza (2026-10-05)
+
+Odluka vlasnika (2026-10-05): „ukloniti“ za sve što registar nudi, a nijedan kod ne čita. Prije uklanjanja
+provjereno je **svako** polje u cijelom repou (backend, frontend, e2e, skripte) — i tu se našla greška u ranijem
+nalazu.
+
+**Ispravka ranijeg nalaza (važno).** U `REVIEW_ANALIZA.md` (§Val 2, §3) stoji da je 18 registriranih postavki bez
+ijedne reference. To je tačno za **11** postavki, ali **nije** za sedam postavki održavanja
+(`public.maintenance.*`): njih čita **frontend** iz javnog snimka postavki —
+`frontend/src/lib/maintenance/parse-public-maintenance.ts` (banner na ekranu i oznaka servisa u izboru servisa pri
+kreiranju tiketa, `use-public-maintenance.ts:42`). Prvobitna provjera je gledala samo backend, pa je propustila
+potrošača. Tih sedam postavki **ostaje**; uklonjeno je 11.
+
+**Uklonjeno (11):**
+
+| Gdje je bilo | Šta je uklonjeno | Zašto je bilo mrtvo |
+|---|---|---|
+| Čarobnjak za instalaciju i registar | `private.addons.sla`, `…autoAssign`, `…timeTracking`, `…serviceDowntime` | Prekidač se prikazivao s opisom „uključuje ili isključuje dodatak“, a nijedan kod ga ne čita: auto-dodjela je polje po servisu (`autoAssignStrategy`), praćenje vremena ima `private.timeTracking.*`, nedostupnost `private.services.downtimeScheduling.*`, SLA nema kapiju |
+| Registar | `private.changeLog.settings.enabled`, `…routing.enabled`, `…sla.enabled`, `…includeDiff`, `…requireReason` | Dnevnik izmjena se upisuje bezuslovno, a razlog se traži u kodu toka; nijedna od pet postavki nije imala potrošača |
+| Registar | `private.integrations.teams.appShortName`, `…appDescription` | Generisanje Teams paketa čita brending, ne ove postavke |
+
+Uz to je uklonjena kategorija **„Dnevnik izmjena“** (ostala bi prazna), njeni prijevodi i prijevodi uklonjenih
+postavki, te kopije u čarobnjaku (`frontend/src/lib/install-addon-copy.ts`). Čarobnjak ne mijenja kod — listu
+dodataka dobija s API-ja, pa uklanjanje iz kataloga automatski uklanja i prekidače iz ekrana.
+
+**M15 B4 — `scope` sažetka.** `GET /reports/dashboard/summary` primao je `scope=all|assignedToMe|requestedByMe|
+unassigned` i držao **četiri** keš ključa, a ploča je uvijek tražila `all` i lične brojače (`assignedToMe`,
+`requestedByMe`) čitala iz istog odgovora. Uklonjeni su: parametar i DTO, `ticketSummaryScopeClause`, segment iz
+keš ključa i polje `scope` iz odgovora — jedna površina, jedan ključ.
+
+**Dokazi:** `npx jest --maxWorkers=2` → **519 prošlih + 5 preskočenih suita (524)**, **2510 prošlo / 2541 test**
+(31 preskočen), 0 padova; `npx tsc --noEmit` → 0; `npm run lint` → 0 grešaka; frontend `tsc -b` → 0 i
+`vitest` → **158 fajlova / 643 testa**; `Docs provjera: OK (29 stranica, 9 provjera)`.
+
+**Iz vodiča:** `instalacija.md` više ne nabraja uklonjene dodatke (liste zadano uključenih/isključenih su
+usklađene s katalogom), a `nadzorna-ploca-i-izvjestaji.md` više ne opisuje neiskorišteni opseg sažetka.
