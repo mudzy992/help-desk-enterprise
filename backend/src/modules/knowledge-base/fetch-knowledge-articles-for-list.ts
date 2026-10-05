@@ -1,3 +1,4 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { toArticleRecord } from './load-knowledge-article';
 import type {
@@ -27,8 +28,11 @@ async function loadWithPrismaFindMany(
   query: ListKnowledgeArticlesQuery,
   needle: string,
 ): Promise<readonly KnowledgeArticleRecord[]> {
+  // Val 3 (M14/B5): the text filter is part of the query, so the database does
+  // not return the whole table for a search. The in-memory pass below stays as
+  // a cheap safety net for clients that ignore the nested filter.
   const records = (await prisma.knowledgeArticle.findMany({
-    where: buildScalarWhere(query),
+    where: { ...buildScalarWhere(query), ...buildTextWhere(needle) },
     orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
   })) as ArticleRow[];
   if (needle.length === 0) {
@@ -88,6 +92,14 @@ async function loadWithFullTextSearch(
   return records
     .map(toArticleRecord)
     .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
+}
+
+function buildTextWhere(needle: string): Prisma.KnowledgeArticleWhereInput {
+  if (needle.length === 0) {
+    return {};
+  }
+  const contains = { contains: needle, mode: 'insensitive' as const };
+  return { OR: [{ title: contains }, { body: contains }, { slug: contains }] };
 }
 
 function buildScalarWhere(query: ListKnowledgeArticlesQuery): {

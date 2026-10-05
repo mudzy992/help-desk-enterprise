@@ -37,6 +37,8 @@ export const knowledgeBaseConstants = {
   maximumSlugLength: 80,
   maximumQueryLength: 500,
   interceptLimit: 8,
+  /** Val 3 (M14/B5): the ranked list is capped, so the scan is too. */
+  interceptCandidateLimit: 500,
 } as const;
 
 

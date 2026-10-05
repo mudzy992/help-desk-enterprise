@@ -4,13 +4,25 @@ export type InMemoryGroupMember = {
   readonly userId: string;
 };
 
+type GroupMemberWhere = {
+  readonly groupId?: string | { readonly in: readonly string[] };
+  readonly userId?: string;
+};
+
 export function createInMemoryGroupMemberDelegate(
   members: Map<string, InMemoryGroupMember>,
 ) {
-  const matching = (where?: { groupId?: string; userId?: string }) =>
+  const matching = (where?: GroupMemberWhere) =>
     [...members.values()].filter((member) => {
-      if (where?.groupId !== undefined && member.groupId !== where.groupId) {
-        return false;
+      if (where?.groupId !== undefined) {
+        const expected = where.groupId;
+        const matches =
+          typeof expected === 'string'
+            ? member.groupId === expected
+            : expected.in.includes(member.groupId);
+        if (!matches) {
+          return false;
+        }
       }
       return where?.userId === undefined || member.userId === where.userId;
     });
@@ -19,14 +31,14 @@ export function createInMemoryGroupMemberDelegate(
       where,
       select,
     }: {
-      where?: { groupId?: string; userId?: string };
+      where?: GroupMemberWhere;
       select?: Record<string, boolean>;
     } = {}) => matching(where).map((member) => pickMember(member, select)),
     findFirst: async ({
       where,
       select,
     }: {
-      where?: { groupId?: string; userId?: string };
+      where?: GroupMemberWhere;
       select?: Record<string, boolean>;
     } = {}) => pickMember(matching(where)[0], select),
   };

@@ -1,7 +1,7 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { fetchKnowledgeArticlesForList } from './fetch-knowledge-articles-for-list';
-import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
+import { loadKnowledgeArticleVisibilities } from './load-knowledge-article-scope';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import type {
   KnowledgeArticleMutationContext,
@@ -17,11 +17,7 @@ export async function listKnowledgeArticles(
 ): Promise<readonly KnowledgeArticleRecord[]> {
   const actor = await loadKnowledgeActorContext(loader, context);
   const records = await fetchKnowledgeArticlesForList(prisma, query);
-  const visible: KnowledgeArticleRecord[] = [];
-  for (const article of records) {
-    if (await isKnowledgeArticleVisibleTo(prisma, actor, article)) {
-      visible.push(article);
-    }
-  }
-  return visible;
+  // Val 3 (M14/B5): one batched visibility check instead of three queries per row.
+  const visible = await loadKnowledgeArticleVisibilities(prisma, actor, records);
+  return records.filter((article) => visible.has(article.id));
 }

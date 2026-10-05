@@ -31,6 +31,7 @@ import {
   type ResponseTemplateVariable,
   type TemplateLocale,
 } from './templates.constants';
+import { pickerOffScopeWhere, pickerScopeWhere } from './picker-candidate-where';
 import { TemplatesConfigurationLoader } from './templates-configuration.loader';
 import { loadTemplateEnvironment, resolveTemplateLocale } from './templates-environment';
 import { TemplatesError } from './templates.error';
@@ -112,30 +113,55 @@ export class ResponseTemplatesService {
     const facts =
       query.ticketId === undefined ? null : (await this.loadTicket(query.ticketId, actor)).facts;
     const search = query.q?.trim() ?? '';
-    const rows = await this.prisma.responseTemplate.findMany({
-      where: {
-        deletedAt: null,
-        isActive: true,
-        OR: [{ ownerUserId: null }, { ownerUserId: context.subjectId }],
-        ...(query.kind === undefined ? {} : { kind: { in: [query.kind, 'ANY'] } }),
-        ...(search.length === 0
-          ? {}
-          : {
-              AND: [
-                {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { bodyBs: { contains: search, mode: 'insensitive' } },
-                    { bodyEn: { contains: search, mode: 'insensitive' } },
-                    { tags: { has: search.toLocaleLowerCase('bs') } },
-                  ],
-                },
+    // Val 3 (M13/B2): the scope filter and the order are part of the query, so
+    // the rows cut off by `take` are the least used/scoped-elsewhere ones and
+    // the same query always returns the same subset.
+    const baseAnd: Prisma.ResponseTemplateWhereInput[] = [
+      { OR: [{ ownerUserId: null }, { ownerUserId: context.subjectId }] },
+      ...(query.kind === undefined
+        ? []
+        : [{ kind: { in: [query.kind, 'ANY'] } } as Prisma.ResponseTemplateWhereInput]),
+      ...(search.length === 0
+        ? []
+        : [
+            {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { bodyBs: { contains: search, mode: 'insensitive' } },
+                { bodyEn: { contains: search, mode: 'insensitive' } },
+                { tags: { has: search.toLocaleLowerCase('bs') } },
               ],
-            }),
-      },
+            } as Prisma.ResponseTemplateWhereInput,
+          ]),
+    ];
+    const baseWhere: Prisma.ResponseTemplateWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      AND: baseAnd,
+    };
+    const pickerOrderBy: Prisma.ResponseTemplateOrderByWithRelationInput[] = [
+      { usageCount: 'desc' },
+      { name: 'asc' },
+    ];
+    const rows = await this.prisma.responseTemplate.findMany({
+      where: { ...baseWhere, AND: [...baseAnd, pickerScopeWhere(facts)] },
       include: templateInclude,
-      take: 500,
+      orderBy: pickerOrderBy,
+      take: templateLimits.pickerLimit,
     });
+    if (query.all === true) {
+      rows.push(
+        ...(await this.prisma.responseTemplate.findMany({
+          where: {
+            ...baseWhere,
+            AND: [...baseAnd, pickerOffScopeWhere(facts)],
+          },
+          include: templateInclude,
+          orderBy: pickerOrderBy,
+          take: templateLimits.pickerLimit,
+        })),
+      );
+    }
     const items = rows
       .map((row) => ({ row, score: scoreTemplateScope(toScope(row), facts) }))
       .filter((entry) => query.all === true || entry.score >= 0)

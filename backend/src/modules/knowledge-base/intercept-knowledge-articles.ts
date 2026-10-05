@@ -8,7 +8,7 @@ import type {
   KnowledgeInterceptInput,
   KnowledgeInterceptResponse,
 } from './knowledge-base.types';
-import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
+import { loadKnowledgeArticleVisibilities } from './load-knowledge-article-scope';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { toArticleRecord } from './load-knowledge-article';
 import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
@@ -35,20 +35,19 @@ export async function interceptKnowledgeArticles(
     return { articles: [] };
   }
   const actor = await loadKnowledgeActorContext(loader, context);
+  // Val 3 (M14/B5): the candidate set is bounded and deterministic, and the
+  // visibility of the whole set is resolved in a handful of queries instead of
+  // three per article.
   const records = await prisma.knowledgeArticle.findMany({
     where: { serviceId, status: 'PUBLISHED' },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    take: knowledgeBaseConstants.interceptCandidateLimit,
   });
-  const visible = [];
-  for (const record of records) {
-    const article = withKnowledgeArticleFreshness(
-      toArticleRecord(record),
-      configuration,
-      now,
-    );
-    if (await isKnowledgeArticleVisibleTo(prisma, actor, article)) {
-      visible.push(article);
-    }
-  }
+  const articles = records.map((record) =>
+    withKnowledgeArticleFreshness(toArticleRecord(record), configuration, now),
+  );
+  const readable = await loadKnowledgeArticleVisibilities(prisma, actor, articles);
+  const visible = articles.filter((article) => readable.has(article.id));
   if (visible.length === 0) {
     return { articles: [] };
   }
