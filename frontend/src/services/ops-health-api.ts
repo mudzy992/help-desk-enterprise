@@ -79,7 +79,11 @@ export type OpsOverview = {
     readonly disk: { readonly usedPercent: number; readonly freeBytes: number; readonly totalBytes: number } | null;
     readonly eventLoopLagMs: number | null;
     readonly ldapsCaExpiresAt: string | null;
-    readonly email: { readonly lastSentAt: string | null };
+    readonly email: {
+      readonly lastSentAt: string | null;
+      /** Val 3 (M12/B1): rows stuck in CLAIMED; reclaimed after 10 minutes. */
+      readonly stuckClaims?: number | null;
+    };
     readonly inbound: ReadonlyArray<{
       readonly mailboxKey: string;
       readonly lastRunAt: string | null;

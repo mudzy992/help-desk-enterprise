@@ -4,6 +4,7 @@ import { RedisService } from '../../common/redis/redis.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
+import { countStuckNotificationEmailDeliveries } from '../notifications/email/persist-notification-email-delivery';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { evaluateWorkerHeartbeat, withTimeout } from '../health/health-probes';
 import type { PrivacyActor } from '../privacy/privacy-actor';
@@ -83,7 +84,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, inbound] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       withTimeout(() => this.redis.getClient().get(workerHeartbeatRedisKey), 1_000).catch(() => null),
@@ -98,6 +99,10 @@ export class OpsHealthService {
       this.prisma.notificationEmailDelivery
         .findFirst({ where: { status: emailDeliveryStatuses.sent }, orderBy: { createdAt: 'desc' }, select: { updatedAt: true } })
         .catch(() => null),
+      // Val 3 (M12/B1): rows stuck in CLAIMED (a process died between claim and
+      // send). They are reclaimed automatically after 10 minutes; this counter is
+      // what makes the state visible instead of silently "healthy".
+      countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
       this.currentInboundState(),
     ]);
     const worker = evaluateWorkerHeartbeat({
@@ -124,7 +129,10 @@ export class OpsHealthService {
         disk: signals?.disk ?? null,
         eventLoopLagMs: signals?.eventLoopLagMs ?? null,
         ldapsCaExpiresAt: signals?.ldapsCaExpiresAtMs == null ? null : new Date(signals.ldapsCaExpiresAtMs).toISOString(),
-        email: { lastSentAt: emailLast?.updatedAt.toISOString() ?? null },
+        email: {
+          lastSentAt: emailLast?.updatedAt.toISOString() ?? null,
+          stuckClaims: stuckEmailClaims,
+        },
         inbound,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({

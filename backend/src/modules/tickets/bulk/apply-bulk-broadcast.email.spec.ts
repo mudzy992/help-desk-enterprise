@@ -29,6 +29,7 @@ async function broadcast(
         create: async (args: { data: { body?: string } }) =>
           (created.push(args), { id: `msg-${created.length}`, ...args.data }),
       },
+      user: { findUnique: async () => ({ preferredLocale: 'bs' }) },
     } as never,
     actor: { actorUserId: `actor-${Math.random()}` } as never,
     tickets: [{ id: 't1', requesterId: 'r1', assignedUserId: null }] as never,
@@ -57,7 +58,11 @@ describe('applyBulkBroadcast — e-mail (paket 1.5)', () => {
     const { created } = await broadcast({ broadcastEnableInApp: false, broadcastEnableEmail: true });
     expect(created).toEqual([]);
     expect(requests).toEqual([
-      expect.objectContaining({ ticketId: 't1', batchId: 'b1', body: expect.stringContaining('Prekid u 18h') }),
+      expect.objectContaining({
+        ticketId: 't1',
+        batchId: 'b1',
+        parts: expect.objectContaining({ whatHappened: 'Prekid u 18h' }),
+      }),
     ]);
   });
 
@@ -76,7 +81,7 @@ describe('applyBulkBroadcast — e-mail (paket 1.5)', () => {
 
     // Poruka u tiketu i e-mail nikad ne nose uzorak.
     const replies = (created as Array<{ data: { body: string } }>).filter((entry) =>
-      entry.data.body.startsWith('What happened:'),
+      entry.data.body.startsWith('Šta se desilo:'),
     );
     expect(replies).toHaveLength(1);
     expect(replies[0].data.body).not.toContain('Tajna123!');

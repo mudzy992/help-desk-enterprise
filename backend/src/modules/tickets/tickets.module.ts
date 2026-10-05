@@ -51,6 +51,7 @@ import { TicketsForwardingController } from './forwarding/tickets-forwarding.con
 import { TicketsForwardingService } from './forwarding/tickets-forwarding.service';
 import { TicketsMergeController } from './merge/tickets-merge.controller';
 import { TicketsMergeService } from './merge/tickets-merge.service';
+import { BulkBroadcastRateLimiterBootstrap } from './bulk/bulk-broadcast-rate-limiter.bootstrap';
 import { TicketBulkConfigurationLoader } from './bulk/ticket-bulk-configuration.loader';
 import { TicketsBulkController } from './bulk/tickets-bulk.controller';
 import { TicketsBulkService } from './bulk/tickets-bulk.service';
@@ -138,6 +139,8 @@ import { TicketPresenceService } from './collaboration-extras/presence/ticket-pr
     TicketForwardingConfigurationLoader,
     TicketsBulkService,
     TicketBulkConfigurationLoader,
+    // Val 3 (M8/B2): gives the broadcast rate limiter the shared Redis counter.
+    BulkBroadcastRateLimiterBootstrap,
     TicketsExportService,
     TicketsContextService,
     TicketsSavedViewsService,

@@ -1,5 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { BroadcastEmailRequest } from '../../tickets/bulk/broadcast-email-channel';
+import { formatBulkBroadcastText } from '../../tickets/bulk/format-bulk-broadcast-message';
 import { composeTicketEmail, resolveEmailLocale } from './compose-ticket-email';
 import type { PreparedOutboundEmail } from './deliver-notification-email';
 import { isAllowedNotificationEmailAddress } from './is-allowed-notification-email-address';
@@ -63,10 +64,11 @@ export async function sendBroadcastEmails(
     ) {
       continue;
     }
+    const recipientLocale = resolveEmailLocale(person.preferredLocale, configuration);
     const composed = composeTicketEmail({
       configuration,
       key: 'ticket.broadcast',
-      locale: resolveEmailLocale(person.preferredLocale, configuration),
+      locale: recipientLocale,
       ticket,
       serviceName: service?.name ?? '',
       groupName: group?.name ?? '',
@@ -76,7 +78,8 @@ export async function sendBroadcastEmails(
       event: 'ticket_bulk_broadcast',
       // The broadcast text is the whole point of the e-mail; it is always shown
       // (except on confidential tickets, which the renderer enforces).
-      excerpt: request.body,
+      // M12/B5: the labelled fields are rendered in the recipient's language.
+      excerpt: formatBulkBroadcastText(request.parts, recipientLocale),
       dedupeKey,
       recipientId: userId,
     });

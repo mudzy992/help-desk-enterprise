@@ -373,8 +373,21 @@ function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; re
               ? t("admin.opsHealth.components.notConfigured")
               : null}
         </ComponentTile>
-        <ComponentTile label={t("admin.opsHealth.components.email")} state={components.email.lastSentAt === null ? "unknown" : "ok"}>
-          {components.email.lastSentAt === null ? (
+        <ComponentTile
+          label={t("admin.opsHealth.components.email")}
+          state={
+            (components.email.stuckClaims ?? 0) > 0
+              ? "warning"
+              : components.email.lastSentAt === null
+                ? "unknown"
+                : "ok"
+          }
+        >
+          {(components.email.stuckClaims ?? 0) > 0 ? (
+            t("admin.opsHealth.components.stuckEmailClaims", {
+              count: components.email.stuckClaims ?? 0,
+            })
+          ) : components.email.lastSentAt === null ? (
             t("admin.opsHealth.components.noEmailYet")
           ) : (
             <>

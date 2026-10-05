@@ -287,6 +287,7 @@
         "clamavBlocking": "Attachments are rejected until the antivirus is back",
         "notConfigured": "Not configured",
         "noEmailYet": "No e-mail sent yet",
+        "stuckEmailClaims": "Stuck in the queue: {{count}} (reclaimed after 10 min)",
         "lastSent": "Last sent",
         "daysLeft_one": "Expires in {{count}} day",
         "daysLeft_other": "Expires in {{count}} days",

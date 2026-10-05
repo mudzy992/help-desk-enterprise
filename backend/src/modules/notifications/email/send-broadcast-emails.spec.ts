@@ -45,7 +45,17 @@ describe('sendBroadcastEmails', () => {
     const sent = await sendBroadcastEmails(
       client,
       createEmailChannelTestConfiguration(),
-      { ticketId: 't1', body: 'Planirani prekid u 18h', actorUserId: 'lead', batchId: 'b1' },
+      {
+        ticketId: 't1',
+        parts: {
+          whatHappened: 'Planirani prekid u 18h',
+          whoAffected: 'Sve službe',
+          eta: '1h',
+          workaround: null,
+        },
+        actorUserId: 'lead',
+        batchId: 'b1',
+      },
       { handle: async (item) => void work.push(item) },
     );
     expect(sent).toBe(1);
@@ -57,6 +67,9 @@ describe('sendBroadcastEmails', () => {
     });
     expect(work[0]?.subject).toBe('[HD-9] Notice: Mreža');
     expect(work[0]?.text).toContain('Planirani prekid u 18h');
+    // M12/B5: the requester reads English, so the labels are English too.
+    expect(work[0]?.text).toContain('What happened: Planirani prekid u 18h');
+    expect(work[0]?.text).not.toContain('Šta se desilo');
   });
 
   it('does nothing when delivery is off', async () => {
@@ -64,7 +77,12 @@ describe('sendBroadcastEmails', () => {
     await sendBroadcastEmails(
       prisma().client,
       createEmailChannelTestConfiguration({ deliveryEnabled: false }),
-      { ticketId: 't1', body: 'x', actorUserId: null, batchId: null },
+      {
+        ticketId: 't1',
+        parts: { whatHappened: 'x', whoAffected: '', eta: '', workaround: null },
+        actorUserId: null,
+        batchId: null,
+      },
       { handle },
     );
     expect(handle).not.toHaveBeenCalled();

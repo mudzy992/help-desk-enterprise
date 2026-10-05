@@ -5,9 +5,15 @@
  * (same pattern as the SLA runtime channel — no circular module import).
  * With in-app on, the AGENT_REPLY it creates already produces the e-mail.
  */
+import type { BulkBroadcastParts } from './format-bulk-broadcast-message';
+
 export type BroadcastEmailRequest = {
   readonly ticketId: string;
-  readonly body: string;
+  /**
+   * M12/B5: the labelled fields (already redacted) instead of finished text —
+   * the e-mail renders them in the recipient's language.
+   */
+  readonly parts: BulkBroadcastParts;
   readonly actorUserId: string | null;
   readonly batchId: string | null;
 };

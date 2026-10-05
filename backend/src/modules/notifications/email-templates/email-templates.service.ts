@@ -1,5 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import type Redis from 'ioredis';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { redisTokens } from '../../../common/redis/redis.tokens';
 import { settingKeys } from '../../settings/setting-keys';
 import { SettingsError } from '../../settings/settings.error';
 import { SettingsService } from '../../settings/settings.service';
@@ -30,6 +32,7 @@ import {
   parseEmailTemplateRegistry,
 } from '../email/parse-email-template-registry';
 import type { RenderedEmailMessage } from '../email/render-email-message';
+import { TestEmailRateLimiter } from './test-email-rate-limiter';
 
 export type EmailTemplatesOverview = {
   readonly locales: readonly EmailLocale[];
@@ -57,19 +60,25 @@ export type EmailTemplatesOverview = {
 
 export type TestEmailResult = { readonly toAddress: string };
 
-/** Design §5: at most 5 real test sends per admin in 10 minutes. */
-const testSendLimit = 5;
-const testSendWindowMs = 10 * 60_000;
-
 @Injectable()
 export class EmailTemplatesService {
-  private readonly testSends = new Map<string, number[]>();
+  /**
+   * Design §5: at most 5 real test sends per admin in 10 minutes. Val 3 (M12/B4):
+   * the counter is in Redis (shared by all instances) with the in-memory window
+   * as the fallback, so a restart no longer resets the limit.
+   */
+  private readonly testSendRateLimiter: TestEmailRateLimiter;
 
   constructor(
     private readonly settingsService: SettingsService,
     private readonly prisma: PrismaService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
-  ) {}
+    @Optional()
+    @Inject(redisTokens.client)
+    redis?: Redis,
+  ) {
+    this.testSendRateLimiter = new TestEmailRateLimiter(redis ?? null);
+  }
 
   async overview(): Promise<EmailTemplatesOverview> {
     const configuration = await loadEmailChannelConfiguration(this.settingsService);
@@ -156,7 +165,12 @@ export class EmailTemplatesService {
     if (actor === null || actor.email.trim().length === 0) {
       throw new SettingsError('Your account has no e-mail address', 'TEST_RECIPIENT_MISSING');
     }
-    this.consumeTestSend(actorUserId ?? 'anonymous');
+    if (!(await this.testSendRateLimiter.consume(actorUserId ?? 'anonymous'))) {
+      throw new SettingsError(
+        'Too many test e-mails, try again in a few minutes',
+        'TEST_RATE_LIMITED',
+      );
+    }
     const rendered = renderEmailTemplatePreview({
       configuration,
       templates: await this.templatesWithDraft(input),
@@ -255,12 +269,4 @@ export class EmailTemplatesService {
     });
   }
 
-  private consumeTestSend(actorKey: string): void {
-    const now = Date.now();
-    const recent = (this.testSends.get(actorKey) ?? []).filter((at) => now - at < testSendWindowMs);
-    if (recent.length >= testSendLimit) {
-      throw new SettingsError('Too many test e-mails, try again in a few minutes', 'TEST_RATE_LIMITED');
-    }
-    this.testSends.set(actorKey, [...recent, now]);
-  }
 }

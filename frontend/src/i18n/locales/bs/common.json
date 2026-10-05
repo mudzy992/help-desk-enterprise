@@ -288,6 +288,7 @@
         "clamavBlocking": "Prilozi se odbijaju dok antivirus ne proradi",
         "notConfigured": "Nije podešeno",
         "noEmailYet": "Još nije poslan nijedan e-mail",
+        "stuckEmailClaims": "Zaglavljeno u redu: {{count}} (preuzima se ponovo nakon 10 min)",
         "lastSent": "Posljednji poslan",
         "daysLeft_one": "Ističe za {{count}} dan",
         "daysLeft_few": "Ističe za {{count}} dana",
