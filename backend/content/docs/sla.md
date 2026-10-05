@@ -222,8 +222,6 @@
   eskalacije se čuvaju u bazi i uređuju kroz ovu stranicu, a ne kroz `calendarsJson`/`profilesJson`/`rulesJson`.
   Postavka `escalations.inAppEnabled` takođe ne postoji: in-app obavještenje je uvijek uključeno, dok
   `escalations.emailEnabled` važi samo za eskalacije.
-- **Uzorak dnevnika skenera** može prikazati da nema zaostatka i kada ga ima; nadzor se zato oslanja na ops
-  alarm „skener kasni“ (podrazumijevano 5 minuta bez uspješnog ciklusa). (Nalaz B5.)
 
 ## Povezani moduli
 

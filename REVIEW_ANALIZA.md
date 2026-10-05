@@ -5598,7 +5598,8 @@ stanje (Redis, baza) i prebacivao filtre u upite.
 
 ## 3. Šta ostaje otvoreno poslije vala 3
 
-- **M10 B5** (`NISKO`) — uzorak dnevnika skenera prijavljuje netačno „preostalo“.
+- ~~**M10 B5** (`NISKO`) — uzorak dnevnika skenera prijavljuje netačno „preostalo“~~ ✅ **zatvoreno 2026-10-05**
+  (vidi `# Popravke poslije vala 4`, §2).
 - **M15 B4** (`NISKO`) — opseg sažetka postoji u API-ju, ali ga klijent ne koristi.
 - **M9 B3 — drugi dio** (`NISKO`) — CSAT serije na tabu Trendovi i dalje koriste konstantnu skalu.
 - **M12 B1 ostaje bez migracije:** preuzimanje koristi postojeći `updatedAt`; ako se u međuvremenu doda
@@ -5768,7 +5769,10 @@ preskočen; izmjereno 2026-10-05). Napomena za sljedeći rad: `jest --runInBand`
 na `OOM`; `--maxWorkers=2` obično prođe u ~38 s, ali kad sandbox uspori (jedan mjereni prolaz trajao je 20 min)
 jedan nezavisan, vremenski osjetljiv suite (`src/modules/tickets/tickets.authorization.spec.ts`, 6 testova) može
 prijaviti pad pod opterećenjem — ponovno pokretanje (`jest --onlyFailures`) prošlo je za 10,7 s, pa pad nije
-posljedica ovog dijela rada.
+posljedica ovog dijela rada. Isti obrazac ponovio se 2026-10-05 i na `src/app.module.spec.ts` (2 testa): Jest je
+prijavio pad samog *worker* procesa (`ChildProcessWorker._onExit`), a `--onlyFailures` prolaz je zelen za 30,8 s —
+kad se u ovom okruženju jedan suite prijavi kao pao uz stack `jest-worker`, prvo provjeriti da nije u pitanju
+pad radnika, pa tek onda tražiti grešku u kodu.
 
 ## 7. Ostale ispravke u e2e projektu (nađene pišući spisak za CI)
 
@@ -5788,4 +5792,33 @@ dokazuje — to je deliverable iz tačke 2 korisnikovog odgovora (spisak priprem
 
 - **E-1:** repozitorijske varijable i secreti za e2e (odluka i radnja vlasnika) — uputstvo je sada u
   `e2e/README.md`; do tada e2e job ostaje zelen bez izvršavanja.
-- Ranije otvoreno (nepromijenjeno): M10 B5, M15 B4, M9 B3-2, 18 postavki bez potrošača, EN sadržaj vodiča.
+- Ranije otvoreno (nepromijenjeno): ~~M10 B5~~ ✅ **zatvoreno 2026-10-05** (`# Popravke poslije vala 4`, §2),
+  M15 B4, M9 B3-2, 18 postavki bez potrošača (od toga 4 addon prekidača koja nešto obećavaju), EN sadržaj vodiča.
+
+# Popravke poslije vala 4 — crveni lint u CI i dnevnik skenera SLA (2026-10-05)
+
+Dvije popravke između vala 4 i onoga što slijedi. Prva je otklonila crveni CI na masteru (uzrok su bila **naša**
+dva nova speca), druga zatvara nalaz **M10 B5** iz Faze 2.
+
+## 1. CI na masteru pao je na `npm run lint` (naša dva speca)
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-7** — `Definition for rule 'import/first' was not found` | Backend job je pao na koraku `npm run lint` (5 failure anotacija), pa se `npm test` i e2e job **nisu izvršili** | `backend/src/modules/templates/response-templates.service.spec.ts:16,18,20` i `.../ticket-playbooks/ticket-playbooks.service.spec.ts:16,18` — 5 komentara `// eslint-disable-next-line import/first` | CI crven na masteru; lažno „zeleni“ e2e job ostao neizvršen, pa se prava e2e provjera (sa podešenim varijablama) opet odgodila | Komentari uklonjeni. Backend `eslint.config.mjs` **ne registruje** `import/first` (samo `js` + `typescript-eslint` recommended), pa ESLint nepoznatu direktivu prijavljuje kao grešku; raspored `jest.mock` prije importa je u backendu uobičajen i **bez** direktiva (npr. `announcements/announcement-delivery.spec.ts:1–3`) | **SREDNJE** (blokira CI) |
+
+Dokaz: `npm run lint` → **0 grešaka / 14 postojećih upozorenja**; `npx tsc --noEmit` → 0; `npx jest src/modules/templates`
+→ 6 suita / 91 test. Pouka za sljedeće specove: direktive za pravila koja backend konfiguracija ne poznaje (npr.
+`import/first`, `import/order`) **ne** koristiti — u frontend konfiguraciji postoje, u backendu ne.
+
+## 2. M10 B5 — uzorak dnevnika skenera prijavljuje stvarni zaostatak
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljenost |
+|---|---|---|---|---|---|
+| **M10 B5** | Log linija ciklusa tvrdila je da nema zaostatka | `backend/src/modules/sla/sla-scan.processor.ts:27–36` (prije popravke): `remaining: Math.max(0, processed - slaScanBatchSize)`, a `processed` ≤ 2000 | Nadzor i tumačenje ops alarma `slaScanLateMinutes` mogli su dati pogrešnu sliku o zaostatku | Novi `backend/src/modules/sla/count-due-ticket-sla-states.ts`: `count()` stanja koja su još due (`resolutionCompletedAt = null`, `nextDueAt <= now`) na indeksu `@@index([resolutionCompletedAt, nextDueAt])` (`sla.prisma:92`); `ticket-sla-timers.service.ts` dobija `countDue()`, a `sla-scan.processor.ts` poziva **poslije** ciklusa (tek tada je `nextDueAt` obrađenih stanja pomjeren) | **NISKO** |
+
+Dokazi: `npx jest src/modules/sla` → **26 suita / 71 test** (novi `count-due-ticket-sla-states.spec.ts` — 3 testa;
+`sla-scan.processor.spec.ts` sada traži `sla_scan_remaining=23`); `npx tsc --noEmit` → 0; `npm run lint` → 0 grešaka.
+Imena polja u logu (`sla_scan_duration_ms`, `sla_scan_processed`, `sla_scan_batch_limit`, `sla_scan_remaining`) nisu
+mijenjana, pa postojeći log pipeline i `PERFORMACE_PHASE_PLAN.md` ostaju tačni. Iz `docs/user-guide/sla.md` uklonjeno
+je ograničenje koje je ovim prestalo da važi; unos u `DOCS_CHANGELOG.md` je označen `[interno]` jer korisnik ne vidi
+promjenu (mijenja se samo sadržaj linije u logu radnika).

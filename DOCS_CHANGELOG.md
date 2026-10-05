@@ -34,6 +34,7 @@
 | **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
 | **Val 2** | 2026-10-04 | **Sigurnost i vidljivost (M6, M8, M9, M10, M12, M13, M14)** | `user-guide/odobrenja-i-csat.md`, `user-guide/sla.md`, `user-guide/tiketi.md`, `user-guide/posta.md`, `user-guide/baza-znanja.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/katalog-usluga-i-forme.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M6, §M8, §M9, §M10, §M12, §M13, §M14, `# Val 2`), ovaj dokument | **Deset nalaza zatvoreno: provjera šablona pri slanju, zamjena ličnih podataka i pri upisu članka, redakcija broadcasta, nacrti usluga samo adminima, jedan izvor retencije priloga, obavještenje o odobrenju i kapija za `UNROUTED`, eskalacije s primaocem, retroaktivni satovi i prvi odgovor nezavisan od SLA-a** |
 | **Val 3** | 2026-10-04 – 2026-10-05 | **Pouzdanost i performanse (M8, M11, M12, M13, M14)** | `user-guide/posta.md`, `user-guide/realtime-i-obavjestenja.md`, `user-guide/tiketi.md`, `user-guide/sabloni-i-playbooks.md`, `user-guide/baza-znanja.md`, `user-guide/sta-je-novo.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M8, §M11, §M12, §M13, §M14, `# Val 3`), ovaj dokument | **Devet nalaza i jedan preventivni guard: Redis limiteri (broadcast, testno slanje), preuzimanje zaglavljene isporuke e-maila + pločica Operativno zdravlje, dijeljeni SMTP pool, dvojezične oznake obavijesti, provjera soba tokom veze i limit ulaska u sobu, opseg u upitu pickera, vidljivost baze znanja u jednom prolazu; „Šta je novo“ dopunjeno i za val 2 (nedostajao)** |
+| M10 | 2026-10-05 | SLA — dnevnik skenera (B5) | `user-guide/sla.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M10, `# Popravke poslije vala 4`), ovaj dokument | **[interno]** Uzorak ciklusa prijavljuje stvarni broj stanja koja čekaju sljedeći ciklus (do sada uvijek 0); ograničenje uklonjeno iz vodiča |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1391,3 +1392,26 @@ Dvije korisničke stranice nosile su napomenu s **tehničkim oznakama** koje či
 **Šta je urađeno:** obje napomene su prepisane u korisnički jezik, s datumom od kojeg je mogućnost dostupna
 („dostupno u verzijama od 28.09.2026.“ i „od 26.09.2026.“); tehnički commit/migracija ostaju u `REVIEW_ANALIZA.md`
 i u istoriji koda. Ponašanje aplikacije se ne mijenja.
+
+## SLA — dnevnik skenera prijavljuje stvarni zaostatak, M10 B5 (2026-10-05)
+
+**Nalaz (NISKO, otvoren od Faze 2):** uzorak dnevnika skenera SLA računao je `remaining` kao
+`processed - slaScanBatchSize`. Ciklus nikad ne obradi više stanja nego što ih je pročitao u batchu (2000), pa je
+izraz praktično uvijek **0** i nadzor je davao sliku da nema zaostatka — baš u situaciji kad ga ima.
+
+**Šta je urađeno (interna izmjena, bez promjene ponašanja prema korisniku):**
+
+- `backend/src/modules/sla/count-due-ticket-sla-states.ts` (nov): broji stanja koja su **još** due
+  (`resolutionCompletedAt = null`, `nextDueAt <= now`) — isti `where` koji koristi i sam skener, na istom
+  indeksu `@@index([resolutionCompletedAt, nextDueAt])` (`backend/prisma/schema/sla.prisma:92`);
+- `ticket-sla-timers.service.ts`: nova metoda `countDue()` koja se poziva **poslije** ciklusa (obrađeno stanje je
+  u međuvremenu pomjerilo `nextDueAt`, zato mjerenje prije ciklusa ne bi bilo tačno);
+- `sla-scan.processor.ts`: u log ide stvarni broj (`sla_scan_remaining=<n>`), uz komentar zašto stara formula nije
+  radila; `format-sla-scan-sample.ts` i imena polja u logu **nepromijenjeni** (nema prekida za postojeći log pipeline);
+- testovi: `count-due-ticket-sla-states.spec.ts` (nov, 3 testa: `where`, isključen modul bez upita, `now` default) i
+  `sla-scan.processor.spec.ts` (traži `sla_scan_remaining=23` umjesto nule).
+
+**Dokaz:** `npx jest src/modules/sla` → **26 suita / 71 test**; `npx tsc --noEmit` → 0; `npm run lint` → 0 grešaka.
+
+**Iz vodiča uklonjeno:** `docs/user-guide/sla.md` više ne navodi ograničenje „uzorak može prikazati da nema
+zaostatka“ — ono je ovim zatvoreno.

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
 import { backfillMissingTicketSlaStates } from './backfill-missing-ticket-sla-states';
+import { countDueTicketSlaStates } from './count-due-ticket-sla-states';
 import { scanDueTicketSlaStates } from './scan-due-ticket-sla-states';
 import { syncTicketSlaTimers } from './sync-ticket-sla-timers';
 import type { TicketSlaTimersPort } from './ticket-sla.types';
@@ -36,5 +37,15 @@ export class TicketSlaTimersService implements TicketSlaTimersPort {
       configuration,
     });
     return [...due, ...backfilled];
+  }
+
+  /**
+   * M10 B5 (val 5): states still due after a cycle — the real backlog behind the
+   * `sla_scan_remaining` field. Must be called after `scanDue()`, because a
+   * processed state moves its `nextDueAt` forward within the cycle.
+   */
+  async countDue(now = new Date()) {
+    const configuration = await this.configurationLoader.load();
+    return countDueTicketSlaStates(this.prisma, { now, configuration });
   }
 }

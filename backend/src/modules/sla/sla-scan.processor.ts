@@ -24,14 +24,17 @@ export class SlaScanProcessor extends WorkerHost {
   async process(): Promise<void> {
     const startedAt = Date.now();
     const processed = (await this.timers.scanDue()).length;
+    // M10 B5 (val 5): `processed - batchSize` was always 0, so the line claimed
+    // there was no backlog. Count what is really left *after* the cycle.
+    const remaining = await this.timers.countDue();
     this.logger.log(
       formatSlaScanSample({
         durationMs: Date.now() - startedAt,
         processed,
         batchLimit: slaScanBatchSize,
-        // Anything above the batch size is picked up by the next cycle: every
-        // state keeps its own `nextDueAt`.
-        remaining: Math.max(0, processed - slaScanBatchSize),
+        // States that are due but did not fit this cycle; the next cycle picks
+        // them up because every state keeps its own `nextDueAt`.
+        remaining,
       }),
     );
   }
