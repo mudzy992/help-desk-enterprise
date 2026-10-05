@@ -37,6 +37,7 @@
 | M10 | 2026-10-05 | SLA — dnevnik skenera (B5) | `user-guide/sla.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M10, `# Popravke poslije vala 4`), ovaj dokument | **[interno]** Uzorak ciklusa prijavljuje stvarni broj stanja koja čekaju sljedeći ciklus (do sada uvijek 0); ograničenje uklonjeno iz vodiča |
 | M9 | 2026-10-05 | Odobrenja i CSAT; Nadzorna ploča | `user-guide/odobrenja-i-csat.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, `# Popravke poslije vala 4`), ovaj dokument | **Skala i prag „zadovoljan“ sada važe i na serijama taba Trendovi; ograničenje uklonjeno iz vodiča** |
 | — | 2026-10-05 | Postavke i čarobnjak — mrtvi prekidači | `user-guide/instalacija.md`, `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M15, `# Popravke poslije vala 4`), ovaj dokument | **Uklonjeno 11 postavki bez potrošača (4 dodatka iz čarobnjaka, 5 iz „Dnevnika izmjena“, naziv/opis Teams aplikacije); sažetak ploče više ne prima neiskorišteni `scope`; ispravljena tvrdnja da su postavke održavanja mrtve — one rade (banner i picker)** |
+| — | 2026-10-05 | Mrtve površine (M9 B4, M8 B3, M7 B2) | `user-guide/usmjeravanje-i-prioritet.md`, `user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M7, §M8, §M9, `# Popravke poslije vala 4` §5), ovaj dokument | **Preview rutanja sada radi u koraku pregleda tiketa; uklonjene dvije postavke bez efekta (`allowRequesterManager`, `allowSharing`); `roleSource` ostaje dokumentovano odstupanje** |
 | **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `frontend/src/lib/privacy/simple-markdown.ts` (+ spec), `frontend/src/components/privacy/markdown-view.tsx`, `user-guide/sta-je-novo.md`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, `.github/workflows/ci.yml`, `backend/content/docs/**` (ogledalo), ovaj dokument | **Reference na stranice su klikabilne (ruta `/docs/<slug>` u ogledalu), a CI traži red u „Šta je novo“ za svaki novi datum u ovom dokumentu** |
@@ -1482,3 +1483,29 @@ keš ključa i polje `scope` iz odgovora — jedna površina, jedan ključ.
 
 **Iz vodiča:** `instalacija.md` više ne nabraja uklonjene dodatke (liste zadano uključenih/isključenih su
 usklađene s katalogom), a `nadzorna-ploca-i-izvjestaji.md` više ne opisuje neiskorišteni opseg sažetka.
+
+## Mrtve površine iz must-have liste — preview rutanja i dvije postavke bez efekta (2026-10-05)
+
+**M7 B2 — preview rutanja u koraku pregleda.** Ruta `POST /tickets/routing-preview` radila je od ranije (isti motor
+kao kreiranje, bez upisa i bez internih id-eva), ali je nijedan ekran nije zvao: korak pregleda je samo pisao da se
+ishod „određuje pri slanju“. Sada pregled prikazuje **ciljnu grupu**, **dubinu fallbacka**, **SLA profil** ili
+poruku da tiket ide u neusmjereni red. Novi fajlovi u frontend-u:
+`services/tickets-routing-preview-api.ts`, `lib/tickets/use-ticket-routing-preview.ts`,
+`lib/tickets/describe-routing-preview.ts` (+ test), izmjena `components/tickets/create-ticket-review-view.tsx`.
+
+**M9 B4 — `private.ticket.approvals.allowRequesterManager`.** Postavka se čitala, validirala i prenosila u
+konfiguraciju, a nijedna logika je nije koristila (odobravanje po AD menadžeru nije implementirano). Uklonjena je
+zajedno s poljem u tipu, parseru i loaderu.
+
+**M8 B3 — `private.ticket.savedViews.allowSharing`.** Parser je vrijednost provjeravao, a zatim uvijek vraćao
+`allowSharing: false` (dijeljenje sačuvanih pogleda nije implementirano). Postavka je uklonjena; prikazi ostaju lični.
+
+**`roleSource`.** Ostaje **bez promjene koda**: kod i UI dosljedno govore `local_db` / `ad_groups` i role se zaista
+čitaju iz AD grupa; RAW navodi `entra_groups`. Preimenovanje bi tražilo migraciju postojećih vrijednosti u bazama, a
+funkcionalnost je ista — zato je razlika zavedena kao dokumentovano odstupanje (`REVIEW_ANALIZA.md`, §M8 i §5).
+
+**Iz vodiča:** `usmjeravanje-i-prioritet.md` više ne navodi da pregled ne koristi preview; u uvodu je opisan
+prikaz ishoda rutanja pri kreiranju.
+
+**Dokazi:** backend `tsc --noEmit` → 0; `npx jest src/modules/tickets src/modules/settings src/modules/notifications
+--maxWorkers=2` → 148 suita / 768 testova; frontend `tsc -b` → 0, `vitest` → 159 fajlova / 649 testova.

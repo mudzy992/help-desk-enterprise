@@ -15,6 +15,8 @@
   tačno, naslijeđeno ili neusmjereno.
 - **Test rezolucije** pušta isti motor odlučivanja bez kreiranja tiketa — služi za provjeru „gdje bi ovaj tiket
   otišao“.
+- **Korak pregleda pri kreiranju tiketa** sam pokazuje ishod rutanja: ciljnu grupu, dubinu fallbacka i SLA profil
+  (ili poruku da tiket ide u neusmjereni red), koristeći isti motor kao i samo kreiranje.
 - **Prioritet** se računa iz matrice uticaj × hitnost; ručna promjena je izuzetak koji se auditira i pomjera SLA
   rokove.
 
@@ -149,8 +151,6 @@
   bez filtera i paginacije. (Nalaz B1 iz §M7.)
 - **Postavka „change log za routing“ ne mijenja ponašanje**: zapis izmjena pravila je uvijek uključen.
   (Nalaz B2.)
-- **Pregled tiketa ne koristi preview rutanja** koji postoji u API-ju, pa korisnik prije slanja ne vidi da će
-  tiket pasti u neusmjereni red. (Nalaz B3.)
 - **Dvije definicije „neusmjerenog“:** brojač `unrouted` broji samo status `UNROUTED`, dok upozorenja i filter
   **Nerutirani preko roka** uključuju i tikete preusmjerene u ciljnu grupu. (Nalaz B4.)
 - **Matrica prioriteta se ne može isključiti** prekidačem; ose su Nizak–Kritičan, bez dodatnih opcija.

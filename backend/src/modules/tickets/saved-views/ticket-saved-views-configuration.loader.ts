@@ -24,9 +24,6 @@ export class TicketSavedViewsConfigurationLoader {
         allowDefaultView: await this.settingsService.getSetting(
           settingKeys.privateTicketSavedViewsAllowDefaultView,
         ),
-        allowSharing: await this.settingsService.getSetting(
-          settingKeys.privateTicketSavedViewsAllowSharing,
-        ),
       });
     } catch (error) {
       if (error instanceof TicketsError) {

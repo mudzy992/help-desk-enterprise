@@ -16,7 +16,7 @@ describe("queryKeysForTicketEvent", () => {
     ).toEqual([
       queryKeys.ticketLists,
       queryKeys.ticket("ticket-1"),
-      queryKeys.dashboardSummaryPrefix("all"),
+      queryKeys.dashboardSummaryPrefix,
       queryKeys.slaSummary,
     ]);
   });
@@ -44,7 +44,7 @@ describe("queryKeysForTicketEvent", () => {
       queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null }),
     ).toEqual([
       queryKeys.ticketLists,
-      queryKeys.dashboardSummaryPrefix("all"),
+      queryKeys.dashboardSummaryPrefix,
       queryKeys.slaSummary,
     ]);
     expect(

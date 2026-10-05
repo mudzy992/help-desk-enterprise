@@ -25,7 +25,6 @@ describe('approval gate on entering processing (val 2, M9/B2)', () => {
     enabled: true,
     requiredByService: {},
     defaultApproverRole: 'ADMIN',
-    allowRequesterManager: false,
   } as const satisfies TicketApprovalsConfiguration;
 
   async function setupUnrouted() {

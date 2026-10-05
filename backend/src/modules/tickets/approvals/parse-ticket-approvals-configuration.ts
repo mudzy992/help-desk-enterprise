@@ -13,7 +13,6 @@ export function parseTicketApprovalsConfiguration(input: {
   readonly enabled: unknown;
   readonly requiredByServiceJson: unknown;
   readonly defaultApproverRole: unknown;
-  readonly allowRequesterManager: unknown;
 }): TicketApprovalsConfiguration {
   if (input.addonEnabled !== true || input.enabled !== true) {
     return {
@@ -21,17 +20,13 @@ export function parseTicketApprovalsConfiguration(input: {
       enabled: false,
     };
   }
-  if (
-    typeof input.defaultApproverRole !== 'string' ||
-    typeof input.allowRequesterManager !== 'boolean'
-  ) {
+  if (typeof input.defaultApproverRole !== 'string') {
     throw new TicketsError('APPROVALS_UNAVAILABLE');
   }
   return {
     enabled: true,
     requiredByService: parseRequiredByServiceJson(input.requiredByServiceJson),
     defaultApproverRole: parseDefaultApproverRole(input.defaultApproverRole),
-    allowRequesterManager: input.allowRequesterManager,
   };
 }
 

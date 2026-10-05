@@ -136,8 +136,6 @@ export const settingKeys = {
     'private.ticket.approvals.requiredByServiceJson',
   privateTicketApprovalsDefaultApproverRole:
     'private.ticket.approvals.defaultApproverRole',
-  privateTicketApprovalsAllowRequesterManager:
-    'private.ticket.approvals.allowRequesterManager',
   privateTicketWaitingForUserEnabled: 'private.ticket.waitingForUser.enabled',
   privateTicketWaitingForUserReminderAfterDays:
     'private.ticket.waitingForUser.reminderAfterDays',
@@ -159,7 +157,6 @@ export const settingKeys = {
   privateTicketSavedViewsMaxPerUser: 'private.ticket.savedViews.maxPerUser',
   privateTicketSavedViewsAllowDefaultView:
     'private.ticket.savedViews.allowDefaultView',
-  privateTicketSavedViewsAllowSharing: 'private.ticket.savedViews.allowSharing',
   // Package 1.3 — time tracking guard.
   privateTimeTrackingIdleAutoPauseMinutes: 'private.timeTracking.idleAutoPauseMinutes',
   privateTimeTrackingAutoResume: 'private.timeTracking.autoResume',

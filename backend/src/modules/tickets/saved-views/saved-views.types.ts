@@ -4,7 +4,6 @@ export type TicketSavedViewsConfiguration = {
   readonly enabled: boolean;
   readonly maxPerUser: number;
   readonly allowDefaultView: boolean;
-  readonly allowSharing: boolean;
 };
 
 export type SavedViewFilters = {

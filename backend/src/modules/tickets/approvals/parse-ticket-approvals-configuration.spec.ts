@@ -8,7 +8,6 @@ describe('parseTicketApprovalsConfiguration', () => {
         enabled: true,
         requiredByServiceJson: '{"svc":true}',
         defaultApproverRole: 'ADMIN',
-        allowRequesterManager: false,
       }).enabled,
     ).toBe(false);
   });
@@ -19,11 +18,9 @@ describe('parseTicketApprovalsConfiguration', () => {
       enabled: true,
       requiredByServiceJson: '{"a":true,"b":{"required":false}}',
       defaultApproverRole: 'AGENT',
-      allowRequesterManager: true,
     });
     expect(parsed.requiredByService).toEqual({ a: true, b: false });
     expect(parsed.defaultApproverRole).toBe('AGENT');
-    expect(parsed.allowRequesterManager).toBe(true);
   });
 
   it('rejects invalid JSON and roles', () => {
@@ -33,7 +30,6 @@ describe('parseTicketApprovalsConfiguration', () => {
         enabled: true,
         requiredByServiceJson: '{',
         defaultApproverRole: 'ADMIN',
-        allowRequesterManager: false,
       }),
     ).toThrow('APPROVALS_UNAVAILABLE');
     expect(() =>
@@ -42,7 +38,6 @@ describe('parseTicketApprovalsConfiguration', () => {
         enabled: true,
         requiredByServiceJson: '{}',
         defaultApproverRole: 'USER',
-        allowRequesterManager: false,
       }),
     ).toThrow('APPROVALS_UNAVAILABLE');
   });

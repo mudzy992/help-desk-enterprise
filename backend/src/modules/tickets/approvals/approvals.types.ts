@@ -8,7 +8,6 @@ export type TicketApprovalsConfiguration = {
   readonly enabled: boolean;
   readonly requiredByService: Readonly<Record<string, boolean>>;
   readonly defaultApproverRole: DefaultApproverRole;
-  readonly allowRequesterManager: boolean;
 };
 
 export type TicketApprovalRecord = {

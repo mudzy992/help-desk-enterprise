@@ -11,7 +11,6 @@ export const defaultTicketApprovalsConfiguration = {
   enabled: true,
   requiredByService: {},
   defaultApproverRole: authorizationRoleKeys.admin,
-  allowRequesterManager: false,
 } as const;
 
 export const ticketApprovalChangeLogReasons = {

@@ -41,20 +41,18 @@ describe("queryKeys", () => {
       "detail",
       "ticket-1",
     ]);
-    expect(queryKeys.dashboardSummary("all", "2026-09-24")).toEqual([
+    expect(queryKeys.dashboardSummary("2026-09-24")).toEqual([
       "dashboard",
       "summary",
-      "all",
       "2026-09-24",
     ]);
     // A new day is a new entry, never a stale hit.
-    expect(queryKeys.dashboardSummary("all", "2026-09-25")).not.toEqual(
-      queryKeys.dashboardSummary("all", "2026-09-24"),
+    expect(queryKeys.dashboardSummary("2026-09-25")).not.toEqual(
+      queryKeys.dashboardSummary("2026-09-24"),
     );
-    expect(queryKeys.dashboardSummaryPrefix("all")).toEqual([
+    expect(queryKeys.dashboardSummaryPrefix).toEqual([
       "dashboard",
       "summary",
-      "all",
     ]);
     expect(queryKeys.ticket("ticket-1")).toEqual(queryKeys.ticket("ticket-1"));
   });

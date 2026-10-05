@@ -25,9 +25,6 @@ export class TicketApprovalsConfigurationLoader {
         defaultApproverRole: await this.settingsService.getSetting(
           settingKeys.privateTicketApprovalsDefaultApproverRole,
         ),
-        allowRequesterManager: await this.settingsService.getSetting(
-          settingKeys.privateTicketApprovalsAllowRequesterManager,
-        ),
       });
     } catch (error) {
       if (error instanceof TicketsError) {

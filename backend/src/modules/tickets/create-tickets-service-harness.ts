@@ -49,13 +49,10 @@ export function createTicketsServiceHarness() {
     enabled: boolean;
     requiredByService: Record<string, boolean>;
     defaultApproverRole: TicketApprovalsConfiguration['defaultApproverRole'];
-    allowRequesterManager: boolean;
   } = {
     enabled: defaultTicketApprovalsConfiguration.enabled,
     requiredByService: {},
     defaultApproverRole: defaultTicketApprovalsConfiguration.defaultApproverRole,
-    allowRequesterManager:
-      defaultTicketApprovalsConfiguration.allowRequesterManager,
   };
   const waitingForUserConfig: {
     enabled: boolean;

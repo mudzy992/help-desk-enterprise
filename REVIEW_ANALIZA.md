@@ -1905,7 +1905,7 @@ loaderu (odbrambeni `typeof`) — vjerovatno zbog test-double-a, ali u produkcij
 - **Fix:** čitati postavku u tri mutacije prije `recordChangeLog` ili ukloniti ključ i dokumentovati odluku.
 - **Ozbiljnost:** SREDNJE.
 
-### B3 — SREDNJE — Preview rutanja postoji, ali ga ekran za prijavu ne koristi
+### B3 — SREDNJE — Preview rutanja postoji, ali ga ekran za prijavu ne koristi → ✅ **popravljeno u valu 5 (2026-10-05)**
 
 - **Fajl/linija:** `backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts:15–59`,
   `backend/src/modules/tickets/tickets.controller.ts:62–72`; u `frontend/src` nema nijednog poziva
@@ -2277,7 +2277,7 @@ export, saved views).
 - **Fix:** brojač u Redis-u (ili DB) s TTL-om ključa.
 - **Ozbiljnost:** SREDNJE.
 
-### B3 — NISKO — `private.ticket.savedViews.allowSharing` se validira, ali se vrijednost odbacuje
+### B3 — NISKO — `private.ticket.savedViews.allowSharing` se validira, ali se vrijednost odbacuje → ✅ **zatvoreno u valu 5 (2026-10-05) uklanjanjem postavke**
 
 - **Fajl/linija:** `backend/src/modules/tickets/saved-views/parse-ticket-saved-views-configuration.ts:15–29`
   (validira `allowSharing` kao boolean, a vraća `allowSharing: false` bez obzira na vrijednost).
@@ -2626,7 +2626,7 @@ Testni pokrivač je tanak za značaj modula — tri spec fajla, oba za parser/e 
 - **Fix:** prikazati agregaciju u izvještajima, a `scaleMax` i prag „zadovoljan“ izvesti iz konfiguracije CSAT-a.
 - **Ozbiljnost:** SREDNJE.
 
-### B4 — NISKO — `private.ticket.approvals.allowRequesterManager` je bez potrošača
+### B4 — NISKO — `private.ticket.approvals.allowRequesterManager` je bez potrošača → ✅ **zatvoreno u valu 5 (2026-10-05) uklanjanjem postavke**
 
 - **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts:139–140`,
   `settings/definitions/ticket-approvals-settings.ts:36–44`,
@@ -4968,9 +4968,10 @@ modula):
    opseg sažetka) i fiksna skala na serijama trendova (dio M9 B3).
 4. **Isporuka tačno jednom i alarm kanala e-pošte** (M12 B1, uz B2/B3): zaglavljen zahtjev danas trajno
    gubi e-mail, a nema mjerenja koje bi to pokazalo.
-5. **Ukloniti mrtve površine i zastarjele upute** (~~M15 B5~~ ✅ val 1, M15 B4, M9 B4, M8 B3, M7 B2,
-   `roleSource`): jeftino,
-   a svaka od njih je već jednom zavarala pri čitanju koda ili ekrana.
+5. ~~**Ukloniti mrtve površine i zastarjele upute**~~ ✅ **završeno 2026-10-05**: `M15 B5` (val 1), `M15 B4`,
+   `M9 B4`, `M8 B3` (uklonjene postavke), `M7 B2` (preview rutanja sada radi u koraku pregleda), a `roleSource` je
+   ostao kao **dokumentovano odstupanje** od RAW-a (`ad_groups` je stvarna vrijednost u kodu i bazi; RAW navodi
+   `entra_groups`), bez promjene koda.
 6. **Dodati e2e pokrivenost za module koji je nemaju** (M14 portal, M15 nadzorna ploča, M12 pošta) i
    serverske testove za servise bez njih (M13). Nalazi tipa B4/B5 (statistika prije upisa, mrtva kolona)
    lakše bi se uhvatili testom nego pregledom.
@@ -5794,9 +5795,9 @@ dokazuje — to je deliverable iz tačke 2 korisnikovog odgovora (spisak priprem
 
 - **E-1:** repozitorijske varijable i secreti za e2e (odluka i radnja vlasnika) — uputstvo je sada u
   `e2e/README.md`; do tada e2e job ostaje zelen bez izvršavanja.
-- Ranije otvoreno poslije vala 4: ~~M10 B5~~ ✅, ~~M9 B3-2~~ ✅, ~~M15 B4~~ ✅, ~~mrtve postavke~~ ✅ (sve
-  zatvoreno 2026-10-05 — `# Popravke poslije vala 4`, §2–§4); ostaju **EN sadržaj vodiča** (odluka: prevesti
-  ključne stranice) i mrtve površine iz must-have liste (M9 B4, M8 B3, M7 B2, `roleSource`).
+- Ranije otvoreno poslije vala 4: ~~M10 B5~~ ✅, ~~M9 B3-2~~ ✅, ~~M15 B4~~ ✅, ~~mrtve postavke~~ ✅,
+  ~~mrtve površine (M9 B4, M8 B3, M7 B2, `roleSource`)~~ ✅ (sve zatvoreno 2026-10-05 — `# Popravke poslije vala 4`,
+  §2–§5); ostaje **EN sadržaj vodiča** (odluka: prevesti ključne stranice).
 
 # Popravke poslije vala 4 — crveni lint u CI i dnevnik skenera SLA (2026-10-05)
 
@@ -5854,3 +5855,14 @@ Odluka vlasnika 2026-10-05: sve što registar nudi, a nijedan kod ne čita — *
 Dokazi: `npx jest --maxWorkers=2` → **519 prošlih + 5 preskočenih suita (524)**, **2510 prošlo / 2541 test**,
 0 padova; `npx tsc --noEmit` → 0; `npm run lint` → 0 grešaka / 14 postojećih upozorenja; frontend `tsc -b` → 0,
 `vitest` → **158 fajlova / 643 testa**; `Docs provjera: OK (29 stranica, 9 provjera)`.
+
+## 5. Mrtve površine iz must-have liste (M9 B4, M8 B3, M7 B2, `roleSource`) — 2026-10-05
+
+| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **M9 B4** | `private.ticket.approvals.allowRequesterManager` se čita, validira i prenosi u konfiguraciju, ali je nijedna logika ne koristi | `backend/src/modules/settings/definitions/ticket-approvals-settings.ts` (definicija), `tickets/approvals/parse-ticket-approvals-configuration.ts:26,34`, `approvals.types.ts:11`, `ticket-approvals-configuration.loader.ts` | Uključivanje ne mijenja ponašanje; admin očekuje AD menadžera kao odobravaoca | Uklonjena postavka, ključ, polje iz tipa/parsera/loadera i prijevodi; `parseTicketApprovalsConfiguration` više ne zahtijeva `allowRequesterManager` | **NISKO** |
+| **M8 B3** | `private.ticket.savedViews.allowSharing` se validira, a izlaz je uvijek `allowSharing: false` (dijeljenje nije implementirano) | `settings/definitions/ticket-saved-views-settings.ts`, `tickets/saved-views/parse-ticket-saved-views-configuration.ts:15–29` | Isto: prekidač bez efekta | Uklonjena postavka, ključ, polje i prijevodi; parser vraća samo `enabled`, `maxPerUser`, `allowDefaultView` | **NISKO** |
+| **M7 B2 (ranije B3 u §M7)** | `POST /tickets/routing-preview` je radio i bio testiran, ali ga nijedan ekran nije zvao | `backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts`, `tickets.controller.ts:62–72`; u `frontend/src` nula poziva | Korisnik prije slanja nije vidio da će tiket pasti u neusmjereni red | **Implementirano**: novi `frontend/src/services/tickets-routing-preview-api.ts`, hook `lib/tickets/use-ticket-routing-preview.ts`, čisto mapiranje `lib/tickets/describe-routing-preview.ts` (+ spec) i prikaz u `components/tickets/create-ticket-review-view.tsx` (grupa, fallback, SLA profil, neusmjereno); keš ključ `ticketRoutingPreview(serviceId, originUnitId)` | **SREDNJE** |
+| **`roleSource`** | RAW `:479` navodi `entra_groups`, a kod dozvoljava `local_db` \| `ad_groups` | `directory-sync/ldaps/ldaps-directory.types.ts:51`, `settings/definitions/directory-ldaps-settings.ts:16,178` | Nijedna — funkcionalnost (role iz AD grupa) postoji | **Bez promjene koda**: `ad_groups` je vrijednost koja već stoji u bazama instalacija; zadržano kao dokumentovano odstupanje od RAW-a (§M8, napomena uz B7) | **NISKO (nije bug)** |
+
+Dokazi za ovaj blok: backend `npx tsc --noEmit` → 0; `npx jest src/modules/tickets src/modules/settings src/modules/notifications --maxWorkers=2` → **148 suita / 768 testova**; frontend `npx tsc -b` → 0 i `npx vitest run` → **159 fajlova / 649 testova** (6 novih u `describe-routing-preview.spec.ts`).

@@ -112,7 +112,7 @@ export function useDashboardSummary(): DashboardSummaryState {
       const [counts, recentPage, overduePage, minePage, unassignedPage, volumeLoad] =
         await Promise.all([
           queryClient.fetchQuery({
-            queryKey: queryKeys.dashboardSummary("all", dayKey),
+            queryKey: queryKeys.dashboardSummary(dayKey),
             queryFn: () => fetchDashboardSummary(),
           }),
           queryClient.fetchQuery({

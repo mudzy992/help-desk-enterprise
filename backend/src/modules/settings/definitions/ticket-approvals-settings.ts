@@ -33,13 +33,4 @@ export const ticketApprovalsSettings: readonly SettingDefinition[] = [
     allowedValues: ['ADMIN', 'AGENT', 'SUPER_ADMIN'],
     defaultValue: 'ADMIN',
   }),
-  definePrivateSetting({
-    key: settingKeys.privateTicketApprovalsAllowRequesterManager,
-    categoryId: settingCategoryIds.privateTicket,
-    valueType: 'boolean',
-    description:
-      'Use the requester AD manager as approver when directory manager data is available',
-    isRequired: true,
-    defaultValue: false,
-  }),
 ];

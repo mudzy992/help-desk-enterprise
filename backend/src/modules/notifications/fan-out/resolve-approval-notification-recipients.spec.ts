@@ -47,7 +47,6 @@ const adminConfiguration: TicketApprovalsConfiguration = {
   enabled: true,
   requiredByService: {},
   defaultApproverRole: 'ADMIN',
-  allowRequesterManager: false,
 };
 
 describe('resolveApprovalNotificationRecipients (val 2, M9/B1)', () => {

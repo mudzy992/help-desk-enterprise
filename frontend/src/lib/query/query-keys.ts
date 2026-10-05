@@ -27,13 +27,16 @@ export const queryKeys = {
    * left open across midnight asks for the new day instead of keeping the
    * previous day's payload.
    */
-  dashboardSummary: (scope: string, dayKey: string) =>
-    ["dashboard", "summary", scope, dayKey] as const,
+  dashboardSummary: (dayKey: string) =>
+    ["dashboard", "summary", dayKey] as const,
   /**
    * The invalidation handle: React Query matches keys by prefix, so a realtime
    * event drops every day's entry without having to know which day is on screen.
    */
-  dashboardSummaryPrefix: (scope: string) => ["dashboard", "summary", scope] as const,
+  dashboardSummaryPrefix: ["dashboard", "summary"] as const,
+  /** Val 5, M7 B2: the routing preview of the create-ticket review step. */
+  ticketRoutingPreview: (serviceId: string, originUnitId: string) =>
+    ["tickets", "routing-preview", serviceId, originUnitId] as const,
   ticketLists: ["tickets", "list"] as const,
   ticketList: (query: unknown) => ["tickets", "list", query] as const,
   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,

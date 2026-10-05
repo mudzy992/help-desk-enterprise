@@ -148,7 +148,7 @@
         "smtp",
         "dodaci"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1606,7 +1606,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1383,
+      "wordCount": 1389,
       "source": "docs/user-guide/usmjeravanje-i-prioritet.md"
     },
     {

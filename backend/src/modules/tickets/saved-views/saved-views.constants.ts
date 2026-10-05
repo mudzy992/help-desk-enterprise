@@ -2,7 +2,6 @@ export const defaultTicketSavedViewsConfiguration = {
   enabled: true,
   maxPerUser: 20,
   allowDefaultView: true,
-  allowSharing: false,
 } as const;
 
 export const ticketSavedViewConstants = {

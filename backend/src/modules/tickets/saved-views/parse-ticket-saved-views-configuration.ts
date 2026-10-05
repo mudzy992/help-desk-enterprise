@@ -7,7 +7,6 @@ export function parseTicketSavedViewsConfiguration(input: {
   readonly enabled: unknown;
   readonly maxPerUser: unknown;
   readonly allowDefaultView: unknown;
-  readonly allowSharing: unknown;
 }): TicketSavedViewsConfiguration {
   if (input.addonEnabled !== true || input.enabled !== true) {
     return { ...defaultTicketSavedViewsConfiguration, enabled: false };
@@ -16,8 +15,7 @@ export function parseTicketSavedViewsConfiguration(input: {
     typeof input.maxPerUser !== 'number' ||
     !Number.isFinite(input.maxPerUser) ||
     input.maxPerUser <= 0 ||
-    typeof input.allowDefaultView !== 'boolean' ||
-    typeof input.allowSharing !== 'boolean'
+    typeof input.allowDefaultView !== 'boolean'
   ) {
     throw new TicketsError('SAVED_VIEWS_UNAVAILABLE');
   }
@@ -25,6 +23,5 @@ export function parseTicketSavedViewsConfiguration(input: {
     enabled: true,
     maxPerUser: Math.floor(input.maxPerUser),
     allowDefaultView: input.allowDefaultView,
-    allowSharing: false,
   };
 }

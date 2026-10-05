@@ -28,12 +28,4 @@ export const ticketSavedViewsSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: true,
   }),
-  definePrivateSetting({
-    key: settingKeys.privateTicketSavedViewsAllowSharing,
-    categoryId: settingCategoryIds.privateTicket,
-    valueType: 'boolean',
-    description: 'Allow sharing saved views; MVP keeps views personal',
-    isRequired: true,
-    defaultValue: false,
-  }),
 ];

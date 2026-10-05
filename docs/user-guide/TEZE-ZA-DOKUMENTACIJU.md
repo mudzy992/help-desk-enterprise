@@ -1106,8 +1106,8 @@ To je kriterij kompletnosti.
 - **Ekran:** **Tiketi** → meni sačuvanih pogleda (**Sačuvaj pogled**).
 - **Izvori:** `backend/src/modules/tickets/saved-views/saved-views.constants.ts:1–18`,
   `saved-views/tickets-saved-views.controller.ts:43–65`,
-  `saved-views/parse-ticket-saved-views-configuration.ts:15–29`.
-- **Status:** Važi (uz B3: `allowSharing` nema efekta)
+  `saved-views/parse-ticket-saved-views-configuration.ts:15–27`.
+- **Status:** Važi (B3 zatvoren 2026-10-05: uklonjena je neiskorištena postavka `allowSharing` — prikazi su lični)
 - **Wiki stranica:** Tiketi → Sačuvani pogledi
 
 ### T55 — Mjerenje vremena s automatskom pauzom i sweep-om

@@ -7,6 +7,8 @@ import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
+import { describeRoutingPreview } from "@/lib/tickets/describe-routing-preview";
+import { useTicketRoutingPreview } from "@/lib/tickets/use-ticket-routing-preview";
 import { lookupTicketPriority } from "@/lib/tickets/lookup-ticket-priority";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
@@ -39,6 +41,12 @@ export function CreateTicketReviewView({
 }: CreateTicketReviewViewProperties) {
   const { t } = useTranslation();
   const priority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
+  // Val 5, M7 B2: the routing card used to say only that the outcome is decided
+  // on submit; it now asks the same endpoint creation uses.
+  const routingPreview = useTicketRoutingPreview(draft.serviceId, draft.originUnitId);
+  const routingLines =
+    routingPreview.data === undefined ? [] : describeRoutingPreview(routingPreview.data);
+  const firstRoutingLine = routingLines[0];
   const formVersionLabel =
     activeForm === null ? "—" : t("tickets.detail.formVersionValue", { version: activeForm.version });
   return (
@@ -102,9 +110,29 @@ export function CreateTicketReviewView({
                 <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                   <GitBranch size={11} /> {t("tickets.createReviewRoutingTitle")}
                 </p>
-                <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-                  {t("tickets.createReviewRoutingPending")}
-                </p>
+                {routingPreview.isPending ? (
+                  <p className="mt-1.5 text-[12.5px] text-muted-foreground">
+                    {t("tickets.createReviewRoutingLoading")}
+                  </p>
+                ) : routingPreview.isError || firstRoutingLine === undefined ? (
+                  <p className="mt-1.5 text-[12.5px] text-muted-foreground">
+                    {t("tickets.createReviewRoutingPending")}
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-1.5 text-[12.5px] text-foreground/90">
+                      {ticketText(t, firstRoutingLine.key, firstRoutingLine.params)}
+                    </p>
+                    {routingLines.slice(1).map((line) => (
+                      <p
+                        key={line.key}
+                        className="mt-1 text-[11.5px] text-muted-foreground"
+                      >
+                        {ticketText(t, line.key, line.params)}
+                      </p>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           </div>

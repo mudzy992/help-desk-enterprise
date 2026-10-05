@@ -18,7 +18,7 @@ export type QueryKey = readonly unknown[];
  * The dashboard key carries a day, so the invalidation uses its prefix: an
  * event drops today's counters without having to know which day is on screen.
  */
-const QUERY_KEYS_DASHBOARD_SUMMARY = queryKeys.dashboardSummaryPrefix("all");
+const QUERY_KEYS_DASHBOARD_SUMMARY = queryKeys.dashboardSummaryPrefix;
 export function queryKeysForTicketEvent(input: {
   readonly eventName: string;
   readonly payload: unknown;
