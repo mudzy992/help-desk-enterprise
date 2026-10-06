@@ -80,7 +80,18 @@ test.describe('14 time tracking guard', () => {
     await expect(page.getByTestId('active-timer-indicator')).toHaveCount(0);
 
     // T7: manual entry on A.
-    const manualStart = new Date(Date.now() - 2 * 3600 * 1000);
+    //
+    // Run 2026-10-05 (specs=11,14,22,23,24): the switch part passed, but the
+    // manual entry never showed up in the list. Two causes are possible and both
+    // are handled here:
+    //   1. the read happened before the save round-trip finished (the "first row"
+    //      was already there from the switched timer) — hence `expect.poll` below;
+    //   2. `addManualTicketTimeLog` refuses an entry that overlaps existing work
+    //      (`TIME_LOG_OVERLAP`, `time-log-guards.ts`), and a timer left by an
+    //      earlier run is closed by `globalSetup` at *run start*, which can cover
+    //      a window two hours back. Three days back is inside the documented
+    //      `maxBackdateDays` default (7) and outside anything a run leaves today.
+    const manualStart = new Date(Date.now() - 3 * 24 * 3600 * 1000);
     manualStart.setSeconds(0, 0);
     await page.goto(`/tickets/${first.id}`);
     await page.getByTestId('tab-time').click();
@@ -89,8 +100,23 @@ test.describe('14 time tracking guard', () => {
     await page.getByTestId('time-manual-minutes').fill('30');
     await page.getByTestId('time-manual-note').fill('E2E: telefonska podrška');
     await page.getByTestId('time-manual-save').click();
-    await expect(page.getByTestId('time-log-row').first()).toBeVisible();
+    await expect(
+      page.getByTestId('time-log-row').filter({ hasText: 'E2E: telefonska podrška' }),
+    ).toBeVisible({ timeout: 15_000 });
     let logs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
+    await expect
+      .poll(
+        async () => {
+          logs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
+          return logs.find((log) => log.source === 'MANUAL')?.durationSeconds ?? null;
+        },
+        {
+          message:
+            'ručni unos (MANUAL) na tiketu A — ako nikad ne stigne, provjeri TIME_LOG_OVERLAP ' +
+            '(zaostali timer iz prethodnog runa) i da je manualEntryEnabled uključen u postavkama',
+        },
+      )
+      .toBe(1800);
     const manual = logs.find((log) => log.source === 'MANUAL');
     expect(manual?.durationSeconds).toBe(1800);
 

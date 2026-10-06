@@ -6342,3 +6342,32 @@ Svih šest padova je razvrstano i popravljeno; **nijedan nije regresija iz vala 
 - **Neprovjereno ostaje:** 12, 17, 20, 21, 26, 27 — u punom prolazu su **bili zeleni** (62 passed uključuje ih), pa se ne popravljaju; ako neki padne u sljedećem prolazu, ide u trijažu.
 - **`NEXT TRIAGE RUN` iz ovog prolaza:** `specs=11,14,22,23,24` — nakon popravki očekivano zeleno; 11 i 24 su bili flaky, pa ih vrijedi vidjeti s `retries=0`.
 
+# Val 5 — četvrti e2e prolaz: ciljani run poslije popravki (2026-10-05)
+
+Ciljani run (17 passed / 2 failed / 0 flaky / 0 skipped, 11,4 min) potvrdio je popravke iz trećeg prolaza:
+**spec 11 je zelen** (D-24 — flaky tvrdnja zamijenjena garancijom proizvoda), **spec 22 ×4 zelen** (D-22 — kontrast),
+**spec 24 zelen** (D-25). Ostala su dva nova pada, oba bez veze s tim popravkama.
+
+## 1. Nalazi
+
+| # | Nalaz | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-27** | Spec **14** pao na `expect(manual?.durationSeconds).toBe(1800)`, `Received: undefined` — prebacivanje timera je prošlo (D-23 radi), ali ručni unos nije bio u listi | Dva moguća uzroka, oba u specu: (1) **race** — `await expect(getByTestId('time-log-row').first()).toBeVisible()` u `tests/14:92` prolazi i prije spremanja, jer tiket A već ima red od prebačenog timera, a API se čita odmah; (2) **`TIME_LOG_OVERLAP`** — `findOverlappingTimeLog` (`backend/src/modules/tickets/time-tracking/time-log-guards.ts:30–38`) traži `startedAt < endedAt && (endedAt IS NULL \|\| endedAt > startedAt)`, a prozor od 2h unazad (`tests/14:83`) preklapa zaostali timer iz prethodnog runa koji `globalSetup` zatvori **na početku ovog runa** (segment dug satima) | Ručni unos nije bio pokriven nijednim zelenim prolazom; pad je izgledao kao greška mjerenja vremena | Prozor pomjeren na **3 dana** unazad (`tests/14:96`; unutar `maxBackdateDays` defaulta 7 — `settings/definitions/time-tracking-settings.ts:11`) i unos se čeka `expect.poll`-om uz poruku koja imenuje oba sumnjiva uzroka (`tests/14:99–115`); prvo se čeka red s tekstom bilješke, ne „prvi red“ | **SREDNJE** (e2e fikstura) |
+| **D-28** | Spec **23** pao s `Test timeout of 90000ms exceeded` — prvi put je stigao do kraja posla | Spec radi **4 axe skena** na teškim stranicama, drugi browser kontekst i **tri prijave** (admin, korisnik u novom kontekstu, „plain“ korisnik za 403) unutar globalnog limita od 90 s (`e2e/playwright.config.ts`); isti obrazac je u suiti već riješen lokalnim budžetom (`tests/20:95,183` — 180 s i 150 s) | Najveći spec u suiti nije mogao završiti na sporom runneru; nije bilo podatka **gdje** je vrijeme otišlo | `test.slow()` (3× → 270 s) i `phase()` markeri u log (`tests/23:33–45`) — sljedeći timeout sam kaže fazu | **SREDNJE** (budžet speca) |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Pravilo preklapanja (D-27) | `grep -n findOverlappingTimeLog -A 30 backend/.../time-log-guards.ts` | Uslov `startedAt: { lt: endedAt }` + `OR [{ endedAt: null }, { endedAt: { gt: startedAt } }]` — zaostali timer zatvoren na početku runa preklapa prozor od 2h; 3 dana unazad ne preklapa |
+| Prozor unutar pravila | `settings/definitions/time-tracking-settings.ts:11` (`maxBackdateDays.default = 7`), `correct-ticket-time-log.ts:223` | 3 dana < 7 → i unos i kasnija korekcija prolaze validaciju |
+| e2e | `cd e2e && npx tsc --noEmit -p tsconfig.json`; `npx playwright test --list` | **0 grešaka**; **71 test u 36 fajlova** |
+| Dokumentacija | `node scripts/check-docs-content.mjs`; `node scripts/check-client-neutral.mjs` | OK (29 stranica, 5 prevoda, 10 provjera); zeleno |
+
+## 3. Stanje pokrivenosti poslije četvrtog prolaza
+
+- **Zeleno i potvrđeno na živom stacku:** 10, 11, 15 ×3, 22 (12 testova), 24 — plus 62 testa iz trećeg prolaza.
+- **Popravljeno, čeka potvrdu:** 14 (D-27), 23 (D-28).
+- **Poznato ograničenje:** 18 — „pošalji test” se vidljivo preskače bez SMTP-a na stacku (D-26).
+- **Sljedeći korak:** merge, pa ciljani run `specs=14,23` s `retries=0`; ako je zelen, puni prolaz je formalna kapija.
+

@@ -132,6 +132,9 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - **Dialogs: click the button, not its position.** `ModalContent` renders the X close button *after* the footer
   (`frontend/src/components/ui/modal.tsx`), so `getByRole('button').last()` inside a dialog clicks **close**. Use
   `getByTestId('confirm-dialog-confirm')` (or `'confirm-dialog-cancel'`) — spec 14 failed on every run until it did.
+- **Heavy specs own their budget.** A spec that does several axe scans, opens a second browser context or signs in
+  more than twice calls `test.slow()` (3× the global 90 s) and logs `phase()` markers, so a timeout says *where* the
+  time went — spec 23 timed out at the global limit and specs 20/23 set their own budget.
 - **Narrow the run**: the `specs` input takes comma-separated spec numbers, e.g. `specs=10,18,22`, and runs only
   `e2e/tests/10-*.spec.ts`, `18-*` and `22-*` (global setup still runs, so accounts and the install are prepared).
   An unknown number fails the step with `Unknown spec` instead of quietly running everything. Use it to re-check a

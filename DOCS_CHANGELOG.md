@@ -164,6 +164,29 @@ svi OK; `e2e`: `tsc` 0, samotest summarizera 12/12, `--list` 71 test u 36 fajlov
 | `scripts/check-theme-contrast.mjs` | Nova provjera **D**: `text-muted-foreground` na `bg-muted/NN` (izmjereno 3,08:1 / 3,27:1) pada CI, uz uputu na `bg-surface` ili `text-foreground` | negativna kontrola: guard padne kad se stari par vrati, prolazi poslije ispravke |
 | `REVIEW_ANALIZA.md` | Nalazi D-22 … D-26, dokazi, stanje pokrivenosti | ova izmjena |
 
+### Četvrti e2e prolaz: ručni unos vremena i budžet teškog speca (D-27, D-28)
+
+**Zašto:** ciljani run (`specs=11,14,22,23,24`) dao je 17 passed / 2 failed. Potvrdio je popravke iz trećeg prolaza
+(11, 22 ×4 i 24 zeleni), a ostavio dva nova nalaza — oba u e2e sloju:
+
+- **D-27 (spec 14, `manual?.durationSeconds === undefined`)** — ručni unos nije bio u listi iz dva moguća razloga, oba
+  pokrivena: (1) čitanje je bilo odmah poslije spremanja, a „prvi red“ postoji i od prebačenog timera; (2) prozor od
+  **2h unazad** je mogao preklopiti zaostali timer iz prethodnog runa, koji `globalSetup` zatvori na početku ovog runa
+  (`findOverlappingTimeLog` u `time-log-guards.ts:30–38`). Unos se sada čeka `expect.poll`-om, a prozor je **3 dana**
+  unazad (unutar `maxBackdateDays` defaulta 7).
+- **D-28 (spec 23, `Test timeout of 90000ms exceeded`)** — najveći spec (4 axe skena, drugi kontekst, tri prijave) prvi
+  put je stigao do kraja posla i nije stao u globalnih 90 s. Uz `test.slow()` (270 s, kao što spec 20 već ima svoj
+  budžet) dodati su `phase()` markeri u log, pa sljedeći timeout kaže **gdje** je vrijeme otišlo.
+
+**Dokazi:** `cd e2e && npx tsc --noEmit -p tsconfig.json` → 0; `npx playwright test --list` → 71 test u 36 fajlova;
+`node scripts/check-docs-content.mjs` OK; `node scripts/check-client-neutral.mjs` zeleno.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `e2e/tests/14-time-tracking.spec.ts` | Prozor ručnog unosa 3 dana unazad; čeka se red s bilješkom i `expect.poll` na `MANUAL` unos | `backend/src/modules/tickets/time-tracking/time-log-guards.ts:30–38`, `settings/definitions/time-tracking-settings.ts:11` |
+| `e2e/tests/23-assets.spec.ts` | `test.slow()` + `phase()` markeri kroz faze speca | `e2e/playwright.config.ts` (90 s), `tests/20-privacy.spec.ts:95,183` (precedent) |
+| `REVIEW_ANALIZA.md` | Nalazi **D-27**, **D-28** i stanje pokrivenosti poslije četvrtog prolaza | ova izmjena |
+
 ### Ostaje otvoreno `[NEJASNO]`
 
 1. RAW upućuje na `.cursor/docs/04-install-wizard.md`; taj fajl ne postoji u repou (`.cursor/docs/` sadrži

@@ -31,13 +31,25 @@ async function setSetting(api: ApiClient, key: string, value: unknown): Promise<
  */
 test.describe('23 assets (CMDB)', () => {
   test('register → transfer record → My equipment → overview and report packs', async ({ page, browser }, testInfo) => {
+    // Run 2026-10-05 (`specs=11,14,22,23,24`): the spec reached the end of its work
+    // for the first time and hit the global 90 s timeout. It does four axe scans
+    // on heavy pages, a second browser context and three sign-ins — the same
+    // reason specs 20 sets its own budget. `test.slow()` triples the timeout to
+    // 270 s; the phase log below says where the time goes if it ever times out
+    // again (worker stdout lands in the job log).
+    test.slow();
+    const startedAt = Date.now();
+    const phase = (name: string) =>
+      console.log(`[23 assets] +${((Date.now() - startedAt) / 1000).toFixed(1)}s ${name}`);
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
+    phase('prijava admina');
     const previous = await readSetting(admin, cmdbKey);
     await setSetting(admin, cmdbKey, true);
     let assetId: string | null = null;
     try {
+      phase('addon uključen');
       const catalog = await admin.requestJson<Catalog>('/assets/catalog');
       const type = catalog.types.find((entry) => entry.archivedAt === null && entry.key === 'laptop') ?? catalog.types.find((entry) => entry.archivedAt === null);
       expect(type, 'seeded asset types').toBeTruthy();
@@ -67,6 +79,7 @@ test.describe('23 assets (CMDB)', () => {
         expect(document.headers.get('content-type') ?? '').toContain('officedocument.wordprocessingml');
       }
 
+      phase('imovina kreirana i prenesena');
       const packs = await admin.requestJson<Packs>('/reports/packs').catch(() => null);
       if (packs !== null) {
         expect(packs.packs.map((pack) => pack.key)).toEqual(expect.arrayContaining(['asset_inventory', 'asset_expiring']));
@@ -80,6 +93,7 @@ test.describe('23 assets (CMDB)', () => {
       await signIn(userPage, env.userEmail, env.userPassword);
       await userPage.goto('/my-assets');
       await expect(userPage.getByRole("heading", { name: `E2E laptop ${stamp}` })).toBeVisible({ timeout: 15_000 });
+      phase('korisnik vidi "Moja imovina"');
       await expectNoSeriousA11yViolations(userPage, 'my-assets', testInfo);
       await userContext.close();
 
@@ -89,17 +103,21 @@ test.describe('23 assets (CMDB)', () => {
       await expect(page.getByRole('tab', { name: /Pregled|Overview/ })).toBeVisible({ timeout: 15_000 });
       // Heading, not text: the table repeats the title as its (sr-only) caption.
       await expect(page.getByRole("heading", { name: /Oprema po statusu|Equipment by status/ })).toBeVisible();
+      phase('axe: pregled imovine');
       await expectNoSeriousA11yViolations(page, 'assets-overview', testInfo);
       await page.goto('/assets');
       await expect(page.getByRole('link', { name: `E2E-${stamp}` })).toBeVisible({ timeout: 15_000 });
       // "New asset" stays disabled until the catalog and options load; wait for it before axe.
       await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
+      phase('axe: registar imovine');
       await expectNoSeriousA11yViolations(page, 'assets-register', testInfo);
       await page.goto(`/assets/${created.id}`);
       await expect(page.getByText(`E2E laptop ${stamp}`).first()).toBeVisible();
+      phase('axe: detalj imovine');
       await expectNoSeriousA11yViolations(page, 'asset-detail', testInfo);
 
       // A plain user cannot read the register.
+      phase('korisnik odbijen (403)');
       const plain = new ApiClient();
       await plain.login(env.userEmail, env.userPassword);
       expect((await plain.request('/assets')).status).toBe(403);
