@@ -15,6 +15,8 @@
 
   `updatedAt` se izvodi iz zadnjeg commita nad izvornim fajlom (`git log -1 --format=%cs`). Ako git istorija
   nije dostupna (shallow klon), koristi se vrijednost iz postojećeg manifesta, a ako ni nje nema - `null`.
+  Datum je tačan samo ako se generator pokrene **poslije** commita stranice i u klonu s punom istorijom;
+  pošto to zavisi od okruženja, `check-docs-content.mjs` datume ne poreda kao kapiju (samo napomena).
 */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -123,7 +125,8 @@ function collectHeadings(body) {
  * nema istoriju: `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za
  * svaki fajl, pa bi `updatedAt` u manifestu bio pogrešan za sve stranice.
  * U tom slučaju datum se ne izmišlja — koristi se vrijednost iz postojećeg
- * manifesta (vidi `previousUpdatedAt`), a CI radi pun checkout.
+ * manifesta (vidi `previousUpdatedAt`). Datumi su prikazni metapodatak, ne
+ * kapija: `check-docs-content.mjs` ih poreda samo kao napomenu.
  */
 export function isShallowRepository() {
   try {
@@ -348,8 +351,9 @@ function main() {
 
   if (isShallow()) {
     console.warn(
-      'Upozorenje: plitak klon — `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg ' +
-        'manifesta. Prije commit-a ogledala pusti `git fetch --unshallow` (CI ima punu istoriju i poredi datume).',
+      'Napomena: plitak klon — `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg ' +
+        'manifesta. Kapija datume ne poreda; za tačne datume pusti `git fetch --unshallow` i generiši ' +
+        'ogledalo poslije commita stranica.',
     );
   }
 

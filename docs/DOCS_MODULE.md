@@ -106,13 +106,19 @@ Pravila:
 ### 3.3 `updatedAt` i `module` se ne pišu rukom
 
 `updatedAt` **nije** u frontmatteru izvora: generator ga izvodi iz gita (`git log -1 --format=%cs -- <fajl>`),
-pa se ne može zaboraviti ažurirati. Ako git istorija nije dostupna (plitki klon), `git log -1` vraća datum
-**vršnog** commita za svaki fajl — zato generator tada ne računa datum (`isShallowRepository`), nego zadržava
-vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje `null` i UI prikazuje „—“.
+pa se ne može zaboraviti ažurirati. Izvod je pouzdan samo kad su ispunjena **dva** uslova: klon ima punu
+istoriju i generator je pokrenut **poslije** commita stranice. Ako git istorija nije dostupna (plitki klon),
+`git log -1` vraća datum **vršnog** commita za svaki fajl — zato generator tada ne računa datum
+(`isShallowRepository`), nego zadržava vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje
+`null` i UI prikazuje „—“.
 
-Iz istog razloga `frontend` job u CI-ju radi **pun checkout** (`actions/checkout` sa `fetch-depth: 0`): u
-plitkom klonu bi provjera sinhronizacije padala bez stvarnog razloga. Kad provjera radi u plitkom klonu
-(ručno), ispiše napomenu `plitki klon: updatedAt ... (git fetch --unshallow)` i poredi sve osim datuma.
+Zato datumi **nisu kapija**: `check-docs-content.mjs` u manifestu poreda sve osim `updatedAt`
+(`sameManifestIgnoringDates`), a razliku u datumima prijavi kao napomenu i imenuje stranice koje kasne
+(`differingUpdatedAt`). Tako provjera ne zavisi od dubine klona ni od redoslijeda commitovanja — upravo je to
+2026-10-06 oborilo `frontend` job: ogledalo je generisano iz plitkog klona prije commita stranica, datumi su
+ostali stari, a CI (pun checkout) ih je poredio strogo. Za tačne datume: `git fetch --unshallow`, pa
+`node scripts/generate-docs-content.mjs` **poslije** commita stranica; u plitkom klonu generator pri
+generisanju ispiše napomenu `plitki klon: updatedAt ...`.
 
 ### 3.4 Pokrivenost stranica
 
@@ -332,8 +338,8 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
 
 1. **frontmatter** — sva obavezna polja, `slug` jedinstven i u `[a-z0-9-]`, `part` iz dozvoljene liste,
    `roles` samo poznate role, `order` broj;
-2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove; u plitkom klonu se `updatedAt`
-   u manifestu ne poredi (vidi §3.3);
+2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove; datumi `updatedAt` nisu dio
+   kapije, razlika se prijavljuje kao napomena (vidi §3.3);
 3. **veze** — svaki relativni markdown link unutar `docs/user-guide/**` pokazuje na postojeći fajl/anchor;
 4. **slike** — svaka referenca postoji i nije izvan `docs/user-guide/assets/`;
 5. **tajne** — obrasci iz §6;
@@ -435,14 +441,14 @@ baze: pomoć vodi na tačnu stranicu/anchor, nedavno posjećeno i feedback rade 
 | # | Rizik / pitanje | Plan |
 |---|---|---|
 | R1 | `backend/Dockerfile` mora kopirati `content/` u runtime stage — ako se zaboravi, modul u produkciji vraća 503 | integraciona tačka u koraku (b), provjera `test -d content/docs` u Dockerfile-u |
-| R2 | Shallow klon u CI-u ne daje `updatedAt` iz gita | fallback na postojeći manifest (§3.3) |
+| R2 | Plitki klon ne daje `updatedAt` iz gita | fallback na postojeći manifest (§3.3); datumi nisu kapija, nego napomena |
 | R3 | Slike u dokumentaciji: gdje ih držati (repo vs. uploads) | `docs/user-guide/assets/` + kopiranje u ogledalo; bez uploada kroz UI |
 | R4 | Mjesto stavke **Dokumentacija** u meniju (Pregled ili Administracija) | **zatvoreno**: dio **Pregled** (korak (c); stavka je dostupna svakom prijavljenom korisniku) |
 | R5 | Feedback: nova tabela ili postojeći audit zapis | **zatvoreno**: `localStorage`, bez nove tabele i bez identiteta korisnika (korak (d), §10) |
 | R6 | Razdvajanje vodiča koji služe dvjema publikama (`tiketi`, `imovina`) | radna odluka u §3.4; promjena samo ako se potvrdi drugačije |
 | R7 | Dužina stranica: `tiketi.md` i `baza-znanja.md` su veliki | **zadržano**: TOC + anchori su dovoljni; podjela na stranice nije rađena (nema dokaza da treba) |
 | R8 | 8 tematskih vodiča nema strukturu od 8 sekcija (nalaz N1) | odluka u koraku (a): poravnati u (b) ili `layout: topic` |
-| R9 | Shallow klon bez gita: `updatedAt` i sinhronizacija ogledala u CI-u | manifest kao izvor zadnje poznate vrijednosti; CI koristi puni checkout (ili `fetch-depth: 0`) |
+| R9 | Plitki klon bez gita: `updatedAt` i sinhronizacija ogledala u CI-u | manifest kao izvor zadnje poznate vrijednosti; datumi se ne poredaju kao kapija (§3.3), a `frontend` job ipak radi pun checkout (`fetch-depth: 0`) |
 
 ---
 

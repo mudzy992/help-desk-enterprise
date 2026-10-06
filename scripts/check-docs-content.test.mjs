@@ -5,6 +5,7 @@ import {
   auditDocsRoutes,
   auditWhatsNew,
   changelogEntryDates,
+  differingUpdatedAt,
   docsReferencesIn,
   sameManifestIgnoringDates,
   validateTranslation,
@@ -109,11 +110,11 @@ test("ogledalo prevodi samo veze na objavljene stranice", () => {
   );
 });
 
-// CI je crven od vala 3 (2026-10-05): `actions/checkout` je plitak klon, pa je
-// `git log -1` za svaki fajl vraćao datum vršnog commita — provjera
-// sinhronizacije je padala iako je ogledalo bilo tačno. U plitkom klonu se
-// `updatedAt` ne poredi, sve ostalo mora biti identično.
-test("u plitkom klonu se datumi u manifestu ne porede, ostalo mora", () => {
+// CI je bio crven od vala 3 (2026-10-05) i opet 2026-10-06: `updatedAt` u manifestu dolazi iz gita, pa
+// zavisi od dubine klona (plitak klon daje datum vršnog commita) i od trenutka generisanja (datum je tačan
+// samo ako je ogledalo generisano poslije commita stranice). Kapija zato datume ne poreda — prijavljuje ih
+// kao napomenu — a sve ostalo u manifestu mora biti identično.
+test("u manifestu se datumi ne porede, ostalo mora", () => {
   const manifest = (dates, title = "Početak rada") =>
     JSON.stringify({
       pages: [{ slug: "pocetak-rad", title, updatedAt: dates }],
@@ -127,6 +128,31 @@ test("u plitkom klonu se datumi u manifestu ne porede, ostalo mora", () => {
     false,
   );
   assert.equal(sameManifestIgnoringDates("nije json", manifest("2026-10-05")), false);
+});
+
+// Napomena mora imenovati stranice koje kasne, da se u CI izlazu vidi šta osvježiti u punom klonu.
+test("razlika u datumima se imenuje po stranicama", () => {
+  const manifest = (pages) => JSON.stringify({ pages });
+  const page = (slug, updatedAt) => ({ slug, title: slug, updatedAt });
+  assert.deepEqual(
+    differingUpdatedAt(
+      manifest([page("tiketi", "2026-10-04"), page("sla", "2026-10-05")]),
+      manifest([page("tiketi", "2026-10-05"), page("sla", "2026-10-05")]),
+    ),
+    ["tiketi"],
+  );
+  assert.deepEqual(
+    differingUpdatedAt(
+      manifest([page("tiketi", null)]),
+      manifest([page("tiketi", "2026-10-05")]),
+    ),
+    ["tiketi"],
+  );
+  assert.deepEqual(
+    differingUpdatedAt(manifest([page("tiketi", "2026-10-05")]), manifest([page("tiketi", "2026-10-05")])),
+    [],
+  );
+  assert.deepEqual(differingUpdatedAt("nije json", manifest([])), []);
 });
 
 // Val 5 (EN stranice): prevod je isti dokument na drugom jeziku, pa mora imati

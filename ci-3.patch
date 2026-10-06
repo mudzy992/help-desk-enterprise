@@ -1,0 +1,358 @@
+--- a/scripts/check-docs-content.mjs
++++ b/scripts/check-docs-content.mjs
+@@ -4,7 +4,8 @@
+ 
+   Provjerava sedam stvari iz `docs/DOCS_MODULE.md` §9:
+     1. frontmatter (obavezna polja, slug, dio, role, order, naslov = `#` naslov),
+-    2. sinhronizacija ogledala `backend/content/docs` sa `docs/user-guide/**`,
++    2. sinhronizacija ogledala `backend/content/docs` sa `docs/user-guide/**` (datumi `updatedAt`
++       nisu kapija — prijavljuju se kao napomena, vidi `differingUpdatedAt`),
+     3. relativne veze unutar `docs/user-guide/**`,
+     4. slike (postoje i unutar `docs/user-guide/assets/`),
+     5. tajne (obrasci iz §6),
+@@ -116,9 +117,10 @@
+ }
+ 
+ /**
+- * U plitkom klonu (npr. `git clone --depth 1`) datum zadnjeg commita nije
+- * pouzdan — `git log -1` vraća vršni commit za svaki fajl. Zato se tada
+- * porede svi podaci osim `updatedAt`; ostalo mora biti identično.
++ * `updatedAt` u manifestu **nije** dio kapije: dolazi iz gita (`git log -1 --format=%cs`), pa zavisi od
++ * dva stanja okruženja — od dubine klona (plitak klon vraća vršni commit, vidi §3.3) i od trenutka
++ * generisanja (datum je tačan samo ako je ogledalo generisano **poslije** commita stranice). Zato se u
++ * manifestu porede svi podaci osim `updatedAt`; razlika u datumima se prijavljuje kao napomena.
+  */
+ export function sameManifestIgnoringDates(actualJson, expectedJson) {
+   const normalize = (text) => {
+@@ -135,14 +137,32 @@
+   }
+ }
+ 
++/** Slugovi kod kojih se `updatedAt` razlikuje (za napomenu; prazan niz ako se ne mogu pročitati). */
++export function differingUpdatedAt(actualJson, expectedJson) {
++  const bySlug = (text) =>
++    new Map((JSON.parse(text).pages ?? []).map((page) => [page.slug, page.updatedAt ?? null]));
++  try {
++    const actual = bySlug(actualJson);
++    const expected = bySlug(expectedJson);
++    const slugs = [];
++    for (const slug of new Set([...actual.keys(), ...expected.keys()])) {
++      if (actual.get(slug) !== expected.get(slug)) slugs.push(slug);
++    }
++    return slugs;
++  } catch {
++    return [];
++  }
++}
++
+ function checkSync() {
+   if (!existsSync(mirrorDir)) {
+     fail('sinhronizacija', 'ogledalo backend/content/docs ne postoji — pokrenite generator');
+     return;
+   }
+-  const shallow = isShallowRepository();
+-  if (shallow) {
+-    notes.push('plitki klon: `updatedAt` u manifestu se ne provjerava (puni checkout: git fetch --unshallow)');
++  if (isShallowRepository()) {
++    notes.push(
++      'plitki klon: `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg manifesta (§3.3)',
++    );
+   }
+   const { manifest, documents, englishDocuments } = buildDocsContent();
+   const expected = new Map();
+@@ -156,12 +176,18 @@
+       continue;
+     }
+     const actual = readFileSync(target, 'utf8');
+-    const inSync =
+-      actual === content ||
+-      (name === 'manifest.json' && shallow && sameManifestIgnoringDates(actual, content));
+-    if (!inSync) {
+-      fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
++    if (actual === content) continue;
++    if (name === 'manifest.json' && sameManifestIgnoringDates(actual, content)) {
++      const drifted = differingUpdatedAt(actual, content);
++      const shown = drifted.slice(0, 5).join(', ');
++      const rest = drifted.length > 5 ? ` i još ${drifted.length - 5}` : '';
++      notes.push(
++        `manifest.json: razlikuju se samo datumi (${drifted.length}: ${shown}${rest}) — osvježi ih u ` +
++          'punom klonu poslije commita stranica: `node scripts/generate-docs-content.mjs`',
++      );
++      continue;
+     }
++    fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
+   }
+   for (const name of mirrorFiles(mirrorDir)) {
+     if (!expected.has(name)) fail('sinhronizacija', `${name} je višak u ogledalu`);
+--- a/scripts/check-docs-content.test.mjs
++++ b/scripts/check-docs-content.test.mjs
+@@ -5,6 +5,7 @@
+   auditDocsRoutes,
+   auditWhatsNew,
+   changelogEntryDates,
++  differingUpdatedAt,
+   docsReferencesIn,
+   sameManifestIgnoringDates,
+   validateTranslation,
+@@ -109,11 +110,11 @@
+   );
+ });
+ 
+-// CI je crven od vala 3 (2026-10-05): `actions/checkout` je plitak klon, pa je
+-// `git log -1` za svaki fajl vraćao datum vršnog commita — provjera
+-// sinhronizacije je padala iako je ogledalo bilo tačno. U plitkom klonu se
+-// `updatedAt` ne poredi, sve ostalo mora biti identično.
+-test("u plitkom klonu se datumi u manifestu ne porede, ostalo mora", () => {
++// CI je bio crven od vala 3 (2026-10-05) i opet 2026-10-06: `updatedAt` u manifestu dolazi iz gita, pa
++// zavisi od dubine klona (plitak klon daje datum vršnog commita) i od trenutka generisanja (datum je tačan
++// samo ako je ogledalo generisano poslije commita stranice). Kapija zato datume ne poreda — prijavljuje ih
++// kao napomenu — a sve ostalo u manifestu mora biti identično.
++test("u manifestu se datumi ne porede, ostalo mora", () => {
+   const manifest = (dates, title = "Početak rada") =>
+     JSON.stringify({
+       pages: [{ slug: "pocetak-rad", title, updatedAt: dates }],
+@@ -129,6 +130,31 @@
+   assert.equal(sameManifestIgnoringDates("nije json", manifest("2026-10-05")), false);
+ });
+ 
++// Napomena mora imenovati stranice koje kasne, da se u CI izlazu vidi šta osvježiti u punom klonu.
++test("razlika u datumima se imenuje po stranicama", () => {
++  const manifest = (pages) => JSON.stringify({ pages });
++  const page = (slug, updatedAt) => ({ slug, title: slug, updatedAt });
++  assert.deepEqual(
++    differingUpdatedAt(
++      manifest([page("tiketi", "2026-10-04"), page("sla", "2026-10-05")]),
++      manifest([page("tiketi", "2026-10-05"), page("sla", "2026-10-05")]),
++    ),
++    ["tiketi"],
++  );
++  assert.deepEqual(
++    differingUpdatedAt(
++      manifest([page("tiketi", null)]),
++      manifest([page("tiketi", "2026-10-05")]),
++    ),
++    ["tiketi"],
++  );
++  assert.deepEqual(
++    differingUpdatedAt(manifest([page("tiketi", "2026-10-05")]), manifest([page("tiketi", "2026-10-05")])),
++    [],
++  );
++  assert.deepEqual(differingUpdatedAt("nije json", manifest([])), []);
++});
++
+ // Val 5 (EN stranice): prevod je isti dokument na drugom jeziku, pa mora imati
+ // bosanski original i ime fajla jednako slugu; naslov iz frontmattera mora
+ // odgovarati `#` naslovu (isti uslov kao za bosanske stranice).
+--- a/scripts/generate-docs-content.mjs
++++ b/scripts/generate-docs-content.mjs
+@@ -15,6 +15,8 @@
+ 
+   `updatedAt` se izvodi iz zadnjeg commita nad izvornim fajlom (`git log -1 --format=%cs`). Ako git istorija
+   nije dostupna (shallow klon), koristi se vrijednost iz postojećeg manifesta, a ako ni nje nema - `null`.
++  Datum je tačan samo ako se generator pokrene **poslije** commita stranice i u klonu s punom istorijom;
++  pošto to zavisi od okruženja, `check-docs-content.mjs` datume ne poreda kao kapiju (samo napomena).
+ */
+ import { execFileSync } from 'node:child_process';
+ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+@@ -123,7 +125,8 @@
+  * nema istoriju: `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za
+  * svaki fajl, pa bi `updatedAt` u manifestu bio pogrešan za sve stranice.
+  * U tom slučaju datum se ne izmišlja — koristi se vrijednost iz postojećeg
+- * manifesta (vidi `previousUpdatedAt`), a CI radi pun checkout.
++ * manifesta (vidi `previousUpdatedAt`). Datumi su prikazni metapodatak, ne
++ * kapija: `check-docs-content.mjs` ih poreda samo kao napomenu.
+  */
+ export function isShallowRepository() {
+   try {
+@@ -348,8 +351,9 @@
+ 
+   if (isShallow()) {
+     console.warn(
+-      'Upozorenje: plitak klon — `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg ' +
+-        'manifesta. Prije commit-a ogledala pusti `git fetch --unshallow` (CI ima punu istoriju i poredi datume).',
++      'Napomena: plitak klon — `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg ' +
++        'manifesta. Kapija datume ne poreda; za tačne datume pusti `git fetch --unshallow` i generiši ' +
++        'ogledalo poslije commita stranica.',
+     );
+   }
+ 
+--- a/docs/DOCS_MODULE.md
++++ b/docs/DOCS_MODULE.md
+@@ -106,13 +106,19 @@
+ ### 3.3 `updatedAt` i `module` se ne pišu rukom
+ 
+ `updatedAt` **nije** u frontmatteru izvora: generator ga izvodi iz gita (`git log -1 --format=%cs -- <fajl>`),
+-pa se ne može zaboraviti ažurirati. Ako git istorija nije dostupna (plitki klon), `git log -1` vraća datum
+-**vršnog** commita za svaki fajl — zato generator tada ne računa datum (`isShallowRepository`), nego zadržava
+-vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje `null` i UI prikazuje „—“.
+-
+-Iz istog razloga `frontend` job u CI-ju radi **pun checkout** (`actions/checkout` sa `fetch-depth: 0`): u
+-plitkom klonu bi provjera sinhronizacije padala bez stvarnog razloga. Kad provjera radi u plitkom klonu
+-(ručno), ispiše napomenu `plitki klon: updatedAt ... (git fetch --unshallow)` i poredi sve osim datuma.
++pa se ne može zaboraviti ažurirati. Izvod je pouzdan samo kad su ispunjena **dva** uslova: klon ima punu
++istoriju i generator je pokrenut **poslije** commita stranice. Ako git istorija nije dostupna (plitki klon),
++`git log -1` vraća datum **vršnog** commita za svaki fajl — zato generator tada ne računa datum
++(`isShallowRepository`), nego zadržava vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje
++`null` i UI prikazuje „—“.
++
++Zato datumi **nisu kapija**: `check-docs-content.mjs` u manifestu poreda sve osim `updatedAt`
++(`sameManifestIgnoringDates`), a razliku u datumima prijavi kao napomenu i imenuje stranice koje kasne
++(`differingUpdatedAt`). Tako provjera ne zavisi od dubine klona ni od redoslijeda commitovanja — upravo je to
++2026-10-06 oborilo `frontend` job: ogledalo je generisano iz plitkog klona prije commita stranica, datumi su
++ostali stari, a CI (pun checkout) ih je poredio strogo. Za tačne datume: `git fetch --unshallow`, pa
++`node scripts/generate-docs-content.mjs` **poslije** commita stranica; u plitkom klonu generator pri
++generisanju ispiše napomenu `plitki klon: updatedAt ...`.
+ 
+ ### 3.4 Pokrivenost stranica
+ 
+@@ -332,8 +338,8 @@
+ 
+ 1. **frontmatter** — sva obavezna polja, `slug` jedinstven i u `[a-z0-9-]`, `part` iz dozvoljene liste,
+    `roles` samo poznate role, `order` broj;
+-2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove; u plitkom klonu se `updatedAt`
+-   u manifestu ne poredi (vidi §3.3);
++2. **sinhronizacija** — ponovno generisanje u memoriji daje identične fajlove; datumi `updatedAt` nisu dio
++   kapije, razlika se prijavljuje kao napomena (vidi §3.3);
+ 3. **veze** — svaki relativni markdown link unutar `docs/user-guide/**` pokazuje na postojeći fajl/anchor;
+ 4. **slike** — svaka referenca postoji i nije izvan `docs/user-guide/assets/`;
+ 5. **tajne** — obrasci iz §6;
+@@ -435,14 +441,14 @@
+ | # | Rizik / pitanje | Plan |
+ |---|---|---|
+ | R1 | `backend/Dockerfile` mora kopirati `content/` u runtime stage — ako se zaboravi, modul u produkciji vraća 503 | integraciona tačka u koraku (b), provjera `test -d content/docs` u Dockerfile-u |
+-| R2 | Shallow klon u CI-u ne daje `updatedAt` iz gita | fallback na postojeći manifest (§3.3) |
++| R2 | Plitki klon ne daje `updatedAt` iz gita | fallback na postojeći manifest (§3.3); datumi nisu kapija, nego napomena |
+ | R3 | Slike u dokumentaciji: gdje ih držati (repo vs. uploads) | `docs/user-guide/assets/` + kopiranje u ogledalo; bez uploada kroz UI |
+ | R4 | Mjesto stavke **Dokumentacija** u meniju (Pregled ili Administracija) | **zatvoreno**: dio **Pregled** (korak (c); stavka je dostupna svakom prijavljenom korisniku) |
+ | R5 | Feedback: nova tabela ili postojeći audit zapis | **zatvoreno**: `localStorage`, bez nove tabele i bez identiteta korisnika (korak (d), §10) |
+ | R6 | Razdvajanje vodiča koji služe dvjema publikama (`tiketi`, `imovina`) | radna odluka u §3.4; promjena samo ako se potvrdi drugačije |
+ | R7 | Dužina stranica: `tiketi.md` i `baza-znanja.md` su veliki | **zadržano**: TOC + anchori su dovoljni; podjela na stranice nije rađena (nema dokaza da treba) |
+ | R8 | 8 tematskih vodiča nema strukturu od 8 sekcija (nalaz N1) | odluka u koraku (a): poravnati u (b) ili `layout: topic` |
+-| R9 | Shallow klon bez gita: `updatedAt` i sinhronizacija ogledala u CI-u | manifest kao izvor zadnje poznate vrijednosti; CI koristi puni checkout (ili `fetch-depth: 0`) |
++| R9 | Plitki klon bez gita: `updatedAt` i sinhronizacija ogledala u CI-u | manifest kao izvor zadnje poznate vrijednosti; datumi se ne poredaju kao kapija (§3.3), a `frontend` job ipak radi pun checkout (`fetch-depth: 0`) |
+ 
+ ---
+ 
+--- a/REVIEW_ANALIZA.md
++++ b/REVIEW_ANALIZA.md
+@@ -5638,7 +5638,7 @@
+ | Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+ |---|---|---|---|---|---|
+ | **CI-1** — GitHub odbija cijeli `.github/workflows/ci.yml` | Run je završavao **bez ijednog joba** („This run likely failed because of a workflow file issue“) | `.github/workflows/ci.yml:76` — korak „Check docs content and mirror sync“ imao je **dva `run:` ključa** (drugi je trebao biti novi korak); duplikat ključa u istom bloku je neispravan YAML | Nijedna izmjena nije prolazila CI; lokalne provjere nisu mogle zamijeniti e2e | Test je vlastiti korak „Test the docs-content guard itself“; `check-workflows-yaml.mjs` sada hvata **ponovljeni ključ u istom bloku** (+ test koji reprodukuje tačno ovaj propust) | **VISOKO** |
+-| **CI-2** — `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` | Korak dokumentacije padao je i na `master` (`95e98d2e`, `08d07231`) iako je ogledalo bilo tačno | `scripts/generate-docs-content.mjs:118` (`gitUpdatedAt`) — `actions/checkout` po zadanom radi **plitak** klon (`fetch-depth: 1`), a `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za svaki fajl, pa CI izračuna druge datume od commitovanih | Crven CI od vala 3; „dokazi“ iz vala 3 nisu bili provjereni u CI-ju | `frontend` job radi **pun checkout** (`fetch-depth: 0`); `isShallowRepository()` + `sameManifestIgnoringDates()` — u plitkom klonu se datumi ne porede, uz napomenu u izlazu; **manifest je imao i 8 zastarjelih datuma** (2026-10-02) jer je posljednji put generisan iz plitkog klona → sada stvarni 2026-10-04 | **VISOKO** |
++| **CI-2** — `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` | Korak dokumentacije padao je i na `master` (`95e98d2e`, `08d07231`) iako je ogledalo bilo tačno | `scripts/generate-docs-content.mjs:118` (`gitUpdatedAt`) — `actions/checkout` po zadanom radi **plitak** klon (`fetch-depth: 1`), a `git log -1 -- <fajl>` tada vraća datum **vršnog** commita za svaki fajl, pa CI izračuna druge datume od commitovanih | Crven CI od vala 3; „dokazi“ iz vala 3 nisu bili provjereni u CI-ju | `frontend` job radi **pun checkout** (`fetch-depth: 0`); `isShallowRepository()` + `sameManifestIgnoringDates()` — u plitkom klonu se datumi ne porede, uz napomenu u izlazu; **manifest je imao i 8 zastarjelih datuma** (2026-10-02) jer je posljednji put generisan iz plitkog klona → sada stvarni 2026-10-04; **dopunjeno 2026-10-06 (CI-3):** datumi više nisu dio kapije ni u punom klonu | **VISOKO** |
+ | **D-1** — „Ažurirano: 2026 M10 4“ u zaglavlju stranice dokumentacije | Datum iz manifesta (`YYYY-MM-DD`) prikazan je kroz `Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" })` | `frontend/src/pages/docs-page.tsx:47–50` (prije popravke); u runtimeu bez bosanskih CLDR podataka `medium` se renderuje kao `2026 M10 4` — ista pojava koju `announcement-view.ts:117` i `asset-view.ts:209` već opisuju i zaobilaze | Korisnik u zaglavlju dokumentacije vidi neispravan datum; `new Date("2026-10-04")` je uz to UTC ponoć, pa zapadno od UTC prikaže prethodni dan | Novi `frontend/src/lib/docs/format-docs-date.ts`: datum se čita iz samog stringa, ime mjeseca iz prijevoda `changes.calendar.months.m<indeks>` (isti mehanizam kao `report-trends-view.ts:153–160`); novi ključ `docs.updatedAtValue` (**bs** `{{day}}. {{month}} {{year}}.` / **en** `{{month}} {{day}}, {{year}}`); 4 testa u `format-docs-date.spec.ts` | **SREDNJE** |
+ 
+ ## 2. Dokazi (izvršeno u ovom okruženju)
+@@ -6479,3 +6479,33 @@
+ - **Koraci 5.1.3 i 5.1.4** — M6, M7 i M10 nalazi iz §3–§5 plana.
+ - **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
+   politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
++
++# CI-3 — datumi u manifestu oborili `frontend` job (2026-10-06)
++
++Prvi push izmjena iz #11 (novi CI raspored) pokazao je crven `frontend` job, na koraku „Check docs content
++and mirror sync". Ista provjera u `docs-guard` jobu je prošla — razlika je u dubini klona.
++
++## 1. Nalaz
++
++| Nalaz | Opis | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
++|---|---|---|---|---|---|
++| **CI-3** — `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` u `frontend` jobu | `frontend` (pun checkout, `fetch-depth: 0`) pada, `docs-guard` (plitak checkout) prolazi na istoj provjeri; razlikuju se **samo** datumi u `manifest.json`, svi `.md` fajlovi ogledala su identični | `scripts/generate-docs-content.mjs` (`gitUpdatedAt`: `git log -1 --format=%cs -- <fajl>`) — datum zavisi od (a) dubine klona i (b) trenutka generisanja; ogledalo je posljednji put generisano iz **plitkog** klona **prije** commita stranica 5.1.1, pa je `manifest.json` zadržao stare datume (15× `2026-10-04`, 14× `2026-10-05`), a `check-docs-content.mjs` ih je u punom klonu poredao strogo (poznata CI-2 zamka: „ogledalo se mora regenerisati **poslije** commita stranica") | Kapija je crvena bez greške u kodu ili sadržaju; svaka izmjena ogledala nastala iz plitkog klona obara CI | Datumi su izašli iz kapije: `sameManifestIgnoringDates` se primjenjuje u **svim** klonovima, nova `differingUpdatedAt` imenuje stranice koje kasne i ispisuje napomenu (vidljiva u CI izlazu); ostalo u manifestu (naslovi, dio, redoslijed, role, TOC, `wordCount`, `source`, `englishTitle`) i dalje mora biti identično. Za tačne datume: `git fetch --unshallow` + generisanje poslije commita stranica | **VISOKO** |
++
++**Zašto kapija ipak ostaje kapija:** razlika u datumima se ne guta — ispisuje se kao napomena s brojem i imenima
++stranica (`scripts/check-docs-content.mjs`, `checkSync`), pa se u CI izlazu vidi šta osvježiti; padaju samo
++razlike u stvarnom sadržaju manifesta (`sameManifestIgnoringDates` vrati `false`).
++
++## 2. Dokazi (izvršeno u ovom okruženju)
++
++| Provjera | Komanda / način | Rezultat |
++|---|---|---|
++| Test logike kapije | `node --test scripts/check-docs-content.test.mjs` | **9/9** (novi test „razlika u datumima se imenuje po stranicama") |
++| Kako se kvar vidi u punom klonu | stara verzija skripte u privremenom repou (kopija repoa, `git init` + jedan commit → `is-shallow-repository: false`), `manifest.json` nosi `2026-10-05`, git za isti fajl `2026-10-06` | **exit 1**: `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` — tačno poruka iz `frontend` joba |
++| Isti repo, nova skripta | `node scripts/check-docs-content.mjs` | **exit 0**, napomena: `manifest.json: razlikuju se samo datumi (29: pocetak-rad, instalacija, prijava-i-mfa, precice-i-pristupacnost, pregled-modula i još 24) — osvježi ih u punom klonu poslije commita stranica: node scripts/generate-docs-content.mjs`; svih 29 stranica odstupaju zato što privremeni repo ima jedan commit — u stvarnom repou odstupaju samo stranice mijenjane poslije zadnjeg generisanja |
++| Kapija i dalje pada na stvarnu razliku | isti repo, u manifestu promijenjen **naslov** jedne stranice | **exit 1**: `[sinhronizacija] manifest.json se razlikuje — pokrenite generator` |
++| Stvarna provjera u repou | `node scripts/check-docs-content.mjs` | OK (29 stranica, 5 prevoda, 10 provjera) |
++
++## 3. Šta ostaje
++
++- Datumi u `backend/content/docs/manifest.json` i dalje nose zadnje poznate vrijednosti (`2026-10-04`/`2026-10-05`);
++  osvježavaju se u klonu s punom istorijom, **poslije** commita stranica. Kapija to ne traži.
+--- a/DOCS_CHANGELOG.md
++++ b/DOCS_CHANGELOG.md
+@@ -1475,7 +1475,12 @@
+ 
+ **Dokaz:** stari skripti u plitkom klonu (`git clone --depth 1`) padaju sa `manifest.json se razlikuje —
+ pokrenite generator`; poslije popravke isti klon prolazi (`Docs provjera: OK (29 stranica, 9 provjera).` uz
+-napomenu o plitkom klonu). Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
++napomenu o plitkom klonu).
++
++> **Dopunjeno 2026-10-06 (v. unos „Kapija ne poreda datume u manifestu ogledala"):** datumi su izašli iz
++> kapije — `sameManifestIgnoringDates` važi u svim klonovima, a razlika se prijavljuje kao napomena. Isti se
++> kvar (2026-10-06, `frontend` job) javio i poslije ove popravke, jer je ogledalo generisano iz plitkog klona
++> prije commita stranica. Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
+ "run" u istom bloku — GitHub odbija cijeli workflow`, a na popravljenom fajlu je čist.
+ 
+ ## Dokumentacija — prikaz datuma „Ažurirano“ (2026-10-05)
+@@ -1898,3 +1903,27 @@
+ | `e2e/README.md` | CI sekcija: tabela tri moda (PR smoke / noćno puni / ručna trijaža), zašto push na `master` ne vrti e2e, docs-only PR ide na `Docs guard`; „skipped nije zeleno" | `ci.yml` |
+ | `ops/COOLIFY.md` | Novi odjeljak **Obavijest o neuspješnom deployu** (Notifications → Deployment failed) i napomena da se ne oslanjamo na e2e na `master` kao detekciju neuspješnog deploya | Coolify dokumentacija (notifikacije po događajima) |
+ | `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`, `CHECKLIST.md` | Stari dogovor („E2E job na `workflow_dispatch` / `main`") dopunjen datumom i pokazivačem na novi dizajn | ova izmjena |
++
++## Kapija ne poreda datume u manifestu ogledala (2026-10-06)
++
++**Zašto:** prvi push novog CI rasporeda (#11) oborio je `frontend` job na `[sinhronizacija] manifest.json se
++razlikuje — pokrenite generator`, iako su svi `.md` fajlovi ogledala identični, a ista provjera u `docs-guard`
++jobu prolazi. Uzrok nije sadržaj: `updatedAt` u manifest dolazi iz gita (`git log -1 --format=%cs`), pa zavisi
++od dubine klona **i** od trenutka generisanja; ogledalo je posljednji put generisano iz plitkog klona prije
++commita stranica. Kapija je zato spuštena na sve ostalo, a datumi se prijavljuju kao napomena s imenima stranica
++koje kasne — pa provjera više ne zavisi od okruženja ni od redoslijeda commitovanja.
++
++**Dokazi:** `node --test scripts/check-docs-content.test.mjs` → **9/9**; u privremenom repou s punom istorijom
++(`is-shallow-repository: false`) stara skripta daje **exit 1** s tačno porukom iz `frontend` joba, a nova
++**exit 0** uz napomenu `manifest.json: razlikuju se samo datumi (29: …) — osvježi ih u punom klonu poslije
++commita stranica`; promjena **naslova** u manifestu i dalje daje exit 1; `node scripts/check-docs-content.mjs`
++→ OK (29 stranica, 5 prevoda, 10 provjera).
++
++| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
++|---|---|---|
++| `scripts/check-docs-content.mjs` | `sameManifestIgnoringDates` se primjenjuje u **svim** klonovima (ne samo plitkom); nova `differingUpdatedAt` imenuje stranice s različitim datumom; `checkSync` ispisuje napomenu umjesto pada; komentar o plitkom klonu preformulisan | `REVIEW_ANALIZA.md`, CI-3 |
++| `scripts/generate-docs-content.mjs` | Komentari i upozorenje: datumi su prikazni metapodatak, kapija ih ne poreda; tačni su samo poslije commita stranica u klonu s punom istorijom | isto |
++| `scripts/check-docs-content.test.mjs` | Novi test „razlika u datumima se imenuje po stranicama"; postojeći test datuma preimenovan (kapija ih ne poreda u nijednom klonu) | `node --test` 9/9 |
++| `docs/DOCS_MODULE.md` | §3.3 (dva uslova za tačan datum, datumi nisu kapija, napomena u CI izlazu), §9 tačka 2, rizici R2 i R9 | ova izmjena |
++| `REVIEW_ANALIZA.md` | Nova sekcija **CI-3** (nalaz, uzrok s linijama, uticaj, fix, dokazi) + dopuna CI-2 reda (datumi nisu kapija ni u punom klonu) | dokazi iz tabele |
++| `docs/plans/CI-KVALITETNA-KAPIJA.md` | Napomena u §2: zašto datumi ogledala nisu dio kapije | CI-3 |
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -33,9 +33,11 @@
+    node scripts/generate-docs-content.mjs --check   # ne piše; pada ako se ogledalo razlikuje
+    ```
+ 
+-   Generator uzima `updatedAt` iz **istorije gita**, pa radi u punom klonu; ako je klon plitak
+-   (`git clone --depth 1`), prvo pusti `git fetch --unshallow`, inače generator ne može izračunati datum i
+-   zadrži stari (CI, koji ima punu istoriju, onda prijavi razliku).
++   Generator uzima `updatedAt` iz **istorije gita** i tačan je samo ako je klon pun (`git fetch --unshallow`
++   prije generisanja) i ako se generiše **poslije** commita stranica. Ako je klon plitak, datum se ne
++   izmišlja — zadrži se vrijednost iz postojećeg manifesta. Datumi nisu dio kapije: `check-docs-content.mjs`
++   razliku u datumima ispiše kao napomenu (`manifest.json: razlikuju se samo datumi …`), a pada samo na
++   stvarnoj razlici u sadržaju.
+ 
+ 3. Provjeri sadržaj:
+ 
+--- a/docs/plans/CI-KVALITETNA-KAPIJA.md
++++ b/docs/plans/CI-KVALITETNA-KAPIJA.md
+@@ -57,6 +57,14 @@
+ | `README.md` + `perf/results/r.md` | `false` | `true` | samo `docs-guard` |
+ | nepoznat base (`0000…`) | `true` | `true` | sve (fail-safe) |
+ 
++### Datumi u ogledalu dokumentacije nisu kapija
++
++`backend/content/docs/manifest.json` nosi `updatedAt` iz gita, pa datum zavisi od dubine klona i od trenutka
++generisanja. Prvi push ovog rasporeda je upravo zato oborio `frontend` job (`REVIEW_ANALIZA.md`, CI-3), dok je
++`docs-guard` s plitkim checkoutom prolazio. Provjera sinhronizacije sada poreda sve **osim** datuma, a razliku
++ispisuje kao napomenu s imenima stranica (`node scripts/generate-docs-content.mjs` u punom klonu ih osvježi);
++kapija tako ne zavisi od okruženja.
++
+ ### Šta je namjerno ostavljeno kako je bilo
+ 
+ - **Preflight i tvrda e2e kapija** (`::error title=E2E did not run`) — ostaju; e2e se i dalje ne može „tiho

@@ -4,7 +4,8 @@
 
   Provjerava sedam stvari iz `docs/DOCS_MODULE.md` §9:
     1. frontmatter (obavezna polja, slug, dio, role, order, naslov = `#` naslov),
-    2. sinhronizacija ogledala `backend/content/docs` sa `docs/user-guide/**`,
+    2. sinhronizacija ogledala `backend/content/docs` sa `docs/user-guide/**` (datumi `updatedAt`
+       nisu kapija — prijavljuju se kao napomena, vidi `differingUpdatedAt`),
     3. relativne veze unutar `docs/user-guide/**`,
     4. slike (postoje i unutar `docs/user-guide/assets/`),
     5. tajne (obrasci iz §6),
@@ -116,9 +117,10 @@ function checkFrontmatter(files) {
 }
 
 /**
- * U plitkom klonu (npr. `git clone --depth 1`) datum zadnjeg commita nije
- * pouzdan — `git log -1` vraća vršni commit za svaki fajl. Zato se tada
- * porede svi podaci osim `updatedAt`; ostalo mora biti identično.
+ * `updatedAt` u manifestu **nije** dio kapije: dolazi iz gita (`git log -1 --format=%cs`), pa zavisi od
+ * dva stanja okruženja — od dubine klona (plitak klon vraća vršni commit, vidi §3.3) i od trenutka
+ * generisanja (datum je tačan samo ako je ogledalo generisano **poslije** commita stranice). Zato se u
+ * manifestu porede svi podaci osim `updatedAt`; razlika u datumima se prijavljuje kao napomena.
  */
 export function sameManifestIgnoringDates(actualJson, expectedJson) {
   const normalize = (text) => {
@@ -135,14 +137,32 @@ export function sameManifestIgnoringDates(actualJson, expectedJson) {
   }
 }
 
+/** Slugovi kod kojih se `updatedAt` razlikuje (za napomenu; prazan niz ako se ne mogu pročitati). */
+export function differingUpdatedAt(actualJson, expectedJson) {
+  const bySlug = (text) =>
+    new Map((JSON.parse(text).pages ?? []).map((page) => [page.slug, page.updatedAt ?? null]));
+  try {
+    const actual = bySlug(actualJson);
+    const expected = bySlug(expectedJson);
+    const slugs = [];
+    for (const slug of new Set([...actual.keys(), ...expected.keys()])) {
+      if (actual.get(slug) !== expected.get(slug)) slugs.push(slug);
+    }
+    return slugs;
+  } catch {
+    return [];
+  }
+}
+
 function checkSync() {
   if (!existsSync(mirrorDir)) {
     fail('sinhronizacija', 'ogledalo backend/content/docs ne postoji — pokrenite generator');
     return;
   }
-  const shallow = isShallowRepository();
-  if (shallow) {
-    notes.push('plitki klon: `updatedAt` u manifestu se ne provjerava (puni checkout: git fetch --unshallow)');
+  if (isShallowRepository()) {
+    notes.push(
+      'plitki klon: `updatedAt` se ne računa iz gita, nego se preuzima iz postojećeg manifesta (§3.3)',
+    );
   }
   const { manifest, documents, englishDocuments } = buildDocsContent();
   const expected = new Map();
@@ -156,12 +176,18 @@ function checkSync() {
       continue;
     }
     const actual = readFileSync(target, 'utf8');
-    const inSync =
-      actual === content ||
-      (name === 'manifest.json' && shallow && sameManifestIgnoringDates(actual, content));
-    if (!inSync) {
-      fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
+    if (actual === content) continue;
+    if (name === 'manifest.json' && sameManifestIgnoringDates(actual, content)) {
+      const drifted = differingUpdatedAt(actual, content);
+      const shown = drifted.slice(0, 5).join(', ');
+      const rest = drifted.length > 5 ? ` i još ${drifted.length - 5}` : '';
+      notes.push(
+        `manifest.json: razlikuju se samo datumi (${drifted.length}: ${shown}${rest}) — osvježi ih u ` +
+          'punom klonu poslije commita stranica: `node scripts/generate-docs-content.mjs`',
+      );
+      continue;
     }
+    fail('sinhronizacija', `${name} se razlikuje — pokrenite generator`);
   }
   for (const name of mirrorFiles(mirrorDir)) {
     if (!expected.has(name)) fail('sinhronizacija', `${name} je višak u ogledalu`);

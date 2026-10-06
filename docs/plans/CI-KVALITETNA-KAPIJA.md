@@ -57,6 +57,14 @@ plitka istorija), job se **fail-safe** ponaša: `code=true, docs=true` i vrti se
 | `README.md` + `perf/results/r.md` | `false` | `true` | samo `docs-guard` |
 | nepoznat base (`0000…`) | `true` | `true` | sve (fail-safe) |
 
+### Datumi u ogledalu dokumentacije nisu kapija
+
+`backend/content/docs/manifest.json` nosi `updatedAt` iz gita, pa datum zavisi od dubine klona i od trenutka
+generisanja. Prvi push ovog rasporeda je upravo zato oborio `frontend` job (`REVIEW_ANALIZA.md`, CI-3), dok je
+`docs-guard` s plitkim checkoutom prolazio. Provjera sinhronizacije sada poreda sve **osim** datuma, a razliku
+ispisuje kao napomenu s imenima stranica (`node scripts/generate-docs-content.mjs` u punom klonu ih osvježi);
+kapija tako ne zavisi od okruženja.
+
 ### Šta je namjerno ostavljeno kako je bilo
 
 - **Preflight i tvrda e2e kapija** (`::error title=E2E did not run`) — ostaju; e2e se i dalje ne može „tiho

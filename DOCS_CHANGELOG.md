@@ -1475,7 +1475,12 @@ u commitovanom manifestu. Lokalno (pun klon) provjera je prolazila, u CI-ju nije
 
 **Dokaz:** stari skripti u plitkom klonu (`git clone --depth 1`) padaju sa `manifest.json se razlikuje —
 pokrenite generator`; poslije popravke isti klon prolazi (`Docs provjera: OK (29 stranica, 9 provjera).` uz
-napomenu o plitkom klonu). Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
+napomenu o plitkom klonu).
+
+> **Dopunjeno 2026-10-06 (v. unos „Kapija ne poreda datume u manifestu ogledala"):** datumi su izašli iz
+> kapije — `sameManifestIgnoringDates` važi u svim klonovima, a razlika se prijavljuje kao napomena. Isti se
+> kvar (2026-10-06, `frontend` job) javio i poslije ove popravke, jer je ogledalo generisano iz plitkog klona
+> prije commita stranica. Novi guard na starom `ci.yml` vraća `.github/workflows/ci.yml:76 ponovljeni ključ
 "run" u istom bloku — GitHub odbija cijeli workflow`, a na popravljenom fajlu je čist.
 
 ## Dokumentacija — prikaz datuma „Ažurirano“ (2026-10-05)
@@ -1898,3 +1903,27 @@ provjerena kroz 5 ishoda (`skipped` prolazi, `failure`/`cancelled` padaju).
 | `e2e/README.md` | CI sekcija: tabela tri moda (PR smoke / noćno puni / ručna trijaža), zašto push na `master` ne vrti e2e, docs-only PR ide na `Docs guard`; „skipped nije zeleno" | `ci.yml` |
 | `ops/COOLIFY.md` | Novi odjeljak **Obavijest o neuspješnom deployu** (Notifications → Deployment failed) i napomena da se ne oslanjamo na e2e na `master` kao detekciju neuspješnog deploya | Coolify dokumentacija (notifikacije po događajima) |
 | `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`, `CHECKLIST.md` | Stari dogovor („E2E job na `workflow_dispatch` / `main`") dopunjen datumom i pokazivačem na novi dizajn | ova izmjena |
+
+## Kapija ne poreda datume u manifestu ogledala (2026-10-06)
+
+**Zašto:** prvi push novog CI rasporeda (#11) oborio je `frontend` job na `[sinhronizacija] manifest.json se
+razlikuje — pokrenite generator`, iako su svi `.md` fajlovi ogledala identični, a ista provjera u `docs-guard`
+jobu prolazi. Uzrok nije sadržaj: `updatedAt` u manifest dolazi iz gita (`git log -1 --format=%cs`), pa zavisi
+od dubine klona **i** od trenutka generisanja; ogledalo je posljednji put generisano iz plitkog klona prije
+commita stranica. Kapija je zato spuštena na sve ostalo, a datumi se prijavljuju kao napomena s imenima stranica
+koje kasne — pa provjera više ne zavisi od okruženja ni od redoslijeda commitovanja.
+
+**Dokazi:** `node --test scripts/check-docs-content.test.mjs` → **9/9**; u privremenom repou s punom istorijom
+(`is-shallow-repository: false`) stara skripta daje **exit 1** s tačno porukom iz `frontend` joba, a nova
+**exit 0** uz napomenu `manifest.json: razlikuju se samo datumi (29: …) — osvježi ih u punom klonu poslije
+commita stranica`; promjena **naslova** u manifestu i dalje daje exit 1; `node scripts/check-docs-content.mjs`
+→ OK (29 stranica, 5 prevoda, 10 provjera).
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `scripts/check-docs-content.mjs` | `sameManifestIgnoringDates` se primjenjuje u **svim** klonovima (ne samo plitkom); nova `differingUpdatedAt` imenuje stranice s različitim datumom; `checkSync` ispisuje napomenu umjesto pada; komentar o plitkom klonu preformulisan | `REVIEW_ANALIZA.md`, CI-3 |
+| `scripts/generate-docs-content.mjs` | Komentari i upozorenje: datumi su prikazni metapodatak, kapija ih ne poreda; tačni su samo poslije commita stranica u klonu s punom istorijom | isto |
+| `scripts/check-docs-content.test.mjs` | Novi test „razlika u datumima se imenuje po stranicama"; postojeći test datuma preimenovan (kapija ih ne poreda u nijednom klonu) | `node --test` 9/9 |
+| `docs/DOCS_MODULE.md` | §3.3 (dva uslova za tačan datum, datumi nisu kapija, napomena u CI izlazu), §9 tačka 2, rizici R2 i R9 | ova izmjena |
+| `REVIEW_ANALIZA.md` | Nova sekcija **CI-3** (nalaz, uzrok s linijama, uticaj, fix, dokazi) + dopuna CI-2 reda (datumi nisu kapija ni u punom klonu) | dokazi iz tabele |
+| `docs/plans/CI-KVALITETNA-KAPIJA.md` | Napomena u §2: zašto datumi ogledala nisu dio kapije | CI-3 |

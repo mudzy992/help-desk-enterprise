@@ -33,9 +33,11 @@ Redoslijed:
    node scripts/generate-docs-content.mjs --check   # ne piše; pada ako se ogledalo razlikuje
    ```
 
-   Generator uzima `updatedAt` iz **istorije gita**, pa radi u punom klonu; ako je klon plitak
-   (`git clone --depth 1`), prvo pusti `git fetch --unshallow`, inače generator ne može izračunati datum i
-   zadrži stari (CI, koji ima punu istoriju, onda prijavi razliku).
+   Generator uzima `updatedAt` iz **istorije gita** i tačan je samo ako je klon pun (`git fetch --unshallow`
+   prije generisanja) i ako se generiše **poslije** commita stranica. Ako je klon plitak, datum se ne
+   izmišlja — zadrži se vrijednost iz postojećeg manifesta. Datumi nisu dio kapije: `check-docs-content.mjs`
+   razliku u datumima ispiše kao napomenu (`manifest.json: razlikuju se samo datumi …`), a pada samo na
+   stvarnoj razlici u sadržaju.
 
 3. Provjeri sadržaj:
 
