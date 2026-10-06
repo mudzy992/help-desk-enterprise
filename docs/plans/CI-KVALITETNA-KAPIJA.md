@@ -97,19 +97,26 @@ Agentova GitHub integracija **nema** dozvolu za zaštitu grana (`gh api …/bran
 (0 approvals), ✅ *Require status checks to pass* → dodati **`CI gate`**, ✅ *Require branches to be up to date*,
 i **isključeno** *Include administrators* (da `git push origin master` iz ff-merge toka i dalje radi).
 
-Isto kroz API (JSON u fajl zbog ugniježđenih polja):
+Isto kroz API — jedan red, JSON ide na stdin (radi i u Git Bash na Windowsu; `gh api … --input -` čita sa
+standardnog ulaza, pa nema privremenog fajla ni problema s `/tmp` putanjom):
 
 ```bash
-cat > /tmp/protection.json <<'JSON'
-{
-  "required_status_checks": { "strict": true, "contexts": ["CI gate"] },
-  "enforce_admins": false,
-  "required_pull_request_reviews": { "required_approving_review_count": 0 },
-  "restrictions": null
-}
-JSON
-gh api -X PUT repos/mudzy992/help-desk-enterprise/branches/master/protection --input /tmp/protection.json
+echo '{"required_status_checks":{"strict":true,"contexts":["CI gate"]},"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0},"restrictions":null}' | gh api -X PUT repos/mudzy992/help-desk-enterprise/branches/master/protection --input -
 ```
+
+Provjera da je zaštita zaista postavljena:
+
+```bash
+gh api repos/mudzy992/help-desk-enterprise/branches/master/protection --jq '{checks: .required_status_checks.contexts, strict: .required_status_checks.strict, admins: .enforce_admins.enabled, approvals: .required_pull_request_reviews.required_approving_review_count}'
+```
+
+Ako i vlasnik dobije `403`/`404`, njegov `gh` token nema pravo administracije repoa: `gh auth status`, pa
+`gh auth refresh -h github.com -s repo` (klasičan token), odnosno fine-grained token s dozvolom
+*Administration: read and write*. UI put (`Settings → Branches`) ne traži nikakav token i uvijek je rezerva.
+
+> Napomena o `gh api` sintaksi: komanda prima **jedan** argument (putanju). Ako se u terminal zalijepi cijeli
+> red iz bilješke — uključujući opis i strelicu — shell ga razbije na više riječi i `gh` javi
+> `accepts 1 arg(s), received 8`; to nije greška u zaštiti nego u nalijepljenoj komandi.
 
 > `enforce_admins: false` je namjerno: vlasnik i dalje smije direktno gurnuti `master` (npr. ff-merge u nuzdi),
 > ali PR-ovi prolaze kroz kapiju. Ako se to ikad poželi zabraniti, postavi `true` — tada svaki put na `master`
