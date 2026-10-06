@@ -136,10 +136,22 @@ test.describe('02 routing / fallback', () => {
       `/routing/coverage?${excludedDraftQuery.toString()}`,
     );
     expect(includedDraft.total).toBe(1);
-    expect(includedDraft.items).toHaveLength(1);
-    expect(includedDraft.items[0]).toMatchObject({
-      serviceId: draft.id,
-      serviceLifecycle: 'DRAFT',
-    });
+    const expectedDraftOrigins = pageOne.items
+      .map((item) => item.originUnitId)
+      .sort();
+    const includedDraftOrigins = includedDraft.items
+      .map((item) => item.originUnitId)
+      .sort();
+    expect(includedDraft.items).toHaveLength(pageOne.items.length);
+    expect(
+      includedDraftOrigins,
+      `included DRAFT service ${draft.id} should contain every origin row`,
+    ).toEqual(expectedDraftOrigins);
+    expect(
+      includedDraft.items.every(
+        (item) =>
+          item.serviceId === draft.id && item.serviceLifecycle === 'DRAFT',
+      ),
+    ).toBe(true);
   });
 });
