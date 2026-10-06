@@ -6542,7 +6542,7 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
   `originUnitId` u D1/D3 zahtjevima; `b86f563` sada čita korijenski OJ i šalje ID u oba zahtjeva.
   Korisnik je izvršio `PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --reporter=list,json`
   i `node scripts/summarize-playwright-json.mjs results.json`; sažetak: **5 passed, 0 failed, 0 flaky, 0 skipped**.
-- **Korak 5.1.4 — M7 B1, M7 B4 i M10 B3: implementiran.** Ciljane lokalne backend/frontend provjere su zabilježene u §5.1.4 ispod; serverski E2E runtime za ovaj korak još je release gate i čeka korisnikov server run + `results.json`.
+- **Korak 5.1.4 — M7 B1, M7 B4 i M10 B3: zatvoren 2026-10-06.** Ciljane backend/frontend provjere i GitHub CI su prošli; korisnikov serverski E2E run za specove 02/07/15 prošao je **8/8** (0 failed/flaky/skipped; 6,6 min), pa je runtime release gate zatvoren. Sažetak je prikazan iz `results.json`; sirovi JSON i SHA serverskog checkouta nisu priloženi.
 - Kapija punog browser E2E prolaza za 5.1.3 je zatvorena. Za budući server E2E, ako `E2E_SUPERADMIN_PASSWORD`
   ne prolazi novu politiku, `POST /install/super-admin` vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
 
@@ -6669,8 +6669,10 @@ flag uz `formsEnabled`.
 # Paket 5.1 — korak 5.1.4: M7 B1/B4, M10 B3 — rutanje, unrouted queue i SLA compliance (2026-10-06)
 
 Ovaj korak implementira dizajn već odobren u `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md` §3.5.
-E2E specifikacije su proširene za server run, ali runtime na ciljanom serveru **nije izvršen u ovom checkoutu**;
-korisnikov merge/server run ostaje release gate. Ne tvrdimo da je e2e prošao.
+**Zatvoren 2026-10-06:** GitHub CI run [#37528194253](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37528194253)
+na `master`/`8e3c83b` prošao je backend, frontend, docs i CI gate (E2E job je preskočen po dogovoru).
+Korisnikov serverski run 02/07/15 prošao je **8/8** testova, 0 failed/flaky/skipped, za 6,6 min; dostavljeni izlaz
+je sažetak koji je pročitao `results.json`. Sirovi JSON i SHA serverskog checkouta nisu bili priloženi.
 
 ## 1. Šta je urađeno
 
@@ -6688,9 +6690,9 @@ korisnikov merge/server run ostaje release gate. Ne tvrdimo da je e2e prošao.
 | Backend ciljano | `cd backend && npx jest --config=/tmp/arena-5.1.4-jest.config.cjs --runInBand --runTestsByPath` nad 10 ciljanih fajlova; `routing.coverage.spec.ts` dodatno šalje `take: 100` i potvrđuje da stranica sadrži najviše 50 usluga | **10/10 suita, 46/46 testova ✅**. Privremeni config ima `diagnostics:false`, jer generated Prisma client nije dostupan; rezultat nije backend typecheck ni puni Jest suite. |
 | Frontend build | `cd frontend && npm run build` | **Exit 0:** `tsc -b && vite build`; samo Vite upozorenje za chunk veći od 500 kB. |
 | Frontend ciljani Vitest | `cd frontend && npm test -- src/lib/tickets/inbox-view-tabs.spec.ts src/lib/tickets/ticket-list-search-params.spec.ts src/lib/tickets/count-sidebar-ticket-badges.spec.ts src/components/routing/build-routing-coverage-matrix.spec.ts src/lib/services/catalog-coverage-note.spec.ts` | **5 fajlova, 19/19 testova ✅**. |
-| E2E statička provjera | Nakon ove iteracije: `cd e2e && npx tsc --noEmit -p tsconfig.json && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts --list`; `git diff --check` iz korijena repozitorija. | **Exit 0**, TypeScript prolazi i Playwright enumeriše **3 testa u 2 fajla**. Ovo nije browser/server runtime. |
-| Prisma generate/backend build | `cd backend && npm run db:generate` (dummy `DATABASE_URL` samo za CLI env) | **Blokirano:** Prisma CLI ne može preuzeti schema-engine binary zbog TLS prekida prema `binaries.prisma.sh`; generated client/build/typecheck nisu potvrđeni. |
-| E2E runtime | Korisnikov prethodni serverski run prijavio je tri greške: 02 naslov tiketa nije vidljiv, 02 filter origin OU vraća 21 umjesto 1 reda, 07 nedostajući OU scope vraća 403 umjesto očekivanih 400. | Server E2E nije pokrenut iz ovog checkouta. Specovi 02/07 su sada usklađeni s `view=all` i authorization guardom (`403`); filter `originUnitId` ostaje strogo provjeren, a assertion prijavljuje očekivane i vraćene OU ID-jeve. `results.json` nije dostavljen; ponovna serverska provjera je na čekanju. |
+| E2E statička provjera | `cd e2e && npx tsc --noEmit -p tsconfig.json && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts tests/15-workflow-unrouted-realtime.spec.ts --list`; `git diff --check` iz korijena repozitorija. | **Exit 0**, TypeScript prolazi i Playwright enumeriše **8 testova u 3 fajla**. Ovo nije browser/server runtime. |
+| Lokalni Prisma generate / CI backend build+test | Lokalno: `cd backend && npm run db:generate`; CI run [#37528194253](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37528194253), `master`/`8e3c83b`. | Lokalno preuzimanje schema-engine-a ostaje blokirano TLS-om prema `binaries.prisma.sh`; isti commit je u CI uspješno prošao `prisma generate`, backend build, lint i `npm test -- --ci --coverage=false`. Sandbox TLS problem nije release blocker. |
+| E2E runtime — 5.1.4 | Korisnikov serverski run `tests/02-routing-fallback.spec.ts`, `tests/07-sla.spec.ts`, `tests/15-workflow-unrouted-realtime.spec.ts`; izvještaj parsiran s `node scripts/summarize-playwright-json.mjs results.json`. | **8 passed, 0 failed, 0 flaky, 0 skipped; 6,6 min**, svi na prvom pokušaju. E2E release gate 5.1.4 je zatvoren. Sirovi `results.json` i SHA server checkouta nisu priloženi; dostavljeni su test log i parserov sažetak. |
 
 ## 3. Dokumentacija
 
@@ -6703,6 +6705,6 @@ korisnikov merge/server run ostaje release gate. Ne tvrdimo da je e2e prošao.
 
 ## 4. Šta ostaje otvoreno
 
-- Serverski E2E runtime iz paketa 5.1.4; nakon push-a na sesijsku granu korisnik merge-a na `master`, pokreće tri ciljna speca prema ugovorenom procesu i šalje `results.json`.
-- Prisma generation i backend build/typecheck u ovom sandboxu; uzrok je nedostupan Prisma binary server, ne zeleni tip-check.
-- Nema tvrdnje o punom backend Jest suite-u ili punom E2E prolazu.
+- **Za paket 5.1.4 nema otvorenih acceptance kapija:** ciljni serverski E2E skup 02/07/15 prošao je 8/8. Cijeli katalog E2E testova nije pokrenut; GitHub E2E job je preskočen po dogovoru i ne pokreće se na svaki push na `master`.
+- Lokalno `db:generate` i dalje ne može preuzeti Prisma schema-engine zbog TLS-a; ovo je ograničenje sandboxa, dok isti commit u GitHub CI prolazi `prisma generate`, backend build, lint i testove.
+- Za potpunu audit-traceability vrijednosti biće korisno sačuvati sirovi `results.json` i SHA server checkouta uz deploy evidenciju; dostavljeni run log sadrži svih 8 rezultata i parserov sažetak.

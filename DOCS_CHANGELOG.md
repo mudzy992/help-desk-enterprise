@@ -56,7 +56,7 @@
 | — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 | **5.1.2** | 2026-10-06 | **M3 — korisnici, OJ i grupe (B1–B4)** | `user-guide/korisnici-oj-i-grupe.md`, `user-guide/uloge-i-permisije.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/{organizational-units,directory-sync}/**`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Blokirani OU delete s brojem zavisnosti; audit/warning/cache efekti OJ-scoped dodjela; audit mutacija bez tajni; ne-lokalni reset lozinke vraća 409 i bilježi pokušaj** |
-| **5.1.4** | 2026-10-06 | **M7/M8/M10 — routing, unrouted queue i SLA compliance** | `user-guide/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T44/T45/T66/T100), `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Coverage filtri/status/paginacija; jedinstvena unrouted semantika i total paginacije; OU/service/group SLA razrezi i otvorena prekoračenja. Backend/frontend lokalne provjere su prošle; serverski E2E runtime je release gate u toku** |
+| **5.1.4** | 2026-10-06 | **M7/M8/M10 — routing, unrouted queue i SLA compliance** | `user-guide/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T44/T45/T66/T100), `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Coverage filtri/status/paginacija; jedinstvena unrouted semantika i total paginacije; OU/service/group SLA razrezi i otvorena prekoračenja. GitHub CI na `8e3c83b` je zelen; ciljni serverski E2E 02/07/15 prošao je 8/8 (0 failed/flaky/skipped, 6,6 min), čime je runtime kapija zatvorena.** |
 
 ---
 
@@ -1978,22 +1978,23 @@ prethodnu/zadanu postavku umjesto praznog stringa.
 ## Paket 5.1 — korak 5.1.4: M7 B1, M7 B4 i M10 B3 (2026-10-06)
 
 **Zašto:** usklađeni su prikaz matrice pokrivanja, značenje reda neusmjerenih tiketa u listama/brojačima/izvještajima
-te razrezi i opseg SLA usklađenosti. Vodiči opisuju implementaciju i lokalno testirane dijelove; serverski E2E runtime
-prolaz još nije izvršen u ovom checkoutu.
+te razrezi i opseg SLA usklađenosti. Vodiči opisuju implementirano ponašanje. Korisnikov ciljni serverski E2E run
+za specove 02/07/15 prošao je **8/8** testova (0 failed/flaky/skipped; 6,6 min), čime je runtime kapija zatvorena.
+Dostavljeni izlaz sadrži sažetak parsiranog `results.json`; sirovi JSON i SHA server checkouta nisu priloženi.
 
-**Dokazi:** 10 ciljanih backend Jest suita → **46/46 testova ✅** uz privremeni config `diagnostics:false` (nije backend
-typecheck; Prisma client generation je blokirana preuzimanjem schema engine-a preko TLS-a). Frontend `npm run build`
-→ **`tsc -b && vite build` prošao**; ciljani Vitest → **5 fajlova / 19 testova ✅**. E2E statička provjera
-`cd e2e && npx tsc --noEmit && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts tests/15-workflow-unrouted-realtime.spec.ts --list`
-→ exit 0, **8 testova enumerisano**; server runtime nije pokrenut jer API/baza i sesijski E2E credentials nisu dostupni.
-E2E run ostaje release gate po dogovorenom iterativnom toku.
+**Dokazi:** 10 ciljanih backend Jest suita → **46/46 testova ✅** uz privremeni config `diagnostics:false`.
+Frontend `npm run build` → **`tsc -b && vite build` prošao**; ciljani Vitest → **5 fajlova / 19 testova ✅**.
+E2E statička provjera za 02/07/15 → **8 testova enumerisano**. GitHub CI run
+[#37528194253](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37528194253) na `master`/`8e3c83b`
+prošao je backend (`prisma generate`, build, lint i testovi), frontend, docs guard i CI gate; E2E job je preskočen
+po dogovoru i serverski run je zasebno izvršen.
 
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|
 | `docs/user-guide/usmjeravanje-i-prioritet.md` | Matrica opisuje aktivne usluge po defaultu, filtere OU/usluga, prekidač za nacrte/ukinute, 50 usluga po stranici i očuvanu rezoluciju kroz pretke; uklonjene stare tvrdnje M7 B1/B4 i objašnjen fallback red | `compute-routing-coverage.ts`, `routing.coverage.spec.ts`, `build-unrouted-where.ts`, lokalni backend Jest |
 | `docs/user-guide/tiketi.md` | Tab **Neusmjereni red** razlikuje `UNROUTED` i fallback-rutirani `PENDING`, prikazuje 50 po stranici, a ukupni brojač ostaje nezavisan od trenutne stranice; objašnjene granice overdue/cleanup | `use-ticket-list.ts`, `ticket-inbox-list.tsx`, `get-ticket-counts.ts`; 46 backend testova, 19 frontend testova |
 | `docs/user-guide/sla.md` | Izbor OU opsega, podređene OJ, razrezi po profilu/OJ/usluzi/grupi i zasebni brojači otvorenih prekršaja; uklonjena zastarjela tvrdnja M10 B3 | `sla-compliance.controller.ts`, `resolve-sla-compliance-unit-scope.ts`, `aggregate-sla-compliance.ts`; ciljane backend provjere |
-| `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` | Unrouted bottleneck pojašnjen kao `UNROUTED` + fallback `PENDING`; E2E pokrivenost bottleneck-a opisana kao scenario s runtimeom na čekanju | `sql-bottleneck-dashboard-store.ts`, test 15 (statički provjeren; runtime nije pokrenut) |
+| `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` | Unrouted bottleneck pojašnjen kao `UNROUTED` + fallback `PENDING`; serverski scenario pokrivenosti bottleneck-a prošao je u specu 15 kao dio paketskog runa 8/8 | `sql-bottleneck-dashboard-store.ts`, `e2e/tests/15-workflow-unrouted-realtime.spec.ts` (serverski runtime 2026-10-06) |
 | `docs/user-guide/sta-je-novo.md` | Dodan sažetak korisnički vidljivih izmjena 5.1.4 za matricu, unrouted red i SLA razreze | isti funkcionalni izvori; ciljane backend/frontend provjere |
-| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T44/T45/T66/T100 poravnati s novim filterima, zajedničkom queue semantikom i OU-scoped SLA dimenzijama; status izričito zadržava E2E release gate | backend/frontend izvori i ciljani Jest/Vitest rezultati |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T44/T45/T66/T100 poravnati s novim filterima, zajedničkom queue semantikom i OU-scoped SLA dimenzijama; status bilježi završeni serverski E2E run 8/8 | backend/frontend izvori, ciljani Jest/Vitest rezultati i korisnikov Playwright sažetak |
 | `backend/content/docs/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md` + `manifest.json` | Ogledala i manifest sinhronizovani iz user-guide izvora | `node scripts/generate-docs-content.mjs`, `node scripts/check-docs-content.mjs` |

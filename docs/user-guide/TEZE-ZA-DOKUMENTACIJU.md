@@ -928,7 +928,7 @@ To je kriterij kompletnosti.
   `routing-coverage-cursor.ts`, `routing.coverage.spec.ts`, `evaluate-service-routing-coverage.ts`,
   `service-catalog.service.ts`, `config-versioning/validate-routing-snapshot.ts`;
   `frontend/src/components/routing/routing-coverage-panel.tsx`.
-- **Status:** Važi (M7 B1 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
+- **Status:** Važi (M7 B1 zatvoren 2026-10-06; ciljni serverski E2E run 5.1.4 prošao 8/8, 2026-10-06)
 - **Wiki stranica:** Usmjeravanje → Matrica pokrivanja
 
 ### T45 — Neusmjereni red: ciljna grupa, vlasnik, rok i digest
@@ -953,7 +953,7 @@ To je kriterij kompletnosti.
   `build-unrouted-overdue-where.ts`, `unrouted-sweep.service.ts`, `counts/get-ticket-counts.ts`,
   `list/build-ticket-list-filters.ts`, `backend/src/modules/reports/bottleneck/sql-bottleneck-dashboard-store.ts`,
   `frontend/src/components/tickets/ticket-inbox-list.tsx`, `e2e/tests/15-workflow-unrouted-realtime.spec.ts`.
-- **Status:** Važi (M7 B4 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
+- **Status:** Važi (M7 B4 zatvoren 2026-10-06; ciljni serverski E2E run 5.1.4 prošao 8/8, 2026-10-06)
 - **Wiki stranica:** Usmjeravanje → Neusmjereni red
 
 ### T46 — Prioritet: matrica uticaj × hitnost, ručni override s auditom
@@ -1411,7 +1411,7 @@ To je kriterij kompletnosti.
   `scan-due-ticket-sla-states.ts`, `sla-scan.constants.ts`,
   `backend/src/modules/ops-health/evaluate-ops-signals.ts`,
   `backend/src/modules/reports/trends/report-trends.constants.ts`.
-- **Status:** Važi (M10 B3 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
+- **Status:** Važi (M10 B3 zatvoren 2026-10-06; ciljni serverski E2E run 5.1.4 prošao 8/8, 2026-10-06)
 - **Wiki stranica:** SLA → Usklađenost i nadzor
 
 ### T67 — Administracija SLA konfiguracije (change log, verzije, pravo pristupa)
@@ -2080,7 +2080,7 @@ To je kriterij kompletnosti.
   `bottleneck/sql-bottleneck-dashboard-store.ts`, `tickets/unrouted/build-unrouted-where.ts`,
   `reports/load-report-lookups.ts`, `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
 - **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03), nazivi razreza dopunjeni istog dana;
-  fallback unrouted usklađen u paketu 5.1.4 (2026-10-06), sa server E2E runtime provjerom na čekanju.
+  fallback unrouted usklađen u paketu 5.1.4 (2026-10-06), sa server E2E runtime potvrdom (8/8, 2026-10-06).
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
 
 ### T101 — Zakazani izvještaji: raspored, primaoci i historija
