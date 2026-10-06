@@ -80,10 +80,15 @@ test.describe('23 assets (CMDB)', () => {
       }
 
       phase('imovina kreirana i prenesena');
-      const packs = await admin.requestJson<Packs>('/reports/packs').catch(() => null);
-      if (packs !== null) {
-        expect(packs.packs.map((pack) => pack.key)).toEqual(expect.arrayContaining(['asset_inventory', 'asset_expiring']));
-      }
+      // Same OU-scope requirement as in spec 14: the list is guarded too. The
+      // earlier `.catch(() => null)` turned a 403 into a silent skip of this
+      // assertion, which is why the missing scope parameter stayed invisible.
+      const packs = await admin.requestJson<Packs>(
+        `/reports/packs?organizationalUnitId=${unit.id}`,
+      );
+      expect(packs.packs.map((pack) => pack.key)).toEqual(
+        expect.arrayContaining(['asset_inventory', 'asset_expiring']),
+      );
       const overview = await admin.request('/assets/overview');
       expect(overview.status).toBe(200);
 

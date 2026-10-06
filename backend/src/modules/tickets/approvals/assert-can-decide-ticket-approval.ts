@@ -1,4 +1,3 @@
-import { authorizationRoleKeys } from '../../authorization/authorization.constants';
 import { decideAuthorizationAccess } from '../../authorization/evaluate-authorization-access';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 import { TicketsError } from '../tickets.error';

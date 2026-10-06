@@ -1,5 +1,4 @@
 import {
-  knowledgeBaseReviewReminderJobName,
   knowledgeBaseReviewReminderSchedulePattern,
   knowledgeBaseReviewReminderSchedulerId,
 } from './modules/knowledge-base/knowledge-base-review-reminder.job.constants';

@@ -6371,3 +6371,36 @@ Ciljani run (17 passed / 2 failed / 0 flaky / 0 skipped, 11,4 min) potvrdio je p
 - **Poznato ograničenje:** 18 — „pošalji test” se vidljivo preskače bez SMTP-a na stacku (D-26).
 - **Sljedeći korak:** merge, pa ciljani run `specs=14,23` s `retries=0`; ako je zelen, puni prolaz je formalna kapija.
 
+# Val 5 — peti e2e prolaz: stvarni kontrast i OU opseg u specovima (2026-10-05)
+
+Ciljani run `specs=14,23` (`retries=0`, 0 passed / 2 failed) potvrdio je dvije popravke iz četvrtog prolaza (D-27 i
+D-28 rade — spec 14 je prošao prebacivanje timera **i** ručni unos, spec 23 **nije** više pao na budžet), a donio je
+**dva nova nalaza**: jedan stvarni bug u proizvodu (D-29) i jednu grešku u e2e fiksturi koja je krila `403` (D-30).
+Uz to je očišćeno **16 `no-unused-vars` upozorenja** koje je prijavio `npm run lint` na backendu (E-16).
+
+## 1. Nalazi
+
+| # | Nalaz | Uzrok (fajl, linija) | Uticaj | Fix | Ozbiljnost |
+|---|---|---|---|---|---|
+| **D-29** | Spec **23** pao na **stvarnom** axe nalazu: `serious color-contrast` na dva dugmeta u `asset-detail` (selektori `.bg-transparent…:nth-child(2)` i `(3)`) | `frontend/src/components/ui/button.tsx` je uz svaku varijantu nosio `disabled:opacity-45`; `variant="outline"` je `bg-transparent`, pa se `text-foreground` miješao s pozadinom **stranice** — izmjereno **2,91:1** (svjetla) i **3,96:1** (tamna). Pogođena dugmad: `frontend/src/pages/asset-detail-page.tsx:133,137` (`disabled={!formReady}`) | Svako tekstualno dugme onemogućeno kroz `disabled` bilo je ispod WCAG AA (4,5:1) — ne samo na `asset-detail`; axe je uhvatio dva primjera | `disabled:opacity-45` zamijenjen tokenima **po varijanti**: primary `disabled:border-border disabled:bg-elevated disabled:text-muted-foreground disabled:shadow-none`, destructive isto bez `shadow-none`, secondary/outline/ghost/link `disabled:text-muted-foreground` (`button.tsx`, uz komentar s izmjerenim brojevima). Isti obrazac uklonjen u `components/settings/email-templates-editor.tsx:256` i `components/templates/variable-palette.tsx:29`. Novi guard: pravilo **6** u `scripts/check-a11y-static.mjs` (`disabled:opacity-*` na dugmetu s tekstom pada, osim `disabled:hidden` i komentara `a11y-disabled:`) + `checkSharedButton()` koji kroz AST provjerava string literale u `components/ui/button.tsx` | **SREDNJE** (pristupačnost) |
+| **D-30** | Spec **14** pao na `GET /reports/packs` s **`FORBIDDEN`** (requestId `7f248fae-…`); u specu **23** isti poziv je bio pod `.catch(() => null)`, pa je greška bila **tiho preskočena** | `ReportsController` nosi `@RequireOrganizationalUnitScope({field:'organizationalUnitId'})` za **cijeli kontroler** (`backend/src/modules/reports/reports.controller.ts`), a `dto/report-query.dto.ts` traži `organizationalUnitId`; specovi 14 (`e2e/tests/14-time-tracking.spec.ts:162`) i 23 (`e2e/tests/23-assets.spec.ts:83`) zvali su `/reports/packs` **bez** opsega (specovi 29/30 ga šalju ispravno) | (1) Spec 14 pada bez veze s proizvodom; (2) `.catch(() => null)` u specu 23 pretvarao je `403` u **lažno zelenilo** — asertacija o paketima `asset_inventory`/`asset_expiring` nikad nije izvršena | Oba speca sada šalju scope: `/reports/packs?organizationalUnitId=${firstView.originUnitId}` (`tests/14:162`) i `/reports/packs?organizationalUnitId=${unit.id}` (`tests/23:83`); `.catch(() => null)` uklonjen i zamijenjen pravom asertacijom (`expect(...).toEqual(expect.arrayContaining([...]))`) | **SREDNJE** (e2e fikstura + lažna pokrivenost) |
+| **E-16** | `npm run lint` na backendu: **16 upozorenja** `@typescript-eslint/no-unused-vars`, 0 grešaka | 15 nekorištenih importova/varijabli i 1 nekorišten parametar: `principal-context.loader.spec.ts` (`PrincipalContextCacheClient`), `list-audit-logs-query.dto.ts` (`auditLogListDefaultTake`), `authentication.controller.ts` (`authenticationConstants`), `directory-sync.controller.ts` (`Delete`), `notifications-fan-out.service.spec.ts` (`loadEmailChannelConfiguration`), `notifications.fan-out-batch.spec.ts` (`audienceSize`), `create-in-memory-policy-pack-delegates.ts` (`InMemorySlaProfileRecord`), `roles.service.spec.ts` (`shadowTestPrincipal`), `throw-if-slug-constraint-violated.ts` (`PrismaService`), `compute-sla-next-due-at.ts:147` (parametar `state` u `resolveEscalationRules`), `assert-can-decide-ticket-approval.ts` (`authorizationRoleKeys`), `create-in-memory-ticket-attachment-delegate.ts` (`matchesNullableField`), `tickets.close-codes.spec.ts` (`requester`), `tickets.controller.ts` (`TicketMutationContext`), `users.controller.guard.spec.ts` (`AUTHENTICATED_PRINCIPAL_REQUEST_KEY`), `scheduled-jobs.wiring.spec.ts` (`knowledgeBaseReviewReminderJobName`) | Šum u lintu; svaki sljedeći stvarni nalaz se lakše previdi | Sve uklonjeno; `npx eslint .` vraća **0** problema. Prije uklanjanja je `grep -c` potvrdio da svaki simbol nema drugu upotrebu; `resolveEscalationRules` je uz parametar izgubio i argument na pozivu (`compute-sla-next-due-at.ts:117`) | **NISKO** (higijena) |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-05)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Mjerenje kontrasta prije/poslije | `node /tmp/disabled-check.mjs` | staro **2,91:1** (svjetla) / **3,96:1** (tamna) ❌; novo 5,32–5,85 (svjetla) / 5,36–6,49 (tamna) ✅ |
+| Guard — negativna kontrola | privremeno vraćen `disabled:opacity-45` u cva string i tekst-dugme u `variable-palette.tsx` | `check-a11y-static` → **exit 1** s porukom (`button.tsx:21` / `variable-palette.tsx:22`); poslije vraćanja → `check-a11y-static: OK` |
+| Frontend | `npm ci` (299 paketa), `npx tsc -b`, `npm test` | **0** grešaka; **160 fajlova / 653 testa ✅** |
+| Backend lint | `npx eslint . --format json` | **16 → 0** problema |
+| Backend tipovi | `prisma generate` + `npx tsc --noEmit -p tsconfig.json` | **exit 0** |
+| e2e | `npx tsc --noEmit -p tsconfig.json`, `npx playwright test --list` | **0** grešaka; **71 test u 36 fajlova** |
+| Backend testovi | `npx jest` | **Nije izvršeno u sandboksu**: ts-jest uz generisani Prisma klijent 7.10 prelazi budžet ovog okruženja (OOM pri `--maxWorkers=4`, ~4 GB RAM-a). Mjerodavan je korisnikov rezultat: **534 passed / 5 skipped**, **2596 passed / 31 skipped**, 59,1 s |
+
+## 3. Stanje pokrivenosti poslije petog prolaza
+
+- **Potvrđeno popravkama iz četvrtog prolaza:** spec 14 (D-27 — prebacivanje timera **i** ručni unos prolaze) i spec 23 (D-28 — nema više timeouta; `phase()` log pokazuje ~53 s).
+- **Popravljeno, čeka potvrdu:** 14 (D-30 — scope na `/reports/packs`), 23 (D-29 — kontrast disabled dugmadi).
+- **Poznato ograničenje:** 18 — „pošalji test“ se vidljivo preskače bez SMTP-a na stacku (D-26).
+- **Sljedeći korak:** ciljani run `specs=14,23` s `retries=0`; ako je zelen, prvi **puni** prolaz je formalna kapija za merge na `master` (radi vlasnik).

@@ -8,15 +8,24 @@ import { cn } from "@/lib/utils";
   correctly on the light canvas, on Pulse dark and on the legacy dark theme.
 */
 
+/*
+  The disabled state is token-based, never `opacity`.
+  Run 2026-10-05: axe reported `serious color-contrast` on the two disabled
+  outline buttons of the asset detail — `text-foreground` through
+  `disabled:opacity-45` measures 2,91:1 (light) and 3,96:1 (dark). Every variant
+  now swaps to `text-muted-foreground` on a flat surface instead
+  (5,41:1 on canvas, 5,55:1 on elevated, 5,85:1 on surface), which still reads as
+  "off" because the fill, border and shadow are gone too.
+*/
 const PRIMARY_BUTTON_CLASSES =
-  "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active";
+  "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active disabled:border-border disabled:bg-elevated disabled:text-muted-foreground disabled:shadow-none";
 const DESTRUCTIVE_BUTTON_CLASSES =
-  "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25";
+  "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25 disabled:border-border disabled:bg-elevated disabled:text-muted-foreground";
 const SECONDARY_BUTTON_CLASSES =
-  "border border-border bg-surface text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover";
+  "border border-border bg-surface text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover disabled:text-muted-foreground";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium select-none transition-all duration-150 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium select-none transition-all duration-150 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -25,12 +34,12 @@ const buttonVariants = cva(
         destructive: DESTRUCTIVE_BUTTON_CLASSES,
         danger: DESTRUCTIVE_BUTTON_CLASSES,
         outline:
-          "border border-border bg-transparent text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover",
+          "border border-border bg-transparent text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover disabled:text-muted-foreground",
         secondary: SECONDARY_BUTTON_CLASSES,
         subtle: SECONDARY_BUTTON_CLASSES,
         ghost:
-          "border border-transparent text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-        link: "text-link underline-offset-4 hover:underline",
+          "border border-transparent text-muted-foreground hover:bg-surface-hover hover:text-foreground disabled:text-muted-foreground",
+        link: "text-link underline-offset-4 hover:underline disabled:text-muted-foreground",
       },
       size: {
         default: "h-9 px-3.5 text-[13px]",

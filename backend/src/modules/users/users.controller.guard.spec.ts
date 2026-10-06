@@ -4,7 +4,6 @@ import {
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
-import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../authentication/authenticated-request';
 import {
   AUTHORIZATION_REQUIRED_ROLES_KEY,
   authorizationRoleKeys,

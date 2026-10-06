@@ -5,7 +5,6 @@ import type {
   InMemoryRolePermissionRecord,
   InMemoryRoleRecord,
   InMemoryUserRole,
-  InMemorySlaProfileRecord,
 } from './in-memory-policy-pack.types';
 
 function sameNullable(left: string | null, right: string | null): boolean {

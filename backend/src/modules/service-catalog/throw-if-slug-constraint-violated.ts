@@ -1,4 +1,3 @@
-import { PrismaService } from '../../common/prisma/prisma.service';
 import { ServiceCatalogError } from './service-catalog.error';
 
 type PrismaUniqueConstraintError = {

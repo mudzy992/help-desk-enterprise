@@ -7,10 +7,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import {
-  auditLogListDefaultTake,
-  auditLogListMaxTake,
-} from '../audit-log.constants';
+import { auditLogListMaxTake } from '../audit-log.constants';
 
 export class ListAuditLogsQueryDto {
   @IsString()

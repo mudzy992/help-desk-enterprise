@@ -253,7 +253,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
                       key={name}
                       type="button"
                       disabled={!canWrite}
-                      className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary/45 hover:text-link disabled:opacity-45"
+                      className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary/45 hover:text-link disabled:cursor-not-allowed disabled:border-border disabled:bg-elevated"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => insert(name)}
                     >

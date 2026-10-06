@@ -4,7 +4,6 @@ import { dispatchBroadcastEmail } from '../../tickets/bulk/broadcast-email-chann
 import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
 import { deliverNotificationEmail } from '../email/deliver-notification-email';
 import { fanOutEmailNotifications } from '../email/fan-out-email-notifications';
-import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
 import { sendBroadcastEmails } from '../email/send-broadcast-emails';
 import { loadNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 import { loadIntegrationQueueSettings } from '../../integration-queue/load-integration-queue-settings';

@@ -1,5 +1,5 @@
 import type { TicketAttachmentRecord } from './attachments/attachments.types';
-import { matchesNullableField, pickInMemoryRecord } from './in-memory-record';
+import { pickInMemoryRecord } from './in-memory-record';
 
 type AttachmentWhere = {
   readonly id?: string | { in: readonly string[] };

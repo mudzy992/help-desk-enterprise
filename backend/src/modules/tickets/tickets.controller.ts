@@ -27,11 +27,7 @@ import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { readTicketMutationContext } from './read-ticket-mutation-context';
 import { TicketsService } from './tickets.service';
-import type {
-  TicketListResponse,
-  TicketMutationContext,
-  TicketResponse,
-} from './tickets.types';
+import type { TicketListResponse, TicketResponse } from './tickets.types';
 
 @Controller('tickets')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)

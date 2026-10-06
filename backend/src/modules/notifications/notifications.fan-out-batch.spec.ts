@@ -14,9 +14,8 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+/** 200 batch agents — the routing scenario also puts the standard IT agent in the group. */
 const groupMemberCount = 200;
-/** The routing scenario also puts the standard IT agent in the group. */
-const audienceSize = groupMemberCount + 1;
 
 /**
  * Option A (2026-09-24, group of 50+ assumed): a ticket-created event for a group

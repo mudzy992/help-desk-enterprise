@@ -18,6 +18,15 @@
 //                    is not itself outline-none) in the same class string, unless
 //                    the element carries the comment `a11y-focus:` with the reason
 //                    (ring on the parent, SVG ring rect, programmatic-only target) (2.4.7).
+//   6. disabled    — a button with a text label that dims itself with
+//                    `disabled:opacity-*`: the label loses contrast (measured
+//                    2,91:1 light / 3,96:1 dark for `text-foreground` through
+//                    `opacity-45`) and axe reports it as `serious color-contrast`
+//                    (run 2026-10-05). Express "off" with tokens
+//                    (`disabled:text-muted-foreground`, `disabled:bg-elevated`)
+//                    or `disabled:hidden`. The shared `components/ui/button.tsx`
+//                    is checked separately, because its classes are cva strings
+//                    rather than JSX (1.4.3 / axe color-contrast).
 //
 // i18n existence of aria-label keys is already enforced by
 // check-pulse-design-system.mjs (every static t() key must resolve in bs and en).
@@ -215,6 +224,50 @@ function check(file) {
           failures.push(`outline: ${where(opening)} — "outline-none" without a focus-visible: replacement`);
         }
       }
+
+      // 6. disabled: a text label must not be dimmed with opacity.
+      if (name === "button" || name === "Button") {
+        for (const classes of classStrings(attrs.get("className"))) {
+          if (!/(^|\s)disabled:opacity-\d+/.test(classes)) continue;
+          const kind = childrenKind(node, icons);
+          if (kind === "text" || kind === "unknown") {
+            const hidden = /(^|\s)disabled:hidden(\s|$)/.test(classes);
+            if (!hidden && !hasMarkerComment(source, opening, "a11y-disabled:")) {
+              failures.push(
+                `disabled: ${where(opening)} — disabled:opacity-* on a button with a text label drops it to ~2,9:1; ` +
+                  `use disabled:text-muted-foreground / disabled:bg-elevated (or disabled:hidden, or the ` +
+                  `a11y-disabled: comment with the reason)`,
+              );
+            }
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+}
+
+/**
+ * The shared button carries its classes as cva strings, so rule 6 cannot see
+ * them as JSX. It must express the disabled look with tokens: any
+ * `disabled:opacity-*` in this file is a regression of the run that produced
+ * rule 6.
+ */
+function checkSharedButton(file) {
+  if (!file.endsWith(join("components", "ui", "button.tsx"))) return;
+  const text = readFileSync(file, "utf8");
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  // Only the class strings matter — a comment that explains the rule may name it.
+  const visit = (node) => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      if (node.text.includes("disabled:opacity-")) {
+        const { line } = source.getLineAndCharacterOfPosition(node.getStart());
+        failures.push(
+          `disabled: ${relative(root, file)}:${line + 1} — the shared button must not dim its label with opacity; ` +
+            `use the disabled: token variants`,
+        );
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -223,6 +276,7 @@ function check(file) {
 
 for (const file of walk(join(frontend, "src"))) {
   check(file);
+  checkSharedButton(file);
 }
 
 if (failures.length > 0) {

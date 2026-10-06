@@ -9,7 +9,6 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 describe('ticket close codes and required fields', () => {
-  const requester = { actorUserId: ticketsTestIds.requester };
   const agent = { actorUserId: ticketsTestIds.agentIt };
 
   it('requires close code and resolution note before RESOLVED', async () => {

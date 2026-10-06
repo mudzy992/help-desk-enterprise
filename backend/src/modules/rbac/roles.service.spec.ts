@@ -6,10 +6,7 @@ import {
   createTestAssignment,
   createTestAuthorizationContext,
 } from '../authorization/create-test-authorization-context';
-import {
-  createTestAuthorizationHarness,
-  shadowTestPrincipal,
-} from '../authorization/create-test-authorization-harness';
+import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
 import { shadowAuthorizationDecisions } from '../authorization/shadow-authorization.types';
 import { RolesService } from './roles.service';
 

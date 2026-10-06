@@ -1801,3 +1801,23 @@ metode, putanje i `cause`.
 - **Axe nalazi (22 ×4)** traže spisak pravila i selektora iz `test-results/a11y-report.jsonl`; statička provjera
   kontrasta je zelena (`node scripts/check-theme-contrast.mjs`), pa nalaz dolazi iz DOM-a, ne iz palete.
 - **Prvi zelen prolaz** je kapija za merge na `master` (radi vlasnik).
+
+## E2E trijaža petog prolaza — disabled kontrast i OU opseg (2026-10-05, val 5)
+
+**Zašto:** ciljani run `specs=14,23` (`retries=0`) dao je 0 passed / 2 failed. Oba nalaza su popravljena u kodu i
+specovima, a uz njih je očišćeno 16 backend `no-unused-vars` upozorenja.
+
+**Dokazi:** `cd e2e && npx tsc --noEmit -p tsconfig.json` → 0; `npx playwright test --list` → 71 test / 36 fajlova;
+`cd frontend && npx tsc -b` → 0; `npm test` → 160 fajlova / 653 testa; `cd backend && npx eslint . --format json` → 0
+problema; `prisma generate` + `npx tsc --noEmit` → exit 0; guard `node scripts/check-a11y-static.mjs` → OK.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `frontend/src/components/ui/button.tsx` | `disabled:opacity-45` zamijenjen tokenima po varijanti (`disabled:bg-elevated`, `disabled:text-muted-foreground`, …) | axe nalaz iz speca 23; mjerenje `/tmp/disabled-check.mjs` (2,91:1 / 3,96:1 → ≥5,32) |
+| `frontend/src/components/settings/email-templates-editor.tsx`, `frontend/src/components/templates/variable-palette.tsx` | Isti obrazac uklonjen i na tekst-labelled chip dugmadima | `scripts/check-a11y-static.mjs` pravilo 6 |
+| `scripts/check-a11y-static.mjs` | Novo pravilo **6** (disabled kontrast) + `checkSharedButton()` (AST nad `components/ui/button.tsx`) | negativne kontrole: `button.tsx:21`, `variable-palette.tsx:22` → exit 1 |
+| `e2e/tests/14-time-tracking.spec.ts` | `/reports/packs` dobio `?organizationalUnitId=` (`:162`) | `reports.controller.ts` (`@RequireOrganizationalUnitScope`), `dto/report-query.dto.ts` |
+| `e2e/tests/23-assets.spec.ts` | Isti scope (`:83`); `.catch(() => null)` zamijenjen pravom asertacijom | isti izvor; specovi 29/30 kao referenca |
+| `e2e/README.md` | Dva nova trijažna pravila: OU scope je query parametar za **sve** reports pozive; `.catch(() => null)` u asertaciji je lažno zelenilo | ova izmjena |
+| `REVIEW_ANALIZA.md` | Novi odjeljak „Val 5 — peti e2e prolaz“ (D-29, D-30, E-16, dokazi, otvoreno) | ova izmjena |
+| 16 backend fajlova | Uklonjeni nekorišteni importovi/varijable i parametar `state` | `npx eslint .` (0 problema) |

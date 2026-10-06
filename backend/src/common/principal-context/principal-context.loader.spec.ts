@@ -6,7 +6,6 @@ import {
   principalContextVersionKey,
   readCachedPrincipalContext,
   writeCachedPrincipalContext,
-  type PrincipalContextCacheClient,
 } from './principal-context.cache';
 import { mapPrincipalUser } from './load-principal-context';
 import { PrincipalContextLoader } from './principal-context.loader';

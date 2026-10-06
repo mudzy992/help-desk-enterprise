@@ -159,7 +159,12 @@ test.describe('14 time tracking guard', () => {
     expect(logs.every((log) => log.endedAt !== null)).toBe(true);
 
     // T9: the report pack carries the agent's rows (when the pack is enabled).
-    const packs = await adminApi.requestJson<{ packs: Array<{ key: string }> }>('/reports/packs');
+    // `ReportsController` carries `@RequireOrganizationalUnitScope` for the whole
+    // controller, so even the pack *list* needs a unit — without it the guard
+    // answers `FORBIDDEN` (run 2026-10-05; specs 29/30 already pass it).
+    const packs = await adminApi.requestJson<{ packs: Array<{ key: string }> }>(
+      `/reports/packs?organizationalUnitId=${firstView.originUnitId}`,
+    );
     test.skip(
       !packs.packs.some((pack) => pack.key === 'time_tracking'),
       'time_tracking nije uključen u private.reports.packsJson',

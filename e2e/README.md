@@ -144,6 +144,14 @@ SKIPPED 1 test(s) — a skip is not a pass:
   or a permission is missing on that stack, so the spec (or the stack) must be adjusted; **(B) spec assumption**
   — the screen/API changed on purpose and the spec still expects the old shape; **(C) product bug** — the spec is
   right and the code is wrong. The fix differs completely, so the first pass records the group, not the patch.
+- **The organizational-unit scope is a query parameter, not a header.** `ReportsController` carries
+  `@RequireOrganizationalUnitScope` for the whole controller (`backend/src/modules/reports/reports.controller.ts`), so
+  *every* reports call — including the pack *list* — must carry the unit:
+  `/reports/packs?organizationalUnitId=<id>`. Without it the guard answers `FORBIDDEN` and the failing call looks like
+  a product bug. Specs 29/30 show the correct shape; spec 14 failed on exactly this (2026-10-05).
+- **Never swallow a response with `.catch(() => null)` in an assertion.** Spec 23 wrapped the pack list that way, so
+  the `FORBIDDEN` above turned into a *passed* assertion — silent loss of coverage. If a call cannot be made
+  conditional, let it fail loudly and fix the request instead.
 - Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
   way, so a list like `10, 11, 12` maps straight onto files.
 

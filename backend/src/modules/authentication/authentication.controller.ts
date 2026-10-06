@@ -18,7 +18,6 @@ import {
 } from './authentication-providers.service';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 import { SessionTokenService } from './session-token.service';
-import { authenticationConstants } from './authentication.constants';
 import { createAuthenticatedPrincipal } from './create-authenticated-principal';
 import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,

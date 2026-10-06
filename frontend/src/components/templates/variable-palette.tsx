@@ -26,7 +26,7 @@ export function VariablePalette({
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onInsert(placeholderFor(variable), variable)}
             title={placeholderFor(variable)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-elevated/60 px-2 py-1 text-[11.5px] text-foreground transition-colors hover:border-primary/50 hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:opacity-45"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-elevated/60 px-2 py-1 text-[11.5px] text-foreground transition-colors hover:border-primary/50 hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:text-muted-foreground"
           >
             <Braces size={11} className="text-muted-foreground" />
             {t(`templates.variable.${variable}`)}

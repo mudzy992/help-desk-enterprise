@@ -114,7 +114,7 @@ function collectClockCandidates(
     return;
   }
   const fired = new Set(state.firedEscalationKeys);
-  for (const rule of resolveEscalationRules(input.rules, state)) {
+  for (const rule of resolveEscalationRules(input.rules)) {
     if (fired.has(slaEscalationKey(kind, rule.id))) {
       continue;
     }
@@ -144,7 +144,6 @@ function collectClockCandidates(
 
 function resolveEscalationRules(
   rules: readonly SlaEscalationRuleRecord[],
-  state: NextDueAtState,
 ): readonly SlaEscalationRuleRecord[] {
   if (rules.length > 0) {
     return rules;
