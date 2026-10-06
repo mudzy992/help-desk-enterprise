@@ -6127,7 +6127,10 @@ Vlasnik je varijable i secrete postavio (E-1 zatvoren s njegove strane); job se 
 - **Prvi živi e2e prolaz** izvršava se poslije spajanja grane na `master` (van sandboka); ako padne, dokaz su
   izvještaj i artefakt iz GitHub Actions.
 - **Nalazi van opsega valova 0–5** ostaju zapisani u svojim modulima (npr. §M4 B2–B5, §M7 B1/B4/B6/B7,
-  §M10 B3) — val 5 je zatvorio tačno svoj opseg iz plana.
+  §M10 B3) — val 5 je zatvorio tačno svoj opseg iz plana. **Njihov plan sada postoji:** preostalih
+  **15 `SREDNJE`** (paket 5.1) i **38 `NISKO`** (paket 5.2, registar s redovima ovog dokumenta) obrađeni su u
+  `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md`, uz definiciju „audit očišćen“ (§7.2) — novi
+  audit nije potreban.
 - **`roleSource`** ostaje dokumentovano odstupanje od RAW-a (bez promjene koda).
 
 # Val 5 — ispravka poslije CI-ja: worker modul bez novog loadera (2026-10-05)

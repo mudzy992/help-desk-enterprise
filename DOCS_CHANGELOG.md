@@ -1821,3 +1821,18 @@ problema; `prisma generate` + `npx tsc --noEmit` → exit 0; guard `node scripts
 | `e2e/README.md` | Dva nova trijažna pravila: OU scope je query parametar za **sve** reports pozive; `.catch(() => null)` u asertaciji je lažno zelenilo | ova izmjena |
 | `REVIEW_ANALIZA.md` | Novi odjeljak „Val 5 — peti e2e prolaz“ (D-29, D-30, E-16, dokazi, otvoreno) | ova izmjena |
 | 16 backend fajlova | Uklonjeni nekorišteni importovi/varijable i parametar `state` | `npx eslint .` (0 problema) |
+
+## Plan paketa 5.1 — 15 nalaza `SREDNJE` i poveznica na ostatak audita (2026-10-06)
+
+**Zašto:** poslije vala 5 i prvog zelenog e2e prolaza ostalo je otvoreno 53 nalaza audita (15 `SREDNJE`,
+38 `NISKO`, 0 `KRITIČNO`/`VISOKO`). Vlasnik je tražio da se krene od 15 `SREDNJE` i da plan nosi poveznicu na
+ono što slijedi, da se audit ne mora ponavljati.
+
+**Dokazi:** `node scripts/check-docs-content.mjs` → OK; `node scripts/check-client-neutral.mjs` → OK;
+sve putanje i linije u planu provjerene u kodu 2026-10-06 (npr. `transition-service-lifecycle.ts` je poslije
+refaktora 60 linija, pa je nalaz M6 B3 vezan na `assert-service-lifecycle-transition.ts` i `service-catalog.service.ts:156–166`).
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md` (nov) | Dizajn za svih 15 `SREDNJE` nalaza: stanje u kodu s putanjama, šta se mijenja, testovi, dokumentacija, rizici; §5 odluke vlasnika; §7.1 registar 38 `NISKO`; §7.2 definicija „audit očišćen“ | `REVIEW_ANALIZA.md` §M1–§M15 (nalazi), provjera koda 2026-10-06 |
+| `REVIEW_ANALIZA.md` | U „Šta ostaje otvoreno poslije vala 5“ dodata poveznica na plan 5.1/5.2 (novi audit nije potreban) | ova izmjena |
