@@ -6506,9 +6506,10 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
 
 ## 5. Šta ostaje otvoreno u paketu 5.1
 
-- **Korak 5.1.2 — M3 B1–B4:** implementiran i ciljani Jest skup + lint + dokumentacija prolaze; backend build/typecheck
-  ostaje nepotvrđen jer nedostaje `src/generated/prisma/{client,enums}` (2874 TS greške kao posljedica nedostajućeg
-  Prisma outputa; Prisma engine download je ranije pao na TLS).
+- **Korak 5.1.2 — M3 B1–B4:** implementiran i ciljani Jest skup + lint + dokumentacija prolaze. Naknadni build s
+  generisanim Prisma klijentom prijavio je tri direktne TS greške; ispravljene su u naknadnom patchu poslije `cd3597c`.
+  Post-fix build/typecheck još nije potvrđen: u ovom checkoutu nedostaju `src/generated/prisma/{client,enums}`,
+  a ranije preuzimanje Prisma engine-a palo je na TLS.
 - **Koraci 5.1.3 i 5.1.4** — M6, M7 i M10 nalazi iz §3–§5 plana.
 - **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
   politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
@@ -6545,11 +6546,14 @@ razlike u stvarnom sadržaju manifesta (`sameManifestIgnoringDates` vrati `false
 
 # Paket 5.1 — korak 5.1.2: M3 B1–B4 — korisnici, OJ i grupe (2026-10-06)
 
-Korak zatvara četiri `SREDNJE` nalaza M3. **Implementacija i ciljani testovi prolaze; backend build/typecheck
-nije potvrđen** jer ovaj checkout nema generisani Prisma klijent. Ne zaključivati da su hiljade tipnih grešaka
-pojedinačni regressions: Nest build javlja TS2307 za `src/generated/prisma/client`, nakon čega gubi i Prisma
-delegate tipove. `npm run db:generate` je ranije pao pri HTTPS/TLS preuzimanju Prisma `schema-engine`; generate
-nije ponovljen.
+Korak zatvara četiri `SREDNJE` nalaza M3. **Implementacija, ciljani testovi, lint i dokumentacijske provjere prolaze;
+post-fix backend build nije potvrđen.** Prvi build u ovom checkoutu javio je 2874 kaskadnih TS grešaka jer nedostaje
+`src/generated/prisma/client` (prva je TS2307; Prisma delegate tipovi takođe nisu dostupni). Naknadni build s
+generisanim Prisma klijentom prijavio je tri TS dijagnostike: jednu zbog tipa default poruke konstruktora
+`OrganizationalUnitError`, a dvije zbog nepovezanog union tipa vrijednosti po poljima u updateu korisnika.
+Ispravke su u `backend/src/modules/organizational-units/organizational-unit.error.ts` (tip `message: string`)
+i `backend/src/modules/users/update-user.ts` (tip polja `UserUpdateData`). Generisani output i dalje nedostaje u ovom
+checkoutu pa konačni Nest build nije mogao biti ponovljen; ranije preuzimanje Prisma `schema-engine` palo je na TLS.
 
 ## 1. Zatvoreni nalazi
 
@@ -6567,7 +6571,7 @@ nije ponovljen.
 | Ciljani backend testovi | `cd backend && npx jest --config=/tmp/jest-agent.config.cjs --runInBand` nad 19 navedenih specova (OU, manual catalog, groups, users, P2003) | **19/19 suita, 82/82 testa ✅**. Privremeni config koristi ts-jest `diagnostics: false` jer Prisma client/enums nedostaju; ovo nije backend typecheck ni puni test suite. |
 | Test rollbacka audita | `organizational-units.service.spec.ts`, `users/create-user.spec.ts`, `update-user.spec.ts`, `delete-user.spec.ts`, `issue-temporary-password-for-user.spec.ts`, `groups.service.spec.ts`, `directory-sync/delete-manual-directory-organizational-unit.spec.ts` | Audit failure ostavlja transactional fake u prethodnom stanju i ne pokreće post-commit password delivery/cache invalidation. |
 | Backend lint | `cd backend && npm run lint` | **0 ESLint problema ✅** |
-| Backend build/typecheck | `cd backend && npm run build` | **Blokirano:** 2874 TS greške; prvo TS2307 `Cannot find module '../generated/prisma/client'` (`src/cli/*`, zatim moduli), nakon čega nedostaju tipovi Prisma delegate-a. `npm run db:generate` nije ponovljen zbog prethodne TLS greške preuzimanja Prisma schema engine-a. |
+| Backend build/typecheck | `cd backend && npm run build` | Prvi lokalni pokušaj: 2874 kaskadnih grešaka zbog nedostajućeg Prisma outputa. Build s generisanim klijentom potom je prijavio tri direktne greške; sve tri su ispravljene (message tip konstruktora i dva polja `UserUpdateData`). **U ovom checkoutu nema generisanog klijenta pa uspješan post-fix build nije potvrđen**; raniji `db:generate` je pao na TLS preuzimanju engine-a. |
 | Frontend | `cd frontend && npm run build` | **Prošlo:** `tsc -b && vite build`; Vite samo upozorava na chunk veći od 500 kB. |
 | Dokumentacija | `node scripts/check-docs-content.mjs && node scripts/generate-docs-content.mjs --check` | **29 stranica / 5 prevoda / 10 provjera; ogledalo sinhronizovano ✅**. Tri korisničke `updatedAt` izmjene u manifestu sačuvane su. |
 | Diff higijena | `git diff --check` | **Prošlo ✅** |

@@ -16,7 +16,12 @@ type ExistingUser = {
   readonly organizationalUnitId: string | null;
   readonly isActive: boolean;
 };
-type UserUpdateData = Partial<Record<UserUpdateField, string | boolean | null>>;
+type UserUpdateData = {
+  displayName?: string;
+  email?: string;
+  organizationalUnitId?: string | null;
+  isActive?: boolean;
+};
 
 export async function updateUser(
   prisma: PrismaService,

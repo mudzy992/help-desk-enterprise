@@ -63,7 +63,7 @@ export function organizationalUnitDeleteErrorCode(
 export class OrganizationalUnitError extends Error {
   constructor(
     readonly code: OrganizationalUnitErrorCode,
-    message = code,
+    message: string = code,
     readonly blockers: readonly OrganizationalUnitDeleteBlocker[] = [],
   ) {
     super(message);
