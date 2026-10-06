@@ -2707,7 +2707,9 @@
     "createdBody": "Ovaj nalog je lokalni i ostaje dostupan za break-glass prijavu. Sljedeći koraci wizarda slijede nakon ovog koraka.",
     "localOnly": "Samo lokalni nalog",
     "passwordMismatch": "Lozinka i potvrda se ne poklapaju.",
-    "errorInvalid": "Podaci za SuperAdmin nisu ispravni. Provjerite email, ime i lozinku (najmanje 12 znakova).",
+    "errorInvalid": "Podaci za SuperAdmin nisu ispravni. Provjerite email, ime i lozinku.",
+    "passwordHint": "Lozinka mora imati najmanje {{min}} znakova.",
+    "passwordHintBlocklist": "Lozinka mora imati najmanje {{min}} znakova i ne smije biti među najčešće korištenim lozinkama.",
     "errorDuplicate": "Početni SuperAdmin već postoji ili je email zauzet.",
     "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati.",
     "loginProvider": {
@@ -3481,15 +3483,15 @@
   "auth": {
     "changePassword": {
       "title": "Promijenite lozinku",
-      "intro": "Prije pristupa sistemu morate postaviti novu lozinku (najmanje 12 znakova).",
+      "intro": "Prije pristupa sistemu morate postaviti novu lozinku (najmanje {{min}} znakova).",
       "newPassword": "Nova lozinka",
       "confirmPassword": "Potvrda lozinke",
       "submit": "Sačuvaj i nastavi",
       "saving": "Čuvanje…",
-      "tooShort": "Lozinka mora imati najmanje 12 znakova.",
+      "tooShort": "Lozinka mora imati najmanje {{min}} znakova.",
       "mismatch": "Lozinke se ne podudaraju.",
       "failed": "Promjena lozinke nije uspjela.",
-      "introExpired": "Vaša lozinka je istekla. Postavite novu lozinku da biste nastavili."
+      "introExpired": "Vaša lozinka je istekla. Postavite novu lozinku (najmanje {{min}} znakova) da biste nastavili."
     },
     "mfa": {
       "verifyTitle": "Potvrda u dva koraka",

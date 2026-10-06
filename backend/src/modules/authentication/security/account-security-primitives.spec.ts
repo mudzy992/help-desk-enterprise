@@ -6,7 +6,12 @@ import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from '
 import { truncateIpAddress } from './network-prefix';
 import { buildOrganisationWords, checkPassword } from './password-policy';
 import { defaultAccountSecurityPolicy as policy } from './account-security-policy';
-import { isPasswordExpired, passwordExpiresAt, resolveMfaRequirement } from './account-security-rules';
+import {
+  isPasswordExpired,
+  passwordExpiresAt,
+  resolveMfaFlow,
+  resolveMfaRequirement,
+} from './account-security-rules';
 
 const rfcSecret = Buffer.from('12345678901234567890', 'ascii');
 
@@ -143,6 +148,29 @@ describe('account security rules', () => {
 
   it('never offers MFA to an account without a local password (Entra)', () => {
     expect(resolveMfaRequirement({ roleKeys: ['ADMIN'], hasLocalPassword: false, entraObjectId: 'oid' }, policy)).toBe('unavailable');
+  });
+
+  // Paket 5.1 (M2 #1): the flow is not the requirement. Before this split,
+  // `mfaAllowOptional: false` made the requirement 'unavailable' and the code
+  // prompt was skipped for users who already carried the factor.
+  it('always verifies an enrolled factor, whatever the optional-enrolment switch says', () => {
+    const agent = { ...local, roleKeys: ['AGENT'] };
+    expect(resolveMfaFlow(agent, { ...policy, mfaAllowOptional: false }, true)).toBe('verify');
+    expect(resolveMfaFlow(agent, policy, true)).toBe('verify');
+    expect(resolveMfaFlow({ ...local, roleKeys: ['SUPER_ADMIN'] }, policy, true)).toBe('verify');
+  });
+
+  it('enrols only when the policy requires it and nothing is enrolled yet', () => {
+    const agent = { ...local, roleKeys: ['AGENT'] };
+    expect(resolveMfaFlow(agent, policy, false)).toBe('none');
+    expect(resolveMfaFlow(agent, { ...policy, mfaAllowOptional: false }, false)).toBe('none');
+    expect(resolveMfaFlow({ ...local, roleKeys: ['ADMIN'] }, policy, false)).toBe('enroll');
+    expect(resolveMfaFlow({ ...local, roleKeys: ['SUPER_ADMIN'] }, policy, false)).toBe('enroll');
+  });
+
+  it('keeps our factor out of Entra accounts even with a leftover enrollment row', () => {
+    const entra = { roleKeys: ['ADMIN'], hasLocalPassword: false, entraObjectId: 'oid' };
+    expect(resolveMfaFlow(entra, policy, true)).toBe('none');
   });
 
   it('expires only the SUPER_ADMIN password by default (365 d)', () => {

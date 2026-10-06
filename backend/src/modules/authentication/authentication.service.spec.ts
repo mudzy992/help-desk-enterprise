@@ -43,15 +43,17 @@ describe('AuthenticationService', () => {
   const issueMfaToken = jest.fn();
   const requirementFor = jest.fn();
   const isEnabled = jest.fn();
+  const flowFor = jest.fn();
   const createSession = jest.fn();
   const updateUser = jest.fn();
+  const loadPolicy = jest.fn();
   const service = new AuthenticationService(
     { resolve } as never,
     { issue, issuePasswordChangeToken, issueMfaToken, verify: jest.fn() } as never,
     { findById } as never,
     { user: { update: updateUser } } as never,
-    { load: async () => defaultAccountSecurityPolicy } as never,
-    { requirementFor, isEnabled } as never,
+    { load: loadPolicy } as never,
+    { requirementFor, isEnabled, flowFor } as never,
     { create: createSession } as never,
     {} as never,
     { audit: jest.fn(), notify: jest.fn() } as never,
@@ -65,10 +67,18 @@ describe('AuthenticationService', () => {
     issuePasswordChangeToken.mockReset();
     findById.mockReset();
     resolve.mockResolvedValue({ authenticate });
+    loadPolicy.mockReset().mockResolvedValue(defaultAccountSecurityPolicy);
     findById.mockResolvedValue(activeUser);
     issueMfaToken.mockReset().mockResolvedValue('mfa.jwt');
     requirementFor.mockReset().mockReturnValue('optional');
     isEnabled.mockReset().mockResolvedValue(false);
+    // Paket 5.1 (M2 #1): mirrors the real decision — an enrolled factor is
+    // always verified, otherwise the requirement decides enrolment.
+    flowFor
+      .mockReset()
+      .mockImplementation((_subject: unknown, _policy: unknown, enrolled: boolean) =>
+        enrolled ? 'verify' : requirementFor() === 'required' ? 'enroll' : 'none',
+      );
     createSession.mockReset().mockResolvedValue({ id: 'session-1' });
     updateUser.mockReset().mockResolvedValue({});
   });
@@ -94,6 +104,17 @@ describe('AuthenticationService', () => {
     });
     expect(issueMfaToken).toHaveBeenCalledWith('user-1', 'verify');
     expect(issue).not.toHaveBeenCalled();
+  });
+
+  // Paket 5.1 (M2 #1): `allowOptional: false` used to skip the prompt for
+  // accounts that already carried the factor (requirement 'unavailable').
+  it('still asks for the second factor when optional enrolment is off but the factor is enrolled', async () => {
+    authenticate.mockResolvedValue(principal);
+    requirementFor.mockReturnValue('unavailable');
+    isEnabled.mockResolvedValue(true);
+    const response = await service.loginWithPassword({ email: 'agent@example.com', password: 'x' });
+    expect(response).toMatchObject({ status: 'MFA_REQUIRED' });
+    expect(createSession).not.toHaveBeenCalled();
   });
 
   it('forces enrollment when MFA is required but not set up', async () => {
@@ -150,6 +171,7 @@ describe('AuthenticationService', () => {
       mustChangePassword: true,
     });
     issuePasswordChangeToken.mockResolvedValue('pwd-change.jwt');
+    loadPolicy.mockResolvedValue({ ...defaultAccountSecurityPolicy, passwordMinLength: 20 });
     const response = await service.loginWithPassword({
       email: 'agent@example.com',
       password: 'temporary-password',
@@ -159,6 +181,8 @@ describe('AuthenticationService', () => {
       passwordChangeToken: 'pwd-change.jwt',
       expiresInSeconds: authenticationConstants.passwordChangeTokenTtlSeconds,
       reason: 'temporary',
+      // Paket 5.1 (M2 #2): the screen gets the number, not a hard-coded 12.
+      passwordMinLength: 20,
     });
     expect(issue).not.toHaveBeenCalled();
   });

@@ -56,6 +56,12 @@ export type MustChangePasswordLoginResponse = {
   readonly expiresInSeconds: number;
   /** Paket 2.1: why — a temporary password or an expired one. */
   readonly reason?: 'temporary' | 'expired';
+  /**
+   * Paket 5.1 (M2 #2): `private.auth.password.minLength` at sign-in time, so the
+   * forced-change screen states the rule the server will enforce. The screen used
+   * to hard-code 12 and contradict a stricter policy.
+   */
+  readonly passwordMinLength: number;
 };
 
 /** Paket 2.1 (M3): password accepted, second factor pending. */

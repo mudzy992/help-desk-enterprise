@@ -15,6 +15,16 @@ export type InstallSuperAdminStatus = {
   readonly superAdmin: InstallSuperAdminRecord | null;
 };
 
+/**
+ * Paket 5.1 (M1 #1): the rules the install wizard must state before it posts
+ * the founder account — the server used to be stricter than the hard-coded 12.
+ */
+export type InstallPasswordPolicy = {
+  readonly minLength: number;
+  readonly maxLength: number;
+  readonly blocklistEnabled: boolean;
+};
+
 export type CreateInstallSuperAdminInput = {
   readonly email: string;
   readonly displayName: string;
@@ -61,6 +71,10 @@ export function completeInstallSetup(): Promise<InstallSetupStatus> {
 
 export function loadInstallSuperAdmin(): Promise<InstallSuperAdminStatus> {
   return apiRequest<InstallSuperAdminStatus>("/install/super-admin");
+}
+
+export function loadInstallPasswordPolicy(): Promise<InstallPasswordPolicy> {
+  return apiRequest<InstallPasswordPolicy>("/install/password-policy");
 }
 
 export function createInstallSuperAdmin(

@@ -100,7 +100,7 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 | Postavka | Značenje |
 |---|---|
 | Obavezna potvrda u dva koraka (TOTP) za ADMIN naloge s lokalnom lozinkom | SUPER_ADMIN je uvijek obavezan; ADMIN po ovoj postavci |
-| Ostali korisnici s lokalnom lozinkom mogu sami uključiti potvrdu u dva koraka | dozvola za samostalan upis |
+| Ostali korisnici s lokalnom lozinkom mogu sami uključiti potvrdu u dva koraka | dozvola za samostalan upis; isključivanje zaustavlja **nove** upise, a korisnici koji su potvrdu već upisali i dalje je unose pri svakoj prijavi |
 | Naziv koji aplikacija za autentifikaciju prikazuje uz nalog | prazno = naziv aplikacije |
 | Minimalna dužina lokalne lozinke | 12–64 |
 | Odbij najčešće lozinke, naziv organizacije i dijelove vlastite e-mail adrese (offline lista) | uključeno/isključeno |
@@ -117,7 +117,7 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 |---|---|
 | Email | obavezan, format email adrese |
 | Lozinka pri prijavi | obavezna; ne otkriva se da li email postoji |
-| Nova lozinka | najmanje `private.auth.password.minLength` znakova (12–64); ne smije biti jednaka emailu, sadržavati naziv organizacije, dio email adrese ni biti među najčešćim lozinkama; uz istoriju, ne smije se ponoviti |
+| Nova lozinka | najmanje `private.auth.password.minLength` znakova (12–64); ne smije biti jednaka emailu, sadržavati naziv organizacije, dio email adrese ni biti među najčešćim lozinkama; uz istoriju, ne smije se ponoviti. Prisilna promjena na ekranu prijave prikazuje istu granicu (server je šalje uz odgovor o potrebi promjene) |
 | Kod iz aplikacije | 6 cifara, tolerancija ±30 s |
 | Rezervni kod | format `xxxxx-xxxxx`, jednokratan |
 | Statusi prijave | `MUST_CHANGE_PASSWORD` (privremena/istekla lozinka), `MFA_REQUIRED` (upisana potvrda), `MFA_ENROLLMENT_REQUIRED` (obavezna, nije upisana) |
@@ -145,12 +145,7 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 - Potvrda u dva koraka je **samo TOTP** (aplikacija na telefonu); SMS i email kodovi se ne koriste.
 - Za naloge koji se prijavljuju preko Microsofta **naš** drugi faktor se ne primjenjuje — pravila pristupa
   podešava Microsoft.
-- Ako administrator isključi postavku „Ostali korisnici s lokalnom lozinkom mogu sami uključiti potvrdu u dva
-  koraka“, to utiče i na verifikaciju kod korisnika koji su potvrdu već upisali (zapisano kao nalaz #1 u
-  `REVIEW_ANALIZA.md` §M2).
 - Brojač neuspjelih prijava je vezan za **email i IP adresu**; iza proxyja se praktično svodi na email adresu.
-- Prisilna promjena lozinke na ekranu prijave prikazuje „najmanje 12 znakova“ čak i kad je politika stroža;
-  server i stranica „Sigurnost naloga“ prikazuju tačno pravilo.
 - **Jeftino je samo za korisnika:** ako ostane bez telefona i rezervnih kodova, put je preko administratora
   (**Reset MFA**), bez samoopsluživanja.
 

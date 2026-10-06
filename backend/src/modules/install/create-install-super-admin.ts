@@ -3,6 +3,7 @@ import { applySuperAdminLocalOnlyInvariant } from '../authentication/apply-super
 import { assertSuperAdminIsLocalOnly } from '../authentication/assert-super-admin-is-local-only';
 import { authenticationConstants } from '../authentication/authentication.constants';
 import { hashLocalPassword } from '../authentication/hash-local-password';
+import type { PasswordPolicy } from '../authentication/security/password-policy';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { ensureInstallSuperAdminRole } from './ensure-install-super-admin-role';
 import { findInstallSuperAdmin } from './find-install-super-admin';
@@ -19,8 +20,9 @@ export async function createInstallSuperAdmin(
   prisma: PrismaService,
   input: CreateInstallSuperAdminInput,
   hashPassword: HashInstallSuperAdminPassword = hashLocalPassword,
+  passwordPolicy?: PasswordPolicy,
 ): Promise<InstallSuperAdminPublicRecord> {
-  const credentials = validateInstallSuperAdminCredentials(input);
+  const credentials = validateInstallSuperAdminCredentials(input, passwordPolicy);
   if ((await findInstallSuperAdmin(prisma)) !== null) {
     throw new InstallSuperAdminError('SUPER_ADMIN_ALREADY_EXISTS');
   }

@@ -237,11 +237,15 @@ export class AuthenticationService {
     user: AuthenticationUserRecord,
     reason: 'temporary' | 'expired',
   ): Promise<AuthenticationLoginResponse> {
+    // Paket 5.1 (M2 #2): the forced-change screen shows the same minimum the
+    // server enforces (was hard-coded to 12 in the client).
+    const policy = await this.policyLoader.load();
     return {
       status: 'MUST_CHANGE_PASSWORD',
       passwordChangeToken: await this.sessionTokenService.issuePasswordChangeToken(user.id),
       expiresInSeconds: authenticationConstants.passwordChangeTokenTtlSeconds,
       reason,
+      passwordMinLength: policy.passwordMinLength,
     };
   }
 
@@ -252,15 +256,21 @@ export class AuthenticationService {
     context: SignInContext,
   ): Promise<AuthenticationLoginResponse> {
     const policy = await this.policyLoader.load();
-    const requirement = this.mfaService.requirementFor(user, policy);
-    if (requirement !== 'unavailable' && (await this.mfaService.isEnabled(user.id))) {
+    // Paket 5.1 (M2 #1): the flow (verify / enroll / none) is a separate
+    // decision from the enrolment requirement — see `resolveMfaFlow`.
+    const flow = this.mfaService.flowFor(
+      user,
+      policy,
+      await this.mfaService.isEnabled(user.id),
+    );
+    if (flow === 'verify') {
       return {
         status: 'MFA_REQUIRED',
         mfaToken: await this.sessionTokenService.issueMfaToken(user.id, 'verify'),
         expiresInSeconds: authenticationConstants.mfaTokenTtlSeconds,
       };
     }
-    if (requirement === 'required') {
+    if (flow === 'enroll') {
       return {
         status: 'MFA_ENROLLMENT_REQUIRED',
         mfaToken: await this.sessionTokenService.issueMfaToken(user.id, 'enroll'),

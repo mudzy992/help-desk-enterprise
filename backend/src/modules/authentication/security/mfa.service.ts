@@ -5,7 +5,12 @@ import { notificationTypes } from '../../notifications/notifications.constants';
 import { AccountSecurityError } from './account-security.error';
 import { AccountSecurityNotifier } from './account-security-notifier';
 import type { AccountSecurityPolicy } from './account-security-policy.loader';
-import { type MfaRequirement, resolveMfaRequirement } from './account-security-rules';
+import {
+  type MfaFlow,
+  type MfaRequirement,
+  resolveMfaFlow,
+  resolveMfaRequirement,
+} from './account-security-rules';
 import {
   decryptMfaSecretWithRotation,
   encryptMfaSecret,
@@ -50,6 +55,19 @@ export class MfaService {
     return resolveMfaRequirement(
       { roleKeys: subject.roleKeys, hasLocalPassword: subject.localPasswordHash !== null, entraObjectId: subject.entraObjectId },
       policy,
+    );
+  }
+
+  /** Paket 5.1 (M2 #1): what the sign-in flow does with the second factor. */
+  flowFor(subject: MfaSubject, policy: AccountSecurityPolicy, isEnrolled: boolean): MfaFlow {
+    return resolveMfaFlow(
+      {
+        roleKeys: subject.roleKeys,
+        hasLocalPassword: subject.localPasswordHash !== null,
+        entraObjectId: subject.entraObjectId,
+      },
+      policy,
+      isEnrolled,
     );
   }
 

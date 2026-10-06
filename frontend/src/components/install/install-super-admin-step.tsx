@@ -6,9 +6,22 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/services/api";
 import {
   createInstallSuperAdmin,
+  loadInstallPasswordPolicy,
   loadInstallSuperAdmin,
+  type InstallPasswordPolicy,
   type InstallSuperAdminRecord,
 } from "@/services/install-api";
+import {
+  readPasswordFeedbackKeys,
+  type PasswordFeedbackKey,
+} from "@/components/auth/password-feedback";
+
+/** Paket 5.1 (M1 #1): shown only until the server policy arrives. */
+const fallbackPasswordPolicy: InstallPasswordPolicy = {
+  minLength: 12,
+  maxLength: 128,
+  blocklistEnabled: true,
+};
 
 type InstallSuperAdminErrorKey =
   | "install.passwordMismatch"
@@ -32,15 +45,26 @@ export function InstallSuperAdminStep({
   const [errorKey, setErrorKey] = useState<InstallSuperAdminErrorKey | null>(
     null,
   );
+  const [policyKeys, setPolicyKeys] = useState<PasswordFeedbackKey[] | null>(
+    null,
+  );
+  const [passwordPolicy, setPasswordPolicy] =
+    useState<InstallPasswordPolicy>(fallbackPasswordPolicy);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
-    void loadInstallSuperAdmin()
-      .then((status) => {
+    void Promise.all([
+      loadInstallSuperAdmin(),
+      // Paket 5.1 (M1 #1): a failure here is not fatal — the shipped fallback
+      // still lets the operator create the account, and the server decides.
+      loadInstallPasswordPolicy().catch(() => fallbackPasswordPolicy),
+    ])
+      .then(([status, policy]) => {
         if (!isCancelled) {
           setSuperAdmin(status.superAdmin);
+          setPasswordPolicy(policy);
           setIsLoading(false);
         }
       })
@@ -62,6 +86,7 @@ export function InstallSuperAdminStep({
     }
     setIsSubmitting(true);
     setErrorKey(null);
+    setPolicyKeys(null);
     try {
       const created = await createInstallSuperAdmin({
         email,
@@ -73,7 +98,15 @@ export function InstallSuperAdminStep({
       setPassword("");
       setConfirmPassword("");
     } catch (error) {
-      setErrorKey(mapCreateError(error));
+      // Paket 5.1 (M1 #1): the server lists the broken rules; show them instead
+      // of a single vague "the details are invalid".
+      const keys = readPasswordFeedbackKeys(error);
+      if (keys) {
+        setPolicyKeys(keys);
+        setErrorKey(null);
+      } else {
+        setErrorKey(mapCreateError(error));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +174,8 @@ export function InstallSuperAdminStep({
           className={controlClassName}
           type="password"
           autoComplete="new-password"
-          minLength={12}
+          minLength={passwordPolicy.minLength}
+          maxLength={passwordPolicy.maxLength}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -153,12 +187,25 @@ export function InstallSuperAdminStep({
           className={controlClassName}
           type="password"
           autoComplete="new-password"
-          minLength={12}
+          minLength={passwordPolicy.minLength}
+          maxLength={passwordPolicy.maxLength}
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           required
         />
       </label>
+      <p className="text-[12px] leading-5 text-muted-foreground">
+        {passwordPolicy.blocklistEnabled
+          ? t("install.passwordHintBlocklist", { min: passwordPolicy.minLength })
+          : t("install.passwordHint", { min: passwordPolicy.minLength })}
+      </p>
+      {policyKeys ? (
+        <ul className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
+          {policyKeys.map((key) => (
+            <li key={key}>{t(key)}</li>
+          ))}
+        </ul>
+      ) : null}
       {errorKey ? (
         <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
@@ -177,7 +224,8 @@ function mapCreateError(error: unknown): InstallSuperAdminErrorKey {
   }
   if (
     error.status === 400 ||
-    error.code === "INVALID_SUPER_ADMIN_CREDENTIALS"
+    error.code === "INVALID_SUPER_ADMIN_CREDENTIALS" ||
+    error.code === "PASSWORD_POLICY_VIOLATIONS"
   ) {
     return "install.errorInvalid";
   }

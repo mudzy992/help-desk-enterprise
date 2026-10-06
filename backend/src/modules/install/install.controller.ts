@@ -40,6 +40,7 @@ import type {
   InstallSuperAdminPublicRecord,
   InstallSuperAdminStatus,
 } from './install-super-admin.types';
+import type { InstallPasswordPolicyPublic } from './install-super-admin-password-policy';
 
 @Controller('install')
 @UseGuards(InstallWizardLockGuard)
@@ -69,6 +70,12 @@ export class InstallController {
   @Get('super-admin')
   getSuperAdmin(): Promise<InstallSuperAdminStatus> {
     return this.installSuperAdminService.getStatus();
+  }
+
+  /** Paket 5.1 (M1 #1): rules for the founder password (no secrets). */
+  @Get('password-policy')
+  getPasswordPolicy(): Promise<InstallPasswordPolicyPublic> {
+    return this.installSuperAdminService.getPasswordPolicy();
   }
 
   @Post('super-admin')

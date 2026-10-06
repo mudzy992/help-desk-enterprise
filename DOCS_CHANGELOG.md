@@ -1836,3 +1836,26 @@ refaktora 60 linija, pa je nalaz M6 B3 vezan na `assert-service-lifecycle-transi
 |---|---|---|
 | `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md` (nov) | Dizajn za svih 15 `SREDNJE` nalaza: stanje u kodu s putanjama, šta se mijenja, testovi, dokumentacija, rizici; §5 odluke vlasnika; §7.1 registar 38 `NISKO`; §7.2 definicija „audit očišćen“ | `REVIEW_ANALIZA.md` §M1–§M15 (nalazi), provjera koda 2026-10-06 |
 | `REVIEW_ANALIZA.md` | U „Šta ostaje otvoreno poslije vala 5“ dodata poveznica na plan 5.1/5.2 (novi audit nije potreban) | ova izmjena |
+
+## Paket 5.1 — korak 5.1.1: politika lozinke osnivačkog naloga i tačna MFA verifikacija (2026-10-06)
+
+**Zašto:** prvi korak paketa 5.1 zatvara nalaze **M1 #1** (najprivilegovaniji nalog nije prolazio politiku lozinke
+iz paketa 2.1 — `password12345` je bio prihvaćen) i **M2 #1** (isključena postavka „Ostali korisnici s lokalnom
+lozinkom mogu sami uključiti potvrdu u dva koraka“ tiho je preskakala verifikaciju i korisnicima koji su faktor
+već upisali), uz manju stavku **M2 #2** (ekran prisilne promjene lozinke tvrdio je „najmanje 12 znakova“ i kad je
+politika stroža).
+
+**Dokazi:** `cd backend && npx tsc --noEmit` → 0; `npx jest src/modules/install` → 25 suita / 112 testova ✅;
+`npx jest src/modules/authentication/authentication.service.spec.ts src/modules/authentication/security/account-security-primitives.spec.ts`
+→ 12/12 i 26/26 ✅; `npx eslint src/modules/install src/modules/authentication` → 0; `cd frontend && npx tsc -b` → 0;
+`npx vitest run` → 161 fajl / 658 testova ✅; `node scripts/check-docs-content.mjs` → OK (29 stranica, 5 prevoda,
+10 provjera); devet `scripts/check-*.mjs` guardova → OK. Detalji su u `REVIEW_ANALIZA.md`,
+`# Paket 5.1 — korak 5.1.1`.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/instalacija.md` | Korak 1 opisuje politiku iz **Sigurnost naloga** (`private.auth.password.minLength`, zadano 12, najviše 128) i uputu s važećom granicom; tabela grešaka dobila `PASSWORD_POLICY_VIOLATIONS`; novo često pitanje o pravilima lozinke; **uklonjeno** ograničenje „za SuperAdmina se provjerava samo dužina i da nije email“ jer više ne važi | `validate-install-super-admin-credentials.ts`, `install-super-admin-password-policy.ts`, `install.controller.ts` (`GET install/password-policy`) |
+| `docs/user-guide/prijava-i-mfa.md` | **Uklonjena** dva zastarjela ograničenja (verifikacija upisanog faktora pri isključenoj postavki; hardkodiranih „12 znakova“ na ekranu prisilne promjene); tabela postavki i tabela pravila lozinke dopunjene tačnim ponašanjem | `account-security-rules.ts` (`resolveMfaFlow`), `mfa.service.ts` (`flowFor`), `authentication.service.ts` (`mustChangePassword`) |
+| `docs/user-guide/en/prijava-i-mfa.md` | Isti dvije izmjene na engleskom (stranica je jedna od pet prevedenih) | ista izmjena |
+| `e2e/README.md` | `E2E_SUPERADMIN_PASSWORD` mora prolaziti politiku i na svježem stacku (`ensureInstall`); dodat opis `400 PASSWORD_POLICY_VIOLATIONS` | `e2e/helpers/ensure-install.ts`, `install-super-admin.service.spec.ts` |
+| `REVIEW_ANALIZA.md` | Novi odjeljak „Paket 5.1 — korak 5.1.1“ + zatvoreni nalazi M1 #1 i M2 #1 (tabele §M1/§M2, gap tabela M1 §5, ocjene §9) + broj otvorenih nalaza (13 `SREDNJE` / 38 `NISKO`) | ova izmjena |

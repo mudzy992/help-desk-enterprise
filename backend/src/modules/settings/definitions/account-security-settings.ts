@@ -37,7 +37,7 @@ export const accountSecuritySettings: readonly SettingDefinition[] = [
     key: settingKeys.privateAuthMfaAllowOptional,
     categoryId: category,
     valueType: 'boolean',
-    description: 'Let other local accounts turn on TOTP MFA themselves',
+    description: 'Let other local accounts turn on TOTP MFA themselves; turning this off does not stop the prompt for accounts that already enrolled (only new enrolments)',
     isRequired: true,
     defaultValue: true,
   }),

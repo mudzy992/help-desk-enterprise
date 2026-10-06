@@ -8,12 +8,21 @@ export type AuthenticationSessionResponse = {
   readonly principal: SessionPrincipal;
 };
 
+/** Paket 5.1 (M2 #2): used only when a server does not send the policy value. */
+export const fallbackMinimumPasswordLength = 12;
+
 export type MustChangePasswordLoginResponse = {
   readonly status: "MUST_CHANGE_PASSWORD";
   readonly passwordChangeToken: string;
   readonly expiresInSeconds: number;
   /** Paket 2.1: a temporary password or an expired one. */
   readonly reason?: "temporary" | "expired";
+  /**
+   * Paket 5.1 (M2 #2): `private.auth.password.minLength`, so the forced-change
+   * form states the rule the server enforces. Optional — a server that does not
+   * send it falls back to the shipped minimum.
+   */
+  readonly passwordMinLength?: number;
 };
 
 /** Paket 2.1: password accepted, second factor pending. */

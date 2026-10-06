@@ -16,13 +16,21 @@ const messages: Record<InstallSuperAdminErrorCode, string> = {
   INVALID_SUPER_ADMIN_CREDENTIALS: 'SuperAdmin credentials are invalid',
   SUPER_ADMIN_ALREADY_EXISTS: 'Initial SuperAdmin already exists',
   SUPER_ADMIN_EMAIL_TAKEN: 'SuperAdmin email is already in use',
+  PASSWORD_POLICY_VIOLATIONS:
+    'SuperAdmin password does not satisfy the password policy',
 };
 
 export function mapInstallSuperAdminError(error: unknown): HttpException {
   if (!(error instanceof InstallSuperAdminError)) {
     throw error;
   }
-  const body = { code: error.code, message: messages[error.code] };
+  const body = {
+    code: error.code,
+    message: messages[error.code],
+    ...(error.violations.length > 0
+      ? { violations: [...error.violations] }
+      : {}),
+  };
   if (conflictCodes.includes(error.code)) {
     return new ConflictException(body);
   }

@@ -167,7 +167,7 @@ Zatečena arhitektura (korak = endpoint, guardovi, token) je **zdrava osnova** i
 
 | Zadatak (RAW) | Idealno | Trenutno | Status |
 |---|---|---|---|
-| local SuperAdmin | + politika lozinke kao 2.1 | bcrypt 12, 12–128 znakova, bez blocklist/historije | **Djelimično** |
+| local SuperAdmin | + politika lozinke kao 2.1 | bcrypt 12, 12–128 znakova + blocklist, riječi organizacije i dijelovi emaila iz politike (paket 5.1, 2026-10-06) | **Implementirano** |
 | auth mode local\|AD | + verifikacija konekcije | `local` / `entra_ad`, tajne write-only, bez testa bind-a | **Djelimično** |
 | SMTP | + probno slanje | validacija formata, env prefill, lozinka secret | **Djelimično** |
 | seed grupa/servisa/OU | idempotentno, u transakciji, sa dokazom rute | tačno tako (+ provjera razrješavanja) | **Implementirano** |
@@ -200,7 +200,7 @@ navedene u §7 (politika lozinke, otvoren `GET /install/addons`, maskiranje pada
 
 | # | Ozbiljnost | Lokacija | Opis | Uticaj | Fix |
 |---|---|---|---|---|---|
-| 1 | **SREDNJE** | `backend/src/modules/install/validate-install-super-admin-credentials.ts:16–29` vs. `authentication/security/password-change.service.ts:29` + `security/password-policy.ts` | Politika lozinke iz paketa 2.1 (blocklist preko zxcvbn rječnika, historija, dužina iz postavke) **ne primjenjuje se** na prvi, najprivilegovaniji nalog; wizard provjerava samo 12–128 znakova i da lozinka nije email. | SuperAdmin može dobiti npr. `password12345`; politika važi za sve ostale korisnike, ali ne za osnivački nalog. | Pozvati isti loader (`account-security-policy.loader.ts`) i provjeru iz `password-policy.ts` u wizardu, ili forsirati promjenu lozinke pri prvoj prijavi. |
+| 1 | **SREDNJE** → ✅ **zatvoreno u paketu 5.1 (2026-10-06)**: `validate-install-super-admin-credentials.ts` sada prima politiku i zove `checkPassword`, politiku daje `install-super-admin-password-policy.ts`, a wizard je čita s `GET /install/password-policy` | `backend/src/modules/install/validate-install-super-admin-credentials.ts:16–29` vs. `authentication/security/password-change.service.ts:29` + `security/password-policy.ts` | Politika lozinke iz paketa 2.1 (blocklist preko zxcvbn rječnika, historija, dužina iz postavke) **ne primjenjuje se** na prvi, najprivilegovaniji nalog; wizard provjerava samo 12–128 znakova i da lozinka nije email. | SuperAdmin može dobiti npr. `password12345`; politika važi za sve ostale korisnike, ali ne za osnivački nalog. | Pozvati isti loader (`account-security-policy.loader.ts`) i provjeru iz `password-policy.ts` u wizardu, ili forsirati promjenu lozinke pri prvoj prijavi. |
 | 2 | **NISKO** | `frontend/src/pages/install-page.tsx:77` (`loginProviderSaved: false`) + `frontend/src/lib/resolve-install-wizard-step.ts:19` | Status `GET /install/login-provider` već zna da je provajder sačuvan (`read-install-login-provider-status.ts` vraća `mode`/`…Configured`), ali ga wizard ignoriše i **uvijek se vraća na korak „Način prijave“** dok SMTP nije podešen ili seed nije urađen. | Osvježavanje taba usred instalacije traži ponovni prolaz kroz već sačuvan korak; polje `loginProviderSaved` je mrtvo. | Vratiti `saved` u status i koristiti ga u `resolveInstallWizardStep`; najbolje da server vraća `nextStep`. |
 | 3 | **NISKO** | `backend/src/modules/install/install-setup.service.ts:15–25` + `install-setup.guard.ts` | `isCompleted()` hvata **svaku** grešku i vraća `false`; ako baza padne prije instalacije, svaki request dobija 503 `SETUP_REQUIRED`. | Dijagnostika vodi na pogrešan trag („instalacija nije završena“ umjesto „baza nije dostupna“); `/health/ready` ipak pokazuje pravi uzrok. | Razlikovati „ne mogu pročitati“ od „nije završeno“ (drugi kod greške ili preskakanje kapije kad baza nije dostupna). |
 | 4 | **NISKO** | `backend/src/modules/install/ensure-install-organizational-unit.ts:9–17`, `ensure-install-fallback-group.ts:15–27` | Seed ne traži OJ po svom DN-u nego **prvu OJ po `ouPath`**, a fallback grupu traži **globalno** (`isFallback: true` bez obzira na OJ). | Ponovni seed u djelimično podešenom sistemu može vezati servis/routing na nepovezanu OJ i grupu iz druge OJ (ruta preskače granice OJ). | Tražiti po `distinguishedName === 'OU=Direkcija,DC=local'` i po `key === 'fallback'` unutar te OJ; ako nema, kreirati. |
@@ -235,7 +235,7 @@ to dokument koji je ostao kod izvornog šablona; ako postoji, vrijedi ga uvesti 
 |---|---|---|
 | Funkcionalnost | **8 / 10** | Sve što RAW traži radi (i više: token zaštita, zaključavanje, provjera rute); nedostaju verifikacija konekcija i pouzdan nastavak od tačnog koraka. |
 | Kvalitet koda | **9 / 10** | Jedan posao po fajlu, jaka tipizacija, 24 spec fajla, transakcioni seed; zamjerke su kozmetičke (ponovljeni `execute()` obrazac) i heuristika na frontendu. |
-| Sigurnost | **7 / 10** | Token + tajming-otporno poređenje + zaključavanje + write-only tajne; umanjuju pad politike lozinke za osnivački nalog, otvoren `GET /install/addons` i maskiranje pada baze. |
+| Sigurnost | **7 / 10** | Token + tajming-otporno poređenje + zaključavanje + write-only tajne; osnivački nalog sada prolazi istu politiku lozinke kao svaki lokalni nalog (nalaz #1 zatvoren u paketu 5.1), a umanjuju otvoren `GET /install/addons` (nalaz #5) i maskiranje pada baze (nalaz #3). |
 
 ---
 
@@ -419,7 +419,7 @@ Nedostaje integracioni test koji prolazi *cijeli* HTTP tok od `login` do `sid`-a
 
 | # | Ozbiljnost | Lokacija | Opis | Uticaj | Fix |
 |---|---|---|---|---|---|
-| 1 | **SREDNJE** | `backend/src/modules/authentication/authentication.service.ts:255–270` + `security/account-security-rules.ts:21` | Isključivanje postavke `private.auth.mfa.allowOptional` mijenja zahtjev na `unavailable`, a `continueAfterPassword` tada **preskače verifikaciju** i za korisnike koji **već imaju upisan TOTP** (uslov je `requirement !== 'unavailable' && isEnabled`). Opis postavke u kodu i UI-ju kaže da se radi o *dozvoli samostalnog uključivanja*, ne o isključivanju verifikacije (`settings/definitions/account-security-settings.ts:36–43`). | ADMIN/SUPER_ADMIN nisu pogođeni, ali svaki AGENT/USER koji se oslanja na drugi faktor ostaje zaštićen samo lozinkom — tiho, bez ikakve poruke. | Razdvojiti „može upisati“ od „mora/treba verificirati“: ako je `isEnabled`, tražiti `MFA_REQUIRED` bez obzira na `allowOptional`; `allowOptional=false` da zabrani samo *novi* upis. |
+| 1 | **SREDNJE** → ✅ **zatvoreno u paketu 5.1 (2026-10-06)**: `resolveMfaFlow` (`security/account-security-rules.ts`) razdvaja „smije upisati“ od „upisan faktor se uvijek verificira“, a `MfaService.flowFor` to prosljeđuje u `continueAfterPassword` | `backend/src/modules/authentication/authentication.service.ts:255–270` + `security/account-security-rules.ts:21` | Isključivanje postavke `private.auth.mfa.allowOptional` mijenja zahtjev na `unavailable`, a `continueAfterPassword` tada **preskače verifikaciju** i za korisnike koji **već imaju upisan TOTP** (uslov je `requirement !== 'unavailable' && isEnabled`). Opis postavke u kodu i UI-ju kaže da se radi o *dozvoli samostalnog uključivanja*, ne o isključivanju verifikacije (`settings/definitions/account-security-settings.ts:36–43`). | ADMIN/SUPER_ADMIN nisu pogođeni, ali svaki AGENT/USER koji se oslanja na drugi faktor ostaje zaštićen samo lozinkom — tiho, bez ikakve poruke. | Razdvojiti „može upisati“ od „mora/treba verificirati“: ako je `isEnabled`, tražiti `MFA_REQUIRED` bez obzira na `allowOptional`; `allowOptional=false` da zabrani samo *novi* upis. |
 | 2 | **SREDNJE** | `frontend/src/components/auth/change-password-form.tsx:12,37,88,111` + `i18n` `auth.changePassword.intro` | Ekran prisilne promjene lozinke tvrdi i validira „najmanje 12 znakova“ (konstanta), dok administrator može podići `private.auth.password.minLength` do 64. | Korisnik prvo dobije zelenilo na klijentu, pa 400 s listom prekršenih pravila; tekst protivrječi politici koju vidi na „Sigurnost naloga“. | Proslijediti `minLength` iz politike (kao `password-section.tsx:56,73`) ili ukloniti tvrdnju iz teksta i pustiti server da odluči. |
 | 3 | **NISKO** | `backend/src/modules/authentication/login-attempt-limiter.ts:17–30` (i komentar `:13–15`) | Ključ brojača je `email + IP`. Bez `TRUST_PROXY` (ili s proxyjem ispred) svi zahtjevi dijele isti IP, pa 5 tuđih pogrešnih pokušaja zaključava **tuđi** nalog na 15 min (i tačna lozinka dobija 429). | Ciljani DoS: dovoljno je znati email adresu zaposlenika. | Uvesti odvojen brojač po nalogu (duži prozor, veći prag) i po IP-u (kraći, niži prag), uz progresivno kašnjenje umjesto tvrdog 429. |
 | 4 | **NISKO** | `backend/src/modules/authentication/security/recovery-codes.ts:21–23` | Rezervni kodovi se hashiraju **neslanim SHA-256**, bez tajne servera. Entropija je ~2^49 (10 znakova iz 31-znakovnog alfabeta), pa neslani SHA-256 omogućava offline napad preko cijele baze jednom predračunatom tabelom. | Ako baza procuri, rezervni kodovi su kandidat za offline probijanje jačom grafikom. | HMAC-SHA-256 s ključem iz okruženja (npr. vezan uz `MFA_ENCRYPTION_KEY`) ili `bcrypt` s umjerenim faktorom; migracija = poništiti postojeće kodove. |
@@ -458,7 +458,7 @@ svjesna odluka (RAW traži break-glass SuperAdmin), ali vrijedi potvrditi da nij
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **9 / 10** | Sve što RAW traži i cijeli paket 2.1 rade: dva provajdera, prisilna promjena, TOTP s QR-om, rezervni kodovi, registar sesija, „odjavi sve“, reset MFA-a. Zamjerka je tiha degradacija kod `allowOptional=false`. |
+| Funkcionalnost | **9 / 10** | Sve što RAW traži i cijeli paket 2.1 rade: dva provajdera, prisilna promjena, TOTP s QR-om, rezervni kodovi, registar sesija, „odjavi sve“, reset MFA-a. Tiha degradacija kod `allowOptional=false` je zatvorena u paketu 5.1 (nalaz #1); zamjerka ostaje na dijeljenom brojaču neuspjeha (`email+IP`) i neslanom SHA-256 za rezervne kodove. |
 | Kvalitet koda | **8 / 10** | Čiste odluke odvojene od I/O, dobra imena i neutralne greške; `authentication.service.ts` je prerastao u „god service“, a mapiranje grešaka baca iz `catch` poziva. |
 | Sigurnost | **8 / 10** | AES-GCM za tajne, ponovna upotreba koda blokirana, opoziv preko Redisa, skraćena IP adresa, rate limit s fail-open; umanjuju: bug #1, neslani SHA-256 za rezervne kodove i zajednički brojač `email+IP`. |
 
@@ -4939,7 +4939,10 @@ otvoreno **0 KRITIČNO / 0 VISOKO / 24 SREDNJE / 51 NISKO**, uz prosjek **F 8,5 
 `# Val 2 — sigurnost i vidljivost`). Poslije **vala 3** zatvoreno je još **9 nalaza** (M8 B2, M11 B1/B2,
 M12 B1/B3/B4/B5, M13 B2, M14 B5 — četiri `SREDNJE` i pet `NISKO`) **i jedan preventivni guard** (Redis auth
 greška u `subscribeRedisChannel`), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 20 SREDNJE / 46 NISKO** (dokazi u
-`# Val 3 — pouzdanost i performanse`). Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+`# Val 3 — pouzdanost i performanse`). Poslije **paketa 5.1, korak 5.1.1** (2026-10-06) zatvorena su **dva
+`SREDNJE`** nalaza (M1 #1 — politika lozinke osnivačkog naloga; M2 #1 — upisan TOTP se uvijek verificira), pa je
+otvoreno **0 KRITIČNO / 0 VISOKO / 13 SREDNJE / 38 NISKO** (dokazi u `# Paket 5.1 — korak 5.1.1`). Ocjene u
+tabeli se ponovo vrednuju na kraju paketa 5.1, poslije koraka 5.1.4. Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
 ne u tome da funkcija ne postoji.
@@ -6407,3 +6410,53 @@ Uz to je očišćeno **16 `no-unused-vars` upozorenja** koje je prijavio `npm ru
 - **Popravljeno, čeka potvrdu:** 14 (D-30 — scope na `/reports/packs`), 23 (D-29 — kontrast disabled dugmadi).
 - **Poznato ograničenje:** 18 — „pošalji test“ se vidljivo preskače bez SMTP-a na stacku (D-26).
 - **Sljedeći korak:** ciljani run `specs=14,23` s `retries=0`; ako je zelen, prvi **puni** prolaz je formalna kapija za merge na `master` (radi vlasnik).
+
+# Paket 5.1 — korak 5.1.1: politika lozinke u wizardu i tačna MFA verifikacija (2026-10-06)
+
+Prvi korak paketa 5.1 (`docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md`, §2) zatvara **dva nalaza
+`SREDNJE`** koji su do sada bili opisani samo kao preporuka: **M1 #1** (osnivački nalog ne prolazi politiku
+lozinke iz paketa 2.1) i **M2 #1** (isključivanje `private.auth.mfa.allowOptional` tiho preskače verifikaciju i
+onima koji su faktor već upisali). Uz njih je isporučena i treća, manja stavka istog koraka: **M2 #2** (ekran
+prisilne promjene lozinke tvrdi „najmanje 12 znakova“ i kad je politika stroža).
+
+## 1. Šta je promijenjeno (dokaz u kodu)
+
+| Nalaz | Šta je urađeno | Dokaz (fajl, funkcija) |
+|---|---|---|
+| **M1 #1** | Wizard više ne validira lozinku „12–128 i nije email“, nego istom provjerom kao svaki lokalni nalog: `checkPassword` iz `security/password-policy.ts` (dužina iz postavke, lista najčešćih lozinki, riječi organizacije, dijelovi email adrese). Političke granice su `max(12, policy.passwordMinLength)` i `min(128, policy.passwordMaxLength)`. Nova greška **`PASSWORD_POLICY_VIOLATIONS`** (HTTP 400) nosi `violations: string[]`. | `install-super-admin-password-policy.ts` (`toInstallPasswordPolicy`, `describeInstallPasswordPolicy`, `installSuperAdminDefaultPasswordPolicy`), `validate-install-super-admin-credentials.ts` (`validateInstallSuperAdminCredentials`), `create-install-super-admin.ts`, `install-super-admin.service.ts` (`getPasswordPolicy`), `map-install-super-admin-error.ts` |
+| **M1 #1 (UI)** | Korak **SuperAdmin nalog** čita politiku s `GET /install/password-policy` i iz nje postavlja `minLength`/`maxLength`; prekršena pravila prikazuje kao listu (isti mapirač kao prisilna promjena), a ako se politika ne može pročitati koristi ugrađene defaulte i pušta serveru odluku. | `frontend/src/services/install-api.ts` (`loadInstallPasswordPolicy`), `frontend/src/components/install/install-super-admin-step.tsx`, `frontend/src/components/auth/password-feedback.ts` (`readPasswordFeedbackKeys` prima i novi kod), `install.controller.ts` (`@Get('password-policy')`) |
+| **M2 #1** | Odluka je razdvojena: `resolveMfaFlow` vraća `verify` čim je faktor upisan (bez obzira na `mfaAllowOptional`), `enroll` samo kad je zahtjev `required` i faktora nema, a `none` kad nalog nema lokalnu lozinku. `allowOptional=false` time zaustavlja **nove** upise, ne verifikaciju postojećih. | `backend/src/modules/authentication/security/account-security-rules.ts` (`MfaFlow`, `resolveMfaFlow`), `security/mfa.service.ts` (`flowFor`), `authentication.service.ts` (`continueAfterPassword`) |
+| **M2 #2** | Odgovor prijave nosi `passwordMinLength` iz politike; `ChangePasswordForm` iz njega uzima granicu i tekst upute (prije je bio hardkodiran `12`). | `authentication.types.ts` (`MustChangePasswordLoginResponse`), `authentication.service.ts` (`mustChangePassword`), `frontend/src/services/auth-api.ts`, `lib/session/use-session.ts`, `components/auth/change-password-form.tsx`, `pages/login-page.tsx` |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-06)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Backend tipovi | `cd backend && npx tsc --noEmit -p tsconfig.json` | **0** grešaka |
+| Backend testovi — instalacija | `npx jest src/modules/install` | **25 suita / 112 testova ✅** (novi: `validate-install-super-admin-credentials.spec.ts` — 10 testova; `install-super-admin.service.spec.ts` — politika iz postavki, pad čitanja postavki, `violations` u grešci) |
+| Backend testovi — MFA/prijava | `npx jest src/modules/authentication/authentication.service.spec.ts src/modules/authentication/security/account-security-primitives.spec.ts` | **12/12** i **26/26 ✅** (novi: upisan faktor uz `allowOptional=false` → `verify`) |
+| Backend lint | `npx eslint src/modules/install src/modules/authentication` | **0** problema |
+| Frontend tipovi | `cd frontend && npx tsc -b` | **0** grešaka |
+| Frontend testovi | `npx vitest run` | **161 fajl / 658 testova ✅** (novi: `src/components/auth/password-feedback.spec.ts` — 5 testova) |
+| Guardovi | `node scripts/check-*.mjs` (9 skripti) | svi **OK** |
+| Dokumentacija | `node scripts/generate-docs-content.mjs && node scripts/check-docs-content.mjs` | **29 stranica / 5 prevoda / 10 provjera — OK** |
+
+**Nije izvršeno u sandboksu:** puni e2e prolaz (nema živog stacka) i puna backend jest suite (OOM) — mjerodavan je
+vlasnikov rezultat, kao i do sada.
+
+## 3. Dokumentacija
+
+- `docs/user-guide/instalacija.md` — korak 1, tabela validacija i tabela grešaka opisuju politiku i
+  `PASSWORD_POLICY_VIOLATIONS`; uklonjeno ograničenje „za SuperAdmina se provjerava samo dužina“ (više ne važi).
+- `docs/user-guide/prijava-i-mfa.md` i `docs/user-guide/en/prijava-i-mfa.md` — uklonjena oba zastarjela
+  ograničenja (upisani faktor uz isključenu postavku; hardkodiranih „12 znakova“), dopunjena tabela postavki i
+  tabela pravila lozinke.
+- `DOCS_CHANGELOG.md` — unos za ovaj korak (v. tabelu tamo).
+
+## 4. Šta ostaje otvoreno u paketu 5.1
+
+- **Korak 5.1.2** — M4 B2: potpisani `previewToken` uz obavezan `reason` (uz `GET /install/password-policy`
+  obrazac iz ovog koraka: server računa, klijent samo prikazuje).
+- **Koraci 5.1.3 i 5.1.4** — M3, M6, M7 i M10 nalazi iz §3–§5 plana.
+- **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
+  politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).

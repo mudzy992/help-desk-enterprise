@@ -104,7 +104,7 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 | Setting | Meaning |
 |---|---|
 | Two-step verification (TOTP) required for ADMIN accounts with a local password | SUPER_ADMIN is always required; ADMIN according to this setting |
-| Other users with a local password may enable two-step verification themselves | the permission for self-enrolment |
+| Other users with a local password may enable two-step verification themselves | the permission for self-enrolment; turning it off stops **new** enrolments, while users who already enrolled still enter their code at every sign-in |
 | The name the authenticator app shows next to the account | empty = the application name |
 | Minimum length of a local password | 12–64 |
 | Reject the most common passwords, the organisation name and parts of the user's own e-mail address (offline list) | on/off |
@@ -121,7 +121,7 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 |---|---|
 | E-mail | required, e-mail format |
 | Password at sign-in | required; whether the e-mail exists is not revealed |
-| New password | at least `private.auth.password.minLength` characters (12–64); must not equal the e-mail, contain the organisation name, part of the e-mail address, or be among the most common passwords; with history enabled, it must not repeat |
+| New password | at least `private.auth.password.minLength` characters (12–64); must not equal the e-mail, contain the organisation name, part of the e-mail address, or be among the most common passwords; with history enabled, it must not repeat. The forced change screen states the same minimum (the server sends it with the sign-in response) |
 | Code from the app | 6 digits, ±30 s tolerance |
 | Recovery code | the `xxxxx-xxxxx` format, single use |
 | Sign-in statuses | `MUST_CHANGE_PASSWORD` (temporary/expired password), `MFA_REQUIRED` (enrolled second factor), `MFA_ENROLLMENT_REQUIRED` (required but not enrolled) |
@@ -149,13 +149,8 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 - Two-step verification is **TOTP only** (an app on the phone); SMS and e-mail codes are not used.
 - For accounts that sign in through Microsoft, **our** second factor does not apply — access rules are configured
   in Microsoft.
-- If an administrator turns off the setting “Other users with a local password may enable two-step verification
-  themselves”, that also affects verification for users who already enrolled it (recorded as finding #1 in
-  `REVIEW_ANALIZA.md` §M2).
 - The failed-attempt counter is bound to the **e-mail and IP address**; behind a proxy it effectively comes down
   to the e-mail address.
-- The forced password change screen shows “at least 12 characters” even when the policy is stricter; the server
-  and the “Account security” page show the exact rule.
 - **It is only user-friendly up to a point:** if a user loses the phone and the recovery codes, the way out goes
   through an administrator (**MFA reset**), with no self-service.
 

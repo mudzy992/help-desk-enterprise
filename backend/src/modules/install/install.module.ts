@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { AccountSecurityPolicyLoader } from '../authentication/security/account-security-policy.loader';
 import { RoutingModule } from '../routing/routing.module';
 import { ServiceCatalogModule } from '../service-catalog/service-catalog.module';
 import { SettingsModule } from '../settings/settings.module';
@@ -18,6 +19,10 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
   imports: [SettingsModule, ServiceCatalogModule, RoutingModule],
   controllers: [InstallController],
   providers: [
+    // Paket 5.1 (M1 #1): password policy for the founder account. The loader
+    // only needs SettingsService, which SettingsModule already exports — an
+    // import of AuthenticationModule is deliberately avoided (module cycles).
+    AccountSecurityPolicyLoader,
     InstallSetupService,
     InstallSuperAdminService,
     InstallLoginProviderService,

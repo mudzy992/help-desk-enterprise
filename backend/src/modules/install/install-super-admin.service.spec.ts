@@ -65,6 +65,8 @@ describe('InstallSuperAdminService', () => {
         hashPassword,
       ),
     ).rejects.toMatchObject({ response: { code: 'INVALID_SUPER_ADMIN_CREDENTIALS' } });
+    // Paket 5.1 (M1 #1): a weak password is now its own failure with the list
+    // of broken rules, not the generic "credentials are invalid".
     await expect(
       service.create(
         {
@@ -74,7 +76,13 @@ describe('InstallSuperAdminService', () => {
         },
         hashPassword,
       ),
-    ).rejects.toMatchObject({ response: { code: 'INVALID_SUPER_ADMIN_CREDENTIALS' } });
+    ).rejects.toMatchObject({
+      response: {
+        code: 'PASSWORD_POLICY_VIOLATIONS',
+        // "short" is also on the common-password list; both rules are reported.
+        violations: expect.arrayContaining(['TOO_SHORT']),
+      },
+    });
     await expect(
       service.create(
         {
@@ -84,8 +92,74 @@ describe('InstallSuperAdminService', () => {
         },
         hashPassword,
       ),
-    ).rejects.toMatchObject({ response: { code: 'INVALID_SUPER_ADMIN_CREDENTIALS' } });
+    ).rejects.toMatchObject({
+      response: {
+        code: 'PASSWORD_POLICY_VIOLATIONS',
+        // The address is both the whole password and its local part.
+        violations: expect.arrayContaining(['SAME_AS_EMAIL']),
+      },
+    });
     expect(memory.getUserByEmail('admin@example.com')).toBeUndefined();
+  });
+
+  it('applies the policy read from settings, not just the shipped default', async () => {
+    const memory = createInMemoryInstallSuperAdminPrisma();
+    const loader = {
+      load: async () => ({
+        mfaRequiredForAdmins: true,
+        mfaAllowOptional: true,
+        mfaIssuerName: 'Help Desk',
+        passwordMinLength: 24,
+        passwordMaxLength: 128,
+        passwordBlocklistEnabled: false,
+        passwordOrganisationWords: [],
+        passwordHistoryCount: 0,
+        passwordMaxAgeDays: 0,
+        superAdminPasswordMaxAgeDays: 365,
+        sessionsMaxPerUser: 0,
+        sessionsNewDeviceAlert: true,
+      }),
+    };
+    const service = new InstallSuperAdminService(
+      memory.prisma as unknown as PrismaService,
+      loader as never,
+    );
+    expect(await service.getPasswordPolicy()).toEqual({
+      minLength: 24,
+      maxLength: 128,
+      blocklistEnabled: false,
+    });
+    await expect(
+      service.create(
+        { email: 'admin@example.com', displayName: 'Admin', password: 'correct-horse-battery' },
+        hashPassword,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'PASSWORD_POLICY_VIOLATIONS', violations: ['TOO_SHORT'] },
+    });
+  });
+
+  it('never breaks installation when the settings cannot be read', async () => {
+    const memory = createInMemoryInstallSuperAdminPrisma();
+    const service = new InstallSuperAdminService(
+      memory.prisma as unknown as PrismaService,
+      {
+        load: async () => {
+          throw new Error('settings unavailable');
+        },
+      } as never,
+    );
+    expect(await service.getPasswordPolicy()).toEqual({
+      minLength: 12,
+      maxLength: 128,
+      blocklistEnabled: true,
+    });
+    await expect(
+      service.create(
+        { email: 'admin@example.com', displayName: 'Admin', password: password },
+        hashPassword,
+      ),
+    ).resolves.toMatchObject({ email: 'admin@example.com' });
   });
 
   it('rejects a second initial SuperAdmin through the install flow', async () => {

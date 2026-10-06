@@ -29,7 +29,12 @@ import {
 */
 type SignInStep =
   | { readonly kind: "credentials" }
-  | { readonly kind: "change"; readonly token: string; readonly reason: "temporary" | "expired" }
+  | {
+      readonly kind: "change";
+      readonly token: string;
+      readonly reason: "temporary" | "expired";
+      readonly passwordMinLength: number;
+    }
   | { readonly kind: "mfa"; readonly token: string }
   | { readonly kind: "enroll"; readonly token: string }
   | { readonly kind: "codes"; readonly codes: readonly string[]; readonly finish: () => void };
@@ -37,7 +42,12 @@ type SignInStep =
 function stepFromOutcome(outcome: SignInOutcome): SignInStep | null {
   switch (outcome.kind) {
     case "must_change_password":
-      return { kind: "change", token: outcome.passwordChangeToken, reason: outcome.reason };
+      return {
+        kind: "change",
+        token: outcome.passwordChangeToken,
+        reason: outcome.reason,
+        passwordMinLength: outcome.passwordMinLength,
+      };
     case "mfa_required":
       return { kind: "mfa", token: outcome.mfaToken };
     case "mfa_enrollment_required":
@@ -232,6 +242,7 @@ export function LoginPage() {
                 <div className="mt-5">
                   <ChangePasswordForm
                     reason={step.reason}
+                    passwordMinLength={step.passwordMinLength}
                     onCompleted={async (newPassword) => {
                       advance(await completePasswordChange(step.token, newPassword));
                     }}

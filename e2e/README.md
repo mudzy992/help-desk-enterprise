@@ -46,7 +46,7 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
 |---|---|---|
 | `E2E_API_URL` | variable | Base URL of the stack API (e.g. `https://api.desk.ba101.top`). **Empty → the job fails with `E2E did not run`.** |
 | `E2E_BASE_URL` | variable | Frontend base URL (e.g. `https://desk.ba101.top`); defaults to `http://localhost:5173`. |
-| `E2E_SUPERADMIN_EMAIL`, `E2E_SUPERADMIN_PASSWORD` | secret | Super admin that already exists on that stack; the harness only signs in (and clears MFA when `E2E_DATABASE_URL` is set). |
+| `E2E_SUPERADMIN_EMAIL`, `E2E_SUPERADMIN_PASSWORD` | secret | Super admin that already exists on that stack; the harness only signs in (and clears MFA when `E2E_DATABASE_URL` is set). On a fresh stack `ensureInstall` also creates it, and the password must pass the account-security policy (see below). |
 | `E2E_USER_EMAIL`, `E2E_USER_PASSWORD` | secret | Disposable USER account of that stack; created and set up by the harness. |
 | `E2E_AGENT_EMAIL`, `E2E_AGENT_PASSWORD` | secret | Disposable AGENT account of that stack; created and set up by the harness. |
 | `E2E_DATABASE_URL` | secret | Postgres of that stack (same database as the API), used only to clear the super admin's MFA. **The host must resolve from a GitHub runner** — see *Database reachability* below. The workflow also accepts a secret named `DATABASE_URL` as a fallback. |
@@ -191,6 +191,12 @@ with `e2e.` (for example `e2e.superadmin@example.com`), unless that address is l
 
 On an already installed environment, create the super admin once in the UI: *Korisnici → Novi*, role
 SUPER_ADMIN, local password = `E2E_SUPERADMIN_PASSWORD`. USER and AGENT are created by the harness.
+
+The founder account obeys the same policy as every other local password (paket 5.1, `M1 #1`): at least
+`private.auth.password.minLength` characters (12 by default), not on the common-password list, without the
+product/organisation words and without parts of its own e-mail address. A password that fails is refused with
+`400 PASSWORD_POLICY_VIOLATIONS` together with the list of broken rules — the install wizard shows that list and
+the current minimum, so check it there before re-running a failed `POST /install/super-admin`.
 
 The harness sets the USER/AGENT passwords through `POST /auth/change-password`, so they must satisfy the local
 password policy (`backend/src/modules/authentication/security/password-policy.ts`): at least 12 characters, not

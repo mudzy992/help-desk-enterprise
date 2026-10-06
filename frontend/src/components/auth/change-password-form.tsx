@@ -8,20 +8,25 @@ import {
 import { ApiError } from "@/services/api";
 import { readPasswordFeedbackKeys, type PasswordFeedbackKey } from "@/components/auth/password-feedback";
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
-
-const minimumPasswordLength = 12;
+import { fallbackMinimumPasswordLength } from "@/services/auth-api";
 
 interface ChangePasswordFormProperties {
   readonly onCompleted: (newPassword: string) => Promise<void>;
   readonly onCancel?: () => void;
   /** Paket 2.1: an expired password explains itself differently. */
   readonly reason?: "temporary" | "expired";
+  /**
+   * Paket 5.1 (M2 #2): `private.auth.password.minLength` from the sign-in
+   * response. The form used to hard-code 12 and disagree with a stricter policy.
+   */
+  readonly passwordMinLength?: number;
 }
 
 export function ChangePasswordForm({
   onCompleted,
   onCancel,
   reason = "temporary",
+  passwordMinLength = fallbackMinimumPasswordLength,
 }: ChangePasswordFormProperties) {
   const { t } = useTranslation();
   const [newPassword, setNewPassword] = useState("");
@@ -34,8 +39,8 @@ export function ChangePasswordForm({
     event.preventDefault();
     setErrorMessage(null);
     setPolicyKeys(null);
-    if (newPassword.length < minimumPasswordLength) {
-      setErrorMessage(t("auth.changePassword.tooShort"));
+    if (newPassword.length < passwordMinLength) {
+      setErrorMessage(t("auth.changePassword.tooShort", { min: passwordMinLength }));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -66,7 +71,9 @@ export function ChangePasswordForm({
   return (
     <form className="fade-in space-y-3" onSubmit={(event) => void handleSubmit(event)}>
       <p className="text-[13px] leading-5 text-muted-foreground">
-        {reason === "expired" ? t("auth.changePassword.introExpired") : t("auth.changePassword.intro")}
+        {reason === "expired"
+          ? t("auth.changePassword.introExpired", { min: passwordMinLength })
+          : t("auth.changePassword.intro", { min: passwordMinLength })}
       </p>
       <div>
         <label
@@ -85,7 +92,7 @@ export function ChangePasswordForm({
           aria-invalid={policyKeys ? true : undefined}
           aria-describedby={policyKeys ? "change-password-policy" : undefined}
           required
-          minLength={minimumPasswordLength}
+          minLength={passwordMinLength}
         />
         <div className="mt-1.5">
           <PasswordStrengthMeter password={newPassword} />
@@ -108,7 +115,7 @@ export function ChangePasswordForm({
           aria-invalid={errorMessage ? true : undefined}
           aria-describedby={errorMessage ? "change-password-error" : undefined}
           required
-          minLength={minimumPasswordLength}
+          minLength={passwordMinLength}
         />
       </div>
       {policyKeys ? (

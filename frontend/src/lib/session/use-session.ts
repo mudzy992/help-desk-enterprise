@@ -2,6 +2,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import {
   changePasswordOnFirstLogin,
   confirmSignInMfaEnrollment,
+  fallbackMinimumPasswordLength,
   isMfaResponse,
   isMustChangePasswordResponse,
   verifyMfaCode,
@@ -61,6 +62,8 @@ export type SignInOutcome =
       readonly passwordChangeToken: string;
       readonly expiresInSeconds: number;
       readonly reason: "temporary" | "expired";
+      /** Paket 5.1 (M2 #2): policy minimum shown on the forced-change screen. */
+      readonly passwordMinLength: number;
     }
   // Paket 2.1: the second factor comes next.
   | { readonly kind: "mfa_required"; readonly mfaToken: string }
@@ -82,6 +85,7 @@ function toSignInOutcome(response: AuthenticationLoginResponse): SignInOutcome {
       passwordChangeToken: response.passwordChangeToken,
       expiresInSeconds: response.expiresInSeconds,
       reason: response.reason ?? "temporary",
+      passwordMinLength: response.passwordMinLength ?? fallbackMinimumPasswordLength,
     };
   }
   if (isMfaResponse(response)) {

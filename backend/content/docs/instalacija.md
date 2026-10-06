@@ -41,7 +41,9 @@ posljednjeg, gdje je **Završi**).
 ### 1. SuperAdmin nalog
 
 - Polja: **Email**, **Ime i prezime**, **Lozinka**, **Potvrda lozinke**.
-- Lozinka: 12–128 znakova, mora imati najmanje jedan znak koji nije razmak i **ne smije biti jednaka emailu**.
+- Lozinka: najmanje `private.auth.password.minLength` znakova (zadano 12, najviše 128), ne smije biti prazna,
+  jednaka emailu, među najčešćim lozinkama, sadržavati naziv organizacije ni dio email adrese.
+- Ispod polja stoji uputa s važećom granicom; ako server odbije lozinku, ispisuje se spisak prekršenih pravila.
 - Ovaj nalog je **uvijek lokalni** i ostaje dostupan kao „break-glass“ prijava i kada se poslije izabere Entra AD.
 - Nakon snimanja korak prikazuje potvrdu „SuperAdmin je kreiran“.
 - Poruke: „Podaci za SuperAdmin nisu ispravni…“, „Početni SuperAdmin već postoji ili je email zauzet.“,
@@ -101,7 +103,7 @@ Polja po koracima wizarda i pravila koja se primjenjuju:
 
 | Korak | Polja | Validacija / pravilo |
 |---|---|---|
-| 1. SuperAdmin nalog | **Email**, **Ime i prezime**, **Lozinka**, **Potvrda lozinke** | Lozinka 12–128 znakova, najmanje jedan znak koji nije razmak, ne smije biti jednaka emailu; nalog je **uvijek lokalni** |
+| 1. SuperAdmin nalog | **Email**, **Ime i prezime**, **Lozinka**, **Potvrda lozinke** | Lozinka po politici iz **Sigurnost naloga** (`private.auth.password.minLength`, zadano 12, najviše 128): ne smije biti prazna, jednaka emailu, među najčešćim lozinkama, sadržavati naziv organizacije ni dio email adrese; nalog je **uvijek lokalni** |
 | 2. Način prijave | prekidač provajdera (**Lokalni nalozi** / **Microsoft Entra AD**), **Entra tenant ID**, **Entra client ID** ili **LDAPS URL-ovi (CSV)**, **LDAPS bind DN**, **LDAPS bind lozinka** | Bira se tačno jedan provajder; za Entra su obavezna oba ID-a ili kompletni LDAPS podaci; prazno polje tajne zadržava postojeću vrijednost |
 | 3. SMTP | **SMTP omogućen**, **SMTP host**, **SMTP port** (zadano 587), **TLS** (zadano uključen), **SMTP korisnik**, **SMTP lozinka**, **From adresa** | Ako je prekidač isključen, polja nisu obavezna i e-mail dodatak ostaje ugašen; inače su host, port, korisnik, lozinka i validna from adresa obavezni; prazna lozinka zadržava postojeću vrijednost |
 | 4. Početni podaci | bez polja | Kreiraju se OU **Direkcija**, grupa **Fallback**, kategorija **Opšte**, servis **Opšti zahtjev** s formom i routing pravilo, uz sistemske role i default permisije |
@@ -119,6 +121,10 @@ polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ogranič
 - **„Moram li ponovo unositi SMTP lozinku?“** — Ne. Sačuvane tajne se ne prikazuju; prazno polje zadržava
   postojeću vrijednost.
 - **„Kreiraju li se demo tiketi?“** — Ne; kreira se samo minimum za rad (korak 4).
+- **„Koja pravila lozinka SuperAdmina mora zadovoljiti?“** — Ista kao i svaka lokalna lozinka: dužinu iz postavke
+  **Minimalna dužina lokalne lozinke** (`private.auth.password.minLength`), zabranu najčešćih lozinki i riječi
+  organizacije te zabranu dijelova email adrese. Polja u koraku prikazuju ta pravila prije slanja, a server ih
+  provjerava ponovo; ako nešto ne prođe, vraća `PASSWORD_POLICY_VIOLATIONS` uz spisak prekršenih pravila.
 - **„Ostavio sam `INSTALL_TOKEN` u okruženju.“** — Uklonite ga nakon završetka. Rute su zaključane
   (`INSTALL_LOCKED`), ali token nije potreban i ne treba stajati trajno.
 - **„Prekinuo sam instalaciju poslije koraka 2.“** — Osvježavanje vraća na korak **Način prijave**; već sačuvane
@@ -130,6 +136,7 @@ polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ogranič
 | Token je pogrešan | „Token nije ispravan.“ (`INSTALL_TOKEN_INVALID`) |
 | Aplikacija nije instalirana, a pristupa joj se van `/install` | „Instalacija još nije završena.“ (`SETUP_REQUIRED`, HTTP 503) |
 | Instalacija je završena, a poziva se instalacijski korak | `INSTALL_LOCKED` |
+| Lozinka SuperAdmina ne prolazi politiku | `PASSWORD_POLICY_VIOLATIONS` uz spisak pravila (`TOO_SHORT`, `COMMON_PASSWORD`, …) |
 | Korak traži SuperAdmina prije njegovog kreiranja | „Prvo kreirajte SuperAdmin nalog.“ (`SUPER_ADMIN_REQUIRED`) |
 | Seed ne može razriješiti rutu | `SEED_ROUTING_UNRESOLVED` (instalacija se ne završava) |
 
@@ -140,8 +147,6 @@ polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ogranič
 - **Nastavak instalacije.** Ako prekinete poslije koraka 2, a SMTP nije podešen i podaci nisu ubačeni,
   osvježavanje stranice vraća vas na korak **Način prijave** (već sačuvane vrijednosti ostaju i ne moraju se
   ponovo unositi).
-- **Lozinka prvog naloga.** Za SuperAdmina se provjerava samo dužina i da nije email; pravila jačine lozinke iz
-  *Sigurnost naloga* (lista najčešćih lozinki, historija) primjenjuju se na ostale naloge.
 - **Stanje dodataka** je nakon završetka instalacije čitljivo i bez prijave (tehnički detalj; ne unosi nikakve
   tajne u nazive dodataka).
 

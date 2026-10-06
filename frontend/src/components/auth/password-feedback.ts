@@ -21,7 +21,11 @@ export function readPasswordFeedbackKeys(error: unknown): PasswordFeedbackKey[] 
   if (!(error instanceof ApiError)) return null;
   if (error.code === "PASSWORD_REUSED") return ["auth.passwordPolicy.reused"];
   if (error.code === "CURRENT_PASSWORD_INVALID") return ["auth.passwordPolicy.currentInvalid"];
-  if (error.code !== "INVALID_PASSWORD") return null;
+  // Paket 5.1 (M1 #1): the install wizard reports the same rule list under its
+  // own code, so both screens share this mapping.
+  if (error.code !== "INVALID_PASSWORD" && error.code !== "PASSWORD_POLICY_VIOLATIONS") {
+    return null;
+  }
   const raw = error.details?.["violations"];
   const keys = (Array.isArray(raw) ? raw : [])
     .map((value) => VIOLATION_KEYS[String(value) as keyof typeof VIOLATION_KEYS])
