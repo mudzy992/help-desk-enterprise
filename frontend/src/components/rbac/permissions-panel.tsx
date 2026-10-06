@@ -105,14 +105,20 @@ export function PermissionsPanel() {
     }
   };
 
-  const handleConfirmSave = async () => {
-    if (selectedRoleKey.length === 0) {
+  const handleConfirmSave = async (reason: string) => {
+    if (selectedRoleKey.length === 0 || preview === null) {
       return;
     }
     setPending(true);
     setErrorKey(null);
     try {
-      await replaceRolePermissions(selectedRoleKey, enabledKeys);
+      // Paket 5.1 (M4 B2): the token proves the preview ran for this set.
+      await replaceRolePermissions(
+        selectedRoleKey,
+        enabledKeys,
+        preview.previewToken,
+        reason,
+      );
       setPreview(null);
       await reload(selectedRoleKey);
     } catch (error) {
@@ -168,7 +174,7 @@ export function PermissionsPanel() {
             preview={preview}
             pending={pending}
             onCancel={() => setPreview(null)}
-            onConfirm={() => void handleConfirmSave()}
+            onConfirm={(reason) => void handleConfirmSave(reason)}
           />
         </div>
       ) : null}

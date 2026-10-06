@@ -62,8 +62,16 @@ export class RolesController {
   preview(
     @Param('roleKey') roleKey: string,
     @Body() body: PreviewRolePermissionsDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<RolePermissionPreviewResponse> {
-    return this.rolesService.preview(roleKey, body.permissionKeys);
+    // Paket 5.1 (M4 B2): the returned token is bound to this actor, so the
+    // confirmation can only be sent by whoever ran the preview.
+    const principal = readAuthenticatedPrincipal(request);
+    return this.rolesService.preview(
+      roleKey,
+      body.permissionKeys,
+      principal?.subjectId ?? null,
+    );
   }
 
   @Put(':roleKey/permissions')
@@ -76,6 +84,8 @@ export class RolesController {
     return this.rolesService.replace({
       roleKey,
       permissionKeys: body.permissionKeys,
+      previewToken: body.previewToken,
+      reason: body.reason,
       actorUserId: principal?.subjectId ?? null,
       requestId: readRequestIdHeader(request.headers),
     });

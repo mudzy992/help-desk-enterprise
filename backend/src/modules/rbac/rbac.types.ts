@@ -19,6 +19,8 @@ export type RolePermissionPreviewSample = {
 };
 
 export type RolePermissionPreviewResponse = {
+  /** Paket 5.1 (M4 B2): dokaz da je pregled urađen — obavezan na `PUT`. */
+  readonly previewToken: string;
   readonly roleKey: string;
   readonly currentPermissionKeys: readonly string[];
   readonly proposedPermissionKeys: readonly string[];
@@ -31,6 +33,10 @@ export type RolePermissionPreviewResponse = {
 export type ReplaceRolePermissionsInput = {
   readonly roleKey: string;
   readonly permissionKeys: readonly string[];
+  /** Paket 5.1 (M4 B2): potpisan pregled uticaja za tačno ovaj skup permisija. */
+  readonly previewToken: string;
+  /** Paket 5.1 (M4 B2): razlog promjene (RAW `:223`), ≤ 500 znakova. */
+  readonly reason: string;
   readonly actorUserId: string | null;
   readonly requestId: string | null;
 };

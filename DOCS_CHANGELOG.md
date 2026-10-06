@@ -1859,3 +1859,19 @@ politika stroža).
 | `docs/user-guide/en/prijava-i-mfa.md` | Isti dvije izmjene na engleskom (stranica je jedna od pet prevedenih) | ista izmjena |
 | `e2e/README.md` | `E2E_SUPERADMIN_PASSWORD` mora prolaziti politiku i na svježem stacku (`ensureInstall`); dodat opis `400 PASSWORD_POLICY_VIOLATIONS` | `e2e/helpers/ensure-install.ts`, `install-super-admin.service.spec.ts` |
 | `REVIEW_ANALIZA.md` | Novi odjeljak „Paket 5.1 — korak 5.1.1“ + zatvoreni nalazi M1 #1 i M2 #1 (tabele §M1/§M2, gap tabela M1 §5, ocjene §9) + broj otvorenih nalaza (13 `SREDNJE` / 38 `NISKO`) | ova izmjena |
+
+## Paket 5.1 — korak 5.1.1/B1: pregled uticaja kao serverska kapija (2026-10-06)
+
+**Zašto:** zatvara nalaz **M4 B2** — RAW `:231–232` traži da se promjena prava ne aktivira bez pregleda uticaja,
+a `:223` change log s razlogom; do sada je pregled postojao samo u UI-ju i svaki drugi klijent ga je mogao
+preskočiti, a razlog se nije unosio.
+
+**Dokazi:** `cd backend && npx jest src/modules/rbac` → 5 suita / 23 testa ✅; `npx tsc --noEmit` → 0;
+`npx eslint src/modules/rbac` → 0; `cd frontend && npx tsc -b` → 0; `node scripts/check-docs-content.mjs` → OK.
+Detalji u `REVIEW_ANALIZA.md`, `# Paket 5.1 — korak 5.1.1` §4.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/uloge-i-permisije.md` | Korak **Pregled uticaja** opisuje potvrdu koja važi 15 minuta i samo za pregledani skup (promjena izbora zatvara pregled), obavezan **Razlog promjene** (≤ 500) i nove kodove `409 PREVIEW_REQUIRED` / `PREVIEW_STALE`; tabela validacija i česta pitanja dopunjeni; audit opisuje razlog i vrijeme pregleda | `role-permission-preview-token.ts`, `replace-role-permissions.ts`, `dto/replace-role-permissions.dto.ts` |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | **T29** prepravljen: naslov i teza opisuju obavezan pregled s potpisom i razlog; status „Važi (B2 zatvoren 2026-10-06)“, izvori bez ograničenja | ista izmjena |
+| `REVIEW_ANALIZA.md` | Nalaz M4 B2 zatvoren (tabela §M4 + §7), nova sekcija §4 u odjeljku „Paket 5.1 — korak 5.1.1“, broj otvorenih nalaza **12 `SREDNJE` / 38 `NISKO`** | ova izmjena |

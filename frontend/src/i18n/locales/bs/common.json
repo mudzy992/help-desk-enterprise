@@ -669,6 +669,9 @@
     "previewDecisionChange": "{{before}} → {{after}}",
     "previewNoSamples": "Nema uzoraka promjene odluke za pogođene korisnike.",
     "confirmSave": "Potvrdi i sačuvaj",
+      "reasonLabel": "Razlog promjene",
+      "reasonPlaceholder": "Zašto se prava mijenjaju (upisuje se u dnevnik izmjena)",
+      "reasonRequired": "Bez razloga promjena se ne može sačuvati.",
     "cancel": "Odustani",
     "saving": "Snimanje…",
     "forbiddenTitle": "Potreban SuperAdmin pristup",
@@ -676,6 +679,8 @@
     "errorUnauthorized": "Prijavite se da biste upravljali permisijama uloga.",
     "errorForbidden": "Nemate dozvolu za upravljanje permisijama uloga.",
     "errorNotFound": "Uloga ili permisija nije pronađena.",
+      "errorPreviewRequired": "Pokrenite pregled uticaja prije snimanja promjene.",
+      "errorPreviewStale": "Pregled uticaja je zastario. Pokrenite ga ponovo pa sačuvajte.",
     "errorGeneric": "Operacija nad permisijama uloga nije uspjela.",
     "catalog": {
       "categories": {

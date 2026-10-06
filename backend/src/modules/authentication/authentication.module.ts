@@ -68,6 +68,8 @@ import { SessionRegistryService } from './security/session-registry.service';
     AuthenticationUserLoader,
     PrincipalContextLoader,
     PrincipalContextInvalidator,
+    // Paket 5.1 (M4 B2): RBAC signs the impact preview with the session secret.
+    JwtSigningSecretLoader,
   ],
 })
 export class AuthenticationModule {}

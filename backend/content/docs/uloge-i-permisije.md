@@ -41,12 +41,18 @@ Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jed
 2. U katalogu **Permisije po ulozi** uključite/isključite permisije; katalog je grupisan po kategorijama.
 3. Kliknite **Pregled uticaja**. Prikazuje se **Pregled uticaja** s brojem pogođenih korisnika, koliko je
    permisija dodano/uklonjeno i uzorkom korisnika s promjenom odluke (`prije → poslije`).
-4. Ako je pregled očekivan, kliknite **Potvrdi i sačuvaj**; dugme **Odustani** zatvara pregled bez izmjene.
+4. Ako je pregled očekivan, upišite **Razlog promjene** (obavezno, do 500 znakova) i kliknite
+   **Potvrdi i sačuvaj**; dugme **Odustani** zatvara pregled bez izmjene. Bez razloga dugme ostaje neaktivno.
 5. Promjena važi za **sve korisnike s tom rolom** i keš dozvola im se invalidira odmah; svaka promjena ulazi u
-   audit log s listom dodanih/uklonjenih permisija (diff).
+   audit log s listom dodanih/uklonjenih permisija (diff), upisanim razlogom i vremenom pregleda.
 
 **Važno:** ako želite da promjena važi samo za jednu OU ili servis, to se ne radi ovdje — radi se kroz
 **dodjelu role korisniku** s OU/service scope-om (Administracija → tab **Korisnici** → **Dodijeli rolu**).
+
+**Pregled vrijedi 15 minuta i samo za pregledani skup.** Server uz pregled izdaje potvrdu (token) vezanu za
+rolu, tačan skup permisija i osobu koja je pregledala. Ako se izbor permisija promijeni, pregled se zatvara i
+mora se pokrenuti ponovo; ako se potvrdi zastario ili tuđi pregled, server odbija upis uz `PREVIEW_STALE`
+(HTTP 409), a upis bez pregleda uz `PREVIEW_REQUIRED` (HTTP 409).
 
 ### Dodjela role s OU/service scope-om
 
@@ -74,8 +80,11 @@ Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jed
 |---|---|---|
 | Izbor role | mora postojati | bez odabrane role **Pregled uticaja** ne radi |
 | Permisije | moraju biti poznati ključevi iz kataloga | nepoznat ključ → odbijeno (`INVALID_PERMISSION_KEY`, 404) |
-| Pregled uticaja | prikazuje broj korisnika, dodano/uklonjeno i do 3 uzorka | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
-| Potvrda | dugme postoji samo u pregledu | **Potvrdi i sačuvaj** / **Odustani** |
+| Pregled uticaja | prikazuje broj korisnika, dodano/uklonjeno i do 3 uzorka; izdaje potvrdu koja važi **15 minuta** i samo za pregledani skup | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
+| Razlog promjene | obavezan, do 500 znakova | bez razloga **Potvrdi i sačuvaj** je neaktivno, a server odbija upis |
+| Potvrda | dugme postoji samo u pregledu i traži razlog | **Potvrdi i sačuvaj** / **Odustani** |
+| Zastario ili tuđi pregled | potvrda istekla (15 min), promijenjen skup permisija ili pregled drugog administratora | `409 PREVIEW_STALE` |
+| Upis bez pregleda | nema potvrde | `409 PREVIEW_REQUIRED` |
 | SuperAdmin pristup | `isSuperAdmin` ili rola SUPER_ADMIN | „Potreban SuperAdmin pristup“, 403 na API-ju |
 | SuperAdmin bypass | vrijedi samo za **lokalni** (break-glass) nalog | nelokalni nosilac SUPER_ADMIN role je odbijen (`SUPER_ADMIN_NOT_LOCAL_ONLY`) |
 | Scoped dodjela | ne zadovoljava provjeru bez OU scope-a | izuzetak je samo `oncall.read` |
@@ -92,8 +101,10 @@ Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jed
 - **„Uklonio sam permisiju roli, a poslije je opet tu.“** — Seed default mappinga je **aditivan**: nikad ne
   briše, ali vraća ono što nedostaje. Ako permisija ne treba da se vrati, ne pokrećite seed (prvo `--dry-run`
   ispiše šta bi bilo dodato).
-- **„Ne mogu sačuvati permisije.“** — Dugme **Potvrdi i sačuvaj** postoji samo nakon **Pregled uticaja**; prvo
-  pokrenite pregled.
+- **„Ne mogu sačuvati permisije.“** — Dugme **Potvrdi i sačuvaj** postoji samo nakon **Pregled uticaja** i traži
+  upisan **Razlog promjene**; prvo pokrenite pregled i upišite razlog.
+- **„Pregled uticaja je zastario.“** (`PREVIEW_STALE`) — pregled traje 15 minuta i vezan je za tačan skup
+  permisija; pokrenite **Pregled uticaja** ponovo i odmah potvrdite.
 - **„Promjena nije vidljiva odmah.“** — Za nove zahtjeve je vidljiva odmah (keš nosioca role se invalidira);
   korisnik možda treba osvježiti stranicu da ponovo učita sesiju.
 - **„SuperAdmin ne može da se prijavi posle promjene.“** — Provjerite da je SuperAdmin nalog **lokalan**

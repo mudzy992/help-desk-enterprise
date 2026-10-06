@@ -572,23 +572,26 @@ To je kriterij kompletnosti.
 - **Status:** Važi (posljedice za `group.manage` = nalaz B4, §M4)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
-### T29 — Preview uticaja: UI ne dopušta čuvanje bez pregleda, server to još ne zahtijeva
+### T29 — Pregled uticaja je obavezan, traje 15 minuta i traži razlog promjene
 
 - **Modul / paket:** RBAC
 - **Publika:** SUPER_ADMIN
-- **Tip:** Pravilo (uz ograničenje)
+- **Tip:** Pravilo
 - **Teza:** Prije promjene permisija role prikazuje se **Pregled uticaja**: broj pogođenih korisnika,
-  dodane/uklonjene permisije i uzorak promjena odluke `prije → poslije`. Dugme **Potvrdi i sačuvaj** postoji
-  samo u pregledu, a u audit log ulazi diff (`previousPermissionKeys` → `nextPermissionKeys`). Razlog promjene
-  se još ne unosi.
-- **Zašto:** promjena važi za sve nosioce role i teško se „vidi“ bez simulacije.
+  dodane/uklonjene permisije i uzorak promjena odluke `prije → poslije`. Server uz pregled izdaje potpisanu
+  potvrdu vezanu za rolu, tačan skup permisija i osobu koja je pregledala (važi 15 minuta); bez nje `PUT` vraća
+  `PREVIEW_REQUIRED`, a zastario ili tuđi pregled `PREVIEW_STALE` (oba HTTP 409). Dugme **Potvrdi i sačuvaj**
+  traži upisan **Razlog promjene** (do 500 znakova), a u audit log ulaze diff, razlog i vrijeme pregleda.
+- **Zašto:** promjena važi za sve nosioce role i teško se „vidi“ bez simulacije; razlog čini dnevnik izmjena
+  čitljivim (RAW `:223`, `:231–232`).
 - **Primjer:** Isključivanje `routing.write` na roli ADMIN prikazuje koliko korisnika gubi pristup i za njih do
-  tri primjera odluke.
+  tri primjera odluke; potvrda istog pregleda nakon 16 minuta vraća `PREVIEW_STALE`.
 - **Postavke / permisije:** nije postavka (ekran je SUPER_ADMIN-only).
 - **Ekran:** Administracija → **Permisije** → **Pregled uticaja**.
-- **Izvori:** `backend/src/modules/rbac/preview-role-permission-impact.ts:25–70`,
-  `replace-role-permissions.ts:46–57`, `frontend/src/components/rbac/permissions-preview-panel.tsx:54–60`.
-- **Status:** Važi (uz ograničenje B2: server ne provjerava da je pregled izvršen)
+- **Izvori:** `backend/src/modules/rbac/preview-role-permission-impact.ts`,
+  `replace-role-permissions.ts`, `role-permission-preview-token.ts`,
+  `frontend/src/components/rbac/permissions-preview-panel.tsx`.
+- **Status:** Važi (nalaz B2 zatvoren u paketu 5.1, 2026-10-06)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
 ### T30 — Read-only režim zaključava module; SuperAdmin ga zaobilazi po postavci

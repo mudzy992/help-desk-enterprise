@@ -29,6 +29,11 @@ export type RolePermissionPreviewSample = {
 };
 
 export type RolePermissionPreviewResponse = {
+  /**
+   * Paket 5.1 (M4 B2): the server refuses to save without this token, and it is
+   * only valid for the reviewed set of permissions (15 minutes).
+   */
+  readonly previewToken: string;
   readonly roleKey: string;
   readonly currentPermissionKeys: readonly string[];
   readonly proposedPermissionKeys: readonly string[];
@@ -63,9 +68,11 @@ export function previewRolePermissions(
 export function replaceRolePermissions(
   roleKey: string,
   permissionKeys: readonly string[],
+  previewToken: string,
+  reason: string,
 ): Promise<readonly string[]> {
   return apiRequest(`/roles/${encodeURIComponent(roleKey)}/permissions`, {
     method: "PUT",
-    body: JSON.stringify({ permissionKeys }),
+    body: JSON.stringify({ permissionKeys, previewToken, reason }),
   });
 }

@@ -7,6 +7,7 @@ import { createProposedRolePermissionLookups } from './create-proposed-role-perm
 import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { RolePermissionPreviewResponse } from './rbac.types';
+import { signRolePermissionPreviewToken } from './role-permission-preview-token';
 
 const previewSampleLimit = 3;
 
@@ -28,6 +29,10 @@ export async function previewRolePermissionImpact(input: {
   readonly shadowAuthorizationService: ShadowAuthorizationService;
   readonly roleKey: string;
   readonly permissionKeys: readonly string[];
+  /** Paket 5.1 (M4 B2): pregled je vezan za onoga ko ga je pokrenuo. */
+  readonly actorUserId: string | null;
+  /** Isti secret kojim se potpisuju sesije (`JwtSigningSecretLoader`). */
+  readonly signingSecret: string;
 }): Promise<RolePermissionPreviewResponse> {
   const role = await loadRoleByKey(input.prisma, input.roleKey);
   const currentPermissionKeys = await getRolePermissions(input.prisma, role.key);
@@ -113,6 +118,16 @@ export async function previewRolePermissionImpact(input: {
     }
   }
   return {
+    // Paket 5.1 (M4 B2): dokaz koji `PUT` mora vratiti; potpis pokriva tačan
+    // skup permisija, ulogu, pregledača i rok (15 minuta).
+    previewToken: signRolePermissionPreviewToken(
+      {
+        roleKey: role.key,
+        permissionKeys: proposedPermissionKeys,
+        actorUserId: input.actorUserId,
+      },
+      input.signingSecret,
+    ),
     roleKey: role.key,
     currentPermissionKeys,
     proposedPermissionKeys,

@@ -963,7 +963,11 @@ aditivan i idempotentan (nikad ne briše), o upisu ostavlja audit `role_permissi
 `via: 'seed-default-role-permissions'`, a `authorizationRoleNames` (`authorization.constants.ts:21–30`) postao
 je jedini izvor naziva sistemskih rola. Detalji i dokazi: `# Val 0 — popravka M4/B1` na kraju dokumenta.
 
-**B2 — `SREDNJE` — preview uticaja nije serverska kapija, a razlog promjene se ne pamti.**
+**B2 — `SREDNJE` — preview uticaja nije serverska kapija, a razlog promjene se ne pamti.** → ✅ **zatvoreno u
+paketu 5.1 (2026-10-06, korak 5.1.1/B1)**: pregled izdaje potpisanu potvrdu (`role-permission-preview-token.ts`,
+HMAC nad `private.auth.jwtSigningSecret`, 15 minuta, vezana za rolu + tačan skup permisija + pregledača), `PUT`
+je bez nje odbija (`409 PREVIEW_REQUIRED`), a zastario ili tuđi pregled daje `409 PREVIEW_STALE`; `reason` je
+obavezan (≤ 500) i uz `previewedAt` ulazi u audit `metadata` (`replace-role-permissions.ts`).
 `roles.controller.ts:69–82` prima `PUT` i odmah mijenja permisije; `dto/replace-role-permissions.dto.ts:3–7` nema
 polje `reason`. RAW `:231–232` traži da se promjena „ne može aktivirati bez pregleda (settings-driven)“, a `:223`
 traži change log s razlogom. UI tok (`permissions-panel.tsx` + `permissions-preview-panel.tsx:54–60`) to
@@ -4939,9 +4943,10 @@ otvoreno **0 KRITIČNO / 0 VISOKO / 24 SREDNJE / 51 NISKO**, uz prosjek **F 8,5 
 `# Val 2 — sigurnost i vidljivost`). Poslije **vala 3** zatvoreno je još **9 nalaza** (M8 B2, M11 B1/B2,
 M12 B1/B3/B4/B5, M13 B2, M14 B5 — četiri `SREDNJE` i pet `NISKO`) **i jedan preventivni guard** (Redis auth
 greška u `subscribeRedisChannel`), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 20 SREDNJE / 46 NISKO** (dokazi u
-`# Val 3 — pouzdanost i performanse`). Poslije **paketa 5.1, korak 5.1.1** (2026-10-06) zatvorena su **dva
-`SREDNJE`** nalaza (M1 #1 — politika lozinke osnivačkog naloga; M2 #1 — upisan TOTP se uvijek verificira), pa je
-otvoreno **0 KRITIČNO / 0 VISOKO / 13 SREDNJE / 38 NISKO** (dokazi u `# Paket 5.1 — korak 5.1.1`). Ocjene u
+`# Val 3 — pouzdanost i performanse`). Poslije **paketa 5.1, korak 5.1.1** (2026-10-06) zatvorena su **tri
+`SREDNJE`** nalaza (M1 #1 — politika lozinke osnivačkog naloga; M2 #1 — upisan TOTP se uvijek verificira;
+M4 B2 — pregled uticaja je serverska kapija uz obavezan razlog), pa je
+otvoreno **0 KRITIČNO / 0 VISOKO / 12 SREDNJE / 38 NISKO** (dokazi u `# Paket 5.1 — korak 5.1.1`). Ocjene u
 tabeli se ponovo vrednuju na kraju paketa 5.1, poslije koraka 5.1.4. Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
@@ -6453,10 +6458,24 @@ vlasnikov rezultat, kao i do sada.
   tabela pravila lozinke.
 - `DOCS_CHANGELOG.md` — unos za ovaj korak (v. tabelu tamo).
 
-## 4. Šta ostaje otvoreno u paketu 5.1
+## 4. B1 · M4 B2 — pregled uticaja je serverska kapija, uz obavezan razlog (isti korak)
 
-- **Korak 5.1.2** — M4 B2: potpisani `previewToken` uz obavezan `reason` (uz `GET /install/password-policy`
-  obrazac iz ovog koraka: server računa, klijent samo prikazuje).
-- **Koraci 5.1.3 i 5.1.4** — M3, M6, M7 i M10 nalazi iz §3–§5 plana.
+| Šta je urađeno | Dokaz (fajl, funkcija) |
+|---|---|
+| Pregled izdaje potpisanu potvrdu: `base64url(payload).base64url(HMAC-SHA256)` nad `private.auth.jwtSigningSecret`, TTL **15 minuta**, vezana za `roleKey`, **tačan skup permisija** (sortiran, bez duplikata) i `actorUserId`; poređenje potpisa je `timingSafeEqual` | `role-permission-preview-token.ts` (`signRolePermissionPreviewToken`, `verifyRolePermissionPreviewToken`), `preview-role-permission-impact.ts` |
+| `PUT /roles/:roleKey/permissions` zahtijeva `previewToken` i `reason` (oba `@IsNotEmpty`, `reason` ≤ 500); bez poklapanja → `409 PREVIEW_REQUIRED`, istekao/tuđi/drugi skup → `409 PREVIEW_STALE` | `dto/replace-role-permissions.dto.ts`, `replace-role-permissions.ts`, `rbac.error.ts`, `map-rbac-error.ts`, `roles.controller.ts`, `roles.service.ts` (`loadPreviewSigningSecret` — bez secreta upis ostaje zatvoren) |
+| Audit `metadata` nosi `reason` i `previewedAt` (uz postojeći diff) | `replace-role-permissions.ts` (`appendAuditLog`) |
+| UI: polje **Razlog promjene** (obavezno, ≤ 500) u pregledu; dugme **Potvrdi i sačuvaj** neaktivno bez razloga; izmjena izbora zatvara pregled; novi kodovi grešaka mapirani na poruke | `frontend/src/components/rbac/permissions-preview-panel.tsx`, `permissions-panel.tsx`, `frontend/src/services/rbac-api.ts`, `frontend/src/lib/rbac/map-rbac-error.ts`, i18n `permissions.*` |
+
+**Dokazi B1:** `npx jest src/modules/rbac` → **5 suita / 23 testa ✅** (novi
+`role-permission-preview-token.spec.ts` — 6 testova: potpis, redoslijed/duplikati, nevažeći i tuđi potpis,
+izmjena tijela nakon potpisa, istek, tuđi skup/akter; `roles.service.spec.ts` — 5 novih: bez tokena, istekao,
+drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason`); `npx tsc --noEmit` → 0;
+`npx eslint src/modules/rbac` → 0.
+
+## 5. Šta ostaje otvoreno u paketu 5.1
+
+- **Korak 5.1.2** — M3 B1–B4 (korisnici, OJ i grupe).
+- **Koraci 5.1.3 i 5.1.4** — M6, M7 i M10 nalazi iz §3–§5 plana.
 - **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
   politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).

@@ -661,6 +661,9 @@
     "previewDecisionChange": "{{before}} → {{after}}",
     "previewNoSamples": "No decision changes were sampled for affected users.",
     "confirmSave": "Confirm and save",
+      "reasonLabel": "Reason for the change",
+      "reasonPlaceholder": "Why the permissions change (stored in the change log)",
+      "reasonRequired": "The change cannot be saved without a reason.",
     "cancel": "Cancel",
     "saving": "Saving…",
     "forbiddenTitle": "SuperAdmin access required",
@@ -668,6 +671,8 @@
     "errorUnauthorized": "Sign in to manage role permissions.",
     "errorForbidden": "You do not have permission to manage role permissions.",
     "errorNotFound": "Role or permission was not found.",
+      "errorPreviewRequired": "Run the impact preview before saving the change.",
+      "errorPreviewStale": "The impact preview is stale. Run it again, then save.",
     "errorGeneric": "Role permission operation failed.",
     "catalog": {
       "categories": {
