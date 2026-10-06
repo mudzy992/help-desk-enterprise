@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RoutingCoverageItem } from "@/services/routing-api";
 import {
@@ -88,13 +89,16 @@ export function RoutingCoverageTable({
       </div>
       <ScrollRegion className="overflow-x-auto">
         <table
-          className="w-full min-w-[980px] border-separate"
+          className="w-full min-w-[1080px] border-separate"
           style={{ borderSpacing: 3 }}
         >
           <thead>
             <tr>
               <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
                 {t("routing.matrixAxis")}
+              </th>
+              <th className="min-w-[105px] px-1 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
+                {t("services.columnLifecycle")}
               </th>
               {matrix.originUnits.map((origin) => (
                 <th key={origin.originUnitId} className="px-1 py-1 text-center">
@@ -129,6 +133,19 @@ export function RoutingCoverageTable({
                   >
                     {service.serviceName}
                   </span>
+                </td>
+                <td className="whitespace-nowrap px-1 py-1">
+                  <Badge
+                    tone={
+                      service.serviceLifecycle === "ACTIVE"
+                        ? "success"
+                        : service.serviceLifecycle === "DRAFT"
+                          ? "neutral"
+                          : "warning"
+                    }
+                  >
+                    {t(`services.lifecycle.${service.serviceLifecycle}`)}
+                  </Badge>
                 </td>
                 {matrix.originUnits.map((origin) => {
                   const item = matrix.cellByKey.get(

@@ -109,4 +109,19 @@ describe('loadBottleneckDashboardFromSql labels', () => {
     // Id-evi idu parametarski, ne kroz tekst upita.
     expect(JSON.stringify(queries[0].values)).toContain('"ou-it"');
   });
+
+  it('uses the shared predicate for fallback-routed PENDING tickets', async () => {
+    const queries: Query[] = [];
+    const rows = [{ ...breakdownRows[0], ur: 2 }, ...breakdownRows.slice(1)];
+    const dashboard = await loadBottleneckDashboardFromSql(
+      fakePrisma(queries, [rows, []]),
+      ['ou-it'],
+      window,
+    );
+
+    expect(dashboard.counts.unrouted).toBe(2);
+    expect(sqlFragmentText(queries[0].values)).toContain(
+      't."routedByUnroutedFallback" = true',
+    );
+  });
 });

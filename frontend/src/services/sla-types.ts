@@ -127,11 +127,30 @@ export type SlaComplianceProfileRow = {
   readonly resolutionCompliancePercent: number | null;
 };
 
+export type SlaComplianceBreakdownRow = {
+  readonly slaProfileId: string;
+  readonly dimensionId: string | null;
+  readonly dimensionName: string | null;
+  readonly sampleCount: number;
+  readonly responseCompliancePercent: number | null;
+  readonly resolutionCompliancePercent: number | null;
+};
+
+export type SlaOpenBreachCounts = {
+  readonly response: number;
+  readonly resolution: number;
+};
+
 export type SlaComplianceResponse = {
   readonly window: { readonly from: string; readonly to: string };
   readonly profiles: readonly SlaComplianceProfileRow[];
+  readonly byUnit: readonly SlaComplianceBreakdownRow[];
+  readonly byService: readonly SlaComplianceBreakdownRow[];
+  readonly byGroup: readonly SlaComplianceBreakdownRow[];
+  readonly openBreached: SlaOpenBreachCounts;
 };
 
 export type SlaComplianceQuery = {
+  readonly organizationalUnitId: string;
   readonly days?: number;
 };

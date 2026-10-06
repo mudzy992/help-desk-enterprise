@@ -42,7 +42,7 @@ export function ticketsForInboxTab(
   unroutedTickets: readonly TicketResponse[],
 ): readonly TicketResponse[] {
   if (tab === unroutedInboxTabKey) {
-    return unroutedTickets.filter((ticket) => ticket.status === "UNROUTED");
+    return unroutedTickets.filter(isUnroutedQueueTicket);
   }
   return inboxTickets.filter(
     (ticket) => ticket.status !== "UNROUTED" && ticket.assignedGroupId === tab,
@@ -52,5 +52,12 @@ export function ticketsForInboxTab(
 export function unroutedTicketsFromList(
   tickets: readonly TicketResponse[],
 ): readonly TicketResponse[] {
-  return tickets.filter((ticket) => ticket.status === "UNROUTED");
+  return tickets.filter(isUnroutedQueueTicket);
+}
+
+export function isUnroutedQueueTicket(ticket: TicketResponse): boolean {
+  return (
+    ticket.status === "UNROUTED" ||
+    (ticket.status === "PENDING" && ticket.routedByUnroutedFallback === true)
+  );
 }

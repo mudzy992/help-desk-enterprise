@@ -1,4 +1,8 @@
-import type { RoutingCoverageItem, RoutingOutcome } from "@/services/routing-api";
+import type {
+  RoutingCoverageItem,
+  RoutingOutcome,
+  RoutingServiceLifecycle,
+} from "@/services/routing-api";
 
 export type RoutingCoverageCellKind = "exact" | "inherited" | "unrouted";
 
@@ -20,6 +24,7 @@ export type RoutingCoverageOriginColumn = {
 export type RoutingCoverageServiceRow = {
   readonly serviceId: string;
   readonly serviceName: string;
+  readonly serviceLifecycle: RoutingServiceLifecycle;
 };
 
 export type RoutingCoverageMatrixStats = {
@@ -106,6 +111,7 @@ export function buildRoutingCoverageMatrix(
       services.push({
         serviceId: item.serviceId,
         serviceName: item.serviceName,
+        serviceLifecycle: item.serviceLifecycle,
       });
     }
     if (!seenOrigins.has(item.originUnitId)) {

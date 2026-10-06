@@ -34,6 +34,12 @@ export class ListTicketsQueryDto extends TicketFilterQueryDto {
   @IsEnum(TicketStatus, { each: true })
   status?: TicketStatus[];
 
+  /** 5.1.4 (E2): include both UNROUTED and fallback-routed PENDING tickets. */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  unroutedQueue?: boolean;
+
   @IsOptional()
   @Transform(({ value }) => toQueryBoolean(value))
   @IsBoolean()

@@ -12,12 +12,12 @@ export type SidebarTicketCounts = {
  * a group inbox of their own.
  */
 export function toSidebarTicketCounts(
-  counts: Pick<TicketCounts, "open" | "unrouted" | "inbox">,
+  counts: Pick<TicketCounts, "open" | "unroutedQueue" | "inbox">,
   includeInbox: boolean,
 ): SidebarTicketCounts {
   return {
     openTicketCount: counts.open,
-    unroutedCount: counts.unrouted,
-    inboxBadgeCount: (includeInbox ? counts.inbox : 0) + counts.unrouted,
+    unroutedCount: counts.unroutedQueue,
+    inboxBadgeCount: (includeInbox ? counts.inbox : 0) + counts.unroutedQueue,
   };
 }

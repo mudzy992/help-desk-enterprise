@@ -19,16 +19,19 @@ export type TicketCountsQuery = Pick<
 export type TicketCounts = {
   /** Visible tickets that are not RESOLVED, CLOSED or ARCHIVED. */
   readonly open: number;
-  readonly unrouted: number;
+  /** Status UNROUTED only: no routing rule matched. */
+  readonly unroutedWithoutRule: number;
+  /** UNROUTED plus fallback-routed PENDING tickets; the inbox tab's count. */
+  readonly unroutedQueue: number;
   /** Size of the caller's group inbox (unaffected by the narrowing filters). */
   readonly inbox: number;
   /** Same tickets as `GET /tickets?overdue=true`. */
   readonly overdue: number;
   /** Same tickets as `GET /tickets?atRisk=true`. */
   readonly atRisk: number;
-  /** Package 1.7 (U3): same tickets as `GET /tickets?unroutedOverdue=true`. */
-  readonly unroutedOverdue: number;
-  /** The cleanup deadline behind `unroutedOverdue`; 0 = disabled. */
+  /** Same unrouted-queue tickets as `GET /tickets?unroutedOverdue=true`. */
+  readonly unroutedQueueOverdue: number;
+  /** The cleanup deadline behind `unroutedQueueOverdue`; 0 = disabled. */
   readonly unroutedCleanupHours: number;
   readonly byStatus: Readonly<Record<TicketStatus, number>>;
 };

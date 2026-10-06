@@ -53,7 +53,13 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 1. Otvorite **Grupni inbox** i tab svoje grupe.
 2. Kliknite **Preuzmi** na tiketu — tiket prelazi u **Dodijeljeno** i vezuje se za vas.
-3. Ako tiket nema grupu, vidjećete tab **Neusmjereni red** i prečicu **Kreiraj pravilo za ovu kombinaciju**.
+3. Tab **Neusmjereni red** sadrži tikete `UNROUTED` koji čekaju pravilo i `PENDING` tikete poslane u podešenu
+   ciljnu grupu kroz fallback; oznake **Čeka pravilo rutanja** i **Usmjeren fallbackom** razlikuju ta dva slučaja.
+4. Red se učitava po **50 tiketa po stranici**. Prethodna/sljedeća stranica mijenja samo prikazane tikete, dok
+   broj na tabu ostaje ukupan broj cijelog reda. Brojač, lista i izvještaj uskih grla koriste isti skup tiketa.
+   Filter **Nerutirani preko roka** i cleanup rok ograničavaju fallback slučaj na podešenu ciljnu grupu i tiket
+   bez dodijeljenog agenta.
+5. Prečica **Kreiraj pravilo za ovu kombinaciju** vodi na pravilo za uslugu i origin OU tiketa.
 
 ### 3. Rad u detalju tiketa
 

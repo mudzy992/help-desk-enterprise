@@ -7,6 +7,7 @@ import {
   unroutedCutoff,
 } from '../unrouted/build-unrouted-overdue-where';
 import { defaultUnroutedQueueConfiguration } from '../unrouted/unrouted-queue.types';
+import { buildUnroutedWhere } from '../unrouted/build-unrouted-where';
 
 function toStatusArray(
   status: TicketListQuery['status'],
@@ -77,6 +78,9 @@ export function buildTicketListFilters(
   }
   if (query.unassigned === true) {
     clauses.push({ assignedUserId: null });
+  }
+  if (query.unroutedQueue === true) {
+    clauses.push(buildUnroutedWhere());
   }
   if (query.unroutedOverdue === true) {
     const scope = query.unroutedOverdueScope ?? {

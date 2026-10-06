@@ -32,7 +32,7 @@ import type {
   ListRoutingRulesQuery,
   ResolveRoutingInput,
   RoutingChangeLogResponse,
-  RoutingCoverageItem,
+  RoutingCoveragePage,
   RoutingCoverageQuery,
   RoutingHandlerGroupResponse,
   RoutingMutationContext,
@@ -189,7 +189,7 @@ export class RoutingService {
 
   async coverage(
     query: RoutingCoverageQuery,
-  ): Promise<readonly RoutingCoverageItem[]> {
+  ): Promise<RoutingCoveragePage> {
     return this.execute(async () =>
       computeRoutingCoverage(
         this.prisma,

@@ -32,6 +32,17 @@ describe('buildTicketListFilters', () => {
     expect(buildTicketListFilters({})).toEqual([]);
   });
 
+  it('uses the shared predicate for both unrouted queue branches', () => {
+    expect(buildTicketListFilters({ unroutedQueue: true })).toEqual([
+      {
+        OR: [
+          { status: 'UNROUTED' },
+          { status: 'PENDING', routedByUnroutedFallback: true },
+        ],
+      },
+    ]);
+  });
+
   it('maps every narrowing field to one AND clause', () => {
     const clauses = buildTicketListFilters({
       originUnitId: 'ou-it',

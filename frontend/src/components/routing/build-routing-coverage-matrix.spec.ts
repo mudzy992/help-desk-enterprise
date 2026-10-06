@@ -19,6 +19,7 @@ function item(partial: {
     originUnitPath: partial.originUnitPath,
     serviceId: partial.serviceId,
     serviceName: partial.serviceName,
+    serviceLifecycle: "ACTIVE",
     hasExactRule: partial.outcome === "EXACT",
     resolution: {
       outcome: partial.outcome,

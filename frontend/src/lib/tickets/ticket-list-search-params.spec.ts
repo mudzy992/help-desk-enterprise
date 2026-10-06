@@ -12,6 +12,12 @@ describe("toTicketListSearchParams", () => {
     );
   });
 
+  it("sends the shared unrouted queue filter", () => {
+    expect(toTicketListSearchParams({ unroutedQueue: true }).toString()).toBe(
+      "unroutedQueue=true&page=1",
+    );
+  });
+
   it("sends several statuses as repeated keys", () => {
     const search = toTicketListSearchParams({ status: ["PENDING", "ASSIGNED"] });
     expect(search.getAll("status")).toEqual(["PENDING", "ASSIGNED"]);

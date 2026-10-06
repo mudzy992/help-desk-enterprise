@@ -56,6 +56,7 @@
 | — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 | **5.1.2** | 2026-10-06 | **M3 — korisnici, OJ i grupe (B1–B4)** | `user-guide/korisnici-oj-i-grupe.md`, `user-guide/uloge-i-permisije.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/{organizational-units,directory-sync}/**`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Blokirani OU delete s brojem zavisnosti; audit/warning/cache efekti OJ-scoped dodjela; audit mutacija bez tajni; ne-lokalni reset lozinke vraća 409 i bilježi pokušaj** |
+| **5.1.4** | 2026-10-06 | **M7/M8/M10 — routing, unrouted queue i SLA compliance** | `user-guide/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T44/T45/T66/T100), `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Coverage filtri/status/paginacija; jedinstvena unrouted semantika i total paginacije; OU/service/group SLA razrezi i otvorena prekoračenja. Backend/frontend lokalne provjere su prošle; serverski E2E runtime je release gate u toku** |
 
 ---
 
@@ -1946,8 +1947,8 @@ poravnati s implementacijom; poznate stavke B5–B7 M3 i preostala M4 ograničen
 ## Paket 5.1 — korak 5.1.3: M6 B1, B3, B4 i B5 (2026-10-06)
 
 **Zašto:** zatvoreni su serverska validacija `formData`, kapija aktivacije usluge, uticaj postavki formi i schema-backed
-prikaz tiketa. Vodiči su usklađeni s implementiranim ponašanjem; browser E2E se ne proglašava prošlim bez stvarnog
-pokretanja.
+prikaz tiketa. Vodiči su usklađeni s implementiranim ponašanjem; nakon ispravke E2E fixture-a runtime kapija je
+potvrđena prolazom svih pet testova.
 
 **Dokazi:** backend ciljani Jest skup → **12 suita / 48 testova ✅** uz privremeni `ts-jest diagnostics:false`
 config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `frontend npm run build` → `tsc -b && vite
@@ -1955,13 +1956,15 @@ build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint
 fajlovima → bez grešaka. Puni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
 na `b1b7158` potvrdio je backend build/lint/full test, frontend build/test i docs guard/gate; E2E je bio `skipped`.
 Korisnikov GitHub run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) bio je
-na `master`/`b1b7158` i koristio je staru četverotestnu verziju. Noviji serverski run izvršio je aktuelnih 5 testova:
-3 su prošla, 2 pala s `ORIGIN_UNIT_REQUIRED`. D1 zahtjev (nakon što je dodan `impact`/`urgency`) i D3 tiket nisu
-slali `originUnitId`; API ih je odbio prije form-validacije/ticket binding provjere. Fiksture sada čitaju korijenski
-OJ iz `/organizational-units/tree` i šalju njegov ID u oba zahtjeva. D3 scenario koristi `withSettings` restauraciju,
+na `master`/`b1b7158` i koristio je staru četverotestnu verziju. Prvi serverski run aktuelnih pet testova prošao je
+3/5: D1 zahtjev i D3 create-ticket helper nisu slali `originUnitId`, pa ih je API odbio prije validacije forme;
+oba fixture-a su ažurirana da učitaju korijenski OJ iz `/organizational-units/tree`. `b86f563` zatim dodaje taj ID
+u oba zahtjeva. Korisnik je pokrenuo ispravljeni spec 15 komandama
+`PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --reporter=list,json`
+i `node scripts/summarize-playwright-json.mjs results.json`; rezultat: **5 passed, 0 failed, 0 flaky, 0 skipped**
+za **4,3 min**. Time je runtime kapija 5.1.3 zatvorena. D3 scenario koristi `withSettings` restauraciju,
 provjerava skrivanje polja u UI-ju i nullable vezu tiketa; postojeći unrouted-target scenario također vraća
-prethodnu/zadanu postavku umjesto praznog stringa. Statičke provjere prolaze; potreban je novi serverski prolaz svih
-5 testova prije zatvaranja 5.1.3.
+prethodnu/zadanu postavku umjesto praznog stringa.
 
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|
@@ -1971,3 +1974,26 @@ prethodnu/zadanu postavku umjesto praznog stringa. Statičke provjere prolaze; p
 | `docs/user-guide/sta-je-novo.md` | Korisnički sažetak M6 validacije, podešavanja formi i detalja tiketa | `DOCS_CHANGELOG.md`, vodiči M6/M8 |
 | `REVIEW_ANALIZA.md` | M6 gap tabela, kodna analiza, nalazi B1/B3/B4/B5, dokumentacijski status i ocjena ažurirani; dodat odjeljak 5.1.3 s dokazima i ograničenjima provjera | ciljani Jest/Vitest/ESLint/build rezultati iznad |
 | `backend/content/docs/{katalog-usluga-i-forme,tiketi,cesta-pitanja,sta-je-novo}.md`, engleski FAQ ogledalo + `manifest.json` | Regenerisana ogledala vodiča iz `docs/user-guide/` | `scripts/generate-docs-content.mjs`, zatim docs guard |
+
+## Paket 5.1 — korak 5.1.4: M7 B1, M7 B4 i M10 B3 (2026-10-06)
+
+**Zašto:** usklađeni su prikaz matrice pokrivanja, značenje reda neusmjerenih tiketa u listama/brojačima/izvještajima
+te razrezi i opseg SLA usklađenosti. Vodiči opisuju implementaciju i lokalno testirane dijelove; serverski E2E runtime
+prolaz još nije izvršen u ovom checkoutu.
+
+**Dokazi:** 10 ciljanih backend Jest suita → **45/45 testova ✅** uz privremeni config `diagnostics:false` (nije backend
+typecheck; Prisma client generation je blokirana preuzimanjem schema engine-a preko TLS-a). Frontend `npm run build`
+→ **`tsc -b && vite build` prošao**; ciljani Vitest → **5 fajlova / 19 testova ✅**. E2E statička provjera
+`cd e2e && npx tsc --noEmit && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts tests/15-workflow-unrouted-realtime.spec.ts --list`
+→ exit 0, **8 testova enumerisano**; server runtime nije pokrenut jer API/baza i sesijski E2E credentials nisu dostupni.
+E2E run ostaje release gate po dogovorenom iterativnom toku.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/usmjeravanje-i-prioritet.md` | Matrica opisuje aktivne usluge po defaultu, filtere OU/usluga, prekidač za nacrte/ukinute, 50 usluga po stranici i očuvanu rezoluciju kroz pretke; uklonjene stare tvrdnje M7 B1/B4 i objašnjen fallback red | `compute-routing-coverage.ts`, `routing.coverage.spec.ts`, `build-unrouted-where.ts`, lokalni backend Jest |
+| `docs/user-guide/tiketi.md` | Tab **Neusmjereni red** razlikuje `UNROUTED` i fallback-rutirani `PENDING`, prikazuje 50 po stranici, a ukupni brojač ostaje nezavisan od trenutne stranice; objašnjene granice overdue/cleanup | `use-ticket-list.ts`, `ticket-inbox-list.tsx`, `get-ticket-counts.ts`; 45 backend testova, 19 frontend testova |
+| `docs/user-guide/sla.md` | Izbor OU opsega, podređene OJ, razrezi po profilu/OJ/usluzi/grupi i zasebni brojači otvorenih prekršaja; uklonjena zastarjela tvrdnja M10 B3 | `sla-compliance.controller.ts`, `resolve-sla-compliance-unit-scope.ts`, `aggregate-sla-compliance.ts`; ciljane backend provjere |
+| `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` | Unrouted bottleneck pojašnjen kao `UNROUTED` + fallback `PENDING`; E2E pokrivenost bottleneck-a opisana kao scenario s runtimeom na čekanju | `sql-bottleneck-dashboard-store.ts`, test 15 (statički provjeren; runtime nije pokrenut) |
+| `docs/user-guide/sta-je-novo.md` | Dodan sažetak korisnički vidljivih izmjena 5.1.4 za matricu, unrouted red i SLA razreze | isti funkcionalni izvori; ciljane backend/frontend provjere |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T44/T45/T66/T100 poravnati s novim filterima, zajedničkom queue semantikom i OU-scoped SLA dimenzijama; status izričito zadržava E2E release gate | backend/frontend izvori i ciljani Jest/Vitest rezultati |
+| `backend/content/docs/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md` + `manifest.json` | Ogledala i manifest sinhronizovani iz user-guide izvora | `node scripts/generate-docs-content.mjs`, `node scripts/check-docs-content.mjs` |

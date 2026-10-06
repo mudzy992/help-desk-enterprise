@@ -6528,22 +6528,23 @@ izmjena tijela nakon potpisa, istek, tuđi skup/akter; `roles.service.spec.ts` �
 drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason`); `npx tsc --noEmit` → 0;
 `npx eslint src/modules/rbac` → 0.
 
-## 5. Šta ostaje otvoreno u paketu 5.1
+## 5. Status paketa 5.1
 
 - **Korak 5.1.2 — M3 B1–B4:** implementiran; ciljani Jest skup + lint + dokumentacija prolaze. Naknadni build s
   generisanim Prisma klijentom prijavio je tri direktne TS greške koje su ispravljene poslije `cd3597c`.
   Iako lokalni checkout i dalje nema `src/generated/prisma/{client,enums}`, post-fix backend build/lint/full test
   potvrđeni su u CI runu [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
   na `b1b7158`.
-- **Korak 5.1.3 — M6 B1/B3/B4/B5:** backend/frontend implementacija i puni CI na `b1b7158` prošli su, ali
-  E2E je bio preskočen. CI run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325)
-  bio je na `master`/`b1b7158` i koristio staru četverotestnu verziju. Noviji serverski run s pet testova prošao
-  je **3/5**; preostala dva su pala s `ORIGIN_UNIT_REQUIRED`. D1 payload je već imao `impact`/`urgency`, ali nije
-  poslao `originUnitId`; D3 create-ticket helper imao isti propust. Oba testa sada čitaju korijenski OJ i šalju
-  njegov ID. TypeScript i Playwright listing prolaze; potreban je novi serverski runtime prolaz svih 5 testova.
-- **Korak 5.1.4 — M7 i M10** — ostaje za naredni korak iz §3–§5 plana.
-- **Prvi puni e2e prolaz** ostaje kapija za zatvaranje 5.1.3 i merge na `master`; ako `E2E_SUPERADMIN_PASSWORD`
-  ne prolazi novu politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
+- **Korak 5.1.3 — M6 B1/B3/B4/B5: završen.** Puni CI na `b1b7158` potvrdio je backend/frontend buildove,
+  testove i docs gate; E2E je tada bio preskočen. CI run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325)
+  bio je na `master`/`b1b7158` i koristio staru četverotestnu verziju. Ispravljeni spec 15 kasnije je na serveru
+  prošao **5/5** testova (0 failed, 0 flaky, 0 skipped; 4,3 min). Izvorni pad 3/5 bio je zbog nedostajućeg
+  `originUnitId` u D1/D3 zahtjevima; `b86f563` sada čita korijenski OJ i šalje ID u oba zahtjeva.
+  Korisnik je izvršio `PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --reporter=list,json`
+  i `node scripts/summarize-playwright-json.mjs results.json`; sažetak: **5 passed, 0 failed, 0 flaky, 0 skipped**.
+- **Korak 5.1.4 — M7 B1, M7 B4 i M10 B3: implementiran.** Ciljane lokalne backend/frontend provjere su zabilježene u §5.1.4 ispod; serverski E2E runtime za ovaj korak još je release gate i čeka korisnikov server run + `results.json`.
+- Kapija punog browser E2E prolaza za 5.1.3 je zatvorena. Za budući server E2E, ako `E2E_SUPERADMIN_PASSWORD`
+  ne prolazi novu politiku, `POST /install/super-admin` vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
 
 # CI-3 — datumi u manifestu oborili `frontend` job (2026-10-06)
 
@@ -6644,7 +6645,7 @@ flag uz `formsEnabled`.
 | Backend ciljano lint | `cd backend && npx eslint` nad izmijenjenim `service-catalog`/`tickets` M6 fajlovima | **Exit 0**, bez lint grešaka. |
 | Backend build/typecheck | `cd backend && npm run build`; CI workflow | Lokalni build je bio blokiran nedostajućim `backend/src/generated/prisma/client` i `enums` (2871 kaskadna TS dijagnostika). Naknadni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) na `b1b7158` uspješno je završio backend build/lint/full test; taj run prethodi novom E2E-only scenariju opisanom ispod. |
 | E2E statička provjera | `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; aktuelni sesijski spec učitava 5 testova, uključujući D3. |
-| E2E runtime — prethodne verzije | GitHub [run #37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) na `master`/`b1b7158`; korisnikov serverski report | GitHub E2E job pao na staroj četverotestnoj verziji; kasniji server run izvršio je 5 testova (**3 prošla, 2 pala**). Oba neuspjeha su `ORIGIN_UNIT_REQUIRED`: D1 payload i D3 kreiranje tiketa nisu slali `originUnitId`. Spec je ispravljen da ga učita iz `/organizational-units/tree` i šalje u oba zahtjeva; novi runtime prolaz je još potreban. |
+| E2E runtime — 5.1.3 | GitHub [run #37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) na `master`/`b1b7158`; ispravljeni serverski spec 15 | Stari GitHub run koristio je četverotestnu verziju; prvi serverski prolaz aktuelnih pet testova bio je **3/5** zbog `ORIGIN_UNIT_REQUIRED` (D1/D3 bez `originUnitId`). `b86f563` je dopunio oba fixture-a korijenskim OJ-om; korisnikov naredni server run prošao je **5/5** (0 failed/flaky/skipped; 4,3 min), pa je runtime kapija 5.1.3 zatvorena. |
 | Dokumentacija | `node scripts/check-docs-content.mjs`, `node --test scripts/check-docs-content.test.mjs`, `node scripts/generate-docs-content.mjs --check`, `node scripts/check-client-neutral.mjs` | **OK:** 29 stranica, 5 prevoda, 10 provjera; **9/9** skript testova; ogledalo sinhronizovano; nema klijentski specifičnih naziva. |
 
 ## 3. Dokumentacija
@@ -6658,9 +6659,50 @@ flag uz `formsEnabled`.
 - `DOCS_CHANGELOG.md` — ovaj korak i izvedene dokumentacijske promjene evidentirani.
 - Ogledala `backend/content/docs/` regenerisana su; guard je prošao (29 stranica, 5 prevoda, manifest sinhronizovan).
 
-## 4. Šta ostaje otvoreno
+## 4. Granice i završne provjere
 
 - B6–B9 iz §M6 nisu dio 5.1.3.
-- Serverski browser run je izvršio aktuelni petotestni spec: 3 prošla, 2 pala s `ORIGIN_UNIT_REQUIRED`. Uzrok su bile testne fiksture bez `originUnitId`, ne odbačen `formData`; ispravka sada šalje korijenski OJ u oba zahtjeva. Ostaje ponovni runtime prolaz svih 5 testova.
-- GitHub run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) bio je na starom `master`/`b1b7158` (4 testa), a CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) je preskočio E2E; nijedan ne provjerava ispravljeni petotestni spec.
-- M6 unos u „Šta je novo“ već postoji i ogledalo je sinhronizovano; duplikat nije potreban. Nakon izmjena plana/evidencije ponovo se izvršavaju docs guard i `git diff --check`.
+- Prvi serverski prolaz speca 15 bio je 3/5 zbog `ORIGIN_UNIT_REQUIRED` u D1/D3 fiksturama. Nakon što je `b86f563` dopunio oba zahtjeva korijenskim OJ-om, korisnikov sljedeći prolaz završio je **5/5** (0 failed/flaky/skipped; 4,3 min); runtime kapija 5.1.3 je zatvorena.
+- GitHub run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) koristio je staru četverotestnu verziju, a CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) preskočio je E2E; kasniji serverski rezultat iz prethodne tačke potvrđuje ispravljeni petotestni spec.
+- M6 unos u „Šta je novo“ već postoji i ogledalo je sinhronizovano; duplikat nije potreban.
+
+# Paket 5.1 — korak 5.1.4: M7 B1/B4, M10 B3 — rutanje, unrouted queue i SLA compliance (2026-10-06)
+
+Ovaj korak implementira dizajn već odobren u `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md` §3.5.
+E2E specifikacije su proširene za server run, ali runtime na ciljanom serveru **nije izvršen u ovom checkoutu**;
+korisnikov merge/server run ostaje release gate. Ne tvrdimo da je e2e prošao.
+
+## 1. Šta je urađeno
+
+| Nalaz | Implementacija | Dokaz u kodu |
+|---|---|---|
+| **E1 — routing coverage** | Podrazumijevano se vraćaju samo aktivne usluge; `includeInactive` uključuje nacrte i ukinute. Server podržava `originUnitId`, `serviceId`, `take`/cursor i `total`; stranica obuhvata do 50 usluga s kompletnim odgovarajućim OU ćelijama. Filter leaf OU-a ne uklanja pretke iz rezolucije naslijeđenih pravila. UI šalje filtere, ima prekidač i prethodna/sljedeća kontrola; hook coverage notes čita sve stranice. | `backend/src/modules/routing/compute-routing-coverage.ts` (`computeRoutingCoverage`), `routing-coverage-cursor.ts`; `frontend/src/components/routing/routing-coverage-panel.tsx`, `frontend/src/lib/services/use-catalog-coverage-notes.ts`; `routing.coverage.spec.ts` |
+| **E2 — jedinstveni unrouted skup** | `buildUnroutedWhere` je zajednički predicate za `UNROUTED` i fallback `PENDING`; opcija target grupe podržava izostavljeno/null/konkretno ponašanje. Lista i `unroutedQueue` brojač koriste generalni skup; overdue lista/count i cleanup sweep koriste istu overdue predikaciju, a fallback zahtijeva trenutno konfiguriranu grupu i `assignedUserId: null`. SQL bottleneck i in-memory agregat broje obje grane. Inbox pokazuje **Čeka pravilo rutanja** naspram **Usmjeren fallbackom**; stranica inboxa je 50, a `total` ostaje nezavisan od trenutne stranice. | `backend/src/modules/tickets/unrouted/build-unrouted-where.ts`, `build-unrouted-overdue-where.ts`, `counts/get-ticket-counts.ts`, `unrouted/unrouted-sweep.service.ts`; `backend/src/modules/reports/bottleneck/{sql-bottleneck-dashboard-store,aggregate-bottleneck-dashboard}.ts`; `frontend/src/lib/tickets/use-ticket-list.ts`, `ticket-inbox-list.tsx`; Jest tests `build-unrouted-where`, `unrouted-sweep.service`, `get-ticket-counts`, `build-ticket-list-query`, bottleneck SQL/aggregate |
+| **E3 — SLA compliance dimenzije i OU scope** | `GET /sla/compliance` traži `organizationalUnitId`; controller koristi `OuAccessGuard` + `@RequireOrganizationalUnitScope`. Servis izabere OJ i potomke, agregat vraća profile/OU/service/group razreze za završeni uzorak i odvojene open response/resolution breach brojače. Frontend bira OU iz stabla, inicijalno session OU ako postoji u opcijama, inače prvu opciju. | `backend/src/modules/sla/sla-compliance.controller.ts`, `resolve-sla-compliance-unit-scope.ts`, `load-sla-compliance-rows.ts`, `aggregate-sla-compliance.ts`; `frontend/src/pages/sla-page.tsx`, `use-sla-page-data.ts`, `sla-compliance-card.tsx`; tri fokusirana SLA speca |
+| **Serverski E2E scenariji** | `02` provjerava lifecycle filtre, OU/service filtere i coverage cursor; `15` pravi dva fallback tiketa i poredi dvije stranice, queue count i bottleneck service breakdown; `07` provjerava obavezan OU scope, završeni-ticket breakdown i selector. | `e2e/tests/{02-routing-fallback,07-sla,15-workflow-unrouted-realtime}.spec.ts` |
+
+## 2. Provjere (izvršene u ovom okruženju)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Backend ciljano | `cd backend && npx jest --config /tmp/help-desk-jest.config.cjs --runInBand --runTestsByPath src/modules/sla/aggregate-sla-compliance.spec.ts ... src/modules/routing/routing.coverage.spec.ts` (10 ciljanih fajlova) | **10/10 suita, 45/45 testova ✅**. Privremeni config ima `diagnostics:false`, jer generated Prisma client nije dostupan; rezultat nije backend typecheck ni puni Jest suite. |
+| Frontend build | `cd frontend && npm run build` | **Exit 0:** `tsc -b && vite build`; samo Vite upozorenje za chunk veći od 500 kB. |
+| Frontend ciljani Vitest | `cd frontend && npm test -- src/lib/tickets/inbox-view-tabs.spec.ts src/lib/tickets/ticket-list-search-params.spec.ts src/lib/tickets/count-sidebar-ticket-badges.spec.ts src/components/routing/build-routing-coverage-matrix.spec.ts src/lib/services/catalog-coverage-note.spec.ts` | **5 fajlova, 19/19 testova ✅**. |
+| E2E statička provjera | `cd e2e && npx tsc --noEmit && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts tests/15-workflow-unrouted-realtime.spec.ts --list` | **Exit 0**, TypeScript prolazi i Playwright enumeriše **8 testova**. Ovo nije browser/server runtime. |
+| Prisma generate/backend build | `cd backend && npm run db:generate` (dummy `DATABASE_URL` samo za CLI env) | **Blokirano:** Prisma CLI ne može preuzeti schema-engine binary zbog TLS prekida prema `binaries.prisma.sh`; generated client/build/typecheck nisu potvrđeni. |
+| E2E runtime | Nije pokrenut | Nema ciljane API/baze i server E2E konfiguracije/credentials u ovom checkoutu. E2E scenariji su spremni za iterativni korisnikov server run; ne predstavljati ih kao prošle. |
+
+## 3. Dokumentacija
+
+- `docs/user-guide/usmjeravanje-i-prioritet.md` — coverage filteri, lifecycle prekidač, 50-service stranica i ancestor rezolucija; uklonjeni zastarjeli M7 B1/B4 navodi.
+- `docs/user-guide/tiketi.md` — oba unrouted skupa, UI oznake, inbox paginacija/total i overdue/cleanup opseg.
+- `docs/user-guide/sla.md` — OU selector/subtree, završeni uzorak, OU/service/group razrezi i odvojeni otvoreni prekršaji.
+- `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — fallback PENDING semantika u bottlenecku i jasno označen runtime E2E gate.
+- `docs/user-guide/sta-je-novo.md` — sažetak funkcionalno vidljivih izmjena.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` (T44/T45/T66/T100), `DOCS_CHANGELOG.md` i ogledala `backend/content/docs/`.
+
+## 4. Šta ostaje otvoreno
+
+- Serverski E2E runtime iz paketa 5.1.4; nakon push-a na sesijsku granu korisnik merge-a na `master`, pokreće tri ciljna speca prema ugovorenom procesu i šalje `results.json`.
+- Prisma generation i backend build/typecheck u ovom sandboxu; uzrok je nedostupan Prisma binary server, ne zeleni tip-check.
+- Nema tvrdnje o punom backend Jest suite-u ili punom E2E prolazu.

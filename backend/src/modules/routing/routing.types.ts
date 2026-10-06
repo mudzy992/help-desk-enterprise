@@ -90,18 +90,34 @@ export type RoutingRuleResponse = {
   readonly updatedAt: string;
 };
 
+export type RoutingServiceLifecycle = 'DRAFT' | 'ACTIVE' | 'DEPRECATED';
+
 export type RoutingCoverageItem = {
   readonly originUnitId: string;
   readonly originUnitPath: string;
   readonly serviceId: string;
   readonly serviceName: string;
+  readonly serviceLifecycle: RoutingServiceLifecycle;
   readonly hasExactRule: boolean;
   readonly resolution: RoutingResolution;
+};
+
+/** A cursor page of complete service rows; `total` counts matching services. */
+export type RoutingCoveragePage = {
+  readonly items: readonly RoutingCoverageItem[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
 };
 
 export type RoutingCoverageQuery = {
   readonly originUnitId?: string;
   readonly serviceId?: string;
+  readonly includeInactive?: boolean;
+  readonly take?: number;
+  /** Opaque cursor returned by the previous page. */
+  readonly cursor?: string;
 };
 
 export type OrganizationalUnitAncestor = {

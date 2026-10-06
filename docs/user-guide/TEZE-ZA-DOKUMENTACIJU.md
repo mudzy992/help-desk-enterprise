@@ -913,18 +913,22 @@ To je kriterij kompletnosti.
 - **Modul / paket:** Usmjeravanje i prioritet
 - **Publika:** ADMIN / SUPER_ADMIN
 - **Tip:** Pravilo
-- **Teza:** Matrica pokrivanja prikazuje sve kombinacije (usluga × OU) i za svaku označava da li pravilo postoji
+- **Teza:** Matrica pokrivanja prikazuje kombinacije (usluga × OU) i za svaku označava da li pravilo postoji
   **tačno**, da li je **naslijeđeno** ili je kombinacija **neusmjereno** (rupa), uz statistiku i detalj putanje
-  fallbacka. Ako je postavka `requireCoverage` uključena, usluga se **ne može aktivirati** bez ijednog pravila;
-  ako je isključena, dobija se samo meko upozorenje `ROUTING_COVERAGE_MISSING`.
+  fallbacka. Podrazumijevano prikazuje samo aktivne usluge; filteri su origin OU i usluga, prekidač uključuje
+  nacrte i ukinute usluge, a cursor-paginacija vraća do 50 usluga po stranici sa svim odgovarajućim OU ćelijama.
+  Rezolucija i uz odabran leaf OU uzima u obzir cijeli lanac predaka. Ako je `requireCoverage` uključeno, usluga
+  se **ne može aktivirati** bez ijednog pravila; ako je isključeno, dobija se samo meko upozorenje
+  `ROUTING_COVERAGE_MISSING`.
 - **Zašto:** aktivacija usluge bez rutanja proizvodi neusmjerene tikete od prvog dana.
 - **Primjer:** Usluga bez pravila pri prelasku u **Aktivna** vraća grešku i ostaje u nacrtu.
 - **Postavke / permisije:** `private.ticket.routing.requireCoverage`; rola ADMIN za pregled.
 - **Ekran:** **Administracija → Usmjeravanje** → tab **Matrica pokrivanja**.
-- **Izvori:** `backend/src/modules/routing/compute-routing-coverage.ts:12–54`,
-  `evaluate-service-routing-coverage.ts:12–34`, `service-catalog.service.ts:154–155`,
-  `config-versioning/validate-routing-snapshot.ts:57–58`.
-- **Status:** Važi (uz ograničenje B1: matrica nema filtere i uključuje neaktivne usluge)
+- **Izvori:** `backend/src/modules/routing/compute-routing-coverage.ts`,
+  `routing-coverage-cursor.ts`, `routing.coverage.spec.ts`, `evaluate-service-routing-coverage.ts`,
+  `service-catalog.service.ts`, `config-versioning/validate-routing-snapshot.ts`;
+  `frontend/src/components/routing/routing-coverage-panel.tsx`.
+- **Status:** Važi (M7 B1 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
 - **Wiki stranica:** Usmjeravanje → Matrica pokrivanja
 
 ### T45 — Neusmjereni red: ciljna grupa, vlasnik, rok i digest
@@ -933,19 +937,23 @@ To je kriterij kompletnosti.
 - **Publika:** ADMIN / SUPER_ADMIN (podešavanje), SUPER_ADMIN (vlasnik reda po pravilu)
 - **Tip:** Pravilo
 - **Teza:** Tiket bez pronađenog pravila **nikad se ne izgubi**: ili ostaje u statusu `UNROUTED`, ili — ako je
-  podešena **ciljna grupa** — dobija status `PENDING` u toj grupi s oznakom da je preusmjeren. Red ima
-  **vlasničku rolu**, **rok obrade** (`cleanupSlaHours`, 0 isključuje upozorenja) i opciju **sedmičnog digest-a**;
-  prekoračenje roka šalje jedno upozorenje po tiketu (bez ponavljanja) i ponedjeljkom u 08:00 zbirni pregled.
+  podešena **ciljna grupa** — dobija status `PENDING` u toj grupi s oznakom fallbacka. Tab **Neusmjereni red**,
+  njegovi brojači i bottleneck izvještaj koriste isti skup: `UNROUTED` i fallback-rutirani `PENDING`; UI ih
+  razlikuje kao **Čeka pravilo rutanja** i **Usmjeren fallbackom**. Red ima **vlasničku rolu**, **rok obrade**
+  (`cleanupSlaHours`, 0 isključuje upozorenja) i **sedmični digest**; overdue/cleanup fallback ograničen je na
+  trenutno podešenu ciljnu grupu i tikete bez dodijeljenog agenta. Prekoračenje roka šalje jedno upozorenje po
+  tiketu (bez ponavljanja) i ponedjeljkom u 08:00 zbirni pregled.
 - **Zašto:** „rupa u rutanju“ mora biti vidljiva i imati vlasnika, a ne tiho izgubljena.
 - **Primjer:** Tiket iz OU-a bez pravila stoji 9 sati u neusmjerenom redu (rok je 8 h) → vlasnička rola dobija
   upozorenje; ponedjeljak u 08:00 dobija i zbirni pregled svih takvih tiketa.
 - **Postavke / permisije:** `private.ticket.unroutedQueue.enabled|ownerRole|targetGroupId|cleanupSlaHours|weeklyDigest`.
 - **Ekran:** **Grupni inbox** → tab **Neusmjereni red**; filter **Nerutirani preko roka** u listi tiketa; bedž na
   nadzornoj ploči.
-- **Izvori:** `backend/src/modules/tickets/unrouted/build-unrouted-overdue-where.ts:8–26`,
-  `unrouted-sweep.job.constants.ts:6–18`, `unrouted-sweep.service.ts:40–95`, `counts/counts.types.ts:22–33`,
-  `list/build-ticket-list-filters.ts:81–88`.
-- **Status:** Važi (uz B4: tab prikazuje samo status `UNROUTED`, dok upozorenja uključuju i preusmjerene tikete)
+- **Izvori:** `backend/src/modules/tickets/unrouted/build-unrouted-where.ts`,
+  `build-unrouted-overdue-where.ts`, `unrouted-sweep.service.ts`, `counts/get-ticket-counts.ts`,
+  `list/build-ticket-list-filters.ts`, `backend/src/modules/reports/bottleneck/sql-bottleneck-dashboard-store.ts`,
+  `frontend/src/components/tickets/ticket-inbox-list.tsx`, `e2e/tests/15-workflow-unrouted-realtime.spec.ts`.
+- **Status:** Važi (M7 B4 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
 - **Wiki stranica:** Usmjeravanje → Neusmjereni red
 
 ### T46 — Prioritet: matrica uticaj × hitnost, ručni override s auditom
@@ -1380,22 +1388,30 @@ To je kriterij kompletnosti.
 - **Publika:** admin
 - **Tip:** Pravilo
 - **Teza:** Usklađenost po profilu računa se kao procenat završenih tiketa (zadnjih 30 dana) koji **nisu**
-  prekoračili rok **prvog odgovora** odnosno **rješenja**; kartica prikazuje i trenutnu izloženost
-  (otvoreni/ugroženi/prekoračeni). Pozadinski **skener** svake minute obrađuje najviše 2000 stanja čiji je
-  `nextDueAt` istekao, a ops nadzor diže alarm ako nema uspješnog ciklusa duže od podešenog broja minuta
-  (podrazumijevano 5).
+  prekoračili rok **prvog odgovora** odnosno **rješenja**, uz razreze po organizacionoj jedinici, usluzi i
+  handler grupi. Admin bira OU opseg; rezultat uključuje tu jedinicu i potomke, a kontroler zahtijeva
+  `organizationalUnitId` i provjerava OU pristup. Otvorena prekoračenja odgovora i rješenja prikazuju se kao
+  zasebni brojači, ne ulaze u završeni uzorak. Profil detalj dodatno prikazuje izloženost po statusu/prioritetu.
+  Pozadinski **skener** svake minute obrađuje najviše 2000 stanja čiji je `nextDueAt` istekao, a ops nadzor diže
+  alarm ako nema uspješnog ciklusa duže od podešenog broja minuta (podrazumijevano 5).
 - **Zašto:** bez nadzora skenera SLA tiho prestaje da radi i svi rokovi izgledaju „u okviru“.
-- **Primjer:** `sla.compliance?days=30` vraća `sampleCount` i procenat po profilu; tab „SLA“ na izvještajima
-  koristi prag `slaTargetPercent` (podrazumijevano 90%).
+- **Primjer:** `/sla/compliance?organizationalUnitId=ou-root&days=30` vraća uzorak/procenat po profilu i razreze
+  `byUnit`, `byService`, `byGroup` te `openBreached`; tab „SLA“ u izvještajima koristi prag `slaTargetPercent`
+  (podrazumijevano 90%).
 - **Postavke / permisije:** `private.reports.trends.slaTargetPercent`,
-  `private.ops.thresholds.slaScanLateMinutes`; endpoint usklađenosti je admin-only.
-- **Ekran:** **SLA pravila** → profil → **Usklađenost (30 dana)** i **Trenutno izloženih**; **Izvještaji**.
-- **Izvori:** `backend/src/modules/sla/sla-compliance.controller.ts:18–37`,
-  `aggregate-sla-compliance.ts:30–85`, `load-sla-compliance-rows.ts:20–57`,
-  `scan-due-ticket-sla-states.ts:20–61`, `sla-scan.constants.ts:9–16`,
-  `backend/src/modules/ops-health/evaluate-ops-signals.ts:143–155`,
-  `backend/src/modules/reports/trends/report-trends.constants.ts:23,31`.
-- **Status:** Važi, uz ograničenja: agregat je samo po profilu i samo za završene tikete (B3, §M10)
+  `private.ops.thresholds.slaScanLateMinutes`; endpoint je admin-only, traži izabrani OU i prolazi
+  `OuAccessGuard`/`RequireOrganizationalUnitScope`.
+- **Ekran:** **SLA** → izbor **Opseg organizacione jedinice** → **Usklađenost (30 dana)**, razrezi po OU/usluzi/grupi
+  i **Trenutna otvorena SLA prekoračenja**; profil detalj zadržava izloženost.
+- **Izvori:** `backend/src/modules/sla/sla-compliance.controller.ts`,
+  `sla-compliance.service.ts`, `resolve-sla-compliance-unit-scope.ts`, `load-sla-compliance-rows.ts`,
+  `aggregate-sla-compliance.ts`, `aggregate-sla-compliance.spec.ts`, `load-sla-compliance-rows.spec.ts`,
+  `resolve-sla-compliance-unit-scope.spec.ts`, `frontend/src/pages/sla-page.tsx`,
+  `frontend/src/components/sla/sla-compliance-card.tsx`, `e2e/tests/07-sla.spec.ts`;
+  `scan-due-ticket-sla-states.ts`, `sla-scan.constants.ts`,
+  `backend/src/modules/ops-health/evaluate-ops-signals.ts`,
+  `backend/src/modules/reports/trends/report-trends.constants.ts`.
+- **Status:** Važi (M10 B3 zatvoren 2026-10-06; server E2E runtime provjera je release gate)
 - **Wiki stranica:** SLA → Usklađenost i nadzor
 
 ### T67 — Administracija SLA konfiguracije (change log, verzije, pravo pristupa)
@@ -2044,9 +2060,10 @@ To je kriterij kompletnosti.
 
 ### T100 — Uska grla: API postoji, ekran ne
 
-- `GET /reports/bottlenecks` vraća brojače `PENDING_APPROVAL`, `WAITING_FOR_USER`, `UNROUTED` i
+- `GET /reports/bottlenecks` vraća brojače `PENDING_APPROVAL`, `WAITING_FOR_USER`, neusmjerenih i
   `OVERDUE`, razrez po **organizacionoj jedinici, servisu i prioritetu** te **dnevni trend** (UTC dan,
-  prema datumu kreiranja) — tačno ono što RAW traži za identifikaciju uskih grla.
+  prema datumu kreiranja). Brojač neusmjerenih uključuje `UNROUTED` i `PENDING` s oznakom fallback rutanja;
+  SQL upit i in-memory agregat koriste istu semantiku kao tiketni red.
 - Postavka `private.dashboard.bottlenecks.enabled` poštuje se i u tom endpointu **i** u prikazu: kad je
   isključena, `GET /reports/dashboard` vraća `bottlenecksEnabled: false`, grafik „Bottleneck“ se ne
   renderuje, a tab **Uska grla** prikazuje stanje sa objašnjenjem (popravljeno u valu 1, B1). Period je
@@ -2059,11 +2076,11 @@ To je kriterij kompletnosti.
   prioritet — koji šifarnik nema — prevodi UI preko ključa za i18n. Ako zapis više ne postoji, labela je ključ
   (dopuna vala 1, 2026-10-03 — prije toga je tab pisao ID-eve).
 - **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
-  `reports.service.ts:155–181`, `bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
-  `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`, `reports/load-report-lookups.ts`,
-  `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
-- **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03), dopuna istog dana za nazive razreza
-  (vidi `REVIEW_ANALIZA.md#2b1`).
+  `reports.service.ts:159–193`, `bottleneck/aggregate-bottleneck-dashboard.ts`,
+  `bottleneck/sql-bottleneck-dashboard-store.ts`, `tickets/unrouted/build-unrouted-where.ts`,
+  `reports/load-report-lookups.ts`, `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
+- **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03), nazivi razreza dopunjeni istog dana;
+  fallback unrouted usklađen u paketu 5.1.4 (2026-10-06), sa server E2E runtime provjerom na čekanju.
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
 
 ### T101 — Zakazani izvještaji: raspored, primaoci i historija

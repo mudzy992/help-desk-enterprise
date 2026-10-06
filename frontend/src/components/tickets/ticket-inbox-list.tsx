@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ticketIdClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,6 +24,9 @@ import type { TicketResponse } from "@/services/tickets-api";
 interface TicketInboxListProperties {
   readonly activeTab: string;
   readonly tickets: readonly TicketResponse[];
+  readonly page: number;
+  readonly totalPages: number;
+  readonly onChangePage: (page: number) => void;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
   readonly requesterNames: ReadonlyMap<string, string>;
@@ -33,6 +37,9 @@ interface TicketInboxListProperties {
 export function TicketInboxList({
   activeTab,
   tickets,
+  page,
+  totalPages,
+  onChangePage,
   serviceNames,
   originNames,
   requesterNames,
@@ -63,6 +70,7 @@ export function TicketInboxList({
               <InboxTicketRow
                 key={ticket.id}
                 ticket={ticket}
+                isUnroutedTab={isUnroutedTab}
                 serviceNames={serviceNames}
                 originNames={originNames}
                 requesterNames={requesterNames}
@@ -77,6 +85,31 @@ export function TicketInboxList({
           </ul>
         )}
       </Card>
+      {isUnroutedTab && totalPages > 1 ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+          <span>{t("tickets.page", { page, total: totalPages })}</span>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => onChangePage(page - 1)}
+            >
+              {t("tickets.previous")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => onChangePage(page + 1)}
+            >
+              {t("tickets.next")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <p className="mt-3 flex items-center gap-2 text-[11.5px] text-muted-foreground">
         <Bell size={12} aria-hidden="true" />
         {t("tickets.inboxClaimHint")}
@@ -100,6 +133,7 @@ function priorityMarker(ticket: TicketResponse) {
 
 function InboxTicketRow({
   ticket,
+  isUnroutedTab,
   serviceNames,
   originNames,
   requesterNames,
@@ -109,6 +143,7 @@ function InboxTicketRow({
   onClaim,
 }: {
   readonly ticket: TicketResponse;
+  readonly isUnroutedTab: boolean;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
   readonly requesterNames: ReadonlyMap<string, string>;
@@ -117,6 +152,7 @@ function InboxTicketRow({
   readonly claimLabel: string;
   readonly onClaim: (ticketId: string) => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const meta = inboxRowMeta(ticket, serviceNames, originNames, requesterNames);
   const requesterName = requesterNames.get(ticket.requesterId)?.trim();
@@ -146,6 +182,16 @@ function InboxTicketRow({
           ))}
           {meta.length > 0 ? <span className="text-border">·</span> : null}
           <RelativeTime value={ticket.createdAt} locale={locale} />
+          {isUnroutedTab ? (
+            <Badge
+              tone={ticket.routedByUnroutedFallback === true ? "warning" : "danger"}
+              className="ml-1"
+            >
+              {ticket.routedByUnroutedFallback === true
+                ? t("tickets.unrouted.fallbackQueueLabel")
+                : t("tickets.unrouted.waitingForRuleLabel")}
+            </Badge>
+          ) : null}
         </p>
       </button>
       <div className="hidden items-center gap-1.5 md:flex">

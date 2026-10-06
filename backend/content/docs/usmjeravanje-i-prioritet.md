@@ -64,6 +64,10 @@
 3. Klik na ćeliju otvara detalje: koji je ishod (**Tačno**, **Naslijeđeno**, **UNROUTED**), koja je grupa, koja je
    putanja fallbacka i kolika je dubina fallbacka.
 4. Iz praznog stanja ili prečice možete odmah kreirati pravilo za odabranu kombinaciju.
+5. Filtrirajte po **origin OU-u** i usluzi; prekidač **Uključi nacrte i ukinute usluge** je isključen po
+   početnom stanju, pa se tada prikazuju samo aktivne usluge. Matrica lista do **50 usluga po stranici** i
+   prikazuje prethodnu/sljedeću stranicu kad ih ima više; broj ukupno odnosi se na usluge, ne na ćelije.
+   Filter origin OU-a sužava prikaz ćelija, ali rezolucija i dalje provjerava i roditeljske jedinice.
 
 ### 4. Test rezolucije
 
@@ -140,9 +144,10 @@
   postavkama); javite administratoru.
 - **„Tiket je završio u neusmjerenom redu, zašto?“** — za taj par (origin OU + usluga), uključujući roditeljske
   jedinice, ne postoji nijedno pravilo.
-- **„Tiket nije u tabu Neusmjereni red, a nema pravilo.“** — ako je podešena **ciljna grupa** za neusmjerene
-  tikete, tiket dobija status `PENDING` u toj grupi (oznaka **Bez pravila rutiranja**) i tada se prati kroz filter
-  **Nerutirani preko roka** i upozorenja, a ne kroz tab **Neusmjereni red**.
+- **„Tiket je `PENDING`, ali nema pravilo rutiranja.“** — ako je podešena **ciljna grupa**, takav tiket ulazi i u
+  tab **Neusmjereni red** (oznaka **Usmjeren fallbackom**); `UNROUTED` tiketi su označeni kao **Čeka pravilo
+  rutanja**. Brojač reda i izvještaj uskih grla uključuju oba slučaja. Filter **Nerutirani preko roka** i
+  cleanup rok za fallback tikete važe samo za izabranu ciljnu grupu dok tiket nema dodijeljenog agenta.
 - **„Ne mogu promijeniti prioritet.“** — potrebna je permisija za ručnu promjenu prioriteta i tiket mora biti u
   izmjenjivom stanju (npr. nije spojen kao podređeni tiket).
 - **„Prioritet se sam promijenio.“** — ako tiket nije ručno postavljen, prioritet prati matricu; matrica se
@@ -150,10 +155,6 @@
 
 ## Poznata ograničenja
 
-- **Matrica pokrivanja prikazuje i neaktivne usluge** (nacrte i ukinute) i učitava **sve** kombinacije OU × usluga
-  bez filtera i paginacije. (Nalaz B1 iz §M7.)
-- **Dvije definicije „neusmjerenog“:** brojač `unrouted` broji samo status `UNROUTED`, dok upozorenja i filter
-  **Nerutirani preko roka** uključuju i tikete preusmjerene u ciljnu grupu. (Nalaz B4.)
 - **Matrica prioriteta nema ose iz RAW-a**: kolone su **Uticaj** i **Hitnost**, a vrijednosti Nizak–Kritičan
   (RAW je predviđao `self/team/unit/company` i `low/medium/high`). Prekidač za isključivanje matrice postoji
   (`private.ticket.priorityMatrix.enabled`, vidi §5). (Nalaz B5 — ose ostaju dokumentovano odstupanje.)
@@ -173,4 +174,4 @@
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: Usmjeravanje i prioritet (M7)*
+*Ažurirano: 2026-10-06 · Modul: Usmjeravanje i prioritet (M7)*

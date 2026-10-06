@@ -1,8 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 import { defaultSlaComplianceWindowDays } from '../aggregate-sla-compliance';
 
 export class SlaComplianceQueryDto {
+  @IsString()
+  @MinLength(1)
+  organizationalUnitId!: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

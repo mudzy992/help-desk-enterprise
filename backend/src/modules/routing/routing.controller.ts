@@ -37,7 +37,7 @@ import type { RoutingRuleDeleteImpact } from './delete-routing-rule';
 import { RoutingService } from './routing.service';
 import type {
   RoutingChangeLogResponse,
-  RoutingCoverageItem,
+  RoutingCoveragePage,
   RoutingHandlerGroupResponse,
   RoutingResolution,
   RoutingRuleResponse,
@@ -139,7 +139,7 @@ export class RoutingController {
   @Get('coverage')
   coverage(
     @Query() query: ListRoutingCoverageQueryDto,
-  ): Promise<readonly RoutingCoverageItem[]> {
+  ): Promise<RoutingCoveragePage> {
     return this.routingService.coverage(query);
   }
 }

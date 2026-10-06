@@ -27,8 +27,10 @@ export type TicketPageQuery = {
   readonly mentionedMe?: boolean;
   /** Package 1.2: leave merged children out. */
   readonly hideMerged?: boolean;
-  /** Paket 1.7 (U3). */
+  /** Paket 1.7 (U3): cleanup deadline filter. */
   readonly unroutedOverdue?: boolean;
+  /** 5.1.4 (E2): both UNROUTED and fallback-routed PENDING tickets. */
+  readonly unroutedQueue?: boolean;
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;
@@ -65,6 +67,7 @@ const flagFilters = [
   "searchDescription",
   "hideMerged",
   "unroutedOverdue",
+  "unroutedQueue",
   "following",
   "mentionedMe",
 ] as const;

@@ -11,6 +11,7 @@ function item(
     originUnitPath: "/root",
     serviceId,
     serviceName: "VPN",
+    serviceLifecycle: "ACTIVE",
     hasExactRule: outcome === "EXACT",
     resolution: {
       outcome,

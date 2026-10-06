@@ -6,8 +6,9 @@ import {
 } from './aggregate-sla-compliance';
 import {
   loadSlaComplianceProfiles,
-  loadSlaComplianceTicketRows,
+  loadSlaComplianceRows,
 } from './load-sla-compliance-rows';
+import { resolveSlaComplianceUnitScope } from './resolve-sla-compliance-unit-scope';
 import type { SlaComplianceResponse } from './sla-compliance.types';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class SlaComplianceService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getCompliance(input: {
+    readonly organizationalUnitId: string;
     readonly days?: number;
     readonly now?: Date;
   }): Promise<SlaComplianceResponse> {
@@ -22,10 +24,14 @@ export class SlaComplianceService {
       days: input.days,
       now: input.now ?? new Date(),
     });
-    const [profiles, rows] = await Promise.all([
+    const [organizationalUnitIds, profiles] = await Promise.all([
+      resolveSlaComplianceUnitScope(this.prisma, input.organizationalUnitId),
       loadSlaComplianceProfiles(this.prisma),
-      loadSlaComplianceTicketRows(this.prisma, window),
     ]);
-    return aggregateSlaCompliance({ profiles, rows, window });
+    const { rows, openBreached } = await loadSlaComplianceRows(this.prisma, {
+      window,
+      organizationalUnitIds,
+    });
+    return aggregateSlaCompliance({ profiles, rows, window, openBreached });
   }
 }

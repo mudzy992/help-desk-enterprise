@@ -9,7 +9,8 @@ jest.mock('../../../common/prisma/prisma.service', () => ({
 }));
 
 const { agentIt, agentHr, requester, superAdmin, groupIt, ouHr } = ticketsTestIds;
-const day = (n: number) => new Date(`2026-01-0${n}T00:00:00.000Z`);
+const day = (n: number) =>
+  new Date(`2026-01-${String(n).padStart(2, '0')}T00:00:00.000Z`);
 
 function setup() {
   const harness = createTicketsServiceHarness();
@@ -36,6 +37,12 @@ function setup() {
   seed(8, { title: 'Queue A', assignedGroupId: groupIt }); // inbox
   seed(9, { title: 'Queue B secret', assignedGroupId: groupIt, isConfidential: true }); // inbox, confidential
   seed(10, { title: 'Confidential HR', originUnitId: ouHr, isConfidential: true, requesterId: ticketsTestIds.watcher });
+  seed(11, {
+    title: 'Fallback routed',
+    status: 'PENDING',
+    assignedGroupId: groupIt,
+    routedByUnroutedFallback: true,
+  });
   const sla = (n: number, flags: object) =>
     memory.slaStates.set(`s${n}`, {
       id: `s${n}`, ticketId: `t${n}`, slaProfileId: null, slaRuleId: null,
@@ -59,10 +66,10 @@ function setup() {
 
 describe('GET /tickets/counts', () => {
   it('breaks the visible tickets down by status, every status present', async () => {
-    const { counts } = setup();
+    const { counts, listTotal } = setup();
     const result = await counts({}, agentIt);
     expect(result.byStatus).toEqual({
-      PENDING: 3, // t1, t8, t9 (t9 confidential but the caller is in its group)
+      PENDING: 4, // t1, t8, t9 and fallback t11 (t9 is visible through group membership)
       UNROUTED: 1,
       PENDING_APPROVAL: 0,
       ASSIGNED: 1,
@@ -72,9 +79,13 @@ describe('GET /tickets/counts', () => {
       CLOSED: 0,
       ARCHIVED: 1,
     });
-    expect(result.unrouted).toBe(1);
+    expect(result.unroutedWithoutRule).toBe(1);
+    expect(result.unroutedQueue).toBe(2);
+    expect(result.unroutedQueue).toBe(
+      await listTotal({ unroutedQueue: true }, agentIt),
+    );
     // open = everything but RESOLVED, CLOSED and ARCHIVED
-    expect(result.open).toBe(6);
+    expect(result.open).toBe(7);
   });
 
   it('agrees with the list: overdue, at risk and the per-status totals', async () => {
@@ -98,7 +109,7 @@ describe('GET /tickets/counts', () => {
   it('counts the group inbox the same as the inbox itself', async () => {
     const { counts, tickets } = setup();
     const inbox = await tickets.listInbox({}, { actorUserId: agentIt });
-    expect(inbox.items.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
+    expect(inbox.items.map((ticket) => ticket.id).sort()).toEqual(['t11', 't8', 't9']);
     expect((await counts({}, agentIt)).inbox).toBe(inbox.total);
     // No group membership, no inbox.
     expect((await counts({}, agentHr)).inbox).toBe(0);
@@ -129,7 +140,7 @@ describe('GET /tickets/counts', () => {
     expect((await counts({ q: 'vpn' }, agentIt)).byStatus).toMatchObject({ ASSIGNED: 1, UNROUTED: 1, PENDING: 0 });
     expect((await counts({ unassigned: true }, agentIt)).byStatus.ASSIGNED).toBe(0);
     // The inbox is the caller's queue, not part of the filtered view.
-    expect((await counts({ priority: 'CRITICAL' }, agentIt)).inbox).toBe(2);
+    expect((await counts({ priority: 'CRITICAL' }, agentIt)).inbox).toBe(3);
   });
 });
 

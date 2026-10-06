@@ -20,7 +20,7 @@ import {
 } from "@/lib/sla/sla-exposure-index";
 import { fetchSlaSummary } from "@/services/report-summary-api";
 
-export function useSlaPageData() {
+export function useSlaPageData(organizationalUnitId: string | null) {
   const queryClient = useQueryClient();
   const [profiles, setProfiles] = useState<readonly SlaProfile[]>([]);
   const [calendars, setCalendars] = useState<readonly BusinessHoursCalendar[]>([]);
@@ -66,7 +66,9 @@ export function useSlaPageData() {
             queryKey: queryKeys.slaSummary,
             queryFn: () => fetchSlaSummary(),
           }),
-          fetchSlaCompliance({ days: 30 }),
+          organizationalUnitId === null
+            ? Promise.resolve(null)
+            : fetchSlaCompliance({ organizationalUnitId, days: 30 }),
         ]);
       setProfiles(profileItems);
       setCalendars(calendarItems);
@@ -95,7 +97,7 @@ export function useSlaPageData() {
     } finally {
       setIsLoading(false);
     }
-  }, [isCreating, selectedId]);
+  }, [isCreating, organizationalUnitId, queryClient, selectedId]);
 
   useEffect(() => {
     void load();

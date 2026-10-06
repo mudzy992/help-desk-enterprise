@@ -2,7 +2,7 @@ import type { RoutingRuleRecord } from './routing.types';
 
 export type InMemoryRoutingRuleWhere = {
   originUnitId?: string | { in: readonly string[] };
-  serviceId?: string;
+  serviceId?: string | { in: readonly string[] };
 };
 
 export function matchesInMemoryRoutingRule(
@@ -12,8 +12,12 @@ export function matchesInMemoryRoutingRule(
   if (where === undefined) {
     return true;
   }
-  if (where.serviceId !== undefined && rule.serviceId !== where.serviceId) {
-    return false;
+  if (where.serviceId !== undefined) {
+    if (typeof where.serviceId === 'string') {
+      if (rule.serviceId !== where.serviceId) return false;
+    } else if (!where.serviceId.in.includes(rule.serviceId)) {
+      return false;
+    }
   }
   if (where.originUnitId === undefined) {
     return true;

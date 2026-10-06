@@ -84,6 +84,8 @@ export function useTicketList() {
   });
   const [counts, setCounts] = useState<TicketCounts | null>(null);
   const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
+  const [unroutedTotal, setUnroutedTotal] = useState(0);
+  const [unroutedPage, setUnroutedPage] = useState(1);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
@@ -121,7 +123,7 @@ export function useTicketList() {
         // Faza 3.3: reads go through the query cache, so coming back to a screen
         // inside `staleTime` costs no request — the socket invalidates the keys
         // when something really changed.
-        const [catalog, inboxRows, unroutedPage] = await Promise.all([
+        const [catalog, inboxRows, unroutedPageResponse] = await Promise.all([
           queryClient
             .fetchQuery({
               queryKey: queryKeys.offeredServices,
@@ -134,9 +136,17 @@ export function useTicketList() {
           }),
           queryClient
             .fetchQuery({
-              queryKey: queryKeys.ticketList({ status: "UNROUTED", pageSize: unroutedPageSize }),
+              queryKey: queryKeys.ticketList({
+                unroutedQueue: true,
+                page: unroutedPage,
+                pageSize: unroutedPageSize,
+              }),
               queryFn: () =>
-                listTicketsPage({ status: "UNROUTED", pageSize: unroutedPageSize }),
+                listTicketsPage({
+                  unroutedQueue: true,
+                  page: unroutedPage,
+                  pageSize: unroutedPageSize,
+                }),
             })
             .catch(() => null),
         ]);
@@ -157,7 +167,21 @@ export function useTicketList() {
           total: inboxRows.length,
           totalIsCapped: false,
         });
-        setUnroutedTickets(unroutedTicketsFromList(unroutedPage?.items ?? []));
+        setUnroutedTickets(unroutedTicketsFromList(unroutedPageResponse?.items ?? []));
+        setUnroutedTotal(unroutedPageResponse?.total ?? 0);
+        if (
+          unroutedPageResponse !== null &&
+          unroutedPageResponse.items.length === 0 &&
+          unroutedPageResponse.total > 0 &&
+          unroutedPageResponse.page > 1
+        ) {
+          setUnroutedPage(
+            Math.max(
+              1,
+              Math.ceil(unroutedPageResponse.total / unroutedPageResponse.pageSize),
+            ),
+          );
+        }
         setCounts(null);
         setHasGroupMembership(membership);
       } else {
@@ -188,6 +212,7 @@ export function useTicketList() {
           totalIsCapped: response.totalIsCapped === true,
         });
         setUnroutedTickets([]);
+        setUnroutedTotal(0);
         setHasGroupMembership(null);
         // Counters are a separate, cheaper read: they cover all matching
         // tickets, not just the page, and they are allowed to fail (the tabs
@@ -224,13 +249,14 @@ export function useTicketList() {
       }
       setPageItems([]);
       setUnroutedTickets([]);
+      setUnroutedTotal(0);
       setErrorKey(mapped);
     } finally {
       if (!silent) {
         setIsLoading(false);
       }
     }
-  }, [view, filters, page, currentUserId, queryClient, setSearchParams]);
+  }, [view, filters, page, unroutedPage, currentUserId, queryClient, setSearchParams]);
 
   useEffect(() => {
     setFilters((current) => ({
@@ -240,6 +266,7 @@ export function useTicketList() {
       search: queryFromUrl,
     }));
     setPage(1);
+    setUnroutedPage(1);
     setSelectedIds(new Set());
   }, [view, currentUserId, queryFromUrl]);
 
@@ -269,7 +296,8 @@ export function useTicketList() {
     1,
     Math.ceil(pageInfo.total / pageInfo.pageSize),
   );
-  const unroutedCount = unroutedTickets.length;
+  const unroutedCount = unroutedTotal;
+  const unroutedTotalPages = Math.max(1, Math.ceil(unroutedTotal / unroutedPageSize));
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
@@ -331,6 +359,9 @@ export function useTicketList() {
     counts,
     unroutedTickets,
     unroutedCount,
+    unroutedPage,
+    unroutedTotalPages,
+    setUnroutedPage,
     serviceNames,
     services,
     isLoading,

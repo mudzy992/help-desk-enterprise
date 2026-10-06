@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { SlaCalendarDetailCard } from "@/components/sla/sla-calendar-detail-card";
-import { SlaComplianceCard } from "@/components/sla/sla-compliance-card";
 import { SlaEscalationsCard } from "@/components/sla/sla-escalations-card";
 import { SlaOverrideRulesCard } from "@/components/sla/sla-override-rules-card";
 import { SlaPriorityTargetsTable } from "@/components/sla/sla-priority-targets-table";
@@ -19,7 +18,6 @@ import type {
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
-  SlaComplianceResponse,
   SlaProfile,
   SlaRule,
 } from "@/services/sla-api";
@@ -32,7 +30,6 @@ interface SlaProfileDetailProperties {
   readonly rules: readonly SlaRule[];
   readonly changes: readonly SlaChangeLogEntry[];
   readonly exposure: SlaExposureIndex;
-  readonly compliance: SlaComplianceResponse | null;
   readonly canWrite: boolean;
   readonly errorKey: string | null;
   readonly isSubmitting: boolean;
@@ -51,7 +48,6 @@ export function SlaProfileDetail({
   rules,
   changes,
   exposure,
-  compliance,
   canWrite,
   errorKey,
   isSubmitting,
@@ -126,8 +122,6 @@ export function SlaProfileDetail({
           refreshKey={escalationRefresh}
         />
       </div>
-
-      <SlaComplianceCard compliance={compliance} slaProfileId={profile.id} />
 
       <SlaProfileDetailDrawers
         drawer={drawer}

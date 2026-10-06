@@ -20,8 +20,10 @@ export type {
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
+  SlaComplianceBreakdownRow,
   SlaComplianceProfileRow,
   SlaComplianceQuery,
+  SlaOpenBreachCounts,
   SlaComplianceResponse,
   SlaEscalationRule,
   SlaHoliday,
@@ -174,12 +176,15 @@ export function deleteSlaEscalationRule(ruleId: string, reason: string): Promise
 }
 
 export function fetchSlaCompliance(
-  query: SlaComplianceQuery = {},
+  query: SlaComplianceQuery,
 ): Promise<SlaComplianceResponse> {
-  if (query.days === undefined) {
-    return apiRequest("/sla/compliance");
+  const search = new URLSearchParams({
+    organizationalUnitId: query.organizationalUnitId,
+  });
+  if (query.days !== undefined) {
+    search.set("days", String(query.days));
   }
-  return apiRequest(`/sla/compliance?days=${query.days}`);
+  return apiRequest(`/sla/compliance?${search.toString()}`);
 }
 
 function toRulePayload(input: RuleWriteInput) {

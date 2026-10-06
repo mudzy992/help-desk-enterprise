@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { catalogCoverageNote, type CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
-import { listRoutingCoverage } from "@/services/routing-api";
+import {
+  listRoutingCoverage,
+  type RoutingCoverageItem,
+} from "@/services/routing-api";
 
 export function useCatalogCoverageNotes() {
   const [notes, setNotes] = useState<ReadonlyMap<string, CatalogCoverageNote>>(
@@ -9,7 +12,18 @@ export function useCatalogCoverageNotes() {
 
   const reload = useCallback(async () => {
     try {
-      const items = await listRoutingCoverage();
+      const items: RoutingCoverageItem[] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await listRoutingCoverage({
+          includeInactive: true,
+          take: 100,
+          cursor,
+        });
+        items.push(...page.items);
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor !== undefined);
+
       const next = new Map<string, CatalogCoverageNote>();
       for (const item of items) {
         if (next.has(item.serviceId)) {

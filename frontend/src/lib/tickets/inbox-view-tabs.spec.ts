@@ -78,20 +78,26 @@ describe("inbox-view-tabs", () => {
     expect(inboxGroupTabsFromMembership([], [foreignTicket])).toEqual([]);
   });
 
-  it("reads the unrouted tab only from listTickets status UNROUTED", () => {
-    const unrouted = ticket({
+  it("shows both no-rule and fallback-routed tickets on the unrouted tab", () => {
+    const waitingForRule = ticket({
       id: "u1",
       status: "UNROUTED",
       assignedGroupId: null,
     });
+    const fallbackRouted = ticket({
+      id: "f1",
+      status: "PENDING",
+      assignedGroupId: "group-a",
+      routedByUnroutedFallback: true,
+    });
     const inbox = ticket({ id: "p1" });
+    const rows = [waitingForRule, fallbackRouted, inbox];
     expect(
-      ticketsForInboxTab(unroutedInboxTabKey, [inbox], [unrouted, inbox]).map(
-        (item) => item.id,
-      ),
-    ).toEqual(["u1"]);
-    expect(unroutedTicketsFromList([unrouted, inbox]).map((item) => item.id)).toEqual([
+      ticketsForInboxTab(unroutedInboxTabKey, [inbox], rows).map((item) => item.id),
+    ).toEqual(["u1", "f1"]);
+    expect(unroutedTicketsFromList(rows).map((item) => item.id)).toEqual([
       "u1",
+      "f1",
     ]);
   });
 });

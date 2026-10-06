@@ -11,7 +11,14 @@ type TicketView = {
   readonly id: string;
   readonly status: string;
   readonly assignedGroupId: string | null;
+  readonly assignedUserId: string | null;
   readonly routedByUnroutedFallback: boolean;
+};
+type TicketPage = {
+  readonly items: readonly TicketView[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
 };
 type Workflow = {
   readonly transitions: ReadonlyArray<{ readonly from: string; readonly to: string; readonly actors: string[] }>;
@@ -20,6 +27,7 @@ type Workflow = {
 };
 
 const targetKey = 'private.ticket.unroutedQueue.targetGroupId';
+const autoAssignEnabledKey = 'private.ticket.autoAssign.enabled';
 const targetGroupName = 'E2E Unrouted Target';
 const formsEnabledKey = 'private.ticket.forms.enabled';
 const formsEnabledDefaults = { [formsEnabledKey]: true };
@@ -80,7 +88,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
 
     await withSettings(
       adminApi,
-      { [targetKey]: targetGroupId },
+      { [targetKey]: targetGroupId, [autoAssignEnabledKey]: false },
       'E2E 15: verify unrouted target group behavior',
       async () => {
         const service = await createOfferedService(adminApi, { label: 'Unrouted target' });
@@ -89,10 +97,64 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
           serviceId: service.id,
           originUnitId: root.id,
         });
+        const secondCreated = await createTicketViaApi(adminApi, {
+          title: `E2E unrouted target second ${Date.now()}`,
+          serviceId: service.id,
+          originUnitId: root.id,
+        });
         const view = await adminApi.requestJson<TicketView>(`/tickets/${created.id}`);
         expect(view.status).toBe('PENDING');
         expect(view.assignedGroupId).toBe(targetGroupId);
+        expect(view.assignedUserId).toBeNull();
         expect(view.routedByUnroutedFallback).toBe(true);
+
+        const queueQuery = new URLSearchParams({
+          unroutedQueue: 'true',
+          serviceId: service.id,
+          groupId: targetGroupId,
+          page: '1',
+          pageSize: '1',
+        });
+        const firstQueuePage = await adminApi.requestJson<TicketPage>(
+          `/tickets?${queueQuery.toString()}`,
+        );
+        queueQuery.set('page', '2');
+        const secondQueuePage = await adminApi.requestJson<TicketPage>(
+          `/tickets?${queueQuery.toString()}`,
+        );
+        expect(firstQueuePage.total).toBe(2);
+        expect(firstQueuePage.items).toHaveLength(1);
+        expect(secondQueuePage.total).toBe(firstQueuePage.total);
+        expect(secondQueuePage.items).toHaveLength(1);
+        expect(
+          new Set([
+            firstQueuePage.items[0]?.id,
+            secondQueuePage.items[0]?.id,
+          ]),
+        ).toEqual(new Set([created.id, secondCreated.id]));
+        expect(
+          [...firstQueuePage.items, ...secondQueuePage.items].every(
+            (ticket) =>
+              ticket.status === 'PENDING' &&
+              ticket.routedByUnroutedFallback &&
+              ticket.assignedGroupId === targetGroupId &&
+              ticket.assignedUserId === null,
+          ),
+        ).toBe(true);
+
+        const countsQuery = new URLSearchParams({
+          serviceId: service.id,
+          groupId: targetGroupId,
+        });
+        const counts = await adminApi.requestJson<{ readonly unroutedQueue: number }>(
+          `/tickets/counts?${countsQuery.toString()}`,
+        );
+        expect(counts.unroutedQueue).toBe(firstQueuePage.total);
+
+        const bottlenecks = await adminApi.requestJson<{
+          readonly byService: readonly { readonly key: string; readonly unrouted: number }[];
+        }>(`/reports/bottlenecks?organizationalUnitId=${encodeURIComponent(root.id)}`);
+        expect(bottlenecks.byService.find((row) => row.key === service.id)?.unrouted).toBe(2);
 
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
         await page.goto(`/tickets/${created.id}`);
@@ -101,7 +163,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         await expect(page.locator('select').filter({ has: page.locator(`option[value="${service.id}"]`) }).first())
           .toHaveValue(service.id);
       },
-      { [targetKey]: '' },
+      { [targetKey]: '', [autoAssignEnabledKey]: false },
     );
   });
 

@@ -24,7 +24,54 @@ export type InMemoryRoutingGroup = {
   readonly name: string;
 };
 
+type InMemoryRoutingServiceWhere = {
+  readonly id?: string | { readonly gt?: string; readonly in?: readonly string[] };
+  readonly name?: string | { readonly gt?: string };
+  readonly lifecycle?: string;
+  readonly OR?: readonly InMemoryRoutingServiceWhere[];
+};
+
 type RoutingRuleWhere = InMemoryRoutingRuleWhere;
+
+function matchesInMemoryRoutingService(
+  service: InMemoryRoutingService,
+  where?: InMemoryRoutingServiceWhere,
+): boolean {
+  if (where === undefined) return true;
+  if (where.lifecycle !== undefined && service.lifecycle !== where.lifecycle) {
+    return false;
+  }
+  if (where.id !== undefined) {
+    if (typeof where.id === 'string' && service.id !== where.id) return false;
+    if (
+      typeof where.id !== 'string' &&
+      where.id.in !== undefined &&
+      !where.id.in.includes(service.id)
+    ) {
+      return false;
+    }
+    if (
+      typeof where.id !== 'string' &&
+      where.id.gt !== undefined &&
+      service.id <= where.id.gt
+    ) {
+      return false;
+    }
+  }
+  if (where.name !== undefined) {
+    if (typeof where.name === 'string' && service.name !== where.name) return false;
+    if (
+      typeof where.name !== 'string' &&
+      where.name.gt !== undefined &&
+      service.name <= where.name.gt
+    ) {
+      return false;
+    }
+  }
+  return where.OR === undefined || where.OR.some((clause) =>
+    matchesInMemoryRoutingService(service, clause),
+  );
+}
 
 export type InMemoryRoutingChangeLog = {
   id: string;
@@ -65,14 +112,17 @@ export function createInMemoryRoutingPrisma() {
         where,
         select,
       }: {
-        where?: { id?: { in: readonly string[] } };
+        where?: { id?: string | { in: readonly string[] } };
         select?: Record<string, boolean>;
         orderBy?: unknown;
       } = {}) =>
         [...units.values()]
-          .filter((unit) =>
-            where?.id === undefined ? true : where.id.in.includes(unit.id),
-          )
+          .filter((unit) => {
+            if (where?.id === undefined) return true;
+            return typeof where.id === 'string'
+              ? unit.id === where.id
+              : where.id.in.includes(unit.id);
+          })
           .sort((left, right) => left.ouPath.localeCompare(right.ouPath))
           .map((unit) => pickInMemoryFields(unit, select)),
     },
@@ -87,17 +137,26 @@ export function createInMemoryRoutingPrisma() {
       findMany: async ({
         where,
         select,
+        take,
       }: {
-        where?: { id?: { in: readonly string[] } };
+        where?: InMemoryRoutingServiceWhere;
         select?: Record<string, boolean>;
         orderBy?: unknown;
-      } = {}) =>
-        [...services.values()]
-          .filter((service) =>
-            where?.id === undefined ? true : where.id.in.includes(service.id),
-          )
-          .sort((left, right) => left.name.localeCompare(right.name))
-          .map((service) => pickInMemoryFields(service, select)),
+        take?: number;
+      } = {}) => {
+        const matched = [...services.values()]
+          .filter((service) => matchesInMemoryRoutingService(service, where))
+          .sort((left, right) =>
+            left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+          );
+        return (take === undefined ? matched : matched.slice(0, take)).map(
+          (service) => pickInMemoryFields(service, select),
+        );
+      },
+      count: async ({ where }: { where?: InMemoryRoutingServiceWhere } = {}) =>
+        [...services.values()].filter((service) =>
+          matchesInMemoryRoutingService(service, where),
+        ).length,
     },
     group: {
       findUnique: async ({

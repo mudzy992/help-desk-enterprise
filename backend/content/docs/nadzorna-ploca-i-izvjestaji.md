@@ -20,8 +20,9 @@
   organizacionoj jedinici**, **opterećenje admina**, tok i starenje backloga sa starošću otvorenih tiketa.
 - **Izvještaji — Uska grla:** brojači (čeka odobrenje, čeka korisnika, neusmjereno, prekoračeno) uz
   razrez po organizacionoj jedinici, servisu i prioritetu te dnevni trend (novi tiketi i stanje zastoja
-  po danu). Prikaz poštuje odabranu jedinicu i period; ako je postavka uskih grla isključena, tab
-  objašnjava zašto nema podataka.
+  po danu). „Neusmjereno“ obuhvata i `UNROUTED` i `PENDING` tikete poslane kroz fallback, kao brojač
+  **Neusmjereni red** u tiketima. Prikaz poštuje odabranu jedinicu i period; ako je postavka uskih grla
+  isključena, tab objašnjava zašto nema podataka.
 - **Izvještaji — CSAT:** prosječna ocjena na **važećoj skali** (npr. „4,2 / 5“ ili „x / 10“), broj
   ocjena i prag „zadovoljan“ (80 % skale), uz razrez po organizacionoj jedinici, servisu i grupi
   (prosjek i veličina uzorka).
@@ -273,9 +274,9 @@ a e-mail to navodi.
   obrisana, red zadržava ID iz tiketa/ocjene (nikad prazna labela) — istorijski naziv se ne čuva.
 - **Izvoz paketa nije vezan na izbor u pregledu:** period birate u tabu **Paketi izvještaja** nezavisno od
   perioda na tabu **Pregled**.
-- **Nema automatskog testa nadzorne ploče:** nadzorna ploča je pokrivena samo a11y skeniranjem (kao
-  korisnik i kao agent), a `GET /reports/dashboard`, `GET /reports/bottlenecks` i `GET /tickets/csat/summary`
-  nemaju e2e scenario.
+- **Preostala e2e pokrivenost:** test 15 sada provjerava `GET /reports/bottlenecks` za fallback tikete;
+  runtime prolaz tog novog scenarija još čeka serversko izvršavanje. `GET /reports/dashboard` i
+  `GET /tickets/csat/summary` i dalje nemaju e2e scenario.
 
 ## Povezani moduli
 

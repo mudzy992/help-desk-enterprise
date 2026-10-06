@@ -26,13 +26,17 @@ export function DashboardInboxSnapshot({
   const { t } = useTranslation();
   // Paket 1.7 (U3): unrouted past the cleanup deadline (includes tickets sent
   // to the unrouted target group and still unassigned there).
+  const [queueCount, setQueueCount] = useState<number | null>(null);
   const [overdue, setOverdue] = useState<{ count: number; hours: number } | null>(null);
   useEffect(() => {
     let active = true;
     getTicketCounts()
       .then((counts) => {
-        if (active && counts.unroutedOverdue !== undefined) {
-          setOverdue({ count: counts.unroutedOverdue, hours: counts.unroutedCleanupHours ?? 0 });
+        if (active) {
+          setQueueCount(counts.unroutedQueue);
+          if (counts.unroutedQueueOverdue !== undefined) {
+            setOverdue({ count: counts.unroutedQueueOverdue, hours: counts.unroutedCleanupHours ?? 0 });
+          }
         }
       })
       .catch(() => undefined);
@@ -40,6 +44,7 @@ export function DashboardInboxSnapshot({
       active = false;
     };
   }, [unroutedCount]);
+  const displayUnroutedCount = queueCount ?? unroutedCount;
   const groups =
     inboxTickets === null
       ? []
@@ -74,14 +79,14 @@ export function DashboardInboxSnapshot({
         }
       />
       <div className="px-4 py-4">
-        {unroutedCount > 0 ? (
+        {displayUnroutedCount > 0 ? (
           <Link
-            to="/tickets?view=all&status=UNROUTED"
+            to="/tickets?view=inbox"
             className="mb-3.5 flex w-full items-center gap-2.5 rounded-lg border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
           >
             <ShieldAlert size={15} className="shrink-0 text-danger" />
             <span className="flex-1 text-[12.5px] text-foreground">
-              <span className="tnum font-semibold">{unroutedCount}</span>{" "}
+              <span className="tnum font-semibold">{displayUnroutedCount}</span>{" "}
               {t("dashboard.inboxUnroutedBanner")}
             </span>
           </Link>
@@ -99,7 +104,7 @@ export function DashboardInboxSnapshot({
         ) : null}
         {bars.length > 0 ? (
           <HBars items={bars} />
-        ) : unroutedCount === 0 ? (
+        ) : displayUnroutedCount === 0 ? (
           <EmptyState
             title={t("dashboard.inboxEmpty")}
             action={

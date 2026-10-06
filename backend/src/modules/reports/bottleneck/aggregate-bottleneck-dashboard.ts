@@ -1,4 +1,5 @@
 import { bottleneckStatusKeys } from '../reports.constants';
+import { isUnroutedQueueTicket } from '../../tickets/unrouted/build-unrouted-where';
 import {
   enumerateUtcDateKeys,
   isTimestampInWindow,
@@ -120,7 +121,7 @@ function addTicketCounts(
       counts.pendingApproval + (ticket.status === 'PENDING_APPROVAL' ? 1 : 0),
     waitingForUser:
       counts.waitingForUser + (ticket.status === 'WAITING_FOR_USER' ? 1 : 0),
-    unrouted: counts.unrouted + (ticket.status === 'UNROUTED' ? 1 : 0),
+    unrouted: counts.unrouted + (isUnroutedQueueTicket(ticket) ? 1 : 0),
     overdue: counts.overdue + (ticket.isOverdue ? 1 : 0),
   };
 }
@@ -128,6 +129,7 @@ function addTicketCounts(
 function isBottleneckTicket(ticket: ReportTicketSnapshot): boolean {
   return (
     ticket.isOverdue ||
+    isUnroutedQueueTicket(ticket) ||
     bottleneckStatusKeys.includes(
       ticket.status as (typeof bottleneckStatusKeys)[number],
     )

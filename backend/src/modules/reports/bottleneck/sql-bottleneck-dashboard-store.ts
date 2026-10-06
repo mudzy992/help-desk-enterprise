@@ -1,6 +1,7 @@
 import { sqltag } from '@prisma/client/runtime/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { bottleneckStatusKeys } from '../reports.constants';
+import { buildUnroutedSqlPredicate } from '../../tickets/unrouted/build-unrouted-where';
 import { enumerateUtcDateKeys } from '../resolve-report-window';
 import { toUtcLiteral } from '../trends/sql-report-trend-source';
 import type {
@@ -47,10 +48,11 @@ export async function loadBottleneckDashboardFromSql(
   const statuses = [...bottleneckStatusKeys];
   const from = toUtcLiteral(window.from);
   const to = toUtcLiteral(window.to);
+  const unroutedPredicate = buildUnroutedSqlPredicate();
   const counts = sqltag`
     count(*) FILTER (WHERE t.status::text = 'PENDING_APPROVAL') AS pa,
     count(*) FILTER (WHERE t.status::text = 'WAITING_FOR_USER') AS wu,
-    count(*) FILTER (WHERE t.status::text = 'UNROUTED') AS ur,
+    count(*) FILTER (WHERE ${unroutedPredicate}) AS ur,
     count(*) FILTER (WHERE COALESCE(s."isResponseBreached" OR s."isResolutionBreached", false)) AS od`;
   const standing = sqltag`
     FROM "Ticket" t
@@ -72,6 +74,7 @@ export async function loadBottleneckDashboardFromSql(
              ${counts}
       ${standing}
         AND (t.status::text = ANY(${statuses}::text[])
+             OR ${unroutedPredicate}
              OR COALESCE(s."isResponseBreached" OR s."isResolutionBreached", false))
       GROUP BY GROUPING SETS ((), (t."originUnitId"), (t."serviceId"), (t.priority))`,
     prisma.$queryRaw<TrendSqlRow[]>`

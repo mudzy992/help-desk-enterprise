@@ -35,8 +35,10 @@ export type TicketListQuery = {
   readonly following?: boolean;
   /** Paket 2.4 (B6): tickets where the caller was @mentioned in the last 30 days. */
   readonly mentionedMe?: boolean;
-  /** Package 1.7 (U3): unrouted past the cleanup deadline. */
+  /** Package 1.7 (U3): unrouted queue tickets past the cleanup deadline. */
   readonly unroutedOverdue?: boolean;
+  /** 5.1.4 (E2): status UNROUTED or a fallback-routed PENDING ticket. */
+  readonly unroutedQueue?: boolean;
   /**
    * Resolved server-side from the unrouted-queue settings (never from the
    * client); without it the filter uses the defaults (8 h, no target group).

@@ -86,9 +86,22 @@ describe('UnroutedSweepService (package 1.7 U2)', () => {
     expect(isDigestSlot(new Date('2026-09-29T06:02:00Z'))).toBe(false);
   });
 
-  it('overdue predicate covers the target group branch only when configured', () => {
+  it('overdue predicate uses the shared queue branches and scopes fallback to its configured group', () => {
     const cutoff = new Date(0);
-    expect(buildUnroutedOverdueWhere({ cutoff, targetGroupId: null }).OR).toHaveLength(1);
-    expect(buildUnroutedOverdueWhere({ cutoff, targetGroupId: 'g1' }).OR).toHaveLength(2);
+    expect(buildUnroutedOverdueWhere({ cutoff, targetGroupId: null }).OR).toEqual([
+      { status: 'UNROUTED' },
+    ]);
+    expect(buildUnroutedOverdueWhere({ cutoff, targetGroupId: 'g1' })).toEqual({
+      createdAt: { lte: cutoff },
+      OR: [
+        { status: 'UNROUTED' },
+        {
+          status: 'PENDING',
+          routedByUnroutedFallback: true,
+          assignedGroupId: 'g1',
+          assignedUserId: null,
+        },
+      ],
+    });
   });
 });

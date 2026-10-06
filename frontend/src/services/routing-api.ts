@@ -19,13 +19,32 @@ export type RoutingResolution = {
   readonly unroutedQueue?: UnroutedQueueDescriptor | null;
 };
 
+export type RoutingServiceLifecycle = "DRAFT" | "ACTIVE" | "DEPRECATED";
+
 export type RoutingCoverageItem = {
   readonly originUnitId: string;
   readonly originUnitPath: string;
   readonly serviceId: string;
   readonly serviceName: string;
+  readonly serviceLifecycle: RoutingServiceLifecycle;
   readonly hasExactRule: boolean;
   readonly resolution: RoutingResolution;
+};
+
+export type RoutingCoveragePage = {
+  readonly items: readonly RoutingCoverageItem[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+};
+
+export type RoutingCoverageQuery = {
+  readonly originUnitId?: string;
+  readonly serviceId?: string;
+  readonly includeInactive?: boolean;
+  readonly take?: number;
+  readonly cursor?: string;
 };
 
 export type RoutingRuleResponse = {
@@ -58,8 +77,20 @@ export function listRoutingHandlerGroups(): Promise<
   return apiRequest("/routing/groups");
 }
 
-export function listRoutingCoverage(): Promise<readonly RoutingCoverageItem[]> {
-  return apiRequest("/routing/coverage");
+export function listRoutingCoverage(
+  query: RoutingCoverageQuery = {},
+): Promise<RoutingCoveragePage> {
+  const search = new URLSearchParams();
+  if (query.originUnitId !== undefined) search.set("originUnitId", query.originUnitId);
+  if (query.serviceId !== undefined) search.set("serviceId", query.serviceId);
+  if (query.includeInactive !== undefined) {
+    search.set("includeInactive", String(query.includeInactive));
+  }
+  if (query.take !== undefined) search.set("take", String(query.take));
+  if (query.cursor !== undefined) search.set("cursor", query.cursor);
+  const serialized = search.toString();
+  const suffix = serialized.length === 0 ? "" : `?${serialized}`;
+  return apiRequest(`/routing/coverage${suffix}`);
 }
 
 export function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {

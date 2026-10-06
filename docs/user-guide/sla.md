@@ -123,12 +123,16 @@ tags: [sla, rokovi, kalendari, pravila, eskalacije, pauze]
 
 ### 7. Provjerite usklađenost
 
-1. U detalju profila kartica **Usklađenost (30 dana)** prikazuje **Odgovor** i **Rješenje** kao procenat
-   tiketa unutar ciljeva (ili **Nema uzorka** ako u zadnjih 30 dana nema zatvorenih tiketa sa SLA stanjem za
-   taj profil).
-2. Kartica **Trenutno izloženih** prikazuje broj otvorenih tiketa i koliko ih je **ugroženih**/**prekoračenih**
-   po profilu i prioritetu.
-3. Na nadzornoj ploči i u izvještajima koristi se prag usklađenosti iz postavki trendova (podrazumijevano 90%).
+1. Na vrhu stranice **SLA** izaberite **Opseg organizacione jedinice**. Početno se bira OJ prijavljenog
+   administratora ako je dostupna; u suprotnom prva dostupna OJ. Izvještaj obuhvata izabranu OJ i sve njene
+   podređene jedinice, a server odbija opseg kojem administrator nema pristup.
+2. Kartica **Usklađenost (30 dana)** prikazuje **Odgovor** i **Rješenje** po SLA profilu, uz veličinu uzorka,
+   te razreze po **organizacionoj jedinici**, **usluzi** i **handler grupi**. Procenti koriste završene tikete sa
+   SLA stanjem u periodu (riješene, zatvorene ili arhivirane); ako nema uzorka, prikazuje se **Nema uzorka**.
+3. **Trenutna otvorena SLA prekoračenja** prikazuju se odvojeno: broj otvorenih tiketa s prekoračenim rokom
+   odgovora i broj s prekoračenim rokom rješenja u izabranom OU opsegu. Otvoreni tiketi nisu dio procenta
+   usklađenosti.
+4. Na nadzornoj ploči i u izvještajima koristi se prag usklađenosti iz postavki trendova (podrazumijevano 90%).
 
 ## Polja, validacije i statusi
 
@@ -228,8 +232,6 @@ prioritet** §5).
   25 otvorenih tiketa **bez** SLA stanja i uspostavi sat od `createdAt`; tiket koji je propustio kreiranje
   (servis tada nije imao profil/pravilo/kalendar) zato ulazi u nadzor najkasnije nekoliko ciklusa kasnije.
   Zatvoreni i arhivirani tiketi se ne diraju. (Nalaz B2 — zatvoren u valu 2.)
-- **Izvještaj usklađenosti je samo po profilu i samo za završene tikete.** Nema razrade po organizacionoj
-  jedinici, servisu ni grupi, a tiketi koji su prekoračili rok i još su otvoreni ne ulaze u procenat. (Nalaz B3.)
 - **„Prvi odgovor“ na tiketu** bilježi se pri **prvom agentskom odgovoru**, nezavisno od SLA modula; SLA tajmer
   i dalje računa svoj rok od tog trenutka. (Nalaz B4 — zatvoren u valu 2.)
 - **Polja iz RAW specifikacije za konfiguraciju kao JSON postavku ne postoje** — kalendari, profili, pravila i
@@ -251,4 +253,4 @@ prioritet** §5).
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: SLA (M10)*
+*Ažurirano: 2026-10-06 · Modul: SLA (M10)*

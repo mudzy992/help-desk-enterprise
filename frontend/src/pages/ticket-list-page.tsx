@@ -94,6 +94,10 @@ export function TicketListPage() {
         <TicketInboxPanel
           inboxTickets={list.pageItems}
           unroutedTickets={list.unroutedTickets}
+          unroutedCount={list.unroutedCount}
+          unroutedPage={list.unroutedPage}
+          unroutedTotalPages={list.unroutedTotalPages}
+          onChangeUnroutedPage={list.setUnroutedPage}
           serviceNames={list.serviceNames}
           originNames={originNames}
           requesterNames={assigneeNames}

@@ -38,12 +38,22 @@ describe('aggregateBottleneckDashboard', () => {
           }),
           isOverdue: false,
         },
+        {
+          ...reportTicketSeed({
+            id: 'd',
+            originUnitId: 'ou-it',
+            status: 'PENDING',
+            createdAt: new Date('2026-09-03T10:00:00.000Z'),
+          }),
+          routedByUnroutedFallback: true,
+          isOverdue: false,
+        },
       ],
     });
     expect(dashboard.counts).toEqual({
       pendingApproval: 1,
       waitingForUser: 1,
-      unrouted: 1,
+      unrouted: 2,
       overdue: 1,
     });
     expect(dashboard.byOrganizationalUnit.map((row) => row.key)).toEqual([

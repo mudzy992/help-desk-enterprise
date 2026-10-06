@@ -18,6 +18,10 @@ import type { TicketResponse } from "@/services/tickets-api";
 interface TicketInboxPanelProperties {
   readonly inboxTickets: readonly TicketResponse[];
   readonly unroutedTickets: readonly TicketResponse[];
+  readonly unroutedCount: number;
+  readonly unroutedPage: number;
+  readonly unroutedTotalPages: number;
+  readonly onChangeUnroutedPage: (page: number) => void;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
   readonly requesterNames: ReadonlyMap<string, string>;
@@ -35,6 +39,10 @@ interface TicketInboxPanelProperties {
 export function TicketInboxPanel({
   inboxTickets,
   unroutedTickets,
+  unroutedCount,
+  unroutedPage,
+  unroutedTotalPages,
+  onChangeUnroutedPage,
   serviceNames,
   originNames,
   requesterNames,
@@ -68,11 +76,14 @@ export function TicketInboxPanel({
       <ActionFeedbackBanner feedback={feedback} onDismiss={onDismissFeedback} />
       <TicketInboxTabs
         activeTab={activeTab}
-        unroutedCount={unroutedTickets.length}
+        unroutedCount={unroutedCount}
         groups={groups}
         onChange={setActiveTab}
       />
-      {hasGroupMembership === false && !isLoading && errorKey === null ? (
+      {activeTab !== unroutedInboxTabKey &&
+      hasGroupMembership === false &&
+      !isLoading &&
+      errorKey === null ? (
         <TicketInboxNoGroupNotice canManageGroups={canManageGroups} />
       ) : null}
       {activeTab === unroutedInboxTabKey ? <TicketInboxUnroutedBanner /> : null}
@@ -84,6 +95,9 @@ export function TicketInboxPanel({
         <TicketInboxList
           activeTab={activeTab}
           tickets={tabTickets}
+          page={unroutedPage}
+          totalPages={unroutedTotalPages}
+          onChangePage={onChangeUnroutedPage}
           serviceNames={serviceNames}
           originNames={originNames}
           requesterNames={requesterNames}
