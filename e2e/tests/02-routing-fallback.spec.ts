@@ -39,7 +39,7 @@ test.describe('02 routing / fallback', () => {
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     // The inbox shows only the viewer's own groups; the SuperAdmin need not be a
     // member of the group the ticket was routed to. The full list shows it (as in 07).
-    await page.goto('/tickets');
+    await page.goto('/tickets?view=all');
     await expect(page.getByText(routed.title).first()).toBeVisible({
       timeout: 20_000,
     });
@@ -66,6 +66,7 @@ test.describe('02 routing / fallback', () => {
 
     const pageOne = await api.requestJson<{
       readonly items: readonly {
+        readonly originUnitId: string;
         readonly serviceId: string;
         readonly serviceLifecycle: string;
       }[];
@@ -99,7 +100,23 @@ test.describe('02 routing / fallback', () => {
     const filtered = await api.requestJson<typeof pageOne>(
       `/routing/coverage?${filteredQuery.toString()}`,
     );
-    expect(filtered.total).toBe(1);
+    const returnedOriginUnitIds = [
+      ...new Set(filtered.items.map((item) => item.originUnitId)),
+    ].sort();
+    const returnedServiceIds = [
+      ...new Set(filtered.items.map((item) => item.serviceId)),
+    ].sort();
+    const filterDiagnostics = [
+      `query=${filteredQuery.toString()}`,
+      `total=${filtered.total}`,
+      `itemCount=${filtered.items.length}`,
+      `originUnitIds=${returnedOriginUnitIds.join(',')}`,
+      `serviceIds=${returnedServiceIds.join(',')}`,
+    ].join('; ');
+    expect(returnedOriginUnitIds, filterDiagnostics).toEqual([
+      catalog.originUnitId,
+    ]);
+    expect(filtered.total, filterDiagnostics).toBe(1);
     expect(filtered.items).toHaveLength(1);
     expect(filtered.items[0]).toMatchObject({
       originUnitId: catalog.originUnitId,

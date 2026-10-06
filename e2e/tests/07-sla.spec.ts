@@ -63,7 +63,7 @@ test.describe('07 SLA', () => {
     });
 
     const missingScope = await api.request('/sla/compliance?days=30');
-    expect(missingScope.status).toBe(400);
+    expect(missingScope.status).toBe(403);
     const compliance = await api.requestJson<{
       profiles: readonly unknown[];
       byUnit: readonly ComplianceBreakdownRow[];
@@ -104,7 +104,7 @@ test.describe('07 SLA', () => {
       options.map((option) => (option as HTMLOptionElement).value),
     );
     expect(availableUnitIds).toContain(selectedUnitId);
-    await page.goto('/tickets');
+    await page.goto('/tickets?view=all');
     await expect(page.getByText(created.title).first()).toBeVisible({
       timeout: 20_000,
     });
