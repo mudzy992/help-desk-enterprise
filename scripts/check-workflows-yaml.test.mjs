@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { findWorkflowProblems } from "./check-workflows-yaml.mjs";
 
@@ -45,6 +46,34 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
     "      - run: curl https://example.com/api",
   ].join("\n");
   assert.deepEqual(findWorkflowProblems(source), []);
+});
+
+// E2E na pushu u `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
+test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch", () => {
+  const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const start = workflow.indexOf("  e2e:");
+  const end = workflow.indexOf("  gate:", start);
+  assert.notEqual(start, -1, "e2e job postoji");
+  assert.notEqual(end, -1, "gate job slijedi e2e job");
+  const e2eJob = workflow.slice(start, end);
+  const conditionStart = e2eJob.indexOf("    if: >-");
+  const conditionEnd = e2eJob.indexOf("    needs:", conditionStart);
+  assert.notEqual(conditionStart, -1, "e2e job ima uslov");
+  assert.notEqual(conditionEnd, -1, "e2e uslov završava prije needs");
+  const condition = e2eJob.slice(conditionStart, conditionEnd);
+  const expression = condition
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim())
+    .join(" ")
+    .trim();
+
+  assert.equal(
+    expression,
+    "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
+      "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ) && " +
+      "needs.backend.result == 'success' && needs.frontend.result == 'success'",
+  );
 });
 
 // Stvarna regresija (2026-10-05): korak je dobio drugi `run:` umjesto novog

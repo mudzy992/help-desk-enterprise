@@ -226,7 +226,11 @@ jobs:
     # `needs.*.result == 'success'` keeps a red unit job from being followed by a
     # 15-minute browser run.
     if: >-
-      (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true') &&
+      (
+        (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      ) &&
       needs.backend.result == 'success' && needs.frontend.result == 'success'
     needs: [changes, backend, frontend]
     # The full run is ~35-60 min; the ceiling only stops a hang.
