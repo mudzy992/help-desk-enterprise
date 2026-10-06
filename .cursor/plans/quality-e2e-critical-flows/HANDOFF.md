@@ -6,6 +6,8 @@
 - Actors: **A** (Users API + Postgres `localPasswordHash`)
 - Matrica + checklist/changelog ažurirani
 - CI unit gate zasebno; E2E job na `workflow_dispatch` / `main` (bez podizanja DB u GHA)
+  - **Ažurirano 2026-10-06:** E2E više ne ide na push `master`; kapija je PR (`CI gate` = unit + smoke e2e),
+    puni prolaz ide noću (`schedule`). Dizajn i dokazi: `docs/plans/CI-KVALITETNA-KAPIJA.md`.
 
 ## Lokalni run
 

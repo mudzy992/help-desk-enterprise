@@ -28,17 +28,33 @@ database access for accounts. `DATABASE_URL` is used **only** to clear the test 
 
 ## CI
 
-Unit gate is `.github/workflows/ci.yml` (backend + frontend). E2E is a **separate** job (`E2E critical flows`)
-on `workflow_dispatch` / `main` / `master` that expects a **live stack** — it does not start Postgres/Redis in
-GitHub-hosted runners (Coolify contract). See `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`.
+Everything lives in `.github/workflows/ci.yml` (model and reasoning: `docs/plans/CI-KVALITETNA-KAPIJA.md`).
+The e2e job (`E2E critical flows`) expects a **live stack** — it does not start Postgres/Redis in GitHub-hosted
+runners (Coolify contract) — and runs in three modes:
+
+| Event | Mode | Scope |
+|---|---|---|
+| `pull_request` (and the change touches code) | **smoke — the gate** | 5 files (`01, 02, 03, 15, 22`), `retries=0`, `--max-failures=1` |
+| `schedule` (nightly, 01:00 UTC) | **full** | all 36 files, `retries=1` |
+| `workflow_dispatch` | triage or full | `specs=10,18,22`, `retries: 0`, `max_failures: 8`, or nothing for all files |
+
+A push to `master` does **not** run e2e: Coolify is rebuilding that very stack from the same commit at that
+moment, so the result would describe a half-deployed environment. The nightly full run covers the deployed
+revision once the stack is quiet.
+
+A pull request that touches only documentation (`docs/**`, `.cursor/**`, `*.md`, `perf/results/**`) runs the
+fast `Docs guard` job instead (~1 min) — the product jobs are reported as *skipped* in the `CI gate` summary.
 
 The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs a **Preflight** step
 (prints `set`/`empty` per name — never a value — resolves the API and database hosts and calls
-`$E2E_API_URL/health`), then `npm test`.
+`$E2E_API_URL/health`), then `npx playwright test`.
 
 > **A green E2E job now means the specs ran.** When the repository variable `E2E_API_URL` is empty the
 > Preflight step fails with `::error title=E2E did not run`, instead of silently passing (the earlier `exit 0`
 > skip made a green checkmark meaningless).
+>
+> **Skipped is not green.** The required check on a pull request is the single `CI gate` job; its summary table
+> lists every job with its result, so a skipped e2e is visible as `skipped` and never mistaken for a pass.
 
 ### What the job needs: repository variables and secrets
 

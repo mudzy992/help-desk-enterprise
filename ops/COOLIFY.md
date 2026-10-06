@@ -2,6 +2,16 @@
 
 Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → Environment (i Build Argument za `VITE_API_BASE_URL`).
 
+## Obavijest o neuspješnom deployu (obavezno)
+
+Coolify → **Notifications** → izabrati kanal (email, Discord, Slack/Mattermost ili webhook) → uključiti
+**Enabled** i označiti događaj **Deployment failed** (uz „Deployment success" po želji), pa poslati testnu
+obavijest. Bez toga se neuspješan deploy vidi samo onome ko otvori Coolify.
+
+Auto-deploy na push ostaje uključen. Ono što **ne** treba raditi: oslanjati se na to da e2e na `master` uhvati
+neuspješan deploy — u trenutku izvršavanja stack je već rebuildan (vidi `docs/plans/CI-KVALITETNA-KAPIJA.md` §2).
+Opciono, i neoslonjeno na provjeru iz ovog repoa: „Watch Paths" može preskočiti build za docs-only commit.
+
 ## Resursi izvan ovog compose-a
 
 - **PostgreSQL**: Coolify Database. Connection string → `DATABASE_URL`. Backup/retention na DB resursu.

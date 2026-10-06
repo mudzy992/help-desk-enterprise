@@ -1875,3 +1875,26 @@ Detalji u `REVIEW_ANALIZA.md`, `# Paket 5.1 — korak 5.1.1` §4.
 | `docs/user-guide/uloge-i-permisije.md` | Korak **Pregled uticaja** opisuje potvrdu koja važi 15 minuta i samo za pregledani skup (promjena izbora zatvara pregled), obavezan **Razlog promjene** (≤ 500) i nove kodove `409 PREVIEW_REQUIRED` / `PREVIEW_STALE`; tabela validacija i česta pitanja dopunjeni; audit opisuje razlog i vrijeme pregleda | `role-permission-preview-token.ts`, `replace-role-permissions.ts`, `dto/replace-role-permissions.dto.ts` |
 | `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | **T29** prepravljen: naslov i teza opisuju obavezan pregled s potpisom i razlog; status „Važi (B2 zatvoren 2026-10-06)“, izvori bez ograničenja | ista izmjena |
 | `REVIEW_ANALIZA.md` | Nalaz M4 B2 zatvoren (tabela §M4 + §7), nova sekcija §4 u odjeljku „Paket 5.1 — korak 5.1.1“, broj otvorenih nalaza **12 `SREDNJE` / 38 `NISKO`** | ova izmjena |
+
+## CI i e2e kapija — PR kao kapija, smoke na PR-u, puni prolaz noću (2026-10-06)
+
+**Zašto:** push na `master` pokretao je i puni e2e (35–62 min) protiv staging stacka koji Coolify u tom trenutku
+rebuilda iz istog commita, pa rezultat nije mogao biti kapija; dokumentacija je pokretala isti puni prolaz
+(`418ac44` dira tri fajla, sva tri dokumentacija), a 4 od 12 zadnjih runova bila su `cancelled` zbog novog pusha.
+Vlasnik je odlučio: PR je kapija, smoke na PR-u, puni prolaz noću, Coolify dobija samo obavijest o neuspješnom
+deployu.
+
+**Dokazi:** `node scripts/check-workflows-yaml.mjs` → OK; `js-yaml` parse `.github/workflows/ci.yml` → okidači
+`push, pull_request, schedule, workflow_dispatch`, jobovi `changes, backend, frontend, docs-guard, e2e, gate`;
+`bash -n` nad svih 36 `run` blokova → 0 padova; simulacija `run` koraka daje za PR `smoke subset
+(01,02,03,15,22)`, `retries=0`, `--max-failures=1`, a za `schedule` sve fajlove; klasifikacija izmjena provjerena
+kroz 4 scenarija (docs-only → samo `Docs guard`, kod → sve, nepoznat diff → fail-safe); logika `gate` joba
+provjerena kroz 5 ishoda (`skipped` prolazi, `failure`/`cancelled` padaju).
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `.github/workflows/ci.yml` | Novi jobovi `changes` (git diff, fail-safe), `docs-guard` (~1 min, bez `npm ci`) i `CI gate` (jedini obavezni check; `if: always()`, padne samo na `failure`/`cancelled`, tabela u summaryju); backend/frontend se na PR-u vrte samo ako je kod diran; e2e se više ne vrti na push, na PR-u je smoke podskup, na `schedule`/`workflow_dispatch` puni prolaz; `paths-ignore` za docs-only push; `cancel-in-progress` samo za PR; `timeout-minutes` na svim jobovima | mjerenja runova `37366461655` (61 min), `37319859974` (62 min), `37431588635`; `gh api …/commits/418ac44` |
+| `docs/plans/CI-KVALITETNA-KAPIJA.md` (nov) | Dizajn: zatečeno stanje s dokazima, novi raspored po događajima, zašto jedan `CI gate` (path filter + required check blokira PR), zašto `git diff` umjesto akcije trećeg lica, dokazi, odluke vlasnika, ručni koraci (branch protection, Coolify obavijest), trijaža | ova izmjena |
+| `e2e/README.md` | CI sekcija: tabela tri moda (PR smoke / noćno puni / ručna trijaža), zašto push na `master` ne vrti e2e, docs-only PR ide na `Docs guard`; „skipped nije zeleno" | `ci.yml` |
+| `ops/COOLIFY.md` | Novi odjeljak **Obavijest o neuspješnom deployu** (Notifications → Deployment failed) i napomena da se ne oslanjamo na e2e na `master` kao detekciju neuspješnog deploya | Coolify dokumentacija (notifikacije po događajima) |
+| `.cursor/plans/quality-e2e-critical-flows/HANDOFF.md`, `CHECKLIST.md` | Stari dogovor („E2E job na `workflow_dispatch` / `main`") dopunjen datumom i pokazivačem na novi dizajn | ova izmjena |

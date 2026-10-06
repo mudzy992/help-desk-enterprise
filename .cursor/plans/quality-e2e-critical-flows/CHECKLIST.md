@@ -34,3 +34,5 @@
 - [x] Zamjena Jest/Vitest
 - [ ] `[x]` u TASKS.md (korisnik ručno)
 - CI unit gate je u `.github/workflows/ci.yml` (R7c); E2E job odvojen (workflow_dispatch / main)
+  - **2026-10-06:** raspored je promijenjen — PR (smoke, kapija `CI gate`), noćno (puni), `workflow_dispatch`
+    (trijaža); push na `master` ne vrti e2e. Vidi `docs/plans/CI-KVALITETNA-KAPIJA.md`.

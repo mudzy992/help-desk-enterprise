@@ -1,13 +1,34 @@
 name: CI
 
+# Quality model (2026-10-06) — full reasoning in `docs/plans/ci-e2e-kapija.md`:
+#   * pull_request -> the gate. Backend + frontend (fast) and the E2E **smoke**
+#     subset (~10-15 min). All three are required status checks on `master`, and
+#     every one of them is created on every PR — a docs-only PR therefore also
+#     reports them, so no required check can stay "Expected" and block a merge.
+#   * push to master -> backend + frontend only. Docs-only commits are skipped
+#     (paths-ignore); a code push no longer drags the ~35-60 min E2E job along,
+#     because the stack it would test is being rebuilt by Coolify at that moment.
+#   * schedule (nightly) -> the full 71-test E2E run on a quiet stack.
+#   * workflow_dispatch -> triage: `specs=10,18,22`, `retries: 0`,
+#     `max_failures: 8` turn a red run into minutes instead of ~35.
 on:
   push:
     branches: [main, master]
+    # A commit that only touches documentation cannot change product behaviour.
+    # Note: this filter is deliberately NOT on `pull_request` (see above).
+    paths-ignore:
+      - "docs/**"
+      - ".cursor/**"
+      - "**/*.md"
+      - "perf/results/**"
   pull_request:
     branches: [main, master]
+  schedule:
+    # 01:00 UTC — a full E2E run on a stack nobody is deploying to.
+    - cron: "0 1 * * *"
   workflow_dispatch:
     inputs:
-      # Triage (2026-10-05): a red run of 70 specs takes ~35 min; these make the
+      # Triage (2026-10-05): a red run of 71 specs takes ~35 min; these make the
       # first look cheaper. `max_failures` stops the run after N failures, and
       # `retries: 0` does not retry them. Defaults keep the full, strict run.
       max_failures:
@@ -25,12 +46,77 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A superseded PR run has no value, so it is cancelled. A run on `master` is
+  # the record of what was pushed and is therefore never cancelled silently.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Decides what actually has to run. Deliberately plain `git diff` instead of a
+  # third-party path-filter action, and deliberately *fail-safe*: anything it
+  # cannot read counts as "code changed", so a broken diff can only cost time,
+  # never skip a test.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      docs: ${{ steps.diff.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -u
+          base=""
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="origin/${BASE_REF}"
+            git fetch --no-tags --quiet origin "${BASE_REF}" || true
+          elif [ -n "${BEFORE_SHA:-}" ] && [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
+            base="${BEFORE_SHA}"
+          fi
+
+          files=""
+          if [ -n "$base" ] && git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
+            files="$(git diff --name-only "$base" HEAD || true)"
+          fi
+
+          if [ -z "$files" ]; then
+            # Unknown diff (first push, force push, shallow history, merge queue):
+            # run everything rather than guess.
+            echo "::warning title=Change detection fell back::Could not diff against '$base' — running every job."
+            code=true
+            docs=true
+          else
+            code=false
+            docs=false
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              case "$file" in
+                docs/*|.cursor/*|*.md|perf/results/*) docs=true ;;
+                *) code=true ;;
+              esac
+            done <<< "$files"
+          fi
+
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          echo "Detected: code=$code docs=$docs"
+          if [ -n "$files" ]; then echo "--- changed files ---"; echo "$files"; fi
+
   backend:
     name: Backend build + test
     runs-on: ubuntu-latest
+    needs: [changes]
+    # On a PR only what the change can break runs. On push/schedule/dispatch the
+    # list is empty (no `changes` diff for a schedule), so everything runs.
+    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
+    timeout-minutes: 25
     env:
       # Prisma 7 resolves `env("DATABASE_URL")` while loading its config, so
       # `prisma generate` dies on a bare runner. Generation never connects, so a
@@ -55,6 +141,9 @@ jobs:
   frontend:
     name: Frontend build + test
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: frontend
@@ -106,11 +195,42 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # A documentation-only pull request never has to build the product, but it
+  # still must not merge a broken mirror or a bad frontmatter — that is exactly
+  # what this guard checks (Faza 3, DOCS_MODULE.md §9). 30 s, no dependencies.
+  docs-guard:
+    name: Docs guard
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.docs == 'true' || github.event_name != 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Check docs content and mirror sync
+        run: node scripts/check-docs-content.mjs
+      - name: Test the docs guard itself
+        run: node --test scripts/check-docs-content.test.mjs
+
   e2e:
     name: E2E critical flows
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    needs: [backend, frontend]
+    # Pull request -> smoke subset (the gate); schedule -> full run; dispatch ->
+    # triage or full. NOT on push: the stack is being rebuilt by Coolify right
+    # then, so a red run there would only describe a half-deployed environment
+    # (the nightly run covers that same revision once the deploy is quiet).
+    # Runs when the product itself changed (a PR) or on schedule/dispatch; never
+    # on a plain push, where Coolify is rebuilding the very stack it would test.
+    # `needs.*.result == 'success'` keeps a red unit job from being followed by a
+    # 15-minute browser run.
+    if: >-
+      (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true') &&
+      needs.backend.result == 'success' && needs.frontend.result == 'success'
+    needs: [changes, backend, frontend]
+    # The full run is ~35-60 min; the ceiling only stops a hang.
+    timeout-minutes: 90
     env:
       # Optional: with these four/five secrets set, the runner opens an SSH
       # tunnel to the database instead of requiring a public Postgres port.
@@ -197,7 +317,7 @@ jobs:
             fi
           fi
       - run: npx playwright install --with-deps chromium
-      - name: Run E2E (requires live stack secrets)
+      - name: Run E2E (smoke on a pull request, full on schedule / dispatch)
         env:
           E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
           E2E_API_URL: ${{ vars.E2E_API_URL }}
@@ -214,10 +334,39 @@ jobs:
           E2E_SPECS: ${{ inputs.specs }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
         run: |
-          # Triage (2026-10-05): a full run is 70 tests / ~35 min, so a red run can
+          # Triage (2026-10-05): a full run is 71 tests / ~35 min, so a red run can
           # be narrowed to the files that failed, e.g. specs=10,18,22. Numbers map
           # to `e2e/tests/<number>-*.spec.ts`; an unknown number fails loudly
           # instead of silently running everything.
+          #
+          # 2026-10-06: the *gate* on a PR is the smoke subset below, not all 36
+          # files — a merge should not wait ~35-60 min. The full run happens
+          # nightly (`schedule`) and on demand (`workflow_dispatch`).
+          smoke_specs="01,02,03,15,22"
+          case "${{ github.event_name }}" in
+            pull_request)
+              specs="$smoke_specs"
+              retries="0"
+              max_failures="1"
+              echo "PR gate: smoke subset ($specs), retries=0, fail fast."
+              ;;
+            workflow_dispatch)
+              specs="${E2E_SPECS:-}"
+              retries="${E2E_RETRIES:-1}"
+              max_failures="${{ inputs.max_failures || '0' }}"
+              echo "Dispatch: specs='${specs:-all}', retries=$retries, max_failures=$max_failures."
+              ;;
+            *)
+              specs=""
+              retries="${E2E_RETRIES:-1}"
+              max_failures="0"
+              echo "Scheduled full run: all files, retries=$retries."
+              ;;
+          esac
+          # Both are read by `e2e/playwright.config.ts` through the environment;
+          # the `env:` block above only seeds them from the dispatch inputs.
+          E2E_SPECS="$specs"
+          E2E_RETRIES="$retries"
           files=()
           if [ -n "${E2E_SPECS:-}" ]; then
             IFS=',' read -ra parts <<< "$E2E_SPECS"
@@ -234,10 +383,9 @@ jobs:
             echo "Triage mode: running ${#files[@]} spec file(s): ${files[*]}"
           fi
 
-          max_failures="${{ inputs.max_failures || '0' }}"
           args=(--reporter=list,json)
           if [ "$max_failures" != "0" ] && [ -n "$max_failures" ]; then
-            echo "Triage mode: stopping after $max_failures failed test(s), retries=$E2E_RETRIES."
+            echo "Triage mode: stopping after $max_failures failed test(s), retries=$retries."
             args+=(--max-failures="$max_failures")
           fi
           npx playwright test "${args[@]}" "${files[@]}"
@@ -259,3 +407,37 @@ jobs:
       - name: Test the JSON summarizer itself
         if: ${{ always() }}
         run: node --test scripts/summarize-playwright-json.test.mjs
+
+  # The single required status check. A required check that a path filter skipped
+  # never reports and blocks the pull request forever, so the *check* is this job
+  # and the filtering happens above it. It fails only on a real failure — a
+  # skipped job is listed as such and does not fail the gate.
+  gate:
+    name: CI gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [changes, backend, frontend, docs-guard, e2e]
+    timeout-minutes: 5
+    steps:
+      - name: Summarize what ran
+        run: |
+          {
+            echo "| Job | Result |"
+            echo "|---|---|"
+            echo "| Detect changes | ${{ needs.changes.result }} |"
+            echo "| Docs guard | ${{ needs.docs-guard.result }} |"
+            echo "| Backend | ${{ needs.backend.result }} |"
+            echo "| Frontend | ${{ needs.frontend.result }} |"
+            echo "| E2E | ${{ needs.e2e.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when something actually failed
+        run: |
+          results="${{ needs.changes.result }} ${{ needs.docs-guard.result }} ${{ needs.backend.result }} ${{ needs.frontend.result }} ${{ needs.e2e.result }}"
+          echo "Results: $results"
+          for result in $results; do
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "::error title=CI gate failed::A job finished as '$result'. See the summary table above."
+              exit 1
+            fi
+          done
+          echo "CI gate: OK (skipped jobs are documented in the summary table)."
