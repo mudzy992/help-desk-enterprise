@@ -1954,14 +1954,14 @@ config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `fronte
 build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint nad izmijenjenim M6/tickets
 fajlovima → bez grešaka. Puni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
 na `b1b7158` potvrdio je backend build/lint/full test, frontend build/test i docs guard/gate; E2E je bio `skipped`.
-Korisnik je potom ručno pokrenuo [run #37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325)
-na `master`/`b1b7158`; E2E job je pao. Serverski report: 3/4 testa prošla; scenario `FORM_DATA_INVALID` dobio je
-`VALIDATION` zato što direktni `POST /tickets` payload nije slao obavezne `impact` i `urgency`, pa nije stigao do
-šema-validatora. Fixture je ispravljen na sesijskoj grani (`MEDIUM` za oba polja). D3 scenario u specu 15 koristi
-`withSettings` restauraciju, provjerava skrivanje polja u UI-ju i nullable vezu tiketa; postojeći unrouted-target
-scenario također vraća prethodnu/zadanu postavku umjesto praznog stringa. Statičke provjere prolaze, a aktuelni
-spec lista 5 testova; oba ručna izvještaja navode staru četverotestnu verziju bez D3. Paket 5.1.3 ostaje otvoren
-dok se ispravljeni petotestni spec ne pokrene i ne prođe na sesijskoj grani.
+Korisnikov GitHub run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) bio je
+na `master`/`b1b7158` i koristio je staru četverotestnu verziju. Noviji serverski run izvršio je aktuelnih 5 testova:
+3 su prošla, 2 pala s `ORIGIN_UNIT_REQUIRED`. D1 zahtjev (nakon što je dodan `impact`/`urgency`) i D3 tiket nisu
+slali `originUnitId`; API ih je odbio prije form-validacije/ticket binding provjere. Fiksture sada čitaju korijenski
+OJ iz `/organizational-units/tree` i šalju njegov ID u oba zahtjeva. D3 scenario koristi `withSettings` restauraciju,
+provjerava skrivanje polja u UI-ju i nullable vezu tiketa; postojeći unrouted-target scenario također vraća
+prethodnu/zadanu postavku umjesto praznog stringa. Statičke provjere prolaze; potreban je novi serverski prolaz svih
+5 testova prije zatvaranja 5.1.3.
 
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|

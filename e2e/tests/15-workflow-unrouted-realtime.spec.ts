@@ -24,6 +24,15 @@ const targetGroupName = 'E2E Unrouted Target';
 const formsEnabledKey = 'private.ticket.forms.enabled';
 const formsEnabledDefaults = { [formsEnabledKey]: true };
 
+async function readOriginUnitId(api: ApiClient): Promise<string> {
+  const tree = await api.requestJson<UnitNode | UnitNode[]>('/organizational-units/tree');
+  const root = Array.isArray(tree) ? tree[0] : tree;
+  if (root === undefined) {
+    throw new Error('No organizational unit is available for the E2E ticket');
+  }
+  return root.id;
+}
+
 /**
  * Package 1.7: the status-flow API and screen (ADMIN/SUPER_ADMIN only), the
  * unrouted target group fallback with the "create a rule" shortcut, and a
@@ -100,6 +109,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
+    const originUnitId = await readOriginUnitId(adminApi);
     const service = await createOfferedService(adminApi, { label: 'Invalid form data' });
     const response = await adminApi.request('/tickets', {
       method: 'POST',
@@ -107,6 +117,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         title: `E2E invalid form ${Date.now()}`,
         description: 'Server-side form validation check',
         serviceId: service.id,
+        originUnitId,
         impact: 'MEDIUM',
         urgency: 'MEDIUM',
         formData: { dodatne_informacije: 'x'.repeat(4_001) },
@@ -125,6 +136,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
+    const originUnitId = await readOriginUnitId(adminApi);
 
     let serviceId: string | null = null;
     await withSettings(
@@ -167,6 +179,7 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         const created = await createTicketViaApi(adminApi, {
           title: `E2E forms disabled ${Date.now()}`,
           serviceId: createdServiceId,
+          originUnitId,
         });
         const binding = await adminApi.requestJson<{
           readonly formVersionRef: string | null;
