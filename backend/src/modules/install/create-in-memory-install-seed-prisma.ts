@@ -32,8 +32,10 @@ export function createInMemoryInstallSeedPrisma() {
   const formVersions = new Map<string, FormVersionRecord>();
   const rules = new Map<string, RoutingRuleRecord>();
   const changeLogs: InMemoryInstallSeedChangeLog[] = [];
+  const auditLogs: Array<Record<string, unknown>> = [];
   const users = createInMemoryInstallSuperAdminPrisma();
   let nextIdentifier = 1;
+  let nextAuditIdentifier = 1;
   let failRoutingCreate = false;
   const now = () => new Date('2026-09-11T10:00:00.000Z');
   const nextId = () => `seed-${nextIdentifier++}`;
@@ -65,6 +67,19 @@ export function createInMemoryInstallSeedPrisma() {
         return data;
       },
     },
+    auditLog: {
+      findFirst: async () => auditLogs[auditLogs.length - 1] ?? null,
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const created = {
+          ...data,
+          id: `audit-${nextAuditIdentifier++}`,
+          createdAt: now(),
+        };
+        auditLogs.push(created);
+        return created;
+      },
+    },
+    $executeRaw: async (_query: TemplateStringsArray, ..._values: unknown[]) => 0,
     $transaction: async <T>(
       callback: (client: unknown) => Promise<T>,
     ): Promise<T> => {
@@ -78,6 +93,8 @@ export function createInMemoryInstallSeedPrisma() {
         rules,
         changeLogs,
       });
+      const auditLogLength = auditLogs.length;
+      const originalNextAuditIdentifier = nextAuditIdentifier;
       try {
         return await callback(prisma);
       } catch (error) {
@@ -91,6 +108,8 @@ export function createInMemoryInstallSeedPrisma() {
           rules,
           changeLogs,
         });
+        auditLogs.length = auditLogLength;
+        nextAuditIdentifier = originalNextAuditIdentifier;
         throw error;
       }
     },

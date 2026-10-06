@@ -48,6 +48,8 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     reportSchedule: Record<string, unknown>;
     ticket: Record<string, unknown>;
     userRole: Record<string, unknown>;
+    auditLog: Record<string, unknown>;
+    $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
   };
   seedUnit: (unit: InMemoryOrganizationalUnit) => void;
@@ -56,7 +58,9 @@ export function createInMemoryOrganizationalUnitPrisma(): {
 } {
   let units = new Map<string, InMemoryOrganizationalUnit>();
   let users = new Map<string, InMemoryOrganizationalUnitUser>();
+  let auditLogs: Array<Record<string, unknown>> = [];
   let nextIdentifier = 1;
+  let nextAuditIdentifier = 1;
   const prisma = {
     organizationalUnit: {
       findUnique: async ({
@@ -216,18 +220,36 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     reportSchedule: { count: async () => 0 },
     ticket: { count: async () => 0 },
     userRole: { findMany: async () => [] },
+    auditLog: {
+      findFirst: async () => auditLogs[auditLogs.length - 1] ?? null,
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const created = {
+          ...data,
+          id: `audit-${nextAuditIdentifier++}`,
+          createdAt: new Date('2026-09-10T10:00:00.000Z'),
+        };
+        auditLogs.push(created);
+        return created;
+      },
+    },
+    $executeRaw: async (_query: TemplateStringsArray, ..._values: unknown[]) => 0,
     $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
       const originalUnits = units;
       const originalUsers = users;
+      const originalAuditLogs = auditLogs;
       const originalNextIdentifier = nextIdentifier;
+      const originalNextAuditIdentifier = nextAuditIdentifier;
       units = new Map(originalUnits);
       users = new Map(originalUsers);
+      auditLogs = [...originalAuditLogs];
       try {
         return await callback(prisma);
       } catch (error) {
         units = originalUnits;
         users = originalUsers;
+        auditLogs = originalAuditLogs;
         nextIdentifier = originalNextIdentifier;
+        nextAuditIdentifier = originalNextAuditIdentifier;
         throw error;
       }
     },

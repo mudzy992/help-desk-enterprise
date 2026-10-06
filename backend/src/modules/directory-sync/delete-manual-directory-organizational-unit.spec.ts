@@ -129,7 +129,10 @@ describe('deleteManualDirectoryOrganizationalUnit', () => {
       manualDirectoryGroup: { count: jest.fn().mockResolvedValue(0) },
       organizationalUnit: {
         findUnique: jest.fn(async () => activeState.liveUnitExists ? { id: 'live-ou-1' } : null),
-        delete: jest.fn(async () => {
+        delete: jest.fn(async ({ where }: { where: { id: string } }) => {
+          if (where.id !== 'live-ou-1') {
+            throw new Error('unexpected organizational unit id');
+          }
           activeState.liveUnitExists = false;
           return { id: 'live-ou-1' };
         }),
