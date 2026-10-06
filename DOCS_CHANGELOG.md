@@ -1981,7 +1981,7 @@ prethodnu/zadanu postavku umjesto praznog stringa.
 te razrezi i opseg SLA usklađenosti. Vodiči opisuju implementaciju i lokalno testirane dijelove; serverski E2E runtime
 prolaz još nije izvršen u ovom checkoutu.
 
-**Dokazi:** 10 ciljanih backend Jest suita → **45/45 testova ✅** uz privremeni config `diagnostics:false` (nije backend
+**Dokazi:** 10 ciljanih backend Jest suita → **46/46 testova ✅** uz privremeni config `diagnostics:false` (nije backend
 typecheck; Prisma client generation je blokirana preuzimanjem schema engine-a preko TLS-a). Frontend `npm run build`
 → **`tsc -b && vite build` prošao**; ciljani Vitest → **5 fajlova / 19 testova ✅**. E2E statička provjera
 `cd e2e && npx tsc --noEmit && npx playwright test tests/02-routing-fallback.spec.ts tests/07-sla.spec.ts tests/15-workflow-unrouted-realtime.spec.ts --list`
@@ -1991,7 +1991,7 @@ E2E run ostaje release gate po dogovorenom iterativnom toku.
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|
 | `docs/user-guide/usmjeravanje-i-prioritet.md` | Matrica opisuje aktivne usluge po defaultu, filtere OU/usluga, prekidač za nacrte/ukinute, 50 usluga po stranici i očuvanu rezoluciju kroz pretke; uklonjene stare tvrdnje M7 B1/B4 i objašnjen fallback red | `compute-routing-coverage.ts`, `routing.coverage.spec.ts`, `build-unrouted-where.ts`, lokalni backend Jest |
-| `docs/user-guide/tiketi.md` | Tab **Neusmjereni red** razlikuje `UNROUTED` i fallback-rutirani `PENDING`, prikazuje 50 po stranici, a ukupni brojač ostaje nezavisan od trenutne stranice; objašnjene granice overdue/cleanup | `use-ticket-list.ts`, `ticket-inbox-list.tsx`, `get-ticket-counts.ts`; 45 backend testova, 19 frontend testova |
+| `docs/user-guide/tiketi.md` | Tab **Neusmjereni red** razlikuje `UNROUTED` i fallback-rutirani `PENDING`, prikazuje 50 po stranici, a ukupni brojač ostaje nezavisan od trenutne stranice; objašnjene granice overdue/cleanup | `use-ticket-list.ts`, `ticket-inbox-list.tsx`, `get-ticket-counts.ts`; 46 backend testova, 19 frontend testova |
 | `docs/user-guide/sla.md` | Izbor OU opsega, podređene OJ, razrezi po profilu/OJ/usluzi/grupi i zasebni brojači otvorenih prekršaja; uklonjena zastarjela tvrdnja M10 B3 | `sla-compliance.controller.ts`, `resolve-sla-compliance-unit-scope.ts`, `aggregate-sla-compliance.ts`; ciljane backend provjere |
 | `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` | Unrouted bottleneck pojašnjen kao `UNROUTED` + fallback `PENDING`; E2E pokrivenost bottleneck-a opisana kao scenario s runtimeom na čekanju | `sql-bottleneck-dashboard-store.ts`, test 15 (statički provjeren; runtime nije pokrenut) |
 | `docs/user-guide/sta-je-novo.md` | Dodan sažetak korisnički vidljivih izmjena 5.1.4 za matricu, unrouted red i SLA razreze | isti funkcionalni izvori; ciljane backend/frontend provjere |

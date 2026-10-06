@@ -103,6 +103,34 @@ describe('RoutingService coverage', () => {
     });
   });
 
+  it('caps cursor pages at 50 services even when the caller asks for more', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    for (let index = 0; index < 51; index += 1) {
+      const suffix = String(index).padStart(2, '0');
+      memory.seedService({
+        id: `service-page-${suffix}`,
+        name: `Coverage service ${suffix}`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+    }
+
+    const first = await routing.coverage({ includeInactive: true, take: 100 });
+    const firstServiceIds = new Set(first.items.map((item) => item.serviceId));
+    expect(first.total).toBeGreaterThan(50);
+    expect(firstServiceIds.size).toBe(50);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await routing.coverage({
+      includeInactive: true,
+      take: 100,
+      cursor: first.nextCursor ?? undefined,
+    });
+    const secondServiceIds = new Set(second.items.map((item) => item.serviceId));
+    expect(secondServiceIds.size).toBe(first.total - 50);
+    expect([...firstServiceIds].some((serviceId) => secondServiceIds.has(serviceId))).toBe(false);
+  });
+
   it('rejects malformed coverage cursors', async () => {
     const { routing } = createRoutingServiceHarness();
     await expect(routing.coverage({ cursor: 'not-a-cursor' })).rejects.toMatchObject({
