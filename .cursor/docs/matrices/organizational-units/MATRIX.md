@@ -24,7 +24,9 @@ Child DN mora biti descendant parent DN (`endsWith(',' + parentDn)`). `Company/D
 ## User mapping
 - User ima najviše jedan primary OU (`User.organizationalUnitId`).
 - Assign/reassign/unassign kroz isti use case; ne dira auth polja.
-- Delete OU sa mapped users → `HAS_MAPPED_USERS` (409). FK `onDelete: Restrict`. Nema silent SetNull.
+- Brisanje provjerava djecu, mapirane korisnike, grupe i sve ostale žive veze prije FK-a; svaki blocker vraća `409` s `{ kind, count }`. Nepoznati Prisma `P2003` je zajednički `409 RESOURCE_IN_USE` fallback.
+- OJ-scoped `UserRole` dodjele nisu blocker: audit bilježi broj uklonjenih dodjela i pogođene korisnike, odgovor vraća `ROLE_ASSIGNMENTS_REMOVED`, a principal cache tih korisnika se best-effort invalidira.
+- Nalozi se nikad ne brišu pri brisanju OJ; ručni direktorijski nalog u katalogu je također blocker. FK `User.organizationalUnitId` ostaje `Restrict`.
 - OU → users i user → OU query vraćaju samo `id`, `email`, `displayName`, `organizationalUnitId`.
 
 ## API
@@ -34,11 +36,11 @@ Child DN mora biti descendant parent DN (`endsWith(',' + parentDn)`). `Company/D
 | GET | `/organizational-units/tree` | nested tree |
 | GET | `/organizational-units/:id` | retrieve + direct children + users |
 | PATCH | `/organizational-units/:id` | update / reparent |
-| DELETE | `/organizational-units/:id` | delete leaf without users |
+| DELETE | `/organizational-units/:id` | delete only when all non-role blockers are absent; returns warnings for removed OU-scoped roles |
 | GET | `/organizational-units/:id/users` | users in OU |
 | PUT | `/organizational-units/user-mappings` | assign / reassign / unassign |
 
-HTTP `OuAccessGuard` / `RoleGuard` žive u `authorization` modulu i nisu vezani na ove CRUD rute. Admin read-only interceptor blokira mutacije (create/update/delete/assign) kad je `admin` modul zaključan; GET ostaje.
+HTTP `OuAccessGuard` / `RoleGuard` žive u `authorization` modulu i nisu vezani na ove CRUD rute. Admin read-only interceptor blokira mutacije (create/update/delete/assign) kad je `admin` modul zaključan; GET ostaje. Create/update/delete i user→OU mapping upisuju audit u istoj transakciji; delete audit nije FK-vezan za OU koji se upravo briše.
 
 ## Namjerno NIJE implementirano
 AD sync, Microsoft Graph, Entra/MSAL, granular permissions/scopes, RoleGuard, OuAccessGuard, policy packs, frontend OU administration UI.

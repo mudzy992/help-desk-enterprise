@@ -1,12 +1,22 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import { recordUserChange } from '../users/record-user-change';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { createInMemoryOrganizationalUnitPrisma } from './create-in-memory-organizational-unit-prisma';
 import { OrganizationalUnitsService } from './organizational-units.service';
+
+jest.mock('../users/record-user-change', () => ({
+  recordUserChange: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('./record-organizational-unit-change', () => ({
+  recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 describe('OrganizationalUnitsService user mapping', () => {
+  beforeEach(() => jest.mocked(recordUserChange).mockClear());
   const setup = () => {
     const memory = createInMemoryOrganizationalUnitPrisma();
     const service = new OrganizationalUnitsService(memory.prisma as never);
@@ -14,7 +24,7 @@ describe('OrganizationalUnitsService user mapping', () => {
   };
 
   it('assigns, reassigns, and lists users for an OU', async () => {
-    const { service, seedUser } = setup();
+    const { service, seedUser, prisma } = setup();
     const first = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -46,6 +56,17 @@ describe('OrganizationalUnitsService user mapping', () => {
       organizationalUnitId: first.id,
     });
     expect(assigned).not.toHaveProperty('localPasswordHash');
+    expect(recordUserChange).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        action: auditLogActions.userUpdated,
+        entityId: 'user-1',
+        metadata: {
+          before: { organizationalUnitId: null },
+          after: { organizationalUnitId: first.id },
+        },
+      }),
+    );
     const listed = await service.listUsers(first.id);
     expect(listed.map((user) => user.id)).toEqual(['user-1']);
     const reassigned = await service.assignUser({

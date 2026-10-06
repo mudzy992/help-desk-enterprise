@@ -23,9 +23,12 @@ import type {
   RemoveUserRoleInput,
   ResetUserPasswordResponse,
   UpdateUserInput,
+  UserAuditContext,
   UserRoleResponse,
   UserSummaryResponse,
 } from './users.types';
+
+const emptyAuditContext: UserAuditContext = { actorUserId: null, requestId: null };
 
 @Injectable()
 export class UsersService {
@@ -62,49 +65,62 @@ export class UsersService {
     );
   }
 
-  resetTemporaryPassword(userId: string): Promise<ResetUserPasswordResponse> {
+  resetTemporaryPassword(
+    userId: string,
+    context: UserAuditContext = emptyAuditContext,
+  ): Promise<ResetUserPasswordResponse> {
     return this.execute(() =>
-      resetUserTemporaryPassword(this.prisma, userId, {
-        settingsService: this.settingsService,
-        mailTransport: this.mailTransport,
-      }),
+      resetUserTemporaryPassword(
+        this.prisma,
+        userId,
+        { settingsService: this.settingsService, mailTransport: this.mailTransport },
+        context,
+      ),
     );
   }
 
-  linkDirectoryIdentity(input: {
-    readonly userId: string;
-    readonly directoryExternalId: string;
-  }): Promise<UserSummaryResponse> {
+  linkDirectoryIdentity(
+    input: { readonly userId: string; readonly directoryExternalId: string },
+    context: UserAuditContext = emptyAuditContext,
+  ): Promise<UserSummaryResponse> {
     return this.execute(() =>
       linkUserDirectoryIdentity({
         prisma: this.prisma,
         directorySyncService: this.directorySyncService,
         userId: input.userId,
         directoryExternalId: input.directoryExternalId,
+        context,
       }),
     );
   }
 
   unlinkDirectoryIdentity(
     userId: string,
+    context: UserAuditContext = emptyAuditContext,
   ): Promise<ResetUserPasswordResponse> {
     return this.execute(() =>
       unlinkUserDirectoryIdentity(this.prisma, userId, {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
-      }),
+      }, context),
     );
   }
 
-  update(input: UpdateUserInput): Promise<UserSummaryResponse> {
+  update(
+    input: UpdateUserInput,
+    context: UserAuditContext = emptyAuditContext,
+  ): Promise<UserSummaryResponse> {
     return this.execute(() =>
-      updateUser(this.prisma, input, this.invalidatePrincipal()),
+      updateUser(this.prisma, input, this.invalidatePrincipal(), context),
     );
   }
 
-  delete(userId: string): Promise<void> {
+  delete(
+    userId: string,
+    context: UserAuditContext = emptyAuditContext,
+  ): Promise<void> {
     return this.execute(() =>
-      deleteUser(this.prisma, userId, this.invalidatePrincipal()),
+      deleteUser(this.prisma, userId, this.invalidatePrincipal(), context),
     );
   }
 

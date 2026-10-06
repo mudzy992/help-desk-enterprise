@@ -74,8 +74,11 @@
    automatski iz parenta i naziva — ne unosi se ručno u ovoj formi.
 3. Detalji jedinice prikazuju **Naziv (segment putanje)**, **ouPath (kanonski)**, **Distinguished Name (LDAP)** i
    broj **mapiranih korisnika**. Izmjena naziva ili parenta **prepisuje `ouPath` i DN cijele podgrane**.
-4. **Obriši** je moguće samo ako jedinica **nema podređenih OU-a** i **nema mapiranih korisnika**; inače se
-   prikazuje poruka da je brisanje blokirano.
+4. Ako je izvor **Ručni katalog**, **Obriši** u jednoj transakciji uklanja kataloški zapis i materijalizovanu
+   OJ. Brisanje se odbija ako postoje djeca, katalog korisnici/grupe ili žive veze; poruka navodi tip i broj
+   svake blokirajuće veze. Korisnički nalozi se **nikad ne brišu** ovim putem. OJ-scoped dodjele uloga se mogu
+   ukloniti zajedno s OJ-om; nakon brisanja prikazuje se upozorenje s njihovim brojem, a pogođeni cachevi se
+   invalidiraju. Ova radnja **ne briše stvarni AD nalog**.
 5. Panel **AD sinhronizacija** (vidljiv samo SuperAdminu) prikazuje režim čitanja, throttle, keš, zadnje
    očitavanje i izvor (**AD (LDAPS)** ili **Ručni katalog**), uz **Pokreni ručno očitavanje**.
 6. U istom panelu je **Sinhronizacija s Active Directoryjem**: **Test veze**, **Probni prolaz** (pregled plana
@@ -99,6 +102,13 @@
      postoji bar jedna CAB grupa.“
 6. **Obriši** je blokirano ako grupa ima tikete koji nisu zatvoreni (dugme **Potvrdi brisanje** / **Odustani**).
 
+### Dnevnik izmjena
+
+Promjene korisnika (kreiranje, izmjena, brisanje, reset lozinke i veza s direktorijem), organizacionih jedinica
+(uključujući ručni katalog) i grupa (uključujući članstvo) upisuju se u audit log u istoj transakciji kao i
+promjena podataka. Zapis nosi aktera, request ID kad je dostupan i relevantna polja prije/poslije; lozinke, hash
+lozinke, tokeni i MFA tajne se ne upisuju. Pri brisanju OJ audit bilježi broj uklonjenih OJ-scoped dodjela i pogođene korisnike.
+
 ## Polja, validacije i statusi
 
 | Polje / radnja | Validacija / pravilo | Poruka ili efekat |
@@ -107,11 +117,11 @@
 | Ime i prezime | ne smije biti prazno | „Ažuriranje korisnika nije uspjelo“ |
 | Organizacijska jedinica | mora postojati; može biti prazna | `ORGANIZATIONAL_UNIT_NOT_FOUND` |
 | Uloga | mora postojati; `SUPER_ADMIN` samo SuperAdmin | „Samo SuperAdmin može dodijeliti SuperAdmin ulogu.“ |
-| Reset lozinke | samo aktivan i **lokalni** nalog | privremena lozinka + odjava svih sesija |
+| Reset lozinke | samo aktivan i **lokalni** nalog | lokalni reset se auditira i odjavljuje sesije; reset AD-praćenog naloga vraća `409 DIRECTORY_ACCOUNT_NOT_LOCAL` i bilježi odbijeni pokušaj |
 | Brisanje korisnika | nema otvorenih tiketa; ne može vlastiti nalog | „Obrisati korisnika …? Ova radnja se ne može poništiti.“ |
 | OU naziv | ne smije biti prazan; gradi `ouPath` | `INVALID_NAME` |
 | OU DN | mora odgovarati parentu; jedinstven | „Distinguished name must be a descendant of the parent distinguished name“, „Distinguished name already exists“ |
-| Brisanje OU-a | bez podređenih OU-a i bez korisnika | „Organizational unit still has child units“ / „…still has mapped users“ |
+| Brisanje OU-a iz ručnog kataloga | bez djece, kataloških korisnika/grupa i drugih živih veza; svaka veza vraća tip i broj | `409` s `blockers`; samo neprepoznata FK restrikcija daje `409 RESOURCE_IN_USE` |
 | Grupa | naziv obavezan; `key` jedinstven (automatski) | `DUPLICATE_KEY` |
 | Fallback grupa | jedna po OU-u; posljednja se ne briše | `SOLE_FALLBACK_GROUP` |
 | Članstvo u grupi | korisnik mora postojati; bez duplikata | `MEMBER_ALREADY_EXISTS` / `MEMBER_NOT_FOUND` |
@@ -121,29 +131,21 @@
 
 - **„Zašto ne mogu promijeniti e-mail korisnika?“** — Nalog je AD-praćen (`AD-praćen` badge); e-mail dolazi iz
   kataloga. Ako korisnik treba lokalni e-mail, prvo **Raskini AD vezu** (SuperAdmin).
-- **„Zašto nema dugmeta Resetuj lozinku?“** — Vidi se samo za lokalne naloge. Za AD/Entra nalog lozinkom
-  upravlja Microsoft (vidi i stranicu *Prijava i MFA*).
+- **„Zašto nema dugmeta Resetuj lozinku?“** — Vidi se samo za lokalne naloge. Direktan API zahtjev za AD/Entra
+  nalog se odbija s `409 DIRECTORY_ACCOUNT_NOT_LOCAL` i evidentira u auditu. Ako nalog treba preći na lokalnu
+  prijavu, prvo koristite **Raskini AD vezu** (vidi i stranicu *Prijava i MFA*).
 - **„Reset MFA-a je odbio radnju.“** — Potrebna su najmanje 5 znakova u polju **Razlog** i SUPER_ADMIN nalog.
 - **„Ne mogu obrisati korisnika.“** — Ima otvorene tikete; prvo ih zatvorite ili ih prebacite na drugog
   obrađivača.
-- **„Ne mogu obrisati OU.“** — Ima podređene jedinice ili mapirane korisnike. Ako jedinica ima **grupu**,
-  imovinu, KB članak ili routing/SLA pravilo, brisanje trenutno vraća opću grešku bez objašnjenja; uklonite
-  zavisnosti pa pokušajte ponovo (vidi *Poznata ograničenja*).
+- **„Ne mogu obrisati OU.“** — Odgovor navodi vrste i broj veza koje blokiraju brisanje (npr. korisnički
+  nalozi, grupe, tiketi, imovina ili pravila). Uklonite ili premjestite te veze pa pokušajte ponovo; nalozi se
+  ovim putem nikad ne brišu.
 - **„Osigurač je aktiviran.“** — Probni prolaz je našao previše deaktivacija u odnosu na prag; provjerite bazni
   DN i filtere, pa ponovite probni prolaz.
 - **„Sve prijave su odjavljene nakon reset lozinke.“** — Tako je i predviđeno: reset lozinke prekida sve sesije.
 
 ## Poznata ograničenja
 
-- **Brisanje OU-a ne provjerava sve zavisnosti** — provjeravaju se samo podređene jedinice i korisnici. Ako OU
-  ima grupu, imovinu, zahtjev za promjenu, KB članak ili routing/SLA pravilo, brisanje vraća opću grešku
-  servera. (Nalaz B1 iz `REVIEW_ANALIZA.md` §M3.)
-- **Brisanje OU-a briše i dodjele rola** vezane za tu jedinicu; korisnici ostaju bez tog pristupa, a keš
-  dozvola se ne osvježava odmah. (Nalaz B2.)
-- **Izmjene korisnika, OU-a i grupa se ne bilježe u audit log** (bilježe se samo dodjela i uklanjanje role).
-  (Nalaz B3.)
-- **API dozvoljava reset lozinke AD-praćenog naloga** i time ga pretvara u lokalni (UI to dugme ne prikazuje).
-  (Nalaz B4.)
 - **Nema zaštite posljednjeg SuperAdmin naloga** — uklanjanje zadnje SUPER_ADMIN role je moguće. (Nalaz B5.)
 - **Neaktivan korisnik na reset lozinke** dobija opću poruku „Reset lozinke nije uspio“. (Nalaz B6.)
 - **Lista korisnika se prikazuje do 500 redova**; ako organizacija ima više korisnika, dio se ne prikazuje.
@@ -161,4 +163,4 @@
 
 ---
 
-*Ažurirano: 2026-10-03 · Moduli: korisnici, organizacione jedinice, grupe (M3)*
+*Ažurirano: 2026-10-06 · Moduli: korisnici, organizacione jedinice, grupe (M3)*

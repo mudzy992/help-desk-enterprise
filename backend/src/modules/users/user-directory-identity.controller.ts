@@ -4,19 +4,20 @@ import {
   Delete,
   Param,
   Post,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { readRequestIdHeader } from '../../common/request-context/read-request-id-header';
+import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { LinkUserDirectoryIdentityDto } from './dto/link-user-directory-identity.dto';
-import type {
-  ResetUserPasswordResponse,
-  UserSummaryResponse,
-} from './users.types';
+import type { ResetUserPasswordResponse, UserSummaryResponse } from './users.types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -36,17 +37,26 @@ export class UserDirectoryIdentityController {
   linkDirectoryIdentity(
     @Param('userId') userId: string,
     @Body() body: LinkUserDirectoryIdentityDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<UserSummaryResponse> {
-    return this.usersService.linkDirectoryIdentity({
-      userId,
-      directoryExternalId: body.directoryExternalId,
-    });
+    return this.usersService.linkDirectoryIdentity(
+      { userId, directoryExternalId: body.directoryExternalId },
+      readAuditContext(request),
+    );
   }
 
   @Delete(':userId/link-directory-identity')
   unlinkDirectoryIdentity(
     @Param('userId') userId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<ResetUserPasswordResponse> {
-    return this.usersService.unlinkDirectoryIdentity(userId);
+    return this.usersService.unlinkDirectoryIdentity(userId, readAuditContext(request));
   }
+}
+
+function readAuditContext(request: AuthenticatedHttpRequest) {
+  return {
+    actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    requestId: readRequestIdHeader(request.headers),
+  };
 }

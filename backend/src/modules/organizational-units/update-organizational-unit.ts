@@ -1,5 +1,8 @@
 import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import type { PrismaService } from '../../common/prisma/prisma.service';
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
+import type { JsonValue } from '../change-log/change-log.types';
 import { assertDistinguishedNameMatchesParent } from './assert-distinguished-name-matches-parent';
 import { assertOrganizationalUnitIdentityIsAvailable } from './assert-organizational-unit-identity-is-available';
 import { assertParentChangeIsValid } from './assert-parent-change-is-valid';
@@ -13,9 +16,11 @@ import { normalizeDistinguishedName } from './normalize-distinguished-name';
 import { normalizeOptionalOrganizationalUnitAttribute } from './normalize-optional-organizational-unit-attribute';
 import { normalizeOrganizationalUnitName } from './normalize-organizational-unit-name';
 import type {
+  OrganizationalUnitAuditContext,
   OrganizationalUnitDetailResponse,
   UpdateOrganizationalUnitInput,
 } from './organizational-unit.types';
+import { recordOrganizationalUnitChange } from './record-organizational-unit-change';
 import { rewriteDescendantDistinguishedName } from './rewrite-descendant-distinguished-name';
 import { rewriteOrganizationalUnitPath } from './rewrite-organizational-unit-path';
 import { throwIfUniqueConstraintViolated } from './throw-if-unique-constraint-violated';
@@ -24,33 +29,23 @@ export async function updateOrganizationalUnit(
   prisma: PrismaService,
   organizationalUnitId: string,
   input: UpdateOrganizationalUnitInput,
+  context: OrganizationalUnitAuditContext = { actorUserId: null, requestId: null },
 ): Promise<OrganizationalUnitDetailResponse> {
   const current = await loadOrganizationalUnit(prisma, organizationalUnitId);
-  const name =
-    input.name === undefined
-      ? current.name
-      : normalizeOrganizationalUnitName(input.name);
-  const distinguishedName =
-    input.distinguishedName === undefined
-      ? current.distinguishedName
-      : normalizeDistinguishedName(input.distinguishedName);
-  const nextParentId =
-    input.parentId === undefined ? current.parentId : input.parentId;
+  const name = input.name === undefined ? current.name : normalizeOrganizationalUnitName(input.name);
+  const distinguishedName = input.distinguishedName === undefined
+    ? current.distinguishedName
+    : normalizeDistinguishedName(input.distinguishedName);
+  const nextParentId = input.parentId === undefined ? current.parentId : input.parentId;
   if (nextParentId !== current.parentId) {
-    await assertParentChangeIsValid(prisma, {
-      organizationalUnitId,
-      nextParentId,
-    });
+    await assertParentChangeIsValid(prisma, { organizationalUnitId, nextParentId });
   }
   const parent = await loadParentOrganizationalUnit(prisma, nextParentId);
   assertDistinguishedNameMatchesParent({
     distinguishedName,
     parentDistinguishedName: parent?.distinguishedName ?? null,
   });
-  const ouPath = buildOrganizationalUnitPath({
-    name,
-    parentPath: parent?.ouPath ?? null,
-  });
+  const ouPath = buildOrganizationalUnitPath({ name, parentPath: parent?.ouPath ?? null });
   await assertOrganizationalUnitIdentityIsAvailable(prisma, {
     distinguishedName,
     ouPath,
@@ -74,37 +69,45 @@ export async function updateOrganizationalUnit(
       newAncestorDistinguishedName: distinguishedName,
     }),
   );
-  const excludedIds = [
-    organizationalUnitId,
-    ...descendants.map((descendant) => descendant.id),
-  ];
-  await assertRewrittenPathsAreAvailable(prisma, {
-    excludedIds,
-    nextPaths: rewrittenDescendantPaths,
-  });
+  const excludedIds = [organizationalUnitId, ...descendants.map((descendant) => descendant.id)];
+  await assertRewrittenPathsAreAvailable(prisma, { excludedIds, nextPaths: rewrittenDescendantPaths });
   await assertRewrittenDistinguishedNamesAreAvailable(prisma, {
     excludedIds,
     nextDistinguishedNames: rewrittenDescendantDistinguishedNames,
   });
+
+  const nextUnit = {
+    name,
+    type: input.type ?? current.type,
+    distinguishedName,
+    ouPath,
+    parentId: parent?.id ?? null,
+    company: input.company === undefined
+      ? current.company
+      : normalizeOptionalOrganizationalUnitAttribute(input.company),
+    department: input.department === undefined
+      ? current.department
+      : normalizeOptionalOrganizationalUnitAttribute(input.department),
+  };
+  const beforeUnit = {
+    name: current.name,
+    type: current.type,
+    distinguishedName: current.distinguishedName,
+    ouPath: current.ouPath,
+    parentId: current.parentId,
+    company: current.company,
+    department: current.department,
+  };
+  const changedFields = (Object.keys(nextUnit) as (keyof typeof nextUnit)[])
+    .filter((field) => nextUnit[field] !== beforeUnit[field]);
+  const before = Object.fromEntries(changedFields.map((field) => [field, beforeUnit[field]])) as JsonValue;
+  const after = Object.fromEntries(changedFields.map((field) => [field, nextUnit[field]])) as JsonValue;
+
   try {
     await prisma.$transaction(async (transaction) => {
       await transaction.organizationalUnit.update({
         where: { id: organizationalUnitId },
-        data: {
-          name,
-          type: input.type ?? current.type,
-          distinguishedName,
-          ouPath,
-          parentId: parent?.id ?? null,
-          company:
-            input.company === undefined
-              ? current.company
-              : normalizeOptionalOrganizationalUnitAttribute(input.company),
-          department:
-            input.department === undefined
-              ? current.department
-              : normalizeOptionalOrganizationalUnitAttribute(input.department),
-        },
+        data: nextUnit,
       });
       for (const [index, descendant] of descendants.entries()) {
         await transaction.organizationalUnit.update({
@@ -115,6 +118,21 @@ export async function updateOrganizationalUnit(
           },
         });
       }
+      await recordOrganizationalUnitChange(
+        transaction as unknown as AuditLogWriteClient,
+        {
+          action: auditLogActions.organizationalUnitUpdated,
+          entityId: organizationalUnitId,
+          organizationalUnitId,
+          actorUserId: context.actorUserId,
+          requestId: context.requestId,
+          metadata: {
+            before,
+            after,
+            affectedDescendantCount: descendants.length,
+          },
+        },
+      );
     });
   } catch (error) {
     throwIfUniqueConstraintViolated(error);

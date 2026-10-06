@@ -463,40 +463,46 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Početak → Prijava i MFA
 
-### T23 — Nalog ima jedan identitet; veza s katalogom je eksplicitna SuperAdmin akcija
+### T23 — Nalog ima jedan identitet; reset lozinke važi samo za lokalni nalog
 
 - **Modul / paket:** Korisnici, OU i grupe
 - **Publika:** Administratori
 - **Tip:** Pravilo
 - **Teza:** Nalog je ili **lokalan** ili **AD-praćen**. Veza s katalogom se uspostavlja isključivo ručno
-  (**Poveži sa AD nalogom**, samo SUPER_ADMIN) i nikad automatski po e-mail adresi; **Raskini AD vezu** vraća
-  nalog u lokalni i izdaje mu privremenu lozinku koju mora promijeniti pri sljedećoj prijavi.
-- **Zašto:** sprječava da nalog s istim e-mailom preuzme historiju tuđeg naloga.
+  (**Poveži sa AD nalogom**, samo SUPER_ADMIN) i nikad automatski po e-mail adresi. Reset lozinke za
+  AD-praćeni nalog API odbija s `409 DIRECTORY_ACCOUNT_NOT_LOCAL` i bilježi odbijeni pokušaj; za prelazak na
+  lokalnu prijavu prvo se koristi **Raskini AD vezu**, što izdaje privremenu lozinku za narednu prijavu.
+- **Zašto:** sprječava da reset tiho promijeni način prijave i da nalog s istim e-mailom preuzme historiju
+  drugog identiteta.
 - **Primjer:** Dijalog **Poveži sa katalog identitetom** prikazuje uporedo **Lokalni nalog** i **Katalog
-  (AD/manual)** i traži potvrdu oba identiteta.
-- **Postavke / permisije:** veza/raskid su SUPER_ADMIN-only (`user-directory-identity.controller.ts:24`).
-- **Ekran:** Administracija → **Korisnici** → **Poveži sa AD nalogom** / **Raskini AD vezu**.
-- **Izvori:** `backend/src/modules/users/link-user-directory-identity.ts:32–60`,
-  `unlink-user-directory-identity.ts:35–52`, i18n `users.linkDirectory*`.
-- **Status:** Važi
+  (AD/manual)**; pokušaj resetovanja povezanog naloga vraća `DIRECTORY_ACCOUNT_NOT_LOCAL`.
+- **Postavke / permisije:** veza/raskid su SUPER_ADMIN-only (`user-directory-identity.controller.ts`); reset je
+  dostupan samo lokalnom nalogu.
+- **Ekran:** Administracija → **Korisnici** → **Poveži sa AD nalogom** / **Raskini AD vezu** / **Resetuj lozinku**.
+- **Izvori:** `backend/src/modules/users/link-user-directory-identity.ts`,
+  `reset-user-temporary-password.ts`, `map-users-error.ts`, `unlink-user-directory-identity.ts`;
+  `reset-user-temporary-password.spec.ts`, `issue-temporary-password-for-user.spec.ts`.
+- **Status:** Važi (B4 zatvoren 2026-10-06)
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
-### T24 — OU se ne može obrisati dok ima podređene jedinice ili korisnike
+### T24 — Brisanje OJ navodi blokere; naloge ne briše, a dodjele uloga upozorava
 
 - **Modul / paket:** Korisnici, OU i grupe
 - **Publika:** Administratori
 - **Tip:** Pravilo
-- **Teza:** Brisanje organizacione jedinice je blokirano ako jedinica ima podređenih OU-a ili mapiranih
-  korisnika. Ostale zavisnosti (grupe, imovina, KB, routing/SLA pravila) u kodu se **ne** provjeravaju — vidi
-  poznata ograničenja.
-- **Zašto:** čuva integritet stabla i vidljivost tiketa po OU-u.
-- **Primjer:** OU s podređenom službom vraća „Organizational unit still has child units“; OU s korisnicima
-  „Organizational unit still has mapped users“.
-- **Postavke / permisije:** nije postavka; brisanje traži ADMIN ili SUPER_ADMIN.
-- **Ekran:** Administracija → **Org. jedinice** → **Obriši**.
-- **Izvori:** `backend/src/modules/organizational-units/delete-organizational-unit.ts:20–25`,
-  `map-organizational-unit-error.ts:17–31`.
-- **Status:** Važi (uz ograničenje B1 iz `REVIEW_ANALIZA.md` §M3)
+- **Teza:** Brisanje OJ iz ručnog kataloga atomarno uklanja kataloški zapis i materijalizovanu OJ. Djeca,
+  povezani lokalni/AD korisnici, grupe i ostale žive veze blokiraju brisanje s `409` i konkretnim tipom/brojem
+  veza. Korisnički nalozi se ne brišu; OJ-scoped dodjele uloga mogu nestati uz audit, brojčano upozorenje i
+  invalidaciju cacheva. Stvarni AD nalog se ne briše.
+- **Zašto:** čuva integritet stabla i sprječava gubitak korisničkih naloga ili nevidljivu FK grešku.
+- **Primjer:** OJ s dvije grupe vraća `HAS_GROUPS` i `{ kind: "groups", count: 2 }`; OJ s OJ-scoped dodjelom
+  vraća upozorenje `ROLE_ASSIGNMENTS_REMOVED` uz broj uklonjenih dodjela.
+- **Postavke / permisije:** nije postavka; ručni katalog je SUPER_ADMIN-only.
+- **Ekran:** Administracija → **Org. jedinice** / **Ručni katalog** → **Obriši**.
+- **Izvori:** `backend/src/modules/organizational-units/count-organizational-unit-delete-blockers.ts`,
+  `delete-organizational-unit.ts`, `backend/src/modules/directory-sync/delete-manual-directory-organizational-unit.ts`,
+  `format-error-response.ts`; odgovarajući delete specovi.
+- **Status:** Važi (B1–B2 zatvoreni 2026-10-06)
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
 ### T25 — Fallback grupa je jedna po OU-u; problemi i promjene se aktiviraju svojom grupom
@@ -518,22 +524,27 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
-### T26 — Audit trenutno pokriva samo dodjelu i uklanjanje uloga
+### T26 — Mutacije korisnika, OJ i grupa ostavljaju audit trag bez tajni
 
 - **Modul / paket:** Korisnici, OU i grupe
 - **Publika:** Administratori
-- **Tip:** Ograničenje
-- **Teza:** U audit log ulaze `userRoleAssign` i `userRoleRemove`. Kreiranje, izmjena i brisanje korisnika,
-  izmjene organizacionih jedinica i izmjene grupa se **ne** bilježe, iako RAW traži audit svih akcija
-  (`RAW_PROJECT.md:173`). Dokumentacija zato ne smije tvrditi da su te radnje auditovane.
-- **Zašto:** forenzičko istraživanje („ko je obrisao nalog / promijenio OU“) zasad nije moguće iz aplikacije.
-- **Primjer:** Nakon brisanja korisnika u audit logu nema zapisa; zapis postoji samo ako mu je prije toga
-  dodijeljena/uklonjena rola.
-- **Postavke / permisije:** nije postavka.
-- **Ekran:** Administracija → **Ops** → audit (nema zapisa za ove radnje).
-- **Izvori:** `backend/src/modules/users/assign-user-role.ts:92`, `remove-user-role.ts:35`; prazan `grep`
-  `appendAuditLog` u `modules/organizational-units/` i `modules/groups/`.
-- **Status:** Privremeno (nalaz B3, `REVIEW_ANALIZA.md` §M3) — mijenja se kad kod dobije audit.
+- **Tip:** Pravilo
+- **Teza:** Kreiranje, izmjena i brisanje korisnika/OJ/grupa, promjene članstva, reset lozinke i raskid veze s
+  direktorijem upisuju audit zapis u istoj transakciji kao i mutaciju. Metapodaci sadrže kontekst aktera/requesta
+  i relevantna polja prije/poslije (request ID kad je dostupan), ali ne lozinke, hash lozinke, tokene ni MFA tajne. Odbijeni reset AD naloga
+  se takođe bilježi.
+- **Zašto:** omogućava istragu ko je promijenio identitet, strukturu ili članstvo bez izlaganja autentikacijskih
+  tajni.
+- **Primjer:** Reset lokalne lozinke bilježi `user.password_reset` bez privremene lozinke; ne-lokalni reset
+  bilježi `user.password_reset_rejected` i vraća `409 DIRECTORY_ACCOUNT_NOT_LOCAL`.
+- **Postavke / permisije:** nije postavka; vidljivost zapisa prati pristup audit logu.
+- **Ekran:** Administracija → **Ops** → audit.
+- **Izvori:** `backend/src/modules/users/record-user-change.ts`,
+  `backend/src/modules/organizational-units/record-organizational-unit-change.ts`,
+  `backend/src/modules/groups/record-group-change.ts`; `update-user.spec.ts`,
+  `organizational-units.service.spec.ts`, `groups.service.spec.ts`,
+  `issue-temporary-password-for-user.spec.ts`.
+- **Status:** Važi (B3 zatvoren 2026-10-06)
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
 ### T27 — SuperAdmin ima sve permisije i zaobilazi provjere, ali mora biti lokalni nalog

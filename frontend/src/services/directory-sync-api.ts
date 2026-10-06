@@ -108,9 +108,16 @@ export function updateManualDirectoryOrganizationalUnit(
   );
 }
 
+export type ManualDirectoryOrganizationalUnitDeleteResponse = {
+  readonly warnings: readonly {
+    readonly code: "ROLE_ASSIGNMENTS_REMOVED";
+    readonly count: number;
+  }[];
+};
+
 export function deleteManualDirectoryOrganizationalUnit(
   externalId: string,
-): Promise<void> {
+): Promise<ManualDirectoryOrganizationalUnitDeleteResponse> {
   return apiRequest(
     `/directory-sync/manual-catalog/organizational-units/${encodeURIComponent(externalId)}`,
     { method: "DELETE" },

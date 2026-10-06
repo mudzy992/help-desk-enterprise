@@ -1,33 +1,67 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import type {
-  PrincipalInvalidationHook,
-  UpdateUserInput,
-  UserSummaryResponse,
-} from './users.types';
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
+import type { JsonValue } from '../change-log/change-log.types';
+import type { UserAuditContext, PrincipalInvalidationHook, UpdateUserInput, UserSummaryResponse } from './users.types';
+import { recordUserChange } from './record-user-change';
 import { UsersError } from './users.error';
 import { listUsersSummary } from './list-users-summary';
+
+type UserUpdateField = 'displayName' | 'email' | 'organizationalUnitId' | 'isActive';
+type ExistingUser = {
+  readonly id: string;
+  readonly email: string;
+  readonly isLocalOnly: boolean;
+  readonly displayName: string;
+  readonly organizationalUnitId: string | null;
+  readonly isActive: boolean;
+};
+type UserUpdateData = Partial<Record<UserUpdateField, string | boolean | null>>;
 
 export async function updateUser(
   prisma: PrismaService,
   input: UpdateUserInput,
   invalidatePrincipal: PrincipalInvalidationHook = async () => {},
+  context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<UserSummaryResponse> {
   const existing = await prisma.user.findUnique({
     where: { id: input.userId },
-    select: { id: true, email: true, isLocalOnly: true },
+    select: {
+      id: true,
+      email: true,
+      isLocalOnly: true,
+      displayName: true,
+      organizationalUnitId: true,
+      isActive: true,
+    },
   });
   if (existing === null) {
     throw new UsersError('USER_NOT_FOUND');
   }
   const data = await buildUpdateData(prisma, existing, input);
-  if (Object.keys(data).length > 0) {
-    await prisma.user.update({
-      where: { id: input.userId },
-      data,
+  const changedData = Object.fromEntries(
+    Object.entries(data).filter(([field, value]) => existing[field as UserUpdateField] !== value),
+  ) as UserUpdateData;
+  const changedFields = Object.keys(changedData) as UserUpdateField[];
+  if (changedFields.length > 0) {
+    const before = Object.fromEntries(
+      changedFields.map((field) => [field, existing[field]]),
+    ) as JsonValue;
+    await prisma.$transaction(async (transaction) => {
+      await transaction.user.update({ where: { id: input.userId }, data: changedData });
+      await recordUserChange(transaction as unknown as AuditLogWriteClient, {
+        action: auditLogActions.userUpdated,
+        entityId: input.userId,
+        actorUserId: context.actorUserId,
+        requestId: context.requestId,
+        organizationalUnitId:
+          changedData.organizationalUnitId !== undefined
+            ? changedData.organizationalUnitId
+            : existing.organizationalUnitId,
+        metadata: { before, after: changedData as JsonValue },
+      });
     });
-    // Phase 2.2: displayName, unit and (above all) the active flag are part of
-    // the cached principal context. Deactivation has to bite on the very next
-    // request, so the entry is dropped and its version bumped here.
+    // Cached authorization includes the user's unit and active state.
     await invalidatePrincipal(input.userId);
   }
   const summaries = await listUsersSummary(prisma, { ids: [input.userId] });
@@ -40,10 +74,10 @@ export async function updateUser(
 
 async function buildUpdateData(
   prisma: PrismaService,
-  existing: { readonly id: string; readonly email: string; readonly isLocalOnly: boolean },
+  existing: ExistingUser,
   input: UpdateUserInput,
-): Promise<Record<string, string | boolean | null>> {
-  const data: Record<string, string | boolean | null> = {};
+): Promise<UserUpdateData> {
+  const data: UserUpdateData = {};
   if (input.displayName !== undefined) {
     const displayName = input.displayName.trim();
     if (displayName.length === 0) {
@@ -60,10 +94,7 @@ async function buildUpdateData(
       throw new UsersError('INVALID_INPUT');
     }
     if (email !== existing.email) {
-      const conflict = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true },
-      });
+      const conflict = await prisma.user.findUnique({ where: { email }, select: { id: true } });
       if (conflict !== null && conflict.id !== existing.id) {
         throw new UsersError('EMAIL_CONFLICT');
       }

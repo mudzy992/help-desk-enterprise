@@ -3,15 +3,18 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Param,
   Patch,
   Post,
   Put,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { readRequestIdHeader } from '../../common/request-context/read-request-id-header';
+import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
@@ -26,6 +29,7 @@ import type {
   OrganizationalUnitTreeNodeResponse,
   OrganizationalUnitUserResponse,
 } from './organizational-unit.types';
+import type { OrganizationalUnitDeleteResponse } from './organizational-unit-delete.types';
 
 @Controller('organizational-units')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -45,8 +49,9 @@ export class OrganizationalUnitsController {
   @Post()
   create(
     @Body() body: CreateOrganizationalUnitDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<OrganizationalUnitDetailResponse> {
-    return this.organizationalUnitsService.create(body);
+    return this.organizationalUnitsService.create(body, readAuditContext(request));
   }
 
   @Get('tree')
@@ -58,8 +63,9 @@ export class OrganizationalUnitsController {
   @Put('user-mappings')
   assignUser(
     @Body() body: AssignUserOrganizationalUnitDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<OrganizationalUnitUserResponse> {
-    return this.organizationalUnitsService.assignUser(body);
+    return this.organizationalUnitsService.assignUser(body, readAuditContext(request));
   }
 
   @Get(':organizationalUnitId/users')
@@ -80,15 +86,30 @@ export class OrganizationalUnitsController {
   update(
     @Param('organizationalUnitId') organizationalUnitId: string,
     @Body() body: UpdateOrganizationalUnitDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<OrganizationalUnitDetailResponse> {
-    return this.organizationalUnitsService.update(organizationalUnitId, body);
+    return this.organizationalUnitsService.update(
+      organizationalUnitId,
+      body,
+      readAuditContext(request),
+    );
   }
 
   @Delete(':organizationalUnitId')
-  @HttpCode(204)
-  async delete(
+  delete(
     @Param('organizationalUnitId') organizationalUnitId: string,
-  ): Promise<void> {
-    await this.organizationalUnitsService.delete(organizationalUnitId);
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<OrganizationalUnitDeleteResponse> {
+    return this.organizationalUnitsService.delete(
+      organizationalUnitId,
+      readAuditContext(request),
+    );
   }
+}
+
+function readAuditContext(request: AuthenticatedHttpRequest) {
+  return {
+    actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    requestId: readRequestIdHeader(request.headers),
+  };
 }

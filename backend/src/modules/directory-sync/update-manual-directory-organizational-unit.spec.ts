@@ -1,7 +1,25 @@
+jest.mock('../../generated/prisma/enums', () => ({
+  OrganizationalUnitType: {
+    DIRECTORATE: 'DIRECTORATE',
+    BRANCH: 'BRANCH',
+    OFFICE: 'OFFICE',
+    SECTOR: 'SECTOR',
+    SERVICE: 'SERVICE',
+  },
+}), { virtual: true });
+
+jest.mock('../organizational-units/record-organizational-unit-change', () => ({
+  recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
+}));
+
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import { updateManualDirectoryOrganizationalUnit } from './update-manual-directory-organizational-unit';
 
 type CatalogRow = {
+  id?: string;
+  type?: 'DIRECTORATE' | 'BRANCH' | 'OFFICE' | 'SECTOR' | 'SERVICE';
   externalId: string;
   displayName: string;
   parentExternalId: string | null;
@@ -10,7 +28,7 @@ type CatalogRow = {
 };
 
 function createCatalogPrisma(seed: CatalogRow[]) {
-  const rows = new Map(seed.map((row) => [row.externalId, { ...row }]));
+  const rows = new Map(seed.map((row) => [row.externalId, { id: row.id ?? row.externalId, type: row.type ?? 'BRANCH', ...row }]));
   const api = {
     findUnique: async ({ where }: { where: { externalId: string } }) =>
       rows.get(where.externalId) ?? null,
@@ -31,21 +49,23 @@ function createCatalogPrisma(seed: CatalogRow[]) {
       return next;
     },
   };
+  const transaction = { manualDirectoryOrganizationalUnit: api };
   return {
     rows,
+    transaction,
     prisma: {
       manualDirectoryOrganizationalUnit: api,
-      $transaction: async <T>(callback: (transaction: {
-        manualDirectoryOrganizationalUnit: typeof api;
-      }) => Promise<T>): Promise<T> =>
-        callback({ manualDirectoryOrganizationalUnit: api }),
+      $transaction: async <T>(callback: (client: typeof transaction) => Promise<T>): Promise<T> =>
+        callback(transaction),
     },
   };
 }
 
 describe('updateManualDirectoryOrganizationalUnit', () => {
+  beforeEach(() => jest.mocked(recordOrganizationalUnitChange).mockClear());
+
   it('cascades organizationalUnitPath and DN to children and grandchildren on rename', async () => {
-    const { prisma, rows } = createCatalogPrisma([
+    const { prisma, rows, transaction } = createCatalogPrisma([
       {
         externalId: 'ou:root',
         displayName: 'Users',
@@ -83,6 +103,16 @@ describe('updateManualDirectoryOrganizationalUnit', () => {
       organizationalUnitPath: '/Staff/IT/Helpdesk',
       distinguishedName: 'OU=Helpdesk,OU=IT,OU=Staff,DC=example,DC=com',
     });
+    expect(recordOrganizationalUnitChange).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({
+        action: auditLogActions.organizationalUnitUpdated,
+        metadata: expect.objectContaining({
+          source: 'manual_directory_catalog',
+          affectedDescendantCount: 2,
+        }),
+      }),
+    );
   });
 
   it('cascades paths when an OU is moved under a new parent', async () => {

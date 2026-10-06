@@ -25,14 +25,17 @@ export function mapUsersError(error: unknown): never {
   }
   if (
     error.code === 'EMAIL_CONFLICT' ||
-    error.code === 'DIRECTORY_IDENTITY_CONFLICT'
+    error.code === 'DIRECTORY_IDENTITY_CONFLICT' ||
+    error.code === 'DIRECTORY_ACCOUNT_NOT_LOCAL'
   ) {
     throw new ConflictException({
       code: error.code,
       message:
         error.code === 'DIRECTORY_IDENTITY_CONFLICT'
           ? 'Directory identity is already linked to another user'
-          : 'A user with this email already exists',
+          : error.code === 'DIRECTORY_ACCOUNT_NOT_LOCAL'
+            ? 'Directory accounts cannot be reset directly. Unlink the directory identity first.'
+            : 'A user with this email already exists',
     });
   }
   if (error.code === 'HAS_OPEN_TICKETS' || error.code === 'DELETE_RESTRICTED') {

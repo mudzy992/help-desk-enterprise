@@ -34,13 +34,28 @@ export function createInMemoryOrganizationalUnitPrisma(): {
   prisma: {
     organizationalUnit: Record<string, unknown>;
     user: Record<string, unknown>;
+    group: Record<string, unknown>;
+    asset: Record<string, unknown>;
+    assetContract: Record<string, unknown>;
+    softwareLicense: Record<string, unknown>;
+    assetSignatory: Record<string, unknown>;
+    changeRequest: Record<string, unknown>;
+    knowledgeArticle: Record<string, unknown>;
+    knowledgeInterceptResolution: Record<string, unknown>;
+    problem: Record<string, unknown>;
+    routingRule: Record<string, unknown>;
+    slaRule: Record<string, unknown>;
+    reportSchedule: Record<string, unknown>;
+    ticket: Record<string, unknown>;
+    userRole: Record<string, unknown>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
   };
   seedUnit: (unit: InMemoryOrganizationalUnit) => void;
   seedUser: (user: InMemoryOrganizationalUnitUser) => void;
+  getUser: (userId: string) => InMemoryOrganizationalUnitUser | null;
 } {
-  const units = new Map<string, InMemoryOrganizationalUnit>();
-  const users = new Map<string, InMemoryOrganizationalUnitUser>();
+  let units = new Map<string, InMemoryOrganizationalUnit>();
+  let users = new Map<string, InMemoryOrganizationalUnitUser>();
   let nextIdentifier = 1;
   const prisma = {
     organizationalUnit: {
@@ -90,6 +105,8 @@ export function createInMemoryOrganizationalUnitPrisma(): {
         }
         return matched.map((unit) => pickSelectedFields(unit, select));
       },
+      count: async ({ where }: { where: { parentId: string } }) =>
+        [...units.values()].filter((unit) => unit.parentId === where.parentId).length,
       create: async ({ data }: { data: Omit<InMemoryOrganizationalUnit, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }) => {
         assertUnique(units, data.distinguishedName, data.ouPath);
         const now = new Date('2026-09-10T10:00:00.000Z');
@@ -134,6 +151,8 @@ export function createInMemoryOrganizationalUnitPrisma(): {
       },
     },
     user: {
+      count: async ({ where }: { where: { organizationalUnitId: string } }) =>
+        [...users.values()].filter((user) => user.organizationalUnitId === where.organizationalUnitId).length,
       findUnique: async ({
         where,
         select,
@@ -183,8 +202,34 @@ export function createInMemoryOrganizationalUnitPrisma(): {
         return pickSelectedFields(updated, select);
       },
     },
+    group: { count: async () => 0 },
+    asset: { count: async () => 0 },
+    assetContract: { count: async () => 0 },
+    softwareLicense: { count: async () => 0 },
+    assetSignatory: { count: async () => 0 },
+    changeRequest: { count: async () => 0 },
+    knowledgeArticle: { count: async () => 0 },
+    knowledgeInterceptResolution: { count: async () => 0 },
+    problem: { count: async () => 0 },
+    routingRule: { count: async () => 0 },
+    slaRule: { count: async () => 0 },
+    reportSchedule: { count: async () => 0 },
+    ticket: { count: async () => 0 },
+    userRole: { findMany: async () => [] },
     $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
-      return callback(prisma);
+      const originalUnits = units;
+      const originalUsers = users;
+      const originalNextIdentifier = nextIdentifier;
+      units = new Map(originalUnits);
+      users = new Map(originalUsers);
+      try {
+        return await callback(prisma);
+      } catch (error) {
+        units = originalUnits;
+        users = originalUsers;
+        nextIdentifier = originalNextIdentifier;
+        throw error;
+      }
     },
   };
   return {
@@ -195,6 +240,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     seedUser: (user) => {
       users.set(user.id, user);
     },
+    getUser: (userId) => users.get(userId) ?? null,
   };
 }
 

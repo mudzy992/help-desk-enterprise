@@ -12,6 +12,16 @@ const conflictCodes: readonly OrganizationalUnitErrorCode[] = [
   'DUPLICATE_OU_PATH',
   'HAS_CHILDREN',
   'HAS_MAPPED_USERS',
+  'HAS_GROUPS',
+  'HAS_ASSETS',
+  'HAS_CHANGE_REQUESTS',
+  'HAS_KNOWLEDGE_ARTICLES',
+  'HAS_PROBLEMS',
+  'HAS_ROUTING_RULES',
+  'HAS_SLA_RULES',
+  'HAS_REPORT_SCHEDULES',
+  'HAS_TICKETS',
+  'RESOURCE_IN_USE',
 ];
 
 const messages: Record<OrganizationalUnitErrorCode, string> = {
@@ -27,14 +37,28 @@ const messages: Record<OrganizationalUnitErrorCode, string> = {
   DUPLICATE_DISTINGUISHED_NAME: 'Distinguished name already exists',
   DUPLICATE_OU_PATH: 'Organizational unit path already exists',
   HAS_CHILDREN: 'Organizational unit still has child units',
-  HAS_MAPPED_USERS: 'Organizational unit still has mapped users',
+  HAS_MAPPED_USERS: 'Organizational unit still has mapped or directory users',
+  HAS_GROUPS: 'Organizational unit is still linked to groups',
+  HAS_ASSETS: 'Organizational unit is still linked to assets or asset records',
+  HAS_CHANGE_REQUESTS: 'Organizational unit is still linked to change requests',
+  HAS_KNOWLEDGE_ARTICLES: 'Organizational unit is still linked to knowledge records',
+  HAS_PROBLEMS: 'Organizational unit is still linked to problems',
+  HAS_ROUTING_RULES: 'Organizational unit is still linked to routing rules',
+  HAS_SLA_RULES: 'Organizational unit is still linked to SLA rules',
+  HAS_REPORT_SCHEDULES: 'Organizational unit is still linked to report schedules',
+  HAS_TICKETS: 'Organizational unit is still linked to tickets',
+  RESOURCE_IN_USE: 'Organizational unit is still in use',
 };
 
 export function mapOrganizationalUnitError(error: unknown): HttpException {
   if (!(error instanceof OrganizationalUnitError)) {
     throw error;
   }
-  const body = { code: error.code, message: messages[error.code] };
+  const body = {
+    code: error.code,
+    message: messages[error.code],
+    ...(error.blockers.length > 0 ? { details: { blockers: error.blockers } } : {}),
+  };
   if (error.code === 'NOT_FOUND' || error.code === 'USER_NOT_FOUND') {
     return new NotFoundException(body);
   }

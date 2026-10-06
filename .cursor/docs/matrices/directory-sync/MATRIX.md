@@ -10,8 +10,11 @@ Samo `manual_only` je implementiran. `scheduled` → fail closed (`DIRECTORY_SYN
 ## Manual-only katalog
 Izvor istine za `manual_only`: DB tabele `ManualDirectoryOrganizationalUnit` / `ManualDirectoryUser` / `ManualDirectoryGroup` (seed iz `defaultManualDirectoryCatalog`).
 Admin CRUD: `GET/POST/PATCH/DELETE /directory-sync/manual-catalog/organizational-units` — guard `SUPER_ADMIN`.
-CRUD **ne** mutira live `OrganizationalUnit`; samo katalog + invalidacija `DirectoryReadCache`.
-Brisanje odbijeno dok postoje djeca u katalogu, katalog useri na path-u, ili materijalizovani OU ima children/mapped users.
+GET/POST/PATCH mijenjaju katalog i invalidiraju `DirectoryReadCache`; POST/PATCH **ne** mutiraju live `OrganizationalUnit`.
+DELETE atomarno uklanja ručni kataloški zapis i, ako postoji, materijalizovanu live `OrganizationalUnit`.
+Brisanje vraća `409` s tipom/brojem za djecu ili katalog korisnike/grupe i za sve žive OU veze; nalozi se nikad ne brišu.
+OJ-scoped `UserRole` dodjele se uklanjaju uz audit i warning, a principal cache pogođenih korisnika se best-effort invalidira.
+Ne šalje se brisanje stvarnom Active Directoryju.
 
 ## Materializacija
 `POST /directory-sync/read` (nakon throttle + provider read, cache miss ili `forceRefresh: true`):
@@ -30,5 +33,7 @@ Isti kao prije: `private.auth.adRead.*`, eksplicitni scope, QPS throttle, TTL iz
 - `GET /directory-sync/status` — `enabled`, `strategy`, `maxQueriesPerSecond`, `cacheTtlMinutes`, `ouTreeCacheTtlHours`, `lastSuccessfulReadAt`
 - Manual catalog CRUD (gore)
 
-## Sigurnost
-Nema Graph/MSAL/LDAP. Nema secreta u git. SUPER_ADMIN za sync/katalog.
+## Audit i sigurnost
+Create/update/delete ručnog kataloga evidentiraju se kao OJ audit događaji; brisanje live OU i kataloškog zapisa
+je jedna transakcija. Metapodaci nemaju autentikacijske tajne. Nema Graph/MSAL/LDAP brisanja i nema secreta u git.
+SUPER_ADMIN za sync/katalog.

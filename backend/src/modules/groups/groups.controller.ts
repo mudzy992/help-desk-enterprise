@@ -9,10 +9,14 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { readRequestIdHeader } from '../../common/request-context/read-request-id-header';
+import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import {
   authorizationRoleKeys,
@@ -42,16 +46,17 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
-  list(
-    @Query() query: ListGroupsQueryDto,
-  ): Promise<readonly GroupListItemResponse[]> {
+  list(@Query() query: ListGroupsQueryDto): Promise<readonly GroupListItemResponse[]> {
     return this.groupsService.list(query);
   }
 
   @Post()
   @RequirePermissions(permissionKeys.groupManage)
-  create(@Body() body: CreateGroupDto): Promise<GroupResponse> {
-    return this.groupsService.create(body);
+  create(
+    @Body() body: CreateGroupDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<GroupResponse> {
+    return this.groupsService.create(body, readAuditContext(request));
   }
 
   @Get(':groupId')
@@ -64,15 +69,19 @@ export class GroupsController {
   update(
     @Param('groupId') groupId: string,
     @Body() body: UpdateGroupDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<GroupResponse> {
-    return this.groupsService.update(groupId, body);
+    return this.groupsService.update(groupId, body, readAuditContext(request));
   }
 
   @Delete(':groupId')
   @HttpCode(204)
   @RequirePermissions(permissionKeys.groupManage)
-  async delete(@Param('groupId') groupId: string): Promise<void> {
-    await this.groupsService.delete(groupId);
+  async delete(
+    @Param('groupId') groupId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<void> {
+    await this.groupsService.delete(groupId, readAuditContext(request));
   }
 
   @Post(':groupId/members/:userId')
@@ -80,8 +89,9 @@ export class GroupsController {
   addMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<GroupResponse> {
-    return this.groupsService.addMember(groupId, userId);
+    return this.groupsService.addMember(groupId, userId, readAuditContext(request));
   }
 
   @Delete(':groupId/members/:userId')
@@ -89,7 +99,15 @@ export class GroupsController {
   removeMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<GroupResponse> {
-    return this.groupsService.removeMember(groupId, userId);
+    return this.groupsService.removeMember(groupId, userId, readAuditContext(request));
   }
+}
+
+function readAuditContext(request: AuthenticatedHttpRequest) {
+  return {
+    actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    requestId: readRequestIdHeader(request.headers),
+  };
 }

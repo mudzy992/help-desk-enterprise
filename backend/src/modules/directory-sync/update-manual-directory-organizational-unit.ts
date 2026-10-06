@@ -1,6 +1,10 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
+import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import type {
+  ManualDirectoryCatalogAuditContext,
   ManualDirectoryOrganizationalUnitResponse,
   UpdateManualDirectoryOrganizationalUnitInput,
 } from './manual-directory-catalog.types';
@@ -18,6 +22,7 @@ export async function updateManualDirectoryOrganizationalUnit(
   prisma: PrismaService,
   externalId: string,
   input: UpdateManualDirectoryOrganizationalUnitInput,
+  context: ManualDirectoryCatalogAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ManualDirectoryOrganizationalUnitResponse> {
   const existing = await prisma.manualDirectoryOrganizationalUnit.findUnique({
     where: { externalId },
@@ -142,6 +147,33 @@ export async function updateManualDirectoryOrganizationalUnit(
           },
         });
       }
+      await recordOrganizationalUnitChange(
+        transaction as unknown as AuditLogWriteClient,
+        {
+          action: auditLogActions.organizationalUnitUpdated,
+          entityId: existing.id,
+          actorUserId: context.actorUserId,
+          requestId: context.requestId,
+          metadata: {
+            source: 'manual_directory_catalog',
+            before: {
+              displayName: existing.displayName,
+              parentExternalId: existing.parentExternalId,
+              organizationalUnitPath: existing.organizationalUnitPath,
+              distinguishedName: existing.distinguishedName,
+              type: existing.type,
+            },
+            after: {
+              displayName: root.displayName,
+              parentExternalId: root.parentExternalId,
+              organizationalUnitPath: root.organizationalUnitPath,
+              distinguishedName: root.distinguishedName,
+              type: root.type,
+            },
+            affectedDescendantCount: descendantUpdates.length,
+          },
+        },
+      );
       return root;
     });
     return toManualDirectoryOrganizationalUnitResponse(updated);
@@ -149,6 +181,18 @@ export async function updateManualDirectoryOrganizationalUnit(
     if (error instanceof ManualDirectoryCatalogError) {
       throw error;
     }
-    throw new ManualDirectoryCatalogError('IDENTITY_CONFLICT');
+    if (isPrismaUniqueConstraintError(error)) {
+      throw new ManualDirectoryCatalogError('IDENTITY_CONFLICT');
+    }
+    throw error;
   }
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
 }

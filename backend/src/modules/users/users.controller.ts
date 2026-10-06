@@ -94,7 +94,7 @@ export class UsersController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ResetUserPasswordResponse> {
     await this.assertCanManageTarget(request, userId);
-    const response = await this.usersService.resetTemporaryPassword(userId);
+    const response = await this.usersService.resetTemporaryPassword(userId, readAuditContext(request));
     // Paket 2.1: a reset password ends every session of the account.
     await this.sessionRegistry.revokeAll({
       userId,
@@ -120,13 +120,16 @@ export class UsersController {
         message: 'Cannot deactivate your own account',
       });
     }
-    return this.usersService.update({
-      userId,
-      displayName: body.displayName,
-      email: body.email,
-      organizationalUnitId: body.organizationalUnitId,
-      isActive: body.isActive,
-    });
+    return this.usersService.update(
+      {
+        userId,
+        displayName: body.displayName,
+        email: body.email,
+        organizationalUnitId: body.organizationalUnitId,
+        isActive: body.isActive,
+      },
+      readAuditContext(request),
+    );
   }
 
   @Delete(':userId')
@@ -143,7 +146,7 @@ export class UsersController {
       });
     }
     await this.assertCanManageTarget(request, userId);
-    await this.usersService.delete(userId);
+    await this.usersService.delete(userId, readAuditContext(request));
   }
 
   @Get(':userId/roles')
@@ -212,6 +215,13 @@ export class UsersController {
     );
     return context?.isSuperAdmin === true;
   }
+}
+
+function readAuditContext(request: AuthenticatedHttpRequest) {
+  return {
+    actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    requestId: readRequestId(request),
+  };
 }
 
 function readRequestId(request: AuthenticatedHttpRequest): string | null {

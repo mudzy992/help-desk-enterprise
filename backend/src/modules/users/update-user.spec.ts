@@ -1,3 +1,4 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
 import { updateUser } from './update-user';
 
 jest.mock('./list-users-summary', () => ({
@@ -20,109 +21,124 @@ jest.mock('./list-users-summary', () => ({
     },
   ]),
 }));
+jest.mock('./record-user-change', () => ({
+  recordUserChange: jest.fn().mockResolvedValue(undefined),
+}));
+
+import { recordUserChange } from './record-user-change';
 
 describe('updateUser', () => {
-  it('updates displayName and organizational unit', async () => {
+  const user = {
+    id: 'user-1',
+    email: 'local@example.com',
+    isLocalOnly: true,
+    displayName: 'Old Name',
+    organizationalUnitId: null,
+    isActive: true,
+  };
+
+  beforeEach(() => jest.mocked(recordUserChange).mockClear());
+
+  it('updates and audits displayName and organizational unit atomically', async () => {
     const update = jest.fn().mockResolvedValue({});
+    const transaction = { user: { update } };
     const prisma = {
-      user: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce({
-            id: 'user-1',
-            email: 'local@example.com',
-            isLocalOnly: true,
-          }),
-        update,
-      },
-      organizationalUnit: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'ou-1' }),
-      },
+      user: { findUnique: jest.fn().mockResolvedValue(user) },
+      organizationalUnit: { findUnique: jest.fn().mockResolvedValue({ id: 'ou-1' }) },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
     };
-    const result = await updateUser(prisma as never, {
-      userId: 'user-1',
-      displayName: ' Updated Name ',
-      organizationalUnitId: 'ou-1',
-    });
+    const result = await updateUser(
+      prisma as never,
+      { userId: 'user-1', displayName: ' Updated Name ', organizationalUnitId: 'ou-1' },
+      async () => {},
+      { actorUserId: 'admin-1', requestId: 'req-1' },
+    );
     expect(update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: {
-        displayName: 'Updated Name',
-        organizationalUnitId: 'ou-1',
+      data: { displayName: 'Updated Name', organizationalUnitId: 'ou-1' },
+    });
+    expect(recordUserChange).toHaveBeenCalledWith(transaction, {
+      action: auditLogActions.userUpdated,
+      entityId: 'user-1',
+      actorUserId: 'admin-1',
+      requestId: 'req-1',
+      organizationalUnitId: 'ou-1',
+      metadata: {
+        before: { displayName: 'Old Name', organizationalUnitId: null },
+        after: { displayName: 'Updated Name', organizationalUnitId: 'ou-1' },
       },
     });
     expect(result.displayName).toBe('Updated Name');
     expect(result.organizationalUnitId).toBe('ou-1');
   });
 
+  it('rolls back the user mutation when the audit insert fails', async () => {
+    const auditFailure = new Error('audit insert failed');
+    let persisted = { ...user };
+    const prisma = {
+      user: { findUnique: jest.fn(async () => persisted) },
+      organizationalUnit: { findUnique: jest.fn().mockResolvedValue({ id: 'ou-1' }) },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => {
+        let staged = { ...persisted };
+        const transaction = {
+          user: {
+            update: jest.fn(async ({ data }: { data: Partial<typeof user> }) => {
+              staged = { ...staged, ...data };
+              return staged;
+            }),
+          },
+        };
+        const result = await callback(transaction);
+        persisted = staged;
+        return result;
+      }),
+    };
+    jest.mocked(recordUserChange).mockRejectedValueOnce(auditFailure);
+
+    await expect(
+      updateUser(
+        prisma as never,
+        { userId: user.id, displayName: 'Uncommitted Name' },
+        jest.fn(),
+      ),
+    ).rejects.toBe(auditFailure);
+    expect(persisted).toEqual(user);
+  });
+
   it('rejects email changes for directory-linked users', async () => {
     const prisma = {
-      user: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 'user-1',
-          email: 'linked@example.com',
-          isLocalOnly: false,
-        }),
-        update: jest.fn(),
-      },
+      user: { findUnique: jest.fn().mockResolvedValue({ ...user, isLocalOnly: false }) },
       organizationalUnit: { findUnique: jest.fn() },
     };
     await expect(
-      updateUser(prisma as never, {
-        userId: 'user-1',
-        email: 'new@example.com',
-      }),
+      updateUser(prisma as never, { userId: 'user-1', email: 'new@example.com' }),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
 
-  it('invalidates the cached authorization data when the user changes', async () => {
-    // Phase 2.2 (plan §2.2): deactivation must bite on the very next request.
+  it('invalidates cached authorization after the audited active/unit mutation', async () => {
     const update = jest.fn().mockResolvedValue({});
+    const transaction = { user: { update } };
     const prisma = {
-      user: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 'user-1',
-          email: 'local@example.com',
-          isLocalOnly: true,
-        }),
-        update,
-      },
+      user: { findUnique: jest.fn().mockResolvedValue(user) },
       organizationalUnit: { findUnique: jest.fn() },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
     };
     const invalidatePrincipal = jest.fn().mockResolvedValue(1);
-
     await updateUser(
       prisma as never,
       { userId: 'user-1', isActive: false },
       invalidatePrincipal,
     );
-
-    expect(update).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: { isActive: false },
-    });
-    expect(invalidatePrincipal).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { isActive: false } });
+    expect(recordUserChange).toHaveBeenCalledTimes(1);
     expect(invalidatePrincipal).toHaveBeenCalledWith('user-1');
   });
 
-  it('does not invalidate when the update changed nothing', async () => {
-    const update = jest.fn().mockResolvedValue({});
-    const prisma = {
-      user: {
-        findUnique: jest.fn().mockResolvedValue({
-          id: 'user-1',
-          email: 'local@example.com',
-          isLocalOnly: true,
-        }),
-        update,
-      },
-      organizationalUnit: { findUnique: jest.fn() },
-    };
+  it('does not audit or invalidate when the update changed nothing', async () => {
+    const prisma = { user: { findUnique: jest.fn().mockResolvedValue(user) } };
     const invalidatePrincipal = jest.fn().mockResolvedValue(1);
-
     await updateUser(prisma as never, { userId: 'user-1' }, invalidatePrincipal);
-
-    expect(update).not.toHaveBeenCalled();
+    expect(recordUserChange).not.toHaveBeenCalled();
     expect(invalidatePrincipal).not.toHaveBeenCalled();
   });
 
@@ -131,21 +147,13 @@ describe('updateUser', () => {
       user: {
         findUnique: jest
           .fn()
-          .mockResolvedValueOnce({
-            id: 'user-1',
-            email: 'local@example.com',
-            isLocalOnly: true,
-          })
+          .mockResolvedValueOnce(user)
           .mockResolvedValueOnce({ id: 'user-2' }),
-        update: jest.fn(),
       },
       organizationalUnit: { findUnique: jest.fn() },
     };
     await expect(
-      updateUser(prisma as never, {
-        userId: 'user-1',
-        email: 'taken@example.com',
-      }),
+      updateUser(prisma as never, { userId: 'user-1', email: 'taken@example.com' }),
     ).rejects.toMatchObject({ code: 'EMAIL_CONFLICT' });
   });
 });

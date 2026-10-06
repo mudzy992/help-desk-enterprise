@@ -78,3 +78,8 @@ export type UpdateUserInput = {
   readonly organizationalUnitId?: string | null;
   readonly isActive?: boolean;
 };
+
+export type UserAuditContext = {
+  readonly actorUserId: string | null;
+  readonly requestId: string | null;
+};

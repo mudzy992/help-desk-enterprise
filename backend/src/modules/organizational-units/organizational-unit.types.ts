@@ -1,4 +1,5 @@
 import type { OrganizationalUnitType } from '../../generated/prisma/enums';
+export type { OrganizationalUnitAuditContext, OrganizationalUnitDeleteBlocker, OrganizationalUnitDeleteResponse, OrganizationalUnitDeleteWarning } from './organizational-unit-delete.types';
 
 export type OrganizationalUnitRecord = {
   readonly id: string;

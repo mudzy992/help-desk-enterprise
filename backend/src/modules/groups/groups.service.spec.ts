@@ -1,11 +1,19 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import { recordGroupChange } from './record-group-change';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { GroupsService } from './groups.service';
+
+jest.mock('./record-group-change', () => ({
+  recordGroupChange: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 describe('GroupsService', () => {
+  beforeEach(() => jest.mocked(recordGroupChange).mockClear());
+
   const now = new Date('2026-01-01T00:00:00.000Z');
   const unit = { id: 'ou-1', ouPath: '/IT' };
   const user = {
@@ -26,7 +34,10 @@ describe('GroupsService', () => {
     _count: { members: 0 },
   };
 
-  const createService = (invalidateUser = jest.fn().mockResolvedValue(1)) => {
+  const createService = (
+    invalidateUser = jest.fn().mockResolvedValue(1),
+    invalidateUsers = jest.fn().mockResolvedValue(undefined),
+  ) => {
     const prisma: {
       organizationalUnit: { findUnique: jest.Mock };
       group: {
@@ -54,7 +65,15 @@ describe('GroupsService', () => {
         findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn(),
-        create: jest.fn().mockResolvedValue({ id: groupRecord.id }),
+        create: jest.fn().mockResolvedValue({
+          id: groupRecord.id,
+          name: groupRecord.name,
+          key: groupRecord.key,
+          organizationalUnitId: groupRecord.organizationalUnitId,
+          isFallback: groupRecord.isFallback,
+          isProblemGroup: false,
+          isCabGroup: false,
+        }),
         update: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         delete: jest.fn(),
@@ -88,10 +107,11 @@ describe('GroupsService', () => {
         prisma as never,
         { loadBySubjectId: async () => null } as never,
         { load: async () => { throw new Error('not used'); } } as never,
-        { invalidateUser } as never,
+        { invalidateUser, invalidateUsers } as never,
       ),
       prisma,
       invalidateUser,
+      invalidateUsers,
     };
   };
 
@@ -113,6 +133,57 @@ describe('GroupsService', () => {
     );
     expect(created.id).toBe(groupRecord.id);
     expect(created.organizationalUnitPath).toBe(unit.ouPath);
+    expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      action: auditLogActions.groupCreated,
+      entityId: groupRecord.id,
+      metadata: expect.objectContaining({
+        after: expect.objectContaining({ name: 'IT Support', organizationalUnitId: unit.id }),
+      }),
+    }));
+  });
+
+  it('audits only changed fields when a group is updated', async () => {
+    const { service, prisma } = createService();
+    prisma.group.findUnique.mockResolvedValue(groupRecord);
+    prisma.group.update.mockResolvedValue({ ...groupRecord, name: 'Updated Support' });
+    await service.update(
+      groupRecord.id,
+      { name: 'Updated Support' },
+      { actorUserId: 'admin-1', requestId: 'req-update' },
+    );
+    expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      action: auditLogActions.groupUpdated,
+      entityId: groupRecord.id,
+      actorUserId: 'admin-1',
+      requestId: 'req-update',
+      metadata: { before: { name: 'IT Support' }, after: { name: 'Updated Support' } },
+    }));
+  });
+
+  it('rolls back a group membership change when the audit insert fails', async () => {
+    const auditFailure = new Error('audit insert failed');
+    let persistedMembership = false;
+    const { service, prisma } = createService();
+    prisma.group.findUnique.mockResolvedValue(groupRecord);
+    prisma.groupMember.findUnique.mockResolvedValue(null);
+    prisma.$transaction.mockImplementation(async (callback: (client: unknown) => Promise<unknown>) => {
+      let stagedMembership = persistedMembership;
+      const transaction = {
+        groupMember: {
+          create: jest.fn(async () => {
+            stagedMembership = true;
+            return { id: 'member-1' };
+          }),
+        },
+      };
+      const result = await callback(transaction);
+      persistedMembership = stagedMembership;
+      return result;
+    });
+    jest.mocked(recordGroupChange).mockRejectedValueOnce(auditFailure);
+
+    await expect(service.addMember(groupRecord.id, user.id)).rejects.toBe(auditFailure);
+    expect(persistedMembership).toBe(false);
   });
 
   it('blocks deleting the only fallback group for an organizational unit', async () => {
@@ -132,6 +203,28 @@ describe('GroupsService', () => {
       ConflictException,
     );
     expect(prisma.group.delete).not.toHaveBeenCalled();
+  });
+
+  it('invalidates every member after an audited group deletion', async () => {
+    const invalidateUsers = jest.fn().mockResolvedValue(undefined);
+    const { service, prisma } = createService(jest.fn(), invalidateUsers);
+    prisma.group.count.mockResolvedValue(2);
+    prisma.group.findUnique.mockResolvedValue({
+      ...groupRecord,
+      members: [
+        { id: 'member-1', userId: 'user-1', createdAt: now, user },
+        { id: 'member-2', userId: 'user-2', createdAt: now, user },
+      ],
+      _count: { members: 2 },
+    });
+    await service.delete(groupRecord.id, { actorUserId: 'admin-1', requestId: 'req-1' });
+    expect(prisma.group.delete).toHaveBeenCalledWith({ where: { id: groupRecord.id } });
+    expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      action: auditLogActions.groupDeleted,
+      entityId: groupRecord.id,
+      metadata: expect.objectContaining({ before: expect.objectContaining({ memberCount: 2 }) }),
+    }));
+    expect(invalidateUsers).toHaveBeenCalledWith(['user-1', 'user-2']);
   });
 
   it('adds and removes a group member', async () => {
@@ -156,10 +249,24 @@ describe('GroupsService', () => {
       .mockResolvedValueOnce(withMember)
       .mockResolvedValueOnce(withMember)
       .mockResolvedValueOnce(groupRecord);
-    const added = await service.addMember(groupRecord.id, user.id);
+    const context = { actorUserId: 'admin-1', requestId: 'req-1' };
+    const added = await service.addMember(groupRecord.id, user.id, context);
     expect(added.members).toHaveLength(1);
-    const removed = await service.removeMember(groupRecord.id, user.id);
+    expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      action: auditLogActions.groupMemberAdded,
+      entityId: groupRecord.id,
+      actorUserId: 'admin-1',
+      requestId: 'req-1',
+      organizationalUnitId: unit.id,
+      metadata: { userId: user.id, membership: 'added' },
+    }));
+    const removed = await service.removeMember(groupRecord.id, user.id, context);
     expect(removed.members).toHaveLength(0);
+    expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      action: auditLogActions.groupMemberRemoved,
+      entityId: groupRecord.id,
+      metadata: { userId: user.id, membership: 'removed' },
+    }));
   });
 
   it('drops the cached authorization data of the member whose access changed', async () => {

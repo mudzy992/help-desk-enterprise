@@ -8,15 +8,14 @@ import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 const conflictCodes = new Set([
   'HAS_CHILDREN',
   'HAS_MAPPED_USERS',
+  'HAS_GROUPS',
   'IDENTITY_CONFLICT',
 ]);
 
 const messages: Record<string, string> = {
   NOT_FOUND: 'Manual directory organizational unit was not found',
-  HAS_CHILDREN:
-    'Brisanje OU se odbija dok postoje djeca ili mapirani korisnici',
-  HAS_MAPPED_USERS:
-    'Brisanje OU se odbija dok postoje djeca ili mapirani korisnici',
+  HAS_CHILDREN: 'Organizational unit still has child units',
+  HAS_MAPPED_USERS: 'Organizational unit still has mapped or directory users',
   PARENT_NOT_FOUND: 'Parent organizational unit was not found in the catalog',
   IDENTITY_CONFLICT: 'Distinguished name or path already exists in the catalog',
   INVALID_INPUT: 'Manual directory organizational unit input is invalid',
@@ -28,12 +27,16 @@ export function mapManualDirectoryCatalogError(error: unknown): never {
   if (!(error instanceof ManualDirectoryCatalogError)) {
     throw error;
   }
-  const message = messages[error.code] ?? error.code;
+  const body = {
+    code: error.code,
+    message: messages[error.code] ?? error.code,
+    ...(error.blockers.length > 0 ? { details: { blockers: error.blockers } } : {}),
+  };
   if (error.code === 'NOT_FOUND' || error.code === 'PARENT_NOT_FOUND') {
-    throw new NotFoundException({ code: error.code, message });
+    throw new NotFoundException(body);
   }
   if (conflictCodes.has(error.code)) {
-    throw new ConflictException({ code: error.code, message });
+    throw new ConflictException(body);
   }
-  throw new BadRequestException({ code: error.code, message });
+  throw new BadRequestException(body);
 }

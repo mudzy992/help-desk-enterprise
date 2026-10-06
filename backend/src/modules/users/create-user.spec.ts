@@ -1,6 +1,12 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import { recordUserChange } from './record-user-change';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { createUser } from './create-user';
 import { UsersError } from './users.error';
+
+jest.mock('./record-user-change', () => ({
+  recordUserChange: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('./ensure-system-role', () => ({
   ensureSystemRole: jest.fn().mockResolvedValue('role-user'),
@@ -51,13 +57,16 @@ describe('createUser', () => {
       id: 'user-1',
       displayName: 'Test User',
       email: 'user@example.com',
+      organizationalUnitId: null,
+      isLocalOnly: true,
+      isActive: true,
+      mustChangePassword: true,
     });
+    const transaction = { user: { create } };
     const prisma = {
       organizationalUnit: { findUnique: jest.fn() },
-      user: {
-        findUnique: jest.fn().mockResolvedValue(null),
-        create,
-      },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback(transaction)),
     };
     const response = await createUser(
       prisma as never,
@@ -87,9 +96,75 @@ describe('createUser', () => {
         email: 'user@example.com',
       }),
     );
+    expect(recordUserChange).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({
+        action: auditLogActions.userCreated,
+        entityId: 'user-1',
+        actorUserId: 'actor-1',
+        requestId: 'req-1',
+        metadata: expect.objectContaining({
+          after: expect.objectContaining({ displayName: 'Test User', isLocalOnly: true }),
+        }),
+      }),
+    );
     expect(assignUserRole).toHaveBeenCalled();
     expect(response.temporaryPasswordDelivery).toBe('ui');
     expect(response.temporaryPassword).toBe('TempPassword!23456');
+  });
+
+  it('rolls back user creation when the audit insert fails', async () => {
+    jest.mocked(issueTemporaryPasswordForUser).mockClear();
+    jest.mocked(assignUserRole).mockClear();
+    jest.mocked(recordUserChange).mockClear();
+    const auditFailure = new Error('audit insert failed');
+    let persistedUserIds: string[] = [];
+    const createdUser = {
+      id: 'user-rollback',
+      displayName: 'Rollback User',
+      email: 'rollback@example.com',
+      organizationalUnitId: null,
+      isLocalOnly: true,
+      isActive: true,
+      mustChangePassword: true,
+    };
+    const prisma = {
+      organizationalUnit: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => {
+        let stagedUserIds = [...persistedUserIds];
+        const transaction = {
+          user: {
+            create: jest.fn(async () => {
+              stagedUserIds = [...stagedUserIds, createdUser.id];
+              return createdUser;
+            }),
+          },
+        };
+        const result = await callback(transaction);
+        persistedUserIds = stagedUserIds;
+        return result;
+      }),
+    };
+    jest.mocked(recordUserChange).mockRejectedValueOnce(auditFailure);
+
+    await expect(
+      createUser(
+        prisma as never,
+        {
+          displayName: 'Rollback User',
+          email: 'rollback@example.com',
+          roleKey: authorizationRoleKeys.user,
+          actorUserId: 'actor-1',
+          actorIsSuperAdmin: true,
+          requestId: 'req-rollback',
+        },
+        createDependencies(),
+      ),
+    ).rejects.toBe(auditFailure);
+    expect(persistedUserIds).toEqual([]);
+    expect(issueTemporaryPasswordForUser).not.toHaveBeenCalled();
+    expect(assignUserRole).not.toHaveBeenCalled();
   });
 
   it('omits temporary password from response when emailed', async () => {
@@ -97,16 +172,23 @@ describe('createUser', () => {
       temporaryPassword: null,
       temporaryPasswordDelivery: 'email',
     });
-    const prisma = {
-      organizationalUnit: { findUnique: jest.fn() },
+    const transaction = {
       user: {
-        findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({
           id: 'user-1',
           displayName: 'Test User',
           email: 'user@example.com',
+          organizationalUnitId: null,
+          isLocalOnly: true,
+          isActive: true,
+          mustChangePassword: true,
         }),
       },
+    };
+    const prisma = {
+      organizationalUnit: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback(transaction)),
     };
     const response = await createUser(
       prisma as never,
@@ -127,7 +209,7 @@ describe('createUser', () => {
   it('rejects empty display name', async () => {
     const prisma = {
       organizationalUnit: { findUnique: jest.fn() },
-      user: { findUnique: jest.fn(), create: jest.fn() },
+      user: { findUnique: jest.fn() },
     };
     await expect(
       createUser(

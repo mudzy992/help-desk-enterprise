@@ -149,7 +149,7 @@
         "smtp",
         "dodaci"
       ],
-      "updatedAt": "2026-10-05",
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -256,7 +256,7 @@
         "sesija",
         "rezervni-kodovi"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1839,6 +1839,11 @@
           "id": "grupe"
         },
         {
+          "level": 3,
+          "text": "Dnevnik izmjena",
+          "id": "dnevnik-izmjena"
+        },
+        {
           "level": 2,
           "text": "Polja, validacije i statusi",
           "id": "polja-validacije-i-statusi"
@@ -1859,7 +1864,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1554,
+      "wordCount": 1612,
       "source": "docs/user-guide/korisnici-oj-i-grupe.md",
       "englishTitle": null
     },
@@ -1885,7 +1890,7 @@
         "read-only",
         "preview"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1943,7 +1948,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1296,
+      "wordCount": 1301,
       "source": "docs/user-guide/uloge-i-permisije.md",
       "englishTitle": null
     },
@@ -2898,7 +2903,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 849,
+      "wordCount": 905,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

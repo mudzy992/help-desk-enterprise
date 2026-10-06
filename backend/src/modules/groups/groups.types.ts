@@ -73,3 +73,8 @@ export type UpdateGroupInput = {
 export type ListGroupsQuery = {
   readonly organizationalUnitId?: string;
 };
+
+export type GroupAuditContext = {
+  readonly actorUserId: string | null;
+  readonly requestId: string | null;
+};

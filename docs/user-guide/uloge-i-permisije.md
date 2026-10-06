@@ -74,6 +74,10 @@ mora se pokrenuti ponovo; ako se potvrdi zastario ili tuđi pregled, server odbi
    linkom na ekran **Grupe**.
 4. Ulogu možete ukloniti dugmetom **Ukloni**; **SUPER_ADMIN** rolu može dodijeliti samo SuperAdmin.
 
+Brisanje OJ iz ručnog kataloga uklanja i dodjele koje su scoped baš na tu OJ. Korisnički nalozi ostaju; odgovor
+prikazuje broj uklonjenih dodjela, audit bilježi događaj, a sistem pokušava odmah invalidirati keš pogođenih
+principal-a (greška u cacheu ne poništava već obrisanu OJ).
+
 ### Read-only režim
 
 - SuperAdmin može u postavkama uključiti read-only režim za module **admin**, **settings**, **routing**,
@@ -129,9 +133,6 @@ mora se pokrenuti ponovo; ako se potvrdi zastario ili tuđi pregled, server odbi
   PROBLEM_MANAGER 4, CHANGE_MANAGER 4). Postupak **nikad ne briše**, pa ponovno pokretanje seeda (instalacija
   ili CLI na starijim instalacijama) može vratiti permisiju koju je administrator svjesno uklonio — zato prvo
   `--dry-run`. (Bivši nalaz B1 iz `REVIEW_ANALIZA.md` §M4.)
-- **Preview uticaja nije obavezan na serveru** — UI ne dopušta čuvanje bez pregleda, ali API to ne provjerava.
-  (Nalaz B2.)
-- **Razlog promjene se ne pamti**; u audit logu je samo diff dodanih/uklonjenih permisija. (Nalaz B2.)
 - **`@RequirePermissions` s više ključeva znači „bilo koja“**, ne „sve“ — trenutno se koristi samo na izvozu
   izvještaja. (Nalaz B3.)
 - **`group.manage` se provjerava bez OU scope-a**, pa OU-scoped ADMIN ne može upravljati grupama, a nescoped
@@ -147,4 +148,4 @@ mora se pokrenuti ponovo; ako se potvrdi zastario ili tuđi pregled, server odbi
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: RBAC (M4)*
+*Ažurirano: 2026-10-06 · Modul: RBAC (M4)*

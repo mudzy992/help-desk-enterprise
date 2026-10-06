@@ -55,6 +55,7 @@
 | — | 2026-10-05 | Dokumentacija — prikaz datuma | `frontend/src/lib/docs/format-docs-date.ts` (nov), `frontend/src/pages/docs-page.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/docs/format-docs-date.spec.ts` (nov), ovaj dokument | **„Ažurirano: 2026 M10 4“ zamijenjeno stvarnim datumom („Ažurirano: 4. oktobar 2026.“) — datum se čita iz manifesta, bez `Intl.DateTimeFormat` i bez pomjeranja zbog vremenske zone** |
 | — | 2026-10-05 | Dokumentacija — automatika i veze (CI popravka) | `scripts/generate-docs-content.mjs`, `scripts/check-docs-content.mjs` (+ `.test.mjs`), `scripts/check-workflows-yaml.mjs` (+ `.test.mjs`), `.github/workflows/ci.yml`, `docs/DOCS_MODULE.md`, `CONTRIBUTING.md`, ovaj dokument | **CI je bio crven od vala 3: plitak `actions/checkout` kvari `updatedAt` iz gita, a jedan korak je imao dva `run:` ključa (GitHub odbija cijeli workflow); oba popravljena + guard sada hvata duple ključeve** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
+| **5.1.2** | 2026-10-06 | **M3 — korisnici, OJ i grupe (B1–B4)** | `user-guide/korisnici-oj-i-grupe.md`, `user-guide/uloge-i-permisije.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/{organizational-units,directory-sync}/**`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Blokirani OU delete s brojem zavisnosti; audit/warning/cache efekti OJ-scoped dodjela; audit mutacija bez tajni; ne-lokalni reset lozinke vraća 409 i bilježi pokušaj** |
 
 ---
 
@@ -1927,3 +1928,17 @@ commita stranica`; promjena **naslova** u manifestu i dalje daje exit 1; `node s
 | `docs/DOCS_MODULE.md` | §3.3 (dva uslova za tačan datum, datumi nisu kapija, napomena u CI izlazu), §9 tačka 2, rizici R2 i R9 | ova izmjena |
 | `REVIEW_ANALIZA.md` | Nova sekcija **CI-3** (nalaz, uzrok s linijama, uticaj, fix, dokazi) + dopuna CI-2 reda (datumi nisu kapija ni u punom klonu) | dokazi iz tabele |
 | `docs/plans/CI-KVALITETNA-KAPIJA.md` | Napomena u §2: zašto datumi ogledala nisu dio kapije | CI-3 |
+
+## Paket 5.1 — korak 5.1.2: M3 B1–B4 — korisnici, OJ i grupe (2026-10-06)
+
+**Zašto:** dokumentacija je još opisivala stare greške: OU brisanje bez konkretnih blokera, tiho uklanjanje
+OJ-scoped dodjela, nepostojanje audita za administrativne mutacije i API reset AD-praćenog naloga. Vodiči su
+poravnati s implementacijom; poznate stavke B5–B7 M3 i preostala M4 ograničenja ostaju označeni.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/korisnici-oj-i-grupe.md` | Brisanje iz ručnog kataloga opisuje atomarno uklanjanje kataloga/live OJ, kompletne tipizirane blokere i brojeve, očuvanje naloga, uklonjene role uz warning/cache invalidation; dodat odjeljak o transakcijskom auditu bez credential secrets; B1–B4 uklonjeni iz poznatih ograničenja, B5–B7 ostaju | `delete-manual-directory-organizational-unit.ts`, `delete-organizational-unit.ts`, `record-user-change.ts`, `record-organizational-unit-change.ts`, `record-group-change.ts`, `reset-user-temporary-password.ts` |
+| `docs/user-guide/uloge-i-permisije.md` | Objašnjeno da brisanje OJ uklanja vezane scoped dodjele uz brojčano upozorenje, audit i best-effort cache invalidation; uklonjene zastarjele tvrdnje da preview/reason nisu serverski obavezni | `replace-role-permissions.ts`, `delete-organizational-unit.ts`, `organizational-units.service.ts` |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T23 opisuje reset samo za lokalni nalog i odbijeni audit; T24 opisuje blocker counts/atomarnost/role warning; T26 opisuje audit mutacija u transakciji bez tajni | isti backend use case-i i specovi |
+| `.cursor/docs/matrices/organizational-units/MATRIX.md` i `directory-sync/MATRIX.md` + changelogs | Usklađena politika blocker counts, cascade upozorenja, audit/cache invalidation i ograničenje „nema brisanja stvarnog AD naloga“ | OU/manual-directory use case-i i ciljane Jest provjere |
+| `backend/content/docs/{korisnici-oj-i-grupe,uloge-i-permisije}.md` + `manifest.json` | Ogledala vodiča i manifest metapodaci sinhronizovani; postojeće korisničke `updatedAt` izmjene u manifestu su sačuvane | `scripts/generate-docs-content.mjs` — read-only build sadržaja + `scripts/check-docs-content.mjs` |

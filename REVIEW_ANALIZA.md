@@ -94,7 +94,9 @@ Zatečena arhitektura (korak = endpoint, guardovi, token) je **zdrava osnova** i
 5. **Rate limit i log pristupa** na `/install/*` u periodu dok instalacija nije završena.
 6. **E2E scenarij** za cijeli tok (token → koraci → complete → zaključavanje), jer ga danas nema.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 **Backend:** `backend/src/modules/install/` — 116 fajlova, 7 063 linije, 24 `*.spec.ts`.
 
@@ -289,7 +291,9 @@ Zatečeni tok (lozinka → promjena lozinke → drugi faktor → sesija) je doba
    kod, opoziv sesije iz drugog taba i prisilni upis kod ADMIN-a bez MFA.
 6. **WebAuthn/passkeys kao sljedeći korak** (phishing-otporni faktor) — sada nije u kodu ni u planovima.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 **Backend** (`backend/src/modules/authentication/`, 88 fajlova / 4 138 linija; kontroleri `authentication.controller.ts` 183, `account-security.controller.ts` 183):
 
@@ -518,7 +522,9 @@ svjesna odluka (RAW traži break-glass SuperAdmin), ali vrijedi potvrditi da nij
   5. Serverska validacija rezervisana za lokalne naloge: `POST /users/:id/reset-password` i promjena e-maila
      trebaju odbiti non-local nalog eksplicitno (danas to radi samo UI).
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Korisnici (`backend/src/modules/users/`, 44 `.ts`, 1.886 linija)
 
@@ -672,7 +678,7 @@ svjesna odluka (RAW traži break-glass SuperAdmin), ali vrijedi potvrditi da nij
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-**B1 — `SREDNJE` — brisanje OU-a koja ima grupu (ili imovinu, promjenu, KB, routing/SLA pravilo) vraća 500.**
+**B1 — `SREDNJE` — brisanje OU-a koja ima grupu (ili imovinu, promjenu, KB, routing/SLA pravilo) vraća 500. `[ZATVORENO 2026-10-06 · 5.1.2]`**
 `delete-organizational-unit.ts:20–25` provjerava samo podređene OJ-e i mapirane korisnike, pa `prisma.organizationalUnit.delete`
 (`:26`) padne na FK restrikciji: `Group.organizationalUnit` je `onDelete: Restrict`
 (`backend/prisma/schema/identity.prisma:182`), `Asset`/`AssetContract`/`AssetSignatory` (`assets.prisma:176,237,270`),
@@ -682,7 +688,7 @@ filter je pretvara u `500 INTERNAL_ERROR` (`common/request-context/format-error-
 **Uticaj:** admin dobije „Brisanje nije uspjelo“ bez razloga; ne zna da prvo mora obrisati grupu. **Fix:** dodati
 provjere svih restriktivnih relacija (409 s kodom) i/ili generičko mapiranje Prisma `P2003`.
 
-**B2 — `SREDNJE` — brisanje OU-a tiho briše dodjele rola, bez audita i bez invalidacije keša.**
+**B2 — `SREDNJE` — brisanje OU-a tiho briše dodjele rola, bez audita i bez invalidacije keša. `[ZATVORENO 2026-10-06 · 5.1.2]`**
 `UserRole.organizationalUnit` je `onDelete: Cascade` (`identity.prisma:155`), pa se dodjele `ADMIN`/`AGENT` vezane
 za tu OJ brišu zajedno s njom; `delete-organizational-unit.ts` poziva samo `invalidateOrganizationalUnitScopeCache()`
 i **ne** obavještava pogođene korisnike (kontrast: `groups/add-group-member.ts:35` i `users/assign-user-role.ts:109`
@@ -690,7 +696,7 @@ to rade kroz `PrincipalContextInvalidator`). **Uticaj:** korisnik ostaje bez doz
 keširani principal kontekst živi do 60 s (`common/principal-context/principal-context.cache.ts:9`). **Fix:**
 prikupiti pogođene `userId` prije brisanja i pozvati `invalidateUsers`; upisati audit.
 
-**B3 — `SREDNJE` — izmjene korisnika, OU-a i grupa nisu u audit logu.**
+**B3 — `SREDNJE` — izmjene korisnika, OU-a i grupa nisu u audit logu. `[ZATVORENO 2026-10-06 · 5.1.2]`**
 `grep -rn appendAuditLog backend/src/modules/{users,organizational-units,groups}` daje samo
 `users/assign-user-role.ts:92` i `users/remove-user-role.ts:35`; `create-user.ts`, `update-user.ts`,
 `delete-user.ts`, `reset-user-temporary-password.ts`, `unlink-user-directory-identity.ts`,
@@ -698,7 +704,7 @@ prikupiti pogođene `userId` prije brisanja i pozvati `invalidateUsers`; upisati
 lozinku, prepisao OU granu ili dodao člana grupe — suprotno RAW `:173`. **Fix:** `appendAuditLog` u istim
 transakcijama, s `metadata` prije/poslije.
 
-**B4 — `SREDNJE` — `POST /users/:id/reset-password` ne provjerava `isLocalOnly`, a reset pretvara nalog u lokalni.**
+**B4 — `SREDNJE` — `POST /users/:id/reset-password` ne provjerava `isLocalOnly`, a reset pretvara nalog u lokalni. `[ZATVORENO 2026-10-06 · 5.1.2]`**
 `reset-user-temporary-password.ts:21–37` provjerava samo `isActive`; `issue-temporary-password-for-user.ts:29`
 postavlja `isLocalOnly: true`. Time AD/Entra-praćen nalog dobija lokalnu lozinku, a Microsoft prijava prestaje
 raditi jer `decide-entra-binding.ts:39–41` odbija lokalne naloge (`LOCAL_ACCOUNT`). UI dugme je sakriveno za
@@ -754,9 +760,9 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **8 / 10** | Sve ključne operacije postoje (CRUD korisnika/OJ/grupa, AD sync s probnim prolazom i osiguračem, group inbox help). Gube bodovi zbog B1 (500 pri brisanju OJ), B4 i manjkavog Manager sync-a. |
+| Funkcionalnost | **8 / 10** | Početna ocjena; B1–B4 su zatvoreni korakom 5.1.2, a ocjena se ponovo vrednuje na kraju paketa 5.1. Manjkav Manager sync ostaje otvoren. |
 | Kvalitet koda | **8 / 10** | Dosljedna podjela po operaciji, domen-greške i solidna transakciona logika (prepisivanje DN-a potomaka, atomsko preuzimanje plana). Gube bodovi zbog raspoređenih invarijanti i duplirane fallback logike u `create-group`/`update-group`. |
-| Sigurnost | **7 / 10** | Dobro: SuperAdmin-only veza s direktorijem, zabrana upravljanja tuđim SuperAdmin-om, invalidacija keša na promjenu role/članstva. Slabo: B4 (tiha promjena načina prijave), B2 (kaskadno brisanje dozvola bez invalidacije), B5 (posljednji SuperAdmin). |
+| Sigurnost | **7 / 10** | Početna ocjena; B2–B4 su zatvoreni korakom 5.1.2 (audit, 409 za nelokalni reset i invalidacija pogođenih principal cacheva). B5 — zaštita posljednjeg SuperAdmin-a — ostaje otvoren; ocjena se ponovo vrednuje na kraju paketa. |
 
 ---
 
@@ -815,7 +821,9 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
   5. **Test matrice** koja za svaku permisiju provjerava ko je ima po defaultu (da RAW mapping i kod ne
      divergiraju tiho).
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model rola i permisija
 
@@ -1077,7 +1085,9 @@ imao teze za RBAC; postojeći modulski fajlovi spominju permisije samo usput (np
   5. **Postavke `private.policyPacks.*`** (enabled, defaultPacksJson, assignmentJson) ili svjesna odluka da
      definicije ostaju u kodu — ali onda to i zapisati u dokumentaciju.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Definicije i registar
 
@@ -1316,7 +1326,9 @@ je u pitanju nedovršen rad ili rezervisano mjesto.
   6. **Proširiti formu kataloga** na `classification`, `isConfidentialDefault`, `autoAssignStrategy`,
      `policyPackId` i `slaProfileId`, uz `reason` u DTO-u i diff u change logu.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model i kontrakti
 
@@ -1684,7 +1696,9 @@ keš. Do odgovora dokumentacija ne spominje tu postavku.
 6. **Dodati filtere na serveru za pravila i change log** (B6): čitanje pravila je danas admin-only bez OU scope
    oznake i bez filtera po OU/servisu.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model i kontrakti
 
@@ -2088,7 +2102,9 @@ navodi samo stvarne ose `Nizak…Kritičan`.
 6. **Dosljednost dokumentacije i stvarnosti** za postavke: svaka registrovana postavka mora imati potrošača ili
    biti uklonjena (nalazi B1–B3).
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model i kontrakti
 
@@ -2426,7 +2442,9 @@ osnovni tok tiketa (kreiranje, liste, detalj, statusi, merge/split, bulk, vrijem
 6. **Dodati testove na nivou odluke** (trenutno 3 spec fajla za cijeli modul): approve → `PENDING`,
    reject → zatvoreno, zabrana samoodobrenja, zabrana van scope-a, te ponovljena odluka.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model i kontrakti
 
@@ -2761,7 +2779,9 @@ jednokoračno odobrenje.
 6. **Zatvoriti gap prema RAW-u u postavkama:** dodati `escalations.inAppEnabled` kao prekidač in-app kanala i
    odlučiti da li `escalationTargetsJson` ostaje samo u pravilima po profilu (dokumentovati odstupanje).
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model, konstante i granice
 
@@ -3146,7 +3166,9 @@ jednokoračno odobrenje.
 6. **E2E koji stvarno sluša soket:** dodati scenarij u kojem drugi klijent šalje poruku, a Playwright stranica
    dobija `ticket.message.created` bez reload-a — danas nijedan test ne provjerava WS dostavu.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Transport, autentikacija i sobe
 
@@ -3493,7 +3515,9 @@ jednokoračno odobrenje.
    scenarije koji danas ne postoje: odgovor e-mailom na zatvoren tiket, odbijen prilog, sažetak na kraju tihih
    sati.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Odluka da li e-mail uopšte ide
 
@@ -3863,7 +3887,9 @@ jednokoračno odobrenje.
    daju jedan uspjeh i jednu grešku; `block` režim vraća spisak koraka u 409; nadogradnja čuva štiklirane
    korake i mijenja verziju.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model i postavke
 
@@ -4174,7 +4200,9 @@ jednokoračno odobrenje.
 7. **Dodati e2e za portal** (kategorije → FAQ → ocjena → uvidi → članak iz odgovora), kako plan 2.9 §10 i
    predviđa; danas postoje samo jedinični testovi i a11y prolaz.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Model, statusi i postavke
 
@@ -4585,7 +4613,9 @@ jednokoračno odobrenje.
    (`time_tracking`, sati po agentu i servisu); na nadzornoj ploči nema ni pločice ni ekrana, pa je
    jedina veza „Bez izvršioca“ i „Dodijeljeni meni“.
 
-## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+## 4. Presjek implementacije u kodu na dan audita 2026-10-03 `[ČINJENICA]`
+
+> Ovo je početni presjek prije paketa 5.1. Naknadne izmjene i njihovi testovi navedeni su u odjeljcima `# Paket 5.1`.
 
 ### 4.1 Nadzorna ploča kao početna stranica
 
@@ -4943,11 +4973,12 @@ otvoreno **0 KRITIČNO / 0 VISOKO / 24 SREDNJE / 51 NISKO**, uz prosjek **F 8,5 
 `# Val 2 — sigurnost i vidljivost`). Poslije **vala 3** zatvoreno je još **9 nalaza** (M8 B2, M11 B1/B2,
 M12 B1/B3/B4/B5, M13 B2, M14 B5 — četiri `SREDNJE` i pet `NISKO`) **i jedan preventivni guard** (Redis auth
 greška u `subscribeRedisChannel`), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 20 SREDNJE / 46 NISKO** (dokazi u
-`# Val 3 — pouzdanost i performanse`). Poslije **paketa 5.1, korak 5.1.1** (2026-10-06) zatvorena su **tri
-`SREDNJE`** nalaza (M1 #1 — politika lozinke osnivačkog naloga; M2 #1 — upisan TOTP se uvijek verificira;
-M4 B2 — pregled uticaja je serverska kapija uz obavezan razlog), pa je
-otvoreno **0 KRITIČNO / 0 VISOKO / 12 SREDNJE / 38 NISKO** (dokazi u `# Paket 5.1 — korak 5.1.1`). Ocjene u
-tabeli se ponovo vrednuju na kraju paketa 5.1, poslije koraka 5.1.4. Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+`# Val 3 — pouzdanost i performanse`). Poslije **paketa 5.1, korak 5.1.1** (2026-10-06) zatvorena su **tri `SREDNJE`** nalaza (M1 #1 — politika
+lozinke osnivačkog naloga; M2 #1 — upisan TOTP se uvijek verificira; M4 B2 — pregled uticaja je serverska
+kapija uz obavezan razlog), pa je otvoreno bilo **12 SREDNJE / 38 NISKO**. Korak **5.1.2** je zatvorio još
+**četiri `SREDNJE`** nalaza (M3 B1–B4), pa je sada otvoreno **0 KRITIČNO / 0 VISOKO / 8 SREDNJE / 38 NISKO**
+(dokazi u odjeljku `# Paket 5.1 — korak 5.1.2`). Ocjene u tabeli se ponovo vrednuju na kraju paketa 5.1,
+poslije koraka 5.1.4. Tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
 ne u tome da funkcija ne postoji.
@@ -4970,7 +5001,7 @@ modula):
 | 9 | `:280–284`, `:1039` | ~~Usko grlo: API (`/reports/bottlenecks`) vraća brojače, razrez i trend, ali **nema ekran**~~ — **riješeno u valu 1** (tab **Uska grla**) | M15 |
 | 10 | `:71` | „Pomoglo“ u presretanju ne sprječava kreiranje tiketa ni ne pamti koji je članak pomogao | M14 |
 | 11 | `:1050–1053` | Kanal e-pošte nema mjerenje ni alarm (zaglavljen zahtjev trajno gubi e-mail) | M12 |
-| 12 | `:11`, `:30`, `:479`, `:173` | OU izolacija za ADMIN/AGENT je djelimična, `roleSource` je naziv koji odstupa, audit korisnika/OU/grupa nije potpun | M3 |
+| 12 | `:11`, `:30`, `:479` | OU izolacija za ADMIN/AGENT je djelimična, a `roleSource` je naziv koji odstupa | M3 |
 | 13 | `:683–685`, `:632–634` | Postavke baze znanja postoje i rade, ali pregledi se broje bez pravila, `isStale` se nikad ne postavlja, a izvoz „Znanje“ ne prikazuje stopu po članku | M14 |
 | 14 | `:636`, `:660–661` | Postavka uskih grla ne djeluje na ono što korisnik vidi, a jedna postavka perioda dijeli se s paketima izvještaja | M15 |
 
@@ -6475,7 +6506,9 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
 
 ## 5. Šta ostaje otvoreno u paketu 5.1
 
-- **Korak 5.1.2** — M3 B1–B4 (korisnici, OJ i grupe).
+- **Korak 5.1.2 — M3 B1–B4:** implementiran i ciljani Jest skup + lint + dokumentacija prolaze; backend build/typecheck
+  ostaje nepotvrđen jer nedostaje `src/generated/prisma/{client,enums}` (2874 TS greške kao posljedica nedostajućeg
+  Prisma outputa; Prisma engine download je ranije pao na TLS).
 - **Koraci 5.1.3 i 5.1.4** — M6, M7 i M10 nalazi iz §3–§5 plana.
 - **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
   politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
@@ -6509,3 +6542,40 @@ razlike u stvarnom sadržaju manifesta (`sameManifestIgnoringDates` vrati `false
 
 - Datumi u `backend/content/docs/manifest.json` i dalje nose zadnje poznate vrijednosti (`2026-10-04`/`2026-10-05`);
   osvježavaju se u klonu s punom istorijom, **poslije** commita stranica. Kapija to ne traži.
+
+# Paket 5.1 — korak 5.1.2: M3 B1–B4 — korisnici, OJ i grupe (2026-10-06)
+
+Korak zatvara četiri `SREDNJE` nalaza M3. **Implementacija i ciljani testovi prolaze; backend build/typecheck
+nije potvrđen** jer ovaj checkout nema generisani Prisma klijent. Ne zaključivati da su hiljade tipnih grešaka
+pojedinačni regressions: Nest build javlja TS2307 za `src/generated/prisma/client`, nakon čega gubi i Prisma
+delegate tipove. `npm run db:generate` je ranije pao pri HTTPS/TLS preuzimanju Prisma `schema-engine`; generate
+nije ponovljen.
+
+## 1. Zatvoreni nalazi
+
+| Nalaz | Šta je implementirano | Dokaz u kodu |
+|---|---|---|
+| **M3 B1** | `countOrganizationalUnitDeleteBlockers` vraća svaki ne-nulti blocker `{ kind, count }`; direktni i ručni-kataloški delete vraćaju 409 s detaljima. Korisnički nalozi i kataloški korisnici/grupe su blokatori; ne brišu se. Nepoznati Prisma `P2003` je globalno 409 `RESOURCE_IN_USE` bez otkrivanja FK detalja. | `backend/src/modules/organizational-units/count-organizational-unit-delete-blockers.ts:4` (`countOrganizationalUnitDeleteBlockers`), `delete-organizational-unit.ts:32` (`deleteOrganizationalUnitInTransaction`), `directory-sync/delete-manual-directory-organizational-unit.ts:14`, `organizational-unit.error.ts:15–51`, `map-organizational-unit-error.ts:10–52`, `common/request-context/format-error-response.ts:28–30,49–56,141–148` |
+| **M3 B2** | Delete čita OJ-scoped `UserRole` prije cascade-a, audit bilježi broj i pogođene `userId`; response nosi `ROLE_ASSIGNMENTS_REMOVED`, a service best-effort invalidira njihove principal cacheve. | `delete-organizational-unit.ts:32–95`, `organizational-units.service.ts:63–102`, `directory-sync/manual-directory-catalog.service.ts:66–87`, `organizational-unit-delete.types.ts:21–37` |
+| **M3 B3** | Mutacije korisnika, OJ, manual OJ kataloga i grupa pišu audit kroz per-module helper u istoj transakciji; metadata ne sadrže lozinku/hash, directory ID ili MFA tajne. Audit failure odbacuje transakciju (rollback provjeren testnim transactional fakeom za user create/update/delete, password update, OU create/update/delete/mapping, group membership i manual delete). | `users/record-user-change.ts:14`, `organizational-units/record-organizational-unit-change.ts:11`, `groups/record-group-change.ts:13`; primjeri: `users/create-user.ts:43–72`, `users/update-user.ts:47–79`, `groups/add-group-member.ts:31–42`, `organizational-units/assign-user-organizational-unit.ts:31–54` |
+| **M3 B4** | Reset ne-lokalnog naloga auditira odbijeni pokušaj i baca `DIRECTORY_ACCOUNT_NOT_LOCAL` (409); uspješan lokalni reset bilježi safe metadata u transakciji s promjenom lozinke, bez same tajne. | `users/reset-user-temporary-password.ts:12–73`, `users/map-users-error.ts:23–36`, `users/issue-temporary-password-for-user.ts:18–63`; `reset-user-temporary-password.spec.ts`, `issue-temporary-password-for-user.spec.ts` |
+
+## 2. Dokazi (izvršeno u ovom okruženju 2026-10-06)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Ciljani backend testovi | `cd backend && npx jest --config=/tmp/jest-agent.config.cjs --runInBand` nad 19 navedenih specova (OU, manual catalog, groups, users, P2003) | **19/19 suita, 82/82 testa ✅**. Privremeni config koristi ts-jest `diagnostics: false` jer Prisma client/enums nedostaju; ovo nije backend typecheck ni puni test suite. |
+| Test rollbacka audita | `organizational-units.service.spec.ts`, `users/create-user.spec.ts`, `update-user.spec.ts`, `delete-user.spec.ts`, `issue-temporary-password-for-user.spec.ts`, `groups.service.spec.ts`, `directory-sync/delete-manual-directory-organizational-unit.spec.ts` | Audit failure ostavlja transactional fake u prethodnom stanju i ne pokreće post-commit password delivery/cache invalidation. |
+| Backend lint | `cd backend && npm run lint` | **0 ESLint problema ✅** |
+| Backend build/typecheck | `cd backend && npm run build` | **Blokirano:** 2874 TS greške; prvo TS2307 `Cannot find module '../generated/prisma/client'` (`src/cli/*`, zatim moduli), nakon čega nedostaju tipovi Prisma delegate-a. `npm run db:generate` nije ponovljen zbog prethodne TLS greške preuzimanja Prisma schema engine-a. |
+| Frontend | `cd frontend && npm run build` | **Prošlo:** `tsc -b && vite build`; Vite samo upozorava na chunk veći od 500 kB. |
+| Dokumentacija | `node scripts/check-docs-content.mjs && node scripts/generate-docs-content.mjs --check` | **29 stranica / 5 prevoda / 10 provjera; ogledalo sinhronizovano ✅**. Tri korisničke `updatedAt` izmjene u manifestu sačuvane su. |
+| Diff higijena | `git diff --check` | **Prošlo ✅** |
+
+**Nije izvršeno:** puni backend Jest suite (generated Prisma output nedostaje) i e2e prolaz (nije zahtjev ovog koraka; puni e2e i dalje ostaje release gate). Target run mocks enum/client runtime u pojedinim specovima i ne zamjenjuje stvarni generated Prisma build.
+
+## 3. Dokumentacija
+
+- `docs/user-guide/korisnici-oj-i-grupe.md` — tipizirani blockeri, očuvanje korisničkih naloga, role warning, audit i B5–B7 kao preostala ograničenja.
+- `docs/user-guide/uloge-i-permisije.md` — uklonjeni zastarjeli navodi o RBAC preview/reason i opisan warning za OJ-scoped dodjele.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/organizational-units/**`, `.cursor/docs/matrices/directory-sync/**`, `DOCS_CHANGELOG.md` i „Šta je novo“ ogledalo.

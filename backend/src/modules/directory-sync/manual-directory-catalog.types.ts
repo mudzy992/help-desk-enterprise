@@ -23,3 +23,8 @@ export type UpdateManualDirectoryOrganizationalUnitInput = {
   readonly distinguishedName?: string | null;
   readonly type?: OrganizationalUnitType | string | null;
 };
+
+export type ManualDirectoryCatalogAuditContext = {
+  readonly actorUserId: string | null;
+  readonly requestId: string | null;
+};

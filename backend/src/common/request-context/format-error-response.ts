@@ -25,6 +25,9 @@ export function resolveExceptionHttpStatus(exception: unknown): number {
   if (isDatabaseSaturationError(exception)) {
     return HttpStatus.SERVICE_UNAVAILABLE;
   }
+  if (isPrismaForeignKeyConstraintError(exception)) {
+    return HttpStatus.CONFLICT;
+  }
   const bodyError = readBodyParserError(exception);
   if (bodyError !== null) return bodyError.status;
   return HttpStatus.INTERNAL_SERVER_ERROR;
@@ -39,6 +42,14 @@ export function toStandardErrorResponse(
       return {
         code: 'DATABASE_BUSY',
         message: 'The service is temporarily overloaded, retry shortly',
+        details: {},
+        requestId,
+      };
+    }
+    if (isPrismaForeignKeyConstraintError(exception)) {
+      return {
+        code: 'RESOURCE_IN_USE',
+        message: 'The resource is still referenced and cannot be deleted',
         details: {},
         requestId,
       };
@@ -127,6 +138,15 @@ function buildDetails(
  * http-errors objects (`type`, `status`), not HttpExceptions. Without this
  * they surfaced as 500 INTERNAL_ERROR (Paket 4.1: a large logo upload).
  */
+function isPrismaForeignKeyConstraintError(exception: unknown): boolean {
+  return (
+    typeof exception === 'object' &&
+    exception !== null &&
+    'code' in exception &&
+    (exception as { readonly code?: unknown }).code === 'P2003'
+  );
+}
+
 function readBodyParserError(exception: unknown): { status: number; code: string; message: string } | null {
   if (typeof exception !== 'object' || exception === null) return null;
   const { type, status } = exception as { type?: unknown; status?: unknown };

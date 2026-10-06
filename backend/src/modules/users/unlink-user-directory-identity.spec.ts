@@ -1,3 +1,4 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
 import { unlinkUserDirectoryIdentity } from './unlink-user-directory-identity';
 import { UsersError } from './users.error';
 
@@ -32,8 +33,14 @@ jest.mock('./issue-temporary-password-for-user', () => ({
 import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 
 describe('unlinkUserDirectoryIdentity', () => {
-  it('clears directory binding and issues a temporary password', async () => {
-    const update = jest.fn().mockResolvedValue({});
+  const dependencies = {
+    settingsService: {} as never,
+    mailTransport: { send: jest.fn() } as never,
+  };
+
+  beforeEach(() => jest.mocked(issueTemporaryPasswordForUser).mockClear());
+
+  it('atomically clears an AD binding, issues a local password, and audits without identifiers or secrets', async () => {
     const prisma = {
       user: {
         findUnique: jest.fn().mockResolvedValue({
@@ -42,22 +49,39 @@ describe('unlinkUserDirectoryIdentity', () => {
           displayName: 'Linked User',
           isActive: true,
           isLocalOnly: false,
-          entraObjectId: 'manual_only:user:dev-reader',
+          entraObjectId: null,
+          directoryObjectGuid: 'guid-secret-value',
+          organizationalUnitId: 'ou-1',
         }),
-        update,
       },
     };
-    const result = await unlinkUserDirectoryIdentity(prisma as never, 'user-1', {
-      settingsService: {} as never,
-      mailTransport: { send: jest.fn() } as never,
+    const result = await unlinkUserDirectoryIdentity(prisma as never, 'user-1', dependencies, {
+      actorUserId: 'admin-1',
+      requestId: 'req-1',
     });
-    expect(update).toHaveBeenCalledWith({
+    const issueInput = jest.mocked(issueTemporaryPasswordForUser).mock.calls[0]?.[0];
+    expect(issueInput).toEqual(expect.objectContaining({
+      userId: 'user-1',
+      audit: {
+        action: auditLogActions.userDirectoryUnlinked,
+        actorUserId: 'admin-1',
+        requestId: 'req-1',
+        organizationalUnitId: 'ou-1',
+        metadata: {
+          directoryKind: 'ldaps',
+          before: { directoryLinked: true, isLocalOnly: false },
+          after: { directoryLinked: false, isLocalOnly: true, mustChangePassword: true },
+        },
+      },
+    }));
+    const transaction = { user: { update: jest.fn().mockResolvedValue({}) } };
+    await issueInput?.beforePasswordUpdate?.(transaction as never);
+    expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { entraObjectId: null },
+      data: { entraObjectId: null, directoryObjectGuid: null, distinguishedName: null },
     });
-    expect(issueTemporaryPasswordForUser).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user-1' }),
-    );
+    expect(JSON.stringify(issueInput?.audit?.metadata)).not.toContain('guid-secret-value');
+    expect(JSON.stringify(issueInput?.audit?.metadata)).not.toContain('TempPassword!23456');
     expect(result.temporaryPassword).toBe('TempPassword!23456');
     expect(result.user.isLocalOnly).toBe(true);
   });
@@ -72,15 +96,13 @@ describe('unlinkUserDirectoryIdentity', () => {
           isActive: true,
           isLocalOnly: true,
           entraObjectId: null,
+          directoryObjectGuid: null,
         }),
-        update: jest.fn(),
       },
     };
     await expect(
-      unlinkUserDirectoryIdentity(prisma as never, 'user-1', {
-        settingsService: {} as never,
-        mailTransport: { send: jest.fn() } as never,
-      }),
+      unlinkUserDirectoryIdentity(prisma as never, 'user-1', dependencies),
     ).rejects.toBeInstanceOf(UsersError);
+    expect(issueTemporaryPasswordForUser).not.toHaveBeenCalled();
   });
 });

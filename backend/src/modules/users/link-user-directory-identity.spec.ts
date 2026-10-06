@@ -1,6 +1,12 @@
+import { auditLogActions } from '../audit-log/audit-log.constants';
+import { recordUserChange } from './record-user-change';
 import { authenticationConstants } from '../authentication/authentication.constants';
 import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 import { UsersError } from './users.error';
+
+jest.mock('./record-user-change', () => ({
+  recordUserChange: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('./list-users-summary', () => ({
   listUsersSummary: jest.fn().mockResolvedValue([
@@ -26,8 +32,10 @@ jest.mock('./list-users-summary', () => ({
 describe('linkUserDirectoryIdentity', () => {
   const update = jest.fn();
   const findUnique = jest.fn();
+  const transaction = { user: { update } };
   const prisma = {
-    user: { findUnique, update },
+    user: { findUnique },
+    $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
   };
   const listDirectoryUsersForLinking = jest.fn();
   const directorySyncService = { listDirectoryUsersForLinking };
@@ -44,6 +52,7 @@ describe('linkUserDirectoryIdentity', () => {
         id: 'user-1',
         isLocalOnly: true,
         entraObjectId: null,
+        organizationalUnitId: 'ou-1',
         userRoles: [{ role: { key: 'USER' } }],
       })
       .mockResolvedValueOnce(null);
@@ -73,6 +82,18 @@ describe('linkUserDirectoryIdentity', () => {
         mustChangePassword: false,
       },
     });
+    expect(recordUserChange).toHaveBeenCalledWith(transaction, expect.objectContaining({
+      action: auditLogActions.userUpdated,
+      entityId: 'user-1',
+      organizationalUnitId: 'ou-1',
+      metadata: {
+        directoryIdentityLinked: true,
+        directoryKind: 'entra',
+        before: { isLocalOnly: true, directoryLinked: false },
+        after: { isLocalOnly: false, directoryLinked: true },
+      },
+    }));
+    expect(JSON.stringify(jest.mocked(recordUserChange).mock.calls)).not.toContain('manual_only:user:dev-reader');
     expect(result.isLocalOnly).toBe(false);
   });
 
