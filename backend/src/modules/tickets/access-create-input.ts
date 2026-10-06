@@ -9,6 +9,7 @@ export function accessCreateInput(
     description: 'Need finance mailbox access',
     impact: 'MEDIUM',
     urgency: 'HIGH',
+    formData: { asset_tag: 'ACC-001' },
     serviceId: ticketsTestIds.serviceAccess,
     originUnitId: ticketsTestIds.ouIt,
     ...overrides,
