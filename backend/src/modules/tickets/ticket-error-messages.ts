@@ -12,6 +12,7 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   FORM_VERSION_NOT_FOUND: 'Form version was not found',
   FORM_VERSION_SERVICE_MISMATCH: 'Form version does not belong to this service',
   FORM_VERSION_NOT_ACTIVE: 'New tickets must use an ACTIVE form version',
+  FORM_DATA_INVALID: 'Ticket form data is invalid',
   INVALID_STATUS_TRANSITION: 'Ticket status transition is not allowed',
   STATUS_CHANGE_FORBIDDEN: 'You cannot change ticket status',
   FORBIDDEN: 'Authorization failed',

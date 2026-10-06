@@ -40,7 +40,10 @@ export function toTicketLabelFields(
       record.assignedGroupId === null
         ? null
         : (labels.groups.get(record.assignedGroupId) ?? null),
-    formVersionNumber: labels.formVersions.get(record.formVersionId) ?? null,
+    formVersionNumber:
+      record.formVersionId === null
+        ? null
+        : (labels.formVersions.get(record.formVersionId) ?? null),
     originUnitName: originUnit?.name ?? null,
     originUnitPath: originUnit?.path ?? null,
     serviceName: labels.services.get(record.serviceId) ?? null,

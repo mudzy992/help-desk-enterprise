@@ -40,6 +40,8 @@ import type { PlaybookRequiredStepsMode } from '../templates/templates.constants
 import { assertPlaybookStepsComplete } from './playbooks/assert-playbook-steps-complete';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
+import { loadTicketFormSchema } from './load-ticket-form-schema';
+import { validateServiceFormData } from '../service-catalog/validate-service-form-data';
 import type {
   TicketMutationContext,
   TicketRecord,
@@ -114,8 +116,25 @@ export async function updateTicket(
     input.description === undefined
       ? current.description
       : normalizeTicketDescription(input.description);
-  const formData =
-    input.formData === undefined ? current.formData : input.formData;
+  let formData = current.formData;
+  if (input.formData !== undefined) {
+    const formSchema = await loadTicketFormSchema(
+      prisma,
+      current.formVersionId,
+    );
+    const formErrors = validateServiceFormData(formSchema, input.formData, {
+      partial: true,
+    });
+    if (formErrors.length > 0) {
+      throw new TicketsError('FORM_DATA_INVALID', 'FORM_DATA_INVALID', {
+        fields: formErrors,
+      });
+    }
+    formData = {
+      ...asFormDataRecord(current.formData),
+      ...asFormDataRecord(input.formData),
+    };
+  }
   // M8 #3 (val 5): undefined keeps the value, null clears it.
   const requestType =
     input.requestType === undefined
@@ -243,4 +262,11 @@ export async function updateTicket(
   }
   await syncPropagatedChildrenSla(context, propagated, now);
   return updated;
+}
+
+function asFormDataRecord(value: unknown): Record<string, unknown> {
+  if (value === null || value === undefined || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
 }

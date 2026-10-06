@@ -9,12 +9,14 @@ import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import type { SplitTicketChildInput } from './split.types';
+import type { ServiceFormsConfiguration } from '../../service-catalog/service-forms.types';
 
 export async function createSplitChildTicket(input: {
   readonly prisma: PrismaService;
   readonly routingService: RoutingService;
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
+  readonly formsConfiguration: ServiceFormsConfiguration;
   readonly parent: TicketRecord;
   readonly child: SplitTicketChildInput;
   readonly context: TicketMutationContext;
@@ -35,9 +37,11 @@ export async function createSplitChildTicket(input: {
       originUnitId: input.parent.originUnitId,
       formVersionRef:
         serviceId === input.parent.serviceId
-          ? input.parent.formVersionId
+          ? input.parent.formVersionId ?? undefined
           : undefined,
-      formData: input.parent.formData,
+      formData: input.formsConfiguration.enabled
+        ? input.parent.formData
+        : undefined,
       requesterUserId: input.parent.requesterId,
       parentTicketId: input.parent.id,
       assignedGroupId: input.child.assignedGroupId,
@@ -46,6 +50,10 @@ export async function createSplitChildTicket(input: {
     },
     input.context,
     input.messages,
+    undefined,
+    undefined,
+    [],
+    input.formsConfiguration,
   );
   await applyTicketSlaTimers(input.context, {
     ticket: created,

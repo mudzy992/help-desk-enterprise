@@ -1,8 +1,9 @@
 import type { ServiceFormSchema } from "@/services/service-catalog-api";
 
-/// A ticket always stores a formVersionRef, so a service cannot accept tickets
-/// until one of its form versions is ACTIVE. This mirrors the schema the
-/// install wizard seeds, and is the starting point for further field authoring.
+/// An active form version is required to activate a service. Ticket creation
+/// binds it when forms are enabled; the form settings may also allow tickets
+/// without a bound version. This mirrors the install schema and is a starting
+/// point for further field authoring.
 export const defaultServiceFormSchema: ServiceFormSchema = {
   schemaVersion: 1,
   fields: [

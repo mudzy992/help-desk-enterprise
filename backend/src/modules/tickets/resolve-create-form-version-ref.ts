@@ -2,6 +2,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadFormVersionForService } from '../service-catalog/load-form-version';
 import { selectActiveFormVersionRef } from '../service-catalog/select-active-form-version-ref';
 import { ServiceFormsError } from '../service-catalog/service-forms.error';
+import { defaultServiceFormsConfiguration } from '../service-catalog/service-forms.constants';
+import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 import { TicketsError } from './tickets.error';
 
 export async function resolveCreateFormVersionRef(
@@ -10,13 +12,29 @@ export async function resolveCreateFormVersionRef(
     readonly serviceId: string;
     readonly formVersionRef?: string;
   },
-): Promise<string> {
+  configuration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
+): Promise<string | null> {
+  if (!configuration.enabled) {
+    return null;
+  }
+
   const requested = input.formVersionRef?.trim() ?? '';
   try {
-    const formVersionRef =
-      requested.length === 0
-        ? await selectActiveFormVersionRef(prisma, input.serviceId)
-        : requested;
+    let formVersionRef = requested;
+    if (formVersionRef.length === 0) {
+      try {
+        formVersionRef = await selectActiveFormVersionRef(prisma, input.serviceId);
+      } catch (error) {
+        if (
+          error instanceof ServiceFormsError &&
+          error.code === 'NO_ACTIVE_FORM_VERSION' &&
+          !configuration.requireVersionOnTicket
+        ) {
+          return null;
+        }
+        throw error;
+      }
+    }
     const formVersion = await loadFormVersionForService(
       prisma,
       input.serviceId,
@@ -36,9 +54,6 @@ function mapFormVersionError(error: unknown): never {
     throw error;
   }
   if (error instanceof ServiceFormsError) {
-    if (error.code === 'TICKET_FORM_VERSION_REQUIRED') {
-      throw new TicketsError('FORM_VERSION_REQUIRED');
-    }
     if (error.code === 'NO_ACTIVE_FORM_VERSION') {
       throw new TicketsError('FORM_VERSION_REQUIRED');
     }

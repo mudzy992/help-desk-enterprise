@@ -42,6 +42,9 @@ import { respondLoadedTicket } from './to-ticket-client-responses';
 import { updateTicket } from './update-ticket';
 import { takeOverTicketForProblem } from './assignment/take-over-ticket-for-problem';
 import { withTicketAccessPolicies } from './with-ticket-access-policies';
+import { ServiceFormsConfigurationLoader } from '../service-catalog/service-forms-configuration.loader';
+import { defaultServiceFormsConfiguration } from '../service-catalog/service-forms.constants';
+import { resolveTicketFormVersion } from '../service-catalog/resolve-ticket-form-version';
 import type {
   CreateTicketInput,
   ListTicketsQuery,
@@ -81,6 +84,8 @@ export class TicketsService {
     private readonly unroutedQueueLoader?: UnroutedQueueConfigurationLoader,
     @Optional()
     private readonly templatesLoader?: TemplatesConfigurationLoader,
+    @Optional()
+    private readonly serviceFormsConfigurationLoader?: ServiceFormsConfigurationLoader,
   ) {}
 
   /** Package 1.4 (P5): read only when the status changes. */
@@ -153,6 +158,9 @@ export class TicketsService {
         realtimeHub: this.realtimeHub,
         body: input,
         context: await this.gate(context),
+        formsConfiguration:
+          (await this.serviceFormsConfigurationLoader?.load()) ??
+          defaultServiceFormsConfiguration,
         afterCreate: (ticket, messages) => this.autoAttachPlaybook(ticket, messages),
       }),
     );
@@ -318,6 +326,21 @@ export class TicketsService {
       // Paket 2.6: principal context is cached, so this adds no query.
       const viewer = await this.authorizationContextLoader.loadBySubjectId(gated.actorUserId);
       return { ...response, privacy: ticketPrivacyMarkers(record, canSeeLegalHold(viewer)) };
+    });
+  }
+
+  /** Read the schema bound to a ticket after the same visibility/audit gate as GET /tickets/:id. */
+  getFormById(ticketId: string, context: TicketMutationContext) {
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      await getTicket(
+        this.prisma,
+        this.authorizationContextLoader,
+        ticketId,
+        gated,
+        { auditView: true },
+      );
+      return resolveTicketFormVersion(this.prisma, ticketId);
     });
   }
 

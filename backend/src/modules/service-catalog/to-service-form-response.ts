@@ -7,6 +7,8 @@ import { toFormVersionResponse } from './to-form-version-response';
 export async function toServiceFormResponse(
   prisma: PrismaService,
   serviceId: string,
+  formsEnabled = true,
+  requireVersionOnTicket = true,
 ): Promise<ServiceFormResponse> {
   const records = await listFormVersionRecords(prisma, serviceId);
   const versions = [];
@@ -23,6 +25,8 @@ export async function toServiceFormResponse(
     .find((version) => version.status === 'ACTIVE');
   return {
     serviceId,
+    formsEnabled,
+    requireVersionOnTicket,
     activeFormVersionRef: active?.formVersionRef ?? null,
     versions,
   };

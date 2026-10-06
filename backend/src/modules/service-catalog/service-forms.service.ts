@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { activateServiceFormVersion } from './activate-service-form-version';
-import { bindTicketFormVersionRef } from './bind-ticket-form-version-ref';
 import { createServiceForm } from './create-service-form';
 import { createServiceFormVersion } from './create-service-form-version';
 import { getServiceForm } from './get-service-form';
@@ -58,7 +57,16 @@ export class ServiceFormsService {
     /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
     roleKeys?: readonly string[],
   ): Promise<ServiceFormResponse> {
-    return this.execute(() => getServiceForm(this.prisma, serviceId, roleKeys));
+    return this.execute(async () => {
+      const configuration = await this.configurationLoader.load();
+      return getServiceForm(
+        this.prisma,
+        serviceId,
+        roleKeys,
+        configuration.enabled,
+        configuration.requireVersionOnTicket,
+      );
+    });
   }
 
   createFormVersion(
@@ -116,21 +124,6 @@ export class ServiceFormsService {
         this.prisma,
         serviceId,
         formVersionRef,
-        await this.configurationLoader.load(),
-        context,
-      ),
-    );
-  }
-
-  bindTicketFormVersionRef(
-    serviceId: string,
-    formVersionRef: string | null | undefined,
-    context: CatalogMutationContext = emptyContext,
-  ): Promise<TicketFormVersionBinding> {
-    return this.execute(async () =>
-      bindTicketFormVersionRef(
-        this.prisma,
-        { serviceId, formVersionRef },
         await this.configurationLoader.load(),
         context,
       ),

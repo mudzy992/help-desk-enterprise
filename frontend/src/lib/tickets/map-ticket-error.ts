@@ -106,6 +106,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   SERVICE_NOT_OFFERED: "tickets.errorValidation",
   FORM_VERSION_REQUIRED: "tickets.errorFormVersionMissing",
   FORM_VERSION_NOT_ACTIVE: "tickets.errorFormVersionMissing",
+  FORM_DATA_INVALID: "tickets.errorValidation",
   ASSET_NOT_SELECTABLE: "tickets.errorAssetNotSelectable",
   FORM_VERSION_NOT_FOUND: "tickets.errorFormVersionMissing",
   INVALID_MESSAGE_BODY: "tickets.errorValidation",

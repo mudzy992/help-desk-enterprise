@@ -3,6 +3,7 @@ import {
   type TicketPageQuery,
 } from "@/lib/tickets/ticket-list-search-params";
 import { apiRequest } from "@/services/api";
+import type { ServiceFormSchema } from "@/services/service-catalog-api";
 
 export type TicketSlaSnapshot = {
   readonly slaProfileId: string | null;
@@ -50,7 +51,7 @@ export type TicketResponse = {
   readonly formData: unknown;
   readonly originUnitId: string;
   readonly serviceId: string;
-  readonly formVersionRef: string;
+  readonly formVersionRef: string | null;
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
@@ -92,6 +93,14 @@ export type TicketResponse = {
   readonly privacy?: TicketPrivacyMarkers;
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type TicketFormResponse = {
+  readonly ticketId: string;
+  readonly serviceId: string;
+  readonly formVersionRef: string | null;
+  readonly schema: ServiceFormSchema | null;
+  readonly formData: unknown;
 };
 
 export type TicketPrivacyMarkers = {
@@ -245,6 +254,10 @@ export function listTickets(
 
 export function getTicket(ticketId: string): Promise<TicketResponse> {
   return apiRequest(`/tickets/${ticketId}`);
+}
+
+export function getTicketForm(ticketId: string): Promise<TicketFormResponse> {
+  return apiRequest(`/tickets/${ticketId}/form`);
 }
 
 export function updateTicket(

@@ -24,6 +24,8 @@ interface CreateTicketDraftViewProperties {
   readonly originUnitDisplayName: string;
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
   readonly fieldErrors: ReadonlyMap<string, string>;
   /** Incremented on each failed client validation; moves focus to the error summary. */
   readonly failedSubmitCount?: number;
@@ -47,6 +49,8 @@ export function CreateTicketDraftView({
   originUnitDisplayName,
   selectedService,
   activeForm,
+  formsEnabled,
+  requireVersionOnTicket,
   fieldErrors,
   failedSubmitCount = 0,
   suggestedPriority,
@@ -85,6 +89,8 @@ export function CreateTicketDraftView({
               originUnitDisplayName={originUnitDisplayName}
               selectedService={selectedService}
               activeForm={activeForm}
+              formsEnabled={formsEnabled}
+              requireVersionOnTicket={requireVersionOnTicket}
               fieldErrors={fieldErrors}
               suggestedPriority={suggestedPriority}
               onChange={onDraftChange}

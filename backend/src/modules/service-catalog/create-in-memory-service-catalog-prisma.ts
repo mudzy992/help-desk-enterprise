@@ -36,6 +36,8 @@ export function createInMemoryServiceCatalogPrisma(): {
   };
   seedCategory: (category: InMemoryServiceCategory) => void;
   seedService: (service: InMemoryService) => void;
+  seedFormVersion: (version: FormVersionRecord) => void;
+  seedTicket: (ticket: TicketFormVersionRecord) => void;
   seedPolicyPack: (id: string) => void;
   seedServiceDependents: (serviceId: string, dependents: Partial<ServiceDependents>) => void;
   changeLogs: InMemoryServiceCatalogChangeLog[];
@@ -91,6 +93,12 @@ export function createInMemoryServiceCatalogPrisma(): {
     },
     seedService: (service) => {
       services.set(service.id, service);
+    },
+    seedFormVersion: (version) => {
+      formVersions.set(version.id, version);
+    },
+    seedTicket: (ticket) => {
+      tickets.set(ticket.id, ticket);
     },
     seedPolicyPack: (id) => {
       policyPacks.add(id);

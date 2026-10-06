@@ -33,7 +33,6 @@ const messages: Record<ServiceFormsErrorCode, string> = {
   FORM_VERSIONING_DISABLED: 'Form versioning is disabled',
   NO_ACTIVE_FORM_VERSION: 'No active form version exists for this service',
   FORM_VERSION_NOT_DRAFT: 'Only draft form versions can be activated',
-  TICKET_FORM_VERSION_REQUIRED: 'Ticket formVersionRef is required',
   TICKET_NOT_FOUND: 'Ticket was not found',
   FORM_VERSION_SERVICE_MISMATCH: 'Form version does not belong to this service',
 };

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -16,6 +16,8 @@ import type { TicketMutationContext } from '../tickets.types';
 import { splitTicket } from './split-ticket';
 import type { SplitTicketInput, SplitTicketResult } from './split.types';
 import { TicketSplitConfigurationLoader } from './ticket-split-configuration.loader';
+import { ServiceFormsConfigurationLoader } from '../../service-catalog/service-forms-configuration.loader';
+import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
 
 @Injectable()
 export class TicketsSplitService {
@@ -30,6 +32,8 @@ export class TicketsSplitService {
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    @Optional()
+    private readonly serviceFormsConfigurationLoader?: ServiceFormsConfigurationLoader,
   ) {}
 
   split(
@@ -40,6 +44,9 @@ export class TicketsSplitService {
     return executeTicketOperation(async () => {
       const gated = await this.accessPolicies.bind(context);
       const configuration = await this.splitConfigurationLoader.load();
+      const formsConfiguration =
+        (await this.serviceFormsConfigurationLoader?.load()) ??
+        defaultServiceFormsConfiguration;
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();
       const messages: TicketPersistedMessageSink = [];
@@ -49,6 +56,7 @@ export class TicketsSplitService {
         authorizationContextLoader: this.authorizationContextLoader,
         approvalsConfigurationLoader: this.approvalsConfigurationLoader,
         configuration,
+        formsConfiguration,
         ticketId,
         body: input,
         context: gated,

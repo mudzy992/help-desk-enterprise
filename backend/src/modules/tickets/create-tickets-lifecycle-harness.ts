@@ -28,6 +28,7 @@ export function createTicketsLifecycleHarness(input: {
   readonly slaTimers: unknown;
   readonly realtimeHub: TicketRealtimeHub;
   readonly assignmentConfigurationLoader: unknown;
+  readonly serviceFormsConfigurationLoader?: unknown;
 }) {
   const csatConfig = {
     enabled: defaultTicketCsatConfiguration.enabled as boolean,
@@ -60,6 +61,9 @@ export function createTicketsLifecycleHarness(input: {
       // No label cache here: the harness runs without Redis, which is exactly the
       // "cache is down" path — the display labels are read from the database.
       undefined as never,
+      undefined as never,
+      undefined as never,
+      input.serviceFormsConfigurationLoader as never,
     );
   const csat = new TicketsCsatService(
     input.prisma as never,

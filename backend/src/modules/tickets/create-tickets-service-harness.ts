@@ -29,12 +29,19 @@ import { createTicketsGovernanceHarness } from './create-tickets-governance-harn
 import { createTicketPolicyHarness } from './create-ticket-policy-harness';
 import { createTicketsLifecycleHarness } from './create-tickets-lifecycle-harness';
 import { createTicketsSlaHarness } from './create-tickets-sla-harness';
+import { defaultServiceFormsConfiguration } from '../service-catalog/service-forms.constants';
+import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 
 export { ticketsTestIds } from './tickets-test-ids';
 export { vpnFormSchema } from './seed-tickets-harness-catalog';
 
-export function createTicketsServiceHarness() {
+export function createTicketsServiceHarness(
+  formsConfiguration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
+) {
   const memory = createInMemoryTicketsPrisma();
+  const formsConfigurationLoader = {
+    load: async () => formsConfiguration,
+  };
   const contexts = new Map<string, AuthorizationContext>();
   const assignmentConfig: {
     groupInboxEnabled: boolean;
@@ -149,6 +156,7 @@ export function createTicketsServiceHarness() {
     slaTimers: sla.slaTimers,
     realtimeHub,
     assignmentConfigurationLoader,
+    serviceFormsConfigurationLoader: formsConfigurationLoader,
   });
   const tickets = lifecycle.tickets;
   const approvals = new TicketsApprovalsService(
@@ -169,6 +177,7 @@ export function createTicketsServiceHarness() {
     assignment,
     policy.accessPolicies,
     realtimeHub,
+    formsConfigurationLoader as never,
   );
   const agentCollaboration = new TicketsAgentCollaborationService(
     memory.prisma as never,
@@ -217,6 +226,7 @@ export function createTicketsServiceHarness() {
     accessPolicies: policy.accessPolicies,
     realtimeHub,
     guardrailsLoader,
+    serviceFormsConfigurationLoader: formsConfigurationLoader,
   });
   seedTicketsHarnessCatalog(memory);
   seedTicketsHarnessActors(contexts);

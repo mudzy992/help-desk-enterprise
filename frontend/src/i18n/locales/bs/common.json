@@ -3779,6 +3779,8 @@
       "conversation": "Razgovor",
       "description": "Opis",
       "formData": "Podaci forme",
+      "formBooleanTrue": "Da",
+      "formBooleanFalse": "Ne",
       "properties": "Svojstva",
       "activity": "Aktivnost (audit)",
       "requester": "Podnosilac",

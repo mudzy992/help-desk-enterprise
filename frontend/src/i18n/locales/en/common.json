@@ -3756,6 +3756,8 @@
       "conversation": "Conversation",
       "description": "Description",
       "formData": "Form data",
+      "formBooleanTrue": "Yes",
+      "formBooleanFalse": "No",
       "properties": "Properties",
       "activity": "Activity (audit)",
       "requester": "Requester",

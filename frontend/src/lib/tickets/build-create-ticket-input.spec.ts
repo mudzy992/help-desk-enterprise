@@ -85,15 +85,17 @@ describe("buildCreateTicketInput", () => {
 });
 
 describe("isServiceReadyForTicketCreation", () => {
-  it("blocks submission for a selected service without an active form version", () => {
+  it("requires an active version only when the forms configuration says it is required", () => {
     expect(isServiceReadyForTicketCreation(draft, true)).toBe(true);
     expect(isServiceReadyForTicketCreation(draft, false)).toBe(false);
+    expect(isServiceReadyForTicketCreation(draft, false, true, false)).toBe(true);
   });
 
-  it("stays ready while no service is selected yet", () => {
+  it("stays ready while no service is selected or forms are disabled", () => {
     expect(
       isServiceReadyForTicketCreation({ ...draft, serviceId: "" }, false),
     ).toBe(true);
+    expect(isServiceReadyForTicketCreation(draft, false, false)).toBe(true);
   });
 });
 

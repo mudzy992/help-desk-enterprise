@@ -1942,3 +1942,27 @@ poravnati s implementacijom; poznate stavke B5–B7 M3 i preostala M4 ograničen
 | `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T23 opisuje reset samo za lokalni nalog i odbijeni audit; T24 opisuje blocker counts/atomarnost/role warning; T26 opisuje audit mutacija u transakciji bez tajni | isti backend use case-i i specovi |
 | `.cursor/docs/matrices/organizational-units/MATRIX.md` i `directory-sync/MATRIX.md` + changelogs | Usklađena politika blocker counts, cascade upozorenja, audit/cache invalidation i ograničenje „nema brisanja stvarnog AD naloga“ | OU/manual-directory use case-i i ciljane Jest provjere |
 | `backend/content/docs/{korisnici-oj-i-grupe,uloge-i-permisije}.md` + `manifest.json` | Ogledala vodiča i manifest metapodaci sinhronizovani; postojeće korisničke `updatedAt` izmjene u manifestu su sačuvane | `scripts/generate-docs-content.mjs` — read-only build sadržaja + `scripts/check-docs-content.mjs` |
+
+## Paket 5.1 — korak 5.1.3: M6 B1, B3, B4 i B5 (2026-10-06)
+
+**Zašto:** zatvoreni su serverska validacija `formData`, kapija aktivacije usluge, uticaj postavki formi i schema-backed
+prikaz tiketa. Vodiči su usklađeni s ponašanjem koje ciljano pokrivaju testovi; ne tvrde da su puni e2e ili backend
+typecheck prošli.
+
+**Dokazi izvršeni u ovom okruženju:** backend ciljani Jest skup → **12 suita / 48 testova ✅** uz privremeni
+`ts-jest diagnostics:false` config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `frontend npm run
+build` → `tsc -b && vite build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint nad
+izmijenjenim M6/tickets fajlovima → bez grešaka. Dokumentacija: `node scripts/check-docs-content.mjs` → OK (29
+stranica, 5 prevoda, 10 provjera), `node --test scripts/check-docs-content.test.mjs` → **9/9**, generator `--check`
+i `check-client-neutral.mjs` → OK. `backend npm run build` i dalje ne prolazi (**2871 TS dijagnostika**) zbog
+nedostajućeg generisanog Prisma client/enums i zato nije dokaz backend typechecka. Spec 15 je proširen, ali
+browser e2e nije izvršen.
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/katalog-usluga-i-forme.md`; `cesta-pitanja.md` i `en/cesta-pitanja.md` | Uklonjene zastarjele tvrdnje da server ne provjerava vrijednosti, da aktivacija bez forme prolazi i da postavke ne utiču na tiket; dodati `FORM_DATA_INVALID` pravila, `NO_ACTIVE_FORM_VERSION`, tri ishoda `enabled`/`requireVersionOnTicket` i samo stvarna ograničenja (osnovna email provjera i neprovjera članstva opcija); FAQ na bs/en poravnat | `validate-service-form-data.ts`, `transition-service-lifecycle.ts`, `resolve-create-form-version-ref.ts`, `ServiceFormsConfigurationLoader`; ciljani Jest |
+| `docs/user-guide/tiketi.md` | Opisano server-side create/update validiranje, patch i brisanje required polja, `GET /tickets/:ticketId/form`, ista autorizacija kao detalj i schema-backed prikaz s unknown-key fallbackom | `tickets.controller.ts`, `tickets.service.ts#getFormById`, `resolve-ticket-form-version.ts`, `ticket-form-data-view.tsx`; ciljane Jest/Vitest provjere |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T36–T39 poravnati sa lifecycle kapijom, verzionisanjem i serverskom validacijom; dodat T104 za read-only form endpoint, vidljivost i prikaz po šemi | isti backend/frontend izvori i testovi |
+| `docs/user-guide/sta-je-novo.md` | Korisnički sažetak M6 validacije, podešavanja formi i detalja tiketa | `DOCS_CHANGELOG.md`, vodiči M6/M8 |
+| `REVIEW_ANALIZA.md` | M6 gap tabela, kodna analiza, nalazi B1/B3/B4/B5, dokumentacijski status i ocjena ažurirani; dodat odjeljak 5.1.3 s dokazima i ograničenjima provjera | ciljani Jest/Vitest/ESLint/build rezultati iznad |
+| `backend/content/docs/{katalog-usluga-i-forme,tiketi,cesta-pitanja,sta-je-novo}.md`, engleski FAQ ogledalo + `manifest.json` | Regenerisana ogledala vodiča iz `docs/user-guide/` | `scripts/generate-docs-content.mjs`, zatim docs guard |

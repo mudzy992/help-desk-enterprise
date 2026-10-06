@@ -9,6 +9,7 @@ import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import type { ServiceFormsConfiguration } from '../../service-catalog/service-forms.types';
 import { normalizeReopenComment } from './normalize-reopen-comment';
 import { resolveTicketReopenPolicy } from './resolve-ticket-reopen-policy';
 import type { ReopenTicketInput, TicketReopenConfiguration } from './reopen.types';
@@ -19,6 +20,7 @@ export async function createReopenedTicket(input: {
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
   readonly configuration: TicketReopenConfiguration;
+  readonly formsConfiguration: ServiceFormsConfiguration;
   readonly ticketId: string;
   readonly body: ReopenTicketInput;
   readonly context: TicketMutationContext;
@@ -56,13 +58,17 @@ export async function createReopenedTicket(input: {
       urgency: ticket.urgency,
       serviceId: ticket.serviceId,
       originUnitId: ticket.originUnitId,
-      formVersionRef: ticket.formVersionId,
-      formData: ticket.formData,
+      formVersionRef: ticket.formVersionId ?? undefined,
+      formData: input.formsConfiguration.enabled ? ticket.formData : undefined,
       requesterUserId: ticket.requesterId,
       reopenedFromTicketId: ticket.id,
     },
     input.context,
     input.messages,
+    undefined,
+    undefined,
+    [],
+    input.formsConfiguration,
   );
   input.messages.push(
     await insertSystemTicketEvent(input.prisma, {

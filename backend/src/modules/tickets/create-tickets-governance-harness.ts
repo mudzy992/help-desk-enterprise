@@ -25,6 +25,7 @@ export function createTicketsGovernanceHarness(input: {
   readonly accessPolicies: TicketAccessPolicyBinder;
   readonly realtimeHub: TicketRealtimeHub;
   readonly guardrailsLoader?: { load: () => Promise<unknown> };
+  readonly serviceFormsConfigurationLoader?: unknown;
 }) {
   const splitConfig = {
     enabled: defaultTicketSplitConfiguration.enabled as boolean,
@@ -59,6 +60,7 @@ export function createTicketsGovernanceHarness(input: {
     input.assignment,
     input.accessPolicies,
     input.realtimeHub,
+    input.serviceFormsConfigurationLoader as never,
   );
   const guardrailsLoader = input.guardrailsLoader ?? {
     load: async () => ({ ...defaultTicketGuardrailsConfiguration }),

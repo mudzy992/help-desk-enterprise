@@ -32,7 +32,7 @@ export type TicketRecord = {
   readonly formData: unknown;
   readonly originUnitId: string;
   readonly serviceId: string;
-  readonly formVersionId: string;
+  readonly formVersionId: string | null;
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
@@ -85,7 +85,7 @@ export type TicketResponse = {
   readonly formData: JsonValue | null;
   readonly originUnitId: string;
   readonly serviceId: string;
-  readonly formVersionRef: string;
+  readonly formVersionRef: string | null;
   readonly formVersionNumber?: number | null;
   readonly originUnitName?: string | null;
   readonly originUnitPath?: string | null;

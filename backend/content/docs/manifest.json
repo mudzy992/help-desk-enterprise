@@ -584,6 +584,11 @@
         },
         {
           "level": 3,
+          "text": "Forma usluge: provjera i prikaz",
+          "id": "forma-usluge-provjera-i-prikaz"
+        },
+        {
+          "level": 3,
           "text": "Statusi i dozvoljeni prelazi",
           "id": "statusi-i-dozvoljeni-prelazi"
         },
@@ -618,7 +623,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1923,
+      "wordCount": 2216,
       "source": "docs/user-guide/tiketi.md",
       "englishTitle": "Tickets"
     },
@@ -1484,6 +1489,16 @@
         },
         {
           "level": 3,
+          "text": "Validacija podataka forme",
+          "id": "validacija-podataka-forme"
+        },
+        {
+          "level": 3,
+          "text": "Postavke toka formi",
+          "id": "postavke-toka-formi"
+        },
+        {
+          "level": 3,
           "text": "Statusi usluge",
           "id": "statusi-usluge"
         },
@@ -1503,7 +1518,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1580,
+      "wordCount": 1890,
       "source": "docs/user-guide/katalog-usluga-i-forme.md",
       "englishTitle": null
     },
@@ -2771,7 +2786,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1332,
+      "wordCount": 1328,
       "source": "docs/user-guide/cesta-pitanja.md",
       "englishTitle": "Frequently asked questions"
     },
@@ -2903,7 +2918,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 905,
+      "wordCount": 962,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

@@ -1424,23 +1424,27 @@ je u pitanju nedovršen rad ili rezervisano mjesto.
 
 - `create-ticket.ts:110–114`: `loadOfferedService` (usluga mora biti dostupna korisnicima) pa
   `resolveCreateFormVersionRef`; `:196,199`: upis `formData` i `formVersionId`.
-- `resolve-create-form-version-ref.ts:7–32`: bez `formVersionRef` bira aktivnu verziju (`selectActiveFormVersionRef`),
-  s proslijeđenim ref-om učitava verziju i traži `status === 'ACTIVE'` (`FORM_VERSION_NOT_ACTIVE`); mapira
-  greške u `FORM_VERSION_REQUIRED`, `FORM_VERSION_NOT_FOUND`, `FORM_VERSION_SERVICE_MISMATCH`.
-- `to-ticket-form-data-input.ts:3–8`: **cast** proizvoljne vrijednosti u `Prisma.InputJsonValue`; `formData?: Record<string, unknown>`
-  u `create-ticket.dto.ts:49` i `update-ticket.dto.ts:43` bez dodatnih ograničenja; `update-ticket.ts:115–116,166`
-  dozvoljava zamjenu `formData` bez validacije.
+- `resolve-create-form-version-ref.ts`: čita `ServiceFormsConfiguration`; `enabled=false` vraća `null`, inače bira
+  aktivnu verziju, a kad `requireVersionOnTicket=false` dopušta `null` ako aktivne nema; proslijeđeni ref i dalje
+  mora pripadati servisu i biti `ACTIVE`.
+- `create-ticket.ts` učitava šemu verzije i poziva `validateServiceFormData` prije upisa; `update-ticket.ts` radi
+  isto za samo poslana polja (`partial: true`), odbija čišćenje required polja i spoji validirani patch s
+  postojećim JSON-om. Unknown keys i nevažeći tip/opseg daju `TicketsError('FORM_DATA_INVALID')` s listom
+  `{ fieldId, code: 'REQUIRED'|'INVALID' }`. Validator je `service-catalog/validate-service-form-data.ts`;
+  DTO i dalje ograničava samo top-level oblik, pa je šema vezanog tiketa izvor pravila.
 - Required polja: `apply-ticket-resolution.ts:34–52` poziva `collect-missing-required-fields.ts`, koje na
   prelasku u `RESOLVED/CLOSED` provjerava close code, resolution note, `globalRequiredOnResolve` +
   `byService[serviceId]` i — ako je `enforceSchemaRequiredFields` — `required` polja iz šeme vezane za tiket
   (`read-form-schema-fields.ts:4–10`, greška `REQUIRED_FIELDS_MISSING` s listom polja).
-- `ServiceFormsService.bindTicketFormVersionRef` (`service-forms.service.ts:119–132`) i
-  `resolveTicketFormVersion` (`:134–136`): jedini pozivi su u `service-forms.*.spec.ts`; nijedan kontroler ni
-  tickets modul ih ne koristi (grep kroz `backend/src` bez spec fajlova: samo definicije i fasadne metode).
-- Prikaz: `ticket-detail-page.tsx:424` prosljeđuje `<TicketFormDataView formData={ticket.formData} />`, a
-  `ticket-form-data-view.tsx:8–31` ispisuje `Object.entries(formData)` kao parove **sirovih ključeva** i
-  `String(value)` (bez šeme, labela i tipova); broj verzije forme se prikazuje u zaglavlju/sidebaru tiketa
-  (`ticket-detail-header.tsx:138–144`, `ticket-detail-sidebar.tsx:63–71`).
+- `bindTicketFormVersionRef` (stari helper koji je upisivao probni tiket) i `service-forms.ticket-binding.spec.ts`
+  uklonjeni su; `resolveTicketFormVersion` je sada korišten kroz `GET /tickets/:ticketId/form`.
+- `tickets.controller.ts` izlaže taj read-only endpoint, a `tickets.service.ts#getFormById` prvo prolazi kroz isti
+  `getTicket` visibility gate kao detalj tiketa; `resolve-ticket-form-version.ts` vraća vezanu šemu i podatke,
+  odnosno `formVersionRef: null` i `schema: null` bez veze. Ciljani testovi provjeravaju autorizaciju, no-form
+  odgovor i da čitanje ne mijenja logove.
+- Frontend `ticket-detail-page.tsx` pribavlja šemu kroz `useTicketForm`; `TicketFormDataView`/`formatTicketFormData`
+  prikazuju oznake i nazive opcija iz te šeme, tipizirane booleane/brojeve te nepoznate ključeve pod izvornim
+  nazivom kao odbrambeni fallback. Zaglavlje/sidebar i dalje prikazuju broj vezane verzije forme.
 
 ### 4.6 Onboarding wizard
 
@@ -1469,28 +1473,30 @@ je u pitanju nedovršen rad ili rezervisano mjesto.
 - `components/services/form-builder/*`: **Kreiraj formu** (šalje `defaultServiceFormSchema` s poljem
   `dodatne_informacije`, `default-service-form-schema.ts:6–18`), editor polja (`form-field-editor.tsx`),
   lista polja, **Verzije forme**, akcije **Sačuvaj nacrt**, **Aktiviraj verziju**, **Nova verzija iz odabrane**.
-- `components/tickets/create-ticket-form.tsx:85–136`: dohvat forme za servis, `validateServiceFormData` iz
-  `lib/tickets/validate-service-form.ts` (klijentska validacija: required, min/max, `integer`, `email` sadrži
-  `@`, `pattern` preko `new RegExp`, min/max stavki za multiselect), pa KB presretanje i pregled.
+- `components/tickets/create-ticket-form.tsx`: dohvat forme i `formsEnabled` + `requireVersionOnTicket` iz
+  `GET /services/:serviceId/form`; forme isključene sakrivaju sekciju, a uključene/optional bez aktivne verzije
+  ne blokiraju prijavu. `validateServiceFormData` daje klijentski feedback; server ponavlja provjeru.
 - `components/tickets/service-form-fields.tsx:32–162`: render po tipu (checkbox za boolean, textarea, select,
   input s `number|email|date|datetime-local`), a11y atributi i sažetak grešaka.
-- i18n: `services.*` (80 ključeva na bs), `tickets.form.required|invalid` (**„Ovo polje je obavezno.“**,
-  **„Vrijednost nije ispravna.“**), `tickets.errorFormVersionMissing` (poruka da usluga nema aktivnu formu),
-  `tickets.detail.formData|formVersion|formVersionFixed`.
+- `ticket-detail-page.tsx` + `use-ticket-form.ts` koriste `GET /tickets/:ticketId/form`; `ticket-form-data-view.tsx`
+  prikazuje vrijednosti s labelama/opcijama iz vezane šeme, a `format-ticket-form-data.ts` zadržava unknown keys.
+- i18n: `tickets.form.required|invalid` mapiraju serverske `REQUIRED`/`INVALID` greške na postojeće poljske
+  poruke; `tickets.errorFormVersionMissing` ostaje za obaveznu verziju bez aktivne forme; `tickets.detail.formData`,
+  `formBooleanTrue|formBooleanFalse` i `formVersion*` pokrivaju schema-backed detalj.
 
 ## 5. Gap analiza
 
 | Zadatak (RAW) | Idealno | Trenutno | Status |
 |---|---|---|---|
 | Servis se bira iz kataloga (kategorije → servisi) | drvo kategorija + lista servisa | `ServiceCategory` drvo s parent provjerama; `GET /services` s filterima lifecycle/kategorija/`offeredOnly` | **Implementirano** |
-| Svaki servis ima „smart“ formu (schema, obavezna polja, validacija) | validacija šeme i **vrijednosti** na serveru | šema se validira pri pisanju; vrijednosti se **ne** validiraju na serveru (B1) | **Djelimično** |
+| Svaki servis ima „smart“ formu (schema, obavezna polja, validacija) | validacija šeme i **vrijednosti** na serveru | šema se validira pri pisanju; `validateServiceFormData` provjerava create/update vrijednosti prema vezanoj šemi i odbija nepoznata polja | **Implementirano (M6 B1 zatvoren 2026-10-06)** |
 | 1:1 servis → form schema | jedna forma po servisu | `createServiceForm` odbija drugu formu (`FORM_ALREADY_EXISTS`); verzije su 1:N | **Implementirano** |
-| Form versioning (najnovija aktivna za nove tikete, referenca na tiketu) | kako piše u RAW-u | `selectActiveFormVersionRef` + `Ticket.formVersionId`; tiket čuva referencu; aktivacija penzioniše staru verziju | **Implementirano** |
-| Schema evolucija + prikaz istorijskih tiketa prema `formVersionRef` | detalj tiketa renderuje po šemi te verzije | stara verzija se čuva, ali detalj prikazuje sirove ključeve JSON-a (B5) | **Djelimično** |
-| Structured form data za analitiku | upis uz validaciju | zapis postoji, ali sadržaj je neprovjeren JSON proizvoljnog oblika (B1) | **Djelimično** |
-| Lifecycle `DRAFT` vidljiv samo adminima | serverska provjera po roli | tranzicije ispravne, ali `GET /services` bez `offeredOnly` vraća i nacrte svakom korisniku (B2) | **Odstupa** |
+| Form versioning (aktivna verzija za nove tikete, referenca na tiketu) | kako piše u RAW-u | `selectActiveFormVersionRef` + nullable `Ticket.formVersionId`; aktivna verzija se veže kad je forms feature uključen; config može dopustiti tiket bez reference | **Implementirano (M6 B4)** |
+| Schema evolucija + prikaz istorijskih tiketa prema `formVersionRef` | detalj tiketa renderuje po šemi te verzije | `GET /tickets/:ticketId/form` vraća vezanu šemu; UI koristi oznake/opcije i zadržava fallback za nepoznate ključeve | **Implementirano (M6 B5 zatvoren 2026-10-06)** |
+| Structured form data za analitiku | upis uz validaciju | create/update validiraju podatke uz `REQUIRED`/`INVALID`; nepoznati ključevi se odbijaju | **Implementirano (M6 B1 zatvoren 2026-10-06)** |
+| Lifecycle `DRAFT` vidljiv samo adminima | serverska provjera po roli | `get-service.ts`, `list-services.ts` i service-form GET filtriraju lifecycle na serveru | **Implementirano (M6 B2 zatvoren u valu 2, 2026-10-04)** |
 | Status servisa i downtime ne blokiraju tikete | informativno, non-blocking | `runtimeAvailability` + prozori; `ticketCreationAllowed: true`; `REASON_REQUIRED` za izmjene po postavci | **Implementirano** |
-| Postavke `private.ticket.forms.*` | `enabled` i `requireVersionOnTicket` upravljaju tokom tiketa | ključevi postoje, ali te dvije postavke ne utiču na kreiranje tiketa; `schemaRegistryJson` ne postoji | **Odstupa** |
+| Postavke `private.ticket.forms.*` | `enabled` i `requireVersionOnTicket` upravljaju tokom tiketa | `ServiceFormsConfigurationLoader` se koristi u kreiranju; forms response izlaže obje postavke UI-ju; `schemaRegistryJson` nije registrovan | **Implementirano za postojeće postavke (M6 B4 zatvoren 2026-10-06); registry ostaje van koda** |
 | Smart required fields (global + per-service) | blokada resolve/close | `collect-missing-required-fields` + `REQUIRED_FIELDS_MISSING` s listom polja | **Implementirano** |
 | Onboarding wizard do aktivacije servisa | provjere svih koraka prije `ACTIVE` | 5 koraka; finalize provjerava formu/routing/SLA/approvals i postavlja `ACTIVE` + `slaProfileId` | **Implementirano** |
 | Katalog i forme u config verzijama | snapshot/rollback | `collect-config-snapshot.ts` uključuje servise i `formVersion` zapise | **Implementirano** |
@@ -1502,67 +1508,80 @@ je u pitanju nedovršen rad ili rezervisano mjesto.
   dostupnost su razdvojeni, a onboarding wizard ima pravu serversku validaciju koraka i transakcioni finalize.
   Test pokrivenost je ozbiljna (20 spec fajlova u `service-catalog/`, 7 u `service-onboarding/`, e2e
   `01-ticket-create` prolazi katalog → formu → KB → pregled).
-- **Glavna zamjerka.** Validacija forme postoji na dva mjesta i nijedno nije server: šema se provjerava pri
-  pisanju (dobro), a vrijednosti samo u browseru (`validate-service-form.ts`). Time obećanje iz RAW-a („required
-  polja se validiraju backendom“, `:914`) i svrha strukturiranih podataka padaju na klijenta.
-- **Druga zamjerka.** Vidljivost `DRAFT` usluga je stvar discipline klijenta, ne serverskog pravila; to je isti
-  obrazac kao B2 iz §M4 (dozvola postoji, ali je presudno ko je zove).
-- **Treća zamjerka.** Dvije postavke iz RAW-a (`enabled`, `requireVersionOnTicket`) su deklarativno prisutne, a
-  funkcionalno mrtve u toku tiketa, dok se `schemaRegistryJson` uopšte ne pominje u kodu — dokumentacija zato
-  mora jasno reći šta od postavki stvarno radi.
-- **Četvrta zamjerka.** Mrtvi kod (`bindTicketFormVersionRef`, `resolveTicketFormVersion`) i nedovršen prikaz
-  forme u detalju tiketa su dvije strane istog nedostatka: veza „tiket ↔ verzija forme“ postoji u modelu, ali se
-  ne koristi dalje od upisa `formVersionId`.
+- **Glavna ranija zamjerka — zatvorena u koraku 5.1.3.** `validateServiceFormData` sada provjerava vrijednosti
+  na serveru pri kreiranju i izmjeni, uz unknown-key rejection i poljske kodove `REQUIRED`/`INVALID`; klijentska
+  provjera ostaje za raniji feedback, ne kao sigurnosna granica.
+- **Vidljivost `DRAFT` — zatvorena u valu 2 (2026-10-04).** Liste, detalj usluge i čitanje forme provjeravaju
+  lifecycle po roli na serveru (M6 B2).
+- **Tok konfiguracije — zatvoren u koraku 5.1.3 za postojeće postavke.** `enabled` i `requireVersionOnTicket`
+  utiču na vezivanje forme pri kreiranju; forme GET response izlaže oba flag-a UI-ju. RAW `schemaRegistryJson`
+  i dalje nije registrovan ni implementiran i nije opisan kao živa postavka.
+- **Veza tiketa i forme — zatvorena u koraku 5.1.3.** Mrtvi mutator `bindTicketFormVersionRef` i test su
+  uklonjeni; read-only `GET /tickets/:ticketId/form` koristi `resolveTicketFormVersion` i istu vidljivost kao
+  detalj, a UI prikazuje po šemi vezanoj za tiketu.
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-**B1 — `SREDNJE` — server ne validira `formData` prema šemi forme.** `create-ticket.ts:196` i
-`update-ticket.ts:166` upisuju vrijednost kroz `toTicketFormDataInput` (`to-ticket-form-data-input.ts:3–8`), koji
-je samo cast u `Prisma.InputJsonValue`; DTO prima `Record<string, unknown>` bez ograničenja
-(`create-ticket.dto.ts:49`, `update-ticket.dto.ts:43`). Serverska provjera postoji **samo** za prisustvo required
-polja i to na prelasku u `RESOLVED/CLOSED` (`collect-missing-required-fields.ts:56–63` preko
-`apply-ticket-resolution.ts:38–52`). **Uticaj:** klijent može poslati nepoznata polja, pogrešne tipove ili
-vrijednosti izvan opsega; strukturirani podaci u izvještajima nisu pouzdani, a zahtjev iz RAW-a `:914` nije
-ispunjen. **Fix:** serverski validator iz šeme (tip, `required`, `min/max`, `pattern`, opcije, stavke) u
-create/update toku, uz iste kodove grešaka kao na klijentu.
+**B1 — `SREDNJE` — server ne validira `formData` prema šemi forme.** → ✅ **zatvoreno u paketu 5.1.3
+(2026-10-06)**
 
-**B2 — `SREDNJE` — `DRAFT` usluge i njihove forme vidljive su svakom prijavljenom korisniku preko API-ja.** → ✅ **popravljeno u valu 2 (2026-10-04)**
-`services.controller.ts:59–70` i `service-forms.controller.ts:64–94` metodno dozvoljavaju role
-`USER|AGENT|ADMIN|SUPER_ADMIN`, a `read-authorization-requirements.ts:19–22` koristi
-`getAllAndOverride([handler, class])`, pa metodno pravilo nadjačava klasno `@RequireRoles(admin)`.
-`list-services.ts:19–25` filtrira samo po eksplicitnim parametrima — `offeredOnly` je opt-in
-(`:42–45`), a `GET /services/:id` i `GET /services/:id/form` ne provjeravaju lifecycle. **Uticaj:** svaki
-korisnik može enumerisati nacrte (naziv, slug, broj otvorenih tiketa) i preuzeti kompletne šeme formi usluga
-koje još nisu objavljene, suprotno RAW-u `:304` („DRAFT: vidljiv samo adminima“); UI to ne prikazuje, ali API
-dozvoljava. **Fix:** serverski filter po roli (ne-admin vidi `ACTIVE`, agent i `DEPRECATED`), uz provjeru
-lifecycle-a na `form` rutama.
+**Nalaz prije popravke:** `create-ticket.ts`/`update-ticket.ts` su vrijednosti castali u `Prisma.InputJsonValue`;
+provjera required polja postojala je samo pri `RESOLVED/CLOSED`. Klijent je mogao poslati nepoznata polja,
+pogrešne tipove ili vrijednosti izvan opsega.
 
-**B3 — `SREDNJE` — servis se može aktivirati bez aktivne verzije forme.** `transition-service-lifecycle.ts:114–158`
-provjerava samo dozvoljeni prelaz i (opciono) routing pokrivenost; nema provjere forme. **Uticaj:** poslije
-`POST /services/:id/lifecycle` s `ACTIVE` usluga je vidljiva korisnicima („Dostupna korisnicima: Da“, badge
-„Spremna za tikete“), a kreiranje tiketa za nju pada s `FORM_VERSION_REQUIRED`
-(`resolve-create-form-version-ref.ts:42–44`) i porukom „Odabrana usluga nema aktivnu verziju forme…“.
-Onboarding to sprečava (`validate-onboarding-steps.ts:85–108`), ručna aktivacija ne. **Fix:** pri prelazu u
-`ACTIVE` zahtijevati aktivnu verziju forme (ili vratiti upozorenje kao za routing).
+**Popravka:** `service-catalog/validate-service-form-data.ts` provjerava top-level oblik, nepoznate ključeve,
+required, tipove, dužine, pattern, numeric/integer/min/max i min/max stavki. Create validira cijeli objekat;
+update validira poslani patch, odbija brisanje required polja i nakon uspjeha spoji ga s postojećim JSON-om.
+Greška je `FORM_DATA_INVALID`, s `details.fields[]` kodiranim `REQUIRED`/`INVALID`; UI koristi postojeće
+`tickets.form.required|invalid` poruke. Testovi: `validate-service-form-data.spec.ts` i
+`tickets.form-validation.spec.ts`.
 
-**B4 — `SREDNJE` — postavke formi ne utiču na kreiranje tiketa.** `private.ticket.forms.enabled` čita se samo u
-`assertServiceFormsEnabled` (`assert-service-forms-enabled.ts:4–10`), koga zovu isključivo operacije pisanja forme
-(`create-service-form.ts:31`, `create-service-form-version.ts:30`, `update-service-form-version.ts:34`,
-`activate-service-form-version.ts:27`); `resolve-create-form-version-ref.ts` ne učitava konfiguraciju, pa tiket i
-dalje traži aktivnu verziju i kad su forme ugašene. `versioning.requireVersionOnTicket` čita se **samo** u
-`bind-ticket-form-version-ref.ts:28`, a taj put nema pozivaoca van spec-ova. **Uticaj:** administrator ne može
-isključiti obaveznost forme kroz postavku; dokumentovano ponašanje i kod se razilaze. **Fix:** učitati
-konfiguraciju u create toku i poštovati `enabled`/`requireVersionOnTicket`.
+**B2 — `SREDNJE` — `DRAFT` usluge i njihove forme bile su vidljive svakom prijavljenom korisniku preko API-ja.**
+→ ✅ **zatvoreno u valu 2 (2026-10-04)**
+
+**Nalaz prije popravke:** method roles su dozvoljavale `USER|AGENT|ADMIN|SUPER_ADMIN`, dok liste, detalj usluge
+i `GET /services/:id/form` nisu dosljedno filtrirali lifecycle; direktan API poziv mogao je otkriti nacrt i njegovu
+šemu.
+
+**Popravka:** `requestedServiceLifecycles` i `isServiceLifecycleVisible` filtriraju katalog/listu, detalj i čitanje
+forme prema roli; skriveno stanje odgovara kao `NOT_FOUND` ili prazna lista. `service-catalog.lifecycle.spec.ts`
+provjerava da se nacrt ne može enumerisati niti dohvatiti preko form rute.
+
+**B3 — `SREDNJE` — servis se može aktivirati bez aktivne verzije forme.** → ✅ **zatvoreno u paketu 5.1.3
+(2026-10-06)**
+
+**Nalaz prije popravke:** ručna lifecycle aktivacija provjeravala je samo dozvoljeni prelaz i routing pokrivenost;
+onboarding je bio jedini put koji tražio aktivnu formu.
+
+**Popravka:** `transitionServiceLifecycle` sada zove `selectActiveFormVersionRef` prije upisa lifecycle-a i
+mapira odsustvo verzije na `409 NO_ACTIVE_FORM_VERSION`; usluga ostaje neaktivna. Regresija u
+`service-catalog.lifecycle.spec.ts` provjerava odbijanje i nepromijenjeni lifecycle.
+
+**B4 — `SREDNJE` — postavke formi ne utiču na kreiranje tiketa.** → ✅ **zatvoreno u paketu 5.1.3
+(2026-10-06)**
+
+**Nalaz prije popravke:** `enabled` i `requireVersionOnTicket` nisu se koristili u create toku, a kolona
+`Ticket.formVersionId` nije mogla predstavljati tiket bez forme.
+
+**Popravka:** `TicketsService` učitava `ServiceFormsConfiguration`; `resolveCreateFormVersionRef` implementira
+tri ishoda: isključeno → `null`; uključeno + verzija opcionalna → aktivna verzija ako postoji, inače `null`;
+verzija obavezna → postojeći `FORM_VERSION_REQUIRED` ako je nema. `GET /services/:serviceId/form` izlaže
+`formsEnabled` i `requireVersionOnTicket`; UI skriva formu kad je feature isključen i dopušta nastavak bez
+verzije kad je opcionalna. `Ticket.formVersionId` je nullable kroz migraciju
+`20270313090000_ticket_form_version_optional`. Dokazi: `resolve-create-form-version-ref.spec.ts`,
+`tickets.form-configuration.spec.ts`, `service-forms.service.spec.ts`, frontend readiness test.
 
 **B5 — `SREDNJE` — detalj tiketa ne renderuje formu prema vezanoj verziji; pripadajuće metode su mrtve.**
-RAW `:43–44` traži prikaz prema `formVersionRef`. Stvarno: `ticket-detail-page.tsx:424` prosljeđuje samo
-`ticket.formData`, a `ticket-form-data-view.tsx:8–31` prikazuje sirove ključeve i `String(value)` bez labela,
-tipova i opcija. `ServiceFormsService.bindTicketFormVersionRef`/`resolveTicketFormVersion`
-(`service-forms.service.ts:119–136`) nemaju nijednog pozivaoca izvan `service-forms.*.spec.ts`. **Uticaj:**
-korisnik vidi `dodatne_informacije: …` umjesto „Dodatne informacije“, multiselect kao spojen tekst, a istorijski
-tiketi se ne mogu prikazati po svojoj verziji forme; mrtvi kod održava iluziju da taj tok postoji. **Fix:** ruta
-`GET /tickets/:ticketId/form` koja vraća šemu verzije s tiketa i render po tipu polja, ili uklanjanje mrtvih
-metoda i eksplicitno ograničenje u dokumentaciji.
+→ ✅ **zatvoreno u paketu 5.1.3 (2026-10-06)**
+
+**Nalaz prije popravke:** detail prikazivao je sirove JSON ključeve, a helperi za vezivanje verzije nisu imali
+production pozivaoca.
+
+**Popravka:** `GET /tickets/:ticketId/form` je read-only i prolazi isti `getTicket` authorization/visibility gate
+kao detalj; vraća `formVersionRef`, šemu i `formData` (uz `ticketId`/`serviceId`), ili `null` vezu/šemu bez
+forme. UI formatira labele, opcije, boolean/numeric vrijednosti i zadržava fallback za ključeve koji više nisu
+u šemi. Stari `bindTicketFormVersionRef` i pripadajući spec uklonjeni; `resolveTicketFormVersion` je korišten
+za read path. Dokazi: `tickets.form-read.spec.ts`, `format-ticket-form-data.spec.ts`.
 
 **B6 — `NISKO` — change log izmjene usluge ne bilježi razlog ni sva promijenjena polja.**
 `service-catalog-mutation-form.tsx:48–63` traži „Razlog izmjene“ (dugme je blokirano bez njega), ali vrijednost
@@ -1605,18 +1624,23 @@ neusklađenost u prevodu, ne u ponašanju.
 nije imao teze za ovaj modul. Postojeće stranice dodiruju temu samo posredno (`promjene.md` spominje prekide
 kroz promjene, `precice-i-pristupacnost.md` prečice).
 
-**Dodato:**
+**Dodato u početnom M6 vodiču:**
 - `docs/user-guide/katalog-usluga-i-forme.md` — čemu služi, kome je namijenjen (ADMIN/SUPER_ADMIN za uređivanje,
   svi za prijavu tiketa), kako se dolazi (**Usluge i znanje → Usluge** ili putanja ekrana), korak-po-korak
   (grupe usluga, nova usluga, forma i verzije, aktivacija, onboarding čarobnjak, zakazivanje prekida), tabele
   polja/validacija i statusa s tačnim nazivima iz UI-a, česta pitanja i greške, poznata ograničenja (B1–B7) i
   povezani moduli.
 - `TEZE-ZA-DOKUMENTACIJU.md` — **T36** (lifecycle i vidljivost), **T37** (jedna forma po servisu + verzionisanje
-  i nepromjenjivost), **T38** (šema forme: tipovi i ograničenja; validacija šeme na serveru, validacija
-  vrijednosti samo na klijentu), **T39** (required polja pri resolve/close), **T40** (onboarding čarobnjak i šta
+  i nepromjenjivost), **T38** (šema forme i serverska validacija vrijednosti), **T39** (upis forme + zasebna
+  required polja pri resolve/close), **T40** (onboarding čarobnjak i šta
   finalize postavlja), **T41** (status i prekidi ne blokiraju prijavu tiketa).
 
-**Ispravljeno:** ništa (modul nije bio dokumentovan).
+**Ažurirano u paketu 5.1.3 (2026-10-06):** `katalog-usluga-i-forme.md` više ne tvrdi da se vrijednosti
+forme ne validiraju na serveru, da se aktivacija može obaviti bez forme, da postavke nemaju efekta ili da detalj
+prikazuje samo sirove ključeve. Dodata su pravila `FORM_DATA_INVALID`/`REQUIRED`/`INVALID`, ponašanje
+`enabled`/`requireVersionOnTicket`, greška `409 NO_ACTIVE_FORM_VERSION` i ograničenja stvarno postojeće validacije.
+`tiketi.md` opisuje ista pravila, `GET /tickets/:ticketId/form` i schema-backed prikaz; T36–T39/T104 u tezama su
+usklađeni, a „Šta je novo“ dobio je korisnički sažetak.
 
 **Ostaje otvoreno:** `[NEJASNO]` — `private.ticket.forms.schemaRegistryJson` (RAW `:567`) ne postoji u kodu ni u
 `setting-keys.ts`; nije jasno da li je registry zamišljen kao alternativa koloni `FormVersion.schema` ili kao
@@ -1626,9 +1650,9 @@ keš. Do odgovora dokumentacija ne spominje tu postavku.
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **7 / 10** | Katalog, forme, verzionisanje, lifecycle, dostupnost/prekidi i onboarding wizard rade i pokriveni su testovima; padaju serverska validacija vrijednosti forme, vidljivost nacrta po roli, aktivacija bez forme i dvije postavke bez efekta. |
-| Kvalitet koda | **8 / 10** | Parser i validacija šeme su uzorni, transakcije i change log konzistentni, greške precizne. Umanjuju: mrtav kod (`bindTicketFormVersionRef`/`resolveTicketFormVersion`, `SLUG_IMMUTABLE`), nepotpun diff u change logu i N+1 na ekranu kataloga. |
-| Sigurnost | **7 / 10** | Role + permisije + service scope + read-only režim + audit pokrivaju sve rute, a confidential/approval polja se ne mogu slučajno promijeniti. Umanjuju: B2 (nacrti i šeme vidljivi svakom korisniku) i B1 (proizvoljan JSON u podacima tiketa). |
+| Funkcionalnost | **8 / 10** | Katalog, lifecycle, verzionisanje, serverska create/update validacija, konfigurabilna veza tiketa i šeme, schema-backed detalj, dostupnost i onboarding rade i imaju ciljane testove. Otvoreni su manji zaostaci kataloga (M6 B6–B9) i RAW `schemaRegistryJson` nije implementiran. |
+| Kvalitet koda | **8 / 10** | Parser/validator šeme i vrijednosti imaju odvojene testove, tok konfiguracije je tipiziran, a read path forme je odvojen od mutacija. Preostalo: nepotpun diff/change log za izmjenu usluge (B6), mrtav `SLUG_IMMUTABLE` (B8) i N+1 na katalogu (B9). |
+| Sigurnost | **8 / 10** | Vidljivost usluga/formi je serverski filtrirana (B2), `formData` se validira na serveru (B1), a route čitanja forme koristi isti tiket visibility gate (B5). Role + permisije + service scope + read-only režim i audit ostaju kapije. |
 
 # M7 — Usmjeravanje i prioritet
 
@@ -6510,7 +6534,8 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
   generisanim Prisma klijentom prijavio je tri direktne TS greške; ispravljene su u naknadnom patchu poslije `cd3597c`.
   Post-fix build/typecheck još nije potvrđen: u ovom checkoutu nedostaju `src/generated/prisma/{client,enums}`,
   a ranije preuzimanje Prisma engine-a palo je na TLS.
-- **Koraci 5.1.3 i 5.1.4** — M6, M7 i M10 nalazi iz §3–§5 plana.
+- **Korak 5.1.3 — M6 B1/B3/B4/B5** — implementiran i ciljano testiran; backend generated-client build/typecheck i browser e2e ostaju nepotvrđeni (v. odjeljak `# Paket 5.1 — korak 5.1.3`).
+- **Korak 5.1.4 — M7 i M10** — ostaje za naredni korak iz §3–§5 plana.
 - **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
   politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
 
@@ -6584,3 +6609,51 @@ checkoutu pa konačni Nest build nije mogao biti ponovljen; ranije preuzimanje P
 - `docs/user-guide/korisnici-oj-i-grupe.md` — tipizirani blockeri, očuvanje korisničkih naloga, role warning, audit i B5–B7 kao preostala ograničenja.
 - `docs/user-guide/uloge-i-permisije.md` — uklonjeni zastarjeli navodi o RBAC preview/reason i opisan warning za OJ-scoped dodjele.
 - `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/organizational-units/**`, `.cursor/docs/matrices/directory-sync/**`, `DOCS_CHANGELOG.md` i „Šta je novo“ ogledalo.
+
+# Paket 5.1 — korak 5.1.3: M6 B1, B3, B4 i B5 — serverska validacija forme i schema-backed tiket (2026-10-06)
+
+Ovaj korak implementira odobrene odluke iz `docs/plans/modules/5.1-serverska-provjera-i-audit-trag.md` §3.4.
+M6 B2 je već zatvoren u valu 2; B6–B9 i pitanje `schemaRegistryJson` ostaju izvan ovog koraka. Pri pregledu D3
+pronađena je i zatvorena nužna UI rupa: kad su forme uključene, ali aktivna verzija nije obavezna, create ekran je
+ranije blokirao nastavak jer nije znao vrijednost `requireVersionOnTicket`; service-form response sada izlaže i taj
+flag uz `formsEnabled`.
+
+## 1. Šta je urađeno
+
+| Nalaz / odluka | Implementacija | Dokaz u kodu |
+|---|---|---|
+| **M6 B1 — serverska validacija `formData`** | Novi čisti validator odbija neobjektni payload, nepoznate ključeve i vrijednosti pogrešnog tipa/opsega; podržava required, dužine, regex, numeric/integer/min/max, multiselect broj stavki i osnovnu email provjeru. Create validira puni objekat; update validira samo poslani patch, pa required vrijednost koja se briše ne prolazi. `FORM_DATA_INVALID` vraća `details.fields[]` bez echo-a vrijednosti i UI mapira `REQUIRED`/`INVALID` na postojeće poruke. | `backend/src/modules/service-catalog/validate-service-form-data.ts` (`validateServiceFormData`), `backend/src/modules/tickets/create-ticket.ts`, `update-ticket.ts`, `ticket-error-messages.ts`; `frontend/src/lib/tickets/map-service-form-data-error.ts`, `create-ticket-form.tsx` |
+| **M6 B3 — lifecycle kapija** | `ACTIVE` se odbija prije upisa ako nema aktivne forme; HTTP kod je 409, greška `NO_ACTIVE_FORM_VERSION`. | `backend/src/modules/service-catalog/transition-service-lifecycle.ts` (`transitionServiceLifecycle`), `map-service-catalog-error.ts`; `service-catalog.lifecycle.spec.ts` |
+| **M6 B4 — konfiguracija formi** | `enabled=false` vraća `formVersionRef: null`; uključeno + opcionalno uzima aktivnu verziju ako postoji, inače `null`; required bez verzije zadržava `FORM_VERSION_REQUIRED`. `GET /services/:serviceId/form` izlaže `formsEnabled` i `requireVersionOnTicket`, create UI skriva formu kad je isključena i pušta tiket bez aktivne verzije samo kad je opcionalna. `Ticket.formVersionId` je nullable uz migraciju. | `backend/src/modules/tickets/resolve-create-form-version-ref.ts`, `ServiceFormsConfigurationLoader`, `service-forms.service.ts`, `to-service-form-response.ts`, `frontend/src/components/tickets/create-ticket-form.tsx`, `create-ticket-fields.tsx`, `frontend/src/lib/tickets/build-create-ticket-input.ts`; `backend/prisma/migrations/20270313090000_ticket_form_version_optional/migration.sql` |
+| **M6 B5 — čitanje i prikaz prema verziji** | Dodan read-only `GET /tickets/:ticketId/form`; isti `getTicket` visibility gate kao detalj; vraća verziju, šemu i vrijednosti ili nullable ref/schema bez forme. UI koristi labele, nazive opcija, bool/numeric tipove i odbrambeni raw-key fallback. Uklonjeni mrtvi `bindTicketFormVersionRef` i pripadajući spec koji je upisivao probni tiket. | `backend/src/modules/tickets/tickets.controller.ts`, `tickets.service.ts#getFormById`, `backend/src/modules/service-catalog/resolve-ticket-form-version.ts`; `frontend/src/pages/ticket-detail-page.tsx`, `use-ticket-form.ts`, `ticket-form-data-view.tsx`, `format-ticket-form-data.ts` |
+| **E2E regresija** | Spec 15 šalje vrijednost dužu od aktivne šeme i očekuje HTTP 400 `FORM_DATA_INVALID`. | `e2e/tests/15-workflow-unrouted-realtime.spec.ts`, `e2e/helpers/create-ticket.ts` |
+
+## 2. Provjere (izvršene u ovom okruženju)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Backend ciljano — katalog i tiket forme | `cd backend && npx jest --config=/tmp/jest-agent.config.cjs --runInBand` nad 12 spec fajlova (service form resolver/lifecycle/config/validator/read; ticket create/update/config/read/service/reopen/split) | **12/12 suita, 48/48 testova ✅**. Privremeni ts-jest config koristi `diagnostics:false`, pošto generated Prisma client/enums nisu u checkoutu; nije backend typecheck ni puni Jest suite. |
+| Frontend ciljani Vitest | `cd frontend && npx vitest run src/lib/tickets/{format-ticket-form-data,map-service-form-data-error,build-create-ticket-input,map-ticket-error,validate-service-form}.spec.ts src/lib/services/{ensure-service-form,map-service-catalog-error}.spec.ts` | **7/7 fajlova, 18/18 testova ✅**; uključuje schema labels/options, bool/number, unknown-key fallback, error mapping i opcionalnu verziju pri kreiranju. |
+| Frontend build | `cd frontend && npm run build` | **Prošao:** `tsc -b && vite build`; Vite ostavlja samo upozorenje za chunk veći od 500 kB. |
+| Backend ciljano lint | `cd backend && npx eslint` nad izmijenjenim `service-catalog`/`tickets` M6 fajlovima | **Exit 0**, bez lint grešaka. |
+| Backend build/typecheck | `cd backend && npm run build` | **Nije potvrđen:** exit 1, **2871 TS dijagnostika**. Nedostaju `backend/src/generated/prisma/client` i `enums`, zbog čega `PrismaService` nema modele/delegate tipove; dijagnostike u izmijenjenim use-case fajlovima uključuju iste nedostajuće Prisma tipove. Nema osnove da se backend typecheck proglasi uspješnim. |
+| E2E statička provjera | `cd e2e && npx tsc --noEmit -p tsconfig.json && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; Playwright učitava 4 testa. Browser E2E runtime **nije pokrenut**: nema lokalnog `e2e/.env`, test konfiguracije ni dostupnog E2E stacka. |
+| Dokumentacija | `node scripts/check-docs-content.mjs`, `node --test scripts/check-docs-content.test.mjs`, `node scripts/generate-docs-content.mjs --check`, `node scripts/check-client-neutral.mjs` | **OK:** 29 stranica, 5 prevoda, 10 provjera; **9/9** skript testova; ogledalo sinhronizovano; nema klijentski specifičnih naziva. |
+
+## 3. Dokumentacija
+
+- `docs/user-guide/katalog-usluga-i-forme.md` — uklonjene stare tvrdnje za B1–B5; dodani serverska provjera,
+  lifecycle `409`, settings matrica i samo ograničenja potvrđena u implementaciji. FAQ bs/en je također poravnat.
+- `docs/user-guide/tiketi.md` — create/update validacija, `GET /tickets/:ticketId/form`, ista vidljivost kao detalj,
+  null forma i schema-backed prikaz.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — T36–T39 ažurirane, dodat T104.
+- `docs/user-guide/sta-je-novo.md` — kratki korisnički sažetak.
+- `DOCS_CHANGELOG.md` — ovaj korak i izvedene dokumentacijske promjene evidentirani.
+- Ogledala `backend/content/docs/` regenerisana su; guard je prošao (29 stranica, 5 prevoda, manifest sinhronizovan).
+
+## 4. Šta ostaje otvoreno
+
+- B6–B9 iz §M6 nisu dio 5.1.3.
+- Backend build/typecheck i E2E ostaju nepotvrđeni; ne zaključivati da prolaze iz ciljanih Jest/Vitest/lint rezultata.
+- Završna provjera je izvršena: ogledala su sinhronizovana, docs guardovi su prošli, a `git diff --check` je čist.
+  E2E test je statički provjeren (TypeScript + Playwright listing), ali runtime ostaje nepotvrđen bez testne konfiguracije i živog stacka.

@@ -74,7 +74,7 @@ describe('ServiceFormsService', () => {
     const forms = new ServiceFormsService(memory.prisma as never, {
       load: async () => configuration,
     } as never);
-    return { catalog, forms };
+    return { catalog, forms, memory };
   };
 
   const createDraftService = async (catalog: ServiceCatalogService) => {
@@ -115,10 +115,17 @@ describe('ServiceFormsService', () => {
   });
 
   it('makes a version immutable after tickets reference it', async () => {
-    const { catalog, forms } = createHarness();
+    const { catalog, forms, memory } = createHarness();
     const service = await createDraftService(catalog);
     const first = await forms.createForm(service.id, { schema: validSchema });
-    await forms.bindTicketFormVersionRef(service.id, first.formVersionRef);
+    memory.seedTicket({
+      id: 'ticket-bound-form',
+      ticketNumber: 'T-1',
+      serviceId: service.id,
+      formVersionId: first.formVersionRef,
+      status: 'PENDING',
+      formData: { asset_tag: 'LPT-1' },
+    });
     await expect(
       forms.updateFormVersion(service.id, first.formVersionRef, {
         schema: nextSchema,
@@ -127,6 +134,35 @@ describe('ServiceFormsService', () => {
     const locked = await forms.getFormVersion(service.id, first.formVersionRef);
     expect(locked.isImmutable).toBe(true);
     expect(locked.schema).toEqual(validSchema);
+  });
+
+  it('exposes form enablement and ticket version requirement to API clients', async () => {
+    const { catalog, forms } = createHarness({
+      ...defaultServiceFormsConfiguration,
+      enabled: false,
+      requireVersionOnTicket: false,
+    });
+    const service = await createDraftService(catalog);
+
+    await expect(forms.getForm(service.id)).resolves.toMatchObject({
+      serviceId: service.id,
+      formsEnabled: false,
+      requireVersionOnTicket: false,
+    });
+  });
+
+  it('exposes optional form-version policy while forms remain enabled', async () => {
+    const { catalog, forms } = createHarness({
+      ...defaultServiceFormsConfiguration,
+      requireVersionOnTicket: false,
+    });
+    const service = await createDraftService(catalog);
+
+    await expect(forms.getForm(service.id)).resolves.toMatchObject({
+      serviceId: service.id,
+      formsEnabled: true,
+      requireVersionOnTicket: false,
+    });
   });
 
   it('rejects invalid schemas through create', async () => {

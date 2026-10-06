@@ -10,6 +10,8 @@ export async function getServiceForm(
   serviceId: string,
   /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
   roleKeys?: readonly string[],
+  formsEnabled = true,
+  requireVersionOnTicket = true,
 ): Promise<ServiceFormResponse> {
   const service = await loadService(prisma, serviceId);
   // Shema forme nacrta nije javna (RAW `:304`) — skriveno stanje se ponaša kao
@@ -17,5 +19,10 @@ export async function getServiceForm(
   if (!isServiceLifecycleVisible(service.lifecycle, roleKeys)) {
     throw new ServiceCatalogError('NOT_FOUND');
   }
-  return toServiceFormResponse(prisma, serviceId);
+  return toServiceFormResponse(
+    prisma,
+    serviceId,
+    formsEnabled,
+    requireVersionOnTicket,
+  );
 }

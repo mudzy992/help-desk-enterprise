@@ -97,6 +97,29 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
     }
   });
 
+  test('server rejects formData that does not satisfy the active service schema', async () => {
+    const env = readE2EEnvironment();
+    const adminApi = new ApiClient();
+    await adminApi.login(env.superAdminEmail, env.superAdminPassword);
+    const service = await createOfferedService(adminApi, { label: 'Invalid form data' });
+    const response = await adminApi.request('/tickets', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: `E2E invalid form ${Date.now()}`,
+        description: 'Server-side form validation check',
+        serviceId: service.id,
+        formData: { dodatne_informacije: 'x'.repeat(4_001) },
+      }),
+    });
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'FORM_DATA_INVALID',
+      details: {
+        fields: [{ fieldId: 'dodatne_informacije', code: 'INVALID' }],
+      },
+    });
+  });
+
   test('a routing change reaches the admin room over the socket', async ({ page }) => {
     const env = readE2EEnvironment();
     const frames: string[] = [];

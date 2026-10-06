@@ -10,6 +10,9 @@ describe("mapTicketError", () => {
     expect(
       mapTicketError(new ApiError(400, "FORM_VERSION_NOT_ACTIVE", "")),
     ).toBe("tickets.errorFormVersionMissing");
+    expect(mapTicketError(new ApiError(400, "FORM_DATA_INVALID", ""))).toBe(
+      "tickets.errorValidation",
+    );
   });
 
   it("maps the permission and conflict statuses the workspace relies on", () => {

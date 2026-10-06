@@ -115,6 +115,8 @@ export type FormVersionResponse = {
 
 export type ServiceFormResponse = {
   readonly serviceId: string;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
   readonly activeFormVersionRef: string | null;
   readonly versions: readonly FormVersionResponse[];
 };

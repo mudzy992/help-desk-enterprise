@@ -16,6 +16,7 @@ export async function createTicketViaApi(
     /** Omitted: the backend uses the actor's home unit. */
     readonly originUnitId?: string;
     readonly formVersionRef?: string;
+    readonly formData?: unknown;
     readonly isConfidential?: boolean;
     readonly impact?: string;
     readonly urgency?: string;
@@ -32,7 +33,7 @@ export async function createTicketViaApi(
       isConfidential: input.isConfidential === true,
       impact: input.impact ?? 'MEDIUM',
       urgency: input.urgency ?? 'MEDIUM',
-      formData: {},
+      formData: input.formData ?? {},
     }),
   });
 }
@@ -83,8 +84,9 @@ export async function firstServiceCategoryId(api: ApiClient): Promise<string> {
 }
 
 /**
- * A new service starts as DRAFT without a form, and tickets need an ACTIVE
- * service with an ACTIVE form version. This creates all three steps.
+ * A new service starts as DRAFT without a form, and lifecycle activation needs
+ * an ACTIVE form version. This helper creates and activates one before tickets
+ * are submitted, independent of the optional ticket-form settings.
  */
 /**
  * The API slug contract is `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`

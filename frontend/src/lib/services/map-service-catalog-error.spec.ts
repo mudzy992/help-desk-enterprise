@@ -13,6 +13,9 @@ describe("mapServiceCatalogError", () => {
     expect(
       mapServiceCatalogError(new ApiError(400, "INVALID_LIFECYCLE_STATE", "x")),
     ).toBe("services.errorLifecycle");
+    expect(
+      mapServiceCatalogError(new ApiError(409, "NO_ACTIVE_FORM_VERSION", "x")),
+    ).toBe("services.forms.errorNoActive");
     expect(mapServiceCatalogError(new ApiError(409, "NOT_DELETABLE", "x"))).toBe(
       "services.errorNotDeletable",
     );

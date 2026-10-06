@@ -18,6 +18,8 @@ import { normalizeSplitReason } from './normalize-split-reason';
 import type { SplitTicketInput, TicketSplitConfiguration } from './split.types';
 import { transferSplitAttachments } from './transfer-split-attachments';
 import { copyTicketAssets } from '../assets/transfer-ticket-assets';
+import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
+import type { ServiceFormsConfiguration } from '../../service-catalog/service-forms.types';
 
 export async function splitTicket(input: {
   readonly prisma: PrismaService;
@@ -25,6 +27,7 @@ export async function splitTicket(input: {
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
   readonly configuration: TicketSplitConfiguration;
+  readonly formsConfiguration?: ServiceFormsConfiguration;
   readonly ticketId: string;
   readonly body: SplitTicketInput;
   readonly context: TicketMutationContext;
@@ -59,6 +62,8 @@ export async function splitTicket(input: {
       routingService: input.routingService,
       authorizationContextLoader: input.authorizationContextLoader,
       approvalsConfigurationLoader: input.approvalsConfigurationLoader,
+      formsConfiguration:
+        input.formsConfiguration ?? defaultServiceFormsConfiguration,
       parent: loaded.ticket,
       child: childInput,
       context: input.context,

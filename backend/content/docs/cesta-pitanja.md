@@ -92,8 +92,8 @@ su tehnička oznaka za administratora.
 
 ### Katalog usluga i forme ([vodič](/docs/katalog-usluga-i-forme))
 
-- **„Zašto korisnici ne vide uslugu?“** — Usluga mora biti **Aktivna** i imati **aktivnu verziju forme**; bez aktivne forme prijava tiketa se odbija porukom „Odabrana usluga nema aktivnu verziju forme, pa tiket ne može biti kreiran. Aktivirajte formu na ekranu Usluge.“
-- **„Polje je označeno obavezno, a tiket je prošao bez njega.“** — Obaveznost iz forme provjerava se pri **rješavanju/zatvaranju** tiketa, a ne pri kreiranju (detalji u *Poznatim ograničenjima* vodiča).
+- **„Zašto korisnici ne vide uslugu?“** — Usluga mora biti **Aktivna**; prelaz u Aktivnu bez aktivne verzije forme odbija se s `409 NO_ACTIVE_FORM_VERSION`. Pri prijavi tiketa prikaz i obaveznost forme zavise od `private.ticket.forms.enabled` i `private.ticket.forms.versioning.requireVersionOnTicket`.
+- **„Polje je označeno obavezno, a tiket je prošao bez njega.“** — Server provjerava formu pri kreiranju i izmjeni tiketa; pri **rješavanju/zatvaranju** provjeravaju se zasebno close code, napomena i workflow-required polja.
 - **„Ne mogu sačuvati izmjenu polja.“** — Verzija je aktivna ili ima tikete; napravite **Novu verziju iz odabrane** i izmijenite nacrt.
 
 ### Pošta (e-mail) ([vodič](/docs/posta))

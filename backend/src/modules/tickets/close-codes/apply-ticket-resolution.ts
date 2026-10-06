@@ -85,8 +85,11 @@ async function loadCloseCodeKey(
 
 async function loadTicketSchemaFields(
   prisma: PrismaService,
-  formVersionId: string,
+  formVersionId: string | null,
 ) {
+  if (formVersionId === null) {
+    return [];
+  }
   const version = await prisma.formVersion.findUnique({
     where: { id: formVersionId },
     select: { schema: true },

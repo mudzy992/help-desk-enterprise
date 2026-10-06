@@ -6,6 +6,7 @@ export type ServiceCatalogErrorKey =
   | "services.errorReadOnly"
   | "services.errorDuplicateSlug"
   | "services.errorLifecycle"
+  | "services.forms.errorNoActive"
   | "services.errorNotDeletable"
   | "services.errorHasDependencies"
   | "services.errorCategory"
@@ -24,6 +25,7 @@ const codeKeys: Partial<Record<string, ServiceCatalogErrorKey>> = {
   DUPLICATE_SLUG: "services.errorDuplicateSlug",
   INVALID_LIFECYCLE_TRANSITION: "services.errorLifecycle",
   INVALID_LIFECYCLE_STATE: "services.errorLifecycle",
+  NO_ACTIVE_FORM_VERSION: "services.forms.errorNoActive",
   LIFECYCLE_DISABLED: "services.errorLifecycle",
   LIFECYCLE_UNAVAILABLE: "services.errorUnavailable",
   NOT_DELETABLE: "services.errorNotDeletable",

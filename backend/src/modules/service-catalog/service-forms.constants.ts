@@ -22,5 +22,4 @@ export const serviceFormsChangeLogReasons = {
   formVersionCreate: 'form_version_create',
   formVersionUpdate: 'form_version_update',
   formVersionActivate: 'form_version_activate',
-  ticketFormVersionBind: 'ticket_form_version_bind',
 } as const;

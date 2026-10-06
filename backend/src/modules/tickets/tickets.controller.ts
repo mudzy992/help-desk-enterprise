@@ -28,6 +28,7 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { readTicketMutationContext } from './read-ticket-mutation-context';
 import { TicketsService } from './tickets.service';
 import type { TicketListResponse, TicketResponse } from './tickets.types';
+import type { TicketFormVersionBinding } from '../service-catalog/service-forms.types';
 
 @Controller('tickets')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -107,6 +108,17 @@ export class TicketsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<GroupInboxStatus> {
     return this.ticketsService.getInboxStatus(
+      readTicketMutationContext(request),
+    );
+  }
+
+  @Get(':ticketId/form')
+  getFormById(
+    @Param('ticketId') ticketId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<TicketFormVersionBinding> {
+    return this.ticketsService.getFormById(
+      ticketId,
       readTicketMutationContext(request),
     );
   }

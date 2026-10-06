@@ -78,6 +78,7 @@ import { AgentCollaborationConfigurationLoader } from './collaboration-extras/ag
 import { TicketsAgentCollaborationController } from './collaboration-extras/tickets-agent-collaboration.controller';
 import { TicketsAgentCollaborationService } from './collaboration-extras/tickets-agent-collaboration.service';
 import { TicketPresenceService } from './collaboration-extras/presence/ticket-presence.service';
+import { ServiceFormsConfigurationLoader } from '../service-catalog/service-forms-configuration.loader';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { TicketPresenceService } from './collaboration-extras/presence/ticket-pr
   ],
   providers: [
     TicketsService,
+    ServiceFormsConfigurationLoader,
     TicketWorkflowService,
     UnroutedQueueConfigurationLoader,
     TemplatesConfigurationLoader,

@@ -91,8 +91,8 @@ are the technical mark for the administrator.
 
 ### Service catalogue and forms ([guide](/docs/katalog-usluga-i-forme))
 
-- **“Why do users not see a service?”** — The service must be **Active** and have an **active form version**; without an active form, submitting a ticket is rejected with “The selected service has no active form version, so the ticket cannot be created. Activate a form on the Services screen.”
-- **“A field is marked required, yet the ticket passed without it.”** — The form's requiredness is checked when **resolving/closing** a ticket, not while creating it (details in the guide's *Known limitations*).
+- **“Why do users not see a service?”** — The service must be **Active**; the transition to Active is rejected with `409 NO_ACTIVE_FORM_VERSION` unless an active form version exists. During ticket submission, form display and version requirements depend on `private.ticket.forms.enabled` and `private.ticket.forms.versioning.requireVersionOnTicket`.
+- **“A field is marked required, yet the ticket passed without it.”** — The server validates form data on ticket creation and update; closing/resolving separately checks the close code, resolution note and workflow-required fields.
 - **“I cannot save a field change.”** — The version is active or already has tickets; create a **New version from the selected one** and change the draft.
 
 ### E-mail ([guide](/docs/posta))

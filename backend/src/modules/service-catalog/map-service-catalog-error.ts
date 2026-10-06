@@ -21,6 +21,7 @@ const conflictCodes: readonly ServiceCatalogErrorCode[] = [
   'CATEGORY_HAS_SERVICES',
   'HAS_DEPENDENCIES',
   'NOT_DELETABLE',
+  'NO_ACTIVE_FORM_VERSION',
   'OVERLAPPING_DOWNTIME_WINDOW',
 ];
 
@@ -38,6 +39,7 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   CATEGORY_HAS_SERVICES: 'Service category still has services',
   INVALID_LIFECYCLE_STATE: 'Lifecycle state is not allowed',
   INVALID_LIFECYCLE_TRANSITION: 'Lifecycle transition is not allowed',
+  NO_ACTIVE_FORM_VERSION: 'Activate a service form version before activating this service',
   LIFECYCLE_DISABLED: 'Service lifecycle transitions are disabled',
   LIFECYCLE_UNAVAILABLE: 'Service lifecycle configuration is unavailable',
   SLUG_IMMUTABLE: 'Service slug cannot be changed',

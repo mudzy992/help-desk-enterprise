@@ -18,12 +18,16 @@ vi.mock("@/services/service-catalog-api", async (importOriginal) => {
 
 const emptyForm = (serviceId: string): ServiceFormResponse => ({
   serviceId,
+  formsEnabled: true,
+  requireVersionOnTicket: true,
   activeFormVersionRef: null,
   versions: [],
 });
 
 const draftForm = (serviceId: string): ServiceFormResponse => ({
   serviceId,
+  formsEnabled: true,
+  requireVersionOnTicket: true,
   activeFormVersionRef: null,
   versions: [
     {

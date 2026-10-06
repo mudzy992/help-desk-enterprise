@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -15,6 +15,8 @@ import type { TicketMutationContext, TicketResponse } from '../tickets.types';
 import { reopenTicket } from './reopen-ticket';
 import type { ReopenTicketInput } from './reopen.types';
 import { TicketReopenConfigurationLoader } from './ticket-reopen-configuration.loader';
+import { ServiceFormsConfigurationLoader } from '../../service-catalog/service-forms-configuration.loader';
+import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
 
 @Injectable()
 export class TicketsReopenService {
@@ -28,6 +30,8 @@ export class TicketsReopenService {
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    @Optional()
+    private readonly serviceFormsConfigurationLoader?: ServiceFormsConfigurationLoader,
   ) {}
 
   reopen(
@@ -39,6 +43,9 @@ export class TicketsReopenService {
     return executeTicketOperation(async () => {
       const gated = await this.accessPolicies.bind(context);
       const configuration = await this.reopenConfigurationLoader.load();
+      const formsConfiguration =
+        (await this.serviceFormsConfigurationLoader?.load()) ??
+        defaultServiceFormsConfiguration;
       const messages: TicketPersistedMessageSink = [];
       const record = await reopenTicket({
         prisma: this.prisma,
@@ -46,6 +53,7 @@ export class TicketsReopenService {
         authorizationContextLoader: this.authorizationContextLoader,
         approvalsConfigurationLoader: this.approvalsConfigurationLoader,
         configuration,
+        formsConfiguration,
         ticketId,
         body: input,
         context: gated,

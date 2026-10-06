@@ -27,6 +27,7 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketContext } from "@/lib/tickets/use-ticket-context";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
+import { useTicketForm } from "@/lib/tickets/use-ticket-form";
 import { useTicketDetailSections } from "@/lib/tickets/use-detail-sections";
 import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -53,6 +54,7 @@ export function TicketDetailPage() {
   const { currentUserId } = useSession();
   const { session, hasPermission } = useSessionCapabilities();
   const detail = useTicketDetail(ticketId);
+  const ticketForm = useTicketForm(ticketId);
   const approvals = useTicketApprovals(ticketId);
   const timeTracking = useTicketTimeTracking({
     ticketId,
@@ -421,7 +423,12 @@ export function TicketDetailPage() {
             sections={detailSections}
             actionsVisible={actionsCardVisible}
             slots={{
-              formData: <TicketFormDataView formData={ticket.formData} />,
+              formData: (
+                <TicketFormDataView
+                  schema={ticketForm?.schema ?? null}
+                  formData={ticketForm?.formData ?? ticket.formData}
+                />
+              ),
               playbook:
                 canUseTemplates && actions.viewActivity ? (
                   <TicketPlaybookPanel

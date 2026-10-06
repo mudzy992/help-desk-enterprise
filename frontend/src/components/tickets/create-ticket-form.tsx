@@ -23,6 +23,7 @@ import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog"
 import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
+import { mapServiceFormDataError } from "@/lib/tickets/map-service-form-data-error";
 import { activeFormVersion, getServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
 import { interceptKnowledgeArticles, resolveKnowledgeIntercept, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
 import { createTicket } from "@/services/tickets-api";
@@ -42,6 +43,8 @@ export function CreateTicketForm() {
     serviceId: (searchParams.get("serviceId") ?? "").slice(0, 64),
   }));
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
+  const [formsEnabled, setFormsEnabled] = useState(true);
+  const [requireVersionOnTicket, setRequireVersionOnTicket] = useState(true);
   const [step, setStep] = useState(0);
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
   const [helped, setHelped] = useState(false);
@@ -51,13 +54,42 @@ export function CreateTicketForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChosenOriginUnit, setHasChosenOriginUnit] = useState(false);
   const displayedError = errorKey ?? catalog.errorKey;
-  const isServiceReady = isServiceReadyForTicketCreation(draft, activeForm !== null);
+  const isServiceReady = isServiceReadyForTicketCreation(
+    draft,
+    activeForm !== null,
+    formsEnabled,
+    requireVersionOnTicket,
+  );
   const selectedService = catalog.services.find((service) => service.id === draft.serviceId) ?? null;
   const suggestedPriority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
   const origin = resolveCreateTicketOriginUnit({
     session: capabilities.session,
     originUnits: catalog.originUnits,
   });
+
+  const showSubmitError = (error: unknown) => {
+    const fieldErrorsFromServer = mapServiceFormDataError(error);
+    if (fieldErrorsFromServer === null) {
+      setErrorKey(mapTicketError(error));
+      return;
+    }
+    const knownFieldIds = new Set(activeForm?.schema.fields.map((field) => field.id) ?? []);
+    const nextFieldErrors = new Map<string, string>();
+    let hasUnknownField = false;
+    for (const fieldError of fieldErrorsFromServer) {
+      if (!knownFieldIds.has(fieldError.fieldId)) {
+        hasUnknownField = true;
+        continue;
+      }
+      nextFieldErrors.set(fieldError.fieldId, ticketText(t, fieldError.messageKey));
+    }
+    setFieldErrors(nextFieldErrors);
+    setFailedSubmitCount((count) => count + 1);
+    setErrorKey(
+      hasUnknownField || nextFieldErrors.size === 0 ? "tickets.errorValidation" : null,
+    );
+    setStep(1);
+  };
 
   useEffect(() => {
     const nextOriginUnitId = nextDraftOriginUnitId({
@@ -80,23 +112,35 @@ export function CreateTicketForm() {
   useEffect(() => {
     if (draft.serviceId.length === 0) {
       setActiveForm(null);
+      setFormsEnabled(true);
+      setRequireVersionOnTicket(true);
       return;
     }
     let cancelled = false;
+    setActiveForm(null);
+    setFormsEnabled(true);
+    setRequireVersionOnTicket(true);
     void getServiceForm(draft.serviceId)
       .then((form) => {
         if (cancelled) return;
-        const active = activeFormVersion(form);
+        setFormsEnabled(form.formsEnabled);
+        setRequireVersionOnTicket(form.requireVersionOnTicket);
+        const active = form.formsEnabled ? activeFormVersion(form) : null;
         setActiveForm(active);
         setDraft((current) => ({
           ...current,
           formVersionRef: active?.formVersionRef ?? null,
-          formData: current.serviceId === draft.serviceId ? current.formData : {},
+          formData:
+            active !== null && current.serviceId === draft.serviceId
+              ? current.formData
+              : {},
         }));
       })
       .catch(() => {
         if (!cancelled) {
           setActiveForm(null);
+          setFormsEnabled(true);
+          setRequireVersionOnTicket(true);
           setErrorKey("tickets.errorCatalog");
         }
       });
@@ -142,7 +186,7 @@ export function CreateTicketForm() {
       const created = await createTicket(buildCreateTicketInput(draft, { acknowledgeDuplicate }));
       void navigate(`/tickets/${created.id}`);
     } catch (error) {
-      setErrorKey(mapTicketError(error));
+      showSubmitError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -189,6 +233,8 @@ export function CreateTicketForm() {
       originUnitDisplayName={origin.originUnitDisplayName}
       selectedService={selectedService}
       activeForm={activeForm}
+      formsEnabled={formsEnabled}
+      requireVersionOnTicket={requireVersionOnTicket}
       fieldErrors={fieldErrors}
       failedSubmitCount={failedSubmitCount}
       suggestedPriority={suggestedPriority}

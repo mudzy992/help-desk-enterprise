@@ -1,9 +1,10 @@
 export type TicketFormVersionRecord = {
   readonly id: string;
   readonly serviceId: string;
-  readonly formVersionId: string;
+  readonly formVersionId: string | null;
   readonly ticketNumber: string;
   readonly status: string;
+  readonly formData?: unknown;
 };
 
 type TicketWhere = {
@@ -26,6 +27,7 @@ export function createInMemoryTicketDelegate(
         id?: boolean;
         serviceId?: boolean;
         formVersionId?: boolean;
+        formData?: boolean;
       };
     }) => {
       const record = tickets.get(where.id);
@@ -41,6 +43,7 @@ export function createInMemoryTicketDelegate(
         ...(select.formVersionId === true
           ? { formVersionId: record.formVersionId }
           : {}),
+        ...(select.formData === true ? { formData: record.formData ?? null } : {}),
       };
     },
     count: async ({ where }: { where?: TicketWhere } = {}) =>
@@ -75,7 +78,7 @@ export function createInMemoryTicketDelegate(
         id?: string;
         ticketNumber: string;
         serviceId: string;
-        formVersionId: string;
+        formVersionId?: string | null;
         status?: string;
         title?: string;
         description?: string;
@@ -84,14 +87,16 @@ export function createInMemoryTicketDelegate(
         urgency?: string;
         originUnitId?: string;
         requesterId?: string;
+        formData?: unknown;
       };
     }) => {
       const created: TicketFormVersionRecord = {
         id: data.id ?? nextId(),
         ticketNumber: data.ticketNumber,
         serviceId: data.serviceId,
-        formVersionId: data.formVersionId,
+        formVersionId: data.formVersionId ?? null,
         status: data.status ?? 'PENDING',
+        formData: data.formData ?? null,
       };
       tickets.set(created.id, created);
       return created;

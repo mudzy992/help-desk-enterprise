@@ -32,6 +32,8 @@ export type FormVersionResponse = {
 
 export type ServiceFormResponse = {
   readonly serviceId: string;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
   readonly activeFormVersionRef: string | null;
   readonly versions: readonly FormVersionResponse[];
 };
@@ -39,8 +41,9 @@ export type ServiceFormResponse = {
 export type TicketFormVersionBinding = {
   readonly ticketId: string;
   readonly serviceId: string;
-  readonly formVersionRef: string;
-  readonly schema: ServiceFormSchema;
+  readonly formVersionRef: string | null;
+  readonly schema: ServiceFormSchema | null;
+  readonly formData: unknown;
 };
 
 export type CreateServiceFormInput = {

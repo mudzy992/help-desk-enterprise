@@ -728,41 +728,46 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Administracija → Policy paketi
 
-### T36 — Životni ciklus usluge: Nacrt, Aktivna, Ukinuta — i vidljivost
+### T36 — Životni ciklus usluge: Nacrt, Aktivna, Ukinuta — vidljivost i forma
 
 - **Modul / paket:** Katalog usluga i forme
 - **Publika:** ADMIN / SUPER_ADMIN (uređivanje), svi (prijava tiketa)
 - **Tip:** Pravilo
 - **Teza:** Usluga ima lifecycle `DRAFT|ACTIVE|DEPRECATED`; dozvoljeni su samo prelazi Nacrt → Aktivna,
-  Aktivna → Ukinuta i Ukinuta → Aktivna. Korisnicima se nude isključivo **Aktivne** usluge; Nacrt je predviđen
-  da bude vidljiv samo adminima, a Ukinuta ostaje u administraciji i izvještajima. Brisanje je moguće samo za
-  Nacrt bez zavisnih zapisa (tiketi, verzije forme, routing pravila, dodjele rola).
-- **Zašto:** jasno razdvaja pripremu, upotrebu i ukidanje usluge.
-- **Primjer:** Nacrt se ne pojavljuje korisniku u izboru usluga; poslije **Aktiviraj** pojavljuje se, a poslije
-  **Označi zastarjelim** nestaje iz izbora, ali stari tiketi ostaju.
+  Aktivna → Ukinuta i Ukinuta → Aktivna. Korisnicima se nude isključivo **Aktivne** usluge; Nacrt i njegove
+  forme serverski su skriveni od uloga koje nemaju pristup, a Ukinuta ostaje u administraciji i izvještajima.
+  Prelaz u **Aktivna** zahtijeva aktivnu verziju forme (`409 NO_ACTIVE_FORM_VERSION`). Brisanje je moguće samo
+  za Nacrt bez zavisnih zapisa (tiketi, verzije forme, routing pravila, dodjele rola).
+- **Zašto:** jasno razdvaja pripremu, upotrebu i ukidanje usluge i sprječava objavu usluge bez pripremljene forme.
+- **Primjer:** Nacrt se ne pojavljuje korisniku u izboru usluga; pokušaj aktivacije bez aktivne verzije se odbija;
+  poslije **Aktiviraj** pojavljuje se, a poslije **Označi zastarjelim** nestaje iz izbora, ali stari tiketi ostaju.
 - **Postavke / permisije:** `service.catalog.write`; `private.services.lifecycle.*`.
 - **Ekran:** **Katalog usluga** → kartica usluge → **Aktiviraj** / **Označi zastarjelim** / **Vrati u aktivno** /
   **Obriši nacrt**.
 - **Izvori:** `backend/src/modules/service-catalog/service-catalog.constants.ts:4–16`,
-  `assert-service-lifecycle-transition.ts:6–34`, `transition-service-lifecycle.ts:114–158`,
-  `delete-service.ts:56–98`.
-- **Status:** Važi (uz ograničenje B2: serverski filter vidljivosti nacrta ne postoji)
+  `assert-service-lifecycle-transition.ts:6–34`, `transition-service-lifecycle.ts`,
+  `service-visible-lifecycles.ts`, `get-service.ts`, `list-services.ts`, `delete-service.ts:56–98`.
+- **Status:** Važi (vidljivost B2 zatvorena 2026-10-04; aktivna forma pri aktivaciji provedena 2026-10-06)
 - **Wiki stranica:** Katalog usluga → Životni ciklus
 
-### T37 — Jedna forma po usluzi, s verzijama; stari tiketi čuvaju svoju verziju
+### T37 — Jedna forma po usluzi, s verzijama; tiketi čuvaju vezanu verziju kada postoji
 
 - **Modul / paket:** Katalog usluga i forme
 - **Publika:** ADMIN
 - **Tip:** Pravilo
 - **Teza:** Usluga ima najviše jednu formu (drugi `POST .../form` se odbija), a forma ima verzije
-  `DRAFT|ACTIVE|RETIRED` numerisane redom. Novi tiketi koriste najnoviju **aktivnu** verziju; svaki tiket trajno
-  pamti verziju s kojom je kreiran. Verzija koja nije Nacrt ili ima bar jedan tiket je **nepromjenjiva**; izmjena
-  se radi kroz novu verziju (**Nova verzija iz odabrane**). Aktivacija nacrta penzioniše prethodne aktivne verzije
-  osim ako postavka dozvoljava više aktivnih.
+  `DRAFT|ACTIVE|RETIRED` numerisane redom. Kad su forme uključene, novi tiket veže najnoviju aktivnu verziju ako
+  postoji. `private.ticket.forms.versioning.requireVersionOnTicket=true` odbija kreiranje bez nje;
+  `false` dopušta tiket bez vezane verzije, a `private.ticket.forms.enabled=false` uvijek isključuje vezu.
+  Verzija koja nije Nacrt ili ima bar jedan tiket je **nepromjenjiva**; izmjena se radi kroz novu verziju
+  (**Nova verzija iz odabrane**). Aktivacija nacrta penzioniše prethodne aktivne verzije osim ako postavka
+  dozvoljava više aktivnih.
 - **Zašto:** izmjena forme ne smije mijenjati značenje istorijskih tiketa.
 - **Primjer:** Poslije aktivacije verzije 2, tiket kreiran uz verziju 1 i dalje prikazuje broj verzije 1 i svoja
   polja; uređivanje verzije 1 je odbijeno.
-- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.versioning.*`.
+- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.enabled`,
+  `private.ticket.forms.versioning.*`; `GET /services/:serviceId/form` vraća i `formsEnabled` i
+  `requireVersionOnTicket` za UI tok.
 - **Ekran:** **Katalog usluga** → **Uredi formu** → **Verzije forme** → **Kreiraj formu**, **Sačuvaj nacrt**,
   **Aktiviraj verziju**, **Nova verzija iz odabrane**.
 - **Izvori:** `backend/src/modules/service-catalog/create-service-form.ts:24–57`,
@@ -780,32 +785,39 @@ To je kriterij kompletnosti.
 - **Teza:** Šema forme je `schemaVersion: 1` s najviše 64 polja; tipovi su tekst, dugi tekst, broj, da/ne, izbor,
   višestruki izbor, datum, datum i vrijeme i email. Identifikator polja prati `^[a-z][a-z0-9_]{0,63}$`, oznaka
   (do 128) i redoslijed su obavezni, redoslijed i identifikatori moraju biti jedinstveni, a tipovi izbora
-  zahtijevaju opcije (do 64). **Server validira šemu** pri kreiranju i izmjeni nacrta, ali **ne validira
-  vrijednosti** koje korisnik pošalje uz tiket — to radi samo ekran za prijavu (vidi ograničenje B1).
+  zahtijevaju opcije (do 64). Server validira šemu pri pisanju i vrijednosti pri kreiranju/izmjeni tiketa:
+  `required`, tipove, dužine, regex, numeričke granice/cijeli broj i broj stavki; Email provjerava samo znak `@`
+  (ne punu sintaksu), a nepoznati ključevi se odbijaju. Greške forme su `FORM_DATA_INVALID` s kodovima polja
+  `REQUIRED`/`INVALID`, mapiranim na postojeće poruke
+  `tickets.form.required`/`tickets.form.invalid`.
 - **Zašto:** sprječava neispravne šeme i objašnjava granicu odgovornosti.
 - **Primjer:** Polje s identifikatorom `Dodatne Informacije` se odbija; `dodatne_informacije` prolazi.
-- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.enabled`, `requireStructuredFields`.
+- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.enabled`,
+  `private.ticket.forms.requireStructuredFields`, `private.ticket.forms.versioning.requireVersionOnTicket`.
 - **Ekran:** **Uredi formu** → **Dodaj polje** (Identifikator, Oznaka, Tip, Obavezno, Placeholder, Pomoćni
   tekst, Opcije, Gore/Dolje, Ukloni).
 - **Izvori:** `backend/src/modules/service-catalog/form-schema.constants.ts:1–23`,
   `parse-form-schema.ts:11–32`, `parse-form-field.ts:13–84`, `parse-form-field-validation.ts:14–105`,
-  `backend/src/modules/tickets/to-ticket-form-data-input.ts:3–8`.
-- **Status:** Važi (uz ograničenje B1)
+  `backend/src/modules/service-catalog/validate-service-form-data.ts`,
+  `backend/src/modules/tickets/create-ticket.ts`, `update-ticket.ts`, `ticket-error-messages.ts`.
+- **Status:** Važi (server-side value validation zatvorila M6 B1, 2026-10-06)
 - **Wiki stranica:** Katalog usluga → Forme i verzije
 
-### T39 — Obavezna polja se provjeravaju pri rješavanju/zatvaranju, ne pri kreiranju tiketa
+### T39 — Forma se provjerava pri kreiranju/izmjeni; statusna obavezna polja pri rješavanju/zatvaranju
 
 - **Modul / paket:** Katalog usluga i forme
 - **Publika:** AGENT / ADMIN
 - **Tip:** Pravilo
-- **Teza:** Pri prelasku tiketa u **Riješeno** ili **Zatvoreno** backend provjerava: close code (ako je
-  konfigurisan), resolution note, globalnu listu obaveznih polja, listu po usluzi (`byService`) i — ako je
-  `enforceSchemaRequiredFields` uključen — `required` polja iz šeme vezane za tiket. Ako nešto nedostaje, tiket
-  se **ne** može zatvoriti; greška sadrži listu polja. Pri **kreiranju** tiketa obaveznost iz forme provjerava
-  samo ekran za prijavu.
-- **Zašto:** podaci ne smiju ostati nepotpuni u trenutku zatvaranja, a korisnik ne smije biti blokiran u
-  prijavi.
-- **Primjer:** Ako je polje `asset_tag` obavezno, agent ne može preći u Riješeno dok ga ne popuni.
+- **Teza:** Pri kreiranju tiketa server provjerava cijeli `formData` prema šemi verzije koja će biti vezana;
+  pri izmjeni provjerava samo poslana polja, a brisanje obaveznog polja (`null`/prazno) se odbija. Nepoznati
+  ključevi daju `FORM_DATA_INVALID`. Zasebno, pri prelasku u **Riješeno** ili **Zatvoreno** backend provjerava
+  close code (ako je konfigurisan), resolution note, globalnu listu obaveznih polja, listu po usluzi (`byService`)
+  i — ako je `enforceSchemaRequiredFields` uključen — `required` polja iz šeme vezane za tiket. Ako nešto
+  nedostaje, tiket se **ne** može zatvoriti.
+- **Zašto:** podaci forme su konzistentni već pri upisu, a završni status i dalje zahtijeva zasebne workflow
+  obaveze.
+- **Primjer:** Ako je `asset_tag` obavezan, nedostajuće polje odbija kreiranje; agent također ne može preći u
+  Riješeno dok propisana obavezna polja nisu popunjena.
 - **Postavke / permisije:** `private.workflow.requiredFields.*`, `private.ticket.forms.requireStructuredFields`.
 - **Ekran:** detalj tiketa → promjena statusa u **Riješeno**/**Zatvoreno**.
 - **Izvori:** `backend/src/modules/tickets/required-fields/collect-missing-required-fields.ts:11–66`,
@@ -2292,3 +2304,29 @@ To je kriterij kompletnosti.
   `frontend/src/lib/reports/bottleneck-view.ts`, `frontend/src/services/reports-api.ts`.
 - **Status:** Važi (isporučeno u valu 1, 2026-10-03; nazivi razreza dopunjeni istog dana)
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
+
+### T104 — Detalj tiketa prikazuje vrijednosti prema vezanoj šemi forme
+
+- **Modul / paket:** Tiketi (M8) + Katalog usluga i forme (M6), paket 5.1.3
+- **Publika:** korisnik, agent, ADMIN / SUPER_ADMIN — samo uz istu vidljivost kao tiket
+- **Tip:** Pravilo
+- **Teza:** `GET /tickets/:ticketId/form` je read-only ruta i vraća `ticketId`, `serviceId`,
+  `formVersionRef`, `schema` i `formData`; autorizacija i vidljivost su iste kao za detalj tiketa. Ako tiket nema
+  vezanu formu, `formVersionRef` i `schema` su `null`. Ekran koristi šemu te verzije za oznake, nazive opcija i
+  prikaz tipiziranih vrijednosti; ključevi koji ne postoje u šemi se ipak prikazuju defanzivno pod svojim sirovim
+  nazivom.
+- **Zašto:** istorijski tiket mora zadržati značenje polja verzije s kojom je nastao, a ne prikazivati samo
+  proizvoljne JSON ključeve.
+- **Primjer:** Ako šema tiketa kaže `request_type` = „Vrsta zahtjeva“ i `access` = „Pristup“, detalj prikazuje
+  oznaku i naziv opcije; naslijeđeni `retired_field` se i dalje vidi pod tim ključem.
+- **Postavke / permisije:** `GET /tickets/:ticketId/form`; iste uloge i pravila vidljivosti kao
+  `GET /tickets/:ticketId`.
+- **Ekran:** detalj tiketa → **Podaci forme**.
+- **Izvori:** `backend/src/modules/tickets/tickets.controller.ts` (`getFormById`),
+  `tickets.service.ts` (`getFormById`, isti `getTicket` gate),
+  `backend/src/modules/service-catalog/resolve-ticket-form-version.ts`,
+  `frontend/src/pages/ticket-detail-page.tsx`, `components/tickets/ticket-form-data-view.tsx`,
+  `lib/tickets/format-ticket-form-data.ts`.
+- **Status:** Važi (backend read/visibility/no-form Jest testovi i schema-render Vitest testovi prošli
+  2026-10-06; puni browser e2e nije izvršen)
+- **Wiki stranica:** Tiketi → Rad u detalju tiketa → Podaci forme

@@ -2,6 +2,9 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertServiceLifecycleTransition } from './assert-service-lifecycle-transition';
 import { buildServiceResponse } from './build-service-response';
 import { loadService } from './load-service';
+import { selectActiveFormVersionRef } from './select-active-form-version-ref';
+import { ServiceFormsError } from './service-forms.error';
+import { ServiceCatalogError } from './service-catalog.error';
 import {
   recordServiceCatalogChange,
   serviceChangeLogEntityType,
@@ -27,6 +30,19 @@ export async function transitionServiceLifecycle(
     to: input.lifecycle,
     configuration,
   });
+  if (input.lifecycle === 'ACTIVE') {
+    try {
+      await selectActiveFormVersionRef(prisma, serviceId);
+    } catch (error) {
+      if (
+        error instanceof ServiceFormsError &&
+        error.code === 'NO_ACTIVE_FORM_VERSION'
+      ) {
+        throw new ServiceCatalogError('NO_ACTIVE_FORM_VERSION');
+      }
+      throw error;
+    }
+  }
   const updated = await prisma.$transaction(async (transaction) => {
     const service = await transaction.service.update({
       where: { id: serviceId },

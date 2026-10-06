@@ -21,6 +21,8 @@ interface CreateTicketFieldsProperties {
   readonly originUnitDisplayName: string;
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
   readonly fieldErrors: ReadonlyMap<string, string>;
   readonly suggestedPriority: TicketPriority;
   readonly onChange: (draft: CreateTicketDraft) => void;
@@ -34,6 +36,8 @@ export function CreateTicketFields({
   originUnitDisplayName,
   selectedService,
   activeForm,
+  formsEnabled,
+  requireVersionOnTicket,
   fieldErrors,
   suggestedPriority,
   onChange,
@@ -139,7 +143,7 @@ export function CreateTicketFields({
               }
             />
           </div>
-        ) : selectedService ? (
+        ) : formsEnabled && requireVersionOnTicket && selectedService ? (
           <div role="alert" className="rounded-lg border border-danger/35 bg-danger/10 px-3 py-2.5 md:col-span-2">
             <p className="text-[12.5px] font-medium text-danger">{t("tickets.noActiveForm")}</p>
             <p className={`mt-0.5 ${hintClassName}`}>{t("tickets.noActiveFormHint")}</p>

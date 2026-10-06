@@ -21,7 +21,7 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       undefined,
       routingStub as never,
     );
-    return { catalog };
+    return { catalog, memory };
   };
 
   it('blocks DRAFT→ACTIVE when coverage is required and missing', async () => {
@@ -47,7 +47,7 @@ describe('ServiceCatalogService routing coverage on activation', () => {
   });
 
   it('activates with warning when coverage is optional and missing', async () => {
-    const { catalog } = createHarness({
+    const { catalog, memory } = createHarness({
       evaluateActivationCoverage: async () => 'ROUTING_COVERAGE_MISSING',
     });
     const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
@@ -55,6 +55,16 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       name: 'VPN',
       slug: 'vpn-warn',
       categoryId: category.id,
+    });
+    const now = new Date('2026-09-10T10:00:00.000Z');
+    memory.seedFormVersion({
+      id: 'form-vpn-warn',
+      serviceId: created.id,
+      version: 1,
+      schema: { schemaVersion: 1, fields: [] },
+      status: 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
     });
     const activated = await catalog.transitionLifecycle(created.id, {
       lifecycle: 'ACTIVE',

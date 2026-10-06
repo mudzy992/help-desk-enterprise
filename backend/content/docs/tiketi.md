@@ -6,8 +6,8 @@
 
 ## Čemu služi ovaj modul
 
-- **Prijava tiketa** ide kroz uslugu i njenu formu; sistem sam određuje **handler grupu** (v. *Usmjeravanje i
-  prioritet*) i **prioritet** iz uticaja i hitnosti.
+- **Prijava tiketa** ide kroz uslugu i, ako su forme uključene, njenu formu; sistem sam određuje
+  **handler grupu** (v. *Usmjeravanje i prioritet*) i **prioritet** iz uticaja i hitnosti.
 - **Grupni inbox** je radni red grupe: tiket stoji u grupi dok ga agent ne **preuzme**.
 - **Tok statusa** je unaprijed definisan; nedozvoljeni prelasci se odbijaju, a zatvaranje zahtijeva close code,
   resolution note i obavezna polja.
@@ -40,8 +40,10 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 ### 1. Prijava tiketa (korisnik)
 
 1. Otvorite **Prijavi tiket**.
-2. Izaberite **uslugu**; forma usluge se učitava automatski (v. *Katalog usluga i forme*).
-3. Popunite **naslov**, **opis**, **uticaj** i **hitnost**, te polja forme. Opciono dodajte **Tip zahtjeva**
+2. Izaberite **uslugu**; ako su forme uključene, učitava se aktivna forma usluge (v. *Katalog usluga i
+   forme*). Ako je verzija forme opcionalna, prijava može nastaviti bez nje; ako su forme isključene, sekcija
+   forme se ne prikazuje.
+3. Popunite **naslov**, **opis**, **uticaj** i **hitnost**, te polja forme ako su prikazana. Opciono dodajte **Tip zahtjeva**
    (npr. „Pristup VPN-u“) i **Željeni rok** — željeni rok je vaša želja i **ne mijenja SLA rok** koji računa
    sistem. Ako postoji sličan tiket, sistem prikazuje **upozorenje o duplikatu** i traži potvrdu.
 4. Pregledajte sažetak (prioritet, routing ishod, odobrenja, SLA) i pošaljite.
@@ -99,7 +101,10 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 ### Tiket
 
 U detalju tiketa, sekcija **Svojstva** prikazuje i **Tip zahtjeva** i **Željeni rok** (ako su uneseni; inače
-stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
+stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme. Sekcija **Podaci forme** koristi šemu
+verzije vezane za tiket: prikazuje oznake polja, nazive izabranih opcija i lokalizovane vrijednosti Da/Ne;
+prepoznate vrijednosti zadržavaju tip polja, a polja kojih nema u staroj šemi prikazuju se defanzivno pod svojim
+ključem.
 
 | Polje | Pravilo |
 |---|---|
@@ -108,9 +113,25 @@ stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
 | Uticaj / Hitnost | obavezni, izbor: Nizak, Srednji, Visok, Kritičan |
 | Tip zahtjeva | opciono, do 80 znakova; razmaci se svode na jedan i tekst se trimuje |
 | Željeni rok | opciono, datum (ISO-8601); odbija se datum u prošlosti (`DUE_AT_IN_PAST`), neispravan datum daje `INVALID_DUE_AT`; `null` polje briše. **Nije** SLA rok |
-| Usluga | obavezna; usluga mora biti aktivna i imati aktivnu formu |
+| Usluga | obavezna; usluga mora biti **Aktivna**; aktivna forma je obavezna samo prema postavkama toka formi |
 | Povjerljivo | prekidač (može biti i podrazumijevano po usluzi) |
 | Prilog | politika: tipovi, ekstenzije, veličina, broj po tiketu i poruci |
+
+### Forma usluge: provjera i prikaz
+
+- **Kreiranje i izmjena:** server validira `formData` prema šemi vezanoj za tiket. Pri izmjeni provjeravaju se
+  poslana polja, a slanje `null`/prazne vrijednosti za obavezno polje se odbija; polja koja nisu poslana ostaju
+  nepromijenjena. Nepoznata polja se ne prihvataju.
+- **Greške:** odgovor `FORM_DATA_INVALID` nosi polja s kodovima `REQUIRED` ili `INVALID`; ekran ih mapira na
+  poznate poruke „Ovo polje je obavezno.“ i „Vrijednost nije ispravna.“ Provjeravaju se tipovi, dužine,
+  regex-obrazac, numeričke granice/cijeli broj, broj stavki višestrukog izbora i osnovni email uslov (`@`).
+- **Bez vezane forme:** postavke `private.ticket.forms.enabled` i
+  `private.ticket.forms.versioning.requireVersionOnTicket` određuju da li se forma prikazuje i da li tiket
+  mora imati aktivnu verziju; vidi *Katalog usluga i forme*. Kad tiketu nije vezana forma, detalj ipak čuva
+  prikaz podataka kao JSON vrijednosti pod njihovim ključevima, bez izmišljanja oznaka šeme.
+- **Čitanje šeme:** `GET /tickets/:ticketId/form` vraća `formVersionRef`, `schema` i `formData` (uz `ticketId`
+  i `serviceId`). Ruta je samo za čitanje i koristi istu autorizaciju/vidljivost kao detalj tiketa; bez vezane
+  forme su `formVersionRef` i `schema` `null`.
 
 ### Statusi i dozvoljeni prelazi
 
@@ -163,8 +184,12 @@ stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
   istovremenog preuzimanja.
 - **„Prelaz statusa nije dozvoljen.“** — tok statusa je unaprijed definisan (tabela iznad); neke prelasce radi
   samo sistem ili odobravalac.
+- **„Forma tiketa je odbijena (`FORM_DATA_INVALID`).“** — server je našao nedostajuće obavezno polje (`REQUIRED`),
+  vrijednost pogrešnog tipa/opsega (`INVALID`) ili nepoznat ključ. Poruka je prikazana uz polje kad ono postoji
+  u aktivnoj šemi; nepoznati ključevi se prijavljuju kao greška forme.
 - **„Zatvaranje traži close code / napomenu / dodatna polja.“** — provjeravaju se close code, napomena o rješenju,
-  globalna i po-servisu obavezna polja te (opciono) obavezna polja iz forme usluge.
+  globalna i po-servisu obavezna polja te (opciono) obavezna polja iz forme usluge; to je zasebno od serverske
+  provjere `formData` pri kreiranju i izmjeni.
 - **„Tiket je zaključan za izmjene.“** — tiket je **spojen** kao dijete ili je **arhiviran** (samo za čitanje).
 - **„Nije moguće spojiti tikete.“** — jedan od tiketa je zatvoren/arhiviran, povjerljivost se razlikuje, ili je
   prekoračen limit (10 kandidata / 50 djece).
@@ -200,7 +225,7 @@ stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
 
 ## Povezani moduli
 
-- **Katalog usluga i forme** — usluga, forma i verzija s kojom je tiket kreiran.
+- **Katalog usluga i forme** — usluga, forma i verzija s kojom je tiket kreiran (ako je verzija vezana).
 - **Usmjeravanje i prioritet** — koja grupa prima tiket i kako se računa prioritet.
 - **Prosljeđivanje tiketa** — promjena grupe uz razlog i historiju prosljeđivanja.
 - **Odobrenja i CSAT** — koraci odobrenja prije obrade i ocjena zadovoljstva.
@@ -211,4 +236,4 @@ stoji *nije uneseno*), pored prioriteta, OJ, servisa i verzije forme.
 
 ---
 
-*Ažurirano: 2026-10-05 · Modul: Tiketi (M8)*
+*Ažurirano: 2026-10-06 · Modul: Tiketi (M8)*

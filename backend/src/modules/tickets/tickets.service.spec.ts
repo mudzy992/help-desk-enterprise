@@ -85,7 +85,7 @@ describe('TicketsService CRUD', () => {
     });
     const loaded = await tickets.getById(created.id, actor);
     expect(loaded.formVersionRef).toBe(ticketsTestIds.formVpnV1);
-    const next = await tickets.create(vpnCreateInput(), actor);
+    const next = await tickets.create(vpnCreateInput({ formData: {} }), actor);
     expect(next.formVersionRef).toBe(ticketsTestIds.formVpnV2);
   });
 

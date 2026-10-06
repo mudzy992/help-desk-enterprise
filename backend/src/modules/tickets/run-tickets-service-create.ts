@@ -21,6 +21,7 @@ import type {
 } from './tickets.types';
 import type { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import type { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
+import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 
 export async function runTicketsServiceCreate(input: {
   readonly prisma: PrismaService;
@@ -35,6 +36,7 @@ export async function runTicketsServiceCreate(input: {
   readonly realtimeHub: TicketRealtimeHub;
   readonly body: CreateTicketInput;
   readonly context: TicketMutationContext;
+  readonly formsConfiguration: ServiceFormsConfiguration;
   /** Package 1.4 (P3): runs after assignment; must not throw. */
   readonly afterCreate?: (
     ticket: TicketRecord,
@@ -58,6 +60,7 @@ export async function runTicketsServiceCreate(input: {
     redaction,
     guardrails,
     duplicateWarnings,
+    input.formsConfiguration,
   );
   const assigned = await input.assignmentService.applyAfterCreate(
     created,

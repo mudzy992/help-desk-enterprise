@@ -6,6 +6,8 @@ import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
+import type { ServiceFormsConfiguration } from '../../service-catalog/service-forms.types';
 import { createReopenedTicket } from './create-reopened-ticket';
 import { reopenSameTicket } from './reopen-same-ticket';
 import { resolveTicketReopenPolicy } from './resolve-ticket-reopen-policy';
@@ -17,6 +19,7 @@ export async function reopenTicket(input: {
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
   readonly configuration: TicketReopenConfiguration;
+  readonly formsConfiguration?: ServiceFormsConfiguration;
   readonly ticketId: string;
   readonly body: ReopenTicketInput;
   readonly context: TicketMutationContext;
@@ -58,6 +61,8 @@ export async function reopenTicket(input: {
       ...shared,
       routingService: input.routingService,
       approvalsConfigurationLoader: input.approvalsConfigurationLoader,
+      formsConfiguration:
+        input.formsConfiguration ?? defaultServiceFormsConfiguration,
     });
   }
   return reopenSameTicket(shared);

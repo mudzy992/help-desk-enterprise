@@ -10,8 +10,9 @@
   traži u poznatoj grupi.
 - **Usluga** je ono što korisnik bira pri prijavi tiketa. Usluga ima **životni ciklus** (Nacrt → Aktivna →
   Ukinuta), **status dostupnosti** i opciono **zahtijeva odobrenje**.
-- **Forma** pripada tačno jednoj usluzi i ima **verzije**. Novi tiketi koriste najnoviju aktivnu verziju, a
-  svaki tiket trajno pamti verziju s kojom je kreiran.
+- **Forma** pripada tačno jednoj usluzi i ima **verzije**. Kad su forme uključene, novi tiket veže aktivnu
+  verziju ako postoji; postavka `requireVersionOnTicket` određuje da li je ta veza obavezna. Isključene forme
+  znače da tiket nema vezanu verziju. Detalji su u *Postavke toka formi*.
 - **Onboarding čarobnjak** vodi kroz pet koraka (Servis → Forma → Usmjeravanje → SLA → Odobrenja) i na kraju
   aktivira uslugu.
 - **Prekidi rada (downtime)** su informativni: prijava tiketa **ostaje dozvoljena** i kad je usluga u
@@ -21,8 +22,8 @@
 
 | Rola | Šta može |
 |---|---|
-| **Korisnik** | Vidi aktivne usluge i njihov status pri prijavi tiketa; popunjava formu usluge. |
-| **Agent** | Isto kao korisnik; u zaglavlju tiketa vidi broj verzije forme s kojom je tiket kreiran. |
+| **Korisnik** | Vidi aktivne usluge i njihov status pri prijavi tiketa; popunjava formu ako je tok formi uključen. |
+| **Agent** | Isto kao korisnik; u zaglavlju tiketa vidi broj vezane verzije forme kada tiket ima takvu vezu. |
 | **ADMIN** (uz `service.catalog.write`) | Kategorije, usluge, životni ciklus, brisanje nacrta, pokretanje onboardinga. |
 | **ADMIN** (uz `service.forms.write`) | Forme i verzije (kreiranje, izmjena nacrta, aktivacija, nova verzija). |
 | **ADMIN** (uz `service.availability.write`) | Status dostupnosti i zakazivanje prekida. |
@@ -119,6 +120,33 @@
 | Redoslijed | jedinstven cijeli broj ≥ 0 |
 | Statusi verzije | **Nacrt** (mijenja se), **Aktivna** (koriste je novi tiketi), **Povučena** (stari tiketi) |
 
+### Validacija podataka forme
+
+Forma se provjerava i u pregledniku i na serveru. Server je mjerodavan pri **kreiranju** i pri izmjeni
+`formData` na postojećem tiketu; validira prema šemi verzije vezane za taj tiket. Kreiranje provjerava cijeli
+objekat, a izmjena samo poslana polja: polja koja nisu poslana zadržavaju postojeću vrijednost, dok slanje
+`null` ili prazne vrijednosti za obavezno polje može biti odbijeno. Nepoznata polja se odbijaju.
+
+| Tip / pravilo | Serverska provjera |
+|---|---|
+| Obavezno | Nedostajuće ili prazno obavezno polje daje `REQUIRED`; `false` je važeća vrijednost za Da/Ne. |
+| Tekst, dugi tekst, email | Provjerava string, `minLength`/`maxLength` i `pattern`; tip Email dodatno traži znak `@` (nije puna provjera isporučivosti adrese). |
+| Broj | Prihvata konačan broj ili numerički tekst; provjerava `integer`, `min` i `max` kada su zadani. |
+| Da/Ne | Prihvata samo pravu JSON vrijednost `true` ili `false`. |
+| Izbor / Višestruki izbor | Izbor mora biti tekst, višestruki izbor lista tekstova; za listu se provjeravaju `minItems` i `maxItems`. Interfejs nudi samo opcije šeme. |
+| Neispravna vrijednost ili nepoznato polje | `INVALID`; server vraća `FORM_DATA_INVALID` s listom polja i kodom `REQUIRED` ili `INVALID`. Poznata polja prikazuju **„Ovo polje je obavezno.“** / **„Vrijednost nije ispravna.“**; nepoznati ključevi daju opću grešku validacije. |
+
+### Postavke toka formi
+
+| Postavka | Ponašanje pri kreiranju tiketa |
+|---|---|
+| `private.ticket.forms.enabled = false` | Forma se ne prikazuje pri prijavi; tiket se kreira bez `formVersionRef`. Poslana polja forme se odbijaju jer nema vezane šeme. |
+| Forme uključene, `private.ticket.forms.versioning.requireVersionOnTicket = false` | Ako aktivna verzija postoji, koristi se; ako je nema, tiket može biti kreiran bez vezane forme. |
+| `private.ticket.forms.versioning.requireVersionOnTicket = true` | Ako aktivna verzija ne postoji, kreiranje se odbija postojećom greškom `FORM_VERSION_REQUIRED`. |
+
+Postavka toka kreiranja ne ukida uslov za **prelaz usluge iz Nacrta u Aktivnu**: serverska aktivacija bez
+aktivne verzije forme vraća `409 NO_ACTIVE_FORM_VERSION`.
+
 ### Statusi usluge
 
 | Status | Znači | Vide korisnici |
@@ -136,11 +164,15 @@
 
 ## Česta pitanja i greške
 
-- **„Zašto korisnici ne vide uslugu?“** — Usluga mora biti **Aktivna** i imati **aktivnu verziju forme**;
-  bez aktivne forme prijava tiketa se odbija porukom „Odabrana usluga nema aktivnu verziju forme, pa tiket ne
-  može biti kreiran. Aktivirajte formu na ekranu Usluge.“
-- **„Polje je označeno obavezno, a tiket je prošao bez njega.“** — Obaveznost iz forme provjerava se pri
-  **rješavanju/zatvaranju** tiketa, a ne pri kreiranju (vidi *Poznata ograničenja*).
+- **„Zašto korisnici ne vide uslugu?“** — Usluga mora biti **Aktivna**. Pri prelazu u Aktivnu server zahtijeva
+  aktivnu verziju forme (`409 NO_ACTIVE_FORM_VERSION`); na prijavi tiketa prikaz i obaveznost forme dalje
+  zavise od postavki u *Postavke toka formi*.
+- **„Zašto je prijava forme odbijena?“** — Server ponovo provjerava polja po šemi; `FORM_DATA_INVALID` sadrži
+  `REQUIRED` ili `INVALID` za konkretno polje, a nepoznata polja se odbijaju. Provjerite tip, obaveznost,
+  granice i obrazac iznad.
+- **„Polje je označeno obavezno, a tiket je prošao bez njega.“** — Pri kreiranju i izmjeni podataka forme
+  obavezna polja provjerava server. Dodatna pravila za rješavanje/zatvaranje (close code, napomena i globalna
+  ili po-servisu obavezna polja) ostaju zasebna provjera statusa.
 - **„Ne mogu sačuvati izmjenu polja.“** — Verzija je aktivna ili ima tikete; napravite **Novu verziju iz
   odabrane** i izmijenite nacrt.
 - **„Nema opcija za polje Izbor.“** — Za tipove izbora opcije su obavezne: dodajte bar jednu opciju
@@ -163,16 +195,11 @@
   (`DEPRECATED`) usluge, a korisnici samo aktivne; ako se nacrt zatraži direktno preko API-ja, odgovor je
   **nije pronađeno** — ne otkriva ni postojanje zapisa.
 
-- **Forma se na serveru provjerava samo pri pisanju.** Server provjerava da je šema ispravna, ali **ne
-  provjerava vrijednosti** koje korisnik pošalje uz tiket; to radi samo ekran za prijavu. (Nalaz B1 iz §M6.)
-- **Nacrti usluga su dostupni preko API-ja.** Ekran prikazuje samo aktivne usluge, ali tehnički je i nacrt
-  moguće dohvatiti ako se zna identifikator. (Nalaz B2.)
-- **Usluga se može aktivirati bez aktivne forme** ako se aktivira ručno, van čarobnjaka; tada prijava tiketa
-  pada s porukom o nedostajućoj formi. (Nalaz B3.)
-- **Postavke formi ne mijenjaju tok tiketa.** Isključivanje modula formi ne ukida zahtjev za aktivnom formom.
-  (Nalaz B4.)
-- **Detalj tiketa prikazuje sirove ključeve forme** (`dodatne_informacije`), a ne oznake iz forme, i ne
-  renderuje polja po tipu. (Nalaz B5.)
+- **Provjera Email polja je namjerno osnovna.** Server, kao i ekran za prijavu, traži znak `@`; ne provjerava
+  punu sintaksu niti isporučivost adrese.
+- **Za tipove Izbor i Višestruki izbor server provjerava oblik vrijednosti i broj stavki, ne članstvo svake
+  vrijednosti u opcijama šeme.** Ekran nudi definisane opcije; API klijent i dalje treba slati vrijednosti koje
+  odgovaraju tim opcijama.
 - **Razlog izmjene iz forme kataloga se ne čuva** u change logu, a diff izmjene usluge ne sadrži sva
   promijenjena polja. (Nalaz B6.)
 - **Kroz formu kataloga ne možete postaviti** klasifikaciju, „povjerljivo po pravilu“, strategiju automatske
@@ -189,4 +216,4 @@
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: Katalog usluga i forme (M6)*
+*Ažurirano: 2026-10-06 · Modul: Katalog usluga i forme (M6)*

@@ -30,6 +30,10 @@ import {
   normalizeTicketTitle,
 } from './normalize-ticket-text';
 import { resolveCreateFormVersionRef } from './resolve-create-form-version-ref';
+import { loadTicketFormSchema } from './load-ticket-form-schema';
+import { validateServiceFormData } from '../service-catalog/validate-service-form-data';
+import { defaultServiceFormsConfiguration } from '../service-catalog/service-forms.constants';
+import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 import { resolveCreateTicketHandlerGroup } from './resolve-create-ticket-handler-group';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
@@ -69,6 +73,7 @@ export async function createTicket(
   redaction?: TicketRedactionConfiguration,
   guardrails?: TicketGuardrailsConfiguration,
   duplicateWarnings: DuplicateTicketMatch[] = [],
+  formsConfiguration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -110,10 +115,24 @@ export async function createTicket(
     actorHomeUnitId: actor.organizationalUnitId,
   });
   const service = await loadOfferedService(prisma, serviceId);
-  const formVersionRef = await resolveCreateFormVersionRef(prisma, {
-    serviceId,
-    formVersionRef: input.formVersionRef,
-  });
+  const formVersionRef = await resolveCreateFormVersionRef(
+    prisma,
+    {
+      serviceId,
+      formVersionRef: input.formVersionRef,
+    },
+    formsConfiguration,
+  );
+  const formSchema = await loadTicketFormSchema(prisma, formVersionRef);
+  const formErrors = validateServiceFormData(
+    formSchema,
+    input.formData,
+  );
+  if (formErrors.length > 0) {
+    throw new TicketsError('FORM_DATA_INVALID', 'FORM_DATA_INVALID', {
+      fields: formErrors,
+    });
+  }
   const linkedAsset = await resolveCreateTicketAsset(prisma, input.assetId, requester.id);
   const ruleRouted = await applyCreateTicketRouting(routingService, {
     originUnitId,
