@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
+import { withSettings } from '../helpers/assets';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
@@ -20,13 +21,8 @@ type Workflow = {
 
 const targetKey = 'private.ticket.unroutedQueue.targetGroupId';
 const targetGroupName = 'E2E Unrouted Target';
-
-async function setSetting(api: ApiClient, key: string, value: unknown): Promise<void> {
-  await api.requestJson('/settings', {
-    method: 'PUT',
-    body: JSON.stringify({ key, value, reason: 'E2E 15 workflow/unrouted' }),
-  });
-}
+const formsEnabledKey = 'private.ticket.forms.enabled';
+const formsEnabledDefaults = { [formsEnabledKey]: true };
 
 /**
  * Package 1.7: the status-flow API and screen (ADMIN/SUPER_ADMIN only), the
@@ -73,28 +69,31 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         })
       ).id;
 
-    await setSetting(adminApi, targetKey, targetGroupId);
-    try {
-      const service = await createOfferedService(adminApi, { label: 'Unrouted target' });
-      const created = await createTicketViaApi(adminApi, {
-        title: `E2E unrouted target ${Date.now()}`,
-        serviceId: service.id,
-        originUnitId: root.id,
-      });
-      const view = await adminApi.requestJson<TicketView>(`/tickets/${created.id}`);
-      expect(view.status).toBe('PENDING');
-      expect(view.assignedGroupId).toBe(targetGroupId);
-      expect(view.routedByUnroutedFallback).toBe(true);
+    await withSettings(
+      adminApi,
+      { [targetKey]: targetGroupId },
+      'E2E 15: verify unrouted target group behavior',
+      async () => {
+        const service = await createOfferedService(adminApi, { label: 'Unrouted target' });
+        const created = await createTicketViaApi(adminApi, {
+          title: `E2E unrouted target ${Date.now()}`,
+          serviceId: service.id,
+          originUnitId: root.id,
+        });
+        const view = await adminApi.requestJson<TicketView>(`/tickets/${created.id}`);
+        expect(view.status).toBe('PENDING');
+        expect(view.assignedGroupId).toBe(targetGroupId);
+        expect(view.routedByUnroutedFallback).toBe(true);
 
-      await signIn(page, env.superAdminEmail, env.superAdminPassword);
-      await page.goto(`/tickets/${created.id}`);
-      await page.getByTestId('ticket-create-routing-rule').click();
-      await expect(page).toHaveURL(/\/routing\?/);
-      await expect(page.locator('select').filter({ has: page.locator(`option[value="${service.id}"]`) }).first())
-        .toHaveValue(service.id);
-    } finally {
-      await setSetting(adminApi, targetKey, '');
-    }
+        await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        await page.goto(`/tickets/${created.id}`);
+        await page.getByTestId('ticket-create-routing-rule').click();
+        await expect(page).toHaveURL(/\/routing\?/);
+        await expect(page.locator('select').filter({ has: page.locator(`option[value="${service.id}"]`) }).first())
+          .toHaveValue(service.id);
+      },
+      { [targetKey]: '' },
+    );
   });
 
   test('server rejects formData that does not satisfy the active service schema', async () => {
@@ -118,6 +117,64 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         fields: [{ fieldId: 'dodatne_informacije', code: 'INVALID' }],
       },
     });
+  });
+
+  test('forms.enabled controls the UI and leaves created tickets unbound to a form', async ({ page }) => {
+    const env = readE2EEnvironment();
+    const adminApi = new ApiClient();
+    await adminApi.login(env.superAdminEmail, env.superAdminPassword);
+
+    let serviceId: string | null = null;
+    await withSettings(
+      adminApi,
+      { [formsEnabledKey]: true },
+      'E2E 15: enable forms to prepare fixture',
+      async () => {
+        const service = await createOfferedService(adminApi, { label: 'Forms disabled' });
+        serviceId = service.id;
+      },
+      formsEnabledDefaults,
+    );
+    if (serviceId === null) {
+      throw new Error('Expected the forms-disabled E2E service to be created');
+    }
+    const createdServiceId = serviceId;
+
+    await withSettings(
+      adminApi,
+      { [formsEnabledKey]: false },
+      'E2E 15: verify forms disabled on ticket creation',
+      async () => {
+        const configuration = await adminApi.requestJson<{
+          readonly formsEnabled: boolean;
+          readonly requireVersionOnTicket: boolean;
+        }>(`/services/${createdServiceId}/form`);
+        expect(configuration.formsEnabled).toBe(false);
+
+        await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        const formResponse = page.waitForResponse(
+          (response) =>
+            response.url().includes(`/services/${createdServiceId}/form`) &&
+            response.request().method() === 'GET',
+        );
+        await page.goto(`/tickets/new?serviceId=${encodeURIComponent(createdServiceId)}`);
+        await formResponse;
+        await page.getByRole('button', { name: /dalje|next|nastavi/i }).click();
+        await expect(page.getByText('Dodatne informacije', { exact: true })).toHaveCount(0);
+
+        const created = await createTicketViaApi(adminApi, {
+          title: `E2E forms disabled ${Date.now()}`,
+          serviceId: createdServiceId,
+        });
+        const binding = await adminApi.requestJson<{
+          readonly formVersionRef: string | null;
+          readonly schema: unknown | null;
+        }>(`/tickets/${created.id}/form`);
+        expect(binding.formVersionRef).toBeNull();
+        expect(binding.schema).toBeNull();
+      },
+      formsEnabledDefaults,
+    );
   });
 
   test('a routing change reaches the admin room over the socket', async ({ page }) => {

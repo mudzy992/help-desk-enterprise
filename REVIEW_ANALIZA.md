@@ -6530,14 +6530,19 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
 
 ## 5. Šta ostaje otvoreno u paketu 5.1
 
-- **Korak 5.1.2 — M3 B1–B4:** implementiran i ciljani Jest skup + lint + dokumentacija prolaze. Naknadni build s
-  generisanim Prisma klijentom prijavio je tri direktne TS greške; ispravljene su u naknadnom patchu poslije `cd3597c`.
-  Post-fix build/typecheck još nije potvrđen: u ovom checkoutu nedostaju `src/generated/prisma/{client,enums}`,
-  a ranije preuzimanje Prisma engine-a palo je na TLS.
-- **Korak 5.1.3 — M6 B1/B3/B4/B5** — implementiran i ciljano testiran; backend generated-client build/typecheck i browser e2e ostaju nepotvrđeni (v. odjeljak `# Paket 5.1 — korak 5.1.3`).
+- **Korak 5.1.2 — M3 B1–B4:** implementiran; ciljani Jest skup + lint + dokumentacija prolaze. Naknadni build s
+  generisanim Prisma klijentom prijavio je tri direktne TS greške koje su ispravljene poslije `cd3597c`.
+  Iako lokalni checkout i dalje nema `src/generated/prisma/{client,enums}`, post-fix backend build/lint/full test
+  potvrđeni su u CI runu [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
+  na `b1b7158`.
+- **Korak 5.1.3 — M6 B1/B3/B4/B5:** backend/frontend implementacija i puna CI kapija potvrđeni su na `b1b7158`;
+  isti CI run je preskočio E2E. D3 test u specu 15 sada provjerava `forms.enabled=false`, skrivanje polja u UI,
+  i nullable vezu tiketa; `tsc` i Playwright `--list` prolaze (5 testova), ali browser runtime još nije izvršen.
+  `workflow_dispatch` je vraćen s HTTP 403 `Resource not accessible by integration`; za završetak treba obnoviti
+  GitHub Actions dispatch dozvolu ili ručno pokrenuti workflow iz Actions UI-ja.
 - **Korak 5.1.4 — M7 i M10** — ostaje za naredni korak iz §3–§5 plana.
-- **Prvi puni e2e prolaz** ostaje kapija za merge na `master`; ako `E2E_SUPERADMIN_PASSWORD` ne prolazi novu
-  politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
+- **Prvi puni e2e prolaz** ostaje kapija za zatvaranje 5.1.3 i merge na `master`; ako `E2E_SUPERADMIN_PASSWORD`
+  ne prolazi novu politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
 
 # CI-3 — datumi u manifestu oborili `frontend` job (2026-10-06)
 
@@ -6626,7 +6631,7 @@ flag uz `formsEnabled`.
 | **M6 B3 — lifecycle kapija** | `ACTIVE` se odbija prije upisa ako nema aktivne forme; HTTP kod je 409, greška `NO_ACTIVE_FORM_VERSION`. | `backend/src/modules/service-catalog/transition-service-lifecycle.ts` (`transitionServiceLifecycle`), `map-service-catalog-error.ts`; `service-catalog.lifecycle.spec.ts` |
 | **M6 B4 — konfiguracija formi** | `enabled=false` vraća `formVersionRef: null`; uključeno + opcionalno uzima aktivnu verziju ako postoji, inače `null`; required bez verzije zadržava `FORM_VERSION_REQUIRED`. `GET /services/:serviceId/form` izlaže `formsEnabled` i `requireVersionOnTicket`, create UI skriva formu kad je isključena i pušta tiket bez aktivne verzije samo kad je opcionalna. `Ticket.formVersionId` je nullable uz migraciju. | `backend/src/modules/tickets/resolve-create-form-version-ref.ts`, `ServiceFormsConfigurationLoader`, `service-forms.service.ts`, `to-service-form-response.ts`, `frontend/src/components/tickets/create-ticket-form.tsx`, `create-ticket-fields.tsx`, `frontend/src/lib/tickets/build-create-ticket-input.ts`; `backend/prisma/migrations/20270313090000_ticket_form_version_optional/migration.sql` |
 | **M6 B5 — čitanje i prikaz prema verziji** | Dodan read-only `GET /tickets/:ticketId/form`; isti `getTicket` visibility gate kao detalj; vraća verziju, šemu i vrijednosti ili nullable ref/schema bez forme. UI koristi labele, nazive opcija, bool/numeric tipove i odbrambeni raw-key fallback. Uklonjeni mrtvi `bindTicketFormVersionRef` i pripadajući spec koji je upisivao probni tiket. | `backend/src/modules/tickets/tickets.controller.ts`, `tickets.service.ts#getFormById`, `backend/src/modules/service-catalog/resolve-ticket-form-version.ts`; `frontend/src/pages/ticket-detail-page.tsx`, `use-ticket-form.ts`, `ticket-form-data-view.tsx`, `format-ticket-form-data.ts` |
-| **E2E regresija** | Spec 15 šalje vrijednost dužu od aktivne šeme i očekuje HTTP 400 `FORM_DATA_INVALID`. | `e2e/tests/15-workflow-unrouted-realtime.spec.ts`, `e2e/helpers/create-ticket.ts` |
+| **E2E regresije (D1/D3)** | Spec 15 odbija `formData` izvan šeme s HTTP 400 `FORM_DATA_INVALID`; D3 scenario isključuje `private.ticket.forms.enabled` kroz `withSettings`, potvrđuje da UI skriva „Dodatne informacije“ i da tiket vraća `formVersionRef: null`/`schema: null`. I postojeći unrouted-target scenario sada vraća tačno prethodnu/zadanu postavku umjesto da je resetuje na prazan string. | `e2e/tests/15-workflow-unrouted-realtime.spec.ts`, `e2e/helpers/create-ticket.ts`, `e2e/helpers/assets.ts#withSettings` |
 
 ## 2. Provjere (izvršene u ovom okruženju)
 
@@ -6636,8 +6641,8 @@ flag uz `formsEnabled`.
 | Frontend ciljani Vitest | `cd frontend && npx vitest run src/lib/tickets/{format-ticket-form-data,map-service-form-data-error,build-create-ticket-input,map-ticket-error,validate-service-form}.spec.ts src/lib/services/{ensure-service-form,map-service-catalog-error}.spec.ts` | **7/7 fajlova, 18/18 testova ✅**; uključuje schema labels/options, bool/number, unknown-key fallback, error mapping i opcionalnu verziju pri kreiranju. |
 | Frontend build | `cd frontend && npm run build` | **Prošao:** `tsc -b && vite build`; Vite ostavlja samo upozorenje za chunk veći od 500 kB. |
 | Backend ciljano lint | `cd backend && npx eslint` nad izmijenjenim `service-catalog`/`tickets` M6 fajlovima | **Exit 0**, bez lint grešaka. |
-| Backend build/typecheck | `cd backend && npm run build` | **Nije potvrđen:** exit 1, **2871 TS dijagnostika**. Nedostaju `backend/src/generated/prisma/client` i `enums`, zbog čega `PrismaService` nema modele/delegate tipove; dijagnostike u izmijenjenim use-case fajlovima uključuju iste nedostajuće Prisma tipove. Nema osnove da se backend typecheck proglasi uspješnim. |
-| E2E statička provjera | `cd e2e && npx tsc --noEmit -p tsconfig.json && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; Playwright učitava 4 testa. Browser E2E runtime **nije pokrenut**: nema lokalnog `e2e/.env`, test konfiguracije ni dostupnog E2E stacka. |
+| Backend build/typecheck | `cd backend && npm run build`; CI workflow | Lokalni build je bio blokiran nedostajućim `backend/src/generated/prisma/client` i `enums` (2871 kaskadna TS dijagnostika). Naknadni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) na `b1b7158` uspješno je završio backend build/lint/full test; taj run prethodi novom E2E-only scenariju opisanom ispod. |
+| E2E statička provjera | `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; Playwright učitava 5 testova, uključujući novi D3 scenario. Browser E2E runtime **nije pokrenut**: nema lokalnog `e2e/.env` ni dostupnog stacka; CI run na `b1b7158` je preskočio E2E, a `workflow_dispatch` pokušaj je odbijen s HTTP 403. |
 | Dokumentacija | `node scripts/check-docs-content.mjs`, `node --test scripts/check-docs-content.test.mjs`, `node scripts/generate-docs-content.mjs --check`, `node scripts/check-client-neutral.mjs` | **OK:** 29 stranica, 5 prevoda, 10 provjera; **9/9** skript testova; ogledalo sinhronizovano; nema klijentski specifičnih naziva. |
 
 ## 3. Dokumentacija
@@ -6654,6 +6659,6 @@ flag uz `formsEnabled`.
 ## 4. Šta ostaje otvoreno
 
 - B6–B9 iz §M6 nisu dio 5.1.3.
-- Backend build/typecheck i E2E ostaju nepotvrđeni; ne zaključivati da prolaze iz ciljanih Jest/Vitest/lint rezultata.
-- Završna provjera je izvršena: ogledala su sinhronizovana, docs guardovi su prošli, a `git diff --check` je čist.
-  E2E test je statički provjeren (TypeScript + Playwright listing), ali runtime ostaje nepotvrđen bez testne konfiguracije i živog stacka.
+- U okviru paketa ostaje **samo runtime browser E2E** za spec 15. Test je statički provjeren (TypeScript + Playwright listing), ali se paket ne označava završenim dok novi D3 scenario stvarno ne prođe. Lokalno nema `e2e/.env`/testnog stacka; CI dispatch je odbijen s HTTP 403 `Resource not accessible by integration`.
+- CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) potvrđuje backend build/lint/full test, frontend build/test i docs guard/gate za `b1b7158`; njegov E2E job je `skipped` i ne uključuje naknadno dodani D3 test.
+- M6 unos u „Šta je novo“ već postoji i ogledalo je sinhronizovano; duplikat nije potreban. Nakon izmjena plana/evidencije ponovo se izvršavaju docs guard i `git diff --check`.

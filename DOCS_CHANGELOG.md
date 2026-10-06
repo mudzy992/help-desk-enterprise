@@ -1946,17 +1946,21 @@ poravnati s implementacijom; poznate stavke B5–B7 M3 i preostala M4 ograničen
 ## Paket 5.1 — korak 5.1.3: M6 B1, B3, B4 i B5 (2026-10-06)
 
 **Zašto:** zatvoreni su serverska validacija `formData`, kapija aktivacije usluge, uticaj postavki formi i schema-backed
-prikaz tiketa. Vodiči su usklađeni s ponašanjem koje ciljano pokrivaju testovi; ne tvrde da su puni e2e ili backend
-typecheck prošli.
+prikaz tiketa. Vodiči su usklađeni s implementiranim ponašanjem; browser E2E se ne proglašava prošlim bez stvarnog
+pokretanja.
 
-**Dokazi izvršeni u ovom okruženju:** backend ciljani Jest skup → **12 suita / 48 testova ✅** uz privremeni
-`ts-jest diagnostics:false` config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `frontend npm run
-build` → `tsc -b && vite build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint nad
-izmijenjenim M6/tickets fajlovima → bez grešaka. Dokumentacija: `node scripts/check-docs-content.mjs` → OK (29
-stranica, 5 prevoda, 10 provjera), `node --test scripts/check-docs-content.test.mjs` → **9/9**, generator `--check`
-i `check-client-neutral.mjs` → OK. `backend npm run build` i dalje ne prolazi (**2871 TS dijagnostika**) zbog
-nedostajućeg generisanog Prisma client/enums i zato nije dokaz backend typechecka. Spec 15 je proširen, ali
-browser e2e nije izvršen.
+**Dokazi:** backend ciljani Jest skup → **12 suita / 48 testova ✅** uz privremeni `ts-jest diagnostics:false`
+config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `frontend npm run build` → `tsc -b && vite
+build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint nad izmijenjenim M6/tickets
+fajlovima → bez grešaka. Kasniji puni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
+na `b1b7158` potvrdio je backend build/lint/full test, frontend build/test i docs guard/gate; E2E job je bio
+`skipped`. Taj run prethodi dodatnom D3 E2E scenariju u specu 15. Taj scenario sada privremeno isključuje
+`private.ticket.forms.enabled` uz `withSettings` restauraciju, provjerava skrivanje polja u browser UI-ju i nullable
+vezu novog tiketa; postojeći unrouted-target scenario također vraća prethodnu/zadanu postavku umjesto praznog
+stringa. `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list`
+prolazi i učitava 5 testova. Browser runtime nije izvršen: nema lokalnog `e2e/.env`/živog stacka, a ručni
+`workflow_dispatch` vraća HTTP 403 `Resource not accessible by integration`. Zbog toga se paket 5.1.3 još ne
+označava završenim; za zatvaranje treba ponoviti browser E2E nakon obnove GitHub Actions dispatch dozvole.
 
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|
