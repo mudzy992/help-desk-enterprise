@@ -24,7 +24,7 @@ export type InMemoryRoutingGroup = {
   readonly name: string;
 };
 
-type InMemoryRoutingServiceWhere = {
+export type InMemoryRoutingServiceWhere = {
   readonly id?: string | { readonly gt?: string; readonly in?: readonly string[] };
   readonly name?: string | { readonly gt?: string };
   readonly lifecycle?: string;

@@ -148,6 +148,7 @@ describe('aggregateSlaCompliance', () => {
       expect.objectContaining({
         slaProfileId: 'profile-b',
         dimensionId: null,
+        dimensionName: null,
         sampleCount: 1,
         responseCompliancePercent: 100,
         resolutionCompliancePercent: 0,

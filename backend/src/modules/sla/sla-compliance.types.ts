@@ -36,7 +36,7 @@ export type SlaComplianceProfileRow = {
 export type SlaComplianceBreakdownRow = {
   readonly slaProfileId: string;
   readonly dimensionId: string | null;
-  readonly dimensionName: string;
+  readonly dimensionName: string | null;
   readonly sampleCount: number;
   readonly responseCompliancePercent: number | null;
   readonly resolutionCompliancePercent: number | null;
