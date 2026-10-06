@@ -6535,11 +6535,13 @@ drugi skup, tuđi pregled, bez razloga, uz postojeći test da audit nosi `reason
   Iako lokalni checkout i dalje nema `src/generated/prisma/{client,enums}`, post-fix backend build/lint/full test
   potvrđeni su u CI runu [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
   na `b1b7158`.
-- **Korak 5.1.3 — M6 B1/B3/B4/B5:** backend/frontend implementacija i puna CI kapija potvrđeni su na `b1b7158`;
-  isti CI run je preskočio E2E. D3 test u specu 15 sada provjerava `forms.enabled=false`, skrivanje polja u UI,
-  i nullable vezu tiketa; `tsc` i Playwright `--list` prolaze (5 testova), ali browser runtime još nije izvršen.
-  `workflow_dispatch` je vraćen s HTTP 403 `Resource not accessible by integration`; za završetak treba obnoviti
-  GitHub Actions dispatch dozvolu ili ručno pokrenuti workflow iz Actions UI-ja.
+- **Korak 5.1.3 — M6 B1/B3/B4/B5:** backend/frontend implementacija i puni CI na `b1b7158` prošli su, ali
+  E2E je bio preskočen. Korisnikov ručni run [#37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325)
+  bio je na `master` / `b1b7158` i njegov E2E job je pao; serverski report pokazuje 3/4 testa. Neispravni `formData`
+  test nije stigao do šema-validacije: zahtjev nije imao obavezne enum vrijednosti `impact` i `urgency`, pa API je
+  vratio `VALIDATION`. Fixture je sada dopunjen s `MEDIUM` vrijednostima. GitHub run i serverski report prikazuju
+  staru četverotestnu verziju, bez D3 scenarija; aktuelni sesijski spec ima 5 testova (`tsc`/Playwright listing
+  prolaze), ali treba ponovo pokrenuti runtime na sesijskoj grani i dobiti prolaz.
 - **Korak 5.1.4 — M7 i M10** — ostaje za naredni korak iz §3–§5 plana.
 - **Prvi puni e2e prolaz** ostaje kapija za zatvaranje 5.1.3 i merge na `master`; ako `E2E_SUPERADMIN_PASSWORD`
   ne prolazi novu politiku, `POST /install/super-admin` sada vraća `PASSWORD_POLICY_VIOLATIONS` (v. `e2e/README.md`).
@@ -6642,7 +6644,8 @@ flag uz `formsEnabled`.
 | Frontend build | `cd frontend && npm run build` | **Prošao:** `tsc -b && vite build`; Vite ostavlja samo upozorenje za chunk veći od 500 kB. |
 | Backend ciljano lint | `cd backend && npx eslint` nad izmijenjenim `service-catalog`/`tickets` M6 fajlovima | **Exit 0**, bez lint grešaka. |
 | Backend build/typecheck | `cd backend && npm run build`; CI workflow | Lokalni build je bio blokiran nedostajućim `backend/src/generated/prisma/client` i `enums` (2871 kaskadna TS dijagnostika). Naknadni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) na `b1b7158` uspješno je završio backend build/lint/full test; taj run prethodi novom E2E-only scenariju opisanom ispod. |
-| E2E statička provjera | `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; Playwright učitava 5 testova, uključujući novi D3 scenario. Browser E2E runtime **nije pokrenut**: nema lokalnog `e2e/.env` ni dostupnog stacka; CI run na `b1b7158` je preskočio E2E, a `workflow_dispatch` pokušaj je odbijen s HTTP 403. |
+| E2E statička provjera | `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list` | TypeScript provjera prolazi; aktuelni sesijski spec učitava 5 testova, uključujući D3. |
+| E2E runtime — stari spec | GitHub [run #37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325) na `master`/`b1b7158`; serverski `npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --reporter=list` | GitHub E2E job pao; serverski run: **3/4 prošla, 1 pao**. `POST /tickets` odbijen je s `VALIDATION` zbog nedostajućih `impact`/`urgency`, prije nego što je provjerena šema `formData`. Payload je dopunjen na sesijskoj grani; oba runa su koristila četverotestnu verziju bez D3, pa je prolaz aktuelnog petotestnog speca još potreban. |
 | Dokumentacija | `node scripts/check-docs-content.mjs`, `node --test scripts/check-docs-content.test.mjs`, `node scripts/generate-docs-content.mjs --check`, `node scripts/check-client-neutral.mjs` | **OK:** 29 stranica, 5 prevoda, 10 provjera; **9/9** skript testova; ogledalo sinhronizovano; nema klijentski specifičnih naziva. |
 
 ## 3. Dokumentacija
@@ -6659,6 +6662,6 @@ flag uz `formsEnabled`.
 ## 4. Šta ostaje otvoreno
 
 - B6–B9 iz §M6 nisu dio 5.1.3.
-- U okviru paketa ostaje **samo runtime browser E2E** za spec 15. Test je statički provjeren (TypeScript + Playwright listing), ali se paket ne označava završenim dok novi D3 scenario stvarno ne prođe. Lokalno nema `e2e/.env`/testnog stacka; CI dispatch je odbijen s HTTP 403 `Resource not accessible by integration`.
-- CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) potvrđuje backend build/lint/full test, frontend build/test i docs guard/gate za `b1b7158`; njegov E2E job je `skipped` i ne uključuje naknadno dodani D3 test.
+- Browser E2E je pokrenut, ali run #37506328325 bio je na `master`/`b1b7158` i pao je; serverski run imao je 4 testa, bez D3. Neispravni `formData` scenario vraćao je `VALIDATION` jer payload nije slao `impact` i `urgency`; fixture je ispravljen na sesijskoj grani. Ostaje runtime prolaz svih 5 testova iz aktuelnog speca 15, posebno D3.
+- CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879) potvrđuje backend build/lint/full test, frontend build/test i docs guard/gate za `b1b7158`; njegov E2E job je `skipped`. Novi D3 scenario nije bio ni u tom runu ni u runu #37506328325.
 - M6 unos u „Šta je novo“ već postoji i ogledalo je sinhronizovano; duplikat nije potreban. Nakon izmjena plana/evidencije ponovo se izvršavaju docs guard i `git diff --check`.

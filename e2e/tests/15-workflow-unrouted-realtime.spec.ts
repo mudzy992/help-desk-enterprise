@@ -107,6 +107,8 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
         title: `E2E invalid form ${Date.now()}`,
         description: 'Server-side form validation check',
         serviceId: service.id,
+        impact: 'MEDIUM',
+        urgency: 'MEDIUM',
         formData: { dodatne_informacije: 'x'.repeat(4_001) },
       }),
     });

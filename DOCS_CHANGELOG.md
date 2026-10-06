@@ -1952,15 +1952,16 @@ pokretanja.
 **Dokazi:** backend ciljani Jest skup → **12 suita / 48 testova ✅** uz privremeni `ts-jest diagnostics:false`
 config; frontend ciljani Vitest skup → **7 fajlova / 18 testova ✅**; `frontend npm run build` → `tsc -b && vite
 build` uspješno (samo Vite upozorenje za chunk >500 kB); ciljano backend ESLint nad izmijenjenim M6/tickets
-fajlovima → bez grešaka. Kasniji puni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
-na `b1b7158` potvrdio je backend build/lint/full test, frontend build/test i docs guard/gate; E2E job je bio
-`skipped`. Taj run prethodi dodatnom D3 E2E scenariju u specu 15. Taj scenario sada privremeno isključuje
-`private.ticket.forms.enabled` uz `withSettings` restauraciju, provjerava skrivanje polja u browser UI-ju i nullable
-vezu novog tiketa; postojeći unrouted-target scenario također vraća prethodnu/zadanu postavku umjesto praznog
-stringa. `cd e2e && npx tsc --noEmit && npx playwright test tests/15-workflow-unrouted-realtime.spec.ts --list`
-prolazi i učitava 5 testova. Browser runtime nije izvršen: nema lokalnog `e2e/.env`/živog stacka, a ručni
-`workflow_dispatch` vraća HTTP 403 `Resource not accessible by integration`. Zbog toga se paket 5.1.3 još ne
-označava završenim; za zatvaranje treba ponoviti browser E2E nakon obnove GitHub Actions dispatch dozvole.
+fajlovima → bez grešaka. Puni CI run [#37501318879](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37501318879)
+na `b1b7158` potvrdio je backend build/lint/full test, frontend build/test i docs guard/gate; E2E je bio `skipped`.
+Korisnik je potom ručno pokrenuo [run #37506328325](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37506328325)
+na `master`/`b1b7158`; E2E job je pao. Serverski report: 3/4 testa prošla; scenario `FORM_DATA_INVALID` dobio je
+`VALIDATION` zato što direktni `POST /tickets` payload nije slao obavezne `impact` i `urgency`, pa nije stigao do
+šema-validatora. Fixture je ispravljen na sesijskoj grani (`MEDIUM` za oba polja). D3 scenario u specu 15 koristi
+`withSettings` restauraciju, provjerava skrivanje polja u UI-ju i nullable vezu tiketa; postojeći unrouted-target
+scenario također vraća prethodnu/zadanu postavku umjesto praznog stringa. Statičke provjere prolaze, a aktuelni
+spec lista 5 testova; oba ručna izvještaja navode staru četverotestnu verziju bez D3. Paket 5.1.3 ostaje otvoren
+dok se ispravljeni petotestni spec ne pokrene i ne prođe na sesijskoj grani.
 
 | Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
 |---|---|---|
