@@ -16,6 +16,8 @@ export type GroupInboxPage = {
   readonly total: number;
   /** See `countTicketsCapped`: `total` stopped at the cap. */
   readonly totalIsCapped?: boolean;
+  /** Package 5.2.3 (M8 B5): epoch ms of the total calculation (always fresh for group inbox). */
+  readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
 };
@@ -62,7 +64,7 @@ export async function listGroupInboxTickets(
   );
   const inboxClauses = buildGroupInboxWhere(visibility);
   if (inboxClauses === null) {
-    return { records: [], total: 0, totalIsCapped: false, page, pageSize };
+    return { records: [], total: 0, totalIsCapped: false, totalsAsOf: Date.now(), page, pageSize };
   }
   const where: Prisma.TicketWhereInput = {
     AND:
@@ -80,5 +82,5 @@ export async function listGroupInboxTickets(
     }) as Promise<TicketRecord[]>,
     countTicketsCapped(prisma, where),
   ]);
-  return { records, ...counted, page, pageSize };
+  return { records, ...counted, totalsAsOf: Date.now(), page, pageSize };
 }

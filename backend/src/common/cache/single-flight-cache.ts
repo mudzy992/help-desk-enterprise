@@ -14,8 +14,18 @@
  * the one that started the work. Entries are bounded (`maxEntries`, oldest
  * first), so a stream of distinct keys cannot grow the heap.
  */
+export type SingleFlightHit<T> = {
+  readonly value: T;
+  /** Epoch ms at which the cached value was produced. */
+  readonly computedAt: number;
+  /** Epoch ms at which this entry expires. */
+  readonly expiresAt: number;
+};
+
 export type SingleFlightCache<T> = {
   get(key: string, compute: () => Promise<T>): Promise<T>;
+  /** Returns epoch-ms at which the cached value was produced, or null when not cached. */
+  computedAt(key: string): number | null;
   /** Drops one key (or everything) — e.g. after a write the caller knows about. */
   invalidate(key?: string): void;
   readonly size: number;
@@ -30,7 +40,7 @@ export function createSingleFlightCache<T>(options: {
   const now = options.now ?? Date.now;
   const ttl = (): number =>
     typeof options.ttlMs === 'function' ? options.ttlMs() : options.ttlMs;
-  const settled = new Map<string, { readonly value: T; readonly expiresAt: number }>();
+  const settled = new Map<string, { readonly value: T; readonly expiresAt: number; readonly computedAt: number }>();
   const inFlight = new Map<string, Promise<T>>();
 
   const remember = (key: string, value: T): void => {
@@ -39,7 +49,7 @@ export function createSingleFlightCache<T>(options: {
       return;
     }
     settled.delete(key);
-    settled.set(key, { value, expiresAt: now() + ttlMs });
+    settled.set(key, { value, computedAt: now(), expiresAt: now() + ttlMs });
     while (settled.size > maxEntries) {
       const oldest = settled.keys().next().value;
       if (oldest === undefined) {
@@ -73,6 +83,13 @@ export function createSingleFlightCache<T>(options: {
       })();
       inFlight.set(key, started);
       return started;
+    },
+    computedAt(key) {
+      const hit = settled.get(key);
+      if (hit === undefined || hit.expiresAt <= now()) {
+        return null;
+      }
+      return hit.computedAt;
     },
     invalidate(key) {
       if (key === undefined) {

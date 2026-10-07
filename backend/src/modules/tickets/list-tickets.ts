@@ -59,6 +59,14 @@ export type TicketListPage = {
   readonly total: number;
   /** See `countTicketsCapped`: `total` stopped at the cap. */
   readonly totalIsCapped?: boolean;
+  /**
+   * Package 5.2.3 (M8 B5): epoch ms at which `total` was calculated. Lets the
+   * UI show "totals refreshed N seconds ago" since the value is cached for up
+   * to TICKET_LIST_TOTAL_CACHE_TTL_MS (default 30 s) and can briefly lag
+   * behind mutations. Zero when the total is fresh (uncapped search branch
+   * or first page with `TICKET_LIST_TOTAL_CACHE_TTL_MS=0` in tests).
+   */
+  readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
 };
@@ -81,7 +89,7 @@ export async function listTicketsPage(
 ): Promise<TicketListPage> {
   const pageSize = clampTicketListPageSize(query.pageSize);
   const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
-  const { records, total, totalIsCapped } = await runTicketListQuery(
+  const { records, total, totalIsCapped, totalsAsOf } = await runTicketListQuery(
     prisma,
     authorizationContextLoader,
     query,
@@ -91,7 +99,7 @@ export async function listTicketsPage(
     true,
     ticketListSelect,
   );
-  return { records, total, totalIsCapped, page, pageSize };
+  return { records, total, totalIsCapped, totalsAsOf, page, pageSize };
 }
 
 /**
@@ -139,6 +147,7 @@ async function runTicketListQuery(
   readonly records: readonly TicketRecord[];
   readonly total: number;
   readonly totalIsCapped: boolean;
+  readonly totalsAsOf: number;
 }> {
   // Phase 2.4: the scope comes from the shared builder, which the dashboard and
   // SLA counters use as well.
@@ -150,7 +159,7 @@ async function runTicketListQuery(
     archive,
   );
   if (where === null) {
-    return { records: [], total: 0, totalIsCapped: false };
+    return { records: [], total: 0, totalIsCapped: false, totalsAsOf: Date.now() };
   }
   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
   // k6 C (200 VU): search was the only read over budget (p95 763 ms) — the
@@ -181,14 +190,21 @@ async function runTicketListQuery(
       // the next page; exact when this is the last page.
       total: paging.skip + pageRecords.length + (hasMore ? 1 : 0),
       totalIsCapped: hasMore,
+      totalsAsOf: Date.now(),
     };
   }
   if (!countTotal) {
-    return { records, total: records.length, totalIsCapped: false };
+    return { records, total: records.length, totalIsCapped: false, totalsAsOf: Date.now() };
   }
-  const { total, totalIsCapped } = await ticketListTotals(prisma).get(
-    ticketListTotalKey(query, context, archive),
+  const cache = ticketListTotals(prisma);
+  const totalKey = ticketListTotalKey(query, context, archive);
+  const { total, totalIsCapped } = await cache.get(
+    totalKey,
     () => countTicketsCapped(prisma, where),
   );
-  return { records, total, totalIsCapped };
+  // M8 B5: expose when the total was computed so the UI can surface a
+  // "refreshed Ns ago" hint; when the cache is disabled (TTL 0) we fall back
+  // to `now` (the value is fresh).
+  const totalsAsOf = cache.computedAt(totalKey) ?? Date.now();
+  return { records, total, totalIsCapped, totalsAsOf };
 }

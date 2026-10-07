@@ -219,6 +219,8 @@ export type TicketPage = {
   /** Exact up to 10 000; above that the server stops counting (`totalIsCapped`). */
   readonly total: number;
   readonly totalIsCapped?: boolean;
+  /** Package 5.2.3 (M8 B5): epoch ms at which the server computed `total`. */
+  readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
 };
