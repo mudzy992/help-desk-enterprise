@@ -23,7 +23,7 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { clearedTicketListFilters } from "@/lib/tickets/filter-tickets";
+import { clearedTicketListFilters, defaultInboxTab } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
 import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
 
@@ -36,6 +36,7 @@ export function TicketListPage() {
   const canManageGroups = hasPermission(permissionKeys.groupManage);
   const csvExport = useTicketsCsvExport(list.filters, list.setErrorKey);
   const isInbox = list.view === "inbox";
+  const inboxActiveTab = list.filters.inboxTab ?? defaultInboxTab;
   const assigneeNames = useMemo(
     () => directoryAssigneeNames(directory.users),
     [directory.users],
@@ -92,6 +93,8 @@ export function TicketListPage() {
       />
       {isInbox ? (
         <TicketInboxPanel
+          activeTab={inboxActiveTab}
+          onChangeTab={list.setInboxTab}
           inboxTickets={list.pageItems}
           unroutedTickets={list.unroutedTickets}
           unroutedCount={list.unroutedCount}

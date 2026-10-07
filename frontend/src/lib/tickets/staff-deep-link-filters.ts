@@ -1,4 +1,5 @@
 import {
+  unroutedInboxTabKey,
   parseForwardedFilter,
   parsePersonalFilter,
   type TicketListFilters,
@@ -8,7 +9,8 @@ import {
 export function staffDeepLinkFilters(
   searchParams: URLSearchParams,
   isStaff: boolean,
-): Pick<TicketListFilters, "forwarded" | "personal" | "hideMerged" | "unroutedOverdue"> {
+): Pick<TicketListFilters, "forwarded" | "personal" | "hideMerged" | "unroutedOverdue" | "inboxTab"> {
+  const rawTab = searchParams.get("inboxTab");
   return {
     // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
     forwarded: isStaff ? parseForwardedFilter(searchParams.get("forwarded")) : "",
@@ -18,5 +20,14 @@ export function staffDeepLinkFilters(
     hideMerged: isStaff && searchParams.get("hideMerged") !== "false",
     // Paket 1.7 (U3): deep link from the dashboard and the weekly digest.
     unroutedOverdue: isStaff && searchParams.get("unroutedOverdue") === "true",
+    // Package 5.2.3 (M8 B6): preserve the inbox sub-tab across reloads. Any
+    // value other than "unrouted" is treated as a group id and validated by
+    // the panel against membership (unknown tabs fall back to unrouted).
+    inboxTab:
+      isStaff && rawTab !== null && rawTab.trim().length > 0
+        ? rawTab.trim()
+        : isStaff
+          ? unroutedInboxTabKey
+          : undefined,
   };
 }

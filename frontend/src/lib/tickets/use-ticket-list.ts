@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { defaultInboxTab, unroutedInboxTabKey, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
 import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -42,7 +42,7 @@ function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView 
   return isStaff ? "inbox" : "all";
 }
 
-const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, isStaff: boolean): TicketListFilters => ({
+const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, isStaff: boolean, initialInboxTab?: string): TicketListFilters => ({
   view,
   search: "",
   status: "",
@@ -56,6 +56,8 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, i
   forwarded: "",
   // M8 B4: staff lists hide merged children by default; toggled via checkbox.
   hideMerged: isStaff,
+  // M8 B6: inbox sub-tab is part of filter state (URL-persisted).
+  inboxTab: view === "inbox" ? initialInboxTab ?? defaultInboxTab : undefined,
 });
 
 /**
@@ -91,8 +93,11 @@ export function useTicketList() {
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
+  const initialInboxTab = isStaff && view === "inbox"
+    ? (searchParams.get("inboxTab")?.trim() || defaultInboxTab)
+    : undefined;
   const [filters, setFilters] = useState<TicketListFilters>(() => ({
-    ...emptyFilters(view, currentUserId, isStaff),
+    ...emptyFilters(view, currentUserId, isStaff, initialInboxTab),
     ...staffDeepLinkFilters(searchParams, isStaff),
   }));
   // Capabilities load asynchronously, so on a fresh page load `isStaff` is
@@ -105,7 +110,10 @@ export function useTicketList() {
       return;
     }
     staffDeepLinkApplied.current = true;
-    setFilters((current) => ({ ...current, ...staffDeepLinkFilters(searchParams, true) }));
+    setFilters((current) => ({
+      ...current,
+      ...staffDeepLinkFilters(searchParams, true),
+    }));
     setPage(1);
   }, [isStaff, searchParams]);
   const [page, setPage] = useState(1);
@@ -140,12 +148,14 @@ export function useTicketList() {
             .fetchQuery({
               queryKey: queryKeys.ticketList({
                 unroutedQueue: true,
+                hideMerged: filters.hideMerged === true ? true : undefined,
                 page: unroutedPage,
                 pageSize: unroutedPageSize,
               }),
               queryFn: () =>
                 listTicketsPage({
                   unroutedQueue: true,
+                  hideMerged: filters.hideMerged === true ? true : undefined,
                   page: unroutedPage,
                   pageSize: unroutedPageSize,
                 }),
@@ -266,6 +276,10 @@ export function useTicketList() {
       view,
       currentUserId,
       search: queryFromUrl,
+      // When leaving the inbox the tab is meaningless; when (re-)entering it
+      // fall back to the remembered tab or the unrouted default so navigation
+      // doesn't accidentally strand the user on a hidden group tab.
+      inboxTab: view === "inbox" ? current.inboxTab ?? defaultInboxTab : undefined,
     }));
     setPage(1);
     setUnroutedPage(1);
@@ -341,6 +355,25 @@ export function useTicketList() {
     });
   };
 
+  /**
+   * M8 B6: changing the inbox sub-tab updates the URL (so reload keeps it)
+   * and resets the unrouted pager back to page 1. Group tabs stay in local
+   * React state only insofar as the filter state reflects them — everything
+   * else reads from filters.inboxTab.
+   */
+  const setInboxTab = useCallback(
+    (tab: string) => {
+      if (view !== "inbox") return;
+      setFilters((current) => ({ ...current, inboxTab: tab }));
+      setUnroutedPage(1);
+      setSelectedIds(new Set());
+      const next = new URLSearchParams(searchParams);
+      next.set("inboxTab", tab);
+      setSearchParams(next, { replace: true });
+    },
+    [view, searchParams, setSearchParams],
+  );
+
   return {
     view,
     isStaff,
@@ -352,6 +385,7 @@ export function useTicketList() {
       setPage(1);
       setSelectedIds(new Set());
     },
+    setInboxTab,
     page,
     setPage,
     totalPages,

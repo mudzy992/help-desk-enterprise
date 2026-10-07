@@ -1,7 +1,8 @@
+import { unroutedInboxTabKey } from "@/lib/tickets/filter-tickets";
 import type { MyGroupResponse } from "@/services/groups-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
-export const unroutedInboxTabKey = "unrouted";
+export { unroutedInboxTabKey };
 
 export type InboxGroupTab = {
   readonly groupId: string;

@@ -20,6 +20,13 @@ export function buildGroupInboxWhere(
   return [
     { assignedUserId: null },
     { status: 'PENDING' },
+    // Package 5.2.3 (M8 B6): merged child tickets inherit their parent's
+    // status, so a PENDING parent that was later merged into another ticket
+    // would otherwise leave its children dangling in the work queue. The
+    // group inbox is a work queue for live items; merged duplicates are not
+    // actionable and are always hidden, matching the staff `hideMerged`
+    // default on the all/teams lists.
+    { mergedIntoTicketId: null },
     {
       assignedGroupId: context.isSuperAdmin
         ? { not: null }

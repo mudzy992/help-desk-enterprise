@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { ActionFeedbackBanner } from "@/components/feedback/action-feedback-banner";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
@@ -16,6 +16,8 @@ import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface TicketInboxPanelProperties {
+  readonly activeTab: string;
+  readonly onChangeTab: (tab: string) => void;
   readonly inboxTickets: readonly TicketResponse[];
   readonly unroutedTickets: readonly TicketResponse[];
   readonly unroutedCount: number;
@@ -37,6 +39,8 @@ interface TicketInboxPanelProperties {
 }
 
 export function TicketInboxPanel({
+  activeTab,
+  onChangeTab,
   inboxTickets,
   unroutedTickets,
   unroutedCount,
@@ -56,20 +60,22 @@ export function TicketInboxPanel({
   onClaim,
   onRetry,
 }: TicketInboxPanelProperties) {
-  const [activeTab, setActiveTab] = useState(unroutedInboxTabKey);
   const { groups: myGroups } = useMyGroups();
   const groups = useMemo(
     () => inboxGroupTabsFromMembership(myGroups, inboxTickets),
     [myGroups, inboxTickets],
   );
+  // Fall back to the unrouted tab when membership changes make the current
+  // tab disappear (e.g. user was removed from the group). The effect runs
+  // once membership is known so we don't flash the banner on first load.
   useEffect(() => {
     if (activeTab === unroutedInboxTabKey) {
       return;
     }
     if (!groups.some((group) => group.groupId === activeTab)) {
-      setActiveTab(unroutedInboxTabKey);
+      onChangeTab(unroutedInboxTabKey);
     }
-  }, [activeTab, groups]);
+  }, [activeTab, groups, onChangeTab]);
   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
   return (
     <div className="mt-4">
@@ -78,7 +84,7 @@ export function TicketInboxPanel({
         activeTab={activeTab}
         unroutedCount={unroutedCount}
         groups={groups}
-        onChange={setActiveTab}
+        onChange={onChangeTab}
       />
       {activeTab !== unroutedInboxTabKey &&
       hasGroupMembership === false &&
