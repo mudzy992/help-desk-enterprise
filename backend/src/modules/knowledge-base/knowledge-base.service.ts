@@ -37,16 +37,21 @@ export class KnowledgeBaseService {
     input: CreateKnowledgeArticleInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      toKnowledgeArticleResponse(
-        await createKnowledgeArticle(
-          this.prisma,
-          this.authorizationContextLoader,
-          input,
-          context,
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return toKnowledgeArticleResponse(
+        withKnowledgeArticleFreshness(
+          await createKnowledgeArticle(
+            this.prisma,
+            this.authorizationContextLoader,
+            input,
+            context,
+          ),
+          configuration,
+          new Date(),
         ),
-      ),
-    );
+      );
+    });
   }
 
   list(
@@ -149,17 +154,22 @@ export class KnowledgeBaseService {
     input: UpdateKnowledgeArticleInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      toKnowledgeArticleResponse(
-        await updateKnowledgeArticle(
-          this.prisma,
-          this.authorizationContextLoader,
-          articleId,
-          input,
-          context,
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return toKnowledgeArticleResponse(
+        withKnowledgeArticleFreshness(
+          await updateKnowledgeArticle(
+            this.prisma,
+            this.authorizationContextLoader,
+            articleId,
+            input,
+            context,
+          ),
+          configuration,
+          new Date(),
         ),
-      ),
-    );
+      );
+    });
   }
 
   remove(

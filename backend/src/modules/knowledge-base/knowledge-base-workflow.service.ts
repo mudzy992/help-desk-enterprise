@@ -18,6 +18,7 @@ import {
 } from './review-knowledge-article';
 import { submitKnowledgeArticleReview } from './submit-knowledge-article-review';
 import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
+import { withKnowledgeArticleFreshness } from './with-knowledge-article-freshness';
 
 @Injectable()
 export class KnowledgeBaseWorkflowService {
@@ -32,17 +33,22 @@ export class KnowledgeBaseWorkflowService {
     input: KnowledgeLifecycleInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      toKnowledgeArticleResponse(
-        await submitKnowledgeArticleReview(
-          this.prisma,
-          this.authorizationContextLoader,
-          articleId,
-          input,
-          context,
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return toKnowledgeArticleResponse(
+        withKnowledgeArticleFreshness(
+          await submitKnowledgeArticleReview(
+            this.prisma,
+            this.authorizationContextLoader,
+            articleId,
+            input,
+            context,
+          ),
+          configuration,
+          new Date(),
         ),
-      ),
-    );
+      );
+    });
   }
 
   approveReview(
@@ -53,13 +59,17 @@ export class KnowledgeBaseWorkflowService {
     return executeKnowledgeBaseOperation(async () => {
       const configuration = await this.configurationLoader.load();
       return toKnowledgeArticleResponse(
-        await approveKnowledgeArticleReview(
-          this.prisma,
-          this.authorizationContextLoader,
+        withKnowledgeArticleFreshness(
+          await approveKnowledgeArticleReview(
+            this.prisma,
+            this.authorizationContextLoader,
+            configuration,
+            articleId,
+            input,
+            context,
+            new Date(),
+          ),
           configuration,
-          articleId,
-          input,
-          context,
           new Date(),
         ),
       );
@@ -71,17 +81,22 @@ export class KnowledgeBaseWorkflowService {
     input: KnowledgeLifecycleInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      toKnowledgeArticleResponse(
-        await rejectKnowledgeArticleReview(
-          this.prisma,
-          this.authorizationContextLoader,
-          articleId,
-          input,
-          context,
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return toKnowledgeArticleResponse(
+        withKnowledgeArticleFreshness(
+          await rejectKnowledgeArticleReview(
+            this.prisma,
+            this.authorizationContextLoader,
+            articleId,
+            input,
+            context,
+          ),
+          configuration,
+          new Date(),
         ),
-      ),
-    );
+      );
+    });
   }
 
   publish(
@@ -92,13 +107,17 @@ export class KnowledgeBaseWorkflowService {
     return executeKnowledgeBaseOperation(async () => {
       const configuration = await this.configurationLoader.load();
       return toKnowledgeArticleResponse(
-        await publishKnowledgeArticle(
-          this.prisma,
-          this.authorizationContextLoader,
+        withKnowledgeArticleFreshness(
+          await publishKnowledgeArticle(
+            this.prisma,
+            this.authorizationContextLoader,
+            configuration,
+            articleId,
+            input,
+            context,
+            new Date(),
+          ),
           configuration,
-          articleId,
-          input,
-          context,
           new Date(),
         ),
       );
@@ -110,17 +129,22 @@ export class KnowledgeBaseWorkflowService {
     input: KnowledgeLifecycleInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      toKnowledgeArticleResponse(
-        await archiveKnowledgeArticle(
-          this.prisma,
-          this.authorizationContextLoader,
-          articleId,
-          input,
-          context,
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return toKnowledgeArticleResponse(
+        withKnowledgeArticleFreshness(
+          await archiveKnowledgeArticle(
+            this.prisma,
+            this.authorizationContextLoader,
+            articleId,
+            input,
+            context,
+            new Date(),
+          ),
+          configuration,
           new Date(),
         ),
-      ),
-    );
+      );
+    });
   }
 }
