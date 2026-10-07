@@ -6818,3 +6818,28 @@ diff-om.
 - Stara frontend helper funkcija `calculate-ticket-priority.ts` ostaje u stablu sa komentarom „Same score bands as backend…“ kao dokumentovani utility, ali se nigdje ne koristi izvan svoje jedinog spec-a. Time se zadovoljava acceptance B8 („frontend više nema nezavisne score bandove“), a dead-code removal nije dio acceptance-a 5.2.2.
 
 Sljedeća podfaza iz plana je **5.2.3 — liste tiketa, CSAT i realtime (8 nalaza, §4.3)**.
+
+---
+
+# Paket 5.2.3 — prvi krug (liste tiketa, CSAT, realtime) — u toku (2026-10-07)
+
+Prvi krug inventure i popravki za 8 `NISKO` nalaza iz plana §4.3. CI za prethodnu
+5.2.2 podfazu je prošao zeleno (commit `b803cd5`).
+
+## Zatvoreno u ovom krugu
+
+| Nalaz | Rješenje | Referenca |
+|---|---|---|
+| **M9 B5** — CSAT change log bilježi isto `before` i `after` | `submitTicketCsat()` je slao isti ticket snapshot u obje pozicije, što je davalo prazan diff. Prebačeno na direktni `recordChangeLog` sa minimalnim CSAT tranzicijama: `{csatRating:null, csatHasComment:false} → {csatRating:n, csatHasComment:bool}`. Slobodni komentar je PII i NE ulazi u metadata. Uklonjen neiskorišćeni `recordTicketChange` import. | `backend/src/modules/tickets/csat/submit-ticket-csat.ts` (commit 7664922f) |
+| **M11 B5** — neiskorišćen `connectTicketSocket` | Obrisan standalone `connectTicketSocket()` iz `ticket-socket.ts` (zajedno sa `io()`/`apiBaseUrl` wiringom). Svi realtime hook-ovi već idu kroz `acquireHelpdeskSocket()` sa dijeljenim reference-count-om. Socket tip se importuje isključivo kao type; dodat komentar da se uvijek ide kroz `acquireHelpdeskSocket`. | `frontend/src/services/ticket-socket.ts` (commit 7664922f) |
+
+## Predstoji (5.2.3)
+
+- **M8 B4** (hideMerged default) — djelimično: `staffDeepLinkFilters` već postavlja `hideMerged: isStaff && searchParams.get("hideMerged") !== "false"` (default true za staff), ali `clearedTicketListFilters` ga ne postavlja. Potrebno inicijalno stanje filtera sinhronizovati.
+- **M8 B5** (total kasni do 30 s, bez `totalsAsOf`) — `ticketListTotals` cache vraća samo `{total,totalIsCapped}`; potrebno dodati `totalsAsOf` (ISO vrijeme) i izložiti ga u `TicketListPage` i frontend paginaciji.
+- **M8 B6** (`hideMerged`/`unrouted` različiti state obrasci) — potrebno ujediniti inicijalne vrijednosti u `clearedTicketListFilters`, `staffDeepLinkFilters` i URL search params.
+- **M8 B7** (`reopen.enabled` ne utiče na `allowedActions`) — `TicketAllowedActions` nema `reopen` polje; potrebno dodati kroz učitavanje `TicketReopenConfigurationLoader` i poziv `resolveTicketReopenPolicy`.
+- **M11 B3** (WS emit metrija/alarm) — `websocket-emit-counter.ts` broji po sobama u memoriji; potrebno agregirati u Redis s TTL-om, dodati podesivi prag i alarm sa histerezom u `evaluate-ops-signals`.
+- **M11 B4** (legacy full emit po defaultu uključen) — `isLegacyGroupFullEmitEnabled()` postoji i koristi se u `broadcast-ticket-realtime.ts`, ali nedostaje eksplicitno logovanje/metrika dok je uključeno, runbook referenca, i mehanizam koji ne gasi automatski po vremenu (prihvat: flag se postavlja eksplicitno `off`, runbook postoji, upozorenje se loguje).
+
+Predaja ovog commit-a ne čeka na preostalih 6 nalaza — oni slijede u narednim krugovima na istoj grani.
