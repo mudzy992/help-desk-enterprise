@@ -250,16 +250,25 @@ export class RoutingService {
     viewer: AuthorizationContext | null,
   ): Promise<RoutingCoveragePage> {
     return this.execute(async () => {
+      const configuration = await this.configurationLoader.load();
+      // Compute the full unpaginated coverage so we can report an accurate
+      // `total` (distinct matching services) visible to the caller. The
+      // paginated call below returns only `take` service rows (× origin OUs).
+      const fullPage = await computeRoutingCoverage(
+        this.prisma,
+        { ...query, take: 10_000, cursor: undefined },
+        configuration,
+      );
+      const visibleFullItems = filterRoutingCoverage(fullPage.items, viewer);
+      const total = new Set(visibleFullItems.map((item) => item.serviceId)).size;
+
       const page = await computeRoutingCoverage(
         this.prisma,
         query,
-        await this.configurationLoader.load(),
+        configuration,
       );
       const items = filterRoutingCoverage(page.items, viewer);
-      // `total` counts distinct matching services (one item is emitted per
-      // service × origin OU, so item count = services × OUs).
-      const visibleServiceIds = new Set(items.map((item) => item.serviceId));
-      return { ...page, items, total: visibleServiceIds.size };
+      return { ...page, items, total };
     });
   }
 
