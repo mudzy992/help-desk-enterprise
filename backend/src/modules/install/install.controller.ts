@@ -119,7 +119,7 @@ export class InstallController {
   }
 
   @Get('addons')
-  getAddons(): Promise<InstallAddonsStatus | { readonly addons: readonly InstallAddonCatalogItem[] }> {
+  getAddons(): Promise<InstallAddonsStatus> {
     return this.installAddonsService.getStatus();
   }
 
