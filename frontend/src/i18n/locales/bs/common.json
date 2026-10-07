@@ -2375,6 +2375,7 @@
     "formVersionBadge": "forma {{version}}",
     "formSummaryBadge": "forma {{version}} · {{count}} polja",
     "openTicketCountBadge": "{{count}} otvorenih",
+    "approvalsBadge": "{{count}} odobrenja",
     "classification": "Klasifikacija",
     "isConfidentialDefault": "Podrazumijevano povjerljivo",
     "autoAssignStrategy": "Strategija auto-dodjele",

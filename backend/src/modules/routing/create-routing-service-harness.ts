@@ -7,9 +7,17 @@ export const routingChangeReason =
 
 export function createRoutingServiceHarness() {
   const memory = createInMemoryRoutingPrisma();
-  const routing = new RoutingService(memory.prisma as never, {
-    load: async () => defaultRoutingConfiguration,
-  } as never);
+  const authorizationContextLoader = {
+    loadBySubjectId: async () => null,
+  };
+  const routing = new RoutingService(
+    memory.prisma as never,
+    {
+      load: async () => defaultRoutingConfiguration,
+      loadUnroutedTargetGroupId: async () => null,
+    } as never,
+    authorizationContextLoader as never,
+  );
   const now = new Date('2026-09-11T08:00:00.000Z');
   memory.seedUnit({ id: 'ou-root', parentId: null, ouPath: '/Korisnici' });
   memory.seedUnit({

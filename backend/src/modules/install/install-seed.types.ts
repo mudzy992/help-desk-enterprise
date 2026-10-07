@@ -14,7 +14,7 @@ export type InstallSeedFallbackGroup = {
   readonly name: string;
   readonly key: string;
   readonly isFallback: boolean;
-  readonly organizationalUnitId?: string;
+  readonly organizationalUnitId: string | null;
 };
 
 export type InstallSeedService = {

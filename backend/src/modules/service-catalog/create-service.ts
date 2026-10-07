@@ -1,10 +1,11 @@
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertPolicyPackExists } from './assert-policy-pack-exists';
 import { assertServiceCategoryExists } from './assert-service-category-exists';
 import {
   isAllowedServiceLifecycleState,
 } from './assert-service-lifecycle-transition';
-import { assertSlugIsAvailable } from './assert-slug-is-available';
+import { assertServiceSlugIsAvailable } from './assert-slug-is-available';
 import { assertSlaProfileExists } from './assert-sla-profile-exists';
 import { buildServiceResponse } from './build-service-response';
 import { buildServiceMutationSnapshot } from './build-service-mutation-diff';
@@ -42,7 +43,7 @@ export async function createService(
   await assertServiceCategoryExists(prisma, input.categoryId);
   await assertPolicyPackExists(prisma, input.policyPackId ?? null);
   await assertSlaProfileExists(prisma, input.slaProfileId ?? null);
-  await assertSlugIsAvailable(prisma, slug);
+  await assertServiceSlugIsAvailable(prisma, slug);
   try {
     const created = await prisma.$transaction(async (transaction) => {
       const service = await transaction.service.create({
@@ -78,7 +79,7 @@ export async function createService(
             slug,
             lifecycle: service.lifecycle,
           },
-        },
+        } as unknown as Prisma.InputJsonValue,
         actorUserId: context.actorUserId,
       });
       return service;

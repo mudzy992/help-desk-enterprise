@@ -113,9 +113,14 @@ export function createTicketsServiceHarness(
     loadBySubjectId: async (subjectId: string) =>
       contexts.get(subjectId) ?? null,
   };
-  const routing = new RoutingService(memory.prisma as never, {
-    load: async () => defaultRoutingConfiguration,
-  } as never);
+  const routing = new RoutingService(
+    memory.prisma as never,
+    {
+      load: async () => defaultRoutingConfiguration,
+      loadUnroutedTargetGroupId: async () => null,
+    } as never,
+    authorizationContextLoader as never,
+  );
   const assignmentConfigurationLoader = {
     load: async () => ({ ...assignmentConfig }),
   };

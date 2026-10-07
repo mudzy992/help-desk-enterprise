@@ -68,7 +68,17 @@ export class InstallCompleteService implements OnModuleInit {
           reason: installCompleteConstants.changeLogReason,
         },
       );
-      return { isCompleted: true };
+      return {
+        isCompleted: true,
+        nextStep: 'complete',
+        steps: {
+          superAdmin: { completed: true },
+          loginProvider: { completed: true },
+          smtp: { completed: true },
+          seed: { completed: true },
+          addons: { completed: true },
+        },
+      };
     });
   }
 

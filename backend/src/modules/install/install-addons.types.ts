@@ -12,6 +12,7 @@ export type InstallAddonCatalogItem = {
   readonly key: InstallAddonKey;
   readonly defaultEnabled: boolean;
   readonly canEnable: boolean;
+  readonly enabled?: boolean;
 };
 
 export type InstallAddonPublicItem = InstallAddonCatalogItem & {

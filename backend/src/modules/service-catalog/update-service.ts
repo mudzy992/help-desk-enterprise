@@ -1,3 +1,4 @@
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertPolicyPackExists } from './assert-policy-pack-exists';
 import { assertServiceCategoryExists } from './assert-service-category-exists';
@@ -67,7 +68,7 @@ export async function updateService(
         entityType: serviceChangeLogEntityType(),
         entityId: service.id,
         reason: input.reason.trim(),
-        diff: buildServiceMutationDiff(current, next),
+        diff: buildServiceMutationDiff(current, next) as unknown as Prisma.InputJsonValue,
         actorUserId: context.actorUserId,
       });
     }
