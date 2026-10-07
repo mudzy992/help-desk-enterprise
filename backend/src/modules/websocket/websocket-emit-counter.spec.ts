@@ -26,9 +26,11 @@ describe('websocket emit counter', () => {
       public: 1,
       user: 0,
       group: 200,
+      'group-legacy': 50,
       broadcast: 0,
     });
     expect(line).toContain('ws_emits_group=200');
+    expect(line).toContain('ws_emits_group-legacy=50');
     expect(line).toContain('ws_emits_staff=3');
   });
 
