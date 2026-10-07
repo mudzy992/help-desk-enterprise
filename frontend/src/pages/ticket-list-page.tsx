@@ -174,7 +174,7 @@ export function TicketListPage() {
                       type="button"
                       size="sm"
                       variant="secondary"
-                      onClick={() => list.setFilters(clearedTicketListFilters(list.filters))}
+                      onClick={() => list.setFilters(clearedTicketListFilters(list.filters, list.isStaff))}
                     >
                       {t("tickets.clearFilters")}
                     </Button>

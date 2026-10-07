@@ -16,6 +16,13 @@ export type TicketActionSessionFacts = {
   readonly permissionKeys: readonly string[];
 };
 
+const noReopen: TicketActionView["reopen"] = {
+  enabled: false,
+  eligible: false,
+  createsNewTicket: false,
+  windowEndsAt: null,
+};
+
 const noActions: Omit<TicketActionView, "composerAccess"> = {
   claim: false,
   changeStatus: false,
@@ -31,6 +38,7 @@ const noActions: Omit<TicketActionView, "composerAccess"> = {
   trackTime: false,
   uploadAttachments: false,
   viewActivity: false,
+  reopen: noReopen,
 };
 
 /**
@@ -71,6 +79,8 @@ export function deriveActionsFromSession(
   const holds = (permission: string): boolean =>
     session.isSuperAdmin || session.permissionKeys.includes(permission);
   const canMerge = isStaff && writable && holds(permissionKeys.ticketMerge);
+  // Fallback reopen when server hasn't answered yet: assume disabled so we
+  // never offer a dead click. The server value is authoritative once loaded.
   return {
     composerAccess,
     claim: staffCanWrite && canShowClaimAction(ticket),
@@ -88,5 +98,6 @@ export function deriveActionsFromSession(
     trackTime: staffCanWrite,
     uploadAttachments: writable && !isMergedChild && holds(permissionKeys.ticketAttachmentsUpload),
     viewActivity: isStaff,
+    reopen: ticket.reopen ?? noReopen,
   };
 }

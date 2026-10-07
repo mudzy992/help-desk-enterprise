@@ -46,6 +46,13 @@ export type TicketHistoryEntry = {
 
 export type TicketComposerAccess = 'requester' | 'staff' | 'both';
 
+export type TicketReopenAllowedAction = {
+  readonly enabled: boolean;
+  readonly eligible: boolean;
+  readonly createsNewTicket: boolean;
+  readonly windowEndsAt: string | null;
+};
+
 export type TicketAllowedActions = {
   readonly composerAccess: TicketComposerAccess;
   readonly claim: boolean;
@@ -64,6 +71,8 @@ export type TicketAllowedActions = {
   readonly trackTime: boolean;
   readonly uploadAttachments: boolean;
   readonly viewActivity: boolean;
+  /** Package 5.2.3 (M8 B7): reopen reflects backend reopen.enabled + eligibility. */
+  readonly reopen: TicketReopenAllowedAction;
 };
 
 export type TicketSlaUnavailableReason =

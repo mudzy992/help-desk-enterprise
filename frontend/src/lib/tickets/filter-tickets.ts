@@ -72,8 +72,16 @@ export function matchesTicketView(
   return ticket.assignedUserId === null;
 }
 
+// M8 B4: staff lists hide merged children by default. The requester-facing
+// "my tickets" / portal lists have no merged children at all, so the flag is
+// simply true for staff.
+export function defaultHideMerged(isStaff: boolean): boolean {
+  return isStaff;
+}
+
 export function clearedTicketListFilters(
   filters: TicketListFilters,
+  isStaff: boolean,
 ): TicketListFilters {
   return {
     ...filters,
@@ -87,6 +95,7 @@ export function clearedTicketListFilters(
     overdue: false,
     forwarded: "",
     personal: "",
+    hideMerged: defaultHideMerged(isStaff),
   };
 }
 

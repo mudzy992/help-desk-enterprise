@@ -12,6 +12,8 @@ import { canChangeTicketStatus } from '../authorize-ticket-actor';
 import { forwardableTicketStatuses } from '../forwarding/forwarding.constants';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { hasTicketPermission } from '../merge/has-ticket-permission';
+import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
+import { resolveTicketReopenPolicy } from '../reopen/resolve-ticket-reopen-policy';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
 import type { TicketAllowedActions, TicketComposerAccess } from './context.types';
@@ -27,8 +29,10 @@ export async function resolveTicketAllowedActions(input: {
   readonly prisma: PrismaService;
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader;
+  readonly reopenConfigurationLoader: TicketReopenConfigurationLoader;
   readonly ticketId: string;
   readonly context: TicketMutationContext;
+  readonly now?: Date;
 }): Promise<TicketAllowedActions> {
   const { ticket, access } = await loadAccessibleTicket(
     input.prisma,
@@ -109,6 +113,14 @@ export async function resolveTicketAllowedActions(input: {
     }).allowed;
   const canMerge =
     isStaff && writable && hasTicketPermission(authContext, permissionKeys.ticketMerge);
+  // M8 B7: reopen action reflects live configuration + eligibility so the UI
+  // never offers a button the server will reject.
+  const reopenConfiguration = await input.reopenConfigurationLoader.load();
+  const reopenPolicy = resolveTicketReopenPolicy({
+    ticket,
+    configuration: reopenConfiguration,
+    now: input.now ?? new Date(),
+  });
   return {
     composerAccess,
     overridePriority:
@@ -128,5 +140,11 @@ export async function resolveTicketAllowedActions(input: {
     trackTime: staffCanWrite,
     uploadAttachments,
     viewActivity: isStaff,
+    reopen: {
+      enabled: reopenPolicy.enabled,
+      eligible: staffCanWrite && !isMergedChild && reopenPolicy.eligible,
+      createsNewTicket: reopenPolicy.createsNewTicket,
+      windowEndsAt: reopenPolicy.windowEndsAt,
+    },
   };
 }

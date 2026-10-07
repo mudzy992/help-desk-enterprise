@@ -3,6 +3,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assignment-configuration.loader';
 import { executeTicketOperation } from '../execute-ticket-operation';
+import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
 import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import type { TicketMutationContext } from '../tickets.types';
 import type {
@@ -26,6 +27,7 @@ export class TicketsContextService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
+    private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
   ) {}
 
@@ -94,6 +96,7 @@ export class TicketsContextService {
         prisma: this.prisma,
         authorizationContextLoader: this.authorizationContextLoader,
         assignmentConfigurationLoader: this.assignmentConfigurationLoader,
+        reopenConfigurationLoader: this.reopenConfigurationLoader,
         ticketId,
         context: bound,
       }),

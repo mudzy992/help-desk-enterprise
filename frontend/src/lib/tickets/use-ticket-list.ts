@@ -42,7 +42,7 @@ function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView 
   return isStaff ? "inbox" : "all";
 }
 
-const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): TicketListFilters => ({
+const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, isStaff: boolean): TicketListFilters => ({
   view,
   search: "",
   status: "",
@@ -54,6 +54,8 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
   currentUserId,
   overdue: false,
   forwarded: "",
+  // M8 B4: staff lists hide merged children by default; toggled via checkbox.
+  hideMerged: isStaff,
 });
 
 /**
@@ -90,7 +92,7 @@ export function useTicketList() {
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<TicketListFilters>(() => ({
-    ...emptyFilters(view, currentUserId),
+    ...emptyFilters(view, currentUserId, isStaff),
     ...staffDeepLinkFilters(searchParams, isStaff),
   }));
   // Capabilities load asynchronously, so on a fresh page load `isStaff` is
