@@ -148,7 +148,7 @@ describe('routing authorization compatibility', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('lets an admin read coverage without routing.write', async () => {
+  it('lets an admin read coverage with routing.read permission', async () => {
     const { harness, guard } = createGuard();
     harness.loadBySubjectId.mockResolvedValue(
       createAuthorizationContext({
@@ -159,7 +159,10 @@ describe('routing authorization compatibility', () => {
         assignments: [
           createTestAssignment({
             roleKey: authorizationRoleKeys.admin,
-            permissionKeys: [permissionKeys.serviceCatalogWrite],
+            permissionKeys: [
+              permissionKeys.serviceCatalogWrite,
+              permissionKeys.routingRead,
+            ],
           }),
         ],
       }),

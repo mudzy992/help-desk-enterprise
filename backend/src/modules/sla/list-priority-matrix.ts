@@ -31,14 +31,34 @@ export async function listPriorityMatrix(
       rule,
     ]),
   );
-  const cells = buildDefaultPriorityMatrix().map((cell) => {
-    const rule = byKey.get(priorityMatrixCellKey(cell.impact, cell.urgency));
-    return {
-      id: rule?.id ?? '',
-      impact: cell.impact,
-      urgency: cell.urgency,
-      priority: rule?.priority ?? cell.priority,
-    };
-  });
+  const cells = await Promise.all(
+    buildDefaultPriorityMatrix().map(async (cell) => {
+      const key = priorityMatrixCellKey(cell.impact, cell.urgency);
+      const rule = byKey.get(key);
+      if (rule !== undefined) {
+        return {
+          id: rule.id,
+          impact: cell.impact,
+          urgency: cell.urgency,
+          priority: rule.priority,
+        };
+      }
+      const created = (await prisma.priorityMatrixRule.upsert({
+        where: { impact_urgency: { impact: cell.impact, urgency: cell.urgency } },
+        create: {
+          impact: cell.impact,
+          urgency: cell.urgency,
+          priority: cell.priority,
+        },
+        update: {},
+      })) as PriorityMatrixRuleRecord;
+      return {
+        id: created.id,
+        impact: cell.impact,
+        urgency: cell.urgency,
+        priority: created.priority,
+      };
+    }),
+  );
   return { cells };
 }

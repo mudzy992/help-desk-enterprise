@@ -28,8 +28,33 @@ export function createInMemoryInstallSeedGroupDelegate(
       where: { id?: string; key?: string };
       select?: Record<string, boolean>;
     }) => pickGroup(findGroup(groups, where), select),
+    findFirst: async ({
+      where,
+      orderBy,
+    }: {
+      where?: GroupWhere;
+      orderBy?: Record<string, 'asc' | 'desc'> | unknown;
+    } = {}) => {
+      const matches = [...groups.values()].filter((group) =>
+        matchesGroup(group, where),
+      );
+      if (orderBy !== undefined && typeof orderBy === 'object' && orderBy !== null) {
+        const key = Object.keys(orderBy as Record<string, unknown>)[0];
+        const direction = (orderBy as Record<string, 'asc' | 'desc'>)[key ?? ''];
+        const field = (key as keyof InMemoryInstallSeedGroup) ?? 'createdAt';
+        matches.sort((left, right) => {
+          const leftValue = left[field];
+          const rightValue = right[field];
+          if (leftValue < rightValue) return direction === 'desc' ? 1 : -1;
+          if (leftValue > rightValue) return direction === 'desc' ? -1 : 1;
+          return 0;
+        });
+      }
+      return matches[0] ?? null;
+    },
     findMany: async ({
       where,
+      orderBy,
     }: {
       where?: GroupWhere;
       orderBy?: unknown;

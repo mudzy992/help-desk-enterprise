@@ -149,7 +149,7 @@ describe('RoutingService change log', () => {
       outcome: routingOutcomes.unrouted,
       targetGroupId: null,
     });
-    const listed = await routing.listChanges();
+    const listed = await routing.listChanges(null);
     expect(listed.map((entry) => entry.diff.action)).toEqual([
       'delete',
       'update',
@@ -159,7 +159,7 @@ describe('RoutingService change log', () => {
       reason: 'Drop unused leaf rule',
       actorUserId: 'admin-3',
     });
-    const byRule = await routing.listRuleChanges(created.id);
+    const byRule = await routing.listRuleChanges(created.id, null);
     expect(byRule).toHaveLength(3);
   });
 });

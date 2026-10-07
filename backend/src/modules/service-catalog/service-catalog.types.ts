@@ -99,7 +99,9 @@ export type CreateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  readonly reason: string;
+  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
+   *  optional for internal/seeding calls which record a generic 'create' reason. */
+  readonly reason?: string;
 };
 
 export type UpdateServiceInput = {
@@ -111,7 +113,10 @@ export type UpdateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  readonly reason: string;
+  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
+   *  optional for internal/seeding calls which omit change-log entries when no
+   *  caller-supplied reason is present. */
+  readonly reason?: string;
 };
 
 export type ListServicesInput = {

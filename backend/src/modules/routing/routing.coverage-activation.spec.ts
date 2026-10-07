@@ -58,12 +58,17 @@ describe('evaluateServiceRoutingCoverage', () => {
 describe('RoutingService.evaluateActivationCoverage', () => {
   it('throws ROUTING_COVERAGE_MISSING when required', async () => {
     const { memory } = createRoutingServiceHarness();
-    const service = new RoutingService(memory.prisma as never, {
-      load: async () => ({
-        ...defaultRoutingConfiguration,
-        requireCoverage: true,
-      }),
-    } as never);
+    const service = new RoutingService(
+      memory.prisma as never,
+      {
+        load: async () => ({
+          ...defaultRoutingConfiguration,
+          requireCoverage: true,
+        }),
+        loadUnroutedTargetGroupId: async () => null,
+      } as never,
+      { loadBySubjectId: async () => null } as never,
+    );
     await expect(
       service.evaluateActivationCoverage('service-vpn'),
     ).rejects.toMatchObject({ code: 'ROUTING_COVERAGE_MISSING' });
@@ -71,12 +76,17 @@ describe('RoutingService.evaluateActivationCoverage', () => {
 
   it('returns warning when not required', async () => {
     const { memory } = createRoutingServiceHarness();
-    const service = new RoutingService(memory.prisma as never, {
-      load: async () => ({
-        ...defaultRoutingConfiguration,
-        requireCoverage: false,
-      }),
-    } as never);
+    const service = new RoutingService(
+      memory.prisma as never,
+      {
+        load: async () => ({
+          ...defaultRoutingConfiguration,
+          requireCoverage: false,
+        }),
+        loadUnroutedTargetGroupId: async () => null,
+      } as never,
+      { loadBySubjectId: async () => null } as never,
+    );
     await expect(service.evaluateActivationCoverage('service-vpn')).resolves.toBe(
       'ROUTING_COVERAGE_MISSING',
     );

@@ -21,7 +21,7 @@ describe('RoutingService coverage', () => {
       availability: 'OPERATIONAL',
     });
 
-    const page = await routing.coverage({});
+    const page = await routing.coverage({}, null);
     expect(page.total).toBe(1);
     expect(page.items.map((item) => item.serviceId)).toEqual([
       'service-active',
@@ -46,7 +46,7 @@ describe('RoutingService coverage', () => {
       lifecycle: 'DEPRECATED',
       availability: 'OPERATIONAL',
     });
-    const all = await routing.coverage({ includeInactive: true, take: 10 });
+    const all = await routing.coverage({ includeInactive: true, take: 10 }, null);
     expect(all.total).toBe(3);
     expect(new Set(all.items.map((item) => item.serviceId))).toEqual(
       new Set(['service-active', 'service-deprecated', 'service-vpn']),
@@ -61,7 +61,7 @@ describe('RoutingService coverage', () => {
       'service-vpn': 'DRAFT',
     });
 
-    const first = await routing.coverage({ includeInactive: true, take: 1 });
+    const first = await routing.coverage({ includeInactive: true, take: 1 }, null);
     expect(first.total).toBe(3);
     expect(first.items).toHaveLength(3);
     const firstServiceId = first.items[0]?.serviceId;
@@ -72,7 +72,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 1,
       cursor: first.nextCursor ?? undefined,
-    });
+    }, null);
     expect(second.total).toBe(3);
     expect(second.items).toHaveLength(3);
     const secondServiceId = second.items[0]?.serviceId;
@@ -84,7 +84,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 1,
       cursor: second.nextCursor ?? undefined,
-    });
+    }, null);
     expect(third.total).toBe(3);
     expect(third.items).toHaveLength(3);
     expect(third.items.every((item) => item.serviceId !== firstServiceId && item.serviceId !== secondServiceId)).toBe(true);
@@ -94,7 +94,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
-    });
+    }, null);
     expect(filtered.total).toBe(1);
     expect(filtered.items).toHaveLength(1);
     expect(filtered.items[0]).toMatchObject({
@@ -115,7 +115,7 @@ describe('RoutingService coverage', () => {
       });
     }
 
-    const first = await routing.coverage({ includeInactive: true, take: 100 });
+    const first = await routing.coverage({ includeInactive: true, take: 100 }, null);
     const firstServiceIds = new Set(first.items.map((item) => item.serviceId));
     expect(first.total).toBeGreaterThan(50);
     expect(firstServiceIds.size).toBe(50);
@@ -125,7 +125,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 100,
       cursor: first.nextCursor ?? undefined,
-    });
+    }, null);
     const secondServiceIds = new Set(second.items.map((item) => item.serviceId));
     expect(secondServiceIds.size).toBe(first.total - 50);
     expect([...firstServiceIds].some((serviceId) => secondServiceIds.has(serviceId))).toBe(false);
@@ -133,7 +133,7 @@ describe('RoutingService coverage', () => {
 
   it('rejects malformed coverage cursors', async () => {
     const { routing } = createRoutingServiceHarness();
-    await expect(routing.coverage({ cursor: 'not-a-cursor' })).rejects.toMatchObject({
+    await expect(routing.coverage({ cursor: 'not-a-cursor' }, null)).rejects.toMatchObject({
       status: 400,
     });
   });
@@ -149,7 +149,7 @@ describe('RoutingService coverage', () => {
     const coveragePage = await routing.coverage({
       serviceId: 'service-vpn',
       includeInactive: true,
-    });
+    }, null);
     const byOrigin = Object.fromEntries(
       coveragePage.items.map((item) => [item.originUnitId, item]),
     );
@@ -169,7 +169,7 @@ describe('RoutingService coverage', () => {
       serviceId: 'service-vpn',
       originUnitId: 'ou-leaf',
       includeInactive: true,
-    });
+    }, null);
     expect(filteredToLeaf.items[0]?.resolution.outcome).toBe(
       routingOutcomes.parentFallback,
     );

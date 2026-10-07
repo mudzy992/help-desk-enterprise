@@ -60,10 +60,11 @@ export async function createService(
           slaProfileId: input.slaProfileId ?? null,
         },
       });
+      const changelogReason = (input.reason ?? 'create').trim();
       await recordServiceCatalogChange(transaction as PrismaService, {
         entityType: serviceChangeLogEntityType(),
         entityId: service.id,
-        reason: input.reason.trim(),
+        reason: changelogReason,
         diff: {
           after: {
             ...buildServiceMutationSnapshot({

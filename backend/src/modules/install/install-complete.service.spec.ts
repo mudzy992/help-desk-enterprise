@@ -48,7 +48,10 @@ async function createHarness(withSuperAdmin = true) {
   return {
     settingsMemory,
     settingsService,
-    setupService: new InstallSetupService(settingsService),
+    setupService: new InstallSetupService(
+      settingsService,
+      prisma as unknown as PrismaService,
+    ),
     completeService: new InstallCompleteService(
       prisma as unknown as PrismaService,
       registry,

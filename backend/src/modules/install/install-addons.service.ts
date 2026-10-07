@@ -34,16 +34,14 @@ export class InstallAddonsService {
     private readonly installSetupService?: { readonly isCompleted: () => Promise<boolean> },
   ) {}
 
-  async getStatus(): Promise<
-    InstallAddonsStatus | { readonly addons: readonly InstallAddonCatalogItem[] }
-  > {
+  async getStatus(): Promise<InstallAddonsStatus> {
     return this.execute(async () => {
       const isCompleted = await this.isSetupCompleted();
       if (isCompleted) {
-        return { addons: (await readInstallAddonsCatalog(this.settingsService)).items };
+        return { addons: await readInstallAddonsCatalog(this.settingsService) };
       }
       return {
-        addons: (await readInstallAddonsStatus(this.settingsService)).items,
+        addons: await readInstallAddonsStatus(this.settingsService),
       };
     });
   }

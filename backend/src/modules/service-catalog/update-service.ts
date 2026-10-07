@@ -64,10 +64,11 @@ export async function updateService(
       data: next,
     });
     if (changed) {
+      const changelogReason = (input.reason ?? 'update').trim();
       await recordServiceCatalogChange(transaction as PrismaService, {
         entityType: serviceChangeLogEntityType(),
         entityId: service.id,
-        reason: input.reason.trim(),
+        reason: changelogReason,
         diff: buildServiceMutationDiff(current, next) as unknown as Prisma.InputJsonValue,
         actorUserId: context.actorUserId,
       });
