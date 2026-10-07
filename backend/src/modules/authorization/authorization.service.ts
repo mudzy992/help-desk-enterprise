@@ -12,10 +12,8 @@ import {
   createAuthorizationLookups,
   evaluateAuthorizationRequest,
 } from './evaluate-authorization-request';
-import type {
-  AuthorizationAccessEvaluation,
-  AuthorizationRequirements,
-} from './authorization.types';
+import type { AuthorizationAccessEvaluation } from './evaluate-authorization-request';
+import type { AuthorizationRequirements } from './authorization.types';
 
 export type AuthorizationServiceInput = {
   readonly principal: AuthorizationPrincipal | null;
