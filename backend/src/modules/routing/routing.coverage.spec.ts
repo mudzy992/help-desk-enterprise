@@ -105,7 +105,10 @@ describe('RoutingService coverage', () => {
 
   it('caps cursor pages at 50 services even when the caller asks for more', async () => {
     const { memory, routing, viewer } = createRoutingServiceHarness();
-    for (let index = 0; index < 51; index += 1) {
+    // Seed enough ACTIVE services so that, together with service-vpn (DRAFT,
+    // included by includeInactive), the total visible count is greater than
+    // the 50-service take cap.
+    for (let index = 0; index < 52; index += 1) {
       const suffix = String(index).padStart(2, '0');
       memory.seedService({
         id: `service-page-${suffix}`,
