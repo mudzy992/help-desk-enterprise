@@ -14,6 +14,9 @@ export type OpsThresholds = {
   readonly slaScanLateMinutes: number;
   readonly workerHeartbeatStaleSeconds: number;
   readonly clamavFailuresBeforeAlert: number;
+  // Package 5.2.3 (M11 B3): per-minute WebSocket emit alarm (any room kind).
+  readonly websocketEmitWarnPerMinute: number;
+  readonly websocketEmitCriticalPerMinute: number;
 };
 
 export type SchedulerSignal = {
@@ -51,6 +54,13 @@ export type OpsSignals = {
   /** Worst per-instance mean event-loop delay of the last minute, ms. */
   readonly eventLoopLagMs: number | null;
   readonly ldapsCaExpiresAtMs: number | null;
+  /**
+   * Package 5.2.3 (M11 B3): WebSocket emit totals per room kind for the last
+   * complete minute, aggregated across every API instance. `null` when Redis
+   * could not be read, or when no API instance wrote a heartbeat in that
+   * minute (which would make the zeros misleading).
+   */
+  readonly websocketEmits: Record<string, number> | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -90,6 +100,7 @@ export function evaluateOpsSignals(
     observeHttp(signals, thresholds),
     observeEventLoop(signals),
     observeLdapsCa(signals),
+    observeWebsocketEmits(signals, thresholds),
   ];
 }
 
@@ -296,6 +307,44 @@ function observeLdapsCa(signals: OpsSignals): OpsObservation {
     active: true,
     severity: daysLeft <= ldapsCaExpiryDays.critical ? 'CRITICAL' : 'WARNING',
     details: { daysLeft, expiresAt: new Date(signals.ldapsCaExpiresAtMs).toISOString() },
+  };
+}
+
+/**
+ * M11 B3: aggregate emits/min per room kind across every API instance. The
+ * critical/warning thresholds apply to the busiest room kind (the legacy
+ * full-payload room is expected to dominate when enabled). openAfter=2
+ * minutes guards against transient flurries (client reconnects after a
+ * deploy); resolveAfter=2 minutes protects from a single quiet sample
+ * (hysteresis).
+ */
+function observeWebsocketEmits(signals: OpsSignals, thresholds: OpsThresholds): OpsObservation {
+  const rooms = signals.websocketEmits;
+  if (rooms === null) return inactive(opsAlertKeys.websocketEmitsHigh);
+  let busiestRoom = '';
+  let busiestCount = 0;
+  for (const [kind, count] of Object.entries(rooms)) {
+    if (count > busiestCount) {
+      busiestCount = count;
+      busiestRoom = kind;
+    }
+  }
+  if (busiestCount < thresholds.websocketEmitWarnPerMinute) {
+    return inactive(opsAlertKeys.websocketEmitsHigh);
+  }
+  const severity: OpsAlertSeverity = busiestCount >= thresholds.websocketEmitCriticalPerMinute ? 'CRITICAL' : 'WARNING';
+  return {
+    key: opsAlertKeys.websocketEmitsHigh,
+    active: true,
+    severity,
+    details: {
+      emitsPerMinute: busiestCount,
+      busiestRoom,
+      perRoom: rooms,
+      warnThreshold: thresholds.websocketEmitWarnPerMinute,
+      criticalThreshold: thresholds.websocketEmitCriticalPerMinute,
+    },
+    openAfter: 2,
   };
 }
 

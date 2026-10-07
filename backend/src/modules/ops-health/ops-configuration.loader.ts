@@ -20,7 +20,7 @@ export class OpsConfigurationLoader {
 
   async load(): Promise<OpsConfiguration> {
     const get = (key: string) => this.settings.getSetting(key);
-    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav] =
+    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav, wsWarn, wsCritical] =
       await Promise.all([
         get(settingKeys.privateOpsAlertsEnabled),
         get(settingKeys.privateOpsAlertsReminderHours),
@@ -34,8 +34,11 @@ export class OpsConfigurationLoader {
         get(settingKeys.privateOpsThresholdsSlaScanLateMinutes),
         get(settingKeys.privateOpsThresholdsWorkerHeartbeatStaleSeconds),
         get(settingKeys.privateOpsThresholdsClamavFailuresBeforeAlert),
+        get(settingKeys.privateOpsThresholdsWebsocketEmitWarnPerMinute),
+        get(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute),
       ]);
     const warn = int(diskWarn, opsDefaults.diskWarnPercent);
+    const wsWarnValue = int(wsWarn, opsDefaults.websocketEmitWarnPerMinute);
     return {
       alertsEnabled: typeof enabled === 'boolean' ? enabled : opsDefaults.alertsEnabled,
       reminderHours: int(reminder, opsDefaults.reminderHours),
@@ -51,6 +54,8 @@ export class OpsConfigurationLoader {
         slaScanLateMinutes: int(slaLate, opsDefaults.slaScanLateMinutes),
         workerHeartbeatStaleSeconds: int(heartbeat, opsDefaults.workerHeartbeatStaleSeconds),
         clamavFailuresBeforeAlert: int(clamav, opsDefaults.clamavFailuresBeforeAlert),
+        websocketEmitWarnPerMinute: wsWarnValue,
+        websocketEmitCriticalPerMinute: Math.max(wsWarnValue + 1, int(wsCritical, opsDefaults.websocketEmitCriticalPerMinute)),
       },
     };
   }
@@ -75,5 +80,7 @@ export const fallbackOpsConfiguration: OpsConfiguration = {
     slaScanLateMinutes: opsDefaults.slaScanLateMinutes,
     workerHeartbeatStaleSeconds: opsDefaults.workerHeartbeatStaleSeconds,
     clamavFailuresBeforeAlert: opsDefaults.clamavFailuresBeforeAlert,
+    websocketEmitWarnPerMinute: opsDefaults.websocketEmitWarnPerMinute,
+    websocketEmitCriticalPerMinute: opsDefaults.websocketEmitCriticalPerMinute,
   },
 };

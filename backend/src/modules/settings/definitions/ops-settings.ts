@@ -16,6 +16,13 @@ export const opsDefaults = {
   slaScanLateMinutes: 5,
   workerHeartbeatStaleSeconds: 120,
   clamavFailuresBeforeAlert: 3,
+  // Package 5.2.3 (M11 B3): per-minute WebSocket room emit thresholds.
+  // The legacy group-legacy bucket emits one full ticket per change per
+  // subscribed agent (O(n*m)), so 300/min per room is already concerning on
+  // small instances and 1500/min suggests a feedback loop. These defaults
+  // cover 4 API replicas summing ~5-25 emits per second per busiest room.
+  websocketEmitWarnPerMinute: 600,
+  websocketEmitCriticalPerMinute: 3000,
   statusPageEnabled: true,
   statusPagePublic: false,
   statusPageHistoryDays: 90,
@@ -60,6 +67,8 @@ export const opsSettings: readonly SettingDefinition[] = [
   number(settingKeys.privateOpsThresholdsSlaScanLateMinutes, ops, 'Minutes without a successful SLA scan before a critical alarm (2-60)', opsDefaults.slaScanLateMinutes, 2, 60),
   number(settingKeys.privateOpsThresholdsWorkerHeartbeatStaleSeconds, ops, 'Seconds without a worker heartbeat before a critical alarm (30-900)', opsDefaults.workerHeartbeatStaleSeconds, 30, 900),
   number(settingKeys.privateOpsThresholdsClamavFailuresBeforeAlert, ops, 'Consecutive failed ClamAV checks (one per minute) before alarming (1-30)', opsDefaults.clamavFailuresBeforeAlert, 1, 30),
+  number(settingKeys.privateOpsThresholdsWebsocketEmitWarnPerMinute, ops, 'WebSocket room emits per minute (cluster-wide, busiest room) that raises a WARNING (10-100000)', opsDefaults.websocketEmitWarnPerMinute, 10, 100_000),
+  number(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute, ops, 'WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000)', opsDefaults.websocketEmitCriticalPerMinute, 20, 200_000),
   definePrivateSetting({
     key: settingKeys.privateStatusPageEnabled,
     categoryId: services,

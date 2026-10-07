@@ -17,6 +17,7 @@ export const opsAlertKeys = {
   apiEventLoopLag: 'api.eventloop.lag',
   ldapsCaExpiry: 'tls.ldapsCa.expiry',
   opsMonitorStale: 'ops.monitor.stale',
+  websocketEmitsHigh: 'websocket.emits.high',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -173,6 +174,19 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     // The first snapshot needs up to a minute after a deploy.
     openAfter: 3,
     resolveAfter: 1,
+  },
+  [opsAlertKeys.websocketEmitsHigh]: {
+    key: opsAlertKeys.websocketEmitsHigh,
+    title: { bs: 'WebSocket emitovi premašuju prag', en: 'WebSocket emit rate exceeds threshold' },
+    action: {
+      bs: 'Previše se emitova šalje klijentima kroz Socket.IO sobe — provjerite da nije ostao uključen legacy full-payload mod (`WS_GROUP_FEED_LEGACY_FULL_EMIT`) i da broadcast ne vrti petlju.',
+      en: 'Too many Socket.IO room emits are being sent to clients — check that the legacy full-payload mode (`WS_GROUP_FEED_LEGACY_FULL_EMIT`) is off and that broadcasts are not looping.',
+    },
+    runbook: runbook('websocket-emits-high'),
+    // Two consecutive minutes above threshold before firing (M11 B3
+    // hysteresis/open-after); two quiet minutes to resolve.
+    openAfter: 2,
+    resolveAfter: 2,
   },
 };
 

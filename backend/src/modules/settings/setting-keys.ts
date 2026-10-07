@@ -540,6 +540,9 @@ export const settingKeys = {
   privateOpsThresholdsSlaScanLateMinutes: 'private.ops.thresholds.slaScanLateMinutes',
   privateOpsThresholdsWorkerHeartbeatStaleSeconds: 'private.ops.thresholds.workerHeartbeatStaleSeconds',
   privateOpsThresholdsClamavFailuresBeforeAlert: 'private.ops.thresholds.clamavFailuresBeforeAlert',
+  // Package 5.2.3 (M11 B3): WebSocket emit rate alarms.
+  privateOpsThresholdsWebsocketEmitWarnPerMinute: 'private.ops.thresholds.websocketEmitWarnPerMinute',
+  privateOpsThresholdsWebsocketEmitCriticalPerMinute: 'private.ops.thresholds.websocketEmitCriticalPerMinute',
   // Paket 2.9 (K3): on-call.
   privateProblemsNumberPrefix: 'private.problems.numberPrefix',
   privateProblemsRootCauseCategories: 'private.problems.rootCauseCategories',

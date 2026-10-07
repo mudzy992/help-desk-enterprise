@@ -17,9 +17,27 @@ export const websocketEmitRoomKinds = [
 export type WebsocketEmitRoomKind = (typeof websocketEmitRoomKinds)[number];
 
 const counts = new Map<WebsocketEmitRoomKind, number>();
+type WebsocketEmitListener = (kind: WebsocketEmitRoomKind) => void;
+const listeners = new Set<WebsocketEmitListener>();
 
 export function recordWebsocketEmit(kind: WebsocketEmitRoomKind): void {
   counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  for (const listener of listeners) {
+    try {
+      listener(kind);
+    } catch {
+      // Listeners are observability hooks; a failure must never break the
+      // broadcast path. The subscribing service logs its own errors.
+    }
+  }
+}
+
+/** Subscribe to every emit observation; returns an unsubscribe function. */
+export function addWebsocketEmitListener(listener: WebsocketEmitListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 /** Reads and resets the counters — the reporter calls this once per interval. */

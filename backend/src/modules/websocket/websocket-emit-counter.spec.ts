@@ -1,4 +1,5 @@
 import {
+  addWebsocketEmitListener,
   consumeWebsocketEmitCounts,
   formatWebsocketEmitCounts,
   recordWebsocketEmit,
@@ -46,5 +47,22 @@ describe('websocket emit counter', () => {
     jest.advanceTimersByTime(5_000);
     expect(log).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
+  });
+
+  it('notifies subscribed listeners and survives listener errors', () => {
+    consumeWebsocketEmitCounts();
+    const seen: string[] = [];
+    const unsubscribe = addWebsocketEmitListener((kind) => seen.push(kind));
+    const throws = addWebsocketEmitListener(() => {
+      throw new Error('boom');
+    });
+    recordWebsocketEmit('broadcast');
+    recordWebsocketEmit('staff');
+    expect(seen).toEqual(['broadcast', 'staff']);
+    unsubscribe();
+    throws();
+    recordWebsocketEmit('group');
+    expect(seen).toEqual(['broadcast', 'staff']);
+    consumeWebsocketEmitCounts();
   });
 });

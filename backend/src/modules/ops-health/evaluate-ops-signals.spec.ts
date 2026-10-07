@@ -21,6 +21,8 @@ const thresholds: OpsThresholds = {
   slaScanLateMinutes: 5,
   workerHeartbeatStaleSeconds: 120,
   clamavFailuresBeforeAlert: 3,
+  websocketEmitWarnPerMinute: 500,
+  websocketEmitCriticalPerMinute: 2_000,
 };
 
 function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
@@ -42,6 +44,7 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     http: { errors5xx: 0, total: 1_000 },
     eventLoopLagMs: 12,
     ldapsCaExpiresAtMs: null,
+    websocketEmits: { staff: 10, public: 0, user: 5, group: 120, 'group-legacy': 0, broadcast: 0 },
     ...overrides,
   };
 }
@@ -112,6 +115,19 @@ describe('evaluateOpsSignals', () => {
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now + 31 * 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)!.active).toBe(false);
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now + 20 * 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)).toMatchObject({ severity: 'WARNING', details: { daysLeft: 20 } });
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now - 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)!.severity).toBe('CRITICAL');
+
+  it('fires websocket emit alarm above threshold (busiest room wins)', () => {
+    expect(byKey(healthy()).get(opsAlertKeys.websocketEmitsHigh)!.active).toBe(false);
+    expect(
+      byKey(healthy({ websocketEmits: { staff: 10, public: 0, user: 5, group: 600, 'group-legacy': 0, broadcast: 0 } })).get(opsAlertKeys.websocketEmitsHigh)!,
+    ).toMatchObject({ active: true, severity: 'WARNING', details: { busiestRoom: 'group', emitsPerMinute: 600 }, openAfter: 2 });
+    expect(
+      byKey(healthy({ websocketEmits: { staff: 0, public: 0, user: 0, group: 0, 'group-legacy': 2_500, broadcast: 0 } })).get(opsAlertKeys.websocketEmitsHigh)!.severity,
+    ).toBe('CRITICAL');
+    // Null signal means Redis/metric outage - do not alert (that is the
+    // redis.unavailable alarm's job).
+    expect(byKey(healthy({ websocketEmits: null })).get(opsAlertKeys.websocketEmitsHigh)!.active).toBe(false);
+  });
   });
 });
 

@@ -6,6 +6,7 @@ import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { SettingsModule } from '../settings/settings.module';
 import { HttpMetricsService } from './http-metrics.service';
 import { OpsAlertEngine } from './ops-alert.engine';
+import { WebsocketMetricsService } from './websocket-metrics.service';
 import { OpsAlertNotifier, OPS_TEAMS_POSTER } from './ops-alert-notifier.service';
 import { OpsConfigurationLoader } from './ops-configuration.loader';
 import { OpsHealthController } from './ops-health.controller';
@@ -24,10 +25,11 @@ import { postTeamsWebhook } from './teams-webhook';
     OpsHealthService,
     OpsWatchdogService,
     HttpMetricsService,
+    WebsocketMetricsService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
     { provide: OPS_TEAMS_POSTER, useValue: postTeamsWebhook },
   ],
-  exports: [HttpMetricsService],
+  exports: [HttpMetricsService, WebsocketMetricsService],
 })
 export class OpsHealthModule {}

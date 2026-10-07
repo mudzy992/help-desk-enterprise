@@ -17,11 +17,18 @@ export const opsRedisKeys = {
   httpTotal: (minute: number) => `ops:http:total:${minute}`,
   eventLoop: (instanceId: string) => `ops:eventloop:${instanceId}`,
   eventLoopPattern: 'ops:eventloop:*',
+  /** Per-minute WebSocket emit counter per room kind (M11 B3). */
+  websocketEmit: (kind: string, minute: number) => `ops:ws:emit:${kind}:${minute}`,
+  /** Per-instance heartbeat written every flush; TTL matches counter TTL. */
+  websocketHeartbeat: (instanceId: string) => `ops:ws:hb:${instanceId}`,
+  websocketHeartbeatPattern: 'ops:ws:hb:*',
 } as const;
 
 export const opsSnapshotTtlSeconds = 300;
 /** 60 min of the 5xx mini-graph plus a margin. */
 export const httpCounterTtlSeconds = 70 * 60;
+/** 60 min of per-minute WebSocket emit counters plus a margin. */
+export const websocketCounterTtlSeconds = 70 * 60;
 
 export type OpsSilence = {
   readonly until: string;
@@ -111,6 +118,52 @@ export class OpsStateStore {
       errors5xx: toCount(values[index * 2] ?? null),
       total: toCount(values[index * 2 + 1] ?? null),
     }));
+  }
+
+  /** WebSocket emit totals (per room kind) for a single minute bucket. */
+  async readWebsocketEmitMinute(
+    roomKinds: readonly string[],
+    minute: number,
+  ): Promise<Record<string, number>> {
+    if (roomKinds.length === 0) return {};
+    const keys = roomKinds.map((kind) => opsRedisKeys.websocketEmit(kind, minute));
+    const values = await this.redis.mget(...keys);
+    const result: Record<string, number> = {};
+    roomKinds.forEach((kind, index) => {
+      const value = values[index] ?? null;
+      const parsed = value === null ? 0 : Number.parseInt(value, 10);
+      result[kind] = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    });
+    return result;
+  }
+
+  /** Whether any API instance flushed a ws-metrics heartbeat for the given minute. */
+  async websocketHeartbeatSeen(minute: number): Promise<boolean> {
+    let cursor = '0';
+    const prefix = (this.redis.options.keyPrefix ?? '') as string;
+    const target = String(minute);
+    try {
+      do {
+        const [next, batch] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          `${prefix}${opsRedisKeys.websocketHeartbeatPattern}`,
+          'COUNT',
+          100,
+        );
+        cursor = next;
+        if (batch.length === 0) continue;
+        const values = await this.redis.mget(...batch);
+        for (const value of values) {
+          if (value === target) return true;
+        }
+      } while (cursor !== '0');
+    } catch {
+      // Treat scan failure as "seen" so we do not false-alarm on a transient
+      // Redis hiccup; the counter read is best-effort anyway.
+      return true;
+    }
+    return false;
   }
 
   /** Worst per-instance mean event-loop delay reported in the last few minutes. */

@@ -12,6 +12,7 @@ import { readCaCertificate } from '../directory-sync/ldaps/ldap-directory-client
 import { withTimeout } from '../health/health-probes';
 import { readClamavConfiguration } from '../tickets/attachments/scan-attachment-with-clamav';
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
+import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
 import type { OpsSignals, QueueSignal, SchedulerSignal } from './evaluate-ops-signals';
 import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
 import { OpsStateStore } from './ops-state.store';
@@ -42,7 +43,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       probe(() => this.prisma.$queryRaw`SELECT 1`, opsProbeTimeouts.databaseMs),
       probe(() => this.redis.getClient().ping(), opsProbeTimeouts.redisMs),
     ]);
-    const [disk, clamav, bull, integrationDlq, http, eventLoopLagMs] = await Promise.all([
+    const [disk, clamav, bull, integrationDlq, http, eventLoopLagMs, websocketEmits] = await Promise.all([
       this.disk(),
       this.clamav(),
       redis === 'ok' ? this.inspectQueues() : Promise.resolve(null),
@@ -51,6 +52,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
         : Promise.resolve(null),
       redis === 'ok' ? this.http(nowMs) : Promise.resolve(null),
       redis === 'ok' ? this.store.readEventLoopLagMs().catch(() => null) : Promise.resolve(null),
+      redis === 'ok' ? this.websocket(nowMs) : Promise.resolve(null),
     ]);
     return {
       nowMs,
@@ -64,7 +66,19 @@ export class OpsSignalCollector implements OnModuleDestroy {
       http,
       eventLoopLagMs,
       ldapsCaExpiresAtMs: ldapsCaExpiry(),
+      websocketEmits,
     };
+  }
+
+  private async websocket(nowMs: number): Promise<Record<string, number> | null> {
+    try {
+      const lastCompleteMinute = Math.floor(nowMs / 60_000) - 1;
+      const seen = await this.store.websocketHeartbeatSeen(lastCompleteMinute);
+      if (!seen) return null;
+      return await this.store.readWebsocketEmitMinute(websocketEmitRoomKinds as readonly string[], lastCompleteMinute);
+    } catch {
+      return null;
+    }
   }
 
   /** 5xx per minute for the last hour, for the dashboard graph. */
