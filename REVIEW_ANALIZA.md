@@ -6863,6 +6863,8 @@ Preostaje:
 
 | **M8 B6** | `inboxTab` je novi dio `TicketListFilters` (konstante `unroutedInboxTabKey`/`defaultInboxTab` u `filter-tickets.ts`, re-exportane iz `inbox-view-tabs.ts`). `staffDeepLinkFilters` čita `?inboxTab=`; inicijalni `useState` i view-change effect u `use-ticket-list.ts` čuvaju/pamtite tab, a `setInboxTab` upisuje `inboxTab` u URL i resetuje `unroutedPage` na 1. `TicketInboxPanel` više nema lokalni `useState(activeTab)` (čita iz `list.filters.inboxTab`). Unrouted queue fetch (queryKey i queryFn) prosljeđuje `hideMerged`; `build-group-inbox-where.ts` dodaje `mergedIntoTicketId: null` tako da grupni inbox (koji filtrira `status=PENDING`) nikad ne prikazuje mergeanu djecu koja baštine roditeljev status. | `88e68be` |
 
-Preostaje (1 nalaz):
-- **M11 B3** — WS emit alarma: Redis TTL agregacija po sobama, podesivi prag, alarm sa histerezom i open-after zaštitom; ovo je najveći zahvat (Redis, novi Ops settings endpoint, Ops kartica).
+| **M11 B3** | Dodan `WebsocketMetricsService` (ops-health modul, `OnApplicationBootstrap`/`OnModuleDestroy`) koji se pretplaćuje na `addWebsocketEmitListener` u `websocket-emit-counter.ts`, baferi brojeve po `WebsocketEmitRoomKind` u memoriji i svakih 5 s pipeline-om `INCRBY`+`EXPIRE` upisuje per-minute brojače u Redis (`ops:ws:emit:<kind>:<minute>`, TTL 70 min, isto kao HTTP). Per-instance heartbeat (`ops:ws:hb:<instanceId>`) omogućava collectoru da razlikuje pravu nulu od otkazale metrike. `OpsStateStore` dobija `readWebsocketEmitMinute` i `websocketHeartbeatSeen`. Novi `opsAlertKeys.websocketEmitsHigh` (`websocket.emits.high`) u katalogu sa `openAfter=2`/`resolveAfter=2` minutama (histereza protiv flappinga); posmatrač poredi najzagušeniju sobu sa podesivim `private.ops.thresholds.websocketEmitWarnPerMinute` / `...CriticalPerMinute` (default 600/3000 po klasteru po minuti). `OpsSignalCollector.websocket()` čita brojeve pretposljednje kompletne minute i agregira kroz sve instance. Legacy group-emit se automatski prebrojava jer `recordWebsocketEmit('group-legacy')` poziva istog listenera. | `a0fc8bc` |
+
+Svi nalozi 5.2.3 su zatvoreni.
+
 
