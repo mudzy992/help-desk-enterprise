@@ -17,7 +17,13 @@ type UnitDetail = {
   readonly users: readonly unknown[];
 };
 
-type UserSummary = { readonly id: string; readonly email: string };
+type UserSummary = {
+  readonly id: string;
+  readonly email: string;
+  readonly isActive: boolean;
+  readonly isLocalOnly: boolean;
+  readonly roleKey: string | null;
+};
 type CreatedUser = {
   readonly user: UserSummary;
   readonly temporaryPassword: string | null;
@@ -130,6 +136,41 @@ async function responseFailure(response: Response): Promise<ApiFailure> {
   } catch {
     return {};
   }
+}
+
+/** Lists every user because the final-SuperAdmin race is safe only in isolation. */
+async function listAllUsers(api: ApiClient): Promise<readonly UserSummary[]> {
+  const pageSize = 500;
+  const users: UserSummary[] = [];
+  let total = Number.POSITIVE_INFINITY;
+
+  while (users.length < total) {
+    const response = await api.request(
+      `/users?take=${pageSize}&skip=${users.length}`,
+    );
+    if (!response.ok) {
+      throw new Error(
+        `[e2e] listing users for the SuperAdmin preflight returned HTTP ${response.status}.`,
+      );
+    }
+    const totalHeader = response.headers.get('X-Total-Count');
+    if (totalHeader === null) {
+      throw new Error('[e2e] the users API omitted X-Total-Count during the SuperAdmin preflight.');
+    }
+    total = Number(totalHeader);
+    if (!Number.isSafeInteger(total) || total < 0) {
+      throw new Error(
+        `[e2e] invalid X-Total-Count during the SuperAdmin preflight: ${totalHeader}.`,
+      );
+    }
+    const page = (await response.json()) as readonly UserSummary[];
+    if (page.length === 0 && users.length < total) {
+      throw new Error('[e2e] the users API returned an empty page before reaching X-Total-Count.');
+    }
+    users.push(...page);
+  }
+
+  return users;
 }
 
 /** Paket 5.2.1: role/scope boundaries, request-linked bypass audit, and user lifecycle. */
@@ -347,9 +388,34 @@ test.describe('38 users, groups, and RBAC (5.2.1 M3 B5–B7 / M4 B3–B5)', () =
       (user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase(),
     );
     if (firstUser === undefined) throw new Error('Configured SuperAdmin was not found through the users API.');
-    const firstRoles = await firstAdmin.requestJson<readonly UserRole[]>(`/users/${firstUser.id}/roles`);
-    const firstSuperAdminRole = firstRoles.find((role) => role.roleKey === 'SUPER_ADMIN');
-    if (firstSuperAdminRole === undefined) throw new Error('Configured SuperAdmin has no SUPER_ADMIN assignment.');
+    const firstRoles = await firstAdmin.requestJson<readonly UserRole[]>(
+      `/users/${firstUser.id}/roles`,
+    );
+    const firstSuperAdminRoles = firstRoles.filter(
+      (role) => role.roleKey === 'SUPER_ADMIN',
+    );
+    const allUsers = await listAllUsers(firstAdmin);
+    const activeLocalSuperAdmins = allUsers.filter(
+      (user) =>
+        user.isActive &&
+        user.isLocalOnly &&
+        user.roleKey === 'SUPER_ADMIN',
+    );
+    const isolatedSetup =
+      activeLocalSuperAdmins.length === 1 &&
+      activeLocalSuperAdmins[0]?.id === firstUser.id &&
+      firstSuperAdminRoles.length === 1;
+    const skipReason =
+      'The destructive SuperAdmin race requires an isolated E2E install with ' +
+      'the configured account as its only active local SuperAdmin and one ' +
+      `assignment; found ${activeLocalSuperAdmins.length} active local ` +
+      `SuperAdmin account(s) and ${firstSuperAdminRoles.length} assignment(s) ` +
+      'on the configured account.';
+    test.skip(!isolatedSetup, skipReason);
+    const firstSuperAdminRole = firstSuperAdminRoles[0];
+    if (firstSuperAdminRole === undefined) {
+      throw new Error('Configured SuperAdmin has no SUPER_ADMIN assignment.');
+    }
 
     const suffix = newSuffix();
     const secondEmail = `e2e.superadmin-race-${suffix}@example.com`;
