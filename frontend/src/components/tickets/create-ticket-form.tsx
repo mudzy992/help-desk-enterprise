@@ -48,6 +48,27 @@ export function CreateTicketForm() {
   const [step, setStep] = useState(0);
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
   const [helped, setHelped] = useState(false);
+  // Paket 5.2.4 (M14 B3): remember which article the user marked helpful so
+  // that the "resolved by KB" resolution records the right article — we must
+  // not silently pick suggestions[0] when the user voted a different one.
+  const [helpedArticleId, setHelpedArticleId] = useState<string | null>(null);
+
+  const markHelped = async (articleId?: string | null) => {
+    const resolvedId = articleId ?? helpedArticleId ?? suggestions[0]?.id;
+    if (!resolvedId) return;
+    setHelped(true);
+    setHelpedArticleId(resolvedId);
+    try {
+      await resolveKnowledgeIntercept({
+        serviceId: draft.serviceId,
+        organizationalUnitId: draft.originUnitId,
+        articleId: resolvedId,
+      });
+    } catch {
+      // The "helped" UI is optimistic; a failure still lets the user continue
+      // and telemetry is best-effort.
+    }
+  };
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
   const [failedSubmitCount, setFailedSubmitCount] = useState(0);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
@@ -207,13 +228,8 @@ export function CreateTicketForm() {
         isSubmitting={isSubmitting}
         suggestions={suggestions}
         helped={helped}
-        onHelped={() => {
-          void resolveKnowledgeIntercept({
-            serviceId: draft.serviceId,
-            organizationalUnitId: draft.originUnitId,
-            articleId: suggestions[0]?.id,
-          }).finally(() => setHelped(true));
-        }}
+        helpedArticleId={helpedArticleId}
+        onHelped={(articleId) => void markHelped(articleId)}
         onContinue={() => setStep(3)}
         onBackToDetails={() => setStep(1)}
         onBackToIntercept={() => setStep(2)}

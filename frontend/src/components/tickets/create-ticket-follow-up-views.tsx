@@ -16,7 +16,8 @@ interface CreateTicketFollowUpViewsProperties {
   readonly isSubmitting: boolean;
   readonly suggestions: readonly KnowledgeInterceptSuggestion[];
   readonly helped: boolean;
-  readonly onHelped: () => void;
+  readonly helpedArticleId: string | null;
+  readonly onHelped: (articleId?: string | null) => void;
   readonly onContinue: () => void;
   readonly onBackToDetails: () => void;
   readonly onBackToIntercept: () => void;
@@ -34,6 +35,7 @@ export function CreateTicketFollowUpViews({
   isSubmitting,
   suggestions,
   helped,
+  helpedArticleId,
   onHelped,
   onContinue,
   onBackToDetails,
@@ -48,6 +50,7 @@ export function CreateTicketFollowUpViews({
         isSubmitting={isSubmitting}
         items={suggestions}
         helped={helped}
+        helpedArticleId={helpedArticleId}
         onHelped={onHelped}
         onContinue={onContinue}
         onBack={onBackToDetails}

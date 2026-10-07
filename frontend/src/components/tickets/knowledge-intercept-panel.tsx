@@ -25,7 +25,8 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 interface KnowledgeInterceptPanelProperties {
   readonly items: readonly KnowledgeInterceptSuggestion[];
   readonly helped: boolean;
-  readonly onHelped: () => void;
+  readonly helpedArticleId: string | null;
+  readonly onHelped: (articleId?: string | null) => void;
   readonly onContinue: () => void;
   readonly isSubmitting: boolean;
 }
@@ -33,6 +34,7 @@ interface KnowledgeInterceptPanelProperties {
 export function KnowledgeInterceptPanel({
   items,
   helped,
+  helpedArticleId,
   onHelped,
   onContinue,
   isSubmitting,
@@ -51,6 +53,12 @@ export function KnowledgeInterceptPanel({
     try {
       await submitKnowledgeFeedback(articleId, isHelpful);
       setVotes((previous) => ({ ...previous, [articleId]: isHelpful }));
+      // Paket 5.2.4 (M14 B3): voting an article thumbs-up is the user's signal
+      // that the article solved the problem — resolve intercept against *this*
+      // article, not an arbitrary first suggestion.
+      if (isHelpful) {
+        onHelped(articleId);
+      }
     } catch (error) {
       setErrorKey(mapTicketError(error));
     } finally {
@@ -156,7 +164,7 @@ export function KnowledgeInterceptPanel({
       <div className="grid gap-2.5 md:grid-cols-2">
         <button
           type="button"
-          onClick={onHelped}
+          onClick={() => onHelped(helpedArticleId ?? Object.entries(votes).find(([, v]) => v)?.[0] ?? items[0]?.id)}
           className={cn(
             "rounded-lg border p-4 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
             helped ? "border-success/50 bg-success/10" : "border-border bg-surface shadow-card hover:border-success/40",

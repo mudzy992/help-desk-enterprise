@@ -15,7 +15,8 @@ interface CreateTicketInterceptViewProperties {
   readonly isSubmitting: boolean;
   readonly items: readonly KnowledgeInterceptSuggestion[];
   readonly helped: boolean;
-  readonly onHelped: () => void;
+  readonly helpedArticleId: string | null;
+  readonly onHelped: (articleId?: string | null) => void;
   readonly onContinue: () => void;
   readonly onBack: () => void;
 }
@@ -25,6 +26,7 @@ export function CreateTicketInterceptView({
   isSubmitting,
   items,
   helped,
+  helpedArticleId,
   onHelped,
   onContinue,
   onBack,
@@ -40,6 +42,7 @@ export function CreateTicketInterceptView({
             <KnowledgeInterceptPanel
               items={items}
               helped={helped}
+              helpedArticleId={helpedArticleId}
               onHelped={onHelped}
               onContinue={onContinue}
               isSubmitting={isSubmitting}
