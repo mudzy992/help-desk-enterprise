@@ -24,6 +24,7 @@ import type {
 } from './install-login-provider.types';
 import type { InstallSetupStatus } from './install-setup.types';
 import type {
+  InstallAddonCatalogItem,
   InstallAddonsPublicRecord,
   InstallAddonsStatus,
 } from './install-addons.types';

@@ -15,7 +15,7 @@ describe("lookupTicketPriority", () => {
     ).toBe("CRITICAL");
   });
 
-  it("falls back when the matrix is unavailable", () => {
-    expect(lookupTicketPriority("HIGH", "HIGH", null)).toBe("HIGH");
+  it("returns a stable MEDIUM placeholder before the backend matrix is loaded", () => {
+    expect(lookupTicketPriority("HIGH", "HIGH", null)).toBe("MEDIUM");
   });
 });
