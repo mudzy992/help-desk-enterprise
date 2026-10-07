@@ -5,6 +5,7 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TemplatesError, type TemplatesErrorCode } from './templates.error';
 
@@ -75,6 +76,21 @@ export async function executeTemplatesOperation<T>(operation: () => Promise<T>):
   try {
     return await operation();
   } catch (error) {
+    // Package 5.2.4 (M13 B3): partial UNIQUE indexes guard response template
+    // names at the DB level (see migration 20271007190000) so parallel
+    // creates/renames cannot race past the application-level `assertNameFree`.
+    // Map P2002 on those indexes onto the same TEMPLATE_NAME_TAKEN code the
+    // pre-check throws.
+    if (isTemplateNameTakenError(error)) {
+      throw new TemplatesError('TEMPLATE_NAME_TAKEN');
+    }
     throw mapTemplatesError(error);
   }
 }
+
+function isTemplateNameTakenError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return false;
+  }
+  const target = error.meta?.target;
+  return typeof target === 'string' && target.includes('response_template') && target.includes('name_lower_key');

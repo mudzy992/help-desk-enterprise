@@ -26,6 +26,11 @@ model ResponseTemplate {
 
   @@index([ownerUserId, isActive])
   @@index([deletedAt, isActive])
+  // Package 5.2.4 (M13 B3): case-insensitive name uniqueness enforced by two
+  // partial unique indexes (added in a hand-written migration because Prisma
+  // does not model expression + partial indexes).
+  //   * shared:    UNIQUE(lower(name)) WHERE ownerUserId IS NULL AND deletedAt IS NULL
+  //   * per-owner: UNIQUE(lower(name), ownerUserId) WHERE ownerUserId IS NOT NULL AND deletedAt IS NULL
 }
 
 model ResponseTemplateService {
