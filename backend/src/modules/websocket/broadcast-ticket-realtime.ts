@@ -90,6 +90,7 @@ function broadcastGroupFeed(
         : ticketRealtimeEventNames.ticketUpdated;
     server.to(room).emit(event, fullPayload);
     recordWebsocketEmit('group');
+    recordWebsocketEmit('group-legacy');
   }
   server.to(room).emit(groupFeedChangedEventName, groupFeed);
   recordWebsocketEmit('group');

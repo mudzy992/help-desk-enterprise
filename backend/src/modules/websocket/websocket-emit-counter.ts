@@ -10,6 +10,7 @@ export const websocketEmitRoomKinds = [
   'public',
   'user',
   'group',
+  'group-legacy',
   'broadcast',
 ] as const;
 
