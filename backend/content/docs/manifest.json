@@ -81,7 +81,7 @@
         "obavjestenja",
         "pomoc"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
@@ -256,7 +256,7 @@
         "sesija",
         "rezervni-kodovi"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
@@ -1801,7 +1801,7 @@
         "ad-sync",
         "uloge"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
@@ -1910,7 +1910,7 @@
         "read-only",
         "preview"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
@@ -2637,7 +2637,7 @@
         "scope",
         "pristup"
       ],
-      "updatedAt": "2026-10-04",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
@@ -2890,7 +2890,7 @@
         "izdanja",
         "changelog"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-07",
       "headings": [
         {
           "level": 2,
