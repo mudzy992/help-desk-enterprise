@@ -144,7 +144,10 @@ function createMatrixPrisma(
         data: { entityType: string; entityId: string; reason: string };
       }) => Promise<Record<string, unknown>>;
     };
-    $transaction: <T>(callback: (client: unknown) => Promise<T>) => Promise<T>;
+    $transaction: {
+      <T>(arg: readonly Promise<T>[]): Promise<T[]>;
+      <T>(callback: (client: unknown) => Promise<T>): Promise<T>;
+    };
   } = {
     priorityMatrixRule: {
       findMany: async () => [...store.values()],
@@ -228,8 +231,12 @@ function createMatrixPrisma(
         return { id: `log-${changeLogs.length}`, ...data };
       },
     },
-    $transaction: async <T>(callback: (client: unknown) => Promise<T>) =>
-      callback(prisma),
+    $transaction: async <T>(
+      arg: readonly Promise<T>[] | ((client: unknown) => Promise<T>),
+    ): Promise<T[] | T> =>
+      Array.isArray(arg)
+        ? Promise.all(arg)
+        : arg(prisma),
   };
   return prisma as never;
 }
