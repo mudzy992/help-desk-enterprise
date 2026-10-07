@@ -39,6 +39,7 @@ function signals(overrides: Partial<OpsSignals> = {}): OpsSignals {
     http: { errors5xx: 0, total: 10 },
     eventLoopLagMs: null,
     ldapsCaExpiresAtMs: null,
+    websocketEmits: null,
     ...overrides,
   };
 }

@@ -115,6 +115,7 @@ describe('evaluateOpsSignals', () => {
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now + 31 * 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)!.active).toBe(false);
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now + 20 * 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)).toMatchObject({ severity: 'WARNING', details: { daysLeft: 20 } });
     expect(byKey(healthy({ ldapsCaExpiresAtMs: now - 86_400_000 })).get(opsAlertKeys.ldapsCaExpiry)!.severity).toBe('CRITICAL');
+  });
 
   it('fires websocket emit alarm above threshold (busiest room wins)', () => {
     expect(byKey(healthy()).get(opsAlertKeys.websocketEmitsHigh)!.active).toBe(false);
@@ -127,7 +128,6 @@ describe('evaluateOpsSignals', () => {
     // Null signal means Redis/metric outage - do not alert (that is the
     // redis.unavailable alarm's job).
     expect(byKey(healthy({ websocketEmits: null })).get(opsAlertKeys.websocketEmitsHigh)!.active).toBe(false);
-  });
   });
 });
 
