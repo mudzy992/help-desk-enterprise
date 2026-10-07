@@ -6843,3 +6843,18 @@ Prvi krug inventure i popravki za 8 `NISKO` nalaza iz plana §4.3. CI za prethod
 - **M11 B4** (legacy full emit po defaultu uključen) — `isLegacyGroupFullEmitEnabled()` postoji i koristi se u `broadcast-ticket-realtime.ts`, ali nedostaje eksplicitno logovanje/metrika dok je uključeno, runbook referenca, i mehanizam koji ne gasi automatski po vremenu (prihvat: flag se postavlja eksplicitno `off`, runbook postoji, upozorenje se loguje).
 
 Predaja ovog commit-a ne čeka na preostalih 6 nalaza — oni slijede u narednim krugovima na istoj grani.
+
+### Update (nastavak 5.2.3)
+
+Dodatno zatvoreni nalozi:
+
+| Nalaz | Rješenje | Commit |
+|---|---|---|
+| **M8 B7** | `resolve-ticket-allowed-actions.ts` sada učitava `TicketReopenConfigurationLoader` i poziva `resolveTicketReopenPolicy`; `TicketAllowedActions.reopen` nosi `{enabled, eligible, createsNewTicket, windowEndsAt}`. Frontend `noActions` fallback i `deriveActionsFromSession` nasljeđuju `ticket.reopen`; `canShowReopenAction()` već čitao `ticket.reopen?.eligible` tako da dugme automatski postaje istinito samo kad server kaže da je dopušteno. | `629f5fbf` |
+| **M8 B4** | `emptyFilters(view, userId, isStaff)` u `use-ticket-list.ts` inicijalno postavlja `hideMerged: isStaff` za staff workspace; `clearedTicketListFilters(filters, isStaff)` resetira na istu default vrijednost (Clear ne vrati merged djecu). URL `?hideMerged=false` i dalje radi kroz `staffDeepLinkFilters`. | `629f5fbf` |
+| **M8 B5** | Dodan `totalsAsOf: number` (epoch ms) na `TicketListPage`/`GroupInboxPage`/frontend `TicketPage`. `single-flight-cache.ts` pamti `computedAt` i izlaže `cache.computedAt(key)`. Svježe grane (search without count, empty scope, non-counted reads, group inbox — koji nema cache) postavljaju `Date.now()`. UI prikaz „prije N sekundi“ ostaje za naredni krug jer zahtijeva string/relativizaciju. | `01890d3a` |
+
+Preostaje:
+- **M8 B6** — ujednačiti hideMerged i unrouted state kroz tabove/filtere/URL.
+- **M11 B3** — WS emit metrija → Redis, podesivi prag, alarm sa histerezom.
+- **M11 B4** — legacy `WS_GROUP_FEED_LEGACY_FULL_EMIT`: logovati upozorenje/metriku dok je uključen, dodati referencu na runbook.
