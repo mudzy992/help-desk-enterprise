@@ -12,6 +12,9 @@ describe("staffDeepLinkFilters", () => {
       personal: "mentionedMe",
       hideMerged: false,
       unroutedOverdue: true,
+      // Without an explicit inboxTab param the helper leaves the default to
+      // the hook (so all/teams do not carry a misleading "unrouted" value).
+      inboxTab: undefined,
     });
   });
 
@@ -21,11 +24,17 @@ describe("staffDeepLinkFilters", () => {
       personal: "",
       hideMerged: false,
       unroutedOverdue: false,
+      inboxTab: undefined,
     });
   });
 
   it("hides merged children for staff unless the URL opts out", () => {
     expect(staffDeepLinkFilters(new URLSearchParams(), true).hideMerged).toBe(true);
+  });
+
+  it("honors an explicit inboxTab URL param for staff", () => {
+    const withTab = new URLSearchParams("inboxTab=group-42");
+    expect(staffDeepLinkFilters(withTab, true).inboxTab).toBe("group-42");
   });
 
   it("ignores unknown filter values", () => {

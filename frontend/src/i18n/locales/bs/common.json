@@ -669,9 +669,9 @@
     "previewDecisionChange": "{{before}} → {{after}}",
     "previewNoSamples": "Nema uzoraka promjene odluke za pogođene korisnike.",
     "confirmSave": "Potvrdi i sačuvaj",
-      "reasonLabel": "Razlog promjene",
-      "reasonPlaceholder": "Zašto se prava mijenjaju (upisuje se u dnevnik izmjena)",
-      "reasonRequired": "Bez razloga promjena se ne može sačuvati.",
+    "reasonLabel": "Razlog promjene",
+    "reasonPlaceholder": "Zašto se prava mijenjaju (upisuje se u dnevnik izmjena)",
+    "reasonRequired": "Bez razloga promjena se ne može sačuvati.",
     "cancel": "Odustani",
     "saving": "Snimanje…",
     "forbiddenTitle": "Potreban SuperAdmin pristup",
@@ -679,8 +679,8 @@
     "errorUnauthorized": "Prijavite se da biste upravljali permisijama uloga.",
     "errorForbidden": "Nemate dozvolu za upravljanje permisijama uloga.",
     "errorNotFound": "Uloga ili permisija nije pronađena.",
-      "errorPreviewRequired": "Pokrenite pregled uticaja prije snimanja promjene.",
-      "errorPreviewStale": "Pregled uticaja je zastario. Pokrenite ga ponovo pa sačuvajte.",
+    "errorPreviewRequired": "Pokrenite pregled uticaja prije snimanja promjene.",
+    "errorPreviewStale": "Pregled uticaja je zastario. Pokrenite ga ponovo pa sačuvajte.",
     "errorGeneric": "Operacija nad permisijama uloga nije uspjela.",
     "catalog": {
       "categories": {
@@ -1496,7 +1496,9 @@
         "public.branding.logoDataUrl": "Logo (PNG, JPEG ili WebP, najviše 200 KB i 1024 px). Prazno = ugrađeni znak.",
         "public.branding.supportEmail": "E-mail za podršku na stranici prijave i u podnožju e-maila.",
         "public.branding.supportUrl": "Stranica podrške ili intraneta (https) na stranici prijave i u podnožju e-maila.",
-        "private.auth.password.organisationWordsCsv": "Riječi organizacije koje lozinka ne smije sadržavati, odvojene zarezom. Naziv aplikacije i interne e-mail domene se uvijek dodaju."
+        "private.auth.password.organisationWordsCsv": "Riječi organizacije koje lozinka ne smije sadržavati, odvojene zarezom. Naziv aplikacije i interne e-mail domene se uvijek dodaju.",
+        "private.ops.thresholds.websocketEmitWarnPerMinute": "Broj WebSocket emit-ova po minuti (na nivou klastera, najopterećenija soba) koji podiže UPOZORENJE (10–100000).",
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "Broj WebSocket emit-ova po minuti (na nivou klastera, najopterećenija soba) koji podiže KRITIČNI alarm (20–200000)."
       }
     },
     "emailTemplates": {

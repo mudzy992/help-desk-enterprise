@@ -661,9 +661,9 @@
     "previewDecisionChange": "{{before}} → {{after}}",
     "previewNoSamples": "No decision changes were sampled for affected users.",
     "confirmSave": "Confirm and save",
-      "reasonLabel": "Reason for the change",
-      "reasonPlaceholder": "Why the permissions change (stored in the change log)",
-      "reasonRequired": "The change cannot be saved without a reason.",
+    "reasonLabel": "Reason for the change",
+    "reasonPlaceholder": "Why the permissions change (stored in the change log)",
+    "reasonRequired": "The change cannot be saved without a reason.",
     "cancel": "Cancel",
     "saving": "Saving…",
     "forbiddenTitle": "SuperAdmin access required",
@@ -671,8 +671,8 @@
     "errorUnauthorized": "Sign in to manage role permissions.",
     "errorForbidden": "You do not have permission to manage role permissions.",
     "errorNotFound": "Role or permission was not found.",
-      "errorPreviewRequired": "Run the impact preview before saving the change.",
-      "errorPreviewStale": "The impact preview is stale. Run it again, then save.",
+    "errorPreviewRequired": "Run the impact preview before saving the change.",
+    "errorPreviewStale": "The impact preview is stale. Run it again, then save.",
     "errorGeneric": "Role permission operation failed.",
     "catalog": {
       "categories": {
@@ -1486,7 +1486,9 @@
         "public.branding.logoDataUrl": "Logo (PNG, JPEG or WebP, at most 200 KB and 1024 px). Empty = built-in mark.",
         "public.branding.supportEmail": "Support e-mail shown on the sign-in page and in the e-mail footer.",
         "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in the e-mail footer.",
-        "private.auth.password.organisationWordsCsv": "Comma-separated organisation words a password must not contain. The application name and internal e-mail domains are always added."
+        "private.auth.password.organisationWordsCsv": "Comma-separated organisation words a password must not contain. The application name and internal e-mail domains are always added.",
+        "private.ops.thresholds.websocketEmitWarnPerMinute": "WebSocket room emits per minute (cluster-wide, busiest room) that raises a WARNING (10-100000).",
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000)."
       }
     },
     "emailTemplates": {

@@ -20,14 +20,12 @@ export function staffDeepLinkFilters(
     hideMerged: isStaff && searchParams.get("hideMerged") !== "false",
     // Paket 1.7 (U3): deep link from the dashboard and the weekly digest.
     unroutedOverdue: isStaff && searchParams.get("unroutedOverdue") === "true",
-    // Package 5.2.3 (M8 B6): preserve the inbox sub-tab across reloads. Any
-    // value other than "unrouted" is treated as a group id and validated by
-    // the panel against membership (unknown tabs fall back to unrouted).
+    // Package 5.2.3 (M8 B6): preserve the inbox sub-tab across reloads when
+    // explicitly set in the URL. Defaulting is handled by use-ticket-list so
+    // non-inbox views are not polluted with an "unrouted" tab value.
     inboxTab:
       isStaff && rawTab !== null && rawTab.trim().length > 0
         ? rawTab.trim()
-        : isStaff
-          ? unroutedInboxTabKey
-          : undefined,
+        : undefined,
   };
 }
