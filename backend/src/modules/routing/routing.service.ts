@@ -25,6 +25,8 @@ import {
   filterRoutingCoverage,
   filterRoutingRules,
   hasRoutingReadAccess,
+  isRoutingScopeVisible,
+  resolveRoutingReadAssignments,
 } from './routing-access-filter';
 import { routingCoverageMissingCode } from './routing.constants';
 import { RoutingError } from './routing.error';
@@ -153,6 +155,7 @@ export class RoutingService {
     viewer: AuthorizationContext | null,
   ): Promise<readonly RoutingChangeLogResponse[]> {
     return this.execute(async () => {
+      this.ensureReadAccess(viewer);
       const [rules, logs] = await Promise.all([
         toRoutingRuleResponses(
           this.prisma,
@@ -163,8 +166,13 @@ export class RoutingService {
           entityId: ruleId,
         }),
       ]);
-      const visible = this.ensureReadableRules(rules, viewer);
-      if (!visible.some((rule) => rule.id === ruleId)) {
+      const visible = filterRoutingRules(rules, viewer);
+      // Allow global readers to read changelogs for deleted rules too.
+      const assignments = resolveRoutingReadAssignments(viewer);
+      const canRead =
+        visible.some((rule) => rule.id === ruleId) ||
+        (logs.length > 0 && isRoutingScopeVisible({ originUnitId: null, serviceId: null }, assignments));
+      if (!canRead) {
         throw new ForbiddenException('ROUTING_READ_FORBIDDEN');
       }
       return logs;
@@ -248,7 +256,10 @@ export class RoutingService {
         await this.configurationLoader.load(),
       );
       const items = filterRoutingCoverage(page.items, viewer);
-      return { ...page, items, total: items.length };
+      // `total` counts distinct matching services (one item is emitted per
+      // service × origin OU, so item count = services × OUs).
+      const visibleServiceIds = new Set(items.map((item) => item.serviceId));
+      return { ...page, items, total: visibleServiceIds.size };
     });
   }
 
