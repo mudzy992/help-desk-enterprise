@@ -3,15 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
-  getServiceForm,
   listServices,
-  type ServiceFormResponse,
   type ServiceResponse,
 } from "@/services/service-catalog-api";
 
 export type ServiceCatalogRow = {
   readonly service: ServiceResponse;
-  readonly form: ServiceFormResponse | null;
 };
 
 export type ServiceCatalogState = {
@@ -23,23 +20,18 @@ export type ServiceCatalogState = {
 };
 
 /**
- * Faza 3.3 (plan §3.3, grupa (a) — katalozi): servisi i njihove forme se drže u
- * React Query kešu (`staleTime` 5 min). Ekran zadržava isti ugovor (`rows`,
- * `isLoading`, `errorKey`, `requestId`, `reload`), a `reload` sada samo obara keš.
+ * Faza 3.3 (plan §3.3, grupa (a) — katalozi): servisi i sažetak aktivne forme
+ * stižu u jednom batch pozivu (`listServices` već uključuje `activeForm`
+ * sažetak koji je backend skupio kroz `loadActiveFormSummaries`). Nema N+1
+ * round-tripova po servisu; ekran zadržava isti `rows` ugovor, a oblik se
+ * proširuje samo kad bude trebalo.
  */
 export function useServiceCatalog(): ServiceCatalogState {
   const query = useQuery({
     queryKey: queryKeys.services,
     queryFn: async (): Promise<readonly ServiceCatalogRow[]> => {
       const services = await listServices();
-      return Promise.all(
-        // A service with no form version at all answers 404, which is the state
-        // this screen exists to fix rather than an error to report.
-        services.map(async (service) => ({
-          service,
-          form: await getServiceForm(service.id).catch(() => null),
-        })),
-      );
+      return services.map((service) => ({ service }));
     },
   });
 

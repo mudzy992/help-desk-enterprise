@@ -45,10 +45,9 @@ export function ServiceCatalogCard({
   onCatalogChanged,
 }: ServiceCatalogCardProperties) {
   const { t, i18n } = useTranslation();
-  const { service, form } = row;
-  const activeVersion = form?.versions.find(
-    (version) => version.formVersionRef === form.activeFormVersionRef,
-  );
+  const { service } = row;
+  // Form summary is already embedded on `service.activeForm` by the list
+  // endpoint (single batch load — no N+1).
   const downtime = service.runtimeAvailability.activeDowntimeWindow;
   const hasUpcoming = service.runtimeAvailability.hasUpcomingDowntime === true;
   const showRuntimeWarning = shouldWarnServiceRuntimeAvailability(
@@ -111,9 +110,7 @@ export function ServiceCatalogCard({
                 version: String(service.activeForm.version ?? "—"),
                 count: service.activeForm.fieldCount,
               })
-            : activeVersion
-              ? t("services.formVersionBadge", { version: String(activeVersion.version) })
-              : t("services.formMissing")}
+            : t("services.formMissing")}
         </Badge>
         <Badge tone="neutral" className="text-[10px]" dot={false}>
           {service.classification}
