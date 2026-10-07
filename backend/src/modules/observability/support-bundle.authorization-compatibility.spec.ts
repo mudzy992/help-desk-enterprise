@@ -73,6 +73,9 @@ describe('support bundle authorization compatibility', () => {
       }),
     );
     const guard = new RoleGuard(new Reflector(), harness.authorizationService);
+    const bypassAudit = jest
+      .spyOn(harness.authorizationService, 'recordSuperAdminBypass')
+      .mockResolvedValue(undefined);
     await expect(
       guard.canActivate({
         switchToHttp: () => ({
@@ -84,5 +87,8 @@ describe('support bundle authorization compatibility', () => {
         getClass: () => SupportBundleController,
       } as never),
     ).resolves.toBe(true);
+    expect(bypassAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ actorUserId: 'local-super' }),
+    );
   });
 });

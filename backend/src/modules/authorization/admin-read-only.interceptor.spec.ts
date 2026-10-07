@@ -6,6 +6,7 @@ import { AdminReadOnlyInterceptor } from './admin-read-only.interceptor';
 import { authorizationRoleKeys, permissionKeys } from './authorization.constants';
 import { AuthorizationContextLoader } from './authorization-context.loader';
 import { AuthorizationService } from './authorization.service';
+import { createTestAuthorizationEvaluation } from './create-test-authorization-evaluation';
 import { createTestAuthorizationContext } from './create-test-authorization-context';
 import { parseReadOnlyModeConfiguration } from './parse-read-only-mode-configuration';
 import {
@@ -43,21 +44,21 @@ function createContext(
 describe('AdminReadOnlyInterceptor', () => {
   const load = jest.fn();
   const loadBySubjectId = jest.fn();
-  const authorize = jest.fn();
+  const authorizeWithDecision = jest.fn();
   const interceptor = new AdminReadOnlyInterceptor(
     new Reflector(),
     { load } as unknown as ReadOnlyModeConfigurationLoader,
     { loadBySubjectId } as unknown as AuthorizationContextLoader,
   );
   const roleGuard = new RoleGuard(new Reflector(), {
-    authorize,
+    authorizeWithDecision,
   } as unknown as AuthorizationService);
   const next = { handle: () => of('ok') };
 
   beforeEach(() => {
     load.mockReset();
     loadBySubjectId.mockReset();
-    authorize.mockReset();
+    authorizeWithDecision.mockReset();
     load.mockResolvedValue(
       parseReadOnlyModeConfiguration({
         enabled: true,
@@ -67,7 +68,9 @@ describe('AdminReadOnlyInterceptor', () => {
       }),
     );
     loadBySubjectId.mockResolvedValue(createTestAuthorizationContext());
-    authorize.mockResolvedValue(true);
+    authorizeWithDecision.mockResolvedValue(
+      createTestAuthorizationEvaluation(true),
+    );
   });
 
   it('allows reads and still uses RoleGuard for authorization', async () => {
@@ -87,7 +90,7 @@ describe('AdminReadOnlyInterceptor', () => {
     await expect(roleGuard.canActivate(createContext(request))).resolves.toBe(
       true,
     );
-    expect(authorize).toHaveBeenCalled();
+    expect(authorizeWithDecision).toHaveBeenCalled();
     expect(load).not.toHaveBeenCalled();
   });
 

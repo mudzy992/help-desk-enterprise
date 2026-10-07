@@ -219,7 +219,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     slaRule: { count: async () => 0 },
     reportSchedule: { count: async () => 0 },
     ticket: { count: async () => 0 },
-    userRole: { findMany: async () => [] },
+    userRole: { findFirst: async () => null, findMany: async () => [] },
     auditLog: {
       findFirst: async () => auditLogs[auditLogs.length - 1] ?? null,
       create: async ({ data }: { data: Record<string, unknown> }) => {

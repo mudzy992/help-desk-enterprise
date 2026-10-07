@@ -8,6 +8,7 @@ import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../authentication/authentic
 import type { AuthorizationPrincipal } from '../authentication/authentication.types';
 import { permissionKeys } from './authorization.constants';
 import { AuthorizationService } from './authorization.service';
+import { createTestAuthorizationEvaluation } from './create-test-authorization-evaluation';
 import { OuAccessGuard } from './ou-access.guard';
 import { RequireOrganizationalUnitScope } from './require-organizational-unit-scope.decorator';
 import { RequirePermissions } from './require-permissions.decorator';
@@ -38,14 +39,16 @@ function createContext(request: Record<string, unknown>): ExecutionContext {
 }
 
 describe('OuAccessGuard', () => {
-  const authorize = jest.fn();
+  const authorizeWithDecision = jest.fn();
   const guard = new OuAccessGuard(new Reflector(), {
-    authorize,
+    authorizeWithDecision,
   } as unknown as AuthorizationService);
 
   beforeEach(() => {
-    authorize.mockReset();
-    authorize.mockResolvedValue(true);
+    authorizeWithDecision.mockReset();
+    authorizeWithDecision.mockResolvedValue(
+      createTestAuthorizationEvaluation(true),
+    );
   });
 
   it('rejects a missing principal', async () => {
@@ -71,7 +74,7 @@ describe('OuAccessGuard', () => {
       getClass: () => BareHandler,
     } as unknown as ExecutionContext;
     await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(authorize).toHaveBeenCalledWith({
+    expect(authorizeWithDecision).toHaveBeenCalledWith({
       principal,
       requirements: expect.objectContaining({
         requireOrganizationalUnitScope: true,
@@ -91,7 +94,7 @@ describe('OuAccessGuard', () => {
         }),
       ),
     ).resolves.toBe(true);
-    expect(authorize).toHaveBeenCalledWith({
+    expect(authorizeWithDecision).toHaveBeenCalledWith({
       principal,
       requirements: expect.objectContaining({
         requiredPermissions: [permissionKeys.routingWrite],
@@ -103,7 +106,9 @@ describe('OuAccessGuard', () => {
   });
 
   it('fails closed when OU identity is missing', async () => {
-    authorize.mockResolvedValue(false);
+    authorizeWithDecision.mockResolvedValue(
+      createTestAuthorizationEvaluation(false),
+    );
     await expect(
       guard.canActivate(
         createContext({
@@ -112,7 +117,7 @@ describe('OuAccessGuard', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(authorize).toHaveBeenCalledWith(
+    expect(authorizeWithDecision).toHaveBeenCalledWith(
       expect.objectContaining({ organizationalUnitId: null }),
     );
   });

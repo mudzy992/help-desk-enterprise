@@ -9,6 +9,9 @@ import {
   AUTHORIZATION_REQUIRED_ROLES_KEY,
   authorizationRoleKeys,
 } from '../authorization/authorization.constants';
+import {
+  createTestAuthorizationEvaluation,
+} from '../authorization/create-test-authorization-evaluation';
 import { RoleGuard } from '../authorization/role.guard';
 import { DirectorySyncController } from './directory-sync.controller';
 
@@ -43,20 +46,22 @@ describe('DirectorySyncController guards', () => {
   });
 
   it('rejects requests without an authenticated principal', async () => {
-    const authorize = jest.fn();
+    const authorizeWithDecision = jest.fn();
     const guard = new RoleGuard(new Reflector(), {
-      authorize,
+      authorizeWithDecision,
     } as never);
     await expect(guard.canActivate(createContext({}))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(authorize).not.toHaveBeenCalled();
+    expect(authorizeWithDecision).not.toHaveBeenCalled();
   });
 
   it('evaluates authorization when a principal is present', async () => {
-    const authorize = jest.fn().mockResolvedValue(false);
+    const authorizeWithDecision = jest
+      .fn()
+      .mockResolvedValue(createTestAuthorizationEvaluation(false));
     const guard = new RoleGuard(new Reflector(), {
-      authorize,
+      authorizeWithDecision,
     } as never);
     const request = {
       [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
@@ -69,6 +74,6 @@ describe('DirectorySyncController guards', () => {
     await expect(
       guard.canActivate(createContext(request)),
     ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
-    expect(authorize).toHaveBeenCalled();
+    expect(authorizeWithDecision).toHaveBeenCalled();
   });
 });

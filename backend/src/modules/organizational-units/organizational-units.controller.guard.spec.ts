@@ -14,6 +14,9 @@ import {
 import { createAuthorizationContext } from '../authorization/create-authorization-context';
 import { createTestAssignment } from '../authorization/create-test-authorization-context';
 import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
+import {
+  createTestAuthorizationEvaluation,
+} from '../authorization/create-test-authorization-evaluation';
 import { RoleGuard } from '../authorization/role.guard';
 import { organizationalUnitTreeReadRoles } from './organizational-unit-tree-read-roles';
 import { OrganizationalUnitsController } from './organizational-units.controller';
@@ -89,17 +92,19 @@ describe('OrganizationalUnitsController guards', () => {
   });
 
   it('rejects requests without an authenticated principal', async () => {
-    const authorize = jest.fn();
-    const guard = new RoleGuard(new Reflector(), { authorize } as never);
+    const authorizeWithDecision = jest.fn();
+    const guard = new RoleGuard(new Reflector(), { authorizeWithDecision } as never);
     await expect(guard.canActivate(createContext({}))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(authorize).not.toHaveBeenCalled();
+    expect(authorizeWithDecision).not.toHaveBeenCalled();
   });
 
   it('evaluates authorization when a principal is present', async () => {
-    const authorize = jest.fn().mockResolvedValue(false);
-    const guard = new RoleGuard(new Reflector(), { authorize } as never);
+    const authorizeWithDecision = jest
+      .fn()
+      .mockResolvedValue(createTestAuthorizationEvaluation(false));
+    const guard = new RoleGuard(new Reflector(), { authorizeWithDecision } as never);
     const request = {
       [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
         subjectId: 'admin-1',
@@ -111,7 +116,7 @@ describe('OrganizationalUnitsController guards', () => {
     await expect(guard.canActivate(createContext(request))).rejects.toMatchObject({
       response: { code: 'FORBIDDEN' },
     });
-    expect(authorize).toHaveBeenCalled();
+    expect(authorizeWithDecision).toHaveBeenCalled();
   });
 
   describe('USER and AGENT access', () => {

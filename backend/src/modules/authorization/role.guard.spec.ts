@@ -8,6 +8,7 @@ import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../authentication/authentic
 import type { AuthorizationPrincipal } from '../authentication/authentication.types';
 import { permissionKeys } from './authorization.constants';
 import { AuthorizationService } from './authorization.service';
+import { createTestAuthorizationEvaluation } from './create-test-authorization-evaluation';
 import { RequirePermissions } from './require-permissions.decorator';
 import { RequireRoles } from './require-roles.decorator';
 import { RequireServiceScope } from './require-service-scope.decorator';
@@ -43,21 +44,23 @@ function createContext(
 }
 
 describe('RoleGuard', () => {
-  const authorize = jest.fn();
+  const authorizeWithDecision = jest.fn();
   const guard = new RoleGuard(new Reflector(), {
-    authorize,
+    authorizeWithDecision,
   } as unknown as AuthorizationService);
 
   beforeEach(() => {
-    authorize.mockReset();
-    authorize.mockResolvedValue(true);
+    authorizeWithDecision.mockReset();
+    authorizeWithDecision.mockResolvedValue(
+      createTestAuthorizationEvaluation(true),
+    );
   });
 
   it('rejects a missing principal', async () => {
     await expect(guard.canActivate(createContext({}))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(authorize).not.toHaveBeenCalled();
+    expect(authorizeWithDecision).not.toHaveBeenCalled();
   });
 
   it('evaluates roles, permissions, and service scope together', async () => {
@@ -67,7 +70,7 @@ describe('RoleGuard', () => {
       body: { roles: ['SUPER_ADMIN'], oid: 'entra-oid' },
     };
     await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
-    expect(authorize).toHaveBeenCalledWith({
+    expect(authorizeWithDecision).toHaveBeenCalledWith({
       principal,
       requirements: expect.objectContaining({
         requiredRoles: ['ADMIN'],
@@ -81,7 +84,9 @@ describe('RoleGuard', () => {
   });
 
   it('maps a denied decision to FORBIDDEN without echoing identity', async () => {
-    authorize.mockResolvedValue(false);
+    authorizeWithDecision.mockResolvedValue(
+      createTestAuthorizationEvaluation(false),
+    );
     const request = {
       [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: principal,
       params: { serviceId: 'service-hr' },
@@ -92,6 +97,8 @@ describe('RoleGuard', () => {
     await expect(guard.canActivate(createContext(request))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    expect(JSON.stringify(authorize.mock.calls)).not.toContain('entra-oid');
+    expect(JSON.stringify(authorizeWithDecision.mock.calls)).not.toContain(
+      'entra-oid',
+    );
   });
 });

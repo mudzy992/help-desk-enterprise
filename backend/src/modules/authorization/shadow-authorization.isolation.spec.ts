@@ -10,6 +10,7 @@ import type { AuthorizationPrincipal } from '../authentication/authentication.ty
 import { permissionKeys } from './authorization.constants';
 import { authorizationDecisionReasons } from './authorization-decision-reason';
 import { AuthorizationService } from './authorization.service';
+import { createTestAuthorizationEvaluation } from './create-test-authorization-evaluation';
 import {
   createTestAuthorizationContext,
 } from './create-test-authorization-context';
@@ -82,8 +83,12 @@ describe('shadow authorization isolation', () => {
       serviceId: null,
     });
     expect(report.decision).toBe(shadowAuthorizationDecisions.allow);
-    const authorize = jest.fn().mockResolvedValue(false);
-    const authorizationService = { authorize } as unknown as AuthorizationService;
+    const authorizeWithDecision = jest
+      .fn()
+      .mockResolvedValue(createTestAuthorizationEvaluation(false));
+    const authorizationService = {
+      authorizeWithDecision,
+    } as unknown as AuthorizationService;
     const roleGuard = new RoleGuard(new Reflector(), authorizationService);
     const ouAccessGuard = new OuAccessGuard(new Reflector(), authorizationService);
     await expect(
@@ -92,7 +97,7 @@ describe('shadow authorization isolation', () => {
     await expect(
       ouAccessGuard.canActivate(createHttpContext(shadowTestPrincipal)),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(authorize).toHaveBeenCalled();
+    expect(authorizeWithDecision).toHaveBeenCalled();
   });
 
   it('does not mutate the principal, context, or database', async () => {
@@ -183,6 +188,6 @@ describe('shadow authorization isolation', () => {
     }
     expect(
       readFileSync(join(__dirname, 'authorize-http-execution.ts'), 'utf8'),
-    ).toContain('.authorize(');
+    ).toContain('.authorizeWithDecision(');
   });
 });

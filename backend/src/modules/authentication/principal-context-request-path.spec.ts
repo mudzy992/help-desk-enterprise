@@ -101,6 +101,7 @@ describe('authorization request path (phase 2.2)', () => {
       isLocalOnly: false,
       mustChangePassword: false,
       entraObjectId: null,
+      directoryObjectGuid: null,
       authzVersion: 0,
       organizationalUnitId: 'ou-it',
       userRoles: [

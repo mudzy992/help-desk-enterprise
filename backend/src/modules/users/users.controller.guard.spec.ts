@@ -42,13 +42,13 @@ describe('UsersController guards', () => {
   });
 
   it('rejects requests without an authenticated principal', async () => {
-    const authorize = jest.fn();
+    const authorizeWithDecision = jest.fn();
     const guard = new RoleGuard(new Reflector(), {
-      authorize,
+      authorizeWithDecision,
     } as never);
     await expect(guard.canActivate(createContext({}))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(authorize).not.toHaveBeenCalled();
+    expect(authorizeWithDecision).not.toHaveBeenCalled();
   });
 });
