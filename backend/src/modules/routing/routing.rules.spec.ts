@@ -15,7 +15,7 @@ describe('RoutingService rules', () => {
   });
 
   it('creates a routing rule for origin unit + service → group', async () => {
-    const { routing, viewer } = createRoutingServiceHarness();
+    const { routing } = createRoutingServiceHarness();
     const created = await routing.createRule({
       originUnitId: 'ou-leaf',
       serviceId: 'service-vpn',
@@ -30,7 +30,7 @@ describe('RoutingService rules', () => {
   });
 
   it('rejects a duplicate origin unit + service rule', async () => {
-    const { routing, viewer } = createRoutingServiceHarness();
+    const { routing } = createRoutingServiceHarness();
     await routing.createRule({
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
@@ -58,7 +58,7 @@ describe('RoutingService rules', () => {
   });
 
   it('rejects invalid origin unit, service, and target group', async () => {
-    const { routing, viewer } = createRoutingServiceHarness();
+    const { routing } = createRoutingServiceHarness();
     await expect(
       routing.createRule({
         originUnitId: 'missing-ou',

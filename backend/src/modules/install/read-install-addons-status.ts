@@ -4,8 +4,6 @@ import {
 } from '../settings/addon-catalog';
 import type { SettingsService } from '../settings/settings.service';
 import type {
-  InstallAddonCatalogItem,
-  InstallAddonsCatalogRecord,
   InstallAddonsPublicRecord,
 } from './install-addons.types';
 import {

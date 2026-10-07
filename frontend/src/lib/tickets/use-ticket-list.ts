@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { defaultInboxTab, unroutedInboxTabKey, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { defaultInboxTab, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
 import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";

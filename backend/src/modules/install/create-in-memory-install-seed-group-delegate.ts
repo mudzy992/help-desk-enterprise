@@ -54,10 +54,8 @@ export function createInMemoryInstallSeedGroupDelegate(
     },
     findMany: async ({
       where,
-      orderBy,
     }: {
       where?: GroupWhere;
-      orderBy?: unknown;
     } = {}) =>
       [...groups.values()]
         .filter((group) => matchesGroup(group, where))

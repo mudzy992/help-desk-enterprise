@@ -31,11 +31,14 @@ export class InstallSetupService {
     if (isCompleted) {
       return completedStatus();
     }
-    const [superAdmin, loginProvider, smtp, seed, addons] = await Promise.all([
+    const [superAdmin, loginProvider, smtp, seed] = await Promise.all([
       findInstallSuperAdmin(this.prisma).catch(propagateDatabaseFailure),
       this.readLoginProviderStatus().catch(propagateDatabaseFailure),
       this.readSmtpStatus().catch(propagateDatabaseFailure),
       readInstallSeedStatus(this.prisma).catch(propagateDatabaseFailure),
+      // Addons status is read but does not gate setup completion at this
+      // time (the addons step is always complete); keep the call so errors
+      // surface during troubleshooting but don't bind to a variable.
       readInstallAddonsStatus(this.settingsService).catch(propagateDatabaseFailure),
     ]);
     const steps = {

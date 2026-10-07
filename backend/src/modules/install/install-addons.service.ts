@@ -8,7 +8,6 @@ import {
 } from './install-addons.constants';
 import { InstallAddonsError } from './install-addons.error';
 import type {
-  InstallAddonCatalogItem,
   InstallAddonsPublicRecord,
   InstallAddonsStatus,
   SaveInstallAddonsInput,
