@@ -235,8 +235,8 @@ function createMatrixPrisma(
       arg: readonly Promise<T>[] | ((client: unknown) => Promise<T>),
     ): Promise<T[] | T> =>
       Array.isArray(arg)
-        ? Promise.all(arg)
-        : arg(prisma),
+        ? Promise.all(arg as readonly Promise<T>[])
+        : (arg as (client: unknown) => Promise<T>)(prisma),
   };
   return prisma as never;
 }
