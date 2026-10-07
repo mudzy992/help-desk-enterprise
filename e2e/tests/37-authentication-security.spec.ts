@@ -189,7 +189,8 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     await verifyForm.locator('#mfa-code').fill('123456');
     await verifyForm.locator('button[type="submit"]').click();
     await expect(page.getByRole('alert')).toContainText(/istekao|expired/i);
-    await verifyForm.getByRole('button').last().click();
+    // The last button toggles recovery-code input; select the cancel action explicitly.
+    await verifyForm.getByRole('button', { name: /^(?:odustani|cancel)$/i }).click();
     await expect(page.locator('#login-email')).toBeVisible();
 
     stage = 'enroll';
