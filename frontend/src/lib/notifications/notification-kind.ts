@@ -1,4 +1,4 @@
-export type NotificationKind = "ticket" | "sla" | "approval" | "system";
+export type NotificationKind = "ticket" | "sla" | "approval" | "article" | "system";
 
 const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "ticket.created": "ticket",
@@ -13,6 +13,7 @@ const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "remote.requested": "ticket",
   "ticket.timeAutoStopped": "ticket",
   "ticket.unroutedOverdue": "ticket",
+  "knowledge.reviewDue": "article",
 };
 
 export function notificationKind(type: string): NotificationKind {
@@ -68,6 +69,13 @@ export function notificationTicketPath(
   // Paket 2.9 (K3): every on-call notification opens the on-call page.
   if (type?.startsWith("oncall.")) {
     return "/on-call";
+  }
+  // Paket 5.2.4 (M14 B2): KB review-due opens the stale-article admin page.
+  if (type === "knowledge.reviewDue") {
+    const articleId = (payload as { readonly articleId?: string } | null)?.articleId;
+    return articleId
+      ? `/admin/knowledge/articles/${encodeURIComponent(articleId)}`
+      : "/admin/knowledge/articles?staleOnly=true";
   }
   // Paket 2.1: account security events open the own security page.
   if (type?.startsWith("account.")) {
@@ -129,6 +137,7 @@ export function notificationTitleKey(
   | "notifications.items.changeStartingSoon"
   | "notifications.items.changeOverdue"
   | "notifications.items.changeFailed"
+  | "notifications.items.knowledgeReviewDue"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -213,6 +222,8 @@ export function notificationTitleKey(
       return "notifications.items.changeOverdue";
     case "change.failed":
       return "notifications.items.changeFailed";
+    case "knowledge.reviewDue":
+      return "notifications.items.knowledgeReviewDue";
     default:
       return "notifications.items.unknown";
   }

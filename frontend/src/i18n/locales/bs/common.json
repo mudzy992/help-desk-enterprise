@@ -189,7 +189,8 @@
       "changeDecided": "CAB je odlučio o promjeni",
       "changeStartingSoon": "Promjena uskoro počinje",
       "changeOverdue": "Promjena je prekoračila planirani kraj",
-      "changeFailed": "Promjena vezana za vaš problem nije uspjela"
+      "changeFailed": "Promjena vezana za vaš problem nije uspjela",
+      "knowledgeReviewDue": "Članak znanja treba osvježiti"
     }
   },
   "placeholders": {

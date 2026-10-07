@@ -45,26 +45,31 @@ export class KnowledgeBaseReviewReminderService {
       const recipients = await resolveOwnerRecipients(this.prisma, article);
       const dedupeKey = `kb-review:${article.id}:${article.reviewDueAt.toISOString()}`;
       for (const userId of recipients) {
+        // Package 5.2.4 (M14 B2): the reminder is KB-scoped, not ticket-scoped.
+        // Use articleId/articleSlug in payload and do not stuff them into the
+        // ticket fields, so click routing lands on the KB admin page.
         const created = await persistInAppNotification(
           this.prisma,
           {
-          userId,
-          type: notificationTypes.knowledgeReviewDue,
-          title: 'notifications.items.knowledgeReviewDue',
-          body: article.title,
-          ticketId: null,
-          payload: {
-            ticketId: article.id,
-            ticketNumber: article.slug,
-            event: notificationTypes.knowledgeReviewDue,
-            messageId: dedupeKey,
-            actorUserId: null,
-            confidential: false,
-          } satisfies NotificationPayload,
-          dedupeKey: `${dedupeKey}:${userId}`,
-        },
-        policy,
-      );
+            userId,
+            type: notificationTypes.knowledgeReviewDue,
+            title: 'Znanje za pregled',
+            body: `Članak "${article.title}" (${article.slug}) dospijeva na pregled — osvježi ga ili produži rok.`,
+            ticketId: null,
+            payload: {
+              ticketId: null,
+              ticketNumber: null,
+              articleId: article.id,
+              articleSlug: article.slug,
+              event: notificationTypes.knowledgeReviewDue,
+              messageId: dedupeKey,
+              actorUserId: null,
+              confidential: false,
+            } satisfies NotificationPayload,
+            dedupeKey: `${dedupeKey}:${userId}`,
+          },
+          policy,
+        );
         if (created !== null) {
           sent += 1;
         }

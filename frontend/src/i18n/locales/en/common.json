@@ -188,7 +188,8 @@
       "changeDecided": "The CAB decided on a change",
       "changeStartingSoon": "A change starts soon",
       "changeOverdue": "A change has passed its planned end",
-      "changeFailed": "A change linked to your problem failed"
+      "changeFailed": "A change linked to your problem failed",
+      "knowledgeReviewDue": "A knowledge article needs review"
     }
   },
   "placeholders": {

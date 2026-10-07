@@ -20,8 +20,12 @@ export type NotificationRecord = {
 };
 
 export type NotificationPayload = {
-  readonly ticketId: string;
-  readonly ticketNumber: string;
+  /** Present for ticket-scoped notifications; null/omitted for KB events. */
+  readonly ticketId?: string | null;
+  readonly ticketNumber?: string | null;
+  /** Package 5.2.4 (M14 B2): knowledge-article routing for non-ticket events. */
+  readonly articleId?: string | null;
+  readonly articleSlug?: string | null;
   readonly event: string;
   readonly messageId: string;
   readonly actorUserId: string | null;
