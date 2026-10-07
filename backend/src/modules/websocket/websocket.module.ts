@@ -3,7 +3,7 @@ import { AuthenticationModule } from '../authentication/authentication.module';
 import { JwtSocketAuthenticationVerifier } from '../authentication/jwt-socket-authentication.verifier';
 import { LegacyGroupEmitNotice } from './legacy-group-emit-notice';
 import { SocketAuthenticationService } from './socket-authentication.service';
-import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication-verifier-token';
+import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { WebsocketGateway } from './websocket.gateway';
 
