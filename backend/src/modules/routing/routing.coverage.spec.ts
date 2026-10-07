@@ -7,7 +7,7 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 
 describe('RoutingService coverage', () => {
   it('defaults to active services and reports the lifecycle', async () => {
-    const { memory, routing } = createRoutingServiceHarness();
+    const { memory, routing, viewer } = createRoutingServiceHarness();
     memory.seedService({
       id: 'service-active',
       name: 'Active service',
@@ -21,7 +21,7 @@ describe('RoutingService coverage', () => {
       availability: 'OPERATIONAL',
     });
 
-    const page = await routing.coverage({}, null);
+    const page = await routing.coverage({}, viewer);
     expect(page.total).toBe(1);
     expect(page.items.map((item) => item.serviceId)).toEqual([
       'service-active',
@@ -33,7 +33,7 @@ describe('RoutingService coverage', () => {
   });
 
   it('includes inactive services and paginates complete service rows with both filters', async () => {
-    const { memory, routing } = createRoutingServiceHarness();
+    const { memory, routing, viewer } = createRoutingServiceHarness();
     memory.seedService({
       id: 'service-active',
       name: 'Active service',
@@ -46,7 +46,7 @@ describe('RoutingService coverage', () => {
       lifecycle: 'DEPRECATED',
       availability: 'OPERATIONAL',
     });
-    const all = await routing.coverage({ includeInactive: true, take: 10 }, null);
+    const all = await routing.coverage({ includeInactive: true, take: 10 }, viewer);
     expect(all.total).toBe(3);
     expect(new Set(all.items.map((item) => item.serviceId))).toEqual(
       new Set(['service-active', 'service-deprecated', 'service-vpn']),
@@ -61,7 +61,7 @@ describe('RoutingService coverage', () => {
       'service-vpn': 'DRAFT',
     });
 
-    const first = await routing.coverage({ includeInactive: true, take: 1 }, null);
+    const first = await routing.coverage({ includeInactive: true, take: 1 }, viewer);
     expect(first.total).toBe(3);
     expect(first.items).toHaveLength(3);
     const firstServiceId = first.items[0]?.serviceId;
@@ -72,7 +72,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 1,
       cursor: first.nextCursor ?? undefined,
-    }, null);
+    }, viewer);
     expect(second.total).toBe(3);
     expect(second.items).toHaveLength(3);
     const secondServiceId = second.items[0]?.serviceId;
@@ -84,7 +84,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 1,
       cursor: second.nextCursor ?? undefined,
-    }, null);
+    }, viewer);
     expect(third.total).toBe(3);
     expect(third.items).toHaveLength(3);
     expect(third.items.every((item) => item.serviceId !== firstServiceId && item.serviceId !== secondServiceId)).toBe(true);
@@ -94,7 +94,7 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
-    }, null);
+    }, viewer);
     expect(filtered.total).toBe(1);
     expect(filtered.items).toHaveLength(1);
     expect(filtered.items[0]).toMatchObject({
@@ -104,7 +104,7 @@ describe('RoutingService coverage', () => {
   });
 
   it('caps cursor pages at 50 services even when the caller asks for more', async () => {
-    const { memory, routing } = createRoutingServiceHarness();
+    const { memory, routing, viewer } = createRoutingServiceHarness();
     for (let index = 0; index < 51; index += 1) {
       const suffix = String(index).padStart(2, '0');
       memory.seedService({
@@ -115,7 +115,7 @@ describe('RoutingService coverage', () => {
       });
     }
 
-    const first = await routing.coverage({ includeInactive: true, take: 100 }, null);
+    const first = await routing.coverage({ includeInactive: true, take: 100 }, viewer);
     const firstServiceIds = new Set(first.items.map((item) => item.serviceId));
     expect(first.total).toBeGreaterThan(50);
     expect(firstServiceIds.size).toBe(50);
@@ -125,21 +125,21 @@ describe('RoutingService coverage', () => {
       includeInactive: true,
       take: 100,
       cursor: first.nextCursor ?? undefined,
-    }, null);
+    }, viewer);
     const secondServiceIds = new Set(second.items.map((item) => item.serviceId));
     expect(secondServiceIds.size).toBe(first.total - 50);
     expect([...firstServiceIds].some((serviceId) => secondServiceIds.has(serviceId))).toBe(false);
   });
 
   it('rejects malformed coverage cursors', async () => {
-    const { routing } = createRoutingServiceHarness();
-    await expect(routing.coverage({ cursor: 'not-a-cursor' }, null)).rejects.toMatchObject({
+    const { routing, viewer } = createRoutingServiceHarness();
+    await expect(routing.coverage({ cursor: 'not-a-cursor' }, viewer)).rejects.toMatchObject({
       status: 400,
     });
   });
 
   it('classifies exact, inherited, missing, and unrouted combinations', async () => {
-    const { routing } = createRoutingServiceHarness();
+    const { routing, viewer } = createRoutingServiceHarness();
     await routing.createRule({
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
@@ -149,7 +149,7 @@ describe('RoutingService coverage', () => {
     const coveragePage = await routing.coverage({
       serviceId: 'service-vpn',
       includeInactive: true,
-    }, null);
+    }, viewer);
     const byOrigin = Object.fromEntries(
       coveragePage.items.map((item) => [item.originUnitId, item]),
     );
@@ -169,7 +169,7 @@ describe('RoutingService coverage', () => {
       serviceId: 'service-vpn',
       originUnitId: 'ou-leaf',
       includeInactive: true,
-    }, null);
+    }, viewer);
     expect(filteredToLeaf.items[0]?.resolution.outcome).toBe(
       routingOutcomes.parentFallback,
     );

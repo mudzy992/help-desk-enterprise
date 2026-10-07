@@ -7,15 +7,15 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 
 describe('RoutingService rules', () => {
   it('lists handler groups for the create-rule select', async () => {
-    const { routing } = createRoutingServiceHarness();
-    await expect(routing.listHandlerGroups()).resolves.toEqual([
+    const { routing, viewer } = createRoutingServiceHarness();
+    await expect(routing.listHandlerGroups(viewer)).resolves.toEqual([
       { id: 'group-it', name: 'IT Support' },
       { id: 'group-net', name: 'Network Ops' },
     ]);
   });
 
   it('creates a routing rule for origin unit + service → group', async () => {
-    const { routing } = createRoutingServiceHarness();
+    const { routing, viewer } = createRoutingServiceHarness();
     const created = await routing.createRule({
       originUnitId: 'ou-leaf',
       serviceId: 'service-vpn',
@@ -30,7 +30,7 @@ describe('RoutingService rules', () => {
   });
 
   it('rejects a duplicate origin unit + service rule', async () => {
-    const { routing } = createRoutingServiceHarness();
+    const { routing, viewer } = createRoutingServiceHarness();
     await routing.createRule({
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
@@ -58,7 +58,7 @@ describe('RoutingService rules', () => {
   });
 
   it('rejects invalid origin unit, service, and target group', async () => {
-    const { routing } = createRoutingServiceHarness();
+    const { routing, viewer } = createRoutingServiceHarness();
     await expect(
       routing.createRule({
         originUnitId: 'missing-ou',
@@ -86,7 +86,7 @@ describe('RoutingService rules', () => {
   });
 
   it('updates the target group and deletes with parent fallback', async () => {
-    const { routing } = createRoutingServiceHarness();
+    const { routing, viewer } = createRoutingServiceHarness();
     await routing.createRule({
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
@@ -107,7 +107,7 @@ describe('RoutingService rules', () => {
     });
     expect(updated.groupId).toBe('group-net');
     expect(updated.groupName).toBe('Network Ops');
-    const impact = await routing.deleteImpact(exact.id);
+    const impact = await routing.deleteImpact(exact.id, viewer);
     expect(impact.before.outcome).toBe('EXACT');
     expect(impact.after.outcome).toBe('PARENT_FALLBACK');
     expect(impact.after.groupId).toBe('group-it');

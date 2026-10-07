@@ -109,7 +109,7 @@ describe('RoutingService change log', () => {
   });
 
   it('records update and delete diffs and lists newest first', async () => {
-    const { routing, memory } = createRoutingServiceHarness();
+    const { routing, memory, viewer } = createRoutingServiceHarness();
     const created = await routing.createRule(
       {
         originUnitId: 'ou-leaf',
@@ -149,7 +149,7 @@ describe('RoutingService change log', () => {
       outcome: routingOutcomes.unrouted,
       targetGroupId: null,
     });
-    const listed = await routing.listChanges(null);
+    const listed = await routing.listChanges(viewer);
     expect(listed.map((entry) => entry.diff.action)).toEqual([
       'delete',
       'update',
@@ -159,7 +159,7 @@ describe('RoutingService change log', () => {
       reason: 'Drop unused leaf rule',
       actorUserId: 'admin-3',
     });
-    const byRule = await routing.listRuleChanges(created.id, null);
+    const byRule = await routing.listRuleChanges(created.id, viewer);
     expect(byRule).toHaveLength(3);
   });
 });

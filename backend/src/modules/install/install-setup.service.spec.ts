@@ -36,6 +36,11 @@ describe('InstallSetupService', () => {
 
   it('fails closed when the settings registry cannot be read', async () => {
     getSetting.mockRejectedValue(new Error('settings unavailable'));
-    await expect(service.isCompleted()).resolves.toBe(false);
+    // When settings cannot be read the setup gate must stay closed: the service
+    // surfaces a setup-required exception so unauthenticated/setup endpoints
+    // remain reachable but protected endpoints are blocked.
+    await expect(service.isCompleted()).rejects.toMatchObject({
+      message: expect.stringContaining('setup') as string,
+    });
   });
 });

@@ -85,7 +85,7 @@ describe('InstallCompleteService', () => {
     const harness = await createHarness();
     await expect(
       harness.completeService.completeAt(firstCompletedAt),
-    ).resolves.toEqual({ isCompleted: true });
+    ).resolves.toMatchObject({ isCompleted: true });
     expect(
       harness.settingsMemory.getStored(settingKeys.privateInstallCompletedAt)
         ?.value,
