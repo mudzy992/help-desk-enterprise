@@ -4,6 +4,7 @@ import { AuthenticationError } from './authentication.error';
 export function assertSuperAdminIsLocalOnly(input: {
   readonly isLocalOnly: boolean;
   readonly entraObjectId?: string | null;
+  readonly directoryObjectGuid?: string | null;
   readonly roleKeys: readonly string[];
 }): void {
   if (!input.roleKeys.includes(authenticationConstants.superAdminRoleKey)) {
@@ -12,7 +13,10 @@ export function assertSuperAdminIsLocalOnly(input: {
   if (!input.isLocalOnly) {
     throw new AuthenticationError('SUPER_ADMIN_MUST_BE_LOCAL_ONLY');
   }
-  if (input.entraObjectId !== undefined && input.entraObjectId !== null) {
+  if (
+    (input.entraObjectId !== undefined && input.entraObjectId !== null) ||
+    (input.directoryObjectGuid !== undefined && input.directoryObjectGuid !== null)
+  ) {
     throw new AuthenticationError('SUPER_ADMIN_CANNOT_HAVE_EXTERNAL_IDENTITY');
   }
 }

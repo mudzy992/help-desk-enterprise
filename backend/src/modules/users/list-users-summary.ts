@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { Prisma } from '../../generated/prisma/client';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { UserRoleTone, UserSummaryResponse } from './users.types';
 
@@ -18,6 +19,7 @@ export function resolveUserRoleTone(roleKey: string | null): UserRoleTone {
 }
 
 export const userListMaxTake = 500;
+export const userListDefaultTake = userListMaxTake;
 
 export type ListUsersSummaryOptions = {
   /** Only these users (single-user reloads after create/update/reset). */
@@ -27,6 +29,27 @@ export type ListUsersSummaryOptions = {
   readonly take?: number;
   readonly skip?: number;
 };
+
+export type UserSummaryPage = {
+  readonly items: readonly UserSummaryResponse[];
+  readonly total: number;
+};
+
+function buildUsersSummaryWhere(options: ListUsersSummaryOptions): Prisma.UserWhereInput {
+  const query = options.query?.trim() ?? '';
+  return {
+    ...(options.ids !== undefined ? { id: { in: [...options.ids] } } : {}),
+    ...(query.length > 0
+      ? {
+          OR: [
+            { displayName: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+            { userRoles: { some: { role: { name: { contains: query, mode: 'insensitive' } } } } },
+          ],
+        }
+      : {}),
+  };
+}
 
 /**
  * Review 2026-09-25 (S3): every mutation used to reload the whole directory to
@@ -38,19 +61,8 @@ export async function listUsersSummary(
   prisma: PrismaService,
   options: ListUsersSummaryOptions = {},
 ): Promise<readonly UserSummaryResponse[]> {
-  const query = options.query?.trim() ?? '';
   const users = await prisma.user.findMany({
-    where: {
-      ...(options.ids !== undefined ? { id: { in: [...options.ids] } } : {}),
-      ...(query.length > 0
-        ? {
-            OR: [
-              { displayName: { contains: query, mode: 'insensitive' as const } },
-              { email: { contains: query, mode: 'insensitive' as const } },
-            ],
-          }
-        : {}),
-    },
+    where: buildUsersSummaryWhere(options),
     ...(options.take !== undefined
       ? { take: Math.min(Math.max(1, Math.trunc(options.take)), userListMaxTake) }
       : {}),
@@ -109,4 +121,20 @@ export async function listUsersSummary(
       legalHold: user.legalHoldAt !== null,
     };
   });
+}
+
+/** Paged HTTP read; `total` is computed from the same filters, not the slice. */
+export async function listUsersSummaryPage(
+  prisma: PrismaService,
+  options: ListUsersSummaryOptions = {},
+): Promise<UserSummaryPage> {
+  const take = Math.min(
+    Math.max(1, Math.trunc(options.take ?? userListDefaultTake)),
+    userListMaxTake,
+  );
+  const [items, total] = await Promise.all([
+    listUsersSummary(prisma, { ...options, take }),
+    prisma.user.count({ where: buildUsersSummaryWhere(options) }),
+  ]);
+  return { items, total };
 }

@@ -16,7 +16,7 @@ import type {
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 import { readPasswordChangeSubjectId } from './read-password-change-subject-id';
 import { readSessionSubjectId } from './read-session-subject-id';
-import { SessionRevocationStore } from './session-revocation.store';
+import { SessionRevocationStore, type SessionRevocationExceptions } from './session-revocation.store';
 
 @Injectable()
 export class SessionTokenService {
@@ -100,10 +100,14 @@ export class SessionTokenService {
   }
 
   /** Password change: every earlier session of the user stops working. */
-  async revokeAllForUser(subjectId: string): Promise<void> {
+  async revokeAllForUser(
+    subjectId: string,
+    exceptions?: SessionRevocationExceptions,
+  ): Promise<void> {
     await this.revocation.revokeAllForUser(
       subjectId,
       authenticationConstants.sessionTtlSeconds,
+      exceptions,
     );
   }
 

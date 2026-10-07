@@ -18,7 +18,14 @@ import {
   readMfaEncryptionKey,
   readPreviousMfaEncryptionKey,
 } from './mfa-secret-cipher';
-import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from './recovery-codes';
+import {
+  deriveRecoveryCodeHmacKeyCandidates,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  looksLikeRecoveryCode,
+  recoveryCodeHashMatches,
+  type RecoveryCodeHmacKey,
+} from './recovery-codes';
 import { buildOtpauthUri, generateTotpSecret, verifyTotp } from './totp';
 
 const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
@@ -77,9 +84,18 @@ export class MfaService {
   }
 
   async status(subject: MfaSubject, policy: AccountSecurityPolicy): Promise<MfaStatus> {
+    const recoveryCodeKeys = this.recoveryCodeVerificationKeys();
     const [row, remaining] = await Promise.all([
       this.prisma.userMfa.findUnique({ where: { userId: subject.id }, select: { enabledAt: true } }),
-      this.prisma.userMfaRecoveryCode.count({ where: { userId: subject.id, usedAt: null } }),
+      recoveryCodeKeys.length === 0
+        ? Promise.resolve(0)
+        : this.prisma.userMfaRecoveryCode.count({
+            where: {
+              userId: subject.id,
+              usedAt: null,
+              keyId: { in: recoveryCodeKeys.map(({ keyId }) => keyId) },
+            },
+          }),
     ]);
     return {
       requirement: this.requirementFor(subject, policy),
@@ -145,6 +161,7 @@ export class MfaService {
       throw new AccountSecurityError('MFA_INVALID_CODE');
     }
     const codes = generateRecoveryCodes();
+    const recoveryCodeHmacKey = this.recoveryCodeWriteKey();
     await this.prisma.$transaction([
       this.prisma.userMfa.update({
         where: { userId: subject.id },
@@ -159,7 +176,11 @@ export class MfaService {
       }),
       this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId: subject.id } }),
       this.prisma.userMfaRecoveryCode.createMany({
-        data: codes.map((value) => ({ userId: subject.id, codeHash: hashRecoveryCode(value) })),
+        data: codes.map((value) => ({
+          userId: subject.id,
+          codeHash: hashRecoveryCode(value, recoveryCodeHmacKey.key),
+          keyId: recoveryCodeHmacKey.keyId,
+        })),
       }),
     ]);
     await this.notifier.audit(auditLogActions.authMfaEnrolled, subject.id, subject.id);
@@ -214,10 +235,15 @@ export class MfaService {
       throw new AccountSecurityError('MFA_INVALID_CODE');
     }
     const codes = generateRecoveryCodes();
+    const recoveryCodeHmacKey = this.recoveryCodeWriteKey();
     await this.prisma.$transaction([
       this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId: subject.id } }),
       this.prisma.userMfaRecoveryCode.createMany({
-        data: codes.map((value) => ({ userId: subject.id, codeHash: hashRecoveryCode(value) })),
+        data: codes.map((value) => ({
+          userId: subject.id,
+          codeHash: hashRecoveryCode(value, recoveryCodeHmacKey.key),
+          keyId: recoveryCodeHmacKey.keyId,
+        })),
       }),
     ]);
     await this.notifier.audit(auditLogActions.authMfaRecoveryRegenerated, subject.id, subject.id);
@@ -232,14 +258,45 @@ export class MfaService {
   }
 
   private async useRecoveryCode(subject: MfaSubject, code: string, now: Date): Promise<'recovery'> {
+    const hashKeys = this.recoveryCodeVerificationKeys();
+    if (hashKeys.length === 0) {
+      throw new AccountSecurityError('MFA_UNAVAILABLE');
+    }
+    const candidates = await this.prisma.userMfaRecoveryCode.findMany({
+      where: {
+        userId: subject.id,
+        usedAt: null,
+        keyId: { in: hashKeys.map(({ keyId }) => keyId) },
+      },
+      select: { id: true, codeHash: true, keyId: true },
+    });
+    if (candidates.length === 0) {
+      throw new AccountSecurityError('MFA_RECOVERY_CODES_EXHAUSTED');
+    }
+    const keyById = new Map(hashKeys.map((candidate) => [candidate.keyId, candidate.key]));
+    const matchingCode = candidates.find((candidate) => {
+      const hmacKey = keyById.get(candidate.keyId);
+      return hmacKey !== undefined &&
+        recoveryCodeHashMatches(candidate.codeHash, hashRecoveryCode(code, hmacKey));
+    });
+    if (matchingCode === undefined) {
+      throw new AccountSecurityError('MFA_INVALID_CODE');
+    }
+    // Compare-and-set by id means concurrent use of one code still has one winner.
     const used = await this.prisma.userMfaRecoveryCode.updateMany({
-      where: { userId: subject.id, codeHash: hashRecoveryCode(code), usedAt: null },
+      where: { id: matchingCode.id, userId: subject.id, usedAt: null },
       data: { usedAt: now },
     });
     if (used.count === 0) {
       throw new AccountSecurityError('MFA_INVALID_CODE');
     }
-    const remaining = await this.prisma.userMfaRecoveryCode.count({ where: { userId: subject.id, usedAt: null } });
+    const remaining = await this.prisma.userMfaRecoveryCode.count({
+      where: {
+        userId: subject.id,
+        usedAt: null,
+        keyId: { in: hashKeys.map(({ keyId }) => keyId) },
+      },
+    });
     await this.notifier.audit(auditLogActions.authMfaRecoveryUsed, subject.id, subject.id, { remaining });
     await this.notifier.notify(subject.id, notificationTypes.accountRecoveryCodeUsed, null, `mfa-recovery:${subject.id}:${now.getTime()}`);
     return 'recovery';
@@ -250,6 +307,25 @@ export class MfaService {
       this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId } }),
       this.prisma.userMfa.deleteMany({ where: { userId } }),
     ]);
+  }
+
+  private recoveryCodeVerificationKeys(): readonly RecoveryCodeHmacKey[] {
+    return deriveRecoveryCodeHmacKeyCandidates(
+      readMfaEncryptionKey(),
+      readPreviousMfaEncryptionKey(),
+    );
+  }
+
+  private recoveryCodeWriteKey(): RecoveryCodeHmacKey {
+    const currentKey = readMfaEncryptionKey();
+    if (currentKey === null) {
+      throw new AccountSecurityError('MFA_UNAVAILABLE');
+    }
+    const [derived] = deriveRecoveryCodeHmacKeyCandidates(currentKey, null);
+    if (derived === undefined) {
+      throw new AccountSecurityError('MFA_UNAVAILABLE');
+    }
+    return derived;
   }
 
   private encrypt(secret: string): string {

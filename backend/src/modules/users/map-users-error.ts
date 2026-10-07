@@ -26,7 +26,10 @@ export function mapUsersError(error: unknown): never {
   if (
     error.code === 'EMAIL_CONFLICT' ||
     error.code === 'DIRECTORY_IDENTITY_CONFLICT' ||
-    error.code === 'DIRECTORY_ACCOUNT_NOT_LOCAL'
+    error.code === 'DIRECTORY_ACCOUNT_NOT_LOCAL' ||
+    error.code === 'USER_INACTIVE' ||
+    error.code === 'LAST_SUPER_ADMIN_REQUIRED' ||
+    error.code === 'SUPER_ADMIN_LOCAL_IDENTITY_REQUIRED'
   ) {
     throw new ConflictException({
       code: error.code,
@@ -35,7 +38,13 @@ export function mapUsersError(error: unknown): never {
           ? 'Directory identity is already linked to another user'
           : error.code === 'DIRECTORY_ACCOUNT_NOT_LOCAL'
             ? 'Directory accounts cannot be reset directly. Unlink the directory identity first.'
-            : 'A user with this email already exists',
+            : error.code === 'USER_INACTIVE'
+              ? 'Activate the user account before resetting its password.'
+              : error.code === 'LAST_SUPER_ADMIN_REQUIRED'
+                ? 'At least one active SuperAdmin account must remain.'
+                : error.code === 'SUPER_ADMIN_LOCAL_IDENTITY_REQUIRED'
+                  ? 'SuperAdmin roles require an active local-only account with no linked directory identity.'
+                  : 'A user with this email already exists',
     });
   }
   if (error.code === 'HAS_OPEN_TICKETS' || error.code === 'DELETE_RESTRICTED') {

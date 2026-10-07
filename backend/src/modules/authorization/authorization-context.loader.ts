@@ -16,6 +16,7 @@ function toAuthorizationContext(
     isActive: principal.isActive,
     isLocalOnly: principal.isLocalOnly,
     entraObjectId: principal.entraObjectId,
+    directoryObjectGuid: principal.directoryObjectGuid ?? null,
     assignments: principal.assignments,
   });
 }

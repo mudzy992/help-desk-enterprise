@@ -9,7 +9,7 @@ import { createUser } from './create-user';
 import { deleteUser } from './delete-user';
 import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 import { listUserRoles } from './list-user-roles';
-import { listUsersSummary } from './list-users-summary';
+import { listUsersSummary, listUsersSummaryPage } from './list-users-summary';
 import { mapUsersError } from './map-users-error';
 import { removeUserRole } from './remove-user-role';
 import type { ListUsersSummaryOptions } from './list-users-summary';
@@ -56,6 +56,10 @@ export class UsersService {
     return this.execute(() => listUsersSummary(this.prisma, options));
   }
 
+  listSummaryPage(options: ListUsersSummaryOptions = {}) {
+    return this.execute(() => listUsersSummaryPage(this.prisma, options));
+  }
+
   create(input: CreateUserInput): Promise<CreateUserResponse> {
     return this.execute(() =>
       createUser(this.prisma, input, {
@@ -83,15 +87,17 @@ export class UsersService {
     input: { readonly userId: string; readonly directoryExternalId: string },
     context: UserAuditContext = emptyAuditContext,
   ): Promise<UserSummaryResponse> {
-    return this.execute(() =>
-      linkUserDirectoryIdentity({
+    return this.execute(async () => {
+      const response = await linkUserDirectoryIdentity({
         prisma: this.prisma,
         directorySyncService: this.directorySyncService,
         userId: input.userId,
         directoryExternalId: input.directoryExternalId,
         context,
-      }),
-    );
+      });
+      await this.invalidatePrincipal()(response.id);
+      return response;
+    });
   }
 
   unlinkDirectoryIdentity(

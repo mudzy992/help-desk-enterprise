@@ -117,7 +117,14 @@ describe('updateUser', () => {
 
   it('invalidates cached authorization after the audited active/unit mutation', async () => {
     const update = jest.fn().mockResolvedValue({});
-    const transaction = { user: { update } };
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      user: {
+        update,
+        findUnique: jest.fn().mockResolvedValue({ isActive: true }),
+      },
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
     const prisma = {
       user: { findUnique: jest.fn().mockResolvedValue(user) },
       organizationalUnit: { findUnique: jest.fn() },
@@ -132,6 +139,34 @@ describe('updateUser', () => {
     expect(update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { isActive: false } });
     expect(recordUserChange).toHaveBeenCalledTimes(1);
     expect(invalidatePrincipal).toHaveBeenCalledWith('user-1');
+  });
+
+  it('blocks deactivation of the last active SuperAdmin inside the transaction', async () => {
+    const update = jest.fn();
+    const userRoleFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'super-role-1' })
+      .mockResolvedValueOnce(null);
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ isActive: true }),
+        update,
+      },
+      userRole: { findFirst: userRoleFindFirst },
+    };
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ ...user, isActive: true }) },
+      organizationalUnit: { findUnique: jest.fn() },
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback(transaction)),
+    };
+
+    await expect(
+      updateUser(prisma as never, { userId: user.id, isActive: false }),
+    ).rejects.toMatchObject({ code: 'LAST_SUPER_ADMIN_REQUIRED' });
+    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(update).not.toHaveBeenCalled();
+    expect(recordUserChange).not.toHaveBeenCalled();
   });
 
   it('does not audit or invalidate when the update changed nothing', async () => {

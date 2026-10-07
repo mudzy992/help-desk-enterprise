@@ -1,3 +1,4 @@
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { permissionKeys } from './authorization.constants';
 import { AuthorizationService } from './authorization.service';
 import { createTestAuthorizationContext } from './create-test-authorization-context';
@@ -134,6 +135,63 @@ describe('AuthorizationService', () => {
     expect(findOrganizationalUnit).toHaveBeenCalledWith({
       where: { id: 'ou-zenica' },
       select: { ouPath: true },
+    });
+  });
+
+  it('commits a SuperAdmin bypass event with searchable decision and target metadata', async () => {
+    const auditLog = {
+      findFirst: jest.fn().mockResolvedValue({ hash: 'previous-hash' }),
+      create: jest.fn().mockResolvedValue(undefined),
+    };
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      auditLog,
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) =>
+        callback(transaction)),
+    };
+    const serviceWithAudit = new AuthorizationService(
+      { loadBySubjectId } as never,
+      prisma as never,
+    );
+
+    await serviceWithAudit.recordSuperAdminBypass({
+      actorUserId: 'super-admin-1',
+      requestId: 'req-1',
+      route: '/groups/:groupId',
+      method: 'GET',
+      requiredRoles: ['ADMIN'],
+      requiredPermissions: [permissionKeys.groupManage],
+      permissionMatchMode: 'any',
+      organizationalUnitId: 'ou-1',
+      serviceId: null,
+      resourceType: 'groupId',
+      resourceId: 'group-1',
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: auditLogActions.authorizationSuperAdminBypass,
+        entityType: auditLogEntityTypes.authorization,
+        entityId: 'GET /groups/:groupId',
+        actorUserId: 'super-admin-1',
+        requestId: 'req-1',
+        organizationalUnitId: 'ou-1',
+        metadata: {
+          decision: 'SUPER_ADMIN_ALLOWED',
+          requiredRoles: ['ADMIN'],
+          requiredPermissions: [permissionKeys.groupManage],
+          permissionMatchMode: 'any',
+          route: '/groups/:groupId',
+          method: 'GET',
+          organizationalUnitId: 'ou-1',
+          serviceId: null,
+          resource: { type: 'groupId', id: 'group-1' },
+        },
+      }),
     });
   });
 });

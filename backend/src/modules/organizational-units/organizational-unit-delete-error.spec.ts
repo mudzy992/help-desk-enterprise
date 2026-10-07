@@ -1,4 +1,6 @@
-import { organizationalUnitDeleteErrorCode } from './organizational-unit.error';
+import { ConflictException } from '@nestjs/common';
+import { organizationalUnitDeleteErrorCode, OrganizationalUnitError } from './organizational-unit.error';
+import { mapOrganizationalUnitError } from './map-organizational-unit-error';
 
 describe('organizationalUnitDeleteErrorCode', () => {
   it.each([
@@ -14,5 +16,14 @@ describe('organizationalUnitDeleteErrorCode', () => {
     ['tickets', 'HAS_TICKETS'],
   ] as const)('maps %s to %s', (kind, code) => {
     expect(organizationalUnitDeleteErrorCode(kind)).toBe(code);
+  });
+
+  it('maps a protected last-SuperAdmin cascade to a stable 409 response', () => {
+    const error = mapOrganizationalUnitError(
+      new OrganizationalUnitError('LAST_SUPER_ADMIN_REQUIRED'),
+    );
+    expect(error).toBeInstanceOf(ConflictException);
+    expect(error.getStatus()).toBe(409);
+    expect(error.getResponse()).toMatchObject({ code: 'LAST_SUPER_ADMIN_REQUIRED' });
   });
 });

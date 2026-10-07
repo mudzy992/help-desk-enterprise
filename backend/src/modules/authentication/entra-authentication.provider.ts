@@ -87,6 +87,7 @@ function materializeAuthenticatedPrincipal(
     assertSuperAdminIsLocalOnly({
       isLocalOnly: user.isLocalOnly,
       entraObjectId: user.entraObjectId,
+      directoryObjectGuid: user.directoryObjectGuid,
       roleKeys: user.roleKeys,
     });
   } catch (error) {

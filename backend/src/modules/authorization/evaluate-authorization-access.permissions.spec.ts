@@ -84,10 +84,14 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
         }),
       ),
     ).toBe(false);
-    // A mixed requirement is not scope-agnostic.
+    // Explicit AND requirements do not become scope-agnostic through one permission.
     expect(
       evaluateAuthorizationAccess(
-        createTestDecisionInput({ context: scopedAgent, requiredPermissions: [permissionKeys.onCallRead, permissionKeys.routingWrite] }),
+        createTestDecisionInput({
+          context: scopedAgent,
+          requiredPermissions: [permissionKeys.onCallRead, permissionKeys.routingWrite],
+          permissionMatchMode: 'all',
+        }),
       ),
     ).toBe(false);
   });
@@ -126,5 +130,124 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('keeps RequirePermissions OR semantics and requires every permission in all mode on one assignment', () => {
+    const first = permissionKeys.reportsExport;
+    const second = permissionKeys.auditExport;
+    const onePermission = createTestAuthorizationContext({
+      assignments: [createTestAssignment({ permissionKeys: [first] })],
+    });
+
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({
+          context: onePermission,
+          requiredPermissions: [first, second],
+          permissionMatchMode: 'any',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({
+          context: onePermission,
+          requiredPermissions: [first, second],
+          permissionMatchMode: 'all',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({
+          context: createTestAuthorizationContext({
+            assignments: [createTestAssignment({ permissionKeys: [first, second] })],
+          }),
+          requiredPermissions: [first, second],
+          permissionMatchMode: 'all',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({
+          context: createTestAuthorizationContext({
+            assignments: [
+              createTestAssignment({ permissionKeys: [first] }),
+              createTestAssignment({ permissionKeys: [second] }),
+            ],
+          }),
+          requiredPermissions: [first, second],
+          permissionMatchMode: 'all',
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('scopes group.manage to the target OU, with a deliberate unscoped global grant exception', () => {
+    const groupManage = permissionKeys.groupManage;
+    const scoped = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [groupManage],
+          organizationalUnitId: 'ou-a',
+          organizationalUnitPath: '/A',
+        }),
+      ],
+    });
+    const scopedRequest = createTestDecisionInput({
+      context: scoped,
+      requiredRoles: [authorizationRoleKeys.admin],
+      requiredPermissions: [groupManage],
+      organizationalUnitId: 'ou-a',
+      organizationalUnitPath: '/A/Team',
+      requireOrganizationalUnitScope: true,
+    });
+    expect(evaluateAuthorizationAccess(scopedRequest)).toBe(true);
+    expect(
+      evaluateAuthorizationAccess({
+        ...scopedRequest,
+        organizationalUnitId: 'ou-b',
+        organizationalUnitPath: '/B',
+      }),
+    ).toBe(false);
+
+    const global = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [groupManage],
+        }),
+      ],
+    });
+    expect(
+      evaluateAuthorizationAccess({ ...scopedRequest, context: global }),
+    ).toBe(true);
+    const serviceScoped = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [groupManage],
+          serviceId: 'service-a',
+        }),
+      ],
+    });
+    expect(
+      evaluateAuthorizationAccess({ ...scopedRequest, context: serviceScoped }),
+    ).toBe(false);
+    expect(
+      evaluateAuthorizationAccess({
+        ...scopedRequest,
+        context: createTestAuthorizationContext({
+          assignments: [
+            createTestAssignment({
+              roleKey: authorizationRoleKeys.admin,
+              permissionKeys: [permissionKeys.routingWrite],
+            }),
+          ],
+        }),
+      }),
+    ).toBe(false);
   });
 });

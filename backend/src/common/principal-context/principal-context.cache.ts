@@ -53,6 +53,8 @@ function isPrincipalContext(value: unknown): value is PrincipalContext {
   return (
     typeof candidate.subjectId === 'string' &&
     typeof candidate.isActive === 'boolean' &&
+    (candidate.directoryObjectGuid === null ||
+      typeof candidate.directoryObjectGuid === 'string') &&
     typeof candidate.authzVersion === 'number' &&
     Array.isArray(candidate.assignments)
   );

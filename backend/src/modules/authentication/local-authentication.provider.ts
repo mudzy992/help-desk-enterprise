@@ -44,6 +44,7 @@ export class LocalAuthenticationProvider implements AuthenticationProvider {
       assertSuperAdminIsLocalOnly({
         isLocalOnly: user.isLocalOnly,
         entraObjectId: user.entraObjectId,
+        directoryObjectGuid: user.directoryObjectGuid,
         roleKeys: user.roleKeys,
       });
     } catch (error) {

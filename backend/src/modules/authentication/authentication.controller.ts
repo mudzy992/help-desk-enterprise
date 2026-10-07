@@ -116,8 +116,9 @@ export class AuthenticationController {
     @Body() body: LocalLoginDto,
     @Req() request: SignInRequest,
   ): Promise<AuthenticationLoginResponse> {
-    return this.loginAttemptLimiter.guard(
-      loginAttemptKey(body.email, request?.ip),
+    return this.loginAttemptLimiter.guardPasswordLogin(
+      body.email,
+      request?.ip,
       () =>
         this.authenticationService.loginWithPassword(
           { email: body.email, password: body.password },

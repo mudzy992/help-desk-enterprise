@@ -41,6 +41,8 @@ export type PrincipalContext = {
   readonly isLocalOnly: boolean;
   readonly mustChangePassword: boolean;
   readonly entraObjectId: string | null;
+  /** AD/LDAPS object IDs must also remain absent for a SuperAdmin identity. */
+  readonly directoryObjectGuid?: string | null;
   readonly roleKeys: readonly string[];
   readonly groupIds: readonly string[];
   readonly homeOrganizationalUnitId: string | null;

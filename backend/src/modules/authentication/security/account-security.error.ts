@@ -12,6 +12,7 @@ import type { PasswordViolation } from './password-policy';
 
 export type AccountSecurityErrorCode =
   | 'MFA_INVALID_CODE'
+  | 'MFA_RECOVERY_CODES_EXHAUSTED'
   | 'MFA_NOT_ENABLED'
   | 'MFA_ALREADY_ENABLED'
   | 'MFA_REQUIRED_CANNOT_DISABLE'
@@ -39,6 +40,7 @@ export class AccountSecurityError extends Error {
 
 const messages: Record<AccountSecurityErrorCode, string> = {
   MFA_INVALID_CODE: 'The code is not valid',
+  MFA_RECOVERY_CODES_EXHAUSTED: 'No recovery codes remain; use the authenticator app',
   MFA_NOT_ENABLED: 'MFA is not enabled for this account',
   MFA_ALREADY_ENABLED: 'MFA is already enabled',
   MFA_REQUIRED_CANNOT_DISABLE: 'MFA is required for this account',
@@ -66,6 +68,7 @@ export function mapAccountSecurityError(error: unknown): never {
   };
   switch (error.code) {
     case 'MFA_INVALID_CODE':
+    case 'MFA_RECOVERY_CODES_EXHAUSTED':
     case 'CURRENT_PASSWORD_INVALID':
       throw new UnauthorizedException(body);
     case 'MFA_TOO_MANY_ATTEMPTS':

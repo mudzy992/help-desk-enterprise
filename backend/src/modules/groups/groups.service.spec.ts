@@ -1,4 +1,9 @@
 import { auditLogActions } from '../audit-log/audit-log.constants';
+import { authorizationRoleKeys, permissionKeys } from '../authorization/authorization.constants';
+import {
+  createTestAssignment,
+  createTestAuthorizationContext,
+} from '../authorization/create-test-authorization-context';
 import { recordGroupChange } from './record-group-change';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { GroupsService } from './groups.service';
@@ -27,6 +32,8 @@ describe('GroupsService', () => {
     key: 'it-support',
     organizationalUnitId: unit.id,
     isFallback: true,
+    isProblemGroup: false,
+    isCabGroup: false,
     createdAt: now,
     updatedAt: now,
     organizationalUnit: { ouPath: unit.ouPath },
@@ -102,14 +109,18 @@ describe('GroupsService', () => {
       }
       return null;
     });
+    const authorizationContextLoader = {
+      loadBySubjectId: jest.fn().mockResolvedValue(null),
+    };
     return {
       service: new GroupsService(
         prisma as never,
-        { loadBySubjectId: async () => null } as never,
+        authorizationContextLoader as never,
         { load: async () => { throw new Error('not used'); } } as never,
         { invalidateUser, invalidateUsers } as never,
       ),
       prisma,
+      authorizationContextLoader,
       invalidateUser,
       invalidateUsers,
     };
@@ -140,6 +151,51 @@ describe('GroupsService', () => {
         after: expect.objectContaining({ name: 'IT Support', organizationalUnitId: unit.id }),
       }),
     }));
+  });
+
+  it('filters group collections per OU and allows only the explicit unscoped group.manage grant globally', async () => {
+    const { service, prisma, authorizationContextLoader } = createService();
+    const groupA = {
+      ...groupRecord,
+      id: 'group-a',
+      organizationalUnitId: 'ou-a',
+      organizationalUnit: { ouPath: '/A/Team' },
+    };
+    const groupB = {
+      ...groupRecord,
+      id: 'group-b',
+      key: 'group-b',
+      organizationalUnitId: 'ou-b',
+      organizationalUnit: { ouPath: '/B/Team' },
+    };
+    prisma.group.findMany.mockResolvedValue([groupA, groupB]);
+    authorizationContextLoader.loadBySubjectId
+      .mockResolvedValueOnce(createTestAuthorizationContext({
+        assignments: [
+          createTestAssignment({
+            roleKey: authorizationRoleKeys.admin,
+            permissionKeys: [permissionKeys.groupManage],
+            organizationalUnitId: 'ou-a',
+            organizationalUnitPath: '/A',
+          }),
+        ],
+      }))
+      .mockResolvedValueOnce(createTestAuthorizationContext({
+        assignments: [
+          createTestAssignment({
+            roleKey: authorizationRoleKeys.admin,
+            permissionKeys: [permissionKeys.groupManage],
+          }),
+        ],
+      }));
+
+    await expect(service.listAccessible({}, 'scoped-admin')).resolves.toMatchObject([
+      { id: 'group-a', organizationalUnitId: 'ou-a' },
+    ]);
+    await expect(service.listAccessible({}, 'global-admin')).resolves.toMatchObject([
+      { id: 'group-a', organizationalUnitId: 'ou-a' },
+      { id: 'group-b', organizationalUnitId: 'ou-b' },
+    ]);
   });
 
   it('audits only changed fields when a group is updated', async () => {

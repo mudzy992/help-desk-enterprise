@@ -88,6 +88,7 @@ function userRow(overrides: Record<string, unknown> = {}) {
     isLocalOnly: false,
     mustChangePassword: false,
     entraObjectId: null,
+    directoryObjectGuid: null,
     authzVersion: 0,
     organizationalUnitId: 'ou-it',
     userRoles: [
@@ -280,6 +281,18 @@ describe('principal context loading (phase 2.2)', () => {
     expect((await loader.load('user-agent'))?.subjectId).toBe('user-agent');
   });
 
+  it('misses cached contexts created before directory identity was part of the SuperAdmin invariant', async () => {
+    const { loader, redis } = setup();
+    await loader.load('user-agent');
+    const key = principalContextCacheKey('user-agent', 0);
+    const oldContext = JSON.parse(redis.entries.get(key)!.value) as Record<string, unknown>;
+    delete oldContext.directoryObjectGuid;
+    redis.entries.set(key, { value: JSON.stringify(oldContext), ttlSeconds: 60 });
+
+    expect(await readCachedPrincipalContext(redis.client as never, 'user-agent')).toBeNull();
+    expect((await loader.load('user-agent'))?.directoryObjectGuid).toBeNull();
+  });
+
   it('never caches a user that does not exist', async () => {
     const { loader, redis } = setup();
     expect(await loader.load('nobody')).toBeNull();
@@ -297,6 +310,7 @@ describe('principal context cache client contract', () => {
       isLocalOnly: false,
       mustChangePassword: false,
       entraObjectId: null,
+      directoryObjectGuid: null,
       roleKeys: [],
       groupIds: [],
       homeOrganizationalUnitId: null,

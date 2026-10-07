@@ -52,6 +52,7 @@ function createDecisionInput(
     context,
     requiredRoles: input.requirements.requiredRoles,
     requiredPermissions: input.requirements.requiredPermissions,
+    permissionMatchMode: input.requirements.permissionMatchMode ?? 'any',
     organizationalUnitId: input.organizationalUnitId,
     organizationalUnitPath,
     serviceId: input.serviceId,

@@ -22,7 +22,8 @@ export type OrganizationalUnitErrorCode =
   | 'HAS_SLA_RULES'
   | 'HAS_REPORT_SCHEDULES'
   | 'HAS_TICKETS'
-  | 'RESOURCE_IN_USE';
+  | 'RESOURCE_IN_USE'
+  | 'LAST_SUPER_ADMIN_REQUIRED';
 
 export function organizationalUnitDeleteErrorCode(
   kind: OrganizationalUnitDeleteBlockerKind,

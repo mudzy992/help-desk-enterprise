@@ -1,5 +1,12 @@
-import { SetMetadata } from '@nestjs/common';
-import { AUTHORIZATION_REQUIRED_PERMISSIONS_KEY } from './authorization.constants';
+import { applyDecorators, SetMetadata } from '@nestjs/common';
+import {
+  AUTHORIZATION_PERMISSION_MATCH_MODE_KEY,
+  AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
+} from './authorization.constants';
 
+/** Requires any one listed permission (the backwards-compatible default). */
 export const RequirePermissions = (...permissionKeys: readonly string[]) =>
-  SetMetadata(AUTHORIZATION_REQUIRED_PERMISSIONS_KEY, permissionKeys);
+  applyDecorators(
+    SetMetadata(AUTHORIZATION_REQUIRED_PERMISSIONS_KEY, permissionKeys),
+    SetMetadata(AUTHORIZATION_PERMISSION_MATCH_MODE_KEY, 'any'),
+  );

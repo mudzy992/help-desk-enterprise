@@ -1,8 +1,13 @@
 import { DbNull } from '@prisma/client/runtime/client';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { authorizationRoleKeys } from '../../authorization/authorization.constants';
 import type { InboundRawStore } from '../../inbound-email/inbound-raw-store';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
-import { privacyLimits } from '../privacy.constants';
+import {
+  hasSuperAdminRole,
+  lockActiveSuperAdminInvariant,
+} from '../../users/super-admin-invariant';
+import { anonymizationBlockReasons, privacyLimits } from '../privacy.constants';
 import { replacementExample, type TextScrubber } from './text-scrubber';
 
 export type AnonymizationSubject = {
@@ -137,6 +142,9 @@ export class AnonymizationExecutor {
       if (value > 0) counts[key] = (counts[key] ?? 0) + value;
     };
     const u = subject.userId;
+    // Fail before any scrub/delete work if a concurrent role change raced the
+    // service's initial blocker check.
+    await this.assertNoSuperAdminRole(u);
     const scope = await this.ticketScope(u);
     add('ticketsOnLegalHoldSkipped', scope.held.length);
     const now = new Date();
@@ -248,7 +256,7 @@ export class AnonymizationExecutor {
     add('mfa', (await this.prisma.userMfa.deleteMany({ where: { userId: u } })).count);
     add('recoveryCodes', (await this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId: u } })).count);
     add('passwordHistory', (await this.prisma.userPasswordHistory.deleteMany({ where: { userId: u } })).count);
-    add('roles', (await this.prisma.userRole.deleteMany({ where: { userId: u } })).count);
+    add('roles', await this.deleteUserRolesSafely(u));
     add('groups', (await this.prisma.groupMember.deleteMany({ where: { userId: u } })).count);
     add('savedViews', (await this.prisma.savedView.deleteMany({ where: { userId: u } })).count);
     add('personalTemplates', (await this.prisma.responseTemplate.deleteMany({ where: { ownerUserId: u } })).count);
@@ -444,6 +452,29 @@ export class AnonymizationExecutor {
       add('changeLogs', 1);
     }
     return { counts, pausedScheduleIds };
+  }
+
+  private async assertNoSuperAdminRole(userId: string): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      await lockActiveSuperAdminInvariant(transaction);
+      if (await hasSuperAdminRole(transaction, userId)) {
+        throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
+      }
+    });
+  }
+
+  private async deleteUserRolesSafely(userId: string): Promise<number> {
+    return this.prisma.$transaction(async (transaction) => {
+      await lockActiveSuperAdminInvariant(transaction);
+      const superAdminRole = await transaction.userRole.findFirst({
+        where: { userId, role: { key: authorizationRoleKeys.superAdmin } },
+        select: { id: true },
+      });
+      if (superAdminRole !== null) {
+        throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
+      }
+      return (await transaction.userRole.deleteMany({ where: { userId } })).count;
+    });
   }
 
   private async scrubColumn(

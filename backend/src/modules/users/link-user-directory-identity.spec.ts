@@ -32,7 +32,11 @@ jest.mock('./list-users-summary', () => ({
 describe('linkUserDirectoryIdentity', () => {
   const update = jest.fn();
   const findUnique = jest.fn();
-  const transaction = { user: { update } };
+  const transactionFindUnique = jest.fn();
+  const transaction = {
+    $executeRaw: jest.fn().mockResolvedValue(1),
+    user: { findUnique: transactionFindUnique, update },
+  };
   const prisma = {
     user: { findUnique },
     $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
@@ -41,7 +45,10 @@ describe('linkUserDirectoryIdentity', () => {
   const directorySyncService = { listDirectoryUsersForLinking };
 
   beforeEach(() => {
+    jest.mocked(recordUserChange).mockClear();
     findUnique.mockReset();
+    transactionFindUnique.mockReset();
+    transaction.$executeRaw.mockClear();
     update.mockReset();
     listDirectoryUsersForLinking.mockReset();
   });
@@ -52,6 +59,17 @@ describe('linkUserDirectoryIdentity', () => {
         id: 'user-1',
         isLocalOnly: true,
         entraObjectId: null,
+        directoryObjectGuid: null,
+        organizationalUnitId: 'ou-1',
+        userRoles: [{ role: { key: 'USER' } }],
+      })
+      .mockResolvedValueOnce(null);
+    transactionFindUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: null,
         organizationalUnitId: 'ou-1',
         userRoles: [{ role: { key: 'USER' } }],
       })
@@ -97,11 +115,102 @@ describe('linkUserDirectoryIdentity', () => {
     expect(result.isLocalOnly).toBe(false);
   });
 
+  it('rechecks SuperAdmin roles inside the serialized link transaction', async () => {
+    findUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: null,
+        organizationalUnitId: 'ou-1',
+        userRoles: [{ role: { key: 'USER' } }],
+      })
+      .mockResolvedValueOnce(null);
+    transactionFindUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      isLocalOnly: true,
+      entraObjectId: null,
+      directoryObjectGuid: null,
+      organizationalUnitId: 'ou-1',
+      userRoles: [
+        { role: { key: authenticationConstants.superAdminRoleKey } },
+      ],
+    });
+    listDirectoryUsersForLinking.mockResolvedValue([
+      {
+        externalId: 'manual_only:user:dev-reader',
+        email: null,
+        displayName: 'Directory User',
+        login: null,
+        distinguishedName: null,
+        organizationalUnitPath: null,
+      },
+    ]);
+
+    await expect(
+      linkUserDirectoryIdentity({
+        prisma: prisma as never,
+        directorySyncService: directorySyncService as never,
+        userId: 'user-1',
+        directoryExternalId: 'manual_only:user:dev-reader',
+      }),
+    ).rejects.toMatchObject({ code: 'SUPER_ADMIN_DIRECTORY_LINK_FORBIDDEN' });
+
+    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(update).not.toHaveBeenCalled();
+    expect(recordUserChange).not.toHaveBeenCalled();
+  });
+
+  it('rechecks directory identity conflicts inside the serialized transaction', async () => {
+    findUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: null,
+        organizationalUnitId: 'ou-1',
+        userRoles: [{ role: { key: 'USER' } }],
+      })
+      .mockResolvedValueOnce(null);
+    transactionFindUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: null,
+        organizationalUnitId: 'ou-1',
+        userRoles: [{ role: { key: 'USER' } }],
+      })
+      .mockResolvedValueOnce({ id: 'user-2' });
+    listDirectoryUsersForLinking.mockResolvedValue([
+      {
+        externalId: 'manual_only:user:dev-reader',
+        email: null,
+        displayName: 'Directory User',
+        login: null,
+        distinguishedName: null,
+        organizationalUnitPath: null,
+      },
+    ]);
+
+    await expect(
+      linkUserDirectoryIdentity({
+        prisma: prisma as never,
+        directorySyncService: directorySyncService as never,
+        userId: 'user-1',
+        directoryExternalId: 'manual_only:user:dev-reader',
+      }),
+    ).rejects.toMatchObject({ code: 'DIRECTORY_IDENTITY_CONFLICT' });
+    expect(update).not.toHaveBeenCalled();
+    expect(recordUserChange).not.toHaveBeenCalled();
+  });
+
   it('rejects missing directory external id without email matching', async () => {
     findUnique.mockResolvedValueOnce({
       id: 'user-1',
       isLocalOnly: true,
       entraObjectId: null,
+      directoryObjectGuid: null,
       userRoles: [],
     });
     listDirectoryUsersForLinking.mockResolvedValue([
@@ -130,6 +239,7 @@ describe('linkUserDirectoryIdentity', () => {
       id: 'user-1',
       isLocalOnly: true,
       entraObjectId: null,
+      directoryObjectGuid: null,
       userRoles: [
         { role: { key: authenticationConstants.superAdminRoleKey } },
       ],
@@ -148,6 +258,7 @@ describe('linkUserDirectoryIdentity', () => {
         id: 'user-1',
         isLocalOnly: true,
         entraObjectId: null,
+        directoryObjectGuid: null,
         userRoles: [{ role: { key: 'USER' } }],
       })
       .mockResolvedValueOnce({ id: 'user-2' });

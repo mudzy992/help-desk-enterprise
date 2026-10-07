@@ -10,10 +10,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import type { ServerResponse } from 'node:http';
 import { readRequestIdHeader } from '../../common/request-context/read-request-id-header';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
@@ -31,6 +33,7 @@ import type {
   UserSummaryResponse,
 } from './users.types';
 import { UsersService } from './users.service';
+import { userListDefaultTake, userListMaxTake } from './list-users-summary';
 import { SessionRegistryService } from '../authentication/security/session-registry.service';
 import { assertCanManageTargetUser } from './assert-can-manage-target-user';
 
@@ -55,20 +58,24 @@ export class UsersController {
   ) {}
 
   @Get()
-  listSummary(
-    @Query('q') query?: string,
-    @Query('take') take?: string,
-    @Query('skip') skip?: string,
+  async listSummary(
+    @Query('q') query: string | undefined,
+    @Query('take') take: string | undefined,
+    @Query('skip') skip: string | undefined,
+    @Res({ passthrough: true }) response: ServerResponse,
   ): Promise<readonly UserSummaryResponse[]> {
     const toInt = (value?: string) => {
       const parsed = Number.parseInt(value ?? '', 10);
       return Number.isFinite(parsed) ? parsed : undefined;
     };
-    return this.usersService.listSummary({
+    const requestedTake = toInt(take) ?? userListDefaultTake;
+    const page = await this.usersService.listSummaryPage({
       query: typeof query === 'string' ? query : undefined,
-      take: toInt(take),
-      skip: toInt(skip),
+      take: Math.min(Math.max(1, requestedTake), userListMaxTake),
+      skip: Math.max(0, toInt(skip) ?? 0),
     });
+    response.setHeader('X-Total-Count', String(page.total));
+    return page.items;
   }
 
   @Post()

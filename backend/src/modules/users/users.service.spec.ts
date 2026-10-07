@@ -3,6 +3,7 @@ import { assignUserRole } from './assign-user-role';
 import { deleteUser } from './delete-user';
 import { removeUserRole } from './remove-user-role';
 import { updateUser } from './update-user';
+import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -20,12 +21,14 @@ jest.mock('./assign-user-role', () => ({ assignUserRole: jest.fn() }));
 jest.mock('./remove-user-role', () => ({ removeUserRole: jest.fn() }));
 jest.mock('./delete-user', () => ({ deleteUser: jest.fn() }));
 jest.mock('./update-user', () => ({ updateUser: jest.fn() }));
+jest.mock('./link-user-directory-identity', () => ({ linkUserDirectoryIdentity: jest.fn() }));
 jest.mock('./list-users-summary', () => ({ listUsersSummary: jest.fn() }));
 
 const mockedAssignRole = jest.mocked(assignUserRole);
 const mockedRemoveRole = jest.mocked(removeUserRole);
 const mockedDeleteUser = jest.mocked(deleteUser);
 const mockedUpdateUser = jest.mocked(updateUser);
+const mockedLinkDirectoryIdentity = jest.mocked(linkUserDirectoryIdentity);
 
 /**
  * Phase 2.2 (plan §2.2): the service is the place where a mutation is wired to
@@ -51,6 +54,7 @@ describe('UsersService authorization cache invalidation', () => {
     mockedRemoveRole.mockReset().mockResolvedValue(undefined);
     mockedDeleteUser.mockReset().mockResolvedValue(undefined);
     mockedUpdateUser.mockReset().mockResolvedValue({} as never);
+    mockedLinkDirectoryIdentity.mockReset().mockResolvedValue({} as never);
   });
 
   it('passes the hook to updateUser and invalidates the edited user', async () => {
@@ -74,6 +78,19 @@ describe('UsersService authorization cache invalidation', () => {
     const hook = mockedAssignRole.mock.calls[0][2];
     await hook?.('user-2');
     expect(invalidateUser).toHaveBeenCalledWith('user-2');
+  });
+
+  it('invalidates cached identity context after linking a directory account', async () => {
+    mockedLinkDirectoryIdentity.mockResolvedValue({ id: 'user-linked' } as never);
+    await createService().linkDirectoryIdentity({
+      userId: 'user-linked',
+      directoryExternalId: 'entra-user-1',
+    });
+    expect(mockedLinkDirectoryIdentity).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-linked',
+      directoryExternalId: 'entra-user-1',
+    }));
+    expect(invalidateUser).toHaveBeenCalledWith('user-linked');
   });
 
   it('passes the hook to removeUserRole', async () => {

@@ -2,6 +2,7 @@ import { KeyRound, Link2, Link2Off, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkDirectoryIdentityDialog } from "@/components/users/link-directory-identity-dialog";
+import { userPasswordResetErrorMessage } from "@/components/users/map-user-admin-action-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { ApiError } from "@/services/api";
@@ -51,11 +52,7 @@ export function UserAdminActions({
       onPasswordIssued(response);
       await onChanged();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : t("users.resetPasswordFailed"),
-      );
+      setErrorMessage(userPasswordResetErrorMessage(error, (key) => t(key)));
     } finally {
       setIsBusy(false);
     }

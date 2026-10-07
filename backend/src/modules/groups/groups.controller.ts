@@ -22,6 +22,8 @@ import {
   authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
+import { AuditPermissions } from '../authorization/audit-permissions.decorator';
+import { RequireOrganizationalUnitScope } from '../authorization/require-organizational-unit-scope.decorator';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -46,12 +48,18 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
-  list(@Query() query: ListGroupsQueryDto): Promise<readonly GroupListItemResponse[]> {
-    return this.groupsService.list(query);
+  @AuditPermissions(permissionKeys.groupManage)
+  list(
+    @Query() query: ListGroupsQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly GroupListItemResponse[]> {
+    const principal = readAuthenticatedPrincipal(request);
+    return this.groupsService.listAccessible(query, principal?.subjectId ?? '');
   }
 
   @Post()
   @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   create(
     @Body() body: CreateGroupDto,
     @Req() request: AuthenticatedHttpRequest,
@@ -60,12 +68,15 @@ export class GroupsController {
   }
 
   @Get(':groupId')
+  @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
   getById(@Param('groupId') groupId: string): Promise<GroupResponse> {
     return this.groupsService.getById(groupId);
   }
 
   @Patch(':groupId')
   @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
   update(
     @Param('groupId') groupId: string,
     @Body() body: UpdateGroupDto,
@@ -77,6 +88,7 @@ export class GroupsController {
   @Delete(':groupId')
   @HttpCode(204)
   @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
   async delete(
     @Param('groupId') groupId: string,
     @Req() request: AuthenticatedHttpRequest,
@@ -86,6 +98,7 @@ export class GroupsController {
 
   @Post(':groupId/members/:userId')
   @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
   addMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,
@@ -96,6 +109,7 @@ export class GroupsController {
 
   @Delete(':groupId/members/:userId')
   @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
   removeMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,

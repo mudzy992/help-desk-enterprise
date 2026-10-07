@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AddUserForm } from "@/components/users/add-user-form";
 import { TemporaryPasswordReveal } from "@/components/users/temporary-password-reveal";
@@ -27,7 +27,7 @@ import {
   type ServiceResponse,
 } from "@/services/service-catalog-api";
 import {
-  listUsersSummary,
+  listUsersSummaryPage,
   type CreateUserResponse,
   type UserSummary,
 } from "@/services/users-api";
@@ -48,7 +48,10 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
   const canLinkDirectory =
     capabilities.session?.isSuperAdmin === true ||
     roleKeys.includes("SUPER_ADMIN");
+  const pageSize = 100;
   const [users, setUsers] = useState<readonly UserSummary[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [pageIndex, setPageIndex] = useState(0);
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -66,37 +69,52 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
     setIsLoading(true);
     setErrorKey(null);
     try {
-      const [loadedUsers, tree, loadedServices] = await Promise.all([
-        listUsersSummary(),
-        listOrganizationalUnitTree(),
-        listServices().catch(() => []),
-      ]);
-      setUsers(loadedUsers);
-      setOriginUnits(flattenOriginUnitOptions(tree));
-      setServices(loadedServices);
+      const page = await listUsersSummaryPage({
+        take: pageSize,
+        skip: pageIndex * pageSize,
+        query: search,
+      });
+      setUsers(page.items);
+      setTotalUsers(page.total);
+      if (page.items.length === 0 && pageIndex > 0 && pageIndex * pageSize >= page.total) {
+        setPageIndex(Math.max(0, Math.ceil(page.total / pageSize) - 1));
+      }
     } catch (error) {
       setUsers([]);
+      setTotalUsers(0);
       setErrorKey(mapApiError(error));
       setRequestId(readApiRequestId(error));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pageIndex, pageSize, search]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  const term = search.trim().toLowerCase();
-  const visible =
-    term.length === 0
-      ? users
-      : users.filter(
-          (user) =>
-            user.displayName.toLowerCase().includes(term) ||
-            user.email.toLowerCase().includes(term) ||
-            (user.roleName ?? "").toLowerCase().includes(term),
-        );
+  useEffect(() => {
+    let active = true;
+    Promise.all([listOrganizationalUnitTree(), listServices().catch(() => [])])
+      .then(([tree, loadedServices]) => {
+        if (!active) return;
+        setOriginUnits(flattenOriginUnitOptions(tree));
+        setServices(loadedServices);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setErrorKey(mapApiError(error));
+        setRequestId(readApiRequestId(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const visible = users;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
+  const firstVisible = totalUsers === 0 ? 0 : pageIndex * pageSize + 1;
+  const lastVisible = Math.min(totalUsers, pageIndex * pageSize + users.length);
   const selectedUser =
     users.find((user) => user.id === selectedUserId) ?? null;
 
@@ -113,7 +131,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
       <Card>
         <CardHeader
           title={t("directory.usersHeading")}
-          subtitle={t("directory.usersCount", { count: users.length })}
+          subtitle={t("directory.usersCount", { count: totalUsers })}
           actions={
             <div className="flex items-center gap-2">
               <input
@@ -122,7 +140,10 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
                 value={search}
                 placeholder={t("directory.searchPlaceholder")}
                 aria-label={t("directory.searchPlaceholder")}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setPageIndex(0);
+                  setSearch(event.target.value);
+                }}
               />
               <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)}>
                 <Plus size={14} /> {t("users.addUser")}
@@ -168,6 +189,42 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
             onEditUser={setSelectedUserId}
           />
         )}
+        {!isLoading && !errorKey && totalUsers > 0 ? (
+          <div className="flex items-center justify-between gap-3 border-t border-border/70 px-4 py-3 text-[12px]">
+            <span className="text-muted-foreground">
+              {t("directory.usersPageRange", {
+                from: firstVisible,
+                to: lastVisible,
+                total: totalUsers,
+              })}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label={t("directory.usersPreviousPage")}
+                disabled={pageIndex === 0}
+                onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+              >
+                <ChevronLeft size={14} /> {t("directory.usersPreviousPage")}
+              </Button>
+              <span className="tnum text-muted-foreground">
+                {t("directory.usersPageOf", { page: pageIndex + 1, pages: totalPages })}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label={t("directory.usersNextPage")}
+                disabled={pageIndex + 1 >= totalPages}
+                onClick={() => setPageIndex((current) => Math.min(totalPages - 1, current + 1))}
+              >
+                {t("directory.usersNextPage")} <ChevronRight size={14} />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
       <UserDetailDrawer
         user={selectedUser}

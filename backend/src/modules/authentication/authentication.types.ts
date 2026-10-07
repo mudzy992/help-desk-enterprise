@@ -38,6 +38,7 @@ export type AuthenticationUserRecord = {
   readonly mustChangePassword: boolean;
   readonly localPasswordHash: string | null;
   readonly entraObjectId: string | null;
+  readonly directoryObjectGuid?: string | null;
   readonly roleKeys: readonly string[];
   /** Paket 2.1: last local password change (expiry policy). */
   readonly passwordChangedAt?: Date | null;

@@ -6,6 +6,11 @@ import type { UserAuditContext, PrincipalInvalidationHook, UpdateUserInput, User
 import { recordUserChange } from './record-user-change';
 import { UsersError } from './users.error';
 import { listUsersSummary } from './list-users-summary';
+import {
+  assertAnotherActiveSuperAdminExists,
+  hasActiveSuperAdminRole,
+  lockActiveSuperAdminInvariant,
+} from './super-admin-invariant';
 
 type UserUpdateField = 'displayName' | 'email' | 'organizationalUnitId' | 'isActive';
 type ExistingUser = {
@@ -53,6 +58,19 @@ export async function updateUser(
       changedFields.map((field) => [field, existing[field]]),
     ) as JsonValue;
     await prisma.$transaction(async (transaction) => {
+      if (changedData.isActive === false && existing.isActive) {
+        await lockActiveSuperAdminInvariant(transaction);
+        const current = await transaction.user.findUnique({
+          where: { id: input.userId },
+          select: { isActive: true },
+        });
+        if (
+          current?.isActive === true &&
+          (await hasActiveSuperAdminRole(transaction, input.userId))
+        ) {
+          await assertAnotherActiveSuperAdminExists(transaction, input.userId);
+        }
+      }
       await transaction.user.update({ where: { id: input.userId }, data: changedData });
       await recordUserChange(transaction as unknown as AuditLogWriteClient, {
         action: auditLogActions.userUpdated,

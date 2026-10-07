@@ -6,6 +6,8 @@ export const AUTHENTICATED_PRINCIPAL_REQUEST_KEY = 'authenticatedPrincipal';
 export const PRINCIPAL_CONTEXT_REQUEST_KEY = 'principalContext';
 /** Paket 2.1: the caller's registry session id (`sid`), null for older tokens. */
 export const SESSION_ID_REQUEST_KEY = 'authenticatedSessionId';
+/** Paket 5.2.1 M2 #6: legacy no-sid callers need a one-token cutoff exception. */
+export const SESSION_JTI_REQUEST_KEY = 'authenticatedSessionJti';
 
 export type AuthenticatedHttpRequest = {
   headers?: { authorization?: string };
@@ -15,10 +17,15 @@ export type AuthenticatedHttpRequest = {
   [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]?: AuthorizationPrincipal;
   [PRINCIPAL_CONTEXT_REQUEST_KEY]?: PrincipalContext;
   [SESSION_ID_REQUEST_KEY]?: string | null;
+  [SESSION_JTI_REQUEST_KEY]?: string | null;
 };
 
 export function readSessionId(request: AuthenticatedHttpRequest): string | null {
   return request[SESSION_ID_REQUEST_KEY] ?? null;
+}
+
+export function readSessionJti(request: AuthenticatedHttpRequest): string | null {
+  return request[SESSION_JTI_REQUEST_KEY] ?? null;
 }
 
 /**

@@ -1,5 +1,7 @@
 import { authenticationConstants } from '../authentication/authentication.constants';
+import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import { lockActiveSuperAdminInvariant } from './super-admin-invariant';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { DirectorySyncService } from '../directory-sync/directory-sync.service';
@@ -28,6 +30,7 @@ export async function linkUserDirectoryIdentity(input: {
       id: true,
       isLocalOnly: true,
       entraObjectId: true,
+      directoryObjectGuid: true,
       organizationalUnitId: true,
       userRoles: { select: { role: { select: { key: true } } } },
     },
@@ -35,7 +38,11 @@ export async function linkUserDirectoryIdentity(input: {
   if (existing === null) {
     throw new UsersError('USER_NOT_FOUND');
   }
-  if (!existing.isLocalOnly || existing.entraObjectId !== null) {
+  if (
+    !existing.isLocalOnly ||
+    existing.entraObjectId !== null ||
+    existing.directoryObjectGuid !== null
+  ) {
     throw new UsersError('USER_ALREADY_DIRECTORY_LINKED');
   }
   const roleKeys = existing.userRoles.map((assignment) => assignment.role.key);
@@ -59,8 +66,49 @@ export async function linkUserDirectoryIdentity(input: {
     throw new UsersError('DIRECTORY_IDENTITY_CONFLICT');
   }
   await input.prisma.$transaction(async (transaction) => {
-    await transaction.user.update({
+    // Shares the lock with SUPER_ADMIN assignment so a stale pre-check cannot
+    // race a role grant and convert a SuperAdmin into a directory identity.
+    await lockActiveSuperAdminInvariant(transaction as unknown as Prisma.TransactionClient);
+    const current = await transaction.user.findUnique({
       where: { id: existing.id },
+      select: {
+        id: true,
+        isLocalOnly: true,
+        entraObjectId: true,
+        directoryObjectGuid: true,
+        organizationalUnitId: true,
+        userRoles: { select: { role: { select: { key: true } } } },
+      },
+    });
+    if (current === null) {
+      throw new UsersError('USER_NOT_FOUND');
+    }
+    if (
+      !current.isLocalOnly ||
+      current.entraObjectId !== null ||
+      current.directoryObjectGuid !== null
+    ) {
+      throw new UsersError('USER_ALREADY_DIRECTORY_LINKED');
+    }
+    if (
+      current.userRoles.some(
+        (assignment) => assignment.role.key === authenticationConstants.superAdminRoleKey,
+      )
+    ) {
+      throw new UsersError('SUPER_ADMIN_DIRECTORY_LINK_FORBIDDEN');
+    }
+    const conflictInTransaction = await transaction.user.findUnique({
+      where:
+        directoryObjectGuid === null
+          ? { entraObjectId: directoryExternalId }
+          : { directoryObjectGuid },
+      select: { id: true },
+    });
+    if (conflictInTransaction !== null && conflictInTransaction.id !== current.id) {
+      throw new UsersError('DIRECTORY_IDENTITY_CONFLICT');
+    }
+    await transaction.user.update({
+      where: { id: current.id },
       data: {
         ...(directoryObjectGuid === null
           ? { entraObjectId: directoryExternalId }
@@ -72,10 +120,10 @@ export async function linkUserDirectoryIdentity(input: {
     });
     await recordUserChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.userUpdated,
-      entityId: existing.id,
+      entityId: current.id,
       actorUserId: context.actorUserId,
       requestId: context.requestId,
-      organizationalUnitId: existing.organizationalUnitId,
+      organizationalUnitId: current.organizationalUnitId,
       metadata: {
         directoryIdentityLinked: true,
         directoryKind: directoryObjectGuid === null ? 'entra' : 'ldaps',

@@ -24,6 +24,7 @@ type LoadedAuthenticationUser = {
   mustChangePassword: boolean;
   localPasswordHash: string | null;
   entraObjectId: string | null;
+  directoryObjectGuid: string | null;
   passwordChangedAt?: Date | null;
   userRoles: readonly { role: { key: string } }[];
 };
@@ -40,6 +41,7 @@ function mapAuthenticationUser(
     mustChangePassword: user.mustChangePassword,
     localPasswordHash: user.localPasswordHash,
     entraObjectId: user.entraObjectId,
+    directoryObjectGuid: user.directoryObjectGuid,
     roleKeys: user.userRoles.map((userRole) => userRole.role.key),
     passwordChangedAt: user.passwordChangedAt ?? null,
   };

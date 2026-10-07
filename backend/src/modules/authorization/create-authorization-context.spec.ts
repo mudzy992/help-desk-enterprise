@@ -47,6 +47,14 @@ describe('createAuthorizationContext', () => {
         entraObjectId: 'entra-object-1',
       }),
     ).toBeNull();
+    expect(
+      createAuthorizationContext({
+        ...broken,
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: 'directory-object-1',
+      }),
+    ).toBeNull();
   });
 
   it('marks a local-only SuperAdmin and drops incomplete assignments', () => {

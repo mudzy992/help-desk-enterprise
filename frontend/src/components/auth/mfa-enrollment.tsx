@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { errorTextClassName } from "@/components/ui/control";
-import { ApiError } from "@/services/api";
+import {
+  mapMfaEnrollmentLoadError,
+  type MfaEnrollmentLoadError,
+} from "@/lib/auth/map-mfa-step-error";
 import type { MfaEnrollmentSecret } from "@/services/auth-api";
 
 interface MfaEnrollmentProperties {
@@ -24,7 +28,7 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
   const { t } = useTranslation();
   const [secret, setSecret] = useState<MfaEnrollmentSecret | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<"unavailable" | "failed" | null>(null);
+  const [loadError, setLoadError] = useState<MfaEnrollmentLoadError | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -37,7 +41,7 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
         if (active) setQrDataUrl(url);
       })
       .catch((error: unknown) => {
-        if (active) setLoadError(error instanceof ApiError && error.code === "MFA_UNAVAILABLE" ? "unavailable" : "failed");
+        if (active) setLoadError(mapMfaEnrollmentLoadError(error));
       });
     return () => {
       active = false;
@@ -48,9 +52,22 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
 
   if (loadError) {
     return (
-      <p className={errorTextClassName} role="alert">
-        {t(loadError === "unavailable" ? "auth.mfa.serverNotConfigured" : "auth.mfa.failed")}
-      </p>
+      <div className="space-y-3">
+        <p className={errorTextClassName} role="alert">
+          {t(
+            loadError === "unavailable"
+              ? "auth.mfa.serverNotConfigured"
+              : loadError === "signInExpired"
+                ? "auth.mfa.signInExpired"
+                : "auth.mfa.failed",
+          )}
+        </p>
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {t("auth.mfa.backToSignIn")}
+          </Button>
+        ) : null}
+      </div>
     );
   }
 

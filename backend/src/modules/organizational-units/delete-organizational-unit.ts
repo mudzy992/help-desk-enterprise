@@ -1,6 +1,11 @@
 import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
+import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
+import {
+  isLastActiveSuperAdminOrganizationalUnitAssignment,
+  lockActiveSuperAdminInvariant,
+} from '../users/super-admin-invariant';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { OrganizationalUnitError } from './organizational-unit.error';
 import { countOrganizationalUnitDeleteBlockers } from './count-organizational-unit-delete-blockers';
@@ -35,6 +40,8 @@ export async function deleteOrganizationalUnitInTransaction(
   context: OrganizationalUnitAuditContext,
   source: 'organizational_units' | 'manual_directory_catalog' = 'organizational_units',
 ): Promise<OrganizationalUnitDeleteOutcome> {
+  // Serialize OU cascades with role removals, deactivation and account deletion.
+  await lockActiveSuperAdminInvariant(transaction as unknown as Prisma.TransactionClient);
   const unit = await transaction.organizationalUnit.findUnique({
     where: { id: organizationalUnitId },
     select: {
@@ -58,6 +65,14 @@ export async function deleteOrganizationalUnitInTransaction(
   );
   if (blockers.length > 0) {
     throw blockerError(blockers);
+  }
+  if (
+    await isLastActiveSuperAdminOrganizationalUnitAssignment(
+      transaction as unknown as Prisma.TransactionClient,
+      organizationalUnitId,
+    )
+  ) {
+    throw new OrganizationalUnitError('LAST_SUPER_ADMIN_REQUIRED');
   }
 
   const roleAssignments = await transaction.userRole.findMany({

@@ -63,6 +63,7 @@ export const auditLogActions = {
   authMfaFailed: 'auth.mfa_failed',
   authSessionRevoked: 'auth.session_revoked',
   authSessionsRevokedAll: 'auth.sessions_revoked_all',
+  authorizationSuperAdminBypass: 'authorization.super_admin_bypass',
   // Paket 2.2: an administrator reset a user's notification preferences.
   notificationPreferencesReset: 'notification.preferences.reset',
   authPasswordChanged: 'auth.password_changed',
@@ -185,6 +186,7 @@ export const auditLogEntityTypes = {
   userRole: 'user_role',
   emailTemplate: 'email_template',
   user: 'user',
+  authorization: 'authorization',
   organizationalUnit: 'organizational_unit',
   group: 'group',
   directorySyncRun: 'directory_sync_run',

@@ -53,7 +53,7 @@ export async function resetUserTemporaryPassword(
     throw new UsersError('DIRECTORY_ACCOUNT_NOT_LOCAL');
   }
   if (!existing.isActive) {
-    throw new UsersError('INVALID_INPUT');
+    throw new UsersError('USER_INACTIVE');
   }
   const issued = await issueTemporaryPasswordForUser({
     prisma,

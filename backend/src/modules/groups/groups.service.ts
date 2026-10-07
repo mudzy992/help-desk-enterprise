@@ -2,7 +2,13 @@ import { Injectable, Optional } from '@nestjs/common';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import {
+  authorizationRoleKeys,
+  permissionKeys,
+} from '../authorization/authorization.constants';
+import { decideAuthorizationAccess } from '../authorization/evaluate-authorization-access';
 import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
+import { GroupsError } from './groups.error';
 import { addGroupMember } from './add-group-member';
 import { createGroup } from './create-group';
 import { deleteGroup } from './delete-group';
@@ -41,6 +47,32 @@ export class GroupsService {
 
   list(query: ListGroupsQuery = {}): Promise<readonly GroupListItemResponse[]> {
     return this.execute(() => listGroups(this.prisma, query));
+  }
+
+  /** Collection reads are filtered per group because a list can span OUs. */
+  listAccessible(
+    query: ListGroupsQuery,
+    actorUserId: string,
+  ): Promise<readonly GroupListItemResponse[]> {
+    return this.execute(async () => {
+      const context = await this.authorizationContextLoader.loadBySubjectId(actorUserId);
+      if (context === null) {
+        throw new GroupsError('FORBIDDEN');
+      }
+      const groups = await listGroups(this.prisma, query);
+      return groups.filter((group) =>
+        decideAuthorizationAccess({
+          context,
+          requiredRoles: [authorizationRoleKeys.admin],
+          requiredPermissions: [permissionKeys.groupManage],
+          organizationalUnitId: group.organizationalUnitId,
+          organizationalUnitPath: group.organizationalUnitPath,
+          serviceId: null,
+          requireOrganizationalUnitScope: true,
+          requireServiceScope: false,
+        }).allowed,
+      );
+    });
   }
 
   listMine(actorUserId: string): Promise<readonly MyGroupResponse[]> {

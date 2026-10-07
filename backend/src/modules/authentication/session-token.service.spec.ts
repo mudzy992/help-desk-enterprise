@@ -71,6 +71,18 @@ describe('SessionTokenService', () => {
       code: 'INVALID_CREDENTIALS',
     });
   });
+
+  it('rejects an expired MFA intermediate token as invalid credentials', async () => {
+    const jwtService = new JwtService({});
+    const expiredMfaToken = await jwtService.signAsync(
+      { sub: 'user-1', purpose: 'mfa', stage: 'verify' },
+      { secret: SIGNING_SECRET, expiresIn: -30 },
+    );
+    const mfaService = new SessionTokenService(jwtService, { load: async () => SIGNING_SECRET } as never);
+    await expect(mfaService.verifyMfaToken(expiredMfaToken)).rejects.toMatchObject({
+      code: 'INVALID_CREDENTIALS',
+    });
+  });
 });
 
 describe('readSessionSubjectId', () => {

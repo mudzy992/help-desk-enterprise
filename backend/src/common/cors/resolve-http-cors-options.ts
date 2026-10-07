@@ -12,9 +12,8 @@ export function resolveHttpCorsOptions(): {
     credentials: false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'X-Install-Token'],
-    // Cross-origin deployments (frontend and API on different hosts) cannot
-    // read the server-chosen download name otherwise; downloads then fall
-    // back to client-side names.
-    exposedHeaders: ['Content-Disposition'],
+    // Cross-origin deployments need these response metadata headers exposed to
+    // browser code (download names and paginated user totals).
+    exposedHeaders: ['Content-Disposition', 'X-Total-Count'],
   };
 }

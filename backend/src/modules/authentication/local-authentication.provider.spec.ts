@@ -100,6 +100,25 @@ describe('LocalAuthenticationProvider', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
+  it('rejects a local SuperAdmin that is still linked to an on-premises directory identity', async () => {
+    const password = 'correct-horse-battery';
+    const localPasswordHash = await hashLocalPassword(password, 4);
+    findByEmail.mockResolvedValue(
+      createUser({
+        localPasswordHash,
+        directoryObjectGuid: 'directory-object-1',
+        roleKeys: [authenticationConstants.superAdminRoleKey],
+      }),
+    );
+    await expect(
+      provider.authenticate({
+        kind: 'password',
+        email: 'admin@example.com',
+        password,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  });
+
   it('rejects SuperAdmin identities that are not local-only', async () => {
     const password = 'correct-horse-battery';
     const localPasswordHash = await hashLocalPassword(password, 4);

@@ -22,6 +22,7 @@ const conflictCodes: readonly OrganizationalUnitErrorCode[] = [
   'HAS_REPORT_SCHEDULES',
   'HAS_TICKETS',
   'RESOURCE_IN_USE',
+  'LAST_SUPER_ADMIN_REQUIRED',
 ];
 
 const messages: Record<OrganizationalUnitErrorCode, string> = {
@@ -48,6 +49,7 @@ const messages: Record<OrganizationalUnitErrorCode, string> = {
   HAS_REPORT_SCHEDULES: 'Organizational unit is still linked to report schedules',
   HAS_TICKETS: 'Organizational unit is still linked to tickets',
   RESOURCE_IN_USE: 'Organizational unit is still in use',
+  LAST_SUPER_ADMIN_REQUIRED: 'Cannot delete the organizational unit because it would remove the last active SuperAdmin',
 };
 
 export function mapOrganizationalUnitError(error: unknown): HttpException {

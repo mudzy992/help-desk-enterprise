@@ -38,6 +38,7 @@ type LoadedPrincipalUser = {
   isLocalOnly: boolean;
   mustChangePassword: boolean;
   entraObjectId: string | null;
+  directoryObjectGuid: string | null;
   authzVersion: number;
   organizationalUnitId: string | null;
   userRoles: readonly {
@@ -71,6 +72,7 @@ export function mapPrincipalUser(user: LoadedPrincipalUser): PrincipalContext {
     isLocalOnly: user.isLocalOnly,
     mustChangePassword: user.mustChangePassword,
     entraObjectId: user.entraObjectId,
+    directoryObjectGuid: user.directoryObjectGuid,
     // Roles are the distinct keys of the assignments (a user may hold the same
     // role in two units) — the same list the authentication loader built.
     roleKeys: [

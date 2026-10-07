@@ -2,7 +2,14 @@ import { randomBytes } from 'node:crypto';
 import { decodeBase32, encodeBase32 } from './base32';
 import { buildOtpauthUri, hotp, totpCode, totpStep, verifyTotp } from './totp';
 import { decryptMfaSecret, encryptMfaSecret, MfaEncryptionKeyMissingError, readMfaEncryptionKey } from './mfa-secret-cipher';
-import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from './recovery-codes';
+import {
+  deriveRecoveryCodeHmacKey,
+  deriveRecoveryCodeHmacKeyCandidates,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  looksLikeRecoveryCode,
+  recoveryCodeHashMatches,
+} from './recovery-codes';
 import { truncateIpAddress } from './network-prefix';
 import { buildOrganisationWords, checkPassword } from './password-policy';
 import { defaultAccountSecurityPolicy as policy } from './account-security-policy';
@@ -85,6 +92,10 @@ describe('MFA secret cipher', () => {
 });
 
 describe('recovery codes', () => {
+  const currentMfaKey = randomBytes(32);
+  const previousMfaKey = randomBytes(32);
+  const hmacKey = deriveRecoveryCodeHmacKey(currentMfaKey);
+
   it('generates 10 distinct codes in the xxxxx-xxxxx shape', () => {
     const codes = generateRecoveryCodes();
     expect(codes).toHaveLength(10);
@@ -92,10 +103,36 @@ describe('recovery codes', () => {
     codes.forEach((code) => expect(code).toMatch(/^[a-z2-9]{5}-[a-z2-9]{5}$/));
   });
 
-  it('hashes case- and separator-insensitively and is told apart from a TOTP', () => {
-    expect(hashRecoveryCode('abcde-fghjk')).toBe(hashRecoveryCode(' ABCDE FGHJK '));
+  it('uses keyed HMAC, normalizes separators, and distinguishes wrong keys', () => {
+    const stored = hashRecoveryCode('abcde-fghjk', hmacKey);
+    const normalized = hashRecoveryCode(' ABCDE FGHJK ', hmacKey);
+    const wrongKey = hashRecoveryCode('abcde-fghjk', deriveRecoveryCodeHmacKey(previousMfaKey));
+    expect(stored).toBe(normalized);
+    expect(stored).not.toBe(wrongKey);
+    expect(recoveryCodeHashMatches(stored, normalized)).toBe(true);
+    expect(recoveryCodeHashMatches(stored, wrongKey)).toBe(false);
     expect(looksLikeRecoveryCode('abcde-fghjk')).toBe(true);
+    expect(looksLikeRecoveryCode('ABCDE  FGHJK')).toBe(true);
+    expect(looksLikeRecoveryCode('abcdefghjk')).toBe(true);
+    expect(looksLikeRecoveryCode('abcde!fghjk')).toBe(false);
     expect(looksLikeRecoveryCode('123456')).toBe(false);
+    expect(looksLikeRecoveryCode('not-a-valid-code')).toBe(false);
+  });
+
+  it('derives active/previous rotation candidates, stable key ids, and one-key fallback', () => {
+    const candidates = deriveRecoveryCodeHmacKeyCandidates(currentMfaKey, previousMfaKey);
+    const [current, previous] = candidates;
+    const previousHash = hashRecoveryCode('abcde-fghjk', previous!.key);
+    const currentOnly = deriveRecoveryCodeHmacKeyCandidates(currentMfaKey, null);
+    const afterRotation = deriveRecoveryCodeHmacKeyCandidates(previousMfaKey, null);
+    expect(candidates).toHaveLength(2);
+    expect(current!.keyId).not.toBe(previous!.keyId);
+    expect(current!.keyId).toBe(deriveRecoveryCodeHmacKeyCandidates(currentMfaKey, null)[0]!.keyId);
+    expect(previous!.keyId).toBe(afterRotation[0]!.keyId);
+    expect(recoveryCodeHashMatches(previousHash, hashRecoveryCode('abcde-fghjk', previous!.key))).toBe(true);
+    expect(recoveryCodeHashMatches(previousHash, hashRecoveryCode('abcde-fghjk', currentOnly[0]!.key))).toBe(false);
+    expect(deriveRecoveryCodeHmacKeyCandidates(currentMfaKey, currentMfaKey)).toHaveLength(1);
+    expect(afterRotation).toHaveLength(1);
   });
 });
 

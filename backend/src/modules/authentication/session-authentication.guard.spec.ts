@@ -3,6 +3,8 @@ import type { PrincipalContext } from '../../common/principal-context/principal-
 import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
   PRINCIPAL_CONTEXT_REQUEST_KEY,
+  SESSION_ID_REQUEST_KEY,
+  SESSION_JTI_REQUEST_KEY,
 } from './authenticated-request';
 import { AuthenticationError } from './authentication.error';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
@@ -104,6 +106,16 @@ describe('SessionAuthenticationGuard', () => {
     // this one — they must not load the same record again.
     expect(request[PRINCIPAL_CONTEXT_REQUEST_KEY]).toBe(principal);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('attaches the sid and jti for precise revocation exceptions', async () => {
+    verify.mockResolvedValue({ subjectId: 'user-1', sessionId: 'sid-current', jti: 'jti-current' });
+    const request: Record<string, unknown> = {
+      headers: { authorization: 'Bearer session-token' },
+    };
+    await expect(guard.canActivate(createContext(request))).resolves.toBe(true);
+    expect(request[SESSION_ID_REQUEST_KEY]).toBe('sid-current');
+    expect(request[SESSION_JTI_REQUEST_KEY]).toBe('jti-current');
   });
 
   it('rejects a caller whose cached context says the password must change', async () => {

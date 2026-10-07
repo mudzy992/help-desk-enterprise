@@ -149,15 +149,22 @@ export class SessionRegistryService {
   }
 
   /**
-   * Every session of the user ends, optionally except the caller's own. Without
-   * an exception the per-user cutoff also ends tokens issued before the registry.
+   * Revoke every session except the caller's current session/token. The precise
+   * sid registry ends modern sessions; a cutoff remains the fallback for legacy
+   * tokens without `sid`.
    */
   async revokeAll(input: {
     readonly userId: string;
     readonly reason: SessionRevokeReason;
     readonly actorUserId: string | null;
     readonly exceptSessionId?: string | null;
+    readonly exceptJti?: string | null;
   }): Promise<number> {
+    // Apply the cutoff first so legacy tokens are covered throughout the DB work.
+    await this.sessionTokenService.revokeAllForUser(input.userId, {
+      sessionId: input.exceptSessionId ?? null,
+      jti: input.exceptJti ?? null,
+    });
     const active = await this.prisma.userSession.findMany({
       where: {
         userId: input.userId,
@@ -175,9 +182,6 @@ export class SessionRegistryService {
       for (const row of active) {
         await this.sessionTokenService.revokeSession(row.id);
       }
-    }
-    if (!input.exceptSessionId) {
-      await this.sessionTokenService.revokeAllForUser(input.userId);
     }
     await this.notifier.audit(auditLogActions.authSessionsRevokedAll, input.userId, input.actorUserId, {
       reason: input.reason,

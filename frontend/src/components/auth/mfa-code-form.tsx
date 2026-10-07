@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
-import { ApiError } from "@/services/api";
+import { mapMfaCodeError, type MfaCodeError } from "@/lib/auth/map-mfa-step-error";
 
 interface MfaCodeFormProperties {
   readonly onSubmit: (code: string) => Promise<void>;
@@ -25,7 +25,7 @@ export function MfaCodeForm({
   const [code, setCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<"invalid" | "rateLimited" | "expired" | "signInExpired" | "failed" | null>(null);
+  const [error, setError] = useState<MfaCodeError | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,18 +35,7 @@ export function MfaCodeForm({
       await onSubmit(code.trim());
       setCode("");
     } catch (caught) {
-      setError(
-        caught instanceof ApiError && caught.status === 429
-          ? "rateLimited"
-          : caught instanceof ApiError && caught.code === "MFA_ENROLLMENT_EXPIRED"
-            ? "expired"
-            : caught instanceof ApiError && caught.code === "INVALID_CREDENTIALS"
-              ? // The 5-minute sign-in step (mfaToken) expired or was already used — not a wrong code.
-                "signInExpired"
-            : caught instanceof ApiError && (caught.status === 401 || caught.status === 400)
-              ? "invalid"
-              : "failed",
-      );
+      setError(mapMfaCodeError(caught));
     } finally {
       setIsSubmitting(false);
     }
@@ -83,6 +72,8 @@ export function MfaCodeForm({
                 ? "auth.mfa.enrollmentExpired"
                 : error === "signInExpired"
                   ? "auth.mfa.signInExpired"
+                  : error === "recoveryCodesExhausted"
+                    ? "auth.mfa.recoveryCodesExhausted"
                 : error === "invalid"
                   ? "auth.mfa.invalidCode"
                   : "auth.mfa.failed",

@@ -9,8 +9,8 @@ import { redisTokens } from '../../common/redis/redis.tokens';
  *
  *   auth:revoked-jti:{jti}          one token (logout, refresh rotation);
  *                                   TTL = the token's remaining lifetime
- *   auth:sessions-valid-after:{sub} every token of a user issued before this
- *                                   second (password change); TTL = session TTL
+ *   auth:sessions-valid-after:{sub} cutoff for old sid and legacy no-sid tokens;
+ *                                   may exempt the caller's sid/jti; TTL = session TTL
  *
  * Tokens are short (1 h), so the records never outlive what they protect. A
  * Redis outage fails OPEN (logged) — sessions keep working rather than
@@ -24,12 +24,57 @@ export type RevocationCheck = {
   sessionId?: string | null;
 };
 
+export type SessionRevocationExceptions = {
+  /** Preserve every refreshed token tied to the current registry session. */
+  readonly sessionId?: string | null;
+  /** Preserve only this legacy token when the caller has no registry `sid`. */
+  readonly jti?: string | null;
+};
+
+type StoredSessionCutoff = {
+  readonly at: number;
+  readonly exceptSessionId: string | null;
+  readonly exceptJti: string | null;
+};
+
+function parseStoredSessionCutoff(raw: string): StoredSessionCutoff | null {
+  const legacyAt = Number(raw);
+  if (Number.isFinite(legacyAt)) {
+    return { at: legacyAt, exceptSessionId: null, exceptJti: null };
+  }
+  try {
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      typeof value.at !== 'number' ||
+      !Number.isFinite(value.at) ||
+      (value.exceptSessionId !== undefined &&
+        value.exceptSessionId !== null &&
+        typeof value.exceptSessionId !== 'string') ||
+      (value.exceptJti !== undefined && value.exceptJti !== null && typeof value.exceptJti !== 'string')
+    ) {
+      return null;
+    }
+    return {
+      at: value.at,
+      exceptSessionId: typeof value.exceptSessionId === 'string' ? value.exceptSessionId : null,
+      exceptJti: typeof value.exceptJti === 'string' ? value.exceptJti : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export type SessionRevocationBackend = {
   isRevoked(input: RevocationCheck): Promise<boolean>;
   revokeToken(jti: string, ttlSeconds: number): Promise<void>;
   /** Paket 2.1: every token of one session (all refreshes) stops working. */
   revokeSession(sessionId: string, ttlSeconds: number): Promise<void>;
-  revokeAllForUser(subjectId: string, nowSeconds: number, ttlSeconds: number): Promise<void>;
+  revokeAllForUser(
+    subjectId: string,
+    nowSeconds: number,
+    ttlSeconds: number,
+    exceptions?: SessionRevocationExceptions,
+  ): Promise<void>;
 };
 
 export function createMemorySessionRevocationBackend(
@@ -37,7 +82,10 @@ export function createMemorySessionRevocationBackend(
 ): SessionRevocationBackend {
   const revoked = new Map<string, number>();
   const revokedSessions = new Map<string, number>();
-  const validAfter = new Map<string, { at: number; expiresAt: number }>();
+  const validAfter = new Map<
+    string,
+    { at: number; expiresAt: number; exceptSessionId: string | null; exceptJti: string | null }
+  >();
   return {
     isRevoked: async ({ jti, subjectId, issuedAt, sessionId }) => {
       const current = now();
@@ -50,7 +98,21 @@ export function createMemorySessionRevocationBackend(
         if (until !== undefined && until > current) return true;
       }
       const cutoff = validAfter.get(subjectId);
-      return cutoff !== undefined && cutoff.expiresAt > current && issuedAt < cutoff.at;
+      if (cutoff === undefined || cutoff.expiresAt <= current) return false;
+      if (sessionId !== null && sessionId !== undefined && sessionId === cutoff.exceptSessionId) return false;
+      if (
+        (sessionId === null || sessionId === undefined) &&
+        jti !== null &&
+        jti === cutoff.exceptJti
+      ) {
+        return false;
+      }
+      // `sid` sessions are revoked explicitly; strict seconds fallback keeps a
+      // fresh sid issued in the same second valid. Legacy no-sid tokens cannot
+      // distinguish that boundary, so include the cutoff second itself.
+      return sessionId === null || sessionId === undefined
+        ? issuedAt <= cutoff.at
+        : issuedAt < cutoff.at;
     },
     revokeToken: async (jti, ttlSeconds) => {
       revoked.set(jti, now() + ttlSeconds * 1000);
@@ -58,13 +120,18 @@ export function createMemorySessionRevocationBackend(
     revokeSession: async (sessionId, ttlSeconds) => {
       revokedSessions.set(sessionId, now() + ttlSeconds * 1000);
     },
-    revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds) => {
-      validAfter.set(subjectId, { at: nowSeconds, expiresAt: now() + ttlSeconds * 1000 });
+    revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds, exceptions) => {
+      validAfter.set(subjectId, {
+        at: nowSeconds,
+        expiresAt: now() + ttlSeconds * 1000,
+        exceptSessionId: exceptions?.sessionId ?? null,
+        exceptJti: exceptions?.jti ?? null,
+      });
     },
   };
 }
 
-function createRedisSessionRevocationBackend(redis: Redis): SessionRevocationBackend {
+export function createRedisSessionRevocationBackend(redis: Redis): SessionRevocationBackend {
   return {
     isRevoked: async ({ jti, subjectId, issuedAt, sessionId }) => {
       // One round trip: jti, session and per-user cutoff in a single MGET.
@@ -74,7 +141,20 @@ function createRedisSessionRevocationBackend(redis: Redis): SessionRevocationBac
         sessionId ? `auth:revoked-sid:${sessionId}` : 'auth:revoked-sid:-',
       );
       if (tokenRevoked !== null || sessionRevoked !== null) return true;
-      return cutoff !== null && issuedAt < Number(cutoff);
+      if (cutoff === null) return false;
+      const stored = parseStoredSessionCutoff(cutoff);
+      if (stored === null) return false;
+      if (sessionId !== null && sessionId !== undefined && sessionId === stored.exceptSessionId) return false;
+      if (
+        (sessionId === null || sessionId === undefined) &&
+        jti !== null &&
+        jti === stored.exceptJti
+      ) {
+        return false;
+      }
+      return sessionId === null || sessionId === undefined
+        ? issuedAt <= stored.at
+        : issuedAt < stored.at;
     },
     revokeToken: async (jti, ttlSeconds) => {
       await redis.set(`auth:revoked-jti:${jti}`, '1', 'EX', Math.max(1, ttlSeconds));
@@ -82,10 +162,14 @@ function createRedisSessionRevocationBackend(redis: Redis): SessionRevocationBac
     revokeSession: async (sessionId, ttlSeconds) => {
       await redis.set(`auth:revoked-sid:${sessionId}`, '1', 'EX', Math.max(1, ttlSeconds));
     },
-    revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds) => {
+    revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds, exceptions) => {
       await redis.set(
         `auth:sessions-valid-after:${subjectId}`,
-        String(nowSeconds),
+        JSON.stringify({
+          at: nowSeconds,
+          exceptSessionId: exceptions?.sessionId ?? null,
+          exceptJti: exceptions?.jti ?? null,
+        }),
         'EX',
         Math.max(1, ttlSeconds),
       );
@@ -125,9 +209,18 @@ export class SessionRevocationStore {
     await this.safe(() => this.backend.revokeSession(sessionId, ttlSeconds));
   }
 
-  async revokeAllForUser(subjectId: string, sessionTtlSeconds: number): Promise<void> {
+  async revokeAllForUser(
+    subjectId: string,
+    sessionTtlSeconds: number,
+    exceptions?: SessionRevocationExceptions,
+  ): Promise<void> {
     await this.safe(() =>
-      this.backend.revokeAllForUser(subjectId, Math.floor(Date.now() / 1000), sessionTtlSeconds),
+      this.backend.revokeAllForUser(
+        subjectId,
+        Math.floor(Date.now() / 1000),
+        sessionTtlSeconds,
+        exceptions,
+      ),
     );
   }
 

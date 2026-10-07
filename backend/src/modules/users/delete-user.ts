@@ -4,6 +4,11 @@ import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { UserAuditContext, PrincipalInvalidationHook } from './users.types';
 import { recordUserChange } from './record-user-change';
 import { UsersError } from './users.error';
+import {
+  assertAnotherActiveSuperAdminExists,
+  hasActiveSuperAdminRole,
+  lockActiveSuperAdminInvariant,
+} from './super-admin-invariant';
 
 const closedTicketStatuses = ['RESOLVED', 'CLOSED', 'ARCHIVED'] as const;
 
@@ -14,6 +19,7 @@ export async function deleteUser(
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<void> {
   await prisma.$transaction(async (transaction) => {
+    await lockActiveSuperAdminInvariant(transaction);
     const existing = await transaction.user.findUnique({
       where: { id: userId },
       select: {
@@ -36,6 +42,12 @@ export async function deleteUser(
     }
     if (existing._count.assignedTickets > 0 || existing._count.requestedTickets > 0) {
       throw new UsersError('HAS_OPEN_TICKETS');
+    }
+    if (
+      existing.isActive &&
+      (await hasActiveSuperAdminRole(transaction, existing.id))
+    ) {
+      await assertAnotherActiveSuperAdminExists(transaction, existing.id);
     }
     await recordUserChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.userDeleted,

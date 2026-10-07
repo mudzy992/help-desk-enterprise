@@ -10,6 +10,12 @@ import type {
   RemoveUserRoleInput,
 } from './users.types';
 import { UsersError } from './users.error';
+import {
+  assertAnotherActiveSuperAdminExists,
+  hasActiveSuperAdminRole,
+  lockActiveSuperAdminInvariant,
+} from './super-admin-invariant';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
 
 export async function removeUserRole(
   prisma: PrismaService,
@@ -18,19 +24,39 @@ export async function removeUserRole(
 ): Promise<void> {
   const userId = input.userId.trim();
   const userRoleId = input.userRoleId.trim();
-  const existing = await prisma.userRole.findFirst({
-    where: { id: userRoleId, userId },
-    select: {
-      id: true,
-      role: { select: { key: true } },
-      organizationalUnitId: true,
-      serviceId: true,
-    },
-  });
-  if (existing === null) {
-    throw new UsersError('USER_ROLE_NOT_FOUND');
-  }
   await prisma.$transaction(async (transaction) => {
+    // Serializes this removal with deactivation and deletion before the count.
+    await lockActiveSuperAdminInvariant(transaction);
+    const existing = await transaction.userRole.findFirst({
+      where: { id: userRoleId, userId },
+      select: {
+        id: true,
+        role: { select: { key: true } },
+        organizationalUnitId: true,
+        serviceId: true,
+        user: {
+          select: {
+            isActive: true,
+            isLocalOnly: true,
+            entraObjectId: true,
+            directoryObjectGuid: true,
+          },
+        },
+      },
+    });
+    if (existing === null) {
+      throw new UsersError('USER_ROLE_NOT_FOUND');
+    }
+    if (
+      existing.role.key === authorizationRoleKeys.superAdmin &&
+      existing.user.isActive &&
+      existing.user.isLocalOnly &&
+      existing.user.entraObjectId === null &&
+      existing.user.directoryObjectGuid === null &&
+      !(await hasActiveSuperAdminRole(transaction, userId, existing.id))
+    ) {
+      await assertAnotherActiveSuperAdminExists(transaction, userId);
+    }
     await transaction.userRole.delete({ where: { id: existing.id } });
     await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.userRoleRemove,

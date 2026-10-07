@@ -103,6 +103,25 @@ describe('resetUserTemporaryPassword', () => {
     expect(issueTemporaryPasswordForUser).not.toHaveBeenCalled();
   });
 
+  it('returns USER_INACTIVE without issuing or changing a password', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          email: 'user@example.com',
+          displayName: 'Inactive User',
+          isActive: false,
+          isLocalOnly: true,
+          organizationalUnitId: 'ou-1',
+        }),
+      },
+    };
+    await expect(
+      resetUserTemporaryPassword(prisma as never, 'user-1', dependencies),
+    ).rejects.toMatchObject({ code: 'USER_INACTIVE' });
+    expect(issueTemporaryPasswordForUser).not.toHaveBeenCalled();
+  });
+
   it('rejects missing users', async () => {
     const prisma = { user: { findUnique: jest.fn().mockResolvedValue(null) } };
     await expect(

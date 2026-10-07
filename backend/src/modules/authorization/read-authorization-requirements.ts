@@ -1,7 +1,9 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
+  AUTHORIZATION_AUDIT_PERMISSIONS_KEY,
   AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY,
+  AUTHORIZATION_PERMISSION_MATCH_MODE_KEY,
   AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
   AUTHORIZATION_REQUIRED_ROLES_KEY,
   AUTHORIZATION_SERVICE_SCOPE_KEY,
@@ -38,11 +40,17 @@ function readScopeLocator(
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return null;
   }
-  const field = (value as { field?: unknown }).field;
-  if (typeof field !== 'string' || field.trim().length === 0) {
+  const locator = value as { field?: unknown; resource?: unknown };
+  if (typeof locator.field !== 'string' || locator.field.trim().length === 0) {
     return null;
   }
-  return { field: field.trim() };
+  if (locator.resource !== undefined && locator.resource !== 'group') {
+    return null;
+  }
+  return {
+    field: locator.field.trim(),
+    ...(locator.resource === 'group' ? { resource: 'group' as const } : {}),
+  };
 }
 
 export function readAuthorizationRequirements(
@@ -62,6 +70,10 @@ export function readAuthorizationRequirements(
   );
   const requireOrganizationalUnitScope =
     options.requireOrganizationalUnitScope || organizationalUnitScope !== null;
+  const matchMode = reflector.getAllAndOverride<unknown>(
+    AUTHORIZATION_PERMISSION_MATCH_MODE_KEY,
+    [context.getHandler(), context.getClass()],
+  );
   return {
     requiredRoles: readStringList(
       reflector,
@@ -71,6 +83,12 @@ export function readAuthorizationRequirements(
     requiredPermissions: readStringList(
       reflector,
       AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
+      context,
+    ),
+    permissionMatchMode: matchMode === 'all' ? 'all' : 'any',
+    auditPermissionKeys: readStringList(
+      reflector,
+      AUTHORIZATION_AUDIT_PERMISSIONS_KEY,
       context,
     ),
     organizationalUnitScope: requireOrganizationalUnitScope

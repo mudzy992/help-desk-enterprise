@@ -9,6 +9,7 @@ import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
   PRINCIPAL_CONTEXT_REQUEST_KEY,
   SESSION_ID_REQUEST_KEY,
+  SESSION_JTI_REQUEST_KEY,
   type AuthenticatedHttpRequest,
 } from './authenticated-request';
 import { AuthenticationError } from './authentication.error';
@@ -46,10 +47,12 @@ export class SessionAuthenticationGuard implements CanActivate {
       assertSuperAdminIsLocalOnly({
         isLocalOnly: context.isLocalOnly,
         entraObjectId: context.entraObjectId,
+        directoryObjectGuid: context.directoryObjectGuid,
         roleKeys: context.roleKeys,
       });
       request[PRINCIPAL_CONTEXT_REQUEST_KEY] = context;
       request[SESSION_ID_REQUEST_KEY] = claims.sessionId ?? null;
+      request[SESSION_JTI_REQUEST_KEY] = claims.jti ?? null;
       request[AUTHENTICATED_PRINCIPAL_REQUEST_KEY] = toAuthorizationPrincipal(
         createAuthenticatedPrincipal({
           subjectId: context.subjectId,

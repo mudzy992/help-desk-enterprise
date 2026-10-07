@@ -74,10 +74,10 @@ async function readApiError(response: Response): Promise<ApiError> {
   );
 }
 
-export async function apiRequest<T>(
+async function authenticatedApiResponse(
   path: string,
-  init: RequestInit = {},
-): Promise<T> {
+  init: RequestInit,
+): Promise<Response> {
   const authHeaders = authorizationHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
@@ -95,6 +95,10 @@ export async function apiRequest<T>(
     notifyUnauthorized(path, "Authorization" in authHeaders && !overridesAuthorization(init.headers), response.status);
     throw await readApiError(response);
   }
+  return response;
+}
+
+async function readApiResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
@@ -106,6 +110,22 @@ export async function apiRequest<T>(
     return undefined as T;
   }
   return JSON.parse(text) as T;
+}
+
+/** Body plus response headers for endpoints that return pagination metadata. */
+export async function apiRequestWithHeaders<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ readonly data: T; readonly headers: Headers }> {
+  const response = await authenticatedApiResponse(path, init);
+  return { data: await readApiResponse<T>(response), headers: response.headers };
+}
+
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  return (await apiRequestWithHeaders<T>(path, init)).data;
 }
 
 export async function apiBlobRequest(

@@ -87,9 +87,14 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
           )}
           {security.mfa.requirement === "required" ? <Badge tone="warning">{t("account.security.mfaRequired")}</Badge> : null}
           {security.mfa.enabled ? (
-            <span className="text-muted-foreground">
-              {t("account.security.recoveryRemaining", { count: security.mfa.recoveryCodesRemaining })}
-            </span>
+            <>
+              <span className="text-muted-foreground">
+                {t("account.security.recoveryRemaining", { count: security.mfa.recoveryCodesRemaining })}
+              </span>
+              {security.mfa.recoveryCodesRemaining === 0 ? (
+                <span className="text-warning">{t("account.security.recoveryCodesMissing")}</span>
+              ) : null}
+            </>
           ) : null}
         </dd>
         <dt className="text-muted-foreground">{t("users.security.passwordChanged")}</dt>

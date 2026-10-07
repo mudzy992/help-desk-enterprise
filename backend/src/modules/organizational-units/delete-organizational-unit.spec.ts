@@ -21,6 +21,7 @@ describe('deleteOrganizationalUnitInTransaction', () => {
   function createTransaction(overrides: Partial<Record<string, unknown>> = {}) {
     const deleteUnit = jest.fn().mockResolvedValue(unit);
     const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
       organizationalUnit: {
         findUnique: jest.fn().mockResolvedValue(unit),
         delete: deleteUnit,
@@ -41,6 +42,7 @@ describe('deleteOrganizationalUnitInTransaction', () => {
       reportSchedule: { count: jest.fn().mockResolvedValue(0) },
       ticket: { count: jest.fn().mockResolvedValue(0) },
       userRole: {
+        findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([
           { userId: 'user-1' },
           { userId: 'user-1' },
@@ -82,6 +84,42 @@ describe('deleteOrganizationalUnitInTransaction', () => {
         }),
       }),
     );
+  });
+
+  it('refuses to cascade-delete the only active local SuperAdmin assignment in the OU', async () => {
+    const { transaction, deleteUnit } = createTransaction();
+    transaction.userRole.findFirst
+      .mockResolvedValueOnce({ id: 'last-super-admin-role' })
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      deleteOrganizationalUnitInTransaction(transaction as never, unit.id, {
+        actorUserId: 'admin-2',
+        requestId: 'req-delete-ou',
+      }),
+    ).rejects.toMatchObject({ code: 'LAST_SUPER_ADMIN_REQUIRED' });
+
+    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(deleteUnit).not.toHaveBeenCalled();
+    expect(recordOrganizationalUnitChange).not.toHaveBeenCalled();
+  });
+
+  it('allows an OU cascade when another active local SuperAdmin assignment remains outside it', async () => {
+    const { transaction, deleteUnit } = createTransaction();
+    transaction.userRole.findFirst
+      .mockResolvedValueOnce({ id: 'scoped-super-admin-role' })
+      .mockResolvedValueOnce({ id: 'global-super-admin-role' });
+
+    await expect(
+      deleteOrganizationalUnitInTransaction(transaction as never, unit.id, {
+        actorUserId: 'admin-2',
+        requestId: 'req-delete-ou',
+      }),
+    ).resolves.toMatchObject({
+      affectedUserIds: ['user-1', 'user-2'],
+      warnings: [{ code: 'ROLE_ASSIGNMENTS_REMOVED', count: 3 }],
+    });
+    expect(deleteUnit).toHaveBeenCalledWith({ where: { id: unit.id } });
   });
 
   it('returns typed blocker counts and never deletes an OU with linked groups', async () => {

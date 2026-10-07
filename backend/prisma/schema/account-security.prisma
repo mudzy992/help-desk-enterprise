@@ -15,16 +15,19 @@ model UserMfa {
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-/// Paket 2.1 (M4): single-use recovery codes, stored as SHA-256 only.
+/// Paket 5.2.1 (M2 #4): single-use recovery codes, stored as keyed HMAC only.
 model UserMfaRecoveryCode {
   id        String    @id @default(cuid())
   userId    String
   codeHash  String
+  /// Non-secret fingerprint identifies which active/previous MFA key can verify the HMAC.
+  keyId     String    @db.VarChar(64)
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, keyId, usedAt])
 }
 
 /// Paket 2.1 (M6): one row per sign-in; the id is the `sid` claim and stays

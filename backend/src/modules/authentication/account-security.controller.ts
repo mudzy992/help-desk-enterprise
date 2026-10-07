@@ -19,6 +19,7 @@ import {
   type AuthenticatedHttpRequest,
   readAuthenticatedPrincipal,
   readSessionId,
+  readSessionJti,
 } from './authenticated-request';
 import { AccountMfaCodeDto, AccountPasswordChangeDto } from './dto/mfa.dto';
 import { LoginAttemptLimiter } from './login-attempt-limiter';
@@ -94,6 +95,7 @@ export class AccountSecurityController {
         reason: 'password_change',
         actorUserId: user.id,
         exceptSessionId: readSessionId(request),
+        exceptJti: readSessionJti(request),
       });
     } catch (error) {
       mapAccountSecurityError(error);
@@ -125,8 +127,9 @@ export class AccountSecurityController {
       userId: user.id,
       reason: 'user',
       actorUserId: user.id,
-      // A pre-registry token has no sid: then everything else still ends, it keeps working.
-      exceptSessionId: current ?? '00000000-0000-0000-0000-000000000000',
+      // The cutoff keeps this legacy token by jti and revokes other no-sid tokens.
+      exceptSessionId: current,
+      exceptJti: readSessionJti(request),
     });
     return { revoked };
   }

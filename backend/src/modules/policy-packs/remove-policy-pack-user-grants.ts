@@ -1,4 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { PolicyPackError } from './policy-pack.error';
 import type { PolicyPackCatalogEnsureResult } from './ensure-policy-pack-catalog';
 import type { PolicyPackPlannedAssignment } from './policy-pack.types';
 
@@ -21,6 +23,9 @@ export async function removePolicyPackUserGrants(
   let removedUserRoleCount = 0;
   const affectedUserIds = new Set<string>();
   for (const assignment of plannedAssignments) {
+    if (assignment.roleKey === authorizationRoleKeys.superAdmin) {
+      throw new PolicyPackError('SUPER_ADMIN_GRANT_FORBIDDEN');
+    }
     const roleId = catalog.roleIdsByKey.get(assignment.roleKey);
     if (roleId === undefined) {
       continue;

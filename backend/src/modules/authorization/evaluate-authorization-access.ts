@@ -1,5 +1,8 @@
 import { authorizationDecisionReasons } from './authorization-decision-reason';
-import { scopeAgnosticPermissionKeys } from './authorization.constants';
+import {
+  globalOrganizationalUnitPermissionKeys,
+  scopeAgnosticPermissionKeys,
+} from './authorization.constants';
 import { doesOrganizationalUnitScopeCover } from './does-organizational-unit-scope-cover';
 import { doesServiceScopeCover } from './does-service-scope-cover';
 import type {
@@ -39,19 +42,39 @@ function doesAssignmentGrant(
   ) {
     return false;
   }
+  const grantedRequiredPermissions = input.requiredPermissions.filter((permissionKey) =>
+    assignment.permissionKeys.includes(permissionKey),
+  );
   if (input.requiredPermissions.length > 0) {
-    const grantsPermission = input.requiredPermissions.some((permissionKey) =>
-      assignment.permissionKeys.includes(permissionKey),
-    );
-    if (!grantsPermission) {
+    const permissionMatchMode = input.permissionMatchMode ?? 'any';
+    const grantsRequiredPermissions =
+      permissionMatchMode === 'all'
+        ? grantedRequiredPermissions.length === input.requiredPermissions.length
+        : grantedRequiredPermissions.length > 0;
+    if (!grantsRequiredPermissions) {
       return false;
     }
   }
   const scopeAgnostic =
-    input.requiredPermissions.length > 0 &&
-    input.requiredPermissions.every((permissionKey) => scopeAgnosticPermissionKeys.includes(permissionKey));
+    grantedRequiredPermissions.length > 0 &&
+    grantedRequiredPermissions.every((permissionKey) =>
+      scopeAgnosticPermissionKeys.includes(permissionKey),
+    );
+  const globalOrganizationalUnitGrant =
+    assignment.organizationalUnitId === null &&
+    assignment.organizationalUnitPath === null &&
+    assignment.serviceId === null &&
+    grantedRequiredPermissions.length > 0 &&
+    (input.permissionMatchMode === 'all'
+      ? input.requiredPermissions.every((permissionKey) =>
+          globalOrganizationalUnitPermissionKeys.includes(permissionKey),
+        )
+      : grantedRequiredPermissions.every((permissionKey) =>
+          globalOrganizationalUnitPermissionKeys.includes(permissionKey),
+        ));
   if (input.requireOrganizationalUnitScope) {
     if (
+      !globalOrganizationalUnitGrant &&
       !doesOrganizationalUnitScopeCover({
         assignedPath: assignment.organizationalUnitPath,
         requestedPath: input.organizationalUnitPath,

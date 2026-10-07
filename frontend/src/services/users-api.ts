@@ -1,4 +1,4 @@
-import { apiRequest } from "@/services/api";
+import { ApiError, apiRequest, apiRequestWithHeaders } from "@/services/api";
 
 export type UserRoleResponse = {
   readonly id: string;
@@ -65,6 +65,40 @@ export function removeUserRole(
 
 export function listUsersSummary(): Promise<readonly UserSummary[]> {
   return apiRequest("/users");
+}
+
+export type UserSummaryPage = {
+  readonly items: readonly UserSummary[];
+  readonly total: number;
+};
+
+export async function listUsersSummaryPage(input: {
+  readonly take: number;
+  readonly skip: number;
+  readonly query?: string;
+}): Promise<UserSummaryPage> {
+  const params = new URLSearchParams({
+    take: String(input.take),
+    skip: String(input.skip),
+  });
+  if (input.query?.trim()) params.set("q", input.query.trim());
+  const response = await apiRequestWithHeaders<readonly UserSummary[]>(
+    `/users?${params.toString()}`,
+  );
+  const rawTotal = response.headers.get("X-Total-Count");
+  const headerTotal = Number.parseInt(rawTotal ?? "", 10);
+  if (
+    rawTotal === null ||
+    !Number.isSafeInteger(headerTotal) ||
+    headerTotal < response.data.length
+  ) {
+    throw new ApiError(
+      502,
+      "USER_TOTAL_COUNT_MISSING",
+      "The server did not provide a valid total for the users list.",
+    );
+  }
+  return { items: response.data, total: headerTotal };
 }
 
 export function createUser(input: {

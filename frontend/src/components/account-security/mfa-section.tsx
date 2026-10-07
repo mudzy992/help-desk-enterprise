@@ -88,6 +88,11 @@ export function MfaSection({ mfa, onChanged }: MfaSectionProperties) {
           <p className="text-[12.5px] text-muted-foreground">
             {t("account.security.recoveryRemaining", { count: mfa.recoveryCodesRemaining })}
           </p>
+          {mfa.recoveryCodesRemaining === 0 ? (
+            <p role="status" className="text-[12.5px] text-warning">
+              {t("account.security.recoveryCodesMissing")}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={() => setDialog("regenerate")}>
               <ShieldCheck /> {t("account.security.regenerateCodes")}

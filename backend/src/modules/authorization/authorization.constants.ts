@@ -115,6 +115,15 @@ export const permissionKeys = {
  */
 export const scopeAgnosticPermissionKeys: readonly string[] = [permissionKeys.onCallRead];
 
+/**
+ * A global (unscoped) ADMIN grant manages groups in every OU. OU-scoped grants
+ * still cover only their assigned OU subtree. This is intentionally narrower
+ * than a general OU wildcard and exists for the explicit group.manage policy.
+ */
+export const globalOrganizationalUnitPermissionKeys: readonly string[] = [
+  permissionKeys.groupManage,
+];
+
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
 
 const edgeClientPermissionKeys = [
@@ -233,6 +242,10 @@ export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[
 export const AUTHORIZATION_REQUIRED_ROLES_KEY = 'authorization:requiredRoles';
 export const AUTHORIZATION_REQUIRED_PERMISSIONS_KEY =
   'authorization:requiredPermissions';
+export const AUTHORIZATION_PERMISSION_MATCH_MODE_KEY =
+  'authorization:permissionMatchMode';
+export const AUTHORIZATION_AUDIT_PERMISSIONS_KEY =
+  'authorization:auditPermissions';
 export const AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY =
   'authorization:organizationalUnitScope';
 export const AUTHORIZATION_SERVICE_SCOPE_KEY = 'authorization:serviceScope';

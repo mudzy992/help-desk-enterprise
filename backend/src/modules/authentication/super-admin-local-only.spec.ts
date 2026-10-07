@@ -41,6 +41,17 @@ describe('SuperAdmin isLocalOnly invariant', () => {
     ).toThrow(/SUPER_ADMIN_CANNOT_HAVE_EXTERNAL_IDENTITY/);
   });
 
+  it('rejects a SuperAdmin bound to an on-premises directory identity', () => {
+    expect(() =>
+      assertSuperAdminIsLocalOnly({
+        isLocalOnly: true,
+        entraObjectId: null,
+        directoryObjectGuid: 'directory-object-1',
+        roleKeys: [authenticationConstants.superAdminRoleKey],
+      }),
+    ).toThrow(/SUPER_ADMIN_CANNOT_HAVE_EXTERNAL_IDENTITY/);
+  });
+
   it('does not convert an external identity into local SuperAdmin', () => {
     expect(
       canBindExternalIdentity({

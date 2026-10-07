@@ -21,6 +21,8 @@ describe('deleteUser', () => {
       _count: { assignedTickets: 0, requestedTickets: 0 },
     };
     const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
       user: {
         findUnique: jest.fn().mockResolvedValue(user),
         delete: jest.fn().mockResolvedValue(user),
@@ -60,6 +62,8 @@ describe('deleteUser', () => {
   it('does not delete or invalidate a user when the audit insert fails', async () => {
     const auditFailure = new Error('audit insert failed');
     const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',
@@ -84,8 +88,43 @@ describe('deleteUser', () => {
     expect(invalidatePrincipal).not.toHaveBeenCalled();
   });
 
+  it('blocks deleting the only active SuperAdmin', async () => {
+    const deleteUserRow = jest.fn();
+    const roleFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'super-role-1' })
+      .mockResolvedValueOnce(null);
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      userRole: { findFirst: roleFindFirst },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          displayName: 'Admin',
+          email: 'admin@example.com',
+          isActive: true,
+          isLocalOnly: true,
+          organizationalUnitId: null,
+          _count: { assignedTickets: 0, requestedTickets: 0 },
+        }),
+        delete: deleteUserRow,
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
+    };
+
+    await expect(deleteUser(prisma as never, 'user-1')).rejects.toMatchObject({
+      code: 'LAST_SUPER_ADMIN_REQUIRED',
+    });
+    expect(deleteUserRow).not.toHaveBeenCalled();
+    expect(recordUserChange).not.toHaveBeenCalled();
+  });
+
   it('does not audit or delete a user with open tickets', async () => {
     const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',

@@ -3,6 +3,10 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { authorizationRoleKeys } from '../../authorization/authorization.constants';
+import {
+  hasSuperAdminRole,
+  lockActiveSuperAdminInvariant,
+} from '../../users/super-admin-invariant';
 import { InboundRawStore } from '../../inbound-email/inbound-raw-store';
 import { TICKET_ATTACHMENT_STORAGE } from '../../tickets/attachments/attachment-storage.token';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
@@ -362,6 +366,10 @@ export class AnonymizationService {
       const pseudonym = createPseudonym(attempt);
       try {
         await this.prisma.$transaction(async (transaction) => {
+          await lockActiveSuperAdminInvariant(transaction);
+          if (await hasSuperAdminRole(transaction, erasure.userId)) {
+            throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
+          }
           await transaction.user.update({
             where: { id: erasure.userId },
             data: {
