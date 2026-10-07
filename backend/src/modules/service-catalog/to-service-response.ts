@@ -8,7 +8,12 @@ import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transit
 import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
 import { resolveTicketApprovalRequirement } from '../tickets/approvals/resolve-ticket-approval-requirement';
 import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
-import type { ServiceRecord, ServiceResponse } from './service-catalog.types';
+import { emptyServiceActiveFormSummary } from './empty-service-active-form-summary';
+import type {
+  ServiceActiveFormSummary,
+  ServiceRecord,
+  ServiceResponse,
+} from './service-catalog.types';
 import { worstAvailability, type IncidentImpact } from '../status-page/status-page.model';
 
 export function toServiceResponse(
@@ -17,11 +22,12 @@ export function toServiceResponse(
   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
   openTicketCount = 0,
   // Default matches "no overlay configured": approvalSteps then mirrors the
-  // service's own `requiresApproval`. Callers on the read path (list/get)
+  // service's own `requiresApproval` flag. Callers on the read path (list/get)
   // pass the live configuration so an admin override is reflected too.
   approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
   // Paket 2.7: worst impact of open incidents; raises effectiveAvailability only.
   incidentImpact: IncidentImpact | null = null,
+  activeForm: ServiceActiveFormSummary = emptyServiceActiveFormSummary,
 ): ServiceResponse {
   const runtimeAvailability = evaluateServiceRuntimeAvailability({
     storedAvailability: record.availability,
@@ -58,6 +64,7 @@ export function toServiceResponse(
     slaProfileId: record.slaProfileId,
     policyPackId: record.policyPackId,
     openTicketCount,
+    activeForm,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

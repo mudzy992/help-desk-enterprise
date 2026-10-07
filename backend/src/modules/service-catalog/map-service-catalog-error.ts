@@ -12,6 +12,7 @@ const notFoundCodes: readonly ServiceCatalogErrorCode[] = [
   'NOT_FOUND',
   'CATEGORY_NOT_FOUND',
   'POLICY_PACK_NOT_FOUND',
+  'SLA_PROFILE_NOT_FOUND',
   'DOWNTIME_NOT_FOUND',
 ];
 
@@ -29,6 +30,7 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   NOT_FOUND: 'Service was not found',
   CATEGORY_NOT_FOUND: 'Service category was not found',
   POLICY_PACK_NOT_FOUND: 'Policy pack was not found',
+  SLA_PROFILE_NOT_FOUND: 'SLA profile was not found',
   INVALID_NAME: 'Name is invalid',
   INVALID_SLUG: 'Slug is invalid',
   DUPLICATE_SLUG: 'Slug already exists',

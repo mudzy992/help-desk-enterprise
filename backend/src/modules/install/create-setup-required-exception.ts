@@ -7,3 +7,10 @@ export function createSetupRequiredException(): ServiceUnavailableException {
     message: 'Application setup is required',
   });
 }
+
+export function createSetupDatabaseUnavailableException(): ServiceUnavailableException {
+  return new ServiceUnavailableException({
+    code: installSetupErrorCodes.setupDatabaseUnavailable,
+    message: 'Application database is unavailable',
+  });
+}

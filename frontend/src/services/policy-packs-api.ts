@@ -13,16 +13,24 @@ export type PolicyPackSummary = {
   readonly description: string;
   readonly defaultClassification: string;
   readonly requiresApproval: boolean;
-  /** M5 B1: SLA profile the pack binds to the service, if the installation has it. */
   readonly slaProfileKey: string | null;
-  /** M5 B2: switched off via `private.policyPacks.disabledKeysCsv`. */
   readonly isDisabled: boolean;
   readonly grants: readonly PolicyPackGrant[];
 };
 
+export type PersistedPolicyPackOption = {
+  readonly id: string;
+  readonly key: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly defaultClassification: string;
+  readonly requiresApproval: boolean;
+  readonly slaProfileId: string | null;
+  readonly isDisabled: boolean;
+};
+
 export type PolicyPackApplyInput = {
   readonly packKey: string;
-  /** M5 B3: the target is an OU, a service or both — what the pack needs is its own rule. */
   readonly organizationalUnitId?: string;
   readonly serviceId?: string;
   readonly userIds?: readonly string[];
@@ -41,7 +49,6 @@ export type PolicyPackApplyResult = {
   readonly servicePolicy: PolicyPackServicePolicy | null;
 };
 
-/** M5 B6: the plan the apply would write — shown before the admin confirms. */
 export type PolicyPackPlannedAssignment = {
   readonly userId: string;
   readonly roleKey: string;
@@ -50,7 +57,6 @@ export type PolicyPackPlannedAssignment = {
   readonly serviceId: string | null;
 };
 
-/** M5 B1: what the pack writes onto the target service (bundle part). */
 export type PolicyPackServicePolicy = {
   readonly classification: string;
   readonly requiresApproval: boolean;
@@ -70,16 +76,6 @@ export type PolicyPackValidateResult = {
   readonly plannedAssignments: readonly PolicyPackPlannedAssignment[];
 };
 
-export function validatePolicyPack(
-  input: PolicyPackApplyInput,
-): Promise<PolicyPackValidateResult> {
-  return apiRequest("/policy-packs/validate", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-/** M5 B5: what an unapply removed (grants count + which links were cleared). */
 export type PolicyPackUnapplyResult = {
   readonly packKey: string;
   readonly name: string;
@@ -93,23 +89,36 @@ export type PolicyPackUnapplyResult = {
   readonly plannedAssignments: readonly PolicyPackPlannedAssignment[];
 };
 
-export function unapplyPolicyPack(
+export function listPolicyPacks(): Promise<readonly PolicyPackSummary[]> {
+  return apiRequest("/policy-packs");
+}
+
+export function listPersistedPolicyPacks(): Promise<readonly PersistedPolicyPackOption[]> {
+  return apiRequest("/policy-packs/persisted");
+}
+
+export function validatePolicyPack(
   input: PolicyPackApplyInput,
-): Promise<PolicyPackUnapplyResult> {
-  return apiRequest("/policy-packs/unapply", {
+): Promise<PolicyPackValidateResult> {
+  return apiRequest("/policy-packs/validate", {
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-export function listPolicyPacks(): Promise<readonly PolicyPackSummary[]> {
-  return apiRequest("/policy-packs");
 }
 
 export function applyPolicyPack(
   input: PolicyPackApplyInput,
 ): Promise<PolicyPackApplyResult> {
   return apiRequest("/policy-packs/apply", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function unapplyPolicyPack(
+  input: PolicyPackApplyInput,
+): Promise<PolicyPackUnapplyResult> {
+  return apiRequest("/policy-packs/unapply", {
     method: "POST",
     body: JSON.stringify(input),
   });

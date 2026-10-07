@@ -20,6 +20,7 @@ export function isInstallSetupExemptRequest(input: {
     normalizeInstallHttpMethod(input.method) ===
       installSetupAllowlist.healthMethod &&
     (path === installSetupAllowlist.healthPath ||
+      path === installSetupAllowlist.readyPath ||
       path === installSetupAllowlist.brandingPath)
   );
 }

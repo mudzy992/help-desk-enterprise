@@ -13,12 +13,9 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
 import {
   installWizardCopyKeys,
-  resolveInstallWizardStep,
   type InstallWizardStep,
 } from "@/lib/resolve-install-wizard-step";
-import { loadInstallSuperAdmin } from "@/services/install-api";
-import { loadInstallSeed } from "@/services/install-seed-api";
-import { loadInstallSmtp } from "@/services/install-smtp-api";
+import { loadInstallSetupStatus } from "@/services/install-api";
 
 /*
   Pulse install wizard. The step machine (`resolveInstallWizardStep`) and every
@@ -58,27 +55,18 @@ function InstallWizard() {
 
   useEffect(() => {
     let isCancelled = false;
-    void Promise.all([
-      loadInstallSuperAdmin().catch(() => ({ superAdmin: null })),
-      loadInstallSmtp()
-        .then((status) => status.smtp.isConfigured)
-        .catch(() => false),
-      loadInstallSeed()
-        .then((status) => status.seed.isSeeded)
-        .catch(() => false),
-    ]).then(([adminStatus, isSmtpConfigured, isSeeded]) => {
-      if (isCancelled) {
-        return;
-      }
-      setStep(
-        resolveInstallWizardStep({
-          hasSuperAdmin: adminStatus.superAdmin !== null,
-          isSmtpConfigured,
-          loginProviderSaved: false,
-          isSeeded,
-        }),
-      );
-    });
+    void loadInstallSetupStatus()
+      .then((status) => {
+        if (isCancelled) {
+          return;
+        }
+        setStep(status.nextStep ?? (status.isCompleted ? "complete" : "superAdmin"));
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setStep("superAdmin");
+        }
+      });
     return () => {
       isCancelled = true;
     };

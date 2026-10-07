@@ -8,6 +8,7 @@ import {
 } from './install-addons.constants';
 import { InstallAddonsError } from './install-addons.error';
 import type {
+  InstallAddonCatalogItem,
   InstallAddonsPublicRecord,
   InstallAddonsStatus,
   SaveInstallAddonsInput,
@@ -18,7 +19,10 @@ import {
   readSmtpEnabledForAddons,
   readStoredInstallAddons,
 } from './persist-install-addons';
-import { readInstallAddonsStatus } from './read-install-addons-status';
+import {
+  readInstallAddonsCatalog,
+  readInstallAddonsStatus,
+} from './read-install-addons-status';
 import { resolveInstallAddonsState } from './resolve-install-addons-state';
 import { validateInstallAddons } from './validate-install-addons';
 
@@ -27,12 +31,21 @@ export class InstallAddonsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
+    private readonly installSetupService?: { readonly isCompleted: () => Promise<boolean> },
   ) {}
 
-  async getStatus(): Promise<InstallAddonsStatus> {
-    return this.execute(async () => ({
-      addons: await readInstallAddonsStatus(this.settingsService),
-    }));
+  async getStatus(): Promise<
+    InstallAddonsStatus | { readonly addons: readonly InstallAddonCatalogItem[] }
+  > {
+    return this.execute(async () => {
+      const isCompleted = await this.isSetupCompleted();
+      if (isCompleted) {
+        return { addons: (await readInstallAddonsCatalog(this.settingsService)).items };
+      }
+      return {
+        addons: (await readInstallAddonsStatus(this.settingsService)).items,
+      };
+    });
   }
 
   async save(input: SaveInstallAddonsInput): Promise<InstallAddonsPublicRecord> {
@@ -55,6 +68,17 @@ export class InstallAddonsService {
       });
       return readInstallAddonsStatus(this.settingsService);
     });
+  }
+
+  private async isSetupCompleted(): Promise<boolean> {
+    if (this.installSetupService === undefined) {
+      return false;
+    }
+    try {
+      return await this.installSetupService.isCompleted();
+    } catch {
+      return false;
+    }
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

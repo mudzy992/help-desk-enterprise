@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { countOpenTicketsByService } from './count-open-tickets-by-service';
+import { loadActiveFormSummaries } from './load-active-form-summaries';
 import { loadService } from './load-service';
 import { loadServiceDowntimeWindows } from './load-service-downtime-windows';
 import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
@@ -26,10 +27,11 @@ export async function getService(
   if (!isServiceLifecycleVisible(record.lifecycle, roleKeys)) {
     throw new ServiceCatalogError('NOT_FOUND');
   }
-  const [downtimeWindows, openTicketCounts, incidentImpacts] = await Promise.all([
+  const [downtimeWindows, openTicketCounts, incidentImpacts, activeForms] = await Promise.all([
     loadServiceDowntimeWindows(prisma, record.id),
     countOpenTicketsByService(prisma, [record.id]),
     loadOpenIncidentImpacts(prisma, [record.id]),
+    loadActiveFormSummaries(prisma, [record.id]),
   ]);
   return toServiceResponse(
     record,
@@ -38,5 +40,6 @@ export async function getService(
     openTicketCounts.get(record.id) ?? 0,
     approvalsConfiguration,
     incidentImpacts.get(record.id) ?? null,
+    activeForms.get(record.id) ?? undefined,
   );
 }

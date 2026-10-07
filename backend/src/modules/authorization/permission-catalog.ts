@@ -118,6 +118,11 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
       'Manage SLA calendars, profiles, rules, escalations, and the priority matrix.',
   },
   {
+    key: permissionKeys.routingRead,
+    categoryId: permissionCategoryIds.routing,
+    description: 'View ticket routing rules, coverage, and change logs.',
+  },
+  {
     key: permissionKeys.routingWrite,
     categoryId: permissionCategoryIds.routing,
     description: 'Create and edit ticket routing rules.',

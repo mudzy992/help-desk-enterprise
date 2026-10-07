@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { AccountSecurityPolicyLoader } from '../authentication/security/account-security-policy.loader';
 import { RoutingModule } from '../routing/routing.module';
 import { ServiceCatalogModule } from '../service-catalog/service-catalog.module';
 import { SettingsModule } from '../settings/settings.module';
+import { SettingsService } from '../settings/settings.service';
 import { InstallAddonsService } from './install-addons.service';
 import { InstallCompleteService } from './install-complete.service';
 import { InstallController } from './install.controller';
@@ -28,7 +30,15 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
     InstallLoginProviderService,
     InstallSmtpService,
     InstallSeedService,
-    InstallAddonsService,
+    {
+      provide: InstallAddonsService,
+      useFactory: (
+        prisma: PrismaService,
+        settingsService: SettingsService,
+        installSetupService: InstallSetupService,
+      ) => new InstallAddonsService(prisma, settingsService, installSetupService),
+      inject: [PrismaService, SettingsService, InstallSetupService],
+    },
     InstallCompleteService,
     InstallSetupGuard,
     InstallWizardLockGuard,

@@ -14,6 +14,8 @@ export type ServiceAvailability =
   | "DEGRADED"
   | "DOWN"
   | "MAINTENANCE";
+export type DataClassification = "INTERNAL" | "CONFIDENTIAL" | "RESTRICTED";
+export type AutoAssignStrategy = "NONE" | "LEAST_BUSY" | "ROUND_ROBIN";
 
 export type ServiceDowntimeWindowSummary = {
   readonly message: string;
@@ -30,8 +32,13 @@ export type ServiceRuntimeAvailability = {
   readonly showStatusInTicketCreate: boolean;
   readonly activeDowntimeWindow: ServiceDowntimeWindowSummary | null;
   readonly upcomingDowntimeWindow: ServiceDowntimeWindowSummary | null;
-  /** Stored value raised by an active downtime window or (Paket 2.7) an open incident. */
   readonly effectiveAvailability?: "OPERATIONAL" | "DEGRADED" | "DOWN" | "MAINTENANCE";
+};
+
+export type ServiceActiveFormSummary = {
+  readonly activeFormVersionRef: string | null;
+  readonly version: number | null;
+  readonly fieldCount: number;
 };
 
 export type ServiceResponse = {
@@ -43,10 +50,15 @@ export type ServiceResponse = {
   readonly offeredToRequesters: boolean;
   readonly availability: ServiceAvailability;
   readonly runtimeAvailability: ServiceRuntimeAvailability;
-  readonly classification: string;
+  readonly classification: DataClassification;
   readonly requiresApproval: boolean;
+  readonly approvalSteps: 0 | 1;
+  readonly isConfidentialDefault: boolean;
+  readonly autoAssignStrategy: AutoAssignStrategy;
+  readonly slaProfileId: string | null;
+  readonly policyPackId: string | null;
   readonly openTicketCount: number;
-  /** Paket 2.7: worst impact of open (ALL_USERS) incidents; null = none. */
+  readonly activeForm: ServiceActiveFormSummary;
   readonly incidentImpact?: "DEGRADED" | "DOWN" | "MAINTENANCE" | null;
 };
 
@@ -54,13 +66,25 @@ export type CreateServiceInput = {
   readonly name: string;
   readonly slug: string;
   readonly categoryId: string;
+  readonly classification?: DataClassification;
   readonly requiresApproval?: boolean;
+  readonly isConfidentialDefault?: boolean;
+  readonly autoAssignStrategy?: AutoAssignStrategy;
+  readonly policyPackId?: string | null;
+  readonly slaProfileId?: string | null;
+  readonly reason: string;
 };
 
 export type UpdateServiceInput = {
   readonly name?: string;
   readonly categoryId?: string;
+  readonly classification?: DataClassification;
   readonly requiresApproval?: boolean;
+  readonly isConfidentialDefault?: boolean;
+  readonly autoAssignStrategy?: AutoAssignStrategy;
+  readonly policyPackId?: string | null;
+  readonly slaProfileId?: string | null;
+  readonly reason: string;
 };
 
 export type ServiceFormFieldType =

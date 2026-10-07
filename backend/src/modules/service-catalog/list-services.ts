@@ -2,6 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transition';
 import { requestedServiceLifecycles } from './service-visible-lifecycles';
 import { countOpenTicketsByService } from './count-open-tickets-by-service';
+import { loadActiveFormSummaries } from './load-active-form-summaries';
 import { loadServiceDowntimeWindowsForServices } from './load-service-downtime-windows';
 import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
 import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
@@ -32,10 +33,11 @@ export async function listServices(
     orderBy: [{ name: 'asc' }],
   });
   const serviceIds = records.map((record) => record.id);
-  const [windowsByServiceId, openTicketCounts, incidentImpacts] = await Promise.all([
+  const [windowsByServiceId, openTicketCounts, incidentImpacts, activeForms] = await Promise.all([
     loadServiceDowntimeWindowsForServices(prisma, serviceIds),
     countOpenTicketsByService(prisma, serviceIds),
     loadOpenIncidentImpacts(prisma, serviceIds),
+    loadActiveFormSummaries(prisma, serviceIds),
   ]);
   const mapped = records.map((record) =>
     toServiceResponse(
@@ -45,6 +47,7 @@ export async function listServices(
       openTicketCounts.get(record.id) ?? 0,
       approvalsConfiguration,
       incidentImpacts.get(record.id) ?? null,
+      activeForms.get(record.id) ?? undefined,
     ),
   );
   if (input.offeredOnly !== true) {

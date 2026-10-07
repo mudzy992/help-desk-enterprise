@@ -31,25 +31,6 @@ export async function listPriorityMatrix(
       rule,
     ]),
   );
-  const missing = buildDefaultPriorityMatrix().filter(
-    (cell) => !byKey.has(priorityMatrixCellKey(cell.impact, cell.urgency)),
-  );
-  if (missing.length > 0) {
-    for (const cell of missing) {
-      const created = (await prisma.priorityMatrixRule.upsert({
-        where: {
-          impact_urgency: { impact: cell.impact, urgency: cell.urgency },
-        },
-        create: {
-          impact: cell.impact,
-          urgency: cell.urgency,
-          priority: cell.priority,
-        },
-        update: {},
-      })) as PriorityMatrixRuleRecord;
-      byKey.set(priorityMatrixCellKey(created.impact, created.urgency), created);
-    }
-  }
   const cells = buildDefaultPriorityMatrix().map((cell) => {
     const rule = byKey.get(priorityMatrixCellKey(cell.impact, cell.urgency));
     return {

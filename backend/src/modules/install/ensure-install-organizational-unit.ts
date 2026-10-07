@@ -12,13 +12,18 @@ export type EnsuredInstallOrganizationalUnit = {
 export async function findInstallOrganizationalUnit(
   prisma: PrismaService,
 ): Promise<{ id: string; name: string; ouPath: string } | null> {
+  const canonical = await prisma.organizationalUnit.findUnique({
+    where: { distinguishedName: installSeedConstants.distinguishedName },
+    select: { id: true, name: true, ouPath: true },
+  });
+  if (canonical !== null) {
+    return canonical;
+  }
   const units = await prisma.organizationalUnit.findMany({
     orderBy: { ouPath: 'asc' },
+    select: { id: true, name: true, ouPath: true },
   });
-  const first = units[0];
-  return first === undefined
-    ? null
-    : { id: first.id, name: first.name, ouPath: first.ouPath };
+  return units[0] ?? null;
 }
 
 export async function ensureInstallOrganizationalUnit(

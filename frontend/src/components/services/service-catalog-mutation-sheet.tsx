@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ServiceCatalogMutationForm,
-  type ServiceCatalogMutationValues,
 } from "@/components/services/service-catalog-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -17,11 +16,17 @@ import {
   type ServiceCatalogErrorKey,
 } from "@/lib/services/map-service-catalog-error";
 import {
+  listPersistedPolicyPacks,
+  type PersistedPolicyPackOption,
+} from "@/services/policy-packs-api";
+import {
   createService,
   listServiceCategories,
   updateService,
+  type CreateServiceInput,
   type ServiceCategoryResponse,
   type ServiceResponse,
+  type UpdateServiceInput,
 } from "@/services/service-catalog-api";
 
 interface ServiceCatalogMutationSheetProperties {
@@ -42,6 +47,7 @@ export function ServiceCatalogMutationSheet({
   const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>(
     [],
   );
+  const [policyPacks, setPolicyPacks] = useState<readonly PersistedPolicyPackOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<ServiceCatalogErrorKey | null>(null);
@@ -53,15 +59,17 @@ export function ServiceCatalogMutationSheet({
     let cancelled = false;
     setIsLoading(true);
     setErrorKey(null);
-    void listServiceCategories()
-      .then((loaded) => {
+    Promise.all([listServiceCategories(), listPersistedPolicyPacks().catch(() => [])])
+      .then(([loadedCategories, loadedPacks]) => {
         if (!cancelled) {
-          setCategories(loaded);
+          setCategories(loadedCategories);
+          setPolicyPacks(loadedPacks);
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
           setCategories([]);
+          setPolicyPacks([]);
           setErrorKey(mapServiceCatalogError(error));
         }
       })
@@ -75,23 +83,14 @@ export function ServiceCatalogMutationSheet({
     };
   }, [open]);
 
-  const save = async (values: ServiceCatalogMutationValues) => {
+  const save = async (values: CreateServiceInput | UpdateServiceInput) => {
     setIsSaving(true);
     setErrorKey(null);
     try {
       if (isCreate) {
-        await createService({
-          name: values.name,
-          slug: values.slug,
-          categoryId: values.categoryId,
-          requiresApproval: values.requiresApproval,
-        });
+        await createService(values as CreateServiceInput);
       } else if (service !== null) {
-        await updateService(service.id, {
-          name: values.name,
-          categoryId: values.categoryId,
-          requiresApproval: values.requiresApproval,
-        });
+        await updateService(service.id, values as UpdateServiceInput);
       }
       await onSaved();
       onOpenChange(false);
@@ -120,6 +119,7 @@ export function ServiceCatalogMutationSheet({
             key={service?.id ?? "create"}
             service={service}
             categories={categories}
+            policyPacks={policyPacks}
             isSaving={isSaving}
             errorKey={errorKey}
             onCancel={() => onOpenChange(false)}

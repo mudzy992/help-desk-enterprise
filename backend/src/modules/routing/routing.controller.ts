@@ -99,37 +99,65 @@ export class RoutingController {
   }
 
   @Get('rules/:ruleId/delete-impact')
-  deleteImpact(
+  @RequirePermissions(permissionKeys.routingRead)
+  async deleteImpact(
     @Param('ruleId') ruleId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<RoutingRuleDeleteImpact> {
-    return this.routingService.deleteImpact(ruleId);
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.deleteImpact(ruleId, viewer);
   }
 
   @Get('rules/:ruleId/changes')
-  listRuleChanges(
+  @RequirePermissions(permissionKeys.routingRead)
+  async listRuleChanges(
     @Param('ruleId') ruleId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<readonly RoutingChangeLogResponse[]> {
-    return this.routingService.listRuleChanges(ruleId);
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.listRuleChanges(ruleId, viewer);
   }
 
   @Get('changes')
-  listChanges(): Promise<readonly RoutingChangeLogResponse[]> {
-    return this.routingService.listChanges();
+  @RequirePermissions(permissionKeys.routingRead)
+  async listChanges(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly RoutingChangeLogResponse[]> {
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.listChanges(viewer);
   }
 
   @Get('groups')
-  listGroups(): Promise<readonly RoutingHandlerGroupResponse[]> {
-    return this.routingService.listHandlerGroups();
+  @RequirePermissions(permissionKeys.routingRead)
+  async listGroups(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly RoutingHandlerGroupResponse[]> {
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.listHandlerGroups(viewer);
   }
 
   @Get('rules')
-  listRules(
+  @RequirePermissions(permissionKeys.routingRead)
+  async listRules(
     @Query() query: ListRoutingRulesQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<readonly RoutingRuleResponse[]> {
-    return this.routingService.listRules(query);
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.listRules(query, viewer);
   }
 
   @Get('resolve')
+  @RequirePermissions(permissionKeys.routingRead)
   @RequireOrganizationalUnitScope({ field: 'originUnitId' })
   @RequireServiceScope({ field: 'serviceId' })
   resolve(@Query() query: ResolveRoutingQueryDto): Promise<RoutingResolution> {
@@ -137,9 +165,14 @@ export class RoutingController {
   }
 
   @Get('coverage')
-  coverage(
+  @RequirePermissions(permissionKeys.routingRead)
+  async coverage(
     @Query() query: ListRoutingCoverageQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<RoutingCoveragePage> {
-    return this.routingService.coverage(query);
+    const viewer = await this.routingService.loadViewerContext(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
+    return this.routingService.coverage(query, viewer);
   }
 }

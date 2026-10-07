@@ -2,6 +2,7 @@ export type ServiceCatalogErrorCode =
   | 'NOT_FOUND'
   | 'CATEGORY_NOT_FOUND'
   | 'POLICY_PACK_NOT_FOUND'
+  | 'SLA_PROFILE_NOT_FOUND'
   | 'INVALID_NAME'
   | 'INVALID_SLUG'
   | 'DUPLICATE_SLUG'

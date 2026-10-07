@@ -12,6 +12,7 @@ export type InstallSeedRecord = {
     readonly name: string;
     readonly key: string;
     readonly isFallback: boolean;
+    readonly organizationalUnitId: string | null;
   } | null;
   readonly service: {
     readonly id: string;

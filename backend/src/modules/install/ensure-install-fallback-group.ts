@@ -6,6 +6,7 @@ export type InstallFallbackGroupRecord = {
   readonly name: string;
   readonly key: string;
   readonly isFallback: boolean;
+  readonly organizationalUnitId: string;
 };
 
 export type EnsuredInstallFallbackGroup = InstallFallbackGroupRecord & {
@@ -14,19 +15,31 @@ export type EnsuredInstallFallbackGroup = InstallFallbackGroupRecord & {
 
 export async function findInstallFallbackGroup(
   prisma: PrismaService,
+  organizationalUnitId?: string,
 ): Promise<InstallFallbackGroupRecord | null> {
+  const scope =
+    organizationalUnitId === undefined
+      ? {}
+      : { organizationalUnitId };
   const fallbackGroups = await prisma.group.findMany({
-    where: { isFallback: true },
+    where: { isFallback: true, ...scope },
     orderBy: { key: 'asc' },
   });
   const fallback = fallbackGroups[0];
   if (fallback !== undefined) {
     return toFallbackGroup(fallback);
   }
-  const keyed = await prisma.group.findUnique({
-    where: { key: installSeedConstants.fallbackGroupKey },
+  const keyed = await prisma.group.findFirst({
+    where: { key: installSeedConstants.fallbackGroupKey, ...scope },
+    orderBy: { createdAt: 'asc' },
   });
-  return keyed === null ? null : toFallbackGroup(keyed);
+  if (keyed !== null) {
+    return toFallbackGroup(keyed);
+  }
+  if (organizationalUnitId !== undefined) {
+    return findInstallFallbackGroup(prisma);
+  }
+  return null;
 }
 
 export async function ensureInstallFallbackGroup(
@@ -36,21 +49,20 @@ export async function ensureInstallFallbackGroup(
     readonly preferredGroupId: string | null;
   },
 ): Promise<EnsuredInstallFallbackGroup> {
-  const existing = await findInstallFallbackGroup(prisma);
+  const existing = await findInstallFallbackGroup(
+    prisma,
+    input.organizationalUnitId,
+  );
   if (existing !== null) {
-    if (existing.isFallback) {
+    if (existing.isFallback && existing.organizationalUnitId === input.organizationalUnitId) {
       return { ...existing, created: false };
     }
-    return {
-      ...(await markGroupAsFallback(prisma, existing.id)),
-      created: false,
-    };
+    const updated = await markGroupAsFallback(prisma, existing.id, input.organizationalUnitId);
+    return { ...updated, created: false };
   }
   if (input.preferredGroupId !== null) {
-    return {
-      ...(await markGroupAsFallback(prisma, input.preferredGroupId)),
-      created: false,
-    };
+    const updated = await markGroupAsFallback(prisma, input.preferredGroupId, input.organizationalUnitId);
+    return { ...updated, created: false };
   }
   const created = await prisma.group.create({
     data: {
@@ -66,10 +78,11 @@ export async function ensureInstallFallbackGroup(
 async function markGroupAsFallback(
   prisma: PrismaService,
   groupId: string,
+  organizationalUnitId: string,
 ): Promise<InstallFallbackGroupRecord> {
   const updated = await prisma.group.update({
     where: { id: groupId },
-    data: { isFallback: true },
+    data: { isFallback: true, organizationalUnitId },
   });
   return toFallbackGroup(updated);
 }
@@ -79,11 +92,13 @@ function toFallbackGroup(group: {
   readonly name: string;
   readonly key: string;
   readonly isFallback: boolean;
+  readonly organizationalUnitId: string;
 }): InstallFallbackGroupRecord {
   return {
     id: group.id,
     name: group.name,
     key: group.key,
     isFallback: group.isFallback,
+    organizationalUnitId: group.organizationalUnitId,
   };
 }

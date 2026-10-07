@@ -20,6 +20,7 @@ export async function completeServiceOnboardingStep(
       slug: values.slug,
       categoryId: values.categoryId,
       requiresApproval: values.requiresApproval,
+      reason: "Service onboarding: initial service record",
     });
     await saveOnboardingServiceStep(created.serviceId, {
       name: values.name,

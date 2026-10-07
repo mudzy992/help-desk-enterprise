@@ -44,6 +44,7 @@ export function toInstallSeedPublicRecord(input: {
             name: input.fallbackGroup.name,
             key: input.fallbackGroup.key,
             isFallback: input.fallbackGroup.isFallback,
+            organizationalUnitId: input.fallbackGroup.organizationalUnitId ?? null,
           },
     service:
       input.service === null

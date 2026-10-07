@@ -19,6 +19,20 @@ export async function readInstallLoginProviderStatus(
   return mapInstallLoginProviderPublicRecord(stored);
 }
 
+export function isLoginProviderSaved(
+  record: InstallLoginProviderPublicRecord,
+): boolean {
+  if (record.mode === 'local') {
+    return true;
+  }
+  return (
+    (record.entra.tenantIdConfigured && record.entra.clientIdConfigured) ||
+    (record.directoryBind.urls.trim().length > 0 &&
+      record.directoryBind.bindDnConfigured &&
+      record.directoryBind.bindPasswordConfigured)
+  );
+}
+
 export async function readStoredInstallLoginProviderSecrets(
   settingsService: SettingsService,
 ): Promise<StoredInstallLoginProviderSecrets & { readonly mode: unknown }> {

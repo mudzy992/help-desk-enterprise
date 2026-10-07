@@ -8,11 +8,19 @@ export type ValidatedInstallAddons = {
   readonly addons: Readonly<Partial<Record<InstallAddonKey, boolean>>>;
 };
 
-export type InstallAddonPublicItem = {
+export type InstallAddonCatalogItem = {
   readonly key: InstallAddonKey;
-  readonly enabled: boolean;
   readonly defaultEnabled: boolean;
   readonly canEnable: boolean;
+};
+
+export type InstallAddonPublicItem = InstallAddonCatalogItem & {
+  readonly enabled: boolean;
+};
+
+export type InstallAddonsCatalogRecord = {
+  readonly smtpEnabled: boolean;
+  readonly items: readonly InstallAddonCatalogItem[];
 };
 
 export type InstallAddonsPublicRecord = {
@@ -22,4 +30,8 @@ export type InstallAddonsPublicRecord = {
 
 export type InstallAddonsStatus = {
   readonly addons: InstallAddonsPublicRecord;
+};
+
+export type InstallAddonsCatalogStatus = {
+  readonly addons: InstallAddonsCatalogRecord;
 };

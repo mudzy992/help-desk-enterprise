@@ -46,4 +46,15 @@ export class UpdateServiceDto {
   @IsString()
   @MinLength(1)
   policyPackId?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @MinLength(1)
+  slaProfileId?: string | null;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(serviceCatalogConstants.maximumChangeReasonLength)
+  reason!: string;
 }

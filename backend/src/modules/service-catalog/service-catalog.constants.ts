@@ -31,4 +31,5 @@ export const serviceCatalogChangeLogEntityTypes = {
 export const serviceCatalogConstants = {
   maximumNameLength: 128,
   maximumSlugLength: 64,
+  maximumChangeReasonLength: 512,
 } as const;

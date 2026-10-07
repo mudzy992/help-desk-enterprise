@@ -1,5 +1,9 @@
-import { createSetupRequiredException } from './create-setup-required-exception';
+import {
+  createSetupDatabaseUnavailableException,
+  createSetupRequiredException,
+} from './create-setup-required-exception';
 import { isInstallSetupComplete } from './is-install-setup-complete';
+import { isInstallDatabaseUnavailableError } from './is-install-database-unavailable-error';
 import { isInstallSetupExemptRequest } from './is-install-setup-exempt-request';
 
 export async function enforceInstallSetupGate(input: {
@@ -13,7 +17,10 @@ export async function enforceInstallSetupGate(input: {
   let completedAt: unknown;
   try {
     completedAt = await input.loadCompletedAt();
-  } catch {
+  } catch (error) {
+    if (isInstallDatabaseUnavailableError(error)) {
+      throw createSetupDatabaseUnavailableException();
+    }
     throw createSetupRequiredException();
   }
   if (!isInstallSetupComplete(completedAt)) {

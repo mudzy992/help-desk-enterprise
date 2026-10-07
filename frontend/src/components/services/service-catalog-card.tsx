@@ -101,14 +101,22 @@ export function ServiceCatalogCard({
           className="text-[10px]"
         />
         <Badge
-          tone={activeVersion ? "success" : "danger"}
+          tone={service.activeForm.activeFormVersionRef ? "success" : "danger"}
           className="tnum text-[10px]"
           dot={false}
         >
           <FileJson2 size={10} />
-          {activeVersion
-            ? t("services.formVersionBadge", { version: activeVersion.version })
-            : t("services.formMissing")}
+          {service.activeForm.activeFormVersionRef
+            ? t("services.formSummaryBadge", {
+                version: String(service.activeForm.version ?? "—"),
+                count: service.activeForm.fieldCount,
+              })
+            : activeVersion
+              ? t("services.formVersionBadge", { version: String(activeVersion.version) })
+              : t("services.formMissing")}
+        </Badge>
+        <Badge tone="neutral" className="text-[10px]" dot={false}>
+          {service.classification}
         </Badge>
         {service.requiresApproval ? (
           <Badge tone="warning" className="text-[10px]" dot={false}>

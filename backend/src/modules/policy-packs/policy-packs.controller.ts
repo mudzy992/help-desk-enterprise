@@ -44,6 +44,14 @@ export class PolicyPacksController {
     return this.policyPacksService.list();
   }
 
+  @Get('persisted')
+  @UseGuards(RoleGuard)
+  @RequireRoles(authorizationRoleKeys.admin)
+  @RequirePermissions(permissionKeys.serviceCatalogWrite)
+  listPersisted() {
+    return this.policyPacksService.listPersisted();
+  }
+
   /**
    * M5 B4: the panel and its texts say SuperAdmin only, so the endpoint now
    * says the same (`settings.write` stays as the second gate). Applying a pack

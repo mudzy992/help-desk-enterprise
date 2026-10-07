@@ -44,6 +44,12 @@ export type ServiceCategoryResponse = {
   readonly updatedAt: string;
 };
 
+export type ServiceActiveFormSummary = {
+  readonly activeFormVersionRef: string | null;
+  readonly version: number | null;
+  readonly fieldCount: number;
+};
+
 export type ServiceResponse = {
   readonly id: string;
   readonly name: string;
@@ -62,6 +68,7 @@ export type ServiceResponse = {
   readonly slaProfileId: string | null;
   readonly policyPackId: string | null;
   readonly openTicketCount: number;
+  readonly activeForm: ServiceActiveFormSummary;
   /** Paket 2.7: worst impact of open incidents on the service (null = none). */
   readonly incidentImpact: IncidentImpact | null;
   readonly warnings?: readonly string[];
@@ -91,6 +98,8 @@ export type CreateServiceInput = {
   readonly isConfidentialDefault?: boolean;
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
+  readonly slaProfileId?: string | null;
+  readonly reason: string;
 };
 
 export type UpdateServiceInput = {
@@ -101,6 +110,8 @@ export type UpdateServiceInput = {
   readonly isConfidentialDefault?: boolean;
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
+  readonly slaProfileId?: string | null;
+  readonly reason: string;
 };
 
 export type ListServicesInput = {

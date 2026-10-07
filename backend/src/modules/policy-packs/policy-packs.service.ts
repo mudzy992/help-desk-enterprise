@@ -3,6 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import type { SettingsService } from '../settings/settings.service';
 import { applyPolicyPack } from './apply-policy-pack';
+import { listPersistedPolicyPacks } from './list-persisted-policy-packs';
 import { listPolicyPacks } from './list-policy-packs';
 import { mapPolicyPackError } from './map-policy-pack-error';
 import type {
@@ -33,6 +34,10 @@ export class PolicyPacksService {
   async list() {
     const disabledKeys = await readDisabledPolicyPackKeys(this.settingsService);
     return listPolicyPacks(disabledKeys);
+  }
+
+  async listPersisted() {
+    return listPersistedPolicyPacks(this.prisma, this.settingsService);
   }
 
   async validate(
