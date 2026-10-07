@@ -1,20 +1,58 @@
 import { buildDefaultPriorityMatrix } from './default-priority-matrix';
 import { listPriorityMatrix } from './list-priority-matrix';
 import { patchPriorityMatrix } from './patch-priority-matrix';
+import { seedMissingPriorityMatrixCells } from './seed-priority-matrix';
 import { SlaError } from './sla.error';
 import { slaChangeLogEntityTypes } from './sla.constants';
 import type { PriorityMatrixRuleRecord } from './list-priority-matrix';
 
 describe('priority matrix', () => {
-  it('returns a full 4x4 matrix and seeds missing defaults', async () => {
+  it('returns a full 4x4 matrix without performing any writes (GET side-effect free)', async () => {
     const store = new Map<string, PriorityMatrixRuleRecord>();
     const prisma = createMatrixPrisma(store);
     const listed = await listPriorityMatrix(prisma);
     expect(listed.cells).toHaveLength(16);
-    expect(store.size).toBe(16);
+    // GET must NOT mutate the database – defaults are merged in memory.
+    expect(store.size).toBe(0);
     expect(listed.cells.find((cell) => cell.impact === 'HIGH' && cell.urgency === 'HIGH')?.priority).toBe(
       'HIGH',
     );
+    // Unseeded cells should carry a null id so callers can distinguish persisted rows.
+    expect(listed.cells.every((cell) => cell.id === null)).toBe(true);
+  });
+
+  it('merges stored rules over in-memory defaults', async () => {
+    const store = new Map<string, PriorityMatrixRuleRecord>();
+    store.set('HIGH:HIGH', {
+      id: 'mx-existing',
+      impact: 'HIGH',
+      urgency: 'HIGH',
+      priority: 'CRITICAL',
+    });
+    const prisma = createMatrixPrisma(store);
+    const listed = await listPriorityMatrix(prisma);
+    expect(store.size).toBe(1);
+    const highHigh = listed.cells.find(
+      (cell) => cell.impact === 'HIGH' && cell.urgency === 'HIGH',
+    );
+    expect(highHigh?.priority).toBe('CRITICAL');
+    expect(highHigh?.id).toBe('mx-existing');
+    const lowLow = listed.cells.find(
+      (cell) => cell.impact === 'LOW' && cell.urgency === 'LOW',
+    );
+    expect(lowLow?.priority).toBe('LOW');
+    expect(lowLow?.id).toBeNull();
+  });
+
+  it('seedMissingPriorityMatrixCells writes all 16 defaults when nothing exists', async () => {
+    const store = new Map<string, PriorityMatrixRuleRecord>();
+    const prisma = createMatrixPrisma(store);
+    const written = await seedMissingPriorityMatrixCells(prisma);
+    expect(written).toBe(16);
+    expect(store.size).toBe(16);
+    // A second seed is a no-op.
+    const writtenAgain = await seedMissingPriorityMatrixCells(prisma);
+    expect(writtenAgain).toBe(0);
   });
 
   it('patches cells and writes a change-log entry', async () => {
@@ -22,7 +60,7 @@ describe('priority matrix', () => {
     const changeLogs: { entityType: string; entityId: string; reason: string }[] =
       [];
     const prisma = createMatrixPrisma(store, changeLogs);
-    await listPriorityMatrix(prisma);
+    await seedMissingPriorityMatrixCells(prisma);
     const patched = await patchPriorityMatrix(
       prisma,
       {
@@ -81,6 +119,13 @@ function createMatrixPrisma(
   const prisma: {
     priorityMatrixRule: {
       findMany: () => Promise<PriorityMatrixRuleRecord[]>;
+      create: (args: {
+        data: {
+          impact: PriorityMatrixRuleRecord['impact'];
+          urgency: PriorityMatrixRuleRecord['urgency'];
+          priority: PriorityMatrixRuleRecord['priority'];
+        };
+      }) => Promise<PriorityMatrixRuleRecord>;
       upsert: (args: {
         where: { impact_urgency: { impact: string; urgency: string } };
         create: {
@@ -103,6 +148,28 @@ function createMatrixPrisma(
   } = {
     priorityMatrixRule: {
       findMany: async () => [...store.values()],
+      create: async ({
+        data,
+      }: {
+        data: {
+          impact: PriorityMatrixRuleRecord['impact'];
+          urgency: PriorityMatrixRuleRecord['urgency'];
+          priority: PriorityMatrixRuleRecord['priority'];
+        };
+      }) => {
+        const key = keyOf(data.impact, data.urgency);
+        const created: PriorityMatrixRuleRecord = {
+          id: `mx-${nextId++}`,
+          impact: data.impact,
+          urgency: data.urgency,
+          priority: data.priority,
+        };
+        if (store.has(key)) {
+          throw new Error(`Unique constraint violation on ${key}`);
+        }
+        store.set(key, created);
+        return created;
+      },
       upsert: async ({
         where,
         create,
