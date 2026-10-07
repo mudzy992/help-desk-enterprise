@@ -14,6 +14,9 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { pickName } from "@/lib/tickets/ticket-names";
 import { recordKnowledgeArticleView } from "@/services/knowledge-portal-api";
 
+const VIEW_MINIMUM_MS = 5000;
+const VIEW_SCROLL_THRESHOLD = 0.25;
+
 export function KnowledgeArticleDetailPage() {
   const { t } = useTranslation();
   const { articleId } = useParams<{ articleId: string }>();
@@ -27,13 +30,35 @@ export function KnowledgeArticleDetailPage() {
     [directory.users],
   );
   const articleTitle = detail.article?.title ?? t("knowledgeBase.title");
-  // Paket 2.9 (K1b): one view per opened published article (best effort).
+  // Paket 5.2.4 (M14 B4): record a view only after the visitor has spent at
+  // least 5 seconds on the page OR scrolled past 25% of the viewport — this
+  // filters out bounces/quick backs. Clean up on route exit; a view is sent
+  // at most once per mount.
   const viewedRef = useRef<string | null>(null);
+  const recordedRef = useRef(false);
   const viewable = detail.article?.status === "PUBLISHED" ? detail.article.id : null;
+
   useEffect(() => {
     if (viewable === null || viewedRef.current === viewable) return;
     viewedRef.current = viewable;
-    void recordKnowledgeArticleView(viewable).catch(() => undefined);
+    recordedRef.current = false;
+
+    const record = () => {
+      if (recordedRef.current) return;
+      recordedRef.current = true;
+      void recordKnowledgeArticleView(viewable).catch(() => undefined);
+    };
+
+    const timeoutId = window.setTimeout(record, VIEW_MINIMUM_MS);
+    const onScroll = () => {
+      const depth = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+      if (depth >= VIEW_SCROLL_THRESHOLD) record();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [viewable]);
 
   return (
