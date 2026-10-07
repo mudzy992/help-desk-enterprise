@@ -6861,7 +6861,8 @@ Preostaje:
 
 | **M11 B4** | Dodan `LegacyGroupEmitNotice` (OnModuleInit) koji loguje WARN kad je `WS_GROUP_FEED_LEGACY_FULL_EMIT=on` (default). Novi `group-legacy` bucket u `websocket-emit-counter.ts` odvaja legacy puni payload od lakog `group.feed-changed` eventa u periodičnom `ws_emits_*` logu. Flag se nikad ne gasi automatski po vremenu (samo eksplicitno `off` kroz env). | `59d0231a` |
 
-Preostaje (2 nalaza):
-- **M8 B6** — `hideMerged`/`unrouted` state: potrebno objediniti da tab ne tiho nadjača filter i da URL/filteri/brojači koriste isti izvor.
+| **M8 B6** | `inboxTab` je novi dio `TicketListFilters` (konstante `unroutedInboxTabKey`/`defaultInboxTab` u `filter-tickets.ts`, re-exportane iz `inbox-view-tabs.ts`). `staffDeepLinkFilters` čita `?inboxTab=`; inicijalni `useState` i view-change effect u `use-ticket-list.ts` čuvaju/pamtite tab, a `setInboxTab` upisuje `inboxTab` u URL i resetuje `unroutedPage` na 1. `TicketInboxPanel` više nema lokalni `useState(activeTab)` (čita iz `list.filters.inboxTab`). Unrouted queue fetch (queryKey i queryFn) prosljeđuje `hideMerged`; `build-group-inbox-where.ts` dodaje `mergedIntoTicketId: null` tako da grupni inbox (koji filtrira `status=PENDING`) nikad ne prikazuje mergeanu djecu koja baštine roditeljev status. | `88e68be` |
+
+Preostaje (1 nalaz):
 - **M11 B3** — WS emit alarma: Redis TTL agregacija po sobama, podesivi prag, alarm sa histerezom i open-after zaštitom; ovo je najveći zahvat (Redis, novi Ops settings endpoint, Ops kartica).
 
