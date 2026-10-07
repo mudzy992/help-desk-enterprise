@@ -55,7 +55,7 @@ const messages: Record<KnowledgeBaseErrorCode, string> = {
   CATEGORY_NOT_FOUND: 'Knowledge category was not found',
   CATEGORY_KEY_TAKEN: 'Knowledge category key is already used',
   INVALID_CATEGORY: 'Knowledge category is invalid',
-  CATEGORY_NOT_EMPTY: 'Knowledge category still has active subcategories',
+  CATEGORY_NOT_EMPTY: 'Knowledge category still has active subcategories or articles',
   SOURCE_TICKET_NOT_FOUND: 'Source ticket was not found',
   SOURCE_MESSAGE_NOT_FOUND: 'Source message was not found',
   SOURCE_MESSAGE_NOT_PUBLIC: 'Only a public agent reply can become an article',

@@ -114,7 +114,8 @@ export async function updateKnowledgeCategory(
   return { before, after };
 }
 
-/** Archive (or restore). A parent with active children cannot be archived. */
+/** Archive (or restore). A parent with active children or with active (non-archived)
+ * articles cannot be archived — portal readers would otherwise find broken links. */
 export async function setKnowledgeCategoryArchived(
   prisma: PrismaService,
   id: string,
@@ -122,10 +123,21 @@ export async function setKnowledgeCategoryArchived(
 ): Promise<{ before: KnowledgeCategoryRecord; after: KnowledgeCategoryRecord }> {
   const before = await loadCategory(prisma, id);
   if (archived) {
-    const activeChildren = await prisma.knowledgeCategory.count({
-      where: { parentId: id, isArchived: false },
-    });
+    const [activeChildren, activeArticles] = await Promise.all([
+      prisma.knowledgeCategory.count({
+        where: { parentId: id, isArchived: false },
+      }),
+      prisma.knowledgeArticle.count({
+        where: { categoryId: id, archivedAt: null },
+      }),
+    ]);
     if (activeChildren > 0) {
+      throw new KnowledgeBaseError('CATEGORY_NOT_EMPTY');
+    }
+    if (activeArticles > 0) {
+      // Package 5.2.4 (M14 B7): backend guard — frontend already disables the
+      // archive button, but a direct API call should also be rejected so that
+      // a category with live articles can never be hidden.
       throw new KnowledgeBaseError('CATEGORY_NOT_EMPTY');
     }
   } else if (before.parentId !== null) {
