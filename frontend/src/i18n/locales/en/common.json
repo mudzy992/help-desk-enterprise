@@ -3492,7 +3492,7 @@
     "signOut": "Sign out",
     "loading": "Loading session…",
     "error": "Sign in failed. Check the email and password.",
-    "errorRateLimited": "Too many failed sign-in attempts. Try again in 15 minutes."
+    "errorRateLimited": "Too many failed sign-in attempts. Try again later."
   },
   "login": {
     "title": "Sign in",

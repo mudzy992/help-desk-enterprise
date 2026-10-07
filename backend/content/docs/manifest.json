@@ -81,7 +81,7 @@
         "obavjestenja",
         "pomoc"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -124,7 +124,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 647,
+      "wordCount": 663,
       "source": "docs/user-guide/pocetak-rad.md",
       "englishTitle": "Getting started"
     },
@@ -149,7 +149,7 @@
         "smtp",
         "dodaci"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -256,7 +256,7 @@
         "sesija",
         "rezervni-kodovi"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -339,7 +339,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1435,
+      "wordCount": 1568,
       "source": "docs/user-guide/prijava-i-mfa.md",
       "englishTitle": "Sign-in and two-step verification (MFA)"
     },
@@ -362,7 +362,7 @@
         "citac-ekrana",
         "kontrast"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -448,7 +448,7 @@
         "navigacija",
         "stranice"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -515,7 +515,7 @@
         "povjerljivi-tiketi",
         "saved-views"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -646,7 +646,7 @@
         "komentar",
         "nps"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -741,7 +741,7 @@
         "odrzavanje",
         "dostupnost"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -822,7 +822,7 @@
         "ocjene",
         "review-cycle"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -943,7 +943,7 @@
         "teams",
         "podsjetnik"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1022,7 +1022,7 @@
         "razlog",
         "preraspodjela"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1112,7 +1112,7 @@
         "varijable",
         "checklist"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1233,7 +1233,7 @@
         "sazetak",
         "kanali"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -1343,7 +1343,7 @@
         "ical",
         "eskalacija"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1420,7 +1420,7 @@
         "dostupnost",
         "onboarding"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1543,7 +1543,7 @@
         "neusmjereno",
         "override"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1663,7 +1663,7 @@
         "eskalacije",
         "pauze"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1801,7 +1801,7 @@
         "ad-sync",
         "uloge"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -1832,6 +1832,11 @@
           "level": 3,
           "text": "Uređivanje korisnika",
           "id": "uredivanje-korisnika"
+        },
+        {
+          "level": 3,
+          "text": "Pretraga i stranice korisnika",
+          "id": "pretraga-i-stranice-korisnika"
         },
         {
           "level": 3,
@@ -1870,8 +1875,8 @@
         },
         {
           "level": 2,
-          "text": "Poznata ograničenja",
-          "id": "poznata-ogranicenja"
+          "text": "Pravila zaštite i poznata ograničenja",
+          "id": "pravila-zastite-i-poznata-ogranicenja"
         },
         {
           "level": 2,
@@ -1879,7 +1884,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1612,
+      "wordCount": 1782,
       "source": "docs/user-guide/korisnici-oj-i-grupe.md",
       "englishTitle": null
     },
@@ -1905,12 +1910,17 @@
         "read-only",
         "preview"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
           "text": "Čemu služi ovaj modul",
           "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 3,
+          "text": "Više permisija u jednoj serverskoj provjeri",
+          "id": "vise-permisija-u-jednoj-serverskoj-provjeri"
         },
         {
           "level": 2,
@@ -1939,6 +1949,11 @@
         },
         {
           "level": 3,
+          "text": "Upravljanje grupama i OU scope",
+          "id": "upravljanje-grupama-i-ou-scope"
+        },
+        {
+          "level": 3,
           "text": "Read-only režim",
           "id": "read-only-rezim"
         },
@@ -1963,7 +1978,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1301,
+      "wordCount": 1400,
       "source": "docs/user-guide/uloge-i-permisije.md",
       "englishTitle": null
     },
@@ -1988,7 +2003,7 @@
         "audit",
         "scope"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -2080,7 +2095,7 @@
         "broadcast",
         "odsustvo"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-05",
       "headings": [
         {
           "level": 2,
@@ -2195,7 +2210,7 @@
         "uska-grla",
         "sla"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -2323,7 +2338,7 @@
         "ugovori",
         "ad"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2409,7 +2424,7 @@
         "workaround",
         "problem-grupa"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2511,7 +2526,7 @@
         "konflikti",
         "kalendar"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2622,7 +2637,7 @@
         "scope",
         "pristup"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2665,7 +2680,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 620,
+      "wordCount": 671,
       "source": "docs/user-guide/uloge-i-dozvole.md",
       "englishTitle": "Roles and permissions"
     },
@@ -2688,7 +2703,7 @@
         "poruke",
         "pomoc"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -2810,7 +2825,7 @@
         "csat",
         "cmdb"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2875,7 +2890,7 @@
         "izdanja",
         "changelog"
       ],
-      "updatedAt": null,
+      "updatedAt": "2026-10-06",
       "headings": [
         {
           "level": 2,
@@ -2918,7 +2933,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1038,
+      "wordCount": 1117,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

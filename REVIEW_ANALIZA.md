@@ -36,6 +36,7 @@
 | 12 | **Val 3** — pouzdanost i performanse (M8 B2; M11 B1, B2; M12 B1, B3, B4, B5; M13 B2; M14 B5 + guard za Redis auth) | ✅ Isporučen 2026-10-05 · devet nalaza i jedan preventivni guard — vidi `# Val 3 — pouzdanost i performanse` |
 | 13 | **Val 4** — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“ (uz prateće ispravke datuma) | ✅ Isporučen 2026-10-05 · specovi 34–35; E-1 (e2e kapija) zatvoren u valu 5 — vidi `# Val 4 — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“` |
 | 14 | **Val 5** — RAW zaostaci (M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 dio) + M13 specovi, mrtve postavke i površine, EN stranice | ✅ Isporučen 2026-10-05 · svi nalazi opsega zatvoreni; u sandboksu nije moguć živ e2e prolaz — vidi `# Val 5 — izvještaj vala` |
+| 15 | **Paket 5.2.1 — pristup i identitet** (M4 B3–B5, M3 B5–B7, M2 #3–#6; 10 nalaza) | ✅ Zatvoren 2026-10-07 nakon korisničkog serverskog E2E rezultata i uspješnog GitHub CI/E2E workflowa; detalji i preostala OD-2 staging kalibracija u `# Paket 5.2.1 — zatvaranje` |
 
 ---
 
@@ -363,9 +364,9 @@ Zatečeni tok (lozinka → promjena lozinke → drugi faktor → sesija) je doba
   (`pages/login-page.tsx:30–48`). Entra režim prikazuje dugme **„Prijava preko Microsoft naloga“**, uz link
   „Prijavi se lokalnim nalogom“ i poruku kada Microsoft prijava nije konfigurisana (`:302–334`).
 - **Tekstovi koje korisnik vidi** (i18n `session.*`, `auth.*`, bs): „Prijava“, „Prijava…“, „Email“, „Lozinka“,
-  „Prijava nije uspjela. Provjerite email i lozinku.“, „Previše neuspjelih pokušaja prijave. Pokušajte ponovo
-  za 15 minuta.“; MFA: „Potvrda u dva koraka“, „Kod iz aplikacije“, „Nemam pristup aplikaciji — koristi rezervni
-  kod“, „Potvrdi“; upis: „Postavite potvrdu u dva koraka“, „Ključ za ručni unos“, „Uključi“; rezervni kodovi:
+  „Prijava nije uspjela. Provjerite email i lozinku.“, generička poruka za privremeni `429` bez fiksnog roka;
+  MFA: „Potvrda u dva koraka“, „Kod iz aplikacije“, „Nemam pristup aplikaciji — koristi rezervni kod“,
+  „Potvrdi“; upis: „Postavite potvrdu u dva koraka“, „Ključ za ručni unos“, „Uključi“; rezervni kodovi:
   „Rezervni kodovi“, „Kopiraj“, „Preuzmi .txt“, „Sačuvao/la sam rezervne kodove“, „Nastavi“.
 - **QR kod** se generiše lokalno, biblioteka `qrcode` se učitava dinamički samo na ekranu upisa
   (`components/auth/mfa-enrollment.tsx:29–47`), uz uvijek prikazan ručni ključ (`:76–83`).
@@ -391,10 +392,12 @@ Zatečeni tok (lozinka → promjena lozinke → drugi faktor → sesija) je doba
 | SSO (Entra ID) + validacija tokena | JWKS, `iss`, `aud`, vezivanje na `oid` | tačno tako, uz JIT/konflikt pravila i 403 s kodom | **Implementirano** |
 | `private.auth.mode` (local\|entra_ad) | postavka, break-glass SuperAdmin | postavka + break-glass forma uvijek dostupna | **Implementirano** |
 | `private.auth.jwtSigningSecret` (secret) | tajna iz registryja, ne env | `JwtSigningSecretLoader` čita postavku; instalacija je upisuje (`install/ensure-install-jwt-signing-secret.ts`) | **Implementirano** |
-| — (izvan RAW, paket 2.1) | MFA bez tihe degradacije | upis i verifikacija rade, ali gašenje `allowOptional` tiho preskače verifikaciju | **Odstupa** |
-| — (izvan RAW) | odvojeni brojači po nalogu i IP-u | jedan brojač `email+IP`; iza proxyja praktično po nalogu | **Djelimično** |
-| — (izvan RAW) | rezervni kodovi sa sporim KDF-om/HMAC-om | neslani SHA-256 | **Djelimično** |
-| — (izvan RAW) | E2E scenario za prijavu i MFA | helperi postoje i koriste ih drugi specovi; namjenskog spec-a nema | **Djelimično** |
+| — (izvan RAW, paket 2.1) | MFA bez tihe degradacije | `allowOptional=false` zaustavlja nova upisivanja; već upisani TOTP se i dalje traži pri prijavi (zatvoreno u 5.1.1) | **Implementirano** |
+| M2 #3 | Odvojeni brojači po nalogu i IP-u | Account stanje daje ograničeno progresivno kašnjenje bez lockouta; IP prag vraća privremeni `429` | **Implementirano (5.2.1)** |
+| M2 #4 | Rezervni kodovi sa HMAC-om | HMAC-SHA-256 s domain-separated HKDF ključem, key ID i aktivni/prethodni MFA ključ; stari SHA-256 kodovi se ne prihvataju | **Implementirano (5.2.1)** |
+| M2 #5 | Isti istek MFA međukoraka na ekranima upisa/prijave | `INVALID_CREDENTIALS` za sign-in step token mapira se na zajedničku poruku; vlastiti `MFA_ENROLLMENT_EXPIRED` ostaje posebna greška upisa | **Implementirano (5.2.1)** |
+| M2 #6 | Precizan opoziv sesije | Novi tokeni se opozivaju po `sid` i ne preživljavaju isti sekund; cutoff ostaje za legacy tokene bez `sid` | **Implementirano (5.2.1)** |
+| — (izvan RAW) | E2E scenario za prijavu i MFA | Namjenski spec 37 pokriva rate limit, recovery kod i opoziv sesija; ciljani serverski run je prošao | **Implementirano** |
 | — (izvan RAW) | phishing-otporni faktor (passkey) | ne postoji | **Nedostaje** |
 
 ## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
@@ -425,10 +428,24 @@ Nedostaje integracioni test koji prolazi *cijeli* HTTP tok od `login` do `sid`-a
 |---|---|---|---|---|---|
 | 1 | **SREDNJE** → ✅ **zatvoreno u paketu 5.1 (2026-10-06)**: `resolveMfaFlow` (`security/account-security-rules.ts`) razdvaja „smije upisati“ od „upisan faktor se uvijek verificira“, a `MfaService.flowFor` to prosljeđuje u `continueAfterPassword` | `backend/src/modules/authentication/authentication.service.ts:255–270` + `security/account-security-rules.ts:21` | Isključivanje postavke `private.auth.mfa.allowOptional` mijenja zahtjev na `unavailable`, a `continueAfterPassword` tada **preskače verifikaciju** i za korisnike koji **već imaju upisan TOTP** (uslov je `requirement !== 'unavailable' && isEnabled`). Opis postavke u kodu i UI-ju kaže da se radi o *dozvoli samostalnog uključivanja*, ne o isključivanju verifikacije (`settings/definitions/account-security-settings.ts:36–43`). | ADMIN/SUPER_ADMIN nisu pogođeni, ali svaki AGENT/USER koji se oslanja na drugi faktor ostaje zaštićen samo lozinkom — tiho, bez ikakve poruke. | Razdvojiti „može upisati“ od „mora/treba verificirati“: ako je `isEnabled`, tražiti `MFA_REQUIRED` bez obzira na `allowOptional`; `allowOptional=false` da zabrani samo *novi* upis. |
 | 2 | **SREDNJE** | `frontend/src/components/auth/change-password-form.tsx:12,37,88,111` + `i18n` `auth.changePassword.intro` | Ekran prisilne promjene lozinke tvrdi i validira „najmanje 12 znakova“ (konstanta), dok administrator može podići `private.auth.password.minLength` do 64. | Korisnik prvo dobije zelenilo na klijentu, pa 400 s listom prekršenih pravila; tekst protivrječi politici koju vidi na „Sigurnost naloga“. | Proslijediti `minLength` iz politike (kao `password-section.tsx:56,73`) ili ukloniti tvrdnju iz teksta i pustiti server da odluči. |
-| 3 | **NISKO** | `backend/src/modules/authentication/login-attempt-limiter.ts:17–30` (i komentar `:13–15`) | Ključ brojača je `email + IP`. Bez `TRUST_PROXY` (ili s proxyjem ispred) svi zahtjevi dijele isti IP, pa 5 tuđih pogrešnih pokušaja zaključava **tuđi** nalog na 15 min (i tačna lozinka dobija 429). | Ciljani DoS: dovoljno je znati email adresu zaposlenika. | Uvesti odvojen brojač po nalogu (duži prozor, veći prag) i po IP-u (kraći, niži prag), uz progresivno kašnjenje umjesto tvrdog 429. |
-| 4 | **NISKO** | `backend/src/modules/authentication/security/recovery-codes.ts:21–23` | Rezervni kodovi se hashiraju **neslanim SHA-256**, bez tajne servera. Entropija je ~2^49 (10 znakova iz 31-znakovnog alfabeta), pa neslani SHA-256 omogućava offline napad preko cijele baze jednom predračunatom tabelom. | Ako baza procuri, rezervni kodovi su kandidat za offline probijanje jačom grafikom. | HMAC-SHA-256 s ključem iz okruženja (npr. vezan uz `MFA_ENCRYPTION_KEY`) ili `bcrypt` s umjerenim faktorom; migracija = poništiti postojeće kodove. |
-| 5 | **NISKO** | `frontend/src/components/auth/mfa-enrollment.tsx:39–41` vs `components/auth/mfa-code-form.tsx:41–48` | Kada međukorak prijave (5 min) istekne, forma za verifikaciju to kaže („Korak prijave je istekao…“), a ekran upisa prikazuje generičko „Radnja nije uspjela. Pokušajte ponovo.“ jer mapira samo kod `MFA_UNAVAILABLE`. | Korisnik u prisilnom upisu vrti istu grešku bez informacije da treba ponovo na prijavu. | Mapirati `INVALID_CREDENTIALS` na `auth.mfa.signInExpired` i u upisu (isti `readMfaError` helper za oba ekrana). |
-| 6 | **NISKO** | `backend/src/modules/authentication/session-revocation.store.ts:77` | Opoziv po korisniku koristi `issuedAt < cutoff` u **sekundama**; token izdat u istoj sekundi kad i promjena lozinke/opoziv ostaje važeći do isteka (do 1 h). | Teorijski prozor od ~1 s u kojem ukradeni token preživi „odjavi sve“ / promjenu lozinke. | Za dati opoziv koristiti poređenje u milisekundama (npr. `iat` dopunjen `jti`-jem na listi) ili pri opozivu upisati i trenutni `jti` tekuće sesije. |
+| 3 | **NISKO · ✅ zatvoreno 2026-10-07 (5.2.1)** | `backend/src/modules/authentication/login-attempt-limiter.ts:17–30` (i komentar `:13–15`) | Ključ brojača je `email + IP`. Bez `TRUST_PROXY` (ili s proxyjem ispred) svi zahtjevi dijele isti IP, pa 5 tuđih pogrešnih pokušaja zaključava **tuđi** nalog na 15 min (i tačna lozinka dobija 429). | Ciljani DoS: dovoljno je znati email adresu zaposlenika. | Uvesti odvojen brojač po nalogu (duži prozor, veći prag) i po IP-u (kraći, niži prag), uz progresivno kašnjenje umjesto tvrdog 429. |
+| 4 | **NISKO · ✅ zatvoreno 2026-10-07 (5.2.1)** | `backend/src/modules/authentication/security/recovery-codes.ts:21–23` | Rezervni kodovi se hashiraju **neslanim SHA-256**, bez tajne servera. Entropija je ~2^49 (10 znakova iz 31-znakovnog alfabeta), pa neslani SHA-256 omogućava offline napad preko cijele baze jednom predračunatom tabelom. | Ako baza procuri, rezervni kodovi su kandidat za offline probijanje jačom grafikom. | HMAC-SHA-256 s ključem iz okruženja (npr. vezan uz `MFA_ENCRYPTION_KEY`) ili `bcrypt` s umjerenim faktorom; migracija = poništiti postojeće kodove. |
+| 5 | **NISKO · ✅ zatvoreno 2026-10-07 (5.2.1)** | `frontend/src/components/auth/mfa-enrollment.tsx:39–41` vs `components/auth/mfa-code-form.tsx:41–48` | Kada međukorak prijave (5 min) istekne, forma za verifikaciju to kaže („Korak prijave je istekao…“), a ekran upisa prikazuje generičko „Radnja nije uspjela. Pokušajte ponovo.“ jer mapira samo kod `MFA_UNAVAILABLE`. | Korisnik u prisilnom upisu vrti istu grešku bez informacije da treba ponovo na prijavu. | Mapirati `INVALID_CREDENTIALS` na `auth.mfa.signInExpired` i u upisu (isti `readMfaError` helper za oba ekrana). |
+| 6 | **NISKO · ✅ zatvoreno 2026-10-07 (5.2.1)** | `backend/src/modules/authentication/session-revocation.store.ts:77` | Opoziv po korisniku koristi `issuedAt < cutoff` u **sekundama**; token izdat u istoj sekundi kad i promjena lozinke/opoziv ostaje važeći do isteka (do 1 h). | Teorijski prozor od ~1 s u kojem ukradeni token preživi „odjavi sve“ / promjenu lozinke. | Za dati opoziv koristiti poređenje u milisekundama (npr. `iat` dopunjen `jti`-jem na listi) ili pri opozivu upisati i trenutni `jti` tekuće sesije. |
+
+**Dokaz zatvaranja M2 #3–#6 u 5.2.1 (2026-10-07):**
+
+- **#3:** `login-attempt-limiter.ts` koristi odvojeno pseudonimizovane account i IP ključeve; account kašnjenje je
+  progresivno i ograničeno, dok privremeni `429` dolazi samo iz IP praga. `login-attempt-limiter.spec.ts` pokriva
+  tačnu lozinku nakon neuspjeha, izolaciju naloga, paralelne pokušaje, Redis i fail-open outage ponašanje.
+- **#4:** `security/recovery-codes.ts` izvodi HMAC ključ domain-separated HKDF-om; verifikacija podržava trenutni i
+  prethodni ključ, a test odbija legacy SHA-256 hash. TOTP ostaje aktivan; korisnik se prijavljuje TOTP-om i izdaje
+  nove kodove kroz **Sigurnost naloga**.
+- **#5:** `frontend/src/lib/auth/map-mfa-step-error.ts` mapira `INVALID_CREDENTIALS` iz isteklog/nevažećeg
+  sign-in step tokena na zajedničku poruku; `MFA_ENROLLMENT_EXPIRED`, rate limit i ostale greške ostaju zasebne.
+  `frontend/src/lib/auth/map-mfa-step-error.spec.ts` čuva ova mapiranja.
+- **#6:** `session-revocation.store.ts` i `SessionTokenService` opozivaju postojeći `sid`; `session-revocation.spec.ts`
+  i `session-registry.service.spec.ts` pokrivaju isti sekund, legacy tokene bez `sid` i novu prijavu nakon opoziva.
 
 **Zapažanja bez oznake bug-a:** (a) `POST /auth/mfa/enroll/start` nije pod brojačem pokušaja (za razliku od
 `verify` i `confirm`) — može ga zvati samo onaj ko ima važeći `mfaToken`, pa je rizik nizak; (b) `logout`
@@ -458,13 +475,17 @@ nedokumentovan.
 danas **uvijek** nudi lokalnu formu u Entra režimu (link „Prijavi se lokalnim nalogom“). To je sigurnosno
 svjesna odluka (RAW traži break-glass SuperAdmin), ali vrijedi potvrditi da nije u sukobu s politikom klijenta.
 
+**Izmijenjeno u 5.2.1 (2026-10-07):** zastarjeli T22 navod „5 pokušaja / 15 minuta“ zamijenjen je odvojenim
+account/IP pravilom u vodičima za prijavu i početak rada (BS/EN), a vidljiva `429` poruka više ne obećava fiksnih
+15 minuta. HMAC recovery kodovi, zajedničko MFA isticanje i precizan `sid` opoziv opisani su uz M2 #4–#6 iznad.
+
 ## 9. Ocjena modula
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **9 / 10** | Sve što RAW traži i cijeli paket 2.1 rade: dva provajdera, prisilna promjena, TOTP s QR-om, rezervni kodovi, registar sesija, „odjavi sve“, reset MFA-a. Tiha degradacija kod `allowOptional=false` je zatvorena u paketu 5.1 (nalaz #1); zamjerka ostaje na dijeljenom brojaču neuspjeha (`email+IP`) i neslanom SHA-256 za rezervne kodove. |
+| Funkcionalnost | **9 / 10** | Ocjena je re-ocjena iz audita prije 5.2.1; #1 je zatvoren u 5.1, a #3–#6 u 5.2.1 (2026-10-07). Brojčana ocjena nije ponovo izračunata u ovom closeoutu. |
 | Kvalitet koda | **8 / 10** | Čiste odluke odvojene od I/O, dobra imena i neutralne greške; `authentication.service.ts` je prerastao u „god service“, a mapiranje grešaka baca iz `catch` poziva. |
-| Sigurnost | **8 / 10** | AES-GCM za tajne, ponovna upotreba koda blokirana, opoziv preko Redisa, skraćena IP adresa, rate limit s fail-open; umanjuju: bug #1, neslani SHA-256 za rezervne kodove i zajednički brojač `email+IP`. |
+| Sigurnost | **8 / 10** | Ocjena je istorijski snapshot prije završetka 5.2.1. Nalazi #3–#6 su zatvoreni i dokazani u §7; ocjena nije ponovo izračunata niti zamjenjuje aktuelni status nalaza. |
 
 ---
 
@@ -649,15 +670,15 @@ svjesna odluka (RAW traži break-glass SuperAdmin), ali vrijedi potvrditi da nij
 | Zadatak (RAW) | Idealno | Trenutno | Status |
 |---|---|---|---|
 | OU hijerarhija + DN kao source-of-truth (`:13–21`) | DN i `ouPath` se grade i prepisuju konzistentno kroz sync i CRUD | `create/update-organizational-unit.ts` grade i prepisuju `ouPath`/DN potomaka u transakciji; LDAPS sync mapira OU iz DN-a | **Implementirano** |
-| OU izolacija Admin/Agent (`:11`) | Svaka ruta s OU scope-om prolazi kroz guard | `OuAccessGuard` + `@RequireOrganizationalUnitScope` koriste audit, KB, policy packs, reports, routing; users/groups rute su admin-only bez OU scope-a | **Djelimično** |
+| OU izolacija Admin/Agent (`:11`) | Svaka ruta s OU scope-om prolazi kroz guard | Audit, KB, policy packs, reports i routing koriste OU scope; `group.manage` sada filtrira liste i provjerava ciljni OU za group read/mutation rute; users administracija ostaje admin-only | **Djelimično** (5.2.1 zatvorio group dio) |
 | Group inbox obavezan (`:55`) | Grupe po OU-u, fallback invarijanta, group inbox | `create/update/delete-group` + `assert-group-deletable` čuvaju fallback; grupa je obavezna veza za inbox tabove | **Implementirano** |
 | Routing `origin_unit + service_type` (`:63`) | DB-driven pravila; grupa kao `HANDLER_GROUP` | Routing modul postoji (`modules/routing`), veza grupa ↔ routing pravila postoji u UI kopiji | **Implementirano** (detalj u M7) |
 | Sync korisnika iz AD-a (`:30`) | Ime, e-mail, Company, Department, Manager | Ime/e-mail/OU/Company/Department rade; **Manager se ne sinhronizuje** | **Djelimično** |
 | `roleSource` (`:479`) | `local_db` ili `entra_groups` | Radi, ali vrijednost je `ad_groups` i grupe se čitaju iz LDAPS-a | **Odstupa** (terminologija) |
-| Audit svih akcija (`:173`) | Svaka izmjena korisnika/OJ/grupe u audit logu | Audit imaju **samo** dodjela/uklanjanje role; create/update/delete korisnika, OJ i grupa ne pišu audit | **Djelimično** |
+| Audit svih akcija (`:173`) | Svaka izmjena korisnika/OJ/grupe u audit logu | Mutacije korisnika, OJ i grupa, uključujući članstvo, imaju transakcijski audit; B3 zatvoren u 5.1.2 | **Implementirano** |
 | Referencijalni integritet OU-a | Jasna greška za svaku zavisnost pri brisanju | Provjeravaju se samo djeca i korisnici; ostalo je FK `Restrict` → 500 | **Odstupa** |
-| Zaštita SuperAdmin naloga | Ne može ostati bez ijednog SuperAdmin-a | Zaštita postoji za tuđe SuperAdmin naloge (`assert-can-manage-target-user.ts`), **nema** za posljednjeg SuperAdmin-a pri uklanjanju role/deaktivaciji | **Djelimično** |
-| Liste korisnika | Pretraga + paginacija s limitima | `q`/`take`/`skip` postoje, `take` cap 500, nema ukupnog broja ni oznake odsječene liste | **Djelimično** |
+| Zaštita SuperAdmin naloga | Ne može ostati bez ijednog SuperAdmin-a | Mutacije koje uklanjaju posljednjeg aktivnog lokalnog SuperAdmin-a serijalizuju se transakcijskim advisory lockom; `LAST_SUPER_ADMIN_REQUIRED` | **Implementirano (5.2.1)** |
+| Liste korisnika | Pretraga + paginacija s limitima | `q`/`take`/`skip`, `X-Total-Count` i UI stranice od 100 zapisa s filtriranim ukupnim brojem | **Implementirano (5.2.1)** |
 
 ## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
 
@@ -712,23 +733,34 @@ raditi jer `decide-entra-binding.ts:39–41` odbija lokalne naloge (`LOCAL_ACCOU
 pozivom API-ja. **Uticaj:** promjena načina autentikacije bez potvrde i bez povratka kroz isti ekran. **Fix:**
 odbijati reset za ne-lokalne naloge (ili zahtijevati eksplicitnu „raskini AD vezu“ akciju, koja postoji).
 
-**B5 — `NISKO` — nema zaštite posljednjeg SuperAdmin naloga.**
+**B5 — `NISKO` — nema zaštite posljednjeg SuperAdmin naloga. `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `remove-user-role.ts:14–51` dozvoljava uklanjanje zadnje `SUPER_ADMIN` dodjele (nema brojanja), a
 `update-user.ts:89–91` dozvoljava deaktivaciju. Kontroler štiti samo *vlastiti* nalog od deaktivacije/brisanja
 (`users.controller.ts:114–122,139–144`) i *tuđe* SuperAdmin naloge od ne-SuperAdmin aktera
 (`assert-can-manage-target-user.ts`). **Uticaj:** SuperAdmin može sebi ukloniti rolu i time zaključati RBAC
 administraciju (oporavak samo kroz bazu/konzolu). **Fix:** broj aktivnih SUPER_ADMIN dodjela i odbijanje
 posljednje, s jasnom porukom.
+**Zatvaranje 5.2.1:** `super-admin-invariant.ts` zaključava mutacije transakcijskim PostgreSQL advisory lockom
+prije provjere; posljednja aktivna lokalna-only SUPER_ADMIN dodjela se ne može ukloniti, deaktivirati, obrisati ili
+ukloniti zajedno s OJ. Odbijanje vraća `409 LAST_SUPER_ADMIN_REQUIRED` bez djelimičnog upisa. Dokazi:
+`super-admin-invariant.concurrency.spec.ts`, `remove-user-role.spec.ts`, `delete-user.last-super-admin.spec.ts`,
+`delete-organizational-unit.last-super-admin.spec.ts` i `link-user-directory-identity.super-admin.spec.ts`.
 
-**B6 — `NISKO` — neaktivan korisnik na reset lozinke daje `INVALID_INPUT` (400 „Invalid input“).**
+**B6 — `NISKO` — neaktivan korisnik na reset lozinke daje `INVALID_INPUT` (400 „Invalid input“). `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `reset-user-temporary-password.ts:28–30` baca isti kod kao za prazan ID (`:18–20`); UI tu poruku prikazuje kao
 generičku (`users.resetPasswordFailed`). **Uticaj:** korisnik ne zna da je nalog deaktiviran, a admin ne dobija
 uputu da ga prvo aktivira. **Fix:** poseban kod (`USER_INACTIVE`).
+**Zatvaranje 5.2.1:** API vraća `409 USER_INACTIVE` prije izdavanja ili čuvanja privremene lozinke; UI akcija
+prikazuje ciljanu uputu da se nalog prvo aktivira. Dokazi: `reset-user-temporary-password.inactive.spec.ts`,
+`map-users-error.spec.ts` i `frontend/src/components/users/map-user-admin-action-error.spec.ts`.
 
-**B7 — `NISKO` — lista korisnika se tiho odsijeca na 500 bez metapodataka.**
+**B7 — `NISKO` — lista korisnika se tiho odsijeca na 500 bez metapodataka. `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `list-users-summary.ts:20,54–59` ograničava `take` na 500 i ne vraća ukupan broj; auto-refresh admin ekrana
 zove `GET /users` bez `take` (komentar `:31–36`). **Uticaj:** na instanci s >500 korisnika dio njih se ne
 prikazuje, bez ikakve oznake u UI-u. **Fix:** vratiti `{ items, total }` ili barem `X-Total-Count` i oznaku u UI-u.
+**Zatvaranje 5.2.1:** API vraća filtriranu stranicu uz `X-Total-Count`; UI traži 100 zapisa po stranici i
+prikazuje opseg/ukupan broj, bez tihog cutoffa. Dokazi: `list-users-summary.spec.ts`, `users-api.spec.ts`,
+`frontend/src/pages/users-page.tsx` i `e2e/tests/38-users-groups-rbac.spec.ts`.
 
 **Napomena (nije bug):** `roleSource` vrijednost `ad_groups` umjesto RAW-ovog `entra_groups`
 (`ldaps-directory.types.ts:51`, `directory-ldaps-settings.ts:16`) je terminološka razlika, funkcionalnost postoji;
@@ -760,9 +792,9 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **8 / 10** | Početna ocjena; B1–B4 su zatvoreni korakom 5.1.2, a ocjena se ponovo vrednuje na kraju paketa 5.1. Manjkav Manager sync ostaje otvoren. |
+| Funkcionalnost | **8 / 10** | Početna ocjena; B1–B4 su zatvoreni u 5.1.2, B5–B7 u 5.2.1. Manjkav Manager sync ostaje otvoren; brojčana ocjena nije ponovo izračunata u closeoutu. |
 | Kvalitet koda | **8 / 10** | Dosljedna podjela po operaciji, domen-greške i solidna transakciona logika (prepisivanje DN-a potomaka, atomsko preuzimanje plana). Gube bodovi zbog raspoređenih invarijanti i duplirane fallback logike u `create-group`/`update-group`. |
-| Sigurnost | **7 / 10** | Početna ocjena; B2–B4 su zatvoreni korakom 5.1.2 (audit, 409 za nelokalni reset i invalidacija pogođenih principal cacheva). B5 — zaštita posljednjeg SuperAdmin-a — ostaje otvoren; ocjena se ponovo vrednuje na kraju paketa. |
+| Sigurnost | **7 / 10** | Početna ocjena; B2–B4 su zatvoreni u 5.1.2, a B5 zaštita posljednjeg aktivnog lokalnog SuperAdmin-a zatvorena je u 5.2.1. Brojčana ocjena nije ponovo izračunata u closeoutu. |
 
 ---
 
@@ -917,14 +949,15 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 
 | Zadatak (RAW) | Idealno | Trenutno | Status |
 |---|---|---|---|
-| Granularne permisije (`:174–176`) | 60+ permisija, provjera na svakoj ruti | 63 permisije, `@RequirePermissions` + `RoleGuard`/`OuAccessGuard` | **Implementirano** |
-| Minimalni set iz RAW-a (`:177–194`) | Sve navedene permisije postoje i koriste se | Postoje (i više od liste); `reports.controller.ts:48` koristi dvije zajedno (ANY-of) | **Implementirano** |
+| Granularne permisije (`:174–176`) | 60+ permisija, provjera na svakoj ruti | 63 permisije; `@RequirePermissions` je any/OR, a eksplicitni `@RequireAllPermissions` je all/AND | **Implementirano (B3, 5.2.1)** |
+| Minimalni set iz RAW-a (`:177–194`) | Sve navedene permisije postoje i koriste se | Postoje (i više od liste); više ključeva ostaje OR po defaultu, a `reports.controller.ts:48` namjerno zadržava OR | **Implementirano** |
 | Default mapping (`:195–216`) | Standardni mapping aktivan odmah | Upisuje se pri instalaciji (`install/seed-install-minimum.ts:31`, val 0) + CLI za postojeće instalacije | **Implementirano** |
 | Premošćivanje scope-a zabranjeno (`:222,229`) | Scoped dodjela ne prolazi globalnu provjeru | Fail-closed pravilo u `evaluate-authorization-access.ts:62–68`; jedina scope-agnostička permisija `onCallRead` | **Implementirano** |
-| SUPER_ADMIN globalno uz audit (`:217–220`) | Bypass + trag o cross-OU akcijama | Bypass postoji (`:120–125`, uz `isLocalOnly`); sam bypass se ne auditira | **Djelimično** |
-| Mapping izmjenjiv kroz UI + change log s reason + diff (`:223`) | UI + obavezan razlog + diff u audit logu | UI i diff u auditu postoje; **nema razloga** u `ReplaceRolePermissionsDto` (`dto/replace-role-permissions.dto.ts:3–7`) | **Djelimično** |
+| SUPER_ADMIN globalno uz audit (`:217–220`) | Bypass + trag o cross-OU akcijama | Lokalni bypass upisuje request-linked audit događaj prije handlera; nedostupan sink daje `503 AUTHORIZATION_AUDIT_UNAVAILABLE` | **Implementirano (B5, 5.2.1)** |
+| Mapping izmjenjiv kroz UI + change log s reason + diff (`:223`) | UI + obavezan razlog + diff u audit logu | UI, serverska potvrda pregleda, obavezan reason i before/after diff u auditu | **Implementirano (B2, 5.1.1)** |
 | Permission scopes OU/servis (`:224–228`) | Scope po dodjeli, evaluiran s guardovima | `organizationalUnitId`/`serviceId` na `UserRole` + `RequireOrganizationalUnitScope`/`RequireServiceScope` na rutama | **Implementirano** |
-| Shadow permission check prije aktivacije (`:230–232`) | Server traži pregled prije aktivacije | Preview endpoint + UI tok; **server ne zahtijeva** da je preview izvršen | **Djelimično** |
+| `group.manage` nad ciljnim OU-om | Lista, detalji i mutacije poštuju OU grupe; za ostale uloge globalno samo uz nescoped grant (SuperAdmin bypass je zaseban) | `groups.controller.ts` + `GroupsService.listAccessible` provjeravaju opseg; direktni cross-OU poziv je odbijen | **Implementirano (B4, 5.2.1)** |
+| Shadow permission check prije aktivacije (`:230–232`) | Server traži pregled prije aktivacije | Potpisani preview token je obavezan na API-ju; bez njega `409 PREVIEW_REQUIRED`, a zastario/tuđi pregled `409 PREVIEW_STALE` | **Implementirano (B2, 5.1.1)** |
 | `roleSource` (`:479`) | `local_db` ili `entra_groups` | Radi kao `local_db`/`ad_groups` (vidi §M3, terminologija) | **Odstupa** (naziv) |
 
 ## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
@@ -982,26 +1015,38 @@ traži change log s razlogom. UI tok (`permissions-panel.tsx` + `permissions-pre
 poštuje, ali svaki drugi klijent može preskočiti pregled. **Fix:** `previewToken`/potvrda u okviru sesije +
 obavezan `reason`, oba u audit metadata.
 
-**B3 — `NISKO` — `@RequirePermissions(a, b)` znači „bilo koja od njih“, ne „obje“.**
+**B3 — `NISKO` — `@RequirePermissions(a, b)` znači „bilo koja od njih“, ne „obje“. `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `evaluate-authorization-access.ts:42–48` koristi `.some(...)`, a vanjski izbor je takođe `.some(...)`
 (`:126–128`); ne postoji AND varijanta dekoratora. Jedina upotreba s više ključeva je
 `reports.controller.ts:48` (`reportsExport, auditExport`) i tamo je OR vjerovatno namjera, ali je nedokumentovano.
 **Uticaj:** buduća ruta koja napiše dva ključa misleći „obje“ tiho dobija slabiju provjeru. **Fix:** uvesti
 `@RequireAllPermissions` ili objasniti semantiku u dekoratoru i na mjestu upotrebe.
+**Zatvaranje 5.2.1:** uveden je `@RequireAllPermissions` za eksplicitni all/AND način, dok
+`@RequirePermissions` ostaje any/OR radi kompatibilnosti; postojeći multi-key reports route zadržava OR. Dokaz:
+`backend/src/modules/authorization/authorize-http-execution.spec.ts` provjerava oba načina.
 
-**B4 — `NISKO` — `group.manage` se provjerava bez OU scope-a, pa OU-scoped ADMIN ne može upravljati grupama.**
+**B4 — `NISKO` — `group.manage` se provjerava bez OU scope-a, pa OU-scoped ADMIN ne može upravljati grupama. `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `groups.controller.ts:51–94` traži `permissionKeys.groupManage` kroz `RoleGuard` (bez OU scope-a), a
 `scopeAgnosticPermissionKeys` sadrži samo `onCallRead` (`authorization.constants.ts:101`); po pravilu iz
 `evaluate-authorization-access.ts:62–68`, dodjela koja ima `organizationalUnitId` **ne može** zadovoljiti
 provjeru bez scope-a. **Uticaj:** dvije krajnosti — OU-scoped ADMIN je odbijen, a globalno (nescoped) dodijeljen
 `group.manage` daje upravljanje grupama u svim OJ. **Fix:** odlučiti da li ruta dobija
 `@RequireOrganizationalUnitScope` ili je `group.manage` scope-agnostic.
+**Zatvaranje 5.2.1:** listi pristupa filtrira se po OU, a create/detail/update/delete/member rute provjeravaju OU
+iz tijela ili razriješene grupe. Za ostale uloge samo eksplicitni nescoped `group.manage` grant je globalan;
+SuperAdmin bypass je zaseban i auditovan (B5). Dokazi:
+`groups.service.list-accessible.spec.ts`, `groups.service.spec.ts` i cross-OU direktne API provjere u
+`e2e/tests/38-users-groups-rbac.spec.ts`.
 
-**B5 — `NISKO` — SUPER_ADMIN bypass nije auditovan.**
+**B5 — `NISKO` — SUPER_ADMIN bypass nije auditovan. `[ZATVORENO 2026-10-07 · 5.2.1]`**
 `evaluate-authorization-access.ts:120–125` propušta SuperAdmin-a bez provjere permisija i bez zapisa; RAW `:219`
 traži da implicitne cross-OU mogućnosti idu „uz audit“. Moduli pojedinačno bilježe svoje akcije (npr. forwarding),
 ali sam bypass nema trag. **Uticaj:** nemoguće je dokazati da je SuperAdmin koristio pravo van svog OU-a za
 radnje koje modul ne auditira. **Fix:** audit zapis (ili barem metrika) kad odluka padne na `superAdminAllowed`.
+**Zatvaranje 5.2.1:** `authorization.service.ts` bilježi request-linked bypass s actor/route/method/permission i
+ciljnim OU/resursom; više guardova u istom zahtjevu pravi jedan zapis. Greška sinka fail-closed vraća HTTP 503
+`AUTHORIZATION_AUDIT_UNAVAILABLE` prije handlera. Dokazi: `authorize-http-execution.spec.ts`,
+`authorization.service.spec.ts` i auditu provjeru u `e2e/tests/38-users-groups-rbac.spec.ts`.
 
 **Napomena (nije bug):** preview uzima samo 3 uzorka korisnika
 (`preview-role-permission-impact.ts:11,39–46`), što je i prikazano u UI tekstu („{{count}} korisnika · …“) i u
@@ -1032,9 +1077,9 @@ imao teze za RBAC; postojeći modulski fajlovi spominju permisije samo usput (np
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **9 / 10** | *Re-ocjena u valu 0 (2026-10-03; prije 7).* Sve komponente postoje (63 permisije, scope po OU/servisu, preview, read-only režim, sesija s dozvolama), a B1 je riješen — default mapping se upisuje pri instalaciji, pa ADMIN/AGENT rade odmah. Preostaje serverski neobavezan preview (B2). |
-| Kvalitet koda | **9 / 10** | Decision-core odvojen od I/O-a, razlozi odluka, izuzetna test pokrivenost, čist preview kroz stvarni evaluator. Zamjerke su male: nedokumentovana ANY-of semantika i dvostruko čitanje pravila u komentarima umjesto u kodu. |
-| Sigurnost | **8 / 10** | Fail-closed scope pravilo, `isLocalOnly` uslov za SuperAdmin bypass, read-only režim fail-closed, revizija promjena kroz audit. Umanjuju: serverski neobavezan preview (B2), neauditovan bypass (B5) i implikacije B4. |
+| Funkcionalnost | **9 / 10** | Istorijska re-ocjena iz 2026-10-03; B1 je zatvoren u valu 0, B2 u 5.1.1, a B3–B5 u 5.2.1. Brojčana ocjena nije ponovo izračunata u ovom closeoutu. |
+| Kvalitet koda | **9 / 10** | Istorijska ocjena iz 2026-10-03: decision-core je odvojen od I/O-a i preview koristi stvarni evaluator. Semantika ANY/ALL je eksplicitna i testirana od 5.2.1; ocjena nije ponovo izračunata. |
+| Sigurnost | **8 / 10** | Istorijska ocjena iz 2026-10-03; B2 i B3–B5 su zatvoreni u 5.1.1/5.2.1 uz serverski preview, OU scope i fail-closed audit bypass. Brojčana ocjena nije ponovo izračunata. |
 
 ---
 
@@ -6708,3 +6753,30 @@ je sažetak koji je pročitao `results.json`. Sirovi JSON i SHA serverskog check
 - **Za paket 5.1.4 nema otvorenih acceptance kapija:** ciljni serverski E2E skup 02/07/15 prošao je 8/8. Cijeli katalog E2E testova nije pokrenut; GitHub E2E job je preskočen po dogovoru i ne pokreće se na svaki push na `master`.
 - Lokalno `db:generate` i dalje ne može preuzeti Prisma schema-engine zbog TLS-a; ovo je ograničenje sandboxa, dok isti commit u GitHub CI prolazi `prisma generate`, backend build, lint i testove.
 - Za potpunu audit-traceability vrijednosti biće korisno sačuvati sirovi `results.json` i SHA server checkouta uz deploy evidenciju; dostavljeni run log sadrži svih 8 rezultata i parserov sažetak.
+
+# Paket 5.2.1 — zatvaranje
+
+**Status: ZATVORENO (2026-10-07).** Deset nalaza M2 #3–#6, M3 B5–B7 i M4 B3–B5 zatvoreno je nakon uspješnog
+ciljanog serverskog E2E i GitHub CI/E2E prolaza. Ovo je dokumentacijsko zatvaranje; kod 5.2.1 nije izmijenjen ovim
+diff-om.
+
+## Runtime kapija
+
+| Provjera | Rezultat |
+|---|---|
+| `e2e/tests/37-authentication-security.spec.ts` + `e2e/tests/38-users-groups-rbac.spec.ts` | Korisnikov sažetak: **6 prošlih, 1 preskočen, 0 neuspjelih**. Jedini test koji može biti preskočen je destruktivni posljednji-SuperAdmin race; spec 38 ga pokreće samo na izolovanom serveru gdje konfigurirani nalog predstavlja jedinog aktivnog lokalnog SuperAdmin-a. |
+| GitHub CI + E2E | [Ručno pokrenuti workflow 37610507976](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37610507976), `master` / `ef7ddf83`: svi jobs, uključujući E2E critical flows i CI gate, prošli. Push run [37606258740](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37606258740) je ranije prošao CI; E2E je tada preskočen prema postojećem trigger dizajnu. |
+| Ograničenje artefakta | Sirovi serverski `e2e/results.json` nije sačuvan u repozitoriju; status se oslanja na korisnikov isporučeni sažetak. |
+
+## Dokaz zatvaranja po modulu
+
+- **M4 B3–B5:** eksplicitni any/OR i all/AND permission dekoratori; OU-scoped `group.manage`; request-linked, fail-closed SuperAdmin audit (`503 AUTHORIZATION_AUDIT_UNAVAILABLE`). Dokazi: `backend/src/modules/authorization/authorize-http-execution.spec.ts`, `authorization.service.spec.ts`, `backend/src/modules/groups/groups.service.list-accessible.spec.ts` i `e2e/tests/38-users-groups-rbac.spec.ts`.
+- **M3 B5–B7:** transakcijski advisory lock i `409 LAST_SUPER_ADMIN_REQUIRED`; neaktivni reset odbija se s `409 USER_INACTIVE` prije izdavanja lozinke; `X-Total-Count` i UI paginacija od 100 redova. Dokazi: `backend/src/modules/users/super-admin-invariant.ts` i concurrency/mutation specovi, `backend/src/modules/users/reset-user-temporary-password.inactive.spec.ts`, `backend/src/modules/users/list-users-summary.spec.ts`, `frontend/src/pages/users-page.tsx`.
+- **M2 #3–#6:** odvojeni account/IP limiter (account bez tvrdog lockouta), HMAC-SHA-256 recovery kodovi uz HKDF/key rotation i odbijanje legacy SHA-256, zajedničko mapiranje isteklog/nevažećeg sign-in MFA step tokena (uz zasebnu grešku za istek upisa), precizan `sid` opoziv s legacy cutoff fallbackom. Dokazi: `backend/src/modules/authentication/login-attempt-limiter.ts` + spec, `backend/src/modules/authentication/security/mfa-recovery-codes.spec.ts`, `frontend/src/lib/auth/map-mfa-step-error.spec.ts`, `backend/src/modules/authentication/session-revocation.spec.ts`, `session-registry.service.spec.ts` i `e2e/tests/37-authentication-security.spec.ts`.
+
+## Dokumentacijski rezultat i preostali guardrail
+
+- BS/EN vodiči prijave/MFA i početka rada, BS korisnici/OJ/grupe, BS RBAC vodič, BS/EN RBAC sažeci, BS/EN i18n poruke, T22/T27/T28, „Šta je novo“, ovaj audit, `DOCS_CHANGELOG.md` i plan 5.2 ažurirani su uz navedene implementacijske dokaze. Ogledala `backend/content/docs/` ostaju generisani artefakti, ne nezavisni ručni izvori.
+- `docs/user-guide/en/korisnici-oj-i-grupe.md` ne postoji; EN pokriva samo odabrane ključne stranice. Ovaj closeout ne uvodi novu EN stranicu; `/docs` koristi bosanski fallback uz `translated: false` kad prevod nedostaje.
+- **Staging gate prije produkcijskog rollouta M2 #3:** izmjeriti/odobriti početne account/IP pragove iza stvarnog proxy/NAT profila. To je operativna kalibracija, ne otvoreni kodni nalaz niti prepreka za zatvaranje 5.2.1.
+- Sljedeća podfaza je **5.2.2 — instalacija, katalog i rutanje**, razrađena u §4.2 plana `docs/plans/modules/5.2-preostali-nalazi-niskog-rizika.md`. Ovaj closeout ne započinje njen kod; prije rada zasebno pregledati i odobriti njen dizajn/opseg.

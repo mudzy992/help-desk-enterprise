@@ -34,8 +34,13 @@ It is meant for **all users** (sign-in and their own account), while some parts 
 
 1. Enter the **E-mail** and the **Password** and click **Sign in**.
 2. If the credentials are correct, the application opens. If not: “Sign-in failed. Check the e-mail and password.”
-3. After 5 failed attempts for the same e-mail within 15 minutes: “Too many failed sign-in attempts. Try again in
-   15 minutes.” A successful sign-in resets the counter.
+3. Local password sign-in has separate account and IP limits. After three wrong passwords for an account, a
+   bounded progressive delay is added (starting at 250 ms and rising to at most 2 seconds); the account is never
+   locked. Account state uses a 30-minute window, and a successful sign-in clears that account state.
+4. The source IP may receive a temporary HTTP `429` after 40 failed local sign-ins within 5 minutes. All local
+   sign-ins from that IP share this threshold; a successful sign-in does not clear the IP window.
+5. These are the current initial implementation values. Staging measurement is still required before production
+   rollout.
 
 ### Signing in with a Microsoft account (when configured that way)
 
@@ -65,6 +70,11 @@ It is meant for **all users** (sign-in and their own account), while some parts 
 4. Enter the six-digit **code from the app** and click **Enable**.
 5. The **Recovery codes** are shown; save them (**Copy** or **Download .txt**), tick **I have saved the recovery
    codes** and click **Continue**. The codes cannot be shown again later.
+
+**After a security upgrade:** recovery codes issued under the previous hash scheme are no longer accepted because
+there is no safe way to convert their stored hashes. Two-step verification (TOTP) stays enabled. Sign in with
+your authenticator app, then open **Account security** → **New recovery codes**, confirm with TOTP, and save the
+new set. If you cannot use TOTP, contact an administrator for an **MFA reset**.
 
 ### Signing in with two-step verification enabled
 
@@ -133,7 +143,7 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 | Message / situation | What it means and what to do |
 |---|---|
 | “Sign-in failed. Check the e-mail and password.” | Wrong e-mail or password; it does not say which one. |
-| “Too many failed sign-in attempts. Try again in 15 minutes.” | The counter is locked for that e-mail; wait or ask an administrator. |
+| `429 TOO_MANY_LOGIN_ATTEMPTS` | The temporary IP threshold for local sign-ins has been reached; the account is not locked. Wait for the IP window to expire, then try again. |
 | “The code is not valid or has already been used.” | The code expired, was mistyped or was already used; wait for a new code or use a recovery code. |
 | “The sign-in step expired (valid for 5 minutes).” | You waited too long on the code screen; go back to sign-in and repeat. |
 | “The setup expired. Start over.” | Enrolling two-step verification takes 15 minutes; start the enrolment again. |
@@ -149,10 +159,10 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 - Two-step verification is **TOTP only** (an app on the phone); SMS and e-mail codes are not used.
 - For accounts that sign in through Microsoft, **our** second factor does not apply — access rules are configured
   in Microsoft.
-- The failed-attempt counter is bound to the **e-mail and IP address**; behind a proxy it effectively comes down
-  to the e-mail address.
-- **It is only user-friendly up to a point:** if a user loses the phone and the recovery codes, the way out goes
-  through an administrator (**MFA reset**), with no self-service.
+- The local sign-in IP threshold is shared by users behind the same public IP address (for example, a shared
+  proxy or NAT). The initial thresholds above still need staging measurement before production rollout.
+- **Recovery requires administrator help:** if a user loses the phone and all valid recovery codes, the way out
+  goes through an administrator (**MFA reset**), with no self-service.
 
 ## Related modules
 

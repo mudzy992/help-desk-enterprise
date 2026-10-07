@@ -35,7 +35,9 @@ ulaz u puni vodič o permisijama.
 2. **Permisija** je pojedinačna dozvola za akciju (npr. `group.manage`, `settings.write`, `routing.write`,
    `ticket.merge`, `audit.export`). U sistemu postoji **63** permisije.
 3. Svaka dodjela može imati **OU scope** (organizacionu jedinicu) i **service scope** (servis). Pravilo:
-   *permisija ne otključava podatke van svog scope-a*.
+*permisija ne otključava podatke van svog scope-a*. `group.manage` se provjerava prema OU-u ciljne grupe;
+za ostale uloge, dozvola bez OU scope-a omogućava globalno upravljanje grupama. Lokalni SuperAdmin bypass je
+zaseban i auditira se.
 4. Ako vam neka akcija nije dostupna, najčešći razlog je nedostatak permisije (rola sama ne daje akciju).
 5. Administratori mijenjaju mapping rola → permisije na ekranu **Permisije**, uz **Pregled uticaja** i
    **Potvrdi i sačuvaj**.
@@ -54,8 +56,8 @@ ulaz u puni vodič o permisijama.
 | **Ostali korisnici** | Vide meni i ekrane prema roli i dodijeljenim permisijama; pojedini moduli se prikazuju samo kad su uključeni. |
 
 **Statusi i režimi koji utiču na dozvole:** **read-only režim** zaključava modul za izmjene (mutirajuće akcije
-vraćaju `403 READ_ONLY_MODE`); **SuperAdmin bypass** važi samo za lokalni (break-glass) nalog; **scoped
-dodjela** ne zadovoljava provjeru bez OU scope-a (izuzetak je `oncall.read`).
+vraćaju `403 READ_ONLY_MODE`); lokalni **SuperAdmin bypass** se bilježi u auditu i odbija radnju ako audit nije
+dostupan; **scoped dodjela** mora pokriti traženi OU scope (izuzetak je `oncall.read`).
 
 ## Česta pitanja i greške
 
@@ -63,6 +65,8 @@ dodjela** ne zadovoljava provjeru bez OU scope-a (izuzetak je `oncall.read`).
   **Permisije** šta rola stvarno ima (ili pitajte SuperAdmina).
 - **„Zašto je akcija odbijena sa `READ_ONLY_MODE`?“** — Uključen je read-only režim za taj modul; isključuje ga
   SuperAdmin ili se koristi bypass.
+- **„Zašto ne mogu upravljati grupom iz druge OJ?“** — `group.manage` prati OU ciljne grupe; tražite dodjelu
+  za tu OJ ili eksplicitnu dozvolu bez OU scope-a ako je potreban globalni pristup.
 - **„SuperAdmin ne može da se prijavi posle promjene.“** — SuperAdmin nalog mora biti **lokalan** (bez
   AD/Entra veze); nelokalni se odbija namjerno.
 - **„Promjena permisija nije vidljiva odmah.“** — Za nove zahtjeve je vidljiva odmah; korisnik možda treba
@@ -72,12 +76,11 @@ dodjela** ne zadovoljava provjeru bez OU scope-a (izuzetak je `oncall.read`).
 
 ## Poznata ograničenja
 
-- **Ekran Permisije je samo za SUPER_ADMIN**; ADMIN koristi dodijeljeno, ali ne mijenja mapping.
-- **Preview uticaja nije obavezan na serveru** — UI ne dopušta čuvanje bez pregleda, ali API to ne provjerava.
-- **`group.manage` se provjerava bez OU scope-a**, pa OU-scoped ADMIN ne može upravljati grupama.
-- **SuperAdmin bypass se ne bilježi u audit logu.**
-- **Postoji 63 permisije** i broj raste s modulima; nove permisije ulaze u role tek kad ih SuperAdmin sačuva
-  ili primijeni policy paket.
+- Ekran **Permisije** je samo za **SUPER_ADMIN**; ADMIN koristi dodijeljeno, ali ne mijenja mapping.
+- Seed default mappinga je **aditivan**: nikad ne briše, ali može vratiti grant koji je administrator ručno
+  uklonio. Prije CLI upisa na postojećoj instalaciji prvo koristite `npm run cli:seed-role-permissions --dry-run`.
+- Katalog ima **63 permisije** i broj raste s modulima; nove/default dodjele moraju biti dio mappinga ili seeda.
+  Više detalja ima u punom vodiču.
 
 ## Povezani moduli
 

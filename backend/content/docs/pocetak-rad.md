@@ -55,8 +55,9 @@ usluge pri kreiranju tiketa; rok (SLA) se prikazuje na tiketu i ne može se ruč
 
 ## Česta pitanja i greške
 
-- **„Ne mogu da se prijavim.“** — Provjerite email i lozinku; poslije 5 neuspjelih pokušaja u 15 minuta
-  prijava se zaključava za taj email. Ako je uključena potvrda u dva koraka, potreban je i kod iz aplikacije.
+- **„Ne mogu da se prijavim.“** — Provjerite email i lozinku. Lokalna prijava nalog ne zaključava: pogrešni
+  pokušaji uvode kratko progresivno kašnjenje, dok previše pokušaja s iste IP adrese može privremeno vratiti
+  `429`. Ako je uključena potvrda u dva koraka, potreban je i kod iz aplikacije; detalji su u vodiču *Prijava i MFA*.
 - **„Gdje vidim svoje tikete?“** — **Svi tiketi** (lista po vašem pristupu) ili **Nadzorna ploča**.
 - **„Kako da ubrzam rad?“** — `Ctrl+K` (paleta komandi), `N` (novi tiket), `G` pa `T` (tiketi),
   `?` (lista prečica). Detalji: `precice-i-pristupacnost.md`.

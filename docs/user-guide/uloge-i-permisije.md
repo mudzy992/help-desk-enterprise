@@ -28,6 +28,12 @@ Sistem ima dva sloja dozvola:
 Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jedinicu) i **service scope**
 (servis). Pravilo: *permisija ne otključava podatke van svog scope-a*.
 
+### Više permisija u jednoj serverskoj provjeri
+
+Za backend rute, `@RequirePermissions(a, b)` zadržava **bilo-koja (OR)** semantiku: dovoljna je jedna od
+navedenih permisija. Ako ruta treba **sve (AND)**, koristi se eksplicitni `@RequireAllPermissions(a, b)`.
+Postojeće ponašanje je kompatibilno; na primjer, kombinovani izvoz izvještaja i audit-a i dalje koristi OR.
+
 ## Kome je namijenjen
 
 - **SUPER_ADMIN** — jedini može otvoriti ekran **Permisije** i mijenjati mapping rola → permisije.
@@ -78,6 +84,17 @@ Brisanje OJ iz ručnog kataloga uklanja i dodjele koje su scoped baš na tu OJ. 
 prikazuje broj uklonjenih dodjela, audit bilježi događaj, a sistem pokušava odmah invalidirati keš pogođenih
 principal-a (greška u cacheu ne poništava već obrisanu OJ).
 
+### Upravljanje grupama i OU scope
+
+`group.manage` se provjerava prema OU-u grupe, a ne kao bezopsegovna globalna dozvola: kreiranje koristi OU iz
+zahtjeva, dok detalji, izmjena, brisanje i članstvo prvo razrješavaju OU ciljne grupe. OU-scoped ADMIN može
+vidjeti i upravljati samo grupama u dozvoljenom OU opsegu; za ostale uloge dozvola bez OU scope-a je eksplicitno
+globalna. Lokalni SuperAdmin bypass je zaseban i auditira se. Isti uslov važi i za direktne API pozive.
+
+SuperAdminov lokalni break-glass bypass se bilježi u audit logu s akterom, request ID-em, rutom, traženom
+permisijom i ciljnim OU/resursom. Ako audit zapis nije dostupan, radnja se odbija prije izvršenja uz HTTP 503
+(`AUTHORIZATION_AUDIT_UNAVAILABLE`).
+
 ### Read-only režim
 
 - SuperAdmin može u postavkama uključiti read-only režim za module **admin**, **settings**, **routing**,
@@ -100,7 +117,7 @@ principal-a (greška u cacheu ne poništava već obrisanu OJ).
 | Zastario ili tuđi pregled | potvrda istekla (15 min), promijenjen skup permisija ili pregled drugog administratora | `409 PREVIEW_STALE` |
 | Upis bez pregleda | nema potvrde | `409 PREVIEW_REQUIRED` |
 | SuperAdmin pristup | `isSuperAdmin` ili rola SUPER_ADMIN | „Potreban SuperAdmin pristup“, 403 na API-ju |
-| SuperAdmin bypass | vrijedi samo za **lokalni** (break-glass) nalog | nelokalni nosilac SUPER_ADMIN role je odbijen (`SUPER_ADMIN_NOT_LOCAL_ONLY`) |
+| SuperAdmin bypass | vrijedi samo za **lokalni** (break-glass) nalog | bilježi se u auditu; nedostupan audit odbija radnju uz `503 AUTHORIZATION_AUDIT_UNAVAILABLE`; nelokalni nosilac role je odbijen (`SUPER_ADMIN_NOT_LOCAL_ONLY`) |
 | Scoped dodjela | ne zadovoljava provjeru bez OU scope-a | izuzetak je samo `oncall.read` |
 | Read-only režim | aktivni modul + mutirajuća metoda | `403 READ_ONLY_MODE` |
 
@@ -128,16 +145,11 @@ principal-a (greška u cacheu ne poništava već obrisanu OJ).
 
 ## Poznata ograničenja
 
-- **Default mapping se upisuje pri instalaciji, ali je aditivan.** Od vala 0 (2026-10-03) korak 4 upisuje
-  sistemske role s default permisijama (USER 4, AGENT 22, ADMIN 58, SUPER_ADMIN 63, ASSET_MANAGER 6,
-  PROBLEM_MANAGER 4, CHANGE_MANAGER 4). Postupak **nikad ne briše**, pa ponovno pokretanje seeda (instalacija
-  ili CLI na starijim instalacijama) može vratiti permisiju koju je administrator svjesno uklonio — zato prvo
-  `--dry-run`. (Bivši nalaz B1 iz `REVIEW_ANALIZA.md` §M4.)
-- **`@RequirePermissions` s više ključeva znači „bilo koja“**, ne „sve“ — trenutno se koristi samo na izvozu
-  izvještaja. (Nalaz B3.)
-- **`group.manage` se provjerava bez OU scope-a**, pa OU-scoped ADMIN ne može upravljati grupama, a nescoped
-  dodjela dozvoljava grupe u svim OJ. (Nalaz B4.)
-- **SuperAdmin bypass se ne bilježi u audit logu.** (Nalaz B5.)
+- Ekran **Permisije** dostupan je samo **SUPER_ADMIN** nalogu; ADMIN koristi dodijeljeni mapping, ali ga ne
+  može mijenjati.
+- Katalog trenutno ima **63 permisije** i raste s modulima. Za postojeću instalaciju nove/default dodjele treba
+  eksplicitno primijeniti kroz mapping ili seed. Seed je aditivan i može vratiti grant koji je administrator ranije
+  uklonio; prije CLI upisa prvo pokrenite `npm run cli:seed-role-permissions --dry-run`.
 
 ## Povezani moduli
 
@@ -148,4 +160,4 @@ principal-a (greška u cacheu ne poništava već obrisanu OJ).
 
 ---
 
-*Ažurirano: 2026-10-06 · Modul: RBAC (M4)*
+*Ažurirano: 2026-10-07 · Modul: RBAC (M4)*

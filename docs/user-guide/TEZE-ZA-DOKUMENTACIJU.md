@@ -446,21 +446,29 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Početak → Prijava i MFA
 
-### T22 — Neuspjela prijava: 5 pokušaja u 15 minuta, bez otkrivanja naloga
+### T22 — Lokalna prijava: progresivno kašnjenje po nalogu i privremeni IP 429
 
-- **Modul / paket:** Prijava i MFA · 2.1
+- **Modul / paket:** Prijava i MFA · 5.2.1 (M2 #3)
 - **Publika:** Svi korisnici
 - **Tip:** Pravilo
-- **Teza:** Neuspjeli pokušaji prijave broje se 15 minuta (5 pokušaja), a poruka je uvijek ista bez obzira na to
-  postoji li email adresa. Poslije prekoračenja prijava se odbija 15 minuta; uspješna prijava poništava brojač.
-- **Zašto:** sprječava pogađanje lozinke i ne otkriva postoji li nalog.
-- **Primjer:** Pet pogrešnih lozinki za isti email daje **429** i poruku o previše pokušaja; tačna lozinka poslije
-  toga ne prolazi dok prozor ne istekne.
-- **Postavke / permisije:** nije postavka (konstanta); brojač živi u Redisu.
-- **Ekran:** `/login` — poruka ispod forme.
-- **Izvori:** `backend/src/modules/authentication/login-attempt-limiter.ts:17–30`,
-  `frontend/src/i18n/locales/bs/common.json` (`session.errorRateLimited`)
-- **Status:** Važi
+- **Teza:** Neuspješne lokalne prijave imaju odvojena account i IP ograničenja. Nalog nikad nije tvrdo zaključan:
+  poslije tri pogrešna pokušaja dodaje se ograničeno progresivno kašnjenje (početno 250 ms, do 2 s), u
+  30-minutnom prozoru. Uspješna prijava poništava account stanje. IP prag je 40 pogrešnih lokalnih prijava u
+  5 minuta; po dostizanju vraća se privremeni `429 TOO_MANY_LOGIN_ATTEMPTS` za zahtjeve s te IP adrese. Uspješna
+  prijava ne briše taj IP prozor, koji se dijeli iza zajedničkog proxyja/NAT-a. Početne vrijednosti moraju se
+  potvrditi mjerenjem u stagingu prije produkcijskog rollouta.
+- **Zašto:** sprječava pogađanje bez account-wide lockouta; `429` ograničava izvorni IP, a poruka ne otkriva
+  postoji li nalog.
+- **Primjer:** Nakon tri pogrešne lozinke naredni pokušaji za taj nalog dobijaju rastuće kašnjenje, ali ispravna
+  lozinka nije odbijena zbog account brojača. Nakon 40 pogrešnih lokalnih prijava s iste IP adrese dalji zahtjevi
+  s te adrese privremeno dobijaju `429`.
+- **Postavke / permisije:** početne vrijednosti su implementacijske konstante; brojači se dijele preko Redisa
+  kad je dostupan.
+- **Ekran:** `/login` — generička poruka za HTTP 429.
+- **Izvori:** `backend/src/modules/authentication/login-attempt-limiter.ts` (`passwordLoginLimits`),
+  `backend/src/modules/authentication/login-attempt-limiter.spec.ts`,
+  `frontend/src/i18n/locales/{bs,en}/common.json` (`session.errorRateLimited`)
+- **Status:** Važi (5.2.1; staging kalibracija prije produkcije je i dalje operativna kapija)
 - **Wiki stranica:** Početak → Prijava i MFA
 
 ### T23 — Nalog ima jedan identitet; reset lozinke važi samo za lokalni nalog
@@ -547,40 +555,47 @@ To je kriterij kompletnosti.
 - **Status:** Važi (B3 zatvoren 2026-10-06)
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
-### T27 — SuperAdmin ima sve permisije i zaobilazi provjere, ali mora biti lokalni nalog
+### T27 — SuperAdmin bypass je lokalni i auditovan
 
-- **Modul / paket:** RBAC
+- **Modul / paket:** RBAC · 5.2.1 (M4 B5)
 - **Publika:** Administratori
 - **Tip:** Pravilo
-- **Teza:** Nosilac role **SUPER_ADMIN** prolazi svaku provjeru dozvola (nema potrebe da mu se dodjeljuju
-  permisije), ali samo ako je nalog **lokalan** (`isLocalOnly` i bez `entraObjectId`). Za nelokalni nalog
-  odluka je odbijena s razlogom `SUPER_ADMIN_NOT_LOCAL_ONLY`, a prijava je već odbijena ranije.
-- **Zašto:** SuperAdmin je break-glass nalog; federacija bi ga učinila zavisnim od vanjskog identiteta.
-- **Primjer:** Sesija SuperAdmin-a vraća svih 63 permisije; ADMIN bez dodijeljenih permisija vraća 403 na
-  rutama koje traže permisiju.
+- **Teza:** Nosilac role **SUPER_ADMIN** prolazi provjere dozvola bez dodijeljenih permisija, ali samo ako je
+  nalog **lokalan** (`isLocalOnly` i bez povezane Entra/direktorij identifikacije). Svaki takav bypass na
+  zaštićenoj ruti upisuje jedan audit događaj povezan s akterom, request ID-em, rutom, traženim dozvolama i
+  ciljnim OU/resursom. Audit se upisuje prije handlera; ako sink nije dostupan, handler se ne izvršava i API
+  vraća `503 AUTHORIZATION_AUDIT_UNAVAILABLE`. Nelokalni SuperAdmin se odbija s
+  `SUPER_ADMIN_NOT_LOCAL_ONLY`.
+- **Zašto:** lokalni break-glass pristup ostaje dostupan uz dokaziv trag korištenja; nedostupnost audita ne smije
+  tiho omogućiti nevidljivu administrativnu radnju.
+- **Primjer:** dva authorization guard-a na jednom zahtjevu ostavljaju jedan povezani bypass zapis; ako audit
+  upis ne uspije, odgovor je `503` i operacija nije izvršena.
 - **Postavke / permisije:** nije postavka.
-- **Ekran:** Administracija → **Permisije** (vidljivo samo SuperAdmin-u).
-- **Izvori:** `backend/src/modules/authorization/evaluate-authorization-access.ts:120–125`,
-  `to-current-session-response.ts:29–35`, `authorization/is-super-admin-authorization.ts:4–18`.
-- **Status:** Važi
+- **Ekran:** Administracija → **Permisije** i **Ops** → audit.
+- **Izvori:** `backend/src/modules/authorization/authorize-http-execution.ts`,
+  `authorization.service.ts`, `authorize-http-execution.spec.ts`,
+  `authorization.service.spec.ts`.
+- **Status:** Važi (M4 B5 zatvoren u 5.2.1, 2026-10-07)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
-### T28 — Scoped dodjela ne zadovoljava provjeru bez scope-a; izuzetak je samo `oncall.read`
+### T28 — Scoped dodjela mora pokriti ciljnu OJ
 
-- **Modul / paket:** RBAC
+- **Modul / paket:** RBAC · 5.2.1 (M4 B4)
 - **Publika:** Administratori
 - **Tip:** Pravilo
-- **Teza:** Ako dodjela role ima OU scope, ona **ne može** zadovoljiti rutu koja traži permisiju bez OU scope-a —
-  sistem je „fail-closed“. Jedina permisija koja je svjesno izuzeta je `oncall.read` (kalendar dežurstava je
-  zajednički).
-- **Zašto:** sprječava da permisija dodijeljena za jednu OJ otključa akciju globalno.
-- **Primjer:** ADMIN s dodjelom `group.manage` scoped na jednu OJ dobija 403 na `POST /groups` (ruta nema OU
-  scope), dok nescoped dodjela prolazi u svim OJ.
-- **Postavke / permisije:** `permissionKeys.groupManage`, `scopeAgnosticPermissionKeys`.
+- **Teza:** Scope provjera ostaje fail-closed: scoped dodjela ne zadovoljava bezopsegovnu provjeru, osim za
+  `oncall.read`. Rute koje ciljaju OJ moraju proslijediti taj scope u provjeru. `group.manage` se provjerava nad
+  OU-om ciljne grupe; kreiranje koristi OU iz zahtjeva, a detalji, izmjene, brisanje i članstvo razrješavaju OU
+  grupe prije odluke. Nescoped `group.manage` dodjela je eksplicitno globalna.
+- **Zašto:** OU-scoped administrator može raditi u dodijeljenom području bez otvaranja grupa iz drugih OJ; direktni
+  API poziv poštuje ista ograničenja kao UI.
+- **Primjer:** ADMIN s `group.manage` scope-om OU-A vidi i mijenja grupu OU-A, ali ne može enumerisati, pročitati
+  ni mijenjati grupu OU-B. POST s OU-B je odbijen; globalni pristup zahtijeva nescoped grant.
+- **Postavke / permisije:** `permissionKeys.groupManage`, `@RequireOrganizationalUnitScope`.
 - **Ekran:** Administracija → **Grupe** / **Korisnici**.
-- **Izvori:** `backend/src/modules/authorization/evaluate-authorization-access.ts:50–68`,
-  `authorization.constants.ts:101`.
-- **Status:** Važi (posljedice za `group.manage` = nalaz B4, §M4)
+- **Izvori:** `backend/src/modules/groups/groups.controller.ts`, `groups.service.list-accessible.spec.ts`,
+  `backend/src/modules/authorization/authorize-http-execution.spec.ts`.
+- **Status:** Važi (M4 B4 zatvoren u 5.2.1, 2026-10-07)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
 ### T29 — Pregled uticaja je obavezan, traje 15 minuta i traži razlog promjene

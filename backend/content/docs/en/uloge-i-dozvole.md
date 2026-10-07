@@ -26,7 +26,9 @@ point into the full guide on permissions.
 2. A **permission** is an individual grant for an action (e.g. `group.manage`, `settings.write`, `routing.write`,
    `ticket.merge`, `audit.export`). The system has **63** permissions.
 3. Every assignment can carry an **OU scope** (organisational unit) and a **service scope** (service). The rule:
-   *a permission never unlocks data outside its scope*.
+   *a permission never unlocks data outside its scope*. `group.manage` is checked against the target group's OU;
+   for other roles, only an assignment without an OU scope grants global group management. The local SuperAdmin
+   bypass is separate and audited.
 4. If an action is not available to you, the usual reason is a missing permission (a role alone does not grant
    an action).
 5. Administrators change the role → permission mapping on the **Permissions** screen, with **Impact preview**
@@ -46,8 +48,8 @@ point into the full guide on permissions.
 | **Other users** | See the menu and screens according to their role and assigned permissions; some modules appear only when enabled. |
 
 **Statuses and modes that affect access:** **read-only mode** locks a module for changes (mutating actions
-return `403 READ_ONLY_MODE`); the **SuperAdmin bypass** applies only to the local (break-glass) account; a
-**scoped assignment** does not satisfy a check without an OU scope (the exception is `oncall.read`).
+return `403 READ_ONLY_MODE`); the local **SuperAdmin bypass** is audited and the action is rejected if the audit
+sink is unavailable; a **scoped assignment** must cover the requested OU (the exception is `oncall.read`).
 
 ## Frequent questions and errors
 
@@ -55,6 +57,8 @@ return `403 READ_ONLY_MODE`); the **SuperAdmin bypass** applies only to the loca
   permission; check under **Permissions** what the role actually has (or ask the SuperAdmin).
 - **“Why was the action rejected with `READ_ONLY_MODE`?”** — Read-only mode is enabled for that module; the
   SuperAdmin turns it off, or the bypass is used.
+- **“Why cannot I manage a group in another OU?”** — `group.manage` follows the target group's OU; request a
+  grant for that OU, or an explicit unscoped grant if global access is intended.
 - **“The SuperAdmin cannot sign in after a change.”** — The SuperAdmin account must be **local** (no AD/Entra
   link); a non-local one is rejected on purpose.
 - **“The permission change is not visible immediately.”** — For new requests it is visible at once; the user may
@@ -64,14 +68,12 @@ return `403 READ_ONLY_MODE`); the **SuperAdmin bypass** applies only to the loca
 
 ## Known limitations
 
-- **The Permissions screen is for SUPER_ADMIN only**; an ADMIN uses what is assigned but does not change the
-  mapping.
-- **The impact preview is not mandatory on the server** — the UI does not allow saving without a preview, but
-  the API does not check it.
-- **`group.manage` is checked without an OU scope**, so an OU-scoped ADMIN cannot manage groups.
-- **The SuperAdmin bypass is not written to the audit log.**
-- **There are 63 permissions** and the number grows with the modules; new permissions enter the roles only when
-  the SuperAdmin saves them or applies a policy package.
+- The **Permissions** screen is for **SUPER_ADMIN** only; an ADMIN uses the assigned mapping but cannot change it.
+- The default permission seed is **additive**: it never deletes, but it can restore a grant an administrator
+  removed manually. Before running it on an existing installation, first use
+  `npm run cli:seed-role-permissions --dry-run`.
+- The catalogue currently has **63 permissions** and grows with the modules; new/default grants must be part of
+  the role mapping or seed. See the full guide for details.
 
 ## Related modules
 

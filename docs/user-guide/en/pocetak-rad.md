@@ -66,8 +66,9 @@ by hand.
 
 ## Frequent questions and errors
 
-- **“I cannot sign in.”** — Check the e-mail and password; after 5 failed attempts within 15 minutes, sign-in is
-  locked for that e-mail. If two-step verification is enabled, the code from your app is required as well.
+- **“I cannot sign in.”** — Check the e-mail and password. Local sign-in does not lock the account: wrong
+  passwords add a short progressive delay, while too many attempts from the same IP address may temporarily return
+  `429`. If two-step verification is enabled, the code from your app is required as well; see *Sign-in and MFA*.
 - **“Where do I see my tickets?”** — **All tickets** (the list follows your access) or **Dashboard**.
 - **“How do I work faster?”** — `Ctrl+K` (command palette), `N` (new ticket), `G` then `T` (tickets),
   `?` (shortcut list). Details: `precice-i-pristupacnost.md`.

@@ -55,6 +55,12 @@ tags: [korisnici, organizacione-jedinice, grupe, ad-sync, uloge]
    *„E-mail za AD-praćene naloge dolazi iz kataloga.“*
 3. **Sačuvaj izmjene**; deaktivacija važi odmah (keš dozvola se invalidira).
 
+### Pretraga i stranice korisnika
+
+- Pretraga filtrira korisnike, a lista učitava **100 redova po stranici**.
+- Iznad liste se prikazuje opseg zapisa i ukupan broj rezultata za trenutni filter; za ostale rezultate koristite
+  dugmad za prethodnu/sljedeću stranicu. Lista se ne prekida tiho na 500 korisnika.
+
 ### Reset lozinke, reset MFA-a, odjava sesija (Administracija naloga)
 
 1. Otvorite korisnika i sekciju **Akcije naloga**.
@@ -128,6 +134,8 @@ lozinke, tokeni i MFA tajne se ne upisuju. Pri brisanju OJ audit bilježi broj u
 | Organizacijska jedinica | mora postojati; može biti prazna | `ORGANIZATIONAL_UNIT_NOT_FOUND` |
 | Uloga | mora postojati; `SUPER_ADMIN` samo SuperAdmin | „Samo SuperAdmin može dodijeliti SuperAdmin ulogu.“ |
 | Reset lozinke | samo aktivan i **lokalni** nalog | lokalni reset se auditira i odjavljuje sesije; reset AD-praćenog naloga vraća `409 DIRECTORY_ACCOUNT_NOT_LOCAL` i bilježi odbijeni pokušaj |
+| Reset lozinke neaktivnog korisnika | API vraća `409 USER_INACTIVE`; ne izdaje privremenu lozinku | prvo aktivirajte nalog; UI prikazuje ciljanu uputu |
+| Posljednji aktivni lokalni SuperAdmin | ne može se ukloniti, deaktivirati ili obrisati ako bi time ostalo 0 takvih naloga | `409 LAST_SUPER_ADMIN_REQUIRED`; operacija nema djelimične izmjene |
 | Brisanje korisnika | nema otvorenih tiketa; ne može vlastiti nalog | „Obrisati korisnika …? Ova radnja se ne može poništiti.“ |
 | OU naziv | ne smije biti prazan; gradi `ouPath` | `INVALID_NAME` |
 | OU DN | mora odgovarati parentu; jedinstven | „Distinguished name must be a descendant of the parent distinguished name“, „Distinguished name already exists“ |
@@ -144,6 +152,10 @@ lozinke, tokeni i MFA tajne se ne upisuju. Pri brisanju OJ audit bilježi broj u
 - **„Zašto nema dugmeta Resetuj lozinku?“** — Vidi se samo za lokalne naloge. Direktan API zahtjev za AD/Entra
   nalog se odbija s `409 DIRECTORY_ACCOUNT_NOT_LOCAL` i evidentira u auditu. Ako nalog treba preći na lokalnu
   prijavu, prvo koristite **Raskini AD vezu** (vidi i stranicu *Prijava i MFA*).
+- **„Reset lozinke je odbijen uz `USER_INACTIVE`.“** — Nalog je neaktivan; prvo ga aktivirajte pa ponovite reset.
+  API ne izdaje privremenu lozinku dok je nalog neaktivan.
+- **„Ne mogu ukloniti/deaktivirati posljednji SuperAdmin nalog.“** — Sistem mora zadržati barem jedan aktivan
+  lokalni SuperAdmin; dodajte/držite drugi takav nalog pa ponovite radnju. API vraća `409 LAST_SUPER_ADMIN_REQUIRED`.
 - **„Reset MFA-a je odbio radnju.“** — Potrebna su najmanje 5 znakova u polju **Razlog** i SUPER_ADMIN nalog.
 - **„Ne mogu obrisati korisnika.“** — Ima otvorene tikete; prvo ih zatvorite ili ih prebacite na drugog
   obrađivača.
@@ -154,12 +166,14 @@ lozinke, tokeni i MFA tajne se ne upisuju. Pri brisanju OJ audit bilježi broj u
   DN i filtere, pa ponovite probni prolaz.
 - **„Sve prijave su odjavljene nakon reset lozinke.“** — Tako je i predviđeno: reset lozinke prekida sve sesije.
 
-## Poznata ograničenja
+## Pravila zaštite i poznata ograničenja
 
-- **Nema zaštite posljednjeg SuperAdmin naloga** — uklanjanje zadnje SUPER_ADMIN role je moguće. (Nalaz B5.)
-- **Neaktivan korisnik na reset lozinke** dobija opću poruku „Reset lozinke nije uspio“. (Nalaz B6.)
-- **Lista korisnika se prikazuje do 500 redova**; ako organizacija ima više korisnika, dio se ne prikazuje.
-  (Nalaz B7.)
+- Sistem čuva najmanje jedan aktivan **lokalni** SuperAdmin. Radnja koja bi uklonila posljednjeg vraća
+  `409 LAST_SUPER_ADMIN_REQUIRED` i ne ostavlja djelimičnu izmjenu.
+- Reset lozinke neaktivnog korisnika odbija se s `409 USER_INACTIVE`; nalog prvo treba aktivirati, a privremena
+  lozinka se ne izdaje.
+- Lista korisnika učitava 100 redova po stranici i prikazuje filtrirani ukupan broj; koristite kontrole stranica
+  za nastavak. Rezultati se ne odsijecaju tiho na 500.
 - **Manager iz AD-a se ne sinhronizuje**; polje postoji, ali mapiranja iz direktorija nema.
 
 ## Povezani moduli
@@ -173,4 +187,4 @@ lozinke, tokeni i MFA tajne se ne upisuju. Pri brisanju OJ audit bilježi broj u
 
 ---
 
-*Ažurirano: 2026-10-06 · Moduli: korisnici, organizacione jedinice, grupe (M3)*
+*Ažurirano: 2026-10-07 · Moduli: korisnici, organizacione jedinice, grupe (M3)*

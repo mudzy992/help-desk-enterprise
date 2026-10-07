@@ -3515,7 +3515,7 @@
     "signOut": "Odjava",
     "loading": "Učitavanje sesije…",
     "error": "Prijava nije uspjela. Provjerite email i lozinku.",
-    "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo za 15 minuta."
+    "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo kasnije."
   },
   "login": {
     "title": "Prijava",

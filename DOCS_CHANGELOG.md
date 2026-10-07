@@ -57,6 +57,7 @@
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 | **5.1.2** | 2026-10-06 | **M3 — korisnici, OJ i grupe (B1–B4)** | `user-guide/korisnici-oj-i-grupe.md`, `user-guide/uloge-i-permisije.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T23/T24/T26), `.cursor/docs/matrices/{organizational-units,directory-sync}/**`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Blokirani OU delete s brojem zavisnosti; audit/warning/cache efekti OJ-scoped dodjela; audit mutacija bez tajni; ne-lokalni reset lozinke vraća 409 i bilježi pokušaj** |
 | **5.1.4** | 2026-10-06 | **M7/M8/M10 — routing, unrouted queue i SLA compliance** | `user-guide/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md`, `TEZE-ZA-DOKUMENTACIJU.md` (T44/T45/T66/T100), `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md`, ovaj dokument | **Coverage filtri/status/paginacija; jedinstvena unrouted semantika i total paginacije; OU/service/group SLA razrezi i otvorena prekoračenja. GitHub CI na `8e3c83b` je zelen; ciljni serverski E2E 02/07/15 prošao je 8/8 (0 failed/flaky/skipped, 6,6 min), čime je runtime kapija zatvorena.** |
+| **5.2.1** | 2026-10-07 | **Zatvaranje nalaza pristupa i identiteta (M2/M3/M4)** | `user-guide/{prijava-i-mfa,pocetak-rad,korisnici-oj-i-grupe,uloge-i-permisije,uloge-i-dozvole,sta-je-novo}.md`, `backend/content/docs/**` (ogledalo), `TEZE-ZA-DOKUMENTACIJU.md` (T22/T27/T28), `frontend/src/i18n/locales/{bs,en}/common.json`, `REVIEW_ANALIZA.md`, `docs/plans/modules/5.2-preostali-nalazi-niskog-rizika.md`, ovaj dokument | **10 nalaza zatvoreno: M2 #3–#6, M3 B5–B7 i M4 B3–B5; serverski E2E 6 prošlo/1 skip/0 fail; GitHub Actions CI + E2E run 37610507976 zelen.** |
 
 ---
 
@@ -1998,3 +1999,35 @@ po dogovoru i serverski run je zasebno izvršen.
 | `docs/user-guide/sta-je-novo.md` | Dodan sažetak korisnički vidljivih izmjena 5.1.4 za matricu, unrouted red i SLA razreze | isti funkcionalni izvori; ciljane backend/frontend provjere |
 | `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | T44/T45/T66/T100 poravnati s novim filterima, zajedničkom queue semantikom i OU-scoped SLA dimenzijama; status bilježi završeni serverski E2E run 8/8 | backend/frontend izvori, ciljani Jest/Vitest rezultati i korisnikov Playwright sažetak |
 | `backend/content/docs/{usmjeravanje-i-prioritet,tiketi,sla,nadzorna-ploca-i-izvjestaji}.md` + `manifest.json` | Ogledala i manifest sinhronizovani iz user-guide izvora | `node scripts/generate-docs-content.mjs`, `node scripts/check-docs-content.mjs` |
+
+## Paket 5.2.1 — zatvaranje M2 #3–#6, M3 B5–B7 i M4 B3–B5 (2026-10-07)
+
+**Zašto:** vlasnik je odredio da se dokumentacijsko zatvaranje 5.2.1 može završiti nakon uspješnog ciljanog
+serverskog E2E i GitHub CI/E2E prolaza. Deset nalaza je označeno zatvorenim uz dokaz u `REVIEW_ANALIZA.md`; plan
+5.2.2 nije započet.
+
+**Runtime kapija:** ciljani serverski prolaz prijavljen je kao **6 passed / 1 skipped / 0 failed**. GitHub Actions
+[run 37610507976](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37610507976) na `master` /
+`ef7ddf83` prošao je sve jobs, uključujući E2E critical flows i CI gate. Raniji push run
+[37606258740](https://github.com/mudzy992/help-desk-enterprise/actions/runs/37606258740) prolazio je CI, dok je
+E2E bio preskočen prema postojećem workflow okidaču. Sirovi serverski `e2e/results.json` nije arhiviran u ovom
+repozitoriju.
+
+**Dokumentacijski scope:**
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/prijava-i-mfa.md`, `docs/user-guide/en/prijava-i-mfa.md`, `pocetak-rad.md`, `en/pocetak-rad.md` | Odvojeni account kašnjenje i IP `429`; uklonjena fiksna tvrdnja „15 minuta“; objašnjeni dijeljeni proxy/NAT rizik, MFA recovery rotacija i novi kodovi uz aktivni TOTP | `login-attempt-limiter.ts` + spec; `security/recovery-codes.ts` + spec; BS/EN `common.json` poruke |
+| `docs/user-guide/korisnici-oj-i-grupe.md` | 100 redova po stranici i filtrirani total; `409 USER_INACTIVE` bez izdavanja lozinke; zaštita posljednjeg aktivnog lokalnog SuperAdmina (`409 LAST_SUPER_ADMIN_REQUIRED`) | `list-users-summary.ts`/spec, `reset-user-temporary-password.inactive.spec.ts`, `super-admin-invariant.ts` i concurrency/invariant specovi |
+| `docs/user-guide/uloge-i-permisije.md`, `uloge-i-dozvole.md`, `en/uloge-i-dozvole.md` | Any/OR naspram all/AND, OU-scoped `group.manage`, auditovan lokalni SuperAdmin bypass i `503 AUTHORIZATION_AUDIT_UNAVAILABLE` kad sink nije dostupan | `authorize-http-execution.spec.ts`, `groups.service.list-accessible.spec.ts`, authorization audit testovi |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md`, `docs/user-guide/sta-je-novo.md` | T22/T27/T28 ažurirani prema implementiranom login limitu, SuperAdmin auditu i OU-scoped grupama; dodan korisnički sažetak izdanja 5.2.1 | isti izvori/testovi; serverski E2E sažetak |
+| `frontend/src/i18n/locales/bs/common.json`, `frontend/src/i18n/locales/en/common.json` | Privremena IP rate-limit poruka ne obećava fiksnih 15 minuta | `session.errorRateLimited` BS/EN |
+| `REVIEW_ANALIZA.md` | Iteracija 15, M2 gap i nalazi #3–#6, M3 gap i B5–B7, M4 gap i B3–B5, dokazi, poznati operativni caveat i zatvaranje paketa | serverski sažetak + GitHub Actions run iznad; dokazni fajlovi navedeni po nalazu |
+| `docs/plans/modules/5.2-preostali-nalazi-niskog-rizika.md` | 5.2.1 status, sačuvana međutačka 6.3 i završna runtime kapija §6.4; 5.2.2 ostaje sljedeća podfaza | isti E2E/CI dokaz; plan prihvata i obim |
+| `docs/user-guide/en/korisnici-oj-i-grupe.md` | **Nije dodan.** Trenutni EN vodič sadrži samo izabrane ključne prevode; ova stranica nema EN pandan i dokumentacija koristi BS fallback uz `translated: false`. Novi prevod nije dio 5.2.1 closeouta. | trenutni sadržaj `docs/user-guide/en/`; ponašanje `/docs` locale fallbacka |
+| `backend/content/docs/{prijava-i-mfa,pocetak-rad,korisnici-oj-i-grupe,uloge-i-permisije,uloge-i-dozvole,sta-je-novo}.md`, `backend/content/docs/en/{prijava-i-mfa,pocetak-rad,uloge-i-dozvole}.md`, `manifest.json` | Mirrori i manifest regenerisani iz korisničkih vodiča; EN M3 stranica nije izmišljena | `node scripts/generate-docs-content.mjs` → 29 stranica / 5 prevoda; `node scripts/check-docs-content.mjs` → OK |
+| Dokumentacijske provjere | Guard, testovi reference i locale JSON | `node scripts/check-docs-content.mjs` → 10 provjera OK; `node --test scripts/check-docs-content.test.mjs` → 9/9; BS/EN `common.json` parse OK; `git diff --check` → OK |
+
+Operativna napomena: M2 #3 kodni nalaz je zatvoren, ali početne IP/account pragove treba izmjeriti i potvrditi
+u stagingu iza stvarnog proxy/NAT profila prije produkcijskog rollouta. To je rollout gate, ne novi nalaz niti
+5.2.2 implementacija.

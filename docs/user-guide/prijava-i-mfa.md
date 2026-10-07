@@ -33,8 +33,13 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
 
 1. Unesite **Email** i **Lozinku** i kliknite **Prijava**.
 2. Ako su podaci ispravni, otvara se aplikacija. Ako nisu: „Prijava nije uspjela. Provjerite email i lozinku.“
-3. Poslije 5 neuspjelih pokušaja za isti email u 15 minuta: „Previše neuspjelih pokušaja prijave. Pokušajte
-   ponovo za 15 minuta.“ Uspješna prijava poništava brojač.
+3. Lokalna prijava ima odvojena ograničenja po nalogu i IP adresi. Nakon tri pogrešna pokušaja po nalogu uvodi
+   se ograničeno progresivno kašnjenje (počinje od 250 ms i raste do najviše 2 s); nalog se ne zaključava.
+   Stanje naloga važi u prozoru od 30 minuta, a uspješna prijava ga poništava.
+4. IP adresa može dobiti privremeni HTTP `429` nakon 40 pogrešnih lokalnih prijava u 5 minuta. IP prag dijele
+   sve lokalne prijave s te adrese; uspješna prijava ne briše IP prozor.
+5. Ovo su početne vrijednosti implementacije. Potvrda pragova mjerenjem u stagingu ostaje potrebna prije
+   produkcijskog rollouta.
 
 ### Prijava Microsoft nalogom (kada je tako podešeno)
 
@@ -62,6 +67,11 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
 4. Unesite šestocifreni **Kod iz aplikacije** i kliknite **Uključi**.
 5. Prikazuju se **Rezervni kodovi**; sačuvajte ih (**Kopiraj** ili **Preuzmi .txt**), označite
    **Sačuvao/la sam rezervne kodove** i kliknite **Nastavi**. Kodovi se poslije ne mogu ponovo prikazati.
+
+**Važno nakon sigurnosne nadogradnje:** raniji rezervni kodovi iz stare hash-sheme više se ne prihvataju jer se
+ne mogu bezbjedno pretvoriti. Potvrda u dva koraka (TOTP) ostaje uključena. Prijavite se kodom iz aplikacije,
+pa u **Sigurnost naloga** → **Novi rezervni kodovi** potvrdite TOTP i sačuvajte novi set. Ako nemate pristup
+TOTP-u, obratite se administratoru za **Reset MFA**.
 
 ### Prijava s uključenom potvrdom u dva koraka
 
@@ -129,7 +139,7 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 | Poruka / situacija | Šta znači i šta uraditi |
 |---|---|
 | „Prijava nije uspjela. Provjerite email i lozinku.“ | Pogrešan email ili lozinka; ne govori koji je od njih pogrešan. |
-| „Previše neuspjelih pokušaja prijave. Pokušajte ponovo za 15 minuta.“ | Brojač je zaključan za taj email; sačekajte ili zamolite administratora. |
+| `429 TOO_MANY_LOGIN_ATTEMPTS` | Dosegnut je privremeni prag za lokalne prijave s ove IP adrese; nalog nije zaključan. Sačekajte da IP prozor istekne pa pokušajte ponovo. |
 | „Kod nije ispravan ili je već iskorišten.“ | Kod je istekao, pogrešno prepisan ili je već upotrijebljen; sačekajte novi kod ili koristite rezervni. |
 | „Korak prijave je istekao (vrijedi 5 minuta).“ | Predugo ste čekali na ekranu koda; vratite se na prijavu i ponovite. |
 | „Postavljanje je isteklo. Počnite ispočetka.“ | Upis potvrde u dva koraka traje 15 minuta; pokrenite upis ponovo. |
