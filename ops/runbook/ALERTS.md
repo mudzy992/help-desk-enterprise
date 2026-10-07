@@ -147,6 +147,32 @@ base64 -w0 novi-ca.pem   # vrijednost za AD_LDAPS_CA_CERT_BASE64
 ```
 Coolify → varijabla → **Redeploy** (Restart ne primjenjuje nove varijable).
 
+## websocket-emits-high
+
+**Uslov:** Paket 5.2.3 (M11 B3): agregirani broj Socket.IO emit-ova po sobi po minuti
+(klasterski, kroz sve API instance) premašuje `websocketEmitWarnPerMinute`
+(zadano 600/min, UPOZORENJE) ili `websocketEmitCriticalPerMinute`
+(zadano 3000/min, KRITIČNO). Alarm se otvara tek nakon dvije uzastopne minute
+iznad praga i zatvara nakon dvije minute ispod, da se izbjegnu flurry-ji
+prilikom deploya ili reconnecta klijenata. Najzagušenija soba i broj su
+u detaljima alarma.
+
+**Postupak:**
+1. Provjeri da li je najzagušenija soba `group-legacy`. Ako jeste, to znači da je
+   još uključen stari mod punog payloada (`WS_GROUP_FEED_LEGACY_FULL_EMIT=on`,
+   default) koji šalje cijeli tiket svakom agentu u grupi umjesto laganog
+   `group.feed-changed` eventa. Vidi [ws-rolling-deploy.md](../ws-rolling-deploy.md).
+2. Ako nije `group-legacy`, u logovima backenda potraži `ws_emits_*` linije
+   (kontekst `WebsocketMetrics`, period 30 s) — najfrekventniji ključ
+   (`staff`, `group`, `public`, `user`, `broadcast`) ukazuje na izvor.
+3. Provjeri da se neki broadcast ne poziva iz petlje (npr. bulk koji ne koristi
+   `BulkBroadcastRateLimiter`, ili rekurzivni broadcast u `ticket-updated`
+   handleru).
+4. Pragovi se podešavaju kroz postavke **Zdravlje sistema → Pragovi**, ali
+   povišenje bez razumijevanja uzroka skriva problem — Socket.IO paketi se
+   šalju svakom povezanom klijentu u sobi, pa je stopa emit/s O(n·m) s
+   brojem klijenata.
+
 ## ops-monitor-stale
 
 **Uslov:** worker je živ, ali posljednji snapshot provjere zdravlja je stariji od 3 minute.

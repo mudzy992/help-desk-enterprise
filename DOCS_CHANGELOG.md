@@ -2031,3 +2031,24 @@ repozitoriju.
 Operativna napomena: M2 #3 kodni nalaz je zatvoren, ali početne IP/account pragove treba izmjeriti i potvrditi
 u stagingu iza stvarnog proxy/NAT profila prije produkcijskog rollouta. To je rollout gate, ne novi nalaz niti
 5.2.2 implementacija.
+
+## Paket 5.2.3 — M8 B4–B7, M9 B5, M11 B3–B5 (2026-10-07)
+
+**Zašto:** nastavak zatvaranja `NISKO` nalaza iz plana §4.3 na istoj grani.
+Osam nalaza zatvoreno je u commitovima `88e68be`, `a0fc8bc`, `0a5b34b` (plus
+test/i18n/chore fixevi); CI je potvrdio zeleni build backenda i frontenda.
+Sirovi serverski E2E slijedi nakon korisnikovog mergea na `master`, prema
+iterativnom toku iz §6.4.
+
+**Dokumentacijski scope:**
+
+| Dokument / fajl | Šta je izmijenjeno | Izvor (dokaz) |
+|---|---|---|
+| `docs/user-guide/sta-je-novo.md` | Dodan red 2026-10-07 za paket 5.2.3: inboxTab u URL-u, konzistentan hideMerged, reopened ponašanje, novi ws-alarm | `filter-tickets.ts`, `use-ticket-list.ts`, `ticket-inbox-panel.tsx`, `build-group-inbox-where.ts`, `evaluate-ops-signals.ts` (nov `websocket.emits.high` alarm) |
+| `ops/runbook/ALERTS.md` | Dodan odjeljak `websocket-emits-high` sa uslovom (pragovi 600/3000/min, openAfter=2), postupkom (provjera `group-legacy` bucket-a, `ws_emits_*` log kontekst, bulk broadcast recursion) i referencom na `ws-rolling-deploy.md` | `ops-alert-catalog.ts` (runbook anchor `websocket-emits-high`), `websocket-metrics.service.ts`, `LegacyGroupEmitNotice` |
+| `backend/content/docs/sta-je-novo.md` + `manifest.json` | Regenerisani mirror iz user-guide stranice; docs guard prolazi (29 stranica, 5 prevoda, 10 provjera) | `node scripts/generate-docs-content.mjs`, `node scripts/check-docs-content.mjs` |
+| `DOCS_CHANGELOG.md` | Ovaj zapis | — |
+
+**Napomena:** M11 B4 (`WS_GROUP_FEED_LEGACY_FULL_EMIT=on`) legacy notice već je
+upućivao na `ops/ws-rolling-deploy.md` koji postoji iz prethodnih krugova;
+dodatne izmjene runbooka nisu potrebne.
