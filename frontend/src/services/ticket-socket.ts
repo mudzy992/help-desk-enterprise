@@ -1,6 +1,4 @@
-import { io, type Socket } from "socket.io-client";
-
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+import type { Socket } from "socket.io-client";
 
 export const ticketSocketEvents = {
   join: "ticket:join",
@@ -19,13 +17,11 @@ export const ticketSocketEvents = {
   presenceUpdate: "ticket:presence:update",
 } as const;
 
-export function connectTicketSocket(token: string): Socket {
-  return io(apiBaseUrl, {
-    auth: { token },
-    autoConnect: true,
-    reconnection: true,
-  });
-}
+// M11 B5: the only production path to a Socket.IO connection is
+// `acquireHelpdeskSocket` in helpdesk-socket.ts (shared reference count across
+// all hooks). The old standalone `connectTicketSocket` was removed so there is
+// no alternative socket pattern to drift from. Do NOT add a new standalone
+// connect helper here — route everything through acquireHelpdeskSocket.
 
 export function joinTicketRoom(socket: Socket, ticketId: string): void {
   socket.emit(ticketSocketEvents.join, { ticketId });

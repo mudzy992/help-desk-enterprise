@@ -1,6 +1,12 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { changeLogActions } from '../../change-log/change-log.constants';
+import { buildChangeLogDiff } from '../../change-log/build-change-log-diff';
+import {
+  changeLogActions,
+  changeLogEntityTypes,
+} from '../../change-log/change-log.constants';
+import type { ChangeLogPrismaClient } from '../../change-log/change-log.types';
+import { recordChangeLog } from '../../change-log/record-change-log';
 import { ticketSystemEventActions } from '../collaboration.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import {
@@ -17,7 +23,6 @@ import {
   scanTicketContent,
 } from '../redaction/assert-ticket-content-redaction';
 import type { TicketRedactionConfiguration } from '../redaction/redaction.types';
-import { recordTicketChange } from '../record-ticket-change';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
@@ -95,12 +100,23 @@ export async function submitTicketCsat(input: {
         submittedByUserId: input.context.actorUserId,
       },
     })) as TicketCsatRecord;
-    await recordTicketChange(input.prisma, {
-      action: changeLogActions.update,
+    // M9 B5: change log must reflect the real CSAT transition, not copy the
+    // same ticket snapshot twice (which produced an empty diff). CSAT lives on
+    // its own row, so record a minimal diff directly: rating null → rating
+    // and hasComment false/true. The free-text comment is PII and is NOT
+    // copied into audit metadata.
+    await recordChangeLog(input.prisma as unknown as ChangeLogPrismaClient, {
+      entityType: changeLogEntityTypes.ticket,
+      entityId: ticket.id,
       reason: ticketChangeLogReasons.csatSubmit,
-      before: ticket,
-      after: ticket,
       actorUserId: input.context.actorUserId,
+      diff: buildChangeLogDiff({
+        action: changeLogActions.update,
+        resourceType: changeLogEntityTypes.ticket,
+        resourceId: ticket.id,
+        before: { csatRating: null, csatHasComment: false },
+        after: { csatRating: rating, csatHasComment: comment !== null },
+      }),
     });
     input.messages.push(
       await insertSystemTicketEvent(input.prisma, {
