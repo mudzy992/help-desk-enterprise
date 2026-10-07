@@ -67,19 +67,15 @@ export async function createTicketMessage(
     message: normalized.body,
   });
   assertRedactionAllowed(scan);
-  // Val 2 (M13/B1): the id used to be trusted for statistics only, so a
-  // deactivated template — or an `INTERNAL` one in a public reply — went out as
-  // a normal message. The template must now exist, be active and fit the
-  // message type; only after that does it count as a use.
-  const responseTemplateId = await countTemplateUse(
+  // M13/B1 + M13/B5 (5.2.4): validate the template BEFORE message persistence
+  // (so an invalid template cannot silently go out as plain text). The use
+  // counter is incremented only AFTER the message row is committed, and the
+  // stats call is fire-and-forget so a Redis/DB hiccup never blocks a reply.
+  const responseTemplateId = await assertTemplateUsableForMessage(
     prisma,
-    await assertTemplateUsableForMessage(
-      prisma,
-      input.responseTemplateId,
-      context.actorUserId,
-      normalized.type,
-    ),
+    input.responseTemplateId,
     context.actorUserId,
+    normalized.type,
   );
   const message = (await prisma.ticketMessage.create({
     data: {
@@ -91,6 +87,9 @@ export async function createTicketMessage(
       ...(responseTemplateId === null ? {} : { responseTemplateId }),
     },
   })) as TicketMessageRecord;
+  if (responseTemplateId !== null) {
+    void countTemplateUse(prisma, responseTemplateId, context.actorUserId);
+  }
   // Val 2 (M10/B4): `firstResponseAt` used to be written only by the SLA module
   // (after its clock recorded a response), so with SLA disabled — or without a
   // profile/rule/calendar — the "first response" metric stayed empty although
