@@ -14,14 +14,6 @@
  * the one that started the work. Entries are bounded (`maxEntries`, oldest
  * first), so a stream of distinct keys cannot grow the heap.
  */
-export type SingleFlightHit<T> = {
-  readonly value: T;
-  /** Epoch ms at which the cached value was produced. */
-  readonly computedAt: number;
-  /** Epoch ms at which this entry expires. */
-  readonly expiresAt: number;
-};
-
 export type SingleFlightCache<T> = {
   get(key: string, compute: () => Promise<T>): Promise<T>;
   /** Returns epoch-ms at which the cached value was produced, or null when not cached. */

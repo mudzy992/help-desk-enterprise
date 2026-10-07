@@ -6858,3 +6858,10 @@ Preostaje:
 - **M8 B6** — ujednačiti hideMerged i unrouted state kroz tabove/filtere/URL.
 - **M11 B3** — WS emit metrija → Redis, podesivi prag, alarm sa histerezom.
 - **M11 B4** — legacy `WS_GROUP_FEED_LEGACY_FULL_EMIT`: logovati upozorenje/metriku dok je uključen, dodati referencu na runbook.
+
+| **M11 B4** | Dodan `LegacyGroupEmitNotice` (OnModuleInit) koji loguje WARN kad je `WS_GROUP_FEED_LEGACY_FULL_EMIT=on` (default). Novi `group-legacy` bucket u `websocket-emit-counter.ts` odvaja legacy puni payload od lakog `group.feed-changed` eventa u periodičnom `ws_emits_*` logu. Flag se nikad ne gasi automatski po vremenu (samo eksplicitno `off` kroz env). | `59d0231a` |
+
+Preostaje (2 nalaza):
+- **M8 B6** — `hideMerged`/`unrouted` state: potrebno objediniti da tab ne tiho nadjača filter i da URL/filteri/brojači koriste isti izvor.
+- **M11 B3** — WS emit alarma: Redis TTL agregacija po sobama, podesivi prag, alarm sa histerezom i open-after zaštitom; ovo je najveći zahvat (Redis, novi Ops settings endpoint, Ops kartica).
+
