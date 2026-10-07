@@ -91,6 +91,19 @@ export class AttachTicketPlaybookDto {
   @IsString() @MaxLength(64) playbookId!: string;
 }
 
+/**
+ * Paket 5.2.4 (M13 B4): bulk-attach one playbook to many tickets. Each ticket
+ * is processed independently so a closed ticket or an already-attached ticket
+ * cannot abort the whole batch.
+ */
+export class BulkAttachPlaybookDto {
+  @IsString() @MaxLength(64) playbookId!: string;
+  @IsArray()
+  @ArrayMaxSize(500)
+  @IsString({ each: true })
+  ticketIds!: readonly string[];
+}
+
 export class SetTicketPlaybookStepDto {
   @IsBoolean() checked!: boolean;
 }

@@ -97,6 +97,80 @@ export class TicketPlaybooksService {
     return this.buildView(ticket, configuration.requiredStepsOnResolve);
   }
 
+  /**
+   * Package 5.2.4 (M13 B4): attach a playbook to many tickets in one call.
+   * Tickets that are closed/merged, already have a playbook, or are forbidden
+   * are reported in `skipped` rather than aborting the batch; the happy path
+   * runs with bounded concurrency so long ticket lists don't spike the DB.
+   */
+  async bulkAttach(
+    playbookId: string,
+    ticketIds: readonly string[],
+    actor: Actor,
+  ): Promise<{
+    readonly attached: readonly string[];
+    readonly skipped: readonly { readonly ticketId: string; readonly reason: string }[];
+  }> {
+    await this.requireEnabled();
+    const uniqueIds = [...new Set(ticketIds)].slice(0, 500);
+    const playbook = await this.prisma.playbook.findFirst({
+      where: { id: playbookId, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (playbook === null) throw new TemplatesError('PLAYBOOK_NOT_FOUND');
+    const context = await this.authorizationContextLoader.loadBySubjectId(actor.actorUserId);
+    const gated = await this.accessPolicies.bind({ actorUserId: actor.actorUserId });
+    const attached: string[] = [];
+    const skipped: { ticketId: string; reason: string }[] = [];
+    const BATCH = 5;
+    for (let start = 0; start < uniqueIds.length; start += BATCH) {
+      const slice = uniqueIds.slice(start, start + BATCH);
+      await Promise.all(
+        slice.map(async (ticketId) => {
+          try {
+            const { ticket, access } = await loadAccessibleTicket(
+              this.prisma,
+              this.authorizationContextLoader,
+              ticketId,
+              gated,
+              { writable: true },
+            );
+            if (access.visibility !== 'staff' || context === null) {
+              skipped.push({ ticketId, reason: 'forbidden' });
+              return;
+            }
+            if (isReadOnly(ticket)) {
+              skipped.push({ ticketId, reason: 'read_only' });
+              return;
+            }
+            const existing = await this.prisma.ticketPlaybook.findFirst({
+              where: { ticketId, detachedAt: null },
+              select: { id: true },
+            });
+            if (existing !== null) {
+              skipped.push({ ticketId, reason: 'already_attached' });
+              return;
+            }
+            const messages: TicketPersistedMessageSink = [];
+            await attachPlaybookToTicket({
+              prisma: this.prisma,
+              ticket,
+              playbookId: playbook.id,
+              actorUserId: actor.actorUserId,
+              autoAttached: false,
+              messages,
+            });
+            publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
+            attached.push(ticketId);
+          } catch (error) {
+            skipped.push({ ticketId, reason: classifyBulkError(error) });
+          }
+        }),
+      );
+    }
+    return { attached, skipped };
+  }
+
   async detach(ticketId: string, reasonInput: string | undefined, actor: Actor): Promise<TicketPlaybookView> {
     const configuration = await this.requireEnabled();
     const { ticket } = await this.loadTicket(ticketId, actor, true);
@@ -400,4 +474,9 @@ function isReadOnly(ticket: Pick<TicketRecord, 'status' | 'mergedIntoTicketId'>)
 /** System event details are `a:b:c`; titles must not break the format. */
 export function sanitize(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
+}
+
+function classifyBulkError(error: unknown): string {
+  if (error instanceof TemplatesError) return error.code;
+  return 'error';
 }

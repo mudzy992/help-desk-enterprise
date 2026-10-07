@@ -3,7 +3,12 @@ import { SessionAuthenticationGuard } from '../../authentication/session-authent
 import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
 import { RequireRoles } from '../../authorization/require-roles.decorator';
 import { RoleGuard } from '../../authorization/role.guard';
-import { AttachTicketPlaybookDto, DeleteWithReasonDto, SetTicketPlaybookStepDto } from '../dto/templates.dto';
+import {
+  AttachTicketPlaybookDto,
+  BulkAttachPlaybookDto,
+  DeleteWithReasonDto,
+  SetTicketPlaybookStepDto,
+} from '../dto/templates.dto';
 import { executeTemplatesOperation } from '../map-templates-error';
 import { readActor, staffRoleKeys, templatesValidationPipe } from '../templates-http';
 import { TicketPlaybooksService } from './ticket-playbooks.service';
@@ -28,6 +33,14 @@ export class TicketPlaybooksController {
     @Req() request: AuthenticatedHttpRequest,
   ) {
     return executeTemplatesOperation(() => this.playbooks.attach(ticketId, body.playbookId, readActor(request)));
+  }
+
+  // Paket 5.2.4 (M13 B4): attach one playbook to many tickets (idempotent per ticket).
+  @Post('playbooks/bulk-attach')
+  bulkAttach(@Body() body: BulkAttachPlaybookDto, @Req() request: AuthenticatedHttpRequest) {
+    return executeTemplatesOperation(() =>
+      this.playbooks.bulkAttach(body.playbookId, body.ticketIds, readActor(request)),
+    );
   }
 
   @Delete(':ticketId/playbook')
