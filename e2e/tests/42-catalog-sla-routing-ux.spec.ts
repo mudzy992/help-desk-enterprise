@@ -222,8 +222,14 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         ),
       ).toBe(false);
 
-      await page.goto('/sla');
-      await page.getByRole('button', { name: /Priority matrix|Matrica prioriteta/i }).click();
+      const backToProfiles = page.getByRole('button', { name: /Back to profiles|Nazad na profile/i });
+      await expect(backToProfiles).toBeVisible();
+      await backToProfiles.click();
+      const openPriorityMatrix = page.getByRole('button', {
+        name: /Priority matrix|Matrica prioriteta/i,
+      });
+      await expect(openPriorityMatrix).toBeVisible();
+      await openPriorityMatrix.click();
       const matrix = page.getByRole('table');
       await expect(matrix).toBeVisible();
       const cells = matrix.getByRole('combobox');
