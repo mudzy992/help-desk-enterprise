@@ -55,6 +55,11 @@ jobs:
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: "6379"
       INSTALL_TOKEN: perf-smoke-install-token-0001
+      # Paket 2.1: TOTP secrets are AES-256-GCM encrypted at rest; without a 32-byte key
+      # every MFA call answers 503 MFA_UNAVAILABLE, and the SuperAdmin (MFA mandatory)
+      # cannot finish its first sign-in. Throwaway value for the throwaway CI database,
+      # same status as INSTALL_TOKEN above — never reuse it anywhere else.
+      MFA_ENCRYPTION_KEY: W+etmlTQQUFwApepF6F3T/mVU9eZmFKSGSpheSPFm2k=
       REDIS_KEY_PREFIX: servicedesk
       QUEUE_PREFIX: bull:servicedesk
       PORT: "10001"
@@ -314,7 +319,7 @@ jobs:
               # Bracket expression instead of `\/`: awk implementations disagree about
               # an escaped slash inside a regex, and the first CI runs classified the
               # bootstrap requests as application traffic because of it.
-              if (path ~ /^[/](install|health)/ || path ~ /^[/]auth[/](login|logout|refresh)/) {
+              if (path ~ /^[/](install|health)/ || path ~ /^[/]auth[/](login|logout|refresh|mfa|change-password)/) {
                 bootstrap_sum += query; bootstrap_n += 1;
               } else {
                 app_sum += query; app_n += 1;
@@ -346,7 +351,7 @@ jobs:
           echo "avg (sve):              ${TOTAL_AVG} preko ${TOTAL_N} zahtjeva"
           echo "avg (aplikacija):       ${APP_AVG} preko ${APP_N} zahtjeva   <- kapija ${BUDGET} (baseline + headroom), cilj ${TARGET}"
           echo "p95 / max (aplikacija): ${P95} / ${MAX}"
-          echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health/auth-login)"
+          echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health/auth-login/mfa/change-password)"
           echo "najskuplje rute:"
           sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -5 | sed 's/^/  /' || true
 
@@ -356,7 +361,7 @@ jobs:
             echo "| avg \`db_queries_per_request\` (aplikacija) | **${APP_AVG}** preko ${APP_N} zahtjeva (kapija ${BUDGET}, cilj ${TARGET}) |"
             echo "| p95 / max (aplikacija) | ${P95} / ${MAX} |"
             echo "| avg (sve, s bootstrapom) | ${TOTAL_AVG} preko ${TOTAL_N} |"
-            echo "| bootstrap (\`/install/*\`, \`/health\`, \`/auth/login|logout|refresh\` — izuzeto iz kapije) | ${BOOTSTRAP_N} |"
+            echo "| bootstrap (\`/install/*\`, \`/health\`, \`/auth/login|logout|refresh|mfa|change-password\` — izuzeto iz kapije) | ${BOOTSTRAP_N} |"
             echo ""
             echo "<details><summary>najskuplje rute po prosjeku upita (uključuje i izuzete rute)</summary>"
             echo ""
@@ -366,6 +371,12 @@ jobs:
             echo "</details>"
           } > /tmp/query-budget-report.md
 
+          # No k6 run means no load profile: a handful of setup calls is not a measurement,
+          # and failing here only buried the real error (2026-10-08: "4.0 over 2 requests").
+          if [ ! -s perf-smoke.log ]; then
+            echo "::warning::k6 nije pokrenut (raniji korak pao) — budžet upita se ne ocjenjuje"
+            exit 0
+          fi
           if [ "$APP_N" -gt 0 ] && awk -v avg="$APP_AVG" -v budget="$BUDGET" 'BEGIN { exit !(avg > budget) }'; then
             echo "::error::avg db_queries_per_request=${APP_AVG} (aplikacija) prelazi budžet od ${BUDGET}"
             exit 1
