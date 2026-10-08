@@ -25,7 +25,7 @@
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
 | 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
-| 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · otvoreni ostaju B2 (`SREDNJE`) i B3–B5 (`NISKO`) — vidi `# Val 0 — popravka M4/B1` |
+| 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · B2/B3/B4 zatvoreni u 5.1.1, B5 zatvoren u 5.1.2 (instalacijski addons endpoint NISKO ostaje zaseban future enhancement, ne u opsegu 5.2) |
 | 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
 | 6 | **Faza 3** — Docs modul u aplikaciji (korak (b): sadržaj, backend i ogledalo) | ✅ Korak (b) isporučen 2026-10-03 · koraci (c)–(d) slijede — vidi `# Faza 3 — korak (b)` |
 | 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
@@ -37,6 +37,9 @@
 | 13 | **Val 4** — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“ (uz prateće ispravke datuma) | ✅ Isporučen 2026-10-05 · specovi 34–35; E-1 (e2e kapija) zatvoren u valu 5 — vidi `# Val 4 — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“` |
 | 14 | **Val 5** — RAW zaostaci (M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 dio) + M13 specovi, mrtve postavke i površine, EN stranice | ✅ Isporučen 2026-10-05 · svi nalazi opsega zatvoreni; u sandboksu nije moguć živ e2e prolaz — vidi `# Val 5 — izvještaj vala` |
 | 15 | **Paket 5.2.1 — pristup i identitet** (M4 B3–B5, M3 B5–B7, M2 #3–#6; 10 nalaza) | ✅ Zatvoren 2026-10-07 nakon korisničkog serverskog E2E rezultata i uspješnog GitHub CI/E2E workflowa; detalji i preostala OD-2 staging kalibracija u `# Paket 5.2.1 — zatvaranje` |
+| 16 | **Paket 5.2.2 — instalacija, katalog i rutanje** (M1 #2–#5, M6 B6–B9, M7 B6–B9; 12 nalaza) | ✅ Zatvoren 2026-10-07 u commitu `b803cd5`; CI prošao; prelazni krug dokumenata zatvoren u `871aa46b` |
+| 17 | **Paket 5.2.3 — liste tiketa, CSAT i realtime** (M8 B4–B7, M11 B3–B4, M13 B1 nastavak; 8 nalaza) | ✅ Zatvoren 2026-10-07 (`a0fc8bc` i prethodni); svi nalozi §4.3 plana |
+| 18 | **Paket 5.2.4 — šabloni/playbooks i baza znanja** (M13 B3–B5, M14 B2/B3/B4/B6/B7; 8 nalaza) | ✅ Zatvoren 2026-10-08 u commitima `83aabb1`–`111bb44` (uključujući fix za palac-dolje reset `fad97f2` i docs ogledalo `111bb44`); GitHub CI zelen |
 
 ---
 
@@ -6868,3 +6871,32 @@ Preostaje:
 Svi nalozi 5.2.3 su zatvoreni.
 
 
+
+# Paket 5.2.4 — završetak 5.2 (M13 B3–B5, M14 B2/B3/B4/B6/B7) — 2026-10-08
+
+**Opseg:** 8 preostalih `NISKO` nalaza iz plana `docs/plans/modules/5.2-preostali-nalazi-niskog-rizika.md` §4.4.
+Posljednja podfaza paketa 5.2.
+
+## Zatvoreni nalozi
+
+| Nalaz | Rješenje | Commit |
+|---|---|---|
+| **M13 B3** — case-insensitive unique imena šablona (trka) | Ručna SQL migracija `20271007190000_response_template_unique_name` sa dva parcijalna UNIQUE indeksa na `lower(name)` (shared + per-owner, `WHERE "deletedAt" IS NULL`); `executeTemplatesOperation` hvata Prisma `P2002` i mapira u `TEMPLATE_NAME_TAKEN`. Schema komentar objašnjava zašto indeksi nisu u Prisma modelu. | `83aabb1` |
+| **M13 B4** — bulk playbook attach bez idempotentnosti | `POST /tickets/playbooks/bulk-attach` prima `playbookId` i do 500 `ticketIds`; obrada paralelno u grupama po 5. Već prikačeni/zatvoreni/zabranjeni tiketi vraćaju se u `skipped[]` sa razlogom, bez da jedan neuspjeh prekida batch. Novi DTO `BulkAttachPlaybookDto` sa `@ArrayMaxSize(500)`. | `9170d48` |
+| **M13 B5** — `usageCount` se povećava i kad insert poruke ne uspije | `countTemplateUse` se poziva tek nakon `ticketMessage.create`, kao `void` fire-and-forget; greške se gutaju. Varijabla preimenovana u `responseTemplateId`. (iz prethodnog dijela sesije). | `4037b68` |
+| **M14 B2** — KB reminder nema ispravan route/title | `NotificationPayload` proširen sa opcionim `articleId`/`articleSlug` (ticketId/Number nullabilni). Reminder servis postavlja smislen naslov „Znanje za pregled“ / „A knowledge article needs review“, šalje `articleId`/`articleSlug`. Frontend dodaje `NotificationKind = "article"` (ikona `BookOpen`, info-tone), `notificationTicketPath` rutira `knowledge.reviewDue` u `/admin/knowledge/articles/:id` (fallback `?staleOnly=true`); novi i18n ključ `knowledgeReviewDue`. | `f72ec2c` |
+| **M14 B3** — „Pomoglo“ ne bilježi koji je članak pomogao; palac-dolje je ostavljao zelenu poruku | `CreateTicketForm` pamti `helpedArticleId`; `KnowledgeInterceptPanel.vote()` za thumbs-up poziva `onHelped(articleId)` (rezolucija ide za glasani članak), a za thumbs-down poziva `onResetHelped()` koji gasi `helped` stanje. Dodan `onResetHelped` kroz komponentni lanac. | `bbfc354`, `fad97f2` |
+| **M14 B4** — pogledi na članak broje bounce | Stranica članka broji pregled tek nakon 5s zadržavanja ILI 25% skrola; timeout i scroll listener se čiste na exit; jedan pregled po mount-u. | `ae38a54` |
+| **M14 B6** — mutacije članaka ne osvježavaju `isStale` | `KnowledgeBaseService.create/update` i sve workflow akcije (`submitReview`, `approveReview`, `rejectReview`, `publish`, `archive`) omotavaju vraćeni record kroz `withKnowledgeArticleFreshness`, tako da odmah vraćaju tačan `isStale`. | `efd2219` |
+| **M14 B7** — kategorija sa aktivnim člankom može biti arhivirana | `setKnowledgeCategoryArchived` paralelno broji i aktivne članke (`prisma.knowledgeArticle.count({ categoryId, archivedAt: null })`) i baca `CATEGORY_NOT_EMPTY` za broj > 0. Poruka greške proširena. Dodat spec koji arhiviranje odbija dok članak nije izmješten, potom prolazi; in-memory delegate proširen sa `count()` i `categoryId`/`archivedAt` filterima; eksplicitan `knowledgeArticle.count` stub u spec harnessu. | `b635695`, `df14a23`, `5209e90`, `cb5feb9` |
+
+## Popratni fixevi i stabilizacija
+
+- `map-templates-error.ts` zatvarajuća zagrada + switch u `notificationTicketPath` uključuje `"article"`; mape ikonice/tona/tačkice dopunjene za novi `article` kind. Commit `f8b0a2e`.
+- Dokumentacija: `DOCS_CHANGELOG.md` — red **5.2.4**; `docs/user-guide/sta-je-novo.md` + ogledalo `backend/content/docs/**` regenerisano sa redom 2026-10-08. `check-docs-content.mjs` — OK (29 stranica, 5 prevoda, 10 provjera). Commit `cb5feb9`, `111bb44`.
+
+## Stanje poslije 5.2.4
+
+- Svi nalozi iz §4 plana `5.2-preostali-nalazi-niskog-rizika.md` zatvoreni (4 podfaze: 5.2.1 / 5.2.2 / 5.2.3 / 5.2.4, ukupno 38 nalaza).
+- GitHub CI: backend TS + test suite i frontend TS/build prošli zeleno (zadnji padovi popravljeni u popratnim commitovima).
+- Izvršni server E2E za ovaj krug nije pokretan sandboxom (nema vanjske baze/browsera), ostavljen je za staging/kapiju po postojećem procesu.
