@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { hasAddonCatalogShape } from "@/lib/settings/parse-addon-catalog-items";
 import { loadInstallAddons } from "@/services/install-addons-api";
 import { loadSettingsAddons } from "@/services/settings-api";
 
@@ -57,5 +58,31 @@ describe("addon catalogue sources", () => {
     stubAddonResponse("/install/addons", { cmdb: false });
     const status = await loadInstallAddons();
     expect(status.addons.items[0]?.enabled).toBe(false);
+  });
+});
+
+/**
+ * The 2026-10-08 regression in one assertion: the backend once returned the
+ * addon record unwrapped, the parser rejected it, and the card disappeared
+ * without a word. The envelope check is what the card keys its error state on.
+ */
+describe("addon catalogue envelope", () => {
+  it("accepts the envelope both routes use", () => {
+    expect(
+      hasAddonCatalogShape({
+        addons: { smtpEnabled: false, items: [] },
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects an unwrapped record — that is a failure, not an empty catalogue", () => {
+    expect(
+      hasAddonCatalogShape({
+        smtpEnabled: false,
+        items: [{ key: "cmdb", enabled: true, defaultEnabled: false, canEnable: true }],
+      }),
+    ).toBe(false);
+    expect(hasAddonCatalogShape({ addons: { items: "nope" } })).toBe(false);
+    expect(hasAddonCatalogShape(null)).toBe(false);
   });
 });

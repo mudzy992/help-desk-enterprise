@@ -1,5 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { parseAddonCatalogItems } from "@/lib/settings/parse-addon-catalog-items";
+import {
+  hasAddonCatalogShape,
+  parseAddonCatalogItems,
+} from "@/lib/settings/parse-addon-catalog-items";
 import {
   getSettingsGeneration,
   subscribeSettingsGeneration,
@@ -21,17 +24,31 @@ export function useAddonCatalog() {
     getSettingsGeneration,
   );
   const [items, setItems] = useState<readonly InstallAddonItem[] | null>(null);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
+    setHasError(false);
     void loadSettingsAddons()
       .then((status) => {
-        if (!isCancelled) {
-          setItems(parseAddonCatalogItems(status));
+        if (isCancelled) {
+          return;
         }
+        /**
+         * The card must not disappear when the answer is not the expected
+         * envelope (that is exactly how the 2026-10-08 regression hid): a
+         * failure is reported, an empty catalogue is not.
+         */
+        if (!hasAddonCatalogShape(status)) {
+          setHasError(true);
+          setItems([]);
+          return;
+        }
+        setItems(parseAddonCatalogItems(status));
       })
       .catch(() => {
         if (!isCancelled) {
+          setHasError(true);
           setItems([]);
         }
       });
@@ -42,6 +59,7 @@ export function useAddonCatalog() {
 
   return {
     isLoading: items === null,
+    hasError,
     items: items ?? [],
   };
 }

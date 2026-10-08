@@ -27,6 +27,25 @@ export function AddonsSettingsPanel({
       <PanelSkeleton className="mt-0" label={t("settings.addons.loading")} />
     );
   }
+  if (catalog.hasError && catalog.items.length === 0) {
+    return (
+      <Card className="fade-in">
+        <CardHeader
+          title={t("settings.addons.title")}
+          subtitle={t("settings.addons.subtitle")}
+          actions={
+            <Badge tone="neutral" dot={false}>
+              <Boxes size={10.5} /> {t("settings.addons.registryBadge")}
+            </Badge>
+          }
+        />
+        {/* Never hide the card on a failed read (2026-10-08 regression). */}
+        <p role="alert" className="px-4 pb-4 text-sm text-danger">
+          {t("settings.addons.loadFailed")}
+        </p>
+      </Card>
+    );
+  }
   if (catalog.items.length === 0) {
     return null;
   }

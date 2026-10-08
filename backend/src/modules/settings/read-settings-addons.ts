@@ -2,11 +2,14 @@ import {
   addonRequiresSmtp,
   addonSettingKey,
   installAddonCatalog,
-  type InstallAddonKey,
 } from './addon-catalog';
 import { resolveEmailAddonEnabled } from './resolve-email-addon-enabled';
 import { settingKeys } from './setting-keys';
 import type { SettingsService } from './settings.service';
+import type {
+  InstallAddonPublicItem,
+  InstallAddonsStatus,
+} from '../install/install-addons.types';
 
 /**
  * Paket 5.3.4 (ispravka 2026-10-08): the settings tab shows the addon catalogue
@@ -24,25 +27,19 @@ import type { SettingsService } from './settings.service';
  * honest state an administrator has to see. The "SMTP off always wins" rule for
  * the email addon lives in `resolveEmailAddonEnabled` and is applied here as
  * well, because the *effective* state is what the switch must show.
+ *
+ * **Envelope:** the response is exactly `InstallAddonsStatus` —
+ * `{ addons: { smtpEnabled, items } }` — the same shape as `GET /install/addons`,
+ * so one frontend parser (`parseAddonCatalogItems`) serves both routes. The
+ * first version of this fix returned the record unwrapped and the settings card
+ * silently disappeared, because the parser rejected it.
  */
-export type SettingsAddonItem = {
-  readonly key: InstallAddonKey;
-  readonly enabled: boolean;
-  readonly defaultEnabled: boolean;
-  readonly canEnable: boolean;
-};
-
-export type SettingsAddonsRecord = {
-  readonly smtpEnabled: boolean;
-  readonly items: readonly SettingsAddonItem[];
-};
-
 export async function readSettingsAddons(
   settingsService: SettingsService,
-): Promise<SettingsAddonsRecord> {
+): Promise<InstallAddonsStatus> {
   const smtpEnabled =
     (await settingsService.getSetting(settingKeys.privateSmtpEnabled)) === true;
-  const items: SettingsAddonItem[] = [];
+  const items: InstallAddonPublicItem[] = [];
   for (const item of installAddonCatalog) {
     const stored =
       (await settingsService.getSetting(addonSettingKey(item.key))) === true;
@@ -59,5 +56,5 @@ export async function readSettingsAddons(
       canEnable: requiresSmtp ? smtpEnabled : true,
     });
   }
-  return { smtpEnabled, items };
+  return { addons: { smtpEnabled, items } };
 }

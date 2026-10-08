@@ -1012,7 +1012,8 @@
       "title": "Add-ons (addon catalog)",
       "subtitle": "Add-on state read from the settings registry — turning one off is graceful, with no dead links in the UI",
       "loading": "Loading add-ons…",
-      "registryBadge": "registry"
+      "registryBadge": "registry",
+      "loadFailed": "Could not load the add-ons. Refresh the page; if it repeats, check the connection to the server."
     },
     "registry": {
       "title": "Other registered settings",

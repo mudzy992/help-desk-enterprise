@@ -1023,7 +1023,8 @@
       "title": "Dodaci (addon katalog)",
       "subtitle": "Stanje dodataka iz registra postavki — isključivanje je graceful, nema mrtvih linkova u UI",
       "loading": "Učitavanje dodataka…",
-      "registryBadge": "registry"
+      "registryBadge": "registry",
+      "loadFailed": "Nije moguće učitati dodatke. Osvježite stranicu; ako se ponovi, provjerite vezu sa serverom."
     },
     "registry": {
       "title": "Ostale registrovane postavke",

@@ -26,10 +26,8 @@ import {
   readEmailChannelSettings,
   type EmailChannelSettingsResponse,
 } from './read-email-channel-settings';
-import {
-  readSettingsAddons,
-  type SettingsAddonsRecord,
-} from './read-settings-addons';
+import { readSettingsAddons } from './read-settings-addons';
+import type { InstallAddonsStatus } from '../install/install-addons.types';
 import { readSettingsActorUserId } from './read-settings-actor-user-id';
 import { SettingsService } from './settings.service';
 import type { SettingDependentReset } from './plan-dependent-resets';
@@ -61,9 +59,12 @@ export class SettingsController {
    * Paket 5.3.4 (ispravka): the addon catalogue with the stored values, for the
    * authenticated settings tab. `GET /install/addons` stays default-only after
    * the installation (5.2 M1 #5) and must not be used to render switches.
+   *
+   * The envelope must stay identical to that route — the frontend parses both
+   * with the same `parseAddonCatalogItems` (`{ addons: { smtpEnabled, items } }`).
    */
   @Get('addons')
-  async listAddonCatalog(): Promise<SettingsAddonsRecord> {
+  async listAddonCatalog(): Promise<InstallAddonsStatus> {
     try {
       return await readSettingsAddons(this.settingsService);
     } catch (error) {

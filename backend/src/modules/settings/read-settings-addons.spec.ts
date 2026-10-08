@@ -1,7 +1,11 @@
+import 'reflect-metadata';
+
 import { addonSettingKey } from './addon-catalog';
 import { createInMemorySettingsPrisma } from './create-in-memory-settings-prisma';
 import { applicationSettings } from './definitions/application-settings';
-import { readSettingsAddons, type SettingsAddonsRecord } from './read-settings-addons';
+import { readSettingsAddons } from './read-settings-addons';
+import { SettingsController } from './settings.controller';
+import type { InstallAddonsStatus } from '../install/install-addons.types';
 import { createSettingsRegistry } from './registry/create-settings-registry';
 import { settingKeys } from './setting-keys';
 import { SettingsService } from './settings.service';
@@ -23,10 +27,10 @@ function createHarness() {
 }
 
 function itemOf(
-  record: SettingsAddonsRecord,
+  record: InstallAddonsStatus,
   key: string,
-): SettingsAddonsRecord['items'][number] {
-  const item = record.items.find((entry) => entry.key === key);
+): InstallAddonsStatus['addons']['items'][number] {
+  const item = record.addons.items.find((entry) => entry.key === key);
   if (item === undefined) {
     throw new Error(`Addon ${key} missing from the record`);
   }
@@ -86,7 +90,7 @@ describe('readSettingsAddons', () => {
     await service.setSettingValue(addonSettingKey('email'), true, mutation);
 
     const withoutSmtp = await readSettingsAddons(service);
-    expect(withoutSmtp.smtpEnabled).toBe(false);
+    expect(withoutSmtp.addons.smtpEnabled).toBe(false);
     expect(itemOf(withoutSmtp, 'email')).toMatchObject({
       enabled: false,
       canEnable: false,
@@ -97,7 +101,7 @@ describe('readSettingsAddons', () => {
     await service.setSettingValue(settingKeys.privateSmtpEnabled, true, mutation);
 
     const withSmtp = await readSettingsAddons(service);
-    expect(withSmtp.smtpEnabled).toBe(true);
+    expect(withSmtp.addons.smtpEnabled).toBe(true);
     expect(itemOf(withSmtp, 'email')).toMatchObject({
       enabled: true,
       canEnable: true,
@@ -114,7 +118,7 @@ describe('readSettingsAddons', () => {
   it('lists the whole catalogue in the documented order', async () => {
     const { service } = createHarness();
     const record = await readSettingsAddons(service);
-    expect(record.items.map((item) => item.key)).toEqual([
+    expect(record.addons.items.map((item) => item.key)).toEqual([
       'email',
       'edge',
       'csat',
@@ -130,5 +134,51 @@ describe('readSettingsAddons', () => {
       'changes',
       'teams',
     ]);
+  });
+
+  /**
+   * Regression (2026-10-08, same evening): the first version returned the record
+   * unwrapped, and the settings card silently disappeared — the frontend parser
+   * requires `{ addons: { smtpEnabled, items } }`, the same envelope
+   * `GET /install/addons` uses. The HTTP answer must therefore carry exactly the
+   * keys the parser (and `isAddonCatalogItem`) checks.
+   */
+  it('answers with the envelope the addon parser expects', async () => {
+    const { service } = createHarness();
+    const payload = await readSettingsAddons(service);
+
+    expect(Object.keys(payload)).toEqual(['addons']);
+    expect(Object.keys(payload.addons).sort()).toEqual([
+      'items',
+      'smtpEnabled',
+    ]);
+    expect(typeof payload.addons.smtpEnabled).toBe('boolean');
+    expect(payload.addons.items).toHaveLength(14);
+    for (const item of payload.addons.items) {
+      expect(Object.keys(item).sort()).toEqual([
+        'canEnable',
+        'defaultEnabled',
+        'enabled',
+        'key',
+      ]);
+      expect(typeof item.key).toBe('string');
+      expect(typeof item.enabled).toBe('boolean');
+      expect(typeof item.defaultEnabled).toBe('boolean');
+      expect(typeof item.canEnable).toBe('boolean');
+    }
+  });
+
+  it('serves the same envelope through the controller route handler', async () => {
+    const { service } = createHarness();
+    const controller = new SettingsController(service);
+
+    const payload = await controller.listAddonCatalog();
+
+    expect(payload.addons.items.find((item) => item.key === 'cmdb')).toEqual({
+      key: 'cmdb',
+      enabled: false,
+      defaultEnabled: false,
+      canEnable: true,
+    });
   });
 });
