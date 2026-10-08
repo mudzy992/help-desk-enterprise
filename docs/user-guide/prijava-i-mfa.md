@@ -31,7 +31,9 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
 
 ### Prijava lokalnim nalogom
 
-1. Unesite **Email** i **Lozinku** i kliknite **Prijava**.
+1. Unesite **Email** i **Lozinku** i kliknite **Prijava**. Ikona oka u polju lozinke privremeno prikazuje
+   upisanu lozinku, a ispod polja se pojavi upozorenje **Caps Lock je uključen.** kad je to slučaj. Jezik ekrana
+   bira se padajućim izborom u gornjem desnom uglu.
 2. Ako su podaci ispravni, otvara se aplikacija. Ako nisu: „Prijava nije uspjela. Provjerite email i lozinku.“
 3. Lokalna prijava ima odvojena ograničenja po nalogu i IP adresi. Nakon tri pogrešna pokušaja po nalogu uvodi
    se ograničeno progresivno kašnjenje (počinje od 250 ms i raste do najviše 2 s); nalog se ne zaključava.

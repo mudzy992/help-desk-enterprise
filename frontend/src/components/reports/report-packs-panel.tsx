@@ -103,7 +103,7 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
       triggerBlobDownload(file.blob, file.fileName);
       toast({ tone: "success", title: t("reports.packs.downloaded", { file: file.fileName }) });
     } catch (error) {
-      toast({ tone: "danger", title: t(mapApiError(error)) });
+      toast({ tone: "danger", title: t(mapApiError(error)), error: error });
     } finally {
       setDownloading(null);
     }

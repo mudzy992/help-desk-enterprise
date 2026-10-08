@@ -339,7 +339,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1568,
+      "wordCount": 1601,
       "source": "docs/user-guide/prijava-i-mfa.md",
       "englishTitle": "Sign-in and two-step verification (MFA)"
     },
@@ -1287,6 +1287,11 @@
         },
         {
           "level": 3,
+          "text": "Kratke poruke o ishodu akcije (toast)",
+          "id": "kratke-poruke-o-ishodu-akcije-toast"
+        },
+        {
+          "level": 3,
           "text": "Tipovi obavještenja (naslovi u listi)",
           "id": "tipovi-obavjestenja-naslovi-u-listi"
         },
@@ -1316,7 +1321,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1348,
+      "wordCount": 1517,
       "source": "docs/user-guide/realtime-i-obavjestenja.md",
       "englishTitle": null
     },
@@ -2933,7 +2938,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1501,
+      "wordCount": 1636,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

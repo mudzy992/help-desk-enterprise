@@ -106,7 +106,7 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
       toast({ tone: "success", title: successTitle });
       await load();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapApiError(caught)), error: caught });
     } finally {
       setPending(null);
     }
@@ -138,7 +138,7 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
         duration: 10_000,
       });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapApiError(caught)), error: caught });
     } finally {
       setPending(null);
     }

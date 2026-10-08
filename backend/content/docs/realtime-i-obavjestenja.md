@@ -27,7 +27,9 @@
 ## Kako doći
 
 1. **Zvono:** gornja traka, ikona **Obavještenja** — broj u crvenom krugu su **nepročitana** obavještenja.
-2. **Panel:** klik na zvono otvara listu; pri otvaranju se lista osvježi sa servera.
+2. **Panel:** klik na zvono otvara listu; pri otvaranju se lista osvježi sa servera. Panel se zatvara
+   ponovnim klikom na zvono, klikom bilo gdje van panela ili tipkom **Escape** (fokus se vraća na zvono). Na
+   uskom ekranu panel se otvara kao bočni list.
 3. **Do tiketa:** klik na obavještenje vodi na povezani tiket (broj tiketa je vidljiv i kada je tiket
    povjerljiv), a obavještenje se istovremeno označi kao pročitano.
 4. **Sve pročitano:** dugme **Označi sve** u zaglavlju panela.
@@ -75,6 +77,19 @@
 | **Označi sve** | označava sva obavještenja kao pročitana |
 | **Nema obavještenja.** | nema obavještenja uopšte (ili su starija od 90 dana obrisana) |
 | **Nema nepročitanih obavještenja.** | filter „Nepročitane“ je prazan |
+
+### Kratke poruke o ishodu akcije (toast)
+
+Ovo nisu obavještenja iz zvona: kratka poruka u donjem desnom uglu (na telefonu dolje, centrirano) potvrđuje
+ishod **vaše** akcije (npr. „Tiket je preuzet.“). Promjene koje stižu u realnom vremenu ne prikazuju poruku.
+
+| Ponašanje | Detalj |
+|---|---|
+| **Trajanje** | potvrda ~5 s, upozorenje ~7 s, greška ~10 s; dok je miš ili fokus na poruci, odbrojavanje stoji |
+| **Ponovljena ista poruka** | ne slaže se nova kartica — postojeća dobija oznaku **×N** i odbrojavanje kreće ispočetka |
+| **Više poruka odjednom** | vidljive su najviše tri; ostale čekaju (oznaka „+N na čekanju“) i pojave se čim se jedna zatvori |
+| **ID zahtjeva** | greška sa servera prikazuje **ID zahtjeva**; klik ga kopira (za prijavu podršci) |
+| **Zatvaranje** | dugme ✕ ili **Escape** dok je fokus na poruci |
 
 ### Tipovi obavještenja (naslovi u listi)
 

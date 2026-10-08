@@ -132,7 +132,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
       setDraft(saved.templates);
       toast({ tone: "success", title: t("settings.emailTemplates.saved") });
     } catch (error) {
-      toast({ tone: "danger", title: t("settings.emailTemplates.saveFailed"), description: describeError(error) });
+      toast({ tone: "danger", title: t("settings.emailTemplates.saveFailed"), description: describeError(error), error: error });
     } finally {
       setSaving(false);
     }
@@ -158,6 +158,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         title: t("settings.emailTemplates.testFailed"),
         description: describeError(error),
         duration: 0,
+        error,
       });
     } finally {
       setTesting(false);

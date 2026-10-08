@@ -70,7 +70,7 @@ export function ApplicationShell() {
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
         <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
-          <SheetContent side="left" className="flex w-[270px] flex-col p-0">
+          <SheetContent side="left" className="flex w-[min(86vw,280px)] flex-col p-0">
             <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
             <SheetDescription className="sr-only">
               {t("shell.applicationSections")}
@@ -90,7 +90,7 @@ export function ApplicationShell() {
         >
           <div
             key={location.pathname}
-            className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8 print:max-w-none print:p-0"
+            className="page-in mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0"
           >
             <div className="print:hidden">
               <MaintenanceBanner maintenance={maintenance} />

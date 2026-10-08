@@ -55,7 +55,7 @@ export function OnCallCalendarFeedCard() {
       setStatus({ exists: true, createdAt: new Date().toISOString() });
       setConfirm(null);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(false);
     }
@@ -70,7 +70,7 @@ export function OnCallCalendarFeedCard() {
       setConfirm(null);
       toast({ tone: "success", title: t("onCall.feed.revoked") });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapApiError(caught)), error: caught });
     } finally {
       setBusy(false);
     }

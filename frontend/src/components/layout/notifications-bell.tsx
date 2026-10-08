@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
@@ -11,6 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { floatingPanelClassName } from "@/components/ui/control";
+import { useDismissable } from "@/lib/a11y/use-dismissable";
 import { notificationTicketPath } from "@/lib/notifications/notification-kind";
 import { useInboxNotifications } from "@/lib/notifications/use-inbox-notifications";
 import { useSession } from "@/lib/session/use-session";
@@ -24,6 +25,17 @@ export function NotificationsBell() {
   const inbox = useInboxNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Paket 5.3.0 (D3): the desktop panel closes on an outside press or Escape
+  // and hands focus back to the bell; the compact Sheet does this natively.
+  useDismissable({
+    isOpen: isOpen && !isCompact,
+    onDismiss: () => setIsOpen(false),
+    panelRef,
+    triggerRef,
+  });
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
@@ -74,7 +86,10 @@ export function NotificationsBell() {
         variant="ghost"
         size="icon"
         className={cn(isOpen ? "bg-elevated text-foreground" : "text-muted-foreground")}
+        ref={triggerRef}
         aria-label={t("notifications.open")}
+        aria-expanded={isOpen}
+        aria-controls={isOpen && !isCompact ? "notifications-panel" : undefined}
         onClick={openPanel}
       >
         <Bell size={16.5} strokeWidth={1.9} />
@@ -91,7 +106,13 @@ export function NotificationsBell() {
           </SheetContent>
         </Sheet>
       ) : isOpen ? (
-        <div className={cn(floatingPanelClassName, "absolute right-0 top-11 z-50 w-[380px]")}>
+        <div
+          ref={panelRef}
+          id="notifications-panel"
+          role="region"
+          aria-label={t("notifications.title")}
+          className={cn(floatingPanelClassName, "absolute right-0 top-11 z-50 w-[380px] max-w-[calc(100vw-1.5rem)]")}
+        >
           {panel}
         </div>
       ) : null}

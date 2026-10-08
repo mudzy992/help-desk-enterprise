@@ -32,9 +32,6 @@
     "changes": "Changes",
     "docs": "Documentation"
   },
-  "feedback": {
-    "dismiss": "Dismiss message"
-  },
   "shell": {
     "openNavigation": "Open navigation",
     "navigation": "Navigation",
@@ -62,7 +59,8 @@
       "problemManager": "Problem manager",
       "changeManager": "Change manager"
     },
-    "searchTrigger": "Search…"
+    "searchTrigger": "Search…",
+    "accountMenu": "Account menu: {{name}}"
   },
   "theme": {
     "label": "Appearance",
@@ -134,6 +132,14 @@
       "options": "Options",
       "activeCount_one": "{{count}} active filter",
       "activeCount_other": "{{count}} active filters"
+    },
+    "toast": {
+      "region": "Notifications",
+      "queued_one": "+{{count}} waiting",
+      "queued_other": "+{{count}} waiting",
+      "repeated": "Repeated {{count}} times",
+      "copyRequestId": "Copy request ID {{requestId}}",
+      "copied": "Request ID copied"
     }
   },
   "notifications": {
@@ -155,7 +161,7 @@
       "ticketApproval": "Approval needed: {{ticketNumber}}",
       "ticketSla": "SLA event: {{ticketNumber}}",
       "remoteRequested": "Remote assistance requested: {{ticketNumber}}",
-      "knowledgeReviewDue": "Knowledge article review is due",
+      "knowledgeReviewDue": "A knowledge article needs review",
       "unknown": "Notification",
       "ticketForwarded": "Ticket {{ticketNumber}} forwarded",
       "ticketTimeAutoStopped": "Timer stopped automatically (maximum duration)",
@@ -188,8 +194,7 @@
       "changeDecided": "The CAB decided on a change",
       "changeStartingSoon": "A change starts soon",
       "changeOverdue": "A change has passed its planned end",
-      "changeFailed": "A change linked to your problem failed",
-      "knowledgeReviewDue": "A knowledge article needs review"
+      "changeFailed": "A change linked to your problem failed"
     }
   },
   "placeholders": {
@@ -3522,7 +3527,10 @@
     "entraCompleting": "Completing sign-in…",
     "localShow": "Sign in with a local account (administrator)",
     "localHide": "Hide local sign-in",
-    "supportHelp": "Need help?"
+    "supportHelp": "Need help?",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "capsLock": "Caps Lock is on."
   },
   "auth": {
     "changePassword": {

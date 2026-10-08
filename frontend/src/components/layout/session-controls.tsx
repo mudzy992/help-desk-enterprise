@@ -42,7 +42,8 @@ export function SessionControls() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
+          aria-label={t("shell.accountMenu", { name: displayName })}
+          className="flex min-h-9 items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
         >
           <Avatar name={displayName} size="sm" />
           <span className="hidden text-left leading-tight md:block">
@@ -55,7 +56,7 @@ export function SessionControls() {
           </span>
           <ChevronDown
             size={13}
-            className="text-muted-foreground"
+            className="hidden text-muted-foreground sm:block"
             aria-hidden="true"
           />
         </button>

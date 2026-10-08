@@ -101,6 +101,7 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSaveMany
         tone: "danger",
         title: t(mapApiError(error)),
         description: error instanceof ApiError && error.status < 500 ? error.message : undefined,
+        error,
       });
     } finally {
       setSaving(false);

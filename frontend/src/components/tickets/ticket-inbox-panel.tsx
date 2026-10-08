@@ -1,11 +1,9 @@
 import { useEffect, useMemo } from "react";
-import { ActionFeedbackBanner } from "@/components/feedback/action-feedback-banner";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
 import { TicketInboxNoGroupNotice } from "@/components/tickets/ticket-inbox-no-group-notice";
 import { TicketInboxTabs } from "@/components/tickets/ticket-inbox-tabs";
 import { TicketInboxUnroutedBanner } from "@/components/tickets/ticket-inbox-unrouted-banner";
-import type { ActionFeedback } from "@/lib/feedback/use-action-feedback";
 import {
   inboxGroupTabsFromMembership,
   ticketsForInboxTab,
@@ -32,8 +30,6 @@ interface TicketInboxPanelProperties {
   readonly canManageGroups: boolean;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
-  readonly feedback: ActionFeedback | null;
-  readonly onDismissFeedback: () => void;
   readonly onClaim: (ticketId: string) => void;
   readonly onRetry: () => void;
 }
@@ -55,8 +51,6 @@ export function TicketInboxPanel({
   canManageGroups,
   isLoading,
   errorKey,
-  feedback,
-  onDismissFeedback,
   onClaim,
   onRetry,
 }: TicketInboxPanelProperties) {
@@ -79,7 +73,6 @@ export function TicketInboxPanel({
   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
   return (
     <div className="mt-4">
-      <ActionFeedbackBanner feedback={feedback} onDismiss={onDismissFeedback} />
       <TicketInboxTabs
         activeTab={activeTab}
         unroutedCount={unroutedCount}

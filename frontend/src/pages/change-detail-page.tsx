@@ -74,7 +74,7 @@ export function ChangeDetailPage() {
       toast({ tone: "success", title: t("changes.detail.claimed") });
       refresh();
     },
-    onError: (caught) => toast({ tone: "danger", title: t(mapChangeError(caught) ?? mapApiError(caught)) }),
+    onError: (caught) => toast({ tone: "danger", title: t(mapChangeError(caught) ?? mapApiError(caught)), error: caught }),
   });
   const crumbs = [t("navigation.sections.tickets"), t("changes.title")];
   const back = (

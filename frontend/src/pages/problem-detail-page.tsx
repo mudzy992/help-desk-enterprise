@@ -53,7 +53,7 @@ export function ProblemDetailPage() {
       toast({ tone: "success", title: t("problems.detail.claimed") });
       refresh();
     },
-    onError: (caught) => toast({ tone: "danger", title: t(mapProblemError(caught) ?? mapApiError(caught)) }),
+    onError: (caught) => toast({ tone: "danger", title: t(mapProblemError(caught) ?? mapApiError(caught)), error: caught }),
   });
   const crumbs = [t("navigation.sections.tickets"), t("problems.title")];
   const back = (

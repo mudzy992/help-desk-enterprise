@@ -51,7 +51,7 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
       const file = await downloadAnnouncementReport(announcementId);
       triggerBlobDownload(file.blob, file.fileName);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(null);
     }
@@ -69,7 +69,7 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
       });
       await load(announcementId);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(null);
     }

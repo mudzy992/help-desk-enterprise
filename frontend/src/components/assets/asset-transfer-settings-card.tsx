@@ -128,7 +128,7 @@ function TemplatesCard() {
     try {
       await downloadTransferTemplate(version, locale);
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
     }
   }
 

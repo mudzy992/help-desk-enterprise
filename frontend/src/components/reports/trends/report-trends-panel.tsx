@@ -177,7 +177,7 @@ export function ReportTrendsPanel({
       toast({ title: t("reports.packs.downloaded", { file: file.fileName }) });
     } catch (caught) {
       const code = readReportErrorCode(caught);
-      toast({ title: code === null ? t(mapApiError(caught)) : t(errorKeys[code]), tone: "danger" });
+      toast({ title: code === null ? t(mapApiError(caught)) : t(errorKeys[code]), tone: "danger", error: caught });
     } finally {
       setDownloading(null);
     }

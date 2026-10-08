@@ -80,7 +80,7 @@ export function AssetCatalogManager() {
       await action();
       refresh();
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.catalog.actionFailed"), description: errorText(caught) });
+      toast({ tone: "danger", title: t("assets.catalog.actionFailed"), description: errorText(caught), error: caught });
     }
   }
 

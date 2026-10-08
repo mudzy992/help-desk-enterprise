@@ -12,6 +12,7 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { flattenPickerGroups, groupPickerItems } from "@/lib/templates/group-picker-items";
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
+import { useDismissable } from "@/lib/a11y/use-dismissable";
 import { cn } from "@/lib/utils";
 import {
   listPickerTemplates,
@@ -77,16 +78,9 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
     searchReference.current?.focus();
   }, []);
 
-  // Close on outside click.
-  useEffect(() => {
-    const onPointer = (event: MouseEvent) => {
-      if (panelReference.current !== null && !panelReference.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", onPointer);
-    return () => document.removeEventListener("mousedown", onPointer);
-  }, [onClose]);
+  // Close on outside press (Paket 5.3.0, D3). Escape stays with the picker's
+  // own key handler (it also drives arrow/Enter navigation).
+  useDismissable({ isOpen: true, onDismiss: onClose, panelRef: panelReference, restoreFocus: false, closeOnEscape: false });
 
   const groups = useMemo(() => groupPickerItems(items ?? [], query), [items, query]);
   const flat = useMemo(() => flattenPickerGroups(groups), [groups]);

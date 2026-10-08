@@ -133,7 +133,7 @@ export function OnCallPage() {
       });
       reloadAll();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(null);
     }

@@ -171,7 +171,7 @@ function TransferRow({
       await action();
       if (successTitle) toast({ tone: "success", title: successTitle });
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(null);
     }

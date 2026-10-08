@@ -118,7 +118,7 @@ export function AnnouncementsHost() {
       if (modal?.id === item.id) setModal(null);
       void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
       void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
     } finally {
       setBusyId(null);

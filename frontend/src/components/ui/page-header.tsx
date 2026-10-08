@@ -28,7 +28,7 @@ export function PageHeader({
   return (
     <div className="mb-5">
       {crumbs.length > 0 ? (
-        <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+        <nav className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground">
           {crumbs.map((crumb, index) => (
             <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
               {index > 0 ? <span className="text-muted-foreground">/</span> : null}
@@ -51,7 +51,7 @@ export function PageHeader({
           ) : null}
         </div>
         {actions || hasDocsHelp ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {actions}
             <DocsHelpButton />
           </div>

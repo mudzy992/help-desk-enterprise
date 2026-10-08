@@ -27,7 +27,7 @@ export function usePrivacyFailure() {
   return useCallback(
     (caught: unknown) => {
       const code = readPrivacyErrorCode(caught);
-      toast({ title: code === null ? t(mapApiError(caught)) : t(privacyErrorKey(code)), tone: "danger" });
+      toast({ title: code === null ? t(mapApiError(caught)) : t(privacyErrorKey(code)), tone: "danger", error: caught });
     },
     [t, toast],
   );

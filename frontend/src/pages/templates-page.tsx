@@ -129,7 +129,7 @@ export function TemplatesPage() {
       setReason("");
       await load();
     } catch (error) {
-      toast({ tone: "danger", title: t(mapTemplatesError(error)) });
+      toast({ tone: "danger", title: t(mapTemplatesError(error)), error: error });
     } finally {
       setDeleting(false);
     }

@@ -246,7 +246,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     try {
       await exportAssets(filters, format, i18n.language.startsWith("en") ? "en" : "bs");
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.export.failed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t("assets.export.failed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setExporting(null);
     }

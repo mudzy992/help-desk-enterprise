@@ -102,7 +102,7 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
 
   const fail = (caught: unknown) => {
     const code = readReportErrorCode(caught);
-    toast({ title: code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]), tone: "danger" });
+    toast({ title: code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]), tone: "danger", error: caught });
   };
 
   const replace = (schedule: ReportSchedule) =>

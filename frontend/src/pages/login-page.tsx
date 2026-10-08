@@ -1,5 +1,5 @@
-import { BookOpen, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { BookOpen, Eye, EyeOff, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
+import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
@@ -7,6 +7,7 @@ import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
 import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { LocaleSelect } from "@/components/layout/locale-select";
 import { useBranding } from "@/lib/branding/branding-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { startEntraSignIn } from "@/lib/auth/entra-redirect";
+import { cn } from "@/lib/utils";
 import { ApiError } from "@/services/api";
 import {
   getAuthenticationProviders,
@@ -90,6 +92,10 @@ export function LoginPage() {
   const [hasError, setHasError] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
+  // Paket 5.3.0 (login polish): reveal toggle + Caps Lock hint, the two
+  // most common reasons for a failed first attempt.
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   // Paket 1.8 (A1): Microsoft sign-in when the server runs in entra_ad mode;
   // the local form stays available as the break-glass path.
@@ -169,11 +175,15 @@ export function LoginPage() {
     }
   };
 
+  const readCapsLock = (event: KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(event.getModifierState("CapsLock"));
+  };
+
   const isEntraMode = providers?.mode === "entra_ad";
   const localFormVisible = !isEntraMode || showLocalForm;
 
   return (
-    <div className="page-in grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
+    <div className="page-in grid min-h-dvh bg-background lg:grid-cols-[1.05fr_1fr]">
       {/* ── Brand panel — hidden on small screens ─────────────────────── */}
       <aside className="pulse-gradient relative hidden flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
         <div
@@ -219,11 +229,14 @@ export function LoginPage() {
       </aside>
 
       {/* ── Form ──────────────────────────────────────────────────────── */}
-      <main className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-12">
+      <main className="relative flex flex-col justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-16 sm:px-8 lg:px-12 lg:py-10">
+        <div className="absolute right-4 top-4 w-36 sm:right-8 lg:right-12">
+          <LocaleSelect />
+        </div>
         <section className="mx-auto w-full max-w-[26rem]">
-          <div className="mb-7 flex items-center gap-2.5 lg:hidden">
+          <div className="mb-6 flex items-center gap-2.5 lg:hidden">
             <BrandMark />
-            <div className="leading-tight">
+            <div className="min-w-0 leading-tight">
               <p className="text-[14px] font-semibold tracking-[-0.02em] text-foreground">
                 {branding.appName}
               </p>
@@ -233,7 +246,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-surface p-6 shadow-card sm:p-7">
+          <div className="rounded-lg border border-border bg-surface p-5 shadow-card sm:p-7">
             {step.kind === "change" ? (
               <>
                 <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
@@ -355,7 +368,11 @@ export function LoginPage() {
                       id="login-email"
                       className={controlClassName}
                       type="email"
+                      inputMode="email"
                       autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      autoFocus={!isEntraMode}
                       aria-invalid={hasError ? true : undefined}
                       aria-describedby={hasError ? "login-error" : undefined}
                       value={email}
@@ -363,20 +380,44 @@ export function LoginPage() {
                       required
                     />
                   </label>
-                  <label className={labelClassName} htmlFor="login-password">
-                    <span>{t("session.password")}</span>
-                    <input
-                      id="login-password"
-                      className={controlClassName}
-                      type="password"
-                      autoComplete="current-password"
-                      aria-invalid={hasError ? true : undefined}
-                      aria-describedby={hasError ? "login-error" : undefined}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      required
-                    />
-                  </label>
+                  <div className={labelClassName}>
+                    <label htmlFor="login-password">{t("session.password")}</label>
+                    <div className="relative">
+                      <input
+                        id="login-password"
+                        className={cn(controlClassName, "pr-10")}
+                        type={isPasswordVisible ? "text" : "password"}
+                        autoComplete="current-password"
+                        aria-invalid={hasError ? true : undefined}
+                        aria-describedby={
+                          [hasError ? "login-error" : null, isCapsLockOn ? "login-caps" : null]
+                            .filter(Boolean)
+                            .join(" ") || undefined
+                        }
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        onKeyDown={readCapsLock}
+                        onKeyUp={readCapsLock}
+                        onBlur={() => setIsCapsLockOn(false)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsPasswordVisible((value) => !value)}
+                        aria-label={t(isPasswordVisible ? "login.hidePassword" : "login.showPassword")}
+                        aria-pressed={isPasswordVisible}
+                        aria-controls="login-password"
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary/70"
+                      >
+                        {isPasswordVisible ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
+                      </button>
+                    </div>
+                    {isCapsLockOn ? (
+                      <p id="login-caps" className="text-[11.5px] text-warning" role="status">
+                        {t("login.capsLock")}
+                      </p>
+                    ) : null}
+                  </div>
                   {hasError ? (
                     <p id="login-error" className={errorTextClassName} role="alert">
                       {t(isRateLimited ? "session.errorRateLimited" : "session.error")}

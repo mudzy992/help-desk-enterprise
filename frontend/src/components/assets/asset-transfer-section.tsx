@@ -106,7 +106,7 @@ export function AssetTransferIssued({ result, onClose }: { readonly result: Asse
     try {
       await downloadTransferDocument(result.transferId, result.number);
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setPending(false);
     }

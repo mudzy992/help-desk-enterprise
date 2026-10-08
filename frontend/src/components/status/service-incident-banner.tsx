@@ -54,7 +54,7 @@ export function ServiceIncidentBanner({ serviceId, hasIncident }: { readonly ser
       );
       toast({ tone: "success", title: incident.subscribed ? t("status.card.unsubscribed") : t("status.card.subscribed") });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusyId(null);
     }

@@ -66,7 +66,7 @@ export function TicketIncidentsPanel({ ticketId, serviceId, versionKey }: Ticket
       setCandidates([...open].sort((left, right) => Number(right.services.some((s) => s.id === serviceId)) - Number(left.services.some((s) => s.id === serviceId))));
       setChoice(open[0]?.id ?? "");
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
     }
   };
 
@@ -78,7 +78,7 @@ export function TicketIncidentsPanel({ ticketId, serviceId, versionKey }: Ticket
       setCandidates(null);
       await load();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusy(false);
     }

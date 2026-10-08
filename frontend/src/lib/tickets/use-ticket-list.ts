@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { defaultInboxTab, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
-import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
+import { useToast } from "@/components/ui/toast";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
@@ -72,7 +72,7 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, i
 export function useTicketList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const feedback = useActionFeedback();
+  const { toast } = useToast();
   const { currentUserId } = useSession();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -325,11 +325,13 @@ export function useTicketList() {
       await claimTicket(ticketId);
       // The claim changed a ticket, so the cached pages and counters are stale.
       await queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists });
-      // Claim errors/success now go through the feedback seam instead of
-      // `errorKey`, so a failed claim never blanks the inbox (Constitution
-      // §30) and a successful one no longer forces a skeleton flash — the
-      // banner already confirms it, so the revalidation can be silent.
-      feedback.notify("success", "tickets.claimSuccess", {
+      // Claim errors/success go through the global toast (Paket 5.3.0, D2)
+      // instead of `errorKey`, so a failed claim never blanks the inbox
+      // (Constitution §30) and a successful one no longer forces a skeleton
+      // flash — the toast confirms it, so the revalidation can be silent.
+      toast({
+        tone: "success",
+        title: t("tickets.claimSuccess"),
         action: {
           label: t("tickets.claimSuccessOpen"),
           onClick: () => navigate(`/tickets/${ticketId}`),
@@ -337,7 +339,7 @@ export function useTicketList() {
       });
       await load(true);
     } catch (error) {
-      feedback.notify("error", mapClaimError(error));
+      toast({ tone: "danger", title: t(mapClaimError(error)), error });
     } finally {
       setClaimingId(null);
     }
@@ -403,8 +405,6 @@ export function useTicketList() {
     isLoading,
     errorKey,
     setErrorKey,
-    feedback: feedback.feedback,
-    dismissFeedback: feedback.dismiss,
     claimingId,
     selectedIds,
     setSelectedIds,

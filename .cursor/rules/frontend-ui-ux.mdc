@@ -47,6 +47,8 @@ Identitet: **light-first, sa ravnopravnim tamnim modom.** Nije više dark-only.
 - Forms: label (ne placeholder), loading/error/success/disabled. Nema sirovih backend poruka.
 - Loading = skeleton layout-a. Empty state = šta / zašto / sljedeća akcija.
 - Realtime = diskretan update, ne toast za svaku promjenu. Toast je za ishod korisničke akcije.
+  Greška u toastu prosljeđuje uhvaćenu grešku (`toast({ tone: "danger", title, error })`) da se vidi ID zahtjeva;
+  validacija forme ostaje inline uz polje. Ručno plutajući panel (ne-Radix) koristi `useDismissable`.
 - Destruktivne radnje: `ConfirmDialog` sa `intent="danger"` + razlog gdje ga change log zahtijeva.
 - Desktop primary; mobilni breakpoint: drawer/sheet umjesto dialoga.
 - Fokus mora biti vidljiv: `focus-visible:outline-2 focus-visible:outline-primary/70` ili `focus:ring-2 focus:ring-primary/25`.

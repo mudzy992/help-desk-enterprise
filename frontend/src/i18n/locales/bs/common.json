@@ -32,9 +32,6 @@
     "changes": "Promjene",
     "docs": "Dokumentacija"
   },
-  "feedback": {
-    "dismiss": "Zatvori poruku"
-  },
   "shell": {
     "openNavigation": "Otvori navigaciju",
     "navigation": "Navigacija",
@@ -62,7 +59,8 @@
       "problemManager": "Upravitelj problema",
       "changeManager": "Upravitelj promjena"
     },
-    "searchTrigger": "Pretraži…"
+    "searchTrigger": "Pretraži…",
+    "accountMenu": "Meni naloga: {{name}}"
   },
   "theme": {
     "label": "Izgled",
@@ -135,6 +133,15 @@
       "activeCount_one": "{{count}} aktivan filter",
       "activeCount_few": "{{count}} aktivna filtera",
       "activeCount_other": "{{count}} aktivnih filtera"
+    },
+    "toast": {
+      "region": "Obavještenja",
+      "queued_one": "+{{count}} na čekanju",
+      "queued_few": "+{{count}} na čekanju",
+      "queued_other": "+{{count}} na čekanju",
+      "repeated": "Ponovljeno {{count}} puta",
+      "copyRequestId": "Kopiraj ID zahtjeva {{requestId}}",
+      "copied": "ID zahtjeva kopiran"
     }
   },
   "notifications": {
@@ -156,7 +163,7 @@
       "ticketApproval": "Čeka odobrenje: {{ticketNumber}}",
       "ticketSla": "SLA događaj: {{ticketNumber}}",
       "remoteRequested": "Zahtjev za udaljenu podršku: {{ticketNumber}}",
-      "knowledgeReviewDue": "Pregled KB članka dospijeva",
+      "knowledgeReviewDue": "Članak znanja treba osvježiti",
       "unknown": "Obavještenje",
       "ticketForwarded": "Proslijeđen tiket {{ticketNumber}}",
       "ticketTimeAutoStopped": "Timer je automatski zaustavljen (maksimalno trajanje)",
@@ -189,8 +196,7 @@
       "changeDecided": "CAB je odlučio o promjeni",
       "changeStartingSoon": "Promjena uskoro počinje",
       "changeOverdue": "Promjena je prekoračila planirani kraj",
-      "changeFailed": "Promjena vezana za vaš problem nije uspjela",
-      "knowledgeReviewDue": "Članak znanja treba osvježiti"
+      "changeFailed": "Promjena vezana za vaš problem nije uspjela"
     }
   },
   "placeholders": {
@@ -3545,7 +3551,10 @@
     "entraCompleting": "Završavanje prijave…",
     "localShow": "Prijava lokalnim nalogom (administrator)",
     "localHide": "Sakrij lokalnu prijavu",
-    "supportHelp": "Trebate pomoć?"
+    "supportHelp": "Trebate pomoć?",
+    "showPassword": "Prikaži lozinku",
+    "hidePassword": "Sakrij lozinku",
+    "capsLock": "Caps Lock je uključen."
   },
   "auth": {
     "changePassword": {

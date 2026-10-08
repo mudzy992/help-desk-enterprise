@@ -106,7 +106,7 @@ export function StatusPage() {
       }
       await load();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
     } finally {
       setBusyId(null);
     }

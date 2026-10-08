@@ -42,7 +42,7 @@ export function OrganizationalUnitSignatoryCard({ unitId, enabled }: Organizatio
       await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.signatories });
       toast({ tone: "success", title: t("assets.transfers.signatories.removed", { unit: unit?.name ?? "" }) });
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
     }
   }
 
