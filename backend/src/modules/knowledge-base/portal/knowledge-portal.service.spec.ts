@@ -81,6 +81,23 @@ function createPortalHarness(settings: Record<string, unknown> = {}) {
       return row;
     },
   };
+  // Paket 5.2.4 (M14 B7): archive guard counts active articles in the category.
+  // The in-memory article delegate already provides count(), but this spec
+  // builds its own prisma surface and the real harness may be shared across
+  // tests — install a minimal count stub so the category-only assertion does
+  // not depend on the full delegate shape.
+  const existingArticleDelegate = prisma.knowledgeArticle as
+    | Record<string, unknown>
+    | undefined;
+  prisma.knowledgeArticle = {
+    ...(existingArticleDelegate ?? {}),
+    count: async ({ where }: { where?: { categoryId?: string; archivedAt?: null } } = {}) => {
+      if (existingArticleDelegate && typeof existingArticleDelegate.count === 'function') {
+        return existingArticleDelegate.count({ where });
+      }
+      return 0;
+    },
+  };
   prisma.knowledgeArticleView = {
     upsert: async ({
       where,
