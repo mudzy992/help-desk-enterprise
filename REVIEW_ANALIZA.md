@@ -40,6 +40,7 @@
 | 16 | **Paket 5.2.2 — instalacija, katalog i rutanje** (M1 #2–#5, M6 B6–B9, M7 B6–B9; 12 nalaza) | ✅ Zatvoren 2026-10-07 u commitu `b803cd5`; CI prošao; prelazni krug dokumenata zatvoren u `871aa46b` |
 | 17 | **Paket 5.2.3 — liste tiketa, CSAT i realtime** (M8 B4–B7, M11 B3–B4, M13 B1 nastavak; 8 nalaza) | ✅ Zatvoren 2026-10-07 (`a0fc8bc` i prethodni); svi nalozi §4.3 plana |
 | 18 | **Paket 5.2.4 — šabloni/playbooks i baza znanja** (M13 B3–B5, M14 B2/B3/B4/B6/B7; 8 nalaza) | ✅ Zatvoren 2026-10-08 u commitima `83aabb1`–`111bb44` (uključujući fix za palac-dolje reset `fad97f2` i docs ogledalo `111bb44`); GitHub CI zelen |
+| 19 | **Završni 5.2 closeout** — E2E login→MFA→session test (M2 NISKO) + OD-2 rate-limit kalibracijski dokument + 5.4 dizajn | ✅ Zatvoren 2026-10-08: `e2e/tests/39-login-session-flow.spec.ts` provjerava cijeli login flow (anon 401 → MFA izazov, ne izdaje token prije drugog faktora → JWT claimovi sub/sid/jti/exp, bez `purpose` → 200 na /auth/security → logout opoziva); `docs/ops/rate-limits.md` opisuje pragove i kalibracijsku proceduru za staging; dizajn `docs/plans/modules/5.4-sigurnosni-hardening.md` za passkey/limite/CAPTCHA/politiku sesija |
 
 ---
 
@@ -6917,11 +6918,13 @@ Nakon zatvaranja paketa 5.2 (sve četiri podfaze 5.2.1–5.2.4, ukupno 38 nalaza
 ## Nije kod / nije moguće testirati u sandboxu (prihvaćeno kao ostavljeno)
 
 - **M1 verify rute (SMTP/LDAPS/Entra):** `POST /install/verify/smtp`, `/verify/ldaps`, `/verify/entra` — ostavljeno za staging i prave kredencijale. Korisnik je eksplicitno rekao da ovo ide „do daljnjeg“ kao da nije testirano, ali pripremljeno za testiranje. (Nije implementirano jer se ne može testirati; kad bude dostupno van okruženje, rute se mogu dodati.)
-- **M3 Manager sync (`User.managerUserId`, AD/Entra mapiranje):** polje u šemi postoji (`identity.prisma`), ali nijedan kod ne koristi menadžersku relaciju osim anonimizacije (koja ga ispravno čisti). Da bi sync imao smisla treba odluka šta aplikacija radi s managerom (auto-CC? hijerarhija odobrenja?). Do tada je `[NEJASNO]` / dokumentovano odstupanje, ne bug.
-- **M2 phishing-otporni faktor (passkey/WebAuthn):** izvan RAW minimuma, enhancement za budućnost.
-- **E2E install token/cookie toka:** nedostaje integracioni test koji izvrši cijeli HTTP tok od `login` do `sid` (zabilježeno u §M2). Nije blokator.
-- **OD-2 staging kalibracija** (iz 5.2.1 closeout-a): procesna stvar, nije kod.
+- **M3 Manager sync (`User.managerUserId`, AD/Entra mapiranje):** polje u šemi postoji (`identity.prisma`), ali nijedan kod ne koristi menadžersku relaciju osim anonimizacije (koja ga ispravno čisti). Vlasnik je odlučio (2026-10-08) da se sync menadžera iz AD/LDAP/Entra **ne radi** — hijerarhija menadžera nije feature koji aplikacija koristi (nema auto-CC, nema hijerarhijskih odobrenja). Polje u šemi ostaje jer migracije idu samo naprijed, ali se ne puni i ne koristi; nije bug.
+- **M2 phishing-otporni faktor (passkey/WebAuthn):** premješten u **paket 5.4** (`docs/plans/modules/5.4-sigurnosni-hardening.md`) zajedno sa konfigurabilnim rate limitima, CAPTCHA-om, politikom sesija i security audit log-om. To je iznad RAW minimuma 5.2 opsega i nije bug-fix; dizajn je spreman i čeka implementaciju nakon 5.3.
+- **E2E login→MFA→session tok (M2 NISKO):** ✅ ZATVORENO — novi Playwright test `e2e/tests/39-login-session-flow.spec.ts` (red 19 u tabeli) izvršava kompletan tok i asserta ponašanje (anon 401, MFA obavezan, JWT claimovi sub/sid/jti/exp, 200 nakon verify, 401 nakon logout). Napomena: aplikacija koristi Bearer JWT (ne `sid` HttpOnly cookie), tako da provjera cookie atributa nije primjenjiva; odgovarajući ekvivalent (`sid` claim postoji u JWT-u i veže token za session registry) je assertan.
+- **OD-2 staging kalibracija (rate-limit pragovi):** ✅ ZATVORENO kao "kod spreman, kalibracija je operativna aktivnost" — algoritam je od početka razdvajao account i IP buckete; dodan dokument `docs/ops/rate-limits.md` koji opisuje defaultne pragove, Redis ključeve, preporučenu staging proceduru i šta mjeriti prije produkcije. Konfigurabilnost pragova kroz admin UI odlazi u paket 5.4.
+- **E2E install token/cookie toka:** nedostaje integracioni test koji izvrši cijeli HTTP install tok od nule (čista baza) do `complete` (zabilježeno u §M2). Nije blokator; install rute su u međuvremenu direktno testirane kroz `e2e/helpers/ensure-install.ts` koji se izvršava u global-setup i biva ako ne prođu sve rute (autentikacija install tokenom, set admin, complete). Kada bude zasebno "čista DB" E2E okruženje može se dodati izolovan test.
 
-## Otvoreno za 5.3
+## Otvoreno za 5.3 i 5.4
 
-Jedini preostali dizajn paket je `docs/plans/modules/5.3-admin-ux-interakcije-i-lokalizacija.md`, koji nije dio REVIEW_ANALIZE i čeka zeleno svjetlo vlasnika.
+- **Paket 5.3** (`docs/plans/modules/5.3-admin-ux-interakcije-i-lokalizacija.md`) — admin UX interakcije i lokalizacija. Čeka k6 perf smoke clean signal, pa odmah kreće.
+- **Paket 5.4** (`docs/plans/modules/5.4-sigurnosni-hardening.md`) — sigurnosni hardening (WebAuthn/passkey MFA, konfigurabilni rate-limiti, CAPTCHA plug-in tačka, politika sesija "remember me", HIBP provjera lozinke, bulk password reset, security event dnevnik). Dizajn je kompletiran 2026-10-08 i označen kao prioritet nakon E2E closeout-a. Ide nakon 5.3.
