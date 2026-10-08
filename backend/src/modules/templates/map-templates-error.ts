@@ -94,3 +94,4 @@ function isTemplateNameTakenError(error: unknown): error is Prisma.PrismaClientK
   }
   const target = error.meta?.target;
   return typeof target === 'string' && target.includes('response_template') && target.includes('name_lower_key');
+}

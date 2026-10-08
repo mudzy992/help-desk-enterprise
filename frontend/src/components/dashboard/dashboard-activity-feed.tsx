@@ -18,6 +18,7 @@ const KIND_DOT: Record<NotificationKind, string> = {
   ticket: SEMANTIC_DOT_HEX.primary,
   sla: SEMANTIC_DOT_HEX.danger,
   approval: SEMANTIC_DOT_HEX.warning,
+  article: SEMANTIC_DOT_HEX.info,
   system: SEMANTIC_DOT_HEX.info,
 };
 

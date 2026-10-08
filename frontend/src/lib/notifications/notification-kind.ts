@@ -88,6 +88,7 @@ export function notificationTicketPath(
     case "ticket":
     case "sla":
     case "approval":
+    case "article":
     case "system":
       return `/tickets/${ticketId}`;
   }

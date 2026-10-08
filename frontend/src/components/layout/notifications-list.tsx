@@ -1,4 +1,4 @@
-import { Settings2, Ticket, Timer, UserCog } from "lucide-react";
+import { BookOpen, Settings2, Ticket, Timer, UserCog } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ const KIND_ICON: Record<NotificationKind, typeof Ticket> = {
   ticket: Ticket,
   sla: Timer,
   approval: UserCog,
+  article: BookOpen,
   system: Settings2,
 };
 
@@ -20,6 +21,7 @@ const KIND_TONE: Record<NotificationKind, string> = {
   ticket: "border-primary/30 bg-primary/10 text-link",
   sla: "border-danger/30 bg-danger/10 text-danger",
   approval: "border-warning/30 bg-warning/10 text-warning",
+  article: "border-info/30 bg-info/10 text-info",
   system: "border-border bg-elevated text-muted-foreground",
 };
 
