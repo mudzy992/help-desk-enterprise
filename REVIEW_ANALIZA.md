@@ -25,13 +25,13 @@
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
 | 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
-| 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · B2/B3/B4 zatvoreni u 5.1.1, B5 zatvoren u 5.1.2 (instalacijski addons endpoint NISKO ostaje zaseban future enhancement, ne u opsegu 5.2) |
+| 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · B2/B3/B4 zatvoreni u 5.1.1; M1 #5 (addons endpoint NISKO) već ispravljen u kodu (nakon complete vraća samo katalog, ne i pohranjene vrijednosti); jedino što ostaje iz M1 je SMTP/LDAPS/Entra `verify` (izvan-RAW enhancement, nije moguće testirati bez vanjskog okruženja) |
 | 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
 | 6 | **Faza 3** — Docs modul u aplikaciji (korak (b): sadržaj, backend i ogledalo) | ✅ Korak (b) isporučen 2026-10-03 · koraci (c)–(d) slijede — vidi `# Faza 3 — korak (b)` |
 | 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
 | 8 | **Faza 3** — Docs modul u aplikaciji (korak (d): Faza 2 modula, pravilo, evidencija) | ✅ Korak (d) isporučen 2026-10-03 · Faza 3 zatvorena — vidi `# Faza 3 — korak (d)` |
 | 9 | **Faza 3 — zatvorena** (4 koraka) | ✅ Zatvorena 2026-10-03 · preostaju popravke po valovima 1–5 — vidi `# Faza 3 — korak (d)` i `# Zaključak Faze 2` |
-| 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · dopuna iste večeri (nazivi razreza umjesto ID-eva, §2b.1) · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
+| 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03; dopuna (§2b.1) i ostatak (M15 B4, M9 B3 skala na trendovima) zatvoreni u `# Popravke poslije vala 4` / Val 5 |
 | 11 | **Val 2** — sigurnost i vidljivost (M6 B2; M8 B1; M9 B1, B2; M10 B1, B2, B4; M12 B2; M13 B1; M14 B1) | ✅ Isporučen 2026-10-04 · deset nalaza · dokumentacija i ogledalo ažurirani — vidi `# Val 2 — sigurnost i vidljivost` |
 | 12 | **Val 3** — pouzdanost i performanse (M8 B2; M11 B1, B2; M12 B1, B3, B4, B5; M13 B2; M14 B5 + guard za Redis auth) | ✅ Isporučen 2026-10-05 · devet nalaza i jedan preventivni guard — vidi `# Val 3 — pouzdanost i performanse` |
 | 13 | **Val 4** — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“ (uz prateće ispravke datuma) | ✅ Isporučen 2026-10-05 · specovi 34–35; E-1 (e2e kapija) zatvoren u valu 5 — vidi `# Val 4 — e2e pokrivenost portala baze znanja i „Operativnog zdravlja“` |
@@ -6900,3 +6900,28 @@ Posljednja podfaza paketa 5.2.
 - Svi nalozi iz §4 plana `5.2-preostali-nalazi-niskog-rizika.md` zatvoreni (4 podfaze: 5.2.1 / 5.2.2 / 5.2.3 / 5.2.4, ukupno 38 nalaza).
 - GitHub CI: backend TS + test suite i frontend TS/build prošli zeleno (zadnji padovi popravljeni u popratnim commitovima).
 - Izvršni server E2E za ovaj krug nije pokretan sandboxom (nema vanjske baze/browsera), ostavljen je za staging/kapiju po postojećem procesu.
+
+---
+
+# Preostalo nakon 5.2.4 — završni pregled (2026-10-08)
+
+Nakon zatvaranja paketa 5.2 (sve četiri podfaze 5.2.1–5.2.4, ukupno 38 nalaza) stanje otvorenih stavki je:
+
+## Zatvoreno u ovom krugu / već u kodu
+
+- **M1 #5 (NISKO):** `GET /install/addons` nakon complete-a (u `read-install-addons-status.ts` i `install-addons.service.ts:39-42`) sada vraća samo katalog (defaultne vrijednosti, `canEnable`, `smtpEnabled` boolean) kroz `readInstallAddonsCatalog()` — pohranjene vrijednosti postavki (je li CMDB/Teams/SLA uključen) više nisu izložene neautentifikovanom čitaocu. `is-install-wizard-mutation-locked.ts` eksplicitno odobrava samo `/install/addons` i `/install/status` nakon complete-a; ostali install path-ovi dobijaju `INSTALL_LOCKED`. Preporuka iz nalaza je tako ispunjena: vraća se katalog, ne konfigurirane vrijednosti.
+- **M15 B4 (NISKO):** `scope` parametar u dashboard summary API-ju uklonjen u Val 5.
+- **M9 B3 (drugi dio, NISKO):** CSAT skala na serijama Trendova čita `private.csat.scaleMax` i zadovoljan prag iz konfiguracije (zatvoreno u „Popravke poslije vala 4“, Val 5).
+- **M4 B2–B5:** zatvoreni u 5.1.1/5.1.2.
+
+## Nije kod / nije moguće testirati u sandboxu (prihvaćeno kao ostavljeno)
+
+- **M1 verify rute (SMTP/LDAPS/Entra):** `POST /install/verify/smtp`, `/verify/ldaps`, `/verify/entra` — ostavljeno za staging i prave kredencijale. Korisnik je eksplicitno rekao da ovo ide „do daljnjeg“ kao da nije testirano, ali pripremljeno za testiranje. (Nije implementirano jer se ne može testirati; kad bude dostupno van okruženje, rute se mogu dodati.)
+- **M3 Manager sync (`User.managerUserId`, AD/Entra mapiranje):** polje u šemi postoji (`identity.prisma`), ali nijedan kod ne koristi menadžersku relaciju osim anonimizacije (koja ga ispravno čisti). Da bi sync imao smisla treba odluka šta aplikacija radi s managerom (auto-CC? hijerarhija odobrenja?). Do tada je `[NEJASNO]` / dokumentovano odstupanje, ne bug.
+- **M2 phishing-otporni faktor (passkey/WebAuthn):** izvan RAW minimuma, enhancement za budućnost.
+- **E2E install token/cookie toka:** nedostaje integracioni test koji izvrši cijeli HTTP tok od `login` do `sid` (zabilježeno u §M2). Nije blokator.
+- **OD-2 staging kalibracija** (iz 5.2.1 closeout-a): procesna stvar, nije kod.
+
+## Otvoreno za 5.3
+
+Jedini preostali dizajn paket je `docs/plans/modules/5.3-admin-ux-interakcije-i-lokalizacija.md`, koji nije dio REVIEW_ANALIZE i čeka zeleno svjetlo vlasnika.
