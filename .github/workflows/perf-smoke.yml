@@ -121,8 +121,15 @@ jobs:
 
       - name: Run the install wizard (super-admin -> login-provider -> seed -> complete)
         env:
+          # Paket 5.1: the founder password obeys the account policy — no part of the
+          # e-mail local part (`perf`, `admin`), no organisation word, >= 12 characters.
+          # The old `Perf-Smoke-1!` was refused with PASSWORD_POLICY_VIOLATIONS.
           PERF_ADMIN_EMAIL: perf-admin@example.test
-          PERF_ADMIN_PASSWORD: Perf-Smoke-1!
+          PERF_ADMIN_PASSWORD: Smoke-Prolaz-2026!
+          PERF_AGENT_EMAIL: perf-agent@example.test
+          PERF_AGENT_PASSWORD: Kanal-Odgovor-042!
+          PERF_REQUESTER_EMAIL: perf-requester@example.test
+          PERF_REQUESTER_PASSWORD: Zahtjev-Prozor-042!
         run: |
           # The wizard is a sequence, and the CI fixture used to run only half of it:
           # without `login-provider` the setting `private.auth.mode` stays unset and every
@@ -160,23 +167,16 @@ jobs:
           post /install/seed "" "20[0-9]"
           post /install/complete "" "20[0-9]"
 
-          # Prove that the account the k6 scenarios log in with actually works: a 401 here
-          # is the difference between "no load at all" and a real smoke run.
-          login_status=$(curl -sS -o /tmp/login.json -w '%{http_code}' \
-            -X POST "$BASE_URL/auth/login" \
-            -H 'content-type: application/json' \
-            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
-          note "login probe -> HTTP $login_status"
-          if [ "$login_status" != "200" ] && [ "$login_status" != "201" ]; then
-            note "  $(head -c 400 /tmp/login.json 2>/dev/null)"
-            note "::error::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status"
-            exit 1
-          fi
+          # Paket 2.1: a SUPER_ADMIN must enrol MFA on first sign-in, so a plain password
+          # login no longer yields a token for it. `perf/ci-provision.py` completes the
+          # TOTP enrolment, creates the AGENT/USER accounts k6 signs in with (no MFA
+          # requirement), puts the agent in the seeded fallback group (inbox -> detail ->
+          # reply are measured) and proves both plain logins return a token.
+          python3 perf/ci-provision.py --self-test
+          python3 perf/ci-provision.py
 
       - name: Seed load-test tickets (detail, messages and the dashboard need them)
         env:
-          PERF_ADMIN_EMAIL: perf-admin@example.test
-          PERF_ADMIN_PASSWORD: Perf-Smoke-1!
           SEED_TICKETS: "120"
         run: |
           # The install wizard seeds the catalogue but no tickets, so until this step the
@@ -196,12 +196,10 @@ jobs:
           rm -f /tmp/seed-tickets.log
           note() { echo "$*" | tee -a /tmp/seed-tickets.log; }
 
-          token=$(curl -sS -X POST "$BASE_URL/auth/login" \
-            -H 'content-type: application/json' \
-            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" \
-            | read_json 'd.get("accessToken","")')
+          # Reuse the already-enrolled SuperAdmin bearer token written by the wizard step.
+          token=$(cat /tmp/perf-admin-token.txt 2>/dev/null || true)
           if [ -z "$token" ]; then
-            echo "::error::no access token — cannot seed tickets"
+            echo "::error::no admin token — wizard step did not persist /tmp/perf-admin-token.txt"
             exit 1
           fi
           auth="Authorization: Bearer $token"
@@ -272,10 +270,10 @@ jobs:
         timeout-minutes: 20
         env:
           REPORT_LABEL: ci-smoke
-          AGENT_EMAIL: perf-admin@example.test
-          AGENT_PASSWORD: Perf-Smoke-1!
-          REQUESTER_EMAIL: perf-admin@example.test
-          REQUESTER_PASSWORD: Perf-Smoke-1!
+          AGENT_EMAIL: perf-agent@example.test
+          AGENT_PASSWORD: Kanal-Odgovor-042!
+          REQUESTER_EMAIL: perf-requester@example.test
+          REQUESTER_PASSWORD: Zahtjev-Prozor-042!
         run: |
           # `set -o pipefail` matters: otherwise the pipeline reports `tee`'s status (0),
           # so a broken threshold or an aborted run left the job green — which is why the
