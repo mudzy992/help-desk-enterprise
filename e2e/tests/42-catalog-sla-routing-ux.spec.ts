@@ -99,7 +99,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await page.getByRole('button', { name: /New service|Nova usluga/i }).first().click();
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
-      await dialog.getByLabel(/Name|Naziv/).fill(serviceName);
+      await dialog.getByLabel(/^(Name|Naziv)$/).fill(serviceName);
       await dialog.getByLabel(/Slug/i).fill(slug);
       await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
 
@@ -143,7 +143,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
       await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
       const editDialog = page.getByRole('dialog');
-      await editDialog.getByLabel(/Name|Naziv/).fill(editedName);
+      await editDialog.getByLabel(/^(Name|Naziv)$/).fill(editedName);
       await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
       await editDialog.locator('form button[type="submit"]').click();
       await expect(editDialog).toBeHidden();
@@ -188,7 +188,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await page.getByRole('button', { name: /Manage calendars|Upravljaj kalendarima/i }).click();
       await page.getByRole('button', { name: /New calendar|Novi kalendar/i }).click();
       await page.getByLabel(/Key|Ključ/).fill(key);
-      await page.getByLabel(/Name|Naziv/).fill(calendarName);
+      await page.getByLabel(/^(Name|Naziv)$/).fill(calendarName);
       await page.getByLabel(/Change reason|Razlog izmjene/).fill('Create calendar UX E2E');
       await page.getByRole('button', { name: /Save calendar|Spremi kalendar/i }).click();
       await expect(page.getByRole('button', { name: new RegExp(calendarName) })).toBeVisible({
@@ -202,7 +202,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       }
       calendarId = created.id;
 
-      await page.getByLabel(/Name|Naziv/).fill(editedName);
+      await page.getByLabel(/^(Name|Naziv)$/).fill(editedName);
       await page.getByLabel(/Change reason|Razlog izmjene/).fill('Edit calendar UX E2E');
       await page.getByRole('button', { name: /Update calendar|Ažuriraj kalendar/i }).click();
       await expect(page.getByRole('button', { name: new RegExp(editedName) })).toBeVisible({
