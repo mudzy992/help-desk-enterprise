@@ -7,6 +7,8 @@ type ArticleWhere = {
   readonly id?: string;
   readonly slug?: string;
   readonly serviceId?: string;
+  readonly categoryId?: string | null;
+  readonly archivedAt?: null;
   readonly status?: KnowledgeArticleRecord['status'];
   readonly organizationalUnitId?: string | { in: readonly string[] };
 };
@@ -70,6 +72,7 @@ export function createInMemoryKnowledgeArticleDelegate(
       articles.delete(where.id);
       return current;
     },
+    count: async ({ where }: { where?: ArticleWhere } = {}) => matching(where).length,
   };
 }
 
@@ -111,6 +114,12 @@ function matchesArticle(
     return false;
   }
   if (where.serviceId !== undefined && article.serviceId !== where.serviceId) {
+    return false;
+  }
+  if ('categoryId' in where && article.categoryId !== where.categoryId) {
+    return false;
+  }
+  if (where.archivedAt === null && article.archivedAt !== null) {
     return false;
   }
   if (
