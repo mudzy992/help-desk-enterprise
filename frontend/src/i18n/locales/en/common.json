@@ -586,7 +586,13 @@
       "change.request": "Request for change",
       "change.manage": "Change management",
       "change.approve": "CAB voting",
-      "integrations.teams.manage": "Manage Teams connector"
+      "integrations.teams.manage": "Manage Teams connector",
+      "ticket.time.manage": "Manage time entries",
+      "ticket.link.manage": "Link tickets",
+      "ticket.templates.use": "Use templates",
+      "ticket.templates.personal": "Personal templates",
+      "ticket.templates.manage": "Manage templates and playbooks",
+      "routing.read": "View routing"
     }
   },
   "maintenance": {
@@ -605,8 +611,6 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleting": "Deleting…",
-    "confirmDelete": "Confirm delete",
-    "cancel": "Cancel",
     "fallbackBadge": "Fallback",
     "fallbackForUnit": "Fallback group for {{unit}}",
     "memberCount": "{{count}} members",
@@ -618,7 +622,6 @@
     "filterUnit": "Filter by organizational unit",
     "filterAllUnits": "All organizational units",
     "manageMembers": "Members",
-    "hideMembers": "Hide members",
     "emptyTitle": "No groups yet",
     "emptyBody": "Create a handler group so routing rules and agents can receive tickets.",
     "form": {
@@ -653,7 +656,9 @@
     "errorMemberMissing": "This user is not a member of the group.",
     "errorGeneric": "Group operation failed.",
     "problemGroupBadge": "Problem group",
-    "cabGroupBadge": "CAB"
+    "cabGroupBadge": "CAB",
+    "deleteConfirmTitle": "Delete the group \"{{name}}\"?",
+    "deleteConfirmBody": "The group has {{count}} members. Deletion is audited and cannot be undone."
   },
   "permissions": {
     "title": "Role permissions",
@@ -756,7 +761,13 @@
         "change.request": "Create requests for change, edit your own draft and submit it for assessment (package 3.4).",
         "change.manage": "Assessment, scheduling, implementation, post-implementation review, templates and cancelling changes (package 3.4).",
         "change.approve": "Vote on changes in CAB groups you belong to; requesters do not vote on their own change (package 3.4).",
-        "integrations.teams.manage": "Teams connector settings, readiness check, channel linking and simulator (package 3.1)."
+        "integrations.teams.manage": "Teams connector settings, readiness check, channel linking and simulator (package 3.1).",
+        "ticket.time.manage": "Correct or delete other people's time entries and see deleted entries (reason required, audited).",
+        "ticket.link.manage": "Link related tickets and remove such links.",
+        "ticket.templates.use": "Insert response templates in the composer and work with the ticket playbook checklist.",
+        "ticket.templates.personal": "Create and edit personal response templates (visible only to their owner).",
+        "ticket.templates.manage": "Manage shared response templates and playbooks (within the service scope, reason required, versioned).",
+        "routing.read": "View ticket routing rules, coverage, and change logs."
       }
     }
   },
@@ -877,6 +888,13 @@
       "resetHint": "The user's notification settings return to the defaults. The action is audited.",
       "resetConfirm": "Reset",
       "resetDone": "The user's notification settings were reset."
+    },
+    "policyPackInherited": "inherited from the OU",
+    "policyPackDisabled": "switched off in settings",
+    "mfaState": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "notApplicable": "Not applicable (Microsoft)"
     }
   },
   "settings": {
@@ -2715,7 +2733,8 @@
         "DIRECTORY_SYNC_UNAVAILABLE": "Directory synchronisation is not available right now.",
         "unknown": "The action failed. See the server log."
       }
-    }
+    },
+    "ouPathMismatch": "The catalog entry points at \"{{catalogPath}}\" while the tree shows \"{{treePath}}\". Run a catalog read before editing."
   },
   "locale": {
     "label": "Language",

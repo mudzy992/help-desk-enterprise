@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { matchCatalogEntry } from "@/lib/directory/match-catalog-entry";
 import { syncManualDirectoryCatalog } from "@/lib/directory/sync-manual-directory-catalog";
 import { ApiError } from "@/services/api";
 import {
@@ -60,13 +61,23 @@ function mapCatalogSaveError(
   return failed;
 }
 
+/**
+ * Paket 5.3.2 (§4.3): an OU error belongs to the row that raised it, not to the
+ * bottom of the card. The state keeps the unit id next to the message so the
+ * tree can render it as `role="alert"` under that very row.
+ */
+export type CatalogActionError = {
+  readonly organizationalUnitId: string;
+  readonly message: string;
+};
+
 export function useManualDirectoryCatalogActions(input: {
   readonly canManage: boolean;
   readonly reloadDirectory: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<readonly ManualDirectoryOrganizationalUnit[]>([]);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<CatalogActionError | null>(null);
   const [catalogHint, setCatalogHint] = useState<string | null>(null);
   const blockerLabels: Record<string, string> = {
     children: t("directory.ouBlockerKinds.children"),
@@ -104,12 +115,6 @@ export function useManualDirectoryCatalogActions(input: {
     void reloadCatalog();
   }, [reloadCatalog]);
 
-  const findCatalogEntry = (node: OrganizationalUnitTreeNode) =>
-    catalog.find(
-      (entry) =>
-        entry.organizationalUnitPath === node.ouPath ||
-        entry.distinguishedName === node.distinguishedName,
-    );
 
   const materializeCatalogUnit = async (
     unit: Pick<
@@ -123,14 +128,31 @@ export function useManualDirectoryCatalogActions(input: {
     setCatalogHint(t("directory.catalogSynced"));
   };
 
+  /**
+   * No request is made when the row cannot be aligned with the catalog: the
+   * answer is known locally, so the screen explains it immediately.
+   */
   const resolveCatalogEntry = (node: OrganizationalUnitTreeNode) => {
-    const entry = findCatalogEntry(node);
-    if (entry === undefined) {
-      setActionError(t("directory.ouNotInCatalog"));
+    const match = matchCatalogEntry(catalog, node);
+    if (match.kind === "missing") {
+      setActionError({
+        organizationalUnitId: node.id,
+        message: t("directory.ouNotInCatalog"),
+      });
+      return null;
+    }
+    if (match.kind === "path-mismatch") {
+      setActionError({
+        organizationalUnitId: node.id,
+        message: t("directory.ouPathMismatch", {
+          catalogPath: match.entry.organizationalUnitPath,
+          treePath: match.treePath,
+        }),
+      });
       return null;
     }
     setActionError(null);
-    return entry;
+    return match.entry;
   };
 
   const handleDelete = async (node: OrganizationalUnitTreeNode) => {
@@ -158,8 +180,9 @@ export function useManualDirectoryCatalogActions(input: {
       }
       await reloadCatalog();
     } catch (error) {
-      setActionError(
-        mapCatalogSaveError(
+      setActionError({
+        organizationalUnitId: node.id,
+        message: mapCatalogSaveError(
           error,
           t("directory.ouDeleteBlocked"),
           t("directory.catalogSaveFailed"),
@@ -175,7 +198,7 @@ export function useManualDirectoryCatalogActions(input: {
             return `${t("directory.ouDeleteBlocked")}: ${details}`;
           },
         ),
-      );
+      });
     }
   };
 
@@ -184,9 +207,11 @@ export function useManualDirectoryCatalogActions(input: {
     try {
       await materializeCatalogUnit(unit);
     } catch (error) {
-      setActionError(
-        error instanceof ApiError ? error.message : t("directory.syncFailed"),
-      );
+      setActionError({
+        organizationalUnitId: unit.externalId,
+        message:
+          error instanceof ApiError ? error.message : t("directory.syncFailed"),
+      });
       await reloadCatalog();
     }
   };
@@ -194,6 +219,9 @@ export function useManualDirectoryCatalogActions(input: {
   return {
     catalog,
     actionError,
+    clearActionError: () => setActionError(null),
+    isPathAligned: (node: OrganizationalUnitTreeNode) =>
+      matchCatalogEntry(catalog, node).kind === "matched",
     catalogHint,
     reloadCatalog,
     resolveCatalogEntry,

@@ -595,7 +595,13 @@
       "change.request": "Zahtjev za promjenu",
       "change.manage": "Upravljanje promjenama",
       "change.approve": "Glasanje u CAB-u",
-      "integrations.teams.manage": "Upravljanje Teams konektorom"
+      "integrations.teams.manage": "Upravljanje Teams konektorom",
+      "ticket.time.manage": "Upravljanje evidencijom vremena",
+      "ticket.link.manage": "Povezivanje tiketa",
+      "ticket.templates.use": "Korištenje šablona",
+      "ticket.templates.personal": "Lični šabloni",
+      "ticket.templates.manage": "Upravljanje šablonima i playbookovima",
+      "routing.read": "Pregled rutiranja"
     }
   },
   "maintenance": {
@@ -614,8 +620,6 @@
     "edit": "Uredi",
     "delete": "Obriši",
     "deleting": "Brisanje…",
-    "confirmDelete": "Potvrdi brisanje",
-    "cancel": "Odustani",
     "fallbackBadge": "Fallback",
     "fallbackForUnit": "Fallback grupa za {{unit}}",
     "memberCount": "{{count}} članova",
@@ -627,7 +631,6 @@
     "filterUnit": "Filtriraj po OJ",
     "filterAllUnits": "Sve organizacione jedinice",
     "manageMembers": "Članovi",
-    "hideMembers": "Sakrij članove",
     "emptyTitle": "Još nema grupa",
     "emptyBody": "Kreirajte grupu da routing pravila i agenti mogu primati tikete.",
     "form": {
@@ -662,7 +665,9 @@
     "errorMemberMissing": "Korisnik nije član ove grupe.",
     "errorGeneric": "Operacija nad grupom nije uspjela.",
     "problemGroupBadge": "Problem-grupa",
-    "cabGroupBadge": "CAB"
+    "cabGroupBadge": "CAB",
+    "deleteConfirmTitle": "Obrisati grupu „{{name}}“?",
+    "deleteConfirmBody": "Grupa ima {{count}} članova. Brisanje se bilježi u audit i ne može se poništiti."
   },
   "permissions": {
     "title": "Permisije uloga",
@@ -765,7 +770,13 @@
         "change.request": "Kreiranje zahtjeva za promjenu, uređivanje vlastitog nacrta i slanje na procjenu (paket 3.4).",
         "change.manage": "Procjena, termin, realizacija, pregled nakon implementacije, šabloni i otkazivanje promjena (paket 3.4).",
         "change.approve": "Glas o promjenama u CAB grupama čiji ste član; podnosilac ne glasa o svojoj promjeni (paket 3.4).",
-        "integrations.teams.manage": "Postavke Teams konektora, provjera spremnosti, povezivanje kanala i simulator (paket 3.1)."
+        "integrations.teams.manage": "Postavke Teams konektora, provjera spremnosti, povezivanje kanala i simulator (paket 3.1).",
+        "ticket.time.manage": "Ispravi ili obriši tuđe unose vremena i vidi obrisane unose (obavezan razlog, auditovano).",
+        "ticket.link.manage": "Poveži srodne tikete i ukloni takve veze.",
+        "ticket.templates.use": "Ubacuj šablone odgovora u editor i radi s playbook checklistom tiketa.",
+        "ticket.templates.personal": "Kreiraj i uređuj lične šablone odgovora (vidljivi samo vlasniku).",
+        "ticket.templates.manage": "Upravljaj dijeljenim šablonima odgovora i playbookovima (u opsegu servisa, obavezan razlog, verzionisano).",
+        "routing.read": "Pregledaj pravila usmjeravanja tiketa, pokrivenost i dnevnik izmjena."
       }
     }
   },
@@ -888,6 +899,13 @@
       "resetHint": "Korisnikove postavke notifikacija vraćaju se na zadane. Akcija se bilježi u audit.",
       "resetConfirm": "Vrati na zadano",
       "resetDone": "Postavke notifikacija korisnika su vraćene na zadano."
+    },
+    "policyPackInherited": "naslijeđeno iz OJ",
+    "policyPackDisabled": "isključen postavkom",
+    "mfaState": {
+      "enabled": "Uključen",
+      "disabled": "Isključen",
+      "notApplicable": "Ne primjenjuje se (Microsoft)"
     }
   },
   "settings": {
@@ -2734,7 +2752,8 @@
         "DIRECTORY_SYNC_UNAVAILABLE": "Sinhronizacija direktorija trenutno nije dostupna.",
         "unknown": "Akcija nije uspjela. Pogledajte dnevnik servera."
       }
-    }
+    },
+    "ouPathMismatch": "OU u katalogu vodi na „{{catalogPath}}“, a stablo je prikazuje kao „{{treePath}}“. Pokrenite očitavanje kataloga prije izmjene."
   },
   "locale": {
     "label": "Jezik",

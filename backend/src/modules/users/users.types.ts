@@ -29,6 +29,11 @@ export type RemoveUserRoleInput = {
 
 export type UserRoleTone = 'super' | 'manager' | 'agent' | 'user';
 
+/** Paket 5.3.2 (§4.4): the summary never carries MFA secrets, only the state. */
+export type UserMfaState = 'enabled' | 'disabled' | 'not_applicable';
+
+export type UserPolicyPackSource = 'organizational_unit' | 'none';
+
 export type UserSummaryResponse = {
   readonly id: string;
   readonly email: string;
@@ -42,8 +47,13 @@ export type UserSummaryResponse = {
   readonly organizationalUnitName: string | null;
   readonly groupName: string | null;
   readonly policyPackKey: string | null;
+  /** Paket 5.3.2: where the pack comes from — the user has no pack of its own. */
+  readonly policyPackSource: UserPolicyPackSource;
+  /** Paket 5.3.2: the pack is switched off by `private.policyPacks.disabledKeysCsv`. */
+  readonly policyPackDisabled: boolean;
   readonly openTicketCount: number;
-  readonly mfa: null;
+  /** Paket 5.3.2: `not_applicable` for directory-linked accounts (MFA is the provider's). */
+  readonly mfa: UserMfaState;
   /** Paket 2.6: set once the user was anonymized (the name is a pseudonym). */
   readonly anonymizedAt: string | null;
   /** Paket 2.6: legal hold — anonymization and retention skip this user. */

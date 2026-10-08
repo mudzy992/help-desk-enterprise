@@ -10,6 +10,7 @@ import { deleteUser } from './delete-user';
 import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 import { listUserRoles } from './list-user-roles';
 import { listUsersSummary, listUsersSummaryPage } from './list-users-summary';
+import { readDisabledPolicyPackKeys } from '../policy-packs/read-disabled-policy-pack-keys';
 import { mapUsersError } from './map-users-error';
 import { removeUserRole } from './remove-user-role';
 import type { ListUsersSummaryOptions } from './list-users-summary';
@@ -50,14 +51,44 @@ export class UsersService {
       Promise.resolve(null);
   }
 
+  /**
+   * Paket 5.3.2 (§4.4): the summary marks a pack as inactive when settings
+   * switched it off, so the list has to know the disabled keys. Callers may
+   * pass them explicitly (tests, single-user reloads); otherwise they are read
+   * once per request from the settings registry.
+   */
+  private async withPolicyPackState(
+    options: ListUsersSummaryOptions,
+  ): Promise<ListUsersSummaryOptions> {
+    if (options.disabledPolicyPackKeys !== undefined) {
+      return options;
+    }
+    return {
+      ...options,
+      disabledPolicyPackKeys: await readDisabledPolicyPackKeys(
+        this.settingsService,
+      ),
+    };
+  }
+
   listSummary(
     options: ListUsersSummaryOptions = {},
   ): Promise<readonly UserSummaryResponse[]> {
-    return this.execute(() => listUsersSummary(this.prisma, options));
+    return this.execute(async () =>
+      listUsersSummary(
+        this.prisma,
+        await this.withPolicyPackState(options),
+      ),
+    );
   }
 
   listSummaryPage(options: ListUsersSummaryOptions = {}) {
-    return this.execute(() => listUsersSummaryPage(this.prisma, options));
+    return this.execute(async () =>
+      listUsersSummaryPage(
+        this.prisma,
+        await this.withPolicyPackState(options),
+      ),
+    );
   }
 
   create(input: CreateUserInput): Promise<CreateUserResponse> {

@@ -1,5 +1,5 @@
 import { Network, Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DirectorySyncCard } from "@/components/organizational-units/directory-sync-card";
 import { LdapsDirectorySyncPanel } from "@/components/organizational-units/ldaps-directory-sync-panel";
@@ -10,7 +10,6 @@ import { OrganizationalUnitTree } from "@/components/organizational-units/organi
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -52,6 +51,19 @@ export function OrganizationalUnitsPage({
     findOrganizationalUnitNode(directory.tree, selectedId) ??
     directory.tree[0] ??
     null;
+  /** Paket 5.3.2 (§4.3): the alert renders under the row that raised it. */
+  const errorsByUnitId = useMemo(
+    () =>
+      catalogActions.actionError === null
+        ? new Map<string, string>()
+        : new Map([
+            [
+              catalogActions.actionError.organizationalUnitId,
+              catalogActions.actionError.message,
+            ],
+          ]),
+    [catalogActions.actionError],
+  );
 
   return (
     <section>
@@ -114,6 +126,8 @@ export function OrganizationalUnitsPage({
                 onSelect={(node) => setSelectedId(node.id)}
                 canManage={canManage}
                 onEdit={(node) => {
+                  // No request leaves the browser when the row is not in the
+                  // manual-only catalog — the alert under the row says why.
                   const entry = catalogActions.resolveCatalogEntry(node);
                   if (entry === null) {
                     return;
@@ -123,16 +137,12 @@ export function OrganizationalUnitsPage({
                   setFormOpen(true);
                 }}
                 onDelete={(node) => void catalogActions.handleDelete(node)}
+                errorsByUnitId={errorsByUnitId}
               />
             ) : null}
             {catalogActions.catalogHint ? (
               <p className="px-4 pb-2 text-[11.5px] text-muted-foreground">
                 {catalogActions.catalogHint}
-              </p>
-            ) : null}
-            {catalogActions.actionError ? (
-              <p role="alert" className={`px-4 pb-3 ${errorTextClassName}`}>
-                {catalogActions.actionError}
               </p>
             ) : null}
           </Card>

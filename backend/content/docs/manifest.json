@@ -1845,6 +1845,11 @@
         },
         {
           "level": 3,
+          "text": "Šta pokazuje lista korisnika",
+          "id": "sta-pokazuje-lista-korisnika"
+        },
+        {
+          "level": 3,
           "text": "Pretraga i stranice korisnika",
           "id": "pretraga-i-stranice-korisnika"
         },
@@ -1894,7 +1899,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1782,
+      "wordCount": 1944,
       "source": "docs/user-guide/korisnici-oj-i-grupe.md",
       "englishTitle": null
     },
@@ -2943,7 +2948,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1750,
+      "wordCount": 1880,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

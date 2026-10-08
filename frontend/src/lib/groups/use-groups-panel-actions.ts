@@ -1,47 +1,47 @@
 import { useState } from "react";
+import type { GroupDrawerTab } from "@/components/groups/group-detail-drawer";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
   deleteGroup,
   getGroup,
   updateGroup,
+  type GroupListItemResponse,
   type GroupResponse,
 } from "@/services/groups-api";
 
 export function useGroupsPanelActions(onChanged: () => Promise<void>) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandedGroup, setExpandedGroup] = useState<GroupResponse | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [drawerGroupId, setDrawerGroupId] = useState<string | null>(null);
+  const [drawerTab, setDrawerTab] = useState<GroupDrawerTab>("members");
+  const [detail, setDetail] = useState<GroupResponse | null>(null);
+  /** Paket 5.3.2: the danger dialog carries the name, so the row never asks twice. */
+  const [deleteTarget, setDeleteTarget] =
+    useState<GroupListItemResponse | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<GroupsErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
   const loadGroup = async (groupId: string) => {
     try {
-      setExpandedGroup(await getGroup(groupId));
+      setDetail(await getGroup(groupId));
     } catch (error) {
       setErrorKey(mapGroupsError(error));
       setRequestId(readApiRequestId(error));
     }
   };
 
-  const openGroup = async (groupId: string) => {
-    setEditingId(null);
-    if (expandedId === groupId) {
-      setExpandedId(null);
-      setExpandedGroup(null);
-      return;
-    }
-    setExpandedId(groupId);
-    setExpandedGroup(null);
-    await loadGroup(groupId);
+  const openGroup = (groupId: string, tab: GroupDrawerTab) => {
+    setErrorKey(null);
+    setRequestId(null);
+    setDrawerGroupId(groupId);
+    setDrawerTab(tab);
+    setDetail(null);
+    void loadGroup(groupId);
   };
 
-  const startEdit = (groupId: string) => {
-    setEditingId(groupId);
-    setExpandedId(groupId);
-    void loadGroup(groupId);
+  const closeGroup = () => {
+    setDrawerGroupId(null);
+    setDetail(null);
   };
 
   const saveEdit = (input: {
@@ -51,11 +51,13 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
     readonly isProblemGroup: boolean;
     readonly isCabGroup: boolean;
   }) => {
-    if (editingId === null) {
+    if (drawerGroupId === null) {
       return;
     }
-    const groupId = editingId;
+    const groupId = drawerGroupId;
     setPendingId(groupId);
+    setErrorKey(null);
+    setRequestId(null);
     void updateGroup(groupId, {
       name: input.name,
       isFallback: input.isFallback,
@@ -63,8 +65,11 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
       isCabGroup: input.isCabGroup,
     })
       .then(async () => {
-        setEditingId(null);
         await onChanged();
+        // Stay in the drawer on the members tab: the edit is done, the useful
+        // next step is the roster, not an empty form.
+        setDrawerTab("members");
+        await loadGroup(groupId);
       })
       .catch((error) => {
         setErrorKey(mapGroupsError(error));
@@ -73,38 +78,48 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
       .finally(() => setPendingId(null));
   };
 
-  const remove = async (groupId: string) => {
-    setPendingId(groupId);
+  const confirmRemove = async () => {
+    const target = deleteTarget;
+    if (target === null) {
+      return;
+    }
+    setPendingId(target.id);
     setErrorKey(null);
     setRequestId(null);
     try {
-      await deleteGroup(groupId);
-      setConfirmDeleteId(null);
-      setExpandedId(null);
-      setExpandedGroup(null);
+      await deleteGroup(target.id);
+      setDeleteTarget(null);
+      if (drawerGroupId === target.id) {
+        closeGroup();
+      }
       await onChanged();
     } catch (error) {
       setErrorKey(mapGroupsError(error));
       setRequestId(readApiRequestId(error));
+      setDeleteTarget(null);
     } finally {
       setPendingId(null);
     }
   };
 
   return {
-    expandedId,
-    expandedGroup,
-    editingId,
-    confirmDeleteId,
+    drawerGroupId,
+    drawerTab,
+    detail,
+    deleteTarget,
     pendingId,
     errorKey,
     requestId,
     openGroup,
-    startEdit,
+    closeGroup,
+    setDrawerTab,
     saveEdit,
-    remove,
-    setConfirmDeleteId,
-    setEditingId,
-    setExpandedGroup,
+    onMembersChanged: (group: GroupResponse) => {
+      setDetail(group);
+      void onChanged();
+    },
+    requestDelete: setDeleteTarget,
+    cancelDelete: () => setDeleteTarget(null),
+    confirmRemove,
   };
 }

@@ -26,8 +26,10 @@ const user = {
   organizationalUnitName: null,
   groupName: null,
   policyPackKey: null,
+  policyPackSource: "none",
+  policyPackDisabled: false,
   openTicketCount: 0,
-  mfa: null,
+  mfa: "disabled",
   anonymizedAt: null,
   legalHold: false,
 };

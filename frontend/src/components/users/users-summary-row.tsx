@@ -40,6 +40,10 @@ export function UsersSummaryRow({
           <div>
             <p className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-medium text-foreground">
               {user.displayName}
+              {/*
+                Paket 5.3.2 (§4.4): only "inactive" — there is no per-user lock
+                state in the model, so no "locked" badge is rendered.
+              */}
               {!user.isActive ? (
                 <Badge tone="neutral" dot={false}>
                   {t("users.inactive")}
@@ -77,21 +81,56 @@ export function UsersSummaryRow({
         ) : null}
       </td>
       <td className="px-4 py-2.5">
-        {user.policyPackKey ? (
-          <Badge tone="accent" dot={false}>
-            {t(`policyPacks.packs.${user.policyPackKey}.name`, {
-              defaultValue: user.policyPackKey,
-            })}
-          </Badge>
-        ) : (
+        {/*
+          Paket 5.3.2 (§4.4): the badge appears only for a pack that is really
+          active — a pack switched off in settings is shown as inactive text,
+          and the row says where it comes from (the user has no pack of its own,
+          it is inherited from the organizational unit).
+        */}
+        {user.policyPackKey === null ? (
           <span className="text-muted-foreground">—</span>
+        ) : (
+          <span className="block">
+            {user.policyPackDisabled ? (
+              <span className="text-[12px] text-muted-foreground">
+                {t(`policyPacks.packs.${user.policyPackKey}.name`, {
+                  defaultValue: user.policyPackKey,
+                })}
+              </span>
+            ) : (
+              <Badge tone="accent" dot={false}>
+                {t(`policyPacks.packs.${user.policyPackKey}.name`, {
+                  defaultValue: user.policyPackKey,
+                })}
+              </Badge>
+            )}
+            <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
+              {user.policyPackDisabled
+                ? t("users.policyPackDisabled")
+                : user.policyPackSource === "organizational_unit"
+                  ? t("users.policyPackInherited")
+                  : null}
+            </span>
+          </span>
         )}
       </td>
       <td className="px-4 py-2.5 text-[11px] text-muted-foreground">
         {permissionScope}
       </td>
       <td className="px-4 py-2.5 text-center">
-        <span className="text-muted-foreground">—</span>
+        {user.mfa === "not_applicable" ? (
+          <span className="text-[11px] text-muted-foreground">
+            {t("users.mfaState.notApplicable")}
+          </span>
+        ) : (
+          <Badge tone={user.mfa === "enabled" ? "success" : "neutral"} dot={false}>
+            {t(
+              user.mfa === "enabled"
+                ? "users.mfaState.enabled"
+                : "users.mfaState.disabled",
+            )}
+          </Badge>
+        )}
       </td>
       <td className="px-4 py-2.5 text-right">
         {user.openTicketCount > 0 ? (

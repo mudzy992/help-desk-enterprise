@@ -8,6 +8,7 @@ import { assignUserRole } from './assign-user-role';
 import { ensureSystemRole } from './ensure-system-role';
 import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 import { listUsersSummary } from './list-users-summary';
+import { readDisabledPolicyPackKeys } from '../policy-packs/read-disabled-policy-pack-keys';
 import type { CreateUserInput, CreateUserResponse } from './users.types';
 import { UsersError } from './users.error';
 
@@ -87,7 +88,12 @@ export async function createUser(
     actorIsSuperAdmin: input.actorIsSuperAdmin,
     requestId: input.requestId,
   });
-  const summaries = await listUsersSummary(prisma, { ids: [created.id] });
+  const summaries = await listUsersSummary(prisma, {
+    ids: [created.id],
+    disabledPolicyPackKeys: await readDisabledPolicyPackKeys(
+      dependencies.settingsService,
+    ),
+  });
   const summary = summaries.find((user) => user.id === created.id);
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');

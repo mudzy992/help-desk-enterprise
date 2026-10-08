@@ -45,6 +45,16 @@
    *„E-mail za AD-praćene naloge dolazi iz kataloga.“*
 3. **Sačuvaj izmjene**; deaktivacija važi odmah (keš dozvola se invalidira).
 
+### Šta pokazuje lista korisnika
+
+- Kolona **MFA** pokazuje da li je potvrda u dva koraka **Uključen** ili **Isključen** za lokalne naloge; za
+  AD/Entra naloge piše **Ne primjenjuje se (Microsoft)** jer drugi faktor daje sam davalac identiteta. Nikad se ne
+  prikazuje nikakva tajna — samo stanje.
+- Kolona **Paket politika** prikazuje bedž samo kad je paket zaista aktivan. Ispod naziva piše **naslijeđeno iz OJ**
+  (korisnik nema svoj paket, nasljeđuje ga iz organizacione jedinice) ili **isključen postavkom** kada je paket
+  isključen u postavkama instalacije.
+- Oznaka **neaktivan** stoji samo za deaktiviran nalog. Ne postoji zasebno „zaključan“ stanje po korisniku.
+
 ### Pretraga i stranice korisnika
 
 - Pretraga filtrira korisnike, a lista učitava **100 redova po stranici**.
@@ -80,14 +90,16 @@
    automatski iz parenta i naziva — ne unosi se ručno u ovoj formi.
 3. Detalji jedinice prikazuju **Naziv (segment putanje)**, **ouPath (kanonski)**, **Distinguished Name (LDAP)** i
    broj **mapiranih korisnika**. Izmjena naziva ili parenta **prepisuje `ouPath` i DN cijele podgrane**.
-4. Ako je izvor **Ručni katalog**, **Obriši** u jednoj transakciji uklanja kataloški zapis i materijalizovanu
+4. Ako red nije u ručnom katalogu (ili mu se `ouPath` razlikuje od kataloškog zapisa), poruka se prikazuje **odmah
+   ispod tog reda** i **nijedan zahtjev ne ide na server** — prvo pokrenite očitavanje kataloga.
+5. Ako je izvor **Ručni katalog**, **Obriši** u jednoj transakciji uklanja kataloški zapis i materijalizovanu
    OJ. Brisanje se odbija ako postoje djeca, katalog korisnici/grupe ili žive veze; poruka navodi tip i broj
    svake blokirajuće veze. Korisnički nalozi se **nikad ne brišu** ovim putem. OJ-scoped dodjele uloga se mogu
    ukloniti zajedno s OJ-om; nakon brisanja prikazuje se upozorenje s njihovim brojem, a pogođeni cachevi se
    invalidiraju. Ova radnja **ne briše stvarni AD nalog**.
-5. Panel **AD sinhronizacija** (vidljiv samo SuperAdminu) prikazuje režim čitanja, throttle, keš, zadnje
+6. Panel **AD sinhronizacija** (vidljiv samo SuperAdminu) prikazuje režim čitanja, throttle, keš, zadnje
    očitavanje i izvor (**AD (LDAPS)** ili **Ručni katalog**), uz **Pokreni ručno očitavanje**.
-6. U istom panelu je **Sinhronizacija s Active Directoryjem**: **Test veze**, **Probni prolaz** (pregled plana
+7. U istom panelu je **Sinhronizacija s Active Directoryjem**: **Test veze**, **Probni prolaz** (pregled plana
    izmjena) i **Primijeni plan**. Kod primjene se prikazuje potvrda s brojem novih/ažuriranih/deaktiviranih
    korisnika i izmjenama OU-a; deaktiviranim korisnicima se odmah gase sesije. Plan se ne može primijeniti ako
    je aktivan **osigurač deaktivacije** (previše deaktivacija u jednom prolazu) niti dva puta.
@@ -99,14 +111,16 @@
 2. Svaka OJ treba **barem jednu fallback grupu** — kad je označite, prethodna fallback grupa te OJ prestaje to
    biti. Fallback grupa se ne može obrisati ako je jedina za svoju OJ.
 3. Oznaka **Fallback** stoji na kartici grupe; kartica prikazuje broj **Članova** i **routing pravila**.
-4. **Članovi** → **Odaberi korisnika** i **Dodaj člana**; **Ukloni** izbacuje člana. Promjena članstva odmah
-   mijenja šta korisnik vidi u grupnom inboxu.
+4. Klik na karticu otvara **desni panel** s dva taba: **Članovi** (odabir korisnika, **Dodaj člana**, **Ukloni**) i
+   **Uredi** (naziv, OJ, Problem-grupa, CAB grupa). Promjena članstva odmah mijenja šta korisnik vidi u grupnom
+   inboxu. Panel se zatvara na **Escape**, klik izvan njega ili na **X**.
 5. Kod izmjene grupe mogu se uključiti **Problem-grupa** i **CAB grupa**:
    - Problem-grupa: „Agenti ovoj grupi predaju probleme; upravitelji problema u njoj ih preuzimaju i rješavaju.
      Modul problema je aktivan tek kad postoji bar jedna problem-grupa.“
    - CAB grupa: „Članovi s dozvolom `change.approve` glasaju o promjenama. Modul promjena je aktivan tek kad
      postoji bar jedna CAB grupa.“
-6. **Obriši** je blokirano ako grupa ima tikete koji nisu zatvoreni (dugme **Potvrdi brisanje** / **Odustani**).
+6. **Obriši** otvara **jednu** potvrdu u kojoj piše naziv grupe i broj članova; brisanje je blokirano ako grupa ima
+   tikete koji nisu zatvoreni.
 
 ### Dnevnik izmjena
 

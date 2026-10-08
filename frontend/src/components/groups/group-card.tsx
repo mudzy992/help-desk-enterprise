@@ -11,13 +11,10 @@ interface GroupCardProperties {
   readonly routingRuleCount: number;
   readonly isExpanded: boolean;
   readonly canWrite: boolean;
-  readonly confirmDelete: boolean;
   readonly isPending: boolean;
-  readonly onOpen: () => void;
+  readonly onOpenMembers: () => void;
   readonly onEdit: () => void;
   readonly onRequestDelete: () => void;
-  readonly onConfirmDelete: () => void;
-  readonly onCancelDelete: () => void;
 }
 
 export function GroupCard({
@@ -25,13 +22,10 @@ export function GroupCard({
   routingRuleCount,
   isExpanded,
   canWrite,
-  confirmDelete,
   isPending,
-  onOpen,
+  onOpenMembers,
   onEdit,
   onRequestDelete,
-  onConfirmDelete,
-  onCancelDelete,
 }: GroupCardProperties) {
   const { t } = useTranslation();
   return (
@@ -41,11 +35,12 @@ export function GroupCard({
         group.isFallback && "border-l-[3px] border-l-warning",
         isExpanded && "border-line-strong bg-elevated/40",
       )}
+      data-testid={`group-card-${group.id}`}
     >
       <button
         type="button"
         className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
-        onClick={onOpen}
+        onClick={onOpenMembers}
         aria-expanded={isExpanded}
         aria-label={t("groups.openCard", { name: group.name })}
       >
@@ -91,34 +86,28 @@ export function GroupCard({
         </div>
       </button>
       <div className="flex flex-wrap gap-1.5 border-t border-border/70 px-4 py-2">
-        <Button type="button" size="xs" variant="outline" onClick={onOpen}>
-          {isExpanded ? t("groups.hideMembers") : t("groups.manageMembers")}
+        <Button type="button" size="xs" variant="outline" onClick={onOpenMembers}>
+          {t("groups.manageMembers")}
         </Button>
         {canWrite ? (
           <>
             <Button type="button" size="xs" variant="outline" onClick={onEdit}>
               {t("groups.edit")}
             </Button>
-            {confirmDelete ? (
-              <>
-                <Button
-                  type="button"
-                  size="xs"
-                  variant="danger"
-                  disabled={isPending}
-                  onClick={onConfirmDelete}
-                >
-                  {isPending ? t("groups.deleting") : t("groups.confirmDelete")}
-                </Button>
-                <Button type="button" size="xs" variant="ghost" onClick={onCancelDelete}>
-                  {t("groups.cancel")}
-                </Button>
-              </>
-            ) : (
-              <Button type="button" size="xs" variant="danger" onClick={onRequestDelete}>
-                {t("groups.delete")}
-              </Button>
-            )}
+            {/*
+              Paket 5.3.2 (§4.3): one confirmation only — the button opens the
+              danger dialog, which shows the group name. The old inline
+              "Potvrdi brisanje" step is gone.
+            */}
+            <Button
+              type="button"
+              size="xs"
+              variant="danger"
+              disabled={isPending}
+              onClick={onRequestDelete}
+            >
+              {isPending ? t("groups.deleting") : t("groups.delete")}
+            </Button>
           </>
         ) : null}
       </div>

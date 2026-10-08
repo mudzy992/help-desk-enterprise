@@ -29,8 +29,13 @@ export type UserSummary = {
   readonly organizationalUnitName: string | null;
   readonly groupName: string | null;
   readonly policyPackKey: string | null;
+  /** Paket 5.3.2: a user has no pack of its own; it is inherited from the OU. */
+  readonly policyPackSource: "organizational_unit" | "none";
+  /** Paket 5.3.2: the pack is switched off in settings, so it is not active. */
+  readonly policyPackDisabled: boolean;
   readonly openTicketCount: number;
-  readonly mfa: null;
+  /** Paket 5.3.2: no secrets, only the state; `not_applicable` for Entra/AD. */
+  readonly mfa: "enabled" | "disabled" | "not_applicable";
   /** Paket 2.6: set once the person was anonymized (the name is then a pseudonym). */
   readonly anonymizedAt?: string | null;
   /** Paket 2.6 (§7.4): retention and anonymization skip this person. */

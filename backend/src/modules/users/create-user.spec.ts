@@ -47,7 +47,11 @@ import { assignUserRole } from './assign-user-role';
 import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 
 const createDependencies = () => ({
-  settingsService: {} as never,
+  // 5.3.2: the summary marks a policy pack as inactive when settings switch it
+  // off, so user creation reads the disabled-key CSV through the same service.
+  settingsService: {
+    getSecretForInternalUse: jest.fn(async () => null),
+  } as never,
   mailTransport: { send: jest.fn() } as never,
 });
 

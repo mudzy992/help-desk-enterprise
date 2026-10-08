@@ -1,11 +1,12 @@
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { GroupDetailSlot } from "@/components/groups/group-detail-slot";
+import { GroupDetailDrawer } from "@/components/groups/group-detail-drawer";
 import { GroupMutationForm } from "@/components/groups/group-mutation-form";
 import { GroupUnitSection } from "@/components/groups/group-unit-section";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { groupGroupsByUnit } from "@/lib/groups/group-groups-by-unit";
@@ -80,51 +81,72 @@ export function GroupsPanel({
           onCancel={onCancelCreate}
         />
       ) : null}
-      {sections.map((section) => {
-        const activeId = actions.editingId ?? actions.expandedId;
-        const showDetail =
-          activeId !== null && section.groups.some((group) => group.id === activeId);
-        return (
-          <GroupUnitSection
-            key={section.organizationalUnitId}
-            organizationalUnitPath={section.organizationalUnitPath}
-            groups={section.groups}
-            routingRuleCounts={routingRuleCounts}
-            expandedId={actions.expandedId}
-            canWrite={canWrite}
-            confirmDeleteId={actions.confirmDeleteId}
-            pendingId={actions.pendingId}
-            detail={
-              showDetail ? (
-                <GroupDetailSlot
-                  loadingLabel={t("groups.loadingDetail")}
-                  originUnits={originUnits}
-                  users={users}
-                  canWrite={canWrite}
-                  editingGroup={
-                    actions.editingId === null
-                      ? undefined
-                      : groups.find((group) => group.id === actions.editingId)
-                  }
-                  expandedGroup={actions.expandedGroup}
-                  isPending={actions.pendingId === actions.editingId}
-                  onSaveEdit={actions.saveEdit}
-                  onCancelEdit={() => actions.setEditingId(null)}
-                  onMembersChanged={(updated) => {
-                    actions.setExpandedGroup(updated);
-                    void onChanged();
-                  }}
-                />
-              ) : null
+      {sections.map((section) => (
+        <GroupUnitSection
+          key={section.organizationalUnitId}
+          organizationalUnitPath={section.organizationalUnitPath}
+          groups={section.groups}
+          routingRuleCounts={routingRuleCounts}
+          expandedId={actions.drawerGroupId}
+          canWrite={canWrite}
+          pendingId={actions.pendingId}
+          onOpenMembers={(groupId) => actions.openGroup(groupId, "members")}
+          onEdit={(groupId) => actions.openGroup(groupId, "edit")}
+          onRequestDelete={(groupId) => {
+            const target = groups.find((group) => group.id === groupId);
+            if (target !== undefined) {
+              actions.requestDelete(target);
             }
-            onOpen={(groupId) => void actions.openGroup(groupId)}
-            onEdit={actions.startEdit}
-            onRequestDelete={actions.setConfirmDeleteId}
-            onConfirmDelete={(groupId) => void actions.remove(groupId)}
-            onCancelDelete={() => actions.setConfirmDeleteId(null)}
-          />
-        );
-      })}
+          }}
+        />
+      ))}
+      <GroupDetailDrawer
+        open={actions.drawerGroupId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            actions.closeGroup();
+          }
+        }}
+        tab={actions.drawerTab}
+        onTabChange={actions.setDrawerTab}
+        group={
+          actions.drawerGroupId === null
+            ? null
+            : (groups.find((group) => group.id === actions.drawerGroupId) ??
+              null)
+        }
+        detail={actions.detail}
+        originUnits={originUnits}
+        users={users}
+        canWrite={canWrite}
+        isPending={actions.pendingId === actions.drawerGroupId}
+        onSaveEdit={actions.saveEdit}
+        onMembersChanged={actions.onMembersChanged}
+      />
+      {/*
+        Paket 5.3.2 (§4.3): deleting a group asks once, in the shared danger
+        dialog, and names the group so the confirmation carries no ambiguity.
+      */}
+      <ConfirmDialog
+        open={actions.deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            actions.cancelDelete();
+          }
+        }}
+        intent="danger"
+        isPending={
+          actions.pendingId !== null && actions.deleteTarget?.id === actions.pendingId
+        }
+        title={t("groups.deleteConfirmTitle", {
+          name: actions.deleteTarget?.name ?? "",
+        })}
+        description={t("groups.deleteConfirmBody", {
+          count: actions.deleteTarget?.memberCount ?? 0,
+        })}
+        confirmLabel={t("groups.delete")}
+        onConfirm={() => void actions.confirmRemove()}
+      />
     </div>
   );
 }

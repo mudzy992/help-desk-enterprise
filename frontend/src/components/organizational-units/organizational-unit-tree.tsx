@@ -11,6 +11,8 @@ interface OrganizationalUnitTreeProperties {
   readonly canManage?: boolean;
   readonly onEdit?: (node: OrganizationalUnitTreeNode) => void;
   readonly onDelete?: (node: OrganizationalUnitTreeNode) => void;
+  /** Paket 5.3.2: per-row action errors, rendered under the row that raised them. */
+  readonly errorsByUnitId?: ReadonlyMap<string, string>;
 }
 
 export function OrganizationalUnitTree({
@@ -22,6 +24,7 @@ export function OrganizationalUnitTree({
   canManage = false,
   onEdit,
   onDelete,
+  errorsByUnitId,
 }: OrganizationalUnitTreeProperties) {
   return (
     <ul className="p-2" role={depth === 0 ? "tree" : "group"}>
@@ -36,6 +39,7 @@ export function OrganizationalUnitTree({
           canManage={canManage}
           onEdit={onEdit}
           onDelete={onDelete}
+          errorsByUnitId={errorsByUnitId}
         />
       ))}
     </ul>
