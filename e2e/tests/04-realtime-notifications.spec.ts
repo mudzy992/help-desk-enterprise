@@ -22,11 +22,11 @@ test.describe('04 realtime / queue', () => {
       .poll(async () => {
         const jobs: Array<{ type: string }> = [];
         for (const status of ['PENDING', 'PROCESSING', 'COMPLETED']) {
-          jobs.push(
-            ...(await api.requestJson<Array<{ type: string }>>(
-              `/integration-jobs?status=${status}`,
-            )),
-          );
+          const page = await api.requestJson<{
+            items: Array<{ type: string }>;
+            nextCursor: string | null;
+          }>(`/integration-jobs?status=${status}`);
+          jobs.push(...page.items);
         }
         return jobs.some(
           (job) => job.type === 'EMAIL' || job.type === 'EDGE_EVENT',
