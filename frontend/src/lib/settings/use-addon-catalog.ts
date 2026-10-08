@@ -4,11 +4,16 @@ import {
   getSettingsGeneration,
   subscribeSettingsGeneration,
 } from "@/lib/settings/settings-realtime-store";
-import {
-  loadInstallAddons,
-  type InstallAddonItem,
-} from "@/services/install-addons-api";
+import type { InstallAddonItem } from "@/services/install-addons-api";
+import { loadSettingsAddons } from "@/services/settings-api";
 
+/**
+ * Paket 5.3.4 (ispravka 2026-10-08): the addon card reads
+ * `GET /settings/addons` — the authenticated route with the **stored** values.
+ * The install wizard keeps the public `GET /install/addons`, which deliberately
+ * serves the catalogue defaults after installation (5.2 finding M1 #5), so a
+ * switch rendered from it could never show a switched-on addon.
+ */
 export function useAddonCatalog() {
   const settingsGeneration = useSyncExternalStore(
     subscribeSettingsGeneration,
@@ -19,7 +24,7 @@ export function useAddonCatalog() {
 
   useEffect(() => {
     let isCancelled = false;
-    void loadInstallAddons()
+    void loadSettingsAddons()
       .then((status) => {
         if (!isCancelled) {
           setItems(parseAddonCatalogItems(status));

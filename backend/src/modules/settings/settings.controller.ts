@@ -26,6 +26,10 @@ import {
   readEmailChannelSettings,
   type EmailChannelSettingsResponse,
 } from './read-email-channel-settings';
+import {
+  readSettingsAddons,
+  type SettingsAddonsRecord,
+} from './read-settings-addons';
 import { readSettingsActorUserId } from './read-settings-actor-user-id';
 import { SettingsService } from './settings.service';
 import type { SettingDependentReset } from './plan-dependent-resets';
@@ -48,6 +52,20 @@ export class SettingsController {
   async listSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> {
     try {
       return await this.settingsService.listRegistry();
+    } catch (error) {
+      throw mapSettingsError(error);
+    }
+  }
+
+  /**
+   * Paket 5.3.4 (ispravka): the addon catalogue with the stored values, for the
+   * authenticated settings tab. `GET /install/addons` stays default-only after
+   * the installation (5.2 M1 #5) and must not be used to render switches.
+   */
+  @Get('addons')
+  async listAddonCatalog(): Promise<SettingsAddonsRecord> {
+    try {
+      return await readSettingsAddons(this.settingsService);
     } catch (error) {
       throw mapSettingsError(error);
     }

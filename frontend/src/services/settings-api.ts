@@ -1,4 +1,5 @@
 import { apiRequest } from "@/services/api";
+import type { InstallAddonsStatus } from "@/services/install-addons-api";
 
 export type EmailChannelSettings = {
   readonly smtpEnabled: boolean;
@@ -107,6 +108,17 @@ export function updateSettings(input: {
     method: "PUT",
     body: JSON.stringify(input),
   });
+}
+
+/**
+ * Paket 5.3.4 (ispravka 2026-10-08): the addon catalogue with the **stored**
+ * values, for the authenticated settings tab. `GET /install/addons` is the
+ * public wizard route — since the 5.2 fix (M1 #5) it answers with the static
+ * defaults after the installation, so a switch rendered from it could never
+ * show that an addon had been switched on.
+ */
+export function loadSettingsAddons(): Promise<InstallAddonsStatus> {
+  return apiRequest("/settings/addons");
 }
 
 /** Paket 5.3.3: exactly what switching this key off would change right now. */

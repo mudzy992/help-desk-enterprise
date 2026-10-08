@@ -61,6 +61,8 @@ test.describe('02 routing / fallback', () => {
         slug: `e2e-coverage-draft-${stamp}`,
         categoryId: await firstServiceCategoryId(api),
         classification: 'INTERNAL',
+        // `CreateServiceDto.reason` is required (service change log).
+        reason: `E2E coverage draft ${stamp}`,
       }),
     });
 

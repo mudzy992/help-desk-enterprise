@@ -114,6 +114,15 @@ export async function createOfferedService(
       slug: `e2e-${slugifyServiceLabel(input.label)}-${stamp}`,
       categoryId: await firstServiceCategoryId(api),
       classification: 'INTERNAL',
+      /**
+       * `CreateServiceDto.reason` is **required** (`@IsString` + `@MinLength(1)`
+       * + `@MaxLength(512)`) and goes into the service change log. Without it the
+       * server answers `VALIDATION` with the triplet "reason must be shorter than
+       * or equal to 512 characters / longer than or equal to 1 characters / a
+       * string" — the exact error every spec calling this helper hit on the
+       * 2026-10-08 server run, because the request was sent without the field.
+       */
+      reason: `E2E setup: usluga ${input.label} (${stamp})`,
       ...(input.requiresApproval === true ? { requiresApproval: true } : {}),
     }),
   });

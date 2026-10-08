@@ -1010,7 +1010,7 @@
     },
     "addons": {
       "title": "Add-ons (addon catalog)",
-      "subtitle": "Switch catalog from the install wizard — turning one off is graceful, with no dead links in the UI",
+      "subtitle": "Add-on state read from the settings registry — turning one off is graceful, with no dead links in the UI",
       "loading": "Loading add-ons…",
       "registryBadge": "registry"
     },
