@@ -173,6 +173,33 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     expect(audits).toHaveLength(4);
   });
 
+  // Paket 5.2.4 (M14 B7): archiving a category that still has active (non-archived)
+  // articles must be rejected, even if there are no child categories. Once articles
+  // are archived (categoryId=null move, or article archivedAt set), the archive
+  // succeeds.
+  it('rejects archiving a category that still has published articles (M14 B7)', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('root', { id: 'root', key: 'mreza', nameBs: 'Mreža', nameEn: 'Network', icon: 'wifi', sortOrder: 0, parentId: null, isArchived: false });
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1', title: 'Active', categoryId: 'root' }));
+    await expect(service.setCategoryArchived('root', true, superAdmin)).rejects.toMatchObject({
+      response: { code: 'CATEGORY_NOT_EMPTY' },
+    });
+    // Archived articles should not block archival.
+    memory.seedArticle(
+      publishedArticleSeed({
+        id: 'a2',
+        slug: 'a2',
+        title: 'Archived',
+        categoryId: 'root',
+        archivedAt: new Date('2026-09-01'),
+      }),
+    );
+    // Move the active one out by updating; after that archive succeeds.
+    await service.placeArticle('a1', { categoryId: null, reason: 'move' }, superAdmin);
+    const archived = await service.setCategoryArchived('root', true, superAdmin);
+    expect(archived.isArchived).toBe(true);
+  });
+
   it('builds the home page: counts include subcategories, FAQ is ordered and capped', async () => {
     const { service, memory, categories } = createPortalHarness({
       'private.knowledgeBase.portal.faqMaxItems': 2,
