@@ -288,7 +288,9 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await expect(rulesTable.getByRole('columnheader', { name: 'WHEN' })).toBeVisible({ timeout: 20_000 });
       await expect(rulesTable.getByRole('columnheader', { name: 'THEN' })).toBeVisible();
       await expect(rulesTable.getByText(service.name, { exact: true })).toBeVisible();
-      await expect(rulesTable.getByText(targetGroup.name, { exact: true })).toBeVisible();
+      const matchingRuleRow = rulesTable.getByRole('row').filter({ hasText: service.name });
+      await expect(matchingRuleRow).toHaveCount(1);
+      await expect(matchingRuleRow.getByText(targetGroup.name, { exact: true })).toBeVisible();
 
       await page.getByTestId('tab-tester').click();
       await page.getByLabel(/Origin organizational unit|Origin organizacijska jedinica/i)
