@@ -38,25 +38,38 @@ export function RoutingRuleRow({
   return (
     <>
       <tr className={tableRowClassName}>
-        <td
-          className="px-4 py-2.5 tnum text-[12px] font-medium text-link"
-          title={rule.id}
-        >
-          {truncateIdentifier(rule.id).toUpperCase()}
+        <td className="px-4 py-3">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge tone="neutral" dot={false} className="max-w-full text-[11px]">
+                {rule.originUnitPath}
+              </Badge>
+              <span aria-hidden="true" className="text-[11px] text-muted-foreground">
+                +
+              </span>
+              <Badge tone="neutral" dot={false} className="max-w-full text-[11px]">
+                {rule.serviceName}
+              </Badge>
+            </div>
+            <code className="text-[9.5px] text-muted-foreground" title={rule.id}>
+              {t("routing.ruleId")}: {truncateIdentifier(rule.id).toUpperCase()}
+            </code>
+          </div>
         </td>
-        <td className="px-4 py-2.5">
-          <span className="block text-[12px] text-foreground/90">{rule.originUnitPath}</span>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="text-muted-foreground">
+              →
+            </span>
+            <Badge tone="primary" dot={false}>
+              {rule.groupName}
+            </Badge>
+          </div>
         </td>
-        <td className="px-4 py-2.5 text-[12px] text-foreground/85">{rule.serviceName}</td>
-        <td className="px-4 py-2.5">
-          <Badge tone="primary" dot={false}>
-            {rule.groupName}
-          </Badge>
-        </td>
-        <td className="px-4 py-2.5 text-right text-[11px] text-muted-foreground">
+        <td className="px-4 py-3 text-right text-[11px] text-muted-foreground">
           <RelativeTime value={rule.updatedAt} locale={locale} />
         </td>
-        <td className="px-4 py-2.5 text-right">
+        <td className="px-4 py-3 text-right">
           <div className="flex flex-wrap justify-end gap-1.5">
             <Button type="button" size="xs" variant="outline" onClick={onEdit}>
               {t("routing.edit")}
@@ -69,7 +82,7 @@ export function RoutingRuleRow({
       </tr>
       {isEditing || isDeleting ? (
         <tr>
-          <td colSpan={6} className="px-4 py-3">
+          <td colSpan={4} className="px-4 py-3">
             {isEditing ? (
               <EditRoutingRuleForm
                 rule={rule}

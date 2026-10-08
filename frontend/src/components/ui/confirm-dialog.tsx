@@ -12,6 +12,7 @@ interface ConfirmDialogProperties {
   readonly cancelLabel?: string;
   readonly intent?: "default" | "danger";
   readonly isPending?: boolean;
+  readonly confirmDisabled?: boolean;
   readonly onConfirm: () => void;
   readonly children?: ReactNode;
 }
@@ -29,6 +30,7 @@ export function ConfirmDialog({
   cancelLabel,
   intent = "default",
   isPending = false,
+  confirmDisabled = false,
   onConfirm,
   children,
 }: ConfirmDialogProperties) {
@@ -54,7 +56,7 @@ export function ConfirmDialog({
             variant={intent === "danger" ? "danger" : "primary"}
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
-            disabled={isPending}
+            disabled={isPending || confirmDisabled}
           >
             {confirmLabel ?? t("ui.confirm")}
           </Button>

@@ -1,5 +1,6 @@
 import { CalendarDays } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "@/lib/reports/report-format";
 import {
   SlaAdminListColumn,
   SlaAdminSelectorCard,
@@ -26,7 +27,7 @@ export function SlaProfileList({
   onSelect,
   onNew,
 }: SlaProfileListProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <SlaAdminListColumn
@@ -51,7 +52,7 @@ export function SlaProfileList({
             description={profile.description}
             metaIcon={CalendarDays}
             metaLabel={profile.calendarName}
-            badgeLabel={t("sla.openTicketsBadge", { count: openCount })}
+            badgeLabel={t("sla.openTicketsBadge", { value: formatNumber(openCount, i18n.language) })}
             badgeTone={profile.isActive ? "success" : "neutral"}
           />
         );

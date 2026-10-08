@@ -6,6 +6,7 @@ import {
   tableWrapClassName,
 } from "@/components/ui/control";
 import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
+import { formatNumber } from "@/lib/reports/report-format";
 import type { SlaRule } from "@/services/sla-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
@@ -22,7 +23,7 @@ export function SlaRulesTable({
   onEdit,
   onDelete,
 }: SlaRulesTableProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[720px] text-left">
@@ -42,9 +43,9 @@ export function SlaRulesTable({
               <td className="px-4 text-[12.5px]">
                 {t(slaPriorityLabelKey(rule.priority))}
               </td>
-              <td className="px-4 tnum text-[12.5px]">{rule.responseMinutes}</td>
-              <td className="px-4 tnum text-[12.5px]">{rule.resolutionMinutes}</td>
-              <td className="px-4 tnum text-[12.5px]">{rule.evaluationOrder}</td>
+              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.responseMinutes, i18n.language)}</td>
+              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.resolutionMinutes, i18n.language)}</td>
+              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.evaluationOrder, i18n.language)}</td>
               <td className="px-4 text-[12px] text-muted-foreground">
                 {[rule.serviceName, rule.organizationalUnitPath].filter(Boolean).join(" · ") ||
                   t("sla.matchDefault")}

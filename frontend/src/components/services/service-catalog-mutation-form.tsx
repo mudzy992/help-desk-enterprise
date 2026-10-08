@@ -17,7 +17,17 @@ import type {
 } from "@/services/service-catalog-api";
 
 const classificationOptions: readonly DataClassification[] = ["INTERNAL", "CONFIDENTIAL", "RESTRICTED"];
+const classificationLabelKey = {
+  INTERNAL: "services.classificationOptions.INTERNAL",
+  CONFIDENTIAL: "services.classificationOptions.CONFIDENTIAL",
+  RESTRICTED: "services.classificationOptions.RESTRICTED",
+} as const;
 const autoAssignOptions: readonly AutoAssignStrategy[] = ["NONE", "LEAST_BUSY", "ROUND_ROBIN"];
+const autoAssignLabelKey = {
+  NONE: "services.autoAssignOptions.NONE",
+  LEAST_BUSY: "services.autoAssignOptions.LEAST_BUSY",
+  ROUND_ROBIN: "services.autoAssignOptions.ROUND_ROBIN",
+} as const;
 
 function label(t: unknown, key: string): string {
   return (t as (key: string) => string)(key);
@@ -182,7 +192,7 @@ export function ServiceCatalogMutationForm({
         >
           {classificationOptions.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {t(classificationLabelKey[option])}
             </option>
           ))}
         </Select>
@@ -206,7 +216,7 @@ export function ServiceCatalogMutationForm({
         >
           {autoAssignOptions.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {t(autoAssignLabelKey[option])}
             </option>
           ))}
         </Select>

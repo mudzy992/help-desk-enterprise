@@ -56,7 +56,10 @@ export function ServiceCatalogCard({
   );
 
   return (
-    <Card className="group flex flex-col transition-colors hover:border-line-strong hover:bg-surface-hover">
+    <Card
+      data-testid={`service-card-${service.id}`}
+      className="group flex flex-col transition-colors hover:border-line-strong hover:bg-surface-hover"
+    >
       <div className="flex-1 px-4 pt-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
@@ -113,7 +116,7 @@ export function ServiceCatalogCard({
             : t("services.formMissing")}
         </Badge>
         <Badge tone="neutral" className="text-[10px]" dot={false}>
-          {service.classification}
+          {t(`services.classificationOptions.${service.classification}`)}
         </Badge>
         {service.requiresApproval ? (
           <Badge tone="warning" className="text-[10px]" dot={false}>

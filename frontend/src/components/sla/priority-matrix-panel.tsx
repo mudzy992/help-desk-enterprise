@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, labelClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
 import {
   listPriorityMatrix,
@@ -31,16 +32,28 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
   const [draft, setDraft] = useState<Record<string, TicketPriority>>({});
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    void listPriorityMatrix()
-      .then((response) => {
-        setCells(response.cells);
-        setDraft(toDraft(response.cells));
-      })
-      .catch((error) => setErrorKey(mapSlaError(error)));
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setErrorKey(null);
+    try {
+      const response = await listPriorityMatrix();
+      setCells(response.cells);
+      setDraft(toDraft(response.cells));
+    } catch (error) {
+      setCells([]);
+      setDraft({});
+      setErrorKey(mapSlaError(error));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const dirty = cells.filter((cell) => {
     const key = cellKey(cell.impact, cell.urgency);
@@ -69,6 +82,26 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return <PanelSkeleton label={t("sla.priorityMatrixTitle")} />;
+  }
+
+  if (cells.length === 0) {
+    return (
+      <div className="fade-in space-y-3">
+        <p className="text-[13px] text-muted-foreground">{t("sla.priorityMatrixHint")}</p>
+        <div role="alert" className="flex flex-wrap items-center gap-3">
+          <p className={errorTextClassName}>
+            {errorKey ? t(errorKey) : t("sla.priorityMatrixUnavailable")}
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+            {t("sla.retry")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in space-y-4">
@@ -100,14 +133,15 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
                 </th>
                 {levels.map((urgency) => {
                   const key = cellKey(impact, urgency);
-                  const value = draft[key] ?? "MEDIUM";
+                  const value = draft[key] ?? "";
+                  const cellName = `${t(priorityLabelKey[impact])} × ${t(priorityLabelKey[urgency])}`;
                   return (
                     <td key={key} className="border border-border px-1.5 py-1">
                       <select
                         className="w-full rounded-lg border border-border bg-surface px-1.5 py-1"
-                        disabled={!canWrite || isSaving}
+                        disabled={!canWrite || isSaving || value.length === 0}
                         value={value}
-                        aria-label={`${impact} × ${urgency}`}
+                        aria-label={cellName}
                         onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
@@ -115,6 +149,11 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
                           }))
                         }
                       >
+                        {value.length === 0 ? (
+                          <option value="" disabled>
+                            {t("sla.priorityMatrixMissing")}
+                          </option>
+                        ) : null}
                         {priorities.map((priority) => (
                           <option key={priority} value={priority}>
                             {t(priorityLabelKey[priority])}
@@ -136,6 +175,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
             <input
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px]"
               value={reason}
+              maxLength={512}
               onChange={(event) => setReason(event.target.value)}
               placeholder={t("sla.priorityMatrixReasonPlaceholder")}
             />

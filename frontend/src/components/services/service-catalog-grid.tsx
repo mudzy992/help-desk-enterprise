@@ -1,21 +1,21 @@
-import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ServiceCatalogCard } from "@/components/services/service-catalog-card";
-import { ServiceCatalogCategoryChips } from "@/components/services/service-catalog-category-chips";
+import { ServiceCatalogFilterBar } from "@/components/services/service-catalog-filter-bar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/field";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { filterServiceCatalogRows } from "@/lib/services/filter-service-catalog-rows";
+import type { CatalogRoutingCoverageState } from "@/lib/services/use-catalog-routing-coverage";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
-import type { ServiceResponse } from "@/services/service-catalog-api";
+import type { ServiceLifecycle, ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogGridProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly categories: readonly ServiceCategoryResponse[];
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
+  readonly routingCoverage: CatalogRoutingCoverageState;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
   readonly canWriteAvailability: boolean;
@@ -33,6 +33,7 @@ export function ServiceCatalogGrid({
   rows,
   categories,
   coverageByServiceId,
+  routingCoverage,
   canManageForms,
   canWriteCatalog,
   canWriteAvailability,
@@ -45,66 +46,109 @@ export function ServiceCatalogGrid({
   onManageDowntime,
   onCatalogChanged,
 }: ServiceCatalogGridProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const visibleRows = useMemo(
-    () => filterServiceCatalogRows(rows, query, categoryId),
-    [categoryId, query, rows],
-  );
+  const [lifecycle, setLifecycle] = useState<ServiceLifecycle | "ALL">("ALL");
+  const [originUnitId, setOriginUnitId] = useState<string | null>(null);
   const categoryNames = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
-  const isQueryActive = query.trim().length > 0 || categoryId !== null;
+  const visibleRows = useMemo(
+    () =>
+      filterServiceCatalogRows(rows, {
+        query,
+        categoryId,
+        lifecycle: lifecycle === "ALL" ? null : lifecycle,
+        originUnitId,
+        categoryNames,
+        serviceIdsWithExactRuleByOriginUnit:
+          routingCoverage.serviceIdsWithExactRuleByOriginUnit,
+      }),
+    [
+      categoryId,
+      categoryNames,
+      lifecycle,
+      originUnitId,
+      query,
+      routingCoverage.serviceIdsWithExactRuleByOriginUnit,
+      rows,
+    ],
+  );
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    categoryId !== null ||
+    lifecycle !== "ALL" ||
+    originUnitId !== null;
+  const numberFormat = useMemo(
+    () => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }),
+    [i18n.language],
+  );
+
+  useEffect(() => {
+    if (!routingCoverage.isLoading && !routingCoverage.isAvailable) {
+      setOriginUnitId(null);
+      return;
+    }
+    if (
+      !routingCoverage.isLoading &&
+      originUnitId !== null &&
+      !routingCoverage.originUnits.some((origin) => origin.id === originUnitId)
+    ) {
+      setOriginUnitId(null);
+    }
+  }, [originUnitId, routingCoverage.isAvailable, routingCoverage.isLoading, routingCoverage.originUnits]);
+
+  const clearFilters = () => {
+    setQuery("");
+    setCategoryId(null);
+    setLifecycle("ALL");
+    setOriginUnitId(null);
+  };
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
-        <ServiceCatalogCategoryChips
-          categories={categories}
-          rows={rows}
-          activeCategoryId={categoryId}
-          canWrite={canWriteCatalog}
-          onChange={setCategoryId}
-          onManage={onManageCategories}
-        />
-        <div className="relative ml-auto w-60 max-w-full">
-          <Search
-            size={13.5}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("services.searchPlaceholder")}
-            aria-label={t("services.searchPlaceholder")}
-            className="h-8 pl-8 pr-3 text-[12.5px]"
-          />
-        </div>
-      </div>
+      <ServiceCatalogFilterBar
+        categories={categories}
+        rows={rows}
+        activeCategoryId={categoryId}
+        query={query}
+        lifecycle={lifecycle}
+        originUnitId={originUnitId}
+        originUnits={routingCoverage.originUnits}
+        canWriteCatalog={canWriteCatalog}
+        hasRoutingCoverage={routingCoverage.isAvailable}
+        isRoutingCoverageLoading={routingCoverage.isLoading}
+        hasActiveFilters={hasActiveFilters}
+        resultCount={t("services.resultsCount", {
+          visible: numberFormat.format(visibleRows.length),
+          total: numberFormat.format(rows.length),
+        })}
+        onCategoryChange={setCategoryId}
+        onQueryChange={setQuery}
+        onLifecycleChange={setLifecycle}
+        onOriginUnitChange={setOriginUnitId}
+        onManageCategories={onManageCategories}
+        onClearFilters={clearFilters}
+      />
       {visibleRows.length === 0 ? (
         <EmptyState
           title={
-            isQueryActive ? t("services.searchEmptyTitle") : t("services.emptyTitle")
+            hasActiveFilters ? t("services.searchEmptyTitle") : t("services.emptyTitle")
           }
           body={
-            isQueryActive ? t("services.searchEmptyBody") : t("services.emptyBody")
+            hasActiveFilters ? t("services.searchEmptyBody") : t("services.emptyBody")
           }
           action={
-            isQueryActive ? (
+            hasActiveFilters ? (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  setQuery("");
-                  setCategoryId(null);
-                }}
+                onClick={clearFilters}
               >
-                {t("services.clearSearch")}
+                {t("services.clearFilters")}
               </Button>
             ) : canWriteCatalog ? (
               <Button type="button" size="sm" onClick={onCreate}>

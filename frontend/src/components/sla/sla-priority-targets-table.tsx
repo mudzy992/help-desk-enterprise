@@ -5,7 +5,7 @@ import { tableHeadClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
 import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
-import { formatHours, formatMinutes } from "@/lib/reports/report-format";
+import { formatHours, formatMinutes, formatNumber } from "@/lib/reports/report-format";
 import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
 import type { SlaRule } from "@/services/sla-types";
 import type { TicketPriority } from "@/services/tickets-api";
@@ -83,16 +83,16 @@ export function SlaPriorityTargetsTable({
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
                     <span className="tnum text-[12.5px] font-medium text-foreground">
-                      {priorityExposure.open}
+                      {formatNumber(priorityExposure.open, i18n.language)}
                     </span>
                     {priorityExposure.atRisk > 0 ? (
                       <Badge tone="warning" dot={false}>
-                        {t("sla.exposedAtRisk", { count: priorityExposure.atRisk })}
+                        {t("sla.exposedAtRisk", { value: formatNumber(priorityExposure.atRisk, i18n.language) })}
                       </Badge>
                     ) : null}
                     {priorityExposure.breached > 0 ? (
                       <Badge tone="danger" dot={false}>
-                        {t("sla.exposedBreached", { count: priorityExposure.breached })}
+                        {t("sla.exposedBreached", { value: formatNumber(priorityExposure.breached, i18n.language) })}
                       </Badge>
                     ) : null}
                   </div>

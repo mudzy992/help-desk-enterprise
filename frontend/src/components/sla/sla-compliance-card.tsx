@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader } from "@/components/ui/card";
+import { formatNumber } from "@/lib/reports/report-format";
 import { EmptyState } from "@/components/ui/empty-state";
 import type {
   SlaComplianceBreakdownRow,
@@ -18,7 +19,7 @@ export function SlaComplianceCard({
   isLoading,
   scopeLabel,
 }: SlaComplianceCardProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const profileNames = new Map(
     (compliance?.profiles ?? []).map((profile) => [profile.slaProfileId, profile.profileName]),
   );
@@ -55,11 +56,11 @@ export function SlaComplianceCard({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <BreachMetric
                   label={t("sla.openBreachResponse")}
-                  value={compliance.openBreached.response}
+                  value={formatNumber(compliance.openBreached.response, i18n.language)}
                 />
                 <BreachMetric
                   label={t("sla.openBreachResolution")}
-                  value={compliance.openBreached.resolution}
+                  value={formatNumber(compliance.openBreached.resolution, i18n.language)}
                 />
               </div>
             </section>
@@ -83,9 +84,9 @@ export function SlaComplianceCard({
                   <th scope="row" className="max-w-64 truncate text-left font-medium text-foreground">
                     {profile.profileName}
                   </th>
-                  <td>{profile.sampleCount}</td>
-                  <td>{formatPercent(profile.responseCompliancePercent)}</td>
-                  <td>{formatPercent(profile.resolutionCompliancePercent)}</td>
+                  <td>{formatNumber(profile.sampleCount, i18n.language)}</td>
+                  <td>{formatPercent(profile.responseCompliancePercent, i18n.language)}</td>
+                  <td>{formatPercent(profile.resolutionCompliancePercent, i18n.language)}</td>
                 </tr>
               ))}
             </ComplianceTable>
@@ -95,18 +96,21 @@ export function SlaComplianceCard({
                 title={t("sla.complianceByUnit")}
                 rows={compliance.byUnit}
                 profileNames={profileNames}
+                locale={i18n.language}
                 unassignedLabel={t("tickets.assignment.unassigned")}
               />
               <DimensionTable
                 title={t("sla.complianceByService")}
                 rows={compliance.byService}
                 profileNames={profileNames}
+                locale={i18n.language}
                 unassignedLabel={t("tickets.assignment.unassigned")}
               />
               <DimensionTable
                 title={t("sla.complianceByGroup")}
                 rows={compliance.byGroup}
                 profileNames={profileNames}
+                locale={i18n.language}
                 unassignedLabel={t("tickets.assignment.unassigned")}
               />
             </div>
@@ -117,7 +121,7 @@ export function SlaComplianceCard({
   );
 }
 
-function BreachMetric({ label, value }: { readonly label: string; readonly value: number }) {
+function BreachMetric({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="rounded-md border border-border bg-elevated px-3 py-2.5">
       <p className="text-[11px] text-muted-foreground">{label}</p>
@@ -160,11 +164,13 @@ function DimensionTable({
   title,
   rows,
   profileNames,
+  locale,
   unassignedLabel,
 }: {
   readonly title: string;
   readonly rows: readonly SlaComplianceBreakdownRow[];
   readonly profileNames: ReadonlyMap<string, string>;
+  readonly locale: string;
   readonly unassignedLabel: string;
 }) {
   const { t } = useTranslation();
@@ -208,12 +214,12 @@ function DimensionTable({
                       ? unassignedLabel
                       : row.dimensionName ?? row.dimensionId}
                   </th>
-                  <td className="px-2.5 py-2 text-muted-foreground">{row.sampleCount}</td>
+                  <td className="px-2.5 py-2 text-muted-foreground">{formatNumber(row.sampleCount, locale)}</td>
                   <td className="px-2.5 py-2 text-muted-foreground">
-                    {formatPercent(row.responseCompliancePercent)}
+                    {formatPercent(row.responseCompliancePercent, locale)}
                   </td>
                   <td className="px-2.5 py-2 text-muted-foreground">
-                    {formatPercent(row.resolutionCompliancePercent)}
+                    {formatPercent(row.resolutionCompliancePercent, locale)}
                   </td>
                 </tr>
               ))}
@@ -225,6 +231,6 @@ function DimensionTable({
   );
 }
 
-function formatPercent(value: number | null): string {
-  return value === null ? "—" : `${value}%`;
+function formatPercent(value: number | null, locale: string): string {
+  return value === null ? "—" : `${formatNumber(value, locale)}%`;
 }

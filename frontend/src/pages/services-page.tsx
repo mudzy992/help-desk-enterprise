@@ -1,5 +1,5 @@
 import { Blocks, Plus } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
@@ -23,7 +23,7 @@ import {
 } from "@/lib/settings/use-admin-module-read-only";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import { useCatalogCoverageNotes } from "@/lib/services/use-catalog-coverage-notes";
+import { useCatalogRoutingCoverage } from "@/lib/services/use-catalog-routing-coverage";
 import { useServiceCatalog } from "@/lib/services/use-service-catalog";
 import { useServiceCategories } from "@/lib/services/use-service-categories";
 import { useVisibleOnboardings } from "@/lib/services/use-visible-onboardings";
@@ -34,7 +34,7 @@ export function ServicesPage() {
   const { t } = useTranslation();
   const catalog = useServiceCatalog();
   const categoryState = useServiceCategories();
-  const coverageByServiceId = useCatalogCoverageNotes();
+  const routingCoverage = useCatalogRoutingCoverage();
   const onboardings = useVisibleOnboardings(catalog.rows);
   const { session, hasPermission } = useSessionCapabilities();
   const catalogReadOnly = useAdminModuleReadOnly(
@@ -63,13 +63,15 @@ export function ServicesPage() {
     () => new Map(categoryState.categories.map((item) => [item.id, item.name])),
     [categoryState.categories],
   );
-  const reloadCategories = async () => {
-    await categoryState.reload();
-    await catalog.reload();
-  };
+  const reloadCatalog = useCallback(async () => {
+    await Promise.all([catalog.reload(), routingCoverage.reload()]);
+  }, [catalog.reload, routingCoverage.reload]);
+  const reloadCategories = useCallback(async () => {
+    await Promise.all([categoryState.reload(), reloadCatalog()]);
+  }, [categoryState.reload, reloadCatalog]);
   const containerRef = useRef<HTMLElement>(null);
   const live = useAdminConfigLiveRefresh({
-    domains: ["catalog"],
+    domains: ["catalog", "routing"],
     reload: reloadCategories,
     containerRef,
   });
@@ -118,7 +120,8 @@ export function ServicesPage() {
           <ServiceCatalogGrid
             rows={catalog.rows}
             categories={categoryState.categories}
-            coverageByServiceId={coverageByServiceId}
+            coverageByServiceId={routingCoverage.notesByServiceId}
+            routingCoverage={routingCoverage}
             canManageForms={writeFlags.canManageForms}
             canWriteCatalog={writeFlags.canWriteCatalog}
             canWriteAvailability={writeFlags.canWriteAvailability}
@@ -132,7 +135,7 @@ export function ServicesPage() {
             onStartOnboarding={setWizardServiceId}
             onManageCategories={() => setIsCategoriesOpen(true)}
             onManageDowntime={setDowntimeService}
-            onCatalogChanged={catalog.reload}
+              onCatalogChanged={reloadCatalog}
           />
           {wizardServiceId !== undefined ? (
             <ServiceOnboardingWizard
@@ -140,7 +143,7 @@ export function ServicesPage() {
               categories={categoryState.categories}
               canWriteForms={writeFlags.canManageForms}
               onClose={() => setWizardServiceId(undefined)}
-              onFinished={catalog.reload}
+              onFinished={reloadCatalog}
             />
           ) : (
             <ServiceOnboardingPipelineCard
@@ -160,7 +163,7 @@ export function ServicesPage() {
             setFormServiceId(null);
           }
         }}
-        onChanged={catalog.reload}
+        onChanged={reloadCatalog}
       />
       <ServiceCatalogMutationSheet
         open={isCreateOpen || editingService !== null}
@@ -171,7 +174,7 @@ export function ServicesPage() {
             setEditingService(null);
           }
         }}
-        onSaved={catalog.reload}
+        onSaved={reloadCatalog}
       />
       <ServiceDowntimeWindowsSheet
         serviceId={downtimeService?.id ?? null}
@@ -181,7 +184,7 @@ export function ServicesPage() {
             setDowntimeService(null);
           }
         }}
-        onChanged={catalog.reload}
+        onChanged={reloadCatalog}
       />
       <ServiceCategoriesAdminSheet
         open={isCategoriesOpen}

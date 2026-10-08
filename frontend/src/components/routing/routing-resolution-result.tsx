@@ -1,4 +1,4 @@
-import { GitBranch, Info } from "lucide-react";
+import { ChevronDown, GitBranch, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -102,14 +102,19 @@ function ResolutionBody({
         </div>
       ) : null}
       <FallbackPath resolution={resolution} />
-      <div className="mt-4 rounded-lg border border-border bg-elevated/70 p-3.5">
-        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
-          <GitBranch size={11} /> {t("routing.engineResponse")}
-        </p>
-        <pre className="overflow-x-auto text-[11.5px] leading-5 text-foreground/85 tnum">
+      <details className="group mt-4 rounded-lg border border-border bg-elevated/70">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3.5 py-2.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
+          <GitBranch size={11} />
+          {t("routing.engineResponse")}
+          <span className="ml-auto text-[10px] font-normal normal-case tracking-normal">
+            {t("routing.engineResponseHint")}
+          </span>
+          <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
+        </summary>
+        <pre className="overflow-x-auto border-t border-border px-3.5 py-3 text-[11.5px] leading-5 text-foreground/85 tnum">
           {JSON.stringify(resolution, null, 2)}
         </pre>
-      </div>
+      </details>
       <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-[15px] text-muted-foreground">
         <Info size={12.5} className="mt-0.5 shrink-0" />
         {t("routing.testerNote")}

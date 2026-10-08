@@ -14,7 +14,7 @@ interface SlaCalendarFormProperties {
   readonly calendar?: BusinessHoursCalendar;
   readonly errorKey: string | null;
   readonly isSubmitting: boolean;
-  readonly onSubmit: (input: CalendarWriteInput & { readonly key: string }) => Promise<void>;
+  readonly onSubmit: (input: CalendarWriteInput & { readonly key: string }) => Promise<boolean>;
 }
 
 export function SlaCalendarForm({
@@ -38,7 +38,7 @@ export function SlaCalendarForm({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await onSubmit({
+    const wasSaved = await onSubmit({
       key,
       name,
       timezone,
@@ -47,7 +47,7 @@ export function SlaCalendarForm({
       isActive,
       reason,
     });
-    setReason("");
+    if (wasSaved) setReason("");
   };
 
   return (
@@ -55,12 +55,22 @@ export function SlaCalendarForm({
       {calendar === undefined ? (
         <label className={labelClassName}>
           {t("sla.key")}
-          <input className={controlClassName} value={key} onChange={(event) => setKey(event.target.value)} required />
+          <input
+            className={controlClassName}
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            required
+          />
         </label>
       ) : null}
       <label className={labelClassName}>
         {t("sla.name")}
-        <input className={controlClassName} value={name} onChange={(event) => setName(event.target.value)} required />
+        <input
+          className={controlClassName}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+        />
       </label>
       <label className={labelClassName}>
         {t("sla.timezone")}
@@ -83,25 +93,50 @@ export function SlaCalendarForm({
       </label>
       <div className="grid gap-2">
         <p className={labelClassName}>{t("sla.weeklyHours")}</p>
+        <div className="hidden grid-cols-[minmax(80px,140px)_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[10px] text-muted-foreground sm:grid">
+          <span />
+          <span>{t("sla.weeklyStart")}</span>
+          <span>{t("sla.weeklyEnd")}</span>
+        </div>
         {slaWeekdays.map((weekday) => {
+          const dayLabel = t(weekday.labelKey);
           const interval = weeklyHours[weekday.key]?.[0];
           return (
-            <label key={weekday.key} className="grid grid-cols-[140px_1fr_1fr] items-center gap-2 text-[12.5px]">
-              <span>{t(weekday.labelKey)}</span>
+            <label
+              key={weekday.key}
+              className="grid grid-cols-[minmax(72px,140px)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 text-[12.5px]"
+            >
+              <span>{dayLabel}</span>
               <input
                 className={controlClassName}
                 type="time"
+                aria-label={t("sla.weeklyStartForDay", { day: dayLabel })}
                 value={interval?.start ?? ""}
                 onChange={(event) =>
-                  setWeeklyHours(updateDay(weeklyHours, weekday.key, event.target.value, interval?.end ?? "16:00"))
+                  setWeeklyHours(
+                    updateDay(
+                      weeklyHours,
+                      weekday.key,
+                      event.target.value,
+                      interval?.end ?? "16:00",
+                    ),
+                  )
                 }
               />
               <input
                 className={controlClassName}
                 type="time"
+                aria-label={t("sla.weeklyEndForDay", { day: dayLabel })}
                 value={interval?.end ?? ""}
                 onChange={(event) =>
-                  setWeeklyHours(updateDay(weeklyHours, weekday.key, interval?.start ?? "08:00", event.target.value))
+                  setWeeklyHours(
+                    updateDay(
+                      weeklyHours,
+                      weekday.key,
+                      interval?.start ?? "08:00",
+                      event.target.value,
+                    ),
+                  )
                 }
               />
             </label>
@@ -110,17 +145,30 @@ export function SlaCalendarForm({
       </div>
       <div className="grid gap-2">
         <p className={labelClassName}>{t("sla.holidays")}</p>
-        <div className="flex flex-wrap gap-2">
-          <input className={`${controlClassName} max-w-[160px]`} type="date" value={holidayDate} onChange={(event) => setHolidayDate(event.target.value)} />
-          <input className={`${controlClassName} max-w-[220px]`} value={holidayName} onChange={(event) => setHolidayName(event.target.value)} placeholder={t("sla.holidayName")} />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_minmax(0,1fr)_auto] sm:items-end">
+          <label className={labelClassName}>
+            {t("sla.holidayDate")}
+            <input
+              className={controlClassName}
+              type="date"
+              value={holidayDate}
+              onChange={(event) => setHolidayDate(event.target.value)}
+            />
+          </label>
+          <label className={labelClassName}>
+            {t("sla.holidayName")}
+            <input
+              className={controlClassName}
+              value={holidayName}
+              onChange={(event) => setHolidayName(event.target.value)}
+            />
+          </label>
           <Button
             type="button"
             variant="outline"
             size="sm"
+            disabled={holidayDate.length === 0 || holidayName.trim().length === 0}
             onClick={() => {
-              if (holidayDate.length === 0 || holidayName.trim().length === 0) {
-                return;
-              }
               setHolidays([...holidays, { date: holidayDate, name: holidayName.trim() }]);
               setHolidayDate("");
               setHolidayName("");
@@ -131,9 +179,17 @@ export function SlaCalendarForm({
         </div>
         <ul className="space-y-1 text-[12.5px]">
           {holidays.map((holiday) => (
-            <li key={`${holiday.date}-${holiday.name}`} className="flex items-center justify-between gap-2">
+            <li
+              key={`${holiday.date}-${holiday.name}`}
+              className="flex items-center justify-between gap-2"
+            >
               <span>{holiday.date} · {holiday.name}</span>
-              <Button type="button" variant="ghost" size="xs" onClick={() => setHolidays(holidays.filter((item) => item !== holiday))}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => setHolidays(holidays.filter((item) => item !== holiday))}
+              >
                 {t("sla.remove")}
               </Button>
             </li>
@@ -146,9 +202,19 @@ export function SlaCalendarForm({
       </label>
       <label className={labelClassName}>
         {t("sla.reason")}
-        <input className={controlClassName} value={reason} onChange={(event) => setReason(event.target.value)} required />
+        <input
+          className={controlClassName}
+          value={reason}
+          maxLength={512}
+          onChange={(event) => setReason(event.target.value)}
+          required
+        />
       </label>
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey as never)}</p> : null}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey as never)}
+        </p>
+      ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t("sla.saving") : calendar ? t("sla.saveCalendar") : t("sla.createCalendar")}

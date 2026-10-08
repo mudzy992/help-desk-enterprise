@@ -33,20 +33,14 @@ export function RoutingRulesTable({
   }
   return (
     <ScrollRegion className="overflow-x-auto">
-      <table className="w-full min-w-[720px]">
+      <table className="w-full min-w-[720px] text-left">
         <thead>
           <tr className="border-b border-border/70 text-left">
             <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("routing.columnRule")}
+              {t("routing.columnWhen")}
             </th>
             <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("routing.columnOriginUnit")}
-            </th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("routing.columnService")}
-            </th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("routing.columnGroup")}
+              {t("routing.columnThen")}
             </th>
             <th className={`${tableHeadClassName} px-4 py-2.5 text-right`}>
               {t("routing.columnUpdatedAt")}
