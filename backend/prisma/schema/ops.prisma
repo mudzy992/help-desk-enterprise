@@ -152,6 +152,7 @@ model IntegrationJob {
   updatedAt   DateTime              @updatedAt
 
   @@index([status, nextRetryAt])
+  @@index([status, createdAt, id])
   @@index([type])
 }
 

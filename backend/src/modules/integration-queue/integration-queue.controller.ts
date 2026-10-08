@@ -20,6 +20,7 @@ import { ListIntegrationJobsQueryDto } from './dto/list-integration-jobs-query.d
 import { mapIntegrationQueueError } from './map-integration-queue-error';
 import { IntegrationQueueService } from './integration-queue.service';
 import type {
+  IntegrationJobPageResponse,
   IntegrationJobResponse,
   IntegrationWorkerStatusResponse,
 } from './integration-queue.types';
@@ -43,9 +44,12 @@ export class IntegrationQueueController {
   @Get()
   async list(
     @Query() query: ListIntegrationJobsQueryDto,
-  ): Promise<readonly IntegrationJobResponse[]> {
+  ): Promise<IntegrationJobPageResponse> {
     try {
-      return await this.integrationQueueService.list(query.status);
+      return await this.integrationQueueService.list(
+        query.status,
+        query.cursor ?? null,
+      );
     } catch (error) {
       throw mapIntegrationQueueError(error);
     }

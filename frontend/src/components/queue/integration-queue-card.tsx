@@ -91,12 +91,29 @@ export function IntegrationQueueCard({
             body={t("integrationQueue.emptyBody")}
           />
         ) : (
-          <IntegrationQueueTable
-            jobs={queue.jobs}
-            pendingJobId={queue.pendingJobId}
-            canRetry
-            onRetry={(jobId) => void queue.retryNow(jobId)}
-          />
+          <>
+            <IntegrationQueueTable
+              jobs={queue.jobs}
+              pendingJobId={queue.pendingJobId}
+              canRetry
+              onRetry={(jobId) => void queue.retryNow(jobId)}
+            />
+            {queue.nextCursor !== null ? (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={queue.isLoadingMore}
+                  onClick={() => void queue.loadMore()}
+                >
+                  {queue.isLoadingMore
+                    ? t("integrationQueue.loadingMore")
+                    : t("integrationQueue.loadMore")}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </Card>

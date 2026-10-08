@@ -22,7 +22,9 @@ export const retryableIntegrationJobStatuses: readonly IntegrationJobAdminStatus
   integrationJobStatuses.dlq,
 ];
 
-export type IntegrationJobType = "EMAIL" | "EDGE_EVENT" | "TEAMS";
+export const integrationJobTypes = ["EMAIL", "EDGE_EVENT", "TEAMS"] as const;
+
+export type IntegrationJobType = (typeof integrationJobTypes)[number];
 
 export type IntegrationJob = {
   readonly id: string;
@@ -34,6 +36,11 @@ export type IntegrationJob = {
   readonly nextRetryAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type IntegrationJobListResult = {
+  readonly items: readonly IntegrationJob[];
+  readonly nextCursor: string | null;
 };
 
 export type IntegrationWorkerStatus = "active" | "stale" | "unknown";

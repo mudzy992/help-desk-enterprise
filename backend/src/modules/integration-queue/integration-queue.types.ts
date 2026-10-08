@@ -52,6 +52,11 @@ export type IntegrationJobResponse = {
   readonly updatedAt: string;
 };
 
+export type IntegrationJobPageResponse = {
+  readonly items: readonly IntegrationJobResponse[];
+  readonly nextCursor: string | null;
+};
+
 export type EnqueueIntegrationJobInput = {
   readonly type: IntegrationJobType;
   readonly payload:

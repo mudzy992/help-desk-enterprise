@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
+import { appendUniqueIntegrationJobs } from "@/lib/queue/use-integration-queue";
 import { canManageIntegrationQueue } from "@/lib/queue/can-manage-integration-queue";
 import { mapIntegrationQueueError } from "@/lib/queue/map-integration-queue-error";
 import { truncateQueueError } from "@/lib/queue/truncate-queue-error";
@@ -39,6 +40,25 @@ describe("integration queue helpers", () => {
     expect(mapIntegrationQueueError(new ApiError(401, "INVALID_CREDENTIALS", "x"))).toBe(
       "integrationQueue.errorUnauthorized",
     );
+  });
+
+  it("appends cursor pages without duplicating a row at a boundary", () => {
+    const job = (id: string) => ({
+      id,
+      type: "EMAIL" as const,
+      status: "FAILED" as const,
+      payload: null,
+      lastError: null,
+      attempts: 1,
+      nextRetryAt: null,
+      createdAt: "2026-10-08T12:00:00.000Z",
+      updatedAt: "2026-10-08T12:00:00.000Z",
+    });
+    expect(
+      appendUniqueIntegrationJobs([job("a"), job("b")], [job("b"), job("c")]).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "b", "c"]);
   });
 
   it("truncates lastError and maps status tones", () => {

@@ -34,7 +34,10 @@ describe('IntegrationQueueService', () => {
       lastError: null,
     };
     const repository = {
-      listByStatus: jest.fn().mockResolvedValue([dlqJob]),
+      listByStatusPage: jest.fn().mockResolvedValue({
+        items: [dlqJob],
+        nextCursor: null,
+      }),
       findById: jest.fn().mockResolvedValue(overrides?.existing ?? dlqJob),
       resetForAdminRetry: jest.fn().mockResolvedValue(pending),
     };
@@ -74,11 +77,16 @@ describe('IntegrationQueueService', () => {
     };
   }
 
-  it('lists jobs for an admin status', async () => {
-    const { service } = createService();
-    const listed = await service.list(IntegrationJobStatus.DLQ);
-    expect(listed).toHaveLength(1);
-    expect(listed[0]?.status).toBe(IntegrationJobStatus.DLQ);
+  it('lists one cursor page for an admin status', async () => {
+    const { service, repository } = createService();
+    const listed = await service.list(IntegrationJobStatus.DLQ, 'previous-cursor');
+    expect(listed.items).toHaveLength(1);
+    expect(listed.items[0]?.status).toBe(IntegrationJobStatus.DLQ);
+    expect(listed.nextCursor).toBeNull();
+    expect(repository.listByStatusPage).toHaveBeenCalledWith(
+      IntegrationJobStatus.DLQ,
+      'previous-cursor',
+    );
   });
 
   it('resets a DLQ job to PENDING and re-enqueues it', async () => {

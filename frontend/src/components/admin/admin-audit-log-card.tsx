@@ -18,6 +18,12 @@ import {
 } from "@/lib/admin/map-admin-ops-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
+  auditActionTranslationKey,
+  auditEntityTranslationKey,
+  auditMetadataFieldTranslationKey,
+  flattenAuditMetadata,
+} from "@/lib/audit/audit-log-i18n";
+import {
   listAuditLogs,
   type AuditLogListRow,
 } from "@/services/audit-log-api";
@@ -153,10 +159,17 @@ export function AdminAuditLogCard({
                       <td className="whitespace-nowrap px-3">
                         <RelativeTime value={row.createdAt} locale={i18n.language} />
                       </td>
-                      <td className="tnum px-3 text-[12px]">{row.action}</td>
-                      <td className="max-w-[220px] truncate px-3 text-[12px] text-muted-foreground">
-                        <span title={`${row.entityType} ${row.entityId}`}>
-                          {row.entityType} · {row.entityId}
+                      <td className="px-3 text-[12px]">
+                        {auditActionTranslationKey(row.action) === null
+                          ? t("admin.ops.auditLog.labels.unknownAction")
+                          : t(auditActionTranslationKey(row.action) as never)}
+                      </td>
+                      <td className="max-w-[220px] px-3 text-[12px] text-muted-foreground">
+                        <span title={row.entityId}>
+                          {auditEntityTranslationKey(row.entityType) === null
+                            ? t("admin.ops.auditLog.labels.unknownEntity")
+                            : t(auditEntityTranslationKey(row.entityType) as never)}
+                          <code className="ml-1.5 text-[11px]">{row.entityId}</code>
                         </span>
                       </td>
                       <td className="max-w-[160px] truncate px-3 text-[12px] text-muted-foreground">
@@ -165,17 +178,8 @@ export function AdminAuditLogCard({
                       <td className="max-w-[160px] truncate px-3 text-[12px] text-muted-foreground">
                         {row.requestId ?? "—"}
                       </td>
-                      <td
-                        className="max-w-[260px] truncate px-3 text-[12px] text-muted-foreground"
-                        title={
-                          row.metadata == null
-                            ? undefined
-                            : JSON.stringify(row.metadata)
-                        }
-                      >
-                        {row.metadata == null
-                          ? "—"
-                          : JSON.stringify(row.metadata)}
+                      <td className="max-w-[340px] px-3 text-[12px] align-top">
+                        <AuditMetadata metadata={row.metadata} />
                       </td>
                     </tr>
                   ))}
@@ -201,5 +205,56 @@ export function AdminAuditLogCard({
         )}
       </div>
     </Card>
+  );
+}
+
+function AuditMetadata({ metadata }: { readonly metadata: unknown }) {
+  const { t } = useTranslation();
+  const entries = flattenAuditMetadata(metadata);
+  if (entries.length === 0) return <span className="text-muted-foreground">—</span>;
+
+  const labelFor = (path: readonly string[]) =>
+    path
+      .map((field) => {
+        const key = auditMetadataFieldTranslationKey(field);
+        return key === null
+          ? t("admin.ops.auditLog.labels.unknownField")
+          : t(key as never);
+      })
+      .join(" · ");
+  const summary = entries
+    .map((entry) => `${labelFor(entry.path)}: ${entry.value}`)
+    .join("; ");
+  const visibleEntries = entries.slice(0, 3);
+  const hiddenEntries = entries.slice(3);
+
+  return (
+    <ul className="grid gap-0.5" title={summary}>
+      {visibleEntries.map((entry, index) => (
+        <li key={`${entry.path.join(".")}-${index}`} className="break-words">
+          <span className="font-medium text-foreground">{labelFor(entry.path)}:</span>{" "}
+          <span className="text-muted-foreground">{entry.value}</span>
+        </li>
+      ))}
+      {hiddenEntries.length > 0 ? (
+        <li>
+          <details>
+            <summary className="cursor-pointer text-link">
+              {t("admin.ops.auditLog.labels.moreDetails", {
+                count: hiddenEntries.length,
+              })}
+            </summary>
+            <ul className="mt-1 grid gap-0.5 border-l border-border pl-2">
+              {hiddenEntries.map((entry, index) => (
+                <li key={`${entry.path.join(".")}-${index + 3}`} className="break-words">
+                  <span className="font-medium text-foreground">{labelFor(entry.path)}:</span>{" "}
+                  <span className="text-muted-foreground">{entry.value}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </li>
+      ) : null}
+    </ul>
   );
 }

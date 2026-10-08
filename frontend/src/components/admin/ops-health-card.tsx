@@ -32,6 +32,7 @@ import {
   sortSchedulers,
   type ComponentState,
 } from "@/lib/ops/ops-health-view";
+import { scheduledJobTranslationKey } from "@/lib/ops/scheduled-job-i18n";
 import { formatBytes } from "@/lib/privacy/privacy-view";
 import {
   acknowledgeOpsAlert,
@@ -563,45 +564,52 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
               </tr>
             </thead>
             <tbody>
-              {schedulers.map((scheduler) => (
-                <tr key={`${scheduler.queue}/${scheduler.schedulerId}`} className={tableRowClassName}>
-                  <td className="px-3">
-                    <span className="font-medium text-foreground">{scheduler.queue}</span>
-                    <span className="block text-[11.5px] text-muted-foreground">{scheduler.schedulerId}</span>
-                  </td>
-                  <td className="tnum px-3 text-muted-foreground">
-                    {scheduler.everyMs !== null
-                      ? t("admin.opsHealth.schedulers.every", { interval: formatOpsDuration(scheduler.everyMs) })
-                      : (scheduler.pattern ?? "—")}
-                  </td>
-                  <td className="px-3">
-                    {scheduler.lastSuccessAt === null ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      <RelativeTime value={scheduler.lastSuccessAt} locale={i18n.language} />
-                    )}
-                    {scheduler.lastFailureAt !== null &&
-                    (scheduler.lastSuccessAt === null || scheduler.lastFailureAt > scheduler.lastSuccessAt) ? (
-                      <span className="block text-[11.5px] text-danger">
-                        {t("admin.opsHealth.schedulers.lastFailure")}{" "}
-                        <RelativeTime value={scheduler.lastFailureAt} locale={i18n.language} />
+              {schedulers.map((scheduler) => {
+                const nameKey = scheduledJobTranslationKey(scheduler.schedulerId);
+                return (
+                  <tr key={`${scheduler.queue}/${scheduler.schedulerId}`} className={tableRowClassName}>
+                    <td className="px-3">
+                      <span className="font-medium text-foreground">
+                        {nameKey === null ? scheduler.queue : t(nameKey as never)}
                       </span>
-                    ) : null}
-                  </td>
-                  <td className="px-3">
-                    {scheduler.nextAt === null ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      <RelativeTime value={scheduler.nextAt} locale={i18n.language} />
-                    )}
-                  </td>
-                  <td className="px-3">
-                    <Badge tone={scheduler.state === "late" ? "warning" : "success"} dot>
-                      {t(`admin.opsHealth.schedulers.states.${scheduler.state}`)}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
+                      <code className="block text-[11.5px] text-muted-foreground">
+                        {scheduler.schedulerId}
+                      </code>
+                    </td>
+                    <td className="tnum px-3 text-muted-foreground">
+                      {scheduler.everyMs !== null
+                        ? t("admin.opsHealth.schedulers.every", { interval: formatOpsDuration(scheduler.everyMs) })
+                        : (scheduler.pattern ?? "—")}
+                    </td>
+                    <td className="px-3">
+                      {scheduler.lastSuccessAt === null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <RelativeTime value={scheduler.lastSuccessAt} locale={i18n.language} />
+                      )}
+                      {scheduler.lastFailureAt !== null &&
+                      (scheduler.lastSuccessAt === null || scheduler.lastFailureAt > scheduler.lastSuccessAt) ? (
+                        <span className="block text-[11.5px] text-danger">
+                          {t("admin.opsHealth.schedulers.lastFailure")}{" "}
+                          <RelativeTime value={scheduler.lastFailureAt} locale={i18n.language} />
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-3">
+                      {scheduler.nextAt === null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <RelativeTime value={scheduler.nextAt} locale={i18n.language} />
+                      )}
+                    </td>
+                    <td className="px-3">
+                      <Badge tone={scheduler.state === "late" ? "warning" : "success"} dot>
+                        {t(`admin.opsHealth.schedulers.states.${scheduler.state}`)}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </ScrollRegion>

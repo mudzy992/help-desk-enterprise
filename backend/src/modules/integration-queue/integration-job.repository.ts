@@ -5,7 +5,10 @@ import {
   IntegrationJobType,
 } from '../../generated/prisma/enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { integrationQueueAdminStatuses } from './integration-queue.constants';
+import {
+  integrationQueueAdminPageSize,
+  integrationQueueAdminStatuses,
+} from './integration-queue.constants';
 
 @Injectable()
 export class IntegrationJobRepository {
@@ -28,14 +31,26 @@ export class IntegrationJobRepository {
     return this.prisma.integrationJob.findUnique({ where: { id } });
   }
 
-  listByStatus(status: IntegrationJobStatus) {
+  async listByStatusPage(
+    status: IntegrationJobStatus,
+    cursor: string | null,
+  ) {
     if (!integrationQueueAdminStatuses.includes(status)) {
-      return Promise.resolve([]);
+      return { items: [], nextCursor: null } as const;
     }
-    return this.prisma.integrationJob.findMany({
+    const rows = await this.prisma.integrationJob.findMany({
       where: { status },
-      orderBy: { createdAt: 'desc' },
+      // `id` breaks ties when jobs share a timestamp, keeping page boundaries stable.
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: integrationQueueAdminPageSize + 1,
+      ...(cursor === null ? {} : { cursor: { id: cursor }, skip: 1 }),
     });
+    const hasMore = rows.length > integrationQueueAdminPageSize;
+    const items = rows.slice(0, integrationQueueAdminPageSize);
+    return {
+      items,
+      nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+    };
   }
 
   markProcessing(id: string) {

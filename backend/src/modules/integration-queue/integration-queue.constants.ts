@@ -5,6 +5,9 @@ import {
 
 export const integrationQueueName = 'integration';
 
+/** Fixed-size, stable cursor pages for the Admin → Operations queue table. */
+export const integrationQueueAdminPageSize = 50;
+
 export const edgeEventRedisChannel = 'integration-queue:edge-event';
 
 export const workerHeartbeatRedisKey = 'integration-queue:worker-heartbeat';

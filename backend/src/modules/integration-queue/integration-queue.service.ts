@@ -11,6 +11,7 @@ import {
 import { IntegrationJobRepository } from './integration-job.repository';
 import { IntegrationQueueError } from './integration-queue.error';
 import type {
+  IntegrationJobPageResponse,
   IntegrationJobResponse,
   IntegrationQueueJobData,
   IntegrationWorkerStatusResponse,
@@ -30,10 +31,19 @@ export class IntegrationQueueService {
     private readonly redisService: RedisService,
   ) {}
 
-  async list(status: IntegrationJobStatus): Promise<readonly IntegrationJobResponse[]> {
+  async list(
+    status: IntegrationJobStatus,
+    cursor: string | null = null,
+  ): Promise<IntegrationJobPageResponse> {
     await this.assertAdminUiEnabled();
-    const jobs = await this.integrationJobRepository.listByStatus(status);
-    return jobs.map(toIntegrationJobResponse);
+    const page = await this.integrationJobRepository.listByStatusPage(
+      status,
+      cursor,
+    );
+    return {
+      items: page.items.map(toIntegrationJobResponse),
+      nextCursor: page.nextCursor,
+    };
   }
 
   async retryNow(jobId: string): Promise<IntegrationJobResponse> {
