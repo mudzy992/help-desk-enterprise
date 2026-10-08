@@ -7,12 +7,15 @@ interface SettingsReasonConfirmProperties {
   readonly pending: boolean;
   readonly onConfirm: (reason: string) => Promise<void>;
   readonly onCancel: () => void;
+  /** Paket 5.3.4: a dependency the server would refuse blocks the save outright. */
+  readonly disabled?: boolean;
 }
 
 export function SettingsReasonConfirm({
   pending,
   onConfirm,
   onCancel,
+  disabled = false,
 }: SettingsReasonConfirmProperties) {
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
@@ -33,7 +36,7 @@ export function SettingsReasonConfirm({
         type="button"
         size="xs"
         variant="outline"
-        disabled={pending || reason.trim().length === 0}
+        disabled={pending || disabled || reason.trim().length === 0}
         onClick={() => void onConfirm(reason.trim())}
       >
         {pending ? t("settings.registry.saving") : t("settings.registry.save")}

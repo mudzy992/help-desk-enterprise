@@ -16,6 +16,10 @@ function entry(
     defaultValue: false,
     value: false,
     isSet: true,
+    titleKey: `settings.registry.keys.${partial.key}`,
+    helpKey: `settings.registry.help.${partial.key}`,
+    group: null,
+    requires: [],
     ...partial,
   };
 }

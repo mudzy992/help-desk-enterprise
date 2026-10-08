@@ -21,6 +21,10 @@ function entry(
     defaultValue: value,
     value,
     isSet: true,
+    titleKey: `settings.registry.keys.${key}`,
+    helpKey: `settings.registry.help.${key}`,
+    group: null,
+    requires: [],
   };
 }
 

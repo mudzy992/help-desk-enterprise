@@ -17,6 +17,18 @@ export type EmailChannelSettings = {
 export type SettingValueTypeName = "string" | "number" | "boolean";
 export type SettingVisibility = "public" | "private" | "secret";
 
+/**
+ * Paket 5.3.3/5.3.4: a condition another setting has to satisfy before this one
+ * may be switched on. `equals`/`oneOf` compare the effective value (stored
+ * value, otherwise the default); `isSet`/`notEmpty` are the only questions a
+ * secret can answer.
+ */
+export type SettingCondition =
+  | { readonly key: string; readonly equals: string | number | boolean }
+  | { readonly key: string; readonly oneOf: readonly (string | number | boolean)[] }
+  | { readonly key: string; readonly isSet: true }
+  | { readonly key: string; readonly notEmpty: true };
+
 export type SettingRegistryEntry = {
   readonly key: string;
   readonly description: string;
@@ -30,6 +42,29 @@ export type SettingRegistryEntry = {
   readonly value: string | number | boolean | null;
   readonly isSet: boolean;
   readonly allowedValues?: readonly string[];
+  /** Paket 5.3.3: resolved i18n keys — title is the human line, help the modal body. */
+  readonly titleKey: string;
+  readonly helpKey: string;
+  /** Optional visual grouping inside the category (stable, free-form id). */
+  readonly group: string | null;
+  /** Conditions that must hold before this setting may be active. */
+  readonly requires: readonly SettingCondition[];
+};
+
+/** Paket 5.3.3 (D7): one dependent the server would change on a switch-off. */
+export type SettingDependentReset = {
+  readonly key: string;
+  readonly action: "reset_to_default" | "disable" | "delete";
+  /** Present for `reset_to_default` and `disable`: the value written back. */
+  readonly value?: string | number | boolean;
+  /** The key in the same request whose switch-off caused this reset. */
+  readonly causedBy: string;
+};
+
+/** Paket 5.3.3: both write endpoints answer 200 with what actually changed. */
+export type SettingsWriteResponse = {
+  readonly updatedKeys: readonly string[];
+  readonly resetDependents: readonly SettingDependentReset[];
 };
 
 export function getEmailChannelSettings(): Promise<EmailChannelSettings> {
@@ -46,11 +81,16 @@ export function getPublicSettings(): Promise<
   return apiRequest("/settings/public");
 }
 
+/**
+ * `resetDependents` is the administrator's confirmation: without it the server
+ * refuses a write that would leave an active dependent without its parent.
+ */
 export function updateSetting(input: {
   readonly key: string;
   readonly value: string | number | boolean;
   readonly reason: string;
-}): Promise<void> {
+  readonly resetDependents?: boolean;
+}): Promise<SettingsWriteResponse> {
   return apiRequest("/settings", {
     method: "PUT",
     body: JSON.stringify(input),
@@ -61,11 +101,19 @@ export function updateSetting(input: {
 export function updateSettings(input: {
   readonly entries: readonly { readonly key: string; readonly value: string | number | boolean }[];
   readonly reason: string;
-}): Promise<void> {
+  readonly resetDependents?: boolean;
+}): Promise<SettingsWriteResponse> {
   return apiRequest("/settings/batch", {
     method: "PUT",
     body: JSON.stringify(input),
   });
+}
+
+/** Paket 5.3.3: exactly what switching this key off would change right now. */
+export function getSettingDependents(
+  key: string,
+): Promise<readonly SettingDependentReset[]> {
+  return apiRequest(`/settings/dependents?key=${encodeURIComponent(key)}`);
 }
 
 export const emailChannelSettingKeys = {

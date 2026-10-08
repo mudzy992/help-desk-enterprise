@@ -1,7 +1,7 @@
 import { KeyRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SettingsCategoryDrawer } from "@/components/settings/settings-category-drawer";
+import { SettingsCategoryDialog } from "@/components/settings/settings-category-dialog";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import {
   filterSettingsByPrefix,
   readStringSetting,
 } from "@/lib/settings/read-setting-entry";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { cn } from "@/lib/utils";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
@@ -19,7 +19,7 @@ interface AuthProviderSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function AuthProviderSettingsCard({
@@ -112,14 +112,15 @@ export function AuthProviderSettingsCard({
           ) : null}
         </div>
       </Card>
-      <SettingsCategoryDrawer
+      <SettingsCategoryDialog
         open={drawerOpen}
+        onOpenChange={setDrawerOpen}
         title={t("settings.auth.drawerTitle")}
         description={t("settings.auth.drawerDescription")}
         entries={detailEntries}
+        allEntries={entries}
         canWrite={canWrite}
         pendingKey={pendingKey}
-        onOpenChange={setDrawerOpen}
         onSave={onSave}
       />
     </>

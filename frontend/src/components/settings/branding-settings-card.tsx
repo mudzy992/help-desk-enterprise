@@ -11,6 +11,7 @@ import { ApiError } from "@/services/api";
 import { readLogoFile, type LogoReadError } from "@/lib/branding/read-logo-file";
 import { brandingSettingKeys } from "@/lib/settings/is-featured-setting-key";
 import { readStringSetting } from "@/lib/settings/read-setting-entry";
+import type { SettingsSaverMany } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 type BrandingField = keyof typeof brandingSettingKeys;
@@ -23,10 +24,7 @@ interface BrandingSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSaveMany: (input: {
-    readonly entries: readonly { readonly key: string; readonly value: string }[];
-    readonly reason: string;
-  }) => Promise<void>;
+  readonly onSaveMany: SettingsSaverMany;
 }
 
 /**

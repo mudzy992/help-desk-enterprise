@@ -1,7 +1,7 @@
 import { FileCheck, Lock, ShieldCheck, UserCog } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SettingsCategoryDrawer } from "@/components/settings/settings-category-drawer";
+import { SettingsCategoryDialog } from "@/components/settings/settings-category-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { securityFeatureKeys } from "@/lib/settings/is-featured-setting-key";
@@ -9,7 +9,7 @@ import {
   filterSettingsByPrefix,
   readBooleanSetting,
 } from "@/lib/settings/read-setting-entry";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 type SecurityLabelKey =
@@ -24,7 +24,7 @@ interface SecurityComplianceSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function SecurityComplianceSettingsCard({
@@ -110,18 +110,19 @@ export function SecurityComplianceSettingsCard({
           ))}
         </div>
       </Card>
-      <SettingsCategoryDrawer
+      <SettingsCategoryDialog
         open={openRow !== null}
-        title={activeRow ? t(activeRow.labelKey) : t("settings.security.title")}
-        description={t("settings.security.drawerDescription")}
-        entries={drawerEntries}
-        canWrite={canWrite}
-        pendingKey={pendingKey}
         onOpenChange={(open) => {
           if (!open) {
             setOpenRow(null);
           }
         }}
+        title={activeRow ? t(activeRow.labelKey) : t("settings.security.title")}
+        description={t("settings.security.drawerDescription")}
+        entries={drawerEntries}
+        allEntries={entries}
+        canWrite={canWrite}
+        pendingKey={pendingKey}
         onSave={onSave}
       />
     </>

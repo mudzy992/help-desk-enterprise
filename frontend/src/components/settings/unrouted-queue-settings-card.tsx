@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { selectCompactClassName } from "@/components/ui/control";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { useTranslation } from "react-i18next";
-import { SettingsCategoryDrawer } from "@/components/settings/settings-category-drawer";
+import { SettingsCategoryDialog } from "@/components/settings/settings-category-dialog";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,14 @@ import {
   readBooleanSetting,
   readStringSetting,
 } from "@/lib/settings/read-setting-entry";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 interface UnroutedQueueSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function UnroutedQueueSettingsCard({
@@ -167,14 +167,15 @@ export function UnroutedQueueSettingsCard({
           ) : null}
         </div>
       </Card>
-      <SettingsCategoryDrawer
+      <SettingsCategoryDialog
         open={drawerOpen}
+        onOpenChange={setDrawerOpen}
         title={t("settings.unrouted.drawerTitle")}
         description={t("settings.unrouted.subtitle")}
         entries={drawerEntries}
+        allEntries={entries}
         canWrite={canWrite}
         pendingKey={pendingKey}
-        onOpenChange={setDrawerOpen}
         onSave={onSave}
       />
     </>

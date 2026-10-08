@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useAddonCatalog } from "@/lib/settings/use-addon-catalog";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { addonRegistryKey } from "@/lib/settings/is-featured-setting-key";
 
 interface AddonsSettingsPanelProperties {
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function AddonsSettingsPanel({

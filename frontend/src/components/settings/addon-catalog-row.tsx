@@ -5,7 +5,7 @@ import { SettingsReasonConfirm } from "@/components/settings/settings-reason-con
 import { Switch } from "@/components/ui/switch";
 import { resolveInstallAddonCopy } from "@/lib/install-addon-copy";
 import { addonRegistryKey } from "@/lib/settings/is-featured-setting-key";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { cn } from "@/lib/utils";
 import type { InstallAddonItem } from "@/services/install-addons-api";
 
@@ -13,7 +13,7 @@ interface AddonCatalogRowProperties {
   readonly item: InstallAddonItem;
   readonly canWrite: boolean;
   readonly pending: boolean;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function AddonCatalogRow({

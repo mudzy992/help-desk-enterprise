@@ -1,7 +1,8 @@
 import { EyeOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SettingsCategoryDrawer } from "@/components/settings/settings-category-drawer";
+import { SettingDependentsDialog } from "@/components/settings/setting-dependents-dialog";
+import { SettingsCategoryDialog } from "@/components/settings/settings-category-dialog";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,13 @@ import {
   readBooleanSetting,
   readStringSetting,
 } from "@/lib/settings/read-setting-entry";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import { findBlockingParents } from "@/lib/settings/setting-dependency-model";
+import { resolveRegistryTitle } from "@/lib/settings/resolve-registry-i18n";
+import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import {
   emailChannelSettingKeys,
+  getSettingDependents,
+  type SettingDependentReset,
   type SettingRegistryEntry,
 } from "@/services/settings-api";
 
@@ -31,7 +36,7 @@ interface SmtpEmailSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSave: SettingsSaver;
 }
 
 export function SmtpEmailSettingsCard({
@@ -44,7 +49,24 @@ export function SmtpEmailSettingsCard({
   const smtpEnabled = readBooleanSetting(entries, smtpSettingKeys.enabled);
   const [draftEnabled, setDraftEnabled] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingReason, setPendingReason] = useState<string | null>(null);
+  const [dependents, setDependents] = useState<
+    readonly SettingDependentReset[] | null
+  >(null);
   const effectiveEnabled = draftEnabled ?? smtpEnabled;
+  const enabledEntry =
+    entries.find((entry) => entry.key === smtpSettingKeys.enabled) ?? null;
+  // Paket 5.3.3: SMTP may only be switched on with a host configured. The
+  // server refuses the write either way; saying it here saves a round trip and
+  // explains what to do first.
+  const blockingParents =
+    enabledEntry === null || draftEnabled !== true
+      ? []
+      : findBlockingParents({
+          entry: enabledEntry,
+          entries,
+          nextValue: true,
+        });
   const provider = readStringSetting(entries, "private.smtp.provider", "o365");
   const typedHost = readStringSetting(entries, smtpSettingKeys.host, "");
   // Paket 1.5 (E10): an empty host means the provider preset is used.
@@ -158,11 +180,42 @@ export function SmtpEmailSettingsCard({
           </Button>
         </div>
         <div className="px-4 pb-4">
+          {blockingParents.length > 0 ? (
+            <p
+              role="alert"
+              data-testid="smtp-requires-host"
+              className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/70 pt-3 text-[11.5px] text-warning"
+            >
+              {t("settings.dependencies.blocked", {
+                count: blockingParents.length,
+                keys: blockingParents
+                  .map((key) => resolveRegistryTitle(t, { key, titleKey: `settings.registry.keys.${key}`, description: key }))
+                  .join(", "),
+              })}
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => setDrawerOpen(true)}
+              >
+                {t("settings.dependencies.fixNow")}
+              </Button>
+            </p>
+          ) : null}
           {draftEnabled !== null && draftEnabled !== smtpEnabled ? (
             <SettingsReasonConfirm
               pending={pendingKey === smtpSettingKeys.enabled}
+              disabled={blockingParents.length > 0}
               onCancel={() => setDraftEnabled(null)}
               onConfirm={async (reason) => {
+                if (smtpEnabled && draftEnabled === false) {
+                  const found = await getSettingDependents(smtpSettingKeys.enabled);
+                  if (found.length > 0) {
+                    setPendingReason(reason);
+                    setDependents(found);
+                    return;
+                  }
+                }
                 await onSave({
                   key: smtpSettingKeys.enabled,
                   value: draftEnabled,
@@ -174,15 +227,46 @@ export function SmtpEmailSettingsCard({
           ) : null}
         </div>
       </Card>
-      <SettingsCategoryDrawer
+      <SettingsCategoryDialog
         open={drawerOpen}
+        onOpenChange={setDrawerOpen}
         title={t("settings.smtp.drawerTitle")}
         description={t("settings.smtp.drawerDescription")}
         entries={drawerEntries}
+        allEntries={entries}
         canWrite={canWrite}
         pendingKey={pendingKey}
-        onOpenChange={setDrawerOpen}
         onSave={onSave}
+      />
+      <SettingDependentsDialog
+        open={dependents !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDependents(null);
+            setPendingReason(null);
+          }
+        }}
+        parentKey={smtpSettingKeys.enabled}
+        parentTitle={t("settings.smtp.enabled")}
+        dependents={dependents ?? []}
+        isPending={pendingKey === smtpSettingKeys.enabled}
+        onCancel={() => {
+          setDependents(null);
+          setPendingReason(null);
+        }}
+        onConfirm={() => {
+          void (async () => {
+            await onSave({
+              key: smtpSettingKeys.enabled,
+              value: false,
+              reason: pendingReason ?? "",
+              resetDependents: true,
+            });
+            setDependents(null);
+            setPendingReason(null);
+            setDraftEnabled(null);
+          })();
+        }}
       />
     </>
   );
