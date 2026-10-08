@@ -17,6 +17,7 @@ interface CreateTicketInterceptViewProperties {
   readonly helped: boolean;
   readonly helpedArticleId: string | null;
   readonly onHelped: (articleId?: string | null) => void;
+  readonly onResetHelped: () => void;
   readonly onContinue: () => void;
   readonly onBack: () => void;
 }
@@ -28,6 +29,7 @@ export function CreateTicketInterceptView({
   helped,
   helpedArticleId,
   onHelped,
+  onResetHelped,
   onContinue,
   onBack,
 }: CreateTicketInterceptViewProperties) {
@@ -44,6 +46,7 @@ export function CreateTicketInterceptView({
               helped={helped}
               helpedArticleId={helpedArticleId}
               onHelped={onHelped}
+              onResetHelped={onResetHelped}
               onContinue={onContinue}
               isSubmitting={isSubmitting}
             />

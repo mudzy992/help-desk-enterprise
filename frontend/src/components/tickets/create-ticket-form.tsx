@@ -69,6 +69,12 @@ export function CreateTicketForm() {
       // and telemetry is best-effort.
     }
   };
+
+  const resetHelped = () => {
+    setHelped(false);
+    setHelpedArticleId(null);
+  };
+
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
   const [failedSubmitCount, setFailedSubmitCount] = useState(0);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
@@ -230,6 +236,7 @@ export function CreateTicketForm() {
         helped={helped}
         helpedArticleId={helpedArticleId}
         onHelped={(articleId) => void markHelped(articleId)}
+        onResetHelped={resetHelped}
         onContinue={() => setStep(3)}
         onBackToDetails={() => setStep(1)}
         onBackToIntercept={() => setStep(2)}

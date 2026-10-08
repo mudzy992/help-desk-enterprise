@@ -27,6 +27,7 @@ interface KnowledgeInterceptPanelProperties {
   readonly helped: boolean;
   readonly helpedArticleId: string | null;
   readonly onHelped: (articleId?: string | null) => void;
+  readonly onResetHelped: () => void;
   readonly onContinue: () => void;
   readonly isSubmitting: boolean;
 }
@@ -36,6 +37,7 @@ export function KnowledgeInterceptPanel({
   helped,
   helpedArticleId,
   onHelped,
+  onResetHelped,
   onContinue,
   isSubmitting,
 }: KnowledgeInterceptPanelProperties) {
@@ -55,9 +57,13 @@ export function KnowledgeInterceptPanel({
       setVotes((previous) => ({ ...previous, [articleId]: isHelpful }));
       // Paket 5.2.4 (M14 B3): voting an article thumbs-up is the user's signal
       // that the article solved the problem — resolve intercept against *this*
-      // article, not an arbitrary first suggestion.
+      // article, not an arbitrary first suggestion. A thumbs-down, conversely,
+      // clears any previous "pomoglo" state so the green confirmation does not
+      // linger after a "nije pomoglo" vote on the same or a different card.
       if (isHelpful) {
         onHelped(articleId);
+      } else {
+        onResetHelped();
       }
     } catch (error) {
       setErrorKey(mapTicketError(error));

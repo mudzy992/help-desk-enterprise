@@ -18,6 +18,7 @@ interface CreateTicketFollowUpViewsProperties {
   readonly helped: boolean;
   readonly helpedArticleId: string | null;
   readonly onHelped: (articleId?: string | null) => void;
+  readonly onResetHelped: () => void;
   readonly onContinue: () => void;
   readonly onBackToDetails: () => void;
   readonly onBackToIntercept: () => void;
@@ -37,6 +38,7 @@ export function CreateTicketFollowUpViews({
   helped,
   helpedArticleId,
   onHelped,
+  onResetHelped,
   onContinue,
   onBackToDetails,
   onBackToIntercept,
@@ -52,6 +54,7 @@ export function CreateTicketFollowUpViews({
         helped={helped}
         helpedArticleId={helpedArticleId}
         onHelped={onHelped}
+        onResetHelped={onResetHelped}
         onContinue={onContinue}
         onBack={onBackToDetails}
       />
