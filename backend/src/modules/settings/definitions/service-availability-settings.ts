@@ -24,6 +24,7 @@ export const serviceAvailabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesAvailabilityShowStatusInCatalog,
+    requires: [{ key: settingKeys.privateServicesAvailabilityEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description: 'Expose availability status on catalog service responses',
@@ -32,6 +33,7 @@ export const serviceAvailabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesAvailabilityShowStatusInTicketCreate,
+    requires: [{ key: settingKeys.privateServicesAvailabilityEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description:
@@ -41,6 +43,7 @@ export const serviceAvailabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesAvailabilityChangeRequiresReason,
+    requires: [{ key: settingKeys.privateServicesAvailabilityEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description: 'Require a reason when changing stored service availability',

@@ -1,5 +1,6 @@
 import { isSettingCategoryId } from '../setting-categories';
 import { SettingsError } from '../settings.error';
+import { assertSettingMetadata } from './validate-setting-metadata';
 import type {
   SettingDefinition,
   SettingsRegistry,
@@ -93,6 +94,9 @@ export function createSettingsRegistry(
   for (const definition of definitions) {
     assertValidDefinition(definition, seenKeys);
   }
+  // Paket 5.3.3 (D6): title/help/group/requires are cross-key metadata, so they
+  // are checked once every definition is known.
+  assertSettingMetadata(definitions);
   const definitionsByKey = new Map(
     definitions.map((definition) => [definition.key, definition]),
   );

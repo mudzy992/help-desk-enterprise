@@ -14,6 +14,7 @@ export const ticketSplitSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSplitAllowAttachmentMove,
+    requires: [{ key: settingKeys.privateTicketSplitEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow moving attachments into split children; prefer copy/link',
@@ -22,6 +23,7 @@ export const ticketSplitSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSplitAllowMessageCopy,
+    requires: [{ key: settingKeys.privateTicketSplitEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow copying selected messages into split children',
@@ -30,6 +32,7 @@ export const ticketSplitSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSplitRequireReason,
+    requires: [{ key: settingKeys.privateTicketSplitEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require a reason when splitting a ticket',

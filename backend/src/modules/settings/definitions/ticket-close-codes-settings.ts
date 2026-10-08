@@ -25,6 +25,7 @@ export const ticketCloseCodesSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketCloseCodesRequireOnResolve,
+    requires: [{ key: settingKeys.privateTicketCloseCodesEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require a close code when a ticket is moved to RESOLVED',

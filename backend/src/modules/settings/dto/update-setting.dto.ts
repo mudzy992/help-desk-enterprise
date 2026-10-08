@@ -1,5 +1,7 @@
 import {
+  IsBoolean,
   IsDefined,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -19,4 +21,9 @@ export class UpdateSettingDto {
   @MinLength(1)
   @MaxLength(maximumChangeReasonLength)
   reason!: string;
+
+  /** Paket 5.3.3 (D7): same confirmation as the batch route, one key at a time. */
+  @IsOptional()
+  @IsBoolean()
+  resetDependents?: boolean;
 }

@@ -47,6 +47,7 @@ export const knowledgeBaseSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateKnowledgeBaseFeedbackOneVotePerUserPerArticle,
+    requires: [{ key: settingKeys.privateKnowledgeBaseFeedbackEnabled, equals: true }],
     categoryId: settingCategoryIds.privateKnowledgeBase,
     valueType: 'boolean',
     description: 'Keep one current feedback vote per user per article',
@@ -55,6 +56,7 @@ export const knowledgeBaseSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateKnowledgeBaseRankingUseFeedbackWeight,
+    requires: [{ key: settingKeys.privateKnowledgeBaseFeedbackEnabled, equals: true }],
     categoryId: settingCategoryIds.privateKnowledgeBase,
     valueType: 'boolean',
     description: 'Include feedback net score in knowledge intercept ranking',

@@ -87,7 +87,7 @@ async function main(): Promise<number> {
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   try {
     for (const { definition, value } of plan) {
-      await persistSettingValue(prisma as unknown as PrismaService, definition, value, {
+      await persistSettingValue(prisma as unknown as PrismaService, registry, definition, value, {
         reason,
         actorUserId: null,
       });

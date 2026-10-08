@@ -37,6 +37,7 @@ export const observabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateObservabilitySupportBundleIncludeConfigSnapshot,
+    requires: [{ key: settingKeys.privateObservabilitySupportBundleEnabled, equals: true }],
     categoryId: settingCategoryIds.privateObservability,
     valueType: 'boolean',
     description: 'Include the current config snapshot in the support bundle',
@@ -45,6 +46,7 @@ export const observabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateObservabilitySupportBundleIncludeRecentLogs,
+    requires: [{ key: settingKeys.privateObservabilitySupportBundleEnabled, equals: true }],
     categoryId: settingCategoryIds.privateObservability,
     valueType: 'boolean',
     description: 'Include recent in-process request logs in the support bundle',
@@ -53,6 +55,7 @@ export const observabilitySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateObservabilitySupportBundleIncludeAuditExport,
+    requires: [{ key: settingKeys.privateObservabilitySupportBundleEnabled, equals: true }],
     categoryId: settingCategoryIds.privateObservability,
     valueType: 'boolean',
     description: 'Include the audit log export in the support bundle',

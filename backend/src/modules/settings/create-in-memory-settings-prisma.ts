@@ -27,6 +27,21 @@ export function createInMemorySettingsPrisma() {
     appSetting: {
       findUnique: async ({ where }: { where: { key: string } }) =>
         settings.get(where.key) ?? null,
+      findMany: async ({ select }: { select?: { key?: true; value?: true } } = {}) =>
+        [...settings.values()].map((row) => {
+          if (select === undefined) {
+            return row;
+          }
+          // Paket 5.3.3: the dependency resolver only asks for key/value.
+          return {
+            ...(select.key === true ? { key: row.key } : {}),
+            ...(select.value === true ? { value: row.value } : {}),
+          };
+        }),
+      deleteMany: async ({ where }: { where: { key: string } }) => {
+        const deleted = settings.delete(where.key);
+        return { count: deleted ? 1 : 0 };
+      },
       upsert: async ({
         where,
         create,
@@ -59,8 +74,26 @@ export function createInMemorySettingsPrisma() {
         return data;
       },
     },
-    $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
-      callback(prisma),
+    /**
+     * Paket 5.3.3: the dependency gate throws *inside* the transaction once a
+     * write would strand a dependent, so the double has to roll back like
+     * Prisma does — otherwise a spec would \"see\" rows the real database never
+     * kept.
+     */
+    $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
+      const settingsBefore = new Map(settings);
+      const changeLogCountBefore = changeLogs.length;
+      try {
+        return await callback(prisma);
+      } catch (error) {
+        settings.clear();
+        for (const [key, row] of settingsBefore) {
+          settings.set(key, row);
+        }
+        changeLogs.length = changeLogCountBefore;
+        throw error;
+      }
+    },
   };
   return { prisma, changeLogs, getStored: (key: string) => settings.get(key) };
 }

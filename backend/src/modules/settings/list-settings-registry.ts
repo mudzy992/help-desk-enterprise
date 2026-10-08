@@ -1,4 +1,8 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  resolveSettingHelpKey,
+  resolveSettingTitleKey,
+} from './registry/setting-i18n-keys';
 import { requireSettingCategory } from './setting-categories';
 import { redactedSecretPlaceholder } from './settings.redaction';
 import {
@@ -33,8 +37,15 @@ function toRegistryEntry(
 ): SettingRegistryEntry {
   const category = requireSettingCategory(definition.categoryId);
   const hasStored = storedByKey.has(definition.key);
+  const metadata = {
+    titleKey: resolveSettingTitleKey(definition),
+    helpKey: resolveSettingHelpKey(definition),
+    group: definition.group ?? null,
+    requires: definition.requires ? [...definition.requires] : [],
+  };
   if (definition.visibility === 'secret') {
     return {
+      ...metadata,
       key: definition.key,
       description: definition.description,
       categoryId: category.id,
@@ -53,6 +64,7 @@ function toRegistryEntry(
   }
   const resolved = resolveNonSecretValue(definition, storedByKey);
   return {
+    ...metadata,
     key: definition.key,
     description: definition.description,
     categoryId: category.id,

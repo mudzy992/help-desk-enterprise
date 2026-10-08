@@ -108,6 +108,7 @@ export const privacySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privatePrivacyAnonymizationRequireSecondApprover,
+    requires: [{ key: settingKeys.privatePrivacyEnabled, equals: true }],
     categoryId: category,
     valueType: 'boolean',
     description: 'Anonymization needs approval of a second SUPER_ADMIN (four eyes)',
@@ -116,6 +117,7 @@ export const privacySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privatePrivacyAnonymizationDeleteOwnAttachmentsDefault,
+    requires: [{ key: settingKeys.privatePrivacyEnabled, equals: true }],
     categoryId: category,
     valueType: 'boolean',
     description: 'Pre-select deleting the attachments the person uploaded when anonymizing',
@@ -124,6 +126,7 @@ export const privacySettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privatePrivacyExportIncludeAttachmentsDefault,
+    requires: [{ key: settingKeys.privatePrivacyEnabled, equals: true }],
     categoryId: category,
     valueType: 'boolean',
     description: 'Pre-select including the person’s own attachments in a data export',

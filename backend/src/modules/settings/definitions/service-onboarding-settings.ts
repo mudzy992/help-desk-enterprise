@@ -14,6 +14,7 @@ export const serviceOnboardingSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesOnboardingWizardRequireValidationBeforeActivate,
+    requires: [{ key: settingKeys.privateServicesOnboardingWizardEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description:
@@ -23,6 +24,7 @@ export const serviceOnboardingSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesOnboardingWizardAutoFillRoutingEnabled,
+    requires: [{ key: settingKeys.privateServicesOnboardingWizardEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description:
@@ -32,6 +34,7 @@ export const serviceOnboardingSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateServicesOnboardingWizardAutoFillRoutingRequireConfirm,
+    requires: [{ key: settingKeys.privateServicesOnboardingWizardAutoFillRoutingEnabled, equals: true }],
     categoryId: settingCategoryIds.privateServices,
     valueType: 'boolean',
     description:

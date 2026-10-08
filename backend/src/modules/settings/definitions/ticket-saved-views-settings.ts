@@ -22,6 +22,7 @@ export const ticketSavedViewsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSavedViewsAllowDefaultView,
+    requires: [{ key: settingKeys.privateTicketSavedViewsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow marking one saved view as the user default',

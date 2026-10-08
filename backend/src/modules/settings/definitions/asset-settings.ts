@@ -225,6 +225,7 @@ export const assetSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateAssetsTransferRequired,
+    requires: [{ key: settingKeys.privateAssetsTransferEnabled, equals: true }],
     categoryId: category,
     valueType: 'boolean',
     description: 'Equipment can only move with a transfer record (assign/return without one is refused)',

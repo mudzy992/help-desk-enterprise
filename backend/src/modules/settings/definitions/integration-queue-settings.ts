@@ -72,6 +72,7 @@ export const integrationQueueSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsQueueAdminUiEnabled,
+    requires: [{ key: settingKeys.privateIntegrationsQueueEnabled, equals: true }],
     categoryId: settingCategoryIds.privateIntegrations,
     valueType: 'boolean',
     description: 'Enable the admin API for queue inspection and retry',

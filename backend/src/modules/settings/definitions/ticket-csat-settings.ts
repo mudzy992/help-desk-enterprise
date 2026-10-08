@@ -22,6 +22,7 @@ export const ticketCsatSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateCsatAskOnResolved,
+    requires: [{ key: settingKeys.privateCsatEnabled, equals: true }],
     categoryId: settingCategoryIds.privateCsat,
     valueType: 'boolean',
     description: 'Ask for CSAT when a ticket is RESOLVED',
@@ -30,6 +31,7 @@ export const ticketCsatSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateCsatAskOnClosed,
+    requires: [{ key: settingKeys.privateCsatEnabled, equals: true }],
     categoryId: settingCategoryIds.privateCsat,
     valueType: 'boolean',
     description: 'Ask for CSAT when a ticket is CLOSED',

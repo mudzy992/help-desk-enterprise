@@ -17,6 +17,7 @@ export const configVersioningSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateConfigVersioningAllowRollback,
+    requires: [{ key: settingKeys.privateConfigVersioningEnabled, equals: true }],
     categoryId: settingCategoryIds.privateConfigVersioning,
     valueType: 'boolean',
     description: 'Allow permission-gated rollback to a previous config version',
@@ -25,6 +26,7 @@ export const configVersioningSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateConfigVersioningValidationEnabled,
+    requires: [{ key: settingKeys.privateConfigVersioningEnabled, equals: true }],
     categoryId: settingCategoryIds.privateConfigVersioning,
     valueType: 'boolean',
     description: 'Run dry-run validation before activating a config version',
@@ -33,6 +35,7 @@ export const configVersioningSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateConfigVersioningValidationBlockActivationOnError,
+    requires: [{ key: settingKeys.privateConfigVersioningValidationEnabled, equals: true }],
     categoryId: settingCategoryIds.privateConfigVersioning,
     valueType: 'boolean',
     description: 'Block activation when dry-run validation returns errors',
@@ -41,6 +44,7 @@ export const configVersioningSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateConfigVersioningShadowModeEnabled,
+    requires: [{ key: settingKeys.privateConfigVersioningEnabled, equals: true }],
     categoryId: settingCategoryIds.privateConfigVersioning,
     valueType: 'boolean',
     description:

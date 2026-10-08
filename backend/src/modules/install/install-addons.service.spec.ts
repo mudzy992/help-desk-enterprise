@@ -120,6 +120,13 @@ describe('InstallAddonsService', () => {
     expect(settingsMemory.getStored(settingKeys.privateAddonsEmail)).toMatchObject(
       { value: false },
     );
+    // Paket 5.3.3: SMTP may only be switched on with a host configured; the
+    // install wizard writes the host first, and this fixture mirrors that.
+    await settingsService.setSettingValue(
+      settingKeys.privateSmtpHost,
+      'smtp.example.com',
+      mutation,
+    );
     await settingsService.setSettingValue(
       settingKeys.privateSmtpEnabled,
       true,

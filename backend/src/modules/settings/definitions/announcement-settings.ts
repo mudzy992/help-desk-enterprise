@@ -38,6 +38,7 @@ export const announcementSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateAnnouncementsAgentsMayPublish,
+    requires: [{ key: settingKeys.privateAnnouncementsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateWorkflow,
     valueType: 'boolean',
     description: 'Agents may publish announcements for their own organizational unit',
@@ -59,6 +60,7 @@ export const announcementSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateAnnouncementsTeamsEnabled,
+    requires: [{ key: settingKeys.privateAnnouncementsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateWorkflow,
     valueType: 'boolean',
     description: 'Offer "Post to Teams" on announcements (needs a Teams webhook URL here or in the alarm settings)',

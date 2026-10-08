@@ -14,6 +14,7 @@ const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const notificationEmailSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateNotificationsEdgeEnabled,
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateNotifications,
     valueType: 'boolean',
     description: 'Enable Edge/Windows notification delivery for the extension',

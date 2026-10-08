@@ -34,6 +34,7 @@ const category = settingCategoryIds.privateIntegrations;
 export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsMode,
+    group: 'mode',
     categoryId: category,
     valueType: 'string',
     description: 'Teams connector mode: simulator (no Microsoft resources, needs TEAMS_SIMULATOR_SECRET) or live (Bot Connector)',
@@ -45,6 +46,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsTenantId,
+    group: 'credentials',
     categoryId: category,
     valueType: 'string',
     description: 'Microsoft Entra tenant ID of the organisation (live mode); activities from other tenants are refused',
@@ -54,6 +56,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsBotAppId,
+    group: 'credentials',
     categoryId: category,
     valueType: 'string',
     description: 'Application (client) ID of the single-tenant bot app registration (live mode)',
@@ -63,6 +66,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   defineSecretSetting({
     key: settingKeys.privateIntegrationsTeamsBotAppSecret,
+    group: 'credentials',
     categoryId: category,
     valueType: 'string',
     description: 'Client secret of the bot app registration (live mode); leave empty when a certificate is used',
@@ -70,6 +74,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   defineSecretSetting({
     key: settingKeys.privateIntegrationsTeamsBotCertificatePem,
+    group: 'credentials',
     categoryId: category,
     valueType: 'string',
     description: 'Optional certificate and private key (PEM) of the bot app registration; preferred over a secret',
@@ -77,6 +82,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsPersonalEnabled,
+    group: 'capabilities',
     categoryId: category,
     valueType: 'boolean',
     description: 'Send personal Teams notifications (by each user\'s notification preferences)',
@@ -85,6 +91,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsChannelEnabled,
+    group: 'capabilities',
     categoryId: category,
     valueType: 'boolean',
     description: 'Post group events to the Teams channels linked to groups',
@@ -93,6 +100,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsChannelIncludeTitle,
+    group: 'capabilities',
     categoryId: category,
     valueType: 'boolean',
     description: 'Show the ticket title in channel cards (channels never show the description or messages)',
@@ -101,6 +109,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsTicketCreateEnabled,
+    group: 'capabilities',
     categoryId: category,
     valueType: 'boolean',
     description: 'Allow creating tickets from Teams (personal chat command and the message action)',
@@ -109,6 +118,7 @@ export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsActionsEnabled,
+    group: 'capabilities',
     categoryId: category,
     valueType: 'boolean',
     description: 'Show action buttons on cards (claim, reply, approve, vote); off = cards only link to the application',

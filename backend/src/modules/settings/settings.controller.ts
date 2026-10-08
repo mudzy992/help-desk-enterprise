@@ -1,10 +1,11 @@
+import { ReadSettingDependentsQueryDto } from './dto/read-setting-dependents.dto';
 import { UpdateSettingsBatchDto } from './dto/update-settings-batch.dto';
 import {
   Body,
   Controller,
   Get,
-  HttpCode,
   Put,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -27,6 +28,7 @@ import {
 } from './read-email-channel-settings';
 import { readSettingsActorUserId } from './read-settings-actor-user-id';
 import { SettingsService } from './settings.service';
+import type { SettingDependentReset } from './plan-dependent-resets';
 import type { SettingRegistryEntry } from './settings.types';
 
 @Controller('settings')
@@ -60,18 +62,35 @@ export class SettingsController {
     }
   }
 
+  /**
+   * Paket 5.3.3 (D7): what switching this setting off would reset. The modal
+   * shows the exact list before the administrator confirms; only dependents that
+   * are switched on right now are returned, because only those would change.
+   */
+  @Get('dependents')
+  async listSettingDependents(
+    @Query() query: ReadSettingDependentsQueryDto,
+  ): Promise<readonly SettingDependentReset[]> {
+    try {
+      return await this.settingsService.previewDependentResets(query.key);
+    } catch (error) {
+      throw mapSettingsError(error);
+    }
+  }
+
   @Put('batch')
-  @HttpCode(204)
   @RequirePermissions(permissionKeys.settingsWrite)
   async updateSettingsBatch(
     @Body() body: UpdateSettingsBatchDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<void> {
+  ): Promise<UpdateSettingsBatchResponse> {
     try {
-      await this.settingsService.setSettingValues(
+      const result = await this.settingsService.setSettingValues(
         body.entries.map((entry) => ({ key: entry.key, value: entry.value })),
         { reason: body.reason, actorUserId: readSettingsActorUserId(request) },
+        { resetDependents: body.resetDependents === true },
       );
+      return toBatchResponse(result);
     } catch (error) {
       throw mapSettingsError(error);
     }
@@ -82,14 +101,33 @@ export class SettingsController {
   async updateSetting(
     @Body() body: UpdateSettingDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<void> {
+  ): Promise<UpdateSettingsBatchResponse> {
     try {
-      await this.settingsService.setSettingValue(body.key, body.value, {
-        reason: body.reason,
-        actorUserId: readSettingsActorUserId(request),
-      });
+      const result = await this.settingsService.setSettingValue(
+        body.key,
+        body.value,
+        { reason: body.reason, actorUserId: readSettingsActorUserId(request) },
+        { resetDependents: body.resetDependents === true },
+      );
+      return toBatchResponse(result);
     } catch (error) {
       throw mapSettingsError(error);
     }
   }
+}
+
+export type UpdateSettingsBatchResponse = {
+  readonly updatedKeys: readonly string[];
+  /** Dependents returned to their default, or erased when they have none. */
+  readonly resetDependents: readonly SettingDependentReset[];
+};
+
+function toBatchResponse(input: {
+  readonly updatedKeys: readonly string[];
+  readonly resets: readonly SettingDependentReset[];
+}): UpdateSettingsBatchResponse {
+  return {
+    updatedKeys: [...input.updatedKeys],
+    resetDependents: input.resets.map((reset) => ({ ...reset })),
+  };
 }

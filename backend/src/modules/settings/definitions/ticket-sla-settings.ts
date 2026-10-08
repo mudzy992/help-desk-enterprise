@@ -14,6 +14,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaAllowServiceOverrides,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow SLA rules to target a specific service',
@@ -22,6 +23,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaAllowOuOverrides,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow SLA rules to target a specific organizational unit',
@@ -30,6 +32,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaPauseOnWaitingForUser,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Pause SLA timers while a ticket is waiting for the user',
@@ -38,6 +41,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaPauseOnPendingApproval,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Pause SLA timers while a ticket is pending approval',
@@ -55,6 +59,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaEscalationsEnabled,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Emit SLA escalation events when response or resolution timers expire',
@@ -63,6 +68,7 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketSlaEscalationsEmailEnabled,
+    requires: [{ key: settingKeys.privateTicketSlaEnabled, equals: true }, { key: settingKeys.privateTicketSlaEscalationsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Send email when an SLA escalation fires (in addition to in-app)',

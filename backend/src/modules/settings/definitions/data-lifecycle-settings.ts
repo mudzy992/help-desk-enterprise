@@ -22,6 +22,7 @@ export const dataLifecycleSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateDataLifecycleArchiveArchivedReadOnly,
+    requires: [{ key: settingKeys.privateDataLifecycleArchiveEnabled, equals: true }],
     categoryId: settingCategoryIds.privateDataLifecycle,
     valueType: 'boolean',
     description: 'Reject writes against archived tickets',
@@ -30,6 +31,7 @@ export const dataLifecycleSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateDataLifecycleArchiveSearchable,
+    requires: [{ key: settingKeys.privateDataLifecycleArchiveEnabled, equals: true }],
     categoryId: settingCategoryIds.privateDataLifecycle,
     valueType: 'boolean',
     description: 'Allow archived tickets to appear in status=ARCHIVED lists',

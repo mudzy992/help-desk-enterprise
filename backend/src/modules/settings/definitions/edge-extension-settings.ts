@@ -32,6 +32,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsEnabled,
+    group: 'transport',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Allow the Edge extension to open a Socket.IO connection',
@@ -40,6 +42,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsReconnectMaxBackoffSeconds,
+    group: 'transport',
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Maximum Socket.IO reconnect backoff in seconds',
@@ -49,6 +52,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsMinClientVersion,
+    group: 'transport',
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'string',
     description:
@@ -58,6 +62,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionNotificationsRedactedPreviews,
+    group: 'notifications',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
@@ -67,6 +73,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionReceiptsEnabled,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Accept delivered and opened receipts from the extension',
@@ -75,6 +83,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionEventsDedupEnabled,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Tell the extension to deduplicate events by eventId',
@@ -83,6 +93,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionKillSwitchEnabled,
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
@@ -92,6 +103,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionPollingFallbackEnabled,
+    group: 'transport',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Poll unread notifications when the Socket.IO connection drops',
@@ -100,6 +113,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionPollingFallbackIntervalSeconds,
+    group: 'transport',
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Unread polling interval in seconds while WebSocket is down',
@@ -109,6 +123,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionChatEnabled,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Enable quick reply chat in the Edge extension popup',
@@ -117,6 +133,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionChatMaxMessagesPerTicket,
+    group: 'features',
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Maximum messages loaded per ticket in the extension popup',
@@ -126,6 +143,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionAttachmentsEnabled,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
@@ -135,6 +154,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteEnabled,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Enable Request Remote / Quick Assist through the extension',
@@ -143,6 +164,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteRateLimitMinutesPerTicket,
+    group: 'features',
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Minimum minutes between remote requests on the same ticket',
@@ -153,6 +175,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key:
       settingKeys.privateEdgeExtensionRemoteRequireUserClickToOpenQuickAssist,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionRemoteEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
@@ -162,6 +186,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteAuditAcknowledge,
+    group: 'features',
+    requires: [{ key: settingKeys.privateEdgeExtensionRemoteEnabled, equals: true }],
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Write an audit entry when the user opens Quick Assist',

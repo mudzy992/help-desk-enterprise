@@ -181,6 +181,7 @@ export const inboundEmailSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateInboundCreateTickets,
+    requires: [{ key: settingKeys.privateInboundEnabled, equals: true }],
     categoryId: category,
     valueType: 'boolean',
     description: 'A new e-mail from a known user (not a reply) opens a ticket on the default service',

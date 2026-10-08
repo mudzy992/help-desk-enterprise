@@ -3,7 +3,9 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDefined,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -34,4 +36,13 @@ export class UpdateSettingsBatchDto {
   @MinLength(1)
   @MaxLength(maximumChangeReasonLength)
   reason!: string;
+
+  /**
+   * Paket 5.3.3 (D7): the caller has shown the list of dependent keys and the
+   * administrator confirmed. Without it a write that would strand an active
+   * dependent is rejected with `SETTING_DEPENDENCY_UNMET`.
+   */
+  @IsOptional()
+  @IsBoolean()
+  resetDependents?: boolean;
 }

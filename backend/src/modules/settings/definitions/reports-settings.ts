@@ -84,6 +84,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   // Paket 2.5 (T): trend dashboard.
   definePrivateSetting({
     key: settingKeys.privateReportsTrendsEnabled,
+    requires: [{ key: settingKeys.privateReportsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateReports,
     valueType: 'boolean',
     description: 'Enable the trends dashboard (incoming vs. resolved, backlog, SLA, CSAT)',
@@ -129,6 +130,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   // Paket 2.5 (Z): scheduled reports by e-mail.
   definePrivateSetting({
     key: settingKeys.privateReportsScheduledEnabled,
+    requires: [{ key: settingKeys.privateReportsEnabled, equals: true }],
     categoryId: settingCategoryIds.privateReports,
     valueType: 'boolean',
     description: 'Enable scheduled weekly/monthly reports by e-mail',

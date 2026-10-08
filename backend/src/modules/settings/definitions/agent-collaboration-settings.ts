@@ -10,14 +10,34 @@ export const agentCollaborationLimits = {
 
 const category = settingCategoryIds.privateCollaboration;
 
-function flag(key: string, description: string, defaultValue: boolean): SettingDefinition {
-  return definePrivateSetting({ key, categoryId: category, valueType: 'boolean', description, isRequired: true, defaultValue });
+function flag(
+  key: string,
+  description: string,
+  defaultValue: boolean,
+  requires?: SettingDefinition['requires'],
+): SettingDefinition {
+  return definePrivateSetting({
+    key,
+    categoryId: category,
+    valueType: 'boolean',
+    description,
+    isRequired: true,
+    defaultValue,
+    ...(requires === undefined ? {} : { requires }),
+  });
 }
 
 /** Paket 2.4 (§5). */
 export const agentCollaborationSettings: readonly SettingDefinition[] = [
   flag(settingKeys.privateCollaborationPresenceEnabled, 'Show who is viewing a ticket or writing a reply, live', true),
-  flag(settingKeys.privateCollaborationPresenceShowToRequester, 'The requester sees "An agent is writing a reply…" (without a name)', true),
+  // Paket 5.3.3 (D6): showing presence to the requester only makes sense while
+  // presence itself is switched on.
+  flag(
+    settingKeys.privateCollaborationPresenceShowToRequester,
+    'The requester sees "An agent is writing a reply…" (without a name)',
+    true,
+    [{ key: settingKeys.privateCollaborationPresenceEnabled, equals: true }],
+  ),
   flag(settingKeys.privateCollaborationCollisionWarningEnabled, 'Ask for confirmation before sending when a colleague is writing a reply', true),
   flag(settingKeys.privateCollaborationMentionsEnabled, '@mention colleagues in internal notes', true),
   flag(settingKeys.privateCollaborationFollowersEnabled, 'Follow button and the "Tickets I follow" view', true),

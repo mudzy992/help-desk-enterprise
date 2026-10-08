@@ -39,6 +39,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialBreakGlassEnabled,
+    requires: [{ key: settingKeys.privateTicketConfidentialEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow authorized break-glass access to confidential tickets',
@@ -55,6 +56,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialBreakGlassRequiresReason,
+    requires: [{ key: settingKeys.privateTicketConfidentialBreakGlassEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require a reason for every break-glass request',
@@ -63,6 +65,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialAuditViews,
+    requires: [{ key: settingKeys.privateTicketConfidentialEnabled, equals: true }],
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Audit every confidential ticket view and denied access',

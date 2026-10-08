@@ -9,15 +9,22 @@ import { settingCategoryIds } from '../setting-categories';
 export const smtpSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateSmtpEnabled,
+    group: 'connection',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'boolean',
     description:
       'Enables SMTP delivery; when off, the email addon is forcibly disabled',
     isRequired: true,
     defaultValue: false,
+    // Paket 5.3.3 (D6): the same rule the config snapshot export already
+    // enforces (SMTP_HOST_REQUIRED) — switching SMTP on without a host would
+    // only fail later, on the first mail. Setting the host in the same batch is
+    // allowed, because the gate judges the state the request produces.
+    requires: [{ key: settingKeys.privateSmtpHost, notEmpty: true }],
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpHost,
+    group: 'connection',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'SMTP server hostname used when SMTP is enabled',
@@ -26,6 +33,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpPort,
+    group: 'connection',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'number',
     description: 'SMTP server port used when SMTP is enabled',
@@ -34,6 +42,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpTls,
+    group: 'connection',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'boolean',
     description: 'Whether SMTP uses TLS when SMTP is enabled',
@@ -42,6 +51,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpUsername,
+    group: 'authentication',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'SMTP authentication username used when SMTP is enabled',
@@ -50,6 +60,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   defineSecretSetting({
     key: settingKeys.privateSmtpPassword,
+    group: 'authentication',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description:
@@ -58,6 +69,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpFromAddress,
+    group: 'sender',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'From address used for outbound SMTP mail when SMTP is enabled',
@@ -66,6 +78,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpProvider,
+    group: 'connection',
     categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description:

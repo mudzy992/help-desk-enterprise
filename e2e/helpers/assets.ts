@@ -48,7 +48,34 @@ export async function readSetting(api: ApiClient, key: string): Promise<unknown>
 }
 
 export async function setSetting(api: ApiClient, key: string, value: unknown, reason: string): Promise<void> {
-  await api.requestJson('/settings', { method: 'PUT', body: JSON.stringify({ key, value, reason }) });
+  await api.requestJson('/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ key, value, reason, resetDependents: true }),
+  });
+}
+
+/**
+ * Paket 5.3.3: one batch, so the dependency gate judges the state the whole set
+ * produces — test 25 sets \"transfers on + required\" while tests 26–28 switch
+ * them off, and neither order may be refused halfway. The confirmation flag is
+ * only sent on the restore below.
+ */
+async function setSettings(
+  api: ApiClient,
+  values: Readonly<Record<string, unknown>>,
+  reason: string,
+  options: { readonly resetDependents?: boolean } = {},
+): Promise<void> {
+  const entries = Object.entries(values).map(([key, value]) => ({ key, value }));
+  if (entries.length === 0) return;
+  await api.requestJson('/settings/batch', {
+    method: 'PUT',
+    body: JSON.stringify({
+      entries,
+      reason,
+      ...(options.resetDependents === true ? { resetDependents: true } : {}),
+    }),
+  });
 }
 
 /**
@@ -65,13 +92,19 @@ export async function withSettings(
   const previous = new Map<string, unknown>();
   for (const key of Object.keys(values)) previous.set(key, await readSetting(api, key));
   try {
-    for (const [key, value] of Object.entries(values)) await setSetting(api, key, value, reason);
+    await setSettings(api, values, reason);
     await body();
   } finally {
+    const restored: Record<string, unknown> = {};
     for (const [key, value] of previous) {
-      const restored = value ?? defaults[key] ?? assetSettingDefaults[key] ?? false;
-      await setSetting(api, key, restored, `${reason} (restore)`).catch(() => undefined);
+      restored[key] = value ?? defaults[key] ?? assetSettingDefaults[key] ?? false;
     }
+    // Paket 5.3.3: a restore may switch a parent off while a dependent is still
+    // on, so the cleanup confirms the reset instead of failing and leaving the
+    // environment dirty.
+    await setSettings(api, restored, `${reason} (restore)`, {
+      resetDependents: true,
+    }).catch(() => undefined);
   }
 }
 

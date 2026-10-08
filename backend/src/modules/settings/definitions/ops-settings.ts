@@ -79,6 +79,7 @@ export const opsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateStatusPagePublic,
+    requires: [{ key: settingKeys.privateStatusPageEnabled, equals: true }],
     categoryId: services,
     valueType: 'boolean',
     description: 'Also show the status page without signing in (staff-only incidents stay hidden)',
@@ -88,6 +89,7 @@ export const opsSettings: readonly SettingDefinition[] = [
   number(settingKeys.privateStatusPageHistoryDays, services, 'Days of resolved incidents shown on the status page (7-365)', opsDefaults.statusPageHistoryDays, 7, 365),
   definePrivateSetting({
     key: settingKeys.privateStatusPageShowUptimePercent,
+    requires: [{ key: settingKeys.privateStatusPageEnabled, equals: true }],
     categoryId: services,
     valueType: 'boolean',
     description: 'Show the availability percentage per service on the status page',
