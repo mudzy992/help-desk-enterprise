@@ -60,6 +60,8 @@ export type ServiceResponse = {
   readonly openTicketCount: number;
   readonly activeForm: ServiceActiveFormSummary;
   readonly incidentImpact?: "DEGRADED" | "DOWN" | "MAINTENANCE" | null;
+  /** Paket 5.3.1: category label on list reads (requesters cannot read categories). */
+  readonly category?: { readonly name: string; readonly sortOrder: number } | null;
 };
 
 export type CreateServiceInput = {

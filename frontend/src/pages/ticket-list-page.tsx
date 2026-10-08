@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useDirectory } from "@/lib/directory/use-directory";
+import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
@@ -35,6 +36,7 @@ export function TicketListPage() {
   const canExport = hasPermission(permissionKeys.auditExport);
   const canManageGroups = hasPermission(permissionKeys.groupManage);
   const csvExport = useTicketsCsvExport(list.filters, list.setErrorKey);
+  const workspaceCounts = useSidebarTicketCounts(list.isStaff);
   const isInbox = list.view === "inbox";
   const inboxActiveTab = list.filters.inboxTab ?? defaultInboxTab;
   const assigneeNames = useMemo(
@@ -49,8 +51,10 @@ export function TicketListPage() {
   // every matching ticket), not from the rows of the current page.
   const openCount = list.counts?.open ?? 0;
   const riskCount = list.counts?.overdue ?? 0;
+  // Paket 5.3.1 (D10): the inbox is a tab of "All tickets"; the heading names
+  // the section, the active tab names the view.
   const pageTitle = isInbox
-    ? t("tickets.views.inbox")
+    ? t("tickets.views.all")
     : ticketText(t, ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox
     ? t("tickets.inboxHint")
@@ -91,6 +95,12 @@ export function TicketListPage() {
           </>
         }
       />
+      <TicketWorkspaceNav
+        view={list.view}
+        inboxHidden={list.inboxHidden}
+        isStaff={list.isStaff}
+        counts={workspaceCounts}
+      />
       {isInbox ? (
         <TicketInboxPanel
           activeTab={inboxActiveTab}
@@ -114,11 +124,6 @@ export function TicketListPage() {
         />
       ) : (
         <>
-          <TicketWorkspaceNav
-            view={list.view}
-            inboxHidden={list.inboxHidden}
-            isStaff={list.isStaff}
-          />
           {/* UX 2026-10-02: one full-width column. Saved views used to sit in a
               permanent 220px rail, which squeezed the table on laptops and stacked
               above it on smaller screens; they are now a compact control inside the

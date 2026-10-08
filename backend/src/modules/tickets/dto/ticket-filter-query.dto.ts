@@ -8,7 +8,9 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
+import { CreatedRangeOrderedConstraint } from '../list/created-range.validator';
 import { TicketPriority } from '../../../generated/prisma/enums';
 import { toQueryBoolean } from '../list/list-query-transforms';
 
@@ -86,6 +88,7 @@ export class TicketFilterQueryDto {
 
   @IsOptional()
   @IsISO8601()
+  @Validate(CreatedRangeOrderedConstraint)
   createdTo?: string;
 
   @IsOptional()

@@ -3,36 +3,25 @@ import {
   adminNavigationItem,
   configVersionsNavigationItem,
   getActiveNavigationItem,
-  inboxNavigationItem,
   isNavigationItemActive,
   navigationLabelKeys,
+  navigationSections,
   reportsNavigationItem,
   ticketsNavigationItem,
 } from "@/lib/navigation";
 
 describe("navigation IA matching", () => {
-  it("activates inbox on /tickets?view=inbox and on bare /tickets", () => {
-    expect(
-      isNavigationItemActive(inboxNavigationItem, "/tickets", "?view=inbox"),
-    ).toBe(true);
-    expect(isNavigationItemActive(inboxNavigationItem, "/tickets", "")).toBe(
-      true,
-    );
-    expect(
-      isNavigationItemActive(ticketsNavigationItem, "/tickets", "?view=inbox"),
-    ).toBe(false);
+  it("activates tickets on every list view, including the inbox tab (5.3.1)", () => {
+    expect(isNavigationItemActive(ticketsNavigationItem, "/tickets", "?view=inbox")).toBe(true);
+    expect(isNavigationItemActive(ticketsNavigationItem, "/tickets", "")).toBe(true);
+    expect(isNavigationItemActive(ticketsNavigationItem, "/tickets", "?view=all")).toBe(true);
+    expect(isNavigationItemActive(ticketsNavigationItem, "/tickets/abc", "")).toBe(true);
   });
 
-  it("activates tickets on /tickets/:id and non-inbox list views", () => {
-    expect(
-      isNavigationItemActive(ticketsNavigationItem, "/tickets/abc", ""),
-    ).toBe(true);
-    expect(
-      isNavigationItemActive(ticketsNavigationItem, "/tickets", "?view=all"),
-    ).toBe(true);
-    expect(
-      isNavigationItemActive(inboxNavigationItem, "/tickets/abc", ""),
-    ).toBe(false);
+  it("no longer lists the group inbox as its own sidebar item (5.3.1)", () => {
+    const labels = navigationSections.flatMap((section) => section.items.map((item) => item.labelKey as string));
+    expect(labels).not.toContain("navigation.inbox");
+    expect(getActiveNavigationItem("/tickets", "?view=inbox").labelKey).toBe(navigationLabelKeys.tickets);
   });
 
   it("activates reports only on /reports", () => {

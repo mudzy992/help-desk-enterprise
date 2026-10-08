@@ -34,7 +34,7 @@ koja funkcija nalazi.
 1. **Prijavite se** svojim emailom i lozinkom. Ako je uključena **potvrda u dva koraka**, unesite šestocifreni
    kod iz aplikacije ili rezervni kod. Detalji: `prijava-i-mfa.md`.
 2. **Pogledajte meni.** U dijelu **Pregled** su **Nadzorna ploča** i **Izvještaji** (izvještaji su vidljivi
-   samo s pravom izvoza). U dijelu **Tiketi** su **Svi tiketi**, **Grupni inbox** (osoblje) i, kad su moduli
+   samo s pravom izvoza). U dijelu **Tiketi** su **Svi tiketi** (s tabom **Grupni inbox** za osoblje) i, kad su moduli
    uključeni, **Problemi**, **Promjene**, **Šabloni i playbooks** i **Dežurstva**. U dijelu **Usluge i znanje**
    su **Katalog usluga**, **Status servisa**, **Najave**, **Baza znanja** i, kad je modul uključen, **Moja
    oprema** i **Imovina**.
@@ -53,7 +53,7 @@ koja funkcija nalazi.
 |---|---|
 | **Nadzorna ploča** | brojači i liste tiketa koje smijete otvoriti |
 | **Svi tiketi** | lista i pretraga tiketa, otvaranje detalja, kreiranje novog tiketa |
-| **Grupni inbox** (osoblje) | tiketi grupa kojima pripadate i preuzimanje |
+| **Svi tiketi → Grupni inbox** (osoblje) | tiketi grupa kojima pripadate i preuzimanje |
 | **Katalog usluga** | izbor usluge i forma za prijavu |
 | **Status servisa** | stanje usluga, planirano održavanje i incidenti |
 | **Baza znanja** | članci i predlozi pri kreiranju tiketa |

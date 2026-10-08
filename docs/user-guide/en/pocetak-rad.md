@@ -34,7 +34,7 @@ of where each function lives.
 1. **Sign in** with your e-mail and password. If **two-step verification** is enabled, enter the six-digit code
    from your authenticator app or a recovery code. Details: `prijava-i-mfa.md`.
 2. **Look at the menu.** Under **Overview** are **Dashboard** and **Reports** (reports are visible only with the
-   export permission). Under **Tickets** are **All tickets**, **Group inbox** (staff) and, when the modules are
+   export permission). Under **Tickets** are **All tickets** (with a **Group inbox** tab for staff) and, when the modules are
    enabled, **Problems**, **Changes**, **Templates and playbooks** and **On-call**. Under **Services and
    knowledge** are **Service catalogue**, **Service status**, **Announcements**, **Knowledge base** and, when the
    module is enabled, **My assets** and **Assets**.
@@ -53,7 +53,7 @@ of where each function lives.
 |---|---|
 | **Dashboard** | counters and lists of the tickets you may open |
 | **All tickets** | ticket list and search, opening details, creating a new ticket |
-| **Group inbox** (staff) | tickets of the groups you belong to, and claiming |
+| **All tickets → Group inbox** (staff) | tickets of the groups you belong to, and claiming |
 | **Service catalogue** | choosing a service and the request form |
 | **Service status** | service availability, planned maintenance and incidents |
 | **Knowledge base** | articles and suggestions while creating a ticket |

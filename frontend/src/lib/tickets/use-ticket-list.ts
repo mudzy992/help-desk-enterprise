@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { defaultInboxTab, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
+import { readCreatedRangeParam } from "@/lib/tickets/created-range";
 import { useToast } from "@/components/ui/toast";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
@@ -99,6 +100,9 @@ export function useTicketList() {
   const [filters, setFilters] = useState<TicketListFilters>(() => ({
     ...emptyFilters(view, currentUserId, isStaff, initialInboxTab),
     ...staffDeepLinkFilters(searchParams, isStaff),
+    // Paket 5.3.1: the created range is shareable through the URL.
+    createdFrom: readCreatedRangeParam(searchParams.get("createdFrom")),
+    createdTo: readCreatedRangeParam(searchParams.get("createdTo")),
   }));
   // Capabilities load asynchronously, so on a fresh page load `isStaff` is
   // still false during the first render and the staff deep-link filters above
@@ -289,6 +293,24 @@ export function useTicketList() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Paket 5.3.1: mirror the created range into the URL (replace, no history
+  // entry per keystroke) so reload and a copied link keep it. Switching tabs
+  // keeps the range; the inbox ignores it, so it is not written there.
+  useEffect(() => {
+    if (view === "inbox") return;
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of [
+      ["createdFrom", filters.createdFrom],
+      ["createdTo", filters.createdTo],
+    ] as const) {
+      if (value === "") next.delete(key);
+      else next.set(key, value);
+    }
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [view, filters.createdFrom, filters.createdTo, searchParams, setSearchParams]);
 
   // A requester who lands on the bare list or on a staff-only view is moved to
   // an explicit allowed view, so the sidebar highlights the right entry.

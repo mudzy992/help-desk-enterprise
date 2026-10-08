@@ -45,7 +45,7 @@ tags: [rutiranje, prioritet, matrica, neusmjereno, override]
 2. **Matrica prioriteta:** sekcija **Administracija** → **SLA** → panel **Matrica prioriteta**.
 3. **Ručna promjena prioriteta tiketa:** detalj tiketa → panel **Promjena prioriteta** (dugme **Promijeni
    prioritet**).
-4. **Neusmjereni tiketi:** **Grupni inbox** → tab **Neusmjereni red**, ili filter **Nerutirani preko roka** u listi
+4. **Neusmjereni tiketi:** **Svi tiketi** → tab **Grupni inbox** → **Neusmjereni red**, ili filter **Nerutirani preko roka** u listi
    tiketa, ili bedž u detalju tiketa.
 
 ## Korak po korak

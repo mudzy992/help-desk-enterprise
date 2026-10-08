@@ -44,6 +44,12 @@ export type ServiceCategoryResponse = {
   readonly updatedAt: string;
 };
 
+/** Paket 5.3.1: display label of a service's category (list read only). */
+export type ServiceCategoryLabel = {
+  readonly name: string;
+  readonly sortOrder: number;
+};
+
 export type ServiceActiveFormSummary = {
   readonly activeFormVersionRef: string | null;
   readonly version: number | null;
@@ -55,6 +61,8 @@ export type ServiceResponse = {
   readonly name: string;
   readonly slug: string;
   readonly categoryId: string;
+  /** Paket 5.3.1: present on list reads (`GET /services`); absent on single reads. */
+  readonly category?: ServiceCategoryLabel | null;
   readonly lifecycle: ServiceLifecycle;
   readonly offeredToRequesters: boolean;
   readonly availability: ServiceAvailability;

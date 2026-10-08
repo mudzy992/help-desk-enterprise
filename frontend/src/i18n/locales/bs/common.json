@@ -3711,7 +3711,19 @@
       "overdue": "Prekoračen",
       "slaRisk": "SLA rizik",
       "active": "Aktivni filteri",
-      "removeOverdue": "Ukloni filter Prekoračen"
+      "removeOverdue": "Ukloni filter Prekoračen",
+      "created": {
+        "label": "Kreiran",
+        "any": "Kreiran: bilo kada",
+        "today": "Kreiran danas",
+        "last7": "Zadnjih 7 dana",
+        "last30": "Zadnjih 30 dana",
+        "thisMonth": "Ovaj mjesec",
+        "custom": "Prilagođeni raspon…",
+        "from": "Kreiran od",
+        "to": "Kreiran do",
+        "inverted": "Datum „od“ mora biti prije datuma „do“."
+      }
     },
     "assignment": {
       "unassigned": "Nedodijeljeno",
@@ -4408,7 +4420,27 @@
     "errorTemplateKind": "Ovaj šablon nije za ovu vrstu poruke (interna bilješka i javni odgovor koriste različite šablone).",
     "interceptVoteHelpful": "Hvala, zabilježeno je da vam je članak pomogao. Ako je problem riješen, odaberite „Članak je riješio moj problem“ ispod.",
     "interceptVoteNotHelpful": "Hvala, zabilježeno je da članak nije pomogao. Možete nastaviti sa slanjem zahtjeva.",
-    "errorAssetNotSelectable": "Izabrana oprema se ne može koristiti za ovaj tiket. Osvježite stranicu i pokušajte ponovo."
+    "errorAssetNotSelectable": "Izabrana oprema se ne može koristiti za ovaj tiket. Osvježite stranicu i pokušajte ponovo.",
+    "inboxBadgeLabel_one": "{{count}} tiket čeka u grupnom inboxu",
+    "inboxBadgeLabel_few": "{{count}} tiketa čekaju u grupnom inboxu",
+    "inboxBadgeLabel_other": "{{count}} tiketa čeka u grupnom inboxu",
+    "openBadgeLabel_one": "{{count}} otvoren tiket",
+    "openBadgeLabel_few": "{{count}} otvorena tiketa",
+    "openBadgeLabel_other": "{{count}} otvorenih tiketa",
+    "servicePicker": {
+      "search": "Pretraga usluga",
+      "searchPlaceholder": "Pretražite usluge po nazivu ili kategoriji…",
+      "clearSearch": "Očisti pretragu",
+      "categories": "Kategorije usluga",
+      "allCategories": "Sve",
+      "recent": "Nedavno korišteno",
+      "uncategorized": "Ostalo",
+      "resultCount_one": "Pronađena {{count}} usluga",
+      "resultCount_few": "Pronađene {{count}} usluge",
+      "resultCount_other": "Pronađeno {{count}} usluga",
+      "emptyTitle": "Nema usluga za „{{query}}“",
+      "emptyHint": "Probajte drugi pojam ili kategoriju. Ako usluga ne postoji, izaberite opšti zahtjev."
+    }
   },
   "relativeTime": {
     "justNow": "upravo sada",

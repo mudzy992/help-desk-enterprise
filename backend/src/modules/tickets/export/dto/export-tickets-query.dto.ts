@@ -6,7 +6,9 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
+import { CreatedRangeOrderedConstraint } from '../../list/created-range.validator';
 import {
   TicketPriority,
   TicketStatus,
@@ -55,6 +57,7 @@ export class ExportTicketsQueryDto {
 
   @IsOptional()
   @IsISO8601()
+  @Validate(CreatedRangeOrderedConstraint)
   createdTo?: string;
 
   @IsOptional()

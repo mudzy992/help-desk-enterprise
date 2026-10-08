@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import { Filter, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { TicketCreatedRangeFilter } from "@/components/tickets/ticket-created-range-filter";
 import { Chip } from "@/components/ui/chip";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,10 @@ export function TicketListFiltersBar({
           </Chip>
         ))}
       </div>
+      <TicketCreatedRangeFilter
+        value={{ createdFrom: filters.createdFrom, createdTo: filters.createdTo }}
+        onChange={(range) => onChange({ ...filters, ...range })}
+      />
       {isStaff ? (
         <>
           <label className="sr-only" htmlFor="ticket-list-forwarded">

@@ -7,7 +7,6 @@ export const navigationLabelKeys = {
   dashboard: "navigation.dashboard",
   reports: "navigation.reports",
   tickets: "navigation.tickets",
-  inbox: "navigation.inbox",
   services: "navigation.services",
   knowledgeBase: "navigation.knowledgeBase",
   routing: "navigation.routing",
@@ -71,13 +70,6 @@ export const ticketsNavigationItem: NavigationItem = {
   labelKey: navigationLabelKeys.tickets,
   end: false,
   access: { kind: navigationAccessKinds.authenticated },
-};
-
-export const inboxNavigationItem: NavigationItem = {
-  path: "/tickets?view=inbox",
-  labelKey: navigationLabelKeys.inbox,
-  end: true,
-  access: { kind: navigationAccessKinds.staff },
 };
 
 export const servicesNavigationItem: NavigationItem = {
@@ -217,7 +209,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem, inboxNavigationItem, problemsNavigationItem, changesNavigationItem, templatesNavigationItem, onCallNavigationItem],
+    items: [ticketsNavigationItem, problemsNavigationItem, changesNavigationItem, templatesNavigationItem, onCallNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.services,
@@ -253,33 +245,18 @@ function navigationItemPathname(path: string): string {
   return queryIndex === -1 ? path : path.slice(0, queryIndex);
 }
 
-function ticketListView(search: string): string | null {
-  const query = search.startsWith("?") ? search.slice(1) : search;
-  return new URLSearchParams(query).get("view");
-}
-
 export function isNavigationItemActive(
   item: NavigationItem,
   pathname: string,
-  search = "",
+  _search = "",
 ): boolean {
-  if (item.labelKey === navigationLabelKeys.inbox) {
-    if (pathname !== "/tickets") {
-      return false;
-    }
-    const view = ticketListView(search);
-    return view === "inbox" || view === null;
-  }
-
+  // Paket 5.3.1 (D10): the group inbox is a tab of "All tickets", so every
+  // list view (including `?view=inbox` and bare `/tickets`) lights this item.
   if (item.labelKey === navigationLabelKeys.tickets) {
     if (pathname === "/tickets/new") {
       return false;
     }
-    if (pathname === "/tickets") {
-      const view = ticketListView(search);
-      return view !== null && view !== "inbox";
-    }
-    return pathname.startsWith("/tickets/");
+    return pathname === "/tickets" || pathname.startsWith("/tickets/");
   }
 
   const itemPathname = navigationItemPathname(item.path);

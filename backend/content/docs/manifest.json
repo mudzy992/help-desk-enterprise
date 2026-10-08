@@ -124,7 +124,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 663,
+      "wordCount": 669,
       "source": "docs/user-guide/pocetak-rad.md",
       "englishTitle": "Getting started"
     },
@@ -569,8 +569,13 @@
         },
         {
           "level": 3,
-          "text": "7. Sačuvani pogledi",
-          "id": "7-sacuvani-pogledi"
+          "text": "7. Filter po datumu kreiranja",
+          "id": "7-filter-po-datumu-kreiranja"
+        },
+        {
+          "level": 3,
+          "text": "8. Sačuvani pogledi",
+          "id": "8-sacuvani-pogledi"
         },
         {
           "level": 2,
@@ -623,7 +628,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2300,
+      "wordCount": 2482,
       "source": "docs/user-guide/tiketi.md",
       "englishTitle": "Tickets"
     },
@@ -1641,7 +1646,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1452,
+      "wordCount": 1455,
       "source": "docs/user-guide/usmjeravanje-i-prioritet.md",
       "englishTitle": null
     },
@@ -2938,7 +2943,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1636,
+      "wordCount": 1750,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

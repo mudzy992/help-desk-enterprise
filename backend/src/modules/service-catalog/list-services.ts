@@ -3,6 +3,7 @@ import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transit
 import { requestedServiceLifecycles } from './service-visible-lifecycles';
 import { countOpenTicketsByService } from './count-open-tickets-by-service';
 import { loadActiveFormSummaries } from './load-active-form-summaries';
+import { loadServiceCategoryLabels } from './load-service-category-labels';
 import { loadServiceDowntimeWindowsForServices } from './load-service-downtime-windows';
 import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
 import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
@@ -33,14 +34,15 @@ export async function listServices(
     orderBy: [{ name: 'asc' }],
   });
   const serviceIds = records.map((record) => record.id);
-  const [windowsByServiceId, openTicketCounts, incidentImpacts, activeForms] = await Promise.all([
+  const [windowsByServiceId, openTicketCounts, incidentImpacts, activeForms, categoryLabels] = await Promise.all([
     loadServiceDowntimeWindowsForServices(prisma, serviceIds),
     countOpenTicketsByService(prisma, serviceIds),
     loadOpenIncidentImpacts(prisma, serviceIds),
     loadActiveFormSummaries(prisma, serviceIds),
+    loadServiceCategoryLabels(prisma, records.map((record) => record.categoryId)),
   ]);
-  const mapped = records.map((record) =>
-    toServiceResponse(
+  const mapped = records.map((record): ServiceResponse => ({
+    ...toServiceResponse(
       record,
       windowsByServiceId.get(record.id) ?? [],
       evaluation,
@@ -49,7 +51,8 @@ export async function listServices(
       incidentImpacts.get(record.id) ?? null,
       activeForms.get(record.id) ?? undefined,
     ),
-  );
+    category: categoryLabels.get(record.categoryId) ?? null,
+  }));
   if (input.offeredOnly !== true) {
     return mapped;
   }

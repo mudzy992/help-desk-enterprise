@@ -33,8 +33,11 @@ access to confidential tickets).
 
 ## How to get there
 
-1. **Ticket list:** the **Tickets** section → **All tickets** (the views are in the list header).
-2. **Group inbox:** the **Tickets** section → **Group inbox** (or the **Group inbox** tab in the list).
+1. **Ticket list:** the **Tickets** section → **All tickets** (the views are tabs in the list header: **All
+   tickets**, **Group inbox**, **Assigned to me**, **Unassigned**, **My requests**).
+2. **Group inbox:** **All tickets** → the **Group inbox** tab (staff). It no longer has its own menu item; the
+   number of tickets waiting in the inbox is shown on the tab and next to **All tickets** in the menu (red while
+   something is unrouted). Old `/tickets?view=inbox` links still open the tab.
 3. **Submitting a ticket:** the **Submit a ticket** button (or **New ticket**) → `/tickets/new`.
 4. **Ticket detail:** click a row in the list or the ticket number.
 
@@ -43,7 +46,9 @@ access to confidential tickets).
 ### 1. Submitting a ticket (user)
 
 1. Open **Submit a ticket**.
-2. Pick the **service**; the service form loads automatically (see *Service catalogue and forms*).
+2. Pick the **service**: type part of its name or category into the search (case and diacritics do not
+   matter), narrow it with a category chip, or pick from **Recently used** (the last 5 services you chose, kept in
+   this browser). Arrow keys move through the list, Enter selects. The service form loads automatically (see *Service catalogue and forms*).
 3. Fill in the **title**, the **description**, the **impact** and the **urgency**, plus the form fields. If a
    similar ticket exists, the system shows a **duplicate warning** and asks for confirmation.
 4. Review the summary (priority, routing outcome, approvals, SLA) and send it.
@@ -51,7 +56,7 @@ access to confidential tickets).
 
 ### 2. Working from the group inbox (agent)
 
-1. Open the **Group inbox** and the tab of your group.
+1. Open **All tickets** → the **Group inbox** tab and the sub-tab of your group.
 2. Click **Claim** on a ticket — the ticket moves to **Assigned** and is bound to you.
 3. If a ticket has no group, you will see the **Unrouted queue** tab and the shortcut **Create a rule for this
    combination**.
@@ -93,7 +98,16 @@ access to confidential tickets).
    **workaround**); the **number of recipients** is shown and the sending limit is respected.
 4. Write the reason (up to 2000 characters) and confirm. **Closing tickets in bulk is not allowed.**
 
-### 7. Saved views
+### 7. Filtering by creation date
+
+1. In the filter bar pick **Created today**, **Last 7 days**, **Last 30 days**, **This month** or **Custom
+   range…** (two dates, **from** and **to**, both inclusive).
+2. Days follow **your** time zone (from 00:00 of the first to 23:59:59 of the last day).
+3. The range is written into the page address (`createdFrom` / `createdTo`), so a link and a reload keep it; it
+   is stored in saved views and applies to the CSV export. A “from” date after the “to” date is not applied (a
+   message appears next to the fields; the API rejects such a request with a validation error).
+
+### 8. Saved views
 
 1. Set the filters, the sort and the columns in the list.
 2. Open the saved views menu → **Save view**, type a name.

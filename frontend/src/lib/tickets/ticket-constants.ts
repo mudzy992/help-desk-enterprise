@@ -10,12 +10,13 @@ export const ticketListPageSize = 25;
  */
 export const ticketListMaxPageSize = 50;
 
+// Paket 5.3.1 (D10): "All tickets" leads, the group inbox is its second tab.
 export const ticketWorkspaceViews = [
+  "all",
   "inbox",
   "assigned",
   "unassigned",
   "requested",
-  "all",
 ] as const;
 
 export type TicketWorkspaceView = (typeof ticketWorkspaceViews)[number];

@@ -3676,7 +3676,19 @@
       "overdue": "Overdue",
       "slaRisk": "SLA risk",
       "active": "Active filters",
-      "removeOverdue": "Remove Overdue filter"
+      "removeOverdue": "Remove Overdue filter",
+      "created": {
+        "label": "Created",
+        "any": "Created: any time",
+        "today": "Created today",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month",
+        "custom": "Custom range…",
+        "from": "Created from",
+        "to": "Created to",
+        "inverted": "The “from” date must be before the “to” date."
+      }
     },
     "columns": {
       "ticket": "Ticket",
@@ -4382,7 +4394,24 @@
     "errorTemplateKind": "This template does not fit this message type (internal notes and public replies use different templates).",
     "interceptVoteHelpful": "Thanks, we noted that the article helped. If the problem is solved, choose “The article solved my problem” below.",
     "interceptVoteNotHelpful": "Thanks, we noted that the article did not help. You can continue sending the request.",
-    "errorAssetNotSelectable": "The selected equipment cannot be used for this ticket. Refresh the page and try again."
+    "errorAssetNotSelectable": "The selected equipment cannot be used for this ticket. Refresh the page and try again.",
+    "inboxBadgeLabel_one": "{{count}} ticket waiting in the group inbox",
+    "inboxBadgeLabel_other": "{{count}} tickets waiting in the group inbox",
+    "openBadgeLabel_one": "{{count}} open ticket",
+    "openBadgeLabel_other": "{{count}} open tickets",
+    "servicePicker": {
+      "search": "Search services",
+      "searchPlaceholder": "Search services by name or category…",
+      "clearSearch": "Clear search",
+      "categories": "Service categories",
+      "allCategories": "All",
+      "recent": "Recently used",
+      "uncategorized": "Other",
+      "resultCount_one": "{{count}} service found",
+      "resultCount_other": "{{count}} services found",
+      "emptyTitle": "No services match “{{query}}”",
+      "emptyHint": "Try another term or category. If the service does not exist, choose a general request."
+    }
   },
   "relativeTime": {
     "justNow": "just now",

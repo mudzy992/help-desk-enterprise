@@ -30,8 +30,11 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 ## Kako doći
 
-1. **Lista tiketa:** sekcija **Tiketi** → **Svi tiketi** (pogledi su u zaglavlju liste).
-2. **Grupni inbox:** sekcija **Tiketi** → **Grupni inbox** (ili tab **Grupni inbox** u listi).
+1. **Lista tiketa:** sekcija **Tiketi** → **Svi tiketi** (pogledi su tabovi u zaglavlju liste: **Svi tiketi**,
+   **Grupni inbox**, **Dodijeljeni meni**, **Nedodijeljeni**, **Moji zahtjevi**).
+2. **Grupni inbox:** **Svi tiketi** → tab **Grupni inbox** (osoblje). Zasebne stavke u meniju više nema; broj
+   tiketa koji čekaju u inboxu prikazan je na tabu i uz **Svi tiketi** u meniju (crveno dok ima neusmjerenih).
+   Stari linkovi `/tickets?view=inbox` i dalje otvaraju taj tab.
 3. **Prijava tiketa:** dugme **Prijavi tiket** (ili **Novi tiket**) → `/tickets/new`.
 4. **Detalj tiketa:** klik na red u listi ili na broj tiketa.
 
@@ -40,7 +43,10 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 ### 1. Prijava tiketa (korisnik)
 
 1. Otvorite **Prijavi tiket**.
-2. Izaberite **uslugu**; ako su forme uključene, učitava se aktivna forma usluge (v. *Katalog usluga i
+2. Izaberite **uslugu**: upišite dio naziva ili kategorije u pretragu (velika/mala slova i kvačice nisu bitni —
+   „sifra“ nalazi „Šifra“), suzite izbor chipom kategorije ili izaberite iz sekcije **Nedavno korišteno** (do 5
+   usluga koje ste zadnje birali, pamti se u ovom pregledniku). Strelice gore/dolje kreću se kroz listu, Enter
+   bira. Ako su forme uključene, učitava se aktivna forma usluge (v. *Katalog usluga i
    forme*). Ako je verzija forme opcionalna, prijava može nastaviti bez nje; ako su forme isključene, sekcija
    forme se ne prikazuje.
 3. Popunite **naslov**, **opis**, **uticaj** i **hitnost**, te polja forme ako su prikazana. Opciono dodajte **Tip zahtjeva**
@@ -51,7 +57,7 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 ### 2. Rad iz grupnog inboxa (agent)
 
-1. Otvorite **Grupni inbox** i tab svoje grupe.
+1. Otvorite **Svi tiketi** → tab **Grupni inbox** i podtab svoje grupe.
 2. Kliknite **Preuzmi** na tiketu — tiket prelazi u **Dodijeljeno** i vezuje se za vas.
 3. Tab **Neusmjereni red** sadrži tikete `UNROUTED` koji čekaju pravilo i `PENDING` tikete poslane u podešenu
    ciljnu grupu kroz fallback; oznake **Čeka pravilo rutanja** i **Usmjeren fallbackom** razlikuju ta dva slučaja.
@@ -96,7 +102,16 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
    prikazuje se **broj primalaca** i poštuje se ograničenje slanja.
 4. Upišite razlog (do 2000 znakova) i potvrdite. **Zatvaranje tiketa skupno nije dozvoljeno.**
 
-### 7. Sačuvani pogledi
+### 7. Filter po datumu kreiranja
+
+1. U traci filtera izaberite **Kreiran danas**, **Zadnjih 7 dana**, **Zadnjih 30 dana**, **Ovaj mjesec** ili
+   **Prilagođeni raspon…** (dva datuma, **od** i **do**, oba uključivo).
+2. Dani se računaju po **vašoj** vremenskoj zoni (od 00:00 prvog do 23:59:59 zadnjeg dana).
+3. Raspon se upisuje u adresu stranice (`createdFrom` / `createdTo`), pa ga link i osvježavanje zadržavaju; čuva
+   se i u sačuvanom pogledu i važi za CSV izvoz. Datum „od“ poslije datuma „do“ se ne primjenjuje (poruka uz polja;
+   API takav zahtjev odbija s greškom validacije).
+
+### 8. Sačuvani pogledi
 
 1. Podesite filtere, sort i kolone u listi.
 2. Otvorite meni sačuvanih pogleda → **Sačuvaj pogled**, upišite naziv.
