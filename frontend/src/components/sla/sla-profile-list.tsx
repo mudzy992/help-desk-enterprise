@@ -6,6 +6,10 @@ import {
   SlaAdminSelectorCard,
 } from "@/components/sla/sla-admin-selector";
 import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
+import {
+  formatSlaProfileName,
+  slaProfileNameTranslationKey,
+} from "@/lib/sla/sla-profile-name";
 import type { SlaProfile } from "@/services/sla-types";
 
 interface SlaProfileListProperties {
@@ -42,13 +46,14 @@ export function SlaProfileList({
     >
       {profiles.map((profile) => {
         const openCount = exposure.openCount(profile.id);
+        const profileNameKey = slaProfileNameTranslationKey(profile.key, profile.name);
         return (
           <SlaAdminSelectorCard
             key={profile.id}
             isSelected={profile.id === selectedId}
             onSelect={() => onSelect(profile.id)}
-            code={profile.key}
-            title={profile.name}
+            code={profileNameKey === null ? profile.key : undefined}
+            title={formatSlaProfileName(profile.key, profile.name, t as never)}
             description={profile.description}
             metaIcon={CalendarDays}
             metaLabel={profile.calendarName}

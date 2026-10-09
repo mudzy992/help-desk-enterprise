@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Select } from "@/components/ui/field";
 import type { SlaProfile } from "@/services/sla-types";
@@ -50,7 +51,7 @@ export function OnboardingSlaStep({
         <Select value={value} required onChange={(event) => setValue(event.target.value)}>
           {activeProfiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
-              {profile.name}
+              {formatSlaProfileName(profile.key, profile.name, t as never)}
             </option>
           ))}
         </Select>

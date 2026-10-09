@@ -3949,6 +3949,13 @@
     "escalationsTab": "Escalations",
     "calendarsHeading": "BH calendars",
     "profilesHeading": "SLA profiles",
+    "profileNames": {
+      "ACCESS": "Access",
+      "STANDARD_REQUEST": "Standard request",
+      "HR": "Human resources",
+      "FINANCE": "Finance",
+      "INCIDENT": "Incident"
+    },
     "rulesHeading": "Rules",
     "manageCalendars": "Manage calendars",
     "managePriorityMatrix": "Priority matrix",
@@ -3987,8 +3994,10 @@
     "escalationAtOffset": "Level {{level}} · +{{minutes}} min after breach",
     "escalationNotifyAction": "In-app notification to target",
     "escalationTargetRoleValue": "Role: {{role}}",
-    "escalationTargetGroupValue": "Group: {{id}}",
+    "escalationTargetGroupValue": "Group: {{group}}",
     "escalationTargetUserValue": "User: {{id}}",
+    "escalationGroupLoading": "Loading group…",
+    "escalationGroupUnknown": "Unknown group",
     "complianceTitle": "SLA compliance (30 days)",
     "complianceHint": "Completed-ticket compliance and current open breaches.",
     "complianceScopedHint": "Completed-ticket compliance and current open breaches in {{unit}} and its child units.",
@@ -4117,7 +4126,7 @@
     "errorGeneric": "SLA configuration is currently unavailable.",
     "escalationTargetOnCall": "Group on-call agent",
     "escalationTargetOnCallHint": "The escalation goes only to whoever is on call at that moment (quiet hours do not apply). If nobody is on call, it goes to the whole group.",
-    "escalationTargetOnCallValue": "On-call of group: {{id}}"
+    "escalationTargetOnCallValue": "On-call in {{group}}"
   },
   "integrationQueue": {
     "heading": "Durable integration queue",

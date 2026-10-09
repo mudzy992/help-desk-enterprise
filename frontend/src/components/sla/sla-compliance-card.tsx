@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatNumber } from "@/lib/reports/report-format";
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
 import type {
   SlaComplianceBreakdownRow,
   SlaComplianceResponse,
@@ -21,7 +22,10 @@ export function SlaComplianceCard({
 }: SlaComplianceCardProperties) {
   const { t, i18n } = useTranslation();
   const profileNames = new Map(
-    (compliance?.profiles ?? []).map((profile) => [profile.slaProfileId, profile.profileName]),
+    (compliance?.profiles ?? []).map((profile) => [
+      profile.slaProfileId,
+      formatSlaProfileName(profile.profileKey, profile.profileName, t as never),
+    ]),
   );
 
   return (
@@ -82,7 +86,7 @@ export function SlaComplianceCard({
               {compliance.profiles.map((profile) => (
                 <tr key={profile.slaProfileId}>
                   <th scope="row" className="max-w-64 truncate px-3 py-2.5 text-left font-medium text-foreground">
-                    {profile.profileName}
+                    {formatSlaProfileName(profile.profileKey, profile.profileName, t as never)}
                   </th>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
                     {formatNumber(profile.sampleCount, i18n.language)}

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface SlaAdminSelectorCardProperties {
   readonly isSelected: boolean;
   readonly onSelect: () => void;
-  readonly code: string;
+  readonly code?: string;
   readonly title: string;
   readonly description?: string | null;
   readonly metaIcon: LucideIcon;
@@ -40,8 +40,10 @@ export function SlaAdminSelectorCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="tnum text-[12.5px] font-bold tracking-wide text-link">{code}</span>
-        <Badge tone={badgeTone} dot={false}>
+        {code ? (
+          <span className="tnum text-[12.5px] font-bold tracking-wide text-link">{code}</span>
+        ) : null}
+        <Badge tone={badgeTone} dot={false} className={code ? undefined : "ml-auto"}>
           {badgeLabel}
         </Badge>
       </div>

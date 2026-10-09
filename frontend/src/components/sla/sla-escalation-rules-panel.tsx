@@ -6,6 +6,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { controlClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
+import { useSlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import {
   createSlaEscalationRule,
   deleteSlaEscalationRule,
@@ -27,6 +28,7 @@ export function SlaEscalationRulesPanel({
   embedded = false,
 }: SlaEscalationRulesPanelProperties) {
   const { t } = useTranslation();
+  const groupNames = useSlaEscalationGroupNames();
   const [rules, setRules] = useState<SlaEscalationRule[]>([]);
   const [editing, setEditing] = useState<SlaEscalationRule | undefined>();
   const [deleteReason, setDeleteReason] = useState("");
@@ -85,6 +87,7 @@ export function SlaEscalationRulesPanel({
   ) : (
     <SlaEscalationRulesTable
       rules={rules}
+      groupNames={groupNames}
       canWrite={canWrite}
       onEdit={setEditing}
       onDelete={(rule) => void handleDelete(rule)}

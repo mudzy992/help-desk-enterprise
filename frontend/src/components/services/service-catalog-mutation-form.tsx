@@ -5,6 +5,7 @@ import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { requireCatalogChangeReason } from "@/lib/services/require-catalog-change-reason";
+import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
 import type { PersistedPolicyPackOption } from "@/services/policy-packs-api";
 import { listSlaProfiles, type SlaProfile } from "@/services/sla-api";
 import type {
@@ -244,7 +245,7 @@ export function ServiceCatalogMutationForm({
           <option value="">—</option>
           {slaProfiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
-              {profile.name}
+              {formatSlaProfileName(profile.key, profile.name, t as never)}
             </option>
           ))}
         </Select>

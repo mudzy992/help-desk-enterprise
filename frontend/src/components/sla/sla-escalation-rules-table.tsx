@@ -6,11 +6,13 @@ import {
   tableWrapClassName,
 } from "@/components/ui/control";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
+import type { SlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import type { SlaEscalationRule } from "@/services/sla-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface SlaEscalationRulesTableProperties {
   readonly rules: readonly SlaEscalationRule[];
+  readonly groupNames: SlaEscalationGroupNames;
   readonly canWrite?: boolean;
   readonly onEdit: (rule: SlaEscalationRule) => void;
   readonly onDelete: (rule: SlaEscalationRule) => void;
@@ -18,6 +20,7 @@ interface SlaEscalationRulesTableProperties {
 
 export function SlaEscalationRulesTable({
   rules,
+  groupNames,
   canWrite = true,
   onEdit,
   onDelete,
@@ -46,7 +49,7 @@ export function SlaEscalationRulesTable({
               <td className="px-4 text-[12.5px]">{rule.level}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.triggerOffsetMinutes}</td>
               <td className="px-4 text-[12px] text-muted-foreground">
-                {formatSlaEscalationTarget(rule, t as never)}
+                {formatSlaEscalationTarget(rule, t as never, groupNames)}
               </td>
               {canWrite ? (
                 <td className="px-4 text-right">

@@ -9,6 +9,7 @@ export function formatSlaEscalationTarget(
     "targetRole" | "targetGroupId" | "targetUserId" | "targetOnCall"
   >,
   translate: Translate,
+  groupNames: ReadonlyMap<string, string> | null,
 ): string {
   if (rule.targetRole) {
     const roleKey = `policyPacks.roles.${rule.targetRole}`;
@@ -16,15 +17,14 @@ export function formatSlaEscalationTarget(
     const role = roleLabel === roleKey ? rule.targetRole : roleLabel;
     return translate("sla.escalationTargetRoleValue", { role });
   }
-  if (rule.targetGroupId && rule.targetOnCall) {
-    return translate("sla.escalationTargetOnCallValue", {
-      id: rule.targetGroupId,
-    });
-  }
   if (rule.targetGroupId) {
-    return translate("sla.escalationTargetGroupValue", {
-      id: rule.targetGroupId,
-    });
+    const groupName =
+      groupNames === null
+        ? translate("sla.escalationGroupLoading")
+        : groupNames.get(rule.targetGroupId) ?? translate("sla.escalationGroupUnknown");
+    return rule.targetOnCall
+      ? translate("sla.escalationTargetOnCallValue", { group: groupName })
+      : translate("sla.escalationTargetGroupValue", { group: groupName });
   }
   if (rule.targetUserId) {
     return translate("sla.escalationTargetUserValue", {

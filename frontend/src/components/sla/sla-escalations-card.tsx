@@ -6,6 +6,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
+import { useSlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import {
   listSlaEscalationRules,
   type SlaEscalationRule,
@@ -25,6 +26,7 @@ export function SlaEscalationsCard({
   refreshKey = 0,
 }: SlaEscalationsCardProperties) {
   const { t } = useTranslation();
+  const groupNames = useSlaEscalationGroupNames();
   const [rules, setRules] = useState<readonly SlaEscalationRule[]>([]);
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function SlaEscalationsCard({
                   <p className="text-[11.5px] leading-[18px] text-muted-foreground">
                     {t("sla.escalationNotifyAction")} ·{" "}
                     <span className="text-foreground/70">
-                      {formatSlaEscalationTarget(rule, t as never)}
+                      {formatSlaEscalationTarget(rule, t as never, groupNames)}
                     </span>
                   </p>
                 </div>
