@@ -6,6 +6,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 import { PrivacyController } from './privacy.controller';
 import { PrivacyNoticeController } from './record/privacy-notice.controller';
+import { PrivacyNoticeAdminController } from './record/privacy-notice-admin.controller';
 import { privacyCoreProviders } from './privacy.providers';
 import { privacyQueueName } from './privacy.constants';
 import { AnonymizationRequestService } from './anonymization/anonymization-request.service';
