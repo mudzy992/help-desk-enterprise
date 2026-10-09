@@ -46,6 +46,8 @@ export const knownAuditActions = [
   'auth.mfa_recovery_used',
   'auth.mfa_recovery_regenerated',
   'auth.mfa_failed',
+  'auth.mfa_passkey_enrolled',
+  'auth.mfa_passkey_removed',
   'auth.session_revoked',
   'auth.sessions_revoked_all',
   'authorization.super_admin_bypass',

@@ -294,6 +294,8 @@
             "auth_mfa_recovery_used": "Account security — MFA recovery code used",
             "auth_mfa_recovery_regenerated": "Account security — MFA recovery codes regenerated",
             "auth_mfa_failed": "Account security — MFA check failed",
+            "auth_mfa_passkey_enrolled": "Account security — passkey registered",
+            "auth_mfa_passkey_removed": "Account security — passkey removed",
             "auth_session_revoked": "Account security — session revoked",
             "auth_sessions_revoked_all": "Account security — all sessions revoked",
             "authorization_super_admin_bypass": "Authorization — SuperAdmin bypass recorded",

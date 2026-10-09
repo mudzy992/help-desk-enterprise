@@ -296,6 +296,8 @@
             "auth_mfa_recovery_used": "Sigurnost naloga — MFA rezervni kod upotrijebljen",
             "auth_mfa_recovery_regenerated": "Sigurnost naloga — MFA rezervni kodovi obnovljeni",
             "auth_mfa_failed": "Sigurnost naloga — MFA provjera nije uspjela",
+            "auth_mfa_passkey_enrolled": "Sigurnost naloga — passkey registrovan",
+            "auth_mfa_passkey_removed": "Sigurnost naloga — passkey uklonjen",
             "auth_session_revoked": "Sigurnost naloga — sesija opozvana",
             "auth_sessions_revoked_all": "Sigurnost naloga — sve sesije opozvane",
             "authorization_super_admin_bypass": "Autorizacija — SuperAdmin zaobilaženje evidentirano",
