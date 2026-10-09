@@ -3,7 +3,7 @@ import {
   buildCatalogRoutingIndex,
   type CatalogRoutingIndex,
 } from "@/lib/services/catalog-routing-index";
-import { listRoutingCoverage, type RoutingCoverageItem } from "@/services/routing-api";
+import { loadCatalogRoutingCoverage } from "@/lib/services/load-catalog-routing-coverage";
 
 export type CatalogRoutingCoverageState = CatalogRoutingIndex & {
   readonly isLoading: boolean;
@@ -27,17 +27,7 @@ export function useCatalogRoutingCoverage(): CatalogRoutingCoverageState {
     const sequence = ++requestSequence.current;
     setIsLoading(true);
     try {
-      const items: RoutingCoverageItem[] = [];
-      let cursor: string | undefined;
-      do {
-        const page = await listRoutingCoverage({
-          includeInactive: true,
-          take: 100,
-          cursor,
-        });
-        items.push(...page.items);
-        cursor = page.nextCursor ?? undefined;
-      } while (cursor !== undefined);
+      const items = await loadCatalogRoutingCoverage();
 
       if (sequence === requestSequence.current) {
         setIndex(buildCatalogRoutingIndex(items));

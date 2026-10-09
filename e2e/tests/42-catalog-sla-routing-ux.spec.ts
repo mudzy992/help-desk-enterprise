@@ -158,9 +158,11 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         await expect(serviceCard).toBeVisible({ timeout: 20_000 });
         await page.getByRole('searchbox', { name: /Search services|Pretraga usluga/i }).fill(serviceName);
         await page.getByLabel(/Lifecycle|Životni ciklus/).selectOption('DRAFT');
-        await page
-          .getByLabel(/OU with an explicit routing rule|OJ s izričitim pravilom usmjeravanja/)
-          .selectOption(originUnitId);
+        const explicitOuFilter = page.getByLabel(
+          /OU with an explicit routing rule|OJ s izričitim pravilom usmjeravanja/,
+        );
+        await expect(explicitOuFilter).toBeEnabled({ timeout: 60_000 });
+        await explicitOuFilter.selectOption(originUnitId);
         await expect(serviceCard).toBeVisible();
 
         await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
