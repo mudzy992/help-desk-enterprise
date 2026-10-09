@@ -96,6 +96,18 @@ test.describe('07 SLA', () => {
 
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto('/sla');
+    const profilesTab = page.getByTestId('tab-profiles');
+    const complianceTab = page.getByTestId('tab-compliance');
+    await expect(profilesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(complianceTab).toHaveAttribute('aria-selected', 'false');
+    await expect(
+      page.getByLabel(/Organizational unit scope|Opseg organizacione jedinice/),
+    ).toHaveCount(0);
+    await complianceTab.click();
+    await expect(complianceTab).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      page.getByRole('heading', { name: /SLA compliance|SLA usklađenost/i }),
+    ).toBeVisible();
     const unitScope = page.getByLabel(/Organizational unit scope|Opseg organizacione jedinice/);
     await expect(unitScope).toBeEnabled({ timeout: 20_000 });
     const selectedUnitId = await unitScope.inputValue();

@@ -72,7 +72,7 @@ async function deleteRoutingRule(
 
 /** §4.7 first three modules: catalogue, SLA and routing admin UX. */
 test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
-  test('service create/edit and lifecycle + explicit-OU filters work together', async ({ page }) => {
+  test('service create/edit, onboarding continuation and lifecycle + explicit-OU filters work together', async ({ page }) => {
     test.setTimeout(150_000);
     page.setDefaultTimeout(20_000);
     page.setDefaultNavigationTimeout(30_000);
@@ -152,10 +152,40 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         ruleId = route.id;
       });
 
+      await test.step('start onboarding for the draft service', async () => {
+        if (serviceId === null) {
+          throw new Error('[e2e] cannot start onboarding before the created service is loaded.');
+        }
+        const onboarding = await api.requestJson<{ readonly status: string }>(
+          `/services/${serviceId}/onboarding`,
+          { method: 'POST' },
+        );
+        expect(onboarding.status).toBe('IN_PROGRESS');
+      });
+
       await test.step('filter the catalog and edit the service', async () => {
         await page.reload();
         const serviceRow = page.getByTestId(`service-row-${serviceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 20_000 });
+        const onboardingChip = page.getByTestId(`service-onboarding-progress-${serviceId}`);
+        await expect(onboardingChip).toHaveText(/Onboarding 0\/5/);
+        await expect(
+          page.getByRole('heading', {
+            name: /Service onboarding in progress|Servisni onboarding u toku/i,
+          }),
+        ).toHaveCount(0);
+        await page.getByTestId(`service-actions-${serviceId}`).click();
+        await page.getByRole('menuitem', { name: /Continue onboarding|Nastavi onboarding/i }).click();
+        const onboardingDialog = page.getByTestId('service-onboarding-dialog');
+        await expect(onboardingDialog).toBeVisible();
+        await expect(
+          onboardingDialog.getByRole('heading', {
+            name: /Service onboarding in progress|Servisni onboarding u toku/i,
+          }),
+        ).toBeVisible();
+        await onboardingDialog.getByRole('button', { name: /Close wizard|Zatvori čarobnjak/i }).click();
+        await expect(onboardingDialog).toBeHidden();
+
         await page.getByRole('searchbox', { name: /Search services|Pretraga usluga/i }).fill(serviceName);
         await page.getByLabel(/Lifecycle|Životni ciklus/).selectOption('DRAFT');
         const explicitOuFilter = page.getByLabel(
@@ -196,6 +226,19 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         serviceId = services.find((service) => service.slug === slug)?.id ?? null;
       }
       if (serviceId !== null) {
+        const onboardingRecord = await api
+          .request(`/services/${serviceId}/onboarding`)
+          .catch(() => null);
+        if (onboardingRecord?.ok) {
+          const abandonResponse = await api
+            .request(`/services/${serviceId}/onboarding/abandon`, { method: 'POST' })
+            .catch(() => null);
+          if (abandonResponse !== null && !abandonResponse.ok && abandonResponse.status !== 404) {
+            console.warn(
+              `[e2e] cleanup of onboarding for service ${serviceId} returned HTTP ${abandonResponse.status}`,
+            );
+          }
+        }
         await deleteRoutingRule(api, ruleId, originUnitId, serviceId);
         const response = await api.request(`/services/${serviceId}`, { method: 'DELETE' });
         if (!response.ok && response.status !== 404) {
@@ -219,6 +262,18 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     try {
       await signIn(page, env.superAdminEmail, env.superAdminPassword);
       await page.goto('/sla');
+      const profilesTab = page.getByTestId('tab-profiles');
+      const complianceTab = page.getByTestId('tab-compliance');
+      await expect(profilesTab).toHaveAttribute('aria-selected', 'true');
+      await expect(complianceTab).toHaveAttribute('aria-selected', 'false');
+      await expect(
+        page.getByLabel(/Organizational unit scope|Opseg organizacione jedinice/),
+      ).toHaveCount(0);
+      await complianceTab.click();
+      await expect(complianceTab).toHaveAttribute('aria-selected', 'true');
+      await expect(
+        page.getByRole('heading', { name: /SLA compliance|SLA usklađenost/i }),
+      ).toBeVisible();
       await expect(page.getByLabel(/Organizational unit scope|Opseg organizacione jedinice/)).toBeEnabled({
         timeout: 20_000,
       });
@@ -266,6 +321,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       const backToProfiles = page.getByRole('button', { name: /Back to profiles|Nazad na profile/i });
       await expect(backToProfiles).toBeVisible();
       await backToProfiles.click();
+      await expect(page.getByTestId('tab-profiles')).toHaveAttribute('aria-selected', 'true');
       const openPriorityMatrix = page.getByRole('button', {
         name: /Priority matrix|Matrica prioriteta/i,
       });
@@ -354,7 +410,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     }
   });
 
-  test('catalog, SLA and routing have no page-level horizontal overflow at target widths', async ({ page }) => {
+  test('catalog, both SLA tabs and routing have no page-level horizontal overflow at target widths', async ({ page }) => {
     const env = readE2EEnvironment();
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     const widths = [360, 768, 1024, 1440, 1920, 2560];
@@ -373,6 +429,14 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         });
         const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
         expect(documentWidth, `${screen.path} at ${width}px`).toBeLessThanOrEqual(width);
+        if (screen.path === '/sla') {
+          await page.getByTestId('tab-compliance').click();
+          await expect(
+            page.getByRole('heading', { name: /SLA compliance|SLA usklađenost/i }),
+          ).toBeVisible();
+          const complianceWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+          expect(complianceWidth, `/sla compliance at ${width}px`).toBeLessThanOrEqual(width);
+        }
       }
     }
   });
