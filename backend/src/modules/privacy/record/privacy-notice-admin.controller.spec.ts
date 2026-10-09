@@ -1,5 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../../authentication/authenticated-request';
 import { PrivacyNoticeAdminController } from './privacy-notice-admin.controller';
 import { PrivacyNoticeLocaleQueryDto, UpdatePrivacyNoticeDto } from './privacy-notice-admin.dto';
 import { privacyNoticeMaxLength } from '../../settings/definitions/privacy-settings';
@@ -45,7 +46,17 @@ describe('PrivacyNoticeAdminController (5.3.7)', () => {
 
   it('saves both languages in one settings transaction and returns the fresh status', async () => {
     settingsService.setSettingValues.mockResolvedValue({ updatedKeys: [], resets: [] });
-    const result = await controller.update({ bs: 'novo', en: 'new' }, { user: { id: 'u1' } } as never);
+    // The actor id is read off the authenticated principal, the same way the
+    // settings controller reads it — the guard populates this key in production.
+    const request = {
+      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
+        subjectId: 'u1',
+        email: 'dpo@example.ba',
+        displayName: 'DPO',
+        isLocalOnly: true,
+      },
+    } as never;
+    const result = await controller.update({ bs: 'novo', en: 'new' }, request);
     expect(settingsService.setSettingValues).toHaveBeenCalledWith(
       [
         { key: settingKeys.privatePrivacyNoticeBs, value: 'novo' },
