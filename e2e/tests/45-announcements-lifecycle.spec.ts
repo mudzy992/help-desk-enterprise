@@ -49,12 +49,14 @@ test.describe('45 announcements lifecycle (5.3.7)', () => {
 
       await test.step('fill the draft with an immediate window and acknowledgement', async () => {
         const dialog = page.getByRole('dialog');
-        await dialog.getByLabel(/^(?:Naslov|Title)$/).fill(title);
+        // Required labels render a visually-marked asterisk, so the accessible
+        // name may carry a suffix — match by prefix, not by exact equality.
+        await dialog.getByRole('textbox', { name: /Naslov|Title/ }).first().fill(title);
         await dialog.getByRole('textbox', { name: /^(?:Tekst|Body)$/ }).fill(`Sadržaj E2E najave ${stamp}.`);
         const startsAt = new Date(Date.now() - 60_000);
         const endsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-        await dialog.getByLabel(/^(?:Početak prikaza|Starts)/).fill(localInputValue(startsAt));
-        await dialog.getByLabel(/^(?:Kraj prikaza|Ends)/).fill(localInputValue(endsAt));
+        await dialog.getByLabel(/Početak prikaza|Starts at/).fill(localInputValue(startsAt));
+        await dialog.getByLabel(/Kraj prikaza|Ends at/).fill(localInputValue(endsAt));
         await dialog
           .getByRole('checkbox', { name: /Traži potvrdu čitanja|Require read acknowledgement/ })
           .check();

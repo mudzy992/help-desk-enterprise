@@ -51,7 +51,7 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           '[e2e] every group already has an on-call schedule; free one up or run this test against a clean group — the test refuses to overwrite real rotations.',
         );
       }
-      const users = await api.requestJson<readonly UserSummary[]>('/users/summary');
+      const users = await api.requestJson<readonly UserSummary[]>('/users');
       const me = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase());
       if (me === undefined || !me.isActive) throw new Error('[e2e] the super admin must exist and be active.');
       return { groupId: free.groupId, groupName: free.groupName, memberId: me.id, memberName: me.displayName };
