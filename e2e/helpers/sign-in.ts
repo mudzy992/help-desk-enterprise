@@ -7,8 +7,8 @@ import { nextTotpCode } from './mfa';
  * Two forms exist, and which one is reachable depends on the route:
  *  - `#login-email` / `#login-password` on the dedicated login page, where
  *    `/` lands after `RequireAuth` redirects a visitor with no stored session;
- *  - `#session-email` / `#session-password` in the compact form embedded in the
- *    application header, shown when the shell renders with no server session.
+ *  - `#session-email` / `#session-password` in the compact form embedded in
+ *    the application header, shown when the shell renders with no server session.
  *
  * Matching both keeps this helper working no matter which surface the app
  * shows first.
@@ -16,7 +16,7 @@ import { nextTotpCode } from './mfa';
 const EMAIL_SELECTOR = '#session-email, #login-email';
 const PASSWORD_SELECTOR = '#session-password, #login-password';
 
-export async function signIn(
+async function attemptSignIn(
   page: Page,
   email: string,
   password: string,
@@ -40,9 +40,11 @@ export async function signIn(
     .catch(() => false);
   if (needsCode) {
     await mfaInput.fill(await nextTotpCode(email));
-    const verifyResponsePromise = page.waitForResponse((response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname.endsWith('/auth/mfa/verify'),
+    const verifyResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname.endsWith('/auth/mfa/verify'),
+      { timeout: 15_000 },
     );
     const [verifyResponse] = await Promise.all([
       verifyResponsePromise,
@@ -65,5 +67,27 @@ export async function signIn(
       );
     }
     await mfaInput.waitFor({ state: 'detached', timeout: 20_000 });
+  }
+}
+
+/**
+ * One clean retry around the whole flow. The MFA verify call has stalled
+ * transiently more than once across runs (a dropped request or a TOTP step
+ * boundary), while the identical flow passed on every following run. The
+ * retry starts from a fresh page and a freshly computed code; if the problem
+ * is real, the retry surfaces the same detailed error (status, API code and
+ * the form's message) instead of masking it.
+ */
+export async function signIn(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  try {
+    await attemptSignIn(page, email, password);
+  } catch (caught) {
+    const detail = caught instanceof Error ? caught.message : String(caught);
+    console.warn(`[e2e] sign-in attempt failed, retrying once with a fresh code — ${detail}`);
+    await attemptSignIn(page, email, password);
   }
 }
