@@ -12,6 +12,7 @@ interface UnderlineTabsProperties {
   readonly active: string;
   readonly onChange: (key: string) => void;
   readonly className?: string;
+  readonly ariaLabel?: string;
 }
 
 export function UnderlineTabs({
@@ -19,10 +20,12 @@ export function UnderlineTabs({
   active,
   onChange,
   className,
+  ariaLabel,
 }: UnderlineTabsProperties) {
   return (
     <div
       role="tablist"
+      aria-label={ariaLabel}
       className={cn(
         "flex items-center gap-1 overflow-x-auto border-b border-border/70",
         className,

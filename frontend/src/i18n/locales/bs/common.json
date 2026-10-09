@@ -3963,6 +3963,7 @@
     "forbiddenTitle": "Nema pristupa SLA",
     "forbiddenBody": "SLA profili, kalendari i pravila dostupni su administratorima.",
     "profilesTab": "Profili",
+    "complianceTab": "Usklađenost",
     "calendarsTab": "Kalendari",
     "escalationsTab": "Eskalacije",
     "calendarsHeading": "BH kalendari",

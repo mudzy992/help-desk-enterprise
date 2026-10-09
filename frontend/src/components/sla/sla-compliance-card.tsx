@@ -34,7 +34,7 @@ export function SlaComplianceCard({
             : t("sla.complianceScopedHint", { unit: scopeLabel })
         }
       />
-      <div className="space-y-5 px-4 py-4">
+      <div className="grid gap-5 px-4 py-4 sm:px-5 sm:py-5">
         {compliance === null ? (
           <EmptyState
             title={isLoading ? t("sla.complianceLoadingTitle") : t("sla.complianceEmptyTitle")}
@@ -49,11 +49,11 @@ export function SlaComplianceCard({
             <section aria-labelledby="sla-open-breaches-heading">
               <h3
                 id="sla-open-breaches-heading"
-                className="mb-2 text-[12px] font-semibold text-foreground"
+                className="mb-3 text-[12px] font-semibold text-foreground"
               >
                 {t("sla.openBreachHeading")}
               </h3>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <BreachMetric
                   label={t("sla.openBreachResponse")}
                   value={formatNumber(compliance.openBreached.response, i18n.language)}
@@ -66,7 +66,7 @@ export function SlaComplianceCard({
             </section>
 
             {compliance.profiles.every((profile) => profile.sampleCount === 0) ? (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="rounded-md border border-border/70 bg-elevated/30 px-3 py-2.5 text-[11px] text-muted-foreground">
                 {t("sla.complianceEmptyBody")}
               </p>
             ) : null}
@@ -81,17 +81,23 @@ export function SlaComplianceCard({
             >
               {compliance.profiles.map((profile) => (
                 <tr key={profile.slaProfileId}>
-                  <th scope="row" className="max-w-64 truncate text-left font-medium text-foreground">
+                  <th scope="row" className="max-w-64 truncate px-3 py-2.5 text-left font-medium text-foreground">
                     {profile.profileName}
                   </th>
-                  <td>{formatNumber(profile.sampleCount, i18n.language)}</td>
-                  <td>{formatPercent(profile.responseCompliancePercent, i18n.language)}</td>
-                  <td>{formatPercent(profile.resolutionCompliancePercent, i18n.language)}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
+                    {formatNumber(profile.sampleCount, i18n.language)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
+                    {formatPercent(profile.responseCompliancePercent, i18n.language)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
+                    {formatPercent(profile.resolutionCompliancePercent, i18n.language)}
+                  </td>
                 </tr>
               ))}
             </ComplianceTable>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-3 xl:gap-4">
               <DimensionTable
                 title={t("sla.complianceByUnit")}
                 rows={compliance.byUnit}
@@ -123,7 +129,7 @@ export function SlaComplianceCard({
 
 function BreachMetric({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <div className="rounded-md border border-border bg-elevated px-3 py-2.5">
+    <div className="rounded-md border border-border bg-elevated px-3.5 py-3">
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="tnum mt-1 text-xl font-semibold text-foreground">{value}</p>
     </div>
@@ -141,13 +147,19 @@ function ComplianceTable({
 }) {
   return (
     <section aria-label={title}>
-      <h3 className="mb-2 text-[12px] font-semibold text-foreground">{title}</h3>
+      <h3 className="mb-3 text-[12px] font-semibold text-foreground">{title}</h3>
       <div className="max-h-72 overflow-auto rounded-md border border-border">
         <table className="w-full min-w-[440px] border-collapse text-[11px]">
           <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
             <tr>
-              {columns.map((column) => (
-                <th key={column} scope="col" className="px-2.5 py-2 font-medium">
+              {columns.map((column, index) => (
+                <th
+                  key={column}
+                  scope="col"
+                  className={index === 0
+                    ? "px-3 py-2.5 font-medium"
+                    : "px-3 py-2.5 text-right font-medium"}
+                >
                   {column}
                 </th>
               ))}
@@ -176,7 +188,7 @@ function DimensionTable({
   const { t } = useTranslation();
   return (
     <section aria-label={title}>
-      <h3 className="mb-2 text-[12px] font-semibold text-foreground">{title}</h3>
+      <h3 className="mb-3 text-[12px] font-semibold text-foreground">{title}</h3>
       {rows.length === 0 ? (
         <p className="rounded-md border border-border px-3 py-4 text-[11px] text-muted-foreground">
           {t("sla.complianceBreakdownEmpty")}
@@ -186,19 +198,19 @@ function DimensionTable({
           <table className="w-full min-w-[560px] border-collapse text-[11px]">
             <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
               <tr>
-                <th scope="col" className="px-2.5 py-2 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   {t("sla.complianceProfile")}
                 </th>
-                <th scope="col" className="px-2.5 py-2 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   {t("sla.complianceDimension")}
                 </th>
-                <th scope="col" className="px-2.5 py-2 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   {t("sla.complianceSample")}
                 </th>
-                <th scope="col" className="px-2.5 py-2 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   {t("sla.complianceResponse")}
                 </th>
-                <th scope="col" className="px-2.5 py-2 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   {t("sla.complianceResolution")}
                 </th>
               </tr>
@@ -206,19 +218,19 @@ function DimensionTable({
             <tbody className="divide-y divide-border">
               {rows.map((row) => (
                 <tr key={`${row.slaProfileId}:${row.dimensionId ?? "unassigned"}`}>
-                  <td className="max-w-32 truncate px-2.5 py-2 text-muted-foreground">
+                  <td className="max-w-32 truncate px-3 py-2.5 text-muted-foreground">
                     {profileNames.get(row.slaProfileId) ?? row.slaProfileId}
                   </td>
-                  <th scope="row" className="max-w-40 truncate px-2.5 py-2 text-left font-medium text-foreground">
+                  <th scope="row" className="max-w-40 truncate px-3 py-2.5 text-left font-medium text-foreground">
                     {row.dimensionId === null
                       ? unassignedLabel
                       : row.dimensionName ?? row.dimensionId}
                   </th>
-                  <td className="px-2.5 py-2 text-muted-foreground">{formatNumber(row.sampleCount, locale)}</td>
-                  <td className="px-2.5 py-2 text-muted-foreground">
+                  <td className="px-3 py-2.5 text-muted-foreground">{formatNumber(row.sampleCount, locale)}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">
                     {formatPercent(row.responseCompliancePercent, locale)}
                   </td>
-                  <td className="px-2.5 py-2 text-muted-foreground">
+                  <td className="px-3 py-2.5 text-muted-foreground">
                     {formatPercent(row.resolutionCompliancePercent, locale)}
                   </td>
                 </tr>

@@ -186,7 +186,7 @@ export function ServiceOnboardingWizard({
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto grid max-w-4xl gap-4 sm:gap-5">
-              <section className="rounded-xl border border-border/70 bg-elevated/25 p-3 sm:p-4">
+              <section className="rounded-lg border border-border/70 bg-elevated/25 p-3 sm:p-4">
                 <ScrollRegion
                   label={t("services.onboarding.stepsHeading")}
                   className="overflow-x-auto pb-1"
@@ -233,7 +233,7 @@ export function ServiceOnboardingWizard({
               ) : null}
 
               {!isLoadingOnboarding && errorKey === null ? (
-                <section className="rounded-xl border border-border/70 bg-surface p-4 sm:p-6">
+                <section className="rounded-lg border border-border/70 bg-surface p-4 sm:p-6">
                   <OnboardingWizardSteps
                     record={record}
                     service={service}

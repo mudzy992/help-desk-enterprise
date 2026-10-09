@@ -73,7 +73,7 @@ export function ServiceCatalogTable({
   return (
     <ScrollRegion
       label={t("services.catalogHeading")}
-      className="fade-in overflow-x-auto rounded-xl border border-border bg-surface shadow-card"
+      className="fade-in overflow-x-auto rounded-lg border border-border bg-surface shadow-card"
     >
       <table className="w-full min-w-[1180px] text-left text-[12px]">
         <caption className="sr-only">{t("services.catalogTableCaption")}</caption>

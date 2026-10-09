@@ -9,6 +9,7 @@ import { SlaComplianceCard } from "@/components/sla/sla-compliance-card";
 import { SlaProfileDetail } from "@/components/sla/sla-profile-detail";
 import { SlaProfileList } from "@/components/sla/sla-profile-list";
 import { Button } from "@/components/ui/button";
+import { UnderlineTabs } from "@/components/ui/tabs";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { useSlaPageData } from "@/lib/sla/use-sla-page-data";
@@ -50,6 +51,11 @@ export function SlaPage() {
   const scopeLabel = unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? null;
   const mutations = useSlaPageMutations(data, canWrite);
   const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
+  const [profilesPanel, setProfilesPanel] = useState<"profiles" | "compliance">("profiles");
+  const returnToProfiles = () => {
+    setView("profiles");
+    setProfilesPanel("profiles");
+  };
   // Paket 1.7 (R3): sub-panels load on mount, so a key bump reloads them too.
   const [refreshKey, setRefreshKey] = useState(0);
   const containerRef = useRef<HTMLElement>(null);
@@ -76,7 +82,7 @@ export function SlaPage() {
           title={t("sla.calendarsHeading")}
           subtitle={t("sla.intro")}
           actions={
-            <Button type="button" variant="outline" size="sm" onClick={() => setView("profiles")}>
+            <Button type="button" variant="outline" size="sm" onClick={returnToProfiles}>
               {t("sla.backToProfiles")}
             </Button>
           }
@@ -95,7 +101,7 @@ export function SlaPage() {
           title={t("sla.priorityMatrixTitle")}
           subtitle={t("sla.priorityMatrixIntro")}
           actions={
-            <Button type="button" variant="outline" size="sm" onClick={() => setView("profiles")}>
+            <Button type="button" variant="outline" size="sm" onClick={returnToProfiles}>
               {t("sla.backToProfiles")}
             </Button>
           }
@@ -114,25 +120,27 @@ export function SlaPage() {
         subtitle={t("sla.intro")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <label className="flex min-w-56 items-center">
-              <span className="sr-only">{t("sla.complianceScope")}</span>
-              <select
-                aria-label={t("sla.complianceScope")}
-                className={selectCompactClassName}
-                value={organizationalUnitId ?? ""}
-                disabled={unitOptions.length === 0}
-                onChange={(event) => setOrganizationalUnitId(event.target.value || null)}
-              >
-                <option value="" disabled>
-                  {t("sla.complianceScopePick")}
-                </option>
-                {unitOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
+            {profilesPanel === "compliance" ? (
+              <label className="flex min-w-56 items-center">
+                <span className="sr-only">{t("sla.complianceScope")}</span>
+                <select
+                  aria-label={t("sla.complianceScope")}
+                  className={selectCompactClassName}
+                  value={organizationalUnitId ?? ""}
+                  disabled={unitOptions.length === 0}
+                  onChange={(event) => setOrganizationalUnitId(event.target.value || null)}
+                >
+                  <option value="" disabled>
+                    {t("sla.complianceScopePick")}
                   </option>
-                ))}
-              </select>
-            </label>
+                  {unitOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <Button type="button" variant="outline" size="sm" onClick={() => setView("calendars")}>
               <CalendarDays size={14} />
               {t("sla.manageCalendars")}
@@ -141,7 +149,7 @@ export function SlaPage() {
               <Grid3x3 size={14} />
               {t("sla.managePriorityMatrix")}
             </Button>
-            {canWrite ? (
+            {canWrite && profilesPanel === "profiles" ? (
               <Button type="button" variant="primary" size="sm" onClick={() => data.startCreate()}>
                 <Plus size={14} />
                 {t("sla.newProfile")}
@@ -156,38 +164,51 @@ export function SlaPage() {
           {t(data.errorKey)}
         </p>
       ) : null}
-      <div className="mb-4">
-        <SlaComplianceCard
-          compliance={data.compliance}
-          isLoading={data.isLoading}
-          scopeLabel={scopeLabel}
+      <div className="mt-2">
+        <UnderlineTabs
+          className="mb-4"
+          ariaLabel={t("sla.title")}
+          active={profilesPanel}
+          onChange={(key) => setProfilesPanel(key as "profiles" | "compliance")}
+          items={[
+            { key: "profiles", label: t("sla.profilesTab") },
+            { key: "compliance", label: t("sla.complianceTab") },
+          ]}
         />
-      </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_1fr]">
-        <SlaProfileList
-          profiles={data.profiles}
-          exposure={data.exposure}
-          selectedId={data.selectedId}
-          isLoading={data.isLoading}
-          canWrite={canWrite}
-          onSelect={data.setSelectedId}
-          onNew={data.startCreate}
-        />
-        <SlaProfileDetail
-          profile={data.selected}
-          calendars={data.calendars}
-          calendar={selectedCalendar}
-          rules={data.rules}
-          changes={data.changes}
-          exposure={data.exposure}
-          canWrite={canWrite}
-          errorKey={data.errorKey}
-          isSubmitting={mutations.isSubmitting}
-          onSaveProfile={mutations.saveProfile}
-          onSaveRule={mutations.saveRule}
-          onDeleteRule={mutations.removeRule}
-          onDeleteProfile={mutations.removeProfile}
-        />
+        {profilesPanel === "profiles" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_1fr]">
+            <SlaProfileList
+              profiles={data.profiles}
+              exposure={data.exposure}
+              selectedId={data.selectedId}
+              isLoading={data.isLoading}
+              canWrite={canWrite}
+              onSelect={data.setSelectedId}
+              onNew={data.startCreate}
+            />
+            <SlaProfileDetail
+              profile={data.selected}
+              calendars={data.calendars}
+              calendar={selectedCalendar}
+              rules={data.rules}
+              changes={data.changes}
+              exposure={data.exposure}
+              canWrite={canWrite}
+              errorKey={data.errorKey}
+              isSubmitting={mutations.isSubmitting}
+              onSaveProfile={mutations.saveProfile}
+              onSaveRule={mutations.saveRule}
+              onDeleteRule={mutations.removeRule}
+              onDeleteProfile={mutations.removeProfile}
+            />
+          </div>
+        ) : (
+          <SlaComplianceCard
+            compliance={data.compliance}
+            isLoading={data.isLoading}
+            scopeLabel={scopeLabel}
+          />
+        )}
       </div>
     </section>
   );

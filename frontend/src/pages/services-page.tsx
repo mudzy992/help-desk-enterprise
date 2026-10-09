@@ -1,5 +1,5 @@
 import { Blocks, Plus } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
 import { ServiceCatalogLifecycleDialog } from "@/components/services/service-catalog-lifecycle-dialog";
@@ -7,7 +7,6 @@ import { ServiceCatalogMutationSheet } from "@/components/services/service-catal
 import { ServiceCatalogReadOnlyBanner } from "@/components/services/service-catalog-read-only-banner";
 import { ServiceDowntimeWindowsSheet } from "@/components/services/service-downtime-windows-sheet";
 import { ServiceFormBuilderSheet } from "@/components/services/form-builder/service-form-builder-sheet";
-import { ServiceOnboardingPipelineCard } from "@/components/services/onboarding/service-onboarding-pipeline-card";
 import { ServiceOnboardingWizard } from "@/components/services/onboarding/service-onboarding-wizard";
 import { ServiceCategoriesAdminSheet } from "@/components/services/categories/service-categories-admin-sheet";
 import { ServiceCategoryMutationSheet } from "@/components/services/categories/service-category-mutation-sheet";
@@ -61,10 +60,6 @@ export function ServicesPage() {
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(
     null,
-  );
-  const categoryNames = useMemo(
-    () => new Map(categoryState.categories.map((item) => [item.id, item.name])),
-    [categoryState.categories],
   );
   const reloadCatalog = useCallback(async () => {
     await Promise.all([catalog.reload(), routingCoverage.reload()]);
@@ -135,7 +130,7 @@ export function ServicesPage() {
       {catalogView === "loading" ? (
         <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
       ) : catalogView === "error" ? (
-        <div className="grid gap-3 rounded-xl border border-danger/25 bg-danger/5 p-4 sm:p-5">
+        <div className="grid gap-3 rounded-lg border border-danger/25 bg-danger/5 p-4 sm:p-5">
           <ApiErrorText messageKey={catalog.errorKey ?? "errors.network"} requestId={catalog.requestId} />
           <div>
             <Button type="button" size="sm" variant="outline" onClick={() => void reloadCategories()}>
@@ -146,7 +141,7 @@ export function ServicesPage() {
       ) : (
         <>
           {hasRefreshError ? (
-            <div className="mb-3 grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-3.5">
+            <div className="mb-3 grid gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-3.5">
               <div className="grid gap-1.5">
                 {catalog.hasLoaded && catalog.errorKey ? (
                   <>
@@ -206,14 +201,7 @@ export function ServicesPage() {
               onClose={() => setWizardServiceId(undefined)}
               onFinished={reloadCatalog}
             />
-          ) : (
-            <ServiceOnboardingPipelineCard
-              onboardings={onboardings}
-              rows={catalog.rows}
-              categoryNames={categoryNames}
-              onContinue={setWizardServiceId}
-            />
-          )}
+          ) : null}
         </>
       )}
       <ServiceCatalogLifecycleDialog

@@ -80,7 +80,7 @@ export function ServiceCatalogFilterBar({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/70 bg-elevated/20 p-3 sm:p-3.5">
+      <div className="rounded-lg border border-border/70 bg-elevated/20 p-3 sm:p-3.5">
         <div
           className={
             showOriginUnitFilter

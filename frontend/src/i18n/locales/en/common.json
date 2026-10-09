@@ -3944,6 +3944,7 @@
     "forbiddenTitle": "No access to SLA",
     "forbiddenBody": "SLA profiles, calendars, and rules are available to administrators.",
     "profilesTab": "Profiles",
+    "complianceTab": "Compliance",
     "calendarsTab": "Calendars",
     "escalationsTab": "Escalations",
     "calendarsHeading": "BH calendars",
