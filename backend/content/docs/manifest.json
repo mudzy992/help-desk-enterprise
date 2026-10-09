@@ -1483,6 +1483,11 @@
           "id": "6-status-dostupnosti-i-prekidi"
         },
         {
+          "level": 3,
+          "text": "7. Pretraga i filteri kataloga",
+          "id": "7-pretraga-i-filteri-kataloga"
+        },
+        {
           "level": 2,
           "text": "Polja, validacije i statusi",
           "id": "polja-validacije-i-statusi"
@@ -1528,7 +1533,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1890,
+      "wordCount": 1993,
       "source": "docs/user-guide/katalog-usluga-i-forme.md",
       "englishTitle": null
     },
@@ -1646,7 +1651,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1455,
+      "wordCount": 1491,
       "source": "docs/user-guide/usmjeravanje-i-prioritet.md",
       "englishTitle": null
     },
@@ -1786,7 +1791,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2186,
+      "wordCount": 2236,
       "source": "docs/user-guide/sla.md",
       "englishTitle": null
     },

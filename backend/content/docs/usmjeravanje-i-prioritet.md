@@ -47,6 +47,9 @@
 3. Upišite **Razlog izmjene** (obavezno) i kliknite **Spremi pravilo**.
 4. Ako za isti par (OU + servis) pravilo već postoji, unos se odbija porukom **„Pravilo za ovu kombinaciju OU i
    servisa već postoji.“**. U formi se to najavljuje unaprijed (upozorenje o duplikatu).
+5. U tabeli pravila uslov se čita kao **WHEN** (organizaciona jedinica + servis), a ishod kao **THEN**
+   (ciljna grupa); tehnički ID je sekundarni detalj, a sirovi JSON rezolucije je podrazumijevano sklopljen
+   i otvara se po potrebi.
 
 ### 2. Izmjena i brisanje pravila
 

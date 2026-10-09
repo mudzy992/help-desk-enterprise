@@ -105,6 +105,16 @@ tags: [katalog, usluge, forme, verzije, dostupnost, onboarding]
 3. Dok je prozor aktivan, status u katalogu se prikazuje kao **Održavanje**, uz napomenu
    **„Trenutno nedostupno — prijava tiketa nije blokirana“**.
 
+### 7. Pretraga i filteri kataloga
+
+1. **Pretraga** traži po nazivu, slugu i kategoriji i **ignoriše kvačice** (đ, č, ć… ponašaju se kao d, c, ć).
+2. Filteri iznad liste: **Kategorija**, **Životni ciklus** (Nacrt/Aktivna/Ukinuta) i **Organizaciona jedinica**.
+   OJ filter prikazuje servis samo kad za izabranu jedinicu postoji **izričito routing pravilo** — naslijeđeni
+   (roditeljski) pokrivač se ne računa; to isto piše i u objašnjenju pored filtera.
+3. Lista je tabela prilagođena užim ekranima: osnovni podaci stoje u redu, a akcije su u meniju uz red.
+4. Usluga u toku onboardinga nosi **oznaku napretka** uz naziv (npr. „Onboarding 0/5“); klikom se nastavlja
+   čarobnjak u dijalogu.
+
 ## Polja, validacije i statusi
 
 ### Usluga

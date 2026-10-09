@@ -56,6 +56,7 @@
 3. Po potrebi dodajte **Neradne dane**: **Naziv praznika** + datum → **Dodaj praznik**.
 4. Upišite **Razlog izmjene** i kliknite **Spremi kalendar** (izmjena: **Ažuriraj kalendar**).
 5. Kalendar možete deaktivirati prekidačem **Aktivan**; kalendar koji koristi neki profil se ne može obrisati.
+6. Brisanje kalendara traži **razlog** uz potvrdu; promjena ide u change log kalendara.
 
 ### 2. Napravite SLA profil
 
@@ -96,6 +97,9 @@
 2. Za svaku kombinaciju **Uticaj × Hitnost** odaberite prioritet („Odaberite prioritet za svaku ćeliju uticaj
    × hitnost. Snimanje upisuje samo izmijenjene ćelije.“).
 3. Upišite **Razlog izmjene matrice** i kliknite **Sačuvaj matricu**.
+4. Dok se podaci učitavaju, ćelije su prazne (**učitavanje**); ako učitavanje ne uspije, prikazuje se
+   **greška s ponovnim pokušajem**, a ćelija bez sačuvane vrijednosti ostaje **neutralno prazna** — nikad
+   se ne prikazuje vrijednost koju server nije poslao.
 
 ### 6. Šta se dešava na tiketu
 

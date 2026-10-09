@@ -6928,3 +6928,48 @@ Nakon zatvaranja paketa 5.2 (sve četiri podfaze 5.2.1–5.2.4, ukupno 38 nalaza
 
 - **Paket 5.3** (`docs/plans/modules/5.3-admin-ux-interakcije-i-lokalizacija.md`) — admin UX interakcije i lokalizacija. Čeka k6 perf smoke clean signal, pa odmah kreće.
 - **Paket 5.4** (`docs/plans/modules/5.4-sigurnosni-hardening.md`) — sigurnosni hardening (WebAuthn/passkey MFA, konfigurabilni rate-limiti, CAPTCHA plug-in tačka, politika sesija "remember me", HIBP provjera lozinke, bulk password reset, security event dnevnik). Dizajn je kompletiran 2026-10-08 i označen kao prioritet nakon E2E closeout-a. Ide nakon 5.3.
+
+---
+
+# Paket 5.3 — izvještaj vala i zatvaranje (2026-10-09)
+
+Plan: `docs/plans/modules/5.3-admin-ux-interakcije-i-lokalizacija.md`. Valovi 5.3.0–5.3.7 isporučeni
+zasebnim commitovima na radnoj grani; kapije: statičke provjere u sandboxu + server E2E vlasnika.
+
+## Isporučeno po valovima
+
+- **5.3.0–5.3.5:** Toast sistem i migracija, `useDismissable`, responzivni shell i prijava; tiketi
+  (korak Usluga, filter datuma, Grupni inbox tab); OU/grupe/korisnici/dozvole; Postavke i dodaci
+  (5.3.3 backend + 5.3.4 UI s guardom 100% ključeva); Poslovi i audit (5.3.5).
+- **5.3.6 — Katalog, SLA, Usmjeravanje:** lifecycle/OJ filteri (izričito pravilo), pretraga bez kvačica,
+  responzivna tabela s akcijskim menijem, onboarding dijalog s oznakom napretka; SLA kalendar bez
+  suvišnog refetcha, brisanje s razlogom, matrica s loading/error/neutral stanjima, lokalizovani brojevi;
+  usmjeravanje čita WHEN/THEN, raw JSON sklopljen, tester pokazuje ishod. E2E `42` — **4/4 na serveru
+  (2026-10-09)**. Trijaža tokom vala: `4bdfde3` (Badge prosljeđuje `data-testid` — oznaka onboardinga
+  nikad nije imala test hook) i `b71131e` (bijeli ekran kataloga: dashboard i katalog dijelili React Query
+  ključ `["catalog","services"]` s različitim oblicima; lookup dashboarda dobio vlastiti ključ).
+- **5.3.7 — Ostali moduli + privatnost:** namjenski **editor obavještenja o privatnosti** (tab „Obavještenje“,
+  BS/EN, Markdown + pregled, brojač do 20.000, „Generiši iz evidencije obrade“, oznake stanja; API
+  `GET /privacy/notice/status|draft`, `PUT /privacy/notice` kroz jednu transakciju postavki; oznaka nacrta
+  na javnoj stranici; link iz redova `private.privacy.notice.*`). Tabela nalaza za svih 8 ekrana §4.7 u
+  `docs/qa/5.3.7-audit.md`; dva prazan-nalaza gapa zatvorena novim E2E: `44` (dežurstva: raspored, detalj,
+  mobilni prikaz; uz zaštitu — ne prepisuje postojeću rotaciju) i `45` (najave: nacrt → objava → izvještaj
+  čitanja → čišćenje). E2E **43: 2/2**, **44: 2/2**, **45: zelen**, regresije **20: 5/5**, **22: 11/11** (2026-10-09).
+
+## Kapije i dokazi
+
+- Frontend: `vitest` 764/764, `vite build`, `check-a11y-static` OK, `check-pulse-design-system` OK
+  (bs/en paritet), docs check OK — svježe u commitovima vala.
+- Backend: `nest build` i jest suite zeleni na vlasnikovom serveru (jest spec kontrolera obavještenja
+  popravljen u `3d7aa29`).
+- E2E: vlasnik izvršava na serveru; zadnji rezultati gore. `sign-in` helper ima jedan retry sa svježim
+  TOTP korakom (`0c7b776`) zbog dvije tranzitorne MFA stagnacije bez odgovora.
+- **Perf smoke i konačan zeleni CI:** na vlasniku (GitHub Actions); bez njih val se ne smatra zatvorenim
+  po planu — sve ostale kapije su zelenе.
+
+## Šta ostaje otvoreno
+
+- **5.4 — Sigurnosni hardening:** samo dizajn (`docs/plans/modules/5.4-sigurnosni-hardening.md`),
+  bez implementacije — odluka vlasnika.
+- SMTP/LDAPS/Entra verify rute ostaju označene kao netestirane (kao i prije 5.3).
+- Screenshot-vizuelni prolaz 5.3.6 (6 širina) je opcion i pokriven E2E overflow-provjerom.
