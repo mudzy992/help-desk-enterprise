@@ -1,0 +1,113 @@
+import { expect, test } from '@playwright/test';
+import { ApiClient } from '../helpers/api-client';
+import { readE2EEnvironment } from '../helpers/environment';
+import { signIn } from '../helpers/sign-in';
+
+type UnitNode = {
+  readonly id: string;
+  readonly children?: readonly UnitNode[];
+};
+
+type NamedRecord = {
+  readonly id: string;
+  readonly name: string;
+};
+
+type UserSummary = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly isActive: boolean;
+};
+
+function tomorrowDate(): string {
+  const day = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * 5.3.7 (§4.7 — dežurstva): main flows — a rotation schedule exists, the
+ * group card stops reading "without schedule", the week detail lists the
+ * rotation member, and the screen stays usable at a phone width. The schedule
+ * is created through the API (the dialog is covered by the same contract) and
+ * always deleted in `finally`, so the installation's rotations stay untouched.
+ */
+test.describe('44 on-call schedules (5.3.7)', () => {
+  test('schedule is visible on the overview, in the week detail and on mobile', async ({ page }) => {
+    test.setTimeout(120_000);
+    page.setDefaultTimeout(20_000);
+    page.setDefaultNavigationTimeout(30_000);
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+
+    const { groupId, groupName, memberId, memberName } = await test.step('load group and rotation member', async () => {
+      const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
+      const group = groups[0];
+      if (group === undefined) throw new Error('[e2e] at least one group is required for the on-call test.');
+      const users = await api.requestJson<readonly UserSummary[]>('/users/summary');
+      const me = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase());
+      if (me === undefined || !me.isActive) throw new Error('[e2e] the super admin must exist and be active.');
+      return { groupId: group.id, groupName: group.name, memberId: me.id, memberName: me.displayName };
+    });
+
+    await test.step('create a weekly rotation starting tomorrow', async () => {
+      await api.requestJson<{ readonly id: string }>(`/on-call/groups/${encodeURIComponent(groupId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          timezone: 'Europe/Sarajevo',
+          handoffTime: '09:00',
+          rotationLength: 'WEEK',
+          rotationStartDate: tomorrowDate(),
+          isActive: true,
+          autoAssignOutsideHours: false,
+          ownerUserId: null,
+          memberUserIds: [memberId],
+          reason: 'E2E 5.3.7 on-call setup',
+        }),
+      });
+    });
+
+    try {
+      await test.step('sign in and open the overview', async () => {
+        await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        await page.goto('/on-call');
+        const card = page.getByTestId('on-call-group').filter({ hasText: groupName }).first();
+        await expect(card).toBeVisible();
+        await expect(card).not.toContainText(/Bez rasporeda|No schedule/i);
+      });
+
+      await test.step('the week detail lists the rotation member', async () => {
+        await page.getByTestId('on-call-group').filter({ hasText: groupName }).first().click();
+        const members = page.locator('section[aria-labelledby="on-call-rotation"]');
+        await expect(members).toBeVisible();
+        await expect(members).toContainText(memberName);
+      });
+
+      await test.step('the overview stays usable at a phone width', async () => {
+        await page.setViewportSize({ width: 360, height: 800 });
+        await page.goto('/on-call');
+        await expect(page.getByTestId('on-call-group').filter({ hasText: groupName }).first()).toBeVisible();
+      });
+    } finally {
+      const response = await api.request(`/on-call/groups/${encodeURIComponent(groupId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ reason: 'E2E 5.3.7 cleanup' }),
+      });
+      if (!response.ok && response.status !== 404) {
+        console.warn(`[e2e] cleanup of the on-call schedule returned HTTP ${response.status}`);
+      }
+    }
+  });
+
+  test('the organizational unit tree endpoint the overview relies on responds', async () => {
+    test.setTimeout(60_000);
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+    const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
+    expect(Array.isArray(tree)).toBe(true);
+    const overview = await api.requestJson<{ readonly groups: readonly unknown[] }>('/on-call/overview');
+    expect(Array.isArray(overview.groups)).toBe(true);
+  });
+});
