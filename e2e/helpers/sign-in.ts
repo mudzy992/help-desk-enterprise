@@ -40,7 +40,30 @@ export async function signIn(
     .catch(() => false);
   if (needsCode) {
     await mfaInput.fill(await nextTotpCode(email));
-    await page.locator('form').filter({ has: mfaInput }).locator('button[type="submit"]').click();
+    const verifyResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/auth/mfa/verify'),
+    );
+    const [verifyResponse] = await Promise.all([
+      verifyResponsePromise,
+      page.locator('form').filter({ has: mfaInput }).locator('button[type="submit"]').click(),
+    ]);
+    if (!verifyResponse.ok()) {
+      const responseBody = await verifyResponse.text();
+      let errorCode = `HTTP_${verifyResponse.status()}`;
+      try {
+        const payload = JSON.parse(responseBody) as { readonly code?: unknown };
+        if (typeof payload.code === 'string') {
+          errorCode = payload.code;
+        }
+      } catch {
+        // Keep the HTTP status when the server returned a non-JSON error body.
+      }
+      const formError = await page.locator('#mfa-code-error').textContent().catch(() => null);
+      throw new Error(
+        `[e2e] MFA verification rejected (${errorCode})${formError ? `: ${formError.trim()}` : ''}.`,
+      );
+    }
     await mfaInput.waitFor({ state: 'detached', timeout: 20_000 });
   }
 }
