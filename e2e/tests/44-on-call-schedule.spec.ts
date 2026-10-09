@@ -9,16 +9,13 @@ type OverviewGroup = {
   readonly hasSchedule: boolean;
 };
 
+type GroupDetail = {
+  readonly candidates: ReadonlyArray<{ readonly userId: string; readonly displayName: string }>;
+};
+
 type UnitNode = {
   readonly id: string;
   readonly children?: readonly UnitNode[];
-};
-
-type UserSummary = {
-  readonly id: string;
-  readonly displayName: string;
-  readonly email: string;
-  readonly isActive: boolean;
 };
 
 function tomorrowDate(): string {
@@ -29,10 +26,11 @@ function tomorrowDate(): string {
 /**
  * 5.3.7 (§4.7 — dežurstva): main flows — a rotation schedule exists, the
  * group card stops reading "without schedule", the week detail lists the
- * rotation member, and the screen stays usable at a phone width. The test
- * only touches a group WITHOUT an existing schedule (a PUT would replace a
- * real rotation) and deletes its own schedule in `finally`; with no free
- * group it fails fast instead of overwriting production data.
+ * rotation member, and the screen stays usable at a phone width. The rotation
+ * member must come from the group's own candidate list (active staff members
+ * of that group — the server rejects everyone else), the group must be one
+ * WITHOUT an existing schedule (a PUT would replace a real rotation), and the
+ * created schedule is deleted again in `finally`.
  */
 test.describe('44 on-call schedules (5.3.7)', () => {
   test('schedule is visible on the overview, in the week detail and on mobile', async ({ page }) => {
@@ -51,10 +49,18 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           '[e2e] every group already has an on-call schedule; free one up or run this test against a clean group — the test refuses to overwrite real rotations.',
         );
       }
-      const users = await api.requestJson<readonly UserSummary[]>('/users');
-      const me = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase());
-      if (me === undefined || !me.isActive) throw new Error('[e2e] the super admin must exist and be active.');
-      return { groupId: free.groupId, groupName: free.groupName, memberId: me.id, memberName: me.displayName };
+      const range = new URLSearchParams({
+        from: new Date().toISOString(),
+        to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }).toString();
+      const detail = await api.requestJson<GroupDetail>(`/on-call/groups/${encodeURIComponent(free.groupId)}?${range}`);
+      const candidate = detail.candidates[0];
+      if (candidate === undefined) {
+        throw new Error(
+          `[e2e] the group "${free.groupName}" has no eligible rotation members (active staff in the group); add one before running this test.`,
+        );
+      }
+      return { groupId: free.groupId, groupName: free.groupName, memberId: candidate.userId, memberName: candidate.displayName };
     });
 
     await test.step('create a weekly rotation starting tomorrow', async () => {

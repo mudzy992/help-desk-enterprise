@@ -74,9 +74,10 @@ test.describe('45 announcements lifecycle (5.3.7)', () => {
 
       await test.step('publish and see the row turn active', async () => {
         await manageRow(page, title).getByRole('button', { name: /Objavi|Publish/ }).click();
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible();
-        await dialog.getByRole('button', { name: /^(?:Objavi|Publish)$/ }).click();
+        // ConfirmDialog renders role="alertdialog", not "dialog".
+        const confirmDialog = page.getByRole('alertdialog');
+        await expect(confirmDialog).toBeVisible();
+        await confirmDialog.getByTestId('confirm-dialog-confirm').click();
         const row = manageRow(page, title);
         await expect(row).toContainText(/Aktivna|Published/i);
       });
