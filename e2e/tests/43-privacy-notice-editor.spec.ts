@@ -70,13 +70,30 @@ test.describe('43 privacy notice editor (5.3.7)', () => {
         );
       });
 
-      await test.step('an empty language falls back to the flagged draft', async () => {
+      await test.step('both languages empty falls back to the flagged draft', async () => {
+        // The fallback chain is own text -> the other language -> generated
+        // draft, so the draft badge appears only when BOTH are empty.
         await api.requestJson<NoticeStatus>('/privacy/notice', {
           method: 'PUT',
-          body: JSON.stringify({ bs: '', en: original.notice.en }),
+          body: JSON.stringify({ bs: '', en: '' }),
         });
-        await page.goto('/privacy-notice');
-        await expect(page.getByTestId('privacy-notice-draft-badge')).toBeVisible();
+        const served = await api.requestJson<{ readonly draft: boolean; readonly fallbackLocale: boolean }>(
+          '/privacy/notice?locale=bs',
+        );
+        expect(served.draft).toBe(true);
+        expect(served.fallbackLocale).toBe(false);
+        // The public page is served with `Cache-Control: max-age=300`; a fresh
+        // context guarantees the UI reads the new state, not the cached one.
+        const browser = page.context().browser();
+        if (browser === null) throw new Error('[e2e] a browser instance is required.');
+        const fresh = await browser.newContext();
+        try {
+          const freshPage = await fresh.newPage();
+          await freshPage.goto(new URL('/privacy-notice', page.url()).toString());
+          await expect(freshPage.getByTestId('privacy-notice-draft-badge')).toBeVisible();
+        } finally {
+          await fresh.close();
+        }
       });
     } finally {
       await api.requestJson<NoticeStatus>('/privacy/notice', {
