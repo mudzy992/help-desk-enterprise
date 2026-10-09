@@ -45,7 +45,7 @@ export function OnboardingSlaStep({
   };
 
   return (
-    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
+    <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.onboarding.slaProfile")} required>
         <Select value={value} required onChange={(event) => setValue(event.target.value)}>
           {activeProfiles.map((profile) => (
@@ -55,7 +55,7 @@ export function OnboardingSlaStep({
           ))}
         </Select>
       </Field>
-      <Button type="submit" size="sm" disabled={isSaving || value.length === 0}>
+      <Button type="submit" size="sm" className="justify-self-start" disabled={isSaving || value.length === 0}>
         {isSaving ? t("services.onboarding.saving") : t("services.onboarding.next")}
       </Button>
     </form>

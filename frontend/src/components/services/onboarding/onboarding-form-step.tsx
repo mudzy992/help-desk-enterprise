@@ -21,7 +21,7 @@ export function OnboardingFormStep({
 }: OnboardingFormStepProperties) {
   const { t } = useTranslation();
   return (
-    <div className="fade-in grid gap-4">
+    <div className="fade-in grid w-full gap-5">
       <ServiceFormBuilder
         serviceId={serviceId}
         canWrite={canWrite}
@@ -30,6 +30,7 @@ export function OnboardingFormStep({
       <Button
         type="button"
         size="sm"
+        className="justify-self-start"
         disabled={isSaving || activeFormVersionRef === null}
         onClick={onContinue}
       >

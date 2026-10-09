@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ServiceCatalogCard } from "@/components/services/service-catalog-card";
 import { ServiceCatalogFilterBar } from "@/components/services/service-catalog-filter-bar";
+import { ServiceCatalogTable } from "@/components/services/service-catalog-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
@@ -10,42 +10,43 @@ import type { CatalogRoutingCoverageState } from "@/lib/services/use-catalog-rou
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 import type { ServiceLifecycle, ServiceResponse } from "@/services/service-catalog-api";
+import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
 
-interface ServiceCatalogGridProperties {
+interface ServiceCatalogListProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly categories: readonly ServiceCategoryResponse[];
+  readonly onboardings: readonly ServiceOnboardingResponse[];
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
   readonly routingCoverage: CatalogRoutingCoverageState;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
   readonly canWriteAvailability: boolean;
-  readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
   readonly onCreate: () => void;
   readonly onEdit: (service: ServiceResponse) => void;
   readonly onStartOnboarding: (serviceId: string) => void;
   readonly onManageCategories: () => void;
   readonly onManageDowntime: (service: ServiceResponse) => void;
-  readonly onCatalogChanged: () => Promise<void>;
+  readonly onManageLifecycle: (service: ServiceResponse) => void;
 }
 
-export function ServiceCatalogGrid({
+export function ServiceCatalogList({
   rows,
   categories,
+  onboardings,
   coverageByServiceId,
   routingCoverage,
   canManageForms,
   canWriteCatalog,
   canWriteAvailability,
-  pendingServiceId,
   onPrepareForm,
   onCreate,
   onEdit,
   onStartOnboarding,
   onManageCategories,
   onManageDowntime,
-  onCatalogChanged,
-}: ServiceCatalogGridProperties) {
+  onManageLifecycle,
+}: ServiceCatalogListProperties) {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -54,6 +55,10 @@ export function ServiceCatalogGrid({
   const categoryNames = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
+  );
+  const onboardingByServiceId = useMemo(
+    () => new Map(onboardings.map((onboarding) => [onboarding.serviceId, onboarding])),
+    [onboardings],
   );
   const visibleRows = useMemo(
     () =>
@@ -158,25 +163,20 @@ export function ServiceCatalogGrid({
           }
         />
       ) : (
-        <div className="fade-in grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {visibleRows.map((row) => (
-            <ServiceCatalogCard
-              key={row.service.id}
-              row={row}
-              categoryName={categoryNames.get(row.service.categoryId) ?? row.service.slug}
-              coverage={coverageByServiceId.get(row.service.id) ?? null}
-              canManageForms={canManageForms}
-              canWriteCatalog={canWriteCatalog}
-              canWriteAvailability={canWriteAvailability}
-              pendingServiceId={pendingServiceId}
-              onPrepareForm={onPrepareForm}
-              onEdit={onEdit}
-              onStartOnboarding={onStartOnboarding}
-              onManageDowntime={onManageDowntime}
-              onCatalogChanged={onCatalogChanged}
-            />
-          ))}
-        </div>
+        <ServiceCatalogTable
+          rows={visibleRows}
+          categoryNames={categoryNames}
+          coverageByServiceId={coverageByServiceId}
+          onboardingByServiceId={onboardingByServiceId}
+          canManageForms={canManageForms}
+          canWriteCatalog={canWriteCatalog}
+          canWriteAvailability={canWriteAvailability}
+          onPrepareForm={onPrepareForm}
+          onEdit={onEdit}
+          onStartOnboarding={onStartOnboarding}
+          onManageDowntime={onManageDowntime}
+          onManageLifecycle={onManageLifecycle}
+        />
       )}
     </div>
   );

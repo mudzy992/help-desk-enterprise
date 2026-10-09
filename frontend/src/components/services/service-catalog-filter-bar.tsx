@@ -50,6 +50,7 @@ export function ServiceCatalogFilterBar({
   onClearFilters,
 }: ServiceCatalogFilterBarProperties) {
   const { t } = useTranslation();
+  const showOriginUnitFilter = hasRoutingCoverage || isRoutingCoverageLoading;
 
   return (
     <div className="mb-4 space-y-3">
@@ -79,62 +80,76 @@ export function ServiceCatalogFilterBar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <Field label={t("services.filterLifecycle")} className="min-w-[155px] flex-1 sm:max-w-[220px]">
-          {(control) => (
-            <Select
-              {...control}
-              value={lifecycle}
-              onChange={(event) =>
-                onLifecycleChange(event.target.value as ServiceLifecycle | "ALL")
-              }
-              className="h-8"
-            >
-              <option value="ALL">{t("services.filterAllLifecycles")}</option>
-              <option value="DRAFT">{t("services.lifecycle.DRAFT")}</option>
-              <option value="ACTIVE">{t("services.lifecycle.ACTIVE")}</option>
-              <option value="DEPRECATED">{t("services.lifecycle.DEPRECATED")}</option>
-            </Select>
-          )}
-        </Field>
-
-        {hasRoutingCoverage || isRoutingCoverageLoading ? (
+      <div className="rounded-xl border border-border/70 bg-elevated/20 p-3 sm:p-3.5">
+        <div
+          className={
+            showOriginUnitFilter
+              ? "grid items-start gap-3 sm:grid-cols-2"
+              : "grid items-start gap-3 sm:grid-cols-1"
+          }
+        >
           <Field
-            label={t("services.filterOriginUnit")}
-            hint={t("services.filterOriginUnitHint")}
-            className="min-w-[200px] flex-1 sm:max-w-[340px]"
+            label={t("services.filterLifecycle")}
+            hint={t("services.filterLifecycleHint")}
+            className="min-w-0"
           >
             {(control) => (
               <Select
                 {...control}
-                value={originUnitId ?? ""}
-                disabled={isRoutingCoverageLoading || !hasRoutingCoverage}
-                onChange={(event) => onOriginUnitChange(event.target.value || null)}
+                value={lifecycle}
+                onChange={(event) =>
+                  onLifecycleChange(event.target.value as ServiceLifecycle | "ALL")
+                }
                 className="h-8"
               >
-                <option value="">{t("services.filterAllOriginUnits")}</option>
-                {originUnits.map((origin) => (
-                  <option key={origin.id} value={origin.id}>
-                    {origin.path}
-                  </option>
-                ))}
+                <option value="ALL">{t("services.filterAllLifecycles")}</option>
+                <option value="DRAFT">{t("services.lifecycle.DRAFT")}</option>
+                <option value="ACTIVE">{t("services.lifecycle.ACTIVE")}</option>
+                <option value="DEPRECATED">{t("services.lifecycle.DEPRECATED")}</option>
               </Select>
             )}
           </Field>
-        ) : null}
 
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={!hasActiveFilters}
-          onClick={onClearFilters}
-        >
-          {t("services.clearFilters")}
-        </Button>
-        <span className="min-h-8 flex-1 content-center text-right text-[11.5px] text-muted-foreground">
-          {resultCount}
-        </span>
+          {showOriginUnitFilter ? (
+            <Field
+              label={t("services.filterOriginUnit")}
+              hint={t("services.filterOriginUnitHint")}
+              className="min-w-0"
+            >
+              {(control) => (
+                <Select
+                  {...control}
+                  value={originUnitId ?? ""}
+                  disabled={isRoutingCoverageLoading || !hasRoutingCoverage}
+                  onChange={(event) => onOriginUnitChange(event.target.value || null)}
+                  className="h-8"
+                >
+                  <option value="">{t("services.filterAllOriginUnits")}</option>
+                  {originUnits.map((origin) => (
+                    <option key={origin.id} value={origin.id}>
+                      {origin.path}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+          <span className="text-[11.5px] text-muted-foreground" role="status" aria-live="polite">
+            {resultCount}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!hasActiveFilters}
+            onClick={onClearFilters}
+          >
+            {t("services.clearFilters")}
+          </Button>
+        </div>
       </div>
     </div>
   );

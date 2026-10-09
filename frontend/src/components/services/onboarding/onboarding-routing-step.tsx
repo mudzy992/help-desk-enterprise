@@ -20,7 +20,7 @@ export function OnboardingRoutingStep({
   const { t } = useTranslation();
   if (suggestion === null) {
     return (
-      <div className="fade-in grid gap-3">
+      <div className="fade-in grid gap-4">
         <p className="rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/90">
           {t("services.onboarding.routingCoverageWarning")}
         </p>
@@ -41,13 +41,14 @@ export function OnboardingRoutingStep({
     );
   }
   return (
-    <div className="fade-in grid max-w-xl gap-3">
+    <div className="fade-in grid w-full max-w-2xl gap-4">
       <Field label={t("services.onboarding.routingSuggestion")}>
         <Input value={suggestion} readOnly />
       </Field>
       <Button
         type="button"
         size="sm"
+        className="justify-self-start"
         disabled={isSaving}
         onClick={() => onConfirm(suggestion)}
       >

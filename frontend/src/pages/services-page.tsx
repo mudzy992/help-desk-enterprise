@@ -1,32 +1,34 @@
 import { Blocks, Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
-import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
-import { ServiceCategoriesAdminSheet } from "@/components/services/categories/service-categories-admin-sheet";
-import { ServiceCategoryMutationSheet } from "@/components/services/categories/service-category-mutation-sheet";
-import { ServiceOnboardingPipelineCard } from "@/components/services/onboarding/service-onboarding-pipeline-card";
-import { ServiceOnboardingWizard } from "@/components/services/onboarding/service-onboarding-wizard";
-import { ServiceFormBuilderSheet } from "@/components/services/form-builder/service-form-builder-sheet";
-import { ServiceCatalogGrid } from "@/components/services/service-catalog-grid";
+import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { ServiceCatalogLifecycleDialog } from "@/components/services/service-catalog-lifecycle-dialog";
 import { ServiceCatalogMutationSheet } from "@/components/services/service-catalog-mutation-sheet";
 import { ServiceCatalogReadOnlyBanner } from "@/components/services/service-catalog-read-only-banner";
 import { ServiceDowntimeWindowsSheet } from "@/components/services/service-downtime-windows-sheet";
+import { ServiceFormBuilderSheet } from "@/components/services/form-builder/service-form-builder-sheet";
+import { ServiceOnboardingPipelineCard } from "@/components/services/onboarding/service-onboarding-pipeline-card";
+import { ServiceOnboardingWizard } from "@/components/services/onboarding/service-onboarding-wizard";
+import { ServiceCategoriesAdminSheet } from "@/components/services/categories/service-categories-admin-sheet";
+import { ServiceCategoryMutationSheet } from "@/components/services/categories/service-category-mutation-sheet";
+import { ServiceCatalogList } from "@/components/services/service-catalog-list";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { resolveCatalogWriteFlags, canBypassAdminReadOnly } from "@/lib/services/resolve-catalog-write-flags";
-import {
-  adminReadOnlyModuleKeys,
-  useAdminModuleReadOnly,
-} from "@/lib/settings/use-admin-module-read-only";
-import { permissionKeys } from "@/lib/session/permission-keys";
-import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { serviceCatalogLoadState } from "@/lib/services/service-catalog-load-state";
 import { useCatalogRoutingCoverage } from "@/lib/services/use-catalog-routing-coverage";
 import { useServiceCatalog } from "@/lib/services/use-service-catalog";
 import { useServiceCategories } from "@/lib/services/use-service-categories";
 import { useVisibleOnboardings } from "@/lib/services/use-visible-onboardings";
+import { canBypassAdminReadOnly, resolveCatalogWriteFlags } from "@/lib/services/resolve-catalog-write-flags";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
+import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
+import { permissionKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
@@ -52,6 +54,7 @@ export function ServicesPage() {
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceResponse | null>(null);
+  const [lifecycleService, setLifecycleService] = useState<ServiceResponse | null>(null);
   const [downtimeService, setDowntimeService] = useState<ServiceResponse | null>(null);
   const [formServiceId, setFormServiceId] = useState<string | null>(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
@@ -75,10 +78,28 @@ export function ServicesPage() {
     reload: reloadCategories,
     containerRef,
   });
+  const catalogView = serviceCatalogLoadState({
+    services: {
+      hasLoaded: catalog.hasLoaded,
+      isLoading: catalog.isLoading,
+      hasError: catalog.errorKey !== null,
+    },
+    categories: {
+      hasLoaded: categoryState.hasLoaded,
+      isLoading: categoryState.isLoading,
+    },
+  });
+  const hasRefreshError =
+    (catalog.hasLoaded && catalog.errorKey !== null) ||
+    (categoryState.hasLoaded && categoryState.errorKey !== null);
 
   return (
     <section ref={containerRef}>
-      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+      <AdminConfigChangedBanner
+        pending={live.pending}
+        onRefresh={live.refreshNow}
+        onDismiss={live.dismiss}
+      />
       <PageHeader
         crumbs={[brandCrumb, t("navigation.sections.services"), t("services.title")]}
         title={t("services.title")}
@@ -92,7 +113,7 @@ export function ServicesPage() {
                 variant="outline"
                 onClick={() => setWizardServiceId(null)}
               >
-                <Blocks size={14} />
+                <Blocks size={14} aria-hidden="true" />
                 {t("services.onboardingWizard")}
               </Button>
               <Button
@@ -103,7 +124,7 @@ export function ServicesPage() {
                   setIsCreateOpen(true);
                 }}
               >
-                <Plus size={14} />
+                <Plus size={14} aria-hidden="true" />
                 {t("services.createService")}
               </Button>
             </>
@@ -111,21 +132,61 @@ export function ServicesPage() {
         }
       />
       <ServiceCatalogReadOnlyBanner visible={catalogReadOnly.isLocked} />
-      {catalog.isLoading || categoryState.isLoading ? (
+      {catalogView === "loading" ? (
         <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
-      ) : catalog.errorKey ? (
-        <ApiErrorText messageKey={catalog.errorKey} requestId={catalog.requestId} />
+      ) : catalogView === "error" ? (
+        <div className="grid gap-3 rounded-xl border border-danger/25 bg-danger/5 p-4 sm:p-5">
+          <ApiErrorText messageKey={catalog.errorKey ?? "errors.network"} requestId={catalog.requestId} />
+          <div>
+            <Button type="button" size="sm" variant="outline" onClick={() => void reloadCategories()}>
+              {t("services.retryLoad")}
+            </Button>
+          </div>
+        </div>
       ) : (
         <>
-          <ServiceCatalogGrid
+          {hasRefreshError ? (
+            <div className="mb-3 grid gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-3.5">
+              <div className="grid gap-1.5">
+                {catalog.hasLoaded && catalog.errorKey ? (
+                  <>
+                    <p className="text-[11.5px] text-muted-foreground">
+                      {t("services.catalogRefreshWarning")}
+                    </p>
+                    <ApiErrorText messageKey={catalog.errorKey} requestId={catalog.requestId} />
+                  </>
+                ) : null}
+                {categoryState.hasLoaded && categoryState.errorKey ? (
+                  <>
+                    <p className="text-[11.5px] text-muted-foreground">
+                      {t("services.categoriesRefreshWarning")}
+                    </p>
+                    <ApiErrorText
+                      messageKey={categoryState.errorKey}
+                      requestId={categoryState.requestId}
+                    />
+                  </>
+                ) : null}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void reloadCategories()}
+              >
+                {t("services.retryLoad")}
+              </Button>
+            </div>
+          ) : null}
+          <ServiceCatalogList
             rows={catalog.rows}
             categories={categoryState.categories}
+            onboardings={onboardings}
             coverageByServiceId={routingCoverage.notesByServiceId}
             routingCoverage={routingCoverage}
             canManageForms={writeFlags.canManageForms}
             canWriteCatalog={writeFlags.canWriteCatalog}
             canWriteAvailability={writeFlags.canWriteAvailability}
-            pendingServiceId={null}
             onPrepareForm={setFormServiceId}
             onCreate={() => {
               setEditingService(null);
@@ -135,7 +196,7 @@ export function ServicesPage() {
             onStartOnboarding={setWizardServiceId}
             onManageCategories={() => setIsCategoriesOpen(true)}
             onManageDowntime={setDowntimeService}
-              onCatalogChanged={reloadCatalog}
+            onManageLifecycle={setLifecycleService}
           />
           {wizardServiceId !== undefined ? (
             <ServiceOnboardingWizard
@@ -155,6 +216,11 @@ export function ServicesPage() {
           )}
         </>
       )}
+      <ServiceCatalogLifecycleDialog
+        service={lifecycleService}
+        onClose={() => setLifecycleService(null)}
+        onChanged={reloadCatalog}
+      />
       <ServiceFormBuilderSheet
         serviceId={formServiceId}
         canWrite={writeFlags.canManageForms}

@@ -13,6 +13,7 @@ export type ServiceCatalogRow = {
 
 export type ServiceCatalogState = {
   readonly rows: readonly ServiceCatalogRow[];
+  readonly hasLoaded: boolean;
   readonly isLoading: boolean;
   readonly errorKey: ApiErrorKey | null;
   readonly requestId: string | null;
@@ -41,6 +42,7 @@ export function useServiceCatalog(): ServiceCatalogState {
 
   return {
     rows: query.data ?? [],
+    hasLoaded: query.data !== undefined,
     isLoading: query.isLoading,
     errorKey: query.error === null ? null : mapApiError(query.error),
     requestId: query.error === null ? null : readApiRequestId(query.error),

@@ -154,8 +154,8 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
       await test.step('filter the catalog and edit the service', async () => {
         await page.reload();
-        const serviceCard = page.getByTestId(`service-card-${serviceId}`);
-        await expect(serviceCard).toBeVisible({ timeout: 20_000 });
+        const serviceRow = page.getByTestId(`service-row-${serviceId}`);
+        await expect(serviceRow).toBeVisible({ timeout: 20_000 });
         await page.getByRole('searchbox', { name: /Search services|Pretraga usluga/i }).fill(serviceName);
         await page.getByLabel(/Lifecycle|Životni ciklus/).selectOption('DRAFT');
         const explicitOuFilter = page.getByLabel(
@@ -163,18 +163,30 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         );
         await expect(explicitOuFilter).toBeEnabled({ timeout: 60_000 });
         await explicitOuFilter.selectOption(originUnitId);
-        await expect(serviceCard).toBeVisible();
+        await expect(serviceRow).toBeVisible();
 
-        await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
+        await page.getByTestId(`service-actions-${serviceId}`).click();
+        await page.getByRole('menuitem', { name: /Edit|Izmijeni/i }).click();
         const editDialog = page.getByRole('dialog');
         await editDialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(editedName);
         await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
         await editDialog.locator('form button[type="submit"]').click();
         await expect(editDialog).toBeHidden();
-        await expect(serviceCard.getByText(editedName)).toBeVisible();
+        await expect(serviceRow.getByText(editedName)).toBeVisible();
 
         await page.getByRole('button', { name: /Clear all filters|Očisti sve filtere/i }).click();
-        await expect(serviceCard).toBeVisible();
+        await expect(serviceRow).toBeVisible();
+
+        await page.getByTestId(`service-actions-${serviceId}`).click();
+        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click();
+        const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
+        await expect(lifecycleDialog).toBeVisible();
+        const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });
+        await expect(activateButton).toBeDisabled();
+        await lifecycleDialog.getByLabel(/Change reason|Razlog izmjene/i).fill('Lifecycle action menu UX E2E');
+        await expect(activateButton).toBeEnabled();
+        await lifecycleDialog.getByRole('button', { name: /Cancel|Odustani/i }).click();
+        await expect(lifecycleDialog).toBeHidden();
       });
     } finally {
       if (serviceId === null) {

@@ -73,7 +73,7 @@ export function ServiceOnboardingPipelineCard({
           </Button>
         </div>
         <div className="flex items-center overflow-x-auto">
-          <ServiceOnboardingStepper activeIndex={activeIndex} />
+          <ServiceOnboardingStepper activeIndex={activeIndex} className="mb-0 min-w-[680px]" />
         </div>
       </div>
     </Card>

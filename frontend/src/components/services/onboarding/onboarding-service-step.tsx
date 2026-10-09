@@ -53,7 +53,7 @@ export function OnboardingServiceStep({
   };
 
   return (
-    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
+    <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.name")} required>
         <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
       </Field>
@@ -83,7 +83,7 @@ export function OnboardingServiceStep({
       <Field label={t("services.requiresApproval")}>
         <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
       </Field>
-      <Button type="submit" size="sm" disabled={isSaving || !canSubmit}>
+      <Button type="submit" size="sm" className="justify-self-start" disabled={isSaving || !canSubmit}>
         {isSaving ? t("services.onboarding.saving") : t("services.onboarding.next")}
       </Button>
     </form>

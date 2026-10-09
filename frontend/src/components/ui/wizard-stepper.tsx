@@ -11,11 +11,12 @@ export interface WizardStep {
 interface WizardStepperProperties {
   readonly steps: readonly WizardStep[];
   readonly activeIndex: number;
+  readonly className?: string;
 }
 
-export function WizardStepper({ steps, activeIndex }: WizardStepperProperties) {
+export function WizardStepper({ steps, activeIndex, className }: WizardStepperProperties) {
   return (
-    <ol className="mb-6 flex items-center gap-0">
+    <ol className={cn("mb-6 flex items-center gap-0", className)}>
       {steps.map((step, index) => {
         const isComplete = index < activeIndex;
         const isActive = index === activeIndex;
