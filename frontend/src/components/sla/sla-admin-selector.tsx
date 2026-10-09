@@ -73,7 +73,7 @@ export function SlaAdminNewItemButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:bg-elevated disabled:text-muted-foreground"
     >
       <Plus size={13} />
       {label}
