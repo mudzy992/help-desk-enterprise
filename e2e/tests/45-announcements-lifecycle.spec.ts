@@ -88,6 +88,9 @@ test.describe('45 announcements lifecycle (5.3.7)', () => {
         await expect(dialog).toBeVisible();
         await expect(dialog).toContainText(/Izvještaj o potvrdama|Acknowledgement report/i);
         await expect(dialog).toContainText(/Potvrdilo 0 od \d+|\b0 of \d+/);
+        // Close before switching tabs — the modal covers the page otherwise.
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
       });
 
       await test.step('the publisher sees the announcement in their own tab', async () => {
@@ -95,29 +98,28 @@ test.describe('45 announcements lifecycle (5.3.7)', () => {
         await expect(page.getByText(title).first()).toBeVisible();
       });
     } finally {
-      const cleanedUp = await test.step('restore: withdraw and delete through the API', async () => {
+      const cleanedUp = await test.step('restore: withdraw drafts-delete only, published stays archived', async () => {
         const list = await api.requestJson<{ readonly announcements: readonly ManagedDetail[] }>(
           '/announcements/manage',
         );
         const created = list.announcements.find((item) => item.title === title) ?? null;
         if (created === null) return false;
-        announcementId = created.id;
-        if (created.status !== 'DRAFT') {
+        if (created.status === 'DRAFT') {
+          const deleted = await api.request(`/announcements/manage/${encodeURIComponent(created.id)}`, { method: 'DELETE' });
+          if (!deleted.ok) console.warn(`[e2e] draft delete returned HTTP ${deleted.status}`);
+          return deleted.ok;
+        }
+        // The server allows deleting drafts only (409 otherwise): a published
+        // announcement is withdrawn and stays in the archive until it ages out.
+        if (created.status === 'PUBLISHED') {
           const withdrawn = await api.request(`/announcements/manage/${encodeURIComponent(created.id)}/withdraw`, {
             method: 'POST',
             body: JSON.stringify({ reason: 'E2E 5.3.7 cleanup' }),
           });
-          if (!withdrawn.ok) {
-            console.warn(`[e2e] withdraw returned HTTP ${withdrawn.status}`);
-          }
+          if (!withdrawn.ok) console.warn(`[e2e] withdraw returned HTTP ${withdrawn.status}`);
         }
-        const deleted = await api.request(`/announcements/manage/${encodeURIComponent(created.id)}`, { method: 'DELETE' });
-        if (!deleted.ok) {
-          console.warn(`[e2e] delete returned HTTP ${deleted.status}; the withdrawn announcement may remain in the archive.`);
-        }
-        return deleted.ok;
+        return true;
       });
-      void announcementId;
       void cleanedUp;
     }
   });
