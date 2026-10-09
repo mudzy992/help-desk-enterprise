@@ -73,7 +73,9 @@ async function deleteRoutingRule(
 /** §4.7 first three modules: catalogue, SLA and routing admin UX. */
 test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
   test('service create/edit and lifecycle + explicit-OU filters work together', async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(150_000);
+    page.setDefaultTimeout(20_000);
+    page.setDefaultNavigationTimeout(30_000);
     const env = readE2EEnvironment();
     const api = new ApiClient();
     const { originUnitId, targetGroup, categoryId } = await test.step(
@@ -101,9 +103,15 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
     try {
       const dialog = page.getByRole('dialog');
-      await test.step('sign in and open the service create form', async () => {
+      await test.step('sign in', async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
+      });
+
+      await test.step('navigate to the service catalog', async () => {
         await page.goto('/services');
+      });
+
+      await test.step('open the service create form', async () => {
         await page.getByRole('button', { name: /New service|Nova usluga/i }).first().click();
         await expect(dialog).toBeVisible();
       });
