@@ -91,6 +91,7 @@ model User {
   sessions             UserSession[]         @relation("UserSessionOwner")
   revokedSessions      UserSession[]         @relation("UserSessionRevokedBy")
   passwordHistory      UserPasswordHistory[]
+  passkeyCredentials   UserPasskeyCredential[] @relation("UserPasskeyCredentialOwner")
   ticketMentions       TicketMessageMention[]
   createdTicketLinks   TicketLink[]          @relation("TicketLinkCreatedBy")
   configVersions       ConfigVersion[]

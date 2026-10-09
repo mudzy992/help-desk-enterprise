@@ -24,8 +24,11 @@ import { AccountSecurityController } from './account-security.controller';
 import { AccountSecurityNotifier } from './security/account-security-notifier';
 import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
 import { MfaService } from './security/mfa.service';
+import { PasskeyChallengeStoreProvider } from './security/passkey-challenge.store';
+import { PasskeyCredentialService } from './security/passkey-credential.service';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService } from './security/session-registry.service';
+import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 
 @Module({
   imports: [SettingsModule, JwtModule.register({})],
@@ -52,12 +55,18 @@ import { SessionRegistryService } from './security/session-registry.service';
     AccountSecurityNotifier,
     AccountSecurityPolicyLoader,
     MfaService,
+    PasskeyChallengeStoreProvider,
+    PasskeyCredentialService,
+    WebAuthnRpLoader,
     PasswordChangeService,
     SessionRegistryService,
   ],
   exports: [
     AccountSecurityPolicyLoader,
     MfaService,
+    PasskeyChallengeStoreProvider,
+    PasskeyCredentialService,
+    WebAuthnRpLoader,
     PasswordChangeService,
     SessionRegistryService,
     SessionRevocationStore,

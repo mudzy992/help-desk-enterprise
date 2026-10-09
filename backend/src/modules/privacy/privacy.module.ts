@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { AuthenticationModule } from '../authentication/authentication.module';
+import { SecurityModule } from '../security/security.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
@@ -17,6 +18,7 @@ import { RetentionQueueService } from './retention/retention-queue.service';
 @Module({
   imports: [
     AuthenticationModule,
+    SecurityModule,
     AuthorizationModule,
     SettingsModule,
     // Producer only: the worker owns the processor.

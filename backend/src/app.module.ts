@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
+import { SecurityModule } from './modules/security/security.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
 import { InboundEmailAdminModule } from './modules/inbound-email/inbound-email-admin.module';
@@ -58,6 +59,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     HealthModule,
     InstallModule,
     AuthenticationModule,
+    SecurityModule,
     AuthorizationModule,
     DirectorySyncModule,
     InboundEmailAdminModule,

@@ -61,6 +61,9 @@ export const auditLogActions = {
   authMfaRecoveryUsed: 'auth.mfa_recovery_used',
   authMfaRecoveryRegenerated: 'auth.mfa_recovery_regenerated',
   authMfaFailed: 'auth.mfa_failed',
+  // Paket 5.4.0-a (M1): passkey as a second factor next to TOTP.
+  authMfaPasskeyEnrolled: 'auth.mfa_passkey_enrolled',
+  authMfaPasskeyRemoved: 'auth.mfa_passkey_removed',
   authSessionRevoked: 'auth.session_revoked',
   authSessionsRevokedAll: 'auth.sessions_revoked_all',
   authorizationSuperAdminBypass: 'authorization.super_admin_bypass',

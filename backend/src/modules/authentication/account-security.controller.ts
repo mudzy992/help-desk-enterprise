@@ -21,6 +21,7 @@ import {
   readSessionId,
   readSessionJti,
 } from './authenticated-request';
+import { readSignInContext } from './read-sign-in-context';
 import { AccountMfaCodeDto, AccountPasswordChangeDto } from './dto/mfa.dto';
 import { LoginAttemptLimiter } from './login-attempt-limiter';
 import { mfaAttemptKey } from './authentication.service';
@@ -29,6 +30,13 @@ import { AccountSecurityError, mapAccountSecurityError } from './security/accoun
 import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
 import { passwordExpiresAt } from './security/account-security-rules';
 import { type MfaStatus, MfaService } from './security/mfa.service';
+import {
+  PasskeyCredentialService,
+  type PasskeyView,
+} from './security/passkey-credential.service';
+import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
+import type { RegistrationResponseJSON } from '@simplewebauthn/server';
+import { PasskeyRegistrationConfirmDto } from './dto/passkey.dto';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService, type UserSessionView } from './security/session-registry.service';
 
@@ -42,6 +50,9 @@ export type AccountSecurityOverview = {
     readonly blocklistEnabled: boolean;
     readonly historyCount: number;
   };
+  /** Paket 5.4.0-a: registered passkeys and whether TOTP is enrolled. */
+  readonly passkeys: readonly PasskeyView[];
+  readonly hasTotp: boolean;
 };
 
 /**
@@ -59,6 +70,8 @@ export class AccountSecurityController {
     private readonly passwordChangeService: PasswordChangeService,
     private readonly sessionRegistry: SessionRegistryService,
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
+    private readonly passkeyCredentialService: PasskeyCredentialService,
+    private readonly webAuthnRpLoader: WebAuthnRpLoader,
   ) {}
 
   @Get('security')
@@ -76,7 +89,67 @@ export class AccountSecurityController {
         blocklistEnabled: policy.passwordBlocklistEnabled,
         historyCount: policy.passwordHistoryCount,
       },
+      passkeys: await this.passkeyCredentialService.listCredentials(user.id),
+      hasTotp: await this.mfaService.isEnabled(user.id),
     };
+  }
+
+  /**
+   * Paket 5.4.0-a (M1): passkey ceremonies on the caller's own account. The
+   * TOTP confirm code guards registration when TOTP is already enrolled —
+   * a stolen session alone must not be able to add a factor.
+   */
+  @Post('security/passkey/register/start')
+  @HttpCode(200)
+  async startPasskeyRegistration(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<{ options: Record<string, unknown> }> {
+    const user = await this.caller(request);
+    return this.passkeyCredentialService
+      .startRegistration(user, this.webAuthnRpLoader.load())
+      .catch(mapAccountSecurityError);
+  }
+
+  @Post('security/passkey/register/confirm')
+  @HttpCode(200)
+  async confirmPasskeyRegistration(
+    @Req() request: AuthenticatedHttpRequest,
+    @Body() body: PasskeyRegistrationConfirmDto,
+  ): Promise<{ passkey: PasskeyView }> {
+    const user = await this.caller(request);
+    const passkey = await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), async () => {
+      const hasTotp = await this.mfaService.isEnabled(user.id);
+      if (hasTotp) {
+        // The same limiter bucket as the other MFA confirmations.
+        await this.mfaService.verify(user, body.code ?? '').catch(mapAccountSecurityError);
+      }
+      return this.passkeyCredentialService
+        .confirmRegistration(
+          user,
+          body.response as unknown as RegistrationResponseJSON,
+          this.webAuthnRpLoader.load(),
+          readSignInContext(request).ipAddress,
+        )
+        .catch(mapAccountSecurityError);
+    });
+    return { passkey };
+  }
+
+  @Delete('security/passkey/:credentialId')
+  @HttpCode(204)
+  async removePasskey(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('credentialId') credentialId: string,
+  ): Promise<void> {
+    const user = await this.caller(request);
+    const policy = await this.policyLoader.load();
+    const hasTotp = await this.mfaService.isEnabled(user.id);
+    // The row id (cuid) doubles as the path param; never the WebAuthn id.
+    await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), () =>
+      this.passkeyCredentialService
+        .removeCredential(user, policy, credentialId, user.id, hasTotp)
+        .catch(mapAccountSecurityError),
+    );
   }
 
   /** Own password change; every other session of the caller ends. */
@@ -157,7 +230,9 @@ export class AccountSecurityController {
   async disableMfa(@Req() request: AuthenticatedHttpRequest, @Body() body: AccountMfaCodeDto): Promise<void> {
     const user = await this.caller(request);
     const policy = await this.policyLoader.load();
-    await this.limited(user.id, () => this.mfaService.disable(user, policy, body.code));
+    // Paket 5.4.0-a: a remaining passkey is a second factor, so TOTP may go.
+    const passkeys = await this.passkeyCredentialService.countCredentials(user.id);
+    await this.limited(user.id, () => this.mfaService.disable(user, policy, body.code, passkeys > 0));
   }
 
   @Post('mfa/recovery-codes')

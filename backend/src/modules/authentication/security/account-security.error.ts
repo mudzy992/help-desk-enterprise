@@ -20,6 +20,8 @@ export type AccountSecurityErrorCode =
   | 'MFA_ENROLLMENT_EXPIRED'
   | 'MFA_UNAVAILABLE'
   | 'MFA_TOO_MANY_ATTEMPTS'
+  | 'PASSKEY_NOT_FOUND'
+  | 'PASSKEY_CLONED'
   | 'INVALID_PASSWORD'
   | 'PASSWORD_REUSED'
   | 'CURRENT_PASSWORD_INVALID'
@@ -48,6 +50,8 @@ const messages: Record<AccountSecurityErrorCode, string> = {
   MFA_ENROLLMENT_EXPIRED: 'The MFA set-up expired; start again',
   MFA_UNAVAILABLE: 'MFA is not configured on the server',
   MFA_TOO_MANY_ATTEMPTS: 'Too many attempts; try again later',
+  PASSKEY_NOT_FOUND: 'The passkey was not found',
+  PASSKEY_CLONED: 'The authenticator looks cloned; register it again',
   INVALID_PASSWORD: 'Password does not meet requirements',
   PASSWORD_REUSED: 'The password was used recently',
   CURRENT_PASSWORD_INVALID: 'The current password is not correct',
@@ -70,6 +74,7 @@ export function mapAccountSecurityError(error: unknown): never {
     case 'MFA_INVALID_CODE':
     case 'MFA_RECOVERY_CODES_EXHAUSTED':
     case 'CURRENT_PASSWORD_INVALID':
+    case 'PASSKEY_CLONED':
       throw new UnauthorizedException(body);
     case 'MFA_TOO_MANY_ATTEMPTS':
       throw new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
@@ -79,6 +84,7 @@ export function mapAccountSecurityError(error: unknown): never {
       throw new ConflictException(body);
     case 'SESSION_NOT_FOUND':
     case 'USER_NOT_FOUND':
+    case 'PASSKEY_NOT_FOUND':
       throw new NotFoundException(body);
     case 'FORBIDDEN_TARGET':
     case 'MFA_REQUIRED_CANNOT_DISABLE':

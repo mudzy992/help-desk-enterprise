@@ -52,7 +52,7 @@ export class SessionRegistryService {
   async create(input: {
     readonly userId: string;
     readonly provider: 'local' | 'entra' | 'legacy';
-    readonly mfaMethod: 'totp' | 'recovery' | null;
+    readonly mfaMethod: 'totp' | 'recovery' | 'passkey' | null;
     readonly context: SignInContext;
     readonly policy: AccountSecurityPolicy;
     readonly isAdmin: boolean;

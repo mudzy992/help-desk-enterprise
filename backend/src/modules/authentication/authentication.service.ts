@@ -31,8 +31,11 @@ import { AccountSecurityNotifier } from './security/account-security-notifier';
 import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
 import { isPasswordExpired } from './security/account-security-rules';
 import { MfaService } from './security/mfa.service';
+import { PasskeyCredentialService, passkeyLoginChallengeKey } from './security/passkey-credential.service';
+import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService } from './security/session-registry.service';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 
 const unknownContext: SignInContext = { ipAddress: null, userAgent: null };
 
@@ -56,6 +59,8 @@ export class AuthenticationService {
     private readonly mfaService: MfaService,
     private readonly sessionRegistry: SessionRegistryService,
     private readonly passwordChangeService: PasswordChangeService,
+    private readonly passkeyCredentialService: PasskeyCredentialService,
+    private readonly webAuthnRpLoader: WebAuthnRpLoader,
     private readonly notifier: AccountSecurityNotifier,
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
   ) {}
@@ -123,6 +128,49 @@ export class AuthenticationService {
       });
       await this.sessionTokenService.consumeMfaToken(claims);
       return await this.issueSession(user, 'local', method, context);
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  /**
+   * Paket 5.4.0-a (M1): passkey as the second factor. The challenge is bound
+   * to the single-use mfa token's `jti`, so two parallel sign-ins of the same
+   * account never consume each other's ceremonies.
+   */
+  async startMfaPasskey(mfaToken: string): Promise<{ options: Record<string, unknown> }> {
+    try {
+      const { claims, user } = await this.readMfaToken(mfaToken, 'verify');
+      return await this.passkeyCredentialService.startAuthentication(
+        user.id,
+        passkeyLoginChallengeKey(claims.jti),
+        this.webAuthnRpLoader.load(),
+      );
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  async verifyMfaPasskey(
+    input: { readonly mfaToken: string; readonly assertion: Record<string, unknown> },
+    context: SignInContext = unknownContext,
+  ): Promise<AuthenticationSessionResponse> {
+    try {
+      const { claims, user } = await this.readMfaToken(input.mfaToken, 'verify');
+      await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), () =>
+        this.passkeyCredentialService
+          .verifyAssertion(
+            user.id,
+            passkeyLoginChallengeKey(claims.jti),
+            input.assertion as unknown as AuthenticationResponseJSON,
+            this.webAuthnRpLoader.load(),
+            false,
+            context.ipAddress,
+          )
+          .catch(mapAccountSecurityError),
+      );
+      await this.sessionTokenService.consumeMfaToken(claims);
+      return await this.issueSession(user, 'local', 'passkey', context);
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -258,16 +306,16 @@ export class AuthenticationService {
     const policy = await this.policyLoader.load();
     // Paket 5.1 (M2 #1): the flow (verify / enroll / none) is a separate
     // decision from the enrolment requirement — see `resolveMfaFlow`.
-    const flow = this.mfaService.flowFor(
-      user,
-      policy,
-      await this.mfaService.isEnabled(user.id),
-    );
+    const enrolled = await this.mfaService.isEnabled(user.id);
+    const flow = this.mfaService.flowFor(user, policy, enrolled);
     if (flow === 'verify') {
       return {
         status: 'MFA_REQUIRED',
         mfaToken: await this.sessionTokenService.issueMfaToken(user.id, 'verify'),
         expiresInSeconds: authenticationConstants.mfaTokenTtlSeconds,
+        // Paket 5.4.0-a: the screen offers the factors the account really has;
+        // an absent field means a client predating passkeys — TOTP only.
+        methods: await this.availableMfaMethods(user.id, enrolled),
       };
     }
     if (flow === 'enroll') {
@@ -280,10 +328,26 @@ export class AuthenticationService {
     return this.issueSession(user, provider, null, context);
   }
 
+  /** Paket 5.4.0-a: passkey joins TOTP as a presentable second factor. */
+  private async availableMfaMethods(
+    userId: string,
+    totpEnrolled: boolean,
+  ): Promise<readonly ('totp' | 'passkey')[]> {
+    const methods: ('totp' | 'passkey')[] = [];
+    if (totpEnrolled) methods.push('totp');
+    try {
+      if ((await this.passkeyCredentialService.countCredentials(userId)) > 0) methods.push('passkey');
+    } catch {
+      // A missing WebAuthn table/config must not break the TOTP-only login.
+    }
+    return methods.length > 0 ? methods : ['totp'];
+  }
+
   private async issueSession(
     user: AuthenticationUserRecord,
     provider: 'local' | 'entra',
-    mfaMethod: 'totp' | 'recovery' | null,
+    // Paket 5.4.0-a: 'passkey' joins the registry column (VarChar(16)).
+    mfaMethod: 'totp' | 'recovery' | 'passkey' | null,
     context: SignInContext,
   ): Promise<AuthenticationSessionResponse> {
     const policy = await this.policyLoader.load();

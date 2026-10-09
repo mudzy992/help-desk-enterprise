@@ -30,6 +30,31 @@ model UserMfaRecoveryCode {
   @@index([userId, keyId, usedAt])
 }
 
+/// Paket 5.4.0-a (M1): phishing-resistant second factor. One row per registered
+/// passkey/WebAuthn credential. The public key is the COSE key as returned by
+/// `@simplewebauthn` (base64url); the credential id is base64url and unique.
+/// `counter` guards against cloned authenticators (must be monotonic);
+/// `lastUsedIp` is stored raw like `UserSession.ipAddress` (admin-visible).
+model UserPasskeyCredential {
+  id                String    @id @default(cuid())
+  userId            String
+  credentialId      String    @db.VarChar(512)
+  publicKey         String    @db.VarChar(1024)
+  counter           BigInt    @default(0)
+  transports        String?
+  aaguid            String?   @db.VarChar(36)
+  deviceName        String?   @db.VarChar(120)
+  isBackupEligible  Boolean   @default(false)
+  isBackedUp        Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime?
+  lastUsedIp        String?   @db.VarChar(64)
+  user              User      @relation("UserPasskeyCredentialOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([credentialId])
+  @@index([userId])
+}
+
 /// Paket 2.1 (M6): one row per sign-in; the id is the `sid` claim and stays
 /// the same across token refreshes.
 model UserSession {

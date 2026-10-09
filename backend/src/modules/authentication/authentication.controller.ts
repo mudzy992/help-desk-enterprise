@@ -37,6 +37,7 @@ import { EntraLoginDto } from './dto/entra-login.dto';
 import { LocalLoginDto } from './dto/local-login.dto';
 import { readBearerAccessTokenFromHeader } from './read-bearer-access-token';
 import { MfaCodeDto, MfaTokenDto } from './dto/mfa.dto';
+import { PasskeyAuthenticationDto } from './dto/passkey.dto';
 import { readSignInContext } from './read-sign-in-context';
 
 type SignInRequest = {
@@ -163,6 +164,25 @@ export class AuthenticationController {
   @HttpCode(200)
   verifyMfa(@Body() body: MfaCodeDto, @Req() request?: SignInRequest): Promise<AuthenticationSessionResponse> {
     return this.authenticationService.verifyMfa(body, readSignInContext(request));
+  }
+
+  /**
+   * Paket 5.4.0-a (M1): passkey challenge during the login MFA step. The
+   * mfa token stays valid (it is not consumed until a factor verifies).
+   */
+  @Post('mfa/passkey/start')
+  @HttpCode(200)
+  startMfaPasskey(@Body() body: MfaTokenDto): Promise<{ options: Record<string, unknown> }> {
+    return this.authenticationService.startMfaPasskey(body.mfaToken);
+  }
+
+  @Post('mfa/passkey/verify')
+  @HttpCode(200)
+  verifyMfaPasskey(
+    @Body() body: PasskeyAuthenticationDto,
+    @Req() request?: SignInRequest,
+  ): Promise<AuthenticationSessionResponse> {
+    return this.authenticationService.verifyMfaPasskey(body, readSignInContext(request));
   }
 
   /** Paket 2.1 (M2): forced enrollment during sign-in — secret for the QR code. */

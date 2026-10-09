@@ -1,9 +1,13 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../authentication/security/mfa.service', () => ({ MfaService: class MfaService {} }));
+jest.mock('../security/identity-passkey.service', () => ({
+  IdentityPasskeyService: class IdentityPasskeyService {},
+}));
 
 import { ServiceUnavailableException } from '@nestjs/common';
 import { AccountSecurityError } from '../authentication/security/account-security.error';
 import type { PrivacyActor } from './privacy-actor';
+import { IdentityPasskeyService } from '../security/identity-passkey.service';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 import { PrivacyError } from './privacy.error';
 
@@ -20,7 +24,11 @@ function confirmer(verifyError: Error | null) {
       return 'totp';
     }),
   };
-  return new PrivacyIdentityConfirmer(prisma as never, mfa as never);
+  // Paket 5.4.0-a: no fresh passkey marker in these tests.
+  const identityPasskey = {
+    consumeFreshConfirmation: jest.fn(async () => false),
+  } as unknown as IdentityPasskeyService;
+  return new PrivacyIdentityConfirmer(prisma as never, mfa as never, identityPasskey);
 }
 
 describe('PrivacyIdentityConfirmer', () => {

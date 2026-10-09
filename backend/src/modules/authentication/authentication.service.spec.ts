@@ -56,6 +56,10 @@ describe('AuthenticationService', () => {
     { requirementFor, isEnabled, flowFor } as never,
     { create: createSession } as never,
     {} as never,
+    // Paket 5.4.0-a: passkey factor — the spec only exercises TOTP flows, so a
+    // counting stub keeps the `methods` computation honest without WebAuthn.
+    { countCredentials: jest.fn().mockResolvedValue(0) } as never,
+    { load: () => null } as never,
     { audit: jest.fn(), notify: jest.fn() } as never,
     { guard: (_key: string, run: () => Promise<unknown>) => run() } as never,
   );

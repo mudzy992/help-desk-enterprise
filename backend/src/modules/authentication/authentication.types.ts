@@ -70,6 +70,12 @@ export type MfaLoginResponse = {
   readonly status: 'MFA_REQUIRED' | 'MFA_ENROLLMENT_REQUIRED';
   readonly mfaToken: string;
   readonly expiresInSeconds: number;
+  /**
+   * Paket 5.4.0-a: the second factors this account can present. Absent for
+   * older clients/flows that predate passkeys — the login screen must treat
+   * the field as optional and default to TOTP.
+   */
+  readonly methods?: readonly ('totp' | 'passkey')[];
 };
 
 export type AuthenticationLoginResponse =
