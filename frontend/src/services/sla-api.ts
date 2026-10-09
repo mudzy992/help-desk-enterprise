@@ -49,9 +49,11 @@ export function updateSlaCalendar(
   calendarId: string,
   input: CalendarWriteInput,
 ): Promise<BusinessHoursCalendar> {
+  // Calendar keys are immutable and the PATCH DTO rejects unknown fields.
+  const { name, timezone, weeklyHours, holidays, isActive, reason } = input;
   return apiRequest(`/sla/calendars/${calendarId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ name, timezone, weeklyHours, holidays, isActive, reason }),
   });
 }
 
