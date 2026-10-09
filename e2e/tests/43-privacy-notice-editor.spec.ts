@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
@@ -8,6 +8,15 @@ type NoticeStatus = {
   readonly maxLength: number;
   readonly notice: { readonly bs: string; readonly en: string };
 };
+
+/**
+ * The editor keeps one textarea whose test id follows the active language
+ * (`privacy-notice-textarea-bs|en`); the language is switched on the Segmented
+ * radio group, so a value check for a locale must click its radio first.
+ */
+function localeRadio(page: Page, locale: 'bs' | 'en') {
+  return page.getByRole('radio', { name: new RegExp(`^${locale}$`, 'i') });
+}
 
 /**
  * 5.3.7 (§4.7 — privatnost): the dedicated privacy-notice editor. The test
@@ -30,9 +39,13 @@ test.describe('43 privacy notice editor (5.3.7)', () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
         await page.goto('/privacy?tab=notice');
         await expect(page.getByTestId('privacy-notice-editor')).toBeVisible();
-        // The settings row and the editor read the same two keys.
+        // The settings row and the editor read the same two keys. BS is the
+        // active language on open; EN must be checked after switching to it.
         await expect(page.getByTestId('privacy-notice-textarea-bs')).toHaveValue(original.notice.bs);
+        await localeRadio(page, 'en').click();
         await expect(page.getByTestId('privacy-notice-textarea-en')).toHaveValue(original.notice.en);
+        await localeRadio(page, 'bs').click();
+        await expect(page.getByTestId('privacy-notice-textarea-bs')).toHaveValue(original.notice.bs);
       });
 
       await test.step('generate the draft from the record of processing', async () => {
@@ -70,9 +83,12 @@ test.describe('43 privacy notice editor (5.3.7)', () => {
         method: 'PUT',
         body: JSON.stringify({ bs: original.notice.bs, en: original.notice.en }),
       });
+      // Verify the restore through the API (deterministic), then a light UI
+      // check of the default language textarea.
+      const restored = await api.requestJson<NoticeStatus>('/privacy/notice/status');
+      expect(restored.notice).toEqual(original.notice);
       await page.goto('/privacy?tab=notice');
       await expect(page.getByTestId('privacy-notice-textarea-bs')).toHaveValue(original.notice.bs);
-      await expect(page.getByTestId('privacy-notice-textarea-en')).toHaveValue(original.notice.en);
     }
   });
 
