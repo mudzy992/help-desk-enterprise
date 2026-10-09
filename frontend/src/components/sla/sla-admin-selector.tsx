@@ -58,16 +58,22 @@ export function SlaAdminSelectorCard({
 }
 
 interface SlaAdminNewItemButtonProperties {
+  readonly disabled?: boolean;
   readonly label: string;
   readonly onClick: () => void;
 }
 
-export function SlaAdminNewItemButton({ label, onClick }: SlaAdminNewItemButtonProperties) {
+export function SlaAdminNewItemButton({
+  disabled = false,
+  label,
+  onClick,
+}: SlaAdminNewItemButtonProperties) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Plus size={13} />
       {label}
@@ -107,7 +113,9 @@ export function SlaAdminListColumn({
       ) : (
         children
       )}
-      {showNew ? <SlaAdminNewItemButton label={newLabel} onClick={onNew} /> : null}
+      {showNew ? (
+        <SlaAdminNewItemButton disabled={isLoading} label={newLabel} onClick={onNew} />
+      ) : null}
     </div>
   );
 }

@@ -76,81 +76,96 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     test.setTimeout(90_000);
     const env = readE2EEnvironment();
     const api = new ApiClient();
-    await api.login(env.superAdminEmail, env.superAdminPassword);
-    const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
-    const originUnitId = firstUnitId(tree);
-    const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
-    const targetGroup = groups[0];
-    if (originUnitId === null || targetGroup === undefined) {
-      throw new Error('[e2e] an organizational unit and routing group are required.');
-    }
+    const { originUnitId, targetGroup, categoryId } = await test.step(
+      'load service, OU, and routing prerequisites',
+      async () => {
+        await api.login(env.superAdminEmail, env.superAdminPassword);
+        const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
+        const originUnitId = firstUnitId(tree);
+        const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
+        const targetGroup = groups[0];
+        if (originUnitId === null || targetGroup === undefined) {
+          throw new Error('[e2e] an organizational unit and routing group are required.');
+        }
+        const categoryId = await firstServiceCategoryId(api);
+        return { originUnitId, targetGroup, categoryId };
+      },
+    );
 
     const stamp = Date.now();
     const serviceName = `E2E Catalog UX ${stamp}`;
     const editedName = `${serviceName} edited`;
     const slug = `e2e-catalog-ux-${stamp}`;
-    const categoryId = await firstServiceCategoryId(api);
     let serviceId: string | null = null;
     let ruleId: string | null = null;
 
     try {
-      await signIn(page, env.superAdminEmail, env.superAdminPassword);
-      await page.goto('/services');
-      await page.getByRole('button', { name: /New service|Nova usluga/i }).first().click();
       const dialog = page.getByRole('dialog');
-      await expect(dialog).toBeVisible();
-      await dialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(serviceName);
-      await dialog.getByLabel(/Slug/i).fill(slug);
-      await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
-
-      const classification = dialog.getByLabel(/Classification|Klasifikacija/);
-      await expect(classification.locator('option').filter({ hasText: /Internal|Interna/ })).toHaveCount(1);
-      await expect(
-        dialog.getByLabel(/Auto-assign strategy|Strategija auto-dodjele/)
-          .locator('option')
-          .filter({ hasText: /Round robin|Kružno/ }),
-      ).toHaveCount(1);
-      await dialog.getByLabel(/Change reason|Razlog izmjene/).fill('Create from catalogue UX E2E');
-      await dialog.locator('form button[type="submit"]').click();
-      await expect(dialog).toBeHidden();
-
-      const services = await api.requestJson<readonly ServiceRecord[]>('/services');
-      const created = services.find((service) => service.slug === slug);
-      if (created === undefined) {
-        throw new Error('[e2e] service created in the UI was not returned by GET /services.');
-      }
-      serviceId = created.id;
-      const route = await api.requestJson<{ readonly id: string }>('/routing/rules', {
-        method: 'POST',
-        body: JSON.stringify({
-          originUnitId,
-          serviceId,
-          groupId: targetGroup.id,
-          reason: 'E2E exact OU filter setup',
-        }),
+      await test.step('sign in and open the service create form', async () => {
+        await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        await page.goto('/services');
+        await page.getByRole('button', { name: /New service|Nova usluga/i }).first().click();
+        await expect(dialog).toBeVisible();
       });
-      ruleId = route.id;
 
-      await page.reload();
-      const serviceCard = page.getByTestId(`service-card-${serviceId}`);
-      await expect(serviceCard).toBeVisible({ timeout: 20_000 });
-      await page.getByRole('searchbox', { name: /Search services|Pretraga usluga/i }).fill(serviceName);
-      await page.getByLabel(/Lifecycle|Životni ciklus/).selectOption('DRAFT');
-      await page
-        .getByLabel(/OU with an explicit routing rule|OJ s izričitim pravilom usmjeravanja/)
-        .selectOption(originUnitId);
-      await expect(serviceCard).toBeVisible();
+      await test.step('fill and submit the service create form', async () => {
+        await dialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(serviceName);
+        await dialog.getByLabel(/Slug/i).fill(slug);
+        await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
 
-      await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
-      const editDialog = page.getByRole('dialog');
-      await editDialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(editedName);
-      await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
-      await editDialog.locator('form button[type="submit"]').click();
-      await expect(editDialog).toBeHidden();
-      await expect(serviceCard.getByText(editedName)).toBeVisible();
+        const classification = dialog.getByLabel(/Classification|Klasifikacija/);
+        await expect(classification.locator('option').filter({ hasText: /Internal|Interna/ })).toHaveCount(1);
+        await expect(
+          dialog.getByLabel(/Auto-assign strategy|Strategija auto-dodjele/)
+            .locator('option')
+            .filter({ hasText: /Round robin|Kružno/ }),
+        ).toHaveCount(1);
+        await dialog.getByLabel(/Change reason|Razlog izmjene/).fill('Create from catalogue UX E2E');
+        await dialog.locator('form button[type="submit"]').click();
+        await expect(dialog).toBeHidden();
+      });
 
-      await page.getByRole('button', { name: /Clear all filters|Očisti sve filtere/i }).click();
-      await expect(serviceCard).toBeVisible();
+      await test.step('create the explicit-OU routing rule', async () => {
+        const services = await api.requestJson<readonly ServiceRecord[]>('/services');
+        const created = services.find((service) => service.slug === slug);
+        if (created === undefined) {
+          throw new Error('[e2e] service created in the UI was not returned by GET /services.');
+        }
+        serviceId = created.id;
+        const route = await api.requestJson<{ readonly id: string }>('/routing/rules', {
+          method: 'POST',
+          body: JSON.stringify({
+            originUnitId,
+            serviceId,
+            groupId: targetGroup.id,
+            reason: 'E2E exact OU filter setup',
+          }),
+        });
+        ruleId = route.id;
+      });
+
+      await test.step('filter the catalog and edit the service', async () => {
+        await page.reload();
+        const serviceCard = page.getByTestId(`service-card-${serviceId}`);
+        await expect(serviceCard).toBeVisible({ timeout: 20_000 });
+        await page.getByRole('searchbox', { name: /Search services|Pretraga usluga/i }).fill(serviceName);
+        await page.getByLabel(/Lifecycle|Životni ciklus/).selectOption('DRAFT');
+        await page
+          .getByLabel(/OU with an explicit routing rule|OJ s izričitim pravilom usmjeravanja/)
+          .selectOption(originUnitId);
+        await expect(serviceCard).toBeVisible();
+
+        await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
+        const editDialog = page.getByRole('dialog');
+        await editDialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(editedName);
+        await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
+        await editDialog.locator('form button[type="submit"]').click();
+        await expect(editDialog).toBeHidden();
+        await expect(serviceCard.getByText(editedName)).toBeVisible();
+
+        await page.getByRole('button', { name: /Clear all filters|Očisti sve filtere/i }).click();
+        await expect(serviceCard).toBeVisible();
+      });
     } finally {
       if (serviceId === null) {
         const services = await api
@@ -186,11 +201,15 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         timeout: 20_000,
       });
       await page.getByRole('button', { name: /Manage calendars|Upravljaj kalendarima/i }).click();
-      await page.getByRole('button', { name: /New calendar|Novi kalendar/i }).click();
-      await page.getByLabel(/Key|Ključ/).fill(key);
-      await page.getByLabel(/^(Name|Naziv)$/).fill(calendarName);
-      await page.getByLabel(/Change reason|Razlog izmjene/).fill('Create calendar UX E2E');
-      await page.getByRole('button', { name: /Save calendar|Spremi kalendar/i }).click();
+      const newCalendarButton = page.getByRole('button', { name: /New calendar|Novi kalendar/i });
+      await expect(newCalendarButton).toBeEnabled({ timeout: 20_000 });
+      await newCalendarButton.click();
+      const calendarForm = page.locator('form');
+      await calendarForm.getByLabel(/Key|Ključ/).fill(key);
+      await calendarForm.getByLabel(/^(Name|Naziv)$/).fill(calendarName);
+      await calendarForm.getByLabel(/Change reason|Razlog izmjene/).fill('Create calendar UX E2E');
+      await expect(calendarForm.getByLabel(/Key|Ključ/)).toBeVisible();
+      await calendarForm.locator('button[type="submit"]').click();
       await expect(page.getByRole('button', { name: new RegExp(calendarName) })).toBeVisible({
         timeout: 20_000,
       });
@@ -202,9 +221,9 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       }
       calendarId = created.id;
 
-      await page.getByLabel(/^(Name|Naziv)$/).fill(editedName);
-      await page.getByLabel(/Change reason|Razlog izmjene/).fill('Edit calendar UX E2E');
-      await page.getByRole('button', { name: /Update calendar|Ažuriraj kalendar/i }).click();
+      await calendarForm.getByLabel(/^(Name|Naziv)$/).fill(editedName);
+      await calendarForm.getByLabel(/Change reason|Razlog izmjene/).fill('Edit calendar UX E2E');
+      await calendarForm.locator('button[type="submit"]').click();
       await expect(page.getByRole('button', { name: new RegExp(editedName) })).toBeVisible({
         timeout: 20_000,
       });
