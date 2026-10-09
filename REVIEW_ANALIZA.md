@@ -6969,7 +6969,32 @@ zasebnim commitovima na radnoj grani; kapije: statičke provjere u sandboxu + se
 
 ## Šta ostaje otvoreno
 
-- **5.4 — Sigurnosni hardening:** samo dizajn (`docs/plans/modules/5.4-sigurnosni-hardening.md`),
-  bez implementacije — odluka vlasnika.
+- **5.4 — Sigurnosni hardening:** dizajn revidiran i odobren za implementaciju (2026-10-09, v. dolje).
 - SMTP/LDAPS/Entra verify rute ostaju označene kao netestirane (kao i prije 5.3).
 - Screenshot-vizuelni prolaz 5.3.6 (6 širina) je opcion i pokriven E2E overflow-provjerom.
+
+# Paket 5.4 — revizija dizajna i start implementacije (2026-10-09)
+
+Nakon zatvaranja 5.3 (konačan zeleni CI + perf smoke 1.701 ms < 2.0 cilj na vlasniku), vlasnik je
+potvrdio prelazak na 5.4. Dizajn iz 2026-10-08 (`docs/plans/modules/5.4-sigurnosni-hardening.md`)
+provjeren je protiv aktualnog koda i revidiran — pet izmjena:
+
+- **M6 bez nove tabele:** sigurnosni dnevnik se gradi na postojećem audit logu (već vodi
+  `auth.mfa_*` / `auth.password_*` akcije); nova `SecurityEvent` tabela se ne uvodi (odluka
+  vlasnika). Dopuna akcija (login_failed pseudonimiziran, passkey enrolled/removed, session
+  revoked, admin bulk/rate-limit) + admin filtrirani prikaz "Sigurnost → Dnevnik".
+- **Passkey step-up:** potvrda osjetljivih akcija (privatnost) prihvaća WebAuthn assertion
+  (`userVerification: required`), ne samo TOTP kod (odluka vlasnika) — identity-guard dobija
+  drugi potvrđeni `method: 'passkey'`.
+- **HIBP default ON** (odluka vlasnika), uz cache 24 h, timeout 3 s i **fail-open** kad mreža
+  nije dostupna (offline self-host se ne blokira od promjene lozinke).
+- **M4/M5 suženi prema kodu:** device info u sesijama, obavijest o novom uređaju, password
+  historija/blocklist/istek (računat iz `passwordChangedAt`) i kolona `mustChangePassword`
+  **već postoje**; izbačen GeoIP/ASN. Kolona `passwordExpiresAt` iz stare verzije ne postoji —
+  ništa se ne dodaje.
+- **Tehničke:** `@simplewebauthn/*` na **v14** (Node 22; CI je na 22), postavke kao **skalarni
+  ključevi** u 5.3.4 registry patternu (ne JSON blob), E2E preko **Playwright Virtual
+  Authenticatora** (brojevi specova 46/47 — 40/41 su zauzeti), migracija u `2027xxxx` stilu.
+
+Redoslijed valova: 5.4.0-a (passkey backend + step-up) → b (limiti + metrika) → c (sesije) →
+d (audit + HIBP + bulk) → e (frontend) → f (testovi + dokumentacija); CAPTCHA ostaje 5.4.1.
