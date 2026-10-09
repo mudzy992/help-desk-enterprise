@@ -25,21 +25,23 @@ export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
       };
     }
 
-    void loadVisibleOnboardings(draftIds)
-      .then((loaded) => {
-        if (sequence === requestSequence.current) {
-          setOnboardings(loaded);
-        }
-      })
-      .catch(() => {
-        // Keep visible progress when a background refresh fails, but remove
-        // records for services which are no longer drafts in the latest read.
-        if (sequence === requestSequence.current) {
-          setOnboardings((current) =>
-            current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
-          );
-        }
+    void loadVisibleOnboardings(draftIds, (serviceId, onboarding) => {
+      if (sequence !== requestSequence.current) {
+        return;
+      }
+      setOnboardings((current) => {
+        const withoutService = current.filter((item) => item.serviceId !== serviceId);
+        return onboarding === null ? withoutService : [...withoutService, onboarding];
       });
+    }).catch(() => {
+      // Keep visible progress when a background refresh fails, but remove
+      // records for services which are no longer drafts in the latest read.
+      if (sequence === requestSequence.current) {
+        setOnboardings((current) =>
+          current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
+        );
+      }
+    });
 
     return () => {
       requestSequence.current += 1;

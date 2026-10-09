@@ -13,21 +13,27 @@ const visibleStatuses: readonly ServiceOnboardingStatus[] = [
 
 export async function loadVisibleOnboardings(
   draftServiceIds: readonly string[],
+  onServiceLoaded?: (
+    serviceId: string,
+    onboarding: ServiceOnboardingResponse | null,
+  ) => void,
 ): Promise<readonly ServiceOnboardingResponse[]> {
-  // Isolate failures per draft: one stale/inaccessible service must not hide
-  // progress for every other service in the catalog.
+  // Isolate failures per draft and publish each completed read immediately:
+  // one slow or inaccessible service must not delay every other progress chip.
   const results = await Promise.allSettled(
-    draftServiceIds.map((serviceId) => loadOnboardingOrNull(serviceId)),
+    draftServiceIds.map(async (serviceId) => {
+      const onboarding = await loadOnboardingOrNull(serviceId);
+      const visibleOnboarding =
+        onboarding !== null && visibleStatuses.includes(onboarding.status)
+          ? onboarding
+          : null;
+      onServiceLoaded?.(serviceId, visibleOnboarding);
+      return visibleOnboarding;
+    }),
   );
-  return results.flatMap((result) => {
-    if (result.status !== "fulfilled") {
-      return [];
-    }
-    const onboarding = result.value;
-    return onboarding !== null && visibleStatuses.includes(onboarding.status)
-      ? [onboarding]
-      : [];
-  });
+  return results.flatMap((result) =>
+    result.status === "fulfilled" && result.value !== null ? [result.value] : [],
+  );
 }
 
 async function loadOnboardingOrNull(

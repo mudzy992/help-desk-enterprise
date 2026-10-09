@@ -60,4 +60,36 @@ describe("loadVisibleOnboardings", () => {
       ]),
     ).resolves.toEqual([visible]);
   });
+
+  it("publishes a fast service result before slower draft reads finish", async () => {
+    const visible = onboarding("service-fast");
+    const slow = onboarding("service-slow");
+    let finishSlow!: (value: ServiceOnboardingResponse) => void;
+    const slowRead = new Promise<ServiceOnboardingResponse>((resolve) => {
+      finishSlow = resolve;
+    });
+    vi.mocked(getServiceOnboarding).mockImplementation((serviceId) =>
+      serviceId === "service-slow" ? slowRead : Promise.resolve(visible),
+    );
+    const loaded: Array<{ serviceId: string; onboarding: ServiceOnboardingResponse | null }> = [];
+    let settled = false;
+    const loading = loadVisibleOnboardings(
+      ["service-fast", "service-slow"],
+      (serviceId, record) => loaded.push({ serviceId, onboarding: record }),
+    ).finally(() => {
+      settled = true;
+    });
+
+    await vi.waitFor(() => {
+      expect(loaded).toEqual([{ serviceId: "service-fast", onboarding: visible }]);
+    });
+    expect(settled).toBe(false);
+
+    finishSlow(slow);
+    await expect(loading).resolves.toEqual([visible, slow]);
+    expect(loaded).toEqual([
+      { serviceId: "service-fast", onboarding: visible },
+      { serviceId: "service-slow", onboarding: slow },
+    ]);
+  });
 });

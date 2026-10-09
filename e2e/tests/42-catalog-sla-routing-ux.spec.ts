@@ -161,9 +161,11 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
           { method: 'POST' },
         );
         expect(onboarding.status).toBe('IN_PROGRESS');
-        const persistedOnboarding = await api.requestJson<{ readonly status: string }>(
-          `/services/${serviceId}/onboarding`,
-        );
+        const persistedOnboarding = await api.requestJson<{
+          readonly serviceId: string;
+          readonly status: string;
+        }>(`/services/${serviceId}/onboarding`);
+        expect(persistedOnboarding.serviceId).toBe(serviceId);
         expect(persistedOnboarding.status).toBe('IN_PROGRESS');
       });
 
@@ -185,8 +187,10 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
           `Browser onboarding GET returned HTTP ${onboardingResponse.status()}: ${onboardingResponseBody}`,
         ).toBe(true);
         const browserOnboarding = JSON.parse(onboardingResponseBody) as {
+          readonly serviceId?: string;
           readonly status?: string;
         };
+        expect(browserOnboarding.serviceId).toBe(targetServiceId);
         expect(browserOnboarding.status).toBe('IN_PROGRESS');
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 20_000 });
