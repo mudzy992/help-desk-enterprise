@@ -22,6 +22,15 @@ export const queryKeys = {
   organizationalUnits: ["catalog", "organizational-units"] as const,
   services: ["catalog", "services"] as const,
   /**
+   * The dashboard's id→name lookup caches the raw `ServiceResponse[]`, while
+   * `services` caches `{ service }` rows for the catalog table. The two shapes
+   * must never share a key: a shared key handed the catalog the raw array and
+   * its `row.service.lifecycle` filters crashed the page to a white screen.
+   * Kept nested under the same prefix so an invalidation of `services` (or a
+   * realtime catalog event) still refreshes the lookup as well.
+   */
+  dashboardServiceNames: ["catalog", "services", "dashboard-name-lookup"] as const,
+  /**
    * The dashboard counters contain a day ("opened today") that the server turns
    * over at the installation's midnight, so the day is part of the key: a tab
    * left open across midnight asks for the new day instead of keeping the

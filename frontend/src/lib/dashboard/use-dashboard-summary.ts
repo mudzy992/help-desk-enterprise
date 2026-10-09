@@ -186,7 +186,7 @@ export function useDashboardSummary(): DashboardSummaryState {
           : Promise.resolve(null),
         queryClient
           .fetchQuery({
-            queryKey: queryKeys.services,
+            queryKey: queryKeys.dashboardServiceNames,
             queryFn: () => listServices(),
           })
           .catch(() =>

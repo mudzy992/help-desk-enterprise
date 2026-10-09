@@ -22,6 +22,9 @@ describe("admin config events (paket 1.7 R3)", () => {
   it("maps domains to the query caches they feed", () => {
     expect(queryKeysForAdminConfigDomain("routing")).toContainEqual(queryKeys.routingRules);
     expect(queryKeysForAdminConfigDomain("catalog")).toContainEqual(queryKeys.offeredServices);
+    expect(queryKeysForAdminConfigDomain("catalog")).toContainEqual(
+      queryKeys.dashboardServiceNames,
+    );
     expect(queryKeysForAdminConfigDomain("sla")).toEqual([queryKeys.slaSummary]);
   });
 

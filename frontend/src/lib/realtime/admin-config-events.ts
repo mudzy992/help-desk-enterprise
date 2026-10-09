@@ -49,6 +49,7 @@ export function queryKeysForAdminConfigDomain(
     case "catalog":
       return [
         queryKeys.services,
+        queryKeys.dashboardServiceNames,
         queryKeys.offeredServices,
         queryKeys.createTicketCatalog,
         queryKeys.routingCatalog,

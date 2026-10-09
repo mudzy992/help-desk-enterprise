@@ -56,4 +56,16 @@ describe("queryKeys", () => {
     ]);
     expect(queryKeys.ticket("ticket-1")).toEqual(queryKeys.ticket("ticket-1"));
   });
+
+  it("never lets the dashboard lookup share the catalog cache key", () => {
+    // The dashboard caches the raw `ServiceResponse[]`, the catalog caches
+    // `{ service }` rows; a shared key crashed the catalog filters with
+    // "Cannot read properties of undefined (reading 'lifecycle')".
+    expect(queryKeys.dashboardServiceNames).toEqual([
+      "catalog",
+      "services",
+      "dashboard-name-lookup",
+    ]);
+    expect(queryKeys.dashboardServiceNames).not.toEqual(queryKeys.services);
+  });
 });
