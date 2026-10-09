@@ -99,7 +99,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await page.getByRole('button', { name: /New service|Nova usluga/i }).first().click();
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
-      await dialog.getByLabel(/^(Name|Naziv)$/).fill(serviceName);
+      await dialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(serviceName);
       await dialog.getByLabel(/Slug/i).fill(slug);
       await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
 
@@ -143,7 +143,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
       await serviceCard.getByRole('button', { name: /Edit|Izmijeni/i }).first().click();
       const editDialog = page.getByRole('dialog');
-      await editDialog.getByLabel(/^(Name|Naziv)$/).fill(editedName);
+      await editDialog.getByLabel(/^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i).fill(editedName);
       await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
       await editDialog.locator('form button[type="submit"]').click();
       await expect(editDialog).toBeHidden();
