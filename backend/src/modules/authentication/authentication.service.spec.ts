@@ -105,6 +105,8 @@ describe('AuthenticationService', () => {
       status: 'MFA_REQUIRED',
       mfaToken: 'mfa.jwt',
       expiresInSeconds: authenticationConstants.mfaTokenTtlSeconds,
+      // Paket 5.4.0-a: the passkey stub reports zero credentials, so TOTP only.
+      methods: ['totp'],
     });
     expect(issueMfaToken).toHaveBeenCalledWith('user-1', 'verify');
     expect(issue).not.toHaveBeenCalled();

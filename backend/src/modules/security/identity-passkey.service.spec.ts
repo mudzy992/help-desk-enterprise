@@ -1,3 +1,7 @@
+jest.mock('@simplewebauthn/server', () => ({
+  generateAuthenticationOptions: jest.fn(),
+}));
+
 jest.mock('../authentication/security/passkey-credential.service', () => {
   const actual = jest.requireActual('../authentication/security/passkey-credential.service');
   return { ...actual, PasskeyCredentialService: class PasskeyCredentialService {} };

@@ -7,6 +7,7 @@ jest.mock('@simplewebauthn/server', () => ({
 
 import {
   generateRegistrationOptions,
+  generateAuthenticationOptions,
   verifyRegistrationResponse,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
@@ -35,27 +36,28 @@ const localUser = {
   roleKeys: ['AGENT'],
 };
 
-function service(overrides: Record<string, unknown> = {}) {
+function service(credentialOverrides: Record<string, unknown> = {}) {
   const store = new PasskeyChallengeStoreProvider(undefined);
+  const userPasskeyCredential = {
+    findMany: jest.fn(async () => [] as Array<{ credentialId: string; transports: string | null }>),
+    findFirst: jest.fn(async () => null),
+    create: jest.fn(async () => ({
+      id: 'row-1',
+      deviceName: null,
+      aaguid: null,
+      createdAt: new Date('2026-10-09T00:00:00Z'),
+      lastUsedAt: new Date('2026-10-09T00:00:00Z'),
+      isBackedUp: false,
+    })),
+    update: jest.fn(async () => ({})),
+    delete: jest.fn(async () => ({})),
+    deleteMany: jest.fn(async () => ({ count: 1 })),
+    count: jest.fn(async () => 1),
+    ...credentialOverrides,
+  };
   const prisma = {
     user: { findUnique: jest.fn(async () => ({ localPasswordHash: 'x', entraObjectId: null })) },
-    userPasskeyCredential: {
-      findMany: jest.fn(async () => []),
-      findFirst: jest.fn(async () => null),
-      create: jest.fn(async () => ({
-        id: 'row-1',
-        deviceName: null,
-        aaguid: null,
-        createdAt: new Date('2026-10-09T00:00:00Z'),
-        lastUsedAt: new Date('2026-10-09T00:00:00Z'),
-        isBackedUp: false,
-      })),
-      update: jest.fn(async () => ({})),
-      delete: jest.fn(async () => ({})),
-      deleteMany: jest.fn(async () => ({ count: 1 })),
-      count: jest.fn(async () => 1),
-      ...(overrides.prisma ?? {}),
-    },
+    userPasskeyCredential,
   };
   const notifier = { audit: jest.fn(async () => undefined), notify: jest.fn(async () => undefined) };
   const instance = new PasskeyCredentialService(
@@ -70,8 +72,13 @@ function service(overrides: Record<string, unknown> = {}) {
 const policy = { mfaRequiredForAdmins: true } as never;
 
 describe('PasskeyCredentialService', () => {
-  it('starts a registration and stores the challenge under the user key', async () => {
+  beforeEach(() => {
+    // Ceremonies call these before any assertion; the values persist per test.
     (generateRegistrationOptions as jest.Mock).mockResolvedValue({ challenge: 'challenge-1' });
+    (generateAuthenticationOptions as jest.Mock).mockResolvedValue({ challenge: 'login-challenge' });
+  });
+
+  it('starts a registration and stores the challenge under the user key', async () => {
     const { instance, store } = service();
     const { options } = await instance.startRegistration({ id: 'u-1', email: 'a@b.ba' }, rp);
     expect(options.challenge).toBe('challenge-1');
@@ -121,19 +128,14 @@ describe('PasskeyCredentialService', () => {
       authenticationInfo: { newCounter: 4 },
     });
     const { instance, prisma } = service({
-      prisma: {
-        userPasskeyCredential: {
-          findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
-          findFirst: jest.fn(async () => ({
-            id: 'row-1',
-            credentialId: 'cred-1',
-            publicKey: toBase64Url(new Uint8Array([1])),
-            counter: BigInt(5),
-            transports: null,
-          })),
-          deleteMany: jest.fn(async () => ({ count: 1 })),
-        },
-      },
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => ({
+        id: 'row-1',
+        credentialId: 'cred-1',
+        publicKey: toBase64Url(new Uint8Array([1])),
+        counter: BigInt(5),
+        transports: null,
+      })),
     });
     await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-1'), rp);
     await expect(
@@ -144,14 +146,8 @@ describe('PasskeyCredentialService', () => {
 
   it('refuses to remove the last factor of an account that requires MFA', async () => {
     const { instance } = service({
-      prisma: {
-        userPasskeyCredential: {
-          findFirst: jest.fn(async () => ({ id: 'row-1' })),
-          count: jest.fn(async () => 1),
-          delete: jest.fn(async () => ({})),
-        },
-        user: { findUnique: jest.fn(async () => ({ localPasswordHash: 'x', entraObjectId: null })) },
-      },
+      findFirst: jest.fn(async () => ({ id: 'row-1' })),
+      count: jest.fn(async () => 1),
     });
     const superAdmin = { ...localUser, roleKeys: ['SUPER_ADMIN'] };
     await expect(instance.removeCredential(superAdmin, policy, 'row-1', 'u-1', false)).rejects.toThrow(
@@ -162,14 +158,9 @@ describe('PasskeyCredentialService', () => {
   it('removes a passkey when another factor remains', async () => {
     const deleteFn = jest.fn(async () => ({}));
     const { instance, prisma, notifier } = service({
-      prisma: {
-        userPasskeyCredential: {
-          findFirst: jest.fn(async () => ({ id: 'row-1' })),
-          count: jest.fn(async () => 2),
-          delete: deleteFn,
-        },
-        user: { findUnique: jest.fn(async () => ({ localPasswordHash: 'x', entraObjectId: null })) },
-      },
+      findFirst: jest.fn(async () => ({ id: 'row-1' })),
+      count: jest.fn(async () => 2),
+      delete: deleteFn,
     });
     await instance.removeCredential(localUser, policy, 'row-1', 'u-1', true);
     expect(deleteFn).toHaveBeenCalledWith({ where: { id: 'row-1' } });
