@@ -14,13 +14,20 @@ const visibleStatuses: readonly ServiceOnboardingStatus[] = [
 export async function loadVisibleOnboardings(
   draftServiceIds: readonly string[],
 ): Promise<readonly ServiceOnboardingResponse[]> {
-  const results = await Promise.all(
+  // Isolate failures per draft: one stale/inaccessible service must not hide
+  // progress for every other service in the catalog.
+  const results = await Promise.allSettled(
     draftServiceIds.map((serviceId) => loadOnboardingOrNull(serviceId)),
   );
-  return results.filter(
-    (item): item is ServiceOnboardingResponse =>
-      item !== null && visibleStatuses.includes(item.status),
-  );
+  return results.flatMap((result) => {
+    if (result.status !== "fulfilled") {
+      return [];
+    }
+    const onboarding = result.value;
+    return onboarding !== null && visibleStatuses.includes(onboarding.status)
+      ? [onboarding]
+      : [];
+  });
 }
 
 async function loadOnboardingOrNull(

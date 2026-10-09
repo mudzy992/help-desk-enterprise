@@ -161,13 +161,36 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
           { method: 'POST' },
         );
         expect(onboarding.status).toBe('IN_PROGRESS');
+        const persistedOnboarding = await api.requestJson<{ readonly status: string }>(
+          `/services/${serviceId}/onboarding`,
+        );
+        expect(persistedOnboarding.status).toBe('IN_PROGRESS');
       });
 
       await test.step('filter the catalog and edit the service', async () => {
-        await page.reload();
-        const serviceRow = page.getByTestId(`service-row-${serviceId}`);
+        if (serviceId === null) {
+          throw new Error('[e2e] cannot verify onboarding progress without the created service ID.');
+        }
+        const targetServiceId = serviceId;
+        const [onboardingResponse] = await Promise.all([
+          page.waitForResponse((response) =>
+            response.request().method() === 'GET' &&
+            response.url().includes(`/services/${targetServiceId}/onboarding`),
+          ),
+          page.reload(),
+        ]);
+        const onboardingResponseBody = await onboardingResponse.text();
+        expect(
+          onboardingResponse.ok(),
+          `Browser onboarding GET returned HTTP ${onboardingResponse.status()}: ${onboardingResponseBody}`,
+        ).toBe(true);
+        const browserOnboarding = JSON.parse(onboardingResponseBody) as {
+          readonly status?: string;
+        };
+        expect(browserOnboarding.status).toBe('IN_PROGRESS');
+        const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 20_000 });
-        const onboardingChip = page.getByTestId(`service-onboarding-progress-${serviceId}`);
+        const onboardingChip = page.getByTestId(`service-onboarding-progress-${targetServiceId}`);
         await expect(onboardingChip).toHaveText(/Onboarding 0\/5/);
         await expect(
           page.getByRole('heading', {
