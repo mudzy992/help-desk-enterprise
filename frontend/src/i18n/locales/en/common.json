@@ -296,6 +296,7 @@
             "auth_mfa_failed": "Account security — MFA check failed",
             "auth_mfa_passkey_enrolled": "Account security — passkey registered",
             "auth_mfa_passkey_removed": "Account security — passkey removed",
+            "auth_rate_limits_changed": "Account security — login rate limits changed",
             "auth_session_revoked": "Account security — session revoked",
             "auth_sessions_revoked_all": "Account security — all sessions revoked",
             "authorization_super_admin_bypass": "Authorization — SuperAdmin bypass recorded",
@@ -1888,7 +1889,15 @@
         "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in the e-mail footer.",
         "private.auth.password.organisationWordsCsv": "Comma-separated organisation words a password must not contain. The application name and internal e-mail domains are always added.",
         "private.ops.thresholds.websocketEmitWarnPerMinute": "WebSocket room emits per minute (cluster-wide, busiest room) that raises a WARNING (10-100000).",
-        "private.ops.thresholds.websocketEmitCriticalPerMinute": "WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000)."
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000).",
+        "private.security.rateLimits.passwordLogin.accountWindowSeconds": "Login rate limits — account failure bucket lifetime (s)",
+        "private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures": "Login rate limits — failures before the account delay starts",
+        "private.security.rateLimits.passwordLogin.accountDelayBaseMilliseconds": "Login rate limits — initial account delay (ms)",
+        "private.security.rateLimits.passwordLogin.accountDelayMaxMilliseconds": "Login rate limits — maximum account delay (ms)",
+        "private.security.rateLimits.passwordLogin.ipMaxFailures": "Login rate limits — failures per IP before a temporary 429",
+        "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Login rate limits — IP block duration (s)",
+        "private.security.rateLimits.other.maxFailures": "Login rate limits — Entra/password-change/MFA failures before a block",
+        "private.security.rateLimits.other.windowSeconds": "Login rate limits — Entra/password-change/MFA bucket lifetime (s)"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2341,7 +2350,15 @@
         "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in emails. Without https the link may be flagged as insecure.",
         "private.auth.password.organisationWordsCsv": "Organisation-specific words refused in passwords (company name, brand, internal terms). The application name and internal email domains are added automatically.",
         "private.ops.thresholds.websocketEmitWarnPerMinute": "WebSocket emits per minute for the busiest room that raises a warning (10-100000). It is an early sign that a screen refreshes too eagerly.",
-        "private.ops.thresholds.websocketEmitCriticalPerMinute": "WebSocket emits per minute that raise a critical alarm (20-200000). Set it above the warning threshold; a critical level usually means a loop in the application."
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "WebSocket emits per minute that raise a critical alarm (20-200000). Set it above the warning threshold; a critical level usually means a loop in the application.",
+        "private.security.rateLimits.passwordLogin.accountWindowSeconds": "How long consecutive failed attempts are remembered per account. A higher value means the failure history — and therefore the delay — lasts longer.",
+        "private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures": "After this many failed attempts, each further sign-in for that account is artificially slowed down. Zero is not allowed — at least 1.",
+        "private.security.rateLimits.passwordLogin.accountDelayBaseMilliseconds": "The first delayed sign-in waits this many milliseconds; every further failure doubles the wait.",
+        "private.security.rateLimits.passwordLogin.accountDelayMaxMilliseconds": "Upper bound of the artificial delay. The account is never locked out — only slowed down.",
+        "private.security.rateLimits.passwordLogin.ipMaxFailures": "After this many failed sign-ins from one IP address, that address receives a temporary 429. Lower it if you expect attacks, raise it behind a corporate proxy.",
+        "private.security.rateLimits.passwordLogin.ipWindowSeconds": "How long an IP address stays blocked after crossing the limit.",
+        "private.security.rateLimits.other.maxFailures": "Applies to Entra sign-in, password change and MFA confirmations — the number of failures before a temporary block.",
+        "private.security.rateLimits.other.windowSeconds": "How long Entra/password-change/MFA failures are remembered."
       },
       "type": {
         "boolean": "on/off",

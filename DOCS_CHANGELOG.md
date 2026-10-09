@@ -2100,3 +2100,14 @@ dizajna i start implementacije (2026-10-09)".
 biblioteka je napredovala na v14 — implementacija na starom dizajnu bi duplirala postojeće ili
 koristila zastarjele verzije.
 **Ostaje otvoreno:** implementacija vala 5.4.0-a; CAPTCHA ostaje 5.4.1.
+
+## 5.4.0-b — konfigurabilni limiti prijava: registar postavki (2026-10-09)
+
+**Dodato:** 8 skalarnih ključeva `private.security.rateLimits.*` u kategoriji „private.security"
+(defaulti = stare konstante; granice čuvaju zaštitu) s bs/en naslovima i objašnjenjima za
+Postavke → Sigurnost. `docs/ops/rate-limits.md` se dopunjuje uz closeout vala f.
+**Izmijenjeno:** `frontend/src/i18n/locales/{bs,en}/common.json` — katalog ključeva i help tekstova
+(coverage guard broji 459 ključeva); audit katalog dobio `auth.rate_limits_changed`.
+**Razlog:** pragovi prijava do sada hardkodirani — admin ih sada tuninguje kroz postavke uz
+evidenciju razloga, a loader po zahtjevu garantuje efekt bez restarta.
+**Ostaje otvoreno:** alarm na 429 prag (val 5.4.0-e, uz Nadzor graf); E2E 47 (val f).

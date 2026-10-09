@@ -363,6 +363,23 @@ export const settingKeys = {
   privateTicketConfidentialBreakGlassRequiresReason:
     'private.ticket.confidential.breakGlassRequiresReason',
   privateTicketConfidentialAuditViews: 'private.ticket.confidential.auditViews',
+  // Paket 5.4.0-b (M2): configurable login rate limits (admin-tunable, bounded).
+  privateSecurityRateLimitsAccountWindowSeconds:
+    'private.security.rateLimits.passwordLogin.accountWindowSeconds',
+  privateSecurityRateLimitsAccountDelayStartsAfterFailures:
+    'private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures',
+  privateSecurityRateLimitsAccountDelayBaseMilliseconds:
+    'private.security.rateLimits.passwordLogin.accountDelayBaseMilliseconds',
+  privateSecurityRateLimitsAccountDelayMaxMilliseconds:
+    'private.security.rateLimits.passwordLogin.accountDelayMaxMilliseconds',
+  privateSecurityRateLimitsIpMaxFailures:
+    'private.security.rateLimits.passwordLogin.ipMaxFailures',
+  privateSecurityRateLimitsIpWindowSeconds:
+    'private.security.rateLimits.passwordLogin.ipWindowSeconds',
+  privateSecurityRateLimitsOtherMaxFailures:
+    'private.security.rateLimits.other.maxFailures',
+  privateSecurityRateLimitsOtherWindowSeconds:
+    'private.security.rateLimits.other.windowSeconds',
   privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
   privateSecuritySafeLoggingLevelsCsv:
     'private.security.safeLogging.levelsCsv',

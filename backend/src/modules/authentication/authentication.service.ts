@@ -3,6 +3,7 @@ import {
   BadRequestException,
   HttpException,
   Injectable,
+  Optional,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -31,6 +32,7 @@ import { AccountSecurityNotifier } from './security/account-security-notifier';
 import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
 import { isPasswordExpired } from './security/account-security-rules';
 import { MfaService } from './security/mfa.service';
+import { LoginSecurityMetricsService } from './security/login-security-metrics.service';
 import { PasskeyCredentialService, passkeyLoginChallengeKey } from './security/passkey-credential.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 import { PasswordChangeService } from './security/password-change.service';
@@ -63,6 +65,8 @@ export class AuthenticationService {
     private readonly webAuthnRpLoader: WebAuthnRpLoader,
     private readonly notifier: AccountSecurityNotifier,
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
+    // Paket 5.4.0-b: MFA failure metrics (optional — never blocks sign-in).
+    @Optional() private readonly securityMetrics?: LoginSecurityMetricsService,
   ) {}
 
   async loginWithPassword(
@@ -122,6 +126,8 @@ export class AuthenticationService {
         } catch (error) {
           if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
             await this.notifier.audit(auditLogActions.authMfaFailed, user.id, null);
+            // Paket 5.4.0-b: the metric never blocks the login path.
+            if (this.securityMetrics !== undefined) await this.securityMetrics.record('mfa-failures');
           }
           return mapAccountSecurityError(error);
         }

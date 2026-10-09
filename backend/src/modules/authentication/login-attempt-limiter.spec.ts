@@ -285,4 +285,80 @@ describe('change-password attempt key (review N1)', () => {
     expect(changePasswordAttemptKey(undefined)).toBe('auth:change-password-fail:unknown');
     expect(changePasswordAttemptKey('10.0.0.9')).not.toBe(loginAttemptKey('x', '10.0.0.9'));
   });
+  // Paket 5.4.0-b (M2): the limits are configurable and read per request —
+  // a tighter config bites immediately, without constructing a new limiter.
+  /** Attaches the rejection handler immediately: no unhandled-rejection noise under fake timers. */
+  const outcomeOf = (run: () => Promise<unknown>) => run().then(() => 'resolved', (error) => error);
+
+  it('honours a tighter configured policy without a restart', async () => {
+    jest.useFakeTimers();
+    const wrong = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+    const loader = { load: async () => 'stable-shared-signing-secret-for-tests' } as never;
+    const configLoader = {
+      load: jest.fn(async () => ({
+        ...passwordLoginLimits,
+        accountDelayStartsAfterFailures: 1,
+        accountDelayBaseMilliseconds: 100,
+        accountDelayMaxMilliseconds: 100,
+        ipMaxFailures: 2,
+        ipWindowSeconds: 60,
+        otherMaxFailures: 2,
+        otherWindowSeconds: 30,
+      })),
+    };
+    const limiter = new LoginAttemptLimiter(undefined, loader, configLoader as never);
+    const email = 'tight@example.test';
+    const ip = '192.0.2.50';
+
+    // First failure runs without a delay (the delay starts after the first failure).
+    expect(await outcomeOf(() => limiter.guardPasswordLogin(email, ip, wrong))).toBeInstanceOf(UnauthorizedException);
+    expect(configLoader.load).toHaveBeenCalledTimes(1);
+
+    // Second failure is slowed to the configured 100 ms immediately.
+    const second = outcomeOf(() => limiter.guardPasswordLogin(email, ip, wrong));
+    await jest.advanceTimersByTimeAsync(100);
+    expect(await second).toBeInstanceOf(UnauthorizedException);
+
+    // The IP bucket is now full (ipMaxFailures = 2): the next attempt is a 429
+    // before the password is even checked.
+    const blocked = outcomeOf(() => limiter.guardPasswordLogin(email, ip, async () => 'ok'));
+    await jest.advanceTimersByTimeAsync(0);
+    expect(await blocked).toMatchObject({ status: 429 });
+    expect(configLoader.load).toHaveBeenCalledTimes(3);
+  });
+
+  it('records login-429 and account-delay metrics when they fire', async () => {
+    jest.useFakeTimers();
+    const wrong = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+    const loader = { load: async () => 'stable-shared-signing-secret-for-tests' } as never;
+    const securityMetrics = { record: jest.fn(async () => undefined) };
+    const configLoader = {
+      load: jest.fn(async () => ({ ...passwordLoginLimits, accountDelayStartsAfterFailures: 1, accountDelayBaseMilliseconds: 50 })),
+    };
+    const limiter = new LoginAttemptLimiter(undefined, loader, configLoader as never, securityMetrics as never);
+    const ip = '192.0.2.99';
+
+    // First failure: no delay yet, no delay metric.
+    expect(
+      await outcomeOf(() => limiter.guardPasswordLogin('metrics@example.test', ip, wrong)),
+    ).toBeInstanceOf(UnauthorizedException);
+    expect(securityMetrics.record).not.toHaveBeenCalledWith('login-account-delays');
+
+    // Second failure is delayed (50 ms) and recorded.
+    const delayed = outcomeOf(() => limiter.guardPasswordLogin('metrics@example.test', ip, wrong));
+    await jest.advanceTimersByTimeAsync(2_000);
+    expect(await delayed).toBeInstanceOf(UnauthorizedException);
+    expect(securityMetrics.record).toHaveBeenCalledWith('login-account-delays');
+
+    // Fill the IP bucket: the next attempt gets the 429 metric.
+    for (let i = 0; i < passwordLoginLimits.ipMaxFailures - 2; i += 1) {
+      const failure = outcomeOf(() => limiter.guardPasswordLogin(`user-${i}@example.test`, ip, wrong));
+      await jest.advanceTimersByTimeAsync(2_000);
+      expect(await failure).toBeInstanceOf(UnauthorizedException);
+    }
+    const blocked = outcomeOf(() => limiter.guardPasswordLogin('fresh@example.test', ip, async () => 'ok'));
+    await jest.advanceTimersByTimeAsync(0);
+    expect(await blocked).toMatchObject({ status: 429 });
+    expect(securityMetrics.record).toHaveBeenCalledWith('login-429');
+  });
 });

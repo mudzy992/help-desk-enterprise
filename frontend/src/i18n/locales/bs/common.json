@@ -298,6 +298,7 @@
             "auth_mfa_failed": "Sigurnost naloga — MFA provjera nije uspjela",
             "auth_mfa_passkey_enrolled": "Sigurnost naloga — passkey registrovan",
             "auth_mfa_passkey_removed": "Sigurnost naloga — passkey uklonjen",
+            "auth_rate_limits_changed": "Sigurnost naloga — ograničenja prijava promijenjena",
             "auth_session_revoked": "Sigurnost naloga — sesija opozvana",
             "auth_sessions_revoked_all": "Sigurnost naloga — sve sesije opozvane",
             "authorization_super_admin_bypass": "Autorizacija — SuperAdmin zaobilaženje evidentirano",
@@ -1899,7 +1900,15 @@
         "public.branding.supportUrl": "Stranica podrške ili intraneta (https) na stranici prijave i u podnožju e-maila.",
         "private.auth.password.organisationWordsCsv": "Riječi organizacije koje lozinka ne smije sadržavati, odvojene zarezom. Naziv aplikacije i interne e-mail domene se uvijek dodaju.",
         "private.ops.thresholds.websocketEmitWarnPerMinute": "Broj WebSocket emit-ova po minuti (na nivou klastera, najopterećenija soba) koji podiže UPOZORENJE (10–100000).",
-        "private.ops.thresholds.websocketEmitCriticalPerMinute": "Broj WebSocket emit-ova po minuti (na nivou klastera, najopterećenija soba) koji podiže KRITIČNI alarm (20–200000)."
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "Broj WebSocket emit-ova po minuti (na nivou klastera, najopterećenija soba) koji podiže KRITIČNI alarm (20–200000).",
+        "private.security.rateLimits.passwordLogin.accountWindowSeconds": "Ograničenja prijava — trajanje bucketa neuspjelih pokušaja po računu (s)",
+        "private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures": "Ograničenja prijava — broj neuspjeha prije odgode po računu",
+        "private.security.rateLimits.passwordLogin.accountDelayBaseMilliseconds": "Ograničenja prijava — početna odgoda po računu (ms)",
+        "private.security.rateLimits.passwordLogin.accountDelayMaxMilliseconds": "Ograničenja prijava — najveća odgoda po računu (ms)",
+        "private.security.rateLimits.passwordLogin.ipMaxFailures": "Ograničenja prijava — neuspjeli pokušaji po IP prije privremene blokade",
+        "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Ograničenja prijava — trajanje IP blokade (s)",
+        "private.security.rateLimits.other.maxFailures": "Ograničenja prijava — neuspjesi za Entra/promjenu lozinke/MFA prije blokade",
+        "private.security.rateLimits.other.windowSeconds": "Ograničenja prijava — trajanje bucketa Entra/promjena lozinke/MFA (s)"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2352,7 +2361,15 @@
         "public.branding.supportUrl": "Adresa stranice podrške ili intraneta (https) na stranici za prijavu i u emailovima. Bez https-a link se može prikazati kao nesiguran.",
         "private.auth.password.organisationWordsCsv": "Riječi specifične za organizaciju koje se odbijaju u lozinkama (naziv firme, brend, pojmovi). Naziv aplikacije i interni email domeni se dodaju automatski.",
         "private.ops.thresholds.websocketEmitWarnPerMinute": "Broj WebSocket emitovanja u minuti za najprometniju sobu koji podiže upozorenje (10–100000). Rano pokazuje da neka stranica pretjerano osvježava podatke.",
-        "private.ops.thresholds.websocketEmitCriticalPerMinute": "Broj WebSocket emitovanja u minuti koji podiže kritični alarm (20–200000). Postavite ga iznad granice upozorenja; kritično stanje obično znači petlju u aplikaciji."
+        "private.ops.thresholds.websocketEmitCriticalPerMinute": "Broj WebSocket emitovanja u minuti koji podiže kritični alarm (20–200000). Postavite ga iznad granice upozorenja; kritično stanje obično znači petlju u aplikaciji.",
+        "private.security.rateLimits.passwordLogin.accountWindowSeconds": "Koliko dugo se pamte uzastopni neuspjeli pokušaji za jedan račun. Veći broj znači da istorija neuspjeha — pa time i odgoda — traje duže.",
+        "private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures": "Nakon ovoliko neuspjelih pokušaja svaki sljedeći pokušaj prijave za taj račun se umjetno usporava. Nula nije dozvoljena — najmanje 1.",
+        "private.security.rateLimits.passwordLogin.accountDelayBaseMilliseconds": "Prva odgođena prijava čeka ovoliko milisekundi; svaki sljedeći neuspjeh udvostručuje čekanje.",
+        "private.security.rateLimits.passwordLogin.accountDelayMaxMilliseconds": "Gornja granica umjetne odgode. Račun se nikad ne zaključava — samo se usporava.",
+        "private.security.rateLimits.passwordLogin.ipMaxFailures": "Nakon ovoliko neuspjelih prijava s jedne IP adrese, ta adresa dobiva privremeni 429. Smanjite ako očekujete napade, povećajte iza korporativnog proxyja.",
+        "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Koliko dugo IP adresa ostaje blokirana nakon prekoračenja.",
+        "private.security.rateLimits.other.maxFailures": "Vrijedi za Entra prijavu, promjenu lozinke i MFA potvrde — broj neuspjeha prije privremene blokade.",
+        "private.security.rateLimits.other.windowSeconds": "Koliko dugo se pamte neuspjesi za Entra/promjenu lozinke/MFA."
       },
       "type": {
         "boolean": "uključeno/isključeno",

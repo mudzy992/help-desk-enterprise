@@ -62,6 +62,7 @@ describe('AuthenticationService', () => {
     { load: () => null } as never,
     { audit: jest.fn(), notify: jest.fn() } as never,
     { guard: (_key: string, run: () => Promise<unknown>) => run() } as never,
+    { record: jest.fn(async () => undefined) } as never,
   );
 
   beforeEach(() => {

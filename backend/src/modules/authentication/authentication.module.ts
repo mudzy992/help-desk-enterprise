@@ -24,9 +24,11 @@ import { AccountSecurityController } from './account-security.controller';
 import { AccountSecurityNotifier } from './security/account-security-notifier';
 import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
 import { MfaService } from './security/mfa.service';
+import { LoginSecurityMetricsService } from './security/login-security-metrics.service';
 import { PasskeyChallengeStoreProvider } from './security/passkey-challenge.store';
 import { PasskeyCredentialService } from './security/passkey-credential.service';
 import { PasswordChangeService } from './security/password-change.service';
+import { SecurityRateLimitConfigLoader } from './security/security-rate-limit-config.loader';
 import { SessionRegistryService } from './security/session-registry.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 
@@ -58,6 +60,8 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     PasskeyChallengeStoreProvider,
     PasskeyCredentialService,
     WebAuthnRpLoader,
+    SecurityRateLimitConfigLoader,
+    LoginSecurityMetricsService,
     PasswordChangeService,
     SessionRegistryService,
   ],
@@ -67,6 +71,8 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     PasskeyChallengeStoreProvider,
     PasskeyCredentialService,
     WebAuthnRpLoader,
+    SecurityRateLimitConfigLoader,
+    LoginSecurityMetricsService,
     PasswordChangeService,
     SessionRegistryService,
     SessionRevocationStore,

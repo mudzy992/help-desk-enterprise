@@ -3,21 +3,34 @@ import { HttpException, HttpStatus, Inject, Injectable, Logger, Optional } from 
 import type Redis from 'ioredis';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
+import {
+  SecurityRateLimitConfigLoader,
+} from './security/security-rate-limit-config.loader';
+import {
+  LoginSecurityMetricsService,
+} from './security/login-security-metrics.service';
+import {
+  defaultSecurityRateLimitConfig,
+  type SecurityRateLimitConfig,
+} from './security/security-rate-limit-config';
 
-/** Legacy per-key policy used for password-change and Entra token failures. */
+/**
+ * Paket 5.4.0-b: the limits became configurable (`private.security.rateLimits.*`).
+ * The exported shapes stay for the existing tests and defaults; the limiter
+ * itself reads the values per request through the config loader.
+ */
 export const loginAttemptLimits = {
-  maxFailures: 5,
-  windowSeconds: 15 * 60,
+  maxFailures: defaultSecurityRateLimitConfig.otherMaxFailures,
+  windowSeconds: defaultSecurityRateLimitConfig.otherWindowSeconds,
 } as const;
 
-/** Initial 5.2.1 policy: per-account delay, per-IP temporary 429. */
 export const passwordLoginLimits = {
-  accountWindowSeconds: 30 * 60,
-  accountDelayStartsAfterFailures: 3,
-  accountDelayBaseMilliseconds: 250,
-  accountDelayMaxMilliseconds: 2_000,
-  ipMaxFailures: 40,
-  ipWindowSeconds: 5 * 60,
+  accountWindowSeconds: defaultSecurityRateLimitConfig.accountWindowSeconds,
+  accountDelayStartsAfterFailures: defaultSecurityRateLimitConfig.accountDelayStartsAfterFailures,
+  accountDelayBaseMilliseconds: defaultSecurityRateLimitConfig.accountDelayBaseMilliseconds,
+  accountDelayMaxMilliseconds: defaultSecurityRateLimitConfig.accountDelayMaxMilliseconds,
+  ipMaxFailures: defaultSecurityRateLimitConfig.ipMaxFailures,
+  ipWindowSeconds: defaultSecurityRateLimitConfig.ipWindowSeconds,
 } as const;
 
 export type LoginAttemptStore = {
@@ -75,13 +88,19 @@ export function changePasswordAttemptKey(ip: string | undefined): string {
   return `auth:change-password-fail:${(ip ?? 'unknown').trim()}`;
 }
 
-export function accountAttemptDelayMilliseconds(failureCount: number): number {
-  const firstDelayedFailure = passwordLoginLimits.accountDelayStartsAfterFailures;
+export function accountAttemptDelayMilliseconds(
+  failureCount: number,
+  limits: Pick<
+    SecurityRateLimitConfig,
+    'accountDelayStartsAfterFailures' | 'accountDelayBaseMilliseconds' | 'accountDelayMaxMilliseconds'
+  > = defaultSecurityRateLimitConfig,
+): number {
+  const firstDelayedFailure = limits.accountDelayStartsAfterFailures;
   if (failureCount < firstDelayedFailure) return 0;
   const exponent = Math.min(failureCount - firstDelayedFailure, 30);
   return Math.min(
-    passwordLoginLimits.accountDelayBaseMilliseconds * 2 ** exponent,
-    passwordLoginLimits.accountDelayMaxMilliseconds,
+    limits.accountDelayBaseMilliseconds * 2 ** exponent,
+    limits.accountDelayMaxMilliseconds,
   );
 }
 
@@ -215,11 +234,24 @@ export class LoginAttemptLimiter {
   constructor(
     @Optional() @Inject(redisTokens.client) redis?: Redis,
     @Optional() private readonly jwtSigningSecretLoader?: JwtSigningSecretLoader,
+    @Optional() private readonly rateLimitConfigLoader?: SecurityRateLimitConfigLoader,
+    @Optional() private readonly securityMetrics?: LoginSecurityMetricsService,
   ) {
     this.store =
       redis !== undefined && redis !== null
         ? createRedisLoginAttemptStore(redis)
         : createMemoryLoginAttemptStore();
+  }
+
+  /** Config per request: an admin change takes effect without a restart. */
+  private async loadLimits(): Promise<SecurityRateLimitConfig> {
+    if (this.rateLimitConfigLoader === undefined) return defaultSecurityRateLimitConfig;
+    try {
+      return await this.rateLimitConfigLoader.load();
+    } catch (error) {
+      this.logger.warn(`rate-limit config unavailable, using defaults: ${String(error)}`);
+      return defaultSecurityRateLimitConfig;
+    }
   }
 
   /**
@@ -232,12 +264,14 @@ export class LoginAttemptLimiter {
     ip: string | undefined,
     login: () => Promise<T>,
   ): Promise<T> {
+    const limits = await this.loadLimits();
     const secret = await this.loadHmacSecret();
     const accountKey = secret === null ? null : loginAccountAttemptKey(email, secret);
     const ipKey = loginIpAttemptKey(ip, secret ?? undefined);
     const ipFailures = await this.safe(() => this.store.count(ipKey), 0);
-    if (ipFailures >= passwordLoginLimits.ipMaxFailures) {
-      throw createTooManyLoginAttemptsException(passwordLoginLimits.ipWindowSeconds);
+    if (ipFailures >= limits.ipMaxFailures) {
+      await this.recordMetric('login-429');
+      throw createTooManyLoginAttemptsException(limits.ipWindowSeconds);
     }
     const attemptId = accountKey === null ? null : randomUUID();
     const delayIndex =
@@ -248,12 +282,15 @@ export class LoginAttemptLimiter {
               this.store.beginAccountAttempt(
                 accountKey,
                 attemptId,
-                passwordLoginLimits.accountWindowSeconds,
+                limits.accountWindowSeconds,
               ),
             0,
           );
-    const delay = accountAttemptDelayMilliseconds(delayIndex);
-    if (delay > 0) await wait(delay);
+    const delay = accountAttemptDelayMilliseconds(delayIndex, limits);
+    if (delay > 0) {
+      await this.recordMetric('login-account-delays');
+      await wait(delay);
+    }
 
     let outcome: 'credentialFailure' | 'success' | 'other' = 'other';
     try {
@@ -264,7 +301,7 @@ export class LoginAttemptLimiter {
       if (isCredentialFailure(error)) {
         outcome = 'credentialFailure';
         await this.safe(
-          () => this.store.recordFailure(ipKey, passwordLoginLimits.ipWindowSeconds),
+          () => this.store.recordFailure(ipKey, limits.ipWindowSeconds),
           0,
         );
       }
@@ -283,8 +320,9 @@ export class LoginAttemptLimiter {
 
   /** Runs a legacy single-key guarded operation (Entra and change-password). */
   async guard<T>(key: string, login: () => Promise<T>): Promise<T> {
-    if ((await this.safe(() => this.store.count(key), 0)) >= loginAttemptLimits.maxFailures) {
-      throw createTooManyLoginAttemptsException();
+    const limits = await this.loadLimits();
+    if ((await this.safe(() => this.store.count(key), 0)) >= limits.otherMaxFailures) {
+      throw createTooManyLoginAttemptsException(limits.otherWindowSeconds);
     }
     try {
       const result = await login();
@@ -293,12 +331,17 @@ export class LoginAttemptLimiter {
     } catch (error) {
       if (isCredentialFailure(error)) {
         await this.safe(
-          () => this.store.recordFailure(key, loginAttemptLimits.windowSeconds),
+          () => this.store.recordFailure(key, limits.otherWindowSeconds),
           0,
         );
       }
       throw error;
     }
+  }
+
+  private async recordMetric(event: 'login-429' | 'login-account-delays'): Promise<void> {
+    if (this.securityMetrics === undefined) return;
+    await this.safe(() => this.securityMetrics!.record(event), undefined);
   }
 
   private async loadHmacSecret(): Promise<string | null> {

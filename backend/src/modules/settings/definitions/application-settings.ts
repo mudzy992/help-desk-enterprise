@@ -36,6 +36,7 @@ import { ticketWaitingAndReopenSettings } from './ticket-waiting-and-reopen-sett
 import { ticketSplitSettings } from './ticket-split-settings';
 import { ticketTemplatesSettings } from './ticket-templates-settings';
 import { accountSecuritySettings } from './account-security-settings';
+import { securityRateLimitSettings } from './security-rate-limit-settings';
 import { directoryLdapsSettings } from './directory-ldaps-settings';
 import { ticketForwardingSettings } from './ticket-forwarding-settings';
 import { timeTrackingSettings } from './time-tracking-settings';
@@ -67,6 +68,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketRoutingSettings,
   ...ticketTemplatesSettings,
   ...accountSecuritySettings,
+  ...securityRateLimitSettings,
   ...directoryLdapsSettings,
   ...ticketSlaSettings,
   ...policyPackSettings,

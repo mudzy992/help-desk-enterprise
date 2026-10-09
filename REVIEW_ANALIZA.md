@@ -6998,3 +6998,18 @@ provjeren je protiv aktualnog koda i revidiran — pet izmjena:
 
 Redoslijed valova: 5.4.0-a (passkey backend + step-up) → b (limiti + metrika) → c (sesije) →
 d (audit + HIBP + bulk) → e (frontend) → f (testovi + dokumentacija); CAPTCHA ostaje 5.4.1.
+
+**Napredak valova:**
+- **5.4.0-a ✅ zatvoren 2026-10-09** (`3926ec8`, spec-fixevi `a8d833a`/`1c6f81d`): CI potpuno zelen
+  (backend jest + frontend vitest + E2E regresija 37/39 netaknuta). Isporučeno: `UserPasskeyCredential`
+  (migracija `20271009000000`), login međukorak s `methods` poljem (backward compatible), step-up
+  za osjetljive akcije (jednokratni marker 2 min), cloned-key cutoff, audit akcije
+  `auth.mfa_passkey_enrolled/removed`, WebAuthn RP konfiguracija iz `CORS_ORIGIN` (v14).
+  Server E2E specovi 46/47 dolaze s valom f (Virtual Authenticator).
+- **5.4.0-b u isporuci:** pragovi kao skalarnе postavke `private.security.rateLimits.*` (8 ključeva,
+  bs/en naslovi i pomoć, granice koje čuvaju zaštitu), loader čita po zahtjevu (efekt bez restarta),
+  `GET/PUT /security/rate-limits` (SUPER_ADMIN + MFA potvrda: passkey marker po svrsi ili TOTP kod,
+  batch kroz `setSettingValues` s razlogom), metrika bez PII-a (login-429 / account-delays /
+  mfa-failures, minutni bucketi u Redisu) i `audit.rate_limits_changed` akcija.
+  **Alarm na 429 prag odgađa se uz val 5.4.0-e** (Nadzor graf) — alarm mašina živi u workeru
+  (ops-health runner), pa se signal priključuje tamo gdje se i prikazuje.
