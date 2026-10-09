@@ -3,14 +3,15 @@ import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
 
+type OverviewGroup = {
+  readonly groupId: string;
+  readonly groupName: string;
+  readonly hasSchedule: boolean;
+};
+
 type UnitNode = {
   readonly id: string;
   readonly children?: readonly UnitNode[];
-};
-
-type NamedRecord = {
-  readonly id: string;
-  readonly name: string;
 };
 
 type UserSummary = {
@@ -28,9 +29,10 @@ function tomorrowDate(): string {
 /**
  * 5.3.7 (§4.7 — dežurstva): main flows — a rotation schedule exists, the
  * group card stops reading "without schedule", the week detail lists the
- * rotation member, and the screen stays usable at a phone width. The schedule
- * is created through the API (the dialog is covered by the same contract) and
- * always deleted in `finally`, so the installation's rotations stay untouched.
+ * rotation member, and the screen stays usable at a phone width. The test
+ * only touches a group WITHOUT an existing schedule (a PUT would replace a
+ * real rotation) and deletes its own schedule in `finally`; with no free
+ * group it fails fast instead of overwriting production data.
  */
 test.describe('44 on-call schedules (5.3.7)', () => {
   test('schedule is visible on the overview, in the week detail and on mobile', async ({ page }) => {
@@ -41,14 +43,18 @@ test.describe('44 on-call schedules (5.3.7)', () => {
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
 
-    const { groupId, groupName, memberId, memberName } = await test.step('load group and rotation member', async () => {
-      const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
-      const group = groups[0];
-      if (group === undefined) throw new Error('[e2e] at least one group is required for the on-call test.');
+    const { groupId, groupName, memberId, memberName } = await test.step('pick a free group and a rotation member', async () => {
+      const overview = await api.requestJson<{ readonly groups: readonly OverviewGroup[] }>('/on-call/overview');
+      const free = overview.groups.find((group) => !group.hasSchedule);
+      if (free === undefined) {
+        throw new Error(
+          '[e2e] every group already has an on-call schedule; free one up or run this test against a clean group — the test refuses to overwrite real rotations.',
+        );
+      }
       const users = await api.requestJson<readonly UserSummary[]>('/users/summary');
       const me = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase());
       if (me === undefined || !me.isActive) throw new Error('[e2e] the super admin must exist and be active.');
-      return { groupId: group.id, groupName: group.name, memberId: me.id, memberName: me.displayName };
+      return { groupId: free.groupId, groupName: free.groupName, memberId: me.id, memberName: me.displayName };
     });
 
     await test.step('create a weekly rotation starting tomorrow', async () => {
