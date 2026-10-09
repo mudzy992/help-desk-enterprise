@@ -20,6 +20,9 @@ export const privacyRetentionMinimumDays = {
 
 export const privacyRetentionMaximumDays = 36_500;
 
+/** 5.3.7: shared by the setting definitions and the notice editor API. */
+export const privacyNoticeMaxLength = 20_000;
+
 export const privacyDefaults = {
   sessionDays: 90,
   emailDeliveryDays: 180,
@@ -184,8 +187,8 @@ export const privacySettings: readonly SettingDefinition[] = [
   }),
   textSetting(settingKeys.privatePrivacyControllerPurpose, 'Purpose of processing in the help desk', 2000),
   textSetting(settingKeys.privatePrivacyControllerLegalBasis, 'Legal basis of processing', 2000),
-  textSetting(settingKeys.privatePrivacyNoticeBs, 'Privacy notice shown to users, Markdown (Bosnian)', 20_000),
-  textSetting(settingKeys.privatePrivacyNoticeEn, 'Privacy notice shown to users, Markdown (English)', 20_000),
+  textSetting(settingKeys.privatePrivacyNoticeBs, 'Privacy notice shown to users, Markdown (Bosnian)', privacyNoticeMaxLength),
+  textSetting(settingKeys.privatePrivacyNoticeEn, 'Privacy notice shown to users, Markdown (English)', privacyNoticeMaxLength),
 ];
 
 function retentionSetting(

@@ -2582,7 +2582,9 @@
       "noChanges": "No changes — edit the value and save.",
       "discardTitle": "Discard the changes?",
       "discardBody": "The value was not saved. Closing now loses the input.",
-      "discardAction": "Discard changes"
+      "discardAction": "Discard changes",
+      "noticeEditorLink": "Open the notice editor",
+      "noticeEditorHint": "This notice is edited in the dedicated editor of the privacy module, not here."
     },
     "dependencies": {
       "requiresTitle": "Conditions (must hold before switching on)",
@@ -5995,7 +5997,8 @@
       "exports": "Exports",
       "retention": "Retention",
       "holds": "Legal holds",
-      "record": "Record"
+      "record": "Record",
+      "notice": "Notice"
     },
     "common": {
       "minChars": "At least {{count}} characters."
@@ -6342,7 +6345,8 @@
       "unavailable": "The notice is not published at the moment. Contact the administrator.",
       "failed": "The notice could not be loaded. Try again.",
       "backToApp": "Back to the app",
-      "backToLogin": "Back to sign in"
+      "backToLogin": "Back to sign in",
+      "draftBadge": "Draft generated from the record of processing"
     },
     "markers": {
       "redacted": "Anonymized",
@@ -6397,6 +6401,27 @@
       "followerLinks": "Ticket follows",
       "attachmentsUploaded": "Uploaded attachments",
       "auditRowsLinked": "Linked audit entries"
+    },
+    "noticeEditor": {
+      "intro": "Edit the public privacy notice (Markdown). When the text for a language is empty, the public page shows a draft generated from the record of processing.",
+      "moduleDisabled": "The privacy module is disabled — the public notice page is unavailable until it is enabled. You can still prepare the text in advance.",
+      "statePublished": "Published (own text)",
+      "stateDraft": "Draft generated from the record",
+      "stateDisabled": "Module disabled",
+      "language": "Notice language",
+      "editorLabelBs": "Text (Bosnian, Markdown)",
+      "editorLabelEn": "Text (English, Markdown)",
+      "preview": "Preview",
+      "generate": "Generate from the record of processing",
+      "generateHint": "Generating replaces the editor text for the selected language with the draft built from the record of processing (controller, purpose, categories, recipients, deadlines, rights and contact).",
+      "save": "Save notice",
+      "saved": "The notice has been saved.",
+      "chars": "{{used}} / {{total}} characters",
+      "overLimit": "the text is over the limit, shorten it before saving",
+      "loadFailed": "The notice state could not be loaded.",
+      "retry": "Try again",
+      "openPublic": "Open the public page",
+      "dirty": "You have unsaved changes."
     }
   },
   "status": {

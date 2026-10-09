@@ -6,6 +6,7 @@ import { setDocumentTitle } from "@/lib/a11y/document-title";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { useBranding } from "@/lib/branding/branding-store";
 import { MarkdownView } from "@/components/privacy/markdown-view";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { hintClassName } from "@/components/ui/control";
 import { Segmented } from "@/components/ui/segmented";
@@ -79,6 +80,11 @@ export function PrivacyNoticePage() {
           <PanelSkeleton className="mt-0" label={t("privacy.notice.title")} />
         ) : state === "ready" && notice !== null ? (
           <article data-testid="privacy-notice-content" className="rounded-lg border border-border bg-surface p-6 shadow-card print:border-0 print:p-0 print:shadow-none">
+            {notice.draft ? (
+              <Badge tone="warning" dot data-testid="privacy-notice-draft-badge" className="mb-3">
+                {t("privacy.notice.draftBadge")}
+              </Badge>
+            ) : null}
             {notice.fallbackLocale ? (
               <p className={`${hintClassName} mb-3`}>{t("privacy.notice.fallbackLocale")}</p>
             ) : null}

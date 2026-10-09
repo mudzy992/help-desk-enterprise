@@ -344,3 +344,28 @@ export function getProcessingRecord(locale: "bs" | "en"): Promise<ProcessingReco
 export function getPrivacyNotice(locale: "bs" | "en"): Promise<PrivacyNotice> {
   return apiRequest(`/privacy/notice?locale=${locale}`);
 }
+
+// --- 5.3.7 Notice editor (privacy.manage) -----------------------------------------
+export type PrivacyNoticeStatus = {
+  readonly enabled: boolean;
+  readonly maxLength: number;
+  readonly notice: { readonly bs: string; readonly en: string };
+};
+
+export type PrivacyNoticeDraft = {
+  readonly locale: "bs" | "en";
+  readonly markdown: string;
+};
+
+export function getPrivacyNoticeStatus(): Promise<PrivacyNoticeStatus> {
+  return apiRequest("/privacy/notice/status");
+}
+export function getPrivacyNoticeDraft(locale: "bs" | "en"): Promise<PrivacyNoticeDraft> {
+  return apiRequest(`/privacy/notice/draft?locale=${locale}`);
+}
+export function putPrivacyNotice(input: {
+  readonly bs: string;
+  readonly en: string;
+}): Promise<PrivacyNoticeStatus> {
+  return apiRequest("/privacy/notice", json("PUT", input));
+}

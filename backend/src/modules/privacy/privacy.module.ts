@@ -21,7 +21,7 @@ import { RetentionQueueService } from './retention/retention-queue.service';
     // Producer only: the worker owns the processor.
     BullModule.registerQueue({ name: privacyQueueName }),
   ],
-  controllers: [PrivacyController, PrivacyNoticeController],
+  controllers: [PrivacyController, PrivacyNoticeController, PrivacyNoticeAdminController],
   providers: [...privacyCoreProviders, PrivacyIdentityConfirmer, RetentionQueueService, AnonymizationRequestService, PrivacyExportQueue],
 })
 export class PrivacyModule {}

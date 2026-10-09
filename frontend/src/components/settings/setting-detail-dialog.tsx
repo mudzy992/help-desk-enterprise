@@ -1,6 +1,7 @@
-import { AlertTriangle, EyeOff, Info } from "lucide-react";
+import { AlertTriangle, ExternalLink, EyeOff, Info } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { SettingDependentsDialog } from "@/components/settings/setting-dependents-dialog";
 import { SettingsRegistryControl } from "@/components/settings/settings-registry-control";
 import { useToast } from "@/components/ui/toast";
@@ -208,6 +209,19 @@ export function SettingDetailDialog({
           </p>
         )}
         <p className={hintClassName}>{entry.description}</p>
+
+        {entry.key.startsWith("private.privacy.notice.") ? (
+          <p className="mt-3 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2 text-[12.5px] leading-5">
+            <Link
+              to="/privacy?tab=notice"
+              data-testid="setting-detail-notice-editor-link"
+              className="inline-flex items-center gap-1.5 text-link hover:underline"
+            >
+              <ExternalLink size={13} aria-hidden /> {t("settings.detail.noticeEditorLink")}
+            </Link>
+            <span className="mt-0.5 block text-muted-foreground">{t("settings.detail.noticeEditorHint")}</span>
+          </p>
+        ) : null}
 
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-[12px] sm:grid-cols-2">
           <div className="flex items-baseline justify-between gap-2">

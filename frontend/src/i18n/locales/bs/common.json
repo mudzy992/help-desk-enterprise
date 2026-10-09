@@ -2594,7 +2594,9 @@
       "noChanges": "Nema izmjena — promijenite vrijednost pa sačuvajte.",
       "discardTitle": "Odbaciti izmjene?",
       "discardBody": "Vrijednost nije sačuvana. Ako zatvorite sada, unos se gubi.",
-      "discardAction": "Odbaci izmjene"
+      "discardAction": "Odbaci izmjene",
+      "noticeEditorLink": "Otvorite editor obavještenja",
+      "noticeEditorHint": "Ovo obavještenje se uređuje u namjenskom editoru Privatnost modula, ne ovdje."
     },
     "dependencies": {
       "requiresTitle": "Uslovi (mora biti ispunjeno prije uključivanja)",
@@ -6032,7 +6034,8 @@
       "exports": "Izvoz",
       "retention": "Retencija",
       "holds": "Pravne blokade",
-      "record": "Evidencija"
+      "record": "Evidencija",
+      "notice": "Obavještenje"
     },
     "common": {
       "minChars": "Najmanje {{count}} znakova."
@@ -6384,7 +6387,8 @@
       "unavailable": "Obavještenje trenutno nije objavljeno. Obratite se administratoru.",
       "failed": "Obavještenje se nije moglo učitati. Pokušajte ponovo.",
       "backToApp": "Nazad u aplikaciju",
-      "backToLogin": "Nazad na prijavu"
+      "backToLogin": "Nazad na prijavu",
+      "draftBadge": "Nacrt generisan iz evidencije obrade"
     },
     "markers": {
       "redacted": "Anonimizirano",
@@ -6439,6 +6443,27 @@
       "followerLinks": "Praćenja tiketa",
       "attachmentsUploaded": "Postavljeni prilozi",
       "auditRowsLinked": "Povezani audit zapisi"
+    },
+    "noticeEditor": {
+      "intro": "Uredite javno obavještenje o privatnosti (Markdown). Kada je tekst za jezik prazan, javna stranica prikazuje nacrt generisan iz evidencije obrade.",
+      "moduleDisabled": "Modul privatnosti je isključen — javna stranica obavještenja nije dostupna dok se ne uključi. Tekst možete pripremiti unaprijed.",
+      "statePublished": "Objavljeno (vlastiti tekst)",
+      "stateDraft": "Nacrt generisan iz evidencije",
+      "stateDisabled": "Modul isključen",
+      "language": "Jezik obavještenja",
+      "editorLabelBs": "Tekst (bosanski, Markdown)",
+      "editorLabelEn": "Tekst (engleski, Markdown)",
+      "preview": "Pregled",
+      "generate": "Generiši iz evidencije obrade",
+      "generateHint": "Generisanje zamjenjuje tekst u editoru za izabrani jezik nacrtom iz evidencije obrade (kontrolor, svrha, kategorije, primaoci, rokovi, prava i kontakt).",
+      "save": "Sačuvaj obavještenje",
+      "saved": "Obavještenje je sačuvano.",
+      "chars": "{{used}} / {{total}} znakova",
+      "overLimit": "tekst je preko limita, skratite ga prije čuvanja",
+      "loadFailed": "Stanje obavještenja se nije moglo učitati.",
+      "retry": "Pokušaj ponovo",
+      "openPublic": "Otvori javnu stranicu",
+      "dirty": "Imate nesačuvane izmjene."
     }
   },
   "status": {

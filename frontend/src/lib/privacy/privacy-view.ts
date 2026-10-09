@@ -3,7 +3,7 @@ import { ApiError } from "@/services/api";
 
 /** Paket 2.6 (§11): pure helpers of the privacy screens. */
 
-export const privacyTabs = ["requests", "anonymization", "exports", "retention", "holds", "record"] as const;
+export const privacyTabs = ["requests", "anonymization", "exports", "retention", "holds", "notice", "record"] as const;
 export type PrivacyTab = (typeof privacyTabs)[number];
 
 export type PrivacyTabAccess = {
@@ -14,7 +14,7 @@ export type PrivacyTabAccess = {
 export function visiblePrivacyTabs(access: PrivacyTabAccess): readonly PrivacyTab[] {
   return privacyTabs.filter((tab) => {
     if (tab === "anonymization") return access.canAnonymize;
-    if (tab === "exports") return access.canManage;
+    if (tab === "exports" || tab === "notice") return access.canManage;
     return true;
   });
 }
@@ -31,6 +31,20 @@ export function deadlineTone(daysLeft: number | null): BadgeTone {
   if (daysLeft < 0) return "danger";
   if (daysLeft <= 7) return "warning";
   return "success";
+}
+
+/** 5.3.7: what the notice editor badge says about the active language. */
+export type PrivacyNoticeState = "published" | "draft" | "disabled";
+
+export function privacyNoticeState(enabled: boolean, savedText: string): PrivacyNoticeState {
+  if (!enabled) return "disabled";
+  return savedText.trim().length > 0 ? "published" : "draft";
+}
+
+export function privacyNoticeStateTone(state: PrivacyNoticeState): BadgeTone {
+  if (state === "published") return "success";
+  if (state === "draft") return "warning";
+  return "danger";
 }
 
 const pseudonymPattern = /^Bivši korisnik #([0-9A-F]{4,6})$/;

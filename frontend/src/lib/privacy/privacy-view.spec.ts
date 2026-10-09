@@ -8,6 +8,8 @@ import {
   localizePersonName,
   matchesPersonQuery,
   needsIdentityCode,
+  privacyNoticeState,
+  privacyNoticeStateTone,
   readPrivacyErrorCode,
   readPrivacyTab,
   todayInputValue,
@@ -17,17 +19,27 @@ import {
 const apiError = (code: string) => new ApiError(403, code, "x");
 
 describe("privacy tabs", () => {
-  it("hides anonymization and exports without the matching permission", () => {
+  it("hides anonymization, exports and the notice editor without the matching permission", () => {
     expect(visiblePrivacyTabs({ canManage: false, canAnonymize: false })).toEqual(["requests", "retention", "holds", "record"]);
-    expect(visiblePrivacyTabs({ canManage: true, canAnonymize: true })).toHaveLength(6);
+    expect(visiblePrivacyTabs({ canManage: true, canAnonymize: false })).toEqual([
+      "requests",
+      "exports",
+      "retention",
+      "holds",
+      "notice",
+      "record",
+    ]);
+    expect(visiblePrivacyTabs({ canManage: true, canAnonymize: true })).toHaveLength(7);
   });
 
   it("falls back to the first visible tab for unknown or hidden values", () => {
     const viewer = { canManage: false, canAnonymize: false };
     expect(readPrivacyTab("exports", viewer)).toBe("requests");
+    expect(readPrivacyTab("notice", viewer)).toBe("requests");
     expect(readPrivacyTab("nonsense", viewer)).toBe("requests");
     expect(readPrivacyTab(null, viewer)).toBe("requests");
     expect(readPrivacyTab("holds", viewer)).toBe("holds");
+    expect(readPrivacyTab("notice", { canManage: true, canAnonymize: false })).toBe("notice");
   });
 });
 
@@ -97,5 +109,20 @@ describe("formatting helpers", () => {
     expect(matchesPersonQuery(person, "šEH")).toBe(true);
     expect(matchesPersonQuery(person, "EXAMPLE")).toBe(true);
     expect(matchesPersonQuery(person, "ana")).toBe(false);
+  });
+});
+
+describe("privacy notice state (5.3.7)", () => {
+  it("is published only when the module is on and the language has its own text", () => {
+    expect(privacyNoticeState(true, "Objavljeno.")).toBe("published");
+    expect(privacyNoticeState(true, "   \n  ")).toBe("draft");
+    expect(privacyNoticeState(true, "")).toBe("draft");
+    expect(privacyNoticeState(false, "Objavljeno.")).toBe("disabled");
+  });
+
+  it("tones the badge green, yellow and red", () => {
+    expect(privacyNoticeStateTone("published")).toBe("success");
+    expect(privacyNoticeStateTone("draft")).toBe("warning");
+    expect(privacyNoticeStateTone("disabled")).toBe("danger");
   });
 });

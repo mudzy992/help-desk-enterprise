@@ -5,6 +5,7 @@ import { PrivacyAnonymizationPanel } from "@/components/privacy/privacy-anonymiz
 import { PrivacyExportsPanel } from "@/components/privacy/privacy-exports-panel";
 import { PrivacyLegalHoldsPanel } from "@/components/privacy/privacy-legal-holds-panel";
 import { PrivacyRecordPanel } from "@/components/privacy/privacy-record-panel";
+import { PrivacyNoticeEditor } from "@/components/privacy/privacy-notice-editor";
 import { PrivacyRequestsPanel } from "@/components/privacy/privacy-requests-panel";
 import { PrivacyRetentionPanel } from "@/components/privacy/privacy-retention-panel";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
@@ -48,6 +49,7 @@ export function PrivacyPage() {
     exports: t("privacy.tabs.exports"),
     retention: t("privacy.tabs.retention"),
     holds: t("privacy.tabs.holds"),
+    notice: t("privacy.tabs.notice"),
     record: t("privacy.tabs.record"),
   };
 
@@ -97,6 +99,8 @@ export function PrivacyPage() {
         <PrivacyRetentionPanel canManage={access.canManage} />
       ) : tab === "holds" ? (
         <PrivacyLegalHoldsPanel canChange={canChangeHolds} />
+      ) : tab === "notice" ? (
+        <PrivacyNoticeEditor />
       ) : (
         <PrivacyRecordPanel generatedBy={session?.principal.displayName ?? null} />
       )}
