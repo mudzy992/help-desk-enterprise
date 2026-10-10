@@ -42,14 +42,33 @@ jobs:
           # so each run is mirrored at most once.
           CANDIDATES=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?status=completed&per_page=15" \
             --jq '.workflow_runs[] | select(.event=="schedule" or .event=="workflow_dispatch" or .event=="push") | (.id|tostring) + ":" + .head_sha[:7]' \
-            | head -n 6)
+            | head -n 8)
           echo "candidates=$(echo "$CANDIDATES" | tr '\n' ',')" >> "$GITHUB_ENV"
           RUN_ID=""
           while IFS=: read -r id sha; do
             [ -n "$id" ] || continue
             EXISTING=$(gh api "repos/${{ github.repository }}/commits/$sha/check-runs" \
               --jq "[.check_runs[] | select(.name | startswith(\"E2E triage mirror v2 (run $id\"))] | length")
-            if [ "$EXISTING" = "0" ]; then RUN_ID="$id"; break; fi
+            [ "$EXISTING" != "0" ] && continue
+            # Push runs skip the E2E job entirely — no report artifact. Mark
+            # them so the dedup skips them next time, then try the next one.
+            ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$id/artifacts" \
+              --jq '[.artifacts[] | select(.name=="playwright-report")] | length')
+            if [ "$ARTIFACTS" = "0" ]; then
+              SUMMARY=$(jq -Rs . <<< "Run $id has no playwright-report artifact (E2E did not run) — nothing to mirror.")
+              gh api "repos/${{ github.repository }}/check-runs" \
+                --method POST \
+                -f name="E2E triage mirror v2 (run $id: no artifact)" \
+                -f head_sha="$(gh api "repos/${{ github.repository }}/commits/$sha" --jq .sha)" \
+                -F status=completed \
+                -f conclusion=neutral \
+                -f "output[title]=E2E triage mirror: run $id had no report" \
+                -f "output[summary]=$SUMMARY" \
+                --jq '.id' > /dev/null
+              continue
+            fi
+            RUN_ID="$id"
+            break
           done <<< "$CANDIDATES"
           echo "run_id=$RUN_ID" >> "$GITHUB_ENV"
       - name: Download the Playwright report of the target run
