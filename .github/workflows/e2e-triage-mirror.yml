@@ -1,0 +1,85 @@
+# Triage mirror (2026-10-10): when the sandbox cannot reach GitHub's artifact
+# blob storage, this workflow downloads the `playwright-report` artifact of a
+# finished E2E run runner-side, extracts the failed/flaky tests and publishes
+# them as a check-run `output.summary` on the tested SHA — readable through the
+# REST API without touching blob storage.
+name: E2E triage mirror
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run id whose playwright-report artifact should be mirrored'
+        required: true
+      artifact:
+        description: 'Artifact name'
+        default: 'playwright-report'
+permissions:
+  actions: read
+  checks: write
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the Playwright report of the target run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.run_id }}" \
+            --repo "${{ github.repository }}" \
+            --name "${{ inputs.artifact }}" \
+            --dir report
+          ls -la report
+      - name: Publish failed/flaky tests as a check-run summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HEAD_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}" --jq .head_sha)
+          node - <<'NODE' > triage.md
+          const fs = require('fs');
+          const r = JSON.parse(fs.readFileSync('report/results.json', 'utf8'));
+          const walk = (suite, path, out) => {
+            const here = [...path, suite.title].filter(Boolean).join(' / ');
+            for (const child of suite.suites ?? []) walk(child, [...path, suite.title].filter(Boolean), out);
+            for (const spec of suite.specs ?? []) {
+              for (const test of spec.tests ?? []) {
+                const last = test.results?.[test.results.length - 1];
+                out.push({
+                  file: suite.file ?? '',
+                  path: here,
+                  title: spec.title,
+                  ok: spec.ok,
+                  status: test.status,
+                  expected: test.expectedStatus,
+                  attempts: test.results?.length ?? 0,
+                  error: last?.error?.message ?? '',
+                  attachments: (last?.attachments ?? []).map((a) => a.name).join(','),
+                });
+              }
+            }
+          };
+          const out = [];
+          for (const s of r.suites ?? []) walk(s, [], out);
+          const bad = out.filter((t) => !t.ok);
+          const lines = ['## E2E triage mirror', '',
+            `Stats: ${out.filter((t) => t.status === 'passed').length} passed, ` +
+            `${out.filter((t) => t.status === 'unexpected').length} unexpected, ` +
+            `${out.filter((t) => t.status === 'flaky').length} flaky, ` +
+            `${out.filter((t) => t.status === 'skipped').length} skipped.`];
+          for (const t of bad) {
+            lines.push('', `### ${t.path} / ${t.title}`, `- status: ${t.status} after ${t.attempts} attempt(s)`);
+            if (t.error) lines.push('```', ...t.error.split('\n').slice(0, 12), '```');
+          }
+          if (bad.length === 0) lines.push('', 'No failing tests in the artifact.');
+          console.log(lines.join('\n'));
+          NODE
+          wc -c triage.md
+          SUMMARY=$(jq -Rs . < triage.md)
+          gh api "repos/${{ github.repository }}/check-runs" \
+            --method POST \
+            -f name='E2E triage mirror' \
+            -f head_sha="$HEAD_SHA" \
+            -F status=completed \
+            -f conclusion=neutral \
+            -f "output[title]=E2E triage mirror of run ${{ inputs.run_id }}" \
+            -f "output[summary]=$SUMMARY" \
+            --jq '.id'
