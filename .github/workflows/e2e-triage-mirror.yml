@@ -48,7 +48,7 @@ jobs:
           while IFS=: read -r id sha; do
             [ -n "$id" ] || continue
             EXISTING=$(gh api "repos/${{ github.repository }}/commits/$sha/check-runs" \
-              --jq "[.check_runs[] | select(.name | startswith(\"E2E triage mirror (run $id\"))] | length")
+              --jq "[.check_runs[] | select(.name | startswith(\"E2E triage mirror v2 (run $id\"))] | length")
             if [ "$EXISTING" = "0" ]; then RUN_ID="$id"; break; fi
           done <<< "$CANDIDATES"
           echo "run_id=$RUN_ID" >> "$GITHUB_ENV"
@@ -72,11 +72,11 @@ jobs:
             SUMMARY=$(jq -Rs . <<< "No un-mirrored schedule/dispatch CI run found. Candidates checked: ${{ env.candidates }}")
             gh api "repos/${{ github.repository }}/check-runs" \
               --method POST \
-              -f name='E2E triage mirror' \
+              -f name='E2E triage mirror v2' \
               -f head_sha="${{ github.sha }}" \
               -F status=completed \
               -f conclusion=neutral \
-              -f "output[title]=E2E triage mirror: nothing to do" \
+              -f "output[title]=E2E triage mirror v2: nothing to do" \
               -f "output[summary]=$SUMMARY" \
               --jq '.id'
             exit 0
@@ -99,7 +99,9 @@ jobs:
                   status: test.status,
                   expected: test.expectedStatus,
                   attempts: test.results?.length ?? 0,
+                  line: test.location?.line ?? '?',
                   error: last?.error?.message ?? '',
+                  stack: (last?.error?.stack ?? '').split('\n').slice(0, 6).join('\n'),
                   attachments: (last?.attachments ?? []).map((a) => a.name).join(','),
                 });
               }
@@ -107,15 +109,24 @@ jobs:
           };
           const out = [];
           for (const s of r.suites ?? []) walk(s, [], out);
-          const bad = out.filter((t) => !t.ok);
-          const lines = ['## E2E triage mirror', '',
+          const files = [...new Set(out.map((t) => t.file).filter(Boolean))];
+          const bad = out.filter((t) => !t.ok && t.status !== 'skipped');
+          const skipped = out.filter((t) => t.status === 'skipped');
+          const lines = ['## E2E triage mirror v2', '',
+            `Files in this report (${files.length}): ${files.join(', ')}`, '',
             `Stats: ${out.filter((t) => t.status === 'passed').length} passed, ` +
             `${out.filter((t) => t.status === 'unexpected').length} unexpected, ` +
             `${out.filter((t) => t.status === 'flaky').length} flaky, ` +
-            `${out.filter((t) => t.status === 'skipped').length} skipped.`];
+            `${out.filter((t) => t.status === 'skipped').length} skipped, ` +
+            `${out.filter((t) => ['interrupted','didnotrun'].includes(t.status)).length} not-run.`];
           for (const t of bad) {
-            lines.push('', `### ${t.path} / ${t.title}`, `- status: ${t.status} after ${t.attempts} attempt(s)`);
-            if (t.error) lines.push('```', ...t.error.split('\n').slice(0, 12), '```');
+            lines.push('', `### ${t.file}:${t.line} — ${t.title}`,
+              `- status: ${t.status} after ${t.attempts} attempt(s)`);
+            if (t.error) lines.push('```', ...t.error.split('\n').slice(0, 30), '```');
+            else if (t.stack) lines.push('```', ...t.stack.split('\n'), '```');
+          }
+          for (const t of skipped) {
+            lines.push('', `- skipped: ${t.file}:${t.line} — ${t.title}`);
           }
           if (bad.length === 0) lines.push('', 'No failing tests in the artifact.');
           console.log(lines.join('\n'));
@@ -128,6 +139,6 @@ jobs:
             -f head_sha="$HEAD_SHA" \
             -F status=completed \
             -f conclusion=neutral \
-            -f "output[title]=E2E triage mirror of run ${{ env.run_id }}" \
+            -f "output[title]=E2E triage mirror v2 of run ${{ env.run_id }}" \
             -f "output[summary]=$SUMMARY" \
             --jq '.id'
