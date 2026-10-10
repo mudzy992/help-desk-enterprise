@@ -41,6 +41,8 @@ import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService, type UserSessionView } from './security/session-registry.service';
 
 export type AccountSecurityOverview = {
+  /** The caller the token identifies — pinned by E2E spec 39. */
+  readonly principal: { readonly id: string; readonly email: string };
   readonly mfa: MfaStatus;
   readonly password: {
     readonly hasLocalPassword: boolean;
@@ -80,6 +82,7 @@ export class AccountSecurityController {
     const policy = await this.policyLoader.load();
     const expiresAt = user.localPasswordHash ? passwordExpiresAt(user, policy) : null;
     return {
+      principal: { id: user.id, email: user.email },
       mfa: await this.mfaService.status(user, policy),
       password: {
         hasLocalPassword: user.localPasswordHash !== null,

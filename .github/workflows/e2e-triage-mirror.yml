@@ -37,11 +37,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Only the intentional full runs (schedule / manual dispatch) — a push
-          # to master silently launches a full suite as a side effect and must
-          # not flood the mirror. Dedup per run id via the check-run name.
+          # Full runs live on schedule / dispatch, and a push to master also
+          # launches the whole suite. Dedup per run id via the check-run name,
+          # so each run is mirrored at most once.
           CANDIDATES=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?status=completed&per_page=15" \
-            --jq '.workflow_runs[] | select(.event=="schedule" or .event=="workflow_dispatch") | (.id|tostring) + ":" + .head_sha[:7]' \
+            --jq '.workflow_runs[] | select(.event=="schedule" or .event=="workflow_dispatch" or .event=="push") | (.id|tostring) + ":" + .head_sha[:7]' \
             | head -n 6)
           echo "candidates=$(echo "$CANDIDATES" | tr '\n' ',')" >> "$GITHUB_ENV"
           RUN_ID=""
@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${{ env.run_id }}" ]; then
-            SUMMARY=$(jq -Rs . <<< "No un-mirrored schedule/dispatch CI run found. Candidates checked: ${{ env.candidates }}")
+            SUMMARY=$(jq -Rs . <<< "No un-mirrored full CI run found. Candidates checked: ${{ env.candidates }}")
             gh api "repos/${{ github.repository }}/check-runs" \
               --method POST \
               -f name='E2E triage mirror v2' \
