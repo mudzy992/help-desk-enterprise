@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
+import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { SecurityIdentityController } from './security-identity.controller';
 import { SecurityRateLimitsController } from './security-rate-limits.controller';
@@ -14,7 +15,9 @@ import { SecurityRateLimitsService } from './security-rate-limits.service';
  * services through the exported surface.
  */
 @Module({
-  imports: [AuthenticationModule, SettingsModule],
+  // AuthorizationModule provides the AuthorizationService the RoleGuard
+  // needs for the SUPER_ADMIN-only rate-limits endpoints.
+  imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
   controllers: [SecurityIdentityController, SecurityRateLimitsController],
   providers: [IdentityPasskeyService, SecurityRateLimitsService],
   exports: [IdentityPasskeyService],
