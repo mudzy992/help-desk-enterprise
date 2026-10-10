@@ -156,7 +156,7 @@ jobs:
           SUMMARY=$(jq -Rs . < triage.md)
           gh api "repos/${{ github.repository }}/check-runs" \
             --method POST \
-            -f name='E2E triage mirror' \
+            -f name="E2E triage mirror v2 (run ${{ env.run_id }})" \
             -f head_sha="$HEAD_SHA" \
             -F status=completed \
             -f conclusion=neutral \
