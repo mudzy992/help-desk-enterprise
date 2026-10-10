@@ -54,15 +54,6 @@ export type PasskeyAuthenticationSubject = {
   readonly ip: string | null;
 };
 
-type CredentialRow = {
-  id: string;
-  credentialId: string;
-  publicKey: string;
-  counter: bigint;
-  transports: string | null;
-  deviceName: string | null;
-};
-
 @Injectable()
 export class PasskeyCredentialService {
   constructor(

@@ -1,5 +1,8 @@
 import { hashLocalPassword } from '../authentication/hash-local-password';
-import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
+import {
+  isReservedNoEmailAddress,
+  issueTemporaryPasswordForUser,
+} from './issue-temporary-password-for-user';
 
 jest.mock('../authentication/hash-local-password', () => ({
   hashLocalPassword: jest.fn().mockResolvedValue('$2b$04$issued-hash'),
@@ -28,7 +31,7 @@ describe('issueTemporaryPasswordForUser', () => {
       settingsService: {} as never,
       mailTransport: { send: jest.fn() } as never,
       userId: 'user-1',
-      email: 'user@example.com',
+      email: 'user@corp.test',
       displayName: 'Test User',
     });
     expect(hashLocalPassword).toHaveBeenCalled();
@@ -120,5 +123,38 @@ describe('issueTemporaryPasswordForUser', () => {
       metadata: { reason: 'admin_reset', mustChangePassword: true },
     }));
     expect(JSON.stringify(jest.mocked(recordUserChange).mock.calls)).not.toContain('ResetPassword');
+  });
+});
+
+describe('isReservedNoEmailAddress', () => {
+  it('treats the default reserved domain (example.com) as UI delivery', () => {
+    expect(isReservedNoEmailAddress('e2e-admin@example.com')).toBe(true);
+  });
+
+  it('is case-insensitive and honours the configured domain list', () => {
+    expect(isReservedNoEmailAddress('USER@Corp.BA', 'corp.ba, other.org')).toBe(true);
+    expect(isReservedNoEmailAddress('user@other.org', 'corp.ba,other.org')).toBe(true);
+    expect(isReservedNoEmailAddress('user@firma.ba', 'corp.ba')).toBe(false);
+  });
+
+  it('never emails a reserved address even when SMTP delivery succeeds', async () => {
+    jest.mocked(sendTemporaryPasswordEmail).mockResolvedValue(true);
+    jest.mocked(sendTemporaryPasswordEmail).mockClear();
+    const update = jest.fn().mockResolvedValue({});
+    const transaction = { user: { update } };
+    const prisma = {
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
+    };
+    const issued = await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      userId: 'user-2',
+      email: 'e2e-superadmin@example.com',
+      displayName: 'E2E Admin',
+    });
+    expect(sendTemporaryPasswordEmail).not.toHaveBeenCalled();
+    expect(issued.temporaryPasswordDelivery).toBe('ui');
+    expect(issued.temporaryPassword).toEqual(expect.any(String));
   });
 });

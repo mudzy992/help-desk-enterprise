@@ -157,7 +157,7 @@ describe('PasskeyCredentialService', () => {
 
   it('removes a passkey when another factor remains', async () => {
     const deleteFn = jest.fn(async () => ({}));
-    const { instance, prisma, notifier } = service({
+    const { instance, notifier } = service({
       findFirst: jest.fn(async () => ({ id: 'row-1' })),
       count: jest.fn(async () => 2),
       delete: deleteFn,

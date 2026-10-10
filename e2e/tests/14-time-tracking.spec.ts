@@ -100,10 +100,25 @@ test.describe('14 time tracking guard', () => {
     await page.getByTestId('time-manual-minutes').fill('30');
     await page.getByTestId('time-manual-note').fill('E2E: telefonska podrška');
     await page.getByTestId('time-manual-save').click();
+    // Nightly 2026-10-10 (live stack): the save can be refused by server
+    // settings (backdate limits, working hours). Poll the API first so a
+    // refusal fails with the server state instead of a bare "row not found".
+    let logs: TimeLog[] = [];
+    const manualLogCount = async (): Promise<number> => {
+      logs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
+      return logs.filter((log) => log.source === 'MANUAL').length;
+    };
+    try {
+      await expect.poll(manualLogCount, { timeout: 15_000 }).toBeGreaterThan(0);
+    } catch {
+      throw new Error(
+        `manual entry was never persisted; server time logs: ${JSON.stringify(logs)}`,
+      );
+    }
     await expect(
       page.getByTestId('time-log-row').filter({ hasText: 'E2E: telefonska podrška' }),
     ).toBeVisible({ timeout: 15_000 });
-    let logs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
+    logs = await adminApi.requestJson<TimeLog[]>(`/tickets/${first.id}/time-logs`);
     await expect
       .poll(
         async () => {

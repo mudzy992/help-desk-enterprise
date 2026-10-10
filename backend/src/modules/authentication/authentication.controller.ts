@@ -112,7 +112,11 @@ export class AuthenticationController {
     }
   }
 
+  // Nightly 2026-10-10: a sign-in is an RPC-style POST with a body response —
+  // 200 like every other auth endpoint, not the Nest POST default 201 (E2E 39
+  // pins this contract).
   @Post('login')
+  @HttpCode(200)
   login(
     @Body() body: LocalLoginDto,
     @Req() request: SignInRequest,
@@ -129,6 +133,7 @@ export class AuthenticationController {
   }
 
   @Post('entra')
+  @HttpCode(200)
   loginWithEntra(
     @Body() body: EntraLoginDto,
     @Req() request?: SignInRequest,

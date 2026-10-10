@@ -21,10 +21,6 @@ export type PasskeyChallengeStore = {
 
 export function createMemoryPasskeyChallengeStore(now: () => number = Date.now): PasskeyChallengeStore {
   const entries = new Map<string, { value: string; expiresAt: number }>();
-  const alive = (key: string): boolean => {
-    const entry = entries.get(key);
-    return entry !== undefined && entry.expiresAt > now();
-  };
   return {
     async set(key, value, ttlSeconds) {
       entries.set(key, { value, expiresAt: now() + ttlSeconds * 1000 });

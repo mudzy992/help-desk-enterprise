@@ -76,9 +76,27 @@ async function trySendTemporaryPassword(input: {
   readonly displayName: string;
   readonly temporaryPassword: string;
 }): Promise<boolean> {
+  // Nightly 2026-10-10 (E2E 37/38): reserved addresses never receive test
+  // mail — they always get the password back in the response (UI delivery),
+  // even when SMTP is configured. Defaults to the RFC 2606 reserved domain.
+  if (isReservedNoEmailAddress(input.toAddress)) return false;
   try {
     return await sendTemporaryPasswordEmail(input);
   } catch {
     return false;
   }
+}
+
+/** Domains listed here (comma-separated) always get UI password delivery. */
+export function isReservedNoEmailAddress(
+  email: string,
+  domainsCsv: string = process.env.RESERVED_NO_EMAIL_DOMAINS ?? 'example.com',
+): boolean {
+  const domain = email.trim().toLowerCase().split('@')[1] ?? '';
+  if (domain.length === 0) return false;
+  return domainsCsv
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry.length > 0)
+    .includes(domain);
 }

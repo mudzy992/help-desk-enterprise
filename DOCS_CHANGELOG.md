@@ -7,6 +7,14 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-10 — Noćni E2E triage (maintenance, prije 5.4.0-c)
+
+- Autentikacija: `POST /auth/login` i `POST /auth/entra` sada vraćaju **200** (ranije Nest default 201) — usklađeno s ostalim auth endpointima i E2E 39 kontraktom.
+- Privremene lozinke: adrese na rezervisanim domenima (`RESERVED_NO_EMAIL_DOMAINS`, default `example.com`) **nikad ne dobijaju lozinku emailom** — dostava je uvijek kroz UI odgovor, i kad je SMTP konfigurisan.
+- E2E hardening (živi-server podaci): spec 02 skip kad živa routing pravila pokriju seed OU; spec 14 izveštava API stanje kad ručni vremenski unos bude odbijen; spec 43 skip kad zapis o obradi generiše prazan predlog obavještenja.
+- Uklonjena 3 eslint upozorenja (passkey challenge/credential servis i spec).
+
+
 ## Pregled
 
 | # | Datum | Modul | Dokumenti | Sažetak |

@@ -7000,6 +7000,14 @@ Redoslijed valova: 5.4.0-a (passkey backend + step-up) → b (limiti + metrika) 
 d (audit + HIBP + bulk) → e (frontend) → f (testovi + dokumentacija); CAPTCHA ostaje 5.4.1.
 
 **Napredak valova:**
+- **Noćni E2E triage ✅ 2026-10-10** (maintenance, prije 5.4.0-c): noćni run (schedule) testira
+  ŽIVI server preko `vars.E2E_BASE_URL` — 6 crvenih je mješavina kontrakta i živih podataka, ne
+  regresija 5.4 (i run 2026-10-09 na 5.3.6 vrhu bio je crven). Popravljeno: `@HttpCode(200)` na
+  auth `login`/`entra` (E2E 39 pinuje 200); rezervisane adrese (`RESERVED_NO_EMAIL_DOMAINS`,
+  default `example.com`) nikad ne dobijaju lozinku mailom — uvijek UI dostava (E2E 37/38);
+  3 eslint upozorenja uklonjena (passkey fajlovi). Spec hardening: 02 skip kad živa routing
+  pravila pokrivaju seed OU; 14 izveštava API stanje kad ručni unos nije sačuvan; 43 skip kad
+  ROPA generiše prazan draft.
 - **5.4.0-a ✅ zatvoren 2026-10-09** (`3926ec8`, spec-fixevi `a8d833a`/`1c6f81d`): CI potpuno zelen
   (backend jest + frontend vitest + E2E regresija 37/39 netaknuta). Isporučeno: `UserPasskeyCredential`
   (migracija `20271009000000`), login međukorak s `methods` poljem (backward compatible), step-up
