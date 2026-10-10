@@ -11,6 +11,11 @@ on:
   # is nothing new; the cron is removed once triage mirroring is retired.
   schedule:
     - cron: '*/15 * * * *'
+  push:
+    branches:
+      - arena/04d0979c-help-desk-enterprise
+    paths:
+      - '.github/workflows/e2e-triage-mirror.yml'
   workflow_dispatch:
     inputs:
       run_id:
@@ -27,37 +32,77 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pick the run to mirror (auto-discovery on cron)
-        if: ${{ inputs.run_id == '' }}
+        id: pick
+        continue-on-error: true
+        if: ${{ inputs.run_id == '' || inputs.run_id == null }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/CI/runs?status=completed&per_page=10" \
-            --jq '[.workflow_runs[] | select(.conclusion != "" and .conclusion != null) | .id][]' \
-            | while read -r id; do
-                SHA=$(gh api "repos/${{ github.repository }}/actions/runs/$id" --jq .head_sha)
-                EXISTING=$(gh api "repos/${{ github.repository }}/commits/$SHA/check-runs" \
-                  --jq '[.check_runs[] | select(.name=="E2E triage mirror")] | length')
-                [ "$EXISTING" = "0" ] && { echo "$id"; break; }
-              done)
+          set -euo pipefail
+          # Full runs live on schedule / dispatch, and a push to master also
+          # launches the whole suite. Dedup per run id via the check-run name,
+          # so each run is mirrored at most once.
+          CANDIDATES=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?status=completed&per_page=15" \
+            --jq '.workflow_runs[] | select(.event=="schedule" or .event=="workflow_dispatch" or .event=="push") | (.id|tostring) + ":" + .head_sha[:7]' \
+            | head -n 8)
+          echo "candidates=$(echo "$CANDIDATES" | tr '\n' ',')" >> "$GITHUB_ENV"
+          RUN_ID=""
+          while IFS=: read -r id sha; do
+            [ -n "$id" ] || continue
+            EXISTING=$(gh api "repos/${{ github.repository }}/commits/$sha/check-runs" \
+              --jq "[.check_runs[] | select(.name | startswith(\"E2E triage mirror v2 (run $id\"))] | length")
+            if [ "$EXISTING" != "0" ]; then continue; fi
+            # Push runs skip the E2E job entirely — no report artifact. Mark
+            # them so the dedup skips them next time, then try the next one.
+            ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$id/artifacts" \
+              --jq '[.artifacts[] | select(.name=="playwright-report")] | length')
+            if [ "$ARTIFACTS" = "0" ]; then
+              SUMMARY=$(jq -Rs . <<< "Run $id has no playwright-report artifact (E2E did not run) — nothing to mirror.")
+              gh api "repos/${{ github.repository }}/check-runs" \
+                --method POST \
+                -f name="E2E triage mirror v2 (run $id: no artifact)" \
+                -f head_sha="$(gh api "repos/${{ github.repository }}/commits/$sha" --jq .sha)" \
+                -F status=completed \
+                -f conclusion=neutral \
+                -f "output[title]=E2E triage mirror: run $id had no report" \
+                -f "output[summary]=$SUMMARY" \
+                --jq '.id' > /dev/null
+              continue
+            fi
+            RUN_ID="$id"
+            break
+          done <<< "$CANDIDATES"
           echo "run_id=$RUN_ID" >> "$GITHUB_ENV"
       - name: Download the Playwright report of the target run
+        if: ${{ env.run_id != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUN="${{ inputs.run_id || env.run_id }}"
-          if [ -z "$RUN" ]; then echo 'No un-mirrored run found.'; exit 0; fi
-          gh run download "$RUN" \
+          set -euo pipefail
+          gh run download "${{ env.run_id }}" \
             --repo "${{ github.repository }}" \
             --name "${{ inputs.artifact || 'playwright-report' }}" \
             --dir report
           ls -la report
-          echo "target_run=$RUN" >> "$GITHUB_ENV"
       - name: Publish failed/flaky tests as a check-run summary
-        if: ${{ env.target_run != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          HEAD_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ env.target_run }}" --jq .head_sha)
+          set -euo pipefail
+          if [ -z "${{ env.run_id }}" ]; then
+            SUMMARY=$(jq -Rs . <<< "No run mirrored. Discovery outcome: ${{ steps.pick.outcome || 'skipped' }}. Candidates checked: ${{ env.candidates }}")
+            gh api "repos/${{ github.repository }}/check-runs" \
+              --method POST \
+              -f name='E2E triage mirror v2' \
+              -f head_sha="${{ github.sha }}" \
+              -F status=completed \
+              -f conclusion=neutral \
+              -f "output[title]=E2E triage mirror v2: nothing to do" \
+              -f "output[summary]=$SUMMARY" \
+              --jq '.id'
+            exit 0
+          fi
+          HEAD_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ env.run_id }}" --jq .head_sha)
           node - <<'NODE' > triage.md
           const fs = require('fs');
           const r = JSON.parse(fs.readFileSync('report/results.json', 'utf8'));
@@ -75,7 +120,9 @@ jobs:
                   status: test.status,
                   expected: test.expectedStatus,
                   attempts: test.results?.length ?? 0,
+                  line: test.location?.line ?? '?',
                   error: last?.error?.message ?? '',
+                  stack: (last?.error?.stack ?? '').split('\n').slice(0, 6).join('\n'),
                   attachments: (last?.attachments ?? []).map((a) => a.name).join(','),
                 });
               }
@@ -83,15 +130,24 @@ jobs:
           };
           const out = [];
           for (const s of r.suites ?? []) walk(s, [], out);
-          const bad = out.filter((t) => !t.ok);
-          const lines = ['## E2E triage mirror', '',
+          const files = [...new Set(out.map((t) => t.file).filter(Boolean))];
+          const bad = out.filter((t) => !t.ok && t.status !== 'skipped');
+          const skipped = out.filter((t) => t.status === 'skipped');
+          const lines = ['## E2E triage mirror v2', '',
+            `Files in this report (${files.length}): ${files.join(', ')}`, '',
             `Stats: ${out.filter((t) => t.status === 'passed').length} passed, ` +
             `${out.filter((t) => t.status === 'unexpected').length} unexpected, ` +
             `${out.filter((t) => t.status === 'flaky').length} flaky, ` +
-            `${out.filter((t) => t.status === 'skipped').length} skipped.`];
+            `${out.filter((t) => t.status === 'skipped').length} skipped, ` +
+            `${out.filter((t) => ['interrupted','didnotrun'].includes(t.status)).length} not-run.`];
           for (const t of bad) {
-            lines.push('', `### ${t.path} / ${t.title}`, `- status: ${t.status} after ${t.attempts} attempt(s)`);
-            if (t.error) lines.push('```', ...t.error.split('\n').slice(0, 12), '```');
+            lines.push('', `### ${t.file}:${t.line} — ${t.title}`,
+              `- status: ${t.status} after ${t.attempts} attempt(s)`);
+            if (t.error) lines.push('```', ...t.error.split('\n').slice(0, 30), '```');
+            else if (t.stack) lines.push('```', ...t.stack.split('\n'), '```');
+          }
+          for (const t of skipped) {
+            lines.push('', `- skipped: ${t.file}:${t.line} — ${t.title}`);
           }
           if (bad.length === 0) lines.push('', 'No failing tests in the artifact.');
           console.log(lines.join('\n'));
@@ -100,10 +156,10 @@ jobs:
           SUMMARY=$(jq -Rs . < triage.md)
           gh api "repos/${{ github.repository }}/check-runs" \
             --method POST \
-            -f name='E2E triage mirror' \
+            -f name="E2E triage mirror v2 (run ${{ env.run_id }})" \
             -f head_sha="$HEAD_SHA" \
             -F status=completed \
             -f conclusion=neutral \
-            -f "output[title]=E2E triage mirror of run ${{ env.target_run }}" \
+            -f "output[title]=E2E triage mirror v2 of run ${{ env.run_id }}" \
             -f "output[summary]=$SUMMARY" \
             --jq '.id'

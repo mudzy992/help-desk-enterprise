@@ -60,7 +60,13 @@ test.describe('43 privacy notice editor (5.3.7)', () => {
           'the record of processing on this stack generates an empty notice draft; nothing to validate',
         );
         await page.getByTestId('privacy-notice-generate').click();
-        const generated = await page.getByTestId('privacy-notice-textarea-bs').inputValue();
+        // Nightly 2026-10-10: the generate is an async round-trip; the textarea
+        // may still hold the pre-generate value (an empty saved notice) when
+        // read immediately. The draft is deterministic for an unchanged record,
+        // so wait for the exact generated text.
+        const textarea = page.getByTestId('privacy-notice-textarea-bs');
+        await expect(textarea).toHaveValue(draft.markdown, { timeout: 15_000 });
+        const generated = await textarea.inputValue();
         expect(generated.length).toBeGreaterThan(0);
         expect(generated.length).toBeLessThanOrEqual(original.maxLength);
         await expect(page.getByTestId('privacy-notice-counter-bs')).toContainText(`${generated.length}`);
