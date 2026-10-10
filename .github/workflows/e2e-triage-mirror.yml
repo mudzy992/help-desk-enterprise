@@ -49,7 +49,7 @@ jobs:
             [ -n "$id" ] || continue
             EXISTING=$(gh api "repos/${{ github.repository }}/commits/$sha/check-runs" \
               --jq "[.check_runs[] | select(.name | startswith(\"E2E triage mirror v2 (run $id\"))] | length")
-            [ "$EXISTING" != "0" ] && continue
+            if [ "$EXISTING" != "0" ]; then continue; fi
             # Push runs skip the E2E job entirely — no report artifact. Mark
             # them so the dedup skips them next time, then try the next one.
             ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$id/artifacts" \
