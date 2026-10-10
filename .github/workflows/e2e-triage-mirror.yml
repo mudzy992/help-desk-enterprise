@@ -11,6 +11,11 @@ on:
   # is nothing new; the cron is removed once triage mirroring is retired.
   schedule:
     - cron: '*/15 * * * *'
+  push:
+    branches:
+      - arena/04d0979c-help-desk-enterprise
+    paths:
+      - '.github/workflows/e2e-triage-mirror.yml'
   workflow_dispatch:
     inputs:
       run_id:
