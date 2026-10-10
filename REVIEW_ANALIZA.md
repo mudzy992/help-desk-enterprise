@@ -7000,6 +7000,13 @@ Redoslijed valova: 5.4.0-a (passkey backend + step-up) → b (limiti + metrika) 
 d (audit + HIBP + bulk) → e (frontend) → f (testovi + dokumentacija); CAPTCHA ostaje 5.4.1.
 
 **Napredak valova:**
+- **E2E triage 2 ✅ 2026-10-10** (ručni full run 38044846221, PR #7): `POST /auth/login` 200 fix potvrđen
+  (spec 39 prošao kroz login+MFA). Preostala 2 faila riješena: `/auth/security` overview opet vraća
+  `principal {id, email}` (E2E 39 kontrakt; polje izgubljeno pri rewrite-u account-security, a spec to
+  nikad nije validirao jer je login 201 blokirao ranije); spec 43 — generate je async round-trip, test
+  sada čeka deterministički generisani tekst (`toHaveValue`) umjesto trenutnog čitanja praznog tekstarea
+  stanja. Skip-guardi rade (02 skip na živim routing pravilima; 38 "simultaneous removal" skipovan).
+  Mirror workflow objavljuje rezultate E2E runova kao check-run summary (blob storage nedostupan sandboxu).
 - **Noćni E2E triage ✅ 2026-10-10** (maintenance, prije 5.4.0-c): noćni run (schedule) testira
   ŽIVI server preko `vars.E2E_BASE_URL` — 6 crvenih je mješavina kontrakta i živih podataka, ne
   regresija 5.4 (i run 2026-10-09 na 5.3.6 vrhu bio je crven). Popravljeno: `@HttpCode(200)` na

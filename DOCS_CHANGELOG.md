@@ -7,6 +7,12 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-10 — E2E triage 2 (ručni full run 38044846221)
+
+- `/auth/security` (Pregled sigurnosti) sada u odgovoru vraća i **`principal`** (`{ id, email }` pozivaoca) — usklađeno s E2E 39 kontraktom; polje je nestalo pri ranijem rewrite-u kontrolera, a spec ga nikad prije nije stigao validirati.
+- E2E spec 43: čekanje deterministički generisanog teksta obavještenja (async generisanje) umjesto trenutnog očitanja — eliminisan trka-uslov sa praznim sačuvanim obavještenjem.
+
+
 ## 2026-10-10 — Noćni E2E triage (maintenance, prije 5.4.0-c)
 
 - Autentikacija: `POST /auth/login` i `POST /auth/entra` sada vraćaju **200** (ranije Nest default 201) — usklađeno s ostalim auth endpointima i E2E 39 kontraktom.
