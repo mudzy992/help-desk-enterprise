@@ -5,11 +5,17 @@
 # REST API without touching blob storage.
 name: E2E triage mirror
 on:
+  # The analysis sandbox has no actions:write (cannot dispatch) and no access
+  # to artifact blob storage, so this workflow also self-runs on a cron and
+  # mirrors any not-yet-mirrored finished E2E run. It exits early when there
+  # is nothing new; the cron is removed once triage mirroring is retired.
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       run_id:
-        description: 'Run id whose playwright-report artifact should be mirrored'
-        required: true
+        description: 'Run id whose playwright-report artifact should be mirrored (empty = auto-discover)'
+        required: false
       artifact:
         description: 'Artifact name'
         default: 'playwright-report'
@@ -20,20 +26,38 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
+      - name: Pick the run to mirror (auto-discovery on cron)
+        if: ${{ inputs.run_id == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/CI/runs?status=completed&per_page=10" \
+            --jq '[.workflow_runs[] | select(.conclusion != "" and .conclusion != null) | .id][]' \
+            | while read -r id; do
+                SHA=$(gh api "repos/${{ github.repository }}/actions/runs/$id" --jq .head_sha)
+                EXISTING=$(gh api "repos/${{ github.repository }}/commits/$SHA/check-runs" \
+                  --jq '[.check_runs[] | select(.name=="E2E triage mirror")] | length')
+                [ "$EXISTING" = "0" ] && { echo "$id"; break; }
+              done)
+          echo "run_id=$RUN_ID" >> "$GITHUB_ENV"
       - name: Download the Playwright report of the target run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download "${{ inputs.run_id }}" \
+          RUN="${{ inputs.run_id || env.run_id }}"
+          if [ -z "$RUN" ]; then echo 'No un-mirrored run found.'; exit 0; fi
+          gh run download "$RUN" \
             --repo "${{ github.repository }}" \
-            --name "${{ inputs.artifact }}" \
+            --name "${{ inputs.artifact || 'playwright-report' }}" \
             --dir report
           ls -la report
+          echo "target_run=$RUN" >> "$GITHUB_ENV"
       - name: Publish failed/flaky tests as a check-run summary
+        if: ${{ env.target_run != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          HEAD_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ inputs.run_id }}" --jq .head_sha)
+          HEAD_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${{ env.target_run }}" --jq .head_sha)
           node - <<'NODE' > triage.md
           const fs = require('fs');
           const r = JSON.parse(fs.readFileSync('report/results.json', 'utf8'));
@@ -80,6 +104,6 @@ jobs:
             -f head_sha="$HEAD_SHA" \
             -F status=completed \
             -f conclusion=neutral \
-            -f "output[title]=E2E triage mirror of run ${{ inputs.run_id }}" \
+            -f "output[title]=E2E triage mirror of run ${{ env.target_run }}" \
             -f "output[summary]=$SUMMARY" \
             --jq '.id'
