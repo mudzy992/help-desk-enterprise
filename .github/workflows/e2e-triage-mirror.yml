@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pick the run to mirror (auto-discovery on cron)
+        id: pick
+        continue-on-error: true
         if: ${{ inputs.run_id == '' || inputs.run_id == null }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -88,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${{ env.run_id }}" ]; then
-            SUMMARY=$(jq -Rs . <<< "No un-mirrored full CI run found. Candidates checked: ${{ env.candidates }}")
+            SUMMARY=$(jq -Rs . <<< "No run mirrored. Discovery outcome: ${{ steps.pick.outcome || 'skipped' }}. Candidates checked: ${{ env.candidates }}")
             gh api "repos/${{ github.repository }}/check-runs" \
               --method POST \
               -f name='E2E triage mirror v2' \
