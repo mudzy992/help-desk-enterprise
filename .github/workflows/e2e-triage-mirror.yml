@@ -64,7 +64,6 @@ jobs:
             --dir report
           ls -la report
       - name: Publish failed/flaky tests as a check-run summary
-        if: ${{ env.target_run != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
