@@ -126,7 +126,11 @@ export class AuthenticationController {
       request?.ip,
       () =>
         this.authenticationService.loginWithPassword(
-          { email: body.email, password: body.password },
+          {
+            email: body.email,
+            password: body.password,
+            rememberMe: body.rememberMe === true,
+          },
           readSignInContext(request),
         ),
     );

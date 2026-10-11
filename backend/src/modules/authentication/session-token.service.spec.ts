@@ -1,4 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
+import { authenticationConstants } from './authentication.constants';
 import type { AuthenticatedPrincipal } from './authentication.types';
 import { readSessionSubjectId } from './read-session-subject-id';
 import { SessionTokenService } from './session-token.service';
@@ -39,6 +40,45 @@ describe('SessionTokenService', () => {
     expect(payload).not.toHaveProperty('email');
     expect(payload).not.toHaveProperty('provider');
     expect(JSON.stringify(payload)).not.toContain(SIGNING_SECRET);
+  });
+
+  it('issues and verifies a remembered token with a 30-day TTL', async () => {
+    const accessToken = await service.issue(principal, 'session-remembered', {
+      ttlSeconds: authenticationConstants.rememberMeSessionTtlSeconds,
+      rememberMe: true,
+    });
+    const claims = await service.verify(accessToken);
+    expect(claims).toMatchObject({
+      subjectId: 'user-1',
+      sessionId: 'session-remembered',
+      rememberMe: true,
+    });
+    expect(claims.expiresAt - claims.issuedAt).toBe(
+      authenticationConstants.rememberMeSessionTtlSeconds,
+    );
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    expect(payload.rem).toBe(true);
+  });
+
+  it('keeps the default token free of a remember-me claim', async () => {
+    const accessToken = await service.issue(principal, 'session-default');
+    const claims = await service.verify(accessToken);
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    expect(claims.rememberMe).toBe(false);
+    expect(payload).not.toHaveProperty('rem');
+  });
+
+  it('carries remember me through the MFA intermediate token', async () => {
+    const token = await service.issueMfaToken('user-1', 'verify', true);
+    await expect(service.verifyMfaToken(token)).resolves.toMatchObject({
+      subjectId: 'user-1',
+      stage: 'verify',
+      rememberMe: true,
+    });
   });
 
   it('rejects password-change tokens as session tokens', async () => {

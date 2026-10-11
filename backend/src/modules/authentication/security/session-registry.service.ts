@@ -16,6 +16,7 @@ export type SessionRevokeReason =
   | 'password_change'
   | 'mfa_reset'
   | 'session_limit'
+  | 'idle_timeout'
   | 'deactivated';
 
 export type UserSessionView = {
@@ -27,7 +28,15 @@ export type UserSessionView = {
   readonly createdAt: string;
   readonly lastSeenAt: string;
   readonly expiresAt: string;
+  readonly rememberMe: boolean;
   readonly current: boolean;
+};
+
+export type ActiveUserSession = {
+  readonly id: string;
+  readonly userId: string;
+  readonly lastSeenAt: Date;
+  readonly rememberMe: boolean;
 };
 
 const TOUCH_INTERVAL_MS = 5 * 60 * 1000;
@@ -56,6 +65,7 @@ export class SessionRegistryService {
     readonly context: SignInContext;
     readonly policy: AccountSecurityPolicy;
     readonly isAdmin: boolean;
+    readonly rememberMe: boolean;
   }): Promise<{ readonly id: string }> {
     const now = new Date();
     const ipAddress = truncateIpAddress(input.context.ipAddress);
@@ -71,7 +81,14 @@ export class SessionRegistryService {
         mfaMethod: input.mfaMethod,
         ipAddress,
         userAgent,
-        expiresAt: new Date(now.getTime() + authenticationConstants.sessionTtlSeconds * 1000),
+        rememberMe: input.rememberMe,
+        expiresAt: new Date(
+          now.getTime() +
+            (input.rememberMe
+              ? authenticationConstants.rememberMeSessionTtlSeconds
+              : authenticationConstants.sessionTtlSeconds) *
+              1000,
+        ),
       },
       select: { id: true },
     });
@@ -89,14 +106,21 @@ export class SessionRegistryService {
   }
 
   /** Refresh: extend and (at most every 5 min) record the last activity. */
-  async touch(sessionId: string, context: SignInContext): Promise<void> {
+  async touch(
+    sessionId: string,
+    context: SignInContext,
+    rememberMe = false,
+  ): Promise<void> {
     const now = Date.now();
+    const ttlSeconds = rememberMe
+      ? authenticationConstants.rememberMeSessionTtlSeconds
+      : authenticationConstants.sessionTtlSeconds;
     try {
       await this.prisma.userSession.updateMany({
         where: { id: sessionId, revokedAt: null, lastSeenAt: { lt: new Date(now - TOUCH_INTERVAL_MS) } },
         data: {
           lastSeenAt: new Date(now),
-          expiresAt: new Date(now + authenticationConstants.sessionTtlSeconds * 1000),
+          expiresAt: new Date(now + ttlSeconds * 1000),
           ipAddress: truncateIpAddress(context.ipAddress),
           userAgent: context.userAgent?.slice(0, 512) ?? null,
         },
@@ -104,6 +128,14 @@ export class SessionRegistryService {
     } catch (error) {
       this.logger.warn(`session touch failed: ${error instanceof Error ? error.name : 'unknown'}`);
     }
+  }
+
+  /** A revoked or expired registry row is never considered for idle enforcement. */
+  async findActive(sessionId: string): Promise<ActiveUserSession | null> {
+    return this.prisma.userSession.findFirst({
+      where: { id: sessionId, revokedAt: null, expiresAt: { gt: new Date() } },
+      select: { id: true, userId: true, lastSeenAt: true, rememberMe: true },
+    });
   }
 
   async list(userId: string, currentSessionId: string | null): Promise<UserSessionView[]> {
@@ -121,6 +153,7 @@ export class SessionRegistryService {
       createdAt: row.createdAt.toISOString(),
       lastSeenAt: row.lastSeenAt.toISOString(),
       expiresAt: row.expiresAt.toISOString(),
+      rememberMe: row.rememberMe,
       current: row.id === currentSessionId,
     }));
   }

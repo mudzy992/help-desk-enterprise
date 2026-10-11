@@ -1908,7 +1908,8 @@
         "private.security.rateLimits.passwordLogin.ipMaxFailures": "Ograničenja prijava — neuspjeli pokušaji po IP prije privremene blokade",
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Ograničenja prijava — trajanje IP blokade (s)",
         "private.security.rateLimits.other.maxFailures": "Ograničenja prijava — neuspjesi za Entra/promjenu lozinke/MFA prije blokade",
-        "private.security.rateLimits.other.windowSeconds": "Ograničenja prijava — trajanje bucketa Entra/promjena lozinke/MFA (s)"
+        "private.security.rateLimits.other.windowSeconds": "Ograničenja prijava — trajanje bucketa Entra/promjena lozinke/MFA (s)",
+        "private.security.session.idleTimeoutSeconds": "Politika sesija — prekid nakon neaktivnosti (s)"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2369,7 +2370,8 @@
         "private.security.rateLimits.passwordLogin.ipMaxFailures": "Nakon ovoliko neuspjelih prijava s jedne IP adrese, ta adresa dobiva privremeni 429. Smanjite ako očekujete napade, povećajte iza korporativnog proxyja.",
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Koliko dugo IP adresa ostaje blokirana nakon prekoračenja.",
         "private.security.rateLimits.other.maxFailures": "Vrijedi za Entra prijavu, promjenu lozinke i MFA potvrde — broj neuspjeha prije privremene blokade.",
-        "private.security.rateLimits.other.windowSeconds": "Koliko dugo se pamte neuspjesi za Entra/promjenu lozinke/MFA."
+        "private.security.rateLimits.other.windowSeconds": "Koliko dugo se pamte neuspjesi za Entra/promjenu lozinke/MFA.",
+        "private.security.session.idleTimeoutSeconds": "Vrijeme bez aktivnosti nakon kojeg server prekida sesiju pri sljedećem osvježavanju. Unesite 0 da isključite ili cijeli broj od 300 do 2592000 sekundi."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -4551,7 +4553,8 @@
     "supportHelp": "Trebate pomoć?",
     "showPassword": "Prikaži lozinku",
     "hidePassword": "Sakrij lozinku",
-    "capsLock": "Caps Lock je uključen."
+    "capsLock": "Caps Lock je uključen.",
+    "rememberMe": "Zapamti me na ovom uređaju (30 dana)"
   },
   "auth": {
     "changePassword": {

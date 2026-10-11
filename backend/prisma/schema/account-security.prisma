@@ -64,6 +64,7 @@ model UserSession {
   mfaMethod       String?   @db.VarChar(16)
   ipAddress       String?   @db.VarChar(64)
   userAgent       String?   @db.VarChar(512)
+  rememberMe      Boolean   @default(false)
   createdAt       DateTime  @default(now())
   lastSeenAt      DateTime  @default(now())
   expiresAt       DateTime

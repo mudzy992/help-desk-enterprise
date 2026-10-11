@@ -380,6 +380,9 @@ export const settingKeys = {
     'private.security.rateLimits.other.maxFailures',
   privateSecurityRateLimitsOtherWindowSeconds:
     'private.security.rateLimits.other.windowSeconds',
+  // Paket 5.4.0-c (M4): 0 disables server-side session idle enforcement.
+  privateSecuritySessionIdleTimeoutSeconds:
+    'private.security.session.idleTimeoutSeconds',
   privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
   privateSecuritySafeLoggingLevelsCsv:
     'private.security.safeLogging.levelsCsv',

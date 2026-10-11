@@ -1897,7 +1897,8 @@
         "private.security.rateLimits.passwordLogin.ipMaxFailures": "Login rate limits — failures per IP before a temporary 429",
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Login rate limits — IP block duration (s)",
         "private.security.rateLimits.other.maxFailures": "Login rate limits — Entra/password-change/MFA failures before a block",
-        "private.security.rateLimits.other.windowSeconds": "Login rate limits — Entra/password-change/MFA bucket lifetime (s)"
+        "private.security.rateLimits.other.windowSeconds": "Login rate limits — Entra/password-change/MFA bucket lifetime (s)",
+        "private.security.session.idleTimeoutSeconds": "Session policy — idle timeout (s)"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2358,7 +2359,8 @@
         "private.security.rateLimits.passwordLogin.ipMaxFailures": "After this many failed sign-ins from one IP address, that address receives a temporary 429. Lower it if you expect attacks, raise it behind a corporate proxy.",
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "How long an IP address stays blocked after crossing the limit.",
         "private.security.rateLimits.other.maxFailures": "Applies to Entra sign-in, password change and MFA confirmations — the number of failures before a temporary block.",
-        "private.security.rateLimits.other.windowSeconds": "How long Entra/password-change/MFA failures are remembered."
+        "private.security.rateLimits.other.windowSeconds": "How long Entra/password-change/MFA failures are remembered.",
+        "private.security.session.idleTimeoutSeconds": "Idle time after which the server ends a session on its next refresh. Enter 0 to disable it or an integer from 300 to 2592000 seconds."
       },
       "type": {
         "boolean": "on/off",
@@ -4527,7 +4529,8 @@
     "supportHelp": "Need help?",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
-    "capsLock": "Caps Lock is on."
+    "capsLock": "Caps Lock is on.",
+    "rememberMe": "Keep me signed in on this device (30 days)"
   },
   "auth": {
     "changePassword": {

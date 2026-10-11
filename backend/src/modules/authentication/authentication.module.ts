@@ -29,6 +29,7 @@ import { PasskeyChallengeStoreProvider } from './security/passkey-challenge.stor
 import { PasskeyCredentialService } from './security/passkey-credential.service';
 import { PasswordChangeService } from './security/password-change.service';
 import { SecurityRateLimitConfigLoader } from './security/security-rate-limit-config.loader';
+import { SessionIdleTimeoutLoader } from './security/session-idle-timeout.loader';
 import { SessionRegistryService } from './security/session-registry.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 
@@ -61,6 +62,7 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     PasskeyCredentialService,
     WebAuthnRpLoader,
     SecurityRateLimitConfigLoader,
+    SessionIdleTimeoutLoader,
     LoginSecurityMetricsService,
     PasswordChangeService,
     SessionRegistryService,

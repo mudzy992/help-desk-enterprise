@@ -75,6 +75,7 @@ export function isMustChangePasswordResponse(
 export function loginWithPassword(input: {
   readonly email: string;
   readonly password: string;
+  readonly rememberMe?: boolean;
 }): Promise<AuthenticationLoginResponse> {
   return apiRequest("/auth/login", {
     method: "POST",
