@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { UsersError } from './users.error';
 
@@ -60,6 +61,14 @@ export function mapUsersError(error: unknown): never {
     throw new BadRequestException({
       code: error.code,
       message: 'User input is invalid',
+    });
+  }
+  if (error.code === 'TEMPORARY_PASSWORD_GENERATION_FAILED') {
+    // Paket 5.4.0-d (M5): the Pwned Passwords check refused every candidate
+    // that was drawn. Nothing was stored; the reset can simply be retried.
+    throw new ServiceUnavailableException({
+      code: error.code,
+      message: 'The temporary password could not be generated safely; try again',
     });
   }
   if (

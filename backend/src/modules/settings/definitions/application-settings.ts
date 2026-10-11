@@ -38,6 +38,7 @@ import { ticketTemplatesSettings } from './ticket-templates-settings';
 import { accountSecuritySettings } from './account-security-settings';
 import { securityRateLimitSettings } from './security-rate-limit-settings';
 import { securitySessionSettings } from './security-session-settings';
+import { securityHibpSettings } from './security-hibp-settings';
 import { directoryLdapsSettings } from './directory-ldaps-settings';
 import { ticketForwardingSettings } from './ticket-forwarding-settings';
 import { timeTrackingSettings } from './time-tracking-settings';
@@ -71,6 +72,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...accountSecuritySettings,
   ...securityRateLimitSettings,
   ...securitySessionSettings,
+  ...securityHibpSettings,
   ...directoryLdapsSettings,
   ...ticketSlaSettings,
   ...policyPackSettings,

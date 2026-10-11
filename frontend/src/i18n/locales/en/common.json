@@ -210,7 +210,8 @@
       "users": "Users and roles",
       "permissions": "Permissions",
       "settings": "Settings and add-ons",
-      "ops": "Job queue and audit"
+      "ops": "Job queue and audit",
+      "security": "Security"
     },
     "opsEmptyTitle": "Job queue and audit export come with Phase 7/8",
     "ops": {
@@ -392,7 +393,10 @@
             "knowledge_category_archived": "Knowledge category — archived",
             "knowledge_category_restored": "Knowledge category — restored",
             "knowledge_article_drafted_from_reply": "Knowledge article — drafted from reply",
-            "knowledge_article_reply_redacted": "Knowledge article — personal data redacted from reply"
+            "knowledge_article_reply_redacted": "Knowledge article — personal data redacted from reply",
+            "auth_login_failed": "Account security — failed sign-in",
+            "auth_password_reset_must_change": "Account security — password change required after a reset",
+            "auth_admin_bulk_password_reset": "Account security — bulk password reset"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -436,7 +440,8 @@
             "asset_signatory": "Asset-transfer signatory",
             "problem": "Problem",
             "change": "Change",
-            "change_template": "Change template"
+            "change_template": "Change template",
+            "auth_event": "Security event"
           },
           "fields": {
             "channel": "Channel",
@@ -590,10 +595,40 @@
             "dueAt": "Due at",
             "decision": "Decision",
             "isProblemGroup": "Problem group",
-            "unboundService": "Field — unbound service"
+            "unboundService": "Field — unbound service",
+            "provider": "Identity provider",
+            "eligibleUsers": "Eligible users",
+            "changedUsers": "Changed users",
+            "revokedSessions": "Revoked sessions",
+            "failedUsers": "Failed users"
           }
         }
       }
+    },
+    "security": {
+      "forbiddenTitle": "Security is available to the super administrator only",
+      "forbiddenBody": "The security journal and password-wide actions are visible to SUPER_ADMIN only.",
+      "auditTitle": "Security journal",
+      "auditBody": "A filtered view of the audit log: auth.* events only (sign-ins, MFA, sessions, passwords).",
+      "auditLoading": "Loading the security journal…",
+      "auditEmptyTitle": "Nothing to show",
+      "auditEmptyBody": "No auth event matches the selected filters.",
+      "auditRefresh": "Refresh the security journal",
+      "auditLoadMore": "Load more",
+      "filterAction": "Event",
+      "filterActionAll": "All auth events",
+      "filterUser": "Person",
+      "filterUserPlaceholder": "Search a person by name or e-mail",
+      "filterUserClear": "Clear",
+      "filterUserHint": "The filter covers records where the person is the target or the actor.",
+      "columnTime": "Time",
+      "columnAction": "Event",
+      "columnTarget": "Target",
+      "columnActor": "Actor",
+      "columnDetails": "Details",
+      "unknownAction": "Unknown auth event",
+      "actorUnknown": "System",
+      "actorPseudonymous": "Pseudonym"
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",
@@ -1898,7 +1933,8 @@
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Login rate limits — IP block duration (s)",
         "private.security.rateLimits.other.maxFailures": "Login rate limits — Entra/password-change/MFA failures before a block",
         "private.security.rateLimits.other.windowSeconds": "Login rate limits — Entra/password-change/MFA bucket lifetime (s)",
-        "private.security.session.idleTimeoutSeconds": "Session policy — idle timeout (s)"
+        "private.security.session.idleTimeoutSeconds": "Session policy — idle timeout (s)",
+        "private.security.hibp.enabled": "Security — breached-password check"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2360,7 +2396,8 @@
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "How long an IP address stays blocked after crossing the limit.",
         "private.security.rateLimits.other.maxFailures": "Applies to Entra sign-in, password change and MFA confirmations — the number of failures before a temporary block.",
         "private.security.rateLimits.other.windowSeconds": "How long Entra/password-change/MFA failures are remembered.",
-        "private.security.session.idleTimeoutSeconds": "Idle time after which the server ends a session on its next refresh. Enter 0 to disable it or an integer from 300 to 2592000 seconds."
+        "private.security.session.idleTimeoutSeconds": "Idle time after which the server ends a session on its next refresh. Enter 0 to disable it or an integer from 300 to 2592000 seconds.",
+        "private.security.hibp.enabled": "When enabled, new and temporary passwords are checked against the Pwned Passwords service (only the first 5 characters of the SHA-1 hash, cached for 24 h). If the service is unavailable the change proceeds (fail-open). Switch it off only if policy demands it."
       },
       "type": {
         "boolean": "on/off",
@@ -4587,7 +4624,8 @@
       "CONTAINS_EMAIL_NAME": "The password must not contain your name from the e-mail address.",
       "reused": "This password was used recently. Choose a new one.",
       "currentInvalid": "The current password is not correct.",
-      "generic": "The password does not meet the rules."
+      "generic": "The password does not meet the rules.",
+      "PWNED_PASSWORD": "This password appears in publicly known data breaches — choose another one."
     },
     "strength": {
       "label": "Strength",

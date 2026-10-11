@@ -383,6 +383,8 @@ export const settingKeys = {
   // Paket 5.4.0-c (M4): 0 disables server-side session idle enforcement.
   privateSecuritySessionIdleTimeoutSeconds:
     'private.security.session.idleTimeoutSeconds',
+  // Paket 5.4.0-d (M5): Pwned Passwords check on every locally set password.
+  privateSecurityHibpEnabled: 'private.security.hibp.enabled',
   privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
   privateSecuritySafeLoggingLevelsCsv:
     'private.security.safeLogging.levelsCsv',

@@ -212,7 +212,8 @@
       "users": "Korisnici i uloge",
       "permissions": "Permisije",
       "settings": "Postavke i dodaci",
-      "ops": "Red poslova i audit"
+      "ops": "Red poslova i audit",
+      "security": "Sigurnost"
     },
     "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8",
     "ops": {
@@ -394,7 +395,10 @@
             "knowledge_category_archived": "Kategorija baze znanja — arhiviran",
             "knowledge_category_restored": "Kategorija baze znanja — obnovljen",
             "knowledge_article_drafted_from_reply": "Članak baze znanja — nacrt napravljen iz odgovora",
-            "knowledge_article_reply_redacted": "Članak baze znanja — lični podaci uklonjeni iz odgovora"
+            "knowledge_article_reply_redacted": "Članak baze znanja — lični podaci uklonjeni iz odgovora",
+            "auth_login_failed": "Sigurnost naloga — neuspjela prijava",
+            "auth_password_reset_must_change": "Sigurnost naloga — obavezna promjena lozinke nakon reset-a",
+            "auth_admin_bulk_password_reset": "Sigurnost naloga — masovni reset lozinki"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -438,7 +442,8 @@
             "asset_signatory": "Potpisnik prenosa imovine",
             "problem": "Problem",
             "change": "Promjena",
-            "change_template": "Šablon promjene"
+            "change_template": "Šablon promjene",
+            "auth_event": "Sigurnosni događaj"
           },
           "fields": {
             "channel": "Kanal",
@@ -592,10 +597,40 @@
             "dueAt": "Rok",
             "decision": "Odluka",
             "isProblemGroup": "Grupa problema",
-            "unboundService": "Detalj — nepovezana servis"
+            "unboundService": "Detalj — nepovezana servis",
+            "provider": "Pružatelj identiteta",
+            "eligibleUsers": "Obuhvaćeni korisnici",
+            "changedUsers": "Promijenjeni korisnici",
+            "revokedSessions": "Opozvane sesije",
+            "failedUsers": "Neuspješni korisnici"
           }
         }
       }
+    },
+    "security": {
+      "forbiddenTitle": "Sigurnost je dostupna samo superadministratoru",
+      "forbiddenBody": "Sigurnosni dnevnik i akcije nad lozinkama vidi samo SUPER_ADMIN.",
+      "auditTitle": "Sigurnosni dnevnik",
+      "auditBody": "Filtriran pogled na audit log: samo auth.* događaji (prijave, MFA, sesije, lozinke).",
+      "auditLoading": "Učitavanje sigurnosnog dnevnika…",
+      "auditEmptyTitle": "Nema zapisa",
+      "auditEmptyBody": "Nijedan auth događaj ne odgovara odabranim filterima.",
+      "auditRefresh": "Osvježi sigurnosni dnevnik",
+      "auditLoadMore": "Učitaj još",
+      "filterAction": "Događaj",
+      "filterActionAll": "Svi auth događaji",
+      "filterUser": "Osoba",
+      "filterUserPlaceholder": "Traži osobu po imenu ili e-pošti",
+      "filterUserClear": "Očisti",
+      "filterUserHint": "Filter obuhvata zapise u kojima je osoba cilj ili izvršilac.",
+      "columnTime": "Vrijeme",
+      "columnAction": "Događaj",
+      "columnTarget": "Cilj",
+      "columnActor": "Izvršilac",
+      "columnDetails": "Detalji",
+      "unknownAction": "Nepoznat auth događaj",
+      "actorUnknown": "Sistem",
+      "actorPseudonymous": "Pseudonim"
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
@@ -1909,7 +1944,8 @@
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Ograničenja prijava — trajanje IP blokade (s)",
         "private.security.rateLimits.other.maxFailures": "Ograničenja prijava — neuspjesi za Entra/promjenu lozinke/MFA prije blokade",
         "private.security.rateLimits.other.windowSeconds": "Ograničenja prijava — trajanje bucketa Entra/promjena lozinke/MFA (s)",
-        "private.security.session.idleTimeoutSeconds": "Politika sesija — prekid nakon neaktivnosti (s)"
+        "private.security.session.idleTimeoutSeconds": "Politika sesija — prekid nakon neaktivnosti (s)",
+        "private.security.hibp.enabled": "Sigurnost — provjera procurjelih lozinki"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2371,7 +2407,8 @@
         "private.security.rateLimits.passwordLogin.ipWindowSeconds": "Koliko dugo IP adresa ostaje blokirana nakon prekoračenja.",
         "private.security.rateLimits.other.maxFailures": "Vrijedi za Entra prijavu, promjenu lozinke i MFA potvrde — broj neuspjeha prije privremene blokade.",
         "private.security.rateLimits.other.windowSeconds": "Koliko dugo se pamte neuspjesi za Entra/promjenu lozinke/MFA.",
-        "private.security.session.idleTimeoutSeconds": "Vrijeme bez aktivnosti nakon kojeg server prekida sesiju pri sljedećem osvježavanju. Unesite 0 da isključite ili cijeli broj od 300 do 2592000 sekundi."
+        "private.security.session.idleTimeoutSeconds": "Vrijeme bez aktivnosti nakon kojeg server prekida sesiju pri sljedećem osvježavanju. Unesite 0 da isključite ili cijeli broj od 300 do 2592000 sekundi.",
+        "private.security.hibp.enabled": "Kada je uključeno, nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa (samo prvih 5 znakova SHA-1 hasha, uz keširanje 24 h). Ako servis nije dostupan, promjena se nastavlja (fail-open). Isključite samo ako politika to zahtijeva."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -4611,7 +4648,8 @@
       "CONTAINS_EMAIL_NAME": "Lozinka ne smije sadržavati vaše ime iz e-mail adrese.",
       "reused": "Ova lozinka je nedavno korištena. Izaberite novu.",
       "currentInvalid": "Trenutna lozinka nije ispravna.",
-      "generic": "Lozinka ne ispunjava pravila."
+      "generic": "Lozinka ne ispunjava pravila.",
+      "PWNED_PASSWORD": "Ova lozinka je pronađena u javno poznatim curenjima podataka — izaberite drugu."
     },
     "strength": {
       "label": "Jačina",

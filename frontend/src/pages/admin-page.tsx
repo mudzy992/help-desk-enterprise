@@ -8,6 +8,7 @@ import {
   parseAdminTab,
 } from "@/lib/admin/parse-admin-tab";
 import { AdminOpsPanel } from "@/components/admin/admin-ops-panel";
+import { AdminSecurityPanel } from "@/components/admin/admin-security-panel";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { GroupsPage } from "@/pages/groups-page";
@@ -17,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
+import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
@@ -125,6 +127,21 @@ export function AdminPage() {
               </span>
             ),
           },
+          // Paket 5.4.0-d (M6): the security journal is offered to a SuperAdmin
+          // only. A deep link by an ADMIN still resolves to the panel, which
+          // renders its forbidden state instead.
+          ...(canOpenAdminSecurityTab(session)
+            ? [
+                {
+                  key: "security",
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck size={13} /> {t("admin.tabs.security")}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
       {tab === "org"
@@ -135,6 +152,9 @@ export function AdminPage() {
       {tab === "permissions" ? renderRestrictedTab(<PermissionsPage embedded />) : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
       {tab === "ops" ? renderRestrictedTab(<AdminOpsPanel />) : null}
+      {tab === "security" ? (
+        <AdminSecurityPanel isLoading={isLoading} session={session} />
+      ) : null}
     </section>
   );
 }

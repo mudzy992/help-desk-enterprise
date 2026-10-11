@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { MailTransport } from '../notifications/email/mail-transport';
@@ -15,6 +16,8 @@ export async function resetUserTemporaryPassword(
   dependencies: {
     readonly settingsService: SettingsService;
     readonly mailTransport: MailTransport;
+    /** Paket 5.4.0-d (M5): a compromised candidate is redrawn, never stored. */
+    readonly hibpChecker?: HibpPasswordChecker;
   },
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ResetUserPasswordResponse> {
@@ -59,6 +62,7 @@ export async function resetUserTemporaryPassword(
     prisma,
     settingsService: dependencies.settingsService,
     mailTransport: dependencies.mailTransport,
+    hibpChecker: dependencies.hibpChecker,
     userId: existing.id,
     email: existing.email,
     displayName: existing.displayName,
@@ -72,6 +76,9 @@ export async function resetUserTemporaryPassword(
         mustChangePassword: true,
       },
     },
+    // Paket 5.4.0-d (M6): one auth event per reset, next to the historical
+    // user audit — the admin handover carries a reason, never a secret.
+    mustChangeAudit: { reason: 'admin_reset' },
   });
   const summaries = await listUsersSummary(prisma, { ids: [existing.id] });
   const summary = summaries.find((user) => user.id === existing.id);

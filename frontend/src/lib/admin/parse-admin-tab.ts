@@ -1,4 +1,13 @@
-export const adminTabKeys = ["org", "groups", "users", "permissions", "settings", "ops"] as const;
+// Paket 5.4.0-d (M6): `security` is the SuperAdmin-only journal and bulk reset.
+export const adminTabKeys = [
+  "org",
+  "groups",
+  "users",
+  "permissions",
+  "settings",
+  "ops",
+  "security",
+] as const;
 
 export type AdminTabKey = (typeof adminTabKeys)[number];
 

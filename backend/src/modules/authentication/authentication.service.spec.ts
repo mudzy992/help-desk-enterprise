@@ -510,3 +510,173 @@ describe('AuthenticationService 5.4.0-c idle timeout on refresh', () => {
     );
   });
 });
+
+/*
+  Paket 5.4.0-d (M6): `auth.login_failed` is written for a real credential
+  rejection and for nothing else. The assertions inspect the **stored row**, so
+  they double as the privacy proof the design asks for: no raw e-mail, no raw
+  IP, no password, no token.
+*/
+describe('AuthenticationService auth.login_failed', () => {
+  type AuditRow = Record<string, unknown>;
+
+  function buildFixture(options: {
+    readonly authenticate: jest.Mock;
+    readonly secret?: string | null;
+    readonly failSecretLoad?: boolean;
+    readonly failAudit?: boolean;
+  }) {
+    const rows: AuditRow[] = [];
+    const auditClient = {
+      $executeRaw: jest.fn(async () => 1),
+      auditLog: {
+        findFirst: jest.fn(async () => null),
+        create: jest.fn(async ({ data }: { data: AuditRow }) => {
+          rows.push(data);
+          return data;
+        }),
+      },
+    };
+    const prisma = options.failAudit
+      ? {
+          $transaction: async () => {
+            throw new Error('audit database down');
+          },
+        }
+      : {
+          $transaction: async (run: (client: unknown) => Promise<unknown>) =>
+            run(auditClient),
+        };
+    const secretLoader =
+      options.failSecretLoad === true
+        ? {
+            load: async () => {
+              throw new Error('no signing secret');
+            },
+          }
+        : { load: async () => options.secret ?? null };
+    const service = new AuthenticationService(
+      { resolve: async () => ({ authenticate: options.authenticate }) } as never,
+      { issue: jest.fn(async () => 'signed.jwt.token'), verify: jest.fn() } as never,
+      { findById: jest.fn(async () => ({ ...activeUser, isLocalOnly: true })) } as never,
+      prisma as never,
+      { load: jest.fn(async () => defaultAccountSecurityPolicy) } as never,
+      {
+        requirementFor: jest.fn(() => 'optional'),
+        isEnabled: jest.fn(async () => false),
+        flowFor: jest.fn(() => 'none'),
+      } as never,
+      { create: jest.fn(async () => ({ id: 'session-1' })) } as never,
+      {} as never,
+      { countCredentials: jest.fn(async () => 0) } as never,
+      { load: () => null } as never,
+      { audit: jest.fn(), notify: jest.fn() } as never,
+      { guard: (_key: string, run: () => Promise<unknown>) => run() } as never,
+      { record: jest.fn(async () => undefined) } as never,
+      { load: () => null } as never,
+      secretLoader as never,
+    );
+    return { service, rows, auditClient };
+  }
+
+  const email = 'Ana.Anic@Example.com';
+  const ipAddress = '203.0.113.77';
+  const context = { ipAddress, userAgent: 'UA' };
+
+  it('stores one pseudonymous entry for a rejected local password and keeps the generic answer', async () => {
+    const authenticate = jest.fn().mockRejectedValue(new AuthenticationError('INVALID_CREDENTIALS'));
+    const { service, rows } = buildFixture({ authenticate, secret: 'unit-secret' });
+
+    await expect(
+      service.loginWithPassword({ email, password: 'wrong-password' }, context),
+    ).rejects.toMatchObject({
+      response: { code: 'INVALID_CREDENTIALS', message: 'Authentication failed' },
+    });
+
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+    expect(row.action).toBe('auth.login_failed');
+    expect(row.entityType).toBe('auth_event');
+    expect(row.actorUserId).toBeNull();
+    expect(row.metadata).toMatchObject({ provider: 'local', reason: 'invalid_credentials' });
+    expect(typeof row.entityId).toBe('string');
+    expect(row.entityId).not.toBe('anonymous');
+
+    const serialized = JSON.stringify(row);
+    expect(serialized).not.toContain('ana.anic');
+    expect(serialized).not.toContain('Ana.Anic');
+    expect(serialized).not.toContain('Example.com');
+    expect(serialized).not.toContain(ipAddress);
+    expect(serialized).not.toContain('203.0.113');
+    expect(serialized).not.toContain('wrong-password');
+    expect(serialized).toContain('invalid_credentials');
+  });
+
+  it('records the Entra provider for a rejected federated token', async () => {
+    const authenticate = jest.fn().mockRejectedValue(new AuthenticationError('INVALID_CREDENTIALS'));
+    const { service, rows } = buildFixture({ authenticate, secret: 'unit-secret' });
+
+    await expect(
+      service.loginWithEntraIdToken('a.b.c', { ipAddress, userAgent: null }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.metadata).toMatchObject({ provider: 'entra', reason: 'invalid_credentials' });
+    expect(JSON.stringify(rows[0])).not.toContain('a.b.c');
+  });
+
+  it('writes nothing after a successful sign-in', async () => {
+    const authenticate = jest.fn().mockResolvedValue(principal);
+    const { service, rows } = buildFixture({ authenticate, secret: 'unit-secret' });
+
+    const response = await service.loginWithPassword(
+      { email, password: 'right-password' },
+      context,
+    );
+
+    expect(rows).toHaveLength(0);
+    expect(response).toMatchObject({ accessToken: 'signed.jwt.token' });
+  });
+
+  it('writes nothing for a validation or invariant failure that is not a credential rejection', async () => {
+    const authenticate = jest.fn().mockRejectedValue(
+      new AuthenticationError('SUPER_ADMIN_MUST_BE_LOCAL_ONLY'),
+    );
+    const { service, rows } = buildFixture({ authenticate, secret: 'unit-secret' });
+
+    await expect(service.loginWithPassword({ email, password: 'x' }, context)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    expect(rows).toHaveLength(0);
+  });
+
+  it('keeps the authentication answer when the audit write fails', async () => {
+    const authenticate = jest.fn().mockRejectedValue(new AuthenticationError('INVALID_CREDENTIALS'));
+    const { service, auditClient } = buildFixture({
+      authenticate,
+      secret: 'unit-secret',
+      failAudit: true,
+    });
+
+    await expect(
+      service.loginWithPassword({ email, password: 'wrong-password' }, context),
+    ).rejects.toMatchObject({ response: { code: 'INVALID_CREDENTIALS' } });
+    expect(auditClient.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('omits the pseudonyms instead of writing an unkeyed digest when no key is available', async () => {
+    const authenticate = jest.fn().mockRejectedValue(new AuthenticationError('INVALID_CREDENTIALS'));
+    const { service, rows } = buildFixture({ authenticate, failSecretLoad: true });
+
+    await expect(
+      service.loginWithPassword({ email, password: 'wrong-password' }, context),
+    ).rejects.toMatchObject({ response: { code: 'INVALID_CREDENTIALS' } });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.metadata).toEqual({ provider: 'local', reason: 'invalid_credentials' });
+    expect(rows[0]!.entityId).toBe('anonymous');
+    expect(JSON.stringify(rows[0])).not.toContain('ana.anic');
+    expect(JSON.stringify(rows[0])).not.toContain(ipAddress);
+  });
+});

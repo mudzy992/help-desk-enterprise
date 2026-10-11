@@ -13,10 +13,12 @@ describe("parseAdminTab", () => {
     expect(parseAdminTab("users")).toBe("users");
     expect(parseAdminTab("settings")).toBe("settings");
     expect(parseAdminTab("ops")).toBe("ops");
+    expect(parseAdminTab("security")).toBe("security");
     expect(parseAdminTab("org")).toBe("org");
     expect(parseAdminTab(null)).toBe(defaultAdminTab);
     expect(parseAdminTab("unknown")).toBe(defaultAdminTab);
     expect(isAdminTab("queue")).toBe(false);
+    expect(isAdminTab("security")).toBe(true);
   });
 
   it("builds /admin?tab= and keeps other query params", () => {

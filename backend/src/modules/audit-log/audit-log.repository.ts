@@ -75,6 +75,43 @@ export class AuditLogRepository {
       nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
     };
   }
+
+  /**
+   * Paket 5.4.0-d (M6): the security journal page. Deliberately a separate
+   * query from `listPage`: it is **not** OU-scoped (the caller is a
+   * SuperAdmin) and it pins the mandatory `auth.` prefix in the WHERE clause,
+   * so no filter value can widen it to another event class. `userId` matches
+   * the target (`entityId`) or the actor (`actorUserId`) of the entry.
+   */
+  async listAuthPage(input: {
+    readonly action: string | null;
+    readonly userId: string | null;
+    readonly take: number;
+    readonly cursor: string | null;
+  }): Promise<{
+    readonly items: readonly AuditLogRecord[];
+    readonly nextCursor: string | null;
+  }> {
+    const records = await this.prisma.auditLog.findMany({
+      where: {
+        action: input.action ?? { startsWith: 'auth.' },
+        ...(input.userId === null
+          ? {}
+          : { OR: [{ entityId: input.userId }, { actorUserId: input.userId }] }),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: input.take + 1,
+      ...(input.cursor === null
+        ? {}
+        : { cursor: { id: input.cursor }, skip: 1 }),
+    });
+    const hasMore = records.length > input.take;
+    const items = records.slice(0, input.take).map(toAuditLogRecord);
+    return {
+      items,
+      nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+    };
+  }
 }
 
 function toAuditLogRecord(record: {

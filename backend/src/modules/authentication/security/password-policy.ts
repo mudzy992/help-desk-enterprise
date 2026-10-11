@@ -20,7 +20,11 @@ export type PasswordViolation =
   | 'SAME_AS_EMAIL'
   | 'COMMON_PASSWORD'
   | 'CONTAINS_ORGANISATION_WORD'
-  | 'CONTAINS_EMAIL_NAME';
+  | 'CONTAINS_EMAIL_NAME'
+  // Paket 5.4.0-d (M5): the password appears in the Pwned Passwords corpus.
+  // It is raised by the password-change service (async, network-bound), never
+  // by the offline `checkPassword` rules below.
+  | 'PWNED_PASSWORD';
 
 /** Product-neutral words refused everywhere; client words come from settings (Paket 4.1). */
 const GENERIC_WORDS = ['helpdesk', 'servicedesk', 'lozinka', 'password'];

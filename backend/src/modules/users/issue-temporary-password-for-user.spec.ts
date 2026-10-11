@@ -158,3 +158,210 @@ describe('isReservedNoEmailAddress', () => {
     expect(issued.temporaryPassword).toEqual(expect.any(String));
   });
 });
+
+/*
+  Paket 5.4.0-d (M5): a generated temporary password is checked with the online
+  Pwned Passwords service **before** it is hashed and stored. A compromised
+  candidate is redrawn; a checker that keeps reporting one is a hard failure —
+  nothing is written and no password is handed over.
+*/
+describe('issueTemporaryPasswordForUser HIBP gate', () => {
+  beforeEach(() => {
+    // The UI-delivery default; the tests above leave the mail mock at "sent".
+    jest.mocked(sendTemporaryPasswordEmail).mockReset().mockResolvedValue(false);
+  });
+
+  function fixture() {
+    const update = jest.fn().mockResolvedValue({});
+    const transaction = { user: { update } };
+    return {
+      update,
+      prisma: {
+        $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) =>
+          callback(transaction),
+        ),
+      },
+    };
+  }
+
+  it('stores a candidate the checker accepted', async () => {
+    const { prisma, update } = fixture();
+    const check = jest.fn().mockResolvedValue('clean');
+
+    await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      hibpChecker: { check } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+    });
+
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('redraws a compromised candidate and never hashes it', async () => {
+    const { prisma, update } = fixture();
+    const check = jest.fn().mockResolvedValueOnce('pwned').mockResolvedValue('clean');
+    jest.mocked(hashLocalPassword).mockClear();
+
+    const issued = await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      hibpChecker: { check } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+    });
+
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(hashLocalPassword).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(issued.temporaryPassword).toBeTruthy();
+  });
+
+  it('fails without storing or returning anything when every candidate is compromised', async () => {
+    const { prisma, update } = fixture();
+    const check = jest.fn().mockResolvedValue('pwned');
+    jest.mocked(hashLocalPassword).mockClear();
+
+    await expect(
+      issueTemporaryPasswordForUser({
+        prisma: prisma as never,
+        settingsService: {} as never,
+        mailTransport: { send: jest.fn() } as never,
+        hibpChecker: { check } as never,
+        userId: 'user-1',
+        email: 'user@corp.test',
+        displayName: 'Test User',
+      }),
+    ).rejects.toMatchObject({ code: 'TEMPORARY_PASSWORD_GENERATION_FAILED' });
+
+    expect(check.mock.calls.length).toBeGreaterThan(1);
+    expect(hashLocalPassword).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('accepts the candidate when the service is unavailable (fail-open)', async () => {
+    const { prisma, update } = fixture();
+    const check = jest.fn().mockResolvedValue('unavailable');
+
+    await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      hibpChecker: { check } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+    });
+
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('works without a checker at all (backwards-compatible wiring)', async () => {
+    const { prisma, update } = fixture();
+
+    const issued = await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+    });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(issued.temporaryPassword).toBeTruthy();
+  });
+});
+
+/*
+  Paket 5.4.0-d (M6): an admin reset records `auth.password_reset_must_change`
+  exactly once, inside the same transaction as the password write, with the
+  reason and the state — never a password, a hash or delivery content.
+*/
+describe('issueTemporaryPasswordForUser must-change audit', () => {
+  function fixture() {
+    const auditRows: Record<string, unknown>[] = [];
+    const transaction = {
+      user: { update: jest.fn(async () => ({})) },
+      $executeRaw: jest.fn(async () => 1),
+      auditLog: {
+        findFirst: jest.fn(async () => null),
+        create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          auditRows.push(data);
+          return data;
+        }),
+      },
+    };
+    return {
+      auditRows,
+      prisma: {
+        $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) =>
+          callback(transaction),
+        ),
+      },
+    };
+  }
+
+  it('writes one auth event next to the historical reset audit', async () => {
+    const { prisma, auditRows } = fixture();
+    jest.mocked(recordUserChange).mockClear();
+
+    await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+      audit: {
+        action: 'user.password_reset',
+        actorUserId: 'admin-1',
+        requestId: 'req-1',
+        metadata: { reason: 'admin_reset', mustChangePassword: true },
+        organizationalUnitId: 'ou-1',
+      },
+      mustChangeAudit: { reason: 'admin_reset' },
+    });
+
+    expect(recordUserChange).toHaveBeenCalledTimes(1);
+    expect(auditRows).toHaveLength(1);
+    const row = auditRows[0]!;
+    expect(row.action).toBe('auth.password_reset_must_change');
+    expect(row.entityType).toBe('user');
+    expect(row.entityId).toBe('user-1');
+    expect(row.actorUserId).toBe('admin-1');
+    expect(row.metadata).toEqual({ reason: 'admin_reset', status: 'must_change' });
+    // The chain fields (`hash`, `previousHash`, `metadataDigest`) belong to the
+    // tamper-evident row; the metadata must carry the state alone.
+    expect(Object.keys(row.metadata as Record<string, unknown>).sort()).toEqual([
+      'reason',
+      'status',
+    ]);
+    const serialized = JSON.stringify(row.metadata);
+    expect(serialized).not.toContain('@');
+    expect(serialized).not.toContain('$2b$');
+    expect(serialized).not.toContain('temporary');
+  });
+
+  it('writes nothing extra when the caller does not ask for it', async () => {
+    const { prisma, auditRows } = fixture();
+
+    await issueTemporaryPasswordForUser({
+      prisma: prisma as never,
+      settingsService: {} as never,
+      mailTransport: { send: jest.fn() } as never,
+      userId: 'user-1',
+      email: 'user@corp.test',
+      displayName: 'Test User',
+    });
+
+    expect(auditRows).toHaveLength(0);
+  });
+});

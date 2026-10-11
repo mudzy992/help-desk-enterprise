@@ -2,6 +2,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { DirectorySyncService } from '../directory-sync/directory-sync.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
+import { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { SettingsService } from '../settings/settings.service';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { assignUserRole } from './assign-user-role';
@@ -42,6 +43,12 @@ export class UsersService {
     // without the invalidation wiring; the module always provides it.
     @Optional()
     private readonly principalContextInvalidator?: PrincipalContextInvalidator,
+    // Paket 5.4.0-d (M5): the online Pwned Passwords check for temporary
+    // passwords. Optional so a unit test can build the service without a
+    // network transport; the module always provides the real checker. Kept
+    // last on purpose: existing positional construction keeps its meaning.
+    @Optional()
+    private readonly hibpPasswordChecker?: HibpPasswordChecker,
   ) {}
 
   /** Phase 2.2: hands the mutation functions the authorization cache hook. */
@@ -96,6 +103,7 @@ export class UsersService {
       createUser(this.prisma, input, {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
+        hibpChecker: this.hibpPasswordChecker,
       }),
     );
   }
@@ -108,7 +116,11 @@ export class UsersService {
       resetUserTemporaryPassword(
         this.prisma,
         userId,
-        { settingsService: this.settingsService, mailTransport: this.mailTransport },
+        {
+          settingsService: this.settingsService,
+          mailTransport: this.mailTransport,
+          hibpChecker: this.hibpPasswordChecker,
+        },
         context,
       ),
     );
@@ -139,6 +151,7 @@ export class UsersService {
       unlinkUserDirectoryIdentity(this.prisma, userId, {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
+        hibpChecker: this.hibpPasswordChecker,
       }, context),
     );
   }

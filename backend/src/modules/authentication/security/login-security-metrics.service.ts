@@ -10,12 +10,19 @@ import { redisTokens } from '../../../common/redis/redis.tokens';
   "agregira (ne vraća PII)".
 */
 
-export type LoginSecurityMetricEvent = 'login-429' | 'login-account-delays' | 'mfa-failures';
+export type LoginSecurityMetricEvent =
+  | 'login-429'
+  | 'login-account-delays'
+  | 'mfa-failures'
+  // Paket 5.4.0-d (M5): the HIBP range check could not run (timeout, network,
+  // non-2xx or an unusable response). The password was accepted (fail-open).
+  | 'hibp-skipped';
 
 export const loginSecurityMetricEvents: readonly LoginSecurityMetricEvent[] = [
   'login-429',
   'login-account-delays',
   'mfa-failures',
+  'hibp-skipped',
 ];
 
 const keyPrefix = 'security:metrics:';

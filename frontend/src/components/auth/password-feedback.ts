@@ -9,6 +9,9 @@ const VIOLATION_KEYS = {
   COMMON_PASSWORD: "auth.passwordPolicy.COMMON_PASSWORD",
   CONTAINS_ORGANISATION_WORD: "auth.passwordPolicy.CONTAINS_ORGANISATION_WORD",
   CONTAINS_EMAIL_NAME: "auth.passwordPolicy.CONTAINS_EMAIL_NAME",
+  // Paket 5.4.0-d (M5): the online Pwned Passwords hit. The server never sends
+  // the breach count — only the verdict.
+  PWNED_PASSWORD: "auth.passwordPolicy.PWNED_PASSWORD",
 } as const;
 
 export type PasswordFeedbackKey =

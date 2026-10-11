@@ -63,6 +63,30 @@ export class AuditLogService {
     };
   }
 
+  /**
+   * Paket 5.4.0-d (M6): the SUPER_ADMIN security journal. The `auth.` prefix is
+   * enforced in the repository query, not at the caller, so a non-auth action
+   * can never be read through this path even by a future caller that forgets
+   * to check. Rows keep the exact shape the OU-scoped list returns.
+   */
+  async listAuthSecurityEvents(input: {
+    readonly action: string | null;
+    readonly userId: string | null;
+    readonly take: number;
+    readonly cursor: string | null;
+  }): Promise<AuditLogListResult> {
+    const page = await this.repository.listAuthPage({
+      action: input.action,
+      userId: input.userId,
+      take: input.take,
+      cursor: input.cursor,
+    });
+    return {
+      items: page.items.map(toAuditLogExportRow),
+      nextCursor: page.nextCursor,
+    };
+  }
+
   async export(input: {
     readonly actorUserId: string;
     readonly organizationalUnitId: string;

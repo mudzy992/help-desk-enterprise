@@ -17,7 +17,10 @@ export type UsersErrorCode =
   | 'DIRECTORY_IDENTITY_CONFLICT'
   | 'USER_ALREADY_DIRECTORY_LINKED'
   | 'SUPER_ADMIN_DIRECTORY_LINK_FORBIDDEN'
-  | 'SUPER_ADMIN_LOCAL_IDENTITY_REQUIRED';
+  | 'SUPER_ADMIN_LOCAL_IDENTITY_REQUIRED'
+  // Paket 5.4.0-d (M5): every drawn temporary password was reported as
+  // compromised, so no candidate could be stored (the check is unusable).
+  | 'TEMPORARY_PASSWORD_GENERATION_FAILED';
 
 export class UsersError extends Error {
   constructor(readonly code: UsersErrorCode) {

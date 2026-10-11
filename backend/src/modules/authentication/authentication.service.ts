@@ -3,12 +3,14 @@ import {
   BadRequestException,
   HttpException,
   Injectable,
+  Logger,
   Optional,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { auditLogActions } from '../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { authenticationConstants } from './authentication.constants';
 import { AuthenticationError } from './authentication.error';
 import { AuthenticationProviderResolver } from './authentication-provider.resolver';
@@ -37,6 +39,12 @@ import { PasskeyCredentialService, passkeyLoginChallengeKey } from './security/p
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionIdleTimeoutLoader } from './security/session-idle-timeout.loader';
+import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
+import {
+  buildLoginFailedAuditMetadata,
+  loginFailedEntityId,
+  type LoginFailedProvider,
+} from './security/login-failed-audit';
 import { SessionRegistryService } from './security/session-registry.service';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 
@@ -53,6 +61,8 @@ export function mfaAttemptKey(userId: string): string {
  */
 @Injectable()
 export class AuthenticationService {
+  private readonly logger = new Logger(AuthenticationService.name);
+
   constructor(
     private readonly authenticationProviderResolver: AuthenticationProviderResolver,
     private readonly sessionTokenService: SessionTokenService,
@@ -70,6 +80,9 @@ export class AuthenticationService {
     @Optional() private readonly securityMetrics?: LoginSecurityMetricsService,
     // Paket 5.4.0-c: optional for backwards-compatible unit/module wiring.
     @Optional() private readonly idleTimeoutLoader?: SessionIdleTimeoutLoader,
+    // Paket 5.4.0-d (M6): the rate-limit HMAC secret, reused so `login_failed`
+    // carries the same versioned pseudonyms as the Redis counters.
+    @Optional() private readonly jwtSigningSecretLoader?: JwtSigningSecretLoader,
   ) {}
 
   async loginWithPassword(
@@ -314,7 +327,25 @@ export class AuthenticationService {
   ): Promise<AuthenticationLoginResponse> {
     try {
       const provider = await this.authenticationProviderResolver.resolve();
-      const principal = await provider.authenticate(credentials);
+      let principal: AuthenticatedPrincipal;
+      try {
+        principal = await provider.authenticate(credentials);
+      } catch (error) {
+        // Paket 5.4.0-d (M6): only a real credential rejection is recorded.
+        // The limiter wraps this call from the controller, so a 429 never
+        // reaches this catch; a validation error or an internal failure has
+        // another error code. The local provider also answers
+        // INVALID_CREDENTIALS when the SuperAdmin local-only invariant would
+        // be violated — that sign-in did fail on its credentials, so it
+        // belongs in the same trail.
+        if (
+          error instanceof AuthenticationError &&
+          error.code === 'INVALID_CREDENTIALS'
+        ) {
+          await this.auditLoginFailed(credentials, context);
+        }
+        throw error;
+      }
       const user = await this.authenticationUserLoader.findById(principal.subjectId);
       if (user === null || !user.isActive) {
         throw new AuthenticationError('INVALID_CREDENTIALS');
@@ -342,6 +373,52 @@ export class AuthenticationService {
       );
     } catch (error) {
       throw this.toHttpException(error);
+    }
+  }
+
+  /**
+   * Paket 5.4.0-d (M6): one sanitized entry per rejected credential. The write
+   * is awaited — a successful audit is not silently dropped — but every
+   * failure is swallowed, so the caller still receives the generic
+   * authentication answer. Nothing here logs or stores the e-mail, the IP, the
+   * password or the token; only keyed digests, the provider and the reason.
+   */
+  private async auditLoginFailed(
+    credentials: AuthenticationCredentials,
+    context: SignInContext,
+  ): Promise<void> {
+    try {
+      const provider: LoginFailedProvider =
+        credentials.kind === 'password' ? 'local' : 'entra';
+      let secret: string | null = null;
+      if (this.jwtSigningSecretLoader !== undefined) {
+        try {
+          secret = await this.jwtSigningSecretLoader.load();
+        } catch {
+          // No key: the entry keeps the provider/reason pair and omits the
+          // pseudonyms instead of writing an unkeyed digest of an address.
+          secret = null;
+        }
+      }
+      const metadata = buildLoginFailedAuditMetadata({
+        provider,
+        email: credentials.kind === 'password' ? credentials.email : null,
+        ipAddress: context.ipAddress,
+        hmacSecret: secret,
+      });
+      await recordAuditEntry(this.prisma, {
+        action: auditLogActions.authLoginFailed,
+        entityType: auditLogEntityTypes.authEvent,
+        entityId: loginFailedEntityId(metadata),
+        actorUserId: null,
+        metadata: metadata as never,
+      });
+    } catch (error) {
+      // Never turn an audit problem into a different sign-in answer, and never
+      // log the values that were being pseudonymized.
+      this.logger.warn(
+        `auth.login_failed audit write failed: ${error instanceof Error ? error.name : 'unknown'}`,
+      );
     }
   }
 

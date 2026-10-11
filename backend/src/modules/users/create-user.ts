@@ -3,6 +3,7 @@ import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { MailTransport } from '../notifications/email/mail-transport';
 import type { SettingsService } from '../settings/settings.service';
+import type { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { recordUserChange } from './record-user-change';
 import { assignUserRole } from './assign-user-role';
 import { ensureSystemRole } from './ensure-system-role';
@@ -18,6 +19,8 @@ export async function createUser(
   dependencies: {
     readonly settingsService: SettingsService;
     readonly mailTransport: MailTransport;
+    /** Paket 5.4.0-d (M5): rejects a compromised temporary password. */
+    readonly hibpChecker?: HibpPasswordChecker;
   },
 ): Promise<CreateUserResponse> {
   const displayName = input.displayName.trim();
@@ -75,6 +78,7 @@ export async function createUser(
     prisma,
     settingsService: dependencies.settingsService,
     mailTransport: dependencies.mailTransport,
+    hibpChecker: dependencies.hibpChecker,
     userId: created.id,
     email,
     displayName,

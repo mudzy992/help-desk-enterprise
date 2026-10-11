@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions } from '../../audit-log/audit-log.constants';
 import { notificationTypes } from '../../notifications/notifications.constants';
@@ -7,11 +7,17 @@ import { verifyLocalPassword } from '../verify-local-password';
 import { AccountSecurityError } from './account-security.error';
 import { AccountSecurityNotifier } from './account-security-notifier';
 import { AccountSecurityPolicyLoader } from './account-security-policy.loader';
+import { HibpPasswordChecker, hibpViolation } from './hibp-password-checker';
 import { checkPassword } from './password-policy';
 
 /**
  * Paket 2.1 (M7): the one place a local password is set by its owner —
  * policy (length, blocklist), history and `passwordChangedAt`.
+ *
+ * Paket 5.4.0-d (M5): it is also the one place the online Pwned Passwords
+ * check runs for owner-set passwords. Both the voluntary change and the
+ * forced/must-change flow reach it through `assertAcceptable`, so neither can
+ * store a password found in a breach corpus.
  */
 @Injectable()
 export class PasswordChangeService {
@@ -19,6 +25,9 @@ export class PasswordChangeService {
     private readonly prisma: PrismaService,
     private readonly policyLoader: AccountSecurityPolicyLoader,
     private readonly notifier: AccountSecurityNotifier,
+    // Optional so older unit tests can build the service without a network
+    // transport; the module always provides the real checker.
+    @Optional() private readonly hibpChecker?: HibpPasswordChecker,
   ) {}
 
   async assertAcceptable(userId: string, email: string, newPassword: string): Promise<void> {
@@ -49,6 +58,16 @@ export class PasswordChangeService {
         if (await verifyLocalPassword(newPassword, hash)) {
           throw new AccountSecurityError('PASSWORD_REUSED');
         }
+      }
+    }
+    // Paket 5.4.0-d (M5): the Pwned Passwords check runs last — the offline
+    // rules and the history answer first, so the network is asked only about a
+    // candidate that could actually be stored. `unavailable` fails open (the
+    // checker logs and counts the skip); only a confirmed hit is a violation.
+    if (this.hibpChecker !== undefined) {
+      const verdict = await this.hibpChecker.check(newPassword);
+      if (verdict === 'pwned') {
+        throw new AccountSecurityError('INVALID_PASSWORD', [hibpViolation]);
       }
     }
   }

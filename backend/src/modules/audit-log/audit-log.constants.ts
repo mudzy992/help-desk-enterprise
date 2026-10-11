@@ -73,6 +73,16 @@ export const auditLogActions = {
   notificationPreferencesReset: 'notification.preferences.reset',
   authPasswordChanged: 'auth.password_changed',
   authPasswordExpired: 'auth.password_expired',
+  // Paket 5.4.0-d (M6): only real credential rejections — never a 429, a
+  // validation error or a network/HIBP problem. The entry carries versioned
+  // HMAC key identifiers, never a raw or masked e-mail or a raw IP.
+  authLoginFailed: 'auth.login_failed',
+  // Paket 5.4.0-d (M6): an administrator reset issued a temporary password and
+  // the account must change it at the next sign-in.
+  authPasswordResetMustChange: 'auth.password_reset_must_change',
+  // Paket 5.4.0-d (M6): SuperAdmin forced every local account to change its
+  // password and revoked the remaining sessions in one aggregate action.
+  authAdminBulkPasswordReset: 'auth.admin_bulk_password_reset',
   directoryTestConnection: 'directory.test_connection',
   directoryDryRun: 'directory.dry_run',
   directorySyncApplied: 'directory.sync_applied',
@@ -192,6 +202,9 @@ export const auditLogEntityTypes = {
   emailTemplate: 'email_template',
   user: 'user',
   authorization: 'authorization',
+  // Paket 5.4.0-d (M6): a security event that is not tied to one entity row —
+  // `auth.login_failed` carries pseudonymous key digests as its entity id.
+  authEvent: 'auth_event',
   organizationalUnit: 'organizational_unit',
   group: 'group',
   directorySyncRun: 'directory_sync_run',

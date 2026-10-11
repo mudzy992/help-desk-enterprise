@@ -2,6 +2,7 @@ import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { MailTransport } from '../notifications/email/mail-transport';
 import type { SettingsService } from '../settings/settings.service';
+import type { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 import { listUsersSummary } from './list-users-summary';
 import type { ResetUserPasswordResponse, UserAuditContext } from './users.types';
@@ -13,6 +14,8 @@ export async function unlinkUserDirectoryIdentity(
   dependencies: {
     readonly settingsService: SettingsService;
     readonly mailTransport: MailTransport;
+    /** Paket 5.4.0-d (M5): rejects a compromised temporary password. */
+    readonly hibpChecker?: HibpPasswordChecker;
   },
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ResetUserPasswordResponse> {
@@ -49,6 +52,7 @@ export async function unlinkUserDirectoryIdentity(
     prisma,
     settingsService: dependencies.settingsService,
     mailTransport: dependencies.mailTransport,
+    hibpChecker: dependencies.hibpChecker,
     userId: existing.id,
     email: existing.email,
     displayName: existing.displayName,
