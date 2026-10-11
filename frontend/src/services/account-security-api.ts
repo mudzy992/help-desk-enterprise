@@ -13,8 +13,20 @@ export type MfaStatus = {
   readonly serverConfigured: boolean;
 };
 
+export type PasskeyView = {
+  readonly id: string;
+  readonly deviceName: string | null;
+  readonly aaguid: string | null;
+  readonly createdAt: string;
+  readonly lastUsedAt: string | null;
+  readonly isBackedUp: boolean;
+};
+
 export type AccountSecurityOverview = {
   readonly mfa: MfaStatus;
+  /** Paket 5.4.0-e: the registered passkeys and whether TOTP is enrolled. */
+  readonly passkeys: readonly PasskeyView[];
+  readonly hasTotp: boolean;
   readonly password: {
     readonly hasLocalPassword: boolean;
     readonly changedAt: string | null;
@@ -50,6 +62,32 @@ const post = (body?: unknown): RequestInit => ({
 });
 
 export const getAccountSecurity = (): Promise<AccountSecurityOverview> => apiRequest("/auth/security");
+
+/* Paket 5.4.0-e: passkey ceremonies on the caller's own account. The confirm
+   call carries the (optional) TOTP code the server asks for when the account
+   already has TOTP — a stolen session alone must not be able to add a factor. */
+export const startPasskeyRegistration = (): Promise<{ options: Record<string, unknown> }> =>
+  apiRequest("/auth/security/passkey/register/start", post());
+
+export const confirmPasskeyRegistration = (input: {
+  readonly response: Record<string, unknown>;
+  readonly code?: string;
+}): Promise<{ passkey: PasskeyView }> =>
+  apiRequest("/auth/security/passkey/register/confirm", post(input));
+
+export const renamePasskey = (
+  credentialId: string,
+  deviceName: string,
+): Promise<{ passkey: PasskeyView }> =>
+  apiRequest(`/auth/security/passkey/${encodeURIComponent(credentialId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ deviceName }),
+  });
+
+export const removePasskey = (credentialId: string): Promise<void> =>
+  apiRequest(`/auth/security/passkey/${encodeURIComponent(credentialId)}`, {
+    method: "DELETE",
+  });
 
 export const changeOwnPassword = (input: { currentPassword: string; newPassword: string }): Promise<void> =>
   apiRequest("/auth/password", post(input));

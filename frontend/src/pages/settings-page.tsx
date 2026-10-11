@@ -3,6 +3,7 @@ import { BrandingSettingsCard } from "@/components/settings/branding-settings-ca
 import { useTranslation } from "react-i18next";
 import { AddonsSettingsPanel } from "@/components/settings/addons-settings-panel";
 import { AuthProviderSettingsCard } from "@/components/settings/auth-provider-settings-card";
+import { AdminSecuritySettingsCards } from "@/components/settings/admin-security-settings-cards";
 import { SecurityComplianceSettingsCard } from "@/components/settings/security-compliance-settings-card";
 import { SettingsRegistryPanel } from "@/components/settings/settings-registry-panel";
 import { SmtpEmailSettingsCard } from "@/components/settings/smtp-email-settings-card";
@@ -98,6 +99,13 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
                 canWrite={canWrite}
                 pendingKey={registry.pendingKey}
                 onSave={registry.save}
+              />
+              <AdminSecuritySettingsCards
+                entries={registry.entries}
+                canWrite={canWrite}
+                pendingKey={registry.pendingKey}
+                onSave={registry.save}
+                isSuperAdmin={session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin)}
               />
             </div>
           </div>

@@ -35,6 +35,9 @@ import { PasskeyChallengeStoreProvider } from './passkey-challenge.store';
   codes keep working for both factors unchanged.
 */
 
+/** Paket 5.4.0-e: the label stays a label — short, trimmed, never empty. */
+export const passkeyDeviceNameMaxLength = 60;
+
 const registrationChallengeTtlSeconds = 3 * 60;
 const authenticationChallengeTtlSeconds = 3 * 60;
 
@@ -320,6 +323,48 @@ export class PasskeyCredentialService {
       null,
       `passkey-removed:${subject.id}:${now.getTime()}`,
     );
+  }
+
+  /**
+   * Paket 5.4.0-e: the profile list lets the owner name a credential ("Laptop
+   * — Windows Hello"). Only the label changes: the WebAuthn id, the counter and
+   * the backup flag are untouched, so a rename can never weaken the factor. The
+   * row must belong to the caller.
+   */
+  async renameCredential(
+    userId: string,
+    credentialRowId: string,
+    deviceName: string,
+  ): Promise<PasskeyView> {
+    const trimmed = deviceName.trim();
+    if (trimmed.length === 0 || trimmed.length > passkeyDeviceNameMaxLength) {
+      throw new AccountSecurityError('PASSKEY_INVALID_NAME', []);
+    }
+    const owned = await this.prisma.userPasskeyCredential.findFirst({
+      where: { id: credentialRowId, userId },
+      select: { id: true },
+    });
+    if (owned === null) throw new AccountSecurityError('PASSKEY_NOT_FOUND');
+    const row = await this.prisma.userPasskeyCredential.update({
+      where: { id: credentialRowId },
+      data: { deviceName: trimmed },
+      select: {
+        id: true,
+        deviceName: true,
+        aaguid: true,
+        createdAt: true,
+        lastUsedAt: true,
+        isBackedUp: true,
+      },
+    });
+    return {
+      id: row.id,
+      deviceName: row.deviceName,
+      aaguid: row.aaguid,
+      createdAt: row.createdAt.toISOString(),
+      lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+      isBackedUp: row.isBackedUp,
+    };
   }
 
   private registrationChallengeKey(userId: string): string {

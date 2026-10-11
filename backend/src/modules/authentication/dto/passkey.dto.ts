@@ -12,6 +12,13 @@ export class PasskeyAuthenticationDto extends MfaTokenDto {
   assertion!: Record<string, unknown>;
 }
 
+/** Paket 5.4.0-e: the human label of one credential ("Laptop — Windows Hello"). */
+export class RenamePasskeyDto {
+  @IsString()
+  @Length(1, 60)
+  deviceName!: string;
+}
+
 export class PasskeyRegistrationConfirmDto {
   @IsObject()
   response!: Record<string, unknown>;

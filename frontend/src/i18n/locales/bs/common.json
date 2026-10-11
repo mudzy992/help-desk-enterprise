@@ -142,7 +142,8 @@
       "repeated": "Ponovljeno {{count}} puta",
       "copyRequestId": "Kopiraj ID zahtjeva {{requestId}}",
       "copied": "ID zahtjeva kopiran"
-    }
+    },
+    "save": "Sačuvaj"
   },
   "notifications": {
     "title": "Obavještenja",
@@ -605,6 +606,20 @@
             "failedUsers": "Neuspješni korisnici"
           }
         }
+      },
+      "securityMetrics": {
+        "title": "Sigurnosne metrike (zadnji sat)",
+        "body": "Agregirani brojači bez ličnih podataka: blokade prijava (429), kašnjenja po računu, neuspjesi drugog faktora i preskočene HIBP provjere.",
+        "loading": "Učitavanje metrika…",
+        "refresh": "Osvježi metrike",
+        "chartTitle": "Propuštene prijave i blokade po minuti",
+        "series429": "Blokade (429)",
+        "seriesDelays": "Kašnjenja po računu",
+        "total": "Ukupno u zadnjem satu",
+        "peak": "Najviše u minuti",
+        "mfaFailures": "Neuspjesi drugog faktora",
+        "hibpSkipped": "Preskočene HIBP provjere",
+        "empty": "U zadnjem satu nema zabilježenih događaja."
       }
     },
     "security": {
@@ -630,7 +645,41 @@
       "columnDetails": "Detalji",
       "unknownAction": "Nepoznat auth događaj",
       "actorUnknown": "Sistem",
-      "actorPseudonymous": "Pseudonim"
+      "actorPseudonymous": "Pseudonim",
+      "rateLimitsTitle": "Ograničenja prijava",
+      "rateLimitsBody": "Pragovi za kašnjenje po računu, blokadu po IP adresi i ostale sigurnosne tokove. Promjena ide u jednom zapisu s razlogom i traži potvrdu identiteta.",
+      "rateLimitsLoading": "Učitavanje ograničenja…",
+      "rateLimitsRefresh": "Osvježi ograničenja",
+      "rateLimitsSave": "Sačuvaj ograničenja",
+      "rateLimitsSaved": "Ograničenja su sačuvana i primjenjuju se odmah.",
+      "rateLimitsReason": "Razlog promjene",
+      "rateLimitsReasonPlaceholder": "npr. kalibracija nakon lažnih blokada",
+      "rateLimitsBounds": "Dozvoljeno: {{min}}–{{max}}",
+      "rateLimitAccountWindowSeconds": "Kašnjenje po računu — prozor (s)",
+      "rateLimitAccountDelayStartsAfterFailures": "Kašnjenje po računu — počinje nakon (neuspjeha)",
+      "rateLimitAccountDelayBaseMilliseconds": "Kašnjenje po računu — osnovno (ms)",
+      "rateLimitAccountDelayMaxMilliseconds": "Kašnjenje po računu — najviše (ms)",
+      "rateLimitIpMaxFailures": "IP blokada — neuspjesi prije blokade",
+      "rateLimitIpWindowSeconds": "IP blokada — trajanje (s)",
+      "rateLimitOtherMaxFailures": "Ostalo (Entra/promjena lozinke/MFA) — neuspjesi",
+      "rateLimitOtherWindowSeconds": "Ostalo (Entra/promjena lozinke/MFA) — prozor (s)",
+      "sessionTitle": "Politika sesija",
+      "sessionBody": "Zadržavanje prijave i prekid zbog neaktivnosti. Ove postavke uređujete kao i ostale ključeve.",
+      "hibpTitle": "Provjera procurjelih lozinki",
+      "hibpBody": "Nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa. Kada servis nije dostupan, promjena se nastavlja.",
+      "bulkTitle": "Prisilna promjena svih lokalnih lozinki",
+      "bulkBody": "Svim lokalnim nalozima (osim SUPER_ADMIN-a i Entra naloga) postavlja se obavezna promjena lozinke i prekidaju se sve aktivne sesije. Lozinke se ne mijenjaju — korisnik ih mijenja pri sljedećoj prijavi.",
+      "bulkAction": "Pokreni masovnu promjenu",
+      "bulkConfirmTitle": "Potvrdite masovnu promjenu",
+      "bulkConfirmBody": "Radnja obuhvata sve lokalne naloge i prekida njihove sesije. Ponovno pokretanje je bezbjedno.",
+      "bulkDone": "Obuhvaćeno naloga: {{eligible}}. Promijenjeno: {{changed}}. Prekinutih sesija: {{revoked}}.",
+      "bulkPartial": "Nije uspjelo za {{failed}} naloga — pokrenite ponovo da se dovrše.",
+      "openSettings": "Otvori postavke",
+      "rateLimitsConfirmTitle": "Potvrdite izmjenu ograničenja",
+      "rateLimitsConfirmBody": "Vrijednosti se primjenjuju odmah nakon potvrde i upisuju se u dnevnik s razlogom.",
+      "sessionPolicyRow": "Trajanje i prekid sesija",
+      "bulkDoneToast": "Masovna promjena je pokrenuta.",
+      "sessionRememberNote": "Prijava uz „zapamti me“ traje duže od obične; prekid zbog neaktivnosti je serverski i vrijedi za sve sesije."
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
@@ -4636,7 +4685,13 @@
       "recoverySaved": "Sačuvao/la sam rezervne kodove",
       "continue": "Nastavi",
       "signInExpired": "Korak prijave je istekao (vrijedi 5 minuta). Vratite se na prijavu i pokušajte ponovo.",
-      "backToSignIn": "Nazad na prijavu"
+      "backToSignIn": "Nazad na prijavu",
+      "methodTotp": "Kod iz aplikacije",
+      "methodPasskey": "Koristi passkey / uređaj",
+      "passkeyIntro": "Odobrite prijavu na svom uređaju — Windows Hello, Touch ID, Face ID ili sigurnosni ključ.",
+      "usePasskey": "Potvrdi passkeyjem",
+      "confirmWithPasskey": "Potvrdi passkeyjem",
+      "passkeyStepUpHint": "Potvrda passkeyjem vrijedi samo za ovu radnju i troši se odmah."
     },
     "passwordPolicy": {
       "TOO_SHORT": "Lozinka je prekratka.",
@@ -6081,6 +6136,51 @@
       "teamsConnected": "povezan",
       "teamsNotInstalled": "aplikacija nije instalirana",
       "teamsInstallHint": "Instalirajte aplikaciju u Teamsu da biste primali obavijesti tamo."
+    },
+    "passkeys": {
+      "title": "Passkey (FIDO2)",
+      "subtitle": "Prijava i potvrde bez kucanja koda, uz provjeru na samom uređaju.",
+      "add": "Dodaj passkey",
+      "adding": "Čekam potvrdu na uređaju…",
+      "added": "Passkey je dodan.",
+      "empty": "Još nema registrovanih passkeyja.",
+      "unsupported": "Ovaj preglednik ne podržava passkeyje.",
+      "confirmTitle": "Potvrdite kodom",
+      "confirmBody": "Za dodavanje passkeyja prvo potvrdite trenutni kod iz aplikacije.",
+      "confirmContinue": "Nastavi",
+      "created": "Dodan",
+      "lastUsed": "Zadnje korišteno",
+      "neverUsed": "još nije korišten",
+      "backedUp": "Sinhronizovan",
+      "rename": "Preimenuj",
+      "renamed": "Naziv je sačuvan.",
+      "renameTitle": "Preimenuj passkey",
+      "renameLabel": "Naziv",
+      "renameHint": "Naziv služi samo vama za orijentaciju i ne mijenja sam ključ.",
+      "remove": "Ukloni",
+      "removed": "Passkey je uklonjen.",
+      "removeTitle": "Ukloniti passkey?",
+      "removeBody": "Nakon uklanjanja ovim uređajem se više ne možete potvrditi. Ako je to posljednji faktor koji nalog zahtijeva, server će to odbiti.",
+      "kinds": {
+        "apple": "iCloud Keychain (Apple)",
+        "windows_hello": "Windows Hello",
+        "google": "Google Password Manager",
+        "android": "Android uređaj",
+        "security_key": "Sigurnosni ključ",
+        "unknown": "Nepoznat uređaj"
+      },
+      "errorUnsupported": "Ovaj preglednik ne podržava passkeyje.",
+      "errorCancelled": "Potvrda je otkazana.",
+      "errorDevice": "Uređaj nije mogao potvrditi identitet. Pokušajte ponovo.",
+      "errorAlreadyRegistered": "Ovaj uređaj je već registrovan za vaš nalog.",
+      "errorNotAvailable": "Passkey nije dostupan za ovaj nalog.",
+      "errorNotFound": "Passkey nije pronađen.",
+      "errorLastFactor": "Posljednji faktor se ne može ukloniti dok je potvrda u dva koraka obavezna.",
+      "errorInvalidName": "Naziv nije ispravan.",
+      "errorInvalidCode": "Kod nije ispravan.",
+      "errorExpired": "Vrijeme za potvrdu je isteklo. Pokušajte ponovo.",
+      "errorRateLimited": "Previše pokušaja. Pokušajte kasnije.",
+      "errorGeneric": "Radnja nije uspjela."
     }
   },
   "privacy": {

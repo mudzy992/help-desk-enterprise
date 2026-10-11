@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 import { AdminAuditExportCard } from "@/components/admin/admin-audit-export-card";
 import { AdminAuditLogCard } from "@/components/admin/admin-audit-log-card";
+import { AdminSecurityMetricsCard } from "@/components/admin/admin-security-metrics-card";
 import { AdminSupportBundleCard } from "@/components/admin/admin-support-bundle-card";
 import { OpsHealthCard } from "@/components/admin/ops-health-card";
 import { IntegrationQueueCard } from "@/components/queue/integration-queue-card";
@@ -116,6 +117,7 @@ export function AdminOpsPanel() {
   return (
     <div className="fade-in space-y-4">
       {canViewHealth ? <OpsHealthCard canManage={canManageAlerts} /> : null}
+      {canSupportBundle ? <AdminSecurityMetricsCard /> : null}
       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
       {canManageTeams ? (
         <Card className="fade-in">

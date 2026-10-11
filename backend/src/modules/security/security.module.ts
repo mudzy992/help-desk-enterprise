@@ -6,6 +6,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { BulkPasswordResetController } from './bulk-password-reset.controller';
 import { BulkPasswordResetService } from './bulk-password-reset.service';
 import { SecurityAuditLogController } from './security-audit-log.controller';
+import { SecurityMetricsController } from './security-metrics.controller';
 import { SecurityIdentityController } from './security-identity.controller';
 import { SecurityRateLimitsController } from './security-rate-limits.controller';
 import { IdentityPasskeyService } from './identity-passkey.service';
@@ -28,6 +29,7 @@ import { SecurityRateLimitsService } from './security-rate-limits.service';
     SecurityRateLimitsController,
     BulkPasswordResetController,
     SecurityAuditLogController,
+    SecurityMetricsController,
   ],
   providers: [IdentityPasskeyService, SecurityRateLimitsService, BulkPasswordResetService],
   exports: [IdentityPasskeyService],

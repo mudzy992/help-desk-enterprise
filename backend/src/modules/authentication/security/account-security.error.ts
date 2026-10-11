@@ -21,6 +21,7 @@ export type AccountSecurityErrorCode =
   | 'MFA_UNAVAILABLE'
   | 'MFA_TOO_MANY_ATTEMPTS'
   | 'PASSKEY_NOT_FOUND'
+  | 'PASSKEY_INVALID_NAME'
   | 'PASSKEY_CLONED'
   | 'INVALID_PASSWORD'
   | 'PASSWORD_REUSED'
@@ -51,6 +52,7 @@ const messages: Record<AccountSecurityErrorCode, string> = {
   MFA_UNAVAILABLE: 'MFA is not configured on the server',
   MFA_TOO_MANY_ATTEMPTS: 'Too many attempts; try again later',
   PASSKEY_NOT_FOUND: 'The passkey was not found',
+  PASSKEY_INVALID_NAME: 'The passkey name is not valid',
   PASSKEY_CLONED: 'The authenticator looks cloned; register it again',
   INVALID_PASSWORD: 'Password does not meet requirements',
   PASSWORD_REUSED: 'The password was used recently',

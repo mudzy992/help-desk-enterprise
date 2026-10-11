@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MfaSection } from "@/components/account-security/mfa-section";
+import { PasskeySection } from "@/components/account-security/passkey-section";
 import { PasswordSection } from "@/components/account-security/password-section";
 import { SessionsList } from "@/components/account-security/sessions-list";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useLocale } from "@/i18n/use-locale";
 import { queryKeys } from "@/lib/query/query-keys";
+import { browserCanUsePasskeys } from "@/lib/webauthn/passkey-ceremony";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import {
   getAccountSecurity,
@@ -76,6 +78,21 @@ export function AccountSecurityPage() {
             <CardHeader title={t("account.security.mfaTitle")} subtitle={t("account.security.mfaSubtitle")} />
             <div className="p-4">
               <MfaSection mfa={data.mfa} onChanged={refresh} />
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title={t("account.passkeys.title")}
+              subtitle={t("account.passkeys.subtitle")}
+            />
+            <div className="p-4">
+              <PasskeySection
+                passkeys={data.passkeys}
+                hasTotp={data.hasTotp}
+                canUsePasskeys={browserCanUsePasskeys()}
+                onChanged={refresh}
+              />
             </div>
           </Card>
 

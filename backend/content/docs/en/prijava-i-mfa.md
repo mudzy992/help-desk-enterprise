@@ -115,6 +115,33 @@ The **Sign-in and directory** category holds the rules that apply to everyone:
 | Maximum number of simultaneous sessions per user | 0 = no limit; exceeding it signs out the oldest |
 | Notify ADMIN/SUPER_ADMIN about a sign-in from a new device or network | on/off |
 
+### For administrators: “Security” — journal and metrics
+
+The **Security** tab of the **Admin** screen is visible to **SUPER_ADMIN** only; a plain administrator sees the
+message “Security is available to the superadministrator only” and no request is sent.
+
+- **Security journal** — a chronological list filtered to `auth.*` events from the shared audit log (sign-ins,
+  failed sign-ins, sign-outs, two-step verification, password changes and resets, lockouts, limit changes).
+  The filters are **Event** (“All auth events” or one action) and **Person** (at least two characters, picked from
+  a list; covers records where the person is the target or the actor). The columns are **Time**, **Event**,
+  **Target**, **Actor** and **Details**, and the **Load more** button fetches older records. Details show the
+  record's metadata (method, device, reason) — never passwords or codes; an unknown actor (a failed sign-in) is
+  shown as **Pseudonym**, and system records as **System**.
+
+Next to the journal, **Settings → Security** offers:
+
+- **Login rate limits** — the eight thresholds (the per-account window and delay, the IP block and the “other”
+  flows). Each field shows its allowed range; a change needs a **reason** (at least 5 characters) and a proof of
+  identity with a code or a passkey.
+- **Session policy** and **Breached-password check** — session lifetime/cut-off and the Pwned Passwords check;
+  edited like any other setting (with a reason and a journal record).
+- **Force every local password to change** — every local account (except SUPER_ADMIN and Microsoft accounts) gets
+  a required password change and all its sessions end; the person changes the password at the next sign-in.
+
+The **Monitoring** tab also carries the **Security metrics (last hour)** card: a chart of **Blocks (429)** and
+**Per-account delays** per minute, plus counters for second-factor failures and skipped HIBP checks. The numbers
+are aggregated per minute and carry no personal data.
+
 ## Fields, validations and statuses
 
 | Field / status | Rule |

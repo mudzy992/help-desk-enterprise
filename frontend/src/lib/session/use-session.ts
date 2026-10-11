@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import {
   changePasswordOnFirstLogin,
+  completePasskeyLogin,
   confirmSignInMfaEnrollment,
   fallbackMinimumPasswordLength,
   isMfaResponse,
@@ -8,6 +9,7 @@ import {
   verifyMfaCode,
   type AuthenticationLoginResponse,
   type AuthenticationSessionResponse,
+  type MfaMethod,
   loginWithEntraIdToken,
   loginWithPassword,
   logoutSession,
@@ -66,7 +68,12 @@ export type SignInOutcome =
       readonly passwordMinLength: number;
     }
   // Paket 2.1: the second factor comes next.
-  | { readonly kind: "mfa_required"; readonly mfaToken: string }
+  | {
+      readonly kind: "mfa_required";
+      readonly mfaToken: string;
+      /** Paket 5.4.0-e: the factors the account can present (absent = TOTP). */
+      readonly methods?: readonly MfaMethod[];
+    }
   | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
 
 function storeSession(response: AuthenticationSessionResponse): void {
@@ -90,7 +97,7 @@ function toSignInOutcome(response: AuthenticationLoginResponse): SignInOutcome {
   }
   if (isMfaResponse(response)) {
     return response.status === "MFA_REQUIRED"
-      ? { kind: "mfa_required", mfaToken: response.mfaToken }
+      ? { kind: "mfa_required", mfaToken: response.mfaToken, methods: response.methods }
       : { kind: "mfa_enrollment_required", mfaToken: response.mfaToken };
   }
   storeSession(response);
@@ -147,6 +154,14 @@ export function useSession() {
     storeSession(await verifyMfaCode({ mfaToken, code }));
   }, []);
 
+  /** Paket 5.4.0-e: a verified passkey assertion → the same session as a code. */
+  const completeMfaWithPasskey = useCallback(
+    async (mfaToken: string, assertion: Record<string, unknown>): Promise<void> => {
+      storeSession(await completePasskeyLogin({ mfaToken, assertion }));
+    },
+    [],
+  );
+
   /**
    * Paket 2.1: forced enrollment. The session is held back until the user has
    * seen the recovery codes (`finish`), otherwise the login page redirects away.
@@ -181,6 +196,7 @@ export function useSession() {
     signInWithEntra,
     completePasswordChange,
     completeMfa,
+    completeMfaWithPasskey,
     confirmMfaEnrollment,
     signOut,
   };

@@ -182,3 +182,72 @@ describe('PasskeyCredentialService', () => {
     );
   });
 });
+
+/*
+  Paket 5.4.0-e: renaming a credential is a label-only change. It must never
+  touch another account's row, and it must reject an empty or over-long name
+  instead of storing it.
+*/
+describe('PasskeyCredentialService.renameCredential', () => {
+  const row = {
+    id: 'row-1',
+    deviceName: 'Laptop',
+    aaguid: 'aaguid-1',
+    createdAt: new Date('2026-10-09T00:00:00Z'),
+    lastUsedAt: null,
+    isBackedUp: true,
+  };
+
+  it('trims the name and returns the updated view', async () => {
+    const update = jest.fn(async () => ({ ...row, deviceName: 'Laptop — Windows Hello' }));
+    const { instance } = service({
+      findFirst: jest.fn(async () => ({ id: 'row-1' })),
+      update,
+    });
+
+    await expect(
+      instance.renameCredential('u-1', 'row-1', '  Laptop — Windows Hello  '),
+    ).resolves.toEqual({
+      id: 'row-1',
+      deviceName: 'Laptop — Windows Hello',
+      aaguid: 'aaguid-1',
+      createdAt: '2026-10-09T00:00:00.000Z',
+      lastUsedAt: null,
+      isBackedUp: true,
+    });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'row-1' },
+      data: { deviceName: 'Laptop — Windows Hello' },
+      select: expect.anything(),
+    });
+  });
+
+  it('never renames a credential of another account', async () => {
+    const update = jest.fn(async () => row);
+    const { instance } = service({
+      findFirst: jest.fn(async () => null),
+      update,
+    });
+
+    await expect(instance.renameCredential('u-1', 'row-9', 'Attacker')).rejects.toThrow(
+      new AccountSecurityError('PASSKEY_NOT_FOUND'),
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('refuses an empty or over-long name without touching the row', async () => {
+    const update = jest.fn(async () => row);
+    const { instance } = service({
+      findFirst: jest.fn(async () => ({ id: 'row-1' })),
+      update,
+    });
+
+    await expect(instance.renameCredential('u-1', 'row-1', '   ')).rejects.toThrow(
+      new AccountSecurityError('PASSKEY_INVALID_NAME'),
+    );
+    await expect(
+      instance.renameCredential('u-1', 'row-1', 'x'.repeat(61)),
+    ).rejects.toThrow(new AccountSecurityError('PASSKEY_INVALID_NAME'));
+    expect(update).not.toHaveBeenCalled();
+  });
+});

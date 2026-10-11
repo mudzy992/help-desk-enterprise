@@ -3,8 +3,8 @@ import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
-import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
+import { MfaMethodStep } from "@/components/auth/mfa-method-step";
 import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
@@ -17,6 +17,11 @@ import {
 } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { startEntraSignIn } from "@/lib/auth/entra-redirect";
+import {
+  readPreferredMfaMethod,
+  resolveDefaultMfaMethod,
+  type MfaMethod,
+} from "@/lib/auth/mfa-method";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/services/api";
 import {
@@ -37,7 +42,12 @@ type SignInStep =
       readonly reason: "temporary" | "expired";
       readonly passwordMinLength: number;
     }
-  | { readonly kind: "mfa"; readonly token: string }
+  | {
+      readonly kind: "mfa";
+      readonly token: string;
+      /** Paket 5.4.0-e: what the account can present; `undefined` = TOTP only. */
+      readonly methods?: readonly MfaMethod[];
+    }
   | { readonly kind: "enroll"; readonly token: string }
   | { readonly kind: "codes"; readonly codes: readonly string[]; readonly finish: () => void };
 
@@ -51,7 +61,7 @@ function stepFromOutcome(outcome: SignInOutcome): SignInStep | null {
         passwordMinLength: outcome.passwordMinLength,
       };
     case "mfa_required":
-      return { kind: "mfa", token: outcome.mfaToken };
+      return { kind: "mfa", token: outcome.mfaToken, methods: outcome.methods };
     case "mfa_enrollment_required":
       return { kind: "enroll", token: outcome.mfaToken };
     default:
@@ -85,7 +95,14 @@ export function LoginPage() {
   const branding = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, signIn, completePasswordChange, completeMfa, confirmMfaEnrollment } = useSession();
+  const {
+    session,
+    signIn,
+    completePasswordChange,
+    completeMfa,
+    completeMfaWithPasskey,
+    confirmMfaEnrollment,
+  } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -273,11 +290,19 @@ export function LoginPage() {
                   {t("auth.mfa.verifyIntro")}
                 </p>
                 <div className="mt-5">
-                  <MfaCodeForm
-                    onSubmit={async (code) => {
-                      await completeMfa(step.token, code);
-                      navigate(redirectPath, { replace: true });
-                    }}
+                  <MfaMethodStep
+                    email={email}
+                    token={step.token}
+                    methods={step.methods}
+                    defaultMethod={resolveDefaultMfaMethod(
+                      step.methods,
+                      readPreferredMfaMethod(email),
+                    )}
+                    onVerifyCode={(code) => completeMfa(step.token, code)}
+                    onCompletePasskey={(assertion) =>
+                      completeMfaWithPasskey(step.token, assertion)
+                    }
+                    onVerified={() => navigate(redirectPath, { replace: true })}
                     onCancel={() => setStep({ kind: "credentials" })}
                   />
                 </div>

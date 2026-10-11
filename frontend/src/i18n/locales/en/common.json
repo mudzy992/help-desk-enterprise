@@ -140,7 +140,8 @@
       "repeated": "Repeated {{count}} times",
       "copyRequestId": "Copy request ID {{requestId}}",
       "copied": "Request ID copied"
-    }
+    },
+    "save": "Save"
   },
   "notifications": {
     "title": "Notifications",
@@ -603,6 +604,20 @@
             "failedUsers": "Failed users"
           }
         }
+      },
+      "securityMetrics": {
+        "title": "Security metrics (last hour)",
+        "body": "Aggregated counters without personal data: sign-in blocks (429), per-account delays, second-factor failures and skipped HIBP checks.",
+        "loading": "Loading the metrics…",
+        "refresh": "Refresh the metrics",
+        "chartTitle": "Failed sign-ins and blocks per minute",
+        "series429": "Blocks (429)",
+        "seriesDelays": "Per-account delays",
+        "total": "Total in the last hour",
+        "peak": "Peak per minute",
+        "mfaFailures": "Second-factor failures",
+        "hibpSkipped": "Skipped HIBP checks",
+        "empty": "No events were recorded in the last hour."
       }
     },
     "security": {
@@ -628,7 +643,41 @@
       "columnDetails": "Details",
       "unknownAction": "Unknown auth event",
       "actorUnknown": "System",
-      "actorPseudonymous": "Pseudonym"
+      "actorPseudonymous": "Pseudonym",
+      "rateLimitsTitle": "Login rate limits",
+      "rateLimitsBody": "Thresholds for the per-account delay, the per-IP block and the other security flows. The change is one journalled batch with a reason and asks for a proof of identity.",
+      "rateLimitsLoading": "Loading the limits…",
+      "rateLimitsRefresh": "Refresh the limits",
+      "rateLimitsSave": "Save the limits",
+      "rateLimitsSaved": "The limits were saved and apply immediately.",
+      "rateLimitsReason": "Reason for the change",
+      "rateLimitsReasonPlaceholder": "e.g. calibration after false blocks",
+      "rateLimitsBounds": "Allowed: {{min}}–{{max}}",
+      "rateLimitAccountWindowSeconds": "Per-account delay — window (s)",
+      "rateLimitAccountDelayStartsAfterFailures": "Per-account delay — starts after (failures)",
+      "rateLimitAccountDelayBaseMilliseconds": "Per-account delay — base (ms)",
+      "rateLimitAccountDelayMaxMilliseconds": "Per-account delay — maximum (ms)",
+      "rateLimitIpMaxFailures": "IP block — failures before the block",
+      "rateLimitIpWindowSeconds": "IP block — duration (s)",
+      "rateLimitOtherMaxFailures": "Other (Entra/password change/MFA) — failures",
+      "rateLimitOtherWindowSeconds": "Other (Entra/password change/MFA) — window (s)",
+      "sessionTitle": "Session policy",
+      "sessionBody": "Sign-in persistence and the idle cut-off. These settings are edited like any other key.",
+      "hibpTitle": "Breached-password check",
+      "hibpBody": "New and temporary passwords are checked against the Pwned Passwords service. When the service is unavailable the change proceeds.",
+      "bulkTitle": "Force every local password to change",
+      "bulkBody": "Every local account (except SUPER_ADMIN and Entra accounts) gets a required password change and all its active sessions are revoked. No password is changed — the person changes it at the next sign-in.",
+      "bulkAction": "Run the bulk change",
+      "bulkConfirmTitle": "Confirm the bulk change",
+      "bulkConfirmBody": "The action covers every local account and ends their sessions. Running it again is safe.",
+      "bulkDone": "Eligible accounts: {{eligible}}. Changed: {{changed}}. Revoked sessions: {{revoked}}.",
+      "bulkPartial": "Failed for {{failed}} account(s) — run it again to finish them.",
+      "openSettings": "Open the settings",
+      "rateLimitsConfirmTitle": "Confirm the limit change",
+      "rateLimitsConfirmBody": "The values apply right after the confirmation and are journalled with the reason.",
+      "sessionPolicyRow": "Session lifetime and cut-off",
+      "bulkDoneToast": "The bulk change was started.",
+      "sessionRememberNote": "A sign-in with \"remember me\" lives longer than a plain one; the idle cut-off is enforced server-side for every session."
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",
@@ -4612,7 +4661,13 @@
       "recoverySaved": "I have saved the recovery codes",
       "continue": "Continue",
       "signInExpired": "The sign-in step has expired (it is valid for 5 minutes). Go back to sign in and try again.",
-      "backToSignIn": "Back to sign in"
+      "backToSignIn": "Back to sign in",
+      "methodTotp": "Authenticator code",
+      "methodPasskey": "Use a passkey / device",
+      "passkeyIntro": "Approve the sign-in on your device — Windows Hello, Touch ID, Face ID or a security key.",
+      "usePasskey": "Confirm with a passkey",
+      "confirmWithPasskey": "Confirm with a passkey",
+      "passkeyStepUpHint": "A passkey confirmation covers this action only and is consumed at once."
     },
     "passwordPolicy": {
       "TOO_SHORT": "The password is too short.",
@@ -6044,6 +6099,51 @@
       "teamsConnected": "connected",
       "teamsNotInstalled": "app not installed",
       "teamsInstallHint": "Install the app in Teams to receive notifications there."
+    },
+    "passkeys": {
+      "title": "Passkey (FIDO2)",
+      "subtitle": "Sign in and confirm without typing a code, verified on the device itself.",
+      "add": "Add a passkey",
+      "adding": "Waiting for your device…",
+      "added": "The passkey was added.",
+      "empty": "No passkeys are registered yet.",
+      "unsupported": "This browser does not support passkeys.",
+      "confirmTitle": "Confirm with a code",
+      "confirmBody": "To add a passkey, first confirm with the current code from your authenticator app.",
+      "confirmContinue": "Continue",
+      "created": "Added",
+      "lastUsed": "Last used",
+      "neverUsed": "not used yet",
+      "backedUp": "Synced",
+      "rename": "Rename",
+      "renamed": "The name was saved.",
+      "renameTitle": "Rename the passkey",
+      "renameLabel": "Name",
+      "renameHint": "The name is only for your own orientation; it does not change the key itself.",
+      "remove": "Remove",
+      "removed": "The passkey was removed.",
+      "removeTitle": "Remove the passkey?",
+      "removeBody": "After removal this device can no longer confirm. If it is the last factor your account requires, the server refuses the removal.",
+      "kinds": {
+        "apple": "iCloud Keychain (Apple)",
+        "windows_hello": "Windows Hello",
+        "google": "Google Password Manager",
+        "android": "Android device",
+        "security_key": "Security key",
+        "unknown": "Unknown device"
+      },
+      "errorUnsupported": "This browser does not support passkeys.",
+      "errorCancelled": "The confirmation was cancelled.",
+      "errorDevice": "The device could not confirm your identity. Try again.",
+      "errorAlreadyRegistered": "This device is already registered for your account.",
+      "errorNotAvailable": "A passkey is not available for this account.",
+      "errorNotFound": "The passkey was not found.",
+      "errorLastFactor": "The last factor cannot be removed while two-step verification is required.",
+      "errorInvalidName": "The name is not valid.",
+      "errorInvalidCode": "The code is not valid.",
+      "errorExpired": "The confirmation window expired. Try again.",
+      "errorRateLimited": "Too many attempts. Try again later.",
+      "errorGeneric": "The action failed."
     }
   },
   "privacy": {

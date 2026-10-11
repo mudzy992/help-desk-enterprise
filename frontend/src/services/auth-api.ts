@@ -30,7 +30,15 @@ export type MfaLoginResponse = {
   readonly status: "MFA_REQUIRED" | "MFA_ENROLLMENT_REQUIRED";
   readonly mfaToken: string;
   readonly expiresInSeconds: number;
+  /**
+   * Paket 5.4.0-e: the factors this account can present. Absent on an older
+   * server, which means TOTP only — exactly the behaviour before passkeys.
+   */
+  readonly methods?: readonly MfaMethod[];
 };
+
+/** The two second factors a local account can present. */
+export type MfaMethod = "totp" | "passkey";
 
 export type AuthenticationLoginResponse =
   | AuthenticationSessionResponse
@@ -48,6 +56,28 @@ export function verifyMfaCode(input: {
   readonly code: string;
 }): Promise<AuthenticationSessionResponse> {
   return apiRequest("/auth/mfa/verify", { method: "POST", body: JSON.stringify(input) });
+}
+
+/**
+ * Paket 5.4.0-e: the passkey branch of the sign-in second factor. The mfa token
+ * is not consumed until a factor verifies, so the person can switch between
+ * "code" and "passkey" as long as it is valid.
+ */
+export function startPasskeyLogin(mfaToken: string): Promise<{ options: Record<string, unknown> }> {
+  return apiRequest("/auth/mfa/passkey/start", {
+    method: "POST",
+    body: JSON.stringify({ mfaToken }),
+  });
+}
+
+export function completePasskeyLogin(input: {
+  readonly mfaToken: string;
+  readonly assertion: Record<string, unknown>;
+}): Promise<AuthenticationSessionResponse> {
+  return apiRequest("/auth/mfa/passkey/verify", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export type MfaEnrollmentSecret = {

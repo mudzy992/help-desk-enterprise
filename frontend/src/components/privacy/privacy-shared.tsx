@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { MfaCodeForm } from "@/components/auth/mfa-code-form";
+import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
 import { controlClassName, hintClassName } from "@/components/ui/control";
-import { Modal, ModalContent, ModalDescription, ModalTitle } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { mapApiError } from "@/lib/map-api-error";
+import { identityStepUpPurpose } from "@/services/security-api";
 import {
   localizePersonName,
   matchesPersonQuery,
@@ -35,7 +35,8 @@ export function usePrivacyFailure() {
 
 type PendingConfirmation = {
   readonly title: string;
-  readonly run: (code: string) => Promise<void>;
+  /** `undefined` when the action was confirmed with a passkey step-up. */
+  readonly run: (code: string | undefined) => Promise<void>;
 };
 
 /**
@@ -57,46 +58,37 @@ export function useIdentityGuard(onError: (caught: unknown) => void) {
           onError(caught);
           return;
         }
-        setPending({
-          title,
-          run: async (code) => {
-            try {
-              await action(code);
-              setPending(null);
-            } catch (retryError) {
-              if (readPrivacyErrorCode(retryError) === "IDENTITY_CONFIRMATION_FAILED") {
-                // The form shows "invalid code" for a 401.
-                throw new ApiError(401, "IDENTITY_CONFIRMATION_FAILED", "invalid");
-              }
-              setPending(null);
-              onError(retryError);
-            }
-          },
-        });
+        setPending({ title, run: action });
       }
     },
     [onError],
   );
 
   const dialog = (
-    <Modal open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
-      <ModalContent data-testid="privacy-identity-dialog">
-        <ModalTitle className="pr-6 text-[14px] font-semibold leading-5 text-foreground">
-          {pending?.title ?? ""}
-        </ModalTitle>
-        <ModalDescription className="mb-3 mt-1 text-[12.5px] leading-5 text-muted-foreground">
-          {t("privacy.identity.body")}
-        </ModalDescription>
-        {pending !== null ? (
-          <MfaCodeForm
-            idPrefix="privacy-identity"
-            submitLabel={t("privacy.identity.confirm")}
-            onSubmit={pending.run}
-            onCancel={() => setPending(null)}
-          />
-        ) : null}
-      </ModalContent>
-    </Modal>
+    <IdentityConfirmDialog
+      open={pending !== null}
+      onOpenChange={(open) => !open && setPending(null)}
+      title={pending?.title ?? ""}
+      description={t("privacy.identity.body")}
+      submitLabel={t("privacy.identity.confirm")}
+      passkeyPurpose={identityStepUpPurpose.identity}
+      onSubmit={async (code) => {
+        if (pending === null) {
+          return;
+        }
+        try {
+          await pending.run(code);
+          setPending(null);
+        } catch (retryError) {
+          if (readPrivacyErrorCode(retryError) === "IDENTITY_CONFIRMATION_FAILED") {
+            // The form shows "invalid code" for a 401.
+            throw new ApiError(401, "IDENTITY_CONFIRMATION_FAILED", "invalid");
+          }
+          setPending(null);
+          onError(retryError);
+        }
+      }}
+    />
   );
 
   return { guard, dialog };

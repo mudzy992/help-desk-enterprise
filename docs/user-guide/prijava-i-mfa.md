@@ -123,6 +123,33 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 | Najveći broj istovremenih prijava po korisniku | 0 = bez ograničenja; prekoračenje odjavljuje najstariju |
 | Obavijesti ADMIN/SUPER_ADMIN o prijavi s novog uređaja ili mreže | uključeno/isključeno |
 
+### Za administratore: „Sigurnost“ — dnevnik i metrike
+
+Tab **Sigurnost** u ekranu **Admin** vidi samo **SUPER_ADMIN**; običnom administratoru se prikazuje poruka
+„Sigurnost je dostupna samo superadministratoru“ i nijedan zahtjev se ne šalje.
+
+- **Sigurnosni dnevnik** — hronološka lista filtrirana na `auth.*` događaje iz zajedničkog audit dnevnika (prijave,
+  neuspjele prijave, odjave, potvrda u dva koraka, promjene i reseti lozinki, zaključavanja, promjene ograničenja).
+  Filteri su **Događaj** („Svi auth događaji“ ili pojedinačna radnja) i **Osoba** (najmanje dva znaka, izbor iz
+  liste; obuhvata zapise u kojima je osoba cilj ili izvršilac). Kolone su **Vrijeme**, **Događaj**, **Cilj**,
+  **Izvršilac** i **Detalji**, a dugme **Učitaj još** dohvata starije zapise. Detalji prikazuju metapodatke zapisa
+  (npr. način, uređaj, razlog) — bez lozinki i kodova; kada izvršilac nije poznat (neuspjela prijava) piše
+  **Pseudonim**, a sistemski zapisi nose oznaku **Sistem**.
+
+Uz dnevnik u **Postavkama → Sigurnost** stoje kartice:
+
+- **Ograničenja prijava** — osam pragova (prozor i kašnjenje po računu, IP blokada i „ostali“ tokovi). Uz svako polje
+  piše dozvoljeni raspon, promjena traži **razlog** (najmanje 5 znakova) i potvrdu identiteta kodom ili passkeyjem.
+- **Politika sesija** i **HIBP provjera lozinki** — trajanje/prekid sesija te uključivanje provjere procurjelih
+  lozinki; uređuju se kao i ostale postavke (uz razlog i zapis u dnevniku).
+- **Prisilna promjena svih lokalnih lozinki** — svim lokalnim nalozima (osim SUPER_ADMIN i Microsoft naloga)
+  postavlja se obavezna promjena lozinke i prekidaju se sve njihove sesije; samu lozinku korisnik mijenja pri
+  sljedećoj prijavi.
+
+Na tabu **Nadzor** je i kartica **Sigurnosne metrike (zadnji sat)**: grafik **Blokade (429)** i **Kašnjenja po računu**
+po minuti te brojači neuspjeha drugog faktora i preskočenih HIBP provjera. Brojevi su agregirani po minuti i ne
+sadrže lične podatke.
+
 ## Polja, validacije i statusi
 
 | Polje / status | Pravilo |

@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Req,
   UnauthorizedException,
@@ -36,7 +37,7 @@ import {
 } from './security/passkey-credential.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 import type { RegistrationResponseJSON } from '@simplewebauthn/server';
-import { PasskeyRegistrationConfirmDto } from './dto/passkey.dto';
+import { PasskeyRegistrationConfirmDto, RenamePasskeyDto } from './dto/passkey.dto';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService, type UserSessionView } from './security/session-registry.service';
 
@@ -153,6 +154,25 @@ export class AccountSecurityController {
         .removeCredential(user, policy, credentialId, user.id, hasTotp)
         .catch(mapAccountSecurityError),
     );
+  }
+
+  /**
+   * Paket 5.4.0-e: rename one own credential. The label is the only thing that
+   * changes — the WebAuthn credential, its counter and the backup flag stay as
+   * they are, so this needs no proof of identity beyond the session.
+   */
+  @Patch('security/passkey/:credentialId')
+  @HttpCode(200)
+  async renamePasskey(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('credentialId') credentialId: string,
+    @Body() body: RenamePasskeyDto,
+  ): Promise<{ passkey: PasskeyView }> {
+    const user = await this.caller(request);
+    const passkey = await this.passkeyCredentialService
+      .renameCredential(user.id, credentialId, body.deviceName)
+      .catch(mapAccountSecurityError);
+    return { passkey };
   }
 
   /** Own password change; every other session of the caller ends. */
