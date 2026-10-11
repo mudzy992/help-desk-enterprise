@@ -4,6 +4,8 @@ export type PasswordAuthenticationCredentials = {
   readonly kind: 'password';
   readonly email: string;
   readonly password: string;
+  /** Paket 5.4.0-c: request a long-lived session (ignored for SUPER_ADMIN). */
+  readonly rememberMe?: boolean;
 };
 
 export type EntraIdTokenAuthenticationCredentials = {
@@ -90,6 +92,8 @@ export type MfaTokenClaims = {
   readonly stage: MfaTokenStage;
   readonly jti: string;
   readonly expiresAt: number;
+  /** Carries the login choice through the MFA intermediate step. */
+  readonly rememberMe: boolean;
 };
 
 /** Paket 2.1 (M6): where the sign-in came from (session registry). */
@@ -106,6 +110,8 @@ export type SessionAccessTokenClaims = {
   readonly sessionId: string | null;
   readonly issuedAt: number;
   readonly expiresAt: number;
+  /** False for pre-5.4.0-c tokens that do not carry the `rem` claim. */
+  readonly rememberMe: boolean;
 };
 
 export type PasswordChangeTokenClaims = {

@@ -36,6 +36,7 @@ import { LoginSecurityMetricsService } from './security/login-security-metrics.s
 import { PasskeyCredentialService, passkeyLoginChallengeKey } from './security/passkey-credential.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 import { PasswordChangeService } from './security/password-change.service';
+import { SessionIdleTimeoutLoader } from './security/session-idle-timeout.loader';
 import { SessionRegistryService } from './security/session-registry.service';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 
@@ -67,16 +68,23 @@ export class AuthenticationService {
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
     // Paket 5.4.0-b: MFA failure metrics (optional — never blocks sign-in).
     @Optional() private readonly securityMetrics?: LoginSecurityMetricsService,
+    // Paket 5.4.0-c: optional for backwards-compatible unit/module wiring.
+    @Optional() private readonly idleTimeoutLoader?: SessionIdleTimeoutLoader,
   ) {}
 
   async loginWithPassword(
-    input: { readonly email: string; readonly password: string },
+    input: {
+      readonly email: string;
+      readonly password: string;
+      readonly rememberMe?: boolean;
+    },
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationLoginResponse> {
     const credentials: PasswordAuthenticationCredentials = {
       kind: 'password',
       email: input.email,
       password: input.password,
+      rememberMe: input.rememberMe === true,
     };
     return this.completeLogin(credentials, context);
   }
@@ -107,7 +115,7 @@ export class AuthenticationService {
       // Review 2026-09-25 (S2): sessions issued before the new password stop working.
       await this.sessionRegistry.revokeAll({ userId: user.id, reason: 'password_change', actorUserId: user.id });
       const refreshed = (await this.authenticationUserLoader.findById(user.id)) ?? user;
-      return await this.continueAfterPassword(refreshed, 'local', context);
+      return await this.continueAfterPassword(refreshed, 'local', context, false);
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -133,7 +141,13 @@ export class AuthenticationService {
         }
       });
       await this.sessionTokenService.consumeMfaToken(claims);
-      return await this.issueSession(user, 'local', method, context);
+      return await this.issueSession(
+        user,
+        'local',
+        method,
+        context,
+        claims.rememberMe,
+      );
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -176,7 +190,13 @@ export class AuthenticationService {
           .catch(mapAccountSecurityError),
       );
       await this.sessionTokenService.consumeMfaToken(claims);
-      return await this.issueSession(user, 'local', 'passkey', context);
+      return await this.issueSession(
+        user,
+        'local',
+        'passkey',
+        context,
+        claims.rememberMe,
+      );
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -202,7 +222,13 @@ export class AuthenticationService {
         this.mfaService.confirmEnrollment(user, input.code).catch(mapAccountSecurityError),
       );
       await this.sessionTokenService.consumeMfaToken(claims);
-      const session = await this.issueSession(user, 'local', 'totp', context);
+      const session = await this.issueSession(
+        user,
+        'local',
+        'totp',
+        context,
+        claims.rememberMe,
+      );
       return { ...session, recoveryCodes };
     } catch (error) {
       throw this.toHttpException(error);
@@ -216,8 +242,10 @@ export class AuthenticationService {
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationSessionResponse> {
     let sessionId = claims.sessionId;
+    let rememberMe = false;
     if (sessionId === null) {
-      // A token from before the registry: give it a row on the first refresh.
+      // A token from before the registry: give it a short-lived row on the
+      // first refresh. Legacy claims never opt themselves into 30 days.
       const policy = await this.policyLoader.load();
       sessionId = (
         await this.sessionRegistry.create({
@@ -227,17 +255,42 @@ export class AuthenticationService {
           context,
           policy,
           isAdmin: false,
+          rememberMe: false,
         })
       ).id;
     } else {
-      await this.sessionRegistry.touch(sessionId, context);
+      const session = await this.sessionRegistry.findActive(sessionId);
+      rememberMe = session?.rememberMe ?? claims.rememberMe;
+      const idleTimeoutSeconds =
+        (await this.idleTimeoutLoader?.load()) ?? 0;
+      if (
+        session !== null &&
+        idleTimeoutSeconds > 0 &&
+        Date.now() - session.lastSeenAt.getTime() > idleTimeoutSeconds * 1000
+      ) {
+        await this.sessionRegistry.revoke({
+          userId: session.userId,
+          sessionId,
+          reason: 'idle_timeout',
+          actorUserId: null,
+        });
+        throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS' });
+      }
+      await this.sessionRegistry.touch(sessionId, context, rememberMe);
     }
-    const accessToken = await this.sessionTokenService.issue(principal, sessionId);
+    const ttlSeconds = rememberMe
+      ? authenticationConstants.rememberMeSessionTtlSeconds
+      : authenticationConstants.sessionTtlSeconds;
+    const accessToken = await this.sessionTokenService.issue(
+      principal,
+      sessionId,
+      { ttlSeconds, rememberMe },
+    );
     await this.sessionTokenService.revoke(claims);
     return {
       accessToken,
       tokenType: 'Bearer',
-      expiresInSeconds: authenticationConstants.sessionTtlSeconds,
+      expiresInSeconds: ttlSeconds,
       principal: toAuthorizationPrincipal(principal),
     };
   }
@@ -281,7 +334,12 @@ export class AuthenticationService {
       if (user.mustChangePassword) {
         return await this.mustChangePassword(user, 'temporary');
       }
-      return await this.continueAfterPassword(user, 'local', context);
+      return await this.continueAfterPassword(
+        user,
+        'local',
+        context,
+        credentials.rememberMe === true,
+      );
     } catch (error) {
       throw this.toHttpException(error);
     }
@@ -308,6 +366,7 @@ export class AuthenticationService {
     user: AuthenticationUserRecord,
     provider: 'local',
     context: SignInContext,
+    rememberMe: boolean,
   ): Promise<AuthenticationLoginResponse> {
     const policy = await this.policyLoader.load();
     // Paket 5.1 (M2 #1): the flow (verify / enroll / none) is a separate
@@ -317,7 +376,11 @@ export class AuthenticationService {
     if (flow === 'verify') {
       return {
         status: 'MFA_REQUIRED',
-        mfaToken: await this.sessionTokenService.issueMfaToken(user.id, 'verify'),
+        mfaToken: await this.sessionTokenService.issueMfaToken(
+          user.id,
+          'verify',
+          rememberMe,
+        ),
         expiresInSeconds: authenticationConstants.mfaTokenTtlSeconds,
         // Paket 5.4.0-a: the screen offers the factors the account really has;
         // an absent field means a client predating passkeys — TOTP only.
@@ -327,11 +390,15 @@ export class AuthenticationService {
     if (flow === 'enroll') {
       return {
         status: 'MFA_ENROLLMENT_REQUIRED',
-        mfaToken: await this.sessionTokenService.issueMfaToken(user.id, 'enroll'),
+        mfaToken: await this.sessionTokenService.issueMfaToken(
+          user.id,
+          'enroll',
+          rememberMe,
+        ),
         expiresInSeconds: authenticationConstants.mfaTokenTtlSeconds,
       };
     }
-    return this.issueSession(user, provider, null, context);
+    return this.issueSession(user, provider, null, context, rememberMe);
   }
 
   /** Paket 5.4.0-a: passkey joins TOTP as a presentable second factor. */
@@ -355,7 +422,16 @@ export class AuthenticationService {
     // Paket 5.4.0-a: 'passkey' joins the registry column (VarChar(16)).
     mfaMethod: 'totp' | 'recovery' | 'passkey' | null,
     context: SignInContext,
+    rememberMe = false,
   ): Promise<AuthenticationSessionResponse> {
+    // Break-glass SUPER_ADMIN sessions always remain short-lived, even when a
+    // client sends rememberMe=true directly instead of using our login form.
+    const effectiveRememberMe =
+      rememberMe &&
+      !user.roleKeys.includes(authenticationConstants.superAdminRoleKey);
+    const ttlSeconds = effectiveRememberMe
+      ? authenticationConstants.rememberMeSessionTtlSeconds
+      : authenticationConstants.sessionTtlSeconds;
     const policy = await this.policyLoader.load();
     const session = await this.sessionRegistry.create({
       userId: user.id,
@@ -366,6 +442,7 @@ export class AuthenticationService {
       isAdmin: user.roleKeys.some(
         (key) => key === authenticationConstants.superAdminRoleKey || key === 'ADMIN',
       ),
+      rememberMe: effectiveRememberMe,
     });
     const principal = createAuthenticatedPrincipal({
       subjectId: user.id,
@@ -373,11 +450,15 @@ export class AuthenticationService {
       displayName: user.displayName,
       isLocalOnly: user.isLocalOnly,
     });
-    const accessToken = await this.sessionTokenService.issue(principal, session.id);
+    const accessToken = await this.sessionTokenService.issue(
+      principal,
+      session.id,
+      { ttlSeconds, rememberMe: effectiveRememberMe },
+    );
     return {
       accessToken,
       tokenType: 'Bearer',
-      expiresInSeconds: authenticationConstants.sessionTtlSeconds,
+      expiresInSeconds: ttlSeconds,
       principal: toAuthorizationPrincipal(principal),
     };
   }

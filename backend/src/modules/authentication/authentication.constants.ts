@@ -4,6 +4,10 @@ export const authenticationConstants = {
   localPasswordCostFactor: 12,
   // Review 2026-09-25: 1 h, extended by POST /auth/refresh while the user is active.
   sessionTtlSeconds: 60 * 60,
+  // Paket 5.4.0-c (M4): an explicitly remembered non-SUPER_ADMIN session.
+  rememberMeSessionTtlSeconds: 30 * 24 * 60 * 60,
+  // Redis revocation markers must outlive the longest token we can issue.
+  revocationCutoffSeconds: 30 * 24 * 60 * 60,
   passwordChangeTokenTtlSeconds: 15 * 60,
   passwordChangePurpose: 'password_change',
   // Paket 2.1 (M3): password → second factor.

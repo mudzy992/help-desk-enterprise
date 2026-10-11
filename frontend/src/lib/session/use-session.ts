@@ -105,8 +105,12 @@ export function useSession() {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<SignInOutcome> => {
-      const response = await loginWithPassword({ email, password });
+    async (
+      email: string,
+      password: string,
+      rememberMe = false,
+    ): Promise<SignInOutcome> => {
+      const response = await loginWithPassword({ email, password, rememberMe });
       // A local (break-glass) session never triggers Entra single logout.
       forgetEntraConfiguration();
       return toSignInOutcome(response);

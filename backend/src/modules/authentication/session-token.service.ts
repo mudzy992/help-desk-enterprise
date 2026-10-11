@@ -27,15 +27,25 @@ export class SessionTokenService {
     private readonly revocation: SessionRevocationStore = new SessionRevocationStore(),
   ) {}
 
-  async issue(principal: AuthenticatedPrincipal, sessionId: string | null = null): Promise<string> {
+  async issue(
+    principal: AuthenticatedPrincipal,
+    sessionId: string | null = null,
+    options: { readonly ttlSeconds?: number; readonly rememberMe?: boolean } = {},
+  ): Promise<string> {
     const secret = await this.jwtSigningSecretLoader.load();
     return this.jwtService.signAsync(
-      // Paket 2.1: `sid` ties every refreshed token to one registry row.
-      sessionId === null ? { sub: principal.subjectId } : { sub: principal.subjectId, sid: sessionId },
+      {
+        sub: principal.subjectId,
+        // Paket 2.1: `sid` ties every refreshed token to one registry row.
+        ...(sessionId === null ? {} : { sid: sessionId }),
+        // Keep the default token shape backward compatible: only remembered
+        // sessions carry the compact claim.
+        ...(options.rememberMe === true ? { rem: true } : {}),
+      },
       {
         secret,
         jwtid: randomUUID(),
-        expiresIn: `${authenticationConstants.sessionTtlSeconds}s`,
+        expiresIn: `${options.ttlSeconds ?? authenticationConstants.sessionTtlSeconds}s`,
       },
     );
   }
@@ -47,17 +57,29 @@ export class SessionTokenService {
 
   /** Paket 2.1: every token of one session (all refreshes) stops working. */
   async revokeSession(sessionId: string): Promise<void> {
-    await this.revocation.revokeSession(sessionId, authenticationConstants.sessionTtlSeconds);
+    await this.revocation.revokeSession(
+      sessionId,
+      authenticationConstants.revocationCutoffSeconds,
+    );
   }
 
   /**
    * Paket 2.1 (M3): short, single-use token between the password and the
    * second factor. `stage` = verify (MFA set up) or enroll (forced set-up).
    */
-  async issueMfaToken(subjectId: string, stage: MfaTokenStage): Promise<string> {
+  async issueMfaToken(
+    subjectId: string,
+    stage: MfaTokenStage,
+    rememberMe = false,
+  ): Promise<string> {
     const secret = await this.jwtSigningSecretLoader.load();
     return this.jwtService.signAsync(
-      { sub: subjectId.trim(), purpose: authenticationConstants.mfaPurpose, stage },
+      {
+        sub: subjectId.trim(),
+        purpose: authenticationConstants.mfaPurpose,
+        stage,
+        ...(rememberMe ? { rem: true } : {}),
+      },
       { secret, jwtid: randomUUID(), expiresIn: `${authenticationConstants.mfaTokenTtlSeconds}s` },
     );
   }
@@ -83,6 +105,7 @@ export class SessionTokenService {
         stage,
         jti: payload['jti'],
         expiresAt: typeof payload['exp'] === 'number' ? payload['exp'] : 0,
+        rememberMe: payload['rem'] === true,
       };
       if (await this.revocation.isRevoked({ jti: claims.jti, subjectId: claims.subjectId, issuedAt: Number.MAX_SAFE_INTEGER })) {
         throw createInvalidCredentialsError();
@@ -106,7 +129,7 @@ export class SessionTokenService {
   ): Promise<void> {
     await this.revocation.revokeAllForUser(
       subjectId,
-      authenticationConstants.sessionTtlSeconds,
+      authenticationConstants.revocationCutoffSeconds,
       exceptions,
     );
   }
@@ -135,7 +158,14 @@ export class SessionTokenService {
         secret,
       });
       const subjectId = readSessionSubjectId(payload);
-      const record = payload as { jti?: unknown; iat?: unknown; exp?: unknown; sid?: unknown; purpose?: unknown };
+      const record = payload as {
+        jti?: unknown;
+        iat?: unknown;
+        exp?: unknown;
+        sid?: unknown;
+        rem?: unknown;
+        purpose?: unknown;
+      };
       // An MFA or password-change token is never a session token.
       if (record.purpose !== undefined) {
         throw createInvalidCredentialsError();
@@ -146,6 +176,7 @@ export class SessionTokenService {
         jti: typeof record.jti === 'string' ? record.jti : null,
         issuedAt: typeof record.iat === 'number' ? record.iat : 0,
         expiresAt: typeof record.exp === 'number' ? record.exp : 0,
+        rememberMe: record.rem === true,
       };
       if (await this.revocation.isRevoked({ ...claims })) {
         throw createInvalidCredentialsError();

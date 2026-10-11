@@ -88,6 +88,7 @@ export function LoginPage() {
   const { session, signIn, completePasswordChange, completeMfa, confirmMfaEnrollment } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -152,7 +153,7 @@ export function LoginPage() {
     setHasError(false);
     setIsRateLimited(false);
     try {
-      const outcome = await signIn(email, password);
+      const outcome = await signIn(email, password, rememberMe);
       setPassword("");
       advance(outcome);
     } catch (error) {
@@ -418,6 +419,15 @@ export function LoginPage() {
                       </p>
                     ) : null}
                   </div>
+                  <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-primary"
+                      checked={rememberMe}
+                      onChange={(event) => setRememberMe(event.target.checked)}
+                    />
+                    <span>{t("login.rememberMe")}</span>
+                  </label>
                   {hasError ? (
                     <p id="login-error" className={errorTextClassName} role="alert">
                       {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
