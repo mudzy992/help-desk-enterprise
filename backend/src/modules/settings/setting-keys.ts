@@ -565,6 +565,9 @@ export const settingKeys = {
   // Package 5.2.3 (M11 B3): WebSocket emit rate alarms.
   privateOpsThresholdsWebsocketEmitWarnPerMinute: 'private.ops.thresholds.websocketEmitWarnPerMinute',
   privateOpsThresholdsWebsocketEmitCriticalPerMinute: 'private.ops.thresholds.websocketEmitCriticalPerMinute',
+  // Package 5.4.0-f follow-up: alarm on the login 429 metric (5.4.0-b/e).
+  privateOpsThresholdsLogin429WarnPerHour: 'private.ops.thresholds.login429WarnPerHour',
+  privateOpsThresholdsLogin429CriticalPerHour: 'private.ops.thresholds.login429CriticalPerHour',
   // Paket 2.9 (K3): on-call.
   privateProblemsNumberPrefix: 'private.problems.numberPrefix',
   privateProblemsRootCauseCategories: 'private.problems.rootCauseCategories',

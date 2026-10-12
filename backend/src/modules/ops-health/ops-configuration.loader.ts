@@ -20,7 +20,7 @@ export class OpsConfigurationLoader {
 
   async load(): Promise<OpsConfiguration> {
     const get = (key: string) => this.settings.getSetting(key);
-    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav, wsWarn, wsCritical] =
+    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav, wsWarn, wsCritical, login429Warn, login429Critical] =
       await Promise.all([
         get(settingKeys.privateOpsAlertsEnabled),
         get(settingKeys.privateOpsAlertsReminderHours),
@@ -36,9 +36,12 @@ export class OpsConfigurationLoader {
         get(settingKeys.privateOpsThresholdsClamavFailuresBeforeAlert),
         get(settingKeys.privateOpsThresholdsWebsocketEmitWarnPerMinute),
         get(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute),
+        get(settingKeys.privateOpsThresholdsLogin429WarnPerHour),
+        get(settingKeys.privateOpsThresholdsLogin429CriticalPerHour),
       ]);
     const warn = int(diskWarn, opsDefaults.diskWarnPercent);
     const wsWarnValue = int(wsWarn, opsDefaults.websocketEmitWarnPerMinute);
+    const login429WarnValue = int(login429Warn, opsDefaults.login429WarnPerHour);
     return {
       alertsEnabled: typeof enabled === 'boolean' ? enabled : opsDefaults.alertsEnabled,
       reminderHours: int(reminder, opsDefaults.reminderHours),
@@ -56,6 +59,9 @@ export class OpsConfigurationLoader {
         clamavFailuresBeforeAlert: int(clamav, opsDefaults.clamavFailuresBeforeAlert),
         websocketEmitWarnPerMinute: wsWarnValue,
         websocketEmitCriticalPerMinute: Math.max(wsWarnValue + 1, int(wsCritical, opsDefaults.websocketEmitCriticalPerMinute)),
+        login429WarnPerHour: login429WarnValue,
+        // A critical level at or under the warning level would skip WARNING entirely.
+        login429CriticalPerHour: Math.max(login429WarnValue + 1, int(login429Critical, opsDefaults.login429CriticalPerHour)),
       },
     };
   }
@@ -82,5 +88,7 @@ export const fallbackOpsConfiguration: OpsConfiguration = {
     clamavFailuresBeforeAlert: opsDefaults.clamavFailuresBeforeAlert,
     websocketEmitWarnPerMinute: opsDefaults.websocketEmitWarnPerMinute,
     websocketEmitCriticalPerMinute: opsDefaults.websocketEmitCriticalPerMinute,
+    login429WarnPerHour: opsDefaults.login429WarnPerHour,
+    login429CriticalPerHour: opsDefaults.login429CriticalPerHour,
   },
 };

@@ -40,6 +40,8 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `api.eventloop.lag` | UPOZORENJE / KRITIČNO | 2 / 2 | [api-eventloop-lag](#api-eventloop-lag) |
 | `tls.ldapsCa.expiry` | UPOZORENJE / KRITIČNO | 1 / 1 | [ldaps-ca-expiry](#ldaps-ca-expiry) |
 | `ops.monitor.stale` | KRITIČNO | 3 / 1 | [ops-monitor-stale](#ops-monitor-stale) |
+| `websocket.emits.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [websocket-emits-high](#websocket-emits-high) |
+| `auth.login429.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [login-429](#login-429) |
 
 ---
 
@@ -168,10 +170,35 @@ u detaljima alarma.
 3. Provjeri da se neki broadcast ne poziva iz petlje (npr. bulk koji ne koristi
    `BulkBroadcastRateLimiter`, ili rekurzivni broadcast u `ticket-updated`
    handleru).
-4. Pragovi se podešavaju kroz postavke **Zdravlje sistema → Pragovi**, ali
+4. Pragovi se podešavaju kroz **Administracija → Postavke i dodaci →
+   Opservabilnost i podrška** (polja `private.ops.thresholds.*`), ali
    povišenje bez razumijevanja uzroka skriva problem — Socket.IO paketi se
    šalju svakom povezanom klijentu u sobi, pa je stopa emit/s O(n·m) s
    brojem klijenata.
+
+## login-429
+
+**Uslov:** paket 5.4.0 (M2) + dopuna vala f: zbir metrike `login-429` za zadnjih **60
+kompletnih minuta** (isti broj koji prikazuje kartica *Sigurnosne metrike (zadnji sat)*)
+premašuje `login429WarnPerHour` (zadano **50/h**, UPOZORENJE) ili
+`login429CriticalPerHour` (zadano **200/h**, KRITIČNO). Alarm se otvara nakon dvije
+uzastopne provjere iznad praga i zatvara nakon dvije ispod. Broj, pragovi i prozor
+pišu u detaljima alarma; ako Redis nije čitljiv, metrika je nepoznata i alarm se
+**ne** otvara (to stanje pokriva `redis.unavailable`).
+
+**Postupak:**
+1. Pogledaj karticu *Administracija → Sigurnost → Sigurnosne metrike (zadnji sat)*:
+   da li `login-429` raste u jednom vrhu (napad/pokvaren klijent) ili ravnomjerno
+   (veliki NAT/proxy iza kojeg ljudi griješe lozinku).
+2. Izvor je u odgovoru 429 (`Retry-After`, `details.retryAfterSeconds`) i u
+   sigurnosnom dnevniku (`auth.login_failed` nosi **pseudonim**, nikad e-mail).
+3. Ako je izvor NAT/proxy: povisi `ipMaxFailures` (do 500) ili `ipWindowSeconds`
+   kroz **Ograničenja prijava**, uz razlog; ako je password spray: blokiraj izvor
+   na mreži/firewallu i **ne** podiži prag.
+4. Pragove alarma mijenjaš kroz **Administracija → Postavke i dodaci →
+   Opservabilnost i podrška** (`private.ops.thresholds.login429WarnPerHour` /
+   `…CriticalPerHour`);
+   kalibracija limita (ne alarma) je u [`docs/ops/rate-limits.md`](../../docs/ops/rate-limits.md).
 
 ## ops-monitor-stale
 

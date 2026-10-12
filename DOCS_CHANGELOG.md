@@ -66,7 +66,7 @@ red u „Šta je novo“ za svaki novi datum u ovom dokumentu.
 
 **Iskreno o alarmu (izostavljeno, ne prećutano):** `docs/ops/rate-limits.md` izričito piše da **alarm za `429`
 još nije automatizovan** — katalog ops upozorenja ne sadrži taj signal, pa je nadzor metrika ručni. Stranica
-zato ne obećava alarm niti linkuje nepostojeći runbook anchor.
+zato ne obećava alarm niti linkuje nepostojeći runbook anchor. *(Riješeno istim valom — vidi „429 alarm“ niže.)*
 
 **Ostaje otvoreno:** runtime kapija za nove E2E specove 37 (proširenje), 46 i 47 traži stack (vlasnikov server/CI) —
 u pješčaniku se mogu izvršiti samo statičke provjere (`tsc`, `--list`). `[interno]`
@@ -78,6 +78,27 @@ preglednika, red u bazi ne, pa spec 46 počinje brisanjem svega što je prethodn
 stoji pravilo da **vraćanje stanja u `finally` ne smije sakriti pravi pad** (run 38244860637 je prijavio samo
 `VALIDATION` iz svog `finally`, a pravi pad je ostao nevidljiv). Dokument opisuje i zašto je odbijanje brisanja
 posljednjeg faktora moralo izaći iz dijaloga (Radix drži ostatak stranice `aria-hidden`).
+
+**429 alarm (dopuna vala f, ista isporuka):** plan 5.4
+([`docs/plans/modules/5.4-sigurnosni-hardening.md`](docs/plans/modules/5.4-sigurnosni-hardening.md), M2) tražio je
+„alarm (postojeći alarm/DLQ sistem) kad satna stopa 429 pređe prag (default 50)",
+a `docs/ops/rate-limits.md` je do sada izričito pisao da alarm **nije automatizovan**. Sada je:
+`ops/runbook/ALERTS.md` dobio red i odjeljak **`auth.login429.high`** (uz to je u tabelu dopisan i
+nedostajući red za `websocket.emits.high` iz 5.2.3), a `docs/ops/rate-limits.md` poglavlje
+„Alarm na 429 prag (automatizovan)" s dva podesiva praga (`private.ops.thresholds.login429WarnPerHour`
+= 50/h UPOZORENJE, `…CriticalPerHour` = 200/h KRITIČNO, granice i histereza 2/2), objašnjenjem zašto
+su zadane vrijednosti takve (50/h je zadano iz plana; kritično je četverostruki prag upozorenja) i uputom na
+kalibraciju. Uz to, pragovi nose bs/en naslov i objašnjenje u registru postavki, pa se mijenjaju kroz
+**Administracija → Postavke i dodaci → Opservabilnost i podrška** bez deploya.
+
+**Usput popravljeno (ista porodica alarma):** detalji WebSocket alarma sadrže mapu po sobama, a
+prikaz je tu mapu ispisivao kao `[object Object]` u e-mailu, Teams kartici i rezervnom tekstu — sada se
+širi u red po sobi (`Emitova u minuti: <soba>`). Uz to je u runbooku ispravljena putanja do pragova:
+pragovi su u **Administracija → Postavke i dodaci → Opservabilnost i podrška**, a ne u kartici
+„Zdravlje sistema“ (stara formulacija je vodila na pogrešan ekran).
+
+**Zašto:** to je bila jedina neoznačena tačka prihvaćanja paketa 5.4; graf metrika je postojao od
+5.4.0-e, ali niko nije bio obaviješten kad 429 krene u pogrešnu stranu — nadzor je bio ručni.
 
 ## 2026-10-10 — E2E triage 2 (ručni full run 38044846221)
 

@@ -1,4 +1,5 @@
 import type Redis from 'ioredis';
+import { metricsBucketKey, minuteBucketOf } from '../authentication/security/login-security-metrics.service';
 import type { AlertStreak } from './alert-state-machine';
 import type { DlqBaseline } from './evaluate-ops-signals';
 
@@ -118,6 +119,22 @@ export class OpsStateStore {
       errors5xx: toCount(values[index * 2] ?? null),
       total: toCount(values[index * 2 + 1] ?? null),
     }));
+  }
+
+  /**
+   * Package 5.4.0-f follow-up: `login-429` totals over the last `minutes`
+   * **complete** minute buckets (the current, still-filling minute is left
+   * out, so the number never depends on when the check ran). The keys come
+   * from the metrics service itself, so the alarm and the admin graph can
+   * never read different namespaces.
+   */
+  async readLogin429Count(now: Date, minutes: number): Promise<number> {
+    if (minutes <= 0) return 0;
+    const currentMinute = minuteBucketOf(now);
+    const range = Array.from({ length: minutes }, (_, index) => currentMinute - minutes + index);
+    const keys = range.map((minute) => metricsBucketKey('login-429', minute));
+    const values = await this.redis.mget(...keys);
+    return values.reduce((sum, value) => sum + toCount(value ?? null), 0);
   }
 
   /** WebSocket emit totals (per room kind) for a single minute bucket. */

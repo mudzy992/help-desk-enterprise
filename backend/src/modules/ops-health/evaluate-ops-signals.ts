@@ -17,6 +17,9 @@ export type OpsThresholds = {
   // Package 5.2.3 (M11 B3): per-minute WebSocket emit alarm (any room kind).
   readonly websocketEmitWarnPerMinute: number;
   readonly websocketEmitCriticalPerMinute: number;
+  // Package 5.4.0-f follow-up: blocked sign-ins (429) per rolling hour.
+  readonly login429WarnPerHour: number;
+  readonly login429CriticalPerHour: number;
 };
 
 export type SchedulerSignal = {
@@ -61,6 +64,13 @@ export type OpsSignals = {
    * minute (which would make the zeros misleading).
    */
   readonly websocketEmits: Record<string, number> | null;
+  /**
+   * Package 5.4.0-f follow-up: `login-429` metric totals of the last 60
+   * complete minutes (5.4.0-b counted the blocked attempts per minute in
+   * Redis). `null` when Redis could not be read — the `redis.unavailable`
+   * alarm covers that case, and a missing number must not read as "quiet".
+   */
+  readonly login429LastHour: number | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -81,6 +91,8 @@ export type OpsObservation = {
 export const slaScanQueue = 'sla-scan';
 export const eventLoopLagThresholdsMs = { warning: 500, critical: 2_000 } as const;
 export const ldapsCaExpiryDays = { warning: 30, critical: 7 } as const;
+/** The alarm reads the last 60 complete minute buckets of the metric. */
+export const login429WindowMinutes = 60;
 const minute = 60_000;
 const day = 86_400_000;
 
@@ -101,6 +113,7 @@ export function evaluateOpsSignals(
     observeEventLoop(signals),
     observeLdapsCa(signals),
     observeWebsocketEmits(signals, thresholds),
+    observeLogin429(signals, thresholds),
   ];
 }
 
@@ -345,6 +358,32 @@ function observeWebsocketEmits(signals: OpsSignals, thresholds: OpsThresholds): 
       criticalThreshold: thresholds.websocketEmitCriticalPerMinute,
     },
     openAfter: 2,
+  };
+}
+
+/**
+ * Package 5.4.0-f follow-up: blocked sign-ins per rolling hour. The signal is
+ * the same `login-429` metric the admin graph shows (`GET
+ * /security/metrics/last-hour`), so the number an operator sees and the number
+ * the alarm reports cannot drift. An unknown read never fires the alarm.
+ */
+function observeLogin429(signals: OpsSignals, thresholds: OpsThresholds): OpsObservation {
+  const total = signals.login429LastHour;
+  if (total === null || total < thresholds.login429WarnPerHour) {
+    return inactive(opsAlertKeys.login429High);
+  }
+  const severity: OpsAlertSeverity =
+    total >= thresholds.login429CriticalPerHour ? 'CRITICAL' : 'WARNING';
+  return {
+    key: opsAlertKeys.login429High,
+    active: true,
+    severity,
+    details: {
+      login429LastHour: total,
+      warnThreshold: thresholds.login429WarnPerHour,
+      criticalThreshold: thresholds.login429CriticalPerHour,
+      windowMinutes: login429WindowMinutes,
+    },
   };
 }
 

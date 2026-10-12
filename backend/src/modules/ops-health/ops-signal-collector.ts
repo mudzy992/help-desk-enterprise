@@ -13,7 +13,7 @@ import { withTimeout } from '../health/health-probes';
 import { readClamavConfiguration } from '../tickets/attachments/scan-attachment-with-clamav';
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
-import type { OpsSignals, QueueSignal, SchedulerSignal } from './evaluate-ops-signals';
+import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
 import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
 import { OpsStateStore } from './ops-state.store';
 
@@ -43,7 +43,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       probe(() => this.prisma.$queryRaw`SELECT 1`, opsProbeTimeouts.databaseMs),
       probe(() => this.redis.getClient().ping(), opsProbeTimeouts.redisMs),
     ]);
-    const [disk, clamav, bull, integrationDlq, http, eventLoopLagMs, websocketEmits] = await Promise.all([
+    const [disk, clamav, bull, integrationDlq, http, eventLoopLagMs, websocketEmits, login429LastHour] = await Promise.all([
       this.disk(),
       this.clamav(),
       redis === 'ok' ? this.inspectQueues() : Promise.resolve(null),
@@ -53,6 +53,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       redis === 'ok' ? this.http(nowMs) : Promise.resolve(null),
       redis === 'ok' ? this.store.readEventLoopLagMs().catch(() => null) : Promise.resolve(null),
       redis === 'ok' ? this.websocket(nowMs) : Promise.resolve(null),
+      redis === 'ok' ? this.login429(nowMs) : Promise.resolve(null),
     ]);
     return {
       nowMs,
@@ -67,6 +68,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       eventLoopLagMs,
       ldapsCaExpiresAtMs: ldapsCaExpiry(),
       websocketEmits,
+      login429LastHour,
     };
   }
 
@@ -76,6 +78,21 @@ export class OpsSignalCollector implements OnModuleDestroy {
       const seen = await this.store.websocketHeartbeatSeen(lastCompleteMinute);
       if (!seen) return null;
       return await this.store.readWebsocketEmitMinute(websocketEmitRoomKinds as readonly string[], lastCompleteMinute);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Package 5.4.0-f follow-up: the `login-429` metric of the last 60 complete
+   * minutes. Read-only, and the keys come from the metrics service's own
+   * builder - the numbers the admin graph shows and the numbers the alarm
+   * compares are literally the same strings; a read failure yields `null` (the
+   * observation stays inactive instead of firing on a number nobody measured).
+   */
+  private async login429(nowMs: number): Promise<number | null> {
+    try {
+      return await this.store.readLogin429Count(new Date(nowMs), login429WindowMinutes);
     } catch {
       return null;
     }

@@ -18,6 +18,11 @@ export const opsAlertKeys = {
   ldapsCaExpiry: 'tls.ldapsCa.expiry',
   opsMonitorStale: 'ops.monitor.stale',
   websocketEmitsHigh: 'websocket.emits.high',
+  // Package 5.4.0-f follow-up: the last open item of the 5.4 plan
+  // (`docs/plans/modules/5.4-sigurnosni-hardening.md`, M2: "alarm ... kad satna
+  // stopa 429 pređe prag (default 50)"). It watches the `login-429` metric of
+  // 5.4.0-b/e, so the graph and the alarm read the same numbers.
+  login429High: 'auth.login429.high',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -185,6 +190,19 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     runbook: runbook('websocket-emits-high'),
     // Two consecutive minutes above threshold before firing (M11 B3
     // hysteresis/open-after); two quiet minutes to resolve.
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.login429High]: {
+    key: opsAlertKeys.login429High,
+    title: { bs: 'Blokirane prijave (429) prelaze prag', en: 'Blocked sign-ins (429) exceed the threshold' },
+    action: {
+      bs: 'IP adresa je privremeno blokirana zbog mnogo neuspjelih prijava. Provjerite metrike u Nadzoru, izvor u odgovoru 429 (Retry-After) i po potrebi podesite ipMaxFailures/ipWindowSeconds. Ako je izvor NAT/proxy, povećajte prag ili izuzmite izvor na mreži; ako je password spray, blokirajte izvor.',
+      en: 'An IP address is temporarily blocked after many failed sign-ins. Check the metrics under Monitoring, the source in the 429 answer (Retry-After) and retune ipMaxFailures/ipWindowSeconds if needed. If the source is a NAT/proxy, raise the threshold or allow-list the source on the network; if it is a password spray, block the source.',
+    },
+    // The window itself is an hour; two consecutive minutes above the
+    // threshold is the hysteresis (the same rule the other rate alarms use).
+    runbook: runbook('login-429'),
     openAfter: 2,
     resolveAfter: 2,
   },

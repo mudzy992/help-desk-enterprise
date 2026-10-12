@@ -23,6 +23,15 @@ export const opsDefaults = {
   // cover 4 API replicas summing ~5-25 emits per second per busiest room.
   websocketEmitWarnPerMinute: 600,
   websocketEmitCriticalPerMinute: 3000,
+  // Package 5.4.0-f follow-up: blocked sign-ins (429) per rolling hour. The
+  // per-IP bucket only blocks the *source*, never the account, so these numbers
+  // sit well above the noise of people mistyping a password behind one NAT.
+  // The warning default is the one the 5.4 plan asks for ("alarm ... kad satna
+  // stopa 429 pređe prag (default 50)", M2); the critical is four times the
+  // warning, the same ratio the WebSocket thresholds use (600/3000).
+  // Calibration lives in docs/ops/rate-limits.md.
+  login429WarnPerHour: 50,
+  login429CriticalPerHour: 200,
   statusPageEnabled: true,
   statusPagePublic: false,
   statusPageHistoryDays: 90,
@@ -69,6 +78,8 @@ export const opsSettings: readonly SettingDefinition[] = [
   number(settingKeys.privateOpsThresholdsClamavFailuresBeforeAlert, ops, 'Consecutive failed ClamAV checks (one per minute) before alarming (1-30)', opsDefaults.clamavFailuresBeforeAlert, 1, 30),
   number(settingKeys.privateOpsThresholdsWebsocketEmitWarnPerMinute, ops, 'WebSocket room emits per minute (cluster-wide, busiest room) that raises a WARNING (10-100000)', opsDefaults.websocketEmitWarnPerMinute, 10, 100_000),
   number(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute, ops, 'WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000)', opsDefaults.websocketEmitCriticalPerMinute, 20, 200_000),
+  number(settingKeys.privateOpsThresholdsLogin429WarnPerHour, ops, 'Login attempts blocked with 429 in one hour that raise a WARNING (1-100000)', opsDefaults.login429WarnPerHour, 1, 100_000),
+  number(settingKeys.privateOpsThresholdsLogin429CriticalPerHour, ops, 'Login attempts blocked with 429 in one hour that raise a CRITICAL alarm (2-200000)', opsDefaults.login429CriticalPerHour, 2, 200_000),
   definePrivateSetting({
     key: settingKeys.privateStatusPageEnabled,
     categoryId: services,

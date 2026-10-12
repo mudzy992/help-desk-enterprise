@@ -141,12 +141,29 @@ donosi na jednom ekranu.
 | `mfa-failures` raste | pogrešni TOTP/recovery kodovi (ili napad na drugi faktor) | provjeri sigurnosni dnevnik (`auth.mfa_failed`), kontaktiraj korisnika |
 | `hibp-skipped` raste | Pwned Passwords provjera nije mogla proći (timeout/mreža) → lozinka je **prihvaćena** (fail-open) | provjeri izlazni pristup; nije blokada, ali je smanjena zaštita |
 
-> **Alarm za 429 još nije automatizovan.** Katalog ops alarma (`ops-alert-catalog.ts`) ne sadrži
-> signal za `login-429`; nadzor je zato **ručni** (kartica metrika + ovaj runbook). Ako želite
-> automatsko upozorenje, to je zasebna stavka (novi signal + prag + `ops/runbook/ALERTS.md`), ne
-> konfiguracija limita.
+### 3.1 Alarm na 429 prag (automatizovan)
 
-### 3.1 Dnevnik (audit)
+`login-429` je od dopune vala f i **ops alarm** — ne samo graf. Worker (red `ops-health`,
+provjera svake minute) sabira zadnjih **60 kompletnih minuta** iste metrike i poredi ih s dva praga:
+
+| Postavka | Zadano | Težina | Granice |
+|---|---|---|---|
+| `private.ops.thresholds.login429WarnPerHour` | **50** blokada/h | UPOZORENJE | 1 – 100000 |
+| `private.ops.thresholds.login429CriticalPerHour` | **200** blokada/h | KRITIČNO | 2 – 200000 |
+
+Alarm `auth.login429.high` otvara se nakon **dvije** uzastopne provjere iznad praga (histereza protiv
+flappinga) i zatvara nakon dvije ispod; broj, pragovi i prozor stoje u detaljima poruke. Ako Redis
+nije čitljiv, metrika je **nepoznata** i alarm se ne otvara — to stanje pokriva `redis.unavailable`.
+Pragovi se mijenjaju kroz **Administracija → Postavke i dodaci → Opservabilnost i podrška**
+(isti registry kao ostali ops pragovi), a postupak i prve radnje su u [`ops/runbook/ALERTS.md#login-429`](../runbook/ALERTS.md#login-429).
+
+> **Zašto 50/h i 200/h?** Blokira se samo izvor (IP), nikad nalog, pa je i nekoliko desetina blokada
+> na sat normalno iza velikog NAT-a gdje ljudi griješe lozinku. Zadano **50/h** dolazi iz plana paketa 5.4 (M2: „alarm kad satna stopa 429 pređe prag (default 50)"),
+> a kritično **200/h** je četverostruki prag upozorenja — isti odnos kao kod WebSocket alarma (600/3000).
+> Kritična razina opisuje burst koji znači napad probanja lozinki ili klijent u petlji. Pragovi su namjerno **podesivi**: kalibriraj ih
+> nakon prve sedmice rada (vidi §4) i upiši razlog u dnevnik izmjena.
+
+### 3.2 Dnevnik (audit)
 
 U sigurnosnom dnevniku (`GET /security/audit-log`, kartica na istoj stranici):
 

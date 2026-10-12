@@ -62,6 +62,11 @@ const labels = {
       heartbeatAgeSeconds: 'Sekundi od posljednjeg signala',
       thresholdSeconds: 'Prag (s)',
       snapshotAgeSeconds: 'Sekundi od posljednje provjere',
+      login429LastHour: 'Blokirane prijave (429) u zadnjih sat',
+      warnThreshold: 'Prag upozorenja',
+      criticalThreshold: 'Kritični prag',
+      emitsPerMinute: 'Emitova u minuti',
+      busiestRoom: 'Najopterećenija soba',
     } as Record<string, string>,
     yes: 'da',
     no: 'ne',
@@ -106,6 +111,11 @@ const labels = {
       heartbeatAgeSeconds: 'Seconds since last heartbeat',
       thresholdSeconds: 'Threshold (s)',
       snapshotAgeSeconds: 'Seconds since last check',
+      login429LastHour: 'Blocked sign-ins (429) in the last hour',
+      warnThreshold: 'Warning threshold',
+      criticalThreshold: 'Critical threshold',
+      emitsPerMinute: 'Emits per minute',
+      busiestRoom: 'Busiest room',
     } as Record<string, string>,
     yes: 'yes',
     no: 'no',
@@ -169,6 +179,15 @@ export function opsAlertDetailRows(
     if (field === 'failedByQueue' && typeof value === 'object' && value !== null) {
       for (const [queue, count] of Object.entries(value as Record<string, unknown>)) {
         rows.push({ label: `${text.fields.newFailures}: ${queue}`, value: String(count) });
+      }
+      continue;
+    }
+    // Package 5.2.3 follow-up: the WebSocket alarm carries a per-room map.
+    // Without this branch every room rendered as "[object Object]" in the
+    // e-mail, the Teams card and the fallback text.
+    if (field === 'perRoom' && typeof value === 'object' && value !== null) {
+      for (const [room, count] of Object.entries(value as Record<string, unknown>)) {
+        rows.push({ label: `${text.fields.emitsPerMinute}: ${room}`, value: formatValue(count, locale) });
       }
       continue;
     }

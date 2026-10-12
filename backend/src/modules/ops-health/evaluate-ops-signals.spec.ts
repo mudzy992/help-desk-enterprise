@@ -23,6 +23,8 @@ const thresholds: OpsThresholds = {
   clamavFailuresBeforeAlert: 3,
   websocketEmitWarnPerMinute: 500,
   websocketEmitCriticalPerMinute: 2_000,
+  login429WarnPerHour: 50,
+  login429CriticalPerHour: 200,
 };
 
 function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
@@ -45,6 +47,8 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     eventLoopLagMs: 12,
     ldapsCaExpiresAtMs: null,
     websocketEmits: { staff: 10, public: 0, user: 5, group: 120, 'group-legacy': 0, broadcast: 0 },
+    // Quiet by default: the metric exists and is zero.
+    login429LastHour: 0,
     ...overrides,
   };
 }
@@ -56,6 +60,30 @@ function byKey(signals: OpsSignals, base = baseline) {
 }
 
 describe('evaluateOpsSignals', () => {
+  it('keeps the 429 alarm quiet below the warning threshold and when the metric is unknown', () => {
+    expect(byKey(healthy({ login429LastHour: 49 })).get(opsAlertKeys.login429High)).toMatchObject({
+      active: false,
+    });
+    // An unread metric must never read as "quiet" turning into an alarm, nor
+    // as a false alarm: unknown stays inactive, the redis alarm covers it.
+    expect(byKey(healthy({ login429LastHour: null })).get(opsAlertKeys.login429High)).toMatchObject({
+      active: false,
+    });
+    // Exactly on the threshold is already a warning ("at or above").
+    expect(byKey(healthy({ login429LastHour: 50 })).get(opsAlertKeys.login429High)).toMatchObject({
+      active: true,
+      severity: 'WARNING',
+      details: { login429LastHour: 50, warnThreshold: 50, criticalThreshold: 200, windowMinutes: 60 },
+    });
+  });
+
+  it('raises the 429 alarm to critical at the critical threshold', () => {
+    const warning = byKey(healthy({ login429LastHour: 199 })).get(opsAlertKeys.login429High)!;
+    expect(warning.severity).toBe('WARNING');
+    const critical = byKey(healthy({ login429LastHour: 200 })).get(opsAlertKeys.login429High)!;
+    expect(critical).toMatchObject({ active: true, severity: 'CRITICAL' });
+  });
+
   it('reports every key and nothing active for a healthy system', () => {
     const observations = evaluateOpsSignals(healthy(), thresholds, baseline);
     expect(observations.filter((observation) => observation.active)).toEqual([]);
