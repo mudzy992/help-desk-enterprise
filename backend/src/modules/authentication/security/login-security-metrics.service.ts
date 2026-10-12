@@ -23,6 +23,9 @@ export const loginSecurityMetricEvents: readonly LoginSecurityMetricEvent[] = [
   'login-account-delays',
   'mfa-failures',
   'hibp-skipped',
+  // Paket 5.4.1 (M3): the Turnstile challenge in front of a password sign-in.
+  'captcha-failed',
+  'captcha-skipped',
 ];
 
 const keyPrefix = 'security:metrics:';

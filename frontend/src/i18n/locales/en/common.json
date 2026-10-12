@@ -710,6 +710,9 @@
       "rateLimitOtherMaxFailures": "Other (Entra/password change/MFA) — failures",
       "rateLimitOtherWindowSeconds": "Other (Entra/password change/MFA) — window (s)",
       "sessionBody": "Sign-in persistence and the idle cut-off. These settings are edited like any other key.",
+      "captchaRow": "Human verification (CAPTCHA)",
+      "captchaHint": "Cloudflare Turnstile after five consecutive failures",
+      "captchaBody": "When on, a sign-in from one address that failed five times in a row also has to present a solved Cloudflare Turnstile challenge. The site and secret keys are settings: the secret is stored as a secret, never rendered and never sent to the client.",
       "hibpTitle": "Breached-password check",
       "hibpBody": "New and temporary passwords are checked against the Pwned Passwords service. When the service is unavailable the change proceeds.",
       "bulkTitle": "Force every local password to change",
@@ -735,7 +738,7 @@
       "rateLimitsReasonHint": "A reason is required (at least {{count}} characters) and is visible in the journal.",
       "hibpHint": "breached-password check (fail-open)",
       "policyTitle": "Security settings",
-      "policyBody": "Session lifetime and cut-off, plus the breached-password check. A row opens a dialog and the change is recorded in the journal below."
+      "policyBody": "Session lifetime and cut-off, the breached-password check and the human check. A row opens a dialog and the change is recorded in the journal below."
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",
@@ -2079,7 +2082,10 @@
         "private.security.rateLimits.other.maxFailures": "Login rate limits — Entra/password-change/MFA failures before a block",
         "private.security.rateLimits.other.windowSeconds": "Login rate limits — Entra/password-change/MFA bucket lifetime (s)",
         "private.security.session.idleTimeoutSeconds": "Session policy — idle timeout (s)",
-        "private.security.hibp.enabled": "Security — breached-password check"
+        "private.security.hibp.enabled": "Security — breached-password check",
+        "private.security.captcha.provider": "CAPTCHA — challenge provider",
+        "private.security.captcha.siteKey": "CAPTCHA — public site key",
+        "private.security.captcha.secretKey": "CAPTCHA — secret key"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2544,7 +2550,10 @@
         "private.security.rateLimits.other.maxFailures": "Applies to Entra sign-in, password change and MFA confirmations — the number of failures before a temporary block.",
         "private.security.rateLimits.other.windowSeconds": "How long Entra/password-change/MFA failures are remembered.",
         "private.security.session.idleTimeoutSeconds": "Idle time after which the server ends a session on its next refresh. Enter 0 to disable it or an integer from 300 to 2592000 seconds.",
-        "private.security.hibp.enabled": "When enabled, new and temporary passwords are checked against the Pwned Passwords service (only the first 5 characters of the SHA-1 hash, cached for 24 h). If the service is unavailable the change proceeds (fail-open). Switch it off only if policy demands it."
+        "private.security.hibp.enabled": "When enabled, new and temporary passwords are checked against the Pwned Passwords service (only the first 5 characters of the SHA-1 hash, cached for 24 h). If the service is unavailable the change proceeds (fail-open). Switch it off only if policy demands it.",
+        "private.security.captcha.provider": "Who checks that a sign-in is not sent by an automated client. **none** (default) changes nothing: login rate limits keep working as before and no request leaves for the internet. **turnstile** turns on Cloudflare Turnstile: after five consecutive failed sign-ins from the same IP address a sign-in asks for a solved challenge, and one solved challenge is worth one attempt.",
+        "private.security.captcha.siteKey": "The public key from the Cloudflare Turnstile dashboard (Widget → Site key). It is not a secret: it is rendered on the sign-in page. Leave it empty while the provider is **none**.",
+        "private.security.captcha.secretKey": "The secret key from the Cloudflare Turnstile dashboard (Widget → Secret key). Only the server uses it to verify a solved challenge; it is never shown in the browser and never written to a log. If the key is missing or Cloudflare is unreachable, a sign-in is not blocked — only the login rate limit stays."
       },
       "type": {
         "boolean": "on/off",
@@ -4694,7 +4703,12 @@
     "signOut": "Sign out",
     "loading": "Loading session…",
     "error": "Sign in failed. Check the email and password.",
-    "errorRateLimited": "Too many failed sign-in attempts. Try again later."
+    "errorRateLimited": "Too many failed sign-in attempts. Try again later.",
+    "captchaTitle": "Human verification",
+    "captchaHint": "Solve the check, then sign in again.",
+    "captchaUnavailable": "The check did not load. Check the connection and try again — if it repeats, tell an administrator (the server needs access to the Cloudflare Turnstile service).",
+    "captchaRetry": "Try again",
+    "captchaFailed": "The check was not accepted. Try again."
   },
   "login": {
     "title": "Sign in",

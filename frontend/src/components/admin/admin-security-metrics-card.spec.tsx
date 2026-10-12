@@ -54,6 +54,10 @@ const snapshotWithEvents: LoginSecurityMetricsSnapshot = {
     "login-account-delays": series(7, 2, [0, 1, 4, 2]),
     "mfa-failures": series(2, 1, [0, 0, 2, 0]),
     "hibp-skipped": series(5, 3, [0, 3, 0, 2]),
+    // 5.4.1: the endpoint reports the challenge counters too; the card draws the
+    // four series above, so these two only have to be part of the payload.
+    "captcha-skipped": series(1, 1, [0, 1, 0, 0]),
+    "captcha-failed": series(0, 0, [0, 0, 0, 0]),
   },
 };
 
@@ -65,6 +69,8 @@ const snapshotWithoutEvents: LoginSecurityMetricsSnapshot = {
     "login-account-delays": series(0, 0, [0, 0, 0, 0]),
     "mfa-failures": series(0, 0, [0, 0, 0, 0]),
     "hibp-skipped": series(0, 0, [0, 0, 0, 0]),
+    "captcha-skipped": series(0, 0, [0, 0, 0, 0]),
+    "captcha-failed": series(0, 0, [0, 0, 0, 0]),
   },
 };
 

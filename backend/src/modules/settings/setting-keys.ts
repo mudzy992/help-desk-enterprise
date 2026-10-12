@@ -385,6 +385,10 @@ export const settingKeys = {
     'private.security.session.idleTimeoutSeconds',
   // Paket 5.4.0-d (M5): Pwned Passwords check on every locally set password.
   privateSecurityHibpEnabled: 'private.security.hibp.enabled',
+  // Paket 5.4.1 (M3): the human check in front of a password sign-in.
+  privateSecurityCaptchaProvider: 'private.security.captcha.provider',
+  privateSecurityCaptchaSiteKey: 'private.security.captcha.siteKey',
+  privateSecurityCaptchaSecretKey: 'private.security.captcha.secretKey',
   privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
   privateSecuritySafeLoggingLevelsCsv:
     'private.security.safeLogging.levelsCsv',

@@ -26,6 +26,7 @@ import { AccountSecurityPolicyLoader } from './security/account-security-policy.
 import { MfaService } from './security/mfa.service';
 import { LoginSecurityMetricsService } from './security/login-security-metrics.service';
 import { HibpPasswordChecker } from './security/hibp-password-checker';
+import { LoginCaptchaService } from './security/login-captcha.service';
 import { PasskeyChallengeStoreProvider } from './security/passkey-challenge.store';
 import { PasskeyCredentialService } from './security/passkey-credential.service';
 import { PasswordChangeService } from './security/password-change.service';
@@ -68,6 +69,7 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     // Paket 5.4.0-d (M5): Pwned Passwords check shared by the owner change
     // flow and the admin temporary-password paths in the users module.
     HibpPasswordChecker,
+    LoginCaptchaService,
     PasswordChangeService,
     SessionRegistryService,
   ],
@@ -80,6 +82,7 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     SecurityRateLimitConfigLoader,
     LoginSecurityMetricsService,
     HibpPasswordChecker,
+    LoginCaptchaService,
     PasswordChangeService,
     SessionRegistryService,
     SessionRevocationStore,

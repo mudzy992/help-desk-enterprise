@@ -133,6 +133,9 @@ export class AuthenticationController {
           },
           readSignInContext(request),
         ),
+      // Paket 5.4.1 (M3): the solved Turnstile challenge, when the limiter asks
+      // for one (the widget sends it; it is opaque and carries no identity).
+      body.captchaToken ?? null,
     );
   }
 

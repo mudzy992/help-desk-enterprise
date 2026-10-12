@@ -421,3 +421,104 @@ describe('change-password attempt key (review N1)', () => {
     await expect(limiter.guard(key, async () => 'ok')).rejects.toMatchObject({ status: 429 });
   });
 });
+
+/*
+  Paket 5.4.1 (M3): Turnstile next to the rate limiting.
+
+  The limiter asks the captcha service once per attempt and only when the IP
+  bucket reached the threshold. A solved challenge buys exactly one attempt:
+  it lifts the temporary 429 (the human proved to be a human), while an
+  unreachable Cloudflare lifts nothing — the 429 stays and an ordinary attempt
+  behaves exactly as before the package.
+*/
+describe('login captcha gate in front of the password buckets (5.4.1 M3)', () => {
+  const secret = 'stable-shared-signing-secret-for-tests';
+  const loader = { load: async () => secret } as never;
+  const ip = '198.51.100.9';
+  const email = 'captcha-target@example.test';
+  const wrong = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+
+  function captchaFixture(verdicts: readonly string[]) {
+    const required = jest.fn().mockResolvedValue(verdicts.length > 0);
+    const verify = jest.fn();
+    for (const verdict of verdicts) verify.mockResolvedValueOnce(verdict);
+    return { required, verify } as unknown as {
+      required: jest.Mock;
+      verify: jest.Mock;
+    };
+  }
+
+  async function failTimes(limiter: LoginAttemptLimiter, times: number, token?: string) {
+    for (let attempt = 0; attempt < times; attempt += 1) {
+      await expect(
+        limiter.guardPasswordLogin(email, ip, wrong, token ?? null),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    }
+  }
+
+  it('demands the challenge only after the threshold, then asks for the token', async () => {
+    const captcha = captchaFixture(['missing', 'missing']);
+    // The fixture says "required" from the first call; below the threshold the
+    // limiter must not call it at all.
+    const notYetRequired = { required: jest.fn().mockResolvedValue(false), verify: jest.fn() };
+    const limiter = new LoginAttemptLimiter(undefined, loader, undefined, undefined, notYetRequired as never);
+    await failTimes(limiter, 2);
+    expect(notYetRequired.required).toHaveBeenCalled();
+    expect(notYetRequired.verify).not.toHaveBeenCalled();
+
+    const demanding = new LoginAttemptLimiter(undefined, loader, undefined, undefined, captcha as never);
+    await expect(
+      demanding.guardPasswordLogin(email, ip, async () => 'ok', null),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(demanding.guardPasswordLogin(email, ip, async () => 'ok', null)).rejects.toMatchObject({
+      response: { code: 'CAPTCHA_REQUIRED' },
+    });
+  });
+
+  it('a refused token is CAPTCHA_FAILED and never reaches the credential check', async () => {
+    const captcha = captchaFixture(['failed']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, undefined, undefined, captcha as never);
+    const login = jest.fn().mockResolvedValue('ok');
+    await expect(limiter.guardPasswordLogin(email, ip, login, 'token-bad')).rejects.toMatchObject({
+      response: { code: 'CAPTCHA_FAILED' },
+    });
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it('a solved challenge buys one attempt even when the IP bucket is already over the block threshold', async () => {
+    const limits = { ipMaxFailures: 2, ipWindowSeconds: 300 } as never;
+    const config = { load: async () => limits } as never;
+    const captcha = captchaFixture(['passed', 'passed', 'passed']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, config, undefined, captcha as never);
+    // Verified attempts: a valid token lifts the 429 that would otherwise be next.
+    await expect(limiter.guardPasswordLogin(email, ip, wrong, 'token-ok')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    await expect(limiter.guardPasswordLogin(email, ip, wrong, 'token-ok')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    await expect(limiter.guardPasswordLogin(email, ip, async () => 'signed-in', 'token-ok')).resolves.toBe(
+      'signed-in',
+    );
+  });
+
+  it('an unreachable Cloudflare keeps the 429 — fail-open never lifts the block', async () => {
+    const limits = { ipMaxFailures: 1, ipWindowSeconds: 300 } as never;
+    const config = { load: async () => limits } as never;
+    const captcha = captchaFixture(['unavailable', 'unavailable']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, config, undefined, captcha as never);
+    await expect(limiter.guardPasswordLogin(email, ip, wrong, 'token-ok')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    // Bucket is at the limit now: without a verified challenge the next attempt
+    // is a 429, exactly as before this package.
+    await expect(limiter.guardPasswordLogin(email, ip, async () => 'ok', 'token-ok')).rejects.toMatchObject({
+      status: 429,
+    });
+  });
+
+  it('a limiter without the captcha service behaves exactly as before', async () => {
+    const limiter = new LoginAttemptLimiter(undefined, loader);
+    await expect(limiter.guardPasswordLogin(email, ip, async () => 'ok', 'ignored-token')).resolves.toBe('ok');
+  });
+});

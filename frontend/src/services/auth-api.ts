@@ -8,6 +8,23 @@ export type AuthenticationSessionResponse = {
   readonly principal: SessionPrincipal;
 };
 
+/**
+ * Paket 5.4.1 (M3): the public half of the human check. `none` — or a server
+ * that does not send the field at all — means the sign-in page never shows a
+ * challenge, exactly as before this package.
+ */
+export type CaptchaDescription = {
+  readonly provider: "none" | "turnstile";
+  readonly siteKey: string | null;
+  readonly afterFailures: number;
+};
+
+export const captchaOff: CaptchaDescription = {
+  provider: "none",
+  siteKey: null,
+  afterFailures: 5,
+};
+
 /** Paket 5.1 (M2 #2): used only when a server does not send the policy value. */
 export const fallbackMinimumPasswordLength = 12;
 
@@ -106,6 +123,8 @@ export function loginWithPassword(input: {
   readonly email: string;
   readonly password: string;
   readonly rememberMe?: boolean;
+  /** Paket 5.4.1 (M3): sent only once the page shows the Turnstile widget. */
+  readonly captchaToken?: string;
 }): Promise<AuthenticationLoginResponse> {
   return apiRequest("/auth/login", {
     method: "POST",
@@ -145,6 +164,8 @@ export type AuthenticationProviders = {
     readonly authority: string;
     readonly singleLogout: boolean;
   } | null;
+  /** Paket 5.4.1 (M3): absent on an older server, which means "no challenge". */
+  readonly captcha?: CaptchaDescription;
 };
 
 export function getAuthenticationProviders(): Promise<AuthenticationProviders> {

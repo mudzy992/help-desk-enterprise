@@ -1,6 +1,6 @@
 # Ograničenja prijava (rate limits) — podešavanje, nadzor i runbook
 
-> Paket 5.4.0-b (M2) + 5.4.0-d/e: pragovi su **konfiguracija** (`private.security.rateLimits.*`),
+> Paket 5.4.0-b (M2) + 5.4.0-d/e + 5.4.1 (CAPTCHA/Turnstile): pragovi su **konfiguracija** (`private.security.rateLimits.*`),
 > mijenjaju se iz admin panela bez restarta, a svaka promjena ima razlog i trag u dnevniku.
 > Ova stranica je operativno uputstvo: šta je pokriveno, koje su granice, kako se prag mijenja,
 > kako se prati učinak i šta raditi kad 429 krene u pogrešnu stranu.
@@ -127,7 +127,9 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/security/metrics/last-hour"
     "login-429":              { "total": 12, "peakPerMinute": 4, "points": [ … ] },
     "login-account-delays":   { "total": 31, "peakPerMinute": 9, "points": [ … ] },
     "mfa-failures":           { "total": 3,  "peakPerMinute": 1, "points": [ … ] },
-    "hibp-skipped":           { "total": 0,  "peakPerMinute": 0, "points": [ … ] } } }
+    "hibp-skipped":           { "total": 0,  "peakPerMinute": 0, "points": [ … ] },
+    "captcha-skipped":        { "total": 0,  "peakPerMinute": 0, "points": [ … ] },
+    "captcha-failed":         { "total": 0,  "peakPerMinute": 0, "points": [ … ] } } }
 ```
 
 Isti brojevi se crtaju na *Administracija → Sigurnost* (kartica „Sigurnosne metrike (zadnji sat)"),
@@ -140,6 +142,8 @@ donosi na jednom ekranu.
 | `login-account-delays` raste bez `login-429` | korisnici griješe lozinku; odgoda radi kako treba | ako je odgoda preduga za normalan rad, smanji `accountDelayBaseMilliseconds` |
 | `mfa-failures` raste | pogrešni TOTP/recovery kodovi (ili napad na drugi faktor) | provjeri sigurnosni dnevnik (`auth.mfa_failed`), kontaktiraj korisnika |
 | `hibp-skipped` raste | Pwned Passwords provjera nije mogla proći (timeout/mreža) → lozinka je **prihvaćena** (fail-open) | provjeri izlazni pristup; nije blokada, ali je smanjena zaštita |
+| `captcha-skipped` raste | Cloudflare Turnstile nije odgovorio (timeout/mreža/ne-2xx) → dokaz nije prihvaćen, pragovi ostaju jedina zaštita | provjeri izlazni pristup servera; ako internet nije predviđen, vrati `provider` na `none` (§5) |
+| `captcha-failed` raste | klijent je poslao rješenje koje Cloudflare nije prihvatio (isteklo, pogrešan site key, skripta u petlji) | pogledaj metapodatke prijave u dnevniku; ako raste bez korisnika, to je automatizovani klijent |
 
 ### 3.1 Alarm na 429 prag (automatizovan)
 
@@ -194,18 +198,70 @@ Simptom → podešavanje:
   `accountDelayBaseMilliseconds` dolje (odgoda je osjetna, ne kaznena).
 - **Client-side retry (mobile) udara u „other" bucket** → povisi `other.maxFailures` /
   `other.windowSeconds`, ne `ipMaxFailures`.
-- **Pravi password spray** → **ne** spuštaj account odgodu; drži IP limit i razmotri dodatnu zaštitu
-  na rubu mreže (WAF/CAPTCHA).
+- **Pravi password spray** → **ne** spuštaj account odgodu; drži IP limit i razmotri dodatnu zaštitu:
+  ugrađeni **CAPTCHA/Turnstile** (§5) ili WAF na rubu mreže.
 
 > ⚠️ Ne postavljaj `ipMaxFailures` na maksimum bez druge zaštite. Bez IP limita password spray s
 > jedne adrese je izvediv, a account odgoda od 2 s je za takav napad preblaga.
 
 ---
 
-## 5. Poznata ograničenja
+## 5. CAPTCHA / Turnstile (paket 5.4.1)
 
-- **Nema CAPTCHA/turnstile** — nakon N neuspjeha slijedi odgoda ili 429, nikad ljudski dokaz.
-- **429 alarm nije u ops katalogu** (vidi §3): nadzor metrika je ručni.
+Od paketa 5.4.1 uz pragove može stajati i **ljudski dokaz**: Cloudflare Turnstile. Nije zamjena za
+ograničenja — limiter i dalje broji i odgađa — nego dodatni uslov za pokušaj koji dolazi s IP adrese
+koja je već prikupila **pet** neuspjeha.
+
+| Ključ | Značenje | Zadano |
+|---|---|---|
+| `private.security.captcha.provider` | `'none'` (isključeno) ili `'turnstile'` | `'none'` |
+| `private.security.captcha.siteKey` | javni site key koji stranica prijave prikazuje | prazno |
+| `private.security.captcha.secretKey` | tajni ključ za provjeru na serveru (**tajna postavka**, nikad se ne prikazuje) | prazno |
+
+**Uključivanje:** *Administracija → Sigurnost* → kartica **Sigurnosne postavke** → red **Provjera da
+niste robot (CAPTCHA)** → dijalog (razlog, zavisnosti, trag u dnevniku izmjena). Dok je `provider` na
+`none`, a to je zadano, ponašanje je **isto kao prije ovog paketa**: nijedan zahtjev ne ide
+Cloudflareu i nijedna prijava ne traži dokaz.
+
+**Kako radi** (server: `LoginCaptchaService` unutar `LoginAttemptLimiter`-a):
+
+1. Nakon **pet neuspjelih prijava s iste IP adrese** (isti IP bucket iz §1) svaki sljedeći pokušaj
+   mora nositi **svježe rješenje izazova**. Bez njega server vraća `400 CAPTCHA_REQUIRED`, a stranica
+   prijave tada prikaže widget i šalje pokušaj ponovo tek s rješenjem.
+2. **Rješenje važi za jedan pokušaj.** Ako je adresa već prešla i prag blokade, rješenje odblokira
+   **tačno taj jedan pokušaj** — brojači se dalje pune, pa automatizovani klijent plaća dokaz po
+   pokušaju (a to je i svrha provjere).
+3. **Pogrešno ili isteklo rješenje** vraća `400 CAPTCHA_FAILED`; widget se resetuje i traži novo
+   rješenje (Turnstile token je jednokratan).
+4. **Cloudflare nedostupan** (timeout 3 s, mrežna greška, ne-2xx odgovor) ili **tajni ključ nije
+   upisan** ne pušta dokaz kao ispravan: neblokirana adresa nastavlja po pragovima kao i prije, a
+   blokirana ostaje blokirana do isteka prozora. Svaki takav poziv ostavlja **jedan sanitizovani
+   `warn`** u logu (bez tokena i bez ključa) i diže metriku `captcha-skipped`.
+5. **Tajni ključ ne izlazi iz procesa**: čita se samo za internu upotrebu, šalje isključivo
+   Cloudflareovom `siteverify` endpointu, ne vraća se kroz API (`GET /auth/providers` nosi samo
+   `provider`, `siteKey` i `afterFailures`) i nikad se ne loguje.
+
+> **Za NAT/proxy:** dokaz se traži po **IP adresi**, pa iza zajedničke adrese cijeli ured dobije
+> provjeru nakon pet zajedničkih neuspjeha. Ako je to neugodno, lijek je isti kao kod pragova:
+> `ipMaxFailures`/`ipWindowSeconds` gore, ili `provider` na `none` (provjere tada nema).
+
+**Kada uključiti:** kao drugi sloj kad IP blokada sama ne uspijeva (spray s mnogo adresa) — i samo na
+instalaciji koja ima izlaz na internet **i sa servera i iz preglednika korisnika**. Instalacija bez
+interneta ostavlja `provider` na `none`: widget bi korisnicima samo prikazao poruku da se provjera
+nije učitala.
+
+**Nadzor:** dva nova brojača u istom agregatu kao u §3 — `captcha-skipped` i `captcha-failed`. Kartica
+**Sigurnosne metrike (zadnji sat)** i dalje crta četiri serije iz §3, pa se ova dva brojača za sada čitaju
+preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).
+
+---
+
+## 6. Poznata ograničenja
+
+- **CAPTCHA pokriva samo prijavu lokalnim nalogom** — Microsoft tok, promjenu lozinke i MFA potvrde
+  pokriva „other" bucket (§1).
+- **Metrike CAPTCHA-e nemaju alarm ni pločicu** (za razliku od `login-429`, §3.1): `captcha-skipped` i
+  `captcha-failed` se prate ručno, preko `GET /security/metrics/last-hour`.
 - **„Other" bucket dijeli ključ po IP-u** za change-password i po računu za MFA potvrde; ako se
   pokaže potreba za odvojenim pragovima, to je nova stavka u settings registru.
 - Metrike traže Redis da bi bile dijeljene između replika; bez njega su per-proces (vrijednosti i

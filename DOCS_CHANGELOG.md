@@ -7,6 +7,23 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — CAPTCHA/Turnstile (5.4.1): operativni i korisnički dokumenti
+
+**Dodato/izmijenjeno:** `docs/ops/rate-limits.md` — nova sekcija **§5 CAPTCHA / Turnstile (paket 5.4.1)**: tri
+skalarne postavke (`private.security.captcha.provider|siteKey|secretKey`), prag od **pet neuspjeha po IP adresi**
+nakon kojeg server traži dokaz (`400 CAPTCHA_REQUIRED` / `CAPTCHA_FAILED`), pravilo „jedno rješenje = jedan
+pokušaj" (rješenje odblokira i blokiranu adresu za taj jedan pokušaj), ponašanje kad Cloudflare nije dostupan
+(dokaz se ne priznaje, pragovi ostaju jedina zaštita) i dvije nove metrike (`captcha-skipped`, `captcha-failed`);
+stara sekcija „Poznata ograničenja" je §6 i više ne tvrdi da CAPTCHA-e nema. `docs/user-guide/prijava-i-mfa.md`
+(i `en/prijava-i-mfa.md`) — korak 7 u prijavi lokalnim nalogom, treći red u kartici **Sigurnosne postavke**,
+statusi `CAPTCHA_REQUIRED`/`CAPTCHA_FAILED` i tri nova reda u tabeli čestih grešaka. `docs/user-guide/sta-je-novo.md`
+— novi red 2026-10-12 za korisnike.
+
+**Zašto:** paket 5.4.1 je prvi val koji uvodi provjeru koju korisnik vidi na ekranu prijave, a `rate-limits.md` je
+do sada izričito pisao da ljudskog dokaza nema („nakon N neuspjeha slijedi odgoda ili 429, nikad ljudski dokaz") —
+dokument koji opisuje suprotno stanje je gori od nedostatka dokumenta. Uz to je dokumentovan i namjerni fail-open
+(Cloudflare nedostupan ne zaključava nalog i ne ruši blokadu koja već stoji).
+
 ## 2026-10-12 — Closeout paketa 5.4.0: plan označen kao isporučen
 
 **Izmijenjeno:** `docs/plans/modules/5.4-sigurnosni-hardening.md` — sva 13 kriterija prihvaćanja (§11) su

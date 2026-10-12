@@ -81,7 +81,7 @@
         "obavjestenja",
         "pomoc"
       ],
-      "updatedAt": "2026-10-07",
+      "updatedAt": "2026-10-08",
       "headings": [
         {
           "level": 2,
@@ -256,7 +256,7 @@
         "sesija",
         "rezervni-kodovi"
       ],
-      "updatedAt": "2026-10-07",
+      "updatedAt": "2026-10-12",
       "headings": [
         {
           "level": 2,
@@ -349,7 +349,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2328,
+      "wordCount": 2572,
       "source": "docs/user-guide/prijava-i-mfa.md",
       "englishTitle": "Sign-in and two-step verification (MFA)"
     },
@@ -525,7 +525,7 @@
         "povjerljivi-tiketi",
         "saved-views"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-08",
       "headings": [
         {
           "level": 2,
@@ -1248,7 +1248,7 @@
         "sazetak",
         "kanali"
       ],
-      "updatedAt": "2026-10-05",
+      "updatedAt": "2026-10-08",
       "headings": [
         {
           "level": 2,
@@ -1440,7 +1440,7 @@
         "dostupnost",
         "onboarding"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-09",
       "headings": [
         {
           "level": 2,
@@ -1568,7 +1568,7 @@
         "neusmjereno",
         "override"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-09",
       "headings": [
         {
           "level": 2,
@@ -1688,7 +1688,7 @@
         "eskalacije",
         "pauze"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-09",
       "headings": [
         {
           "level": 2,
@@ -1826,7 +1826,7 @@
         "ad-sync",
         "uloge"
       ],
-      "updatedAt": "2026-10-07",
+      "updatedAt": "2026-10-08",
       "headings": [
         {
           "level": 2,
@@ -2920,7 +2920,7 @@
         "izdanja",
         "changelog"
       ],
-      "updatedAt": "2026-10-07",
+      "updatedAt": "2026-10-12",
       "headings": [
         {
           "level": 2,
@@ -2963,7 +2963,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 3096,
+      "wordCount": 3246,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

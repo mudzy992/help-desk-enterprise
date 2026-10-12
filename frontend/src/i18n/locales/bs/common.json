@@ -712,6 +712,9 @@
       "rateLimitOtherMaxFailures": "Ostalo (Entra/promjena lozinke/MFA) — neuspjesi",
       "rateLimitOtherWindowSeconds": "Ostalo (Entra/promjena lozinke/MFA) — prozor (s)",
       "sessionBody": "Zadržavanje prijave i prekid zbog neaktivnosti. Ove postavke uređujete kao i ostale ključeve.",
+      "captchaRow": "Provjera da niste robot (CAPTCHA)",
+      "captchaHint": "Cloudflare Turnstile poslije pet uzastopnih neuspjeha",
+      "captchaBody": "Kada je uključen, prijava poslije pet uzastopnih neuspjeha s iste adrese traži i rješenje Cloudflare Turnstile izazova. Site i tajni ključ su postavke: tajni ključ se čuva kao tajna, ne prikazuje se i ne šalje klijentu.",
       "hibpTitle": "Provjera procurjelih lozinki",
       "hibpBody": "Nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa. Kada servis nije dostupan, promjena se nastavlja.",
       "bulkTitle": "Prisilna promjena svih lokalnih lozinki",
@@ -737,7 +740,7 @@
       "rateLimitsReasonHint": "Razlog je obavezan (najmanje {{count}} znakova) i vidljiv je u dnevniku.",
       "hibpHint": "provjera procurjelih lozinki (fail-open)",
       "policyTitle": "Sigurnosne postavke",
-      "policyBody": "Trajanje i prekid sesija te provjera procurjelih lozinki. Red otvara dijalog, a izmjena se upisuje u sigurnosni dnevnik ispod."
+      "policyBody": "Trajanje i prekid sesija, provjera procurjelih lozinki i provjera da niste robot. Red otvara dijalog, a izmjena se upisuje u sigurnosni dnevnik ispod."
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
@@ -2090,7 +2093,10 @@
         "private.security.rateLimits.other.maxFailures": "Ograničenja prijava — neuspjesi za Entra/promjenu lozinke/MFA prije blokade",
         "private.security.rateLimits.other.windowSeconds": "Ograničenja prijava — trajanje bucketa Entra/promjena lozinke/MFA (s)",
         "private.security.session.idleTimeoutSeconds": "Politika sesija — prekid nakon neaktivnosti (s)",
-        "private.security.hibp.enabled": "Sigurnost — provjera procurjelih lozinki"
+        "private.security.hibp.enabled": "Sigurnost — provjera procurjelih lozinki",
+        "private.security.captcha.provider": "CAPTCHA — provajder provjere",
+        "private.security.captcha.siteKey": "CAPTCHA — javni site key",
+        "private.security.captcha.secretKey": "CAPTCHA — tajni ključ"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2555,7 +2561,10 @@
         "private.security.rateLimits.other.maxFailures": "Vrijedi za Entra prijavu, promjenu lozinke i MFA potvrde — broj neuspjeha prije privremene blokade.",
         "private.security.rateLimits.other.windowSeconds": "Koliko dugo se pamte neuspjesi za Entra/promjenu lozinke/MFA.",
         "private.security.session.idleTimeoutSeconds": "Vrijeme bez aktivnosti nakon kojeg server prekida sesiju pri sljedećem osvježavanju. Unesite 0 da isključite ili cijeli broj od 300 do 2592000 sekundi.",
-        "private.security.hibp.enabled": "Kada je uključeno, nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa (samo prvih 5 znakova SHA-1 hasha, uz keširanje 24 h). Ako servis nije dostupan, promjena se nastavlja (fail-open). Isključite samo ako politika to zahtijeva."
+        "private.security.hibp.enabled": "Kada je uključeno, nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa (samo prvih 5 znakova SHA-1 hasha, uz keširanje 24 h). Ako servis nije dostupan, promjena se nastavlja (fail-open). Isključite samo ako politika to zahtijeva.",
+        "private.security.captcha.provider": "Ko provjerava da prijavu ne šalje automatizovani klijent. **none** (zadano) ne mijenja ništa: ograničenja prijava rade kao i do sada i nijedan zahtjev ne ide na internet. **turnstile** uključuje Cloudflare Turnstile: poslije pet uzastopnih neuspjelih prijava s iste IP adrese prijava traži rješenu provjeru, a rješena provjera vrijedi za jedan pokušaj.",
+        "private.security.captcha.siteKey": "Javni ključ iz Cloudflare Turnstile panela (Widget → Site key). Nije tajna: prikazuje se na stranici prijave. Ostavite prazno dok je provajder **none**.",
+        "private.security.captcha.secretKey": "Tajni ključ iz Cloudflare Turnstile panela (Widget → Secret key). Koristi ga isključivo server za provjeru rješenog izazova; nikada se ne prikazuje u pregledniku i ne upisuje u dnevnik. Ako ključ nije postavljen ili Cloudflare nije dostupan, prijava se ne blokira — ostaje samo ograničenje prijava."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -4718,7 +4727,12 @@
     "signOut": "Odjava",
     "loading": "Učitavanje sesije…",
     "error": "Prijava nije uspjela. Provjerite email i lozinku.",
-    "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo kasnije."
+    "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo kasnije.",
+    "captchaTitle": "Provjera da niste robot",
+    "captchaHint": "Riješite provjeru pa se prijavite ponovo.",
+    "captchaUnavailable": "Provjera se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru (server mora imati pristup Cloudflare Turnstile servisu).",
+    "captchaRetry": "Pokušaj ponovo",
+    "captchaFailed": "Provjera nije prihvaćena. Pokušajte ponovo."
   },
   "login": {
     "title": "Prijava",

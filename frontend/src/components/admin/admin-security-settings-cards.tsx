@@ -1,4 +1,4 @@
-import { Fingerprint, ShieldAlert, Timer } from "lucide-react";
+import { Fingerprint, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
-import { filterSettingsByPrefix, readBooleanSetting } from "@/lib/settings/read-setting-entry";
+import {
+  filterSettingsByPrefix,
+  readBooleanSetting,
+  readStringSetting,
+} from "@/lib/settings/read-setting-entry";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
 import { ApiError } from "@/services/api";
@@ -23,7 +27,8 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
  * journal. It keeps the product's editing pattern:
  *
  * * „Ograničenja prijava" rows open a dialog (one batch, one reason, identity proof);
- * * „Politika sesija" and „HIBP provjera lozinki" list the registry keys and open
+ * * „Politika sesija", „HIBP provjera lozinki" and „Provjera da niste robot" (5.4.1)
+ *   list the registry keys and open
  *   `SettingsCategoryDialog`, so a value is edited exactly like anywhere else in
  *   Postavke (reason, dependency gate, audit) — never inline in the card;
  * * „Prisilna promjena svih lokalnih lozinki" is a confirmed batch action.
@@ -52,6 +57,17 @@ export function AdminSecuritySettingsCards({ isSuperAdmin }: { readonly isSuperA
 const sessionPolicyPrefix = "private.security.session.";
 const hibpPrefix = "private.security.hibp.";
 const hibpEnabledKey = "private.security.hibp.enabled";
+// 5.4.1: the human check is a setting, not a deployment switch — `none` is the
+// default, and the row reports the provider the limiter actually reads.
+const captchaPrefix = "private.security.captcha.";
+const captchaProviderKey = "private.security.captcha.provider";
+const captchaEnabledValue = "turnstile";
+
+const rowDescriptionKeys = {
+  session: "admin.security.sessionBody",
+  hibp: "admin.security.hibpBody",
+  captcha: "admin.security.captchaBody",
+} as const;
 
 export function AdminSecurityPolicyCards({
   entries,
@@ -65,8 +81,9 @@ export function AdminSecurityPolicyCards({
   readonly onSave: SettingsSaver;
 }) {
   const { t } = useTranslation();
-  const [openRow, setOpenRow] = useState<"session" | "hibp" | null>(null);
+  const [openRow, setOpenRow] = useState<"session" | "hibp" | "captcha" | null>(null);
   const hibpEnabled = readBooleanSetting(entries, hibpEnabledKey, true);
+  const captchaEnabled = readStringSetting(entries, captchaProviderKey, "none") === captchaEnabledValue;
   const rows = useMemo(
     () => [
       {
@@ -85,8 +102,16 @@ export function AdminSecurityPolicyCards({
         enabled: hibpEnabled,
         prefixes: [hibpPrefix],
       },
+      {
+        id: "captcha" as const,
+        icon: ShieldCheck,
+        label: t("admin.security.captchaRow"),
+        hint: t("admin.security.captchaHint"),
+        enabled: captchaEnabled,
+        prefixes: [captchaPrefix],
+      },
     ],
-    [entries, hibpEnabled, t],
+    [captchaEnabled, entries, hibpEnabled, t],
   );
   const activeRow = rows.find((row) => row.id === openRow) ?? null;
   const drawerEntries = useMemo(
@@ -135,7 +160,7 @@ export function AdminSecurityPolicyCards({
           }
         }}
         title={activeRow?.label ?? t("admin.security.policyTitle")}
-        description={activeRow?.id === "hibp" ? t("admin.security.hibpBody") : t("admin.security.sessionBody")}
+        description={activeRow === null ? undefined : t(rowDescriptionKeys[activeRow.id])}
         entries={drawerEntries}
         allEntries={entries}
         canWrite={canWrite}

@@ -38,6 +38,10 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
 6. **Pragovi su podesivi.** SuperAdmin ih mijenja na **Admin → Sigurnost → Ograničenja prijava** (osam
    vrijednosti u tri reda, uz obavezan razlog i potvrdu identiteta); promjena važi odmah, bez restarta. Brojevi
    u koracima 4 i 5 su zadane vrijednosti instalacije.
+7. **Provjera da niste robot (CAPTCHA)** — ako je SuperAdmin uključio Turnstile, poslije **pet neuspjelih
+   prijava s iste IP adrese** prijava traži i rješenje kratke provjere; bez njega server odbija pokušaj
+   (`CAPTCHA_REQUIRED`), a stranica prijave tada prikaže provjeru. Rješenje važi za **jedan pokušaj** — ako i
+   on padne, provjera se rješava ponovo; ako je provjera isključena (zadano), ovaj korak ne postoji.
 
 ### Prijava Microsoft nalogom (kada je tako podešeno)
 
@@ -145,8 +149,10 @@ Na tabu **Sigurnost**, **iznad** sigurnosnog dnevnika, stoje kartice (u **Postav
   tri reda (**Kašnjenje po računu**, **Blokada po IP adresi**, **Ostali sigurnosni tokovi**) u kojima stoji trenutna
   vrijednost. Red otvara dijalog: uz svako polje piše dozvoljeni raspon, a promjena traži **razlog** (najmanje
   5 znakova) i potvrdu identiteta kodom ili passkeyjem.
-- **Sigurnosne postavke** — dva reda: **Trajanje i prekid sesija** (zadržavanje prijave i prekid zbog
-  neaktivnosti) i **Provjera procurjelih lozinki** (uključeno/isključeno). Svaki red nosi oznaku stanja i otvara
+- **Sigurnosne postavke** — tri reda: **Trajanje i prekid sesija** (zadržavanje prijave i prekid zbog
+  neaktivnosti), **Provjera procurjelih lozinki** (uključeno/isključeno) i **Provjera da niste robot (CAPTCHA)**
+  (uključeno/isključeno; uključeno znači da prijava poslije pet neuspjeha s iste adrese traži Cloudflare
+  Turnstile rješenje, a tajni ključ se čuva kao tajna postavka i nikad se ne prikazuje). Svaki red nosi oznaku stanja i otvara
   isti dijalog kao i ostale postavke (razlog, zavisnosti, zapis u dnevniku). Forme za izmjenu nema u samoj kartici
   — uređuje se isključivo kroz dijalog.
 - **Prisilna promjena svih lokalnih lozinki** — svim lokalnim nalozima (osim SUPER_ADMIN i Microsoft naloga)
@@ -184,7 +190,7 @@ osi, pa grafik uvijek ostaje unutar kartice. Brojevi su agregirani po minuti i n
 | Nova lozinka | najmanje `private.auth.password.minLength` znakova (12–64); ne smije biti jednaka emailu, sadržavati naziv organizacije, dio email adrese ni biti među najčešćim lozinkama; uz istoriju, ne smije se ponoviti. Prisilna promjena na ekranu prijave prikazuje istu granicu (server je šalje uz odgovor o potrebi promjene) |
 | Kod iz aplikacije | 6 cifara, tolerancija ±30 s |
 | Rezervni kod | format `xxxxx-xxxxx`, jednokratan |
-| Statusi prijave | `MUST_CHANGE_PASSWORD` (privremena/istekla lozinka), `MFA_REQUIRED` (upisana potvrda), `MFA_ENROLLMENT_REQUIRED` (obavezna, nije upisana) |
+| Statusi prijave | `MUST_CHANGE_PASSWORD` (privremena/istekla lozinka), `MFA_REQUIRED` (upisana potvrda), `MFA_ENROLLMENT_REQUIRED` (obavezna, nije upisana), `CAPTCHA_REQUIRED` (traži se rješenje provjere), `CAPTCHA_FAILED` (rješenje nije prihvaćeno) |
 | Trajanje međukoraka | promjena lozinke 15 minuta, potvrda u dva koraka 5 minuta |
 | Sesija | 1 sat, produžava se dok radite; miran tab se sam odjavljuje |
 
@@ -194,6 +200,9 @@ osi, pa grafik uvijek ostaje unutar kartice. Brojevi su agregirani po minuti i n
 |---|---|
 | „Prijava nije uspjela. Provjerite email i lozinku.“ | Pogrešan email ili lozinka; ne govori koji je od njih pogrešan. |
 | `429 TOO_MANY_LOGIN_ATTEMPTS` | Dosegnut je privremeni prag za lokalne prijave s ove IP adrese; nalog nije zaključan. Sačekajte da IP prozor istekne pa pokušajte ponovo. |
+| `CAPTCHA_REQUIRED` — pojavi se „Provjera da niste robot“ | S vaše adrese je palo pet prijava pa server traži ljudski dokaz. Riješite provjeru i pošaljite prijavu ponovo; provjera se traži dok traje prozor neuspjeha. |
+| „Provjera se nije učitala. Provjerite vezu…“ | Preglednik (ili server) nema pristup Cloudflare Turnstile servisu. Provjerite vezu i pokušajte ponovo; ako se ponavlja, javite administratoru — na instalaciji bez izlaza na internet provjera ostaje isključena. |
+| `CAPTCHA_FAILED` — „Provjera nije prihvaćena“ | Rješenje je isteklo ili je već iskorišteno (jednokratno je); provjera se resetuje, riješite je ponovo i pošaljite prijavu. |
 | „Kod nije ispravan ili je već iskorišten.“ | Kod je istekao, pogrešno prepisan ili je već upotrijebljen; sačekajte novi kod ili koristite rezervni. |
 | „Korak prijave je istekao (vrijedi 5 minuta).“ | Predugo ste čekali na ekranu koda; vratite se na prijavu i ponovite. |
 | „Postavljanje je isteklo. Počnite ispočetka.“ | Upis potvrde u dva koraka traje 15 minuta; pokrenite upis ponovo. |
@@ -210,6 +219,9 @@ osi, pa grafik uvijek ostaje unutar kartice. Brojevi su agregirani po minuti i n
 - Za naloge koji se prijavljuju preko Microsofta **naš** drugi faktor se ne primjenjuje — pravila pristupa
   podešava Microsoft.
 - Brojač neuspjelih prijava je vezan za **email i IP adresu**; iza proxyja se praktično svodi na email adresu.
+- **Provjera da niste robot** traži izlaz na internet i sa servera i iz preglednika korisnika; na instalaciji bez
+  interneta ostaje isključena (`private.security.captcha.provider` na `none`). Traži se po **IP adresi**, pa je
+  iza zajedničkog NAT-a dobija cijeli ured nakon pet zajedničkih neuspjeha.
 - **Jeftino je samo za korisnika:** ako ostane bez telefona i rezervnih kodova, put je preko administratora
   (**Reset MFA**), bez samoopsluživanja.
 
