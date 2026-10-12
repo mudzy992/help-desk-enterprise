@@ -1,4 +1,9 @@
-import { ApiClient } from './api-client';
+import {
+  generateActorPassword,
+  generatedPasswordAttempts,
+  recordActorPassword,
+} from './actor-passwords';
+import { ApiClient, ApiRequestError } from './api-client';
 import { assertDisposableTestAccount } from './disposable-account';
 import { readE2EEnvironment } from './environment';
 
@@ -39,6 +44,12 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
   await restoreTestActorPassword(api, { userId, email: env.userEmail, password: env.userPassword });
 }
 
+/** A refusal of the candidate password itself — never a transport or server failure. */
+type PasswordRefusal = {
+  readonly code: string;
+  readonly violations: readonly string[];
+};
+
 /**
  * Sets the local password through the public API only (no database access):
  * if the configured password already works, nothing happens. Otherwise the
@@ -54,6 +65,18 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
  * password change cannot do that: the account already uses the configured
  * password, and reusing a current password is refused (`PASSWORD_REUSED`). The
  * admin reset bypasses the history, which is exactly why this path works.
+ *
+ * Paket 5.4.0-f (fix after the first full run): the configured password is tried
+ * first, but the deployment may refuse it, because since 5.4.0-d every new
+ * password is checked against the Pwned Passwords range API (default ON) and a
+ * value that appears in a breach corpus is answered with
+ * `400 INVALID_PASSWORD { violations: ['PWNED_PASSWORD'] }`. That is the product
+ * working, not a stack problem — so the harness generates a password instead
+ * (which still has to pass every rule, it is only absent from any corpus) and
+ * records it for the rest of the run. A stale or weak `E2E_*_PASSWORD` secret
+ * therefore stops the run from failing, but never silently: the warning names
+ * the actor and the violation, and `E2E_ACTOR_PASSWORD_FALLBACK=off` turns the
+ * fallback back into a hard error for whoever wants it.
  */
 export async function restoreTestActorPassword(
   admin: ApiClient,
@@ -63,6 +86,53 @@ export async function restoreTestActorPassword(
   assertDisposableTestAccount(email, 'overwrite the password');
   if (await canSignIn(email, password)) return;
   const userId = input.userId ?? (await findUserId(admin, email));
+
+  const first = await completeForcedChange(admin, userId, email, password);
+  if (first === null) return;
+
+  const message =
+    `[e2e] the deployment refused the configured password for ${email} ` +
+    `(${first.code}${first.violations.length > 0 ? `: ${first.violations.join(', ')}` : ''}).`;
+  if (process.env.E2E_ACTOR_PASSWORD_FALLBACK === 'off') {
+    throw new Error(
+      `${message} Rotate the E2E_*_PASSWORD secret to a value the deployment accepts ` +
+        '(a password from a breach corpus is refused by design), or unset E2E_ACTOR_PASSWORD_FALLBACK.',
+    );
+  }
+  console.warn(
+    `${message} Using a generated password for this run — rotate the E2E_*_PASSWORD secret ` +
+      'so the next run starts from it.',
+  );
+
+  let last: PasswordRefusal = first;
+  for (let attempt = 0; attempt < generatedPasswordAttempts; attempt += 1) {
+    const generated = generateActorPassword();
+    const refusal = await completeForcedChange(admin, userId, email, generated);
+    if (refusal === null) {
+      recordActorPassword(email, generated);
+      return;
+    }
+    last = refusal;
+  }
+  throw new Error(
+    `[e2e] ${email}: the deployment refused ${generatedPasswordAttempts} generated passwords ` +
+      `(${last.code}${last.violations.length > 0 ? `: ${last.violations.join(', ')}` : ''}) after refusing the configured one. ` +
+      'Check the password policy of this deployment (length, organisation words, blocklist).',
+  );
+}
+
+/**
+ * One login-plus-forced-change cycle for a single candidate password. Returns
+ * `null` when the deployment accepted it, or the policy refusal when the
+ * candidate itself is the problem; anything else (a missing temporary password,
+ * a server error, a network problem) is thrown and never treated as a refusal.
+ */
+async function completeForcedChange(
+  admin: ApiClient,
+  userId: string,
+  email: string,
+  candidate: string,
+): Promise<PasswordRefusal | null> {
   const reset = await admin.requestJson<{ temporaryPassword: string | null; temporaryPasswordDelivery: string }>(
     `/users/${userId}/reset-password`,
     { method: 'POST' },
@@ -83,10 +153,24 @@ export async function restoreTestActorPassword(
   }
   const change = new ApiClient();
   change.setBearerToken(login.passwordChangeToken);
-  await change.requestJson('/auth/change-password', { method: 'POST', body: JSON.stringify({ newPassword: password }) });
-  if (!(await canSignIn(email, password))) {
+  try {
+    await change.requestJson('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ newPassword: candidate }),
+    });
+  } catch (error) {
+    // A refused candidate is the only thing handled here. The token is not
+    // consumed by a refusal (the change is validated before it is applied), so
+    // the caller may try another password on the same temporary login.
+    if (error instanceof ApiRequestError && error.status === 400 && error.code === 'INVALID_PASSWORD') {
+      return { code: error.code, violations: error.violations };
+    }
+    throw error;
+  }
+  if (!(await canSignIn(email, candidate))) {
     throw new Error(`[e2e] ${email}: password change did not take effect`);
   }
+  return null;
 }
 
 /** The admin users API, filtered by the exact address (never a broad listing). */

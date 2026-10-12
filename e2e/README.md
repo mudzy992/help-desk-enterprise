@@ -214,7 +214,9 @@ Three things in the 5.4 package need more care than the average spec, because th
   (`restoreTestActorPassword`: admin reset → temporary password → forced change), because "change it to the
   password it already has" is refused as `PASSWORD_REUSED`. Accounts created by *earlier* specs (10, 18, 20, 22,
   33) are flagged as well — no later spec signs in with them, and the plan of the suite is that no spec reuses an
-  actor another spec created.
+  actor another spec created. **Blast radius:** on a stack that people really use, this spec signs every local
+  account out and forces a password change at their next sign-in (SuperAdmins and Microsoft accounts excepted).
+  It belongs on the dedicated E2E stack — never run the full suite against an installation with real users.
 - **TOTP budget.** A TOTP step is single-use and 30 s long: `.auth/mfa.json` remembers the last used step, so the
   third code inside one window means waiting for the clock. Specs that need several SuperAdmin confirmations
   therefore regenerate **recovery codes** once (`POST /auth/mfa/recovery-codes`) and use them for the sign-in and
@@ -255,3 +257,29 @@ on the common-password list, without the product/organisation words and **withou
 e-mail address** (a local part is split on `.`, `_`, `-`; every part of 4+ characters must not appear). An
 address-derived password such as `ChangeMeE2eUser1!` for `e2e.user@example.com` is refused with
 `CONTAINS_EMAIL_NAME`, which fails global setup before the first spec.
+
+**The deployment also checks the Pwned Passwords range API** (`private.security.hibp.enabled`, **default ON**
+since 5.4.0-d): a candidate that appears in a breach corpus is refused with
+`400 INVALID_PASSWORD { violations: ['PWNED_PASSWORD'] }`. A stack that can reach `api.pwnedpasswords.com`
+therefore decides whether `E2E_USER_PASSWORD`/`E2E_AGENT_PASSWORD` may be written at all — the first full run on
+2026-10-12 died in global setup exactly that way, on the AGENT's configured password.
+
+The harness handles it without masking it:
+
+- `restoreTestActorPassword` tries the configured password first. If the deployment refuses the candidate itself
+  (any `INVALID_PASSWORD` violation), it generates a 32-character password (one of every class, no `I`/`O`/`l`/
+  `1`/`0`), sets that, and records it in `.auth/actor-passwords.json` (git-ignored). `readE2EEnvironment()` prefers
+  the recorded value, so every later sign-in of that run uses the same password. The generated value still has to
+  pass every rule of the deployment — it is only absent from every corpus.
+- The run **warns** with the actor e-mail and the violation and tells the operator to rotate the secret, so a weak
+  or stale `E2E_*_PASSWORD` never passes unnoticed. `E2E_ACTOR_PASSWORD_FALLBACK=off` turns that into a hard
+  failure for whoever wants the run to stop instead.
+- A refusal is never confused with a real problem: only `400 INVALID_PASSWORD` counts as "the deployment does not
+  accept this password". A 5xx, a missing temporary password or a network error still fails the run.
+- Any other refusal (too short after a policy change, a new organisation word, an address-derived value) takes the
+  same path — the generated password is not a way around the policy, it is a value the policy has no reason to
+  refuse.
+
+Rotate the two secrets to fresh random values to keep the log quiet, and never reuse a production password here:
+HIBP re-checks every candidate, and a value a human picked is far more likely to appear in a corpus than one this
+helper generates.

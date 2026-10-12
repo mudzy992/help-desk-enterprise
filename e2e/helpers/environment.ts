@@ -1,3 +1,5 @@
+import { readRecordedActorPassword } from './actor-passwords';
+
 export type E2EEnvironment = {
   readonly baseUrl: string;
   readonly apiUrl: string;
@@ -24,6 +26,8 @@ export type E2EEnvironment = {
  * length and blankness, so its default stays as it is.
  */
 export function readE2EEnvironment(): E2EEnvironment {
+  const userEmail = process.env.E2E_USER_EMAIL ?? 'e2e.user@example.com';
+  const agentEmail = process.env.E2E_AGENT_EMAIL ?? 'e2e.agent@example.com';
   return {
     baseUrl: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
     apiUrl: process.env.E2E_API_URL ?? 'http://localhost:10001',
@@ -31,10 +35,19 @@ export function readE2EEnvironment(): E2EEnvironment {
       process.env.E2E_SUPERADMIN_EMAIL ?? 'e2e.superadmin@example.com',
     superAdminPassword:
       process.env.E2E_SUPERADMIN_PASSWORD ?? 'ChangeMeE2eSuperAdmin1!',
-    userEmail: process.env.E2E_USER_EMAIL ?? 'e2e.user@example.com',
-    userPassword: process.env.E2E_USER_PASSWORD ?? 'Kamen-Opseg-2026-U1!',
-    agentEmail: process.env.E2E_AGENT_EMAIL ?? 'e2e.agent@example.com',
-    agentPassword: process.env.E2E_AGENT_PASSWORD ?? 'Kamen-Opseg-2026-A1!',
+    userEmail,
+    // Paket 5.4.0-f: when the deployment refused the configured actor password
+    // (Pwned Passwords, default ON since 5.4.0-d), global setup sets a generated
+    // one and records it for this run — every later sign-in must use that value.
+    userPassword:
+      readRecordedActorPassword(userEmail) ??
+      process.env.E2E_USER_PASSWORD ??
+      'Kamen-Opseg-2026-U1!',
+    agentEmail,
+    agentPassword:
+      readRecordedActorPassword(agentEmail) ??
+      process.env.E2E_AGENT_PASSWORD ??
+      'Kamen-Opseg-2026-A1!',
     smtpHost: process.env.E2E_SMTP_HOST ?? '127.0.0.1',
     smtpPort: process.env.E2E_SMTP_PORT ?? '25',
     databaseUrl: process.env.DATABASE_URL ?? null,

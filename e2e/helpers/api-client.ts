@@ -17,7 +17,34 @@ const connectFailures = new Set([
 export type ApiErrorBody = {
   readonly code?: string;
   readonly message?: string;
+  readonly details?: Record<string, unknown>;
 };
+
+/**
+ * Paket 5.4.0-f: a non-2xx answer with its parsed body. The message stays the
+ * `CODE: <json>` shape every existing caller matches on (`canSignIn`, the specs
+ * that assert on `INVALID_CREDENTIALS` / `MUST_REQUIRED_PASSWORD`), while the
+ * code, the status and `details` become fields — the password provisioning needs
+ * `details.violations` to tell "the deployment refused this password" (policy,
+ * Pwned Passwords) from a real failure.
+ */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string,
+    readonly details: Record<string, unknown> | null,
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+
+  /** `details.violations`, as the password policy reports them. */
+  get violations(): readonly string[] {
+    const violations = this.details?.violations;
+    return Array.isArray(violations) ? violations.filter((entry): entry is string => typeof entry === 'string') : [];
+  }
+}
 
 export class ApiClient {
   private authorization: string | null = null;
@@ -78,15 +105,18 @@ export class ApiClient {
     const text = await response.text();
     if (!response.ok) {
       let code = `HTTP_${response.status}`;
+      let details: Record<string, unknown> | null = null;
       try {
         const parsed = JSON.parse(text) as ApiErrorBody;
         if (typeof parsed.code === 'string') {
           code = parsed.code;
         }
+        details =
+          typeof parsed.details === 'object' && parsed.details !== null ? parsed.details : null;
       } catch {
         // keep HTTP status code
       }
-      throw new Error(`${code}: ${text}`);
+      throw new ApiRequestError(`${code}: ${text}`, response.status, code, details);
     }
     if (text.length === 0) {
       return undefined as T;
