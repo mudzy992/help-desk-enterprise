@@ -42,6 +42,8 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `ops.monitor.stale` | KRITIČNO | 3 / 1 | [ops-monitor-stale](#ops-monitor-stale) |
 | `websocket.emits.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [websocket-emits-high](#websocket-emits-high) |
 | `auth.login429.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [login-429](#login-429) |
+| `auth.captchaFailed.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-failed](#captcha-failed) |
+| `auth.captchaSkipped.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-skipped](#captcha-skipped) |
 
 ---
 
@@ -199,6 +201,46 @@ pišu u detaljima alarma; ako Redis nije čitljiv, metrika je nepoznata i alarm 
    Opservabilnost i podrška** (`private.ops.thresholds.login429WarnPerHour` /
    `…CriticalPerHour`);
    kalibracija limita (ne alarma) je u [`docs/ops/rate-limits.md`](../../docs/ops/rate-limits.md).
+
+## captcha-failed
+
+**Uslov:** paket 5.4.2 (stavka 2): zbir metrike `captcha-failed` za zadnjih **60
+kompletnih minuta** (isti broj kao pločica *Odbijene CAPTCHA provjere* na kartici
+*Sigurnosne metrike*) premašuje `captchaFailedWarnPerHour` (zadano **50/h**, UPOZORENJE)
+ili `captchaFailedCriticalPerHour` (zadano **200/h**, KRITIČNO). Otvara se nakon dvije
+uzastopne provjere iznad praga i zatvara nakon dvije ispod.
+
+**Postupak:**
+1. Pogledaj karticu *Sigurnosne metrike*: da li `captcha-failed` raste u jednom vrhu
+   (automatizovani klijent) ili ravnomjerno (istekli widgeti nakon izmjene stranice).
+2. Odbijeno rješenje znači da Cloudflare nije prihvatio token: istekao, već
+   iskorišten ili pogrešan site key. Provjeri da se `private.security.captcha.siteKey`
+   poklapa s ključem u Cloudflare kontrolnoj tabli. Tajni ključ se nikad ne prikazuje.
+3. Ako raste bez stvarnih korisnika, to je automatizovani klijent: blokiraj izvor na
+   mreži. **Ne snižavaj prag** da bi alarm nestao.
+4. Pragove mijenjaš kroz **Administracija → Postavke i dodaci → Opservabilnost i podrška**
+   (`private.ops.thresholds.captchaFailedWarnPerHour` / `…CriticalPerHour`).
+
+## captcha-skipped
+
+**Uslov:** paket 5.4.2 (stavka 2): zbir metrike `captcha-skipped` za zadnjih **60
+kompletnih minuta** premašuje `captchaSkippedWarnPerHour` (zadano **50/h**, UPOZORENJE)
+ili `captchaSkippedCriticalPerHour` (zadano **200/h**, KRITIČNO). Metrika se povećava
+kad server ne dobije odgovor od Cloudflare Turnstile (timeout, mrežna greška ili ne-2xx),
+pa se prijave propuštaju samo uz pragove limitera.
+
+**Postupak:**
+1. Provjeri izlazni pristup servera prema Cloudflare-u (siteverify). Mrežna pravila
+   i proxy su najčešći uzrok.
+2. Ako instalacija po dizajnu nema internet pristup, vrati
+   `private.security.captcha.provider` na `none`. Isključivanje nudi listu zavisnih
+   postavki (kao i druge postavke).
+3. Dok je provjera preskočena, pojačano prati `auth.login429.high`: bez CAPTCHA-e
+   ostaju samo pragovi limitera.
+4. Pragove mijenjaš kroz **Administracija → Postavke i dodaci → Opservabilnost i podrška**
+   (`private.ops.thresholds.captchaSkippedWarnPerHour` / `…CriticalPerHour`).
+
+---
 
 ## ops-monitor-stale
 

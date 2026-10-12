@@ -32,6 +32,11 @@ export const opsDefaults = {
   // Calibration lives in docs/ops/rate-limits.md.
   login429WarnPerHour: 50,
   login429CriticalPerHour: 200,
+  // Paket 5.4.2 (stavka 2): captcha metrics use the login-429 defaults; calibration in docs/ops/rate-limits.md.
+  captchaFailedWarnPerHour: 50,
+  captchaFailedCriticalPerHour: 200,
+  captchaSkippedWarnPerHour: 50,
+  captchaSkippedCriticalPerHour: 200,
   statusPageEnabled: true,
   statusPagePublic: false,
   statusPageHistoryDays: 90,
@@ -80,6 +85,10 @@ export const opsSettings: readonly SettingDefinition[] = [
   number(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute, ops, 'WebSocket room emits per minute (cluster-wide, busiest room) that raises a CRITICAL alarm (20-200000)', opsDefaults.websocketEmitCriticalPerMinute, 20, 200_000),
   number(settingKeys.privateOpsThresholdsLogin429WarnPerHour, ops, 'Login attempts blocked with 429 in one hour that raise a WARNING (1-100000)', opsDefaults.login429WarnPerHour, 1, 100_000),
   number(settingKeys.privateOpsThresholdsLogin429CriticalPerHour, ops, 'Login attempts blocked with 429 in one hour that raise a CRITICAL alarm (2-200000)', opsDefaults.login429CriticalPerHour, 2, 200_000),
+  number(settingKeys.privateOpsThresholdsCaptchaFailedWarnPerHour, ops, 'CAPTCHA challenges refused per hour that raise a WARNING (1-100000)', opsDefaults.captchaFailedWarnPerHour, 1, 100_000),
+  number(settingKeys.privateOpsThresholdsCaptchaFailedCriticalPerHour, ops, 'CAPTCHA challenges refused per hour that raise a CRITICAL alarm (2-200000)', opsDefaults.captchaFailedCriticalPerHour, 2, 200_000),
+  number(settingKeys.privateOpsThresholdsCaptchaSkippedWarnPerHour, ops, 'CAPTCHA checks skipped per hour (provider unreachable) that raise a WARNING (1-100000)', opsDefaults.captchaSkippedWarnPerHour, 1, 100_000),
+  number(settingKeys.privateOpsThresholdsCaptchaSkippedCriticalPerHour, ops, 'CAPTCHA checks skipped per hour (provider unreachable) that raise a CRITICAL alarm (2-200000)', opsDefaults.captchaSkippedCriticalPerHour, 2, 200_000),
   definePrivateSetting({
     key: settingKeys.privateStatusPageEnabled,
     categoryId: services,

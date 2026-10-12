@@ -49,14 +49,24 @@ export function AdminSecurityMetricsCard() {
   const delayed = metrics?.["login-account-delays"];
   const mfaFailures = metrics?.["mfa-failures"];
   const hibpSkipped = metrics?.["hibp-skipped"];
+  const captchaFailed = metrics?.["captcha-failed"];
+  const captchaSkipped = metrics?.["captcha-skipped"];
   const hasEvents =
-    (blocked?.total ?? 0) + (delayed?.total ?? 0) + (mfaFailures?.total ?? 0) + (hibpSkipped?.total ?? 0) > 0;
+    (blocked?.total ?? 0) +
+      (delayed?.total ?? 0) +
+      (mfaFailures?.total ?? 0) +
+      (hibpSkipped?.total ?? 0) +
+      (captchaFailed?.total ?? 0) +
+      (captchaSkipped?.total ?? 0) >
+    0;
 
   const tiles = [
     { key: "blocks", label: t("admin.ops.securityMetrics.tileBlocks"), value: blocked?.total ?? 0 },
     { key: "peak", label: t("admin.ops.securityMetrics.peak"), value: blocked?.peakPerMinute ?? 0 },
     { key: "mfa", label: t("admin.ops.securityMetrics.mfaFailures"), value: mfaFailures?.total ?? 0 },
     { key: "hibp", label: t("admin.ops.securityMetrics.hibpSkipped"), value: hibpSkipped?.total ?? 0 },
+    { key: "captcha-failed", label: t("admin.ops.securityMetrics.captchaFailed"), value: captchaFailed?.total ?? 0 },
+    { key: "captcha-skipped", label: t("admin.ops.securityMetrics.captchaSkipped"), value: captchaSkipped?.total ?? 0 },
   ] as const;
 
   return (
@@ -82,7 +92,7 @@ export function AdminSecurityMetricsCard() {
         {query.isError ? <ApiErrorText messageKey={mapApiError(query.error)} /> : null}
         {query.data ? (
           <>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {tiles.map((tile) => (
                 <div
                   key={tile.key}

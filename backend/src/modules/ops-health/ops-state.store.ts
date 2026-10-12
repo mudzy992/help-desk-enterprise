@@ -1,5 +1,9 @@
 import type Redis from 'ioredis';
-import { metricsBucketKey, minuteBucketOf } from '../authentication/security/login-security-metrics.service';
+import {
+  metricsBucketKey,
+  minuteBucketOf,
+  type LoginSecurityMetricEvent,
+} from '../authentication/security/login-security-metrics.service';
 import type { AlertStreak } from './alert-state-machine';
 import type { DlqBaseline } from './evaluate-ops-signals';
 
@@ -129,10 +133,18 @@ export class OpsStateStore {
    * never read different namespaces.
    */
   async readLogin429Count(now: Date, minutes: number): Promise<number> {
+    return this.readSecurityMetricCount('login-429', now, minutes);
+  }
+
+  /**
+   * Paket 5.4.2 (stavka 2): the same complete-minute sum for any security metric
+   * event (`login-429`, `captcha-failed`, `captcha-skipped`).
+   */
+  async readSecurityMetricCount(event: LoginSecurityMetricEvent, now: Date, minutes: number): Promise<number> {
     if (minutes <= 0) return 0;
     const currentMinute = minuteBucketOf(now);
     const range = Array.from({ length: minutes }, (_, index) => currentMinute - minutes + index);
-    const keys = range.map((minute) => metricsBucketKey('login-429', minute));
+    const keys = range.map((minute) => metricsBucketKey(event, minute));
     const values = await this.redis.mget(...keys);
     return values.reduce((sum, value) => sum + toCount(value ?? null), 0);
   }

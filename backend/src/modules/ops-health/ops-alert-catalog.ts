@@ -23,6 +23,9 @@ export const opsAlertKeys = {
   // stopa 429 pređe prag (default 50)"). It watches the `login-429` metric of
   // 5.4.0-b/e, so the graph and the alarm read the same numbers.
   login429High: 'auth.login429.high',
+  // Paket 5.4.2 (stavka 2): the captcha metrics, same source as the security tiles.
+  captchaFailedHigh: 'auth.captchaFailed.high',
+  captchaSkippedHigh: 'auth.captchaSkipped.high',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -203,6 +206,28 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     // The window itself is an hour; two consecutive minutes above the
     // threshold is the hysteresis (the same rule the other rate alarms use).
     runbook: runbook('login-429'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.captchaFailedHigh]: {
+    key: opsAlertKeys.captchaFailedHigh,
+    title: { bs: 'CAPTCHA provjere se često odbijaju', en: 'CAPTCHA challenges are often refused' },
+    action: {
+      bs: 'Klijent šalje rješenja koja Cloudflare ne prihvata: istekla rješenja, pogrešan site key ili automatizovani klijent. Pogledajte metapodatke prijava u sigurnosnom dnevniku i karticu Sigurnosne metrike. Ako raste bez stvarnih korisnika, to je automatizovani klijent; ne snižavajte prag bez analize.',
+      en: 'A client sends solutions Cloudflare does not accept: expired solutions, a wrong site key or an automated client. Check the sign-in metadata in the security journal and the Security metrics card. If it grows without real users, it is an automated client; do not lower the threshold without analysis.',
+    },
+    runbook: runbook('captcha-failed'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.captchaSkippedHigh]: {
+    key: opsAlertKeys.captchaSkippedHigh,
+    title: { bs: 'CAPTCHA provjera se preskače (Cloudflare nedostupan)', en: 'CAPTCHA checks are skipped (Cloudflare unreachable)' },
+    action: {
+      bs: 'Server ne može da pita Cloudflare Turnstile (timeout, mreža ili neuspješan odgovor), pa se prijave propuštaju samo uz pragove limitera. Provjerite izlazni pristup servera prema Cloudflare-u; ako internet nije predviđen za ovu instalaciju, vratite provider na none.',
+      en: 'The server cannot ask Cloudflare Turnstile (timeout, network or a failed answer), so sign-ins pass on the rate limiter alone. Check the server\'s outbound access to Cloudflare; if this installation has no internet access by design, switch the provider back to none.',
+    },
+    runbook: runbook('captcha-skipped'),
     openAfter: 2,
     resolveAfter: 2,
   },

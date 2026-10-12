@@ -14,6 +14,7 @@ import { readClamavConfiguration } from '../tickets/attachments/scan-attachment-
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
+import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
 import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
 import { OpsStateStore } from './ops-state.store';
 
@@ -55,6 +56,11 @@ export class OpsSignalCollector implements OnModuleDestroy {
       redis === 'ok' ? this.websocket(nowMs) : Promise.resolve(null),
       redis === 'ok' ? this.login429(nowMs) : Promise.resolve(null),
     ]);
+    // Paket 5.4.2 (stavka 2): kept out of the tuple above, so each total keeps its own type.
+    const [captchaFailedLastHour, captchaSkippedLastHour] = await Promise.all([
+      redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
+      redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
+    ]);
     return {
       nowMs,
       database,
@@ -69,6 +75,8 @@ export class OpsSignalCollector implements OnModuleDestroy {
       ldapsCaExpiresAtMs: ldapsCaExpiry(),
       websocketEmits,
       login429LastHour,
+      captchaFailedLastHour,
+      captchaSkippedLastHour,
     };
   }
 
@@ -90,6 +98,15 @@ export class OpsSignalCollector implements OnModuleDestroy {
    * compares are literally the same strings; a read failure yields `null` (the
    * observation stays inactive instead of firing on a number nobody measured).
    */
+  /** Paket 5.4.2 (stavka 2): a captcha metric total, read with the metrics service's own keys; `null` on failure. */
+  private async securityMetric(nowMs: number, event: LoginSecurityMetricEvent): Promise<number | null> {
+    try {
+      return await this.store.readSecurityMetricCount(event, new Date(nowMs), login429WindowMinutes);
+    } catch {
+      return null;
+    }
+  }
+
   private async login429(nowMs: number): Promise<number | null> {
     try {
       return await this.store.readLogin429Count(new Date(nowMs), login429WindowMinutes);

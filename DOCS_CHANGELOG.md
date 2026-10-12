@@ -7,6 +7,18 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — CAPTCHA metrike: pločice i alarmi (5.4.2, stavka 2)
+
+**Dodato:** `ops/runbook/ALERTS.md` — dva alarma (`auth.captchaFailed.high`, `auth.captchaSkipped.high`) u
+tabeli i dvije sekcije za postupak. `docs/ops/rate-limits.md` §3.2 — pragovi i pravila otvaranja. Plan §14:
+stavka označena kao isporučena.
+
+**Izmijenjeno:** `docs/ops/rate-limits.md` §6 više ne tvrdi da CAPTCHA metrike nemaju alarm ni pločicu.
+Pragovi su četiri nove postavke (`private.ops.thresholds.captcha*PerHour`), zadano 50/200 kao kod `login-429`,
+jer vlasnik nije tražio drugačije vrijednosti (standardna procedura).
+
+**Ostaje otvoreno:** kalibracija pragova na živom saobraćaju; admin korisničko sučelje za webhook postavke.
+
 ## 2026-10-12 — Webhook izvoz sigurnosnog dnevnika (5.4.2, stavka 3)
 
 **Dodato:** `docs/ops/security-audit-webhook.md` — šta se šalje (`auth.*`, `security.*`, samo od uključivanja),

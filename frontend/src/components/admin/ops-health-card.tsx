@@ -99,6 +99,8 @@ const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   ops_test: Send,
   websocket_emits_high: Wifi,
   auth_login429_high: ShieldAlert,
+  auth_captchaFailed_high: ShieldAlert,
+  auth_captchaSkipped_high: ShieldAlert,
 };
 
 /** The worker measures once a minute; refreshing faster only adds load. */

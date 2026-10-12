@@ -698,7 +698,9 @@
         "peak": "Najviše u minuti",
         "mfaFailures": "Neuspjesi drugog faktora",
         "hibpSkipped": "Preskočene HIBP provjere",
-        "empty": "U zadnjem satu nema zabilježenih događaja."
+        "empty": "U zadnjem satu nema zabilježenih događaja.",
+        "captchaFailed": "Odbijene CAPTCHA provjere",
+        "captchaSkipped": "Preskočene CAPTCHA provjere"
       }
     },
     "security": {
@@ -1030,6 +1032,14 @@
         "auth_login429_high": {
           "title": "Blokirane prijave (429) prelaze prag",
           "action": "IP adresa je privremeno blokirana zbog mnogo neuspjelih prijava. Provjerite metrike u Nadzoru i izvor u odgovoru 429 (Retry-After): ako je izvor NAT/proxy, podesite ipMaxFailures/ipWindowSeconds; ako je napad probanja lozinki, blokirajte izvor na mreži."
+        },
+        "auth_captchaFailed_high": {
+          "title": "CAPTCHA provjere se često odbijaju",
+          "action": "Klijent šalje rješenja koja Cloudflare ne prihvata: istekla rješenja, pogrešan site key ili automatizovani klijent. Pogledajte metapodatke prijava u sigurnosnom dnevniku i karticu Sigurnosne metrike. Ako raste bez stvarnih korisnika, to je automatizovani klijent; ne snižavajte prag bez analize."
+        },
+        "auth_captchaSkipped_high": {
+          "title": "CAPTCHA provjera se preskače (Cloudflare nedostupan)",
+          "action": "Server ne može da pita Cloudflare Turnstile (timeout, mreža ili neuspješan odgovor), pa se prijave propuštaju samo uz pragove limitera. Provjerite izlazni pristup servera prema Cloudflare-u; ako internet nije predviđen za ovu instalaciju, vratite provider na none."
         }
       },
       "alertDetailLabels": {
@@ -1058,7 +1068,9 @@
         "windowMinutes": "Prozor (min)",
         "warnThreshold": "Prag upozorenja",
         "criticalThreshold": "Kritični prag",
-        "expiresAt": "Ističe"
+        "expiresAt": "Ističe",
+        "captchaFailedLastHour": "Odbijene CAPTCHA provjere u zadnjih sat",
+        "captchaSkippedLastHour": "Preskočene CAPTCHA provjere u zadnjih sat"
       }
     }
   },
@@ -2131,7 +2143,11 @@
         "private.security.captcha.secretKey": "CAPTCHA — tajni ključ",
         "private.security.auditWebhook.enabled": "Audit webhook — izvoz uključen",
         "private.security.auditWebhook.url": "Audit webhook — adresa primaoca",
-        "private.security.auditWebhook.secret": "Audit webhook — tajna za potpis"
+        "private.security.auditWebhook.secret": "Audit webhook — tajna za potpis",
+        "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — odbijene provjere po satu, upozorenje",
+        "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — odbijene provjere po satu, kritično",
+        "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — preskočene provjere po satu, upozorenje",
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2602,7 +2618,11 @@
         "private.security.captcha.secretKey": "Tajni ključ iz Cloudflare Turnstile panela (Widget → Secret key). Koristi ga isključivo server za provjeru rješenog izazova; nikada se ne prikazuje u pregledniku i ne upisuje u dnevnik. Ako ključ nije postavljen ili Cloudflare nije dostupan, prijava se ne blokira — ostaje samo ograničenje prijava.",
         "private.security.auditWebhook.enabled": "Šalje događaje autentikacije i sigurnosti na adresu, potpisane tajnom. Šalju se samo događaji zapisani nakon uključivanja. Isključivanje zaustavlja izvoz; događaji zapisani u međuvremenu se preskaču.",
         "private.security.auditWebhook.url": "Adresa primaoca (http ili https). URL ne smije sadržavati korisničko ime ni lozinku. Interne adrese su dozvoljene. Zahtjevi se nikada ne preusmjeravaju.",
-        "private.security.auditWebhook.secret": "HMAC-SHA256 ključ. Svaki zahtjev nosi x-helpdesk-timestamp i x-helpdesk-signature (sha256=hex od timestamp.body). Vrijednost se nakon snimanja više ne prikazuje."
+        "private.security.auditWebhook.secret": "HMAC-SHA256 ključ. Svaki zahtjev nosi x-helpdesk-timestamp i x-helpdesk-signature (sha256=hex od timestamp.body). Vrijednost se nakon snimanja više ne prikazuje.",
+        "private.ops.thresholds.captchaFailedWarnPerHour": "Koliko odbijenih CAPTCHA rješenja na sat pokreće alarm upozorenja (auth.captchaFailed.high). Odbijanje znači da klijent šalje rješenje koje Cloudflare nije prihvatio.",
+        "private.ops.thresholds.captchaFailedCriticalPerHour": "Odbijene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
+        "private.ops.thresholds.captchaSkippedWarnPerHour": "Koliko provjera na sat smije biti preskočeno jer Cloudflare nije odgovorio prije alarma upozorenja (auth.captchaSkipped.high).",
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja."
       },
       "type": {
         "boolean": "uključeno/isključeno",

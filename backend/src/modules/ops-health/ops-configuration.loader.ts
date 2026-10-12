@@ -20,7 +20,7 @@ export class OpsConfigurationLoader {
 
   async load(): Promise<OpsConfiguration> {
     const get = (key: string) => this.settings.getSetting(key);
-    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav, wsWarn, wsCritical, login429Warn, login429Critical] =
+    const [enabled, reminder, extra, teams, history, diskWarn, diskCritical, count5xx, percent5xx, slaLate, heartbeat, clamav, wsWarn, wsCritical, login429Warn, login429Critical, captchaFailedWarn, captchaFailedCritical, captchaSkippedWarn, captchaSkippedCritical] =
       await Promise.all([
         get(settingKeys.privateOpsAlertsEnabled),
         get(settingKeys.privateOpsAlertsReminderHours),
@@ -38,10 +38,16 @@ export class OpsConfigurationLoader {
         get(settingKeys.privateOpsThresholdsWebsocketEmitCriticalPerMinute),
         get(settingKeys.privateOpsThresholdsLogin429WarnPerHour),
         get(settingKeys.privateOpsThresholdsLogin429CriticalPerHour),
+        get(settingKeys.privateOpsThresholdsCaptchaFailedWarnPerHour),
+        get(settingKeys.privateOpsThresholdsCaptchaFailedCriticalPerHour),
+        get(settingKeys.privateOpsThresholdsCaptchaSkippedWarnPerHour),
+        get(settingKeys.privateOpsThresholdsCaptchaSkippedCriticalPerHour),
       ]);
     const warn = int(diskWarn, opsDefaults.diskWarnPercent);
     const wsWarnValue = int(wsWarn, opsDefaults.websocketEmitWarnPerMinute);
     const login429WarnValue = int(login429Warn, opsDefaults.login429WarnPerHour);
+    const captchaFailedWarnValue = int(captchaFailedWarn, opsDefaults.captchaFailedWarnPerHour);
+    const captchaSkippedWarnValue = int(captchaSkippedWarn, opsDefaults.captchaSkippedWarnPerHour);
     return {
       alertsEnabled: typeof enabled === 'boolean' ? enabled : opsDefaults.alertsEnabled,
       reminderHours: int(reminder, opsDefaults.reminderHours),
@@ -62,6 +68,10 @@ export class OpsConfigurationLoader {
         login429WarnPerHour: login429WarnValue,
         // A critical level at or under the warning level would skip WARNING entirely.
         login429CriticalPerHour: Math.max(login429WarnValue + 1, int(login429Critical, opsDefaults.login429CriticalPerHour)),
+        captchaFailedWarnPerHour: captchaFailedWarnValue,
+        captchaFailedCriticalPerHour: Math.max(captchaFailedWarnValue + 1, int(captchaFailedCritical, opsDefaults.captchaFailedCriticalPerHour)),
+        captchaSkippedWarnPerHour: captchaSkippedWarnValue,
+        captchaSkippedCriticalPerHour: Math.max(captchaSkippedWarnValue + 1, int(captchaSkippedCritical, opsDefaults.captchaSkippedCriticalPerHour)),
       },
     };
   }
@@ -90,5 +100,9 @@ export const fallbackOpsConfiguration: OpsConfiguration = {
     websocketEmitCriticalPerMinute: opsDefaults.websocketEmitCriticalPerMinute,
     login429WarnPerHour: opsDefaults.login429WarnPerHour,
     login429CriticalPerHour: opsDefaults.login429CriticalPerHour,
+    captchaFailedWarnPerHour: opsDefaults.captchaFailedWarnPerHour,
+    captchaFailedCriticalPerHour: opsDefaults.captchaFailedCriticalPerHour,
+    captchaSkippedWarnPerHour: opsDefaults.captchaSkippedWarnPerHour,
+    captchaSkippedCriticalPerHour: opsDefaults.captchaSkippedCriticalPerHour,
   },
 };

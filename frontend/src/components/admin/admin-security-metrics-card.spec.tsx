@@ -83,8 +83,13 @@ describe("AdminSecurityMetricsCard", () => {
     expect(html).toContain("admin.ops.securityMetrics.loading");
   });
 
-  it("shows the four counters as grid tiles with their numbers", () => {
+  it("shows the counters, captcha included, as grid tiles with their numbers", () => {
     const html = renderWith(snapshotWithEvents);
+    // Paket 5.4.2 (stavka 2): the two captcha counters are tiles too, in three columns on wide screens.
+    expect(html).toContain('data-testid="admin-security-metric-captcha-failed"');
+    expect(html).toContain('data-testid="admin-security-metric-captcha-skipped"');
+    expect(html).toContain("admin.ops.securityMetrics.captchaFailed");
+    expect(html).toContain("admin.ops.securityMetrics.captchaSkipped");
     expect(html).toContain('data-testid="admin-security-metric-blocks"');
     expect(html).toContain('data-testid="admin-security-metric-peak"');
     expect(html).toContain('data-testid="admin-security-metric-mfa"');
@@ -94,7 +99,7 @@ describe("AdminSecurityMetricsCard", () => {
     expect(html).toContain("admin.ops.securityMetrics.mfaFailures");
     expect(html).toContain("admin.ops.securityMetrics.hibpSkipped");
     expect(html).toContain("grid-cols-2");
-    expect(html).toContain("sm:grid-cols-4");
+    expect(html).toContain("sm:grid-cols-3");
   });
 
   it("draws the per-minute hour as bar strips once there is something to draw", () => {

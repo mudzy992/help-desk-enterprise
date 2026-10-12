@@ -167,7 +167,23 @@ Pragovi se mijenjaju kroz **Administracija → Postavke i dodaci → Opservabiln
 > Kritična razina opisuje burst koji znači napad probanja lozinki ili klijent u petlji. Pragovi su namjerno **podesivi**: kalibriraj ih
 > nakon prve sedmice rada (vidi §4) i upiši razlog u dnevnik izmjena.
 
-### 3.2 Dnevnik (audit)
+### 3.2 Alarmi na CAPTCHA metrike (automatizovani)
+
+Dvije metrike iz §2 imaju istu logiku kao `login-429`: worker sabira zadnjih **60 kompletnih
+minuta** i poredi s pragovima. Svaki alarm ima vlastite pragove; oba su u istom registru.
+
+| Alarm | Metrika | Postavka (upozorenje / kritično) | Zadano |
+|---|---|---|---|
+| `auth.captchaFailed.high` | `captcha-failed` | `private.ops.thresholds.captchaFailedWarnPerHour` / `…CriticalPerHour` | 50 / 200 po satu |
+| `auth.captchaSkipped.high` | `captcha-skipped` | `private.ops.thresholds.captchaSkippedWarnPerHour` / `…CriticalPerHour` | 50 / 200 po satu |
+
+Oba alarma se otvaraju nakon dvije uzastopne provjere iznad praga i zatvaraju nakon dvije ispod.
+Ako Redis nije čitljiv, metrika je nepoznata i alarm se ne otvara. Postupak je u
+[`ops/runbook/ALERTS.md`](../../ops/runbook/ALERTS.md#captcha-failed) (odbijanja) i
+[`#captcha-skipped`](../../ops/runbook/ALERTS.md#captcha-skipped) (preskakanja). Pločice na kartici
+*Sigurnosne metrike* prikazuju iste brojeve.
+
+### 3.3 Dnevnik (audit)
 
 U sigurnosnom dnevniku (`GET /security/audit-log`, kartica na istoj stranici):
 
@@ -279,8 +295,9 @@ preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).
 - **CAPTCHA pokriva prijavu lokalnim nalogom i MFA korak pri prijavi** (§5, tačka 6). Microsoft tok,
   promjena lozinke i MFA potvrde iz sigurnosnih radnji (npr. uključivanje MFA-e dok je korisnik prijavljen)
   nemaju provjeru i ostaju pod „other" bucketom (§1).
-- **Metrike CAPTCHA-e nemaju alarm ni pločicu** (za razliku od `login-429`, §3.1): `captcha-skipped` i
-  `captcha-failed` se prate ručno, preko `GET /security/metrics/last-hour`.
+- **Metrike CAPTCHA-e imaju pločice i alarme** (5.4.2, §3.2): `captcha-failed` i `captcha-skipped` se broje
+  kao `login-429`, a pragovi su odvojeni. Podrazumijevano su 50/h i 200/h kao i kod 429; kalibracija
+  na živom saobraćaju još nije urađena.
 - **„Other" bucket dijeli ključ po IP-u** za change-password i po računu za MFA potvrde; ako se
   pokaže potreba za odvojenim pragovima, to je nova stavka u settings registru.
 - Metrike traže Redis da bi bile dijeljene između replika; bez njega su per-proces (vrijednosti i

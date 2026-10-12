@@ -26,6 +26,9 @@ export const opsAlertSlugs = [
   // alert title instead of the translated one.
   "websocket_emits_high",
   "auth_login429_high",
+  // Paket 5.4.2 (stavka 2): the captcha alarms (refused challenges, skipped checks).
+  "auth_captchaFailed_high",
+  "auth_captchaSkipped_high",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 
@@ -168,6 +171,8 @@ export const alertDetailFieldSlugs = [
   "emitsPerMinute",
   "busiestRoom",
   "login429LastHour",
+  "captchaFailedLastHour",
+  "captchaSkippedLastHour",
   "errors5xx",
   "minutesSinceSuccess",
   "meanLagMs",

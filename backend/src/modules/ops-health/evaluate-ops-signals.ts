@@ -20,6 +20,11 @@ export type OpsThresholds = {
   // Package 5.4.0-f follow-up: blocked sign-ins (429) per rolling hour.
   readonly login429WarnPerHour: number;
   readonly login429CriticalPerHour: number;
+  // Paket 5.4.2 (stavka 2): captcha metric alarms (refused challenges, skipped checks).
+  readonly captchaFailedWarnPerHour: number;
+  readonly captchaFailedCriticalPerHour: number;
+  readonly captchaSkippedWarnPerHour: number;
+  readonly captchaSkippedCriticalPerHour: number;
 };
 
 export type SchedulerSignal = {
@@ -71,6 +76,9 @@ export type OpsSignals = {
    * alarm covers that case, and a missing number must not read as "quiet".
    */
   readonly login429LastHour: number | null;
+  /** Paket 5.4.2 (stavka 2): `captcha-failed` and `captcha-skipped` totals of the same 60 complete minutes. */
+  readonly captchaFailedLastHour: number | null;
+  readonly captchaSkippedLastHour: number | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -114,6 +122,14 @@ export function evaluateOpsSignals(
     observeLdapsCa(signals),
     observeWebsocketEmits(signals, thresholds),
     observeLogin429(signals, thresholds),
+    observeCaptchaMetric(signals.captchaFailedLastHour, thresholds.captchaFailedWarnPerHour, thresholds.captchaFailedCriticalPerHour, {
+      key: opsAlertKeys.captchaFailedHigh,
+      detailName: 'captchaFailedLastHour',
+    }),
+    observeCaptchaMetric(signals.captchaSkippedLastHour, thresholds.captchaSkippedWarnPerHour, thresholds.captchaSkippedCriticalPerHour, {
+      key: opsAlertKeys.captchaSkippedHigh,
+      detailName: 'captchaSkippedLastHour',
+    }),
   ];
 }
 
@@ -382,6 +398,34 @@ function observeLogin429(signals: OpsSignals, thresholds: OpsThresholds): OpsObs
       login429LastHour: total,
       warnThreshold: thresholds.login429WarnPerHour,
       criticalThreshold: thresholds.login429CriticalPerHour,
+      windowMinutes: login429WindowMinutes,
+    },
+  };
+}
+
+/**
+ * Paket 5.4.2 (stavka 2): the same rule as `login-429` for a metric that is read
+ * from the same minute buckets. An unknown total (Redis unreadable) never fires.
+ */
+function observeCaptchaMetric(
+  total: number | null,
+  warnThreshold: number,
+  criticalThreshold: number,
+  options: { readonly key: OpsAlertKey; readonly detailName: string },
+): OpsObservation {
+  // Anything but a number (null, or a missing field from an older collector) is unknown.
+  if (typeof total !== 'number' || total < warnThreshold) {
+    return inactive(options.key);
+  }
+  const severity: OpsAlertSeverity = total >= criticalThreshold ? 'CRITICAL' : 'WARNING';
+  return {
+    key: options.key,
+    active: true,
+    severity,
+    details: {
+      [options.detailName]: total,
+      warnThreshold,
+      criticalThreshold,
       windowMinutes: login429WindowMinutes,
     },
   };

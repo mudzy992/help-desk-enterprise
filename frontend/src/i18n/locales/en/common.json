@@ -696,7 +696,9 @@
         "peak": "Peak per minute",
         "mfaFailures": "Second-factor failures",
         "hibpSkipped": "Skipped HIBP checks",
-        "empty": "No events were recorded in the last hour."
+        "empty": "No events were recorded in the last hour.",
+        "captchaFailed": "Refused CAPTCHA challenges",
+        "captchaSkipped": "Skipped CAPTCHA checks"
       }
     },
     "security": {
@@ -1021,6 +1023,14 @@
         "auth_login429_high": {
           "title": "Blocked sign-ins (429) exceed the threshold",
           "action": "An IP address is temporarily blocked after many failed sign-ins. Check the metrics under Monitoring and the source in the 429 answer (Retry-After): if the source is a NAT/proxy, retune ipMaxFailures/ipWindowSeconds; if it is a password spray, block the source on the network."
+        },
+        "auth_captchaFailed_high": {
+          "title": "CAPTCHA challenges are often refused",
+          "action": "A client sends solutions Cloudflare does not accept: expired solutions, a wrong site key or an automated client. Check the sign-in metadata in the security journal and the Security metrics card. If it grows without real users, it is an automated client; do not lower the threshold without analysis."
+        },
+        "auth_captchaSkipped_high": {
+          "title": "CAPTCHA checks are skipped (Cloudflare unreachable)",
+          "action": "The server cannot ask Cloudflare Turnstile (timeout, network or a failed answer), so sign-ins pass on the rate limiter alone. Check the server outbound access to Cloudflare; if this installation has no internet access by design, switch the provider back to none."
         }
       },
       "alertDetailLabels": {
@@ -1049,7 +1059,9 @@
         "windowMinutes": "Window (min)",
         "warnThreshold": "Warning threshold",
         "criticalThreshold": "Critical threshold",
-        "expiresAt": "Expires"
+        "expiresAt": "Expires",
+        "captchaFailedLastHour": "Refused CAPTCHA challenges in the last hour",
+        "captchaSkippedLastHour": "Skipped CAPTCHA checks in the last hour"
       }
     }
   },
@@ -2120,7 +2132,11 @@
         "private.security.captcha.secretKey": "CAPTCHA — secret key",
         "private.security.auditWebhook.enabled": "Audit webhook — export switched on",
         "private.security.auditWebhook.url": "Audit webhook — endpoint URL",
-        "private.security.auditWebhook.secret": "Audit webhook — signing secret"
+        "private.security.auditWebhook.secret": "Audit webhook — signing secret",
+        "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — refused challenges per hour, warning",
+        "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — refused challenges per hour, critical",
+        "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — skipped checks per hour, warning",
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2591,7 +2607,11 @@
         "private.security.captcha.secretKey": "The secret key from the Cloudflare Turnstile dashboard (Widget → Secret key). Only the server uses it to verify a solved challenge; it is never shown in the browser and never written to a log. If the key is missing or Cloudflare is unreachable, a sign-in is not blocked — only the login rate limit stays.",
         "private.security.auditWebhook.enabled": "Sends the auth and security audit events to the endpoint, signed with the secret. Only events written after it is switched on are sent. Turning it off stops the export and skips the events written meanwhile.",
         "private.security.auditWebhook.url": "Receiver address (http or https). The URL must not contain a user name or password. Internal addresses are allowed. Requests are never redirected.",
-        "private.security.auditWebhook.secret": "HMAC-SHA256 key. Each request carries x-helpdesk-timestamp and x-helpdesk-signature (sha256=hex of timestamp.body). The value is never shown again."
+        "private.security.auditWebhook.secret": "HMAC-SHA256 key. Each request carries x-helpdesk-timestamp and x-helpdesk-signature (sha256=hex of timestamp.body). The value is never shown again.",
+        "private.ops.thresholds.captchaFailedWarnPerHour": "How many refused CAPTCHA challenges an hour raise the warning alarm (auth.captchaFailed.high). A refusal means the client sent a solution Cloudflare did not accept.",
+        "private.ops.thresholds.captchaFailedCriticalPerHour": "Refused challenges per hour that raise the critical alarm; keep it above the warning level.",
+        "private.ops.thresholds.captchaSkippedWarnPerHour": "How many checks an hour may be skipped because Cloudflare did not answer before the warning alarm (auth.captchaSkipped.high) arrives.",
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level."
       },
       "type": {
         "boolean": "on/off",

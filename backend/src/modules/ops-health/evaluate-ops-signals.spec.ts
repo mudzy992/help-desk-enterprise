@@ -25,6 +25,10 @@ const thresholds: OpsThresholds = {
   websocketEmitCriticalPerMinute: 2_000,
   login429WarnPerHour: 50,
   login429CriticalPerHour: 200,
+  captchaFailedWarnPerHour: 50,
+  captchaFailedCriticalPerHour: 200,
+  captchaSkippedWarnPerHour: 50,
+  captchaSkippedCriticalPerHour: 200,
 };
 
 function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
@@ -49,6 +53,8 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     websocketEmits: { staff: 10, public: 0, user: 5, group: 120, 'group-legacy': 0, broadcast: 0 },
     // Quiet by default: the metric exists and is zero.
     login429LastHour: 0,
+    captchaFailedLastHour: 0,
+    captchaSkippedLastHour: 0,
     ...overrides,
   };
 }
@@ -222,5 +228,31 @@ describe('watchdog observations', () => {
     expect(
       observeMonitorFreshness({ workerAlive: true, snapshotGeneratedAt: new Date(now - 60_000).toISOString(), nowMs: now, staleSeconds: 180 }).active,
     ).toBe(false);
+  });
+});
+
+describe('captcha metric alarms (5.4.2 stavka 2)', () => {
+  const byKey = (signals: OpsSignals) => new Map(evaluateOpsSignals(signals, thresholds, baseline).map((o) => [o.key, o]));
+
+  it('stays quiet at zero and below the warning threshold', () => {
+    expect(byKey(healthy()).get(opsAlertKeys.captchaFailedHigh)?.active).toBe(false);
+    expect(byKey(healthy({ captchaFailedLastHour: 49 })).get(opsAlertKeys.captchaFailedHigh)?.active).toBe(false);
+    expect(byKey(healthy({ captchaSkippedLastHour: 49 })).get(opsAlertKeys.captchaSkippedHigh)?.active).toBe(false);
+  });
+
+  it('raises WARNING at the warning threshold and CRITICAL at the critical one, per metric', () => {
+    const warning = byKey(healthy({ captchaFailedLastHour: 50 })).get(opsAlertKeys.captchaFailedHigh)!;
+    expect(warning).toMatchObject({ active: true, severity: 'WARNING', details: { captchaFailedLastHour: 50, warnThreshold: 50, criticalThreshold: 200, windowMinutes: 60 } });
+    const critical = byKey(healthy({ captchaSkippedLastHour: 200 })).get(opsAlertKeys.captchaSkippedHigh)!;
+    expect(critical).toMatchObject({ active: true, severity: 'CRITICAL', details: { captchaSkippedLastHour: 200 } });
+    // The two alarms are independent: a skipped burst does not raise the failed alarm.
+    expect(byKey(healthy({ captchaSkippedLastHour: 200 })).get(opsAlertKeys.captchaFailedHigh)?.active).toBe(false);
+  });
+
+  it('never fires on an unknown total (Redis unreadable or a field missing)', () => {
+    expect(byKey(healthy({ captchaFailedLastHour: null })).get(opsAlertKeys.captchaFailedHigh)?.active).toBe(false);
+    const withoutField: Record<string, unknown> = { ...healthy() };
+    delete withoutField.captchaSkippedLastHour;
+    expect(byKey(withoutField as unknown as OpsSignals).get(opsAlertKeys.captchaSkippedHigh)?.active).toBe(false);
   });
 });

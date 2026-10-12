@@ -41,6 +41,8 @@ function signals(overrides: Partial<OpsSignals> = {}): OpsSignals {
     ldapsCaExpiresAtMs: null,
     websocketEmits: null,
     login429LastHour: 0,
+    captchaFailedLastHour: 0,
+    captchaSkippedLastHour: 0,
     ...overrides,
   };
 }

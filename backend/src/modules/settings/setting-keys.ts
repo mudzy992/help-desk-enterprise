@@ -576,6 +576,11 @@ export const settingKeys = {
   // Package 5.4.0-f follow-up: alarm on the login 429 metric (5.4.0-b/e).
   privateOpsThresholdsLogin429WarnPerHour: 'private.ops.thresholds.login429WarnPerHour',
   privateOpsThresholdsLogin429CriticalPerHour: 'private.ops.thresholds.login429CriticalPerHour',
+  // Paket 5.4.2 (stavka 2): captcha metric alarms, same pattern as login-429.
+  privateOpsThresholdsCaptchaFailedWarnPerHour: 'private.ops.thresholds.captchaFailedWarnPerHour',
+  privateOpsThresholdsCaptchaFailedCriticalPerHour: 'private.ops.thresholds.captchaFailedCriticalPerHour',
+  privateOpsThresholdsCaptchaSkippedWarnPerHour: 'private.ops.thresholds.captchaSkippedWarnPerHour',
+  privateOpsThresholdsCaptchaSkippedCriticalPerHour: 'private.ops.thresholds.captchaSkippedCriticalPerHour',
   // Paket 2.9 (K3): on-call.
   privateProblemsNumberPrefix: 'private.problems.numberPrefix',
   privateProblemsRootCauseCategories: 'private.problems.rootCauseCategories',
