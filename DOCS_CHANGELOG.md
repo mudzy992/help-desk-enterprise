@@ -7,6 +7,20 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — Webhook izvoz sigurnosnog dnevnika (5.4.2, stavka 3)
+
+**Dodato:** `docs/ops/security-audit-webhook.md` — šta se šalje (`auth.*`, `security.*`, samo od uključivanja),
+postavke `private.security.auditWebhook.{enabled,url,secret}`, HMAC zaglavlja i primjer provjere, ponašanje kod
+grešaka (24 h pa odbacivanje uz brojač), praćenje i ograničenja.
+`docs/plans/modules/5.4-sigurnosni-hardening.md` §14 — webhook označen kao isporučen; enum-vrijednosti označene kao
+prevedene (`edf94dd4`).
+
+**Zašto:** vlasnik je odlučio webhook (ne syslog), interna mreža dozvoljena, HMAC potpis, ponavljanje 24 h pa
+odbacivanje, samo događaji od uključivanja i samo `auth.*`/`security.*`.
+
+**Ostaje otvoreno:** admin korisničko sučelje za postavke izvoza (trenutno kroz `PUT /settings`), pločica/alarm za
+brojače, syslog.
+
 ## 2026-10-12 — CAPTCHA: MFA korak pri prijavi i prag ispod pet neuspjeha
 
 **Dodato/izmijenjeno:** `docs/ops/rate-limits.md` §5 — tačka 6 (provjera na koraku s kodom: TOTP ili rezervni kod,

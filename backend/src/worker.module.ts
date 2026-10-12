@@ -15,6 +15,7 @@ import { AssetDirectorySyncWorkerModule } from './modules/assets/directory/asset
 import { AnnouncementWorkerModule } from './modules/announcements/announcement-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
 import { OpsHealthWorkerModule } from './modules/ops-health/ops-health-worker.module';
+import { SecurityAuditWebhookWorkerModule } from './modules/security-audit-webhook/security-audit-webhook-worker.module';
 import { ReportSchedulesWorkerModule } from './modules/reports/schedules/report-schedules-worker.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
@@ -54,6 +55,8 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     // Paket 2.9 (K2): announcement notifications and receipt retention.
     AnnouncementWorkerModule,
     OpsHealthWorkerModule,
+    // Paket 5.4.2 (stavka 3): signed webhook export of the auth and security audit rows.
+    SecurityAuditWebhookWorkerModule,
     AssetRemindersWorkerModule,
     AssetDirectorySyncWorkerModule,
     ProblemSweepWorkerModule,

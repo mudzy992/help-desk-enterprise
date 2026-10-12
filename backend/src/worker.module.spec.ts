@@ -23,6 +23,8 @@ import { UnroutedSweepProcessor } from './modules/tickets/unrouted/unrouted-swee
 import { directorySyncQueueName } from './modules/directory-sync/ldaps/directory-sync.job.constants';
 import { DirectorySyncProcessor } from './modules/directory-sync/ldaps/directory-sync.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
+import { securityAuditWebhookQueueName } from './modules/security-audit-webhook/security-audit-webhook.constants';
+import { SecurityAuditWebhookProcessor } from './modules/security-audit-webhook/security-audit-webhook.processor';
 import { WorkerModule } from './worker.module';
 import { inboundEmailQueueName } from './modules/inbound-email/inbound-email.constants';
 import { InboundEmailProcessor } from './modules/inbound-email/inbound-email.processor';
@@ -74,6 +76,7 @@ const scheduledQueueNames = [
   assetDirectorySyncQueueName,
   problemSweepQueueName,
   changeSweepQueueName,
+  securityAuditWebhookQueueName,
 ] as const;
 
 const processorTypes = [
@@ -98,6 +101,7 @@ const processorTypes = [
   AssetDirectorySyncProcessor,
   ProblemSweepProcessor,
   ChangeSweepProcessor,
+  SecurityAuditWebhookProcessor,
 ] as const;
 
 function createFakeQueue() {

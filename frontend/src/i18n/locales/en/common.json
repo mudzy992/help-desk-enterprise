@@ -921,7 +921,8 @@
           "ticket_archive_quarter_hourly": "Closed-ticket archiving",
           "ticket_time_tracking_sweep_5min": "Open time-entry cleanup",
           "unrouted_sweep_quarter_hourly": "Unrouted-ticket processing",
-          "waiting_for_user_quarter_hourly": "Waiting-for-user reminders"
+          "waiting_for_user_quarter_hourly": "Waiting-for-user reminders",
+          "security_audit_webhook_tick": "Security audit webhook export"
         }
       },
       "queues": {
@@ -2116,7 +2117,10 @@
         "private.security.hibp.enabled": "Security — breached-password check",
         "private.security.captcha.provider": "CAPTCHA — challenge provider",
         "private.security.captcha.siteKey": "CAPTCHA — public site key",
-        "private.security.captcha.secretKey": "CAPTCHA — secret key"
+        "private.security.captcha.secretKey": "CAPTCHA — secret key",
+        "private.security.auditWebhook.enabled": "Audit webhook — export switched on",
+        "private.security.auditWebhook.url": "Audit webhook — endpoint URL",
+        "private.security.auditWebhook.secret": "Audit webhook — signing secret"
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2584,7 +2588,10 @@
         "private.security.hibp.enabled": "When enabled, new and temporary passwords are checked against the Pwned Passwords service (only the first 5 characters of the SHA-1 hash, cached for 24 h). If the service is unavailable the change proceeds (fail-open). Switch it off only if policy demands it.",
         "private.security.captcha.provider": "Who checks that a sign-in is not sent by an automated client. **none** (default) changes nothing: login rate limits keep working as before and no request leaves for the internet. **turnstile** turns on Cloudflare Turnstile: after five consecutive failed sign-ins from the same IP address a sign-in asks for a solved challenge, and one solved challenge is worth one attempt.",
         "private.security.captcha.siteKey": "The public key from the Cloudflare Turnstile dashboard (Widget → Site key). It is not a secret: it is rendered on the sign-in page. Leave it empty while the provider is **none**.",
-        "private.security.captcha.secretKey": "The secret key from the Cloudflare Turnstile dashboard (Widget → Secret key). Only the server uses it to verify a solved challenge; it is never shown in the browser and never written to a log. If the key is missing or Cloudflare is unreachable, a sign-in is not blocked — only the login rate limit stays."
+        "private.security.captcha.secretKey": "The secret key from the Cloudflare Turnstile dashboard (Widget → Secret key). Only the server uses it to verify a solved challenge; it is never shown in the browser and never written to a log. If the key is missing or Cloudflare is unreachable, a sign-in is not blocked — only the login rate limit stays.",
+        "private.security.auditWebhook.enabled": "Sends the auth and security audit events to the endpoint, signed with the secret. Only events written after it is switched on are sent. Turning it off stops the export and skips the events written meanwhile.",
+        "private.security.auditWebhook.url": "Receiver address (http or https). The URL must not contain a user name or password. Internal addresses are allowed. Requests are never redirected.",
+        "private.security.auditWebhook.secret": "HMAC-SHA256 key. Each request carries x-helpdesk-timestamp and x-helpdesk-signature (sha256=hex of timestamp.body). The value is never shown again."
       },
       "type": {
         "boolean": "on/off",

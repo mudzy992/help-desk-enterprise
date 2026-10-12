@@ -140,6 +140,25 @@ model AuditLog {
   @@index([createdAt])
 }
 
+/// Paket 5.4.2 (stavka 3): delivery state of the security-audit webhook.
+/// A singleton row (`id = "default"`): the cursor of the last delivered (or
+/// dropped) audit row, the start of the current failure streak and the
+/// counters an operator needs to see that the export is healthy.
+model SecurityAuditWebhookState {
+  id              String   @id @default("default")
+  cursorCreatedAt DateTime?
+  cursorId        String?
+  /// First failed attempt of the current streak; cleared on success or drop.
+  pendingSince    DateTime?
+  lastSuccessAt   DateTime?
+  /// Short machine code of the last failure (e.g. HTTP_500, TIMEOUT); never a body.
+  lastErrorCode   String?
+  sentTotal       Int      @default(0)
+  failedTotal     Int      @default(0)
+  droppedTotal    Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
 model IntegrationJob {
   id          String                @id @default(cuid())
   type        IntegrationJobType

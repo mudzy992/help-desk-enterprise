@@ -389,6 +389,10 @@ export const settingKeys = {
   privateSecurityCaptchaProvider: 'private.security.captcha.provider',
   privateSecurityCaptchaSiteKey: 'private.security.captcha.siteKey',
   privateSecurityCaptchaSecretKey: 'private.security.captcha.secretKey',
+  // Paket 5.4.2 (stavka 3): signed export of the auth/security audit rows.
+  privateSecurityAuditWebhookEnabled: 'private.security.auditWebhook.enabled',
+  privateSecurityAuditWebhookUrl: 'private.security.auditWebhook.url',
+  privateSecurityAuditWebhookSecret: 'private.security.auditWebhook.secret',
   privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
   privateSecuritySafeLoggingLevelsCsv:
     'private.security.safeLogging.levelsCsv',

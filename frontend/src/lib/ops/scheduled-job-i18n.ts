@@ -17,6 +17,7 @@ export const knownScheduledJobIds = [
   'privacy-15min',
   'problem-sweep-hourly',
   'report-schedules-5min',
+  'security-audit-webhook-tick',
   'sla-scan-every-minute',
   'ticket-archive-quarter-hourly',
   'ticket-time-tracking-sweep-5min',

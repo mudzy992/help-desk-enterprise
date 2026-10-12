@@ -928,7 +928,8 @@
           "ticket_archive_quarter_hourly": "Arhiviranje zatvorenih tiketa",
           "ticket_time_tracking_sweep_5min": "Zatvaranje otvorenih mjerenja vremena",
           "unrouted_sweep_quarter_hourly": "Obrada neusmjerenih tiketa",
-          "waiting_for_user_quarter_hourly": "Podsjetnici za odgovor korisnika"
+          "waiting_for_user_quarter_hourly": "Podsjetnici za odgovor korisnika",
+          "security_audit_webhook_tick": "Izvoz sigurnosnog dnevnika (webhook)"
         }
       },
       "queues": {
@@ -2127,7 +2128,10 @@
         "private.security.hibp.enabled": "Sigurnost — provjera procurjelih lozinki",
         "private.security.captcha.provider": "CAPTCHA — provajder provjere",
         "private.security.captcha.siteKey": "CAPTCHA — javni site key",
-        "private.security.captcha.secretKey": "CAPTCHA — tajni ključ"
+        "private.security.captcha.secretKey": "CAPTCHA — tajni ključ",
+        "private.security.auditWebhook.enabled": "Audit webhook — izvoz uključen",
+        "private.security.auditWebhook.url": "Audit webhook — adresa primaoca",
+        "private.security.auditWebhook.secret": "Audit webhook — tajna za potpis"
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2595,7 +2599,10 @@
         "private.security.hibp.enabled": "Kada je uključeno, nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa (samo prvih 5 znakova SHA-1 hasha, uz keširanje 24 h). Ako servis nije dostupan, promjena se nastavlja (fail-open). Isključite samo ako politika to zahtijeva.",
         "private.security.captcha.provider": "Ko provjerava da prijavu ne šalje automatizovani klijent. **none** (zadano) ne mijenja ništa: ograničenja prijava rade kao i do sada i nijedan zahtjev ne ide na internet. **turnstile** uključuje Cloudflare Turnstile: poslije pet uzastopnih neuspjelih prijava s iste IP adrese prijava traži rješenu provjeru, a rješena provjera vrijedi za jedan pokušaj.",
         "private.security.captcha.siteKey": "Javni ključ iz Cloudflare Turnstile panela (Widget → Site key). Nije tajna: prikazuje se na stranici prijave. Ostavite prazno dok je provajder **none**.",
-        "private.security.captcha.secretKey": "Tajni ključ iz Cloudflare Turnstile panela (Widget → Secret key). Koristi ga isključivo server za provjeru rješenog izazova; nikada se ne prikazuje u pregledniku i ne upisuje u dnevnik. Ako ključ nije postavljen ili Cloudflare nije dostupan, prijava se ne blokira — ostaje samo ograničenje prijava."
+        "private.security.captcha.secretKey": "Tajni ključ iz Cloudflare Turnstile panela (Widget → Secret key). Koristi ga isključivo server za provjeru rješenog izazova; nikada se ne prikazuje u pregledniku i ne upisuje u dnevnik. Ako ključ nije postavljen ili Cloudflare nije dostupan, prijava se ne blokira — ostaje samo ograničenje prijava.",
+        "private.security.auditWebhook.enabled": "Šalje događaje autentikacije i sigurnosti na adresu, potpisane tajnom. Šalju se samo događaji zapisani nakon uključivanja. Isključivanje zaustavlja izvoz; događaji zapisani u međuvremenu se preskaču.",
+        "private.security.auditWebhook.url": "Adresa primaoca (http ili https). URL ne smije sadržavati korisničko ime ni lozinku. Interne adrese su dozvoljene. Zahtjevi se nikada ne preusmjeravaju.",
+        "private.security.auditWebhook.secret": "HMAC-SHA256 ključ. Svaki zahtjev nosi x-helpdesk-timestamp i x-helpdesk-signature (sha256=hex od timestamp.body). Vrijednost se nakon snimanja više ne prikazuje."
       },
       "type": {
         "boolean": "uključeno/isključeno",
