@@ -7,6 +7,18 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — Closeout paketa 5.4.0: plan označen kao isporučen
+
+**Izmijenjeno:** `docs/plans/modules/5.4-sigurnosni-hardening.md` — sva 13 kriterija prihvaćanja (§11) su
+označena kao ispunjena i uz svaki stoji gdje je dokaz (commit, servis, E2E spec); tabela valova (§9) nosi ✅ po
+valu od `5.4.0-a` do `5.4.0-f` s commitima i živim ispravkama, a novi §12 „Closeout 5.4.0" sažima šta je
+isporučeno i šta svjesno ostaje izvan paketa.
+
+**Zašto:** vlasnik je 2026-10-12 zatvorio paket („označi sve što treba da bude završeno"), pa plan više ne smije
+stajati s praznim kućicama — mrtav plan se čita kao da je posao nedovršen. Uz to je zabilježena odluka o
+provajderu za **M3: Cloudflare Turnstile** (5.4.1, sljedeći val) i, da se ne izgubi, da **SMTP/LDAPS/Entra živa
+provjera ostaje na pauzi** po vlasnikovoj odluci.
+
 ## 2026-10-12 — Poliranje sigurnosnih i audit površina (5.4.0-f, drugi živi pregled): korisnička dokumentacija
 
 **Izmijenjeno:** `docs/user-guide/prijava-i-mfa.md` (i `en/prijava-i-mfa.md`) — poglavlje „Za administratore:
