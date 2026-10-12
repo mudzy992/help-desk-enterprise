@@ -663,7 +663,6 @@
       "rateLimitIpWindowSeconds": "IP blokada — trajanje (s)",
       "rateLimitOtherMaxFailures": "Ostalo (Entra/promjena lozinke/MFA) — neuspjesi",
       "rateLimitOtherWindowSeconds": "Ostalo (Entra/promjena lozinke/MFA) — prozor (s)",
-      "sessionTitle": "Politika sesija",
       "sessionBody": "Zadržavanje prijave i prekid zbog neaktivnosti. Ove postavke uređujete kao i ostale ključeve.",
       "hibpTitle": "Provjera procurjelih lozinki",
       "hibpBody": "Nove i privremene lozinke provjeravaju se preko Pwned Passwords servisa. Kada servis nije dostupan, promjena se nastavlja.",
@@ -688,7 +687,9 @@
       "rateLimitSummaryOther": "{{failures}} neuspjeha · prozor {{window}} s",
       "rateLimitsDialogHelp": "Vrijednosti se mijenjaju zajedno, u jednom zapisu s razlogom. Prije snimanja potvrđuje se identitet kodom ili passkeyjem.",
       "rateLimitsReasonHint": "Razlog je obavezan (najmanje {{count}} znakova) i vidljiv je u dnevniku.",
-      "hibpHint": "provjera procurjelih lozinki (fail-open)"
+      "hibpHint": "provjera procurjelih lozinki (fail-open)",
+      "policyTitle": "Sigurnosne postavke",
+      "policyBody": "Trajanje i prekid sesija te provjera procurjelih lozinki. Red otvara dijalog, a izmjena se upisuje u sigurnosni dnevnik ispod."
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",

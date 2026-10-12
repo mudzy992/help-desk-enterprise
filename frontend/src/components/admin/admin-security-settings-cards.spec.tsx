@@ -81,6 +81,9 @@ describe("AdminSecurityPolicyCards", () => {
     );
     expect(html).toContain('data-testid="admin-security-policy-row-session"');
     expect(html).toContain('data-testid="admin-security-policy-row-hibp"');
+    // 5.4.0-e.3: the card holds two groups, so its title covers both rows.
+    expect(html).toContain("admin.security.policyTitle");
+    expect(html).toContain("admin.security.policyBody");
     expect(html).toContain("admin.security.sessionPolicyRow");
     expect(html).toContain("admin.security.hibpTitle");
     // HIBP is off in the registry, the session policy has values set.
@@ -106,7 +109,7 @@ describe("AdminSecurityPolicyCards", () => {
     );
     // Nothing leaks into the initial render, not even for a read-only viewer.
     expect(sessionOnly).not.toContain("private.security.redaction.enabled");
-    expect(sessionOnly).toContain("admin.security.sessionBody");
+    expect(sessionOnly).toContain("admin.security.policyBody");
   });
 
   it("ignores the redaction switch — it belongs to Usklađenost", () => {

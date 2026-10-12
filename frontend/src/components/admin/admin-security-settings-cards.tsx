@@ -100,7 +100,12 @@ export function AdminSecurityPolicyCards({
   return (
     <>
       <Card className="fade-in" data-testid="admin-security-policy-card">
-        <CardHeader title={t("admin.security.sessionTitle")} subtitle={t("admin.security.sessionBody")} />
+        {/* 5.4.0-e.3: the card holds the session policy *and* the breached-password
+            check, so its title names the group instead of only the first row. */}
+        <CardHeader
+          title={t("admin.security.policyTitle")}
+          subtitle={t("admin.security.policyBody")}
+        />
         <div className="space-y-2 px-4 py-4">
           {rows.map((row) => (
             <button
@@ -129,7 +134,7 @@ export function AdminSecurityPolicyCards({
             setOpenRow(null);
           }
         }}
-        title={activeRow?.label ?? t("admin.security.sessionTitle")}
+        title={activeRow?.label ?? t("admin.security.policyTitle")}
         description={activeRow?.id === "hibp" ? t("admin.security.hibpBody") : t("admin.security.sessionBody")}
         entries={drawerEntries}
         allEntries={entries}

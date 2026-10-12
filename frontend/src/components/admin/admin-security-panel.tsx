@@ -16,6 +16,12 @@ import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
  * it is recorded in: the login rate limits, the session policy and the HIBP
  * switch (edited through dialogs, never inline), and the bulk password reset.
  * The Postavke tab keeps a pointer row so nobody has to guess where they went.
+ *
+ * 5.4.0-e.3 (owner's live review): the settings cards come **before** the
+ * journal. The journal is the tallest surface on the tab, so everything under it
+ * disappears below the fold — which is how the accessible part of the tab looked
+ * empty while only the record was visible. This way the tab opens with what can
+ * be changed and the journal sits right underneath, ready to confirm the write.
  */
 export function AdminSecurityPanel({
   isLoading,
@@ -42,8 +48,8 @@ export function AdminSecurityPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminSecurityAuditCard canView />
       <AdminSecuritySettingsCards isSuperAdmin />
+      <AdminSecurityAuditCard canView />
     </div>
   );
 }

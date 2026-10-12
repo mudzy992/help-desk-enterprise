@@ -33,8 +33,10 @@ uslovi i dijagnostika" (HTTPS + tačan naziv hosta, QR traži javnu domenu i Blu
 
 **Poliranje poslije prvog živog testa (2026-10-12, isti val):** četiri sigurnosne kartice („Ograničenja prijava",
 „Politika sesija", „HIBP provjera lozinki", „Prisilna promjena svih lokalnih lozinki") premještene su s taba
-**Postavke** na tab **Admin → Sigurnost**, ispod sigurnosnog dnevnika — tamo ih je vlasnik i tražio, a Postavke
-zadržavaju jedan red („Sigurnosna administracija") koji vodi na taj tab. „Ograničenja prijava" su s forme u kartici
+**Postavke** na tab **Admin → Sigurnost**, tamo ih je vlasnik i tražio, a Postavke zadržavaju jedan red
+(„Sigurnosna administracija") koji vodi na taj tab. Poslije vlasnikovog pregleda poretka, kartice stoje **iznad**
+dnevnika (dnevnik je najviša površina na tabu, pa bi sve pod njim ostalo ispod ruba ekrana), a kartica
+„Politika sesija" preimenovana je u „Sigurnosne postavke" jer nosi i HIBP red. „Ograničenja prijava" su s forme u kartici
 prebačena na redove (tri grupe pragova) koji otvaraju dijalog, u skladu s pravilom da se u Postavkama i dodacima
 vrijednosti nikada ne mijenjaju formom u kartici; „Politika sesija" i „HIBP provjera lozinki" također su redovi koji
 otvaraju postojeći dijalog postavke. Brojači kartice **Sigurnosne metrike (zadnji sat)** složeni su u četiri pločice

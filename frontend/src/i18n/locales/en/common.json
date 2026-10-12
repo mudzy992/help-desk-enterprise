@@ -661,7 +661,6 @@
       "rateLimitIpWindowSeconds": "IP block — duration (s)",
       "rateLimitOtherMaxFailures": "Other (Entra/password change/MFA) — failures",
       "rateLimitOtherWindowSeconds": "Other (Entra/password change/MFA) — window (s)",
-      "sessionTitle": "Session policy",
       "sessionBody": "Sign-in persistence and the idle cut-off. These settings are edited like any other key.",
       "hibpTitle": "Breached-password check",
       "hibpBody": "New and temporary passwords are checked against the Pwned Passwords service. When the service is unavailable the change proceeds.",
@@ -686,7 +685,9 @@
       "rateLimitSummaryOther": "{{failures}} failures · window {{window}} s",
       "rateLimitsDialogHelp": "The values change together, in one journalled write with a reason. Your identity is confirmed with a code or a passkey before the save.",
       "rateLimitsReasonHint": "A reason is required (at least {{count}} characters) and is visible in the journal.",
-      "hibpHint": "breached-password check (fail-open)"
+      "hibpHint": "breached-password check (fail-open)",
+      "policyTitle": "Security settings",
+      "policyBody": "Session lifetime and cut-off, plus the breached-password check. A row opens a dialog and the change is recorded in the journal below."
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",

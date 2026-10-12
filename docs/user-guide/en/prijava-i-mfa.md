@@ -138,16 +138,16 @@ message “Security is available to the superadministrator only” and no reques
   record's metadata (method, device, reason) — never passwords or codes; an unknown actor (a failed sign-in) is
   shown as **Pseudonym**, and system records as **System**.
 
-Next to the journal, on the same **Security** tab, the following cards appear (in **Settings → Security** the
-**Security administration** row only points there — values are edited in one place):
+On the **Security** tab, **above** the security journal, the following cards appear (in **Settings → Security**
+the **Security administration** row only points there — values are edited in one place):
 
 - **Login rate limits** — the eight thresholds (the per-account window and delay, the IP block and the “other”
   flows), grouped into three rows (**Per-account delay**, **Per-IP block**, **Other security flows**) that show the
   current values. A row opens a dialog: each field shows its allowed range, and a change needs a **reason** (at
   least 5 characters) and a proof of identity with a code or a passkey.
-- **Session policy** and **Breached-password check** — session lifetime/cut-off and the Pwned Passwords check;
-  each row shows whether it is on and opens the same dialog as every other setting (reason, dependencies, journal
-  record). The card itself holds no form — editing happens in the dialog only.
+- **Security settings** — two rows: **Session lifetime and cut-off** (remember-me and the idle cut-off) and the
+  **Breached-password check** (on/off). Each row shows its state and opens the same dialog as every other setting
+  (reason, dependencies, journal record). The card itself holds no form — editing happens in the dialog only.
 - **Force every local password to change** — every local account (except SUPER_ADMIN and Microsoft accounts) gets
   a required password change and all its sessions end; the person changes the password at the next sign-in.
 
