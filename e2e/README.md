@@ -285,4 +285,15 @@ The harness handles it without masking it:
 
 Rotate the two secrets to fresh random values to keep the log quiet, and never reuse a production password here:
 HIBP re-checks every candidate, and a value a human picked is far more likely to appear in a corpus than one this
-helper generates.
+helper generates. `scripts/rotate-e2e-actor-passwords.mjs` does that from the repository root — it generates one
+policy-safe password per actor, stores it with `gh secret set` (value on stdin, never printed, never in argv),
+removes the local `.auth/actor-passwords.json` so a local run picks the new secret up, and prints what to do next:
+
+```bash
+node scripts/rotate-e2e-actor-passwords.mjs --dry-run   # shows the names and lengths only
+node scripts/rotate-e2e-actor-passwords.mjs             # writes E2E_USER_PASSWORD and E2E_AGENT_PASSWORD
+```
+
+The **database is not touched by that script** — it only changes what the harness is told to use. The next E2E run
+re-sets the DB passwords itself through the admin path (the configured value cannot sign in yet, so
+`restoreTestActorPassword` completes reset + forced change), which is why a rotation needs no manual step.
