@@ -150,6 +150,12 @@ export function PasskeySection({
       setRemoving(null);
       onChanged();
     } catch (error) {
+      // Review 2026-10-12 (CI run 38244860637, spec 46): the message lives on
+      // the card, and an open Radix dialog marks everything outside it
+      // `aria-hidden` — so a refusal ("the last factor cannot be removed") was
+      // invisible and unannounced while the dialog stayed open. Close it first,
+      // then say why; the list behind it is unchanged.
+      setRemoving(null);
       setErrorKey(t(passkeyMessageKey(error)));
     } finally {
       setBusy(false);

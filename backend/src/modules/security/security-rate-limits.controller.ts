@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Put, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
+  IsDefined,
   IsInt,
   IsOptional,
   IsString,
@@ -8,6 +9,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { UnauthorizedException } from '@nestjs/common';
 import {
@@ -81,6 +83,17 @@ export class SecurityRateLimitConfigDto {
 }
 
 export class UpdateSecurityRateLimitsDto {
+  /*
+    Review 2026-10-12 (CI run 38244860637, E2E spec 47): without a *validation*
+    decorator `config` was not part of the whitelist — `@Type()` is a
+    class-transformer decorator and class-validator never sees it — so the pipe
+    answered `400 VALIDATION {"messages":["property config should not exist"]}`
+    for the documented body, even when the key was absent. `@ValidateNested()`
+    puts the class into the whitelist and runs the eight bound checks below;
+    `@IsDefined()` keeps it required instead of silently accepting `{}`.
+  */
+  @IsDefined()
+  @ValidateNested()
   @Type(() => SecurityRateLimitConfigDto)
   config!: SecurityRateLimitConfigDto;
 

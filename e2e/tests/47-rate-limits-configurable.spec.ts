@@ -170,7 +170,16 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
       await expect(save).toBeEnabled();
       await save.click();
 
+      // Arm the response probe before the code is submitted: the card sends the
+      // PUT only after the identity dialog confirms, and a refused save must
+      // report the status instead of a bare "success message not visible".
+      const saved = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' &&
+          new URL(response.url()).pathname.endsWith('/security/rate-limits'),
+      );
       await confirmIdentity(page, recoveryCodes[1]!);
+      expect((await saved).status()).toBe(200);
       await expect(page.getByTestId(rateLimitsDialog)).toBeHidden();
       await expect(page.getByText(/sačuvana i primjenjuju se odmah|saved and apply immediately/i)).toBeVisible();
 

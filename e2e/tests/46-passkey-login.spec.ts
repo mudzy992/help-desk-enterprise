@@ -92,7 +92,13 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
     try {
       // The platform must advertise a user-verifying platform authenticator,
       // otherwise the profile hides the button by design (UVPA is evaluated by
-      // the app before the ceremony).
+      // the app before the ceremony). `PublicKeyCredential` is exposed in secure
+      // contexts only and a fresh page sits on `about:blank` (opaque origin),
+      // where it is not defined at all — so the probe runs on the app's own
+      // origin. The authenticator is installed by then, which is what
+      // "before the first navigation" actually requires (CI run 38244860637:
+      // `ReferenceError: PublicKeyCredential is not defined`).
+      await page.goto('/login');
       expect(
         await page.evaluate(() => PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()),
         'the virtual authenticator must be installed before the app loads (UVPA check)',
@@ -168,8 +174,19 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
       });
       totpDisabled = true;
 
-      // The passkey is now the only factor: removing it must be refused.
+      // The passkey is now the only factor: removing it must be refused, and
+      // the refusal has to reach the person instead of staying behind the open
+      // dialog (Radix marks the rest of the page `aria-hidden`, so an alert
+      // rendered under the dialog is invisible and unannounced). The DELETE
+      // answer is asserted first, so a regression reports the status instead of
+      // only "no alert found".
+      const removal = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'DELETE' &&
+          new URL(response.url()).pathname.startsWith('/auth/security/passkey/'),
+      );
       await removePasskeyThroughProfile(page);
+      expect((await removal).status()).toBe(403);
       await expect(page.getByRole('alert').filter({ hasText: lastFactorMessage })).toBeVisible();
       await expect(page.getByRole('button', { name: removePasskeyButton })).toHaveCount(1);
 
