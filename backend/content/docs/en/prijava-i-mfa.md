@@ -24,13 +24,19 @@ It is meant for **all users** (sign-in and their own account), while some parts 
 
 1. Enter the **E-mail** and the **Password** and click **Sign in**.
 2. If the credentials are correct, the application opens. If not: “Sign-in failed. Check the e-mail and password.”
-3. Local password sign-in has separate account and IP limits. After three wrong passwords for an account, a
+3. **Remember me on this device (30 days)** — the sign-in lasts 30 days instead of one hour; recommended only on
+   your own, locked device. A SUPER_ADMIN account is never remembered (the break-glass entry stays short-lived),
+   and signing out or changing the password ends the memory.
+4. Local password sign-in has separate account and IP limits. After three wrong passwords for an account, a
    bounded progressive delay is added (starting at 250 ms and rising to at most 2 seconds); the account is never
-   locked. Account state uses a 30-minute window, and a successful sign-in clears that account state.
-4. The source IP may receive a temporary HTTP `429` after 40 failed local sign-ins within 5 minutes. All local
-   sign-ins from that IP share this threshold; a successful sign-in does not clear the IP window.
-5. These are the current initial implementation values. Staging measurement is still required before production
-   rollout.
+   locked — a correct password still passes after wrong attempts. Account state uses a 30-minute window, and a
+   successful sign-in clears that account state.
+5. The source IP may receive a temporary `429` after 40 failed local sign-ins within 5 minutes. The answer
+   carries `retryAfterSeconds` (how long the block still lasts). All local sign-ins from that IP share this
+   threshold; a successful sign-in does not clear the IP window.
+6. **The thresholds are configurable.** A SuperAdmin changes them in **Admin → Security → Login limits** (eight
+   values in three rows, with a mandatory reason and identity confirmation); the change applies immediately
+   without a restart. The numbers in steps 4 and 5 are the installation defaults.
 
 ### Signing in with a Microsoft account (when configured that way)
 
@@ -69,10 +75,15 @@ new set. If you cannot use TOTP, contact an administrator for an **MFA reset**.
 ### Signing in with two-step verification enabled
 
 1. After the correct password, **Two-step verification** is required.
-2. Enter the **code from the app** and click **Confirm** (the code changes every 30 seconds).
-3. If you have no phone, click **I have no access to the app — use a recovery code**, enter one of the saved codes
+2. If the account also has a passkey, two choices appear above the form: **Code from the app** and
+   **Use the passkey / device**. With a passkey, click **Confirm with the passkey** and approve the sign-in on the
+   device (Windows Hello, Touch ID, Face ID or a security key) — no code is typed. The choice is remembered per
+   device, so the next sign-in opens on the factor you used last; the app code always remains available as the
+   second choice.
+3. Enter the **code from the app** and click **Confirm** (the code changes every 30 seconds).
+4. If you have no phone, click **I have no access to the app — use a recovery code**, enter one of the saved codes
    and confirm. A recovery code works only once.
-4. Every code (recovery ones included) can be used only once; the application checks that on the server too.
+5. Every code (recovery ones included) can be used only once; the application checks that on the server too.
 
 ### Account security (your own account)
 

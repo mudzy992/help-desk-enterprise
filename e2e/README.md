@@ -186,6 +186,41 @@ person clicking around) left behind. Two rules, both learned from real failures 
   `private.ticket.autoAssign.enabled` (a forward deliberately applies the target group's auto-assign strategy) and
   `private.ticket.groupInbox.enabled` (the flow needs an unassigned ticket in the group inbox).
 
+### 5.4.0 security specs: 37 (extended), 46, 47
+
+Three things in the 5.4 package need more care than the average spec, because they touch a *factor*, a *policy* or
+*every account at once*:
+
+- **46 — passkeys run against a real authenticator** (`helpers/virtual-authenticator.ts`): Chromium's WebAuthn
+  **virtual authenticator** is installed through CDP (`WebAuthn.addVirtualAuthenticator`, resident key + user
+  verification + automatic presence) *before the first navigation*, so `navigator.credentials.create/get` really
+  executes and the server verifies a real COSE key, origin, RP ID, challenge and counter. Nothing is stubbed on
+  either side, and no other spec may assume a passkey exists: the credential lives in the browser context, so it
+  dies with the test (the `userHandle`/`signCount` assertions in the spec are how it proves the ceremony really
+  ran). Both 46 tests clean up their own credential; the second one temporarily turns TOTP off (the profile hides
+  that button for a SUPER_ADMIN, the API allows it while a passkey remains) and re-enrols it in a `finally` block,
+  because a half-finished run must never leave the harness's super admin without a second factor.
+- **47 — the rate limits are restored, always.** Both specs snapshot `GET /security/rate-limits` first and put the
+  original values back in a `finally`, with a reason, so a failure cannot leave the installation with a 10-failure
+  per-IP block. The effect is proven on the per-IP bucket only (the account bucket adds a bounded delay and never
+  locks): ten failures from ten **distinct** unknown addresses (a repeated address would delay itself), then the
+  next attempt answers `429 TOO_MANY_LOGIN_ATTEMPTS` with `details.retryAfterSeconds` equal to the window the
+  admin just set. `login-429` in `GET /security/metrics/last-hour` must rise with it — that is the signal the ops
+  runbook in `docs/ops/rate-limits.md` watches.
+- **37 (extended) — the bulk password reset is global and is reverted.** `POST /security/bulk-password-reset`
+  raises `mustChangePassword` for **every** local account the application manages (SuperAdmins are excluded) and
+  revokes their sessions, without changing a single password. The spec flags every account, proves the forced
+  change on the USER, and then restores USER **and** AGENT through the documented admin path
+  (`restoreTestActorPassword`: admin reset → temporary password → forced change), because "change it to the
+  password it already has" is refused as `PASSWORD_REUSED`. Accounts created by *earlier* specs (10, 18, 20, 22,
+  33) are flagged as well — no later spec signs in with them, and the plan of the suite is that no spec reuses an
+  actor another spec created.
+- **TOTP budget.** A TOTP step is single-use and 30 s long: `.auth/mfa.json` remembers the last used step, so the
+  third code inside one window means waiting for the clock. Specs that need several SuperAdmin confirmations
+  therefore regenerate **recovery codes** once (`POST /auth/mfa/recovery-codes`) and use them for the sign-in and
+  the identity dialog (`allowRecoveryCode`), and the heavy specs call `test.setTimeout(…)` instead of inheriting
+  the global 90 s.
+
 ## Test accounts (important)
 
 `global-setup` changes the configured accounts:

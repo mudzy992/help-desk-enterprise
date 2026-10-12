@@ -1,116 +1,195 @@
-# Rate limit i sigurnosni pragovi — uputstvo za staging/produkciju
+# Ograničenja prijava (rate limits) — podešavanje, nadzor i runbook
 
-> Paket 5.2.1 (M2 #3, OD-2). Kod je implementiran; ova stranica objašnjava
-> defaultne pragove i kako ih kalibrirati na stvarnom prometu.
+> Paket 5.4.0-b (M2) + 5.4.0-d/e: pragovi su **konfiguracija** (`private.security.rateLimits.*`),
+> mijenjaju se iz admin panela bez restarta, a svaka promjena ima razlog i trag u dnevniku.
+> Ova stranica je operativno uputstvo: šta je pokriveno, koje su granice, kako se prag mijenja,
+> kako se prati učinak i šta raditi kad 429 krene u pogrešnu stranu.
 
-Aplikacija štiti autentikacijske endpoint-e od brute-force i enumeracije
-napada s dva odvojena "bucketa" (brojača): **po izvornoj IP adresi** i **po
-korisničkom računu**. Ključevi su pseudonimizirani HMAC-SHA256 (ne čuvaju se
-plaintext e-mail ni IP u Redis-u), a limiteri koriste Redis tako da su
-konzistentni preko svih replika backenda.
+Aplikacija štiti autentikacijske tokove s tri odvojena brojača („bucket-a"):
 
-## 1. Pregled endpoint-a i pragova
-
-### 1.1 `POST /auth/login` (lokalni password login)
-
-Odvojeni IP i account bucketi (datoteka `backend/src/modules/authentication/login-attempt-limiter.ts`, konstanta `passwordLoginLimits`):
-
-| Bucket | Trenutni default | Ponašanje |
+| Bucket | Ključ (Redis) | Šta pokriva |
 |---|---|---|
-| **Account** | 3 pokušaja bez odgode, zatim eksponencijalni delay 250 ms → 500 ms → 1 s → maks. 2 s, u prozoru 30 min | Nakon treće greške korisnik osjeti usporenje, ali se **nikada ne zaključava** — ispravna lozinka u svakom trenutku prolazi prvi sljedeći pokušaj (samo nakon sačekanog delay-a). Ne postoji account-wide lockout (sprječava "lock-out Boba" denial of service napad). |
-| **IP** | 40 pogrešnih pokušaja u 5 min | Nakon toga izvor dobija HTTP `429 TOO_MANY_LOGIN_ATTEMPTS` sa `Retry-After` headerom. Ovo štiti password-spray s jedne IP; napad s više IP ostaje na account delay-u. |
+| **Account** | `auth:login-fail:account-state:v2:<hmac-sha256(email)>` | neuspjesi lozinke po računu → **progresivna odgoda** (nikad lockout) |
+| **IP** | `auth:login-fail:ip:<hmac-sha256(ip)>` | neuspjesi lozinke po izvoru → **429** |
+| **Other** | `auth:change-password-fail:<ip>`, `auth:mfa-fail:<user-id>` | change-password, MFA potvrde, Entra token exchange → **429** |
 
-Uspješan login resetira account stanje za tog korisnika.
+Ključevi su pseudonimizirani (HMAC-SHA256 za account i IP); plaintext e-mail ili IP se nikad ne
+upisuju u Redis. Bez Redisa limiter radi s in-memory fallbackom (samo za testove i jednoprocesni
+razvoj — tada brojači nisu dijeljeni između replika).
 
-### 1.2 `POST /auth/change-password` (lozinka sa temporary tokenom)
+---
 
-- 5 pokušaja u 15 min, ključ po IP-u (`auth:change-password-fail:<ip>`).
-- Nakon limita: `429 TOO_MANY_LOGIN_ATTEMPTS`.
+## 1. Pragovi, granice i ponašanje
 
-### 1.3 `POST /auth/entra` (Entra ID token exchange) i ostali legacy
+Vrijednosti žive u settings registru (`private.security.rateLimits.*`) i čitaju se **po zahtjevu**
+(`SecurityRateLimitConfigLoader` u `backend/src/modules/authentication/security/`), pa promjena
+važi od sljedećeg pokušaja — bez restarta i bez redeploya.
 
-- 5 pokušaja u 15 min, kombinirani ključ `email:ip`.
-- Vrijedi i za nevažeće Entra ID tokene (odbijeni tokeni se broje u isti prozor).
+| Ključ (skraćeno) | Polje | Default | Dozvoljeno (min–max) |
+|---|---|---|---|
+| `passwordLogin.accountWindowSeconds` | prozor account bucket-a | 1800 (30 min) | 60 – 86400 |
+| `passwordLogin.accountDelayStartsAfterFailures` | odgoda počinje nakon | 3 | 1 – 20 |
+| `passwordLogin.accountDelayBaseMilliseconds` | prva odgoda | 250 ms | 0 – 5000 |
+| `passwordLogin.accountDelayMaxMilliseconds` | gornja granica odgode | 2000 ms | 0 – 10000 |
+| `passwordLogin.ipMaxFailures` | neuspjesi po IP-u do 429 | 40 | 10 – 500 |
+| `passwordLogin.ipWindowSeconds` | prozor IP bucket-a | 300 (5 min) | 10 – 3600 |
+| `other.maxFailures` | neuspjesi (MFA/change-password/Entra) | 5 | 3 – 100 |
+| `other.windowSeconds` | prozor „other" bucket-a | 900 (15 min) | 10 – 86400 |
 
-### 1.4 `POST /auth/mfa/verify` (drugi faktor)
+Cross-pravilo koje server provjerava pri snimanju: `accountDelayStartsAfterFailures` ne smije biti
+veći od `ipMaxFailures` (IP bucket bi inače uvijek otvorio prvi), a
+`accountDelayMaxMilliseconds` ne smije biti manji od `accountDelayBaseMilliseconds`.
 
-- 5 nevažećih kodova po accountu u 15 min (`mfa.service.ts`).
-- TOTP ima replay zaštitu: prihvaćaju se samo kodovi iz tekućeg i ±1 30-sekundnog perioda, te korak u kojem je kod uspješno iskorišten ne može se ponoviti.
+**Namjerno nema account lockout-a.** Račun se nikad ne zaključava; neuspjesi samo dodaju ograničenu
+odgodu (bounded backoff), pa ispravna lozinka prolazi i nakon pogrešnog unosa („lock-out Boba"
+DoS nije moguć). 429 dobija isključivo izvor (IP) i „other" bucket.
 
-### 1.5 Zaključavanje instalacijskog wiza
+Ostali, i dalje fiksni pragovi:
 
-Nakon završene instalacije (`/install/complete`), svi `POST/PUT/DELETE` endpoint-i
-ispod `/install/*` vraćaju `423 INSTALL_LOCKED`. Jedino što ostaje javno je
-`GET /install/status` i `GET /install/addons` (katalog, ne konfigurirane
-vrijednosti).
+- **TOTP replay zaštita** (`mfa.service.ts`): prihvataju se samo kodovi tekućeg i ±1 perioda (30 s),
+  a iskorišteni korak se ne može ponoviti.
+- **Install wizard**: nakon `/install/complete` svi `POST/PUT/DELETE` ispod `/install/*` vraćaju
+  `423 INSTALL_LOCKED`; javno ostaju samo `GET /install/status` i `GET /install/addons`.
 
-## 2. Redis ključevi i TTL
+### 1.1 Odgovor kada je prag prekoračen
 
-Svi limiteri koriste instancu `Redis` prikačenu na `redisTokens.default`; za
-lokalni razvoj bez Redis-a postoji in-memory fallback (samo za testove).
-Pseudonimizacija:
-
+```http
+HTTP/1.1 429 Too Many Requests
+{ "code": "TOO_MANY_LOGIN_ATTEMPTS",
+  "message": "Too many failed sign-in attempts, try again later",
+  "details": { "retryAfterSeconds": 300 } }
 ```
-auth:login-fail:account-state:v2:<hmac-sha256(email)>      (TTL 30 min)
-auth:login-fail:ip:<hmac-sha256(ip)>                       (TTL 5 min)
-auth:change-password-fail:<ip>                             (TTL 15 min)
-auth:mfa-fail:<user-id>                                    (TTL 15 min)
-auth:revoked-sid:<sid>                                     (TTL = session TTL = 1 h)
-auth:sessions-valid-after:<sub>                            (TTL = session TTL)
+
+`retryAfterSeconds` je **prozor koji je tada bio konfigurisan** — nakon promjene pragova se mijenja
+i taj broj (spec 47 upravo to provjerava). Blokada je privremena: bucket ističe s TTL-om prozora.
+
+---
+
+## 2. Kako se prag mijenja (admin panel + API)
+
+**Panel:** *Administracija → Sigurnost* (SuperAdmin) → kartica **„Ograničenja prijava"**.
+Kartica prikazuje tri grupe s trenutnim vrijednostima; klik na grupu otvara dijalog
+(`admin-rate-limits-dialog`) u kojem se svi pragovi mijenjaju **zajedno**, uz obavezan razlog
+(najmanje 5 znakova) i potvrdu identiteta — trenutni TOTP kod ili passkey step-up za radnju
+„rate-limits-change". Polja prikazuju granice koje server provjerava (`Dozvoljeno: min–max`), a
+dugme za snimanje je onemogućeno dok je vrijednost izvan granica ili razlog prekratak.
+
+**API:**
+
+Zajednička adresa API-ja je `API_PUBLIC_URL` (u web klijentu `VITE_API_BASE_URL`); na instalaciji
+bez prefiksa i sa portom backend-a to je npr. `http://localhost:10001`.
+
+```bash
+API="${API_PUBLIC_URL:-http://localhost:10001}"
+
+# čitanje (SUPER_ADMIN)
+curl -s -H "Authorization: Bearer $TOKEN" "$API/security/rate-limits"
+# → { "config": { … }, "bounds": { … } }
+
+# promjena: jedan batch, jedan razlog, jedan dokaz identiteta
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"config":{"accountWindowSeconds":1800,"accountDelayStartsAfterFailures":3,
+        "accountDelayBaseMilliseconds":250,"accountDelayMaxMilliseconds":2000,
+        "ipMaxFailures":60,"ipWindowSeconds":300,
+        "otherMaxFailures":5,"otherWindowSeconds":900},
+       "reason":"kalibracija: veliki NAT proxy u sjedištu","code":"123456"}' \
+  "$API/security/rate-limits"
 ```
 
-## 3. Kalibracija na stagingu (obavezna prije produkcije!)
+Oba endpointa su **samo SUPER_ADMIN** (`@RequireRoles`); sve ostale role dobijaju `403`.
 
-Defaultni pragovi odabrani su konzervativno za očekivano opterećenje male
-instalacije (desetine agenata, stotine krajnjih korisnika). Staging mora
-potvrditi da se normalni saobraćaj (zaboravljene lozinke, krivi TOTP kodovi,
-mobile retry, password manageri koji pogrešno popunjavaju) ne sudara s
-pragovima.
+Šta se upisuje:
 
-Preporučena procedura:
+- **change-log**: po jedan zapis za svaki promijenjeni ključ (`setting.update`, with reason) —
+  jedan batch, jedna transakcija (all-or-nothing);
+- **sigurnosni dnevnik**: `auth.rate_limits_changed` s novim pragovima (`ipMaxFailures`,
+  `ipWindowSeconds`, `accountDelayStartsAfterFailures`, `otherMaxFailures`) — bez PII;
+- **dnevnik promjena** je vidljiv i u panelu (kartica „Sigurnosni dnevnik" na istoj stranici).
 
-1. **Podigni staging sa stvarnom šemom korisnika** (ili njenim podskupom) i
-   pusti ga dan-dva. Promet nek uključuje i normalne neuspjele pokušaje:
-   korisnike koji zaborave lozinku, ukucaju pogrešan TOTP, imaju stari
-   password manager, itd.
+Odbijanja: `400 RATE_LIMITS_INVALID` (vrijednost izvan granica ili cross-pravilo),
+`400` validacijska greška (razlog kraći od 5 znakova), `401 MFA_INVALID_CODE` (pogrešan kod),
+`403 FORBIDDEN` (nije SuperAdmin).
 
-2. **Pratiti sljedeće metrike** (mogu se izvući iz Redis `INFO commandstats`
-   i aplikacijskih logova na razini `warn`):
+---
 
-   - Broj `429 TOO_MANY_LOGIN_ATTEMPTS` odgovora po satu na `/auth/login`,
-     razbijeno po tome da li je okidač bio IP ili account limit.
-   - Distribucija broja neuspjelih pokušaja po account-u (50-ti, 95-ti,
-     99-ti percentil) za uspješne logine — koliko prosječan korisnik mora
-     puta ukucati lozinku.
-   - Učestalost "password sprayed" IP-eva (izvana, javne IP često dijele
-     NAT za više korisnika u firmi).
+## 3. Nadzor: metrike i dnevnik
 
-3. **Podesiti konstante** u `passwordLoginLimits` / `loginAttemptLimits`
-   (trenutno hardkodirane) ako se na mjerenjima pokaže:
+Metrike su agregatni brojači po minuti (`LoginSecurityMetricsService`), ključ
+`security:metrics:<event>:<minute>` s TTL-om **2 h**; endpoint agregira zadnjih **60 minuta**:
 
-   - Da veliki NAT/squid proxy pokreće 429 za čitavu kancelariju → povisi
-     `ipMaxFailures` ili povećaj `ipWindowSeconds`.
-   - Da korisnici redovno prave 4-5 grešaka u lozinki → pomjeri
-     `accountDelayStartsAfterFailures` ili smanji `accountDelayBaseMilliseconds`.
-   - Da je 2 sekunde max delay-a previše/previse malo → podesi
-     `accountDelayMaxMilliseconds`.
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" "$API/security/metrics/last-hour"
+```
 
-4. **Produkcija:** na prvih sedam dana nastavi pratiti; pogotovo prve dane
-   ponedjeljkom ujutro kad dolazi do prometa zaboravljenih lozinki nakon
-   vikenda. Ako nema pritužbi i 429-ova, pragovi su OK.
+```json
+{ "generatedAt": "…", "windowSeconds": 3600,
+  "metrics": {
+    "login-429":              { "total": 12, "peakPerMinute": 4, "points": [ … ] },
+    "login-account-delays":   { "total": 31, "peakPerMinute": 9, "points": [ … ] },
+    "mfa-failures":           { "total": 3,  "peakPerMinute": 1, "points": [ … ] },
+    "hibp-skipped":           { "total": 0,  "peakPerMinute": 0, "points": [ … ] } } }
+```
 
-> ⚠️ Nemoj stavljati `ipMaxFailures` jako visoko bez drugih zaštita (npr. CAPTCHA).
-> Bez IP limita password-spray sa 10k pokušaja/sajta je izvediv protiv jednog
-> account-a, a account delay od 2s je prespor za 10k pokušaja.
+Isti brojevi se crtaju na *Administracija → Sigurnost* (kartica „Sigurnosne metrike (zadnji sat)"),
+a kartica „Ograničenja prijava" prikazuje trenutne pragove uz njih — pa se odluka o kalibraciji
+donosi na jednom ekranu.
 
-## 4. Poznata ograničenja (otvoreno za budućnost)
+| Signal | Značenje | Tipična radnja |
+|---|---|---|
+| `login-429` raste | IP bucket se puni; često NAT/proxy, password spray ili pokvaren klijent | provjeri izvor (`Retry-After` u odgovoru), podesi `ipMaxFailures`/`ipWindowSeconds` |
+| `login-account-delays` raste bez `login-429` | korisnici griješe lozinku; odgoda radi kako treba | ako je odgoda preduga za normalan rad, smanji `accountDelayBaseMilliseconds` |
+| `mfa-failures` raste | pogrešni TOTP/recovery kodovi (ili napad na drugi faktor) | provjeri sigurnosni dnevnik (`auth.mfa_failed`), kontaktiraj korisnika |
+| `hibp-skipped` raste | Pwned Passwords provjera nije mogla proći (timeout/mreža) → lozinka je **prihvaćena** (fail-open) | provjeri izlazni pristup; nije blokada, ali je smanjena zaštita |
 
-- **Pragovi nisu env-konfigurabilni.** Trenutno se mijenjaju samo izmjenom
-  konstanti u kodu i restartom. Planirano u 5.4 (Security hardening paket):
-  učitati ih iz `private.security.rateLimits.*` konfiguracije i dodati admin
-  graf koji prati 429 i odgađanja.
-- **Nema CAPTCHA/turnstile.** Nakon N neuspjelih pokušaja danas se samo
-  usporava/429, ne traži se ljudski dokaz. Dodat će se u 5.4.
-- **Session TTL je fiksan na 60 minuta** (`sessionTtlSeconds`), sa
-  client-side keep-alive dok je tab aktivan. Produžetak konfigurabilnog
-  TTL-a ("remember me") je također planiran za 5.4.
+> **Alarm za 429 još nije automatizovan.** Katalog ops alarma (`ops-alert-catalog.ts`) ne sadrži
+> signal za `login-429`; nadzor je zato **ručni** (kartica metrika + ovaj runbook). Ako želite
+> automatsko upozorenje, to je zasebna stavka (novi signal + prag + `ops/runbook/ALERTS.md`), ne
+> konfiguracija limita.
+
+### 3.1 Dnevnik (audit)
+
+U sigurnosnom dnevniku (`GET /security/audit-log`, kartica na istoj stranici):
+
+- `auth.rate_limits_changed` — pragovi promijenjeni (metapodaci: četiri broja, bez PII);
+- `auth.login_failed` — **samo** stvarno odbijene vjerodajnice (pseudonimizirani e-mail/IP);
+- `auth.mfa_failed`, `auth.mfa_disabled`, `auth.mfa_passkey_*` — promjene faktora.
+
+---
+
+## 4. Kalibracija i vraćanje (runbook)
+
+Procedura koja se koristi i u E2E specifikaciji 47 (snimi → promijeni → dokaži → vrati):
+
+1. **Snimi trenutno stanje** — `GET /security/rate-limits` (ili pogledaj karticu). Bez ovog koraka
+   nema pouzdanog vraćanja.
+2. **Promijeni jedan prag odjednom** i upiši razlog koji opisuje mjerenje (npr. „kalibracija nakon
+   lažnih blokada u sjedištu"). Jedan batch mijenja sve, ali razlog treba biti jedna rečenica.
+3. **Dokaži učinak**: pričekaj promet ili, u testu, izazovi neuspjehe i provjeri da
+   `login-429` poraste i da 429 nosi novi `retryAfterSeconds`.
+4. **Vrati izvorne vrijednosti** (isti endpoint, novi razlog: „vraćanje nakon mjerenja"). Lozinke se
+   ne mijenjaju; ako je IP bucket pun, sam ističe kroz prozor.
+
+Simptom → podešavanje:
+
+- **Veliki NAT/proxy dijeljeni između ureda** → povisi `ipMaxFailures` (do 500) ili
+  `ipWindowSeconds`; ne diraj account odgodu.
+- **Korisnici redovno griješe 4–5 puta** → `accountDelayStartsAfterFailures` gore i/ili
+  `accountDelayBaseMilliseconds` dolje (odgoda je osjetna, ne kaznena).
+- **Client-side retry (mobile) udara u „other" bucket** → povisi `other.maxFailures` /
+  `other.windowSeconds`, ne `ipMaxFailures`.
+- **Pravi password spray** → **ne** spuštaj account odgodu; drži IP limit i razmotri dodatnu zaštitu
+  na rubu mreže (WAF/CAPTCHA).
+
+> ⚠️ Ne postavljaj `ipMaxFailures` na maksimum bez druge zaštite. Bez IP limita password spray s
+> jedne adrese je izvediv, a account odgoda od 2 s je za takav napad preblaga.
+
+---
+
+## 5. Poznata ograničenja
+
+- **Nema CAPTCHA/turnstile** — nakon N neuspjeha slijedi odgoda ili 429, nikad ljudski dokaz.
+- **429 alarm nije u ops katalogu** (vidi §3): nadzor metrika je ručni.
+- **„Other" bucket dijeli ključ po IP-u** za change-password i po računu za MFA potvrde; ako se
+  pokaže potreba za odvojenim pragovima, to je nova stavka u settings registru.
+- Metrike traže Redis da bi bile dijeljene između replika; bez njega su per-proces (vrijednosti i
+  dalje rade, ali ne agregiraju preko replika).

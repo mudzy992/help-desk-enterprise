@@ -361,4 +361,63 @@ describe('change-password attempt key (review N1)', () => {
     expect(await blocked).toMatchObject({ status: 429 });
     expect(securityMetrics.record).toHaveBeenCalledWith('login-429');
   });
+
+  it("retunes the 'other' bucket (MFA confirmations, Entra, change-password) per request", async () => {
+    const loader = { load: async () => 'stable-shared-signing-secret-for-tests' } as never;
+    const config = { ...passwordLoginLimits, otherMaxFailures: 2, otherWindowSeconds: 30 };
+    const configLoader = { load: jest.fn(async () => config) };
+    const limiter = new LoginAttemptLimiter(undefined, loader, configLoader as never);
+    const key = 'auth:mfa-fail:user-1';
+    const wrong = () => Promise.reject(new UnauthorizedException({ code: 'MFA_INVALID_CODE' }));
+
+    // `guard` counts 401-type failures only; the second one fills the bucket.
+    expect(await outcomeOf(() => limiter.guard(key, wrong))).toBeInstanceOf(UnauthorizedException);
+    expect(await outcomeOf(() => limiter.guard(key, wrong))).toBeInstanceOf(UnauthorizedException);
+
+    // With `otherMaxFailures = 2` the third call is refused before it runs, and
+    // the 429 carries the configured window, not the pre-5.4 constant.
+    const run = jest.fn(async () => 'ok');
+    const blocked = await outcomeOf(() => limiter.guard(key, run));
+    expect(blocked).toMatchObject({ status: 429 });
+    expect((blocked as HttpException).getResponse()).toMatchObject({
+      code: 'TOO_MANY_LOGIN_ATTEMPTS',
+      details: { retryAfterSeconds: 30 },
+    });
+    expect(run).not.toHaveBeenCalled();
+    expect(configLoader.load).toHaveBeenCalledTimes(3);
+  });
+
+  it('applies a looser value on the next attempt as well, without a new limiter', async () => {
+    const loader = { load: async () => 'stable-shared-signing-secret-for-tests' } as never;
+    const config = { ...passwordLoginLimits, ipMaxFailures: 2, ipWindowSeconds: 60 };
+    const configLoader = { load: jest.fn(async () => config) };
+    const limiter = new LoginAttemptLimiter(undefined, loader, configLoader as never);
+    const wrong = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+    const ip = '198.51.100.5';
+
+    for (const email of ['a@example.test', 'b@example.test']) {
+      expect(await outcomeOf(() => limiter.guardPasswordLogin(email, ip, wrong))).toBeInstanceOf(UnauthorizedException);
+    }
+    expect(await outcomeOf(() => limiter.guardPasswordLogin('c@example.test', ip, async () => 'ok'))).toMatchObject({
+      status: 429,
+    });
+
+    // The administrator raises the limit again: the very next attempt passes,
+    // because the limiter holds no cached configuration.
+    config.ipMaxFailures = 50;
+    await expect(limiter.guardPasswordLogin('c@example.test', ip, async () => 'ok')).resolves.toBe('ok');
+  });
+
+  it('falls back to the pre-5.4 defaults when the settings cannot be read', async () => {
+    const loader = { load: async () => 'stable-shared-signing-secret-for-tests' } as never;
+    const configLoader = { load: jest.fn(async () => { throw new Error('settings database down'); }) };
+    const limiter = new LoginAttemptLimiter(undefined, loader, configLoader as never);
+    const wrong = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+    const key = 'auth:mfa-fail:user-2';
+
+    for (let i = 0; i < loginAttemptLimits.maxFailures; i += 1) {
+      expect(await outcomeOf(() => limiter.guard(key, wrong))).toBeInstanceOf(UnauthorizedException);
+    }
+    await expect(limiter.guard(key, async () => 'ok')).rejects.toMatchObject({ status: 429 });
+  });
 });

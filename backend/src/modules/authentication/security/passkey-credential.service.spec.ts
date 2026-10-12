@@ -299,3 +299,204 @@ describe('PasskeyCredentialService — ceremony window and refused attestation',
     ).rejects.toThrow(new AccountSecurityError('PASSKEY_VERIFICATION_FAILED'));
   });
 });
+
+/*
+  Paket 5.4.0-f: the two ceremonies the profile spec does not cover — the login
+  assertion (the login MFA step) and the step-up assertion (a sensitive action).
+  Both go through `verifyAssertion`, so what matters here is the exact contract
+  around it: the challenge is stored per mfa token, a consumed challenge never
+  works twice, the recorded counter must move forward, and a refusal is
+  `MFA_INVALID_CODE` for login/step-up (a 401 there must not sign anybody out of
+  an existing session — the registration path has its own 400 code).
+*/
+describe('PasskeyCredentialService — login and step-up assertions (5.4.0-f)', () => {
+  const storedCredential = (counter: number) => ({
+    id: 'row-1',
+    credentialId: 'cred-1',
+    publicKey: toBase64Url(new Uint8Array([1])),
+    counter: BigInt(counter),
+    transports: null,
+  });
+
+  beforeEach(() => {
+    (generateAuthenticationOptions as jest.Mock).mockReset();
+    (generateAuthenticationOptions as jest.Mock).mockResolvedValue({ challenge: 'login-challenge' });
+    (verifyAuthenticationResponse as jest.Mock).mockReset();
+  });
+
+  it('scopes the login challenge to the account credentials and their transports', async () => {
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: 'internal,hybrid' }]),
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-1'), rp);
+
+    expect(generateAuthenticationOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rpID: 'helpdesk.example',
+        allowCredentials: [{ id: 'cred-1', transports: ['internal', 'hybrid'] }],
+      }),
+    );
+  });
+
+  it('refuses to start a login ceremony for an account without a credential', async () => {
+    const { instance } = service({ findMany: jest.fn(async () => []) });
+
+    await expect(
+      instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-1'), rp),
+    ).rejects.toThrow(new AccountSecurityError('MFA_NOT_ENABLED'));
+    expect(generateAuthenticationOptions).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without an RP configuration instead of half-working', async () => {
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+    });
+
+    await expect(instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-1'), null)).rejects.toThrow(
+      new AccountSecurityError('MFA_UNAVAILABLE'),
+    );
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-1'), { id: 'cred-1' } as never, null, false, null),
+    ).rejects.toThrow(new AccountSecurityError('MFA_UNAVAILABLE'));
+  });
+
+  it('refuses an assertion without a stored challenge, with an unknown credential, or when the library says no', async () => {
+    // 1. Nothing was started for this mfa token.
+    const withoutChallenge = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(0)),
+    });
+    await expect(
+      withoutChallenge.instance.verifyAssertion(
+        'u-1',
+        passkeyLoginChallengeKey('never-issued'),
+        { id: 'cred-1' } as never,
+        rp,
+        false,
+        null,
+      ),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+    expect(verifyAuthenticationResponse).not.toHaveBeenCalled();
+
+    // 2. The challenge exists but belongs to another account's credential.
+    const unknownCredential = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => null),
+    });
+    await unknownCredential.instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-9'), rp);
+    await expect(
+      unknownCredential.instance.verifyAssertion(
+        'u-1',
+        passkeyLoginChallengeKey('jti-9'),
+        { id: 'cred-someone-else' } as never,
+        rp,
+        false,
+        null,
+      ),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+
+    // 3. A rejected signature is the same answer, never a different factor state.
+    (verifyAuthenticationResponse as jest.Mock).mockRejectedValue(new Error('Unexpected authentication response origin'));
+    const refused = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(3)),
+    });
+    await refused.instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-10'), rp);
+    await expect(
+      refused.instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-10'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+    expect(refused.prisma.userPasskeyCredential.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('consumes the challenge: the same mfa token cannot confirm twice', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 5 },
+    });
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(4)),
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-2'), rp);
+    await instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-2'), { id: 'cred-1' } as never, rp, false, null);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-2'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+    // Only the first assertion reached the library.
+    expect(verifyAuthenticationResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('records a verified assertion: forward counter, last-used time and client IP', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 7 },
+    });
+    const update = jest.fn(async () => ({}));
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(6)),
+      update,
+    });
+    const now = new Date('2026-10-12T10:00:00.000Z');
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-3'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-3'), { id: 'cred-1' } as never, rp, false, '10.0.0.7', now),
+    ).resolves.toEqual({ credentialRowId: 'row-1' });
+
+    expect(verifyAuthenticationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedChallenge: 'login-challenge',
+        expectedOrigin: ['https://helpdesk.example'],
+        expectedRPID: 'helpdesk.example',
+        requireUserVerification: false,
+      }),
+    );
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'row-1' },
+      data: { counter: BigInt(7), lastUsedAt: now, lastUsedIp: '10.0.0.7' },
+    });
+  });
+
+  it('accepts an authenticator that never advances its counter, but not one that goes backwards', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 0 },
+    });
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(0)),
+    });
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-4'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-4'), { id: 'cred-1' } as never, rp, false, null),
+    ).resolves.toEqual({ credentialRowId: 'row-1' });
+  });
+
+  it('demands user verification for the step-up path', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 2 },
+    });
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(1)),
+    });
+
+    await instance.startAuthentication('u-1', 'webauthn:step-up:session-1:rate-limits-change', rp);
+    await instance.verifyAssertion(
+      'u-1',
+      'webauthn:step-up:session-1:rate-limits-change',
+      { id: 'cred-1' } as never,
+      rp,
+      true,
+      null,
+    );
+
+    expect(verifyAuthenticationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ requireUserVerification: true }),
+    );
+  });
+});
