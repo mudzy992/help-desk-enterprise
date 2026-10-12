@@ -7,6 +7,18 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — Closeout paketa 5.4.1 (CAPTCHA/Turnstile): plan i dokumentacija usklađeni sa stanjem
+
+**Izmijenjeno:** `docs/plans/modules/5.4-sigurnosni-hardening.md` — §9 red 5.4.1 je ✅ s commitima (isporuka,
+E2E popravka, popravka isključivanja) i stanjem CI/E2E/žive provjere; §13 više ne kaže „čeka CI vlasnika“; novi
+§14 „Closeout 5.4.1“ sa kriterijem M3 i otvorenim stavkama. Spec 48 je u §13 opisan kao što sada stvarno radi
+(ne mijenja postavke, provjerava stanje i stagira odgovore). `docs/ops/rate-limits.md` §5 — dopisano šta
+isključivanje provjere radi s ključevima (siteKey → prazno, secretKey → brisanje, uz potvrdu).
+
+**Zašto:** vlasnik je potvrdio zelene specove 47/48 i živu provjeru. Plan i changelog ne smiju tvrditi da je
+isporuka „čeka CI“ niti da spec 48 uključuje provjeru — to bi čitaoca odvelo na pogrešan trag kad se nešto
+bude rušilo.
+
 ## 2026-10-12 — CAPTCHA/Turnstile (5.4.1): operativni i korisnički dokumenti
 
 **Dodato/izmijenjeno:** `docs/ops/rate-limits.md` — nova sekcija **§5 CAPTCHA / Turnstile (paket 5.4.1)**: tri
