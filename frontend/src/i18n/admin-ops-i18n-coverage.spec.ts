@@ -7,11 +7,14 @@ import {
   knownAuditActions,
   knownAuditEntityTypes,
   knownAuditMetadataFields,
+  knownAuditMetadataValues,
   auditActionTranslationKey,
   auditEntityTranslationKey,
   auditMetadataFieldTranslationKey,
+  auditMetadataValueTranslationKey,
   flattenAuditMetadata,
 } from "@/lib/audit/audit-log-i18n";
+import { alertDetailLabelKey, opsAlertSlug, opsAlertSlugs } from "@/lib/ops/ops-health-view";
 import {
   knownScheduledJobIds,
   scheduledJobTranslationKey,
@@ -32,6 +35,33 @@ function readAuditEnum(name: "auditLogActions" | "auditLogEntityTypes"): readonl
   const match = new RegExp(`export const ${name} = \\{([\\s\\S]*?)\\n\\} as const;`).exec(source);
   if (match === null) throw new Error(`Cannot find backend ${name}`);
   return [...match[1].matchAll(/^\s*\w+:\s*'([^']+)'/gm)].map((entry) => entry[1] ?? "");
+}
+
+/*
+  Live review 2026-10-12: two alarms (`websocket.emits.high`, `auth.login429.high`)
+  shipped in the backend catalog without a frontend slug, so the card printed the
+  raw key as the title. The guards below read the backend catalogue and the
+  observer detail fields, so a new alarm or a new detail field cannot reach the
+  screen untranslated again.
+*/
+function readOpsAlertKeys(): readonly string[] {
+  const source = readFileSync(resolve(modulesRoot, "ops-health/ops-alert-catalog.ts"), "utf8");
+  const block = /export const opsAlertKeys = \{([\s\S]*?)\} as const;/.exec(source);
+  if (block === null) throw new Error("Cannot find backend opsAlertKeys");
+  return [...block[1].matchAll(/:\s*'([^']+)',/g)].map((entry) => entry[1] ?? "");
+}
+
+function readOpsAlertDetailFields(): readonly string[] {
+  const source = readFileSync(resolve(modulesRoot, "ops-health/evaluate-ops-signals.ts"), "utf8");
+  const fields = new Set<string>();
+  for (const block of source.matchAll(/details:\s*\{([^{}]*)\}/g)) {
+    for (const field of (block[1] ?? "").matchAll(/([A-Za-z][A-Za-z0-9]*)\s*:/g)) {
+      const name = field[1] ?? "";
+      // `condition ? null : value` also looks like a `field:` pair here.
+      if (name !== "null" && name !== "undefined") fields.add(name);
+    }
+  }
+  return [...fields].sort();
 }
 
 function readPrismaEnum(name: "IntegrationJobStatus" | "IntegrationJobType"): readonly string[] {
@@ -118,6 +148,59 @@ describe("Admin jobs and audit localization (5.3.5)", () => {
       knownAuditMetadataFields,
       (field) => field,
     );
+  });
+
+  /*
+    Live review 2026-10-12: detail values kept their backend codes
+    (`must_change`, `SUPER_ADMIN_ALLOWED`). Every value in the closed-vocabulary
+    map has a label in both languages; free text is deliberately not listed.
+  */
+  it.each(localeRows)("%s translates every closed-vocabulary metadata value", (_locale, dictionary) => {
+    const values = lookup(dictionary, ["admin", "ops", "auditLog", "values"]) as Dictionary;
+    for (const [field, entries] of Object.entries(knownAuditMetadataValues)) {
+      for (const value of entries) {
+        expect(auditMetadataValueTranslationKey(field, value)).toBe(
+          `admin.ops.auditLog.values.${field}.${slug(value)}`,
+        );
+        const label = (values[field] as Dictionary | undefined)?.[slug(value)];
+        expect(typeof label, `${field}.${value}`).toBe("string");
+        expect((label as string).trim().length, `${field}.${value}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("leaves free text and unknown values alone", () => {
+    expect(auditMetadataValueTranslationKey("reason", "must_change")).toBeNull();
+    expect(auditMetadataValueTranslationKey("status", "some_free_text")).toBeNull();
+  });
+
+  it.each(localeRows)("%s translates every alarm from the backend catalogue", (_locale, dictionary) => {
+    const keys = lookup(dictionary, ["admin", "opsHealth", "alertKeys"]) as Dictionary;
+    // The client catalogue (`ops_test` included) is exactly what the locales carry...
+    expect(Object.keys(keys).sort()).toEqual([...opsAlertSlugs].sort());
+    // ... and it must contain every alarm the backend catalog can raise.
+    for (const key of readOpsAlertKeys()) {
+      const slug = opsAlertSlug(key);
+      expect(slug, key).not.toBeNull();
+      const entry = keys[slug as string] as
+        | { readonly title?: unknown; readonly action?: unknown }
+        | undefined;
+      expect(entry, key).toBeDefined();
+      expect(String(entry?.title ?? "").trim().length, key).toBeGreaterThan(0);
+      expect(String(entry?.action ?? "").trim().length, key).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(localeRows)("%s labels every alarm detail field the observers send", (_locale, dictionary) => {
+    const fields = readOpsAlertDetailFields();
+    expect(fields.length).toBeGreaterThan(10);
+    const labels = lookup(dictionary, ["admin", "opsHealth", "alertDetailLabels"]) as Dictionary;
+    for (const field of fields) {
+      expect(alertDetailLabelKey(field), field).not.toBeNull();
+      const label = labels[field];
+      expect(typeof label, field).toBe("string");
+      expect(String(label).trim().length, field).toBeGreaterThan(0);
+    }
   });
 
   it("covers every registered scheduler id with a human-readable name", () => {

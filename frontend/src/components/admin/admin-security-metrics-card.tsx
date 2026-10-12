@@ -1,12 +1,13 @@
 import { Activity, RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { DualAreaChart } from "@/components/charts/dual-area-chart";
+import { MinuteBarsChart } from "@/components/charts/minute-bars-chart";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { hintClassName, sectionTitleClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { alignMinuteSeries } from "@/lib/charts/minute-series";
 import { mapApiError } from "@/lib/map-api-error";
 import { getLoginSecurityMetrics } from "@/services/security-api";
 
@@ -23,6 +24,14 @@ import { getLoginSecurityMetrics } from "@/services/security-api";
  * never breaks its line, so long labels pushed the row out of the card. They are
  * four equal tiles in a grid now — the numbers line up, and nothing can escape
  * the surface at any width.
+ *
+ * Review 2026-10-12 (second pass): the dual **area** chart did not fit this data.
+ * It rendered one x-axis label per bucket, and with 60 per-minute buckets that
+ * row was wider than the card, which gave the whole page a horizontal scrollbar.
+ * The two series also shared an index, so one missing bucket shifted them
+ * against each other. Both are fixed: the data is aligned by timestamp in
+ * `alignMinuteSeries`, and it is drawn as two minute bar strips whose bars are
+ * `flex-1` — hour view kept, nothing can exceed the card.
  */
 export function AdminSecurityMetricsCard() {
   const { t, i18n } = useTranslation();
@@ -96,14 +105,14 @@ export function AdminSecurityMetricsCard() {
                   {t("admin.ops.securityMetrics.chartTitle")}
                 </h4>
                 <div className="min-w-0">
-                  <DualAreaChart
-                    height={160}
+                  <MinuteBarsChart
+                    height={56}
                     aLabel={t("admin.ops.securityMetrics.series429")}
                     bLabel={t("admin.ops.securityMetrics.seriesDelays")}
-                    data={(blocked?.points ?? []).map((point, index) => ({
+                    data={alignMinuteSeries(blocked?.points, delayed?.points).map((point) => ({
                       label: timeLabel(point.at),
-                      a: point.count,
-                      b: delayed?.points[index]?.count ?? 0,
+                      a: point.a,
+                      b: point.b,
                     }))}
                   />
                 </div>

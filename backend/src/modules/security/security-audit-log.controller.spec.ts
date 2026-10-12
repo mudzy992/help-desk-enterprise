@@ -95,13 +95,14 @@ describe('SecurityAuditLogController', () => {
 describe('AuditLogService.listAuthSecurityEvents', () => {
   function createFixture() {
     const listAuthPage = jest.fn().mockResolvedValue({ items: [], nextCursor: null });
+    const listActorDisplayNames = jest.fn().mockResolvedValue(new Map());
     const service = new AuditLogService(
       {} as never,
-      { listAuthPage } as never,
+      { listAuthPage, listActorDisplayNames } as never,
       {} as never,
       {} as never,
     );
-    return { service, listAuthPage };
+    return { service, listAuthPage, listActorDisplayNames };
   }
 
   it('delegates to the auth-scoped repository query and keeps the list shape', async () => {
@@ -160,6 +161,95 @@ describe('AuditLogService.listAuthSecurityEvents', () => {
       createdAt: '2026-10-11T10:00:00.000Z',
     });
     expect(JSON.stringify(result.items[0])).not.toContain('@');
+    expect(result.items[0]).toMatchObject({ actorDisplayName: null });
+  });
+
+  /*
+    Paket 5.4.0-f follow-up: the list showed a raw `actorUserId`; the UI needs a
+    person's name. One lookup per page, and never an e-mail or anything else
+    from the account — only the display name.
+  */
+  it('attaches the actor display name with a single lookup per page', async () => {
+    const { service, listAuthPage, listActorDisplayNames } = createFixture();
+    listActorDisplayNames.mockResolvedValue(new Map([['user-1', 'Amra Hodžić']]));
+    listAuthPage.mockResolvedValue({
+      items: [
+        {
+          id: 'row-1',
+          action: 'auth.mfa_enrolled',
+          entityType: 'user',
+          entityId: 'user-1',
+          actorUserId: 'user-1',
+          requestId: 'req-1',
+          organizationalUnitId: null,
+          metadata: {},
+          createdAt: new Date('2026-10-11T10:00:00.000Z'),
+          previousHash: null,
+          hash: 'hash-1',
+        },
+        {
+          id: 'row-2',
+          action: 'auth.login_failed',
+          entityType: 'auth_event',
+          entityId: 'anonymous',
+          actorUserId: null,
+          requestId: null,
+          organizationalUnitId: null,
+          metadata: {},
+          createdAt: new Date('2026-10-11T10:01:00.000Z'),
+          previousHash: null,
+          hash: 'hash-2',
+        },
+      ],
+      nextCursor: null,
+    });
+
+    const result = await service.listAuthSecurityEvents({
+      action: null,
+      userId: null,
+      take: 50,
+      cursor: null,
+    });
+
+    expect(listActorDisplayNames).toHaveBeenCalledTimes(1);
+    expect(listActorDisplayNames).toHaveBeenCalledWith(['user-1']);
+    expect(result.items[0]).toMatchObject({
+      id: 'row-1',
+      actorUserId: 'user-1',
+      actorDisplayName: 'Amra Hodžić',
+    });
+    expect(result.items[1]).toMatchObject({ actorDisplayName: null });
+  });
+
+  it('does not query names when the page has no actors', async () => {
+    const { service, listAuthPage, listActorDisplayNames } = createFixture();
+    listAuthPage.mockResolvedValue({
+      items: [
+        {
+          id: 'row-1',
+          action: 'auth.login_failed',
+          entityType: 'auth_event',
+          entityId: 'anonymous',
+          actorUserId: null,
+          requestId: null,
+          organizationalUnitId: null,
+          metadata: {},
+          createdAt: new Date('2026-10-11T10:00:00.000Z'),
+          previousHash: null,
+          hash: 'hash-1',
+        },
+      ],
+      nextCursor: null,
+    });
+
+    await service.listAuthSecurityEvents({
+      action: null,
+      userId: null,
+      take: 50,
+      cursor: null,
+    });
+
+    expect(listActorDisplayNames).not.toHaveBeenCalled();
   });
 });
 

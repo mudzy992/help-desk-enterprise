@@ -136,8 +136,9 @@ message “Security is available to the superadministrator only” and no reques
   The filters are **Event** (“All auth events” or one action) and **Person** (at least two characters, picked from
   a list; covers records where the person is the target or the actor). The columns are **Time**, **Event**,
   **Target**, **Actor** and **Details**, and the **Load more** button fetches older records. Details show the
-  record's metadata (method, device, reason) — never passwords or codes; an unknown actor (a failed sign-in) is
-  shown as **Pseudonym**, and system records as **System**.
+  record's metadata (method, device, reason) — never passwords or codes, and field names and value codes (such as
+  `must_change`) are translated into the interface language; an unknown actor (a failed sign-in) is shown as
+  **Pseudonym**, and system records as **System**.
 
 On the **Security** tab, **above** the security journal, the following cards appear (in **Settings → Security**
 the **Security administration** row only points there — values are edited in one place):
@@ -172,7 +173,9 @@ user settings):
 
 The **Monitoring** tab also carries the **Security metrics (last hour)** card: four tiles with the numbers (total
 blocks, peak per minute, second-factor failures and skipped HIBP checks) and a chart of **Blocks (429)** and
-**Per-account delays** per minute. The numbers are aggregated per minute and carry no personal data.
+**Per-account delays** — two bar strips, one bar per minute of the last hour, on a shared scale with at most five
+axis labels, so the chart always stays inside its card. The numbers are aggregated per minute and carry no personal
+data.
 
 ## Fields, validations and statuses
 

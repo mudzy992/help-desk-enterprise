@@ -144,8 +144,9 @@ Tab **Sigurnost** u ekranu **Admin** vidi samo **SUPER_ADMIN**; običnom adminis
   Filteri su **Događaj** („Svi auth događaji“ ili pojedinačna radnja) i **Osoba** (najmanje dva znaka, izbor iz
   liste; obuhvata zapise u kojima je osoba cilj ili izvršilac). Kolone su **Vrijeme**, **Događaj**, **Cilj**,
   **Izvršilac** i **Detalji**, a dugme **Učitaj još** dohvata starije zapise. Detalji prikazuju metapodatke zapisa
-  (npr. način, uređaj, razlog) — bez lozinki i kodova; kada izvršilac nije poznat (neuspjela prijava) piše
-  **Pseudonim**, a sistemski zapisi nose oznaku **Sistem**.
+  (npr. način, uređaj, razlog) — bez lozinki i kodova, a nazivi polja i kodovi vrijednosti (npr. `must_change`)
+  prevode se na jezik sučelja; kada izvršilac nije poznat (neuspjela prijava) piše **Pseudonim**, a sistemski zapisi
+  nose oznaku **Sistem**.
 
 Na tabu **Sigurnost**, **iznad** sigurnosnog dnevnika, stoje kartice (u **Postavkama → Sigurnost** red
 **Sigurnosna administracija** samo vodi na taj tab — vrijednosti se uređuju na jednom mjestu):
@@ -181,7 +182,8 @@ Passkey je drugi faktor pored koda iz aplikacije. Uslovi bez kojih ne radi (sve 
 
 Na tabu **Nadzor** je i kartica **Sigurnosne metrike (zadnji sat)**: četiri pločice s brojevima (ukupno blokada,
 najviše u minuti, neuspjesi drugog faktora i preskočene HIBP provjere) i grafik **Blokade (429)** i **Kašnjenja po
-računu** po minuti. Brojevi su agregirani po minuti i ne sadrže lične podatke.
+računu** — dvije trake stupaca, jedan stupac po minuti zadnjeg sata, sa zajedničkom skalom i najviše pet oznaka na
+osi, pa grafik uvijek ostaje unutar kartice. Brojevi su agregirani po minuti i ne sadrže lične podatke.
 
 ## Polja, validacije i statusi
 

@@ -100,8 +100,18 @@ export type AuditLogExportResult = {
   readonly content: string;
 };
 
+/**
+ * A list row: the export shape plus the actor's display name. The export shape
+ * itself (JSON/CSV columns, hash chain) is untouched — the name is a display
+ * concern of the two list endpoints only, resolved with one extra query per
+ * page. `null` when the row has no actor, or the account is gone.
+ */
+export type AuditLogListRow = AuditLogExportRow & {
+  readonly actorDisplayName: string | null;
+};
+
 export type AuditLogListResult = {
-  readonly items: readonly AuditLogExportRow[];
+  readonly items: readonly AuditLogListRow[];
   readonly nextCursor: string | null;
 };
 

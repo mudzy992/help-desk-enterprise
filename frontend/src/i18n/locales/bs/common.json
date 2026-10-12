@@ -603,7 +603,55 @@
             "eligibleUsers": "Obuhvaćeni korisnici",
             "changedUsers": "Promijenjeni korisnici",
             "revokedSessions": "Opozvane sesije",
-            "failedUsers": "Neuspješni korisnici"
+            "failedUsers": "Neuspješni korisnici",
+            "accountDelayStartsAfterFailures": "Kašnjenje po računu počinje nakon (neuspjeha)",
+            "addedPermissionKeys": "Dodane permisije",
+            "alreadyCurrent": "Već aktuelno",
+            "concurrentSkip": "Preskočeno (istovremena izmjena)",
+            "ipMaxFailures": "Maks. neuspjeha po IP adresi",
+            "ipWindowSeconds": "Prozor po IP adresi (s)",
+            "otherMaxFailures": "Maks. neuspjeha (ostali tokovi)",
+            "reencrypted": "Ponovo šifrovano",
+            "unreadable": "Nečitljivo (ručna intervencija)"
+          }
+        },
+        "actorUnknown": "Nepoznat korisnik",
+        "values": {
+          "membership": {
+            "added": "Dodano",
+            "removed": "Uklonjeno"
+          },
+          "severity": {
+            "INFO": "Informacija",
+            "WARNING": "Upozorenje",
+            "CRITICAL": "Kritično"
+          },
+          "decision": {
+            "SUPER_ADMIN_ALLOWED": "Dozvoljeno (SuperAdmin)"
+          },
+          "permissionMatchMode": {
+            "any": "Bilo koja permisija",
+            "all": "Sve permisije"
+          },
+          "status": {
+            "must_change": "Mora promijeniti lozinku"
+          },
+          "directoryKind": {
+            "entra": "Entra ID",
+            "ldaps": "LDAP(S)"
+          },
+          "provider": {
+            "local": "Lokalna prijava",
+            "entra": "Entra ID",
+            "legacy": "Naslijeđeni nalog"
+          },
+          "channel": {
+            "email": "E-mail",
+            "teams": "Teams",
+            "EMAIL": "E-mail",
+            "PAPER": "Papir",
+            "PORTAL": "Portal",
+            "IN_PERSON": "Lično"
           }
         }
       },
@@ -939,7 +987,43 @@
         "ops_test": {
           "title": "Testni alarm",
           "action": "Provjera kanala za alarme. Nije potrebna nikakva radnja."
+        },
+        "websocket_emits_high": {
+          "title": "Previše WebSocket emitova u jednoj sobi",
+          "action": "Neka soba šalje neuobičajeno mnogo Socket.IO emitova u minuti. Provjerite da najopterećenija soba nije `group-legacy` (stari puni payload grupe) i da se neki broadcast ne poziva iz petlje; pragovi su u Postavkama, ali povišenje bez uzroka samo skriva problem."
+        },
+        "auth_login429_high": {
+          "title": "Blokirane prijave (429) prelaze prag",
+          "action": "IP adresa je privremeno blokirana zbog mnogo neuspjelih prijava. Provjerite metrike u Nadzoru i izvor u odgovoru 429 (Retry-After): ako je izvor NAT/proxy, podesite ipMaxFailures/ipWindowSeconds; ako je napad probanja lozinki, blokirajte izvor na mreži."
         }
+      },
+      "alertDetailLabels": {
+        "usedPercent": "Zauzeće diska (%)",
+        "emitsPerMinute": "Emitova u minuti",
+        "busiestRoom": "Najopterećenija soba",
+        "login429LastHour": "Blokirane prijave (429) u zadnjem satu",
+        "errors5xx": "Greške 5xx",
+        "minutesSinceSuccess": "Minuta od zadnjeg uspjeha",
+        "meanLagMs": "Kašnjenje petlje (ms)",
+        "daysLeft": "Dana do isteka",
+        "heartbeatAgeSeconds": "Sekundi od zadnjeg signala",
+        "snapshotAgeSeconds": "Sekundi od zadnje provjere",
+        "newFailures": "Novih neuspjelih poslova",
+        "integrationDlq": "Integracije u DLQ",
+        "jobs": "Zakasnjeli poslovi",
+        "perRoom": "Emitova po sobi",
+        "failedByQueue": "Neuspjeli po redu",
+        "total": "Ukupno zahtjeva",
+        "percent": "Udio (%)",
+        "freeGb": "Slobodno (GB)",
+        "totalGb": "Ukupno (GB)",
+        "failOpen": "Prilozi prolaze bez skeniranja",
+        "thresholdSeconds": "Prag (s)",
+        "thresholdMinutes": "Prag (min)",
+        "windowMinutes": "Prozor (min)",
+        "warnThreshold": "Prag upozorenja",
+        "criticalThreshold": "Kritični prag",
+        "expiresAt": "Ističe"
       }
     }
   },
@@ -6845,7 +6929,9 @@
       "empty": "Grafikon nema podataka.",
       "showTable": "Prikaži kao tabelu",
       "hideTable": "Sakrij tabelu",
-      "period": "Period"
+      "period": "Period",
+      "seriesPeak": "najviše {{value}}",
+      "barsHint": "Pređi mišem preko stupca za tačan broj u tom minutu."
     },
     "shortcuts": {
       "title": "Prečice na tastaturi",

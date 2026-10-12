@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
+import bosnian from "@/i18n/locales/bs/common.json";
+import english from "@/i18n/locales/en/common.json";
 import {
   alertDetailEntries,
+  alertDetailFieldSlugs,
+  alertDetailLabelKey,
+  alertDetailLabelKey as detailLabelKey,
   alertDurationMs,
   clamavState,
   diskState,
@@ -11,7 +16,9 @@ import {
   inboundState,
   ldapsCaState,
   opsAlertSlug,
+  opsAlertSlugs,
   overallOpsState,
+  sortAlertDetailEntries,
   sortSchedulers,
 } from "@/lib/ops/ops-health-view";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
@@ -165,5 +172,69 @@ describe("ops health view", () => {
         { ...base, queue: "a", schedulerId: "x", state: "on_time" },
       ]).map((scheduler) => scheduler.queue),
     ).toEqual(["z", "a", "b"]);
+  });
+});
+
+
+/*
+  Live review 2026-10-12 (429 alarm): the card rendered `auth.login429.high` as
+  the alert title and `warnThreshold: 50` as a detail label, because neither the
+  slug list nor the detail labels knew about the new alarm family. The guards
+  below make that impossible again: every slug the client knows has a title and
+  an action in both languages, and every detail field the backend observers can
+  write has a label — in bs and en.
+*/
+describe("alarm catalogue coverage (frontend view)", () => {
+  const dictionaries = [
+    ["bs", bosnian],
+    ["en", english],
+  ] as const;
+
+  it("knows the alarms added after 5.2.3 and keeps unknown keys raw", () => {
+    expect(opsAlertSlug("auth.login429.high")).toBe("auth_login429_high");
+    expect(opsAlertSlug("websocket.emits.high")).toBe("websocket_emits_high");
+    expect(opsAlertSlug("something.brand.new")).toBeNull();
+  });
+
+  it.each(dictionaries)("has a title and an action for every slug (%s)", (_locale, dictionary) => {
+    const keys = dictionary.admin.opsHealth.alertKeys as Record<string, { title: string; action: string }>;
+    for (const slug of opsAlertSlugs) {
+      expect(keys[slug]?.title?.trim().length ?? 0).toBeGreaterThan(0);
+      expect(keys[slug]?.action?.trim().length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(dictionaries)("labels every alarm detail field the backend can send (%s)", (_locale, dictionary) => {
+    const labels = dictionary.admin.opsHealth.alertDetailLabels as Record<string, string>;
+    for (const field of alertDetailFieldSlugs) {
+      expect(labels[field]?.trim().length ?? 0).toBeGreaterThan(0);
+      expect(alertDetailLabelKey(field)).toBe(`admin.opsHealth.alertDetailLabels.${field}`);
+    }
+    expect(alertDetailLabelKey("unknownField")).toBeNull();
+  });
+
+  it("puts the measured number before the thresholds it is compared against", () => {
+    const sorted = sortAlertDetailEntries([
+      ["criticalThreshold", "200"],
+      ["windowMinutes", "60"],
+      ["warnThreshold", "50"],
+      ["login429LastHour", "120"],
+    ]);
+    expect(sorted.map(([label]) => label)).toEqual([
+      "login429LastHour",
+      "windowMinutes",
+      "warnThreshold",
+      "criticalThreshold",
+    ]);
+    // An unknown field stays visible and ends up last.
+    expect(sortAlertDetailEntries([["futureField", "1"], ["usedPercent", "90"]])).toEqual([
+      ["usedPercent", "90"],
+      ["futureField", "1"],
+    ]);
+  });
+
+  it("translates the first segment of a nested detail label", () => {
+    // `perRoom.group` is how the WebSocket alarm reports one room.
+    expect(detailLabelKey("perRoom")).toBe("admin.opsHealth.alertDetailLabels.perRoom");
   });
 });

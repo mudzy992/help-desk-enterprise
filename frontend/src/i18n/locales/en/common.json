@@ -601,7 +601,55 @@
             "eligibleUsers": "Eligible users",
             "changedUsers": "Changed users",
             "revokedSessions": "Revoked sessions",
-            "failedUsers": "Failed users"
+            "failedUsers": "Failed users",
+            "accountDelayStartsAfterFailures": "Account delay starts after (failures)",
+            "addedPermissionKeys": "Added permissions",
+            "alreadyCurrent": "Already current",
+            "concurrentSkip": "Skipped (concurrent change)",
+            "ipMaxFailures": "Max failures per IP address",
+            "ipWindowSeconds": "Per-IP window (s)",
+            "otherMaxFailures": "Max failures (other flows)",
+            "reencrypted": "Re-encrypted",
+            "unreadable": "Unreadable (manual action)"
+          }
+        },
+        "actorUnknown": "Unknown user",
+        "values": {
+          "membership": {
+            "added": "Added",
+            "removed": "Removed"
+          },
+          "severity": {
+            "INFO": "Information",
+            "WARNING": "Warning",
+            "CRITICAL": "Critical"
+          },
+          "decision": {
+            "SUPER_ADMIN_ALLOWED": "Allowed (SuperAdmin)"
+          },
+          "permissionMatchMode": {
+            "any": "Any permission",
+            "all": "All permissions"
+          },
+          "status": {
+            "must_change": "Must change password"
+          },
+          "directoryKind": {
+            "entra": "Entra ID",
+            "ldaps": "LDAP(S)"
+          },
+          "provider": {
+            "local": "Local sign-in",
+            "entra": "Entra ID",
+            "legacy": "Legacy account"
+          },
+          "channel": {
+            "email": "E-mail",
+            "teams": "Teams",
+            "EMAIL": "E-mail",
+            "PAPER": "Paper",
+            "PORTAL": "Portal",
+            "IN_PERSON": "In person"
           }
         }
       },
@@ -930,7 +978,43 @@
         "ops_test": {
           "title": "Test alarm",
           "action": "A check of the alarm channels. No action needed."
+        },
+        "websocket_emits_high": {
+          "title": "Too many WebSocket emits in one room",
+          "action": "One room is emitting an unusually high number of Socket.IO emits per minute. Check that the busiest room is not `group-legacy` (the old full group payload) and that no broadcast is called in a loop; the thresholds live in Settings, but raising them without a cause only hides the problem."
+        },
+        "auth_login429_high": {
+          "title": "Blocked sign-ins (429) exceed the threshold",
+          "action": "An IP address is temporarily blocked after many failed sign-ins. Check the metrics under Monitoring and the source in the 429 answer (Retry-After): if the source is a NAT/proxy, retune ipMaxFailures/ipWindowSeconds; if it is a password spray, block the source on the network."
         }
+      },
+      "alertDetailLabels": {
+        "usedPercent": "Disk usage (%)",
+        "emitsPerMinute": "Emits per minute",
+        "busiestRoom": "Busiest room",
+        "login429LastHour": "Blocked sign-ins (429) in the last hour",
+        "errors5xx": "5xx errors",
+        "minutesSinceSuccess": "Minutes since last success",
+        "meanLagMs": "Event loop lag (ms)",
+        "daysLeft": "Days until expiry",
+        "heartbeatAgeSeconds": "Seconds since last heartbeat",
+        "snapshotAgeSeconds": "Seconds since last check",
+        "newFailures": "New failed jobs",
+        "integrationDlq": "Integrations in DLQ",
+        "jobs": "Late jobs",
+        "perRoom": "Emits per room",
+        "failedByQueue": "Failures by queue",
+        "total": "Total requests",
+        "percent": "Share (%)",
+        "freeGb": "Free (GB)",
+        "totalGb": "Total (GB)",
+        "failOpen": "Attachments pass without scanning",
+        "thresholdSeconds": "Threshold (s)",
+        "thresholdMinutes": "Threshold (min)",
+        "windowMinutes": "Window (min)",
+        "warnThreshold": "Warning threshold",
+        "criticalThreshold": "Critical threshold",
+        "expiresAt": "Expires"
       }
     }
   },
@@ -6800,7 +6884,9 @@
       "empty": "The chart has no data.",
       "showTable": "Show as table",
       "hideTable": "Hide table",
-      "period": "Period"
+      "period": "Period",
+      "seriesPeak": "peak {{value}}",
+      "barsHint": "Hover a bar for the exact count in that minute."
     },
     "shortcuts": {
       "title": "Keyboard shortcuts",

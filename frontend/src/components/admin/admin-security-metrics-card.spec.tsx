@@ -91,12 +91,15 @@ describe("AdminSecurityMetricsCard", () => {
     expect(html).toContain("sm:grid-cols-4");
   });
 
-  it("draws the per-minute chart once there is something to draw", () => {
+  it("draws the per-minute hour as bar strips once there is something to draw", () => {
     const html = renderWith(snapshotWithEvents);
     expect(html).toContain("admin.ops.securityMetrics.chartTitle");
     expect(html).toContain("admin.ops.securityMetrics.series429");
     expect(html).toContain("admin.ops.securityMetrics.seriesDelays");
-    expect(html).toContain("<svg");
+    // The live review replaced the area chart: with one label per minute its
+    // axis row was wider than the card and scrolled the page sideways.
+    expect(html).not.toContain("preserveAspectRatio");
+    expect(html).toContain("a11y.chart.barsHint");
     expect(html).not.toContain("admin.ops.securityMetrics.empty");
   });
 
@@ -104,7 +107,7 @@ describe("AdminSecurityMetricsCard", () => {
     const html = renderWith(snapshotWithoutEvents);
     expect(html).toContain("admin.ops.securityMetrics.empty");
     expect(html).not.toContain("admin.ops.securityMetrics.chartTitle");
-    expect(html).not.toContain('viewBox="0 0 1000 260"');
+    expect(html).not.toContain("a11y.chart.barsHint");
   });
 
   it("keeps every readout inside the card — no badge row, no truncation", () => {

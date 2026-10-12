@@ -9,6 +9,8 @@ export type AuditLogListRow = {
   readonly entityType: string;
   readonly entityId: string;
   readonly actorUserId: string | null;
+  /** Display name resolved by the list endpoints (5.4.0-f follow-up); null when the account is gone. */
+  readonly actorDisplayName: string | null;
   readonly organizationalUnitId: string | null;
   readonly requestId: string | null;
   readonly previousHash: string | null;

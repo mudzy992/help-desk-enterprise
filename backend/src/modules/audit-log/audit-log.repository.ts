@@ -32,6 +32,25 @@ export class AuditLogRepository {
     return records.map(toAuditLogRecord);
   }
 
+  /**
+   * Paket 5.4.0-f follow-up: display names of the actors on one page. One query
+   * for the whole page — the list used to show a raw user id, which tells an
+   * operator nothing. Ids without a user (deleted account, or the
+   * pseudonymous actor of a failed sign-in) simply have no entry.
+   */
+  async listActorDisplayNames(
+    ids: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: [...ids] } },
+      select: { id: true, displayName: true },
+    });
+    return new Map(users.map((user) => [user.id, user.displayName]));
+  }
+
   async listChain(): Promise<readonly AuditLogRecord[]> {
     const records = await this.prisma.auditLog.findMany();
     return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);

@@ -1,5 +1,6 @@
 import { Donut } from "@/components/charts/donut";
 import { DualAreaChart } from "@/components/charts/dual-area-chart";
+import { MinuteBarsChart } from "@/components/charts/minute-bars-chart";
 import { GroupedBars } from "@/components/charts/grouped-bars";
 import { HBars } from "@/components/charts/h-bars";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -35,6 +36,12 @@ const AREA_DATA = VOLUME_DATA.map((day) => ({
   b: day.resolved,
 }));
 
+const MINUTE_DATA = Array.from({ length: 60 }, (_, minute) => ({
+  label: `${String(Math.floor(minute / 60) + 14).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`,
+  a: minute === 23 ? 12 : minute % 9 === 0 ? 2 : 0,
+  b: minute === 41 ? 7 : minute % 13 === 0 ? 1 : 0,
+}));
+
 const LOAD_ITEMS = [
   { label: "Centrala Sarajevo", value: 34 },
   { label: "Regionalna jedinica Mostar", value: 21 },
@@ -68,6 +75,15 @@ export function VisualQaChartsBoard() {
           />
           <div className="px-4 py-4">
             <DualAreaChart data={AREA_DATA} aLabel="Kreirano" bLabel="Riješeno" />
+          </div>
+        </Card>
+        <Card>
+          <CardHeader
+            title="Minute bars — sat po minutama"
+            subtitle="Dvije trake, jedan stupac po minuti (koristi ih Nadzor → Sigurnosne metrike)"
+          />
+          <div className="px-4 py-4">
+            <MinuteBarsChart data={MINUTE_DATA} aLabel="Blokade (429)" bLabel="Kašnjenja po računu" />
           </div>
         </Card>
         <Card>

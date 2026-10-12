@@ -7,6 +7,21 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — Poliranje sigurnosnih i audit površina (5.4.0-f, drugi živi pregled): korisnička dokumentacija
+
+**Izmijenjeno:** `docs/user-guide/prijava-i-mfa.md` (i `en/prijava-i-mfa.md`) — poglavlje „Za administratore:
+'Sigurnost' — dnevnik i metrike" sada tačno opisuje grafik u kartici **Sigurnosne metrike (zadnji sat)**: dvije trake
+stupaca, jedan stupac po minuti zadnjeg sata, zajednička skala i najviše pet oznaka na osi (ranije je grafik crtao po
+jednu oznaku za svaku minutu, izlazio iz kartice i davao horizontalni skrol stranice). Uz to: kolona **Izvršilac** u
+sigurnosnom dnevniku prikazuje **ime osobe** kada je osoba poznata (identifikator ostaje u opisu ćelije), a detalji
+prevode nazive polja i kodove vrijednosti (`must_change` i sl.). `docs/user-guide/sta-je-novo.md` — novi red
+2026-10-12 koji korisniku objašnjava sve četiri izmjene.
+
+**Zašto:** vlasnikov drugi živi pregled 5.4.0-f (2026-10-12) prijavio je četiri stvari: grafik izlazi iz kartice,
+kartica **Aktivni alarmi** pokazuje sirove ključeve (`auth.login429.high`, `warnThreshold`), audit dnevnik prikazuje
+id umjesto imena i netranslatirane detalje, a isto i sigurnosni dnevnik. Dokumentacija se mijenja uz kod jer je vodič
+opisivao izgled koji se promijenio.
+
 ## 2026-10-11 — Sigurnosni dnevnik i administracija (5.4.0-d/e): korisnička dokumentacija
 
 **Dodato:** `docs/user-guide/prijava-i-mfa.md` (i `en/prijava-i-mfa.md`) — novo poglavlje

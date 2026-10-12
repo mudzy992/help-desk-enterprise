@@ -21,6 +21,11 @@ export const opsAlertSlugs = [
   "tls_ldapsCa_expiry",
   "ops_monitor_stale",
   "ops_test",
+  // Package 5.2.3 (WebSocket emits) and the 5.4.0-f follow-up (login 429s):
+  // without these two the card showed the raw key (`auth.login429.high`) as the
+  // alert title instead of the translated one.
+  "websocket_emits_high",
+  "auth_login429_high",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 
@@ -151,6 +156,66 @@ export function alertDurationMs(alert: Pick<OpsAlert, "firstSeenAt" | "resolvedA
  * Alarm details are numbers and technical identifiers only (no personal
  * data, see the backend evaluator). Flattened to "label: value" pairs.
  */
+/**
+ * Detail fields of an alarm, as i18n slugs. The card used to print the raw
+ * field names (`warnThreshold: 50`), which is what the live review of the 429
+ * alarm showed. Everything the backend observers can put into `details` has a
+ * label here; the order is the reading order — the measured number first, the
+ * thresholds and the window after it.
+ */
+export const alertDetailFieldSlugs = [
+  "usedPercent",
+  "emitsPerMinute",
+  "busiestRoom",
+  "login429LastHour",
+  "errors5xx",
+  "minutesSinceSuccess",
+  "meanLagMs",
+  "daysLeft",
+  "heartbeatAgeSeconds",
+  "snapshotAgeSeconds",
+  "newFailures",
+  "integrationDlq",
+  "jobs",
+  "perRoom",
+  "failedByQueue",
+  "total",
+  "percent",
+  "freeGb",
+  "totalGb",
+  "failOpen",
+  "thresholdSeconds",
+  "thresholdMinutes",
+  "windowMinutes",
+  "warnThreshold",
+  "criticalThreshold",
+  "expiresAt",
+] as const;
+
+export type AlertDetailFieldSlug = (typeof alertDetailFieldSlugs)[number];
+
+/** The label key for a detail field; `null` for a field this client does not know. */
+export function alertDetailLabelKey(field: string): string | null {
+  return (alertDetailFieldSlugs as readonly string[]).includes(field)
+    ? `admin.opsHealth.alertDetailLabels.${field}`
+    : null;
+}
+
+/**
+ * Reading order of the detail rows: the measured value first, then the
+ * thresholds it is compared against. Unknown fields keep their relative order
+ * and go last, so a future field never pushes the number out of sight.
+ */
+export function sortAlertDetailEntries(
+  entries: ReadonlyArray<readonly [string, string]>,
+): Array<readonly [string, string]> {
+  const rank = (label: string): number => {
+    const index = (alertDetailFieldSlugs as readonly string[]).indexOf(label.split(".")[0] ?? label);
+    return index === -1 ? alertDetailFieldSlugs.length : index;
+  };
+  return [...entries].sort((left, right) => rank(left[0]) - rank(right[0]));
+}
+
 export function alertDetailEntries(details: OpsAlert["details"]): ReadonlyArray<readonly [string, string]> {
   if (details === null || typeof details !== "object") return [];
   const entries: Array<readonly [string, string]> = [];

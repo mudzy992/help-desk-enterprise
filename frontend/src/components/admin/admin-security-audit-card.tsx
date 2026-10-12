@@ -19,11 +19,10 @@ import {
   securityActionLabelKey,
 } from "@/lib/admin/admin-security-tab";
 import { readApiRequestId } from "@/lib/map-api-error";
+import { AuditMetadataList } from "@/components/admin/audit-metadata-list";
 import {
   auditActionTranslationKey,
   auditEntityTranslationKey,
-  auditMetadataFieldTranslationKey,
-  flattenAuditMetadata,
   knownAuditActions,
 } from "@/lib/audit/audit-log-i18n";
 import {
@@ -304,7 +303,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
                           )}
                         </td>
                         <td className="max-w-[320px] px-3 text-[12px] align-top">
-                          <SecurityMetadata metadata={row.metadata} />
+                          <AuditMetadataList metadata={row.metadata} visibleCount={6} />
                         </td>
                       </tr>
                     );
@@ -352,32 +351,10 @@ function actorLabel(
   if (selectedUser !== null && row.actorUserId === selectedUser.id) {
     return selectedUser.label;
   }
-  // The identifier stays a tooltip; the visible text stays generic.
+  // The identifier stays a tooltip; the visible text stays the designed label
+  // (**Pseudonim** / **Sistem** / the picked person). The shared list endpoint
+  // also sends a resolved display name, but the journal deliberately does not
+  // print it — this surface is documented as pseudonymous.
   return pseudonymousLabel;
 }
 
-function SecurityMetadata({ metadata }: { readonly metadata: unknown }) {
-  const { t } = useTranslation();
-  const entries = flattenAuditMetadata(metadata);
-  if (entries.length === 0) return <span className="text-muted-foreground">—</span>;
-  return (
-    <span className="flex flex-col gap-0.5">
-      {entries.slice(0, 6).map((entry, index) => (
-        <span key={`${entry.path.join(".")}:${index}`}>
-          <span className="text-muted-foreground">
-            {entry.path
-              .map((field) => {
-                const key = auditMetadataFieldTranslationKey(field);
-                return key === null
-                  ? t("admin.ops.auditLog.labels.unknownField")
-                  : t(key as never);
-              })
-              .join(" · ")}
-            :
-          </span>{" "}
-          {entry.value}
-        </span>
-      ))}
-    </span>
-  );
-}

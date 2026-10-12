@@ -17,11 +17,10 @@ import {
   type AdminOpsMessageKey,
 } from "@/lib/admin/map-admin-ops-error";
 import { readApiRequestId } from "@/lib/map-api-error";
+import { AuditMetadataList } from "@/components/admin/audit-metadata-list";
 import {
   auditActionTranslationKey,
   auditEntityTranslationKey,
-  auditMetadataFieldTranslationKey,
-  flattenAuditMetadata,
 } from "@/lib/audit/audit-log-i18n";
 import {
   listAuditLogs,
@@ -172,14 +171,23 @@ export function AdminAuditLogCard({
                           <code className="ml-1.5 text-[11px]">{row.entityId}</code>
                         </span>
                       </td>
-                      <td className="max-w-[160px] truncate px-3 text-[12px] text-muted-foreground">
-                        {row.actorUserId ?? "—"}
+                      <td
+                        className="max-w-[160px] truncate px-3 text-[12px] text-foreground"
+                        title={row.actorUserId ?? undefined}
+                      >
+                        {actorCell(row, t("admin.ops.auditLog.actorUnknown"))}
                       </td>
-                      <td className="max-w-[160px] truncate px-3 text-[12px] text-muted-foreground">
-                        {row.requestId ?? "—"}
+                      <td className="max-w-[110px] px-3 text-[12px] text-muted-foreground">
+                        {row.requestId === null ? (
+                          "—"
+                        ) : (
+                          <code className="text-[11px]" title={row.requestId}>
+                            {shortenIdentifier(row.requestId)}
+                          </code>
+                        )}
                       </td>
                       <td className="max-w-[340px] px-3 text-[12px] align-top">
-                        <AuditMetadata metadata={row.metadata} />
+                        <AuditMetadataList metadata={row.metadata} visibleCount={3} />
                       </td>
                     </tr>
                   ))}
@@ -208,53 +216,18 @@ export function AdminAuditLogCard({
   );
 }
 
-function AuditMetadata({ metadata }: { readonly metadata: unknown }) {
-  const { t } = useTranslation();
-  const entries = flattenAuditMetadata(metadata);
-  if (entries.length === 0) return <span className="text-muted-foreground">—</span>;
+/**
+ * The actor column used to show a raw user id. It shows the person's display
+ * name now (packet 5.4.0-f follow-up) with the id kept as the cell tooltip; an
+ * account that no longer exists falls back to a translated "unknown user", never
+ * to the bare id.
+ */
+function actorCell(row: AuditLogListRow, unknownLabel: string): string {
+  if (row.actorUserId === null) return "—";
+  return row.actorDisplayName ?? unknownLabel;
+}
 
-  const labelFor = (path: readonly string[]) =>
-    path
-      .map((field) => {
-        const key = auditMetadataFieldTranslationKey(field);
-        return key === null
-          ? t("admin.ops.auditLog.labels.unknownField")
-          : t(key as never);
-      })
-      .join(" · ");
-  const summary = entries
-    .map((entry) => `${labelFor(entry.path)}: ${entry.value}`)
-    .join("; ");
-  const visibleEntries = entries.slice(0, 3);
-  const hiddenEntries = entries.slice(3);
-
-  return (
-    <ul className="grid gap-0.5" title={summary}>
-      {visibleEntries.map((entry, index) => (
-        <li key={`${entry.path.join(".")}-${index}`} className="break-words">
-          <span className="font-medium text-foreground">{labelFor(entry.path)}:</span>{" "}
-          <span className="text-muted-foreground">{entry.value}</span>
-        </li>
-      ))}
-      {hiddenEntries.length > 0 ? (
-        <li>
-          <details>
-            <summary className="cursor-pointer text-link">
-              {t("admin.ops.auditLog.labels.moreDetails", {
-                count: hiddenEntries.length,
-              })}
-            </summary>
-            <ul className="mt-1 grid gap-0.5 border-l border-border pl-2">
-              {hiddenEntries.map((entry, index) => (
-                <li key={`${entry.path.join(".")}-${index + 3}`} className="break-words">
-                  <span className="font-medium text-foreground">{labelFor(entry.path)}:</span>{" "}
-                  <span className="text-muted-foreground">{entry.value}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        </li>
-      ) : null}
-    </ul>
-  );
+/** Request ids are uuids; eight characters plus a tooltip are readable and enough to correlate. */
+function shortenIdentifier(value: string): string {
+  return value.length > 10 ? `${value.slice(0, 8)}…` : value;
 }

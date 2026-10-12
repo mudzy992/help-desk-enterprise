@@ -13,6 +13,8 @@ import type {
   AuditExportFormat,
   AuditLogExportResult,
   AuditLogListResult,
+  AuditLogListRow,
+  AuditLogRecord,
   AuditLogVerifyResult,
 } from './audit-log.types';
 import { recordAuditEntry } from './record-audit-entry';
@@ -57,10 +59,7 @@ export class AuditLogService {
       take: input.take,
       cursor: input.cursor,
     });
-    return {
-      items: page.items.map(toAuditLogExportRow),
-      nextCursor: page.nextCursor,
-    };
+    return this.toListPage(page.items, page.nextCursor);
   }
 
   /**
@@ -81,10 +80,38 @@ export class AuditLogService {
       take: input.take,
       cursor: input.cursor,
     });
-    return {
-      items: page.items.map(toAuditLogExportRow),
-      nextCursor: page.nextCursor,
-    };
+    return this.toListPage(page.items, page.nextCursor);
+  }
+
+  /**
+   * Paket 5.4.0-f follow-up: list rows carry the actor's display name next to
+   * the id. The UI showed `actorUserId` ("usr_…"), which tells an operator
+   * nothing; the name is resolved with one query per page. The export path
+   * (`export` below) deliberately keeps the export shape untouched.
+   */
+  private async toListPage(
+    records: readonly AuditLogRecord[],
+    nextCursor: string | null,
+  ): Promise<AuditLogListResult> {
+    const rows = records.map(toAuditLogExportRow);
+    const actorIds = [
+      ...new Set(
+        rows
+          .map((row) => row.actorUserId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+    // No actor on this page (e.g. a page of failed sign-ins) = no query at all.
+    const names =
+      actorIds.length === 0
+        ? new Map<string, string>()
+        : await this.repository.listActorDisplayNames(actorIds);
+    const items: AuditLogListRow[] = rows.map((row) => ({
+      ...row,
+      actorDisplayName:
+        row.actorUserId === null ? null : (names.get(row.actorUserId) ?? null),
+    }));
+    return { items, nextCursor };
   }
 
   async export(input: {

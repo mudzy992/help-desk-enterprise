@@ -72,6 +72,12 @@ export function DualAreaChart({
       ? (SIZE.width - SIZE.padding.left - SIZE.padding.right) / (data.length - 1)
       : 0;
 
+  // Safety net for dense callers: never render more than ~8 x-axis labels per
+  // row. 60 per-minute buckets belong in the minute bar strip
+  // (`minute-bars-chart.tsx`), but a caller with 30 daily buckets must not be
+  // able to push this chart out of its card either.
+  const labelStride = Math.max(1, Math.ceil(data.length / 8));
+
   const series = (key: "a" | "b") => data.map((point) => point[key]);
   const line = (key: "a" | "b") => buildLinePath(series(key), max, SIZE);
   const area = (key: "a" | "b") => buildAreaPath(series(key), max, SIZE);
@@ -173,14 +179,18 @@ export function DualAreaChart({
         </svg>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-[3%] text-[10.5px] font-medium text-muted-foreground">
-          {data.map((point, index) => (
-            <span
-              key={`${point.label}-${index}`}
-              className={cn("tnum", index % 2 === 1 && "hidden sm:inline")}
-            >
-              {point.label}
-            </span>
-          ))}
+          {data.map((point, index) => {
+            const visible = index % labelStride === 0 || index === data.length - 1;
+            const onlyWide = labelStride === 1 && index % 2 === 1;
+            return (
+              <span
+                key={`${point.label}-${index}`}
+                className={cn("tnum whitespace-nowrap", !visible && "hidden", onlyWide && "hidden sm:inline")}
+              >
+                {point.label}
+              </span>
+            );
+          })}
         </div>
 
         {activePoint !== null ? (

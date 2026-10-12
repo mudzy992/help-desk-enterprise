@@ -199,14 +199,17 @@ export const knownAuditEntityTypes = [
 
 export const knownAuditMetadataFields = [
   'B1',
+  'accountDelayStartsAfterFailures',
   'action',
   'actionType',
   'activityId',
   'affectedDescendantCount',
   'affectedUserIds',
   'after',
+  'addedPermissionKeys',
   'applied',
   'articleId',
+  'alreadyCurrent',
   'assetId',
   'assignedUserId',
   'batchId',
@@ -220,6 +223,7 @@ export const knownAuditMetadataFields = [
   'classification',
   'company',
   'configDays',
+  'concurrentSkip',
   'conflicts',
   'conversationType',
   'createdRolePermissionCount',
@@ -254,9 +258,11 @@ export const knownAuditMetadataFields = [
   'identity',
   'impact',
   'includeAttachments',
+  'ipMaxFailures',
   'includeInternalNotes',
   'includesEnvironmentBound',
   'internalNotesReason',
+  'ipWindowSeconds',
   'isActive',
   'isCabGroup',
   'isCrossOu',
@@ -279,6 +285,7 @@ export const knownAuditMetadataFields = [
   'notify',
   'organizationalUnitId',
   'organizationalUnitPath',
+  'otherMaxFailures',
   'ouPath',
   'pack',
   'packKey',
@@ -304,6 +311,7 @@ export const knownAuditMetadataFields = [
   'reason',
   'recipientCount',
   'recordCount',
+  'reencrypted',
   'removedRoleAssignments',
   'removedUserRoleCount',
   'replacementGroupId',
@@ -349,6 +357,7 @@ export const knownAuditMetadataFields = [
   'unboundService',
   'until',
   'userId',
+  'unreadable',
   'version',
   'via',
   'viaBulk',
@@ -356,6 +365,24 @@ export const knownAuditMetadataFields = [
   'visibility',
   'wouldFlagMissing',
 ] as const;
+
+/**
+ * Metadata **values** with a closed vocabulary get translated as well — that is
+ * what an operator reads (`status: must_change`, `decision: SUPER_ADMIN_ALLOWED`).
+ * Only codes confirmed in the backend are listed, and only exact matches are
+ * translated: a free-text reason or a name keeps its own words. Fields are the
+ * metadata field names; a value that is not listed passes through unchanged.
+ */
+export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]>> = {
+  membership: ['added', 'removed'],
+  severity: ['INFO', 'WARNING', 'CRITICAL'],
+  decision: ['SUPER_ADMIN_ALLOWED'],
+  permissionMatchMode: ['any', 'all'],
+  status: ['must_change'],
+  directoryKind: ['entra', 'ldaps'],
+  provider: ['local', 'entra', 'legacy'],
+  channel: ['email', 'teams', 'EMAIL', 'PAPER', 'PORTAL', 'IN_PERSON'],
+};
 
 const knownActions = new Set<string>(knownAuditActions);
 const knownEntityTypes = new Set<string>(knownAuditEntityTypes);
@@ -375,6 +402,16 @@ export function auditEntityTranslationKey(entityType: string): string | null {
   return knownEntityTypes.has(entityType)
     ? `admin.ops.auditLog.labels.entities.${keySlug(entityType)}`
     : null;
+}
+
+/** i18n key of a metadata value, or `null` when the value keeps its own words. */
+export function auditMetadataValueTranslationKey(
+  field: string,
+  value: string,
+): string | null {
+  const known = knownAuditMetadataValues[field];
+  if (known === undefined || !known.includes(value)) return null;
+  return `admin.ops.auditLog.values.${field}.${keySlug(value)}`;
 }
 
 export function auditMetadataFieldTranslationKey(field: string): string | null {

@@ -1,6 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { BellOff, BellRing, CheckCheck, ChevronDown, ChevronRight, RefreshCw, Send } from "lucide-react";
+import {
+  BellOff,
+  BellRing,
+  CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Database,
+  HardDrive,
+  KeyRound,
+  Layers,
+  RefreshCw,
+  Send,
+  ServerCrash,
+  ShieldAlert,
+  Timer,
+  Wifi,
+  WifiOff,
+  type LucideIcon,
+} from "lucide-react";
 import { OpsSilenceDialog } from "@/components/admin/ops-silence-dialog";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +35,8 @@ import { useToast } from "@/components/ui/toast";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   alertDetailEntries,
+  alertDetailLabelKey,
+  sortAlertDetailEntries,
   alertDurationMs,
   clamavState,
   componentStateTone,
@@ -27,6 +49,7 @@ import {
   ldapsCaState,
   opsAlertSlug,
   overallOpsState,
+  type OpsAlertSlug,
   overallStateTone,
   severityTone,
   sortSchedulers,
@@ -54,6 +77,29 @@ type KnownTestReason = (typeof knownTestReasons)[number];
 function knownTestReason(reason: string): KnownTestReason | null {
   return knownTestReasons.find((item) => item === reason) ?? null;
 }
+
+/**
+ * One icon per alarm family, so an operator recognises the row before reading
+ * it. Keys are the i18n slugs (`opsAlertSlug`); an alarm this client does not
+ * know yet falls back to the shield icon and still renders.
+ */
+const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
+  worker_down: ServerCrash,
+  sla_scan_late: Timer,
+  scheduler_late: Clock,
+  disk_usage: HardDrive,
+  clamav_unavailable: ShieldAlert,
+  queue_dlq: Layers,
+  http_5xx: Wifi,
+  database_unavailable: Database,
+  redis_unavailable: Database,
+  api_eventloop_lag: RefreshCw,
+  tls_ldapsCa_expiry: KeyRound,
+  ops_monitor_stale: WifiOff,
+  ops_test: Send,
+  websocket_emits_high: Wifi,
+  auth_login429_high: ShieldAlert,
+};
 
 /** The worker measures once a minute; refreshing faster only adds load. */
 const refreshEveryMs = 30_000;
@@ -450,12 +496,35 @@ function AlertItem({
 }) {
   const { t, i18n } = useTranslation();
   const slug = opsAlertSlug(alert.key);
-  const details = alertDetailEntries(alert.details);
+  const Icon = slug === null ? ShieldAlert : alertIcons[slug];
+  const details = sortAlertDetailEntries(alertDetailEntries(alert.details));
+  const detailLabel = (label: string) => {
+    const [head, ...rest] = label.split(".");
+    const key = alertDetailLabelKey(head ?? label);
+    const translated = key === null ? (head ?? label) : t(key as never);
+    return [translated, ...rest].join(" · ");
+  };
   return (
-    <li className="grid gap-1.5 rounded-md border border-border bg-surface px-3 py-2.5">
+    <li
+      className={cn(
+        "grid gap-1.5 rounded-md border border-border border-l-2 bg-surface px-3 py-2.5",
+        alert.severity === "CRITICAL" ? "border-l-danger/70" : "border-l-warning/70",
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="grid gap-0.5">
           <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+                alert.severity === "CRITICAL"
+                  ? "bg-danger/10 text-danger"
+                  : "bg-warning/10 text-warning",
+              )}
+              aria-hidden="true"
+            >
+              <Icon size={13.5} strokeWidth={2} />
+            </span>
             <Badge tone={severityTone(alert)} dot>
               {t(`admin.opsHealth.severity.${alert.severity}`)}
             </Badge>
@@ -487,8 +556,8 @@ function AlertItem({
         <dl className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-muted-foreground">
           {details.map(([label, value]) => (
             <div key={label} className="flex gap-1">
-              <dt>{label}:</dt>
-              <dd className="tnum text-foreground">{value}</dd>
+              <dt>{detailLabel(label)}:</dt>
+              <dd className="tnum font-medium text-foreground">{value}</dd>
             </div>
           ))}
         </dl>
