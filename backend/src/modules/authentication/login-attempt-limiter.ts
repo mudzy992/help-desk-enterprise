@@ -13,6 +13,11 @@ import {
   defaultSecurityRateLimitConfig,
   type SecurityRateLimitConfig,
 } from './security/security-rate-limit-config';
+import {
+  createCaptchaFailedException,
+  createCaptchaRequiredException,
+  LoginCaptchaService,
+} from './security/login-captcha.service';
 
 /**
  * Paket 5.4.0-b: the limits became configurable (`private.security.rateLimits.*`).
@@ -236,6 +241,7 @@ export class LoginAttemptLimiter {
     @Optional() private readonly jwtSigningSecretLoader?: JwtSigningSecretLoader,
     @Optional() private readonly rateLimitConfigLoader?: SecurityRateLimitConfigLoader,
     @Optional() private readonly securityMetrics?: LoginSecurityMetricsService,
+    @Optional() private readonly captcha?: LoginCaptchaService,
   ) {
     this.store =
       redis !== undefined && redis !== null
@@ -263,13 +269,31 @@ export class LoginAttemptLimiter {
     email: string,
     ip: string | undefined,
     login: () => Promise<T>,
+    captchaToken?: string | null,
   ): Promise<T> {
     const limits = await this.loadLimits();
     const secret = await this.loadHmacSecret();
     const accountKey = secret === null ? null : loginAccountAttemptKey(email, secret);
     const ipKey = loginIpAttemptKey(ip, secret ?? undefined);
     const ipFailures = await this.safe(() => this.store.count(ipKey), 0);
-    if (ipFailures >= limits.ipMaxFailures) {
+    /**
+     * Paket 5.4.1 (M3): from `captchaAfterFailures` on, the attempt has to carry
+     * a solved Turnstile challenge. A solved challenge buys **one** attempt, so
+     * an IP that already passed the block threshold may try again — the counter
+     * below keeps growing, and an automated client would have to solve a
+     * challenge per attempt. A provider that is `none`, or Cloudflare that
+     * cannot be reached, leaves the code path exactly as it was.
+     */
+    let captchaPassed = false;
+    if (this.captcha !== undefined && (await this.captcha.required(ipFailures))) {
+      const verdict = await this.captcha.verify(captchaToken ?? null, ip);
+      if (verdict === 'missing') throw createCaptchaRequiredException();
+      if (verdict === 'failed') throw createCaptchaFailedException();
+      // `unavailable` is deliberately not a pass: an unreachable Cloudflare
+      // must not lift the 429 either, only the challenge requirement.
+      captchaPassed = verdict === 'passed';
+    }
+    if (ipFailures >= limits.ipMaxFailures && !captchaPassed) {
       await this.recordMetric('login-429');
       throw createTooManyLoginAttemptsException(limits.ipWindowSeconds);
     }

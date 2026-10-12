@@ -78,6 +78,10 @@ describe('LoginSecurityMetricsService best-effort writes (5.4.0-b/f)', () => {
     const metrics = service();
     const snapshot = await metrics.lastHour(new Date('2026-10-12T09:15:00Z'));
     expect(Object.keys(snapshot.metrics).sort()).toEqual([
+      // 5.4.1 (M3) added the two challenge counters; the list is the contract of
+      // the metrics endpoint, so it stays exhaustive on purpose.
+      'captcha-failed',
+      'captcha-skipped',
       'hibp-skipped',
       'login-429',
       'login-account-delays',

@@ -116,8 +116,14 @@ export function useSession() {
       email: string,
       password: string,
       rememberMe = false,
+      captchaToken?: string,
     ): Promise<SignInOutcome> => {
-      const response = await loginWithPassword({ email, password, rememberMe });
+      const response = await loginWithPassword({
+        email,
+        password,
+        rememberMe,
+        ...(captchaToken === undefined ? {} : { captchaToken }),
+      });
       // A local (break-glass) session never triggers Entra single logout.
       forgetEntraConfiguration();
       return toSignInOutcome(response);

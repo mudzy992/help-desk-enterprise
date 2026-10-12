@@ -37,6 +37,10 @@ It is meant for **all users** (sign-in and their own account), while some parts 
 6. **The thresholds are configurable.** A SuperAdmin changes them in **Admin → Security → Login limits** (eight
    values in three rows, with a mandatory reason and identity confirmation); the change applies immediately
    without a restart. The numbers in steps 4 and 5 are the installation defaults.
+7. **Human verification (CAPTCHA)** — if a SuperAdmin turned Turnstile on, after **five failed sign-ins from the
+   same IP address** the sign-in also asks for a solved challenge; without it the server refuses the attempt
+   (`CAPTCHA_REQUIRED`) and the sign-in page shows the challenge. A solution is good for **one** attempt — if
+   that one fails too, the challenge is solved again; with the check off (the default) this step does not exist.
 
 ### Signing in with a Microsoft account (when configured that way)
 
@@ -147,8 +151,10 @@ the **Security administration** row only points there — values are edited in o
   flows), grouped into three rows (**Per-account delay**, **Per-IP block**, **Other security flows**) that show the
   current values. A row opens a dialog: each field shows its allowed range, and a change needs a **reason** (at
   least 5 characters) and a proof of identity with a code or a passkey.
-- **Security settings** — two rows: **Session lifetime and cut-off** (remember-me and the idle cut-off) and the
-  **Breached-password check** (on/off). Each row shows its state and opens the same dialog as every other setting
+- **Security settings** — three rows: **Session lifetime and cut-off** (remember-me and the idle cut-off), the
+  **Breached-password check** (on/off) and **Human verification (CAPTCHA)** (on/off; on means a sign-in that
+  failed five times from one address also asks for a Cloudflare Turnstile solution, while the secret key is kept
+  as a secret setting and is never rendered). Each row shows its state and opens the same dialog as every other setting
   (reason, dependencies, journal record). The card itself holds no form — editing happens in the dialog only.
 - **Force every local password to change** — every local account (except SUPER_ADMIN and Microsoft accounts) gets
   a required password change and all its sessions end; the person changes the password at the next sign-in.
@@ -186,7 +192,7 @@ data.
 | New password | at least `private.auth.password.minLength` characters (12–64); must not equal the e-mail, contain the organisation name, part of the e-mail address, or be among the most common passwords; with history enabled, it must not repeat. The forced change screen states the same minimum (the server sends it with the sign-in response) |
 | Code from the app | 6 digits, ±30 s tolerance |
 | Recovery code | the `xxxxx-xxxxx` format, single use |
-| Sign-in statuses | `MUST_CHANGE_PASSWORD` (temporary/expired password), `MFA_REQUIRED` (enrolled second factor), `MFA_ENROLLMENT_REQUIRED` (required but not enrolled) |
+| Sign-in statuses | `MUST_CHANGE_PASSWORD` (temporary/expired password), `MFA_REQUIRED` (enrolled second factor), `MFA_ENROLLMENT_REQUIRED` (required but not enrolled), `CAPTCHA_REQUIRED` (a solved challenge is required), `CAPTCHA_FAILED` (the solution was not accepted) |
 | Intermediate step lifetime | password change 15 minutes, two-step verification 5 minutes |
 | Session | 1 hour, extended while you work; an idle tab signs itself out |
 
@@ -196,6 +202,9 @@ data.
 |---|---|
 | “Sign-in failed. Check the e-mail and password.” | Wrong e-mail or password; it does not say which one. |
 | `429 TOO_MANY_LOGIN_ATTEMPTS` | The temporary IP threshold for local sign-ins has been reached; the account is not locked. Wait for the IP window to expire, then try again. |
+| `CAPTCHA_REQUIRED` — a “Human verification” block appears | Five sign-ins from your address failed, so the server asks for a human check. Solve it and submit the sign-in again; the check is asked for as long as the failure window lasts. |
+| “The check did not load. Check the connection…” | The browser (or the server) cannot reach the Cloudflare Turnstile service. Check the connection and try again; if it repeats, tell an administrator — on an installation without internet access the check stays off. |
+| `CAPTCHA_FAILED` — “The check was not accepted” | The solution expired or was already used (it is single use); the widget resets, so solve it again and submit the sign-in. |
 | “The code is not valid or has already been used.” | The code expired, was mistyped or was already used; wait for a new code or use a recovery code. |
 | “The sign-in step expired (valid for 5 minutes).” | You waited too long on the code screen; go back to sign-in and repeat. |
 | “The setup expired. Start over.” | Enrolling two-step verification takes 15 minutes; start the enrolment again. |
@@ -213,6 +222,9 @@ data.
   in Microsoft.
 - The local sign-in IP threshold is shared by users behind the same public IP address (for example, a shared
   proxy or NAT). The initial thresholds above still need staging measurement before production rollout.
+- **Human verification** needs outbound internet access from the server *and* from the user's browser; on an
+  installation without internet it stays off (`private.security.captcha.provider` on `none`). It is asked for per
+  **IP address**, so behind a shared NAT a whole office gets it after five shared failures.
 - **Recovery requires administrator help:** if a user loses the phone and all valid recovery codes, the way out
   goes through an administrator (**MFA reset**), with no self-service.
 

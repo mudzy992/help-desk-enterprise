@@ -72,6 +72,8 @@ const entries: readonly SettingRegistryEntry[] = [
   entry("private.security.redaction.enabled", "true"),
 ];
 
+const captchaProviderKey = "private.security.captcha.provider";
+
 const noop = vi.fn(async () => ({ changed: [], reset: [] }) as never);
 
 describe("AdminSecurityPolicyCards", () => {
@@ -81,6 +83,9 @@ describe("AdminSecurityPolicyCards", () => {
     );
     expect(html).toContain('data-testid="admin-security-policy-row-session"');
     expect(html).toContain('data-testid="admin-security-policy-row-hibp"');
+    // 5.4.1 (M3): the human check is a policy surface too.
+    expect(html).toContain('data-testid="admin-security-policy-row-captcha"');
+    expect(html).toContain("admin.security.captchaRow");
     // 5.4.0-e.3: the card holds two groups, so its title covers both rows.
     expect(html).toContain("admin.security.policyTitle");
     expect(html).toContain("admin.security.policyBody");
@@ -110,6 +115,28 @@ describe("AdminSecurityPolicyCards", () => {
     // Nothing leaks into the initial render, not even for a read-only viewer.
     expect(sessionOnly).not.toContain("private.security.redaction.enabled");
     expect(sessionOnly).toContain("admin.security.policyBody");
+  });
+
+  it("reports the human check as on only when the provider is turnstile", () => {
+    // No captcha entry in the registry yet: `none` is the default, so the row
+    // must not promise a check that is not running.
+    const off = renderToStaticMarkup(
+      <AdminSecurityPolicyCards entries={entries} canWrite pendingKey={null} onSave={noop} />,
+    );
+    expect(off).toContain("admin.security.captchaHint");
+    expect(off.match(/settings\.security\.enabled/g) ?? []).toHaveLength(1);
+
+    const on = renderToStaticMarkup(
+      <AdminSecurityPolicyCards
+        entries={[...entries, entry(captchaProviderKey, "turnstile")]}
+        canWrite
+        pendingKey={null}
+        onSave={noop}
+      />,
+    );
+    expect((on.match(/settings\.security\.enabled/g) ?? []).length).toBe(
+      (off.match(/settings\.security\.enabled/g) ?? []).length + 1,
+    );
   });
 
   it("ignores the redaction switch — it belongs to Usklađenost", () => {

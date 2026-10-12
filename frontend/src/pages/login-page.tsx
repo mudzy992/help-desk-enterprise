@@ -2,6 +2,7 @@ import { BookOpen, Eye, EyeOff, Lock, ShieldCheck, Ticket, TrendingUp } from "lu
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { CaptchaChallenge } from "@/components/auth/captcha-challenge";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
 import { MfaMethodStep } from "@/components/auth/mfa-method-step";
@@ -109,6 +110,14 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  /**
+   * Paket 5.4.1 (M3): the server asks for a solved Turnstile challenge only
+   * after repeated failures — the widget is not rendered before that, so a
+   * normal sign-in stays exactly as it was.
+   */
+  const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
   // Paket 5.3.0 (login polish): reveal toggle + Caps Lock hint, the two
   // most common reasons for a failed first attempt.
@@ -170,12 +179,27 @@ export function LoginPage() {
     setHasError(false);
     setIsRateLimited(false);
     try {
-      const outcome = await signIn(email, password, rememberMe);
+      const outcome = await signIn(email, password, rememberMe, captchaToken ?? undefined);
       setPassword("");
+      setIsCaptchaRequired(false);
+      setCaptchaToken(null);
       advance(outcome);
     } catch (error) {
-      setHasError(error instanceof ApiError || error instanceof Error);
-      setIsRateLimited(error instanceof ApiError && error.status === 429);
+      const code = error instanceof ApiError ? error.code : null;
+      if (code === "CAPTCHA_REQUIRED") {
+        // First time the server asks: show the widget and let the user solve it.
+        setIsCaptchaRequired(true);
+        setHasError(false);
+      } else if (code === "CAPTCHA_FAILED") {
+        // A Turnstile token is single-use; a rejected one is already spent.
+        setIsCaptchaRequired(true);
+        setHasError(false);
+        setCaptchaToken(null);
+        setCaptchaResetSignal((value) => value + 1);
+      } else {
+        setHasError(error instanceof ApiError || error instanceof Error);
+        setIsRateLimited(error instanceof ApiError && error.status === 429);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -453,12 +477,28 @@ export function LoginPage() {
                     />
                     <span>{t("login.rememberMe")}</span>
                   </label>
+                  {isCaptchaRequired && providers?.captcha?.siteKey != null ? (
+                    <CaptchaChallenge
+                      siteKey={providers.captcha.siteKey}
+                      onToken={setCaptchaToken}
+                      resetSignal={captchaResetSignal}
+                    />
+                  ) : null}
                   {hasError ? (
                     <p id="login-error" className={errorTextClassName} role="alert">
                       {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
                     </p>
                   ) : null}
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      isSubmitting ||
+                      (isCaptchaRequired &&
+                        providers?.captcha?.provider === "turnstile" &&
+                        captchaToken === null)
+                    }
+                  >
                     {isSubmitting ? t("session.signingIn") : t("session.signIn")}
                   </Button>
                 </form>

@@ -94,11 +94,11 @@ function readDictionary(locale: (typeof locales)[number]): Dictionary {
 
 describe("settings registry translations (5.3.4)", () => {
   it("finds the key catalogue it guards", () => {
-    // The registry exposes 463 keys (5.4.0-d adds the breached-password
-    // switch, the 429-alarm follow-up its two thresholds); a regression in the
-    // reader must fail loudly instead of silently passing because it found
+    // The registry exposes 466 keys (5.4.1 adds the three CAPTCHA keys: the
+    // provider switch, the public site key and the secret key); a regression in
+    // the reader must fail loudly instead of silently passing because it found
     // nothing to check.
-    expect(allKeys).toHaveLength(463);
+    expect(allKeys).toHaveLength(466);
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");
     // Nine pairs ship today: SMTP, Edge extension and Teams each have three.

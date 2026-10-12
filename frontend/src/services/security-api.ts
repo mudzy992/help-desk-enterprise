@@ -57,7 +57,11 @@ export type LoginSecurityMetricEvent =
   | "login-429"
   | "login-account-delays"
   | "mfa-failures"
-  | "hibp-skipped";
+  | "hibp-skipped"
+  // 5.4.1 (M3): the challenge counters the server keeps next to the four above.
+  // The card draws the first four; these two are read from the endpoint.
+  | "captcha-skipped"
+  | "captcha-failed";
 
 export type LoginSecurityMetricSeries = {
   readonly total: number;
