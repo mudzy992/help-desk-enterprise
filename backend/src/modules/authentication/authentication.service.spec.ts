@@ -11,6 +11,7 @@ import { passkeyLoginChallengeKey } from './security/passkey-credential.service'
 import type {
   AuthenticatedPrincipal,
   AuthenticationUserRecord,
+  MfaTokenClaims,
 } from './authentication.types';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -696,9 +697,11 @@ describe('AuthenticationService auth.login_failed', () => {
   its one-hour TTL on this path exactly like on the TOTP path.
 */
 describe('AuthenticationService 5.4.0-a passkey second factor', () => {
-  const mfaClaims = (rememberMe = false) => ({
+  // Typed as the real claims: a test may ask for the `enroll` stage, and the
+  // server has to refuse that token on the login path (CI compiles the specs).
+  const mfaClaims = (rememberMe = false): MfaTokenClaims => ({
     subjectId: 'user-1',
-    stage: 'verify' as const,
+    stage: 'verify',
     jti: 'mfa-jti-1',
     expiresAt: Math.floor(Date.now() / 1000) + 300,
     rememberMe,

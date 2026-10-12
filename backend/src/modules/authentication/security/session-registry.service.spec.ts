@@ -1,5 +1,6 @@
 jest.mock('../../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 
+import { defaultAccountSecurityPolicy } from './account-security-policy';
 import { SessionRegistryService } from './session-registry.service';
 
 describe('SessionRegistryService.revokeAll (5.2.1 M2 #6)', () => {
@@ -62,7 +63,9 @@ describe('SessionRegistryService.revokeAll (5.2.1 M2 #6)', () => {
   stays inside the short TTL for the whole life of the session.
 */
 describe('SessionRegistryService remember me (5.4.0-c)', () => {
-  const policy = { sessionsNewDeviceAlert: false, sessionsMaxPerUser: 0 };
+  // The real shape: only the two session knobs matter here, and building the
+  // object from the defaults keeps it assignable to `AccountSecurityPolicy`.
+  const policy = { ...defaultAccountSecurityPolicy, sessionsNewDeviceAlert: false, sessionsMaxPerUser: 0 };
 
   function createRegistry() {
     const created: Array<Record<string, unknown>> = [];
