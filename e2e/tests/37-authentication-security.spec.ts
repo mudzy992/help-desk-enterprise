@@ -3,6 +3,7 @@ import { ApiClient } from '../helpers/api-client';
 import { assertDisposableTestAccount } from '../helpers/disposable-account';
 import { readE2EEnvironment } from '../helpers/environment';
 import { nextTotpCode } from '../helpers/mfa';
+import { restoreTestActorPassword } from '../helpers/provision-test-actors';
 
 type MfaPendingLogin = {
   readonly status: 'MFA_REQUIRED' | 'MFA_ENROLLMENT_REQUIRED';
@@ -202,5 +203,146 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     await expect(page.getByRole('alert')).toContainText(/istekao|expired/i);
     await page.getByRole('button', { name: /nazad na prijavu|back to sign in/i }).click();
     await expect(page.locator('#login-email')).toBeVisible();
+  });
+});
+
+/**
+ * Paket 5.4.0-f (spec 37 extension): the two 5.4 authentication behaviours a
+ * browser cannot show on its own.
+ *
+ *  * **"Zapamti me" (5.4.0-c)**: a remembered session lasts 30 days, the choice
+ *    travels through the MFA intermediate step, is stored on the session row and
+ *    survives a refresh. A SUPER_ADMIN is break-glass and never gets it.
+ *  * **Bulk password reset (5.4.0-d)**: one SuperAdmin action raises
+ *    `mustChangePassword` for every local account the application manages (never
+ *    for a SuperAdmin), revokes their sessions without touching a single
+ *    password, and reports counts; a repeat call keeps revoking and honestly
+ *    reports zero changed accounts.
+ */
+type SessionTtl = {
+  readonly accessToken: string;
+  readonly expiresInSeconds: number;
+};
+
+/**
+ * Signs in with an explicit remember-me choice, following the MFA step when the
+ * account has a second factor. The choice travels inside the MFA token claims,
+ * which is what this spec is about.
+ */
+async function signInWithRememberMe(
+  api: ApiClient,
+  email: string,
+  password: string,
+  rememberMe: boolean,
+): Promise<SessionTtl> {
+  const body = await api.requestJson<SessionTtl & { status?: string; mfaToken?: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, rememberMe }),
+  });
+  if (body.status === 'MFA_REQUIRED' && body.mfaToken !== undefined) {
+    const verified = await api.requestJson<SessionTtl>('/auth/mfa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ mfaToken: body.mfaToken, code: await nextTotpCode(email) }),
+    });
+    api.setBearerToken(verified.accessToken);
+    return verified;
+  }
+  if (body.status !== undefined) throw new Error(`[e2e] login requires ${body.status}`);
+  if (body.accessToken === undefined) throw new Error('[e2e] login answer carried no access token');
+  api.setBearerToken(body.accessToken);
+  return body;
+}
+
+type BulkPasswordResetResult = {
+  readonly eligibleUsers: number;
+  readonly changedUsers: number;
+  readonly revokedSessions: number;
+  readonly failedUsers: number;
+};
+
+test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
+  test('remember me lasts 30 days, survives a refresh, and never applies to a super admin', async () => {
+    test.setTimeout(120_000);
+    const env = readE2EEnvironment();
+    const normal = await signInWithRememberMe(new ApiClient(), env.userEmail, env.userPassword, false);
+    const rememberedClient = new ApiClient();
+    const remembered = await signInWithRememberMe(rememberedClient, env.userEmail, env.userPassword, true);
+
+    // 30 days against the 1 h default; asserting the relation keeps the spec
+    // honest even if the deployment tunes `session.*` (5.4.0-c).
+    expect(remembered.expiresInSeconds).toBeGreaterThan(normal.expiresInSeconds * 24);
+    const refreshed = await rememberedClient.requestJson<SessionTtl>('/auth/refresh', { method: 'POST' });
+    expect(refreshed.expiresInSeconds).toBe(remembered.expiresInSeconds);
+
+    // Break-glass: asking for 30 days as a SuperAdmin yields the plain 1 h again
+    // — and a refresh re-derives the same answer from the session row.
+    const adminClient = new ApiClient();
+    const admin = await signInWithRememberMe(adminClient, env.superAdminEmail, env.superAdminPassword, true);
+    expect(admin.expiresInSeconds).toBe(normal.expiresInSeconds);
+    expect(admin.expiresInSeconds).toBeLessThan(remembered.expiresInSeconds);
+    const adminRefreshed = await adminClient.requestJson<SessionTtl>('/auth/refresh', { method: 'POST' });
+    expect(adminRefreshed.expiresInSeconds).toBe(admin.expiresInSeconds);
+  });
+
+  test('the bulk password reset flags every local account, revokes their sessions and can be repeated', async () => {
+    // Two SuperAdmin TOTP steps (sign-in and the identity proof) walk the 30 s
+    // window, so this spec asks for more than the default 90 s budget.
+    test.setTimeout(180_000);
+    const env = readE2EEnvironment();
+    assertDisposableTestAccount(env.userEmail, 'flag every local account');
+    assertDisposableTestAccount(env.agentEmail, 'flag every local account');
+
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    const user = new ApiClient();
+    await user.login(env.userEmail, env.userPassword);
+
+    let first: BulkPasswordResetResult | null = null;
+    try {
+      first = await admin.requestJson<BulkPasswordResetResult>('/security/bulk-password-reset', {
+        method: 'POST',
+        body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
+      });
+
+      // Counts only, and honest ones: every targeted account could be flagged
+      // and every session revoked.
+      expect(first.changedUsers).toBeGreaterThan(0);
+      expect(first.eligibleUsers).toBeGreaterThanOrEqual(first.changedUsers);
+      expect(first.failedUsers).toBe(0);
+
+      // The password itself is untouched, but the next sign-in is forced through
+      // the change screen; the live session of the affected account is gone.
+      expect((await user.request('/auth/security')).status).toBe(401);
+      const forced = await new ApiClient().requestJson<{ status?: string; passwordChangeToken?: string }>(
+        '/auth/login',
+        { method: 'POST', body: JSON.stringify({ email: env.userEmail, password: env.userPassword }) },
+      );
+      expect(forced.status).toBe('MUST_CHANGE_PASSWORD');
+      expect(forced.passwordChangeToken).toEqual(expect.any(String));
+
+      // A SuperAdmin is never a target — the acting session keeps working.
+      expect((await admin.request('/auth/security')).status).toBe(200);
+
+      // Repeated action: nothing left to flag, and it says so instead of
+      // reporting the first result again.
+      const second = await admin.requestJson<BulkPasswordResetResult>('/security/bulk-password-reset', {
+        method: 'POST',
+        body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
+      });
+      expect(second.changedUsers).toBe(0);
+      expect(second.failedUsers).toBe(0);
+    } finally {
+      // Put the actors back through the documented admin path (temporary
+      // password + forced change): the bulk reset changed no password, and
+      // "change to the password it already has" is refused as PASSWORD_REUSED.
+      await restoreTestActorPassword(admin, { email: env.userEmail, password: env.userPassword });
+      await restoreTestActorPassword(admin, { email: env.agentEmail, password: env.agentPassword });
+    }
+
+    // Both actors sign in with their configured passwords again, so every later
+    // spec finds the stack as this one did.
+    await expect(new ApiClient().login(env.userEmail, env.userPassword)).resolves.toEqual(expect.any(String));
+    await expect(new ApiClient().login(env.agentEmail, env.agentPassword)).resolves.toEqual(expect.any(String));
+    expect(first?.revokedSessions).toBeGreaterThan(0);
   });
 });

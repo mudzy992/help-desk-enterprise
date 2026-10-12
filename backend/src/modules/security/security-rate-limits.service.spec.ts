@@ -100,3 +100,101 @@ describe('SecurityRateLimitsService', () => {
     expect(settingsService.setSettingValues).not.toHaveBeenCalled();
   });
 });
+
+/*
+  Paket 5.4.0-f: what the unit next to the endpoint still has to prove for the
+  E2E spec 47 to be meaningful — the cross-field rules are refused before any
+  write (a value can be inside each bound and still be a broken combination),
+  and the write that does go through leaves both trails the runbook promises: the
+  settings batch with the admin's reason and one auth audit entry with counts
+  only.
+*/
+describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () => {
+  function instrumented(auditRows: Record<string, unknown>[]) {
+    const settingsService = { setSettingValues: jest.fn(async () => ({})) };
+    const configLoader = { load: jest.fn(async () => d) };
+    const mfaService = { isEnabled: jest.fn(async () => true), verify: jest.fn(async () => 'totp') };
+    const identityPasskeyService = { consumeFreshConfirmation: jest.fn(async () => false) };
+    const userLoader = { findById: jest.fn(async () => ({ id: 'admin-1', email: 'admin@desk.ba', roleKeys: ['SUPER_ADMIN'] })) };
+    const auditClient = {
+      $executeRaw: jest.fn(async () => 1),
+      auditLog: {
+        findFirst: jest.fn(async () => null),
+        create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          auditRows.push(data);
+          return data;
+        }),
+      },
+    };
+    const prisma = {
+      $transaction: async (run: (client: unknown) => Promise<unknown>) => run(auditClient),
+    };
+    const instance = new SecurityRateLimitsService(
+      settingsService as never,
+      configLoader as never,
+      mfaService as never,
+      identityPasskeyService as never,
+      userLoader as never,
+      prisma as never,
+    );
+    return { instance, settingsService };
+  }
+
+  it('refuses a combination that is inside every bound but contradicts itself', async () => {
+    const { instance, settingsService } = instrumented([]);
+
+    // The IP bucket would always open before the account delay starts: accepted
+    // by the per-field bounds, refused by the cross-field rule.
+    await expect(
+      instance.update(caller, {
+        config: { ...d, accountDelayStartsAfterFailures: 20, ipMaxFailures: 10 },
+        reason: 'kombinacija koja nema smisla',
+        code: '123456',
+      }),
+    ).rejects.toMatchObject({ response: { code: 'RATE_LIMITS_INVALID' } });
+    expect(settingsService.setSettingValues).not.toHaveBeenCalled();
+
+    // A floor above the ceiling.
+    await expect(
+      instance.update(caller, {
+        config: { ...d, accountDelayBaseMilliseconds: 4_000, accountDelayMaxMilliseconds: 1_000 },
+        reason: 'obrnute granice odgode',
+        code: '123456',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(settingsService.setSettingValues).not.toHaveBeenCalled();
+  });
+
+  it('journals the retune as one batch with the reason and one privacy-clean audit entry', async () => {
+    const auditRows: Record<string, unknown>[] = [];
+    const { instance, settingsService } = instrumented(auditRows);
+
+    const result = await instance.update(caller, {
+      config: { ...d, ipMaxFailures: 55, ipWindowSeconds: 120 },
+      reason: 'kalibracija: veliki NAT proxy u sjedištu',
+      code: '123456',
+    });
+
+    // The answer is what the loader reads back — the endpoint never echoes the
+    // request body, so the client always sees the effective, stored policy.
+    expect(result.config.ipMaxFailures).toBe(d.ipMaxFailures);
+    const [batch, mutation] = settingsService.setSettingValues.mock.calls[0] as unknown as [
+      Array<{ key: string; value: unknown }>,
+      { reason: string; actorUserId: string },
+    ];
+    expect(batch).toHaveLength(8);
+    expect(batch).toContainEqual({ key: expect.stringContaining('ipMaxFailures'), value: 55 });
+    expect(mutation).toEqual({ reason: 'kalibracija: veliki NAT proxy u sjedištu', actorUserId: 'admin-1' });
+
+    expect(auditRows).toHaveLength(1);
+    expect(auditRows[0]).toMatchObject({
+      action: 'auth.rate_limits_changed',
+      entityType: 'user',
+      entityId: 'admin-1',
+      actorUserId: 'admin-1',
+      metadata: { ipMaxFailures: 55, ipWindowSeconds: 120 },
+    });
+    // Counts only: nothing about a person, a code or an address travels with it.
+    expect(JSON.stringify(auditRows[0])).not.toMatch(/admin@desk\.ba|123456|@/);
+  });
+});

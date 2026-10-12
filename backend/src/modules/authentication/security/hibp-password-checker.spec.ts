@@ -145,6 +145,24 @@ describe('HibpPasswordChecker', () => {
     expect(warned).toBeGreaterThanOrEqual(0);
   });
 
+  it('fails open when the body stalls after the headers (the abort covers the read, not just the response)', async () => {
+    // `AbortSignal.timeout` aborts the body read too: a range response that
+    // arrives and then stops sending must not hold the password change open.
+    const { fetchImpl } = createFetch(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        throw error;
+      },
+    }));
+
+    await expect(build(fetchImpl).check(password)).resolves.toBe('unavailable');
+    expect(metrics.record).toHaveBeenCalledWith('hibp-skipped');
+    expect(redis.set).not.toHaveBeenCalled();
+  });
+
   it('fails open on a network error, a non-2xx answer and a malformed body', async () => {
     const network = createFetch(async () => {
       throw new Error('socket hang up');

@@ -99,4 +99,44 @@ describe('IdentityPasskeyService', () => {
     await instance.verify('session-1', 'u-1', 'identity-confirmation', { id: 'cred-0' }, null);
     await expect(instance.consumeFreshConfirmation('session-1', 'bulk-password-reset')).resolves.toBe(false);
   });
+
+  it('binds the marker to the session that ran the ceremony', async () => {
+    const { instance } = identityService();
+    await instance.start('session-1', 'u-1', 'identity-confirmation');
+    await instance.verify('session-1', 'u-1', 'identity-confirmation', { id: 'cred-0' }, null);
+
+    // Another tab/session of the same account cannot spend it.
+    await expect(instance.consumeFreshConfirmation('session-2', 'identity-confirmation')).resolves.toBe(false);
+    await expect(instance.consumeFreshConfirmation('session-1', 'identity-confirmation')).resolves.toBe(true);
+  });
+
+  it('demands user verification from the shared assertion verifier', async () => {
+    const { instance, passkeyCredentialService } = identityService();
+    await instance.start('session-1', 'u-1', 'rate-limits-change');
+    await instance.verify('session-1', 'u-1', 'rate-limits-change', { id: 'cred-0' }, '10.0.0.3');
+
+    expect(passkeyCredentialService.verifyAssertion).toHaveBeenCalledWith(
+      'u-1',
+      expect.stringContaining('rate-limits-change'),
+      { id: 'cred-0' },
+      rp,
+      // A step-up that does not prove the living person is worthless: the same
+      // flag that protects the rate-limit and bulk-reset actions.
+      true,
+      '10.0.0.3',
+    );
+  });
+
+  it('fails closed when the deployment loses its RP configuration', async () => {
+    const { instance } = identityService();
+    (instance as unknown as { webAuthnRpLoader: { load: jest.Mock } }).webAuthnRpLoader.load.mockReturnValue(null);
+
+    await expect(instance.start('session-1', 'u-1', 'identity-confirmation')).rejects.toThrow(
+      new PasskeyIdentityError('IDENTITY_CONFIRMATION_REQUIRED'),
+    );
+    await expect(
+      instance.verify('session-1', 'u-1', 'identity-confirmation', { id: 'cred-0' }, null),
+    ).rejects.toThrow(new PasskeyIdentityError('IDENTITY_CONFIRMATION_FAILED'));
+    await expect(instance.consumeFreshConfirmation('session-1', 'identity-confirmation')).resolves.toBe(false);
+  });
 });

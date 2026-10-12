@@ -35,8 +35,8 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
     roleKey: 'AGENT',
     organizationalUnitId,
   });
-  await ensurePassword(api, agentId, env.agentEmail, env.agentPassword);
-  await ensurePassword(api, userId, env.userEmail, env.userPassword);
+  await restoreTestActorPassword(api, { userId: agentId, email: env.agentEmail, password: env.agentPassword });
+  await restoreTestActorPassword(api, { userId, email: env.userEmail, password: env.userPassword });
 }
 
 /**
@@ -46,9 +46,23 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
  * harness completes the forced change to the configured one. The temporary
  * password is returned only when it was NOT e-mailed, so test accounts must use
  * an address the e-mail policy does not deliver to (the reserved `example.com`).
+ *
+ * Paket 5.4.0-f: exported because it is also the way a spec **restores** an
+ * actor after a destructive action of the suite. `POST /security/bulk-password-reset`
+ * raises `mustChangePassword` for every local account without touching a single
+ * password, so a spec that exercises it must put the actors back — and a plain
+ * password change cannot do that: the account already uses the configured
+ * password, and reusing a current password is refused (`PASSWORD_REUSED`). The
+ * admin reset bypasses the history, which is exactly why this path works.
  */
-async function ensurePassword(admin: ApiClient, userId: string, email: string, password: string): Promise<void> {
+export async function restoreTestActorPassword(
+  admin: ApiClient,
+  input: { readonly email: string; readonly password: string; readonly userId?: string },
+): Promise<void> {
+  const { email, password } = input;
+  assertDisposableTestAccount(email, 'overwrite the password');
   if (await canSignIn(email, password)) return;
+  const userId = input.userId ?? (await findUserId(admin, email));
   const reset = await admin.requestJson<{ temporaryPassword: string | null; temporaryPasswordDelivery: string }>(
     `/users/${userId}/reset-password`,
     { method: 'POST' },
@@ -73,6 +87,18 @@ async function ensurePassword(admin: ApiClient, userId: string, email: string, p
   if (!(await canSignIn(email, password))) {
     throw new Error(`[e2e] ${email}: password change did not take effect`);
   }
+}
+
+/** The admin users API, filtered by the exact address (never a broad listing). */
+async function findUserId(admin: ApiClient, email: string): Promise<string> {
+  const users = await admin.requestJson<Array<{ id: string; email: string }>>(
+    `/users?q=${encodeURIComponent(email)}&take=10`,
+  );
+  const target = users.find((user) => user.email.toLowerCase() === email.toLowerCase());
+  if (target === undefined) {
+    throw new Error(`[e2e] configured actor ${email} was not found through the users API`);
+  }
+  return target.id;
 }
 
 /** A full sign-in (MFA verify or enrolment included); false only for bad credentials. */

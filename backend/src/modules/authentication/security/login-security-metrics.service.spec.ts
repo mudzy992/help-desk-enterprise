@@ -48,3 +48,44 @@ describe('LoginSecurityMetricsService', () => {
     expect(metricsBucketKey('login-429', minuteBucketOf(now))).toMatch(/^security:metrics:login-429:\d+$/);
   });
 });
+
+describe('LoginSecurityMetricsService best-effort writes (5.4.0-b/f)', () => {
+  it('never turns a metrics outage into a sign-in error', async () => {
+    const redis = {
+      eval: jest.fn(async () => {
+        throw new Error('redis down');
+      }),
+    };
+    const metrics = new LoginSecurityMetricsService(redis as never);
+    await expect(metrics.record('login-429')).resolves.toBeUndefined();
+    expect(redis.eval).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the minute bucket with the 2 h TTL, so the window cannot grow forever', async () => {
+    const redis = { eval: jest.fn(async () => 1), mget: jest.fn(async () => []) };
+    const metrics = new LoginSecurityMetricsService(redis as never);
+    const at = new Date('2026-10-12T09:15:30Z');
+    await metrics.record('hibp-skipped', at);
+    expect(redis.eval).toHaveBeenCalledWith(
+      expect.stringContaining('INCR'),
+      1,
+      metricsBucketKey('hibp-skipped', minuteBucketOf(at)),
+      String(2 * 60 * 60),
+    );
+  });
+
+  it('reports every known event, even when nothing happened in the window', async () => {
+    const metrics = service();
+    const snapshot = await metrics.lastHour(new Date('2026-10-12T09:15:00Z'));
+    expect(Object.keys(snapshot.metrics).sort()).toEqual([
+      'hibp-skipped',
+      'login-429',
+      'login-account-delays',
+      'mfa-failures',
+    ]);
+    for (const series of Object.values(snapshot.metrics)) {
+      expect(series.total).toBe(0);
+      expect(series.points).toHaveLength(60);
+    }
+  });
+});

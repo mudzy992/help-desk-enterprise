@@ -52,4 +52,38 @@ describe('SecurityRateLimitConfigLoader', () => {
     const loader = new SecurityRateLimitConfigLoader(settingsService as never);
     await expect(loader.load()).resolves.toEqual(d);
   });
+
+  it('keeps every other key when one stored value is unusable', async () => {
+    const config = await loaderWith({
+      'private.security.rateLimits.passwordLogin.ipMaxFailures': 120,
+      'private.security.rateLimits.passwordLogin.ipWindowSeconds': 'sixty',
+    }).load();
+
+    // A text value is not a tuned number: that key falls back, its neighbours do not.
+    expect(config.ipMaxFailures).toBe(120);
+    expect(config.ipWindowSeconds).toBe(d.ipWindowSeconds);
+  });
+
+  it('refuses non-integer numbers, so a floated or negative value cannot weaken a limit', async () => {
+    const config = await loaderWith({
+      'private.security.rateLimits.passwordLogin.ipMaxFailures': 12.5,
+      'private.security.rateLimits.passwordLogin.accountDelayStartsAfterFailures': -1,
+      'private.security.rateLimits.other.maxFailures': null,
+    }).load();
+
+    expect(config.ipMaxFailures).toBe(d.ipMaxFailures);
+    expect(config.accountDelayStartsAfterFailures).toBe(d.accountDelayStartsAfterFailures);
+    expect(config.otherMaxFailures).toBe(d.otherMaxFailures);
+  });
+
+  it('reads the settings again on every load, so a retune needs no restart', async () => {
+    const values: Record<string, unknown> = {
+      'private.security.rateLimits.passwordLogin.ipMaxFailures': 50,
+    };
+    const loader = loaderWith(values);
+    await expect(loader.load()).resolves.toMatchObject({ ipMaxFailures: 50 });
+
+    values['private.security.rateLimits.passwordLogin.ipMaxFailures'] = 200;
+    await expect(loader.load()).resolves.toMatchObject({ ipMaxFailures: 200 });
+  });
 });

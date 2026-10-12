@@ -35,13 +35,19 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
    upisanu lozinku, a ispod polja se pojavi upozorenje **Caps Lock je uključen.** kad je to slučaj. Jezik ekrana
    bira se padajućim izborom u gornjem desnom uglu.
 2. Ako su podaci ispravni, otvara se aplikacija. Ako nisu: „Prijava nije uspjela. Provjerite email i lozinku.“
-3. Lokalna prijava ima odvojena ograničenja po nalogu i IP adresi. Nakon tri pogrešna pokušaja po nalogu uvodi
-   se ograničeno progresivno kašnjenje (počinje od 250 ms i raste do najviše 2 s); nalog se ne zaključava.
-   Stanje naloga važi u prozoru od 30 minuta, a uspješna prijava ga poništava.
-4. IP adresa može dobiti privremeni HTTP `429` nakon 40 pogrešnih lokalnih prijava u 5 minuta. IP prag dijele
-   sve lokalne prijave s te adrese; uspješna prijava ne briše IP prozor.
-5. Ovo su početne vrijednosti implementacije. Potvrda pragova mjerenjem u stagingu ostaje potrebna prije
-   produkcijskog rollouta.
+3. **Zapamti me na ovom uređaju (30 dana)** — prijava traje 30 dana umjesto jednog sata; preporučeno samo na
+   vlastitom, zaključanom uređaju. SUPER_ADMIN nalog se ne pamti (rezervni ulaz je namjerno kratkotrajan), a
+   odjava ili promjena lozinke pamćenje prekidaju.
+4. Lokalna prijava ima odvojena ograničenja po nalogu i IP adresi. Nakon tri pogrešna pokušaja po nalogu uvodi
+   se ograničeno progresivno kašnjenje (počinje od 250 ms i raste do najviše 2 s); **nalog se ne zaključava** —
+   ispravna lozinka prolazi i poslije pogrešnih pokušaja. Stanje naloga važi u prozoru od 30 minuta, a uspješna
+   prijava ga poništava.
+5. IP adresa može dobiti privremeni `429` nakon 40 pogrešnih lokalnih prijava u 5 minuta. Odgovor nosi
+   `retryAfterSeconds` (koliko još traje blokada). IP prag dijele sve lokalne prijave s te adrese; uspješna
+   prijava ne briše IP prozor.
+6. **Pragovi su podesivi.** SuperAdmin ih mijenja na **Admin → Sigurnost → Ograničenja prijava** (osam
+   vrijednosti u tri reda, uz obavezan razlog i potvrdu identiteta); promjena važi odmah, bez restarta. Brojevi
+   u koracima 4 i 5 su zadane vrijednosti instalacije.
 
 ### Prijava Microsoft nalogom (kada je tako podešeno)
 
@@ -78,10 +84,15 @@ TOTP-u, obratite se administratoru za **Reset MFA**.
 ### Prijava s uključenom potvrdom u dva koraka
 
 1. Poslije ispravne lozinke traži se **Potvrda u dva koraka**.
-2. Unesite **Kod iz aplikacije** i kliknite **Potvrdi** (kod se mijenja svakih 30 sekundi).
-3. Ako nemate telefon, kliknite **Nemam pristup aplikaciji — koristi rezervni kod**, unesite jedan od sačuvanih
+2. Ako nalog ima i passkey, iznad forme stoje dva izbora: **Kod iz aplikacije** i
+   **Koristi passkey / uređaj**. Uz passkey kliknite **Potvrdi passkeyjem** i odobrite prijavu na uređaju
+   (Windows Hello, Touch ID, Face ID ili sigurnosni ključ) — kod se tada ne kuca. Izbor se pamti po uređaju,
+   pa se sljedeća prijava otvara na onom faktoru koji ste zadnji koristili; kod iz aplikacije uvijek ostaje
+   dostupan kao drugi izbor.
+3. Unesite **Kod iz aplikacije** i kliknite **Potvrdi** (kod se mijenja svakih 30 sekundi).
+4. Ako nemate telefon, kliknite **Nemam pristup aplikaciji — koristi rezervni kod**, unesite jedan od sačuvanih
    kodova i potvrdite. Rezervni kod vrijedi samo jednom.
-4. Svaki kod (i rezervni) može se iskoristiti samo jednom; aplikacija to provjerava i na serveru.
+5. Svaki kod (i rezervni) može se iskoristiti samo jednom; aplikacija to provjerava i na serveru.
 
 ### Sigurnost naloga (svoj nalog)
 

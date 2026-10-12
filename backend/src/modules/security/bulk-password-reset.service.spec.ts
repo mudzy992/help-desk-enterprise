@@ -259,4 +259,40 @@ describe('BulkPasswordResetService', () => {
       revokedSessions: 2,
     });
   });
+
+  /*
+    Paket 5.4.0-f acceptance, pinned in one place: the action reads as one call —
+    the flagged set is exactly what the database query returned minus every
+    SuperAdmin, the revocation carries the admin actor and the bulk reason, and
+    no password (no hash, no temporary value) is written anywhere.
+  */
+  it('flags and revokes only the local accounts on a mixed page, and writes no password', async () => {
+    consumeFreshConfirmation.mockResolvedValue(true);
+    findMany.mockResolvedValue([
+      candidate('user-1'),
+      candidate('super-9', false, 'SUPER_ADMIN'),
+      candidate('user-2', true),
+    ]);
+
+    const result = await createService().execute(caller, {});
+
+    expect(result).toMatchObject({ eligibleUsers: 2, changedUsers: 1, failedUsers: 0 });
+    // Exactly the two local accounts, never the SuperAdmin.
+    expect(updateMany.mock.calls[0]![0]).toMatchObject({
+      where: { id: { in: ['user-1'] }, mustChangePassword: false },
+      data: { mustChangePassword: true },
+    });
+    expect(revokeAll.mock.calls.map((call) => call[0])).toEqual([
+      { userId: 'user-1', reason: 'admin', actorUserId: 'super-1' },
+      { userId: 'user-2', reason: 'admin', actorUserId: 'super-1' },
+    ]);
+
+    // Nothing in this action may carry a credential: the only user write is the
+    // flag itself, and no argument of any call mentions a hash or a temporary
+    // password (the flag's own name is the one expected mention of "Password").
+    const writes = JSON.stringify(updateMany.mock.calls);
+    expect(writes).not.toMatch(/localPasswordHash|passwordHash|temporaryPassword|bcrypt|argon/i);
+    expect(Object.keys(updateMany.mock.calls[0]![0].data)).toEqual(['mustChangePassword']);
+    expect(updateMany.mock.calls[0]![0].data).toEqual({ mustChangePassword: true });
+  });
 });

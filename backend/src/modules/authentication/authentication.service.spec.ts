@@ -5,7 +5,9 @@ import {
 import { authenticationConstants } from './authentication.constants';
 import { AuthenticationError } from './authentication.error';
 import { AuthenticationService } from './authentication.service';
+import { AccountSecurityError } from './security/account-security.error';
 import { defaultAccountSecurityPolicy } from './security/account-security-policy.loader';
+import { passkeyLoginChallengeKey } from './security/passkey-credential.service';
 import type {
   AuthenticatedPrincipal,
   AuthenticationUserRecord,
@@ -678,5 +680,169 @@ describe('AuthenticationService auth.login_failed', () => {
     expect(rows[0]!.entityId).toBe('anonymous');
     expect(JSON.stringify(rows[0])).not.toContain('ana.anic');
     expect(JSON.stringify(rows[0])).not.toContain(ipAddress);
+  });
+});
+
+/*
+  Paket 5.4.0-f: the passkey second factor at sign-in.
+
+  The browser ceremonies and the WebAuthn verification itself live in
+  `security/passkey-credential.service.spec.ts`; what this block pins down is the
+  **sign-in decision**: which factors the screen may offer, that the challenge is
+  bound to the mfa token (never to the account alone, so two parallel sign-ins
+  cannot interfere), that an accepted assertion issues a session with
+  `mfaMethod: 'passkey'`, that a refused one is a 401 `MFA_INVALID_CODE` which
+  does **not** consume the mfa token, and that break-glass (SUPER_ADMIN) keeps
+  its one-hour TTL on this path exactly like on the TOTP path.
+*/
+describe('AuthenticationService 5.4.0-a passkey second factor', () => {
+  const mfaClaims = (rememberMe = false) => ({
+    subjectId: 'user-1',
+    stage: 'verify' as const,
+    jti: 'mfa-jti-1',
+    expiresAt: Math.floor(Date.now() / 1000) + 300,
+    rememberMe,
+  });
+
+  function buildPasskeyService(overrides: {
+    readonly user?: AuthenticationUserRecord;
+    readonly claims?: ReturnType<typeof mfaClaims>;
+    readonly passkeys?: number;
+    readonly totpEnrolled?: boolean;
+    readonly verifyAssertion?: jest.Mock;
+  } = {}) {
+    const authenticate = jest.fn().mockResolvedValue(principal);
+    const issue = jest.fn().mockResolvedValue('passkey.jwt');
+    const issueMfaToken = jest.fn().mockResolvedValue('mfa.jwt');
+    const verifyMfaToken = jest.fn().mockResolvedValue(overrides.claims ?? mfaClaims());
+    const consumeMfaToken = jest.fn().mockResolvedValue(undefined);
+    const createSession = jest.fn().mockResolvedValue({ id: 'session-1' });
+    const countCredentials = jest.fn().mockResolvedValue(overrides.passkeys ?? 1);
+    const startAuthentication = jest.fn().mockResolvedValue({ options: { challenge: 'challenge-1' } });
+    const verifyAssertion = overrides.verifyAssertion ?? jest.fn().mockResolvedValue({ credentialRowId: 'row-1' });
+    const guard = jest.fn((_key: string, run: () => Promise<unknown>) => run());
+    const user = overrides.user ?? activeUser;
+    const service = new AuthenticationService(
+      { resolve: jest.fn().mockResolvedValue({ authenticate }) } as never,
+      { issue, issuePasswordChangeToken: jest.fn(), issueMfaToken, verifyMfaToken, consumeMfaToken } as never,
+      { findById: jest.fn().mockResolvedValue(user) } as never,
+      { user: { update: jest.fn() } } as never,
+      { load: jest.fn().mockResolvedValue(defaultAccountSecurityPolicy) } as never,
+      {
+        requirementFor: jest.fn().mockReturnValue('required'),
+        isEnabled: jest.fn().mockResolvedValue(overrides.totpEnrolled ?? false),
+        flowFor: jest.fn().mockReturnValue('verify'),
+        verify: jest.fn(),
+      } as never,
+      { create: createSession } as never,
+      {} as never,
+      { countCredentials, startAuthentication, verifyAssertion } as never,
+      { load: jest.fn().mockReturnValue({ rpID: 'localhost', rpName: 'Help Desk', expectedOrigins: ['http://localhost:5173'] }) } as never,
+      { audit: jest.fn(), notify: jest.fn() } as never,
+      { guard } as never,
+      { record: jest.fn().mockResolvedValue(undefined) } as never,
+    );
+    return {
+      service,
+      authenticate,
+      issue,
+      consumeMfaToken,
+      createSession,
+      countCredentials,
+      startAuthentication,
+      verifyAssertion,
+      guard,
+    };
+  }
+
+  it('offers the factors the account really has, passkey included', async () => {
+    const { service, countCredentials } = buildPasskeyService({ passkeys: 2, totpEnrolled: true });
+
+    await expect(
+      service.loginWithPassword({ email: 'agent@example.com', password: 'correct-horse-battery' }),
+    ).resolves.toMatchObject({ status: 'MFA_REQUIRED', methods: ['totp', 'passkey'] });
+    expect(countCredentials).toHaveBeenCalledWith('user-1');
+  });
+
+  it('binds the login challenge to the mfa token (jti), so parallel sign-ins never share one', async () => {
+    const { service, startAuthentication } = buildPasskeyService();
+
+    await expect(service.startMfaPasskey('mfa.jwt')).resolves.toEqual({
+      options: { challenge: 'challenge-1' },
+    });
+    expect(startAuthentication).toHaveBeenCalledWith(
+      'user-1',
+      passkeyLoginChallengeKey('mfa-jti-1'),
+      expect.objectContaining({ rpID: 'localhost' }),
+    );
+  });
+
+  it('refuses a token from the enrollment stage instead of starting a login ceremony', async () => {
+    const { service, startAuthentication } = buildPasskeyService({ claims: { ...mfaClaims(), stage: 'enroll' } });
+
+    await expect(service.startMfaPasskey('mfa.jwt')).rejects.toMatchObject({
+      status: 401,
+      response: { code: 'INVALID_CREDENTIALS' },
+    });
+    expect(startAuthentication).not.toHaveBeenCalled();
+  });
+
+  it('issues a session marked as passkey-verified and consumes the mfa token once', async () => {
+    const { service, createSession, consumeMfaToken, verifyAssertion } = buildPasskeyService();
+
+    const response = await service.verifyMfaPasskey(
+      { mfaToken: 'mfa.jwt', assertion: { id: 'credential-1' } },
+      { ipAddress: '10.0.0.9', userAgent: 'UA' },
+    );
+
+    expect(verifyAssertion).toHaveBeenCalledWith(
+      'user-1',
+      passkeyLoginChallengeKey('mfa-jti-1'),
+      { id: 'credential-1' },
+      expect.objectContaining({ rpID: 'localhost' }),
+      // Login-time assertions do not demand UV: the authenticator decides, and
+      // the platform check is the same one the QR/phone flow relies on.
+      false,
+      '10.0.0.9',
+    );
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', provider: 'local', mfaMethod: 'passkey', rememberMe: false }),
+    );
+    expect(consumeMfaToken).toHaveBeenCalledWith(expect.objectContaining({ jti: 'mfa-jti-1' }));
+    expect(response).toMatchObject({ accessToken: 'passkey.jwt', expiresInSeconds: authenticationConstants.sessionTtlSeconds });
+  });
+
+  it('answers a refused assertion with 401 MFA_INVALID_CODE and keeps the mfa token usable', async () => {
+    const verifyAssertion = jest
+      .fn()
+      .mockRejectedValue(new AccountSecurityError('MFA_INVALID_CODE'));
+    const { service, consumeMfaToken, createSession, guard } = buildPasskeyService({ verifyAssertion });
+
+    await expect(
+      service.verifyMfaPasskey({ mfaToken: 'mfa.jwt', assertion: { id: 'credential-1' } }),
+    ).rejects.toMatchObject({ status: 401, response: { code: 'MFA_INVALID_CODE' } });
+
+    // The bucket that guards MFA confirmations counted the failure, but nothing
+    // was issued and the intermediate token was not burned — the person may try
+    // the other factor or the same one again.
+    expect(guard).toHaveBeenCalledWith('auth:mfa-fail:user-1', expect.any(Function));
+    expect(consumeMfaToken).not.toHaveBeenCalled();
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it('forces remember me off for a SUPER_ADMIN on the passkey path too', async () => {
+    const { service, createSession, issue } = buildPasskeyService({
+      user: { ...activeUser, roleKeys: [authenticationConstants.superAdminRoleKey] },
+      claims: mfaClaims(true),
+    });
+
+    const response = await service.verifyMfaPasskey({ mfaToken: 'mfa.jwt', assertion: { id: 'credential-1' } });
+
+    expect(createSession).toHaveBeenCalledWith(expect.objectContaining({ rememberMe: false }));
+    expect(issue).toHaveBeenCalledWith(expect.anything(), 'session-1', {
+      ttlSeconds: authenticationConstants.sessionTtlSeconds,
+      rememberMe: false,
+    });
+    expect(response.expiresInSeconds).toBe(authenticationConstants.sessionTtlSeconds);
   });
 });
