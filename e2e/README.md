@@ -262,7 +262,10 @@ address-derived password such as `ChangeMeE2eUser1!` for `e2e.user@example.com` 
 since 5.4.0-d): a candidate that appears in a breach corpus is refused with
 `400 INVALID_PASSWORD { violations: ['PWNED_PASSWORD'] }`. A stack that can reach `api.pwnedpasswords.com`
 therefore decides whether `E2E_USER_PASSWORD`/`E2E_AGENT_PASSWORD` may be written at all — the first full run on
-2026-10-12 died in global setup exactly that way, on the AGENT's configured password.
+2026-10-12 (029f0ea) died in global setup exactly that way. The trace pinned the offender: the two actors are
+provisioned in sequence and the refusal came on the **second** call, so the **USER** password
+(`e2e.user@example.com`, `E2E_USER_PASSWORD`) was in the corpus while the AGENT's
+(`e2e.agent@example.com`, `E2E_AGENT_PASSWORD`) was written without complaint.
 
 The harness handles it without masking it:
 
