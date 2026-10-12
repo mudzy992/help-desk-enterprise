@@ -26,6 +26,14 @@ interface SettingDefinitionCommon {
   readonly isRequired: boolean;
   readonly valueType: SettingValueTypeName;
   readonly allowedValues?: readonly string[];
+  /**
+   * Paket 5.4.1 (fix): the one value of a text setting that means "switched
+   * off" — e.g. provider `none` among `none | turnstile`. Without it every
+   * non-empty text counts as "on", so a parent that is switched off by choosing
+   * its off-value would look still on, its dependents would not be offered for
+   * reset, and the save would be refused. Must be one of `allowedValues`.
+   */
+  readonly inactiveValue?: string;
   readonly assertValue?: (value: SettingValue) => void;
   /**
    * Paket 5.3.3 (D4): i18n key of the human title shown for this setting.
@@ -91,4 +99,6 @@ export type SettingRegistryEntry = {
   readonly value: SettingValue | null;
   readonly isSet: boolean;
   readonly allowedValues?: readonly string[];
+  /** The text value that means "switched off" (see `SettingDefinitionCommon`). */
+  readonly inactiveValue?: string;
 };

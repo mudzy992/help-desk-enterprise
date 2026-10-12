@@ -256,6 +256,11 @@ nije učitala.
 > je isključen i traži od operatera da ga isključi, a polovinu u pregledniku provjerava stagiranim odgovorima
 > (`page.route`), bez stvarnog Cloudflare poziva.
 
+**Isključivanje provjere:** kad se `private.security.captcha.provider` vrati na `none`, sistem prije snimanja
+nudi potvrdu sa spiskom zavisnih postavki: `siteKey` se vraća na prazno, a `secretKey` se **briše** (tajna se ne
+čuva ni kao skrivena vrijednost). Ponovno uključivanje traži ponovni unos oba ključa. Bez potvrde snimanje se
+odbija (`SETTING_DEPENDENCY_UNMET`), jer bi ostavilo zavisne ključeve aktivne uz isključenu provjeru.
+
 **Nadzor:** dva nova brojača u istom agregatu kao u §3 — `captcha-skipped` i `captcha-failed`. Kartica
 **Sigurnosne metrike (zadnji sat)** i dalje crta četiri serije iz §3, pa se ova dva brojača za sada čitaju
 preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).

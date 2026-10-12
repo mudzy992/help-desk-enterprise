@@ -119,4 +119,22 @@ describe("setting dependency model", () => {
     ]);
     expect(listDirectDependents(entries, "test.secret")).toEqual([]);
   });
+
+  it("treats the off-value of a text setting as switched off (5.4.1)", () => {
+    // `none` is a filled text but means \"off\": the screen has to offer the reset
+    // of the human check's dependents when the provider goes back to it, and must
+    // not describe the dependents as still required.
+    const provider = entry({
+      key: "private.security.captcha.provider",
+      valueType: "string",
+      defaultValue: "none",
+      value: "turnstile",
+      allowedValues: ["none", "turnstile"],
+      inactiveValue: "none",
+    });
+    expect(isSettingActive(provider)).toBe(true);
+    expect(isSettingActive({ ...provider, value: "none" })).toBe(false);
+    const withoutOffValue = { ...provider, inactiveValue: undefined, value: "none" };
+    expect(isSettingActive(withoutOffValue)).toBe(true);
+  });
 });

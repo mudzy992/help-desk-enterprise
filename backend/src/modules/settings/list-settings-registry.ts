@@ -42,6 +42,9 @@ function toRegistryEntry(
     helpKey: resolveSettingHelpKey(definition),
     group: definition.group ?? null,
     requires: definition.requires ? [...definition.requires] : [],
+    ...(definition.inactiveValue === undefined
+      ? {}
+      : { inactiveValue: definition.inactiveValue }),
   };
   if (definition.visibility === 'secret') {
     return {

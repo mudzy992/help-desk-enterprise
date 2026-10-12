@@ -316,4 +316,67 @@ describe('SettingsService setting dependencies', () => {
       service.previewDependentResets('private.does.notExist'),
     ).rejects.toThrow(/Unknown setting key/);
   });
+
+  it('switches the human check off with its site key and secret, and refuses it without confirmation (5.4.1)', async () => {
+    // `provider` is a text setting whose off-value is `none`. Before the
+    // `inactiveValue` rule, `none` counted as \"on\", so the save below was
+    // refused with the site key and secret named as violations and no reset was
+    // ever offered. The gate has to see `none` as off and offer the dependents.
+    const { service, memory } = await createHarness();
+    await service.setSettingValues(
+      [
+        { key: settingKeys.privateSecurityCaptchaProvider, value: 'turnstile' },
+        { key: settingKeys.privateSecurityCaptchaSiteKey, value: 'site-key-value' },
+        { key: settingKeys.privateSecurityCaptchaSecretKey, value: 'secret-key-value' },
+      ],
+      mutation,
+    );
+
+    const refused = await service
+      .setSettingValue(settingKeys.privateSecurityCaptchaProvider, 'none', {
+        ...mutation,
+        reason: 'Turn the human check off',
+      })
+      .then(
+        () => null,
+        (error: unknown) => error as { code?: string },
+      );
+    expect(refused?.code).toBe(settingsErrorCodes.dependencyUnmet);
+    expect(memory.getStored(settingKeys.privateSecurityCaptchaProvider)).toMatchObject({
+      value: 'turnstile',
+    });
+
+    const preview = await service.previewDependentResets(settingKeys.privateSecurityCaptchaProvider);
+    expect(preview).toEqual([
+      {
+        key: settingKeys.privateSecurityCaptchaSiteKey,
+        action: 'reset_to_default',
+        value: '',
+        causedBy: settingKeys.privateSecurityCaptchaProvider,
+      },
+      {
+        key: settingKeys.privateSecurityCaptchaSecretKey,
+        action: 'delete',
+        causedBy: settingKeys.privateSecurityCaptchaProvider,
+      },
+    ]);
+
+    await service.setSettingValue(
+      settingKeys.privateSecurityCaptchaProvider,
+      'none',
+      { ...mutation, reason: 'Turn the human check off' },
+      { resetDependents: true },
+    );
+    expect(memory.getStored(settingKeys.privateSecurityCaptchaProvider)).toMatchObject({
+      value: 'none',
+    });
+    await expect(
+      service.getSecretForInternalUse(settingKeys.privateSecurityCaptchaSecretKey),
+    ).resolves.toBeUndefined();
+    // The off state is consistent, so an unrelated save keeps working.
+    await expect(
+      service.setSettingValue(settingKeys.privateSecurityCaptchaProvider, 'none', mutation),
+    ).resolves.toBeDefined();
+  });
+
 });

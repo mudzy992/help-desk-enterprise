@@ -29,6 +29,9 @@ export const securityCaptchaSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: 'none',
     allowedValues: ['none', 'turnstile'],
+    // Choosing `none` switches the check off: the site key and the secret are
+    // dependents of `turnstile` and are offered for reset when that happens.
+    inactiveValue: 'none',
   }),
   definePrivateSetting({
     key: settingKeys.privateSecurityCaptchaSiteKey,

@@ -162,7 +162,13 @@ export function isSettingActive(
   if (definition.valueType === 'number') {
     return typeof value === 'number' && value > 0;
   }
-  return typeof value === 'string' && value.trim().length > 0;
+  if (typeof value !== 'string') {
+    return false;
+  }
+  if (definition.inactiveValue !== undefined && value === definition.inactiveValue) {
+    return false;
+  }
+  return value.trim().length > 0;
 }
 
 /**
@@ -177,7 +183,7 @@ export function toInactiveSettingValue(definition: SettingDefinition): SettingVa
   if (definition.valueType === 'number') {
     return 0;
   }
-  return '';
+  return definition.inactiveValue ?? '';
 }
 
 /**

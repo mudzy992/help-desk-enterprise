@@ -37,7 +37,13 @@ export function isSettingActive(entry: SettingRegistryEntry): boolean {
   if (entry.valueType === "number") {
     return typeof value === "number" && value > 0;
   }
-  return typeof value === "string" && value.trim().length > 0;
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (entry.inactiveValue !== undefined && value === entry.inactiveValue) {
+    return false;
+  }
+  return value.trim().length > 0;
 }
 
 function isFilled(entry: SettingRegistryEntry): boolean {

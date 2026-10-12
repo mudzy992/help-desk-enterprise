@@ -185,4 +185,28 @@ describe('assertSettingMetadata', () => {
       assertSettingMetadata([flag('test.blankGroup', { group: '' })]),
     ).toThrow(/blank group/);
   });
+
+  it('accepts an off-value that is one of the allowed values, and refuses any other', () => {
+    expect(() =>
+      assertSettingMetadata([
+        text('test.provider', {
+          allowedValues: ['none', 'turnstile'],
+          defaultValue: 'none',
+          inactiveValue: 'none',
+        }),
+      ]),
+    ).not.toThrow();
+    expect(() =>
+      assertSettingMetadata([
+        text('test.provider', {
+          allowedValues: ['none', 'turnstile'],
+          defaultValue: 'none',
+          inactiveValue: 'off',
+        }),
+      ]),
+    ).toThrow(/inactiveValue that is not one of its allowedValues/);
+    expect(() =>
+      assertSettingMetadata([flag('test.flag', { inactiveValue: 'none' })]),
+    ).toThrow(/not a text setting/);
+  });
 });

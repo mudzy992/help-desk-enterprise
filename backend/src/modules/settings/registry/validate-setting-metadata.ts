@@ -41,6 +41,9 @@ function assertLocalMetadata(definition: SettingDefinition): void {
       );
     }
   }
+  if (definition.inactiveValue !== undefined) {
+    assertInactiveValue(definition);
+  }
   if (definition.requires === undefined) {
     return;
   }
@@ -151,5 +154,19 @@ function assertNoConditionCycles(
 
   for (const definition of definitions) {
     visit(definition.key);
+  }
+}
+
+function assertInactiveValue(definition: SettingDefinition): void {
+  const { inactiveValue, allowedValues, valueType } = definition;
+  if (valueType !== 'string') {
+    throw new SettingsError(
+      `Setting ${definition.key} declares an inactiveValue but is not a text setting`,
+    );
+  }
+  if (allowedValues === undefined || !allowedValues.includes(inactiveValue as string)) {
+    throw new SettingsError(
+      `Setting ${definition.key} has an inactiveValue that is not one of its allowedValues`,
+    );
   }
 }

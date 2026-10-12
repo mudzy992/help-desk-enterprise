@@ -43,6 +43,8 @@ export type SettingRegistryEntry = {
   readonly value: string | number | boolean | null;
   readonly isSet: boolean;
   readonly allowedValues?: readonly string[];
+  /** The text value that means "switched off" (paket 5.4.1). */
+  readonly inactiveValue?: string;
   /** Paket 5.3.3: resolved i18n keys — title is the human line, help the modal body. */
   readonly titleKey: string;
   readonly helpKey: string;
