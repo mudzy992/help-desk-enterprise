@@ -3,18 +3,19 @@ import { BrandingSettingsCard } from "@/components/settings/branding-settings-ca
 import { useTranslation } from "react-i18next";
 import { AddonsSettingsPanel } from "@/components/settings/addons-settings-panel";
 import { AuthProviderSettingsCard } from "@/components/settings/auth-provider-settings-card";
-import { AdminSecuritySettingsCards } from "@/components/settings/admin-security-settings-cards";
 import { SecurityComplianceSettingsCard } from "@/components/settings/security-compliance-settings-card";
 import { SettingsRegistryPanel } from "@/components/settings/settings-registry-panel";
 import { SmtpEmailSettingsCard } from "@/components/settings/smtp-email-settings-card";
 import { EmailTemplatesCard } from "@/components/settings/email-templates-card";
 import { InboundEmailCard } from "@/components/settings/inbound-email-card";
+import { AdminSecurityPointerCard } from "@/components/settings/admin-security-pointer-card";
 import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -33,6 +34,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
     hasRole(roleKeys.superAdmin);
   const canWrite =
     session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
+  const canOpenSecurityTab = canOpenAdminSecurityTab(session);
 
   return (
     <div className="space-y-4">
@@ -100,13 +102,10 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
                 pendingKey={registry.pendingKey}
                 onSave={registry.save}
               />
-              <AdminSecuritySettingsCards
-                entries={registry.entries}
-                canWrite={canWrite}
-                pendingKey={registry.pendingKey}
-                onSave={registry.save}
-                isSuperAdmin={session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin)}
-              />
+              {/* 5.4.0-e.2: the actionable security surfaces live on the admin
+                  „Sigurnost" tab; Postavke only points there instead of hosting
+                  a second copy of the same cards. */}
+              {canOpenSecurityTab ? <AdminSecurityPointerCard /> : null}
             </div>
           </div>
           <SettingsRegistryPanel

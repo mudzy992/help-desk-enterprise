@@ -77,7 +77,7 @@ export function AccountSecurityPage() {
           <Card>
             <CardHeader title={t("account.security.mfaTitle")} subtitle={t("account.security.mfaSubtitle")} />
             <div className="p-4">
-              <MfaSection mfa={data.mfa} onChanged={refresh} />
+              <MfaSection mfa={data.mfa} passkeyCount={data.passkeys.length} onChanged={refresh} />
             </div>
           </Card>
 

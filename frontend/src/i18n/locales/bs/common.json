@@ -610,12 +610,12 @@
       "securityMetrics": {
         "title": "Sigurnosne metrike (zadnji sat)",
         "body": "Agregirani brojači bez ličnih podataka: blokade prijava (429), kašnjenja po računu, neuspjesi drugog faktora i preskočene HIBP provjere.",
+        "tileBlocks": "Blokade prijava (429)",
         "loading": "Učitavanje metrika…",
         "refresh": "Osvježi metrike",
         "chartTitle": "Propuštene prijave i blokade po minuti",
         "series429": "Blokade (429)",
         "seriesDelays": "Kašnjenja po računu",
-        "total": "Ukupno u zadnjem satu",
         "peak": "Najviše u minuti",
         "mfaFailures": "Neuspjesi drugog faktora",
         "hibpSkipped": "Preskočene HIBP provjere",
@@ -679,7 +679,16 @@
       "rateLimitsConfirmBody": "Vrijednosti se primjenjuju odmah nakon potvrde i upisuju se u dnevnik s razlogom.",
       "sessionPolicyRow": "Trajanje i prekid sesija",
       "bulkDoneToast": "Masovna promjena je pokrenuta.",
-      "sessionRememberNote": "Prijava uz „zapamti me“ traje duže od obične; prekid zbog neaktivnosti je serverski i vrijedi za sve sesije."
+      "sessionRememberNote": "Prijava uz „zapamti me“ traje duže od obične; prekid zbog neaktivnosti je serverski i vrijedi za sve sesije.",
+      "rateLimitGroupAccount": "Kašnjenje po računu",
+      "rateLimitGroupIp": "Blokada po IP adresi",
+      "rateLimitGroupOther": "Ostali sigurnosni tokovi",
+      "rateLimitSummaryAccount": "nakon {{failures}} neuspjeha · {{base}}–{{max}} ms · prozor {{window}} s",
+      "rateLimitSummaryIp": "{{failures}} neuspjeha · {{window}} s",
+      "rateLimitSummaryOther": "{{failures}} neuspjeha · prozor {{window}} s",
+      "rateLimitsDialogHelp": "Vrijednosti se mijenjaju zajedno, u jednom zapisu s razlogom. Prije snimanja potvrđuje se identitet kodom ili passkeyjem.",
+      "rateLimitsReasonHint": "Razlog je obavezan (najmanje {{count}} znakova) i vidljiv je u dnevniku.",
+      "hibpHint": "provjera procurjelih lozinki (fail-open)"
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
@@ -2724,6 +2733,11 @@
       "actionDelete": "briše se (ponovni unos)",
       "resetToastTitle": "Sačuvano uz {{count}} zavisnih izmjena",
       "resetToastBody": "Zavisne postavke su vraćene na sigurnu vrijednost ili obrisane; detalji su u dnevniku izmjena."
+    },
+    "securityPointer": {
+      "title": "Sigurnosna administracija je na tabu Sigurnost",
+      "body": "Ograničenja prijava, politika sesija, provjera procurjelih lozinki i prisilna promjena svih lozinki uređuju se tamo, uz sigurnosni dnevnik u koji se svaka izmjena upisuje.",
+      "open": "Otvori Sigurnost"
     }
   },
   "errors": {
@@ -5968,7 +5982,8 @@
       "expiryBanner_one": "Vaša lozinka ističe za {{count}} dan.",
       "expiryBanner_few": "Vaša lozinka ističe za {{count}} dana.",
       "expiryBanner_other": "Vaša lozinka ističe za {{count}} dana.",
-      "expiryBannerLink": "Promijenite je sada"
+      "expiryBannerLink": "Promijenite je sada",
+      "mfaPasskeyHint": "Registrovan je {{count}} passkey: pri prijavi možete potvrditi uređajem umjesto kodom iz aplikacije. Kod ostaje kao rezerva."
     },
     "notifications": {
       "menu": "Moje notifikacije",

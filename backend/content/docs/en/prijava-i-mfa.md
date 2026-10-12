@@ -128,13 +128,16 @@ message “Security is available to the superadministrator only” and no reques
   record's metadata (method, device, reason) — never passwords or codes; an unknown actor (a failed sign-in) is
   shown as **Pseudonym**, and system records as **System**.
 
-Next to the journal, **Settings → Security** offers:
+Next to the journal, on the same **Security** tab, the following cards appear (in **Settings → Security** the
+**Security administration** row only points there — values are edited in one place):
 
 - **Login rate limits** — the eight thresholds (the per-account window and delay, the IP block and the “other”
-  flows). Each field shows its allowed range; a change needs a **reason** (at least 5 characters) and a proof of
-  identity with a code or a passkey.
+  flows), grouped into three rows (**Per-account delay**, **Per-IP block**, **Other security flows**) that show the
+  current values. A row opens a dialog: each field shows its allowed range, and a change needs a **reason** (at
+  least 5 characters) and a proof of identity with a code or a passkey.
 - **Session policy** and **Breached-password check** — session lifetime/cut-off and the Pwned Passwords check;
-  edited like any other setting (with a reason and a journal record).
+  each row shows whether it is on and opens the same dialog as every other setting (reason, dependencies, journal
+  record). The card itself holds no form — editing happens in the dialog only.
 - **Force every local password to change** — every local account (except SUPER_ADMIN and Microsoft accounts) gets
   a required password change and all its sessions end; the person changes the password at the next sign-in.
 
@@ -156,9 +159,9 @@ user settings):
 - **Diagnostics:** the server logs the reason for a refusal (`passkey registration refused …` /
   `passkey assertion refused …`) — the message names what did not match (origin, RP ID, challenge, counter).
 
-The **Monitoring** tab also carries the **Security metrics (last hour)** card: a chart of **Blocks (429)** and
-**Per-account delays** per minute, plus counters for second-factor failures and skipped HIBP checks. The numbers
-are aggregated per minute and carry no personal data.
+The **Monitoring** tab also carries the **Security metrics (last hour)** card: four tiles with the numbers (total
+blocks, peak per minute, second-factor failures and skipped HIBP checks) and a chart of **Blocks (429)** and
+**Per-account delays** per minute. The numbers are aggregated per minute and carry no personal data.
 
 ## Fields, validations and statuses
 

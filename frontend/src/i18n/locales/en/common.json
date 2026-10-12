@@ -608,12 +608,12 @@
       "securityMetrics": {
         "title": "Security metrics (last hour)",
         "body": "Aggregated counters without personal data: sign-in blocks (429), per-account delays, second-factor failures and skipped HIBP checks.",
+        "tileBlocks": "Blocked sign-ins (429)",
         "loading": "Loading the metrics…",
         "refresh": "Refresh the metrics",
         "chartTitle": "Failed sign-ins and blocks per minute",
         "series429": "Blocks (429)",
         "seriesDelays": "Per-account delays",
-        "total": "Total in the last hour",
         "peak": "Peak per minute",
         "mfaFailures": "Second-factor failures",
         "hibpSkipped": "Skipped HIBP checks",
@@ -677,7 +677,16 @@
       "rateLimitsConfirmBody": "The values apply right after the confirmation and are journalled with the reason.",
       "sessionPolicyRow": "Session lifetime and cut-off",
       "bulkDoneToast": "The bulk change was started.",
-      "sessionRememberNote": "A sign-in with \"remember me\" lives longer than a plain one; the idle cut-off is enforced server-side for every session."
+      "sessionRememberNote": "A sign-in with \"remember me\" lives longer than a plain one; the idle cut-off is enforced server-side for every session.",
+      "rateLimitGroupAccount": "Per-account delay",
+      "rateLimitGroupIp": "Per-IP block",
+      "rateLimitGroupOther": "Other security flows",
+      "rateLimitSummaryAccount": "after {{failures}} failures · {{base}}–{{max}} ms · window {{window}} s",
+      "rateLimitSummaryIp": "{{failures}} failures · {{window}} s",
+      "rateLimitSummaryOther": "{{failures}} failures · window {{window}} s",
+      "rateLimitsDialogHelp": "The values change together, in one journalled write with a reason. Your identity is confirmed with a code or a passkey before the save.",
+      "rateLimitsReasonHint": "A reason is required (at least {{count}} characters) and is visible in the journal.",
+      "hibpHint": "breached-password check (fail-open)"
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",
@@ -2712,6 +2721,11 @@
       "actionDelete": "is erased (enter it again)",
       "resetToastTitle": "Saved with {{count}} dependent changes",
       "resetToastBody": "Dependent settings were returned to a safe value or erased; the change log has the details."
+    },
+    "securityPointer": {
+      "title": "Security administration lives on the Security tab",
+      "body": "Login rate limits, the session policy, the breached-password check and the forced password change are edited there, next to the security journal every change is recorded in.",
+      "open": "Open Security"
     }
   },
   "errors": {
@@ -5932,7 +5946,8 @@
       "othersRevoked_other": "{{count}} sessions signed out.",
       "expiryBanner_one": "Your password expires in {{count}} day.",
       "expiryBanner_other": "Your password expires in {{count}} days.",
-      "expiryBannerLink": "Change it now"
+      "expiryBannerLink": "Change it now",
+      "mfaPasskeyHint": "{{count}} passkey is registered: at sign-in you can confirm with the device instead of the authenticator code. The code stays as a fallback."
     },
     "notifications": {
       "menu": "My notifications",

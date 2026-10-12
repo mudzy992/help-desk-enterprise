@@ -136,12 +136,16 @@ Tab **Sigurnost** u ekranu **Admin** vidi samo **SUPER_ADMIN**; običnom adminis
   (npr. način, uređaj, razlog) — bez lozinki i kodova; kada izvršilac nije poznat (neuspjela prijava) piše
   **Pseudonim**, a sistemski zapisi nose oznaku **Sistem**.
 
-Uz dnevnik u **Postavkama → Sigurnost** stoje kartice:
+Uz dnevnik, na istom tabu **Sigurnost**, stoje kartice (u **Postavkama → Sigurnost** red **Sigurnosna
+administracija** samo vodi na taj tab — vrijednosti se uređuju na jednom mjestu):
 
-- **Ograničenja prijava** — osam pragova (prozor i kašnjenje po računu, IP blokada i „ostali“ tokovi). Uz svako polje
-  piše dozvoljeni raspon, promjena traži **razlog** (najmanje 5 znakova) i potvrdu identiteta kodom ili passkeyjem.
+- **Ograničenja prijava** — osam pragova (prozor i kašnjenje po računu, IP blokada i „ostali“ tokovi), grupisani u
+  tri reda (**Kašnjenje po računu**, **Blokada po IP adresi**, **Ostali sigurnosni tokovi**) u kojima stoji trenutna
+  vrijednost. Red otvara dijalog: uz svako polje piše dozvoljeni raspon, a promjena traži **razlog** (najmanje
+  5 znakova) i potvrdu identiteta kodom ili passkeyjem.
 - **Politika sesija** i **HIBP provjera lozinki** — trajanje/prekid sesija te uključivanje provjere procurjelih
-  lozinki; uređuju se kao i ostale postavke (uz razlog i zapis u dnevniku).
+  lozinki; svaki red nosi oznaku je li uključeno, a otvara isti dijalog kao i ostale postavke (razlog, zavisnosti,
+  zapis u dnevniku). Forme za izmjenu nema u samoj kartici — uređuje se isključivo kroz dijalog.
 - **Prisilna promjena svih lokalnih lozinki** — svim lokalnim nalozima (osim SUPER_ADMIN i Microsoft naloga)
   postavlja se obavezna promjena lozinke i prekidaju se sve njihove sesije; samu lozinku korisnik mijenja pri
   sljedećoj prijavi.
@@ -163,9 +167,9 @@ Passkey je drugi faktor pored koda iz aplikacije. Uslovi bez kojih ne radi (sve 
 - **Dijagnostika:** server u log ispisuje razlog odbijanja (`passkey registration refused …` /
   `passkey assertion refused …`) — poruka imenuje šta nije odgovaralo (origin, RP ID, challenge, brojač).
 
-Na tabu **Nadzor** je i kartica **Sigurnosne metrike (zadnji sat)**: grafik **Blokade (429)** i **Kašnjenja po računu**
-po minuti te brojači neuspjeha drugog faktora i preskočenih HIBP provjera. Brojevi su agregirani po minuti i ne
-sadrže lične podatke.
+Na tabu **Nadzor** je i kartica **Sigurnosne metrike (zadnji sat)**: četiri pločice s brojevima (ukupno blokada,
+najviše u minuti, neuspjesi drugog faktora i preskočene HIBP provjere) i grafik **Blokade (429)** i **Kašnjenja po
+računu** po minuti. Brojevi su agregirani po minuti i ne sadrže lične podatke.
 
 ## Polja, validacije i statusi
 

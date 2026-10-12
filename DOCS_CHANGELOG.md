@@ -31,6 +31,17 @@ od 2,5 minute (kraće od TTL-a izazova), kod se traži poslije potvrde na uređa
 challenge, brojač) — bez podataka o ključu. Vodič `prijava-i-mfa.md` (bs/en) dobio je poglavlje „Passkey (FIDO2) —
 uslovi i dijagnostika" (HTTPS + tačan naziv hosta, QR traži javnu domenu i Bluetooth, neuspjeh ne odjavljuje).
 
+**Poliranje poslije prvog živog testa (2026-10-12, isti val):** četiri sigurnosne kartice („Ograničenja prijava",
+„Politika sesija", „HIBP provjera lozinki", „Prisilna promjena svih lokalnih lozinki") premještene su s taba
+**Postavke** na tab **Admin → Sigurnost**, ispod sigurnosnog dnevnika — tamo ih je vlasnik i tražio, a Postavke
+zadržavaju jedan red („Sigurnosna administracija") koji vodi na taj tab. „Ograničenja prijava" su s forme u kartici
+prebačena na redove (tri grupe pragova) koji otvaraju dijalog, u skladu s pravilom da se u Postavkama i dodacima
+vrijednosti nikada ne mijenjaju formom u kartici; „Politika sesija" i „HIBP provjera lozinki" također su redovi koji
+otvaraju postojeći dijalog postavke. Brojači kartice **Sigurnosne metrike (zadnji sat)** složeni su u četiri pločice
+umjesto reda oznaka, pa matrica više ne izlazi iz kartice. Stranica **Sigurnost naloga** dobila je rečenicu da je
+passkey **alternativa** kodu iz aplikacije (koji ostaje kao rezerva), a ne zamjena — odgovor na pitanje iz živog
+testa. Vodiči `prijava-i-mfa.md` (bs/en) i red u `sta-je-novo.md` opisuju novo mjesto kartica i pločice metrika.
+
 **Ostaje otvoreno:** paskey u vodiču (dopuna prijava-i-mfa opisa naloga) — otvara se uz closeout vala 5.4.0-f.
 
 ## 2026-10-10 — E2E triage 2 (ručni full run 38044846221)

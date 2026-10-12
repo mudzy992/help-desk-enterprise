@@ -17,13 +17,15 @@ import {
 
 interface MfaSectionProperties {
   readonly mfa: MfaStatus;
+  /** Paket 5.4.0-e.2: how many passkeys the account has (sign-in hint). */
+  readonly passkeyCount?: number;
   readonly onChanged: () => void;
 }
 
 type Mode = "idle" | "enroll" | "codes";
 
 /** Paket 2.1 (M1–M4): set up, regenerate recovery codes, disable. */
-export function MfaSection({ mfa, onChanged }: MfaSectionProperties) {
+export function MfaSection({ mfa, passkeyCount = 0, onChanged }: MfaSectionProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [mode, setMode] = useState<Mode>("idle");
@@ -82,6 +84,13 @@ export function MfaSection({ mfa, onChanged }: MfaSectionProperties) {
       </div>
       {!mfa.serverConfigured ? (
         <p className="text-[12px] text-warning">{t("auth.mfa.serverNotConfigured")}</p>
+      ) : null}
+      {/* 5.4.0-e.2: a registered passkey is the same second factor, not a
+          replacement for it — say so, so nobody looks for a separate switch. */}
+      {passkeyCount > 0 ? (
+        <p className="text-[12.5px] leading-5 text-muted-foreground" data-testid="mfa-passkey-hint">
+          {t("account.security.mfaPasskeyHint", { count: passkeyCount })}
+        </p>
       ) : null}
       {mfa.enabled ? (
         <>
