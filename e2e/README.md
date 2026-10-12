@@ -197,16 +197,24 @@ Three things in the 5.4 package need more care than the average spec, because th
   executes and the server verifies a real COSE key, origin, RP ID, challenge and counter. Nothing is stubbed on
   either side, and no other spec may assume a passkey exists: the credential lives in the browser context, so it
   dies with the test (the `userHandle`/`signCount` assertions in the spec are how it proves the ceremony really
-  ran). Both 46 tests clean up their own credential; the second one temporarily turns TOTP off (the profile hides
-  that button for a SUPER_ADMIN, the API allows it while a passkey remains) and re-enrols it in a `finally` block,
-  because a half-finished run must never leave the harness's super admin without a second factor.
+  ran). The **row** in the database, unlike the key, outlives the test: both 46 tests therefore *start* by dropping
+  whatever an earlier (failed) run left on the account (`helpers/passkeys.ts` — an account that refuses is reported,
+  not guessed at) and drop their own credential again in a `finally`. CI run 38255960313 inherited a leftover row
+  and failed twice because of it: two "Ukloni" rows where the spec asserts one, and a removal that answered `204`
+  because the leftover still counted as a second factor. The second test temporarily turns TOTP off (the profile
+  hides that button for a SUPER_ADMIN, the API allows it while a passkey remains) and re-enrols it in a `finally`
+  block, because a half-finished run must never leave the harness's super admin without a second factor.
 - **47 — the rate limits are restored, always.** Both specs snapshot `GET /security/rate-limits` first and put the
   original values back in a `finally`, with a reason, so a failure cannot leave the installation with a 10-failure
   per-IP block. The effect is proven on the per-IP bucket only (the account bucket adds a bounded delay and never
   locks): ten failures from ten **distinct** unknown addresses (a repeated address would delay itself), then the
   next attempt answers `429 TOO_MANY_LOGIN_ATTEMPTS` with `details.retryAfterSeconds` equal to the window the
   admin just set. `login-429` in `GET /security/metrics/last-hour` must rise with it — that is the signal the ops
-  runbook in `docs/ops/rate-limits.md` watches.
+  runbook in `docs/ops/rate-limits.md` watches. **The restore must never hide the cause:** if the body of a test
+  already failed, a failing restore only logs (`[e2e] the restore … also failed`) instead of replacing the original
+  error — CI run 38244860637 reported nothing but the `VALIDATION` thrown by its own `finally` and cost a triage
+  cycle. The spec also asserts the `PUT` answer (status `200`) right after the identity dialog, so a refused save
+  names the HTTP status instead of timing out on "success message not visible".
 - **37 (extended) — the bulk password reset is global and is reverted.** `POST /security/bulk-password-reset`
   raises `mustChangePassword` for **every** local account the application manages (SuperAdmins are excluded) and
   revokes their sessions, without changing a single password. The spec flags every account, proves the forced

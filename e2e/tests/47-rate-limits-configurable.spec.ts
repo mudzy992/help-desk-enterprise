@@ -138,6 +138,10 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
     const retuned: RateLimitConfig = { ...original.config, ipMaxFailures: 12, ipWindowSeconds: 20 };
 
     await signInWithRecoveryCode(page, env.superAdminEmail, env.superAdminPassword, recoveryCodes[0]!);
+    // Remembered so the restore in `finally` can never paint over the real
+    // cause: CI run 38244860637 reported only the `VALIDATION` error thrown by
+    // that restore while the assertion that actually failed stayed invisible.
+    let bodyFailure: unknown = null;
     try {
       await page.goto('/admin?tab=security');
       const card = page.getByTestId(rateLimitsCard);
@@ -163,7 +167,12 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
 
       await failures.fill(String(retuned.ipMaxFailures));
       const reason = dialog.locator('input[type="text"]');
-      await reason.fill('prekratko');
+      // Four characters: the reason needs **five** (the card's own
+      // `minimumReasonLength = 5`, mirroring the server's `@MinLength(5)`).
+      // Review 2026-10-12 (CI run 38255960313): this used a nine-character word,
+      // so the button was legitimately enabled and the assertion failed — the
+      // previous run had hidden it behind a `finally` that threw first.
+      await reason.fill('krat');
       await expect(save).toBeDisabled();
 
       await reason.fill('E2E: kalibracija IP blokade kroz administratorsku karticu');
@@ -189,16 +198,27 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
       expect(stored.config.accountDelayStartsAfterFailures).toBe(original.config.accountDelayStartsAfterFailures);
       // The card now shows the new value without a reload of the API.
       await expect(page.getByTestId('admin-rate-limit-group-ip')).toContainText(String(retuned.ipMaxFailures));
+    } catch (error) {
+      bodyFailure = error;
+      throw error;
     } finally {
       // Always put the installation back the way it was found.
-      await putConfig(
-        admin,
-        original.config,
-        'E2E: vraćanje izvornih ograničenja nakon provjere',
-        recoveryCodes[2] ?? (await nextTotpCode(env.superAdminEmail)),
-      );
-      const restored = await snapshot(admin);
-      expect(restored.config).toEqual(original.config);
+      try {
+        await putConfig(
+          admin,
+          original.config,
+          'E2E: vraćanje izvornih ograničenja nakon provjere',
+          recoveryCodes[2] ?? (await nextTotpCode(env.superAdminEmail)),
+        );
+        const restored = await snapshot(admin);
+        expect(restored.config).toEqual(original.config);
+      } catch (restoreError) {
+        if (bodyFailure === null) throw restoreError;
+        console.error(
+          `[e2e] the restore of the original rate limits also failed: ` +
+            `${restoreError instanceof Error ? restoreError.message : String(restoreError)}`,
+        );
+      }
     }
   });
 
@@ -224,6 +244,8 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
     );
     expect(applied.config).toMatchObject({ ipMaxFailures: 10, ipWindowSeconds: 10 });
 
+    // Same rule as the first test: the restore below must not hide the cause.
+    let bodyFailure: unknown = null;
     try {
       const metricsBefore = await admin.requestJson<MetricsSnapshot>('/security/metrics/last-hour');
 
@@ -256,14 +278,25 @@ test.describe('47 configurable login rate limits (5.4.0-b/e)', () => {
       expect(
         (metrics.metrics['login-429']?.total ?? 0) - (metricsBefore.metrics['login-429']?.total ?? 0),
       ).toBeGreaterThan(0);
+    } catch (error) {
+      bodyFailure = error;
+      throw error;
     } finally {
-      const restored = await putConfig(
-        admin,
-        original.config,
-        'E2E: vraćanje izvornih ograničenja nakon provjere blokade',
-        recoveryCodes[1] ?? (await nextTotpCode(env.superAdminEmail)),
-      );
-      expect(restored.config).toEqual(original.config);
+      try {
+        const restored = await putConfig(
+          admin,
+          original.config,
+          'E2E: vraćanje izvornih ograničenja nakon provjere blokade',
+          recoveryCodes[1] ?? (await nextTotpCode(env.superAdminEmail)),
+        );
+        expect(restored.config).toEqual(original.config);
+      } catch (restoreError) {
+        if (bodyFailure === null) throw restoreError;
+        console.error(
+          `[e2e] the restore of the original rate limits also failed: ` +
+            `${restoreError instanceof Error ? restoreError.message : String(restoreError)}`,
+        );
+      }
     }
 
     // A 429 is a temporary answer, not a lock: with the original (wider) policy

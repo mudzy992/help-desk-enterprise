@@ -71,6 +71,14 @@ zato ne obećava alarm niti linkuje nepostojeći runbook anchor.
 **Ostaje otvoreno:** runtime kapija za nove E2E specove 37 (proširenje), 46 i 47 traži stack (vlasnikov server/CI) —
 u pješčaniku se mogu izvršiti samo statičke provjere (`tsc`, `--list`). `[interno]`
 
+**Dopuna poslije prvog punog E2E prolaza (2026-10-12, runovi 38244860637 i 38255960313):** `e2e/README.md` —
+odjeljak „State the suite owns and must reset“ sada imenuje i **red passkeyja**: ključ umire s kontekstom
+preglednika, red u bazi ne, pa spec 46 počinje brisanjem svega što je prethodni (pali) run ostavio
+(`helpers/passkeys.ts`) i briše svoj red i u `finally`; drugi test 46 to radi poslije vraćanja TOTP-a. Uz to
+stoji pravilo da **vraćanje stanja u `finally` ne smije sakriti pravi pad** (run 38244860637 je prijavio samo
+`VALIDATION` iz svog `finally`, a pravi pad je ostao nevidljiv). Dokument opisuje i zašto je odbijanje brisanja
+posljednjeg faktora moralo izaći iz dijaloga (Radix drži ostatak stranice `aria-hidden`).
+
 ## 2026-10-10 — E2E triage 2 (ručni full run 38044846221)
 
 - `/auth/security` (Pregled sigurnosti) sada u odgovoru vraća i **`principal`** (`{ id, email }` pozivaoca) — usklađeno s E2E 39 kontraktom; polje je nestalo pri ranijem rewrite-u kontrolera, a spec ga nikad prije nije stigao validirati.

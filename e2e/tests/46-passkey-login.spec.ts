@@ -3,6 +3,7 @@ import { ApiClient } from '../helpers/api-client';
 import { assertDisposableTestAccount } from '../helpers/disposable-account';
 import { readE2EEnvironment } from '../helpers/environment';
 import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from '../helpers/mfa';
+import { removeAllPasskeys } from '../helpers/passkeys';
 import { signIn } from '../helpers/sign-in';
 import { VirtualAuthenticator } from '../helpers/virtual-authenticator';
 
@@ -84,11 +85,57 @@ async function removePasskeyThroughProfile(page: Page): Promise<void> {
   await page.getByTestId('confirm-dialog-confirm').click();
 }
 
+/**
+ * Both tests assert counts ("exactly one row", "the passkey is the only
+ * factor"), so both need a known starting state. A credential registered by an
+ * earlier run whose spec failed before its own cleanup is still a row on this
+ * account — the private key died with that run's browser, the row did not
+ * (CI run 38255960313 inherited exactly that).
+ *
+ * Strict on purpose: if the account refuses to drop a row here, the premise of
+ * the spec is wrong and the message should say so instead of letting a later
+ * `toHaveCount(1)` fail with a number nobody can explain.
+ */
+async function clearLeftoverPasskeys(admin: ApiClient): Promise<void> {
+  const { removed, refused } = await removeAllPasskeys(admin);
+  if (removed > 0) {
+    console.warn(`[e2e] removed ${removed} passkey(s) left behind by an earlier run.`);
+  }
+  if (refused > 0) {
+    throw new Error(
+      `[e2e] ${refused} passkey(s) could not be removed before the spec: ` +
+        'the account has no other second factor, so every count below would be a guess.',
+    );
+  }
+}
+
+/** Best effort at the end of a test: never turns a real failure into a second one. */
+async function dropPasskeysQuietly(admin: ApiClient): Promise<void> {
+  try {
+    const { removed } = await removeAllPasskeys(admin);
+    if (removed > 0) {
+      console.warn(`[e2e] dropped ${removed} passkey(s) this test would otherwise have left behind.`);
+    }
+  } catch (error) {
+    console.warn(
+      `[e2e] passkey cleanup after the test failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 test.describe('46 passkeys (5.4.0-a/e)', () => {
   test('a super admin adds a passkey in the profile and signs in with it', async ({ page }) => {
+    // Sign-in, passkey registration and (when the account had no secret yet)
+    // the API login's own enrolment each consume a TOTP time step, and a third
+    // step in one 30 s window waits for the next one — the default 90 s budget
+    // is too tight for that (helpers/mfa.ts).
+    test.setTimeout(120_000);
     const env = readE2EEnvironment();
     assertDisposableTestAccount(env.superAdminEmail, 'register and remove a passkey');
     const authenticator = await VirtualAuthenticator.install(page);
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    await clearLeftoverPasskeys(admin);
     try {
       // The platform must advertise a user-verifying platform authenticator,
       // otherwise the profile hides the button by design (UVPA is evaluated by
@@ -140,6 +187,7 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
       await removePasskeyThroughProfile(page);
       await expect(page.getByRole('button', { name: removePasskeyButton })).toHaveCount(0);
     } finally {
+      await dropPasskeysQuietly(admin);
       await authenticator.remove();
     }
   });
@@ -155,6 +203,7 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
     let totpDisabled = false;
     try {
       await admin.login(env.superAdminEmail, env.superAdminPassword);
+      await clearLeftoverPasskeys(admin);
       const { recoveryCodes } = await admin.requestJson<{ recoveryCodes: string[] }>(
         '/auth/mfa/recovery-codes',
         { method: 'POST', body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }) },
@@ -244,6 +293,9 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
           );
         }
       }
+      // After the TOTP re-enrolment the row may be dropped again; if the
+      // re-enrolment itself failed, this is refused (403) and only reported.
+      await dropPasskeysQuietly(admin);
       await authenticator.remove();
     }
   });
