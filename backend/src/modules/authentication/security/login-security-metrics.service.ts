@@ -16,7 +16,12 @@ export type LoginSecurityMetricEvent =
   | 'mfa-failures'
   // Paket 5.4.0-d (M5): the HIBP range check could not run (timeout, network,
   // non-2xx or an unusable response). The password was accepted (fail-open).
-  | 'hibp-skipped';
+  | 'hibp-skipped'
+  // Paket 5.4.1 (M3): Cloudflare could not be asked (`captcha-skipped`, fail-open)
+  // or refused the presented challenge (`captcha-failed`). Diagnostics only —
+  // neither verdict decides the sign-in by itself.
+  | 'captcha-failed'
+  | 'captcha-skipped';
 
 export const loginSecurityMetricEvents: readonly LoginSecurityMetricEvent[] = [
   'login-429',
