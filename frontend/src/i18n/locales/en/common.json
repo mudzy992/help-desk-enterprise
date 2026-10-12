@@ -615,6 +615,37 @@
         },
         "actorUnknown": "Unknown user",
         "values": {
+          "from": {
+            "INVESTIGATING": "Investigating",
+            "IDENTIFIED": "Identified",
+            "MONITORING": "Monitoring",
+            "RESOLVED": "Resolved"
+          },
+          "to": {
+            "INVESTIGATING": "Investigating",
+            "IDENTIFIED": "Identified",
+            "MONITORING": "Monitoring",
+            "RESOLVED": "Resolved"
+          },
+          "reason": {
+            "admin_reset": "Administrator reset the password",
+            "fallback_reassigned": "Group moved to a replacement",
+            "DIRECTORY_ACCOUNT_NOT_LOCAL": "Directory account (not local)"
+          },
+          "source": {
+            "manual_directory_catalog": "Manual directory catalogue"
+          },
+          "via": {
+            "admin": "Administrator",
+            "server": "Server tool (CLI)",
+            "rekey_asset_licenses": "Tool: re-encrypt licences",
+            "seed_default_role_permissions": "Tool: default role permissions"
+          },
+          "format": {
+            "csv": "CSV",
+            "json": "JSON",
+            "xlsx": "XLSX"
+          },
           "membership": {
             "added": "Added",
             "removed": "Removed"

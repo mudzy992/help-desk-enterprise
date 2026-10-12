@@ -617,6 +617,37 @@
         },
         "actorUnknown": "Nepoznat korisnik",
         "values": {
+          "from": {
+            "INVESTIGATING": "Istraga",
+            "IDENTIFIED": "Uzrok identifikovan",
+            "MONITORING": "Praćenje",
+            "RESOLVED": "Riješeno"
+          },
+          "to": {
+            "INVESTIGATING": "Istraga",
+            "IDENTIFIED": "Uzrok identifikovan",
+            "MONITORING": "Praćenje",
+            "RESOLVED": "Riješeno"
+          },
+          "reason": {
+            "admin_reset": "Administrator resetovao lozinku",
+            "fallback_reassigned": "Grupa preusmjerena na zamjensku",
+            "DIRECTORY_ACCOUNT_NOT_LOCAL": "Nalog iz imenika (nije lokalni)"
+          },
+          "source": {
+            "manual_directory_catalog": "Ručni katalog imenika"
+          },
+          "via": {
+            "admin": "Administrator",
+            "server": "Serverski alat (CLI)",
+            "rekey_asset_licenses": "Alat: ponovno šifrovanje licenci",
+            "seed_default_role_permissions": "Alat: zadane permisije uloga"
+          },
+          "format": {
+            "csv": "CSV",
+            "json": "JSON",
+            "xlsx": "XLSX"
+          },
           "membership": {
             "added": "Dodano",
             "removed": "Uklonjeno"
