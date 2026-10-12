@@ -59,8 +59,18 @@ function isCancellation(error: unknown): boolean {
   return error instanceof Error && error.name === "NotAllowedError";
 }
 
+/**
+ * The platform reports the interesting failures as DOM exceptions, not as
+ * library errors: `SecurityError` means the RP ID/origin pair is wrong (a
+ * configuration bug), `InvalidStateError` means a passkey already exists on
+ * this device, `NotSupportedError` means no usable algorithm/authenticator.
+ * Without the name the UI could only say "something failed" — which is what a
+ * live attempt on a phone/QR flow showed (review 2026-10-12).
+ */
 export function passkeyErrorCode(error: unknown): string | null {
-  return error instanceof WebAuthnError ? error.code : null;
+  if (error instanceof WebAuthnError) return error.code;
+  if (error instanceof DOMException) return error.name;
+  return null;
 }
 
 function toResult<T>(error: unknown): PasskeyCeremonyResult<T> {

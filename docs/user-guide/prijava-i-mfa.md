@@ -146,6 +146,23 @@ Uz dnevnik u **Postavkama → Sigurnost** stoje kartice:
   postavlja se obavezna promjena lozinke i prekidaju se sve njihove sesije; samu lozinku korisnik mijenja pri
   sljedećoj prijavi.
 
+### Za administratore: passkey (FIDO2) — uslovi i dijagnostika
+
+Passkey je drugi faktor pored koda iz aplikacije. Uslovi bez kojih ne radi (sve su postavke instalacije, ne korisnika):
+
+- **HTTPS i tačan naziv hosta.** `CORS_ORIGIN` (ili `WEBAUTHN_RP_ID`) mora odgovarati adresi koju korisnik otvara
+  u pregledniku, npr. `https://helpdesk.firma.ba`. Ako se aplikacija otvara preko `localhost`, IP adrese ili
+  drugačijeg imena, preglednik odbije ceremoniju (`SecurityError`), a potvrda na serveru padne.
+- **QR tok (telefon kao autentifikator)** traži **javnu domenu** i uključen Bluetooth na oba uređaja. Za
+  `localhost` i IP adrese telefon ne može sačuvati passkey — na telefonu se pojavi poruka „nešto je pošlo po
+  zlu“, a na računaru istekne čekanje. Za probu na istoj mašini koristite Windows Hello / Touch ID.
+- **Dodavanje iz profila:** **Moj profil → Sigurnost naloga → Passkey → Dodaj passkey**. Ako nalog ima uključen
+  kod iz aplikacije, kod se traži **poslije** potvrde na uređaju.
+- **Neuspješna potvrda ne odjavljuje sesiju.** Pogrešan kod ili odbijena passkey potvrda samo prikažu poruku;
+  sesija ostaje aktivna (ranije je 401 iz potvrde odjavljivao korisnika).
+- **Dijagnostika:** server u log ispisuje razlog odbijanja (`passkey registration refused …` /
+  `passkey assertion refused …`) — poruka imenuje šta nije odgovaralo (origin, RP ID, challenge, brojač).
+
 Na tabu **Nadzor** je i kartica **Sigurnosne metrike (zadnji sat)**: grafik **Blokade (429)** i **Kašnjenja po računu**
 po minuti te brojači neuspjeha drugog faktora i preskočenih HIBP provjera. Brojevi su agregirani po minuti i ne
 sadrže lične podatke.

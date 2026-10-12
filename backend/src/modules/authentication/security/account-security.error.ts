@@ -22,6 +22,7 @@ export type AccountSecurityErrorCode =
   | 'MFA_TOO_MANY_ATTEMPTS'
   | 'PASSKEY_NOT_FOUND'
   | 'PASSKEY_INVALID_NAME'
+  | 'PASSKEY_VERIFICATION_FAILED'
   | 'PASSKEY_CLONED'
   | 'INVALID_PASSWORD'
   | 'PASSWORD_REUSED'
@@ -53,6 +54,10 @@ const messages: Record<AccountSecurityErrorCode, string> = {
   MFA_TOO_MANY_ATTEMPTS: 'Too many attempts; try again later',
   PASSKEY_NOT_FOUND: 'The passkey was not found',
   PASSKEY_INVALID_NAME: 'The passkey name is not valid',
+  // Paket 5.4.0-e: the attestation/assertion did not verify (wrong RP ID or
+  // origin, expired challenge, unsupported algorithm). A 400 on purpose — a
+  // refused confirmation must never look like a lost session.
+  PASSKEY_VERIFICATION_FAILED: 'The passkey confirmation was not accepted',
   PASSKEY_CLONED: 'The authenticator looks cloned; register it again',
   INVALID_PASSWORD: 'Password does not meet requirements',
   PASSWORD_REUSED: 'The password was used recently',

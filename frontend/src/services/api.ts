@@ -25,11 +25,34 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 
 const sessionlessPaths = ["/auth/login", "/auth/change-password", "/auth/entra", "/auth/logout", "/auth/providers", "/install/"];
 
+/**
+ * Review 2026-10-12 (5.4.0-e, live test): on these paths a 401 is an *answer to
+ * the action*, not "your session ended". The second factor accepts only a
+ * correct TOTP/recovery code or a verified passkey assertion, and a rejected
+ * one answers 401 (`MFA_INVALID_CODE`, `IDENTITY_CONFIRMATION_FAILED`). Treating
+ * that as a lost session signed the person out in the middle of the very dialog
+ * that was supposed to explain the failure — a mistyped code or a passkey the
+ * server refused must only fail the dialog. Everything else still expires the
+ * session exactly as before.
+ */
+const confirmationPaths = [
+  "/auth/security/mfa/",
+  "/auth/security/passkey/register/confirm",
+  "/security/identity/passkey/",
+  "/security/rate-limits",
+  "/security/bulk-password-reset",
+];
+
+/** True when a 401 from `path` must leave the session alone. */
+export function isConfirmationUnauthorizedPath(path: string): boolean {
+  return [...sessionlessPaths, ...confirmationPaths].some((prefix) => path.startsWith(prefix));
+}
+
 function notifyUnauthorized(path: string, sentBearer: boolean, status: number): void {
   if (status !== 401 || !sentBearer || unauthorizedHandler === null) {
     return;
   }
-  if (sessionlessPaths.some((prefix) => path.startsWith(prefix))) {
+  if (isConfirmationUnauthorizedPath(path)) {
     return;
   }
   unauthorizedHandler();

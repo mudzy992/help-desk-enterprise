@@ -148,6 +148,24 @@ Next to the journal, **Settings → Security** offers:
 - **Force every local password to change** — every local account (except SUPER_ADMIN and Microsoft accounts) gets
   a required password change and all its sessions end; the person changes the password at the next sign-in.
 
+### For administrators: passkeys (FIDO2) — requirements and diagnostics
+
+A passkey is a second factor next to the authenticator code. It needs the following (installation settings, not
+user settings):
+
+- **HTTPS and the exact host name.** `CORS_ORIGIN` (or `WEBAUTHN_RP_ID`) must match the address people open in the
+  browser, for example `https://helpdesk.example.com`. Over `localhost`, an IP address or a different host name
+  the browser refuses the ceremony (`SecurityError`) and the server-side confirmation fails.
+- **The QR flow (a phone as the authenticator)** needs a **public domain** and Bluetooth on both devices. Phones
+  cannot save a passkey for `localhost` or an IP address — the phone reports a generic error and the computer
+  times out. To try it on one machine, use Windows Hello / Touch ID.
+- **Adding a passkey:** **My profile → Account security → Passkey → Add a passkey**. When the account has an
+  authenticator code, the code is asked for **after** the device confirmation.
+- **A failed confirmation does not sign you out.** A wrong code or a refused passkey only shows a message; the
+  session stays alive (a 401 from the confirmation used to end it).
+- **Diagnostics:** the server logs the reason for a refusal (`passkey registration refused …` /
+  `passkey assertion refused …`) — the message names what did not match (origin, RP ID, challenge, counter).
+
 The **Monitoring** tab also carries the **Security metrics (last hour)** card: a chart of **Blocks (429)** and
 **Per-account delays** per minute, plus counters for second-factor failures and skipped HIBP checks. The numbers
 are aggregated per minute and carry no personal data.

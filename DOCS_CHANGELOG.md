@@ -19,6 +19,18 @@ lozinki) i koja metrika u **Nadzoru** (graf blokada/kašnjenja po minuti).
 **Zašto:** valovi 5.4.0-b…5.4.0-e su dodali sigurnosnu površinu koja se ne vidi u postojećim vodičima; vlasnik je
 tražio da tab **Sigurnost** dobije korisničko objašnjenje u „Šta je novo", a vodič prijave nosi detalje.
 
+**Popravka poslije prvog živog testa (2026-10-12, isti val):** dodavanje passkeyja preko QR koda (telefon kao
+autentifikator) je propadalo — preglednik je čekao podrazumijevanih 60 s iz `@simplewebauthn`, a kod iz aplikacije
+se tražio **prije** ceremonije, pa je u međuvremenu istekao. Uz to je odbijena potvrda vraćala `MFA_INVALID_CODE`
+(401), što je klijent čitao kao „sesija je istekla" i **odjavljivao korisnika**. Sada: eksplicitno vrijeme čekanja
+od 2,5 minute (kraće od TTL-a izazova), kod se traži poslije potvrde na uređaju, odbijena registracija nosi novi kod
+`PASSKEY_VERIFICATION_FAILED` (400, bez odjave), a `401` s potvrda (`/auth/security/mfa/*`,
+`/auth/security/passkey/register/confirm`, `/security/identity/passkey/*`, `/security/rate-limits`,
+`/security/bulk-password-reset`) više ne prekida sesiju. Poruke grešaka mapiraju i `SecurityError` /
+`InvalidStateError` / `NotSupportedError` iz preglednika, a server loguje razlog odbijanja (origin, RP ID,
+challenge, brojač) — bez podataka o ključu. Vodič `prijava-i-mfa.md` (bs/en) dobio je poglavlje „Passkey (FIDO2) —
+uslovi i dijagnostika" (HTTPS + tačan naziv hosta, QR traži javnu domenu i Bluetooth, neuspjeh ne odjavljuje).
+
 **Ostaje otvoreno:** paskey u vodiču (dopuna prijava-i-mfa opisa naloga) — otvara se uz closeout vala 5.4.0-f.
 
 ## 2026-10-10 — E2E triage 2 (ručni full run 38044846221)

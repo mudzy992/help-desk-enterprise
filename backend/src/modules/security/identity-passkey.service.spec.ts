@@ -58,6 +58,9 @@ describe('IdentityPasskeyService', () => {
         rpID: 'helpdesk.example',
         userVerification: 'required',
         allowCredentials: [{ id: 'cred-0' }, { id: 'cred-1' }],
+        // Review 2026-10-12: an explicit window — the library default (60 s)
+        // aborted a phone/QR step-up before the person finished.
+        timeout: 150_000,
       }),
     );
     expect(options.challenge).toBe('step-challenge');

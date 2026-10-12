@@ -16,6 +16,7 @@ import {
   PasskeyCredentialService,
   passkeyLoginChallengeKey,
   toBase64Url,
+  webauthnCeremonyTimeoutMilliseconds,
 } from './passkey-credential.service';
 import { PasskeyChallengeStoreProvider } from './passkey-challenge.store';
 
@@ -249,5 +250,52 @@ describe('PasskeyCredentialService.renameCredential', () => {
       instance.renameCredential('u-1', 'row-1', 'x'.repeat(61)),
     ).rejects.toThrow(new AccountSecurityError('PASSKEY_INVALID_NAME'));
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  Review 2026-10-12 (5.4.0-e, live test): two decisions the phone/QR attempt
+  exposed — the ceremony window and the status of a refused attestation.
+*/
+describe('PasskeyCredentialService — ceremony window and refused attestation', () => {
+  beforeEach(() => {
+    (generateRegistrationOptions as jest.Mock).mockResolvedValue({ challenge: 'challenge-1' });
+    (generateAuthenticationOptions as jest.Mock).mockResolvedValue({ challenge: 'login-challenge' });
+    (verifyRegistrationResponse as jest.Mock).mockReset();
+  });
+
+  it('gives the browser an explicit ceremony window longer than the 60 s default', async () => {
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+    });
+    await instance.startRegistration({ id: 'u-1', email: 'a@b.ba' }, rp);
+    expect(generateRegistrationOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: webauthnCeremonyTimeoutMilliseconds }),
+    );
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-1'), rp);
+    expect(generateAuthenticationOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: webauthnCeremonyTimeoutMilliseconds }),
+    );
+    // The window must end before the server-side challenge does, otherwise a
+    // slow ceremony would report a timeout after the challenge already expired.
+    expect(webauthnCeremonyTimeoutMilliseconds).toBeLessThan(3 * 60 * 1000);
+  });
+
+  it('answers a refused attestation with PASSKEY_VERIFICATION_FAILED, never MFA_INVALID_CODE', async () => {
+    (verifyRegistrationResponse as jest.Mock).mockRejectedValue(new Error('Unexpected registration response origin'));
+    const { instance } = service();
+    await instance.startRegistration({ id: 'u-1', email: 'a@b.ba' }, rp);
+    await expect(
+      instance.confirmRegistration(localUser, { id: 'cred-1' } as never, rp, null),
+    ).rejects.toThrow(new AccountSecurityError('PASSKEY_VERIFICATION_FAILED'));
+  });
+
+  it('answers an unverified attestation (verified: false) the same way', async () => {
+    (verifyRegistrationResponse as jest.Mock).mockResolvedValue({ verified: false });
+    const { instance } = service();
+    await instance.startRegistration({ id: 'u-1', email: 'a@b.ba' }, rp);
+    await expect(
+      instance.confirmRegistration(localUser, { id: 'cred-1' } as never, rp, null),
+    ).rejects.toThrow(new AccountSecurityError('PASSKEY_VERIFICATION_FAILED'));
   });
 });

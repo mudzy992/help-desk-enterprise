@@ -6146,7 +6146,7 @@
       "empty": "Još nema registrovanih passkeyja.",
       "unsupported": "Ovaj preglednik ne podržava passkeyje.",
       "confirmTitle": "Potvrdite kodom",
-      "confirmBody": "Za dodavanje passkeyja prvo potvrdite trenutni kod iz aplikacije.",
+      "confirmBody": "Passkey je potvrđen na vašem uređaju. Upišite trenutni kod iz aplikacije da dovršite dodavanje.",
       "confirmContinue": "Nastavi",
       "created": "Dodan",
       "lastUsed": "Zadnje korišteno",
@@ -6180,7 +6180,10 @@
       "errorInvalidCode": "Kod nije ispravan.",
       "errorExpired": "Vrijeme za potvrdu je isteklo. Pokušajte ponovo.",
       "errorRateLimited": "Previše pokušaja. Pokušajte kasnije.",
-      "errorGeneric": "Radnja nije uspjela."
+      "errorGeneric": "Radnja nije uspjela.",
+      "errorRejected": "Passkey potvrda nije prihvaćena. Provjerite da ste otvorili istu adresu na kojoj je passkey registrovan i pokušajte ponovo.",
+      "errorConfig": "Ova adresa nije dozvoljena za passkeyje. Administrator mora podesiti domenu aplikacije (HTTPS i tačan naziv hosta) — prijavite mu ovu poruku.",
+      "errorConstraint": "Ovaj uređaj ne može ispuniti sigurnosne uslove za passkey (npr. obaveznu provjeru korisnika)."
     }
   },
   "privacy": {

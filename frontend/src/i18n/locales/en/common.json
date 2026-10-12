@@ -6109,7 +6109,7 @@
       "empty": "No passkeys are registered yet.",
       "unsupported": "This browser does not support passkeys.",
       "confirmTitle": "Confirm with a code",
-      "confirmBody": "To add a passkey, first confirm with the current code from your authenticator app.",
+      "confirmBody": "The passkey was confirmed on your device. Type the current code from your authenticator app to finish adding it.",
       "confirmContinue": "Continue",
       "created": "Added",
       "lastUsed": "Last used",
@@ -6143,7 +6143,10 @@
       "errorInvalidCode": "The code is not valid.",
       "errorExpired": "The confirmation window expired. Try again.",
       "errorRateLimited": "Too many attempts. Try again later.",
-      "errorGeneric": "The action failed."
+      "errorGeneric": "The action failed.",
+      "errorRejected": "The passkey confirmation was not accepted. Check that you opened the same address the passkey was registered on, then try again.",
+      "errorConfig": "This address is not allowed for passkeys. An administrator has to configure the application domain (HTTPS and the exact host name) — report this message.",
+      "errorConstraint": "This device cannot meet the security requirements for a passkey (for example a required user verification)."
     }
   },
   "privacy": {

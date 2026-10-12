@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -38,6 +38,18 @@ import { PasskeyChallengeStoreProvider } from './passkey-challenge.store';
 /** Paket 5.4.0-e: the label stays a label — short, trimmed, never empty. */
 export const passkeyDeviceNameMaxLength = 60;
 
+/*
+  Review 2026-10-12 (5.4.0-e, live test): `@simplewebauthn` defaults the ceremony
+  timeout to **60 seconds**, and a browser aborts the request when it expires.
+  That is enough for a platform authenticator (Windows Hello / Touch ID), but a
+  cross-device QR flow (scan the code, unlock the phone, biometrics, save) is
+  slower than that — the desktop gave up mid-flow and the phone reported a
+  generic error while the authenticator had already done its part. The browser
+  window is now explicit and always short enough to end before the server-side
+  challenge expires, so a slow ceremony fails cleanly and a retry starts fresh.
+*/
+export const webauthnCeremonyTimeoutMilliseconds = 150_000;
+
 const registrationChallengeTtlSeconds = 3 * 60;
 const authenticationChallengeTtlSeconds = 3 * 60;
 
@@ -59,6 +71,16 @@ export type PasskeyAuthenticationSubject = {
 
 @Injectable()
 export class PasskeyCredentialService {
+  /*
+    Review 2026-10-12 (5.4.0-e, live test): the verification errors were swallowed
+    completely, so a refused ceremony left an administrator with no clue. The
+    library's message names the expectation that did not hold (origin, RP ID,
+    challenge, counter) and contains no credential material — it is the fastest
+    way to spot a deployment whose frontend origin and `CORS_ORIGIN`/
+    `WEBAUTHN_RP_ID` disagree.
+  */
+  private readonly logger = new Logger(PasskeyCredentialService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly challenges: PasskeyChallengeStoreProvider,
@@ -121,6 +143,7 @@ export class PasskeyCredentialService {
       userID: utf8Bytes(subject.id),
       userName: subject.email,
       attestationType: 'none',
+      timeout: webauthnCeremonyTimeoutMilliseconds,
       excludeCredentials: existing.map((row) => ({ id: row.credentialId })),
       authenticatorSelection: {
         residentKey: 'preferred',
@@ -158,11 +181,18 @@ export class PasskeyCredentialService {
       expectedOrigin: [...rp.expectedOrigins],
       expectedRPID: rp.rpID,
       requireUserVerification: false,
-    }).catch(() => {
-      throw new AccountSecurityError('MFA_INVALID_CODE');
+    }).catch((error: unknown) => {
+      // Review 2026-10-12: a refused attestation is not a mistyped code. It used
+      // to answer `MFA_INVALID_CODE` (401), which the web client read as "your
+      // session ended" and signed the person out. It is a 400 with its own code,
+      // so the dialog can explain what to check and the session is untouched.
+      this.logger.warn(
+        `passkey registration refused for user ${subject.id}: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new AccountSecurityError('PASSKEY_VERIFICATION_FAILED');
     });
     if (!verification.verified || verification.registrationInfo === undefined) {
-      throw new AccountSecurityError('MFA_INVALID_CODE');
+      throw new AccountSecurityError('PASSKEY_VERIFICATION_FAILED');
     }
     const info = verification.registrationInfo;
     const row = await this.prisma.userPasskeyCredential.create({
@@ -224,6 +254,7 @@ export class PasskeyCredentialService {
     const options = await generateAuthenticationOptions({
       rpID: rp.rpID,
       userVerification: 'preferred',
+      timeout: webauthnCeremonyTimeoutMilliseconds,
       allowCredentials: credentials.map((row) => ({
         id: row.credentialId,
         transports: parseTransports(row.transports),
@@ -272,7 +303,14 @@ export class PasskeyCredentialService {
         transports: parseTransports(credential.transports),
       },
       requireUserVerification,
-    }).catch(() => {
+    }).catch((error: unknown) => {
+      // Login and step-up keep answering `MFA_INVALID_CODE` (an assertion is a
+      // confirmation of a sign-in, and no session is on the line), but a silent
+      // refusal is undebuggable on a self-hosted install — the message names the
+      // expectation that failed and never carries credential material.
+      this.logger.warn(
+        `passkey assertion refused for user ${userId}: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
       throw new AccountSecurityError('MFA_INVALID_CODE');
     });
     if (!verification.verified) throw new AccountSecurityError('MFA_INVALID_CODE');

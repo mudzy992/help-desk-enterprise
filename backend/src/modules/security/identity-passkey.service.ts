@@ -5,6 +5,7 @@ import { generateAuthenticationOptions } from '@simplewebauthn/server';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   PasskeyCredentialService,
+  webauthnCeremonyTimeoutMilliseconds,
 } from '../authentication/security/passkey-credential.service';
 import {
   PasskeyChallengeStoreProvider,
@@ -26,7 +27,10 @@ import { WebAuthnRpLoader } from '../authentication/security/webauthn-rp.loader'
      consumes in place of a TOTP code.
 */
 
-const stepUpChallengeTtlSeconds = 2 * 60;
+// Review 2026-10-12 (5.4.0-e): the browser is allowed the full ceremony window
+// (see `webauthnCeremonyTimeoutMilliseconds`), so the challenge has to outlive
+// it — a step-up on a phone through a QR code used to be cut off at 2 minutes.
+const stepUpChallengeTtlSeconds = 3 * 60;
 export const passkeyStepUpMarkerTtlSeconds = 2 * 60;
 
 export function stepUpChallengeKey(sessionId: string, purpose: string): string {
@@ -82,6 +86,7 @@ export class IdentityPasskeyService {
     const options = await generateAuthenticationOptions({
       rpID: rp.rpID,
       userVerification: 'required',
+      timeout: webauthnCeremonyTimeoutMilliseconds,
       allowCredentials: credentials.map((row) => ({ id: row.credentialId })),
       challenge,
     });

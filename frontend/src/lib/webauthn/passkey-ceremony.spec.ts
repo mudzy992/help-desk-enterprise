@@ -30,4 +30,11 @@ describe("passkeyErrorCode", () => {
     expect(passkeyErrorCode(new Error("The operation either timed out or was not allowed."))).toBeNull();
     expect(passkeyErrorCode(null)).toBeNull();
   });
+
+  it("surfaces the platform's DOM exception name, so the UI can name the cause", () => {
+    // Chrome reports a wrong RP ID/origin as a SecurityError, and an existing
+    // credential on the device as an InvalidStateError.
+    expect(passkeyErrorCode(new DOMException("bad rp id", "SecurityError"))).toBe("SecurityError");
+    expect(passkeyErrorCode(new DOMException("already", "InvalidStateError"))).toBe("InvalidStateError");
+  });
 });

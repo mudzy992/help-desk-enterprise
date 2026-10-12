@@ -324,6 +324,11 @@
           "id": "za-administratore-sigurnost-dnevnik-i-metrike"
         },
         {
+          "level": 3,
+          "text": "Za administratore: passkey (FIDO2) — uslovi i dijagnostika",
+          "id": "za-administratore-passkey-fido2-uslovi-i-dijagnostika"
+        },
+        {
           "level": 2,
           "text": "Polja, validacije i statusi",
           "id": "polja-validacije-i-statusi"
@@ -344,7 +349,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1870,
+      "wordCount": 2070,
       "source": "docs/user-guide/prijava-i-mfa.md",
       "englishTitle": "Sign-in and two-step verification (MFA)"
     },
@@ -2958,7 +2963,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2547,
+      "wordCount": 2608,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

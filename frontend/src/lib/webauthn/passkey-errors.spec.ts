@@ -25,6 +25,11 @@ describe("passkeyMessageKey", () => {
     expect(passkeyMessageKey(new ApiError(503, "MFA_UNAVAILABLE", "x"))).toBe(
       "account.passkeys.errorNotAvailable",
     );
+    // Review 2026-10-12: a refused attestation has its own 400 code; the dialog
+    // explains what to check instead of repeating "the code is not valid".
+    expect(passkeyMessageKey(new ApiError(400, "PASSKEY_VERIFICATION_FAILED", "x"))).toBe(
+      "account.passkeys.errorRejected",
+    );
   });
 
   it("falls back by status and finally to the generic message", () => {
@@ -42,6 +47,25 @@ describe("passkeyMessageKey", () => {
 describe("ceremonyMessageKey", () => {
   it("names an unsupported browser", () => {
     expect(ceremonyMessageKey({ kind: "unsupported" })).toBe("account.passkeys.errorUnsupported");
+  });
+
+  it("turns the platform's own exception names into an actionable sentence", () => {
+    // RP ID/origin mismatch or a non-secure context: only the deployment can fix it.
+    expect(ceremonyMessageKey({ kind: "failed", code: "SecurityError" })).toBe(
+      "account.passkeys.errorConfig",
+    );
+    expect(ceremonyMessageKey({ kind: "failed", code: "InvalidStateError" })).toBe(
+      "account.passkeys.errorAlreadyRegistered",
+    );
+    expect(ceremonyMessageKey({ kind: "failed", code: "NotSupportedError" })).toBe(
+      "account.passkeys.errorUnsupported",
+    );
+    expect(ceremonyMessageKey({ kind: "failed", code: "ConstraintError" })).toBe(
+      "account.passkeys.errorConstraint",
+    );
+    expect(ceremonyMessageKey({ kind: "failed", code: "UnknownError" })).toBe(
+      "account.passkeys.errorGeneric",
+    );
   });
 
   it("explains an already-registered authenticator and a refused user verification", () => {

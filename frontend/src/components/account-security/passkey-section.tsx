@@ -29,7 +29,11 @@ import {
  *   credential id;
  * * "Dodaj passkey" runs the real WebAuthn ceremony; when the account already
  *   has TOTP the server additionally asks for a current code, so a stolen
- *   session alone cannot add a factor;
+ *   session alone cannot add a factor. Review 2026-10-12 (live test): the code
+ *   is asked **after** the device prompt — a TOTP code typed before a QR
+ *   ceremony was often already expired when the confirmation reached the
+ *   server, and a wrong/expired code answered 401, which signed the person
+ *   out. Asking last removes both problems;
  * * "Preimenuj" changes the label only, "Ukloni" asks for confirmation and the
  *   server keeps its last-factor guard (the message explains it when refused).
  */
@@ -53,9 +57,31 @@ export function PasskeySection({
   const [removing, setRemoving] = useState<PasskeyView | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  /** The attestation the device produced, waiting for the TOTP code. */
+  const [pendingAttestation, setPendingAttestation] = useState<Record<string, unknown> | null>(null);
+
+  const confirmRegistration = useCallback(
+    async (attestation: Record<string, unknown>, code?: string) => {
+      setErrorKey(null);
+      try {
+        await confirmPasskeyRegistration({
+          response: attestation,
+          ...(code === undefined ? {} : { code }),
+        });
+        toast({ tone: "success", title: t("account.passkeys.added") });
+        setPendingAttestation(null);
+        setStep("idle");
+        onChanged();
+      } catch (error) {
+        setErrorKey(t(passkeyMessageKey(error)));
+        throw error;
+      }
+    },
+    [onChanged, t, toast],
+  );
 
   const runRegistration = useCallback(
-    async (code?: string) => {
+    async () => {
       setErrorKey(null);
       setStep("ceremony");
       const started = await startPasskeyRegistration().catch((error: unknown) => {
@@ -74,28 +100,27 @@ export function PasskeySection({
         setStep("idle");
         return;
       }
+      const attestation = ceremony.value as unknown as Record<string, unknown>;
+      if (hasTotp) {
+        // Ask for the code only now: it stays valid while it is being typed.
+        setPendingAttestation(attestation);
+        setStep("code");
+        return;
+      }
       try {
-        await confirmPasskeyRegistration({
-          response: ceremony.value as unknown as Record<string, unknown>,
-          ...(code === undefined ? {} : { code }),
-        });
-        toast({ tone: "success", title: t("account.passkeys.added") });
-        onChanged();
-      } catch (error) {
-        setErrorKey(t(passkeyMessageKey(error)));
+        await confirmRegistration(attestation);
+      } catch {
+        // The message is already on screen; the challenge is spent either way.
       } finally {
         setStep("idle");
       }
     },
-    [onChanged, t, toast],
+    [confirmRegistration, hasTotp, t],
   );
 
   const startAdd = () => {
     setErrorKey(null);
-    if (hasTotp) {
-      setStep("code");
-      return;
-    }
+    setPendingAttestation(null);
     void runRegistration();
   };
 
@@ -225,7 +250,15 @@ export function PasskeySection({
         </Button>
       )}
 
-      <Modal open={step === "code"} onOpenChange={(open) => !open && setStep("idle")}>
+      <Modal
+        open={step === "code"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingAttestation(null);
+            setStep("idle");
+          }
+        }}
+      >
         <ModalContent data-testid="passkey-register-code-dialog">
           <ModalTitle className="pr-6 text-[14px] font-semibold leading-5 text-foreground">
             {t("account.passkeys.confirmTitle")}
@@ -237,8 +270,17 @@ export function PasskeySection({
             idPrefix="passkey-register"
             allowRecoveryCode={false}
             submitLabel={t("account.passkeys.confirmContinue")}
-            onSubmit={async (code) => runRegistration(code)}
-            onCancel={() => setStep("idle")}
+            onSubmit={async (code) => {
+              if (pendingAttestation === null) {
+                return;
+              }
+              await confirmRegistration(pendingAttestation, code);
+              setStep("idle");
+            }}
+            onCancel={() => {
+              setPendingAttestation(null);
+              setStep("idle");
+            }}
           />
         </ModalContent>
       </Modal>
