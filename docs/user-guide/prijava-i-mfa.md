@@ -52,6 +52,8 @@ Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su nami
    prijava s iste IP adrese** prijava traži i rješenje kratke provjere; bez njega server odbija pokušaj
    (`CAPTCHA_REQUIRED`), a stranica prijave tada prikaže provjeru. Rješenje važi za **jedan pokušaj** — ako i
    on padne, provjera se rješava ponovo; ako je provjera isključena (zadano), ovaj korak ne postoji.
+   Ista provjera se traži i na **koraku s kodom** (kod iz aplikacije ili rezervni kod) poslije pet neuspjelih
+   unosa koda za vaš nalog; prijava passkeyjem je ne traži.
 
 ### Prijava Microsoft nalogom (kada je tako podešeno)
 

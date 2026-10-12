@@ -41,6 +41,8 @@ It is meant for **all users** (sign-in and their own account), while some parts 
    same IP address** the sign-in also asks for a solved challenge; without it the server refuses the attempt
    (`CAPTCHA_REQUIRED`) and the sign-in page shows the challenge. A solution is good for **one** attempt — if
    that one fails too, the challenge is solved again; with the check off (the default) this step does not exist.
+   The same check is asked for on the **code step** (authenticator code or recovery code) after five failed code
+   entries for your account; signing in with a passkey does not ask for it.
 
 ### Signing in with a Microsoft account (when configured that way)
 

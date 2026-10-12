@@ -522,3 +522,110 @@ describe('login captcha gate in front of the password buckets (5.4.1 M3)', () =>
     await expect(limiter.guardPasswordLogin(email, ip, async () => 'ok', 'ignored-token')).resolves.toBe('ok');
   });
 });
+
+/*
+  Paket 5.4.1 closeout (M3, MFA korak): the TOTP / recovery code after the password.
+  The challenge is keyed on the failures of the account, and a block that starts
+  sooner than the usual five failures moves the challenge in front of it.
+*/
+describe('login captcha gate in front of the MFA code (5.4.1 closeout)', () => {
+  const secret = 'stable-shared-signing-secret-for-tests';
+  const loader = { load: async () => secret } as never;
+  const userKey = 'auth:mfa:captcha-target';
+  const ip = '198.51.100.10';
+  const wrongCode = () => Promise.reject(new UnauthorizedException({ code: 'INVALID_CREDENTIALS' }));
+  const wrong = wrongCode;
+
+  // Same semantics as LoginCaptchaService.required(): the threshold is the
+  // smaller of five and the configured block, and a provider of none never asks.
+  function captchaFixture(verdicts: readonly string[], provider: 'none' | 'turnstile' = 'turnstile') {
+    const required = jest.fn(async (failures: number, blockAfter = Number.POSITIVE_INFINITY) =>
+      provider === 'turnstile' && failures >= Math.min(5, blockAfter),
+    );
+    const verify = jest.fn();
+    for (const verdict of verdicts) verify.mockResolvedValueOnce(verdict);
+    return { required, verify } as unknown as { required: jest.Mock; verify: jest.Mock };
+  }
+
+  it('leaves the code path unchanged while the provider is none', async () => {
+    const captcha = captchaFixture([], 'none');
+    const limiter = new LoginAttemptLimiter(undefined, loader, undefined, undefined, captcha as never);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await expect(limiter.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    }
+    // The sixth attempt is the ordinary 429 of the account bucket — no challenge, no code check.
+    const verify = jest.fn(async () => 'ok');
+    await expect(limiter.guardMfaCode(userKey, { ip }, verify)).rejects.toMatchObject({ status: 429 });
+    expect(verify).not.toHaveBeenCalled();
+    expect(captcha.verify).not.toHaveBeenCalled();
+  });
+
+  it('asks for the challenge from the threshold on, and the code is never checked without it', async () => {
+    const captcha = captchaFixture(['missing']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, undefined, undefined, captcha as never);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await expect(limiter.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    }
+    const verify = jest.fn(async () => 'ok');
+    await expect(limiter.guardMfaCode(userKey, { ip, captchaToken: null }, verify)).rejects.toMatchObject({
+      response: { code: 'CAPTCHA_REQUIRED' },
+    });
+    expect(verify).not.toHaveBeenCalled();
+  });
+
+  it('a solved challenge buys one code attempt even over a tight block, and a refused one is CAPTCHA_FAILED', async () => {
+    const limits = { otherMaxFailures: 2, otherWindowSeconds: 900 } as never;
+    const config = { load: async () => limits } as never;
+    const captcha = captchaFixture(['passed']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, config, undefined, captcha as never);
+    await expect(limiter.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(limiter.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(UnauthorizedException);
+    // Two failures = the block threshold; the solved challenge lifts it for one attempt.
+    await expect(limiter.guardMfaCode(userKey, { ip, captchaToken: 'token-ok' }, async () => 'signed-in')).resolves.toBe(
+      'signed-in',
+    );
+
+    const refusing = captchaFixture(['failed']);
+    const strict = new LoginAttemptLimiter(undefined, loader, config, undefined, refusing as never);
+    await expect(strict.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(strict.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(UnauthorizedException);
+    const login = jest.fn(async () => 'x');
+    await expect(strict.guardMfaCode(userKey, { ip, captchaToken: 'token-bad' }, login)).rejects.toMatchObject({
+      response: { code: 'CAPTCHA_FAILED' },
+    });
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it('an unreachable Cloudflare keeps the account block in place', async () => {
+    const limits = { otherMaxFailures: 1, otherWindowSeconds: 900 } as never;
+    const config = { load: async () => limits } as never;
+    const captcha = captchaFixture(['unavailable', 'unavailable']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, config, undefined, captcha as never);
+    await expect(limiter.guardMfaCode(userKey, { ip }, wrongCode)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(limiter.guardMfaCode(userKey, { ip, captchaToken: 'token-ok' }, async () => 'ok')).rejects.toMatchObject({
+      status: 429,
+    });
+  });
+
+  it('asks for the challenge in front of a block that starts before five failures', async () => {
+    const limits = { ipMaxFailures: 2, ipWindowSeconds: 300 } as never;
+    const config = { load: async () => limits } as never;
+    const captcha = captchaFixture(['missing']);
+    const limiter = new LoginAttemptLimiter(undefined, loader, config, undefined, captcha as never);
+    await expect(limiter.guardPasswordLogin('tight@example.test', ip, wrong)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    await expect(limiter.guardPasswordLogin('tight@example.test', ip, wrong)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    // The third attempt would be a 429 — with the threshold min(5, 2) the human check comes first.
+    await expect(limiter.guardPasswordLogin('tight@example.test', ip, async () => 'ok')).rejects.toMatchObject({
+      response: { code: 'CAPTCHA_REQUIRED' },
+    });
+    expect(captcha.required).toHaveBeenLastCalledWith(2, 2);
+  });
+});

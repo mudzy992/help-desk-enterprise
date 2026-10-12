@@ -210,7 +210,8 @@ Simptom → podešavanje:
 
 Od paketa 5.4.1 uz pragove može stajati i **ljudski dokaz**: Cloudflare Turnstile. Nije zamjena za
 ograničenja — limiter i dalje broji i odgađa — nego dodatni uslov za pokušaj koji dolazi s IP adrese
-koja je već prikupila **pet** neuspjeha.
+koja je već prikupila **pet** neuspjeha, ili prag blokade ako je on **niži od pet** (`ipMaxFailures`
+u §1). Tako se izazov uvijek pokaže prije privremenog `429`, a ne poslije njega.
 
 | Ključ | Značenje | Zadano |
 |---|---|---|
@@ -225,8 +226,8 @@ Cloudflareu i nijedna prijava ne traži dokaz.
 
 **Kako radi** (server: `LoginCaptchaService` unutar `LoginAttemptLimiter`-a):
 
-1. Nakon **pet neuspjelih prijava s iste IP adrese** (isti IP bucket iz §1) svaki sljedeći pokušaj
-   mora nositi **svježe rješenje izazova**. Bez njega server vraća `400 CAPTCHA_REQUIRED`, a stranica
+1. Nakon **pet neuspjelih prijava s iste IP adrese** (isti IP bucket iz §1; ili prag blokade ako je
+   niži) svaki sljedeći pokušaj mora nositi **svježe rješenje izazova**. Bez njega server vraća `400 CAPTCHA_REQUIRED`, a stranica
    prijave tada prikaže widget i šalje pokušaj ponovo tek s rješenjem.
 2. **Rješenje važi za jedan pokušaj.** Ako je adresa već prešla i prag blokade, rješenje odblokira
    **tačno taj jedan pokušaj** — brojači se dalje pune, pa automatizovani klijent plaća dokaz po
@@ -240,6 +241,12 @@ Cloudflareu i nijedna prijava ne traži dokaz.
 5. **Tajni ključ ne izlazi iz procesa**: čita se samo za internu upotrebu, šalje isključivo
    Cloudflareovom `siteverify` endpointu, ne vraća se kroz API (`GET /auth/providers` nosi samo
    `provider`, `siteKey` i `afterFailures`) i nikad se ne loguje.
+6. **MFA korak pri prijavi** (kod iz aplikacije ili rezervni kod, poslije lozinke): isto pravilo, ali
+   brojanje ide **po nalogu** — napadač već zna lozinku, pa je meta kod. Izazov se traži nakon pet
+   neuspjelih kodova za taj nalog (ili prag `other` bucketa ako je niži). Stranica prikaže provjeru iznad
+   polja za kod i drži dugme dok je ne riješi. Jedan riješeni izazov dozvoljava **jedan** pokušaj koda, a
+   svaki pokušaj s rješenjem — tačan ili pogrešan — troši ga. **Passkey se ne provjerava**: nije
+   pogodljiv (kriptografski potpis, ne šestocifreni kod).
 
 > **Za NAT/proxy:** dokaz se traži po **IP adresi**, pa iza zajedničke adrese cijeli ured dobije
 > provjeru nakon pet zajedničkih neuspjeha. Ako je to neugodno, lijek je isti kao kod pragova:
@@ -269,8 +276,9 @@ preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).
 
 ## 6. Poznata ograničenja
 
-- **CAPTCHA pokriva samo prijavu lokalnim nalogom** — Microsoft tok, promjenu lozinke i MFA potvrde
-  pokriva „other" bucket (§1).
+- **CAPTCHA pokriva prijavu lokalnim nalogom i MFA korak pri prijavi** (§5, tačka 6). Microsoft tok,
+  promjena lozinke i MFA potvrde iz sigurnosnih radnji (npr. uključivanje MFA-e dok je korisnik prijavljen)
+  nemaju provjeru i ostaju pod „other" bucketom (§1).
 - **Metrike CAPTCHA-e nemaju alarm ni pločicu** (za razliku od `login-429`, §3.1): `captcha-skipped` i
   `captcha-failed` se prate ručno, preko `GET /security/metrics/last-hour`.
 - **„Other" bucket dijeli ključ po IP-u** za change-password i po računu za MFA potvrde; ako se

@@ -109,8 +109,15 @@ export class LoginCaptchaService {
   }
 
   /** Whether this request has to carry a solved challenge. */
-  async required(ipFailures: number): Promise<boolean> {
-    if (ipFailures < captchaAfterFailures) return false;
+  /**
+   * Whether the attempt needs a solved challenge. The challenge comes at
+   * `captchaAfterFailures`, or earlier when the block itself starts sooner
+   * (`blockAfterFailures` = the configured limit): a challenge that arrives after
+   * the 429 would never be shown, because the blocked client never gets to
+   * present it. Paket 5.4.1 closeout.
+   */
+  async required(failures: number, blockAfterFailures = Number.POSITIVE_INFINITY): Promise<boolean> {
+    if (failures < Math.min(captchaAfterFailures, blockAfterFailures)) return false;
     return (await this.readProvider()) === 'turnstile';
   }
 

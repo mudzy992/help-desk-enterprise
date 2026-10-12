@@ -7,6 +7,19 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-12 — CAPTCHA: MFA korak pri prijavi i prag ispod pet neuspjeha
+
+**Dodato/izmijenjeno:** `docs/ops/rate-limits.md` §5 — tačka 6 (provjera na koraku s kodom: TOTP ili rezervni kod,
+brojanje po nalogu, passkey se ne provjerava) i pravilo da provjera dolazi **prije** `429` kad je prag blokade
+niži od pet; §6 više ne tvrdi da CAPTCHA pokriva samo lozinku. `docs/user-guide/prijava-i-mfa.md` i `en/` — korak 7
+dobija rečenicu o koraku s kodom. `docs/user-guide/sta-je-novo.md` — novi red 2026-10-12. Mirror u
+`backend/content/docs` regenerisan (`generate-docs-content.mjs`).
+
+**Zašto:** vlasnik je odlučio da se provjera doda na MFA korak (napadač već zna lozinku pa je meta šestocifreni kod);
+Microsoft tok, promjena lozinke i sigurnosne radnje ostaju pod „other\" bucketom. Pravilo „prije 429“ je ispravak
+greške iz 5.4.1: prag je bio fiksno pet, pa bi admin koji spusti IP limit na npr. tri dobio blokadu prije nego što se
+izazov ikad pokaže.
+
 ## 2026-10-12 — Closeout paketa 5.4.1 (CAPTCHA/Turnstile): plan i dokumentacija usklađeni sa stanjem
 
 **Izmijenjeno:** `docs/plans/modules/5.4-sigurnosni-hardening.md` — §9 red 5.4.1 je ✅ s commitima (isporuka,

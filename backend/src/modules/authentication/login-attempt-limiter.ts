@@ -285,7 +285,7 @@ export class LoginAttemptLimiter {
      * cannot be reached, leaves the code path exactly as it was.
      */
     let captchaPassed = false;
-    if (this.captcha !== undefined && (await this.captcha.required(ipFailures))) {
+    if (this.captcha !== undefined && (await this.captcha.required(ipFailures, limits.ipMaxFailures))) {
       const verdict = await this.captcha.verify(captchaToken ?? null, ip);
       if (verdict === 'missing') throw createCaptchaRequiredException();
       if (verdict === 'failed') throw createCaptchaFailedException();
@@ -342,12 +342,50 @@ export class LoginAttemptLimiter {
     }
   }
 
+  /**
+   * Paket 5.4.1 closeout (M3, MFA korak): the TOTP / recovery code after the
+   * password. The bucket is the account (the attacker already knows the
+   * password), so the challenge is keyed on the failures of that account. From
+   * the threshold on, one solved challenge buys one code attempt — the same rule
+   * as the password path, and a provider of `none` leaves the path unchanged.
+   */
+  async guardMfaCode<T>(
+    key: string,
+    input: { readonly captchaToken?: string | null; readonly ip?: string },
+    login: () => Promise<T>,
+  ): Promise<T> {
+    const limits = await this.loadLimits();
+    const failures = await this.safe(() => this.store.count(key), 0);
+    let captchaPassed = false;
+    if (
+      this.captcha !== undefined &&
+      (await this.captcha.required(failures, limits.otherMaxFailures))
+    ) {
+      const verdict = await this.captcha.verify(input.captchaToken ?? null, input.ip);
+      if (verdict === 'missing') throw createCaptchaRequiredException();
+      if (verdict === 'failed') throw createCaptchaFailedException();
+      captchaPassed = verdict === 'passed';
+    }
+    if (failures >= limits.otherMaxFailures && !captchaPassed) {
+      throw createTooManyLoginAttemptsException(limits.otherWindowSeconds);
+    }
+    return this.runOtherBucket(key, limits, login);
+  }
+
   /** Runs a legacy single-key guarded operation (Entra and change-password). */
   async guard<T>(key: string, login: () => Promise<T>): Promise<T> {
     const limits = await this.loadLimits();
     if ((await this.safe(() => this.store.count(key), 0)) >= limits.otherMaxFailures) {
       throw createTooManyLoginAttemptsException(limits.otherWindowSeconds);
     }
+    return this.runOtherBucket(key, limits, login);
+  }
+
+  private async runOtherBucket<T>(
+    key: string,
+    limits: SecurityRateLimitConfig,
+    login: () => Promise<T>,
+  ): Promise<T> {
     try {
       const result = await login();
       await this.safe(() => this.store.clear(key), undefined);

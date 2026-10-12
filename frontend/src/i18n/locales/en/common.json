@@ -4788,6 +4788,8 @@
       "useAuthenticator": "Use a code from the app",
       "verify": "Verify",
       "verifying": "Verifying…",
+      "captchaRequired": "Confirm that you are not a robot (below), then try again.",
+      "captchaFailed": "The check did not pass. Confirm again and retry.",
       "invalidCode": "The code is not valid or was already used. Try again.",
       "recoveryCodesExhausted": "No active recovery codes remain. Use your authenticator app to sign in, then generate new codes in Account security.",
       "enrollmentExpired": "The set-up expired. Start again.",

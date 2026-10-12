@@ -78,4 +78,39 @@ describe("MfaMethodStep", () => {
     expect(html).toContain("auth.mfa.codeLabel");
     expect(html).not.toContain("auth.mfa.passkeyIntro");
   });
+
+  /*
+    Paket 5.4.1 closeout (M3, MFA korak): the human check sits above the code
+    field and holds the submit button until it is solved. The passkey branch
+    never shows it — a passkey is not guessable.
+  */
+  it("shows the human check above the code field and holds submit until it is solved", () => {
+    canUsePasskeys.value = false;
+    const html = renderToStaticMarkup(
+      <MfaMethodStep
+        email="ana@example.org"
+        token="mfa-token"
+        methods={["totp"]}
+        defaultMethod="totp"
+        onVerifyCode={() => Promise.resolve()}
+        onCompletePasskey={() => Promise.resolve()}
+        onVerified={() => undefined}
+        onCancel={() => undefined}
+        captcha={<div data-testid="captcha-slot">challenge</div>}
+        isCaptchaBlocked
+      />,
+    );
+    expect(html).toContain("captcha-slot");
+    // Order: the code field, then the human check, then the submit button.
+    expect(html.indexOf("auth.mfa.codeLabel")).toBeLessThan(html.indexOf("captcha-slot"));
+    expect(html.indexOf("captcha-slot")).toBeLessThan(html.indexOf('type="submit"'));
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+  });
+
+  it("does not render the human check when the server did not ask for one", () => {
+    canUsePasskeys.value = false;
+    const html = render(["totp"]);
+    expect(html).not.toContain("captcha-slot");
+    expect(html).not.toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+  });
 });

@@ -71,6 +71,8 @@ export function isMfaResponse(
 export function verifyMfaCode(input: {
   readonly mfaToken: string;
   readonly code: string;
+  /** Paket 5.4.1 closeout (M3): the solved challenge, when the server asked for one. */
+  readonly captchaToken?: string;
 }): Promise<AuthenticationSessionResponse> {
   return apiRequest("/auth/mfa/verify", { method: "POST", body: JSON.stringify(input) });
 }

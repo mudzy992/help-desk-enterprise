@@ -1,4 +1,4 @@
-import { IsString, Length, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 /** Paket 2.1: a TOTP (6 digits) or a recovery code (xxxxx-xxxxx). */
 const CODE_MIN = 6;
@@ -15,6 +15,15 @@ export class MfaCodeDto extends MfaTokenDto {
   @IsString()
   @Length(CODE_MIN, CODE_MAX)
   code!: string;
+
+  /**
+   * Paket 5.4.1 closeout (M3): the solved Turnstile challenge, sent only when the
+   * MFA step shows one. Opaque, bounded, never logged and never stored.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }
 
 export class AccountMfaCodeDto {

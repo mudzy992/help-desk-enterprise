@@ -156,9 +156,18 @@ export function useSession() {
   );
 
   /** Paket 2.1: TOTP or recovery code → session. */
-  const completeMfa = useCallback(async (mfaToken: string, code: string): Promise<void> => {
-    storeSession(await verifyMfaCode({ mfaToken, code }));
-  }, []);
+  const completeMfa = useCallback(
+    async (mfaToken: string, code: string, captchaToken?: string): Promise<void> => {
+      storeSession(
+        await verifyMfaCode({
+          mfaToken,
+          code,
+          ...(captchaToken === undefined ? {} : { captchaToken }),
+        }),
+      );
+    },
+    [],
+  );
 
   /** Paket 5.4.0-e: a verified passkey assertion → the same session as a code. */
   const completeMfaWithPasskey = useCallback(

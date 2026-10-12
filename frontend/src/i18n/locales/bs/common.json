@@ -4812,6 +4812,8 @@
       "useAuthenticator": "Koristi kod iz aplikacije",
       "verify": "Potvrdi",
       "verifying": "Provjera…",
+      "captchaRequired": "Potvrdite da niste robot (ispod), pa pokušajte ponovo.",
+      "captchaFailed": "Provjera nije uspjela. Potvrdite ponovo i pokušajte ponovo.",
       "invalidCode": "Kod nije ispravan ili je već iskorišten. Pokušajte ponovo.",
       "recoveryCodesExhausted": "Nema aktivnih rezervnih kodova. Prijavite se aplikacijom za potvrdu, a zatim generišite nove kodove u Sigurnosti naloga.",
       "enrollmentExpired": "Postavljanje je isteklo. Počnite ispočetka.",

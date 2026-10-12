@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
@@ -11,6 +11,10 @@ interface MfaCodeFormProperties {
   readonly allowRecoveryCode?: boolean;
   readonly submitLabel?: string;
   readonly idPrefix?: string;
+  /** Paket 5.4.1 closeout (M3): the human check, shown only when the server asks for it. */
+  readonly captcha?: ReactNode;
+  /** Keeps the submit button off until the human check is solved. */
+  readonly isSubmitBlocked?: boolean;
 }
 
 /** Paket 2.1: one input for a 6-digit TOTP code or an "xxxxx-xxxxx" recovery code. */
@@ -20,6 +24,8 @@ export function MfaCodeForm({
   allowRecoveryCode = true,
   submitLabel,
   idPrefix = "mfa",
+  captcha,
+  isSubmitBlocked = false,
 }: MfaCodeFormProperties) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
@@ -63,6 +69,7 @@ export function MfaCodeForm({
           required
         />
       </label>
+      {captcha ?? null}
       {error ? (
         <p id={`${inputId}-error`} className={errorTextClassName} role="alert">
           {t(
@@ -74,6 +81,10 @@ export function MfaCodeForm({
                   ? "auth.mfa.signInExpired"
                   : error === "recoveryCodesExhausted"
                     ? "auth.mfa.recoveryCodesExhausted"
+                : error === "captchaRequired"
+                  ? "auth.mfa.captchaRequired"
+                : error === "captchaFailed"
+                  ? "auth.mfa.captchaFailed"
                 : error === "invalid"
                   ? "auth.mfa.invalidCode"
                   : "auth.mfa.failed",
@@ -81,7 +92,7 @@ export function MfaCodeForm({
         </p>
       ) : null}
       <div className="flex gap-2">
-        <Button type="submit" className="flex-1" disabled={isSubmitting}>
+        <Button type="submit" className="flex-1" disabled={isSubmitting || isSubmitBlocked}>
           {isSubmitting ? t("auth.mfa.verifying") : (submitLabel ?? t("auth.mfa.verify"))}
         </Button>
         {onCancel ? (

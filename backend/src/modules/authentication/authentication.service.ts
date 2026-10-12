@@ -136,23 +136,27 @@ export class AuthenticationService {
 
   /** Second step with MFA already set up: TOTP or recovery code. */
   async verifyMfa(
-    input: { readonly mfaToken: string; readonly code: string },
+    input: { readonly mfaToken: string; readonly code: string; readonly captchaToken?: string },
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationSessionResponse> {
     try {
       const { claims, user } = await this.readMfaToken(input.mfaToken, 'verify');
-      const method = await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), async () => {
-        try {
-          return await this.mfaService.verify(user, input.code);
-        } catch (error) {
-          if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
-            await this.notifier.audit(auditLogActions.authMfaFailed, user.id, null);
-            // Paket 5.4.0-b: the metric never blocks the login path.
-            if (this.securityMetrics !== undefined) await this.securityMetrics.record('mfa-failures');
+      const method = await this.loginAttemptLimiter.guardMfaCode(
+        mfaAttemptKey(user.id),
+        { captchaToken: input.captchaToken ?? null, ip: context.ipAddress ?? undefined },
+        async () => {
+          try {
+            return await this.mfaService.verify(user, input.code);
+          } catch (error) {
+            if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
+              await this.notifier.audit(auditLogActions.authMfaFailed, user.id, null);
+              // Paket 5.4.0-b: the metric never blocks the login path.
+              if (this.securityMetrics !== undefined) await this.securityMetrics.record('mfa-failures');
+            }
+            return mapAccountSecurityError(error);
           }
-          return mapAccountSecurityError(error);
-        }
-      });
+        },
+      );
       await this.sessionTokenService.consumeMfaToken(claims);
       return await this.issueSession(
         user,

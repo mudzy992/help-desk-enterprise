@@ -21,4 +21,9 @@ describe("MFA intermediate-step error mapping (5.2.1 M2 #5)", () => {
     expect(mapMfaCodeError(new Error("sensitive backend details"))).toBe("failed");
     expect(mapMfaEnrollmentLoadError(new Error("sensitive backend details"))).toBe("failed");
   });
+
+  it("maps the human-check codes before the generic 400 (5.4.1 closeout)", () => {
+    expect(mapMfaCodeError(new ApiError(400, "CAPTCHA_REQUIRED", "required"))).toBe("captchaRequired");
+    expect(mapMfaCodeError(new ApiError(400, "CAPTCHA_FAILED", "failed"))).toBe("captchaFailed");
+  });
 });

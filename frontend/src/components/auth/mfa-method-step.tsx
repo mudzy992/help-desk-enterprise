@@ -1,5 +1,5 @@
 import { Fingerprint, KeyRound } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ export function MfaMethodStep({
   onCompletePasskey,
   onVerified,
   onCancel,
+  captcha,
+  isCaptchaBlocked = false,
 }: {
   readonly email: string;
   readonly token: string;
@@ -39,6 +41,9 @@ export function MfaMethodStep({
   readonly onCompletePasskey: (assertion: Record<string, unknown>) => Promise<void>;
   readonly onVerified: () => void;
   readonly onCancel: () => void;
+  /** Paket 5.4.1 closeout (M3): rendered above the code field, only for the code. */
+  readonly captcha?: ReactNode;
+  readonly isCaptchaBlocked?: boolean;
 }) {
   const { t } = useTranslation();
   const offered = methods ?? (["totp"] as const);
@@ -127,6 +132,8 @@ export function MfaMethodStep({
             onVerified();
           }}
           onCancel={onCancel}
+          captcha={captcha}
+          isSubmitBlocked={isCaptchaBlocked}
         />
       )}
     </div>

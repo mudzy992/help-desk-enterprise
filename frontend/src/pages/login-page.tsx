@@ -205,6 +205,31 @@ export function LoginPage() {
     }
   };
 
+  /**
+   * Paket 5.4.1 closeout (M3, MFA korak): the same human check as the password
+   * step. A solved challenge is single-use and buys one code attempt, so every
+   * attempt that carried one — right or wrong — leaves the widget empty again.
+   */
+  const verifyMfaWithCaptcha = async (mfaToken: string, code: string) => {
+    const sentToken = captchaToken;
+    try {
+      await completeMfa(mfaToken, code, sentToken ?? undefined);
+      setIsCaptchaRequired(false);
+      setCaptchaToken(null);
+    } catch (error) {
+      const errorCode = error instanceof ApiError ? error.code : null;
+      if (errorCode === "CAPTCHA_REQUIRED" || errorCode === "CAPTCHA_FAILED") {
+        setIsCaptchaRequired(true);
+        setCaptchaToken(null);
+        setCaptchaResetSignal((value) => value + 1);
+      } else if (sentToken !== null) {
+        setCaptchaToken(null);
+        setCaptchaResetSignal((value) => value + 1);
+      }
+      throw error;
+    }
+  };
+
   const handleEntraSignIn = async () => {
     if (providers?.entra == null) return;
     setEntraError(false);
@@ -322,7 +347,21 @@ export function LoginPage() {
                       step.methods,
                       readPreferredMfaMethod(email),
                     )}
-                    onVerifyCode={(code) => completeMfa(step.token, code)}
+                    onVerifyCode={(code) => verifyMfaWithCaptcha(step.token, code)}
+                    captcha={
+                      isCaptchaRequired && providers?.captcha?.siteKey != null ? (
+                        <CaptchaChallenge
+                          siteKey={providers.captcha.siteKey}
+                          onToken={setCaptchaToken}
+                          resetSignal={captchaResetSignal}
+                        />
+                      ) : undefined
+                    }
+                    isCaptchaBlocked={
+                      isCaptchaRequired &&
+                      providers?.captcha?.provider === "turnstile" &&
+                      captchaToken === null
+                    }
                     onCompletePasskey={(assertion) =>
                       completeMfaWithPasskey(step.token, assertion)
                     }

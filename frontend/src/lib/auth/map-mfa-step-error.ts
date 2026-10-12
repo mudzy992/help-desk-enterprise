@@ -6,12 +6,17 @@ export type MfaCodeError =
   | "expired"
   | "signInExpired"
   | "recoveryCodesExhausted"
+  | "captchaRequired"
+  | "captchaFailed"
   | "failed";
 
 export type MfaEnrollmentLoadError = "unavailable" | "signInExpired" | "failed";
 
 /** Shared sign-in/enrollment mapping; never displays raw server error text. */
 export function mapMfaCodeError(error: unknown): MfaCodeError {
+  // Checked before the 400 branch below: a missing or refused human check is a 400 too.
+  if (error instanceof ApiError && error.code === "CAPTCHA_REQUIRED") return "captchaRequired";
+  if (error instanceof ApiError && error.code === "CAPTCHA_FAILED") return "captchaFailed";
   if (error instanceof ApiError && error.status === 429) return "rateLimited";
   if (error instanceof ApiError && error.code === "MFA_ENROLLMENT_EXPIRED") return "expired";
   if (error instanceof ApiError && error.code === "INVALID_CREDENTIALS") return "signInExpired";
