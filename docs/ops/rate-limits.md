@@ -250,6 +250,12 @@ instalaciji koja ima izlaz na internet **i sa servera i iz preglednika korisnika
 interneta ostavlja `provider` na `none`: widget bi korisnicima samo prikazao poruku da se provjera
 nije učitala.
 
+> **E2E/CI:** dok se vrti E2E suite, `provider` mora biti `none`. Suite se prijavljuje desetinama puta s jedne IP
+> adrese, pa bi uključena provjera odgovarala `400 CAPTCHA_REQUIRED` i tamo gdje spec čeka svoj odgovor — prvi
+> takav run (38296071922, 2026-10-12) srušio je spec 47 tačno tako. Spec 48 zato **ne dira** prekidač: provjerava da
+> je isključen i traži od operatera da ga isključi, a polovinu u pregledniku provjerava stagiranim odgovorima
+> (`page.route`), bez stvarnog Cloudflare poziva.
+
 **Nadzor:** dva nova brojača u istom agregatu kao u §3 — `captcha-skipped` i `captcha-failed`. Kartica
 **Sigurnosne metrike (zadnji sat)** i dalje crta četiri serije iz §3, pa se ova dva brojača za sada čitaju
 preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).

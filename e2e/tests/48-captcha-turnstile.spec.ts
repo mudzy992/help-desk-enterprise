@@ -1,133 +1,156 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
+import { readSetting } from '../helpers/assets';
 import { readE2EEnvironment } from '../helpers/environment';
-import { readSetting, setSetting } from '../helpers/assets';
 
 /*
-  Paket 5.4.1 (spec 48): the CAPTCHA gate in front of a password sign-in.
+  Paket 5.4.1 (spec 48): the human check in front of a password sign-in.
 
-  `private.security.captcha.provider` is `none` by default, and then nothing
-  changes: no challenge, no request to Cloudflare, the rate limits do the work.
-  With `turnstile` configured, the *server* starts asking for a solved challenge
-  from the fifth failed attempt of one IP on — the widget itself only exists
-  because the server asked (`CAPTCHA_REQUIRED`).
+  What the suite can prove about a **live, shared** stack without changing it:
 
-  What this spec asserts without reaching Cloudflare:
+    1. the installation ships the check **off** — the suite itself signs in dozens
+       of times from one IP address, so a run is only meaningful while
+       `private.security.captcha.provider` is `none`;
+    2. the registry value and the public answer agree: `GET /auth/providers`
+       carries the same provider, a site key exactly when the provider is
+       `turnstile`, `afterFailures` pinned to five, and the secret nowhere in the
+       answer (not even its name);
+    3. the sign-in page shows no challenge while the check is off;
+    4. the browser half of the gate really works: when the server answers
+       `400 CAPTCHA_REQUIRED`, the page mounts the Turnstile widget and asks the
+       visitor to solve it.
 
-    1. default `none`: even after a burst of failed sign-ins the API never
-       answers `CAPTCHA_REQUIRED`;
-    2. `turnstile` configured with a site key: the very next attempt after that
-       burst gets `CAPTCHA_REQUIRED`, and the sign-in form then shows the
-       challenge (the block is ours — it renders whether or not Cloudflare's
-       script loads, which keeps the assertion meaningful on a runner without
-       internet).
+  Point 4 is checked with `page.route` — the technique spec 37 already uses — by
+  answering *as if* the switch were on: the real `GET /auth/providers` answer with
+  its `captcha` block replaced, and `POST /auth/login` answered with the 400 the
+  server would send. The page, the widget and the mapping of the two error codes
+  are the real ones; only the two answers are staged. The server side of the same
+  contract (threshold of five, one attempt per solved challenge, fail-open when
+  Cloudflare cannot be reached) is pinned by `login-captcha.service.spec.ts` and
+  the limiter spec, and the real Cloudflare round trip is the owner's live check
+  with real keys — a CI runner cannot solve a Turnstile challenge to begin with.
 
-  The burst is deliberately short: successful and failed attempts share the IP
-  bucket, and its window is minutes long, so every extra wrong password shortens
-  the room the rest of the suite has. Six attempts are enough to pass the
-  five-failure threshold the provider is pinned to.
-
-  The widget solving itself — a real token, verified by Cloudflare — is covered
-  by `login-captcha.service.spec.ts` (verdicts, fail-open) and by the owner's
-  live check; a stack with no internet cannot produce a token at all.
-
-  The test mutates two settings, so it snapshots them first and restores them in
-  `finally`: leaving `turnstile` on would ask every other sign-in spec for a
-  challenge.
+  **Why this spec does not flip the switch (run 38296071922, 2026-10-12).** The
+  first version turned `turnstile` on for the length of this spec, against a live
+  settings value every sign-in reads. Spec 47 ran in parallel, signed in with
+  wrong passwords, received `400 CAPTCHA_REQUIRED` instead of `401` at its sixth
+  failure and failed — the *code* was right (the provider was on), the spec was
+  wrong: a test that changes what every other sign-in in the same run receives is
+  a landmine, not a test. The same run then started an attempt with the check
+  still on from the attempt before it and could not sign in at all. Hence: the
+  switch belongs to the operator, and this file asserts the state it needs instead
+  of creating it.
 */
 
-const providerKey = 'private.security.captcha.provider';
-const siteKeyKey = 'private.security.captcha.siteKey';
-/** Cloudflare's documented "always passes" test site key; it is public by design. */
+const captchaProviderSetting = 'private.security.captcha.provider';
+/** Cloudflare's documented "always passes" test site key — public by design. */
 const testSiteKey = '1x00000000000000000000AA';
+/** The server's own threshold (5.4.1 M3); the public answer repeats it. */
+const captchaAfterFailures = 5;
 
-type ProvidersResponse = {
-  readonly mode: string;
-  readonly captcha: { readonly provider: string; readonly siteKey: string | null; readonly afterFailures: number };
+type CaptchaBlock = {
+  readonly provider: string;
+  readonly siteKey: string | null;
+  readonly afterFailures: number;
 };
+type ProvidersAnswer = { readonly captcha?: CaptchaBlock };
 
-/** A fresh address per probe: the account bucket only adds delay, the IP bucket counts. */
-function probeEmail(index: number): string {
-  return `e2e.captcha-probe-${index}@example.com`;
+/** The public answer, read the way the login page reads it: without a session. */
+async function readProviders(apiUrl: string) {
+  const response = await fetch(`${apiUrl}/auth/providers`);
+  const raw = await response.text();
+  return { status: response.status, raw, body: JSON.parse(raw) as ProvidersAnswer };
 }
 
 test.describe('48 captcha / turnstile (5.4.1 M3)', () => {
-  test('the challenge appears only when turnstile is configured, and provider none leaves sign-in as it was', async ({
+  test('the check is off on this installation and the browser asks for a challenge when the server does', async ({
     page,
   }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(120_000);
     page.setDefaultTimeout(20_000);
     const env = readE2EEnvironment();
-    const api = new ApiClient();
-    await api.login(env.superAdminEmail, env.superAdminPassword);
 
-    const originalProvider = await readSetting(api, providerKey);
-    const originalSiteKey = await readSetting(api, siteKeyKey);
+    await test.step('the installation ships the human check off', async () => {
+      const answer = await readProviders(env.apiUrl);
+      expect(answer.status).toBe(200);
+      expect(answer.body.captcha, 'the server must describe the human check').toBeTruthy();
+      // A run with the check on is not a valid run: every later sign-in from this
+      // IP receives `400 CAPTCHA_REQUIRED` instead of its own answer (run
+      // 38296071922 — spec 47 failed exactly like that). The way out is one
+      // setting: Admin → Sigurnost → Sigurnosne postavke → „Provjera da niste
+      // robot (CAPTCHA)“ → provider `none`.
+      expect(
+        answer.body.captcha?.provider,
+        'the E2E suite requires private.security.captcha.provider = none — turn the human check off in Admin → Sigurnost, or run the suite on a stack that has it off',
+      ).toBe('none');
+      expect(answer.body.captcha?.siteKey).toBeNull();
+      expect(answer.body.captcha?.afterFailures).toBe(captchaAfterFailures);
+      // The secret key never leaves the process: not in the answer, not even the
+      // name of the field.
+      expect(answer.raw.toLowerCase()).not.toContain('secret');
+    });
 
-    /** Raw password sign-in: returns the HTTP status and the error code. */
-    const attempt = async (email: string): Promise<{ status: number; code: string | null }> => {
-      const response = await fetch(`${env.apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'definitely-not-the-password' }),
+    await test.step('the registry value and the public answer agree', async () => {
+      const admin = new ApiClient();
+      await admin.login(env.superAdminEmail, env.superAdminPassword);
+      const configured = await readSetting(admin, captchaProviderSetting);
+      expect(configured).toBe('none');
+      const providers = await admin.requestJson<ProvidersAnswer>('/auth/providers');
+      expect(providers.captcha?.provider).toBe(configured);
+      // No site key while the provider is off — the page must not load a
+      // third-party script it has no challenge for.
+      expect(providers.captcha?.siteKey).toBeNull();
+    });
+
+    await test.step('the sign-in page shows no challenge while the check is off', async () => {
+      await page.goto('/login');
+      await expect(page.locator('#login-email')).toBeVisible();
+      await expect(page.getByTestId('turnstile-widget')).toHaveCount(0);
+      await expect(page.getByText(/provjera da niste robot|human verification/i)).toHaveCount(0);
+    });
+
+    await test.step('a CAPTCHA_REQUIRED answer from the server mounts the widget on the page', async () => {
+      // Staged answers, real page: the providers block is replaced on top of the
+      // live answer (so every other field stays what the installation sends), and
+      // the sign-in is answered with exactly what the server sends once the IP has
+      // failed five times — nothing about this installation changes, which is the
+      // point (see the header).
+      await page.route('**/auth/providers', async (route) => {
+        const response = await route.fetch();
+        const body = (await response.json()) as Record<string, unknown>;
+        await route.fulfill({
+          response,
+          json: {
+            ...body,
+            captcha: { provider: 'turnstile', siteKey: testSiteKey, afterFailures: captchaAfterFailures },
+          },
+        });
       });
-      const payload = (await response.json().catch(() => null)) as { code?: string } | null;
-      return { status: response.status, code: payload?.code ?? null };
-    };
-
-    try {
-      await test.step('provider none: a burst of failures never asks for a challenge', async () => {
-        await setSetting(api, providerKey, 'none', 'E2E spec 48: baseline');
-        const providers = await api.requestJson<ProvidersResponse>('/auth/providers');
-        expect(providers.captcha.provider).toBe('none');
-        expect(providers.captcha.siteKey).toBeNull();
-
-        for (let index = 0; index < 6; index += 1) {
-          const result = await attempt(probeEmail(index));
-          expect(result.code).not.toBe('CAPTCHA_REQUIRED');
-        }
+      await page.route('**/auth/login', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue();
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: 'CAPTCHA_REQUIRED',
+            message: 'Human verification required',
+            details: {},
+            requestId: 'e2e-spec-48',
+          }),
+        });
       });
 
-      await test.step('turnstile configured: the same burst ends in CAPTCHA_REQUIRED', async () => {
-        await setSetting(api, providerKey, 'turnstile', 'E2E spec 48: turn the human check on');
-        await setSetting(api, siteKeyKey, testSiteKey, 'E2E spec 48: public site key');
-        const providers = await api.requestJson<ProvidersResponse>('/auth/providers');
-        expect(providers.captcha.provider).toBe('turnstile');
-        expect(providers.captcha.siteKey).toBe(testSiteKey);
+      await page.goto('/login');
+      const form = page.locator('form').filter({ has: page.locator('#login-email') });
+      await form.locator('#login-email').fill('e2e.captcha-probe@example.com');
+      await form.locator('#login-password').fill('definitely-not-the-password');
+      await form.locator('button[type="submit"]').click();
 
-        // Six failures already sit in the IP bucket from the step above (plus
-        // whatever earlier specs produced), so the first attempt should be the
-        // one the server refuses with `CAPTCHA_REQUIRED`; the loop only covers
-        // a bucket that expired meanwhile.
-        let sawRequired = false;
-        for (let index = 10; index < 14 && !sawRequired; index += 1) {
-          const result = await attempt(probeEmail(index));
-          if (result.code === 'CAPTCHA_REQUIRED') {
-            expect(result.status).toBe(400);
-            sawRequired = true;
-          }
-        }
-        expect(sawRequired, 'the server must ask for a solved challenge after repeated failures').toBe(true);
-      });
-
-      await test.step('the sign-in form shows the challenge after the server asked for it', async () => {
-        await page.goto('/login');
-        const form = page.locator('form').filter({ has: page.locator('#login-email') });
-        await form.locator('#login-email').fill(probeEmail(30));
-        await form.locator('#login-password').fill('definitely-not-the-password');
-        await form.locator('button[type="submit"]').click();
-        // The block is rendered by the page itself, so it is visible even when
-        // Cloudflare's script cannot load on this runner.
-        await expect(page.getByTestId('turnstile-widget')).toBeVisible();
-        await expect(page.getByText(/provjera da niste robot|human verification/i)).toBeVisible();
-      });
-    } finally {
-      await setSetting(api, providerKey, originalProvider ?? 'none', 'E2E spec 48: restore the provider');
-      if (originalSiteKey !== null && originalSiteKey !== '') {
-        await setSetting(api, siteKeyKey, originalSiteKey, 'E2E spec 48: restore the site key');
-      } else {
-        await setSetting(api, siteKeyKey, '', 'E2E spec 48: clear the site key');
-      }
-    }
+      // The heading and the mount point are ours, so they render whether or not
+      // Cloudflare's script loads on this runner (the container itself stays empty
+      // when it cannot — an empty box is attached, not visible).
+      await expect(page.getByText(/provjera da niste robot|human verification/i)).toBeVisible();
+      await expect(page.getByTestId('turnstile-widget')).toHaveCount(1);
+    });
   });
 });

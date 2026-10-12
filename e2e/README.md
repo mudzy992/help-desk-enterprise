@@ -225,6 +225,15 @@ Three things in the 5.4 package need more care than the average spec, because th
   actor another spec created. **Blast radius:** on a stack that people really use, this spec signs every local
   account out and forces a password change at their next sign-in (SuperAdmins and Microsoft accounts excepted).
   It belongs on the dedicated E2E stack — never run the full suite against an installation with real users.
+- **48 — the CAPTCHA check must be **off** for a run, and the spec never turns it on.** `private.security.captcha.provider`
+  is a live setting every sign-in reads, and the suite signs in dozens of times from one IP address. CI run 38296071922
+  (2026-10-12) showed both halves of the trap: the first version of spec 48 switched the check on for the length of one
+  test, spec 47 — running in parallel — got `400 CAPTCHA_REQUIRED` at its sixth wrong password instead of `401` and
+  failed, and the next attempt of spec 48 started with the check still on and could not sign in at all. The spec now
+  asserts the state it needs (`provider = none`, with the way out in the message) and checks the browser half by
+  staging only the two answers with `page.route` (as spec 37 does): the real providers answer with the `captcha`
+  block replaced, and `POST /auth/login` answered with the 400 the server sends. The real Cloudflare round trip is the
+  operator's live check with real keys — a CI runner cannot solve a Turnstile challenge.
 - **TOTP budget.** A TOTP step is single-use and 30 s long: `.auth/mfa.json` remembers the last used step, so the
   third code inside one window means waiting for the clock. Specs that need several SuperAdmin confirmations
   therefore regenerate **recovery codes** once (`POST /auth/mfa/recovery-codes`) and use them for the sign-in and
