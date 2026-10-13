@@ -117,7 +117,7 @@ export class OnCallService {
     await this.requireEnabled();
     const now = new Date();
     const [schedules, groups] = await Promise.all([
-      this.prisma.onCallSchedule.findMany({ select: { groupId: true, isActive: true } }),
+      this.prisma.onCallSchedule.findMany({ select: { groupId: true, isActive: true, timezone: true } }),
       this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
     ]);
     const contexts = await loadActiveOnCallContexts(this.prisma, { from: now, to: new Date(now.getTime() + 1) });
@@ -136,6 +136,7 @@ export class OnCallService {
             groupName: group.name,
             hasSchedule: schedule !== undefined,
             isActive: schedule?.isActive ?? false,
+            timezone: schedule?.timezone ?? null,
             current:
               current === undefined || current.userId === null
                 ? null
@@ -267,8 +268,8 @@ export class OnCallService {
       select: { id: true, name: true },
     });
     const groupName = new Map(groups.map((group) => [group.id, group.name]));
-    const current: { groupId: string; groupName: string; endsAt: string }[] = [];
-    let next: { groupId: string; groupName: string; startsAt: string; endsAt: string } | null = null;
+    const current: { groupId: string; groupName: string; timezone: string; endsAt: string }[] = [];
+    let next: { groupId: string; groupName: string; timezone: string; startsAt: string; endsAt: string } | null = null;
     for (const context of contexts) {
       for (const segment of listContextSegments(context, now, ahead)) {
         if (segment.userId !== viewer.userId) continue;
@@ -276,12 +277,14 @@ export class OnCallService {
           current.push({
             groupId: context.groupId,
             groupName: groupName.get(context.groupId) ?? '',
+            timezone: context.shape.timezone,
             endsAt: segment.endsAt.toISOString(),
           });
         } else if (next === null || segment.startsAt.getTime() < new Date(next.startsAt).getTime()) {
           next = {
             groupId: context.groupId,
             groupName: groupName.get(context.groupId) ?? '',
+            timezone: context.shape.timezone,
             startsAt: segment.startsAt.toISOString(),
             endsAt: segment.endsAt.toISOString(),
           };
@@ -310,7 +313,7 @@ export class OnCallService {
         reason: true,
         decidedAt: true,
         createdAt: true,
-        schedule: { select: { group: { select: { id: true, name: true } } } },
+        schedule: { select: { timezone: true, group: { select: { id: true, name: true } } } },
       },
     });
     const names = await this.loadNames(rows.flatMap((row) => [row.requesterId, row.colleagueId]));
@@ -320,6 +323,7 @@ export class OnCallService {
       direction: row.colleagueId === viewer.userId ? 'incoming' : 'outgoing',
       groupId: row.schedule.group.id,
       groupName: row.schedule.group.name,
+      timezone: row.schedule.timezone,
       requester: { userId: row.requesterId, displayName: names.get(row.requesterId)?.displayName ?? '' },
       colleague: { userId: row.colleagueId, displayName: names.get(row.colleagueId)?.displayName ?? '' },
       startsAt: row.startsAt.toISOString(),

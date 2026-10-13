@@ -7093,6 +7093,7 @@
     "scrollRegion": "Pomični sadržaj (strelice za pomicanje)"
   },
   "onCall": {
+    "zoneHint": "Vrijeme se unosi u zoni rasporeda: {{zone}}.",
     "title": "Dežurstva",
     "timeWithWeekday": "{{weekday}} {{day}}.{{month}}. {{time}}",
     "subtitle": "Ko je dežuran po grupama, raspored rotacije, zamjene i zahtjevi za zamjenu smjene.",
@@ -7254,6 +7255,7 @@
       "revoked": "Adresa je poništena."
     },
     "errors": {
+      "time": "Vrijeme ne postoji u zoni rasporeda ili nije ispravno.",
       "disabled": "Dežurstva nisu uključena.",
       "groupNotFound": "Grupa ne postoji.",
       "scheduleNotFound": "Grupa nema raspored dežurstva.",

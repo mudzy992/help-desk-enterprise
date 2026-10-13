@@ -195,15 +195,22 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 
 ## Status ispravki (2026-10-13)
 
-Urađeno (Must-Have 1, 3, 4, 5 i dio 6):
+Odluke korisnika: zona rasporeda za sve on-call prikaze i unos (O4); dodati `jsdom` i `@testing-library/react` kao devDependency.
+
+Urađeno:
 - **O1:** greška osvježavanja pregleda se prikazuje iznad sadržaja i kad je pregled već učitan (`on-call-page.tsx`).
-- **O2:** detalj grupe se učitava u efektu sa `active` zaštitom; odabir grupe briše prethodni detalj (`selectGroup`), pa akcije ne mogu raditi nad staroj grupi. `reloadAll` koristi `detailRevision`.
-- **O3:** pri promjeni sedmice prikazuje se status „Učitavanje“ i raspored je zatamnjen (`aria-busy`).
-- **O9 i OB3:** `OnCallReasonDialog` i povlačenje obavještenja koriste `confirmDisabled` za validaciju razloga; „Otkaži“ više nije onemogućen.
-- **OB2:** greška osvježavanja tabele upravljanja ostavlja tabelu vidljivom i nudi dugme „Pokušaj ponovo“ (novi ključ `announcements.manage.retry` u bs i en).
+- **O2:** detalj grupe se učitava u efektu sa `active` zaštitom. Odabir grupe briše prethodni detalj (`selectGroup`), pa akcije ne mogu raditi nad staroj grupi. Ponovno učitavanje ide preko `detailRevision`.
+- **O3:** pri promjeni sedmice prikazuje se status „Učitavanje“, a raspored je zatamnjen (`aria-busy`).
+- **O4:** zona rasporeda je sada jedina zona za unos i prikaz on-call vremena.
+  - Backend: `GET /on-call/overview` (polje `timezone` po grupi, `null` bez rasporeda), `GET /on-call/me` (`timezone` u `current` i `next`) i `GET /on-call/swaps` (`timezone`) sada vraćaju zonu rasporeda.
+  - Frontend: novi helperi `toZoneInputValue` i `fromZoneInputValue` (`lib/on-call/on-call-view.ts`). Unos vremena preklapanja i zamjene je u zoni rasporeda, uz napomenu sa zonom. Nepostojeće vrijeme (prelazak na ljetnje računanje) se odbija sa greškom. Svi prikazi „do“, „sljedeće smjene“, zamjena i preklapanja koriste zonu svoje grupe.
+  - Indikator u zaglavlju koristi zonu smjene. Oznaka zone nije prikazana uz sam indikator, samo uz kalendar i unos.
+- **O9 i OB3:** `OnCallReasonDialog` i povlačenje obavještenja koriste `confirmDisabled` za validaciju razloga. „Otkaži“ više nije onemogućen.
+- **OB2:** greška osvježavanja tabele upravljanja ostavlja tabelu vidljivom i nudi „Pokušaj ponovo“ (novi ključ `announcements.manage.retry`, bs i en).
+- **Testovi:** `use-docs.spec.tsx` (KB1, pada na staroj verziji), `on-call-reason-dialog.spec.tsx` (O9), `on-call-range-dialog.spec.tsx` (O4, zona), `on-call-view.spec.ts` (konverzija zone, DST rupa, neispravne vrijednosti).
 
 Nije urađeno:
-- **O4 (zona):** čeka odluku proizvoda (zona rasporeda ili pregledača).
 - O5, O6, O7, O8, O10–O13, OB1, OB4–OB11.
-- **Testovi:** komponentski testovi nisu dodati, jer projekt nema jsdom ni `@testing-library/react`. To zahtijeva odluku o novim devDependency paketima.
+- Komponentski test za `OnCallPage` (O1, O2, O3) i `ManageAnnouncements` (OB2). Stranice imaju previše zavisnosti (React Query, router, sesija) za ovaj korak.
+- Backend test za nova polja `timezone` (postojeći testovi pokrivaju samo sweep i iCal, a `overview`, `me` i `mySwaps` nemaju unit testove).
 - Provjera u pregledaču nije rađena.

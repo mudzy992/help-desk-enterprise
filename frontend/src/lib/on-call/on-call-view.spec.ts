@@ -6,6 +6,8 @@ import {
   formatOnCallTime,
   formatOnCallWeekday,
   fromDateTimeLocalValue,
+  fromZoneInputValue,
+  toZoneInputValue,
   groupSegmentsByDay,
   mapOnCallError,
   moveItem,
@@ -89,5 +91,32 @@ describe("on-call datumi bez Intl naziva (val 4)", () => {
     expect(formatOnCallTime("2026-10-05T06:00:00Z", bs, tz)).toBe("pon 5.10. 08:00");
     // Nepoznat datum se vraća kakav jeste (nema izmišljanja).
     expect(formatOnCallTime("nije-datum", bs, tz)).toBe("nije-datum");
+  });
+});
+
+describe("zone-aware datetime-local values (O4)", () => {
+  const instant = "2026-10-13T06:00:00.000Z";
+
+  it("shows and reads the wall clock of the schedule zone, whatever the browser zone is", () => {
+    expect(toZoneInputValue(instant, "Europe/Sarajevo")).toBe("2026-10-13T08:00");
+    expect(toZoneInputValue(instant, "America/New_York")).toBe("2026-10-13T02:00");
+    expect(fromZoneInputValue("2026-10-13T08:00", "Europe/Sarajevo")).toBe(instant);
+    expect(fromZoneInputValue("2026-10-13T02:00", "America/New_York")).toBe(instant);
+  });
+
+  it("rejects wall-clock times that do not exist in the zone (spring-forward gap)", () => {
+    // Europe/Sarajevo moves from 02:00 to 03:00 on 2026-03-29.
+    expect(fromZoneInputValue("2026-03-29T02:30", "Europe/Sarajevo")).toBeNull();
+    expect(fromZoneInputValue("2026-03-29T03:30", "Europe/Sarajevo")).not.toBeNull();
+  });
+
+  it("rejects malformed or out-of-range values", () => {
+    expect(fromZoneInputValue("", "Europe/Sarajevo")).toBeNull();
+    expect(fromZoneInputValue("2026-13-01T10:00", "Europe/Sarajevo")).toBeNull();
+    expect(fromZoneInputValue("2026-10-13T25:00", "Europe/Sarajevo")).toBeNull();
+  });
+
+  it("returns an empty value for an invalid instant", () => {
+    expect(toZoneInputValue("not a date", "Europe/Sarajevo")).toBe("");
   });
 });

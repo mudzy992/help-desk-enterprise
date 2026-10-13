@@ -171,5 +171,5 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 
 ## Status ispravki (2026-10-13)
 
-- **KB1 ispravljen:** `useDocsNavigation` (`lib/docs/use-docs.ts`) — `reload` sada zavisi od `locale`, pa se navigacija ponovo učitava pri promjeni jezika. Automatski test nije dodat, jer projekt nema jsdom ni `@testing-library/react` (vidi modul 9, napomena o testovima). Prolaze `tsc -b` i 889 postojećih testova.
+- **KB1 ispravljen:** `useDocsNavigation` (`lib/docs/use-docs.ts`) — `reload` sada zavisi od `locale`, pa se navigacija ponovo učitava pri promjeni jezika. Dodat test `lib/docs/use-docs.spec.tsx` (promjena jezika ponovo učitava navigaciju). Test pada na staroj verziji i prolazi na ispravljenoj. Prolaze `tsc -b` i svi frontend testovi (898).
 - KB2–KB21: nisu rađeni.

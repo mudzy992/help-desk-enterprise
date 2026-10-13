@@ -7048,6 +7048,7 @@
     "scrollRegion": "Scrollable content (use arrow keys)"
   },
   "onCall": {
+    "zoneHint": "Times are entered in the schedule zone: {{zone}}.",
     "title": "On-call",
     "timeWithWeekday": "{{weekday}} {{day}}/{{month}} {{time}}",
     "subtitle": "Who is on call per group, rotation schedules, overrides and shift swap requests.",
@@ -7209,6 +7210,7 @@
       "revoked": "Address revoked."
     },
     "errors": {
+      "time": "The time does not exist in the schedule zone or is invalid.",
       "disabled": "On-call is not enabled.",
       "groupNotFound": "The group does not exist.",
       "scheduleNotFound": "The group has no on-call schedule.",

@@ -24,6 +24,8 @@ export type OnCallOverviewGroup = {
   readonly groupName: string;
   readonly hasSchedule: boolean;
   readonly isActive: boolean;
+  /** Zona rasporeda; null kad grupa nema raspored. */
+  readonly timezone: string | null;
   readonly current: {
     readonly userId: string;
     readonly displayName: string;
@@ -83,10 +85,11 @@ export type OnCallGroupDetail = {
 
 export type OnCallMe = {
   readonly enabled: boolean;
-  readonly current: ReadonlyArray<{ readonly groupId: string; readonly groupName: string; readonly endsAt: string }>;
+  readonly current: ReadonlyArray<{ readonly groupId: string; readonly groupName: string; readonly timezone: string; readonly endsAt: string }>;
   readonly next: {
     readonly groupId: string;
     readonly groupName: string;
+    readonly timezone: string;
     readonly startsAt: string;
     readonly endsAt: string;
   } | null;
@@ -100,6 +103,7 @@ export type OnCallSwapView = {
   readonly direction: "incoming" | "outgoing";
   readonly groupId: string;
   readonly groupName: string;
+  readonly timezone: string;
   readonly requester: { readonly userId: string; readonly displayName: string };
   readonly colleague: { readonly userId: string; readonly displayName: string };
   readonly startsAt: string;

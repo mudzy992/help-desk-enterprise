@@ -99,11 +99,16 @@ function offsetMs(date: Date, timeZone: string): number {
   return asUtc - Math.floor(date.getTime() / 1000) * 1000;
 }
 
-/** Local midnight of a civil date in `timeZone` (day overflow allowed). */
-export function zonedMidnight(year: number, month: number, day: number, timeZone: string): Date {
-  const guess = Date.UTC(year, month - 1, day);
+/** Instant of a civil date and time on the wall clock of `timeZone` (day overflow allowed). */
+export function zonedDateTime(year: number, month: number, day: number, hour: number, minute: number, timeZone: string): Date {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
   const first = guess - offsetMs(new Date(guess), timeZone);
   return new Date(guess - offsetMs(new Date(first), timeZone));
+}
+
+/** Local midnight of a civil date in `timeZone` (day overflow allowed). */
+export function zonedMidnight(year: number, month: number, day: number, timeZone: string): Date {
+  return zonedDateTime(year, month, day, 0, 0, timeZone);
 }
 
 /** Start of the ISO week (Monday 00:00) containing `date`, in `timeZone`. */
@@ -126,6 +131,40 @@ export function fromDateTimeLocalValue(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+/**
+ * Instant → `datetime-local` value on the wall clock of `timeZone` (the
+ * schedule's zone, not the browser's). Empty string when the instant is invalid.
+ */
+export function toZoneInputValue(iso: string | Date, timeZone: string): string {
+  const date = typeof iso === "string" ? new Date(iso) : iso;
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+  return `${value("year")}-${value("month")}-${value("day")}T${value("hour")}:${value("minute")}`;
+}
+
+/**
+ * `datetime-local` value read on the wall clock of `timeZone` → ISO instant.
+ * Returns null for malformed input and for wall-clock times that do not exist
+ * in that zone (the spring-forward gap), which would otherwise shift silently.
+ */
+export function fromZoneInputValue(value: string, timeZone: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (match === null) return null;
+  const [year, month, day, hour, minute] = match.slice(1).map(Number) as [number, number, number, number, number];
+  const instant = zonedDateTime(year, month, day, hour, minute, timeZone);
+  if (Number.isNaN(instant.getTime()) || toZoneInputValue(instant, timeZone) !== value) return null;
+  return instant.toISOString();
 }
 
 /** Indeks dana u sedmici u `timeZone`, 0 = ponedjeljak … 6 = nedjelja. */

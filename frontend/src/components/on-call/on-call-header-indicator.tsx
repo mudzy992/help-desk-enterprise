@@ -46,7 +46,7 @@ export function OnCallHeaderIndicator() {
 
   const shift = me?.enabled ? me.current[0] : undefined;
   if (shift === undefined) return null;
-  const until = formatOnCallClock(shift.endsAt, i18n.language);
+  const until = formatOnCallClock(shift.endsAt, i18n.language, shift.timezone);
   const label = t("onCall.header.label", { group: shift.groupName, time: until });
   return (
     <Link
