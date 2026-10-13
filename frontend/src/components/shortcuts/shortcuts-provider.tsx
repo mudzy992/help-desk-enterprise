@@ -36,7 +36,7 @@ function isDialogOpen(): boolean {
 }
 
 /**
- * Paket 2.8 §4.2: one keydown listener for the whole application. Components
+ * One keydown listener for the whole application. Components
  * bind catalogue shortcuts with `useShortcut`; this provider decides whether a
  * key may fire (preference, typing, open dialog) and dispatches to the most
  * recently mounted handler.

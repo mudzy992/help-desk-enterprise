@@ -6,7 +6,7 @@ interface GlobalShortcutsProperties {
   readonly onOpenPalette: () => void;
 }
 
-/** Paket 2.8 §4.1: shortcuts valid on every screen of the shell. */
+/** Shortcuts valid on every screen of the shell. */
 export function GlobalShortcuts({ onTogglePalette, onOpenPalette }: GlobalShortcutsProperties) {
   const navigate = useNavigate();
   const registry = useShortcutsRegistry();

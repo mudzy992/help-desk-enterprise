@@ -2,7 +2,7 @@ import { refreshSession } from "@/services/auth-api";
 import { readStoredSession, writeStoredSession } from "@/services/session-store";
 
 /**
- * Review 2026-09-25 (owner: "1 h + automatsko produžavanje"): the API issues
+ * The API issues
  * 1 h tokens. While the user is active the SPA refreshes the token when less
  * than `refreshWindowMs` is left; an idle tab (no input for the whole token
  * lifetime) is not extended and the session ends on its own.

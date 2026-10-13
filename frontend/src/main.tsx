@@ -6,6 +6,7 @@ import "@fontsource/inter/600.css";
 import { App } from "@/app/app";
 import { initializeI18n } from "@/i18n/config";
 import { reloadForChunkError } from "@/lib/app/chunk-reload";
+import { reportClientError } from "@/lib/app/client-logger";
 import { startBranding } from "@/lib/branding/branding-store";
 import { migrateLegacyStorageKeys } from "@/lib/storage/legacy-storage-keys";
 import "@/index.css";
@@ -25,10 +26,16 @@ if (!rootElement) {
 if (typeof window !== "undefined") migrateLegacyStorageKeys(window.localStorage);
 startBranding();
 
-void initializeI18n().then(() => {
-  createRoot(rootElement).render(
+function renderApplication(root: HTMLElement): void {
+  createRoot(root).render(
     <StrictMode>
       <App />
     </StrictMode>,
   );
-});
+}
+
+// A failed locale load must not leave a blank page: the UI renders with
+// translation keys as a fallback and the error is reported.
+void initializeI18n()
+  .catch((error: unknown) => reportClientError("i18n_init_failed", error))
+  .finally(() => renderApplication(rootElement));

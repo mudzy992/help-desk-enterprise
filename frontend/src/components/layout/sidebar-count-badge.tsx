@@ -11,7 +11,7 @@ interface SidebarCountBadgeProperties {
 }
 
 /**
- * Paket 5.3.1 (D10): the group inbox is a tab of "All tickets", so its badge
+ * The group inbox is a tab of "All tickets", so its badge
  * moved here — the neutral count is open tickets, the second (danger while
  * something is unrouted) is what waits in the group inbox.
  */

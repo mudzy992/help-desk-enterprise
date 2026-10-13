@@ -9,6 +9,7 @@ import {
 } from "@/i18n/locale";
 import bosnianCommon from "@/i18n/locales/bs/common.json";
 import englishCommon from "@/i18n/locales/en/common.json";
+import { reportClientWarning } from "@/lib/app/client-logger";
 
 let initialization: Promise<typeof i18n> | undefined;
 
@@ -17,7 +18,7 @@ const warnAboutMissingTranslation = (
   namespace: string,
   key: string,
 ): void => {
-  console.warn(`[i18n] Missing translation: ${namespace}:${key} (${languages.join(", ")})`);
+  reportClientWarning("i18n_missing_translation", `${namespace}:${key} (${languages.join(", ")})`);
 };
 
 i18n.on("languageChanged", (language: string) => {

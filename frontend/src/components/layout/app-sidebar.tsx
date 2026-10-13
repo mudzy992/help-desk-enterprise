@@ -10,13 +10,10 @@ import { filterNavigationSections, isTicketStaff } from "@/lib/session/route-acc
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
+import { shortcutHint } from "@/lib/shortcuts/catalog";
 import { cn } from "@/lib/utils";
 
-interface AppSidebarProperties {
-  readonly onNavigate?: () => void;
-}
-
-export function AppSidebar({ onNavigate }: AppSidebarProperties) {
+export function AppSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const capabilities = useSessionCapabilities();
@@ -29,7 +26,6 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
       <div className="flex h-14 shrink-0 items-center border-b border-border/70 px-4">
         <Link
           to="/"
-          onClick={onNavigate}
           className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-primary/70"
         >
           <BrandLockup subtitle={t("shell.brandTagline")} />
@@ -39,7 +35,6 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
       <div className="px-3 pt-3">
         <NavLink
           to="/tickets/new"
-          onClick={onNavigate}
           className={cn(
             "pulse-gradient flex h-9 w-full items-center justify-center gap-2 rounded-md text-[13px] font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:brightness-[1.06] active:brightness-95",
             isCreateActive && "brightness-95",
@@ -48,7 +43,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
           <Plus size={15} strokeWidth={2.5} />
           {t("tickets.createAction")}
           <span className="ml-0.5 rounded-[5px] bg-primary-foreground/20 px-1 text-[10px] font-bold">
-            N
+            {shortcutHint("newTicket")}
           </span>
         </NavLink>
       </div>
@@ -65,7 +60,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <li key={item.labelKey}>
-                  <SidebarLink item={item} onNavigate={onNavigate} ticketCounts={ticketCounts} />
+                  <SidebarLink item={item} ticketCounts={ticketCounts} />
                 </li>
               ))}
             </ul>
@@ -80,20 +75,18 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
 
 interface SidebarLinkProperties {
   readonly item: NavigationItem;
-  readonly onNavigate?: () => void;
   readonly ticketCounts: SidebarTicketCounts | null;
 }
 
-function SidebarLink({ item, onNavigate, ticketCounts }: SidebarLinkProperties) {
+function SidebarLink({ item, ticketCounts }: SidebarLinkProperties) {
   const { t } = useTranslation();
   const location = useLocation();
   const Icon = navigationIconFor(item.path);
-  const isActive = isNavigationItemActive(item, location.pathname, location.search);
+  const isActive = isNavigationItemActive(item, location.pathname);
 
   return (
     <Link
       to={item.path}
-      onClick={onNavigate}
       aria-current={isActive ? "page" : undefined}
       className={cn(
         "group relative flex h-[34px] w-full items-center gap-2.5 rounded-[9px] px-2 text-[13px] transition-colors duration-150",

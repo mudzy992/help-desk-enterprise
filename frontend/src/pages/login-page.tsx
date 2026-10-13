@@ -28,7 +28,7 @@ import {
 } from "@/services/auth-api";
 
 /*
-  Paket 2.1: sign-in is a small state machine — credentials → (password
+  Sign-in is a small state machine — credentials → (password
   change) → (second factor | forced MFA set-up → recovery codes) → session.
 */
 type SignInStep =
@@ -42,7 +42,7 @@ type SignInStep =
   | {
       readonly kind: "mfa";
       readonly token: string;
-      /** Paket 5.4.0-e: what the account can present; `undefined` = TOTP only. */
+      /** What the account can present; `undefined` = TOTP only. */
       readonly methods?: readonly MfaMethod[];
     }
   | { readonly kind: "enroll"; readonly token: string }
@@ -107,7 +107,7 @@ export function LoginPage() {
   const [hasError, setHasError] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
   /**
-   * Paket 5.4.1 (M3): the server asks for a solved Turnstile challenge only
+   * The server asks for a solved Turnstile challenge only
    * after repeated failures — the widget is not rendered before that, so a
    * normal sign-in stays exactly as it was.
    */
@@ -115,12 +115,12 @@ export function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
-  // Paket 5.3.0 (login polish): reveal toggle + Caps Lock hint, the two
+  // Reveal toggle + Caps Lock hint, the two
   // most common reasons for a failed first attempt.
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
-  // Paket 1.8 (A1): Microsoft sign-in when the server runs in entra_ad mode;
+  // Microsoft sign-in when the server runs in entra_ad mode;
   // the local form stays available as the break-glass path.
   const [providers, setProviders] = useState<AuthenticationProviders | null>(null);
   const [showLocalForm, setShowLocalForm] = useState(false);
@@ -203,7 +203,7 @@ export function LoginPage() {
   };
 
   /**
-   * Paket 5.4.1 closeout (M3, MFA korak): the same human check as the password
+   * The same human check as the password
    * step. A solved challenge is single-use and buys one code attempt, so every
    * attempt that carried one — right or wrong — leaves the widget empty again.
    */

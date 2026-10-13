@@ -31,7 +31,7 @@ export function canOpenAdminArea(capabilities: SessionCapabilities): boolean {
     return false;
   }
   return (
-    session.isSuperAdmin === true ||
+    session.isSuperAdmin ||
     capabilities.hasRole(roleKeys.admin) ||
     capabilities.hasRole(roleKeys.superAdmin)
   );
@@ -47,7 +47,7 @@ export function isTicketStaff(capabilities: SessionCapabilities): boolean {
     return false;
   }
   return (
-    session.isSuperAdmin === true ||
+    session.isSuperAdmin ||
     capabilities.hasRole(roleKeys.agent) ||
     capabilities.hasRole(roleKeys.admin) ||
     capabilities.hasRole(roleKeys.superAdmin)
@@ -72,7 +72,7 @@ export function canOpenReports(capabilities: SessionCapabilities): boolean {
 }
 
 /**
- * Paket 2.6 (§11): the privacy area needs `privacy.view` (ADMIN, SUPER_ADMIN
+ * The privacy area needs `privacy.view` (ADMIN, SUPER_ADMIN
  * and a DPO role that holds it); the tabs inside follow manage/anonymize.
  */
 export function canOpenPrivacy(capabilities: SessionCapabilities): boolean {
@@ -83,7 +83,7 @@ export function canOpenPrivacy(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.privacyView);
 }
 
-/** Paket 2.9 (K3): the on-call calendar needs `oncall.read` (AGENT, ADMIN, SUPER_ADMIN). */
+/** The on-call calendar needs `oncall.read` (AGENT, ADMIN, SUPER_ADMIN). */
 export function canOpenOnCall(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null) {
@@ -92,7 +92,7 @@ export function canOpenOnCall(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.onCallRead);
 }
 
-/** Paket 3.2 (§17): the CMDB module is on and the viewer holds `asset.read`. */
+/** The CMDB module is on and the viewer holds `asset.read`. */
 export function canOpenAssets(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null || session.modules?.cmdb !== true) {
@@ -101,12 +101,12 @@ export function canOpenAssets(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.assetRead);
 }
 
-/** Paket 3.2 (§17): "My equipment" for every signed-in user while the module is on. */
+/** "My equipment" for every signed-in user while the module is on. */
 export function canOpenMyAssets(capabilities: SessionCapabilities): boolean {
   return capabilities.session?.modules?.cmdb === true;
 }
 
-/** Paket 3.3 (§14): the problem module is on and the viewer holds `problem.read`. */
+/** The problem module is on and the viewer holds `problem.read`. */
 export function canOpenProblems(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null || session.modules?.problems !== true) {
@@ -115,7 +115,7 @@ export function canOpenProblems(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.problemRead);
 }
 
-/** Paket 3.4 (§15, §17): the change module is on and the viewer holds `change.read`. */
+/** The change module is on and the viewer holds `change.read`. */
 export function canOpenChanges(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null || session.modules?.changes !== true) {
@@ -124,17 +124,9 @@ export function canOpenChanges(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.changeRead);
 }
 
-/** Faza 3 (c): Dokumentacija je dostupna svakom prijavljenom korisniku. */
+/** Dokumentacija je dostupna svakom prijavljenom korisniku. */
 export function canOpenDocs(capabilities: SessionCapabilities): boolean {
   return capabilities.session !== null;
-}
-
-export function canOpenRouting(capabilities: SessionCapabilities): boolean {
-  return canOpenAdminArea(capabilities);
-}
-
-export function canOpenSla(capabilities: SessionCapabilities): boolean {
-  return canOpenAdminArea(capabilities);
 }
 
 export function canOpenConfigVersionsPage(capabilities: SessionCapabilities): boolean {
@@ -148,7 +140,7 @@ export function canOpenConfigVersionsPage(capabilities: SessionCapabilities): bo
   });
 }
 
-/** Paket 3.1 (§16): Administration → Microsoft Teams. */
+/** Administration → Microsoft Teams. */
 export function canOpenTeamsAdminPage(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null) {
@@ -157,20 +149,7 @@ export function canOpenTeamsAdminPage(capabilities: SessionCapabilities): boolea
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.integrationsTeamsManage);
 }
 
-/** Paket 1.5: same audience as the settings page (ADMIN / SUPER_ADMIN). */
-export function canOpenEmailTemplatesPage(capabilities: SessionCapabilities): boolean {
-  const session = capabilities.session;
-  if (session === null) {
-    return false;
-  }
-  return (
-    session.isSuperAdmin ||
-    capabilities.hasRole(roleKeys.admin) ||
-    capabilities.hasRole(roleKeys.superAdmin)
-  );
-}
-
-/** Paket 1.4 (A1): any staff member (tabs inside follow the permissions). */
+/** Any staff member (tabs inside follow the permissions). */
 export function canOpenTemplatesPage(capabilities: SessionCapabilities): boolean {
   return isTicketStaff(capabilities);
 }

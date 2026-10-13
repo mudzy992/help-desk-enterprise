@@ -6999,6 +6999,11 @@
       "errorTitle": "Stranica se nije mogla učitati",
       "errorBody": "Provjerite vezu i pokušajte ponovo.",
       "reload": "Osvježi stranicu"
+    },
+    "notFound": {
+      "title": "Stranica nije pronađena",
+      "body": "Adresa ne odgovara nijednoj stranici u aplikaciji.",
+      "action": "Idi na početnu"
     }
   },
   "a11y": {

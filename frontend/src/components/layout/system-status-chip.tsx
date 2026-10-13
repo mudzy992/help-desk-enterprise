@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 /**
- * Paket 2.7 (§8): the chip opens the status page. It deliberately does not
+ * The chip opens the status page. It deliberately does not
  * poll the status API from every open tab - the page itself refreshes.
  */
 export function SystemStatusChip() {

@@ -11,9 +11,10 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { isChunkLoadError, reloadForChunkError } from "@/lib/app/chunk-reload";
+import { reportClientError } from "@/lib/app/client-logger";
 
 /**
- * Review 2026-09-25 (S11): heavy, role-gated pages (admin, reports, routing,
+ * Heavy, role-gated pages (admin, reports, routing,
  * SLA, config versions, install) are split into their own chunks. The loader
  * picks the named export so page modules stay unchanged.
  *
@@ -60,7 +61,7 @@ class PageLoadBoundary extends Component<{ readonly children: ReactNode }, Bound
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo): void {
-    console.error("page_load_failed", error, info.componentStack);
+    reportClientError("page_load_failed", error, info.componentStack);
   }
 
   render() {

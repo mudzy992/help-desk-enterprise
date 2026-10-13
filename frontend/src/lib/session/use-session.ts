@@ -64,14 +64,13 @@ export type SignInOutcome =
       readonly passwordChangeToken: string;
       readonly expiresInSeconds: number;
       readonly reason: "temporary" | "expired";
-      /** Paket 5.1 (M2 #2): policy minimum shown on the forced-change screen. */
+      /** Policy minimum shown on the forced-change screen. */
       readonly passwordMinLength: number;
     }
-  // Paket 2.1: the second factor comes next.
   | {
       readonly kind: "mfa_required";
       readonly mfaToken: string;
-      /** Paket 5.4.0-e: the factors the account can present (absent = TOTP). */
+      /** The factors the account can present (absent = TOTP). */
       readonly methods?: readonly MfaMethod[];
     }
   | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
@@ -127,7 +126,7 @@ export function useSession() {
     [],
   );
 
-  /** Paket 1.8 (A1): Microsoft ID token → application session. */
+  /** Microsoft ID token → application session. */
   const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
     const response = await loginWithEntraIdToken(idToken);
     writeStoredSession({
@@ -148,7 +147,7 @@ export function useSession() {
     [],
   );
 
-  /** Paket 2.1: TOTP or recovery code → session. */
+  /** TOTP or recovery code → session. */
   const completeMfa = useCallback(
     async (mfaToken: string, code: string, captchaToken?: string): Promise<void> => {
       storeSession(
@@ -162,7 +161,7 @@ export function useSession() {
     [],
   );
 
-  /** Paket 5.4.0-e: a verified passkey assertion → the same session as a code. */
+  /** A verified passkey assertion → the same session as a code. */
   const completeMfaWithPasskey = useCallback(
     async (mfaToken: string, assertion: Record<string, unknown>): Promise<void> => {
       storeSession(await completePasskeyLogin({ mfaToken, assertion }));
@@ -171,7 +170,7 @@ export function useSession() {
   );
 
   /**
-   * Paket 2.1: forced enrollment. The session is held back until the user has
+   * Forced enrollment. The session is held back until the user has
    * seen the recovery codes (`finish`), otherwise the login page redirects away.
    */
   const confirmMfaEnrollment = useCallback(
@@ -186,7 +185,7 @@ export function useSession() {
   );
 
   const signOut = useCallback(() => {
-    // Review 2026-09-25 (S1): revoke on the server too; the local sign-out
+    // Revoke on the server too; the local sign-out
     // does not wait for it (offline sign-out must still work).
     if (readStoredSession() !== null) {
       void logoutSession().catch(() => undefined);

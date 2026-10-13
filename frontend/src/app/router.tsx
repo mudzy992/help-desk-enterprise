@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   CalendarClock,
 } from "lucide-react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
 import { lazyPage } from "@/app/lazy-page";
 import { RequireAccess } from "@/components/layout/require-access";
@@ -20,16 +20,14 @@ import { ApplicationShell } from "@/layouts/application-shell";
 import {
   canOpenAdminArea,
   canOpenConfigVersionsPage,
-  canOpenEmailTemplatesPage,
   canOpenTeamsAdminPage,
   canOpenPrivacy,
   canOpenOnCall,
   canOpenReports,
-  canOpenRouting,
-  canOpenSla,
   canOpenTemplatesPage,
 } from "@/lib/session/route-access";
 import { DashboardPage } from "@/pages/dashboard-page";
+import { NotFoundPage } from "@/pages/not-found-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { AppearancePage } from "@/pages/appearance-page";
@@ -104,7 +102,7 @@ export function AppRouter() {
         <Route path="install" element={<InstallPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="auth/callback" element={<AuthCallbackPage />} />
-        {/* Paket 2.6 (§8): public, readable before signing in. */}
+        {/* Public, readable before signing in. */}
         <Route path="privacy-notice" element={<PrivacyNoticePage />} />
         <Route element={<RequireAuth />}>
           <Route element={<ApplicationShell />}>
@@ -141,14 +139,14 @@ export function AppRouter() {
               <Route path=":ticketId" element={<TicketDetailPage />} />
             </Route>
             <Route path="services" element={<ServicesPage />} />
-            {/* Paket 2.7 (§8): every signed-in user; managing is gated server-side. */}
+            {/* Every signed-in user; managing is gated server-side. */}
             <Route path="status" element={<StatusPage />} />
-            {/* Faza 3 (c): Dokumentacija — svaki prijavljeni korisnik; uloge filtrira server. */}
+            {/* Dokumentacija — svaki prijavljeni korisnik; uloge filtrira server. */}
             <Route path="docs" element={<DocsPage />} />
             <Route path="docs/:slug" element={<DocsPage />} />
-            {/* Paket 2.9 (K2): archive for everyone; managing is gated server-side. */}
+            {/* Archive for everyone; managing is gated server-side. */}
             <Route path="announcements" element={<AnnouncementsPage />} />
-            {/* Paket 2.9 (K3): on-call calendar, holders of oncall.read. */}
+            {/* On-call calendar, holders of oncall.read. */}
             <Route
               path="on-call"
               element={
@@ -162,18 +160,18 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
-            {/* Paket 3.2: CMDB; the pages handle "module off" and the server enforces scope. */}
+            {/* CMDB; the pages handle "module off" and the server enforces scope. */}
             <Route path="assets">
               <Route index element={<AssetsPage />} />
               <Route path=":assetId" element={<AssetDetailPage />} />
             </Route>
             <Route path="my-assets" element={<MyAssetsPage />} />
-            {/* Paket 3.3: problems; the pages handle "module off" and the server enforces scope. */}
+            {/* Problems; the pages handle "module off" and the server enforces scope. */}
             <Route path="problems">
               <Route index element={<ProblemsPage />} />
               <Route path=":problemId" element={<ProblemDetailPage />} />
             </Route>
-            {/* Paket 3.4: changes; same pattern as problems. */}
+            {/* Changes; same pattern as problems. */}
             <Route path="changes">
               <Route index element={<ChangesPage />} />
               <Route path=":changeId" element={<ChangeDetailPage />} />
@@ -191,7 +189,7 @@ export function AppRouter() {
               path="routing"
               element={
                 <RequireAccess
-                  check={canOpenRouting}
+                  check={canOpenAdminArea}
                   forbiddenTitleKey="routing.forbiddenTitle"
                   forbiddenBodyKey="routing.forbiddenBody"
                   icon={<GitBranch size={18} strokeWidth={1.8} />}
@@ -204,7 +202,7 @@ export function AppRouter() {
               path="sla"
               element={
                 <RequireAccess
-                  check={canOpenSla}
+                  check={canOpenAdminArea}
                   forbiddenTitleKey="sla.forbiddenTitle"
                   forbiddenBodyKey="sla.forbiddenBody"
                   icon={<Timer size={18} strokeWidth={1.8} />}
@@ -271,7 +269,7 @@ export function AppRouter() {
               path="admin/email-templates"
               element={
                 <RequireAccess
-                  check={canOpenEmailTemplatesPage}
+                  check={canOpenAdminArea}
                   forbiddenTitleKey="admin.forbiddenTitle"
                   forbiddenBodyKey="admin.forbiddenBody"
                   icon={<Mail size={18} strokeWidth={1.8} />}
@@ -345,13 +343,13 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
-            {/* Review N9: the primitives QA page exists in development builds only. */}
+            {/* The primitives QA page exists in development builds only. */}
             {VisualQaPrimitivesPage !== null ? (
               <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
             ) : null}
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

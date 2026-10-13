@@ -43,6 +43,13 @@ export interface NavigationItem {
   readonly labelKey: NavigationLabelKey;
   readonly end: boolean;
   readonly access: NavigationAccessRequirement;
+  /**
+   * Paths that light this item. Defaults to the item's own path. Used when one
+   * destination owns several screens, such as "All tickets" owning `/tickets/*`.
+   */
+  readonly matchPrefixes?: readonly string[];
+  /** Exact paths that never light this item, even when a prefix matches. */
+  readonly excludePaths?: readonly string[];
 }
 
 export interface NavigationSection {
@@ -69,6 +76,8 @@ export const ticketsNavigationItem: NavigationItem = {
   labelKey: navigationLabelKeys.tickets,
   end: false,
   access: { kind: navigationAccessKinds.authenticated },
+  matchPrefixes: ["/tickets"],
+  excludePaths: ["/tickets/new"],
 };
 
 export const servicesNavigationItem: NavigationItem = {
@@ -113,7 +122,7 @@ export const configVersionsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.configVersions },
 };
 
-/** Paket 1.7 (W3): read-only status flow, ADMIN/SUPER_ADMIN. */
+/** Read-only status flow, ADMIN/SUPER_ADMIN. */
 export const workflowNavigationItem: NavigationItem = {
   path: "/admin/workflow",
   labelKey: navigationLabelKeys.workflow,
@@ -121,7 +130,7 @@ export const workflowNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.admin },
 };
 
-/** Paket 1.4 (A1): templates & playbooks — agents see their personal tab. */
+/** Templates & playbooks — agents see their personal tab. */
 export const templatesNavigationItem: NavigationItem = {
   path: "/admin/templates",
   labelKey: navigationLabelKeys.templates,
@@ -129,7 +138,7 @@ export const templatesNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.staff },
 };
 
-/** Paket 2.6 (§11): data subject requests, erasure, exports, retention, holds, record. */
+/** Data subject requests, erasure, exports, retention, holds, record. */
 export const privacyNavigationItem: NavigationItem = {
   path: "/privacy",
   labelKey: navigationLabelKeys.privacy,
@@ -137,7 +146,7 @@ export const privacyNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.privacy },
 };
 
-/** Faza 3 (c): dokumentacija u aplikaciji — svaki prijavljeni korisnik. */
+/** Dokumentacija u aplikaciji — svaki prijavljeni korisnik. */
 export const docsNavigationItem: NavigationItem = {
   path: "/docs",
   labelKey: navigationLabelKeys.docs,
@@ -145,7 +154,7 @@ export const docsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.docs },
 };
 
-/** Paket 2.7 (§8): service status and incidents, every signed-in user. */
+/** Service status and incidents, every signed-in user. */
 export const statusNavigationItem: NavigationItem = {
   path: "/status",
   labelKey: navigationLabelKeys.status,
@@ -153,7 +162,7 @@ export const statusNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.authenticated },
 };
 
-/** Paket 2.9 (K2): announcement archive for everyone; managing is gated server-side. */
+/** Announcement archive for everyone; managing is gated server-side. */
 export const announcementsNavigationItem: NavigationItem = {
   path: "/announcements",
   labelKey: navigationLabelKeys.announcements,
@@ -161,7 +170,7 @@ export const announcementsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.authenticated },
 };
 
-/** Paket 2.9 (K3): on-call calendar, holders of oncall.read. */
+/** On-call calendar, holders of oncall.read. */
 export const onCallNavigationItem: NavigationItem = {
   path: "/on-call",
   labelKey: navigationLabelKeys.onCall,
@@ -169,7 +178,7 @@ export const onCallNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.onCall },
 };
 
-/** Paket 3.2 (§17): asset register (module on + asset.read). */
+/** Asset register (module on + asset.read). */
 export const assetsNavigationItem: NavigationItem = {
   path: "/assets",
   labelKey: navigationLabelKeys.assets,
@@ -177,7 +186,7 @@ export const assetsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.assets },
 };
 
-/** Paket 3.2 (§17): the user's own equipment (module on). */
+/** The user's own equipment (module on). */
 export const myAssetsNavigationItem: NavigationItem = {
   path: "/my-assets",
   labelKey: navigationLabelKeys.myAssets,
@@ -185,7 +194,7 @@ export const myAssetsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.myAssets },
 };
 
-/** Paket 3.3 (§14): problem register (module on + problem.read). */
+/** Problem register (module on + problem.read). */
 export const problemsNavigationItem: NavigationItem = {
   path: "/problems",
   labelKey: navigationLabelKeys.problems,
@@ -193,7 +202,7 @@ export const problemsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.problems },
 };
 
-/** Paket 3.4 (§17): change register (module on + change.read). */
+/** Change register (module on + change.read). */
 export const changesNavigationItem: NavigationItem = {
   path: "/changes",
   labelKey: navigationLabelKeys.changes,
@@ -244,37 +253,25 @@ export const primaryNavigationItems: readonly NavigationItem[] = navigationSecti
   (section) => section.items,
 );
 
-export const allNavigationItems: readonly NavigationItem[] = primaryNavigationItems;
-
 function navigationItemPathname(path: string): string {
   const queryIndex = path.indexOf("?");
   return queryIndex === -1 ? path : path.slice(0, queryIndex);
 }
 
-export function isNavigationItemActive(
-  item: NavigationItem,
-  pathname: string,
-  _search = "",
-): boolean {
-  // Paket 5.3.1 (D10): the group inbox is a tab of "All tickets", so every
-  // list view (including `?view=inbox` and bare `/tickets`) lights this item.
-  if (item.labelKey === navigationLabelKeys.tickets) {
-    if (pathname === "/tickets/new") {
-      return false;
+export function isNavigationItemActive(item: NavigationItem, pathname: string): boolean {
+  if (item.excludePaths?.includes(pathname)) {
+    return false;
+  }
+  const prefixes = item.matchPrefixes ?? [navigationItemPathname(item.path)];
+  return prefixes.some((prefix) => {
+    if (pathname === prefix) {
+      return true;
     }
-    return pathname === "/tickets" || pathname.startsWith("/tickets/");
-  }
-
-  const itemPathname = navigationItemPathname(item.path);
-  if (item.end) {
-    return pathname === itemPathname;
-  }
-  return pathname === itemPathname || pathname.startsWith(`${itemPathname}/`);
+    return !item.end && pathname.startsWith(`${prefix}/`);
+  });
 }
 
-export function getActiveNavigationItem(pathname: string, search = ""): NavigationItem {
-  const matchedItem = allNavigationItems.find((item) =>
-    isNavigationItemActive(item, pathname, search),
-  );
+export function getActiveNavigationItem(pathname: string): NavigationItem {
+  const matchedItem = primaryNavigationItems.find((item) => isNavigationItemActive(item, pathname));
   return matchedItem ?? dashboardNavigationItem;
 }

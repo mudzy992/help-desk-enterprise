@@ -8,6 +8,7 @@ import { setUnauthorizedHandler } from "@/services/api";
 import { decideLocaleSync } from "@/i18n/locale-preference-sync";
 import { parseLocale, persistLocale } from "@/i18n/locale";
 import i18n from "i18next";
+import { reportClientError } from "@/lib/app/client-logger";
 import { getUserPreferences, updateUserPreferences } from "@/services/user-preferences-api";
 
 export function RequireAuth() {
@@ -17,7 +18,7 @@ export function RequireAuth() {
 
   const hasSession = storedSession !== null;
 
-  // Review 2026-09-25 (S10 + 1 h sessions): a 401 anywhere ends the session and
+  // A 401 anywhere ends the session and
   // RequireAuth sends the user to /login (with `from`); an active user's token is
   // refreshed before it expires.
   useEffect(() => {
@@ -33,7 +34,7 @@ export function RequireAuth() {
     };
   }, [hasSession]);
 
-  // Paket 1.5: align the UI language with the saved preference once per session.
+  // Align the UI language with the saved preference once per session.
   useEffect(() => {
     if (!hasSession) return undefined;
     let cancelled = false;
@@ -51,7 +52,7 @@ export function RequireAuth() {
           await i18n.changeLanguage(decision.locale);
         }
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => reportClientError("locale_sync_failed", error));
     return () => {
       cancelled = true;
     };

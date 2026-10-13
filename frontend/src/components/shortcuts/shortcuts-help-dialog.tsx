@@ -18,7 +18,7 @@ interface ShortcutsHelpDialogProperties {
 
 const CONTEXT_ORDER: readonly ShortcutContext[] = ["global", "list", "detail", "editor"];
 
-/** Paket 2.8 §4.2: only the shortcuts valid on this screen for this user. */
+/** Only the shortcuts valid on this screen for this user. */
 export function ShortcutsHelpDialog({
   open,
   onOpenChange,

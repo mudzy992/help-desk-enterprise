@@ -28,6 +28,7 @@ export default tseslint.config(
           ignoreRestSiblings: true,
         },
       ],
+      "no-console": "error",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },

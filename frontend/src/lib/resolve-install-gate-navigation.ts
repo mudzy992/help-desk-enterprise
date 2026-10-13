@@ -7,8 +7,9 @@ export function isInstallRoute(pathname: string): boolean {
   return pathname === installRoutePath || pathname.startsWith(`${installRoutePath}/`);
 }
 
+/** The primitives QA page is registered in development builds only. */
 export function isVisualQaRoute(pathname: string): boolean {
-  return pathname === visualQaRoutePath;
+  return import.meta.env.DEV && pathname === visualQaRoutePath;
 }
 
 export function resolveInstallGateNavigation(input: {

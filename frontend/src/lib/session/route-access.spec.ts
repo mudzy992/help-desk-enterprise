@@ -12,7 +12,6 @@ import {
   canOpenAssets,
   canOpenChanges,
   canOpenProblems,
-  canOpenEmailTemplatesPage,
   canOpenTeamsAdminPage,
   canOpenMyAssets,
   canAccessNavigationItem,
@@ -152,12 +151,10 @@ describe("canOpenTeamsAdminPage (paket 3.1)", () => {
   });
 });
 
-describe("canOpenEmailTemplatesPage", () => {
+describe("admin area audience (routing, SLA and email templates)", () => {
   it("allows admins and super admins, not agents", () => {
-    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(true);
-    expect(canOpenEmailTemplatesPage(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
-    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.agent] }))).toBe(
-      false,
-    );
+    expect(canOpenAdminArea(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(true);
+    expect(canOpenAdminArea(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
+    expect(canOpenAdminArea(buildCapabilities({ roleKeys: [roleKeys.agent] }))).toBe(false);
   });
 });

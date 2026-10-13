@@ -12,8 +12,8 @@ import { PasswordExpiryBanner } from "@/components/account-security/password-exp
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
-import { roleKeys } from "@/lib/session/permission-keys";
 import { ActiveTimerHost } from "@/lib/time-tracking/active-timer-host";
+import { isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { AnnouncerRegions } from "@/components/a11y/announcer-regions";
 import { RouteFocusManager, mainContentId } from "@/components/a11y/route-focus-manager";
@@ -26,27 +26,23 @@ export function ApplicationShell() {
   const { t } = useTranslation();
   const location = useLocation();
   const { session: storedSession } = useSession();
-  const { session, isLoading } = useSessionCapabilities();
+  const capabilities = useSessionCapabilities();
+  const { session, isLoading } = capabilities;
   const { maintenance } = usePublicMaintenance();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
+  // location.key changes on every navigation, including same-path links and
+  // back/forward, so the mobile menu closes whichever way the user moved.
   useEffect(() => {
     setIsMobileNavigationOpen(false);
-  }, [location.pathname]);
-
-  const closeMobileNavigation = () => {
-    setIsMobileNavigationOpen(false);
-  };
+  }, [location.key]);
 
   if (storedSession === null || isLoading || session === null) {
     return <InstallGateSkeleton />;
   }
 
-  const isStaff =
-    session.isSuperAdmin ||
-    session.roleKeys.includes(roleKeys.agent) ||
-    session.roleKeys.includes(roleKeys.admin);
+  const isStaff = isTicketStaff(capabilities);
 
   return (
     <ShortcutsProvider defaultEnabled={isStaff}>
@@ -74,7 +70,7 @@ export function ApplicationShell() {
               <SheetDescription className="sr-only">
                 {t("shell.applicationSections")}
               </SheetDescription>
-              <AppSidebar onNavigate={closeMobileNavigation} />
+              <AppSidebar />
             </SheetContent>
           </Sheet>
           <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
@@ -84,18 +80,17 @@ export function ApplicationShell() {
             tabIndex={-1}
             className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
           >
-            <div
-              key={location.pathname}
-              className="page-in mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0"
-            >
+            <div className="mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0">
               <div className="print:hidden">
                 <MaintenanceBanner maintenance={maintenance} />
                 <PasswordExpiryBanner />
                 <AnnouncementsHost />
               </div>
-              <RouteErrorBoundary resetKey={location.pathname}>
-                <Outlet />
-              </RouteErrorBoundary>
+              <div key={location.pathname} className="page-in">
+                <RouteErrorBoundary>
+                  <Outlet />
+                </RouteErrorBoundary>
+              </div>
             </div>
           </main>
         </div>

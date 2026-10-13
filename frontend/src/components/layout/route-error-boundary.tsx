@@ -2,48 +2,33 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { reportClientError } from "@/lib/app/client-logger";
 
 interface RouteErrorBoundaryProperties {
   readonly children: ReactNode;
-  /** Changing this value (for example the pathname) clears a caught error. */
-  readonly resetKey?: string;
 }
 
 interface RouteErrorBoundaryState {
   readonly error: unknown;
-  readonly resetKey: string | undefined;
 }
 
 /*
   Catches render errors below it so one broken page does not blank the whole
-  application. Mounted once at the root and once inside the application shell,
-  where `resetKey` (the pathname) lets navigation recover without a reload.
+  application. Mounted at the root and around each page; the page wrapper is
+  keyed by pathname, so a new route mounts a fresh boundary.
 */
 export class RouteErrorBoundary extends Component<
   RouteErrorBoundaryProperties,
   RouteErrorBoundaryState
 > {
-  state: RouteErrorBoundaryState = {
-    error: null,
-    resetKey: this.props.resetKey,
-  };
+  state: RouteErrorBoundaryState = { error: null };
 
-  static getDerivedStateFromProps(
-    props: RouteErrorBoundaryProperties,
-    state: RouteErrorBoundaryState,
-  ): Partial<RouteErrorBoundaryState> | null {
-    if (props.resetKey !== state.resetKey) {
-      return { error: null, resetKey: props.resetKey };
-    }
-    return null;
-  }
-
-  static getDerivedStateFromError(error: unknown): Partial<RouteErrorBoundaryState> {
+  static getDerivedStateFromError(error: unknown): RouteErrorBoundaryState {
     return { error };
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo): void {
-    console.error("route_render_failed", error, info.componentStack);
+    reportClientError("route_render_failed", error, info.componentStack);
   }
 
   render() {

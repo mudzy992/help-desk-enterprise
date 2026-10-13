@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
   the sign-in page and the install wizard so the product reads the same
   everywhere. The gradient lives in `index.css` (`.pulse-gradient`) because it
   is decorative — never a semantic surface. When the client uploads a logo
-  (Paket 4.1, Administracija → Postavke → Brending) it replaces the spark.
+  (Administracija → Postavke → Brending) it replaces the spark.
 */
 
 interface BrandMarkProperties {

@@ -22,7 +22,7 @@ function fromChoice(choice: ShortcutChoice): boolean | null {
 }
 
 /**
- * Paket 2.8 §4.3 (WCAG 2.1.4): the user can switch single-key shortcuts off
+ * The user can switch single-key shortcuts off
  * (or on). Stored on the server, so it follows the user to every computer.
  */
 export function AccessibilityPreferencesCard() {

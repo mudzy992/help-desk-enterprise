@@ -6957,6 +6957,11 @@
       "errorTitle": "The page could not be loaded",
       "errorBody": "Check your connection and try again.",
       "reload": "Reload page"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "The address does not match any page in the application.",
+      "action": "Go to dashboard"
     }
   },
   "a11y": {

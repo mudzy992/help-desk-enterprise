@@ -256,13 +256,37 @@ Refaktor se ne radi bez potvrde obima.
 
 ## Status ispravki (Paket 6.1.1)
 
-| Stavka | Status |
-|---|---|
-| B1 gate za instalaciju bez preusmjeravanja na grešku | Urađeno (stanja `loading/error/ready`, `InstallStatusError`) |
-| B2 Error Boundary (korijen i ljuska) | Urađeno (`RouteErrorBoundary`) |
-| B3 ikona za `/docs` i test ikona za sve stavke | Urađeno |
-| B4 `from` sa query i hash | Urađeno (login prolazi kroz `safeReturnPath`) |
-| B14 uklonjen prop `loadingLabelKey` | Urađeno |
-| Testovi `RequireAuth`, `RequireAccess`, install gate | Urađeno (`*.spec.tsx`) |
-| ESLint, Prettier, skripte `lint`/`format:check` u CI | Urađeno (cijeli `frontend/src` formatiran, 0 grešaka; 14 upozorenja `exhaustive-deps` je dug) |
-| B10–B13, B15–B22 | Otvoreno (niski prioritet, po završetku Must-Have) |
+Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
+
+| Stavka | Status | Napomena |
+|---|---|---|
+| B1 gate za instalaciju | Urađeno | Stanja `loading / error / ready`; `InstallStatusError` sa ponovnim pokušajem. |
+| B2 Error Boundary | Urađeno | `RouteErrorBoundary` na korijenu i oko svake stranice u ljusci. |
+| B3 ikone i test | Urađeno | `/docs` ima `FileText`; test provjerava ikonu za svaku stavku menija. |
+| B4 `from` | Urađeno | `pathname + search + hash`; login prolazi kroz `safeReturnPath`. |
+| B5 `key` na stranici | Urađeno | Ključ je na omotaču stranice; banneri ostaju van njega. |
+| B6 dva mehanizma zatvaranja menija | Urađeno | Jedan: `useEffect` na `location.key`. Uklonjen `onNavigate`. |
+| B7 `isStaff` | Urađeno | Koristi se `isTicketStaff(capabilities)`. |
+| B8 formatiranje ljuske | Urađeno | Prettier (ESLint/Prettier paket). |
+| B9 `_search` | Urađeno | Parametar uklonjen; testovi prilagođeni. |
+| B10 alias `allNavigationItems` | Urađeno | Ostaje `primaryNavigationItems`. |
+| B11 oznaka „Svi tiketi“ | Urađeno | Polja `matchPrefixes` i `excludePaths` na stavci, bez poređenja po `labelKey`. |
+| B12 duplirani `canOpen*` | Urađeno | `canOpenRouting`, `canOpenSla` i `canOpenEmailTemplatesPage` spojeni u `canOpenAdminArea`. |
+| B13 `=== true` i truthy | Urađeno u modulu | `isSuperAdmin` je `boolean`, provjere su ujednačene u `route-access.ts`. Isti obrazac ima još oko 30 mjesta u drugim modulima (vidjeti dolje). |
+| B14 prop `loadingLabelKey` | Urađeno | Uklonjen. |
+| B15 `initializeI18n` bez `catch` | Urađeno | Greška se prijavljuje, aplikacija se ipak renderuje (prevodi se prikazuju kao ključevi). |
+| B16 gutanje greške jezika | Urađeno | `reportClientError("locale_sync_failed", …)`, sesija nije blokirana. |
+| B17 `console.error` | Urađeno | `lib/app/client-logger.ts` je jedini izvor ispisa; pravilo ESLint `no-console`. |
+| B18 hard-coded „N“ | Urađeno | Tekst prečice dolazi iz kataloga (`shortcutHint("newTicket")`). |
+| B19 interne oznake u komentarima | Urađeno | Uklonjene oznake „Paket / Review / Faza“ iz 31 fajla modula. |
+| B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
+| B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
+| B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
+| ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
+
+### Zabilješke za druge module
+
+- **B13, šire:** oko 30 mjesta u `components/`, `pages/` i `lib/` koristi `session?.isSuperAdmin === true`. Ujednačavanje ide u modul 13 (lib) ili kao zajednička stavka.
+- **Modul 5:** `EmailTemplatesCard` prima `canWrite`, ali ga ne koristi (komponenta je read-only).
+- **Modul 12/13:** `PageLoadBoundary` u `lazy-page.tsx` i `RouteErrorBoundary` imaju gotovo istu fallback poruku. Spojiti u jednu komponentu.
+- **Modul 16 ili 13:** `use-session.ts` i ostali fajlovi sa `exhaustive-deps` upozorenjima (14 ukupno).
