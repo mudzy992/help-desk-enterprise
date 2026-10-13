@@ -155,6 +155,8 @@ Dvije izmjene u odnosu na radnu verziju iz koraka (a):
 - **`referenca` je stvarni dio** (nije samo napomena): četiri uvodno-referentne stranice, sve bez rolnih
   ograničenja.
 
+**Dopuna (2026-10-13, paket 5.4.2):** u dio `administrator` dodane su tri stranice za administratore — `alarmi-i-zdravlje-sistema` (120), `captcha-provjera` (130) i `webhook-izvoz-dnevnika` (140), sa engleskim prijevodima u `docs/user-guide/en/`. Sadržaj je pisan iz koda i UI teksta, ne iz `docs/ops/**`. Stranice su pod `roles: [ADMIN, SUPER_ADMIN]` odnosno `[SUPER_ADMIN]` (CAPTCHA i webhook su u kartici *Sigurnost*, koju vidi samo SUPER_ADMIN). Ukupno je **32 stranice**. Pravilo iz §6 ostaje: `docs/ops/**` i `docs/plans/**` nisu izvor in-app dokumentacije; vlasnik je potvrdio da se ops dokumenti ne objavljuju.
+
 **Za potvrdu:** `imovina` sadrži i korisnički dio („Moja imovina“), a `tiketi` sadrži i agentske sekcije; oba su
 smještena u dio po *primarnoj* publici. Alternativa je da se dijelovi režu po sekcijama unutar vodiča, što bi
 značilo razdvajanje jednog `.md` fajla na dva — skuplje za održavanje.

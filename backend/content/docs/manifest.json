@@ -46,7 +46,10 @@
         "nadzorna-ploca-i-izvjestaji",
         "imovina",
         "problemi",
-        "promjene"
+        "promjene",
+        "alarmi-i-zdravlje-sistema",
+        "captcha-provjera",
+        "webhook-izvoz-dnevnika"
       ]
     },
     {
@@ -2649,6 +2652,300 @@
       "englishTitle": null
     },
     {
+      "slug": "alarmi-i-zdravlje-sistema",
+      "title": "Alarmi i zdravlje sistema",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "SUPER_ADMIN",
+        "Administrator"
+      ],
+      "roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "order": 120,
+      "tags": [
+        "alarmi",
+        "zdravlje-sistema",
+        "nadzor",
+        "upozorenje",
+        "kritično",
+        "prag",
+        "preuzimanje",
+        "utišavanje",
+        "sigurnosne-metrike"
+      ],
+      "updatedAt": null,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Kako alarm nastaje i prestaje",
+          "id": "kako-alarm-nastaje-i-prestaje"
+        },
+        {
+          "level": 3,
+          "text": "Šta uraditi kad se alarm pojavi",
+          "id": "sta-uraditi-kad-se-alarm-pojavi"
+        },
+        {
+          "level": 3,
+          "text": "Provjera kanala za alarme",
+          "id": "provjera-kanala-za-alarme"
+        },
+        {
+          "level": 3,
+          "text": "Sigurnosni alarmi",
+          "id": "sigurnosni-alarmi"
+        },
+        {
+          "level": 3,
+          "text": "Gdje se mijenjaju pragovi",
+          "id": "gdje-se-mijenjaju-pragovi"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 1023,
+      "source": "docs/user-guide/alarmi-i-zdravlje-sistema.md",
+      "englishTitle": "Alarms and system health"
+    },
+    {
+      "slug": "captcha-provjera",
+      "title": "Provjera da niste robot (CAPTCHA)",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "SUPER_ADMIN",
+        "Administrator"
+      ],
+      "roles": [
+        "SUPER_ADMIN"
+      ],
+      "order": 130,
+      "tags": [
+        "captcha",
+        "turnstile",
+        "cloudflare",
+        "prijava",
+        "mfa",
+        "robot",
+        "provjera",
+        "site-key",
+        "tajni-kljuc"
+      ],
+      "updatedAt": null,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Uključivanje",
+          "id": "ukljucivanje"
+        },
+        {
+          "level": 3,
+          "text": "Isključivanje",
+          "id": "iskljucivanje"
+        },
+        {
+          "level": 3,
+          "text": "Zamjena ključeva",
+          "id": "zamjena-kljuceva"
+        },
+        {
+          "level": 2,
+          "text": "Kada se provjera traži",
+          "id": "kada-se-provjera-trazi"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 866,
+      "source": "docs/user-guide/captcha-provjera.md",
+      "englishTitle": "Human verification (CAPTCHA)"
+    },
+    {
+      "slug": "webhook-izvoz-dnevnika",
+      "title": "Izvoz sigurnosnog dnevnika na webhook",
+      "module": "—",
+      "part": "administrator",
+      "audience": [
+        "SUPER_ADMIN",
+        "Administrator"
+      ],
+      "roles": [
+        "SUPER_ADMIN"
+      ],
+      "order": 140,
+      "tags": [
+        "webhook",
+        "siem",
+        "revizijski-dnevnik",
+        "hmac",
+        "potpis",
+        "prijava",
+        "sigurnost",
+        "izvoz",
+        "log-pipeline"
+      ],
+      "updatedAt": null,
+      "headings": [
+        {
+          "level": 2,
+          "text": "Čemu služi ovaj modul",
+          "id": "cemu-sluzi-ovaj-modul"
+        },
+        {
+          "level": 2,
+          "text": "Kome je namijenjen",
+          "id": "kome-je-namijenjen"
+        },
+        {
+          "level": 2,
+          "text": "Kako doći",
+          "id": "kako-doci"
+        },
+        {
+          "level": 2,
+          "text": "Korak po korak",
+          "id": "korak-po-korak"
+        },
+        {
+          "level": 3,
+          "text": "Prvo podesite prijemnik",
+          "id": "prvo-podesite-prijemnik"
+        },
+        {
+          "level": 3,
+          "text": "Uključivanje",
+          "id": "ukljucivanje"
+        },
+        {
+          "level": 3,
+          "text": "Promjena adrese ili tajne",
+          "id": "promjena-adrese-ili-tajne"
+        },
+        {
+          "level": 3,
+          "text": "Isključivanje",
+          "id": "iskljucivanje"
+        },
+        {
+          "level": 2,
+          "text": "Šta prijemnik dobija",
+          "id": "sta-prijemnik-dobija"
+        },
+        {
+          "level": 3,
+          "text": "Provjera potpisa na prijemniku",
+          "id": "provjera-potpisa-na-prijemniku"
+        },
+        {
+          "level": 2,
+          "text": "Polja, validacije i statusi",
+          "id": "polja-validacije-i-statusi"
+        },
+        {
+          "level": 3,
+          "text": "Isporuka i greške",
+          "id": "isporuka-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Česta pitanja i greške",
+          "id": "cesta-pitanja-i-greske"
+        },
+        {
+          "level": 2,
+          "text": "Poznata ograničenja",
+          "id": "poznata-ogranicenja"
+        },
+        {
+          "level": 2,
+          "text": "Povezani moduli",
+          "id": "povezani-moduli"
+        }
+      ],
+      "wordCount": 889,
+      "source": "docs/user-guide/webhook-izvoz-dnevnika.md",
+      "englishTitle": "Export of the security journal to a webhook"
+    },
+    {
       "slug": "uloge-i-dozvole",
       "title": "Uloge i dozvole",
       "module": "—",
@@ -2963,7 +3260,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 3354,
+      "wordCount": 3522,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

@@ -26,8 +26,9 @@ Sve tri su u kategoriji `private.security` (ključevi `private.security.auditWeb
 | `secret` | tajna | nije postavljena | HMAC-SHA256 ključ. Vrijednost se nakon snimanja ne prikazuje. |
 
 Redoslijed: prvo `url` i `secret`, pa `enabled`. Za promjenu adrese prvo isključite
-izvoz. Postavke se trenutno unose kroz API postavki (`PUT /settings` ili `PUT /settings/batch`,
-uz ulogu ADMIN i dozvolu za pisanje postavki); admin korisničko sučelje za ovu kategoriju još nije napravljeno.
+izvoz. Postavke se unose na ekranu **Administracija → Sigurnost → Sigurnosne postavke**, red
+„Izvoz revizijskog dnevnika na webhook“ (od `b030755a`; samo SUPER_ADMIN). Isti ključevi se mogu unijeti i kroz API
+postavki (`PUT /settings` ili `PUT /settings/batch`). Korisnički opis je u `docs/user-guide/webhook-izvoz-dnevnika.md`.
 
 ## Zahtjev i potpis
 
@@ -91,6 +92,6 @@ Prijemnik treba odbiti zahtjev sa zastarjelim `timestamp` (npr. starijim od 5 mi
 
 ## Poznata ograničenja
 
-- Nema admin korisničkog sučelja za postavke izvoza (vidi gore).
+- Nema pločice ni alarma za stanje isporuke (vidi „Praćenje“); stanje se provjerava na prijemniku.
 - `http` adresa šalje tijelo bez enkripcije; za mreže van kontrolisane infrastrukture koristite `https`.
 - Red sa vremenom nastanka starijim od kursora za više od 10 sekundi (kasni upis) bi bio preskočen. Ovo je rijetko i prihvaćeno.

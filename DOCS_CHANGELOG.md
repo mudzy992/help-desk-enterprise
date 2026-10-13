@@ -7,6 +7,24 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-13 — Korisničke stranice za administratore: alarmi, CAPTCHA i webhook izvoz (5.4.2)
+
+**Dodato:** tri stranice u `docs/user-guide/` (dio `administrator`, bs) sa engleskim prijevodima u
+`docs/user-guide/en/`: `alarmi-i-zdravlje-sistema` (120), `captcha-provjera` (130) i `webhook-izvoz-dnevnika` (140).
+Sadržaj je pisan iz koda i UI teksta (`ops-alert-catalog.ts`, `security-captcha-settings.ts`,
+`security-audit-webhook-settings.ts`, kartice *Sigurnost* i *Red poslova i audit*). Ogledalo `backend/content/docs/`
+regenerisano. Dodati redovi u „Šta je novo“ za izmjene koje tiču korisnika (alarmi za CAPTCHA, webhook ekran, nove stranice).
+
+**Izmijenjeno:** `docs/DOCS_MODULE.md` — dopuna §3.4 (32 stranice). `docs/ops/security-audit-webhook.md`: uklonjena
+tvrdnja da admin korisničko sučelje za webhook ne postoji (red postoji od `b030755a`).
+
+**Odluka vlasnika (2026-10-13):** ops dokumenti (`ops/runbook/**`, `docs/ops/**`) se **ne objavljuju** u aplikaciji;
+pravilo iz `DOCS_MODULE.md` §6 ostaje. Sadržaj za administratore ide kroz `docs/user-guide/`.
+
+**Ostaje otvoreno:** potvrda vlasnika da je brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e
+prihvatljivo (dijalog tako radi, opisano je na stranici `captcha-provjera`); passkey prijava trenutno nije u provjeri
+(obim stavke 1 je lozinka i kod drugog koraka). Treba potvrditi da li passkey prijava treba biti uključena.
+
 ## 2026-10-12 — CAPTCHA metrike: pločice i alarmi (5.4.2, stavka 2)
 
 **Dodato:** `ops/runbook/ALERTS.md` — dva alarma (`auth.captchaFailed.high`, `auth.captchaSkipped.high`) u
