@@ -698,7 +698,18 @@
         "hibpSkipped": "Skipped HIBP checks",
         "empty": "No events were recorded in the last hour.",
         "captchaFailed": "Refused CAPTCHA challenges",
-        "captchaSkipped": "Skipped CAPTCHA checks"
+        "captchaSkipped": "Skipped CAPTCHA checks",
+        "webhook": {
+          "title": "Audit webhook export",
+          "stateDisabled": "Off",
+          "stateOk": "OK",
+          "stateFailing": "Not delivering",
+          "totals": "Sent: {{sent}} · failed: {{failed}} · dropped: {{dropped}}",
+          "failingSince": "No successful delivery for {{minutes}} min · last error: {{code}}",
+          "lastSuccess": "Last successful delivery: {{time}}",
+          "noSuccess": "No successful delivery yet.",
+          "unavailable": "The export status is currently unavailable."
+        }
       }
     },
     "security": {
@@ -1034,6 +1045,10 @@
         "auth_captchaSkipped_high": {
           "title": "CAPTCHA checks are skipped (Cloudflare unreachable)",
           "action": "The server cannot ask Cloudflare Turnstile (timeout, network or a failed answer), so sign-ins pass on the rate limiter alone. Check the server outbound access to Cloudflare; if this installation has no internet access by design, switch the provider back to none."
+        },
+        "security_auditWebhook_stalled": {
+          "title": "Security audit webhook export is not delivering",
+          "action": "The receiver does not accept events (the answer is not 2xx, the deadline passed or there is no connection). Check the address and the receiver from the server, then the Audit webhook export tile on the Security metrics card (last error). Events are kept while the outage is shorter than 24 hours; after that the waiting events are dropped."
         }
       },
       "alertDetailLabels": {
@@ -1064,7 +1079,10 @@
         "criticalThreshold": "Critical threshold",
         "expiresAt": "Expires",
         "captchaFailedLastHour": "Refused CAPTCHA challenges in the last hour",
-        "captchaSkippedLastHour": "Skipped CAPTCHA checks in the last hour"
+        "captchaSkippedLastHour": "Skipped CAPTCHA checks in the last hour",
+        "auditWebhookPendingMinutes": "Minutes without a successful webhook delivery",
+        "warnAfterMinutes": "Warning after (min)",
+        "criticalAfterMinutes": "Critical after (min)"
       }
     }
   },

@@ -79,6 +79,13 @@ export type OpsSignals = {
   /** Paket 5.4.2 (stavka 2): `captcha-failed` and `captcha-skipped` totals of the same 60 complete minutes. */
   readonly captchaFailedLastHour: number | null;
   readonly captchaSkippedLastHour: number | null;
+  /**
+   * Paket 5.4.2 (stavka 4): when the audit webhook export started failing (the
+   * first failed delivery of the current streak), epoch ms. `null` when nothing
+   * is pending, and also when the state cannot be read: an unknown value never
+   * opens the alarm.
+   */
+  readonly auditWebhookPendingSinceMs: number | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -101,6 +108,13 @@ export const eventLoopLagThresholdsMs = { warning: 500, critical: 2_000 } as con
 export const ldapsCaExpiryDays = { warning: 30, critical: 7 } as const;
 /** The alarm reads the last 60 complete minute buckets of the metric. */
 export const login429WindowMinutes = 60;
+/**
+ * Paket 5.4.2 (stavka 4): fixed, not configurable. A failing streak is a
+ * warning after 15 minutes (a restart or a short outage passes) and critical
+ * after one hour, well before the export drops the pending events (24 h).
+ */
+export const auditWebhookWarnAfterMinutes = 15;
+export const auditWebhookCriticalAfterMinutes = 60;
 const minute = 60_000;
 const day = 86_400_000;
 
@@ -130,7 +144,32 @@ export function evaluateOpsSignals(
       key: opsAlertKeys.captchaSkippedHigh,
       detailName: 'captchaSkippedLastHour',
     }),
+    observeAuditWebhook(signals),
   ];
+}
+
+/**
+ * Paket 5.4.2 (stavka 4): the export has failed without a success for a whole
+ * streak. The age is measured from the first failure, so a single failed tick
+ * does not open anything (the hysteresis of the catalog adds two checks more).
+ */
+function observeAuditWebhook(signals: OpsSignals): OpsObservation {
+  const since = signals.auditWebhookPendingSinceMs;
+  if (since === null) return inactive(opsAlertKeys.auditWebhookStalled);
+  const pendingMinutes = Math.max(0, Math.floor((signals.nowMs - since) / minute));
+  if (pendingMinutes < auditWebhookWarnAfterMinutes) return inactive(opsAlertKeys.auditWebhookStalled);
+  const severity: OpsAlertSeverity =
+    pendingMinutes >= auditWebhookCriticalAfterMinutes ? 'CRITICAL' : 'WARNING';
+  return {
+    key: opsAlertKeys.auditWebhookStalled,
+    active: true,
+    severity,
+    details: {
+      auditWebhookPendingMinutes: pendingMinutes,
+      warnAfterMinutes: auditWebhookWarnAfterMinutes,
+      criticalAfterMinutes: auditWebhookCriticalAfterMinutes,
+    },
+  };
 }
 
 function inactive(key: OpsAlertKey): OpsObservation {

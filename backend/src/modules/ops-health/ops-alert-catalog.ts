@@ -26,6 +26,8 @@ export const opsAlertKeys = {
   // Paket 5.4.2 (stavka 2): the captcha metrics, same source as the security tiles.
   captchaFailedHigh: 'auth.captchaFailed.high',
   captchaSkippedHigh: 'auth.captchaSkipped.high',
+  // Paket 5.4.2 (stavka 4): the signed audit export has not delivered for a streak.
+  auditWebhookStalled: 'security.auditWebhook.stalled',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -228,6 +230,17 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
       en: 'The server cannot ask Cloudflare Turnstile (timeout, network or a failed answer), so sign-ins pass on the rate limiter alone. Check the server\'s outbound access to Cloudflare; if this installation has no internet access by design, switch the provider back to none.',
     },
     runbook: runbook('captcha-skipped'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.auditWebhookStalled]: {
+    key: opsAlertKeys.auditWebhookStalled,
+    title: { bs: 'Izvoz sigurnosnog dnevnika na webhook ne isporučuje', en: 'Security audit webhook export is not delivering' },
+    action: {
+      bs: 'Prijemnik ne prima događaje (odgovor nije 2xx, istekao je rok ili nema veze). Provjerite adresu i dostupnost prijemnika sa servera, pa pločicu Izvoz na webhook u kartici Sigurnosne metrike (zadnja greška). Događaji se ne gube dok je streak kraći od 24 sata; nakon toga se čekajući odbacuju.',
+      en: 'The receiver does not accept events (the answer is not 2xx, the deadline passed or there is no connection). Check the address and the receiver from the server, then the Security audit webhook tile on the Security metrics card (last error). Events are kept while the streak is shorter than 24 hours; after that the waiting events are dropped.',
+    },
+    runbook: runbook('audit-webhook-stalled'),
     openAfter: 2,
     resolveAfter: 2,
   },

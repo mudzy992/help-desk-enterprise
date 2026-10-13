@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AdminSecurityMetricsCard } from "@/components/admin/admin-security-metrics-card";
-import type { LoginSecurityMetricsSnapshot } from "@/services/security-api";
+import type { LoginSecurityMetricsSnapshot, SecurityAuditWebhookStatus } from "@/services/security-api";
 
 /*
   Paket 5.4.0-e: the Nadzor security card renders the loading state first — the
@@ -22,10 +22,13 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-function renderWith(snapshot?: LoginSecurityMetricsSnapshot) {
+function renderWith(snapshot?: LoginSecurityMetricsSnapshot, webhook?: SecurityAuditWebhookStatus) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (snapshot !== undefined) {
     client.setQueryData(["admin", "security", "metrics", "last-hour"], snapshot);
+  }
+  if (webhook !== undefined) {
+    client.setQueryData(["admin", "security", "metrics", "audit-webhook"], webhook);
   }
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
@@ -129,5 +132,67 @@ describe("AdminSecurityMetricsCard", () => {
     // Long labels shrink instead of pushing the surface wider.
     expect(html).toContain("min-w-0");
     expect(html).toContain("truncate");
+  });
+
+  // Paket 5.4.2 (stavka 4): the export tile is a full-width row with its own state word.
+  it("shows the audit webhook export state as a full-width row under the tiles", () => {
+    const ok: SecurityAuditWebhookStatus = {
+      state: "ok",
+      pendingSince: null,
+      pendingMinutes: null,
+      sentTotal: 40,
+      failedTotal: 2,
+      droppedTotal: 0,
+      lastSuccessAt: "2026-10-13T09:58:00.000Z",
+      lastErrorCode: null,
+      generatedAt: "2026-10-13T10:00:00.000Z",
+    };
+    const html = renderWith(snapshotWithEvents, ok);
+    expect(html).toContain('data-testid="admin-security-metric-webhook"');
+    expect(html).toContain('data-state="ok"');
+    expect(html).toContain("admin.ops.securityMetrics.webhook.stateOk");
+    expect(html).toContain("admin.ops.securityMetrics.webhook.totals");
+    expect(html).toContain("admin.ops.securityMetrics.webhook.lastSuccess");
+  });
+
+  it("names the failing streak and its last error code, never the address", () => {
+    const failing: SecurityAuditWebhookStatus = {
+      state: "failing",
+      pendingSince: "2026-10-13T09:30:00.000Z",
+      pendingMinutes: 30,
+      sentTotal: 40,
+      failedTotal: 9,
+      droppedTotal: 0,
+      lastSuccessAt: null,
+      lastErrorCode: "HTTP_500",
+      generatedAt: "2026-10-13T10:00:00.000Z",
+    };
+    const html = renderWith(snapshotWithoutEvents, failing);
+    expect(html).toContain('data-state="failing"');
+    expect(html).toContain("admin.ops.securityMetrics.webhook.stateFailing");
+    expect(html).toContain("admin.ops.securityMetrics.webhook.failingSince");
+    expect(html).toContain("admin.ops.securityMetrics.webhook.noSuccess");
+    expect(html).toContain("HTTP_500");
+    // Only the tile itself: the refresh icon above carries an xmlns URL of its own.
+    const tile = html.slice(html.indexOf('data-testid="admin-security-metric-webhook"'));
+    expect(tile).not.toMatch(/https?:\/\//);
+  });
+
+  it("says the export is off without showing counters that do not apply", () => {
+    const off: SecurityAuditWebhookStatus = {
+      state: "disabled",
+      pendingSince: null,
+      pendingMinutes: null,
+      sentTotal: 0,
+      failedTotal: 0,
+      droppedTotal: 0,
+      lastSuccessAt: null,
+      lastErrorCode: null,
+      generatedAt: "2026-10-13T10:00:00.000Z",
+    };
+    const html = renderWith(snapshotWithoutEvents, off);
+    expect(html).toContain("admin.ops.securityMetrics.webhook.stateDisabled");
+    expect(html).not.toContain("admin.ops.securityMetrics.webhook.totals");
+    expect(html).not.toContain("admin.ops.securityMetrics.webhook.noSuccess");
   });
 });

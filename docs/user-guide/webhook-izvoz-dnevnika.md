@@ -130,19 +130,22 @@ snimljenog zahtjeva.
 - **„Prijemnik odbija potpis.“** — Tijelo se mora verifikovati kao **sirov tekst**, ne kao ponovo serijalizovan JSON.
   Provjerite da je tajna ista na obje strane i da se `timestamp` uzima iz zaglavlja `x-helpdesk-timestamp`.
 - **„Vidim iste događaje dva puta.“** — To je očekivano kod ponovnog slanja. Odbacujte duplikate po `events[].id`.
-- **„Isporuka je stala.“** — Provjerite prijemnik (HTTP odgovor 2xx) i adresu. Nakon 24 sata neuspjeha
-  čekajući događaji se odbacuju.
-- **„Gdje vidim koliko je poslano?“** — U aplikaciji trenutno nema pločice ni alarma za isporuke. Provjeru radite
-  na prijemniku.
+- **„Isporuka je stala.“** — Provjerite prijemnik (HTTP odgovor 2xx) i adresu. Ako isporuka ne uspijeva 15 minuta,
+  otvara se alarm **Izvoz sigurnosnog dnevnika na webhook ne isporučuje** (upozorenje); posle 60 minuta je kritičan
+  (vidi [Alarmi i zdravlje sistema](alarmi-i-zdravlje-sistema.md)). Nakon 24 sata neuspjeha čekajući događaji se odbacuju.
+- **„Gdje vidim koliko je poslano?“** — U kartici **Sigurnosne metrike (zadnji sat)** (samo SUPER_ADMIN) je pločica
+  **Izvoz na webhook**: stanje (U redu, Ne isporučuje ili Isključen), broj poslanih, neuspjelih i odbačenih događaja,
+  zadnja uspješna isporuka i zadnja greška (kod, npr. `HTTP_500`, `TIMEOUT`, `NETWORK`, `INVALID_URL`). Adresa i tajna
+  se na pločici nikad ne prikazuju.
 
 ## Poznata ograničenja
 
-- U aplikaciji nema pločice ni alarma za stanje isporuke (broj poslanih, neuspjelih i odbačenih).
+- Pločica i alarm pokazuju stanje isporuke, a ne sadržaj događaja. Pojedinačne događaje provjeravate na prijemniku.
 - Adresa sa `http` šalje tijelo bez šifrovanja. Za mreže van kontrolisane infrastrukture koristite `https`.
 - Događaj koji je upisan više od 10 sekundi nakon kursora može biti preskočen. Ovo je rijetko i prihvaćeno.
 
 ## Povezani moduli
 
-- [Alarmi i zdravlje sistema](alarmi-i-zdravlje-sistema.md) — alarmi za prijave i CAPTCHA, koji nisu dio webhook izvoza.
+- [Alarmi i zdravlje sistema](alarmi-i-zdravlje-sistema.md) — alarmi za prijave i CAPTCHA, te alarm za stanje ovog izvoza.
 - [Provjera da niste robot (CAPTCHA)](captcha-provjera.md) — provjera pri prijavi čiji se događaji šalju.
 - [Uloge i permisije (RBAC)](uloge-i-permisije.md) — ko može mijenjati sigurnosne postavke.

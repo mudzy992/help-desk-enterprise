@@ -6,10 +6,10 @@ import {
   type AuditWebhookCursor,
   type AuditWebhookRow,
 } from './security-audit-webhook.batch';
-import { securityAuditWebhookActionPrefixes } from './security-audit-webhook.constants';
+import { securityAuditWebhookActionPrefixes, securityAuditWebhookStateId } from './security-audit-webhook.constants';
 import type { AuditWebhookState, AuditWebhookStore } from './security-audit-webhook.delivery';
 
-const stateId = 'default';
+const stateId = securityAuditWebhookStateId;
 
 /** Prisma side of the export: the audit rows in (createdAt, id) order and one state row. */
 @Injectable()

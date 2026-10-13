@@ -44,6 +44,7 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `auth.login429.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [login-429](#login-429) |
 | `auth.captchaFailed.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-failed](#captcha-failed) |
 | `auth.captchaSkipped.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-skipped](#captcha-skipped) |
+| `security.auditWebhook.stalled` | UPOZORENJE / KRITIČNO | 2 / 2 | [audit-webhook-stalled](#audit-webhook-stalled) |
 
 ---
 
@@ -239,6 +240,29 @@ pa se prijave propuštaju samo uz pragove limitera.
    ostaju samo pragovi limitera.
 4. Pragove mijenjaš kroz **Administracija → Postavke i dodaci → Opservabilnost i podrška**
    (`private.ops.thresholds.captchaSkippedWarnPerHour` / `…CriticalPerHour`).
+
+---
+
+## audit-webhook-stalled
+
+**Uslov:** paket 5.4.2 (stavka 4): izvoz sigurnosnog dnevnika na webhook ne isporučuje nijedan
+događaj već **15 minuta** (UPOZORENJE) ili **60 minuta** (KRITIČNO), računajući od prvog neuspjeha
+u nizu. Pragovi su fiksni. Alarm ne čita postavku „uključen“: kad se izvoz isključi, čekanje se
+briše i alarm se zatvara.
+
+**Postupak:**
+1. Pročitaj zadnju grešku na pločici **Izvoz na webhook** (kartica *Sigurnosne metrike*, samo SUPER_ADMIN)
+   ili u logu workera (`security_audit_webhook_failed code=<kod>`). Adresa i tajna se nikad ne loguju.
+2. `HTTP_<status>`: prijemnik odgovara greškom. Provjeri da prijemnik radi i da verifikuje potpis
+   (tajna mora biti ista na obje strane; tijelo se verifikuje kao sirov tekst).
+3. `TIMEOUT` ili `NETWORK`: provjeri da je adresa dostupna **sa servera** (DNS, izlazni pristup, vatrozid).
+   Rok za odgovor je 5 sekundi.
+4. `INVALID_URL`: adresa nije ispravna. Ispravi postavku primaoca (samo `http` ili `https`, bez
+   korisničkog imena i lozinke).
+5. Događaji se ne gube dok je prekid kraći od **24 sata**. Nakon toga se čekajući događaji odbacuju
+   (`droppedTotal` na pločici) i prijemnik ih ne dobija.
+6. Alarm se zatvara sam kad se isporuka vrati (dvije uzastopne provjere). Prag ne mijenjaj: pragovi
+   su fiksni i ne postoje u postavkama.
 
 ---
 

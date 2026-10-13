@@ -79,6 +79,26 @@ export function getLoginSecurityMetrics(): Promise<LoginSecurityMetricsSnapshot>
   return apiRequest("/security/metrics/last-hour");
 }
 
+/**
+ * Paket 5.4.2 (stavka 4): the export's state for the metrics card. Counters,
+ * times and the last error code only - never the address, the secret or a body.
+ */
+export type SecurityAuditWebhookStatus = {
+  readonly state: "disabled" | "ok" | "failing";
+  readonly pendingSince: string | null;
+  readonly pendingMinutes: number | null;
+  readonly sentTotal: number;
+  readonly failedTotal: number;
+  readonly droppedTotal: number;
+  readonly lastSuccessAt: string | null;
+  readonly lastErrorCode: string | null;
+  readonly generatedAt: string;
+};
+
+export function getAuditWebhookStatus(): Promise<SecurityAuditWebhookStatus> {
+  return apiRequest("/security/metrics/audit-webhook");
+}
+
 export type BulkPasswordResetResult = {
   readonly eligibleUsers: number;
   readonly changedUsers: number;

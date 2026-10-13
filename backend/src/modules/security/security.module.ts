@@ -3,6 +3,7 @@ import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
+import { SecurityAuditWebhookStatusModule } from '../security-audit-webhook/security-audit-webhook-status.module';
 import { BulkPasswordResetController } from './bulk-password-reset.controller';
 import { BulkPasswordResetService } from './bulk-password-reset.service';
 import { SecurityAuditLogController } from './security-audit-log.controller';
@@ -23,7 +24,7 @@ import { SecurityRateLimitsService } from './security-rate-limits.service';
 @Module({
   // AuthorizationModule provides the AuthorizationService the RoleGuard
   // needs for the SUPER_ADMIN-only endpoints.
-  imports: [AuthenticationModule, AuthorizationModule, SettingsModule, AuditLogModule],
+  imports: [AuthenticationModule, AuthorizationModule, SettingsModule, AuditLogModule, SecurityAuditWebhookStatusModule],
   controllers: [
     SecurityIdentityController,
     SecurityRateLimitsController,

@@ -29,6 +29,8 @@ export const opsAlertSlugs = [
   // Paket 5.4.2 (stavka 2): the captcha alarms (refused challenges, skipped checks).
   "auth_captchaFailed_high",
   "auth_captchaSkipped_high",
+  // Paket 5.4.2 (stavka 4): the audit webhook export has not delivered for a streak.
+  "security_auditWebhook_stalled",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 
@@ -173,6 +175,10 @@ export const alertDetailFieldSlugs = [
   "login429LastHour",
   "captchaFailedLastHour",
   "captchaSkippedLastHour",
+  // Paket 5.4.2 (stavka 4): the audit webhook streak and its fixed thresholds.
+  "auditWebhookPendingMinutes",
+  "warnAfterMinutes",
+  "criticalAfterMinutes",
   "errors5xx",
   "minutesSinceSuccess",
   "meanLagMs",

@@ -34,9 +34,37 @@ describe('SecurityMetricsController', () => {
       },
     };
     const lastHour = jest.fn().mockResolvedValue(snapshot);
-    const controller = new SecurityMetricsController({ lastHour } as never);
+    const controller = new SecurityMetricsController({ lastHour } as never, {} as never);
 
     await expect(controller.lastHour()).resolves.toBe(snapshot);
     expect(lastHour).toHaveBeenCalledTimes(1);
+  });
+
+  // Paket 5.4.2 (stavka 4): the export tile reads the same way - SuperAdmin only, no-store.
+  it('answers the audit webhook status with Cache-Control: no-store', () => {
+    const headers = Reflect.getMetadata(
+      '__headers__',
+      SecurityMetricsController.prototype.auditWebhook,
+    ) as readonly { readonly name: string; readonly value: string }[];
+    expect(headers).toEqual([{ name: 'Cache-Control', value: 'no-store' }]);
+  });
+
+  it('returns the audit webhook status from the status service unchanged', async () => {
+    const status = {
+      state: 'ok',
+      pendingSince: null,
+      pendingMinutes: null,
+      sentTotal: 4,
+      failedTotal: 0,
+      droppedTotal: 0,
+      lastSuccessAt: '2026-10-13T08:00:00.000Z',
+      lastErrorCode: null,
+      generatedAt: '2026-10-13T08:01:00.000Z',
+    };
+    const read = jest.fn().mockResolvedValue(status);
+    const controller = new SecurityMetricsController({} as never, { read } as never);
+
+    await expect(controller.auditWebhook()).resolves.toBe(status);
+    expect(read).toHaveBeenCalledTimes(1);
   });
 });

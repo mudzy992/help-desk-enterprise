@@ -132,19 +132,22 @@ of a captured request.
 - **“The receiver rejects the signature.”** — The body must be verified as **raw text**, not as re-serialised JSON. Check that
   the secret is the same on both sides and that the timestamp comes from the `x-helpdesk-timestamp` header.
 - **“I see the same events twice.”** — This is expected when a batch is sent again. Drop duplicates by `events[].id`.
-- **“Delivery has stopped.”** — Check the receiver (it must answer 2xx) and the address. After 24 hours of failures, waiting
-  events are dropped.
-- **“Where can I see how many were sent?”** — The application has no tile or alarm for delivery status at the moment. Check
-  on the receiver.
+- **“Delivery has stopped.”** — Check the receiver (it must answer 2xx) and the address. If delivery fails for 15 minutes,
+  the alarm **Security audit webhook export is not delivering** opens (warning); after 60 minutes it is critical
+  (see [Alarms and system health](alarmi-i-zdravlje-sistema.md)). After 24 hours of failures, waiting events are dropped.
+- **“Where can I see how many were sent?”** — On the **Security metrics (last hour)** card (SUPER_ADMIN only) there is the
+  **Audit webhook export** tile: the state (OK, Not delivering or Off), the number of sent, failed and dropped events,
+  the last successful delivery and the last error (a code, for example `HTTP_500`, `TIMEOUT`, `NETWORK`, `INVALID_URL`).
+  The address and the secret are never shown on the tile.
 
 ## Known limitations
 
-- The application has no tile or alarm for delivery status (sent, failed and dropped counts).
+- The tile and the alarm show the delivery state, not the content of the events. Check individual events on the receiver.
 - An `http` address sends the body without encryption. For networks outside controlled infrastructure, use `https`.
 - An event written more than 10 seconds after the cursor may be skipped. This is rare and accepted.
 
 ## Related modules
 
-- [Alarms and system health](alarmi-i-zdravlje-sistema.md) — alarms for sign-ins and CAPTCHA, which are not part of the webhook export.
+- [Alarms and system health](alarmi-i-zdravlje-sistema.md) — alarms for sign-ins and CAPTCHA, and the alarm for the state of this export.
 - [Human verification (CAPTCHA)](captcha-provjera.md) — the sign-in check whose events are sent.
 - [Roles and permissions (RBAC)](uloge-i-permisije.md) — who may change security settings.

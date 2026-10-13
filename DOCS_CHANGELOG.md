@@ -21,9 +21,11 @@ tvrdnja da admin korisničko sučelje za webhook ne postoji (red postoji od `b03
 **Odluka vlasnika (2026-10-13):** ops dokumenti (`ops/runbook/**`, `docs/ops/**`) se **ne objavljuju** u aplikaciji;
 pravilo iz `DOCS_MODULE.md` §6 ostaje. Sadržaj za administratore ide kroz `docs/user-guide/`.
 
+**Dodato (stavka 4, pločica i alarm za webhook):** pločica *Izvoz na webhook* u kartici *Sigurnosne metrike* (`GET /security/metrics/audit-webhook`, samo SUPER_ADMIN) i alarm `security.auditWebhook.stalled` (slug `security_auditWebhook_stalled`, runbook `audit-webhook-stalled`). Stranice `webhook-izvoz-dnevnika` i `alarmi-i-zdravlje-sistema` (bs/en), `docs/ops/security-audit-webhook.md` i `ops/runbook/ALERTS.md` opisuju ih; tvrdnja da pločice i alarma nema je uklonjena. **Predloženo, čeka potvrdu vlasnika:** pragovi 15 / 60 minuta su fiksni (nisu postavke), a naziv ključa i mjesto pločice su predloženi.
+
 **Ostaje otvoreno:** potvrda vlasnika da je brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e
 prihvatljivo (dijalog tako radi, opisano je na stranici `captcha-provjera`); passkey prijava trenutno nije u provjeri
-(obim stavke 1 je lozinka i kod drugog koraka). Treba potvrditi da li passkey prijava treba biti uključena.
+(obim stavke 1 je lozinka i kod drugog koraka). Treba potvrditi da li passkey prijava treba biti uključena; predložen je odgovor „nije uključena“ (passkey je vezan za uređaj). Takođe treba potvrditi pragove 15 / 60 minuta i naziv ključa alarma.
 
 ## 2026-10-12 — CAPTCHA metrike: pločice i alarmi (5.4.2, stavka 2)
 

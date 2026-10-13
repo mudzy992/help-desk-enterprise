@@ -13,6 +13,7 @@ import { withTimeout } from '../health/health-probes';
 import { readClamavConfiguration } from '../tickets/attachments/scan-attachment-with-clamav';
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
+import { securityAuditWebhookStateId } from '../security-audit-webhook/security-audit-webhook.constants';
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
 import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
 import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
@@ -61,6 +62,8 @@ export class OpsSignalCollector implements OnModuleDestroy {
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
     ]);
+    // Paket 5.4.2 (stavka 4): read apart from the tuples above, for the same reason.
+    const auditWebhookPendingSinceMs = database === 'ok' ? await this.auditWebhookPendingSince() : null;
     return {
       nowMs,
       database,
@@ -77,6 +80,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       login429LastHour,
       captchaFailedLastHour,
       captchaSkippedLastHour,
+      auditWebhookPendingSinceMs,
     };
   }
 
@@ -98,6 +102,26 @@ export class OpsSignalCollector implements OnModuleDestroy {
    * compares are literally the same strings; a read failure yields `null` (the
    * observation stays inactive instead of firing on a number nobody measured).
    */
+  /**
+   * Paket 5.4.2 (stavka 4): the start of the audit webhook's failing streak, epoch ms.
+   * `null` when nothing is pending or the state row cannot be read.
+   */
+  private async auditWebhookPendingSince(): Promise<number | null> {
+    try {
+      const row = await withTimeout(
+        () =>
+          this.prisma.securityAuditWebhookState.findUnique({
+            where: { id: securityAuditWebhookStateId },
+            select: { pendingSince: true },
+          }),
+        opsProbeTimeouts.databaseMs,
+      );
+      return row?.pendingSince ? row.pendingSince.getTime() : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** Paket 5.4.2 (stavka 2): a captcha metric total, read with the metrics service's own keys; `null` on failure. */
   private async securityMetric(nowMs: number, event: LoginSecurityMetricEvent): Promise<number | null> {
     try {

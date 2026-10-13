@@ -55,6 +55,7 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     login429LastHour: 0,
     captchaFailedLastHour: 0,
     captchaSkippedLastHour: 0,
+    auditWebhookPendingSinceMs: null,
     ...overrides,
   };
 }
@@ -254,5 +255,25 @@ describe('captcha metric alarms (5.4.2 stavka 2)', () => {
     const withoutField: Record<string, unknown> = { ...healthy() };
     delete withoutField.captchaSkippedLastHour;
     expect(byKey(withoutField as unknown as OpsSignals).get(opsAlertKeys.captchaSkippedHigh)?.active).toBe(false);
+  });
+  // Paket 5.4.2 (stavka 4): the audit webhook export has not delivered for a streak.
+  it('stays quiet when nothing is pending, when the streak is short, or when the state is unknown', () => {
+    const now = Date.parse('2026-10-13T10:00:00.000Z');
+    expect(byKey(healthy({ nowMs: now })).get(opsAlertKeys.auditWebhookStalled)?.active).toBe(false);
+    const short = now - 14 * 60_000;
+    expect(byKey(healthy({ nowMs: now, auditWebhookPendingSinceMs: short })).get(opsAlertKeys.auditWebhookStalled)?.active).toBe(false);
+    // An unreadable state reaches the evaluation as null, the same as "nothing pending": no alarm either way.
+  });
+
+  it('raises WARNING from 15 minutes and CRITICAL from one hour of the same streak', () => {
+    const now = Date.parse('2026-10-13T10:00:00.000Z');
+    const warning = byKey(healthy({ nowMs: now, auditWebhookPendingSinceMs: now - 15 * 60_000 })).get(opsAlertKeys.auditWebhookStalled)!;
+    expect(warning).toMatchObject({
+      active: true,
+      severity: 'WARNING',
+      details: { auditWebhookPendingMinutes: 15, warnAfterMinutes: 15, criticalAfterMinutes: 60 },
+    });
+    const critical = byKey(healthy({ nowMs: now, auditWebhookPendingSinceMs: now - 60 * 60_000 })).get(opsAlertKeys.auditWebhookStalled)!;
+    expect(critical).toMatchObject({ active: true, severity: 'CRITICAL', details: { auditWebhookPendingMinutes: 60 } });
   });
 });

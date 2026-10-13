@@ -55,13 +55,17 @@ kanal nije podešen, ili je e-mail kanal isključen u postavkama.
 ### Sigurnosni alarmi
 
 Tri alarma dolaze iz brojača sigurnosnih metrika. Brojač se računa za zadnji sat, a alarm se otvara kad
-**broj dostigne prag** (ne samo kad ga premaši):
+**broj dostigne prag** (ne samo kad ga premaši). Četvrti alarm, za izvoz na webhook, ne broji događaje nego mjeri
+koliko dugo izvoz ne isporučuje (vidi posljednji red tabele):
 
 | Alarm | Šta znači | Upozorenje od | Kritično od | Prvi korak |
 |---|---|---|---|---|
 | **Blokirane prijave (429) prelaze prag** | Mnogo prijava je blokirano zbog neuspjelih pokušaja. | 50 po satu | 200 po satu | Provjerite metrike, izvor u odgovoru 429 (`Retry-After`) i po potrebi `ipMaxFailures` / `ipWindowSeconds`. Ako je izvor NAT ili proxy, povećajte prag ili izuzmite izvor na mreži. Ako je riječ o pogađanju lozinki, blokirajte izvor. |
 | **CAPTCHA provjere se često odbijaju** | Klijent šalje rješenja koja Cloudflare ne prihvata: istekla rješenja, pogrešan site key ili automatizovani klijent. | 50 po satu | 200 po satu | Pogledajte metapodatke prijava u sigurnosnom dnevniku i karticu **Sigurnosne metrike**. Ako brojevi rastu bez stvarnih korisnika, riječ je o automatizovanom klijentu. Prag ne snižavajte bez analize. |
 | **CAPTCHA provjera se preskače (Cloudflare nedostupan)** | Server ne može da pita Cloudflare Turnstile (timeout, mreža ili neuspješan odgovor), pa prijave prolaze samo uz ograničenja. | 50 po satu | 200 po satu | Provjerite izlazni pristup servera prema Cloudflare-u. Ako instalacija po projektu nema internet, vratite provajder CAPTCHA-e na `none`. |
+| **Izvoz sigurnosnog dnevnika na webhook ne isporučuje** | Prijemnik ne prima događaje (odgovor nije 2xx, rok je istekao ili nema veze). | 15 min bez uspjeha | 60 min bez uspjeha | Provjerite adresu i prijemnik sa servera, pa pločicu **Izvoz na webhook** u kartici **Sigurnosne metrike** (zadnja greška). |
+
+Alarm za webhook ne čita postavku „uključen“: kad izvoz isključite, čekanje se briše i alarm se zatvara po pravilu iz odjeljka „Kako alarm nastaje i prestaje“. Pragovi 15 i 60 minuta su fiksni.
 
 Detalji o CAPTCHA provjeri su na stranici [Provjera da niste robot (CAPTCHA)](/docs/captcha-provjera).
 

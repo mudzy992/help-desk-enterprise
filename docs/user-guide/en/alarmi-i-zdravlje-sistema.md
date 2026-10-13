@@ -66,13 +66,17 @@ address is missing), the channel is not configured, or the e-mail channel is swi
 ### Security alarms
 
 Three alarms come from the security metric counters. The counter covers the last hour, and the alarm opens when the
-**number reaches the threshold** (not only when it is exceeded):
+**number reaches the threshold** (not only when it is exceeded). A fourth alarm, for the webhook export, does not count
+events: it measures how long the export has not been delivering (see the last row of the table):
 
 | Alarm | What it means | Warning from | Critical from | First step |
 |---|---|---|---|---|
 | **Blocked sign-ins (429) exceed the threshold** | Many sign-ins were blocked after failed attempts. | 50 per hour | 200 per hour | Check the metrics, the source in the 429 answer (`Retry-After`), and if needed `ipMaxFailures` / `ipWindowSeconds`. If the source is a NAT or proxy, raise the threshold or allow-list the source on the network. If it is password guessing, block the source. |
 | **CAPTCHA challenges are often refused** | The client sends solutions Cloudflare does not accept: expired solutions, a wrong site key or an automated client. | 50 per hour | 200 per hour | Check the sign-in metadata in the security journal and the **Security metrics** card. If the counts grow without real users, it is an automated client. Do not lower the threshold without analysis. |
 | **CAPTCHA checks are skipped (Cloudflare unreachable)** | The server cannot ask Cloudflare Turnstile (timeout, network or a failed answer), so sign-ins pass on the rate limits alone. | 50 per hour | 200 per hour | Check the server's outbound access to Cloudflare. If the installation has no internet access by design, switch the CAPTCHA provider back to `none`. |
+| **Security audit webhook export is not delivering** | The receiver does not accept events (the answer is not 2xx, the deadline passed or there is no connection). | 15 min without success | 60 min without success | Check the address and the receiver from the server, then the **Audit webhook export** tile on the **Security metrics** card (last error). |
+
+The webhook alarm does not read the “switched on” setting: when you switch the export off, the waiting time is cleared and the alarm closes by the rule in “How an alarm opens and closes”. The 15 and 60 minute thresholds are fixed.
 
 Details about the CAPTCHA check are on the page [Human verification (CAPTCHA)](captcha-provjera.md).
 

@@ -2744,7 +2744,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1023,
+      "wordCount": 1127,
       "source": "docs/user-guide/alarmi-i-zdravlje-sistema.md",
       "englishTitle": "Alarms and system health"
     },
@@ -2941,7 +2941,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 889,
+      "wordCount": 952,
       "source": "docs/user-guide/webhook-izvoz-dnevnika.md",
       "englishTitle": "Export of the security journal to a webhook"
     },
@@ -3260,7 +3260,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 3522,
+      "wordCount": 3587,
       "source": "docs/user-guide/sta-je-novo.md",
       "englishTitle": null
     }

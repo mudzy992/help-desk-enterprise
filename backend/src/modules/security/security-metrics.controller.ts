@@ -7,6 +7,8 @@ import {
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SecurityAuditWebhookStatusService } from '../security-audit-webhook/security-audit-webhook.status.service';
+import type { SecurityAuditWebhookStatus } from '../security-audit-webhook/security-audit-webhook.status-model';
 
 /*
   Paket 5.4.0-e: the read side of the login-security counters (M2). The service
@@ -27,11 +29,21 @@ import { RoleGuard } from '../authorization/role.guard';
 @RequireRoles(authorizationRoleKeys.superAdmin)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class SecurityMetricsController {
-  constructor(private readonly metricsService: LoginSecurityMetricsService) {}
+  constructor(
+    private readonly metricsService: LoginSecurityMetricsService,
+    private readonly webhookStatus: SecurityAuditWebhookStatusService,
+  ) {}
 
   @Get('last-hour')
   @Header('Cache-Control', 'no-store')
   lastHour(): Promise<LoginSecurityMetricsSnapshot> {
     return this.metricsService.lastHour();
+  }
+
+  /** Paket 5.4.2 (stavka 4): the export's state for the tile; counters and times, never the address or the secret. */
+  @Get('audit-webhook')
+  @Header('Cache-Control', 'no-store')
+  auditWebhook(): Promise<SecurityAuditWebhookStatus> {
+    return this.webhookStatus.read();
   }
 }

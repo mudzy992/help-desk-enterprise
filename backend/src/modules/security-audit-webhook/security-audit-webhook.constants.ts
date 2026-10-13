@@ -23,6 +23,8 @@ export const securityAuditWebhookSettleMilliseconds = 10_000;
 export const securityAuditWebhookGiveUpMilliseconds = 24 * 60 * 60 * 1000;
 export const securityAuditWebhookTimeoutMilliseconds = 5_000;
 export const securityAuditWebhookSchemaVersion = 1;
+/** The one state row the export keeps (`SecurityAuditWebhookState.id`). */
+export const securityAuditWebhookStateId = 'default';
 
 export const securityAuditWebhookHeaders = {
   timestamp: 'x-helpdesk-timestamp',

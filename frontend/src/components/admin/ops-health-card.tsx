@@ -17,6 +17,7 @@ import {
   ServerCrash,
   ShieldAlert,
   Timer,
+  Webhook,
   Wifi,
   WifiOff,
   type LucideIcon,
@@ -101,6 +102,7 @@ const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   auth_login429_high: ShieldAlert,
   auth_captchaFailed_high: ShieldAlert,
   auth_captchaSkipped_high: ShieldAlert,
+  security_auditWebhook_stalled: Webhook,
 };
 
 /** The worker measures once a minute; refreshing faster only adds load. */
