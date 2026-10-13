@@ -21,13 +21,13 @@ tvrdnja da admin korisničko sučelje za webhook ne postoji (red postoji od `b03
 **Odluka vlasnika (2026-10-13):** ops dokumenti (`ops/runbook/**`, `docs/ops/**`) se **ne objavljuju** u aplikaciji;
 pravilo iz `DOCS_MODULE.md` §6 ostaje. Sadržaj za administratore ide kroz `docs/user-guide/`.
 
-**Dodato (stavka 4, pločica i alarm za webhook):** pločica *Izvoz na webhook* u kartici *Sigurnosne metrike* (`GET /security/metrics/audit-webhook`, samo SUPER_ADMIN) i alarm `security.auditWebhook.stalled` (slug `security_auditWebhook_stalled`, runbook `audit-webhook-stalled`). Stranice `webhook-izvoz-dnevnika` i `alarmi-i-zdravlje-sistema` (bs/en), `docs/ops/security-audit-webhook.md` i `ops/runbook/ALERTS.md` opisuju ih; tvrdnja da pločice i alarma nema je uklonjena. **Predloženo, čeka potvrdu vlasnika:** pragovi 15 / 60 minuta su fiksni (nisu postavke), a naziv ključa i mjesto pločice su predloženi.
+**Dodato (stavka 4, pločica i alarm za webhook):** pločica *Izvoz na webhook* u kartici *Sigurnosne metrike* (`GET /security/metrics/audit-webhook`, samo SUPER_ADMIN) i alarm `security.auditWebhook.stalled` (slug `security_auditWebhook_stalled`, runbook `audit-webhook-stalled`). Stranice `webhook-izvoz-dnevnika` i `alarmi-i-zdravlje-sistema` (bs/en), `docs/ops/security-audit-webhook.md` i `ops/runbook/ALERTS.md` opisuju ih; tvrdnja da pločice i alarma nema je uklonjena. **Potvrđeno (vlasnik, 2026-10-13):** pragovi 15 / 60 minuta su fiksni (nisu postavke), naziv ključa `security.auditWebhook.stalled` i mjesto pločice u kartici *Sigurnosne metrike* ostaju kako su implementirani.
 
 **Odluka vlasnika (2026-10-13): test alarma webhooka se preskače.** Izvoz na webhook je provjeren na stagingu (potpisane isporuke sa koda 200 prolaze). Alarm `security.auditWebhook.stalled` (UPOZORENJE / KRITIČNO) pokriven je jediničnim testovima i CI-jem, ali **nije dokazan na živom okruženju**. Posmatranje alarma u produkciji ostaje otvoreno. Kalibracija CAPTCHA pragova na živom saobraćaju takođe čeka podatke sa produkcije.
 
-**Ostaje otvoreno:** potvrda vlasnika da je brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e
-prihvatljivo (dijalog tako radi, opisano je na stranici `captcha-provjera`); passkey prijava trenutno nije u provjeri
-(obim stavke 1 je lozinka i kod drugog koraka). Treba potvrditi da li passkey prijava treba biti uključena; predložen je odgovor „nije uključena“ (passkey je vezan za uređaj). Takođe treba potvrditi pragove 15 / 60 minuta i naziv ključa alarma.
+**Potvrđeno (vlasnik, 2026-10-13):** brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e je odobreno ponašanje (opisano na stranici `captcha-provjera`). Passkey prijava nije uključena u CAPTCHA provjeru (obim stavke 1 je lozinka i kod drugog koraka; passkey je vezan za uređaj).
+
+**Ostaje otvoreno:** kalibracija CAPTCHA pragova (`captchaFailedWarnPerHour` / `…CriticalPerHour`, `captchaSkippedWarnPerHour` / `…CriticalPerHour`, trenutno 50 / 200). Metrike `captcha-failed` i `captcha-skipped` su u zadnjem satu na produkciji 0; treba provjeriti da li je provjera uključena, pa prikupiti 24–48 sati podataka prije promjene pragova.
 
 ## 2026-10-12 — CAPTCHA metrike: pločice i alarmi (5.4.2, stavka 2)
 
