@@ -253,9 +253,7 @@ export class AccountSecurityController {
   async disableMfa(@Req() request: AuthenticatedHttpRequest, @Body() body: AccountMfaCodeDto): Promise<void> {
     const user = await this.caller(request);
     const policy = await this.policyLoader.load();
-    // Paket 5.4.0-a: a remaining passkey is a second factor, so TOTP may go.
-    const passkeys = await this.passkeyCredentialService.countCredentials(user.id);
-    await this.limited(user.id, () => this.mfaService.disable(user, policy, body.code, passkeys > 0));
+    await this.limited(user.id, () => this.mfaService.disable(user, policy, body.code));
   }
 
   @Post('mfa/recovery-codes')

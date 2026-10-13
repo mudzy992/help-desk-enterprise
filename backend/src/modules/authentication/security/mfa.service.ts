@@ -218,16 +218,13 @@ export class MfaService {
     return 'totp';
   }
 
-  async disable(
-    subject: MfaSubject,
-    policy: AccountSecurityPolicy,
-    code: string,
-    // Paket 5.4.0-a: an account with a passkey keeps a second factor after
-    // TOTP is disabled, so the blanket "required" refusal no longer applies —
-    // the caller (which can count passkeys) asserts another factor remains.
-    otherFactorRemaining: boolean = false,
-  ): Promise<void> {
-    if (this.requirementFor(subject, policy) === 'required' && !otherFactorRemaining) {
+  /**
+   * TOTP is the mandatory factor for accounts whose MFA is `required` (SUPER_ADMIN
+   * and the other roles the policy names). A passkey is an extra way to sign in,
+   * not a replacement, so it does not lift this refusal.
+   */
+  async disable(subject: MfaSubject, policy: AccountSecurityPolicy, code: string): Promise<void> {
+    if (this.requirementFor(subject, policy) === 'required') {
       throw new AccountSecurityError('MFA_REQUIRED_CANNOT_DISABLE');
     }
     await this.verify(subject, code);
