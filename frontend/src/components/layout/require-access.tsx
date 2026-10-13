@@ -29,7 +29,6 @@ interface RequireAccessProperties {
   readonly check: (capabilities: SessionCapabilities) => boolean;
   readonly forbiddenTitleKey: ForbiddenMessageKey;
   readonly forbiddenBodyKey: ForbiddenMessageKey;
-  readonly loadingLabelKey?: "session.loading";
   readonly icon?: ReactNode;
   readonly children: ReactNode;
 }
@@ -38,7 +37,6 @@ export function RequireAccess({
   check,
   forbiddenTitleKey,
   forbiddenBodyKey,
-  loadingLabelKey = "session.loading",
   icon,
   children,
 }: RequireAccessProperties) {
@@ -46,7 +44,7 @@ export function RequireAccess({
   const capabilities = useSessionCapabilities();
 
   if (capabilities.isLoading) {
-    return <PanelSkeleton label={t(loadingLabelKey)} />;
+    return <PanelSkeleton label={t("session.loading")} />;
   }
 
   if (!check(capabilities)) {

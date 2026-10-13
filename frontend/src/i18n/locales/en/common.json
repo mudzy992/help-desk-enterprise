@@ -4136,7 +4136,12 @@
     "tokenLabel": "Install token",
     "tokenSubmit": "Unlock",
     "tokenInvalid": "The token is not valid.",
-    "tokenNotConfigured": "INSTALL_TOKEN is not set on the server (at least 16 characters). Set it and restart the API."
+    "tokenNotConfigured": "INSTALL_TOKEN is not set on the server (at least 16 characters). Set it and restart the API.",
+    "statusError": {
+      "title": "The installation status could not be checked",
+      "body": "The server did not answer the setup status request. Nothing was changed. Check the connection and try again.",
+      "retry": "Try again"
+    }
   },
   "routing": {
     "title": "Routing",

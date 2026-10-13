@@ -19,6 +19,7 @@ import {
   Boxes,
   Puzzle,
   GitPullRequestArrow,
+  FileText,
   Laptop,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/tickets?view=inbox": Inbox,
   "/services": LayoutGrid,
   "/knowledge-base": BookOpen,
+  "/docs": FileText,
   "/routing": GitBranch,
   "/sla": Timer,
   "/admin": Settings2,
@@ -51,4 +53,8 @@ const navigationIcons: Record<string, LucideIcon> = {
 
 export function navigationIconFor(path: string): LucideIcon {
   return navigationIcons[path] ?? LayoutDashboard;
+}
+
+export function hasNavigationIcon(path: string): boolean {
+  return Object.prototype.hasOwnProperty.call(navigationIcons, path);
 }

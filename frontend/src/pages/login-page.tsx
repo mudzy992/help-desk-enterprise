@@ -17,7 +17,7 @@ import {
   labelClassName,
 } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
-import { startEntraSignIn } from "@/lib/auth/entra-redirect";
+import { safeReturnPath, startEntraSignIn } from "@/lib/auth/entra-redirect";
 import {
   readPreferredMfaMethod,
   resolveDefaultMfaMethod,
@@ -151,13 +151,14 @@ export function LoginPage() {
     "entraError" in location.state &&
     location.state.entraError === true;
 
-  const redirectPath =
+  const redirectPath = safeReturnPath(
     typeof location.state === "object" &&
-    location.state !== null &&
-    "from" in location.state &&
-    typeof location.state.from === "string"
+      location.state !== null &&
+      "from" in location.state &&
+      typeof location.state.from === "string"
       ? location.state.from
-      : "/";
+      : null,
+  );
 
   // While recovery codes are on screen the session is held back on purpose.
   if (session !== null && step.kind !== "codes") {

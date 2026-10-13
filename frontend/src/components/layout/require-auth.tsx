@@ -63,8 +63,10 @@ export function RequireAuth() {
     }
   }, [isLoading, session, signOut, storedSession]);
 
+  const returnPath = location.pathname + location.search + location.hash;
+
   if (storedSession === null) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: returnPath }} />;
   }
 
   if (isLoading) {
@@ -72,7 +74,7 @@ export function RequireAuth() {
   }
 
   if (session === null) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: returnPath }} />;
   }
 
   return <Outlet />;

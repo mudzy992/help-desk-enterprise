@@ -253,3 +253,16 @@ Refaktor se ne radi bez potvrde obima.
 3. Testovi za `RequireAuth`, `RequireAccess`, rute preusmjeravanja i ikonu za svaku stavku menija (B3, gap 11).
 4. Ispraviti `from` nakon prijave (B4).
 5. ESLint (`typescript-eslint`, `react-hooks`) i Prettier sa skriptom u CI (gap 10).
+
+## Status ispravki (Paket 6.1.1)
+
+| Stavka | Status |
+|---|---|
+| B1 gate za instalaciju bez preusmjeravanja na grešku | Urađeno (stanja `loading/error/ready`, `InstallStatusError`) |
+| B2 Error Boundary (korijen i ljuska) | Urađeno (`RouteErrorBoundary`) |
+| B3 ikona za `/docs` i test ikona za sve stavke | Urađeno |
+| B4 `from` sa query i hash | Urađeno (login prolazi kroz `safeReturnPath`) |
+| B14 uklonjen prop `loadingLabelKey` | Urađeno |
+| Testovi `RequireAuth`, `RequireAccess`, install gate | Urađeno (`*.spec.tsx`) |
+| ESLint, Prettier, skripta u CI | Otvoreno, čeka odluku vlasnika o obimu |
+| B10–B13, B15–B22 | Otvoreno (niski prioritet, po završetku Must-Have) |

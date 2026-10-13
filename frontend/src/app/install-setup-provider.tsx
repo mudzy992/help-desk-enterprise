@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,49 +9,56 @@ import {
 } from "react";
 import { loadInstallSetupStatus } from "@/services/install-api";
 
-type InstallSetupStatusState = {
-  readonly isLoading: boolean;
-  readonly isCompleted: boolean;
-};
+type InstallSetupStatusState =
+  | { readonly status: "loading" }
+  | { readonly status: "error" }
+  | { readonly status: "ready"; readonly isCompleted: boolean };
 
 type InstallSetupState = InstallSetupStatusState & {
   readonly markCompleted: () => void;
+  readonly reload: () => void;
 };
+
+const LOADING_STATE: InstallSetupStatusState = { status: "loading" };
 
 const InstallSetupContext = createContext<InstallSetupState | null>(null);
 
 export function InstallSetupProvider({ children }: { readonly children: ReactNode }) {
-  const [state, setState] = useState<InstallSetupStatusState>({
-    isLoading: true,
-    isCompleted: false,
-  });
+  const [state, setState] = useState<InstallSetupStatusState>(LOADING_STATE);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
     void loadInstallSetupStatus()
       .then((status) => {
         if (!isCancelled) {
-          setState({ isLoading: false, isCompleted: status.isCompleted });
+          setState({ status: "ready", isCompleted: status.isCompleted });
         }
       })
       .catch(() => {
+        // An unknown status must not be read as "not installed": the gate
+        // stays on an error screen and the user retries explicitly.
         if (!isCancelled) {
-          setState({ isLoading: false, isCompleted: false });
+          setState({ status: "error" });
         }
       });
     return () => {
       isCancelled = true;
     };
+  }, [attempt]);
+
+  const reload = useCallback(() => {
+    setState(LOADING_STATE);
+    setAttempt((current) => current + 1);
   }, []);
 
-  const value = useMemo(
-    () => ({
-      isLoading: state.isLoading,
-      isCompleted: state.isCompleted,
-      markCompleted: () =>
-        setState({ isLoading: false, isCompleted: true }),
-    }),
-    [state],
+  const markCompleted = useCallback(() => {
+    setState({ status: "ready", isCompleted: true });
+  }, []);
+
+  const value = useMemo<InstallSetupState>(
+    () => ({ ...state, reload, markCompleted }),
+    [state, reload, markCompleted],
   );
 
   return (

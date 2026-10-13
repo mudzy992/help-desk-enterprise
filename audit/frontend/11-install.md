@@ -157,3 +157,8 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 ## Status ispravki (2026-10-13)
 
 Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rade tek nakon završetka auditnog ciklusa i potvrde obima.
+
+## Status ispravki (Paket 6.1.1)
+
+- **IN1 (urađeno):** greška pri učitavanju statusa više ne postavlja `isCompleted: false`. Gate prikazuje `InstallStatusError` sa dugmetom za ponovni pokušaj (vidjeti `01-ljuska-routing-navigacija.md`, B1).
+- IN2, IN3, IN4, IN5, IN6, IN7, IN9, IN14: otvoreno, rade se u paketu 6.1.11.

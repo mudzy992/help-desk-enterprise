@@ -4155,7 +4155,12 @@
     "tokenLabel": "Instalacijski token",
     "tokenSubmit": "Otključaj",
     "tokenInvalid": "Token nije ispravan.",
-    "tokenNotConfigured": "INSTALL_TOKEN nije postavljen na serveru (najmanje 16 znakova). Postavite ga i ponovo pokrenite API."
+    "tokenNotConfigured": "INSTALL_TOKEN nije postavljen na serveru (najmanje 16 znakova). Postavite ga i ponovo pokrenite API.",
+    "statusError": {
+      "title": "Status instalacije nije moguće provjeriti",
+      "body": "Server nije odgovorio na zahtjev za status instalacije. Ništa nije promijenjeno. Provjerite vezu i pokušajte ponovo.",
+      "retry": "Pokušaj ponovo"
+    }
   },
   "routing": {
     "title": "Usmjeravanje",
