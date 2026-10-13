@@ -235,6 +235,7 @@ Refaktor se ne radi bez potvrde obima.
 | A22 | Niska | `components/auth/recovery-codes-panel.tsx:49-52` | Kopiranje tiho ne radi na HTTP-u. | Poruka o grešci i fallback (select + copy). |
 | A23 | Za provjeru | `passkey-section.tsx`, `mfa-section.tsx` | Nisu pročitani u punom obimu. | Pregled u sljedećem prolazu. |
 | A24 | Za provjeru | `index.html` / CSP | Da li CSP dozvoljava `challenges.cloudflare.com`. | Provjeriti u konfiguraciji servera. |
+| A25 | Srednja (backend, nalaz iz provjere MFA-a) | `backend/src/modules/authentication/authentication.service.ts:455-456`, `security/account-security-rules.ts:37-46`, `security/mfa.service.ts:221-233`, `account-security.controller.ts:253-258` | Za SUPER_ADMIN (MFA `required`) isključivanje TOTP-a dozvoljeno je kad postoji passkey (`otherFactorRemaining`). Ali pri sljedećoj prijavi `enrolled` se računa samo po TOTP-u, pa `flowFor` vraća `enroll`: korisnik se šalje na ponovno TOTP podešavanje, a passkey se ne nudi kao faktor. Enrollment ekran (`mfa-enrollment.tsx`) nema passkey opciju. Test pokriva samo slučaj „nema TOTP-a i nema passkey-a“ (`authentication.service.spec.ts`, „forces enrollment…“). Prijava passkey-em radi samo u fazi `verify` (kad je TOTP aktivan). | Ili (a) ne dozvoljavati isključivanje TOTP-a dok god je MFA `required`, ili (b) `flowFor` uzeti u obzir i passkey kao „enrolled“ faktor i omogućiti passkey u enrollment fazi. Dodati test za scenarij „passkey postoji, TOTP isključen“. Odluka vlasnika prije izmjene. |
 
 ---
 
@@ -253,3 +254,4 @@ Refaktor se ne radi bez potvrde obima.
 5. **A5:** ispraviti provjeru passkey dostupnosti (async).
 6. **A7:** ukloniti `SessionSignInControls`.
 7. **A8:** tim treba da donese odluku o čuvanju tokena (httpOnly cookie) i da je dokumentuje.
+8. **A25:** odluka vlasnika: isključivanje TOTP-a za SUPER_ADMIN mora ili biti zabranjeno dok je MFA `required`, ili passkey mora biti priznat kao faktor i pri prijavi i u enrollment fazi. Trenutno stanje vodi na ponovno TOTP podešavanje.
