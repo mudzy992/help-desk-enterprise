@@ -30,7 +30,7 @@ Provjere izvršene u sandboxu:
 
 Granica modula: `pages/admin-page.tsx`, `pages/settings-page.tsx`, `components/admin/` (18 fajlova), `components/settings/` (21 fajl), `lib/admin/` (5 fajlova), `lib/settings/` (24 fajla), `services/settings-api.ts`, `services/config-versions-api.ts` i rute `/admin`, `/settings` i `/admin/queue` u `app/router.tsx`.
 
-**Pitanje za odluku o obimu (vidi kraj izvještaja):** stranice `/admin/teams`, `/admin/config-versions`, `/admin/workflow` i `/admin/email-templates` su u routeru pod „admin“ prefiksom, ali nijedna nije među 14 oblasti iz plana. Nisu obrađene u ovom modulu.
+**Obim po odluci vlasnika:** `/admin/config-versions` i `/admin/email-templates` su obrađeni u ovom modulu (dodatak na kraju). `/admin/workflow` i `/admin/teams` su zasebne oblasti (15 i 16) i nisu obrađene u ovom izvještaju.
 
 ---
 
@@ -162,9 +162,9 @@ Pozitivno (ne ulazi u bodove): zaštita na serveru je ispravna (read-only interc
 
 ---
 
-## Ocjena: 6/10
+## Ocjena: 5/10
 
-**Obrazloženje:** Sigurnosna osnova je jaka. Server štiti read-only module, rute su zaštićene, sigurnosni dnevnik je zatvoren za sve osim SUPER_ADMIN-a, a masovne akcije traže potvrdu identiteta. Bodovi se oduzimaju zbog toga što admin ne vidi zaključano stanje (S1), zbog ponovljenih pravila pristupa (S5), zbog mrtvog koda (S7, S8), zbog nedostatka testova za stranice i kartice (S14) i zbog velike komponente zdravlja sistema (S11). Potencijalne trke u listama (S3, S4) nisu potvrđene u pregledaču, pa nisu uzete kao dokazan problem.
+**Obrazloženje:** Sigurnosna osnova je jaka. Server štiti read-only module, rute su zaštićene, sigurnosni dnevnik je zatvoren za sve osim SUPER_ADMIN-a, a masovne akcije traže potvrdu identiteta. Ocjena je spuštena sa 6 na 5 zbog S16: aktivacija verzije konfiguracije ide jednim klikom bez potvrde, a ta akcija mijenja cijeli sistem. Bodovi se oduzimaju i zbog toga što admin ne vidi zaključano stanje (S1), zbog ponovljenih pravila pristupa (S5), zbog mrtvog koda (S7, S8), zbog nedostatka testova za stranice i kartice (S14) i zbog velike komponente zdravlja sistema (S11). Potencijalne trke u listama (S3, S4) nisu potvrđene u pregledaču, pa nisu uzete kao dokazan problem.
 
 ---
 
@@ -176,6 +176,8 @@ Pozitivno (ne ulazi u bodove): zaštita na serveru je ispravna (read-only interc
 4. **S3 i S4:** provjera u pregledaču; ako se potvrde, zaštita od zastarjelih odgovora u listama audit loga i sigurnosnog dnevnika.
 5. **S2 i S6:** jedan izvor za registar postavki (React Query), sa tačnim `pending` stanjem za višestruko snimanje.
 6. **S7 i S8:** ukloniti mrtvu granu `embedded` i konstantni prop `isSuperAdmin`, uz isti obrazac zaštite za sve tabove.
+7. **S16 (dodatak):** potvrda aktivacije i rollbacka verzije konfiguracije (dijalog sa diff-om), prije bilo kakve druge izmjene na toj stranici.
+8. **S17 i S18 (dodatak):** `key` na panelu verzije i otkazivanje zastarjelog shadow odgovora, sa testom.
 
 ---
 
@@ -191,6 +193,45 @@ Pozitivno (ne ulazi u bodove): zaštita na serveru je ispravna (read-only interc
 
 ---
 
-## Pitanje za odluku o obimu
+## Dodatak: `/admin/config-versions` i `/admin/email-templates`
 
-Rute `/admin/teams` (515 linija), `/admin/config-versions`, `/admin/workflow` i `/admin/email-templates` su pod admin prefiksom, ali nijedna nije u 14 oblasti plana. Predlog: `/admin/config-versions` i `/admin/email-templates` obraditi kao dio ovog modula u sljedećem prolazu, a `/admin/workflow` i `/admin/teams` dodati kao zasebne oblasti (ili ih pridružiti oblastima „assets i problems/changes“ i „on-call i announcements“). Odluka vlasnika.
+Dodato po odluci vlasnika (opcija 1). Fajlovi:
+- `pages/config-versions-page.tsx` (55), `components/config-versions/` (12 fajlova, oko 1.680 linija sa libovima), `lib/config-versions/` (11 fajlova), `services/config-versions-api.ts`, `services/config-versions-types.ts`
+- `pages/email-templates-page.tsx` (66), `components/settings/email-templates-editor.tsx` (420), `components/settings/email-templates-card.tsx`, `lib/settings/email-template-draft.ts`, `services/email-templates-api.ts`
+- Rute: `app/router.tsx:226–234` (`admin/config-versions`, `canOpenConfigVersionsPage`) i `:265–273` (`admin/email-templates`, `canOpenEmailTemplatesPage`)
+
+**Šta radi.** Verzije konfiguracije su snimci postavki sistema. Admin kreira verziju, validira je, provjerava „shadow“ (šta bi se promijenilo), upoređuje dvije verzije (diff), aktivira je ili vraća na prethodnu (rollback). Razlog je obavezan za aktivaciju i rollback. Paket se može uvesti iz JSON fajla (samo SUPER_ADMIN, po defaultu). Stranica za email šablone je puni editor: polja, placeholderi, live pregled kroz server renderer (isti HTML koji primaju korisnici) i test slanja.
+
+**Pristup.** `canOpenConfigVersions` (ADMIN ili SUPER_ADMIN), `canWriteConfigVersions` (`settings.write` ili SUPER_ADMIN), `canImportConfigPackage` (`configVersionImport` ili SUPER_ADMIN). Email šabloni: pristup kroz router, pisanje kroz `settings.write`.
+
+**Dobro urađeno (ne ulazi u bodove):**
+- Pregled e-maila je u `<iframe sandbox="">` bez skripti i bez istog porijekla (`email-templates-editor.tsx:330–334`). Ovo je ispravna zaštita.
+- Razlog je obavezan (`requireConfigChangeReason`), a greške se mapiraju u prevedene ključeve sa `requestId` (`map-config-version-error.ts`). Greške uvoza paketa imaju poseban ključ za svaki kod.
+- Diff ima ispravno otkazivanje zahtjeva (`use-config-version-diff.ts`, flag `cancelled`).
+- Pregled šablona je odložen 350 ms i rendruje ga server.
+- Upozorenje za nepoznate placeholdere blokira pregled i snimanje.
+
+**Realno stanje po nalazima.**
+
+| # | Ozbiljnost | Lokacija | Opis | Predložena popravka |
+|---|---|---|---|---|
+| S16 | Visoka | `components/config-versions/config-version-actions.tsx:44–61` (aktivacija), `:84–95` (rollback) | Aktivacija i rollback se izvršavaju jednim klikom nakon unosa razloga. Nema dijaloga za potvrdu, nema prikaza šta se mijenja. Aktivacija mijenja konfiguraciju za cijeli sistem. UI ne traži prethodnu validaciju (dugme „Validiraj“ je opciono; `canActivateConfigVersion` provjerava samo status). Da li server traži validaciju, nije provjereno. | Dijalog za potvrdu sa diff-om i rezultatom shadow provjere; potvrda identiteta kao kod masovnog reseta lozinki; aktivacija dozvoljena tek nakon validacije (provjeriti pravilo na serveru). |
+| S17 | Srednja | `components/config-versions/selected-config-version-panels.tsx:60` | `ConfigVersionActions` se renderuje bez `key`. Kad se izabere druga verzija, komponenta ostaje ista instanca, pa `activateReason` i `rollbackReason` ostaju od prethodne verzije. Razlog za verziju A može se poslati za verziju B, a razlog se upisuje u audit. Potvrđeno čitanjem koda. | `key={selected.id}` na komponenti, ili resetovanje stanja pri promjeni `version.id`. |
+| S18 | Srednja | `lib/config-versions/use-config-version-shadow.ts:16–35`; `components/config-versions/config-versions-workspace.tsx:147–166` | `clear()` pri promjeni izbora ne otkazuje zahtjev koji je u toku. Kad odgovor stigne, `setResult` postavi rezultat prethodne verzije, a prikaz ga pokaže uz novo izabranu verziju. Za razliku od diff hooka, nema flag-a `cancelled`. Potvrđeno čitanjem koda, nije reprodukovano. | Isti obrazac kao u diff hooku: flag ili `AbortController`, a rezultat vezan za `versionId`. |
+| S19 | Srednja | `components/settings/email-templates-editor.tsx:67–73, 289`; `pages/email-templates-page.tsx:45–51` | Varijabla `dirty` se koristi samo da bi se uključilo dugme „Snimi“. Nema upozorenja pri napuštanju stranice (`useBlocker`, `beforeunload`) ni pri promjeni šablona. Nesačuvani tekst se gubi. Jedini dijalog sa takvom zaštitom je `setting-detail-dialog.tsx`. | `useBlocker` (React Router) kad je `dirty`, plus `beforeunload` za zatvaranje taba. |
+| S20 | Srednja | `e2e/tests/09-config-ops.spec.ts:11–37` | E2E test za verzije konfiguracije radi aktivaciju i rollback kroz API. UI dio samo provjerava da na stranici postoji tekst koji sadrži „config“, „verzij“ ili „version“ (`:35–36`). Ovo ne dokazuje da UI radi. | UI tok: kreiranje, validacija, shadow, aktivacija sa potvrdom; provjera da se razlog šalje ispravnoj verziji (ovo bi pokrilo S17). |
+| S21 | Niska | `components/config-versions/config-versions-workspace.tsx:55–70` | Nakon svake akcije `admin.load()` postavi `isLoading` na `true`, pa se lista sakrije i pojavi skeleton. Izbor se čuva, ali lista treperi. | Osvježavati bez skeletona kad već postoje podaci (`isRefreshing` umjesto `isLoading`). |
+| S22 | Niska | `components/config-versions/config-versions-workspace.tsx:46–53` | Efekat zavisi od `visible`, a `filterConfigVersions` vraća novi niz pri svakom renderu. Efekat se zato izvršava pri svakom renderu. Nema petlje, jer je `setResult(null)` isti kao prethodna vrijednost, ali je nepotreban rad. | Memoizovati `visible` (`useMemo`) ili izvesti vrijednost iz `selectedId`. |
+| S23 | Niska | `components/settings/email-templates-editor.tsx:88–100` | `clearTimeout` otkazuje samo tajmer, a ne zahtjev koji je već poslat. Kasniji odgovor za stariji sadržaj može prepisati noviji pregled. | Flag `cancelled` u efektu, kao u diff hooku. |
+| S24 | Niska | `pages/email-templates-page.tsx:25–32, 52` | Greška se prikazuje kao sirov `loadError.message`, bez prevoda i bez `requestId`. Ostale stranice koriste `mapApiError` i `ApiErrorText`. | Isti obrazac kao na ostalim stranicama. |
+| S25 | Niska | `pages/email-templates-page.tsx:5`; `pages/email-templates-page.tsx:21` | Stranica uvozi `Warning` iz `components/settings/email-templates-card.tsx`, pa kartica služi kao biblioteka komponenti. Pravilo za pisanje (`settings.write`) je treća kopija `canWrite` (vidi S5). | Premjestiti `Warning` u `components/ui/`; jedan predikat za pisanje postavki. |
+
+**Ocjena dodatka:** verzije konfiguracije su najosjetljivija funkcija u ovom modulu, jer aktivacija mijenja cijeli sistem jednim klikom (S16). To je razlog za sniženje ocjene modula sa 6 na 5.
+
+**Mišljenje tima i preporuka (dodatak).** Prvo S16: dijalog za potvrdu aktivacije i rollbacka, sa prikazom diff-a, a zatim S17 (`key`) i S18 (otkazivanje), jer se oba mogu desiti u normalnom radu. Zatim S20 (pravi e2e tok). S19 je važan za korisnike, ali je manje rizičan.
+
+---
+
+## Odluka o obimu (riješeno)
+
+Vlasnik je izabrao opciju 1. `/admin/config-versions` i `/admin/email-templates` su obrađeni u dodatku ovog modula. `/admin/workflow` i `/admin/teams` su zasebne oblasti (15 i 16) i nisu obrađene u ovom izvještaju.
