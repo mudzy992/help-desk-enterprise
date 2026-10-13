@@ -39,7 +39,8 @@ export function OnCallReasonDialog({
       description={description}
       confirmLabel={confirmLabel}
       intent="danger"
-      isPending={isPending || reason.trim().length < 3}
+      isPending={isPending}
+      confirmDisabled={reason.trim().length < 3}
       onConfirm={() => onConfirm(reason.trim())}
     >
       <div className="grid gap-2">

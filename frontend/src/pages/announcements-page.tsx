@@ -246,14 +246,21 @@ function ManageAnnouncements() {
 
   const formatter = announcementDateTimeFormatter(i18n.language);
 
-  if (loadError) {
-    return (
-      <p role="alert" className={errorTextClassName}>
-        {loadError}
-      </p>
+  const loadFailure =
+    loadError === null ? null : (
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <p role="alert" className={errorTextClassName}>
+          {loadError}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => void load()}>
+          {t("announcements.manage.retry")}
+        </Button>
+      </div>
     );
+
+  if (list === null || options === null) {
+    return loadError === null ? <PanelSkeleton label={t("ui.loading")} /> : <Card>{loadFailure}</Card>;
   }
-  if (list === null || options === null) return <PanelSkeleton label={t("ui.loading")} />;
 
   return (
     <Card>
@@ -267,6 +274,7 @@ function ManageAnnouncements() {
           </Button>
         }
       />
+      {loadFailure}
       {list.announcements.length === 0 ? (
         <div className="p-4">
           <EmptyState icon={<Megaphone size={18} />} title={t("announcements.manage.emptyTitle")} body={t("announcements.manage.emptyBody")} />
@@ -404,7 +412,8 @@ function ManageAnnouncements() {
               : t("announcements.manage.delete")
         }
         intent={pending?.kind === "publish" ? "default" : "danger"}
-        isPending={busy || (pending?.kind === "withdraw" && reason.trim().length < 3)}
+        isPending={busy}
+        confirmDisabled={pending?.kind === "withdraw" && reason.trim().length < 3}
         onConfirm={() => void confirm()}
       >
         <div className="grid gap-2">

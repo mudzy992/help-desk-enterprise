@@ -166,3 +166,10 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 4. **KB17:** smoke e2e za `/docs` (otvaranje, pretraga, promjena jezika) i za članak iz odgovora (pregled, brojači, objava).
 5. **KB7:** `reload` bez skidanja cijelog panela (`isLoading` samo pri prvom učitavanju).
 6. **KB9:** ispraviti komentare o „objavljenom“ članku da odgovaraju kodu (`DRAFT`).
+
+---
+
+## Status ispravki (2026-10-13)
+
+- **KB1 ispravljen:** `useDocsNavigation` (`lib/docs/use-docs.ts`) — `reload` sada zavisi od `locale`, pa se navigacija ponovo učitava pri promjeni jezika. Automatski test nije dodat, jer projekt nema jsdom ni `@testing-library/react` (vidi modul 9, napomena o testovima). Prolaze `tsc -b` i 889 postojećih testova.
+- KB2–KB21: nisu rađeni.

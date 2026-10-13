@@ -7369,6 +7369,7 @@
       "postToTeamsDone": "Najava je već objavljena u Teams kanal."
     },
     "manage": {
+      "retry": "Pokušaj ponovo",
       "title": "Upravljanje najavama",
       "subtitle": "Nacrti, zakazane, aktivne i završene najave.",
       "scopedSubtitle": "Najave za vašu organizacionu jedinicu.",

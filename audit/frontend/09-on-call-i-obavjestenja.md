@@ -190,3 +190,20 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 6. **Testovi:** e2e za swap, override, brisanje grupe, feed token i banner (potvrda, odbacivanje, ograničenje modala). Komponentski testovi za `OnCallRangeDialog` (zona) i `AnnouncementEditorDialog` (datumi i trajanje).
 7. **O10:** klijentska provjera zone (IANA) uz poruku i objašnjenje onemogućenog dugmeta „Sačuvaj“.
 8. **OB8 i O7:** zajednički helperi za `severityKeys`, lokalizaciju (`en-GB`/`bs-BA`) i `civilDateKey`, te razbijanje `AnnouncementEditorDialog` i `ManageAnnouncements`.
+
+---
+
+## Status ispravki (2026-10-13)
+
+Urađeno (Must-Have 1, 3, 4, 5 i dio 6):
+- **O1:** greška osvježavanja pregleda se prikazuje iznad sadržaja i kad je pregled već učitan (`on-call-page.tsx`).
+- **O2:** detalj grupe se učitava u efektu sa `active` zaštitom; odabir grupe briše prethodni detalj (`selectGroup`), pa akcije ne mogu raditi nad staroj grupi. `reloadAll` koristi `detailRevision`.
+- **O3:** pri promjeni sedmice prikazuje se status „Učitavanje“ i raspored je zatamnjen (`aria-busy`).
+- **O9 i OB3:** `OnCallReasonDialog` i povlačenje obavještenja koriste `confirmDisabled` za validaciju razloga; „Otkaži“ više nije onemogućen.
+- **OB2:** greška osvježavanja tabele upravljanja ostavlja tabelu vidljivom i nudi dugme „Pokušaj ponovo“ (novi ključ `announcements.manage.retry` u bs i en).
+
+Nije urađeno:
+- **O4 (zona):** čeka odluku proizvoda (zona rasporeda ili pregledača).
+- O5, O6, O7, O8, O10–O13, OB1, OB4–OB11.
+- **Testovi:** komponentski testovi nisu dodati, jer projekt nema jsdom ni `@testing-library/react`. To zahtijeva odluku o novim devDependency paketima.
+- Provjera u pregledaču nije rađena.

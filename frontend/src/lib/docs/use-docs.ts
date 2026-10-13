@@ -49,11 +49,11 @@ export function useDocsNavigation(locale: DocsLocale = "bs") {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     void reload();
-  }, [reload, locale]);
+  }, [reload]);
 
   return { navigation, loading, error, reload };
 }

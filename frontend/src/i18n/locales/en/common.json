@@ -7323,6 +7323,7 @@
       "postToTeamsDone": "The announcement has already been posted to Teams."
     },
     "manage": {
+      "retry": "Try again",
       "title": "Manage announcements",
       "subtitle": "Drafts, scheduled, active and ended announcements.",
       "scopedSubtitle": "Announcements for your organizational unit.",

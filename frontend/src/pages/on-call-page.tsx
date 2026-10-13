@@ -63,6 +63,8 @@ export function OnCallPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [detail, setDetail] = useState<OnCallGroupDetail | null>(null);
   const [detailError, setDetailError] = useState<ApiErrorKey | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailRevision, setDetailRevision] = useState(0);
   const [weekOffset, setWeekOffset] = useState(0);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [rangeMode, setRangeMode] = useState<OnCallRangeMode | null>(null);
@@ -92,30 +94,45 @@ export function OnCallPage() {
     }
   }, []);
 
-  const loadDetail = useCallback(async () => {
-    if (selectedGroupId === null) return;
-    try {
-      // A day of margin on both sides keeps DST days and the zone offset inside the window.
-      const from = new Date(rangeStart.getTime() - dayMs).toISOString();
-      const to = new Date(rangeStart.getTime() + (calendarDays + 1) * dayMs).toISOString();
-      setDetail(await getOnCallGroup(selectedGroupId, { from, to }));
-      setDetailError(null);
-    } catch (caught) {
-      setDetailError(mapApiError(caught));
-    }
-  }, [selectedGroupId, rangeStart]);
-
   useEffect(() => {
     void loadOverview();
   }, [loadOverview]);
 
   useEffect(() => {
-    void loadDetail();
-  }, [loadDetail]);
+    if (selectedGroupId === null) return;
+    // A response for a group or week that is no longer selected must not overwrite the current one.
+    let active = true;
+    setDetailLoading(true);
+    // A day of margin on both sides keeps DST days and the zone offset inside the window.
+    const from = new Date(rangeStart.getTime() - dayMs).toISOString();
+    const to = new Date(rangeStart.getTime() + (calendarDays + 1) * dayMs).toISOString();
+    getOnCallGroup(selectedGroupId, { from, to })
+      .then((loaded) => {
+        if (!active) return;
+        setDetail(loaded);
+        setDetailError(null);
+      })
+      .catch((caught: unknown) => {
+        if (active) setDetailError(mapApiError(caught));
+      })
+      .finally(() => {
+        if (active) setDetailLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedGroupId, rangeStart, detailRevision]);
+
+  const selectGroup = (groupId: string) => {
+    setDetail(null);
+    setDetailError(null);
+    setSelectedGroupId(groupId);
+    setWeekOffset(0);
+  };
 
   const reloadAll = () => {
     void loadOverview();
-    void loadDetail();
+    setDetailRevision((revision) => revision + 1);
   };
 
   const days = useMemo(
@@ -207,6 +224,7 @@ export function OnCallPage() {
   return (
     <div className="page-in grid gap-4">
       {header}
+      {loadError === null ? null : <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -300,10 +318,7 @@ export function OnCallPage() {
                 <button
                   type="button"
                   aria-pressed={group.groupId === selectedGroupId}
-                  onClick={() => {
-                    setSelectedGroupId(group.groupId);
-                    setWeekOffset(0);
-                  }}
+                  onClick={() => selectGroup(group.groupId)}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-md border px-3 py-2 text-left text-[12.5px] transition-colors",
                     group.groupId === selectedGroupId
@@ -418,7 +433,14 @@ export function OnCallPage() {
                     </Button>
                   </div>
                 </div>
-                <OnCallCalendar days={days} timeZone={timeZone} currentUserId={currentUserId} />
+                {detailLoading ? (
+                  <p role="status" className={hintClassName}>
+                    {t("onCall.loading")}
+                  </p>
+                ) : null}
+                <div aria-busy={detailLoading} className={cn("transition-opacity", detailLoading && "opacity-60")}>
+                  <OnCallCalendar days={days} timeZone={timeZone} currentUserId={currentUserId} />
+                </div>
                 <p className={hintClassName}>{t("onCall.calendar.legend", { zone: timeZone })}</p>
 
                 <section aria-labelledby="on-call-rotation" className="grid gap-1.5">
