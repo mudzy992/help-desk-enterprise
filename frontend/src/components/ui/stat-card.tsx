@@ -56,9 +56,7 @@ export function StatCard({
           </span>
         ) : null}
       </div>
-      {hint ? (
-        <p className="mt-0.5 text-[11.5px] leading-4 text-muted-foreground">{hint}</p>
-      ) : null}
+      {hint ? <p className="mt-0.5 text-[11.5px] leading-4 text-muted-foreground">{hint}</p> : null}
     </Card>
   );
 }

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  passkeyDeviceKind,
-  passkeyDeviceKindKey,
-  passkeyDisplayName,
-} from "@/lib/webauthn/aaguid";
+import { passkeyDeviceKind, passkeyDeviceKindKey, passkeyDisplayName } from "@/lib/webauthn/aaguid";
 
 /*
   Paket 5.4.0-e: the list identifies a passkey by its owner's label, else by the
@@ -30,7 +26,14 @@ describe("passkeyDeviceKind", () => {
   });
 
   it("points every kind at a translated label", () => {
-    for (const kind of ["apple", "windows_hello", "google", "android", "security_key", "unknown"] as const) {
+    for (const kind of [
+      "apple",
+      "windows_hello",
+      "google",
+      "android",
+      "security_key",
+      "unknown",
+    ] as const) {
       expect(passkeyDeviceKindKey(kind)).toBe(`account.passkeys.kinds.${kind}`);
     }
   });

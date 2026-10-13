@@ -33,13 +33,22 @@ function todayCivil(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-type Member = { readonly userId: string; readonly displayName: string; readonly isAvailable: boolean };
+type Member = {
+  readonly userId: string;
+  readonly displayName: string;
+  readonly isAvailable: boolean;
+};
 
 /**
  * Paket 2.9 (K3, §4.4): rotation settings and member order. Reordering uses
  * explicit up/down buttons (keyboard and screen-reader friendly, no drag).
  */
-export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: OnCallScheduleDialogProperties) {
+export function OnCallScheduleDialog({
+  open,
+  onOpenChange,
+  detail,
+  onSaved,
+}: OnCallScheduleDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const schedule = detail.schedule;
@@ -81,7 +90,8 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
   const addable = detail.candidates.filter((candidate) => !memberIds.has(candidate.userId));
   const ownerOptions = [
     ...detail.candidates,
-    ...(schedule?.owner && !detail.candidates.some((candidate) => candidate.userId === schedule.owner?.userId)
+    ...(schedule?.owner &&
+    !detail.candidates.some((candidate) => candidate.userId === schedule.owner?.userId)
       ? [{ userId: schedule.owner.userId, displayName: schedule.owner.displayName }]
       : []),
   ];
@@ -124,18 +134,27 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
     <Modal open={open} onOpenChange={(next) => (saving ? undefined : onOpenChange(next))}>
       <ModalContent className="max-w-2xl">
         <ModalHeader
-          title={schedule === null ? t("onCall.schedule.createTitle") : t("onCall.schedule.editTitle")}
+          title={
+            schedule === null ? t("onCall.schedule.createTitle") : t("onCall.schedule.editTitle")
+          }
           description={detail.group.name}
         />
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("onCall.schedule.rotationLength")} required>
-              <Select value={rotationLength} onChange={(event) => setRotationLength(event.target.value as OnCallRotationLength)}>
+              <Select
+                value={rotationLength}
+                onChange={(event) => setRotationLength(event.target.value as OnCallRotationLength)}
+              >
                 <option value="WEEK">{t("onCall.schedule.week")}</option>
                 <option value="DAY">{t("onCall.schedule.day")}</option>
               </Select>
             </Field>
-            <Field label={t("onCall.schedule.handoffTime")} required hint={t("onCall.schedule.handoffHint")}>
+            <Field
+              label={t("onCall.schedule.handoffTime")}
+              required
+              hint={t("onCall.schedule.handoffHint")}
+            >
               <Select value={handoffTime} onChange={(event) => setHandoffTime(event.target.value)}>
                 {handoffOptions.map((value) => (
                   <option key={value} value={value}>
@@ -144,13 +163,35 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
                 ))}
               </Select>
             </Field>
-            <Field label={t("onCall.schedule.startDate")} required hint={t("onCall.schedule.startDateHint")}>
-              <Input type="date" value={rotationStartDate} onChange={(event) => setRotationStartDate(event.target.value)} required />
+            <Field
+              label={t("onCall.schedule.startDate")}
+              required
+              hint={t("onCall.schedule.startDateHint")}
+            >
+              <Input
+                type="date"
+                value={rotationStartDate}
+                onChange={(event) => setRotationStartDate(event.target.value)}
+                required
+              />
             </Field>
-            <Field label={t("onCall.schedule.timezone")} required hint={t("onCall.schedule.timezoneHint")}>
-              <Input value={timezone} maxLength={64} onChange={(event) => setTimezone(event.target.value)} required />
+            <Field
+              label={t("onCall.schedule.timezone")}
+              required
+              hint={t("onCall.schedule.timezoneHint")}
+            >
+              <Input
+                value={timezone}
+                maxLength={64}
+                onChange={(event) => setTimezone(event.target.value)}
+                required
+              />
             </Field>
-            <Field label={t("onCall.schedule.owner")} hint={t("onCall.schedule.ownerHint")} className="sm:col-span-2">
+            <Field
+              label={t("onCall.schedule.owner")}
+              hint={t("onCall.schedule.ownerHint")}
+              className="sm:col-span-2"
+            >
               <Select value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}>
                 <option value="">{t("onCall.schedule.ownerMe")}</option>
                 {ownerOptions.map((candidate) => (
@@ -163,7 +204,9 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
           </div>
 
           <fieldset className="grid gap-2 rounded-md border border-border p-3">
-            <legend className="px-1 text-[12.5px] font-semibold text-foreground">{t("onCall.schedule.members")}</legend>
+            <legend className="px-1 text-[12.5px] font-semibold text-foreground">
+              {t("onCall.schedule.members")}
+            </legend>
             <p className={hintClassName}>{t("onCall.schedule.membersHint")}</p>
             {members.length === 0 ? (
               <p className={hintClassName}>{t("onCall.schedule.noMembers")}</p>
@@ -174,11 +217,15 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
                     key={member.userId}
                     className="flex items-center gap-2 rounded-md border border-border/70 bg-background/40 px-2.5 py-1.5 text-[12.5px]"
                   >
-                    <span className="w-5 text-right tabular-nums text-muted-foreground">{index + 1}.</span>
+                    <span className="w-5 text-right tabular-nums text-muted-foreground">
+                      {index + 1}.
+                    </span>
                     <span className="min-w-0 flex-1 truncate text-foreground">
                       {member.displayName}
                       {member.isAvailable ? null : (
-                        <span className="ml-2 text-[11.5px] text-warning">{t("onCall.unavailable")}</span>
+                        <span className="ml-2 text-[11.5px] text-warning">
+                          {t("onCall.unavailable")}
+                        </span>
                       )}
                     </span>
                     <Button
@@ -206,7 +253,11 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
                       variant="ghost"
                       size="sm"
                       aria-label={t("onCall.schedule.remove", { name: member.displayName })}
-                      onClick={() => setMembers((current) => current.filter((item) => item.userId !== member.userId))}
+                      onClick={() =>
+                        setMembers((current) =>
+                          current.filter((item) => item.userId !== member.userId),
+                        )
+                      }
                     >
                       <X />
                     </Button>
@@ -216,8 +267,16 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
             )}
             <div className="flex flex-wrap items-end gap-2">
               <Field label={t("onCall.schedule.addMember")} className="min-w-[220px] flex-1">
-                <Select value={addUserId} onChange={(event) => setAddUserId(event.target.value)} disabled={addable.length === 0}>
-                  <option value="">{addable.length === 0 ? t("onCall.schedule.noCandidates") : t("onCall.schedule.pick")}</option>
+                <Select
+                  value={addUserId}
+                  onChange={(event) => setAddUserId(event.target.value)}
+                  disabled={addable.length === 0}
+                >
+                  <option value="">
+                    {addable.length === 0
+                      ? t("onCall.schedule.noCandidates")
+                      : t("onCall.schedule.pick")}
+                  </option>
                   {addable.map((candidate) => (
                     <option key={candidate.userId} value={candidate.userId}>
                       {candidate.displayName}
@@ -225,7 +284,13 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
                   ))}
                 </Select>
               </Field>
-              <Button type="button" variant="outline" size="sm" onClick={addMember} disabled={addUserId === ""}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addMember}
+                disabled={addUserId === ""}
+              >
                 <Plus />
                 {t("onCall.schedule.add")}
               </Button>
@@ -236,20 +301,33 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
             <Checkbox
               checked={isActive}
               onChange={(event) => setIsActive(event.target.checked)}
-              label={<span className="text-[12.5px] font-medium text-foreground">{t("onCall.schedule.active")}</span>}
+              label={
+                <span className="text-[12.5px] font-medium text-foreground">
+                  {t("onCall.schedule.active")}
+                </span>
+              }
             />
             <div className="grid gap-1">
               <Checkbox
                 checked={autoAssign}
                 onChange={(event) => setAutoAssign(event.target.checked)}
-                label={<span className="text-[12.5px] font-medium text-foreground">{t("onCall.schedule.autoAssign")}</span>}
+                label={
+                  <span className="text-[12.5px] font-medium text-foreground">
+                    {t("onCall.schedule.autoAssign")}
+                  </span>
+                }
               />
               <span className={`pl-6 ${hintClassName}`}>{t("onCall.schedule.autoAssignHint")}</span>
             </div>
           </div>
 
           <Field label={t("onCall.reason")} required hint={t("onCall.reasonHint")}>
-            <Textarea rows={2} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+            <Textarea
+              rows={2}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+            />
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>
@@ -257,7 +335,12 @@ export function OnCallScheduleDialog({ open, onOpenChange, detail, onSaved }: On
             </p>
           ) : null}
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={saving || reason.trim().length < 3}>

@@ -71,9 +71,12 @@ export function SelectedConfigVersionPanels({
               {t("configVersions.package.importedFrom", {
                 environment: selected.importedFrom.sourceEnvironment || "?",
                 version: selected.importedFrom.sourceVersion,
-                signature: t(`configVersions.package.signatureStates.${selected.importedFrom.signature}`, {
-                  defaultValue: selected.importedFrom.signature,
-                }),
+                signature: t(
+                  `configVersions.package.signatureStates.${selected.importedFrom.signature}`,
+                  {
+                    defaultValue: selected.importedFrom.signature,
+                  },
+                ),
               })}
             </p>
           ) : null}
@@ -83,7 +86,10 @@ export function SelectedConfigVersionPanels({
         </div>
       </Card>
       <Card className="fade-in">
-        <CardHeader title={t("configVersions.diffHeading")} subtitle={t("configVersions.diffHint")} />
+        <CardHeader
+          title={t("configVersions.diffHeading")}
+          subtitle={t("configVersions.diffHint")}
+        />
         <div className="px-4 py-3.5">
           <ConfigVersionDiffPanel
             versions={versions}

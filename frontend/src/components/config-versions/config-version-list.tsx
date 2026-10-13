@@ -18,11 +18,7 @@ interface ConfigVersionListProperties {
   readonly onSelect: (versionId: string) => void;
 }
 
-export function ConfigVersionList({
-  versions,
-  selectedId,
-  onSelect,
-}: ConfigVersionListProperties) {
+export function ConfigVersionList({ versions, selectedId, onSelect }: ConfigVersionListProperties) {
   const { t, i18n } = useTranslation();
 
   return (

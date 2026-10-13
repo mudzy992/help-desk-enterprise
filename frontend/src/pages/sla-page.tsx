@@ -48,7 +48,8 @@ export function SlaPage() {
     );
   }, [isSessionLoading, organizationalUnitId, session?.organizationalUnitId, unitOptions]);
   const data = useSlaPageData(organizationalUnitId);
-  const scopeLabel = unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? null;
+  const scopeLabel =
+    unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? null;
   const mutations = useSlaPageMutations(data, canWrite);
   const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
   const [profilesPanel, setProfilesPanel] = useState<"profiles" | "compliance">("profiles");
@@ -68,7 +69,11 @@ export function SlaPage() {
     containerRef,
   });
   const banner = (
-    <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+    <AdminConfigChangedBanner
+      pending={live.pending}
+      onRefresh={live.refreshNow}
+      onDismiss={live.dismiss}
+    />
   );
   const selectedCalendar = data.calendars.find(
     (calendar) => calendar.id === data.selected?.calendarId,

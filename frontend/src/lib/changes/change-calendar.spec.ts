@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildMonthGrid, dayKey, freezeOn, overlapsDay, shiftMonth } from "@/lib/changes/change-calendar";
+import {
+  buildMonthGrid,
+  dayKey,
+  freezeOn,
+  overlapsDay,
+  shiftMonth,
+} from "@/lib/changes/change-calendar";
 
 describe("buildMonthGrid", () => {
   it("starts on Monday and ends on Sunday, covering the month", () => {
@@ -27,8 +33,20 @@ describe("calendar helpers", () => {
 
   it("detects overlap with a local day", () => {
     const day = new Date(2026, 9, 5);
-    expect(overlapsDay(day, new Date(2026, 9, 5, 22).toISOString(), new Date(2026, 9, 6, 2).toISOString())).toBe(true);
-    expect(overlapsDay(day, new Date(2026, 9, 6, 0).toISOString(), new Date(2026, 9, 6, 2).toISOString())).toBe(false);
+    expect(
+      overlapsDay(
+        day,
+        new Date(2026, 9, 5, 22).toISOString(),
+        new Date(2026, 9, 6, 2).toISOString(),
+      ),
+    ).toBe(true);
+    expect(
+      overlapsDay(
+        day,
+        new Date(2026, 9, 6, 0).toISOString(),
+        new Date(2026, 9, 6, 2).toISOString(),
+      ),
+    ).toBe(false);
   });
 
   it("treats freeze dates as inclusive", () => {

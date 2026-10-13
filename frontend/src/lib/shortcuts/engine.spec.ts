@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { ariaKeyShortcuts, isSingleKeyShortcut, shortcutById, shortcutCatalog, type ShortcutId } from "./catalog";
+import {
+  ariaKeyShortcuts,
+  isSingleKeyShortcut,
+  shortcutById,
+  shortcutCatalog,
+  type ShortcutId,
+} from "./catalog";
 import { createSequenceMatcher, dispatchableIds, normaliseKey, shouldIgnoreTarget } from "./engine";
 
-const key = (k: string, extra: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {}) => ({
+const key = (
+  k: string,
+  extra: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {},
+) => ({
   key: k,
   ctrlKey: false,
   metaKey: false,
@@ -93,19 +102,34 @@ describe("dispatchableIds", () => {
   const registered = new Set<ShortcutId>(["palette", "newTicket", "send", "claim"]);
 
   it("drops single keys when disabled or while typing, keeps chords", () => {
-    expect([...dispatchableIds(shortcutCatalog, registered, { singleKeysEnabled: false, ignoreSingleKeys: false })]).toEqual(["palette"]);
-    expect([...dispatchableIds(shortcutCatalog, registered, { singleKeysEnabled: true, ignoreSingleKeys: true })]).toEqual(["palette"]);
+    expect([
+      ...dispatchableIds(shortcutCatalog, registered, {
+        singleKeysEnabled: false,
+        ignoreSingleKeys: false,
+      }),
+    ]).toEqual(["palette"]);
+    expect([
+      ...dispatchableIds(shortcutCatalog, registered, {
+        singleKeysEnabled: true,
+        ignoreSingleKeys: true,
+      }),
+    ]).toEqual(["palette"]);
   });
 
   it("never dispatches component-handled entries", () => {
-    expect(dispatchableIds(shortcutCatalog, registered, { singleKeysEnabled: true, ignoreSingleKeys: false })).toEqual(
-      new Set(["palette", "newTicket", "claim"]),
-    );
+    expect(
+      dispatchableIds(shortcutCatalog, registered, {
+        singleKeysEnabled: true,
+        ignoreSingleKeys: false,
+      }),
+    ).toEqual(new Set(["palette", "newTicket", "claim"]));
   });
 });
 
 describe("shouldIgnoreTarget", () => {
-  const target = (matches: string[]) => ({ closest: (selector: string) => (matches.some((m) => selector.includes(m)) ? {} : null) });
+  const target = (matches: string[]) => ({
+    closest: (selector: string) => (matches.some((m) => selector.includes(m)) ? {} : null),
+  });
 
   it("ignores typing targets, dialogs and an open modal", () => {
     expect(shouldIgnoreTarget(target(["textarea"]), false)).toBe(true);
@@ -116,7 +140,15 @@ describe("shouldIgnoreTarget", () => {
 
   it("does not treat a dialog animating out as open (Esc, then G T)", () => {
     const selectors: string[] = [];
-    shouldIgnoreTarget({ closest: (selector: string) => { selectors.push(selector); return null; } }, false);
+    shouldIgnoreTarget(
+      {
+        closest: (selector: string) => {
+          selectors.push(selector);
+          return null;
+        },
+      },
+      false,
+    );
     const dialogSelector = selectors.find((selector) => selector.includes("role='dialog'")) ?? "";
     expect(dialogSelector).toContain("[role='dialog']:not([data-state='closed'])");
     expect(dialogSelector).toContain("[role='menu']:not([data-state='closed'])");

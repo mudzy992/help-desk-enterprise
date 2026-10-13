@@ -6,17 +6,9 @@ import { UserNotificationPreferencesSection } from "@/components/users/user-noti
 import { UserSecuritySection } from "@/components/users/user-security-section";
 import { UserPrivacySection } from "@/components/users/user-privacy-section";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { ServiceResponse } from "@/services/service-catalog-api";
-import type {
-  CreateUserResponse,
-  UserSummary,
-} from "@/services/users-api";
+import type { CreateUserResponse, UserSummary } from "@/services/users-api";
 
 interface UserDetailDrawerProperties {
   readonly user: UserSummary | null;
@@ -52,17 +44,12 @@ export function UserDetailDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full max-w-lg flex-col overflow-y-auto p-0"
-      >
+      <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-y-auto p-0">
         <div className="border-b border-border/70 px-5 py-4">
           <SheetTitle className="flex flex-wrap items-center gap-2">
             {user.displayName}
             <Badge tone={user.isLocalOnly ? "neutral" : "accent"} dot={false}>
-              {user.isLocalOnly
-                ? t("users.badgeLocal")
-                : t("users.badgeDirectoryLinked")}
+              {user.isLocalOnly ? t("users.badgeLocal") : t("users.badgeDirectoryLinked")}
             </Badge>
           </SheetTitle>
           <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
@@ -86,11 +73,7 @@ export function UserDetailDrawer({
               {t("users.rolesHeading")}
             </h3>
             <div className="rounded-lg border border-border/70">
-              <UserRolesSection
-                userId={user.id}
-                originUnits={originUnits}
-                services={services}
-              />
+              <UserRolesSection userId={user.id} originUnits={originUnits} services={services} />
             </div>
           </section>
           {canManage && !isSelf ? (

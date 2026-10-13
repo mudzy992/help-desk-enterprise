@@ -12,20 +12,11 @@ import {
   tableRowClassName,
   tableWrapClassName,
 } from "@/components/ui/control";
-import {
-  mapAdminOpsError,
-  type AdminOpsMessageKey,
-} from "@/lib/admin/map-admin-ops-error";
+import { mapAdminOpsError, type AdminOpsMessageKey } from "@/lib/admin/map-admin-ops-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { AuditMetadataList } from "@/components/admin/audit-metadata-list";
-import {
-  auditActionTranslationKey,
-  auditEntityTranslationKey,
-} from "@/lib/audit/audit-log-i18n";
-import {
-  listAuditLogs,
-  type AuditLogListRow,
-} from "@/services/audit-log-api";
+import { auditActionTranslationKey, auditEntityTranslationKey } from "@/lib/audit/audit-log-i18n";
+import { listAuditLogs, type AuditLogListRow } from "@/services/audit-log-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const auditLogPageTake = 50;
@@ -35,10 +26,7 @@ interface AdminAuditLogCardProperties {
   readonly organizationalUnitId: string;
 }
 
-export function AdminAuditLogCard({
-  canView,
-  organizationalUnitId,
-}: AdminAuditLogCardProperties) {
+export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditLogCardProperties) {
   const { t, i18n } = useTranslation();
   const [rows, setRows] = useState<readonly AuditLogListRow[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -203,9 +191,7 @@ export function AdminAuditLogCard({
                   disabled={isLoadingMore}
                   onClick={() => void loadMore()}
                 >
-                  {isLoadingMore
-                    ? t("admin.ops.auditLogLoading")
-                    : t("admin.ops.auditLogLoadMore")}
+                  {isLoadingMore ? t("admin.ops.auditLogLoading") : t("admin.ops.auditLogLoadMore")}
                 </Button>
               </div>
             ) : null}

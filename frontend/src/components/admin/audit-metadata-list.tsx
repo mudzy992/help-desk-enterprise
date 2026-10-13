@@ -48,9 +48,7 @@ export function AuditMetadataList({ metadata, visibleCount = 3 }: AuditMetadataL
     return key === null ? entry.value : t(key as never);
   };
 
-  const summary = entries
-    .map((entry) => `${labelFor(entry.path)}: ${valueFor(entry)}`)
-    .join("; ");
+  const summary = entries.map((entry) => `${labelFor(entry.path)}: ${valueFor(entry)}`).join("; ");
   const visibleEntries = entries.slice(0, visibleCount);
   const hiddenEntries = entries.slice(visibleCount);
 

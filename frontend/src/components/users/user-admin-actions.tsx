@@ -59,11 +59,7 @@ export function UserAdminActions({
   };
 
   const handleUnlink = async () => {
-    if (
-      !window.confirm(
-        t("users.unlinkDirectoryConfirm", { name: user.displayName }),
-      )
-    ) {
+    if (!window.confirm(t("users.unlinkDirectoryConfirm", { name: user.displayName }))) {
       return;
     }
     setIsBusy(true);
@@ -73,11 +69,7 @@ export function UserAdminActions({
       onPasswordIssued(response);
       await onChanged();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : t("users.unlinkDirectoryFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("users.unlinkDirectoryFailed"));
     } finally {
       setIsBusy(false);
     }
@@ -94,21 +86,15 @@ export function UserAdminActions({
       await onChanged();
       onDeleted?.();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : t("users.deleteFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("users.deleteFailed"));
     } finally {
       setIsBusy(false);
     }
   };
 
   return (
-    <div
-      className={`flex flex-col gap-1 ${layout === "end" ? "items-end" : "items-stretch"}`}
-    >
-      <div
-        className={`flex flex-wrap gap-1 ${layout === "end" ? "justify-end" : ""}`}
-      >
+    <div className={`flex flex-col gap-1 ${layout === "end" ? "items-end" : "items-stretch"}`}>
+      <div className={`flex flex-wrap gap-1 ${layout === "end" ? "justify-end" : ""}`}>
         {user.isLocalOnly ? (
           <Button
             size="sm"

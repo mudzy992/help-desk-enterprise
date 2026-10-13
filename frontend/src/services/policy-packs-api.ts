@@ -97,27 +97,21 @@ export function listPersistedPolicyPacks(): Promise<readonly PersistedPolicyPack
   return apiRequest("/policy-packs/persisted");
 }
 
-export function validatePolicyPack(
-  input: PolicyPackApplyInput,
-): Promise<PolicyPackValidateResult> {
+export function validatePolicyPack(input: PolicyPackApplyInput): Promise<PolicyPackValidateResult> {
   return apiRequest("/policy-packs/validate", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
-export function applyPolicyPack(
-  input: PolicyPackApplyInput,
-): Promise<PolicyPackApplyResult> {
+export function applyPolicyPack(input: PolicyPackApplyInput): Promise<PolicyPackApplyResult> {
   return apiRequest("/policy-packs/apply", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
-export function unapplyPolicyPack(
-  input: PolicyPackApplyInput,
-): Promise<PolicyPackUnapplyResult> {
+export function unapplyPolicyPack(input: PolicyPackApplyInput): Promise<PolicyPackUnapplyResult> {
   return apiRequest("/policy-packs/unapply", {
     method: "POST",
     body: JSON.stringify(input),

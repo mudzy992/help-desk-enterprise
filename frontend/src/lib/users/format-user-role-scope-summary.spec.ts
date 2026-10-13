@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatUserRoleScopeSummary } from "@/lib/users/format-user-role-scope-summary";
 import type { UserRoleResponse } from "@/services/users-api";
 
-const baseRole = (
-  overrides: Partial<UserRoleResponse>,
-): UserRoleResponse => ({
+const baseRole = (overrides: Partial<UserRoleResponse>): UserRoleResponse => ({
   id: "role-1",
   roleKey: "AGENT",
   roleName: "Agent",
@@ -17,9 +15,7 @@ const baseRole = (
 
 describe("formatUserRoleScopeSummary", () => {
   it("formats ticket-scoped roles with OU label", () => {
-    const actual = formatUserRoleScopeSummary([
-      baseRole({ roleKey: "AGENT", roleName: "Agent" }),
-    ]);
+    const actual = formatUserRoleScopeSummary([baseRole({ roleKey: "AGENT", roleName: "Agent" })]);
     expect(actual).toBe("Agent · OU=Breza");
   });
 

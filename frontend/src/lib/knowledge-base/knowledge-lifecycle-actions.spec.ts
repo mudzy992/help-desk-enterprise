@@ -6,12 +6,16 @@ describe("knowledgeLifecycleOptions", () => {
     expect(knowledgeLifecycleOptions("DRAFT", true).map((o) => o.action)).toEqual([
       "submit-review",
     ]);
-    expect(
-      knowledgeLifecycleOptions("IN_REVIEW", true).map((o) => o.action),
-    ).toEqual(["approve-review", "reject-review", "publish"]);
-    expect(
-      knowledgeLifecycleOptions("PUBLISHED", true).map((o) => o.action),
-    ).toEqual(["approve-review", "submit-review", "archive"]);
+    expect(knowledgeLifecycleOptions("IN_REVIEW", true).map((o) => o.action)).toEqual([
+      "approve-review",
+      "reject-review",
+      "publish",
+    ]);
+    expect(knowledgeLifecycleOptions("PUBLISHED", true).map((o) => o.action)).toEqual([
+      "approve-review",
+      "submit-review",
+      "archive",
+    ]);
     expect(knowledgeLifecycleOptions("ARCHIVED", true)).toEqual([]);
   });
 

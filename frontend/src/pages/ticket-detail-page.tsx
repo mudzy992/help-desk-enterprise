@@ -36,7 +36,10 @@ import { useTicketTimeTracking } from "@/lib/time-tracking/use-ticket-time-track
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { TicketPlaybookPanel } from "@/components/templates/ticket-playbook-panel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { isPlaybookGuardedTransition, useTicketPlaybook } from "@/lib/templates/use-ticket-playbook";
+import {
+  isPlaybookGuardedTransition,
+  useTicketPlaybook,
+} from "@/lib/templates/use-ticket-playbook";
 import { TicketCollaborationBar } from "@/components/tickets/ticket-collaboration-bar";
 import { TicketNavigationShortcuts } from "@/components/shortcuts/ticket-navigation-shortcuts";
 import { TicketLinksPanel } from "@/components/tickets/ticket-links-panel";
@@ -76,7 +79,8 @@ export function TicketDetailPage() {
   const { toast } = useToast();
   // Paket 1.4: checklist + composer templates (staff with `ticket.templates.use`).
   const canUseTemplates =
-    session !== null && (session.isSuperAdmin === true || hasPermission(permissionKeys.ticketTemplatesUse));
+    session !== null &&
+    (session.isSuperAdmin === true || hasPermission(permissionKeys.ticketTemplatesUse));
   const playbook = useTicketPlaybook(ticketId, canUseTemplates, detail.ticket?.updatedAt);
   const [templateInsert, setTemplateInsert] = useState<{
     readonly templateId: string;
@@ -84,7 +88,10 @@ export function TicketDetailPage() {
     readonly nonce: number;
   } | null>(null);
   // Paket 3.3 (P4): "insert workaround" from the problem panel into the public reply.
-  const [workaroundInsert, setWorkaroundInsert] = useState<{ readonly text: string; readonly nonce: number } | null>(null);
+  const [workaroundInsert, setWorkaroundInsert] = useState<{
+    readonly text: string;
+    readonly nonce: number;
+  } | null>(null);
   const [playbookWarning, setPlaybookWarning] = useState<{
     readonly status: Parameters<typeof detail.changeStatus>[0];
     readonly extras: Parameters<typeof detail.changeStatus>[1];
@@ -227,8 +234,7 @@ export function TicketDetailPage() {
   const originName =
     flattenOrganizationalUnitNames(directory.tree).get(ticket.originUnitId) ??
     t("tickets.detail.unknownOrigin");
-  const requesterName =
-    ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
+  const requesterName = ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
   const lastOverride = ticket.priorityOverridden ? findLastPriorityOverride(detail.messages) : null;
   const priorityOverrideTitle =
     lastOverride === null
@@ -266,7 +272,8 @@ export function TicketDetailPage() {
     confirmBeforePublicSend: () => {
       if (!isStaffView || !collaborationConfig.collisionWarningEnabled) return null;
       const typist = collidingTypist(presence.view);
-      if (typist !== null) return t("tickets.collaboration.collision.typing", { name: typist.name });
+      if (typist !== null)
+        return t("tickets.collaboration.collision.typing", { name: typist.name });
       const baseline = draftBaselineRef.current;
       if (baseline !== undefined && lastForeignPublicId !== baseline) {
         return t("tickets.collaboration.collision.newReply");
@@ -277,8 +284,7 @@ export function TicketDetailPage() {
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
   const actionsCardVisible =
-    (canUseTemplates && actions.viewActivity) ||
-    (approvals.visible && approvals.items.length > 0);
+    (canUseTemplates && actions.viewActivity) || (approvals.visible && approvals.items.length > 0);
 
   return (
     <section>
@@ -348,10 +354,7 @@ export function TicketDetailPage() {
       />
       {detail.actionError || approvals.errorKey ? (
         <p className="mt-3 text-[12.5px] text-danger">
-          {ticketText(
-            t,
-            detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric",
-          )}
+          {ticketText(t, detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric")}
         </p>
       ) : ticket.redactionWarnings && ticket.redactionWarnings.length > 0 ? (
         <p className="mt-3 text-[12.5px] text-warning">{t("tickets.redactionWarning")}</p>
@@ -404,7 +407,9 @@ export function TicketDetailPage() {
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
           composerExtra={composerExtra}
-          canWriteKnowledge={actions.viewActivity && hasPermission(permissionKeys.knowledgeArticleWrite)}
+          canWriteKnowledge={
+            actions.viewActivity && hasPermission(permissionKeys.knowledgeArticleWrite)
+          }
           composerCollaboration={composerCollaboration}
           composerInsertText={workaroundInsert}
           composerTemplates={
@@ -413,7 +418,8 @@ export function TicketDetailPage() {
                   ticketId: ticket.id,
                   insertRequest: templateInsert,
                   canSavePersonal:
-                    session?.isSuperAdmin === true || hasPermission(permissionKeys.ticketTemplatesPersonal),
+                    session?.isSuperAdmin === true ||
+                    hasPermission(permissionKeys.ticketTemplatesPersonal),
                 }
               : undefined
           }
@@ -518,11 +524,18 @@ export function TicketDetailPage() {
           setPlaybookWarning(null);
           if (pending === null) return;
           setIsSavingStatus(true);
-          void detail.changeStatus(pending.status, pending.extras).finally(() => setIsSavingStatus(false));
+          void detail
+            .changeStatus(pending.status, pending.extras)
+            .finally(() => setIsSavingStatus(false));
         }}
       >
-        <ul className="mb-2 list-disc space-y-1 pl-5 text-[12.5px] text-foreground" data-testid="playbook-resolve-warning">
-          {playbookWarning?.steps.map((title) => <li key={title}>{title}</li>)}
+        <ul
+          className="mb-2 list-disc space-y-1 pl-5 text-[12.5px] text-foreground"
+          data-testid="playbook-resolve-warning"
+        >
+          {playbookWarning?.steps.map((title) => (
+            <li key={title}>{title}</li>
+          ))}
         </ul>
       </ConfirmDialog>
       <TicketForwardPanel
@@ -562,7 +575,9 @@ export function TicketDetailPage() {
         onComplete={(updated) => {
           toast({
             tone: "success",
-            title: ticketText(t, "tickets.merge.done", { number: updated.mergedIntoTicketNumber ?? "" }),
+            title: ticketText(t, "tickets.merge.done", {
+              number: updated.mergedIntoTicketNumber ?? "",
+            }),
           });
           void detail.reload();
         }}

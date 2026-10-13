@@ -39,18 +39,24 @@ export function DocsPage() {
   // koje su i dalje bosanske (`translated === false`).
   const docsLocale = i18n.language.startsWith("en") ? "en" : "bs";
 
-  const { navigation, loading: navigationLoading, error: navigationError, reload } =
-    useDocsNavigation(docsLocale);
-  const { page, loading: pageLoading, error: pageError } = useDocsPage(
-    searching ? null : (slug ?? null),
-    docsLocale,
-  );
+  const {
+    navigation,
+    loading: navigationLoading,
+    error: navigationError,
+    reload,
+  } = useDocsNavigation(docsLocale);
+  const {
+    page,
+    loading: pageLoading,
+    error: pageError,
+  } = useDocsPage(searching ? null : (slug ?? null), docsLocale);
   const contentLanguageNotice = docsLocale === "en" && page !== null && !page.translated;
   const { response, loading: searchLoading, error: searchError } = useDocsSearch(query);
 
   const parts = navigation?.parts ?? [];
   const firstSlug = parts.flatMap((part) => part.pages)[0]?.slug ?? null;
-  const activePart = parts.find((part) => part.pages.some((entry) => entry.slug === (slug ?? ""))) ?? null;
+  const activePart =
+    parts.find((part) => part.pages.some((entry) => entry.slug === (slug ?? ""))) ?? null;
   const updatedAt = page?.updatedAt ?? null;
   const formattedDate =
     updatedAt === null
@@ -184,7 +190,11 @@ export function DocsPage() {
 
         {searching ? null : pageError !== null ? (
           pageError.status === 404 ? (
-            <DocsEmptyState body={t("docs.notFoundBody")} kind="notFound" title={t("docs.notFoundTitle")} />
+            <DocsEmptyState
+              body={t("docs.notFoundBody")}
+              kind="notFound"
+              title={t("docs.notFoundTitle")}
+            />
           ) : (
             <DocsEmptyState
               body={pageError.status === 503 ? t("docs.unavailableBody") : t(pageError.key)}
@@ -209,7 +219,10 @@ export function DocsPage() {
                 <span className="text-warning">{t("docs.hiddenByFilter")}</span>
               )}
             </div>
-            <MarkdownView headingIds={page.toc.map((heading) => heading.id)} source={page.markdown} />
+            <MarkdownView
+              headingIds={page.toc.map((heading) => heading.id)}
+              source={page.markdown}
+            />
             <DocsPager next={page.next} previous={page.previous} />
             <DocsFeedback slug={page.slug} />
           </article>

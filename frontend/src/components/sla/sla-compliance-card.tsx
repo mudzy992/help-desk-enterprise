@@ -4,10 +4,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { formatNumber } from "@/lib/reports/report-format";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
-import type {
-  SlaComplianceBreakdownRow,
-  SlaComplianceResponse,
-} from "@/services/sla-types";
+import type { SlaComplianceBreakdownRow, SlaComplianceResponse } from "@/services/sla-types";
 
 interface SlaComplianceCardProperties {
   readonly compliance: SlaComplianceResponse | null;
@@ -42,11 +39,7 @@ export function SlaComplianceCard({
         {compliance === null ? (
           <EmptyState
             title={isLoading ? t("sla.complianceLoadingTitle") : t("sla.complianceEmptyTitle")}
-            body={
-              isLoading
-                ? t("sla.complianceLoadingBody")
-                : t("sla.complianceScopeEmptyBody")
-            }
+            body={isLoading ? t("sla.complianceLoadingBody") : t("sla.complianceScopeEmptyBody")}
           />
         ) : (
           <>
@@ -85,7 +78,10 @@ export function SlaComplianceCard({
             >
               {compliance.profiles.map((profile) => (
                 <tr key={profile.slaProfileId}>
-                  <th scope="row" className="max-w-64 truncate px-3 py-2.5 text-left font-medium text-foreground">
+                  <th
+                    scope="row"
+                    className="max-w-64 truncate px-3 py-2.5 text-left font-medium text-foreground"
+                  >
                     {formatSlaProfileName(profile.profileKey, profile.profileName, t as never)}
                   </th>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
@@ -160,9 +156,9 @@ function ComplianceTable({
                 <th
                   key={column}
                   scope="col"
-                  className={index === 0
-                    ? "px-3 py-2.5 font-medium"
-                    : "px-3 py-2.5 text-right font-medium"}
+                  className={
+                    index === 0 ? "px-3 py-2.5 font-medium" : "px-3 py-2.5 text-right font-medium"
+                  }
                 >
                   {column}
                 </th>
@@ -225,12 +221,17 @@ function DimensionTable({
                   <td className="max-w-32 truncate px-3 py-2.5 text-muted-foreground">
                     {profileNames.get(row.slaProfileId) ?? row.slaProfileId}
                   </td>
-                  <th scope="row" className="max-w-40 truncate px-3 py-2.5 text-left font-medium text-foreground">
+                  <th
+                    scope="row"
+                    className="max-w-40 truncate px-3 py-2.5 text-left font-medium text-foreground"
+                  >
                     {row.dimensionId === null
                       ? unassignedLabel
-                      : row.dimensionName ?? row.dimensionId}
+                      : (row.dimensionName ?? row.dimensionId)}
                   </th>
-                  <td className="px-3 py-2.5 text-muted-foreground">{formatNumber(row.sampleCount, locale)}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    {formatNumber(row.sampleCount, locale)}
+                  </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
                     {formatPercent(row.responseCompliancePercent, locale)}
                   </td>

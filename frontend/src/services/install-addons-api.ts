@@ -24,9 +24,7 @@ export function loadInstallAddons(): Promise<InstallAddonsStatus> {
   return apiRequest<InstallAddonsStatus>("/install/addons");
 }
 
-export function saveInstallAddons(
-  input: SaveInstallAddonsInput,
-): Promise<InstallAddonsRecord> {
+export function saveInstallAddons(input: SaveInstallAddonsInput): Promise<InstallAddonsRecord> {
   return apiRequest<InstallAddonsRecord>("/install/addons", {
     method: "POST",
     body: JSON.stringify(input),

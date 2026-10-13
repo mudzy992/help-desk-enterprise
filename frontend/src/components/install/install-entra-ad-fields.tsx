@@ -33,11 +33,7 @@ export function InstallEntraAdFields({
           value={tenantId}
           onChange={(event) => onTenantIdChange(event.target.value)}
         />
-        {tenantIdConfigured ? (
-          <span className={hintClassName}>
-            {configuredLabel}
-          </span>
-        ) : null}
+        {tenantIdConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
       <label className={labelClassName}>
         {clientIdLabel}
@@ -48,20 +44,12 @@ export function InstallEntraAdFields({
           value={clientId}
           onChange={(event) => onClientIdChange(event.target.value)}
         />
-        {clientIdConfigured ? (
-          <span className={hintClassName}>
-            {configuredLabel}
-          </span>
-        ) : null}
+        {clientIdConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
     </div>
   );
 }
 
-export function isEntraConfigured(
-  record: InstallLoginProviderRecord,
-): boolean {
-  return (
-    record.entra.tenantIdConfigured && record.entra.clientIdConfigured
-  );
+export function isEntraConfigured(record: InstallLoginProviderRecord): boolean {
+  return record.entra.tenantIdConfigured && record.entra.clientIdConfigured;
 }

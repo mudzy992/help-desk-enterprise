@@ -73,10 +73,20 @@ describe("setting dependency model", () => {
 
   it("treats true, a positive number and non-blank text as active", () => {
     expect(isSettingActive(moduleEntry)).toBe(true);
-    expect(isSettingActive(entry({ key: "n", valueType: "number", value: 5, defaultValue: 0 }))).toBe(true);
-    expect(isSettingActive(entry({ key: "n", valueType: "number", value: 0, defaultValue: 5 }))).toBe(false);
-    expect(isSettingActive(entry({ key: "s", valueType: "string", value: "  ", defaultValue: "x" }))).toBe(false);
-    expect(isSettingActive(entry({ key: "s", valueType: "string", value: "https://x", defaultValue: "" }))).toBe(true);
+    expect(
+      isSettingActive(entry({ key: "n", valueType: "number", value: 5, defaultValue: 0 })),
+    ).toBe(true);
+    expect(
+      isSettingActive(entry({ key: "n", valueType: "number", value: 0, defaultValue: 5 })),
+    ).toBe(false);
+    expect(
+      isSettingActive(entry({ key: "s", valueType: "string", value: "  ", defaultValue: "x" })),
+    ).toBe(false);
+    expect(
+      isSettingActive(
+        entry({ key: "s", valueType: "string", value: "https://x", defaultValue: "" }),
+      ),
+    ).toBe(true);
     // A secret counts as on when a value exists at all (it is never readable here).
     expect(isSettingActive(secret)).toBe(false);
     expect(isSettingActive({ ...secret, isSet: true })).toBe(true);
@@ -88,24 +98,26 @@ describe("setting dependency model", () => {
     expect(isConditionMet({ key: "test.module", oneOf: [true, false] }, moduleEntry)).toBe(true);
     expect(isConditionMet({ key: "test.url", notEmpty: true }, url)).toBe(false);
     expect(isConditionMet({ key: "test.secret", isSet: true }, secret)).toBe(false);
-    expect(isConditionMet({ key: "test.secret", isSet: true }, { ...secret, isSet: true })).toBe(true);
+    expect(isConditionMet({ key: "test.secret", isSet: true }, { ...secret, isSet: true })).toBe(
+      true,
+    );
     expect(isConditionMet({ key: "test.missing", equals: true }, null)).toBe(false);
   });
 
   it("lists the blocking parents of a save in declaration order", () => {
     expect(describeUnmetRequirements(live, entries)).toEqual(["test.url"]);
     expect(
-      describeUnmetRequirements(live, [entry({ key: "test.module", value: false, defaultValue: true }), url, secret]),
+      describeUnmetRequirements(live, [
+        entry({ key: "test.module", value: false, defaultValue: true }),
+        url,
+        secret,
+      ]),
     ).toEqual(["test.module", "test.url"]);
   });
 
   it("allows switching off and refuses switching on without the parents", () => {
-    expect(
-      findBlockingParents({ entry: live, entries, nextValue: true }),
-    ).toEqual(["test.url"]);
-    expect(
-      findBlockingParents({ entry: live, entries, nextValue: false }),
-    ).toEqual([]);
+    expect(findBlockingParents({ entry: live, entries, nextValue: true })).toEqual(["test.url"]);
+    expect(findBlockingParents({ entry: live, entries, nextValue: false })).toEqual([]);
     // The URL is fine to set first: nothing blocks filling a field in.
     expect(
       findBlockingParents({ entry: url, entries, nextValue: "https://x.example.com" }),

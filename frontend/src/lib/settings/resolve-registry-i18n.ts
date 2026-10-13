@@ -8,11 +8,7 @@ export function resolveRegistryDescription(
   const catalog = translate("settings.registry.keys", {
     returnObjects: true,
   });
-  if (
-    typeof catalog === "object" &&
-    catalog !== null &&
-    !Array.isArray(catalog)
-  ) {
+  if (typeof catalog === "object" && catalog !== null && !Array.isArray(catalog)) {
     const override = (catalog as Record<string, unknown>)[key];
     if (typeof override === "string" && override.trim().length > 0) {
       return override;
@@ -59,10 +55,7 @@ export function resolveRegistryGroupTitle(
   categoryId: string,
   groupId: string,
 ): string | null {
-  return readTranslation(
-    translate,
-    `settings.registry.groups.${categoryId}.${groupId}`,
-  );
+  return readTranslation(translate, `settings.registry.groups.${categoryId}.${groupId}`);
 }
 
 /**
@@ -83,19 +76,11 @@ function readTranslation(translate: TFunction, key: string): string | null {
   return text;
 }
 
-
-export function resolveRegistryCategoryTitle(
-  translate: TFunction,
-  categoryKey: string,
-): string {
+export function resolveRegistryCategoryTitle(translate: TFunction, categoryKey: string): string {
   const catalog = translate("settings.registry.categories", {
     returnObjects: true,
   });
-  if (
-    typeof catalog === "object" &&
-    catalog !== null &&
-    !Array.isArray(catalog)
-  ) {
+  if (typeof catalog === "object" && catalog !== null && !Array.isArray(catalog)) {
     const override = (catalog as Record<string, unknown>)[categoryKey];
     if (typeof override === "string" && override.trim().length > 0) {
       return override;

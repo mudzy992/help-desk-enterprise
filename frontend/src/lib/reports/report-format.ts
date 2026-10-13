@@ -3,11 +3,7 @@ export function formatSignedPercent(value: number): string {
   return `${prefix}${value}%`;
 }
 
-export function formatSignedDelta(
-  value: number,
-  locale: string,
-  unit: string,
-): string {
+export function formatSignedDelta(value: number, locale: string, unit: string): string {
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${formatNumber(value, locale)} ${unit}`;
 }
@@ -27,11 +23,7 @@ export function formatHours(value: number, locale: string): string {
   return `${formatNumber(value, locale)} h`;
 }
 
-export function formatCsat(
-  average: number,
-  scaleMax: number,
-  locale: string,
-): string {
+export function formatCsat(average: number, scaleMax: number, locale: string): string {
   return `${formatNumber(average, locale)} / ${scaleMax}`;
 }
 

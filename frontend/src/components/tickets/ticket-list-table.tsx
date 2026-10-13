@@ -5,7 +5,12 @@ import { useShortcut } from "@/lib/shortcuts/shortcuts-context";
 import { saveTicketListContext } from "@/lib/shortcuts/ticket-list-context";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ShieldAlert } from "lucide-react";
-import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import {
+  TicketAtRiskBadge,
+  TicketOverdueBadge,
+  TicketPriorityBadge,
+  TicketStatusBadge,
+} from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -162,15 +167,17 @@ function TicketListRow({
           {ticket.isConfidential ? (
             <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
           ) : null}
-          <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName} data-ticket-row-link={ticket.id}>
+          <Link
+            to={`/tickets/${ticket.id}`}
+            className={ticketIdClassName}
+            data-ticket-row-link={ticket.id}
+          >
             {ticket.ticketNumber}
           </Link>
           <TicketForwardIndicator ticket={ticket} />
           <TicketMergeIndicator ticket={ticket} />
           {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
-          {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
-            <TicketAtRiskBadge />
-          ) : null}
+          {ticket.isOverdue !== true && ticket.isAtRisk === true ? <TicketAtRiskBadge /> : null}
         </div>
         <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
           {ticket.title}
@@ -230,7 +237,12 @@ export function TicketListTable({
         rowIndex: row.index,
         key: `${tickets[row.index]?.id ?? row.index}-${index}`,
       }))
-    : tickets.map((ticket, index) => ({ ticket, virtualIndex: undefined, rowIndex: index, key: ticket.id }));
+    : tickets.map((ticket, index) => ({
+        ticket,
+        virtualIndex: undefined,
+        rowIndex: index,
+        key: ticket.id,
+      }));
   const location = useLocation();
   const ticketIdsKey = tickets.map((ticket) => ticket.id).join(",");
   // 2.8 §4.1: remember the order for "next / previous ticket" on the detail page.
@@ -242,10 +254,14 @@ export function TicketListTable({
   }, [ticketIdsKey, location.pathname, location.search]);
 
   const rowLinks = () =>
-    Array.from(scrollRef.current?.querySelectorAll<HTMLAnchorElement>("a[data-ticket-row-link]") ?? []);
+    Array.from(
+      scrollRef.current?.querySelectorAll<HTMLAnchorElement>("a[data-ticket-row-link]") ?? [],
+    );
   const focusedRowLink = () => {
     const active = document.activeElement;
-    return active instanceof HTMLAnchorElement && active.dataset.ticketRowLink !== undefined ? active : null;
+    return active instanceof HTMLAnchorElement && active.dataset.ticketRowLink !== undefined
+      ? active
+      : null;
   };
   const moveRowFocus = (direction: 1 | -1) => {
     const links = rowLinks();
@@ -291,16 +307,15 @@ export function TicketListTable({
   return (
     <div
       ref={scrollRef}
-      className={cn(
-        tableWrapClassName,
-        "fade-in",
-        isVirtualized && "max-h-[70vh] overflow-y-auto",
-      )}
+      className={cn(tableWrapClassName, "fade-in", isVirtualized && "max-h-[70vh] overflow-y-auto")}
     >
       <table className="w-full min-w-[900px] text-left" aria-rowcount={tickets.length + 1}>
         <caption className="sr-only">{t("a11y.list.caption", { count: tickets.length })}</caption>
         <thead className={isVirtualized ? "sticky top-0 z-10 bg-surface" : undefined}>
-          <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)} aria-rowindex={1}>
+          <tr
+            className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}
+            aria-rowindex={1}
+          >
             <th className="w-10 px-4 py-2.5">
               <Checkbox
                 checked={allSelected}
@@ -309,13 +324,27 @@ export function TicketListTable({
                 aria-label={t("tickets.bulk.select")}
               />
             </th>
-            <th scope="col" className="px-2 py-2.5 font-medium">{t("tickets.columns.ticket")}</th>
-            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.service")}</th>
-            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.unit")}</th>
-            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.status")}</th>
-            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.priority")}</th>
-            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.assignment")}</th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">{t("tickets.columns.updated")}</th>
+            <th scope="col" className="px-2 py-2.5 font-medium">
+              {t("tickets.columns.ticket")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 font-medium">
+              {t("tickets.columns.service")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 font-medium">
+              {t("tickets.columns.unit")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 font-medium">
+              {t("tickets.columns.status")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 font-medium">
+              {t("tickets.columns.priority")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 font-medium">
+              {t("tickets.columns.assignment")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+              {t("tickets.columns.updated")}
+            </th>
           </tr>
         </thead>
         <tbody>

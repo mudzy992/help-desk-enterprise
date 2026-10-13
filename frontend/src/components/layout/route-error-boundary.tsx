@@ -62,12 +62,8 @@ function RouteErrorFallback() {
       role="alert"
       className="mx-auto mt-10 grid max-w-md justify-items-center gap-3 rounded-lg border border-border bg-surface p-6 text-center shadow-card"
     >
-      <p className="text-[14px] font-semibold text-foreground">
-        {t("app.pageLoad.errorTitle")}
-      </p>
-      <p className="text-[12.5px] text-muted-foreground">
-        {t("app.pageLoad.errorBody")}
-      </p>
+      <p className="text-[14px] font-semibold text-foreground">{t("app.pageLoad.errorTitle")}</p>
+      <p className="text-[12.5px] text-muted-foreground">{t("app.pageLoad.errorBody")}</p>
       <Button size="sm" onClick={() => window.location.reload()}>
         <RefreshCw />
         {t("app.pageLoad.reload")}

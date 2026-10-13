@@ -1,7 +1,4 @@
-import {
-  readBooleanSetting,
-  readStringSetting,
-} from "@/lib/settings/read-setting-entry";
+import { readBooleanSetting, readStringSetting } from "@/lib/settings/read-setting-entry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 export const adminReadOnlyModuleKeys = {

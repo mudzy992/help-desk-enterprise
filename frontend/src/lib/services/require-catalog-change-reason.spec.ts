@@ -9,8 +9,6 @@ describe("requireCatalogChangeReason", () => {
   });
 
   it("returns the trimmed reason when it is within bounds", () => {
-    expect(requireCatalogChangeReason("  publish after review  ")).toBe(
-      "publish after review",
-    );
+    expect(requireCatalogChangeReason("  publish after review  ")).toBe("publish after review");
   });
 });

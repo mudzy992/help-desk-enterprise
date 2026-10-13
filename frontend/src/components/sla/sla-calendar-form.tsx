@@ -1,11 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  controlClassName,
-  errorTextClassName,
-  labelClassName,
-} from "@/components/ui/control";
+import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
 import { defaultWeeklyHours, slaTimezoneOptions, slaWeekdays } from "@/lib/sla/sla-form-defaults";
 import type { BusinessHoursCalendar, CalendarWriteInput, WeeklyHours } from "@/services/sla-api";
@@ -85,8 +81,7 @@ export function SlaCalendarForm({
               {zone}
             </option>
           ))}
-          {timezone.length > 0 &&
-          !(slaTimezoneOptions as readonly string[]).includes(timezone) ? (
+          {timezone.length > 0 && !(slaTimezoneOptions as readonly string[]).includes(timezone) ? (
             <option value={timezone}>{timezone}</option>
           ) : null}
         </select>
@@ -183,7 +178,9 @@ export function SlaCalendarForm({
               key={`${holiday.date}-${holiday.name}`}
               className="flex items-center justify-between gap-2"
             >
-              <span>{holiday.date} · {holiday.name}</span>
+              <span>
+                {holiday.date} · {holiday.name}
+              </span>
               <Button
                 type="button"
                 variant="ghost"
@@ -217,7 +214,11 @@ export function SlaCalendarForm({
       ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t("sla.saving") : calendar ? t("sla.saveCalendar") : t("sla.createCalendar")}
+          {isSubmitting
+            ? t("sla.saving")
+            : calendar
+              ? t("sla.saveCalendar")
+              : t("sla.createCalendar")}
         </Button>
       </div>
     </form>

@@ -7,15 +7,11 @@ describe("mapRoutingError", () => {
     expect(mapRoutingError(new ApiError(409, "DUPLICATE_RULE", "x"))).toBe(
       "routing.errorDuplicate",
     );
-    expect(mapRoutingError(new ApiError(400, "REASON_REQUIRED", "x"))).toBe(
-      "routing.errorReason",
-    );
+    expect(mapRoutingError(new ApiError(400, "REASON_REQUIRED", "x"))).toBe("routing.errorReason");
     expect(mapRoutingError(new ApiError(401, "INVALID_CREDENTIALS", "x"))).toBe(
       "routing.errorUnauthorized",
     );
-    expect(mapRoutingError(new ApiError(403, "FORBIDDEN", "x"))).toBe(
-      "routing.errorForbidden",
-    );
+    expect(mapRoutingError(new ApiError(403, "FORBIDDEN", "x"))).toBe("routing.errorForbidden");
     expect(mapRoutingError(new ApiError(404, "ORIGIN_UNIT_NOT_FOUND", "x"))).toBe(
       "routing.errorGeneric",
     );

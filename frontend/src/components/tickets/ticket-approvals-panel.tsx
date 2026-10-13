@@ -55,8 +55,7 @@ export function TicketApprovalsPanel({
           const name =
             item.approverUserId === null
               ? null
-              : (pickName(authorNames.get(item.approverUserId)) ??
-                t("tickets.detail.unknownUser"));
+              : (pickName(authorNames.get(item.approverUserId)) ?? t("tickets.detail.unknownUser"));
           return (
             <li key={item.id} className="relative flex gap-3 pb-4 last:pb-1">
               {index < items.length - 1 ? (
@@ -84,16 +83,18 @@ export function TicketApprovalsPanel({
                 </p>
                 <p className="text-[11.5px] text-muted-foreground">
                   {name ?? "—"} ·{" "}
-                  {item.status === "APPROVED" && item.decidedAt
-                    ? <RelativeTime value={item.decidedAt} locale={i18n.language} />
-                    : item.status === "PENDING"
-                      ? t("tickets.detail.pendingDecision")
-                      : ticketText(
-                          t,
-                          item.status === "APPROVED"
-                            ? "tickets.approvalStatus.APPROVED"
-                            : "tickets.approvalStatus.REJECTED",
-                        )}
+                  {item.status === "APPROVED" && item.decidedAt ? (
+                    <RelativeTime value={item.decidedAt} locale={i18n.language} />
+                  ) : item.status === "PENDING" ? (
+                    t("tickets.detail.pendingDecision")
+                  ) : (
+                    ticketText(
+                      t,
+                      item.status === "APPROVED"
+                        ? "tickets.approvalStatus.APPROVED"
+                        : "tickets.approvalStatus.REJECTED",
+                    )
+                  )}
                 </p>
                 {item.comment ? (
                   <p className="mt-1 rounded-md bg-elevated/70 px-2 py-1 text-[11px] italic text-muted-foreground">

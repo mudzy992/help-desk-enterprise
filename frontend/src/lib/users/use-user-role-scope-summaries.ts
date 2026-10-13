@@ -4,19 +4,13 @@ import { listUserRoles } from "@/services/users-api";
 
 const summaryCache = new Map<string, string>();
 
-export function useUserRoleScopeSummaries(
-  userIds: readonly string[],
-): ReadonlyMap<string, string> {
-  const [summaries, setSummaries] = useState<ReadonlyMap<string, string>>(
-    () => new Map(),
-  );
+export function useUserRoleScopeSummaries(userIds: readonly string[]): ReadonlyMap<string, string> {
+  const [summaries, setSummaries] = useState<ReadonlyMap<string, string>>(() => new Map());
 
   useEffect(() => {
     const missingUserIds = userIds.filter((userId) => !summaryCache.has(userId));
     if (missingUserIds.length === 0) {
-      setSummaries(
-        new Map(userIds.map((userId) => [userId, summaryCache.get(userId) ?? ""])),
-      );
+      setSummaries(new Map(userIds.map((userId) => [userId, summaryCache.get(userId) ?? ""])));
       return;
     }
     let cancelled = false;

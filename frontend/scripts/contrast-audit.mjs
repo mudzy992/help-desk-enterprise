@@ -19,7 +19,8 @@ const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8");
 const blocks = {};
 for (const m of css.matchAll(/(:root[^{]*)\{([^}]*)\}/g)) {
   const vars = {};
-  for (const v of m[2].matchAll(/--([\w-]+):\s*(\d+)\s+(\d+)\s+(\d+)\s*;/g)) vars[v[1]] = [+v[2], +v[3], +v[4]];
+  for (const v of m[2].matchAll(/--([\w-]+):\s*(\d+)\s+(\d+)\s+(\d+)\s*;/g))
+    vars[v[1]] = [+v[2], +v[3], +v[4]];
   blocks[m[1].trim()] = { ...(blocks[m[1].trim()] ?? {}), ...vars };
 }
 const pick = (sel) => blocks[sel] ?? {};
@@ -32,13 +33,17 @@ export const ratio = (a, b) => {
   return (x + 0.05) / (y + 0.05);
 };
 
-const base = { light: pick(':root[data-theme="pulse"]'), dark: pick(':root[data-theme="pulse"].dark') };
+const base = {
+  light: pick(':root[data-theme="pulse"]'),
+  dark: pick(':root[data-theme="pulse"].dark'),
+};
 const accents = ["indigo", "teal", "rose", "cyan", "amber", "orange"];
 const themes = [];
-for (const a of accents) for (const mode of ["light", "dark"]) {
-  const sel = `:root[data-theme="pulse"][data-accent="${a}"]${mode === "dark" ? ".dark" : ""}`;
-  themes.push({ name: `pulse/${a}/${mode}`, t: { ...base[mode], ...pick(sel) } });
-}
+for (const a of accents)
+  for (const mode of ["light", "dark"]) {
+    const sel = `:root[data-theme="pulse"][data-accent="${a}"]${mode === "dark" ? ".dark" : ""}`;
+    themes.push({ name: `pulse/${a}/${mode}`, t: { ...base[mode], ...pick(sel) } });
+  }
 const classic = Object.entries(blocks).find(([s]) => s === ":root" || s.includes('"classic"'));
 if (classic) themes.push({ name: "classic/dark", t: classic[1] });
 
@@ -48,16 +53,24 @@ const checks = [
   ...["info", "accent"].map((bg) => ["primary-foreground", bg]),
   // bedž nepročitanih notifikacija
   ["on-danger", "danger"],
-  ...["background", "surface", "elevated", "card"].flatMap((bg) => [["primary", bg], ["link", bg], ["muted", bg]]),
+  ...["background", "surface", "elevated", "card"].flatMap((bg) => [
+    ["primary", bg],
+    ["link", bg],
+    ["muted", bg],
+  ]),
 ];
 const onlyFails = process.argv.includes("--fails");
 let fails = 0;
-for (const { name, t } of themes) for (const [fg, bg] of checks) {
-  if (!t[fg] || !t[bg]) continue;
-  const r = ratio(t[fg], t[bg]);
-  const ok = r >= 4.5;
-  if (!ok) fails++;
-  if (!onlyFails || !ok) console.log(`${ok ? "ok  " : "FAIL"} ${name.padEnd(20)} ${fg.padEnd(19)} on ${bg.padEnd(15)} ${r.toFixed(2)}:1`);
-}
+for (const { name, t } of themes)
+  for (const [fg, bg] of checks) {
+    if (!t[fg] || !t[bg]) continue;
+    const r = ratio(t[fg], t[bg]);
+    const ok = r >= 4.5;
+    if (!ok) fails++;
+    if (!onlyFails || !ok)
+      console.log(
+        `${ok ? "ok  " : "FAIL"} ${name.padEnd(20)} ${fg.padEnd(19)} on ${bg.padEnd(15)} ${r.toFixed(2)}:1`,
+      );
+  }
 console.log(`\n${fails} pad(ova) ispod 4.5:1`);
 process.exitCode = fails ? 1 : 0;

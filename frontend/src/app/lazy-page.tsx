@@ -1,4 +1,11 @@
-import { Component, lazy, Suspense, type ComponentType, type ErrorInfo, type ReactNode } from "react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  type ComponentType,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,7 +72,10 @@ class PageLoadBoundary extends Component<{ readonly children: ReactNode }, Bound
 function PageLoadError({ stale }: { readonly stale: boolean }) {
   const { t } = useTranslation();
   return (
-    <div role="alert" className="mx-auto mt-10 grid max-w-md justify-items-center gap-3 rounded-lg border border-border bg-surface p-6 text-center shadow-card">
+    <div
+      role="alert"
+      className="mx-auto mt-10 grid max-w-md justify-items-center gap-3 rounded-lg border border-border bg-surface p-6 text-center shadow-card"
+    >
       <p className="text-[14px] font-semibold text-foreground">
         {stale ? t("app.pageLoad.staleTitle") : t("app.pageLoad.errorTitle")}
       </p>

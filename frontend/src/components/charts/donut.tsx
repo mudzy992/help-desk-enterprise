@@ -103,16 +103,11 @@ export function Donut({
             onMouseEnter={() => setHover(datum.label)}
             onMouseLeave={() => setHover(null)}
           >
-            <span
-              className="size-2.5 shrink-0 rounded-[3px]"
-              style={{ background: datum.color }}
-            />
+            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: datum.color }} />
             <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
               {datum.label}
             </span>
-            <span className="tnum text-[12.5px] font-semibold text-foreground">
-              {datum.value}
-            </span>
+            <span className="tnum text-[12.5px] font-semibold text-foreground">{datum.value}</span>
             <span className="tnum w-9 text-right text-[11px] text-muted-foreground">
               {total ? Math.round((datum.value / total) * 100) : 0}%
             </span>

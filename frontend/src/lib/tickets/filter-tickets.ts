@@ -48,16 +48,11 @@ export function parseForwardedFilter(value: string | null): TicketForwardedFilte
   return value === "any" || value === "toMyGroups" ? value : "";
 }
 
-export function isTicketOverdue(
-  ticket: Pick<TicketResponse, "isOverdue">,
-): boolean {
+export function isTicketOverdue(ticket: Pick<TicketResponse, "isOverdue">): boolean {
   return ticket.isOverdue === true;
 }
 
-export function matchesTicketSearch(
-  ticket: TicketResponse,
-  search: string,
-): boolean {
+export function matchesTicketSearch(ticket: TicketResponse, search: string): boolean {
   const query = search.trim().toLowerCase();
   if (query.length === 0) {
     return true;

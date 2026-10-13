@@ -73,9 +73,7 @@ export function KnowledgeArticleDetailPanel({
                 tone: statusTone(article.status),
               }}
             />
-            {article.isStale ? (
-              <Badge tone="warning">{t("knowledgeBase.stale")}</Badge>
-            ) : null}
+            {article.isStale ? <Badge tone="warning">{t("knowledgeBase.stale")}</Badge> : null}
           </span>
         </div>
       </div>
@@ -125,7 +123,10 @@ export function KnowledgeArticleDetailPanel({
         <p className="flex items-center gap-1 px-4 pb-2 text-[11px] text-muted-foreground">
           <Link2 size={11} aria-hidden="true" />
           {t("knowledgeBase.portal.fromReply.sourceLabel")}{" "}
-          <Link to={`/tickets/${article.sourceTicketId}`} className="font-medium text-link hover:underline">
+          <Link
+            to={`/tickets/${article.sourceTicketId}`}
+            className="font-medium text-link hover:underline"
+          >
             {t("knowledgeBase.portal.fromReply.openTicket")}
           </Link>
         </p>
@@ -136,12 +137,7 @@ export function KnowledgeArticleDetailPanel({
           <RelativeTime value={article.updatedAt} locale={i18n.language} />
         </span>
         {article.reviewDueAt ? (
-          <span
-            className={cn(
-              "tnum flex items-center gap-1",
-              article.isStale && "text-warning",
-            )}
-          >
+          <span className={cn("tnum flex items-center gap-1", article.isStale && "text-warning")}>
             {article.isStale ? <Lightbulb size={10.5} /> : null}
             {t("knowledgeBase.reviewDue")}:{" "}
             <RelativeTime value={article.reviewDueAt} locale={i18n.language} />
@@ -157,13 +153,14 @@ export function KnowledgeArticleDetailPanel({
         />
       </div>
       {(canWrite || canManageLifecycle) && article.status !== "ARCHIVED" ? (
-        <KnowledgePlacementCard key={`${article.id}-${article.updatedAt}`} article={article} onChanged={onChanged} />
+        <KnowledgePlacementCard
+          key={`${article.id}-${article.updatedAt}`}
+          article={article}
+          onChanged={onChanged}
+        />
       ) : null}
       {isSuperAdmin ? (
-        <KnowledgeArticleDeletePanel
-          articleId={article.id}
-          articleTitle={article.title}
-        />
+        <KnowledgeArticleDeletePanel articleId={article.id} articleTitle={article.title} />
       ) : null}
     </Card>
   );

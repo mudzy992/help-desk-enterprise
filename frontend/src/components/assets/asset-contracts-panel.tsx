@@ -21,7 +21,12 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { assetStatusKeys, assetStatusTone, formatAssetDate, mapAssetError } from "@/lib/assets/asset-view";
+import {
+  assetStatusKeys,
+  assetStatusTone,
+  formatAssetDate,
+  mapAssetError,
+} from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   addContractItem,
@@ -43,7 +48,10 @@ import {
 function useDebounced(value: string): string {
   const [debounced, setDebounced] = useState("");
   useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(value.trim().length >= 2 ? value.trim() : ""), 300);
+    const handle = window.setTimeout(
+      () => setDebounced(value.trim().length >= 2 ? value.trim() : ""),
+      300,
+    );
     return () => window.clearTimeout(handle);
   }, [value]);
   return debounced;
@@ -61,10 +69,19 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
   const [openId, setOpenId] = useState<string | null>(null);
 
   const filters = useMemo(
-    () => ({ search: search || undefined, kind: kind || undefined, expiringWithinDays: expiring ? 60 : undefined, includeExpired: includeExpired || undefined }),
+    () => ({
+      search: search || undefined,
+      kind: kind || undefined,
+      expiringWithinDays: expiring ? 60 : undefined,
+      includeExpired: includeExpired || undefined,
+    }),
     [search, kind, expiring, includeExpired],
   );
-  const listQuery = useQuery({ queryKey: assetContractQueryKeys.contracts(filters), queryFn: () => listContracts(filters), retry: false });
+  const listQuery = useQuery({
+    queryKey: assetContractQueryKeys.contracts(filters),
+    queryFn: () => listContracts(filters),
+    retry: false,
+  });
   const items = listQuery.data?.items ?? [];
 
   return (
@@ -109,8 +126,16 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
           </select>
         </FilterField>
         <FilterToggles label={t("ui.filters.options")}>
-          <Checkbox label={t("assets.contracts.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
-          <Checkbox label={t("assets.contracts.includeExpired")} checked={includeExpired} onChange={(event) => setIncludeExpired(event.target.checked)} />
+          <Checkbox
+            label={t("assets.contracts.expiringFilter")}
+            checked={expiring}
+            onChange={(event) => setExpiring(event.target.checked)}
+          />
+          <Checkbox
+            label={t("assets.contracts.includeExpired")}
+            checked={includeExpired}
+            onChange={(event) => setIncludeExpired(event.target.checked)}
+          />
         </FilterToggles>
       </FilterBar>
 
@@ -123,7 +148,11 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
       {listQuery.isLoading ? (
         <PanelSkeleton label={t("ui.loading")} />
       ) : items.length === 0 ? (
-        <EmptyState icon={<FileText size={18} />} title={t("assets.contracts.emptyTitle")} body={t("assets.contracts.emptyBody")} />
+        <EmptyState
+          icon={<FileText size={18} />}
+          title={t("assets.contracts.emptyTitle")}
+          body={t("assets.contracts.emptyBody")}
+        />
       ) : (
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
@@ -131,23 +160,43 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
               <caption className="sr-only">{t("assets.contracts.caption")}</caption>
               <thead>
                 <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.contracts.fields.supplier")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.contracts.fields.kind")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.contracts.fields.endsAt")}</th>
-                  <th scope="col" className="px-3 py-2 text-right">{t("assets.contracts.fields.items")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.organizationalUnit")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.contracts.fields.supplier")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.contracts.fields.kind")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.contracts.fields.endsAt")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right">
+                    {t("assets.contracts.fields.items")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.organizationalUnit")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id} className={tableRowClassName}>
                     <td className="px-3 py-2">
-                      <button type="button" className="text-left text-foreground underline-offset-2 hover:underline" onClick={() => setOpenId(item.id)}>
+                      <button
+                        type="button"
+                        className="text-left text-foreground underline-offset-2 hover:underline"
+                        onClick={() => setOpenId(item.id)}
+                      >
                         {item.supplier}
                       </button>
-                      {item.reference ? <span className="block text-[11.5px] text-muted-foreground">{item.reference}</span> : null}
+                      {item.reference ? (
+                        <span className="block text-[11.5px] text-muted-foreground">
+                          {item.reference}
+                        </span>
+                      ) : null}
                     </td>
-                    <td className="px-3 py-2">{t(`assets.contracts.kinds.${item.kind}` as const)}</td>
+                    <td className="px-3 py-2">
+                      {t(`assets.contracts.kinds.${item.kind}` as const)}
+                    </td>
                     <td className="px-3 py-2">
                       <span className="flex items-center gap-1.5">
                         {formatAssetDate(item.endsAt, i18n.language)}
@@ -164,7 +213,11 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
         </Card>
       )}
 
-      <ContractFormSheet open={editing !== null} contract={editing === "new" ? null : editing} onOpenChange={(open) => (open ? undefined : setEditing(null))} />
+      <ContractFormSheet
+        open={editing !== null}
+        contract={editing === "new" ? null : editing}
+        onOpenChange={(open) => (open ? undefined : setEditing(null))}
+      />
       <ContractDetailSheet
         contractId={openId}
         canManage={canManage}
@@ -190,7 +243,12 @@ function ContractFormSheet({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const optionsQuery = useQuery({ queryKey: assetQueryKeys.options, queryFn: getAssetOptions, enabled: open, retry: false });
+  const optionsQuery = useQuery({
+    queryKey: assetQueryKeys.options,
+    queryFn: getAssetOptions,
+    enabled: open,
+    retry: false,
+  });
   const [kind, setKind] = useState<AssetContractKind>("WARRANTY");
   const [supplier, setSupplier] = useState("");
   const [reference, setReference] = useState("");
@@ -223,7 +281,8 @@ function ContractFormSheet({
   async function submit(event: FormEvent) {
     event.preventDefault();
     const money = parseMoneyInput(cost);
-    if (supplier.trim() === "" || endsAt === "" || unitId === "") return setError(t("assets.contracts.errors.required"));
+    if (supplier.trim() === "" || endsAt === "" || unitId === "")
+      return setError(t("assets.contracts.errors.required"));
     if (startsAt !== "" && startsAt > endsAt) return setError(t("assets.contracts.errors.dates"));
     if (money === "invalid") return setError(t("assets.licenses.errors.cost"));
     const input = {
@@ -254,12 +313,20 @@ function ContractFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{contract === null ? t("assets.contracts.create") : t("assets.contracts.edit")}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.contracts.formDescription")}</SheetDescription>
+        <SheetTitle>
+          {contract === null ? t("assets.contracts.create") : t("assets.contracts.edit")}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.contracts.formDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           <Field label={t("assets.contracts.fields.kind")}>
             {(control) => (
-              <Select {...control} value={kind} onChange={(event) => setKind(event.target.value as AssetContractKind)}>
+              <Select
+                {...control}
+                value={kind}
+                onChange={(event) => setKind(event.target.value as AssetContractKind)}
+              >
                 {assetContractKinds.map((value) => (
                   <option key={value} value={value}>
                     {t(`assets.contracts.kinds.${value}` as const)}
@@ -269,25 +336,68 @@ function ContractFormSheet({
             )}
           </Field>
           <Field label={t("assets.contracts.fields.supplier")} required>
-            {(control) => <Input {...control} maxLength={160} value={supplier} onChange={(event) => setSupplier(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={160}
+                value={supplier}
+                onChange={(event) => setSupplier(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("assets.contracts.fields.reference")}>
-            {(control) => <Input {...control} maxLength={120} value={reference} onChange={(event) => setReference(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={120}
+                value={reference}
+                onChange={(event) => setReference(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("assets.contracts.fields.startsAt")}>
-              {(control) => <Input {...control} type="date" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.contracts.fields.endsAt")} required>
-              {(control) => <Input {...control} type="date" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={endsAt}
+                  onChange={(event) => setEndsAt(event.target.value)}
+                />
+              )}
             </Field>
           </div>
           <Field label={t("assets.contracts.fields.cost")}>
-            {(control) => <Input {...control} inputMode="decimal" value={cost} onChange={(event) => setCost(event.target.value)} />}
-          </Field>
-          <Field label={t("assets.fields.organizationalUnit")} required hint={t("assets.contracts.unitHint")}>
             {(control) => (
-              <Select {...control} value={unitId} onChange={(event) => setUnitId(event.target.value)}>
+              <Input
+                {...control}
+                inputMode="decimal"
+                value={cost}
+                onChange={(event) => setCost(event.target.value)}
+              />
+            )}
+          </Field>
+          <Field
+            label={t("assets.fields.organizationalUnit")}
+            required
+            hint={t("assets.contracts.unitHint")}
+          >
+            {(control) => (
+              <Select
+                {...control}
+                value={unitId}
+                onChange={(event) => setUnitId(event.target.value)}
+              >
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
                     {unit.path}
@@ -297,7 +407,15 @@ function ContractFormSheet({
             )}
           </Field>
           <Field label={t("assets.contracts.fields.notes")}>
-            {(control) => <Textarea {...control} rows={3} maxLength={4000} value={notes} onChange={(event) => setNotes(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                maxLength={4000}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>
@@ -380,7 +498,9 @@ function ContractDetailSheet({
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
         <SheetTitle>{contract?.supplier ?? t("assets.contracts.detailTitle")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-          {contract ? `${t(`assets.contracts.kinds.${contract.kind}` as const)} · ${contract.organizationalUnit.name}` : t("ui.loading")}
+          {contract
+            ? `${t(`assets.contracts.kinds.${contract.kind}` as const)} · ${contract.organizationalUnit.name}`
+            : t("ui.loading")}
         </SheetDescription>
         {detailQuery.isLoading ? <PanelSkeleton label={t("ui.loading")} /> : null}
         {detailQuery.error ? (
@@ -397,24 +517,35 @@ function ContractDetailSheet({
               <dd>{formatAssetDate(contract.startsAt, i18n.language)}</dd>
               <dt className="text-muted-foreground">{t("assets.contracts.fields.endsAt")}</dt>
               <dd className="flex items-center gap-1.5">
-                {formatAssetDate(contract.endsAt, i18n.language)} <AssetExpiryBadge daysLeft={contract.daysLeft} />
+                {formatAssetDate(contract.endsAt, i18n.language)}{" "}
+                <AssetExpiryBadge daysLeft={contract.daysLeft} />
               </dd>
               <dt className="text-muted-foreground">{t("assets.contracts.fields.cost")}</dt>
               <dd>{contract.cost ?? "—"}</dd>
             </dl>
-            {contract.notes ? <p className="whitespace-pre-wrap text-muted-foreground">{contract.notes}</p> : null}
+            {contract.notes ? (
+              <p className="whitespace-pre-wrap text-muted-foreground">{contract.notes}</p>
+            ) : null}
 
             <section aria-labelledby="contract-items-title" className="grid gap-2">
               <h3 id="contract-items-title" className="text-[13px] font-semibold text-foreground">
                 {t("assets.contracts.itemsTitle", { count: contract.items.length })}
               </h3>
-              {contract.items.length === 0 ? <p className={hintClassName}>{t("assets.contracts.noItems")}</p> : null}
+              {contract.items.length === 0 ? (
+                <p className={hintClassName}>{t("assets.contracts.noItems")}</p>
+              ) : null}
               <ul className="grid gap-1">
                 {contract.items.map((item) => (
-                  <li key={item.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5">
+                  <li
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5"
+                  >
                     <span className="flex min-w-0 items-center gap-1.5">
                       {item.canOpen ? (
-                        <Link to={`/assets/${item.id}`} className="truncate text-foreground underline-offset-2 hover:underline">
+                        <Link
+                          to={`/assets/${item.id}`}
+                          className="truncate text-foreground underline-offset-2 hover:underline"
+                        >
                           {item.assetTag} · {item.name}
                         </Link>
                       ) : (
@@ -422,7 +553,9 @@ function ContractDetailSheet({
                           {item.assetTag} · {item.name}
                         </span>
                       )}
-                      <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge>
+                      <Badge tone={assetStatusTone(item.status)}>
+                        {t(assetStatusKeys[item.status])}
+                      </Badge>
                     </span>
                     {canManage ? (
                       <Button
@@ -430,7 +563,12 @@ function ContractDetailSheet({
                         size="icon"
                         aria-label={t("assets.contracts.removeItem")}
                         disabled={pending}
-                        onClick={() => void run(() => removeContractItem(contract.id, item.id), t("assets.contracts.itemRemoved"))}
+                        onClick={() =>
+                          void run(
+                            () => removeContractItem(contract.id, item.id),
+                            t("assets.contracts.itemRemoved"),
+                          )
+                        }
                       >
                         <Trash2 size={14} aria-hidden="true" />
                       </Button>
@@ -458,16 +596,19 @@ function ContractDetailSheet({
                         size="xs"
                         disabled={pending}
                         onClick={() =>
-                          void run(() => addContractItem(contract.id, candidate.id), t("assets.contracts.itemAdded")).then((ok) =>
-                            ok ? setSearchText("") : undefined,
-                          )
+                          void run(
+                            () => addContractItem(contract.id, candidate.id),
+                            t("assets.contracts.itemAdded"),
+                          ).then((ok) => (ok ? setSearchText("") : undefined))
                         }
                       >
                         {t("assets.contracts.addItem")}
                       </Button>
                     </div>
                   ))}
-                  {search.length >= 2 && candidatesQuery.data !== undefined && candidates.length === 0 ? (
+                  {search.length >= 2 &&
+                  candidatesQuery.data !== undefined &&
+                  candidates.length === 0 ? (
                     <p className={hintClassName}>{t("assets.licenses.noCandidates")}</p>
                   ) : null}
                 </div>
@@ -487,7 +628,9 @@ function ContractDetailSheet({
                   disabled={pending}
                   onClick={() => {
                     if (!window.confirm(t("assets.contracts.confirmDelete"))) return;
-                    void run(() => deleteContract(contract.id), t("assets.contracts.deleted")).then((ok) => (ok ? onOpenChange(false) : undefined));
+                    void run(() => deleteContract(contract.id), t("assets.contracts.deleted")).then(
+                      (ok) => (ok ? onOpenChange(false) : undefined),
+                    );
                   }}
                 >
                   {t("assets.contracts.delete")}

@@ -49,11 +49,7 @@ export function InstallLdapsBindFields({
           value={bindDn}
           onChange={(event) => onBindDnChange(event.target.value)}
         />
-        {bindDnConfigured ? (
-          <span className={hintClassName}>
-            {configuredLabel}
-          </span>
-        ) : null}
+        {bindDnConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
       <label className={labelClassName}>
         {bindPasswordLabel}
@@ -64,19 +60,13 @@ export function InstallLdapsBindFields({
           value={bindPassword}
           onChange={(event) => onBindPasswordChange(event.target.value)}
         />
-        {bindPasswordConfigured ? (
-          <span className={hintClassName}>
-            {configuredLabel}
-          </span>
-        ) : null}
+        {bindPasswordConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
     </div>
   );
 }
 
-export function isDirectoryBindConfigured(
-  record: InstallLoginProviderRecord,
-): boolean {
+export function isDirectoryBindConfigured(record: InstallLoginProviderRecord): boolean {
   return (
     record.directoryBind.urls.length > 0 &&
     record.directoryBind.bindDnConfigured &&

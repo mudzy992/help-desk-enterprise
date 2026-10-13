@@ -30,9 +30,7 @@ export function ServiceDowntimeWindowsPanel({
   const { t } = useTranslation();
   const [windows, setWindows] = useState<readonly DowntimeWindowResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editing, setEditing] = useState<DowntimeWindowResponse | null | undefined>(
-    undefined,
-  );
+  const [editing, setEditing] = useState<DowntimeWindowResponse | null | undefined>(undefined);
   const [deleteReason, setDeleteReason] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<ServiceCatalogErrorKey | null>(null);

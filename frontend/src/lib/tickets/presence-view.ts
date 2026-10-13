@@ -9,7 +9,11 @@ export type PresencePerson = {
 };
 
 export type PresenceUpdatePayload =
-  | { readonly ticketId: string; readonly audience: "staff"; readonly people: readonly PresencePerson[] }
+  | {
+      readonly ticketId: string;
+      readonly audience: "staff";
+      readonly people: readonly PresencePerson[];
+    }
   | { readonly ticketId: string; readonly audience: "requester"; readonly agentTyping: boolean };
 
 export type PresenceView = {
@@ -30,7 +34,8 @@ export function applyPresenceUpdate(
   if (update.audience === "requester") {
     return { others: [], agentTyping: (update as { agentTyping?: unknown }).agentTyping === true };
   }
-  if (update.audience !== "staff" || !Array.isArray((update as { people?: unknown }).people)) return null;
+  if (update.audience !== "staff" || !Array.isArray((update as { people?: unknown }).people))
+    return null;
   const others = (update as { people: PresencePerson[] }).people.filter(
     (person) => person.userId !== currentUserId,
   );
@@ -41,7 +46,8 @@ export function applyPresenceUpdate(
 export function collidingTypist(view: PresenceView): PresencePerson | null {
   return (
     view.others.find(
-      (person) => person.role === "staff" && person.state === "typing" && person.channel === "public",
+      (person) =>
+        person.role === "staff" && person.state === "typing" && person.channel === "public",
     ) ?? null
   );
 }

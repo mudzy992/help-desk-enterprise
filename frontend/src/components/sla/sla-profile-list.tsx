@@ -1,15 +1,9 @@
 import { CalendarDays } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "@/lib/reports/report-format";
-import {
-  SlaAdminListColumn,
-  SlaAdminSelectorCard,
-} from "@/components/sla/sla-admin-selector";
+import { SlaAdminListColumn, SlaAdminSelectorCard } from "@/components/sla/sla-admin-selector";
 import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
-import {
-  formatSlaProfileName,
-  slaProfileNameTranslationKey,
-} from "@/lib/sla/sla-profile-name";
+import { formatSlaProfileName, slaProfileNameTranslationKey } from "@/lib/sla/sla-profile-name";
 import type { SlaProfile } from "@/services/sla-types";
 
 interface SlaProfileListProperties {
@@ -57,7 +51,9 @@ export function SlaProfileList({
             description={profile.description}
             metaIcon={CalendarDays}
             metaLabel={profile.calendarName}
-            badgeLabel={t("sla.openTicketsBadge", { value: formatNumber(openCount, i18n.language) })}
+            badgeLabel={t("sla.openTicketsBadge", {
+              value: formatNumber(openCount, i18n.language),
+            })}
             badgeTone={profile.isActive ? "success" : "neutral"}
           />
         );

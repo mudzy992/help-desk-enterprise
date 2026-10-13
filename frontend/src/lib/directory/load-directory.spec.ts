@@ -7,8 +7,7 @@ import {
 } from "@/services/organizational-units-api";
 
 vi.mock("@/services/organizational-units-api", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/services/organizational-units-api")>();
+  const actual = await importOriginal<typeof import("@/services/organizational-units-api")>();
   return {
     ...actual,
     listOrganizationalUnitTree: vi.fn(),
@@ -16,9 +15,7 @@ vi.mock("@/services/organizational-units-api", async (importOriginal) => {
   };
 });
 
-const tree = [
-  { id: "ou-it", name: "IT", ouPath: "/IT", children: [] },
-] as const;
+const tree = [{ id: "ou-it", name: "IT", ouPath: "/IT", children: [] }] as const;
 
 describe("loadDirectory", () => {
   beforeEach(() => {

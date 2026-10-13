@@ -1,10 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  tableWrapClassName,
-} from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
 import type { SlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import type { SlaEscalationRule } from "@/services/sla-api";
@@ -31,15 +27,9 @@ export function SlaEscalationRulesTable({
       <table className="w-full min-w-[640px] text-left">
         <thead>
           <tr className="border-b border-border/70">
-            <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("sla.escalationLevel")}
-            </th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("sla.triggerOffsetMinutes")}
-            </th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`}>
-              {t("sla.escalationTarget")}
-            </th>
+            <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.escalationLevel")}</th>
+            <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.triggerOffsetMinutes")}</th>
+            <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.escalationTarget")}</th>
             {canWrite ? <th className={`${tableHeadClassName} px-4 py-2.5`} /> : null}
           </tr>
         </thead>

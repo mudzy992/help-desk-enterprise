@@ -30,7 +30,11 @@ describe("report pack table helpers", () => {
   });
 
   it("builds the scope query, with the format only for downloads", () => {
-    const scope = { organizationalUnitId: "ou 1", from: "2026-09-01T00:00:00.000Z", to: "2026-09-02T00:00:00.000Z" };
+    const scope = {
+      organizationalUnitId: "ou 1",
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-09-02T00:00:00.000Z",
+    };
     expect(buildReportPackQuery(scope)).not.toContain("format");
     expect(buildReportPackQuery(scope, "csv")).toContain("format=csv");
     expect(buildReportPackQuery(scope)).toContain("organizationalUnitId=ou+1");

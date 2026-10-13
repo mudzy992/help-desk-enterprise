@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { detectMentionQuery, insertMentionToken, splitMentionSegments } from "@/lib/tickets/mention-tokens";
+import {
+  detectMentionQuery,
+  insertMentionToken,
+  splitMentionSegments,
+} from "@/lib/tickets/mention-tokens";
 
 describe("mention tokens (Paket 2.4)", () => {
   it("splits a note into text and mention chips", () => {
@@ -18,7 +22,10 @@ describe("mention tokens (Paket 2.4)", () => {
 
   it("inserts the token with a trailing space", () => {
     const body = "Pitaj @am danas";
-    const result = insertMentionToken(body, { start: 6, query: "am" }, 9, { id: "cm1user0001", displayName: "Amra H" });
+    const result = insertMentionToken(body, { start: 6, query: "am" }, 9, {
+      id: "cm1user0001",
+      displayName: "Amra H",
+    });
     expect(result.value).toBe("Pitaj @[Amra H](cm1user0001)  danas");
     expect(result.caret).toBe(6 + "@[Amra H](cm1user0001) ".length);
   });

@@ -12,7 +12,10 @@ export function DocsBreadcrumbs({
 }) {
   const { t } = useTranslation();
   return (
-    <nav aria-label={t("docs.breadcrumbsLabel")} className="mb-2 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground">
+    <nav
+      aria-label={t("docs.breadcrumbsLabel")}
+      className="mb-2 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground"
+    >
       <Link className="hover:text-foreground" to="/docs">
         {t("docs.title")}
       </Link>

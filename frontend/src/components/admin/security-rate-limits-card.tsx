@@ -63,7 +63,15 @@ export const rateLimitLabelKeys = {
 } as const;
 
 export const rateLimitGroups = [
-  { id: "account", fields: ["accountWindowSeconds", "accountDelayStartsAfterFailures", "accountDelayBaseMilliseconds", "accountDelayMaxMilliseconds"] },
+  {
+    id: "account",
+    fields: [
+      "accountWindowSeconds",
+      "accountDelayStartsAfterFailures",
+      "accountDelayBaseMilliseconds",
+      "accountDelayMaxMilliseconds",
+    ],
+  },
   { id: "ip", fields: ["ipMaxFailures", "ipWindowSeconds"] },
   { id: "other", fields: ["otherMaxFailures", "otherWindowSeconds"] },
 ] as const satisfies readonly { readonly id: string; readonly fields: readonly RateLimitField[] }[];
@@ -148,7 +156,9 @@ export function AdminSecurityRateLimitsCard() {
 
   const bounds = snapshot.data?.bounds;
   const isOutOfBounds =
-    draft === null || bounds === undefined ? true : findOutOfBoundsRateLimit(draft, bounds) !== null;
+    draft === null || bounds === undefined
+      ? true
+      : findOutOfBoundsRateLimit(draft, bounds) !== null;
   const canSubmit = draft !== null && !isOutOfBounds && isValidRateLimitsReason(reason);
 
   const save = useMutation({
@@ -215,7 +225,9 @@ export function AdminSecurityRateLimitsCard() {
               >
                 <Gauge size={14} className="text-muted-foreground" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] text-foreground/90">{t(groupTitleKeys[group.id])}</span>
+                  <span className="block text-[12px] text-foreground/90">
+                    {t(groupTitleKeys[group.id])}
+                  </span>
                   <span className="tnum mt-0.5 block text-[11px] text-muted-foreground">
                     {groupSummary(group.id, config.config, t as never)}
                   </span>
@@ -237,7 +249,9 @@ export function AdminSecurityRateLimitsCard() {
         testId="admin-rate-limits-dialog"
         title={t("admin.security.rateLimitsTitle")}
         description={
-          <span className="font-mono text-[11px] text-muted-foreground">private.security.rateLimits.*</span>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            private.security.rateLimits.*
+          </span>
         }
       >
         <p className={hintClassName}>{t("admin.security.rateLimitsDialogHelp")}</p>
@@ -257,7 +271,9 @@ export function AdminSecurityRateLimitsCard() {
                         min={bounds[field].min}
                         max={bounds[field].max}
                         value={draft[field]}
-                        onChange={(event) => setDraft({ ...draft, [field]: Number(event.target.value) })}
+                        onChange={(event) =>
+                          setDraft({ ...draft, [field]: Number(event.target.value) })
+                        }
                       />
                       <span className={hintClassName}>
                         {t("admin.security.rateLimitsBounds", {
@@ -272,7 +288,9 @@ export function AdminSecurityRateLimitsCard() {
             ))}
             <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-border/70 pt-3">
               <label className="flex min-w-[12rem] flex-1 flex-col gap-1">
-                <span className="text-[11.5px] text-muted-foreground">{t("admin.security.rateLimitsReason")}</span>
+                <span className="text-[11.5px] text-muted-foreground">
+                  {t("admin.security.rateLimitsReason")}
+                </span>
                 <input
                   className={controlClassName}
                   type="text"
@@ -288,7 +306,9 @@ export function AdminSecurityRateLimitsCard() {
                 disabled={!canSubmit || save.isPending}
                 onClick={() => setConfirmOpen(true)}
               >
-                {save.isPending ? t("settings.registry.saving") : t("admin.security.rateLimitsSave")}
+                {save.isPending
+                  ? t("settings.registry.saving")
+                  : t("admin.security.rateLimitsSave")}
               </Button>
               <Button
                 type="button"
@@ -302,7 +322,9 @@ export function AdminSecurityRateLimitsCard() {
                 {t("ui.cancel")}
               </Button>
             </div>
-            <p className={hintClassName}>{t("admin.security.rateLimitsReasonHint", { count: minimumReasonLength })}</p>
+            <p className={hintClassName}>
+              {t("admin.security.rateLimitsReasonHint", { count: minimumReasonLength })}
+            </p>
           </>
         ) : null}
       </ResponsiveSurface>

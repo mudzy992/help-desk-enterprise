@@ -2,10 +2,7 @@ import { forwardableStatuses } from "@/lib/tickets/ticket-forwarding";
 import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { TicketResponse } from "@/services/tickets-api";
-import type {
-  TicketAllowedActions,
-  TicketComposerAccess,
-} from "@/services/tickets-context-api";
+import type { TicketAllowedActions, TicketComposerAccess } from "@/services/tickets-context-api";
 
 export type TicketActionView = TicketAllowedActions;
 

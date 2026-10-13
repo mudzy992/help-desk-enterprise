@@ -11,7 +11,9 @@ describe("matchesDocsAudience (Faza 3 c)", () => {
   it("filter prikazuje samo stranice svojstvene publici", () => {
     expect(matchesDocsAudience({ roles: ["ADMIN", "SUPER_ADMIN"] }, "user")).toBe(false);
     expect(matchesDocsAudience({ roles: ["ADMIN", "SUPER_ADMIN"] }, "admin")).toBe(true);
-    expect(matchesDocsAudience({ roles: ["AGENT", "PROBLEM_MANAGER", "ADMIN"] }, "agent")).toBe(true);
+    expect(matchesDocsAudience({ roles: ["AGENT", "PROBLEM_MANAGER", "ADMIN"] }, "agent")).toBe(
+      true,
+    );
     expect(matchesDocsAudience({ roles: ["AGENT"] }, "admin")).toBe(false);
   });
 

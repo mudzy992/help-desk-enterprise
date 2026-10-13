@@ -4,12 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "@/components/layout/notifications-panel";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { floatingPanelClassName } from "@/components/ui/control";
 import { useDismissable } from "@/lib/a11y/use-dismissable";
 import { notificationTicketPath } from "@/lib/notifications/notification-kind";
@@ -56,7 +51,11 @@ export function NotificationsBell() {
 
   const onSelect = (notification: InAppNotification) => {
     void inbox.markOneRead(notification.id);
-    const path = notificationTicketPath(notification.ticketId, notification.type, notification.payload);
+    const path = notificationTicketPath(
+      notification.ticketId,
+      notification.type,
+      notification.payload,
+    );
     if (path !== null) {
       navigate(path);
     }
@@ -99,9 +98,7 @@ export function NotificationsBell() {
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetContent side="right" className="flex w-full max-w-[380px] flex-col p-0">
             <SheetTitle className="sr-only">{t("notifications.title")}</SheetTitle>
-            <SheetDescription className="sr-only">
-              {t("notifications.title")}
-            </SheetDescription>
+            <SheetDescription className="sr-only">{t("notifications.title")}</SheetDescription>
             {panel}
           </SheetContent>
         </Sheet>
@@ -111,7 +108,10 @@ export function NotificationsBell() {
           id="notifications-panel"
           role="region"
           aria-label={t("notifications.title")}
-          className={cn(floatingPanelClassName, "absolute right-0 top-11 z-50 w-[380px] max-w-[calc(100vw-1.5rem)]")}
+          className={cn(
+            floatingPanelClassName,
+            "absolute right-0 top-11 z-50 w-[380px] max-w-[calc(100vw-1.5rem)]",
+          )}
         >
           {panel}
         </div>

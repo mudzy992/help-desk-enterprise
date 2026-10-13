@@ -5,9 +5,7 @@ import {
   type RoutingCoverageQuery,
 } from "@/services/routing-api";
 
-type RoutingCoveragePageLoader = (
-  query: RoutingCoverageQuery,
-) => Promise<RoutingCoveragePage>;
+type RoutingCoveragePageLoader = (query: RoutingCoverageQuery) => Promise<RoutingCoveragePage>;
 
 /** Load every coverage page without overriding the API's max-safe default page size. */
 export async function loadCatalogRoutingCoverage(
@@ -18,9 +16,7 @@ export async function loadCatalogRoutingCoverage(
 
   do {
     const query: RoutingCoverageQuery =
-      cursor === undefined
-        ? { includeInactive: true }
-        : { includeInactive: true, cursor };
+      cursor === undefined ? { includeInactive: true } : { includeInactive: true, cursor };
     const page = await loadPage(query);
     items.push(...page.items);
     cursor = page.nextCursor ?? undefined;

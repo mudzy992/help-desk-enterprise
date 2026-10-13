@@ -20,9 +20,7 @@ export function groupPermissionsByCategory(
   return [...groups.entries()]
     .map(([categoryId, groupEntries]) => ({
       categoryId,
-      entries: [...groupEntries].sort((left, right) =>
-        left.key.localeCompare(right.key),
-      ),
+      entries: [...groupEntries].sort((left, right) => left.key.localeCompare(right.key)),
     }))
     .sort((left, right) => left.categoryId.localeCompare(right.categoryId));
 }

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CaptchaChallenge, loadTurnstileScript, turnstileScriptUrl } from "@/components/auth/captcha-challenge";
+import {
+  CaptchaChallenge,
+  loadTurnstileScript,
+  turnstileScriptUrl,
+} from "@/components/auth/captcha-challenge";
 
 /*
   Paket 5.4.1 (M3): the Turnstile widget on the sign-in page.

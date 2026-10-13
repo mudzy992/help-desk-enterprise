@@ -57,10 +57,7 @@ export function SettingsRegistryCard({
         <CardHeader
           title={
             <span className="flex items-center gap-2">
-              <CategoryIcon
-                aria-hidden
-                className="size-4 shrink-0 text-line-strong"
-              />
+              <CategoryIcon aria-hidden className="size-4 shrink-0 text-line-strong" />
               <span>{title}</span>
             </span>
           }
@@ -73,10 +70,7 @@ export function SettingsRegistryCard({
         <ul className="flex-1 divide-y divide-border/50 border-t border-border/60">
           {visible.map((entry) => (
             <li key={entry.key}>
-              <SettingsRegistryRow
-                entry={entry}
-                onOpen={() => setOpenKey(entry.key)}
-              />
+              <SettingsRegistryRow entry={entry} onOpen={() => setOpenKey(entry.key)} />
             </li>
           ))}
           {visible.length === 0 ? (

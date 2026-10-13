@@ -15,10 +15,7 @@ import {
   flattenAuditMetadata,
 } from "@/lib/audit/audit-log-i18n";
 import { alertDetailLabelKey, opsAlertSlug, opsAlertSlugs } from "@/lib/ops/ops-health-view";
-import {
-  knownScheduledJobIds,
-  scheduledJobTranslationKey,
-} from "@/lib/ops/scheduled-job-i18n";
+import { knownScheduledJobIds, scheduledJobTranslationKey } from "@/lib/ops/scheduled-job-i18n";
 import {
   integrationJobAdminStatuses,
   integrationJobStatuses,
@@ -87,9 +84,9 @@ function listTypeScriptFiles(directory: string): readonly string[] {
 
 function readSchedulerIds(): readonly string[] {
   const values = listTypeScriptFiles(modulesRoot).flatMap((path) =>
-    [...readFileSync(path, "utf8").matchAll(/export const \w*SchedulerId\s*=\s*['"]([^'"]+)['"]/g)].map(
-      (match) => match[1] ?? "",
-    ),
+    [
+      ...readFileSync(path, "utf8").matchAll(/export const \w*SchedulerId\s*=\s*['"]([^'"]+)['"]/g),
+    ].map((match) => match[1] ?? ""),
   );
   return [...new Set(values)].sort();
 }
@@ -99,10 +96,7 @@ function slug(value: string): string {
 }
 
 function lookup(tree: unknown, path: readonly string[]): unknown {
-  return path.reduce<unknown>(
-    (node, part) => (node as Dictionary | undefined)?.[part],
-    tree,
-  );
+  return path.reduce<unknown>((node, part) => (node as Dictionary | undefined)?.[part], tree);
 }
 
 const localeRows = [
@@ -137,8 +131,18 @@ describe("Admin jobs and audit localization (5.3.5)", () => {
   });
 
   it.each(localeRows)("%s translates every audit action and entity", (_locale, dictionary) => {
-    assertTranslatedCatalogue(dictionary, ["admin", "ops", "auditLog", "labels", "actions"], knownAuditActions, slug);
-    assertTranslatedCatalogue(dictionary, ["admin", "ops", "auditLog", "labels", "entities"], knownAuditEntityTypes, slug);
+    assertTranslatedCatalogue(
+      dictionary,
+      ["admin", "ops", "auditLog", "labels", "actions"],
+      knownAuditActions,
+      slug,
+    );
+    assertTranslatedCatalogue(
+      dictionary,
+      ["admin", "ops", "auditLog", "labels", "entities"],
+      knownAuditEntityTypes,
+      slug,
+    );
   });
 
   it.each(localeRows)("%s translates every known audit metadata field", (_locale, dictionary) => {
@@ -155,60 +159,73 @@ describe("Admin jobs and audit localization (5.3.5)", () => {
     (`must_change`, `SUPER_ADMIN_ALLOWED`). Every value in the closed-vocabulary
     map has a label in both languages; free text is deliberately not listed.
   */
-  it.each(localeRows)("%s translates every closed-vocabulary metadata value", (_locale, dictionary) => {
-    const values = lookup(dictionary, ["admin", "ops", "auditLog", "values"]) as Dictionary;
-    for (const [field, entries] of Object.entries(knownAuditMetadataValues)) {
-      for (const value of entries) {
-        expect(auditMetadataValueTranslationKey(field, value)).toBe(
-          `admin.ops.auditLog.values.${field}.${slug(value)}`,
-        );
-        const label = (values[field] as Dictionary | undefined)?.[slug(value)];
-        expect(typeof label, `${field}.${value}`).toBe("string");
-        expect((label as string).trim().length, `${field}.${value}`).toBeGreaterThan(0);
+  it.each(localeRows)(
+    "%s translates every closed-vocabulary metadata value",
+    (_locale, dictionary) => {
+      const values = lookup(dictionary, ["admin", "ops", "auditLog", "values"]) as Dictionary;
+      for (const [field, entries] of Object.entries(knownAuditMetadataValues)) {
+        for (const value of entries) {
+          expect(auditMetadataValueTranslationKey(field, value)).toBe(
+            `admin.ops.auditLog.values.${field}.${slug(value)}`,
+          );
+          const label = (values[field] as Dictionary | undefined)?.[slug(value)];
+          expect(typeof label, `${field}.${value}`).toBe("string");
+          expect((label as string).trim().length, `${field}.${value}`).toBeGreaterThan(0);
+        }
       }
-    }
-  });
+    },
+  );
 
   it("leaves free text and unknown values alone", () => {
     expect(auditMetadataValueTranslationKey("reason", "must_change")).toBeNull();
     expect(auditMetadataValueTranslationKey("status", "some_free_text")).toBeNull();
   });
 
-  it.each(localeRows)("%s translates every alarm from the backend catalogue", (_locale, dictionary) => {
-    const keys = lookup(dictionary, ["admin", "opsHealth", "alertKeys"]) as Dictionary;
-    // The client catalogue (`ops_test` included) is exactly what the locales carry...
-    expect(Object.keys(keys).sort()).toEqual([...opsAlertSlugs].sort());
-    // ... and it must contain every alarm the backend catalog can raise.
-    for (const key of readOpsAlertKeys()) {
-      const slug = opsAlertSlug(key);
-      expect(slug, key).not.toBeNull();
-      const entry = keys[slug as string] as
-        | { readonly title?: unknown; readonly action?: unknown }
-        | undefined;
-      expect(entry, key).toBeDefined();
-      expect(String(entry?.title ?? "").trim().length, key).toBeGreaterThan(0);
-      expect(String(entry?.action ?? "").trim().length, key).toBeGreaterThan(0);
-    }
-  });
+  it.each(localeRows)(
+    "%s translates every alarm from the backend catalogue",
+    (_locale, dictionary) => {
+      const keys = lookup(dictionary, ["admin", "opsHealth", "alertKeys"]) as Dictionary;
+      // The client catalogue (`ops_test` included) is exactly what the locales carry...
+      expect(Object.keys(keys).sort()).toEqual([...opsAlertSlugs].sort());
+      // ... and it must contain every alarm the backend catalog can raise.
+      for (const key of readOpsAlertKeys()) {
+        const slug = opsAlertSlug(key);
+        expect(slug, key).not.toBeNull();
+        const entry = keys[slug as string] as
+          { readonly title?: unknown; readonly action?: unknown } | undefined;
+        expect(entry, key).toBeDefined();
+        expect(String(entry?.title ?? "").trim().length, key).toBeGreaterThan(0);
+        expect(String(entry?.action ?? "").trim().length, key).toBeGreaterThan(0);
+      }
+    },
+  );
 
-  it.each(localeRows)("%s labels every alarm detail field the observers send", (_locale, dictionary) => {
-    const fields = readOpsAlertDetailFields();
-    expect(fields.length).toBeGreaterThan(10);
-    const labels = lookup(dictionary, ["admin", "opsHealth", "alertDetailLabels"]) as Dictionary;
-    for (const field of fields) {
-      expect(alertDetailLabelKey(field), field).not.toBeNull();
-      const label = labels[field];
-      expect(typeof label, field).toBe("string");
-      expect(String(label).trim().length, field).toBeGreaterThan(0);
-    }
-  });
+  it.each(localeRows)(
+    "%s labels every alarm detail field the observers send",
+    (_locale, dictionary) => {
+      const fields = readOpsAlertDetailFields();
+      expect(fields.length).toBeGreaterThan(10);
+      const labels = lookup(dictionary, ["admin", "opsHealth", "alertDetailLabels"]) as Dictionary;
+      for (const field of fields) {
+        expect(alertDetailLabelKey(field), field).not.toBeNull();
+        const label = labels[field];
+        expect(typeof label, field).toBe("string");
+        expect(String(label).trim().length, field).toBeGreaterThan(0);
+      }
+    },
+  );
 
   it("covers every registered scheduler id with a human-readable name", () => {
     const schedulerIds = readSchedulerIds();
     expect([...knownScheduledJobIds].sort()).toEqual(schedulerIds);
     const translatedKeys = new Set(knownScheduledJobIds.map(slug));
     for (const [_locale, dictionary] of localeRows) {
-      const labels = lookup(dictionary, ["admin", "opsHealth", "schedulers", "names"]) as Dictionary;
+      const labels = lookup(dictionary, [
+        "admin",
+        "opsHealth",
+        "schedulers",
+        "names",
+      ]) as Dictionary;
       expect(Object.keys(labels).sort()).toEqual([...translatedKeys].sort());
       for (const id of knownScheduledJobIds) {
         expect(typeof labels[slug(id)], id).toBe("string");
@@ -234,7 +251,9 @@ describe("Admin jobs and audit localization (5.3.5)", () => {
         expect((label as string).trim().length, value).toBeGreaterThan(0);
       }
       expect((lookup(dictionary, ["integrationQueue", "loadMore"]) as string).trim()).not.toBe("");
-      expect((lookup(dictionary, ["integrationQueue", "loadingMore"]) as string).trim()).not.toBe("");
+      expect((lookup(dictionary, ["integrationQueue", "loadingMore"]) as string).trim()).not.toBe(
+        "",
+      );
     }
   });
 
@@ -252,10 +271,9 @@ describe("Admin jobs and audit localization (5.3.5)", () => {
     expect(scheduledJobTranslationKey("sla-scan-every-minute")).toBe(
       "admin.opsHealth.schedulers.names.sla_scan_every_minute",
     );
-    expect(
-      scheduledJobTranslationKey("repeat:integration-worker-heartbeat-every:abc123"),
-    ).toBe("admin.opsHealth.schedulers.names.integration_worker_heartbeat_every");
+    expect(scheduledJobTranslationKey("repeat:integration-worker-heartbeat-every:abc123")).toBe(
+      "admin.opsHealth.schedulers.names.integration_worker_heartbeat_every",
+    );
     expect(scheduledJobTranslationKey("unknown-scheduler")).toBeNull();
   });
-
 });

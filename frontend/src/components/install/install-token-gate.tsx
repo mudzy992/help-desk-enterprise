@@ -4,12 +4,17 @@ import { BrandLockup } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/services/api";
 import { loadInstallSuperAdmin } from "@/services/install-api";
-import { clearInstallToken, readInstallToken, writeInstallToken } from "@/lib/install/install-token-store";
+import {
+  clearInstallToken,
+  readInstallToken,
+  writeInstallToken,
+} from "@/lib/install/install-token-store";
 
 type GateError = "invalid" | "notConfigured" | null;
 
 function toGateError(error: unknown): GateError {
-  if (error instanceof ApiError && error.code === "INSTALL_TOKEN_NOT_CONFIGURED") return "notConfigured";
+  if (error instanceof ApiError && error.code === "INSTALL_TOKEN_NOT_CONFIGURED")
+    return "notConfigured";
   if (error instanceof ApiError && error.status === 403) return "invalid";
   return null;
 }
@@ -51,29 +56,32 @@ export function InstallTokenGate({ children }: { readonly children: ReactNode })
         <BrandLockup subtitle={t("install.title")} />
       </header>
       <main className="mx-auto w-full max-w-md px-4 py-10">
-    <form className="space-y-3 rounded-lg border border-border bg-surface p-6 shadow-card" onSubmit={(event) => void submit(event)}>
-      <h2 className="text-[15px] font-semibold text-foreground">{t("install.tokenHeading")}</h2>
-      <p className="text-[12.5px] leading-5 text-muted-foreground">{t("install.tokenBody")}</p>
-      <label className="block text-[12px] font-medium text-foreground" htmlFor="install-token">
-        {t("install.tokenLabel")}
-      </label>
-      <input
-        id="install-token"
-        type="password"
-        autoComplete="off"
-        className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-      />
-      {error !== null ? (
-        <p role="alert" className="text-[12px] text-destructive">
-          {t(error === "invalid" ? "install.tokenInvalid" : "install.tokenNotConfigured")}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={isChecking || value.trim().length === 0}>
-        {t("install.tokenSubmit")}
-      </Button>
-    </form>
+        <form
+          className="space-y-3 rounded-lg border border-border bg-surface p-6 shadow-card"
+          onSubmit={(event) => void submit(event)}
+        >
+          <h2 className="text-[15px] font-semibold text-foreground">{t("install.tokenHeading")}</h2>
+          <p className="text-[12.5px] leading-5 text-muted-foreground">{t("install.tokenBody")}</p>
+          <label className="block text-[12px] font-medium text-foreground" htmlFor="install-token">
+            {t("install.tokenLabel")}
+          </label>
+          <input
+            id="install-token"
+            type="password"
+            autoComplete="off"
+            className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          {error !== null ? (
+            <p role="alert" className="text-[12px] text-destructive">
+              {t(error === "invalid" ? "install.tokenInvalid" : "install.tokenNotConfigured")}
+            </p>
+          ) : null}
+          <Button type="submit" disabled={isChecking || value.trim().length === 0}>
+            {t("install.tokenSubmit")}
+          </Button>
+        </form>
       </main>
     </div>
   );

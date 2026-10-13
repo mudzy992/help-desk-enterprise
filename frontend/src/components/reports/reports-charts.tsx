@@ -82,10 +82,7 @@ export function ReportsCharts({
         </Card>
       ) : null}
       <Card className="fade-in">
-        <CardHeader
-          title={volumeTitle}
-          subtitle={t("reports.volumeSubtitle")}
-        />
+        <CardHeader title={volumeTitle} subtitle={t("reports.volumeSubtitle")} />
         <div className="px-4 py-4">
           {serviceItems.length === 0 ? (
             <EmptyState
@@ -115,10 +112,7 @@ export function ReportsCharts({
         </div>
       </Card>
       <Card className="fade-in">
-        <CardHeader
-          title={t("reports.workloadTitle")}
-          subtitle={t("reports.workloadSubtitle")}
-        />
+        <CardHeader title={t("reports.workloadTitle")} subtitle={t("reports.workloadSubtitle")} />
         <div className="px-4 py-4">
           {workloadItems.length === 0 ? (
             <EmptyState title={t("reports.workloadEmpty")} />
@@ -128,10 +122,7 @@ export function ReportsCharts({
         </div>
       </Card>
       <Card className="fade-in xl:col-span-2">
-        <CardHeader
-          title={t("reports.flowTitle")}
-          subtitle={t("reports.flowSubtitle")}
-        />
+        <CardHeader title={t("reports.flowTitle")} subtitle={t("reports.flowSubtitle")} />
         <div className="grid grid-cols-1 gap-6 px-4 py-4 lg:grid-cols-[1fr_300px]">
           <GroupedBars
             data={[...volume]}

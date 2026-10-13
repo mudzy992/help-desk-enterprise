@@ -28,39 +28,30 @@ interface OrganizationalUnitsPageProperties {
   readonly embedded?: boolean;
 }
 
-export function OrganizationalUnitsPage({
-  embedded = false,
-}: OrganizationalUnitsPageProperties) {
+export function OrganizationalUnitsPage({ embedded = false }: OrganizationalUnitsPageProperties) {
   const { t } = useTranslation();
   const directory = useDirectory();
   const { session, hasRole } = useSessionCapabilities();
-  const canManage =
-    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
+  const canManage = session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<DirectorySyncStatus | null>(null);
   const [syncReloadToken, setSyncReloadToken] = useState(0);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editingUnit, setEditingUnit] =
-    useState<ManualDirectoryOrganizationalUnit | null>(null);
+  const [editingUnit, setEditingUnit] = useState<ManualDirectoryOrganizationalUnit | null>(null);
   const catalogActions = useManualDirectoryCatalogActions({
     canManage,
     reloadDirectory: directory.reload,
   });
   const selectedNode =
-    findOrganizationalUnitNode(directory.tree, selectedId) ??
-    directory.tree[0] ??
-    null;
+    findOrganizationalUnitNode(directory.tree, selectedId) ?? directory.tree[0] ?? null;
   /** Paket 5.3.2 (§4.3): the alert renders under the row that raised it. */
   const errorsByUnitId = useMemo(
     () =>
       catalogActions.actionError === null
         ? new Map<string, string>()
         : new Map([
-            [
-              catalogActions.actionError.organizationalUnitId,
-              catalogActions.actionError.message,
-            ],
+            [catalogActions.actionError.organizationalUnitId, catalogActions.actionError.message],
           ]),
     [catalogActions.actionError],
   );
@@ -150,14 +141,14 @@ export function OrganizationalUnitsPage({
             {selectedNode ? (
               <OrganizationalUnitDetailsCard
                 node={selectedNode}
-                memberCount={countOrganizationalUnitMembers(
-                  directory.users,
-                  selectedNode.id,
-                )}
+                memberCount={countOrganizationalUnitMembers(directory.users, selectedNode.id)}
               />
             ) : null}
             {selectedNode ? (
-              <OrganizationalUnitSignatoryCard unitId={selectedNode.id} enabled={session?.modules?.cmdb === true} />
+              <OrganizationalUnitSignatoryCard
+                unitId={selectedNode.id}
+                enabled={session?.modules?.cmdb === true}
+              />
             ) : null}
             <DirectorySyncCard
               canManage={canManage}

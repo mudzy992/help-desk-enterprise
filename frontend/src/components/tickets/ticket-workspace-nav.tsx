@@ -1,7 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import { ticketViewLabelKey, workspaceViewsFor, type TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
+import {
+  ticketViewLabelKey,
+  workspaceViewsFor,
+  type TicketWorkspaceView,
+} from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
 import { cn } from "@/lib/utils";
@@ -26,9 +30,7 @@ export function TicketWorkspaceNav({
   counts = null,
 }: TicketWorkspaceNavProperties) {
   const { t } = useTranslation();
-  const views = workspaceViewsFor(isStaff).filter(
-    (item) => !(inboxHidden && item === "inbox"),
-  );
+  const views = workspaceViewsFor(isStaff).filter((item) => !(inboxHidden && item === "inbox"));
 
   return (
     <nav
@@ -37,7 +39,7 @@ export function TicketWorkspaceNav({
       data-testid="ticket-workspace-nav"
     >
       {views.map((item) => {
-        const inboxCount = item === "inbox" ? counts?.inboxBadgeCount ?? 0 : 0;
+        const inboxCount = item === "inbox" ? (counts?.inboxBadgeCount ?? 0) : 0;
         return (
           <NavLink
             key={item}
@@ -46,15 +48,15 @@ export function TicketWorkspaceNav({
             data-testid={`ticket-view-${item}`}
             className={cn(
               "relative flex h-[38px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-              view === item
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground",
+              view === item ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {ticketText(t, ticketViewLabelKey[item])}
             {inboxCount > 0 ? (
               <>
-                <span className="sr-only">{t("tickets.inboxBadgeLabel", { count: inboxCount })}</span>
+                <span className="sr-only">
+                  {t("tickets.inboxBadgeLabel", { count: inboxCount })}
+                </span>
                 <span aria-hidden="true">
                   <Badge
                     tone={(counts?.unroutedCount ?? 0) > 0 ? "danger" : "primary"}

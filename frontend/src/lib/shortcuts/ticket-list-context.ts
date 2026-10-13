@@ -25,7 +25,10 @@ function storage(): StorageLike | null {
   }
 }
 
-export function saveTicketListContext(context: TicketListContext, target: StorageLike | null = storage()): void {
+export function saveTicketListContext(
+  context: TicketListContext,
+  target: StorageLike | null = storage(),
+): void {
   if (target === null) return;
   try {
     target.setItem(
@@ -37,7 +40,9 @@ export function saveTicketListContext(context: TicketListContext, target: Storag
   }
 }
 
-export function readTicketListContext(source: StorageLike | null = storage()): TicketListContext | null {
+export function readTicketListContext(
+  source: StorageLike | null = storage(),
+): TicketListContext | null {
   if (source === null) return null;
   try {
     const raw = source.getItem(TICKET_LIST_CONTEXT_KEY);
@@ -51,7 +56,9 @@ export function readTicketListContext(source: StorageLike | null = storage()): T
     ) {
       return null;
     }
-    const ids = ((parsed as { ids: unknown[] }).ids).filter((id): id is string => typeof id === "string");
+    const ids = (parsed as { ids: unknown[] }).ids.filter(
+      (id): id is string => typeof id === "string",
+    );
     const listUrl = (parsed as { listUrl: string }).listUrl;
     // Only same-app relative paths are accepted (no open redirect through storage).
     if (!listUrl.startsWith("/") || listUrl.startsWith("//")) return null;

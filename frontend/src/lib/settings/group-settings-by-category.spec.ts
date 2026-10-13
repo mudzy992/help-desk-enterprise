@@ -3,10 +3,7 @@ import { groupSettingsByCategory } from "@/lib/settings/group-settings-by-catego
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 function entry(
-  partial: Pick<
-    SettingRegistryEntry,
-    "key" | "categoryId" | "categoryIcon" | "categoryPriority"
-  >,
+  partial: Pick<SettingRegistryEntry, "key" | "categoryId" | "categoryIcon" | "categoryPriority">,
 ): SettingRegistryEntry {
   return {
     description: "test",

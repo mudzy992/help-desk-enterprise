@@ -22,9 +22,7 @@ export function parseAdminTab(value: string | null): AdminTabKey {
 }
 
 export function buildAdminPath(tab: AdminTabKey, currentSearch = ""): string {
-  const query = currentSearch.startsWith("?")
-    ? currentSearch.slice(1)
-    : currentSearch;
+  const query = currentSearch.startsWith("?") ? currentSearch.slice(1) : currentSearch;
   const params = new URLSearchParams(query);
   params.set("tab", tab);
   return `/admin?${params.toString()}`;
@@ -38,8 +36,6 @@ export function buildAdminGroupsPath(organizationalUnitId?: string): string {
   return `/admin?${params.toString()}`;
 }
 
-export function parseAdminGroupsOrganizationalUnitFilter(
-  searchParams: URLSearchParams,
-): string {
+export function parseAdminGroupsOrganizationalUnitFilter(searchParams: URLSearchParams): string {
   return searchParams.get("ou") ?? "";
 }

@@ -17,9 +17,7 @@ export async function userIsMemberOfAnyGroupForOrganizationalUnit(
     return false;
   }
   const loadedGroups = await Promise.all(groups.map((group) => getGroup(group.id)));
-  return loadedGroups.some((group) =>
-    group.members.some((member) => member.userId === userId),
-  );
+  return loadedGroups.some((group) => group.members.some((member) => member.userId === userId));
 }
 
 export async function findUserRoleGroupCoverageGaps(
@@ -43,8 +41,7 @@ export async function findUserRoleGroupCoverageGaps(
       gaps.push({
         userRoleId: role.id,
         organizationalUnitId,
-        organizationalUnitLabel:
-          role.organizationalUnitPath ?? organizationalUnitId,
+        organizationalUnitLabel: role.organizationalUnitPath ?? organizationalUnitId,
       });
     }
   }

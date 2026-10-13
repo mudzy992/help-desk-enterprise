@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { catalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import type { RoutingCoverageItem } from "@/services/routing-api";
 
-function item(
-  serviceId: string,
-  outcome: "EXACT" | "UNROUTED",
-): RoutingCoverageItem {
+function item(serviceId: string, outcome: "EXACT" | "UNROUTED"): RoutingCoverageItem {
   return {
     originUnitId: "ou-1",
     originUnitPath: "/root",

@@ -79,7 +79,9 @@ export function KnowledgeStarRating({
           : null;
     if (next !== null) {
       event.preventDefault();
-      const target = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-star="${next}"]`);
+      const target = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(
+        `[data-star="${next}"]`,
+      );
       target?.focus();
     }
   };
@@ -151,7 +153,9 @@ export function KnowledgeStarRating({
             className="min-h-20"
             onChange={(event) => setComment(event.target.value)}
           />
-          <p className="text-[11px] text-muted-foreground">{t("knowledgeBase.portal.rating.missingHint")}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {t("knowledgeBase.portal.rating.missingHint")}
+          </p>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -162,7 +166,13 @@ export function KnowledgeStarRating({
             >
               {t("knowledgeBase.portal.rating.send")}
             </Button>
-            <Button type="button" size="sm" variant="ghost" disabled={isSaving} onClick={() => setPending(null)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isSaving}
+              onClick={() => setPending(null)}
+            >
               {t("ui.cancel")}
             </Button>
           </div>

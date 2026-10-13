@@ -1,7 +1,4 @@
-import type {
-  MessageType,
-  TicketMessageResponse,
-} from "@/services/tickets-collaboration-api";
+import type { MessageType, TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 const staffOnlyMessageTypes: readonly MessageType[] = [
   "INTERNAL_NOTE",

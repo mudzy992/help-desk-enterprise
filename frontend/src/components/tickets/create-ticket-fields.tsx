@@ -57,7 +57,10 @@ export function CreateTicketFields({
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.titleField")}
-            <span className="text-danger" aria-hidden="true"> *</span>
+            <span className="text-danger" aria-hidden="true">
+              {" "}
+              *
+            </span>
           </span>
           <input
             className={controlClassName}
@@ -71,7 +74,10 @@ export function CreateTicketFields({
           <label className={labelClassName}>
             <span>
               {t("tickets.originUnit")}
-              <span className="text-danger" aria-hidden="true"> *</span>
+              <span className="text-danger" aria-hidden="true">
+                {" "}
+                *
+              </span>
             </span>
             <select
               className={selectClassName}
@@ -97,7 +103,10 @@ export function CreateTicketFields({
             })}
           </p>
         )}
-        <CreateTicketAssetPicker value={draft.assetId} onChange={(assetId) => onChange({ ...draft, assetId })} />
+        <CreateTicketAssetPicker
+          value={draft.assetId}
+          onChange={(assetId) => onChange({ ...draft, assetId })}
+        />
         {/* M8 #3 (val 5): RAW's `request type` and the wished deadline. */}
         <label className={labelClassName}>
           <span>{t("tickets.requestTypeField")}</span>
@@ -122,7 +131,10 @@ export function CreateTicketFields({
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.descriptionField")}
-            <span className="text-danger" aria-hidden="true"> *</span>
+            <span className="text-danger" aria-hidden="true">
+              {" "}
+              *
+            </span>
           </span>
           <textarea
             className={textareaClassName}
@@ -144,7 +156,10 @@ export function CreateTicketFields({
             />
           </div>
         ) : formsEnabled && requireVersionOnTicket && selectedService ? (
-          <div role="alert" className="rounded-lg border border-danger/35 bg-danger/10 px-3 py-2.5 md:col-span-2">
+          <div
+            role="alert"
+            className="rounded-lg border border-danger/35 bg-danger/10 px-3 py-2.5 md:col-span-2"
+          >
             <p className="text-[12.5px] font-medium text-danger">{t("tickets.noActiveForm")}</p>
             <p className={`mt-0.5 ${hintClassName}`}>{t("tickets.noActiveFormHint")}</p>
           </div>

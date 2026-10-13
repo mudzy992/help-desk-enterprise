@@ -14,7 +14,9 @@ const settingKeysSource = readFileSync(
 );
 const backendKeys = [
   ...new Set(
-    [...settingKeysSource.matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map((match) => match[1]),
+    [...settingKeysSource.matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map(
+      (match) => match[1],
+    ),
   ),
 ].sort();
 

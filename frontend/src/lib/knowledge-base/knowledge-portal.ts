@@ -1,4 +1,7 @@
-import type { KnowledgeCategory, KnowledgeReplyReplacements } from "@/services/knowledge-portal-api";
+import type {
+  KnowledgeCategory,
+  KnowledgeReplyReplacements,
+} from "@/services/knowledge-portal-api";
 
 /** Paket 2.9 (K1): pure helpers of the knowledge portal. */
 
@@ -39,7 +42,8 @@ export function buildKnowledgeCategoryTree<T extends KnowledgeCategory>(
   categories: readonly T[],
 ): readonly KnowledgeCategoryNode<T>[] {
   const byOrder = [...categories].sort(
-    (left, right) => left.sortOrder - right.sortOrder || left.nameBs.localeCompare(right.nameBs, "bs"),
+    (left, right) =>
+      left.sortOrder - right.sortOrder || left.nameBs.localeCompare(right.nameBs, "bs"),
   );
   const ids = new Set(byOrder.map((category) => category.id));
   return byOrder
@@ -59,7 +63,10 @@ export function canSubmitKnowledgeRating(rating: number | null, comment: string)
   if (rating === null || !Number.isInteger(rating) || rating < 1 || rating > 5) {
     return false;
   }
-  return comment.trim().length === 0 || (ratingAllowsComment(rating) && comment.trim().length <= commentMaxLength);
+  return (
+    comment.trim().length === 0 ||
+    (ratingAllowsComment(rating) && comment.trim().length <= commentMaxLength)
+  );
 }
 
 export function formatAverageRating(average: number | null, language: string): string | null {

@@ -5,9 +5,7 @@ type ServiceCatalogReadOnlyBannerProps = {
   readonly visible: boolean;
 };
 
-export function ServiceCatalogReadOnlyBanner({
-  visible,
-}: ServiceCatalogReadOnlyBannerProps) {
+export function ServiceCatalogReadOnlyBanner({ visible }: ServiceCatalogReadOnlyBannerProps) {
   const { t } = useTranslation();
   if (!visible) {
     return null;

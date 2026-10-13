@@ -1,12 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ServiceCategoriesPanel } from "@/components/services/categories/service-categories-panel";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 
 interface ServiceCategoriesAdminSheetProperties {

@@ -46,7 +46,10 @@ export function TicketCreatedRangeFilter({ value, onChange }: TicketCreatedRange
   useEffect(() => {
     setFromDay(instantToLocalDateInput(value.createdFrom));
     setToDay(instantToLocalDateInput(value.createdTo));
-    const next = detectCreatedRangePreset({ createdFrom: value.createdFrom, createdTo: value.createdTo });
+    const next = detectCreatedRangePreset({
+      createdFrom: value.createdFrom,
+      createdTo: value.createdTo,
+    });
     if (next === "custom") setIsCustomOpen(true);
     if (next === "any") setIsCustomOpen(false);
   }, [value.createdFrom, value.createdTo]);
@@ -122,7 +125,11 @@ export function TicketCreatedRangeFilter({ value, onChange }: TicketCreatedRange
             onChange={(event) => applyDays(fromDay, event.target.value)}
           />
           {isInverted ? (
-            <p id={`${id}-error`} role="alert" className="w-full text-[11.5px] text-danger sm:w-auto">
+            <p
+              id={`${id}-error`}
+              role="alert"
+              className="w-full text-[11.5px] text-danger sm:w-auto"
+            >
               {t("tickets.filters.created.inverted")}
             </p>
           ) : null}

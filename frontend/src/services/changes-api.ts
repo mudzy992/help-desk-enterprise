@@ -21,7 +21,14 @@ export const changeStatuses = [
   "CANCELLED",
 ] as const;
 export type ChangeStatus = (typeof changeStatuses)[number];
-export const changeOpenStatuses: readonly ChangeStatus[] = ["DRAFT", "ASSESSMENT", "AUTHORIZATION", "SCHEDULED", "IMPLEMENTING", "REVIEW"];
+export const changeOpenStatuses: readonly ChangeStatus[] = [
+  "DRAFT",
+  "ASSESSMENT",
+  "AUTHORIZATION",
+  "SCHEDULED",
+  "IMPLEMENTING",
+  "REVIEW",
+];
 
 export const changeLevels = ["LOW", "MEDIUM", "HIGH"] as const;
 export type ChangeLevel = (typeof changeLevels)[number];
@@ -32,13 +39,27 @@ export type ChangeRisk = (typeof changeRisks)[number];
 export const changeOutcomes = ["SUCCESSFUL", "PARTIAL", "FAILED", "ROLLED_BACK"] as const;
 export type ChangeOutcome = (typeof changeOutcomes)[number];
 
-export const changeActions = ["submit", "return", "authorize", "withdraw", "schedule", "start", "finish", "close", "cancel"] as const;
+export const changeActions = [
+  "submit",
+  "return",
+  "authorize",
+  "withdraw",
+  "schedule",
+  "start",
+  "finish",
+  "close",
+  "cancel",
+] as const;
 export type ChangeAction = (typeof changeActions)[number];
 
 type NamedRef = { readonly id: string; readonly name: string };
 type UserRef = { readonly id: string; readonly displayName: string; readonly email?: string };
 
-export type ChangeFreezePeriod = { readonly from: string; readonly to: string; readonly label: string };
+export type ChangeFreezePeriod = {
+  readonly from: string;
+  readonly to: string;
+  readonly label: string;
+};
 
 export type ChangeConfiguration = {
   readonly numberPrefix: string;
@@ -107,8 +128,17 @@ export type ChangeDetail = ChangeListItem & {
   readonly outcome: ChangeOutcome | null;
   readonly reviewNotes: string | null;
   readonly template: NamedRef | null;
-  readonly problem: { readonly id: string; readonly number: string; readonly title: string; readonly status: string } | null;
-  readonly assets: readonly { readonly id: string; readonly assetTag: string; readonly name: string }[];
+  readonly problem: {
+    readonly id: string;
+    readonly number: string;
+    readonly title: string;
+    readonly status: string;
+  } | null;
+  readonly assets: readonly {
+    readonly id: string;
+    readonly assetTag: string;
+    readonly name: string;
+  }[];
   readonly approvalRound: number;
   readonly conflictsAcknowledgedAt: string | null;
   readonly submittedAt: string | null;
@@ -242,7 +272,10 @@ export type CreateChangeInput = ChangeWritable & {
   readonly templateId?: string | null;
 };
 
-export type UpdateChangeInput = ChangeWritable & { readonly version: number; readonly type?: ChangeType };
+export type UpdateChangeInput = ChangeWritable & {
+  readonly version: number;
+  readonly type?: ChangeType;
+};
 
 export type ChangeActionInput = {
   readonly version: number;
@@ -285,11 +318,17 @@ export function getChangeOptions(): Promise<ChangeOptions> {
   return apiRequest("/changes/options");
 }
 
-export function searchChangeOwners(search: string): Promise<{ readonly items: readonly UserRef[] }> {
+export function searchChangeOwners(
+  search: string,
+): Promise<{ readonly items: readonly UserRef[] }> {
   return apiRequest(`/changes/owners?${new URLSearchParams({ search }).toString()}`);
 }
 
-export function listChangesPage(filters: ChangeListFilters, cursor?: string, limit = 25): Promise<ChangeListResponse> {
+export function listChangesPage(
+  filters: ChangeListFilters,
+  cursor?: string,
+  limit = 25,
+): Promise<ChangeListResponse> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.status && filters.status.length > 0) params.set("status", filters.status.join(","));
@@ -335,7 +374,9 @@ export function getChangeConflicts(id: string): Promise<ChangeConflicts> {
   return apiRequest(`${path(id)}/conflicts`);
 }
 
-export function previewChangeConflicts(input: ChangeConflictPreviewInput): Promise<ChangeConflicts> {
+export function previewChangeConflicts(
+  input: ChangeConflictPreviewInput,
+): Promise<ChangeConflicts> {
   return apiRequest("/changes/conflicts/preview", { method: "POST", ...json(input) });
 }
 
@@ -343,7 +384,14 @@ export function getChangeApprovals(id: string): Promise<ChangeApprovals> {
   return apiRequest(`${path(id)}/approvals`);
 }
 
-export function voteOnChange(id: string, input: { readonly version: number; readonly decision: ChangeVoteDecision; readonly comment?: string }): Promise<unknown> {
+export function voteOnChange(
+  id: string,
+  input: {
+    readonly version: number;
+    readonly decision: ChangeVoteDecision;
+    readonly comment?: string;
+  },
+): Promise<unknown> {
   return apiRequest(`${path(id)}/approvals`, { method: "POST", ...json(input) });
 }
 
@@ -409,8 +457,17 @@ export type ChangeTemplateInput = {
   readonly serviceIds?: readonly string[];
 };
 
-export type ChangeAssetOption = { readonly id: string; readonly assetTag: string; readonly name: string };
-export type ChangeProblemOption = { readonly id: string; readonly number: string; readonly title: string; readonly status: string };
+export type ChangeAssetOption = {
+  readonly id: string;
+  readonly assetTag: string;
+  readonly name: string;
+};
+export type ChangeProblemOption = {
+  readonly id: string;
+  readonly number: string;
+  readonly title: string;
+  readonly status: string;
+};
 
 export const changeExtraKeys = {
   calendar: (from: string, to: string) => ["changes", "calendar", from, to] as const,
@@ -424,7 +481,9 @@ export function getChangeCalendar(from: string, to: string): Promise<ChangeCalen
   return apiRequest(`/changes/calendar?${new URLSearchParams({ from, to }).toString()}`);
 }
 
-export function listChangeTemplates(includeInactive: boolean): Promise<{ readonly items: readonly ChangeTemplate[] }> {
+export function listChangeTemplates(
+  includeInactive: boolean,
+): Promise<{ readonly items: readonly ChangeTemplate[] }> {
   return apiRequest(`/changes/templates${includeInactive ? "?includeInactive=true" : ""}`);
 }
 
@@ -432,14 +491,24 @@ export function createChangeTemplate(input: ChangeTemplateInput): Promise<Change
   return apiRequest("/changes/templates", { method: "POST", ...json(input) });
 }
 
-export function updateChangeTemplate(id: string, input: ChangeTemplateInput): Promise<ChangeTemplate> {
-  return apiRequest(`/changes/templates/${encodeURIComponent(id)}`, { method: "PUT", ...json(input) });
+export function updateChangeTemplate(
+  id: string,
+  input: ChangeTemplateInput,
+): Promise<ChangeTemplate> {
+  return apiRequest(`/changes/templates/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    ...json(input),
+  });
 }
 
-export function searchChangeAssets(search: string): Promise<{ readonly items: readonly ChangeAssetOption[] }> {
+export function searchChangeAssets(
+  search: string,
+): Promise<{ readonly items: readonly ChangeAssetOption[] }> {
   return apiRequest(`/changes/link-search/assets?${new URLSearchParams({ search }).toString()}`);
 }
 
-export function searchChangeProblems(search: string): Promise<{ readonly items: readonly ChangeProblemOption[] }> {
+export function searchChangeProblems(
+  search: string,
+): Promise<{ readonly items: readonly ChangeProblemOption[] }> {
   return apiRequest(`/changes/link-search/problems?${new URLSearchParams({ search }).toString()}`);
 }

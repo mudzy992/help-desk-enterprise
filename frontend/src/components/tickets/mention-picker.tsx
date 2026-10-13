@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { listMentionCandidates, type MentionCandidate } from "@/services/tickets-agent-collaboration-api";
+import {
+  listMentionCandidates,
+  type MentionCandidate,
+} from "@/services/tickets-agent-collaboration-api";
 
 interface MentionPickerProperties {
   readonly ticketId: string;
@@ -16,7 +19,13 @@ interface MentionPickerProperties {
  * Paket 2.4 (B1): colleagues who can see the ticket, filtered by what follows `@`.
  * Keyboard handling (arrows / Enter / Esc) lives in the composer's textarea.
  */
-export function MentionPicker({ ticketId, query, activeIndex, onCandidates, onPick }: MentionPickerProperties) {
+export function MentionPicker({
+  ticketId,
+  query,
+  activeIndex,
+  onCandidates,
+  onPick,
+}: MentionPickerProperties) {
   const { t } = useTranslation();
   const [candidates, setCandidates] = useState<readonly MentionCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +66,9 @@ export function MentionPicker({ ticketId, query, activeIndex, onCandidates, onPi
     >
       {candidates.length === 0 ? (
         <div className="px-3 py-2 text-[12px] text-muted-foreground">
-          {loading ? t("tickets.collaboration.mentions.loading") : t("tickets.collaboration.mentions.empty")}
+          {loading
+            ? t("tickets.collaboration.mentions.loading")
+            : t("tickets.collaboration.mentions.empty")}
         </div>
       ) : (
         candidates.map((candidate, index) => (
@@ -79,7 +90,9 @@ export function MentionPicker({ ticketId, query, activeIndex, onCandidates, onPi
             <Avatar name={candidate.displayName} size="xs" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{candidate.displayName}</span>
-              <span className="block truncate text-[11px] text-muted-foreground">{candidate.email}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {candidate.email}
+              </span>
             </span>
           </button>
         ))

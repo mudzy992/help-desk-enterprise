@@ -40,7 +40,9 @@ export type ToastRecord = {
   readonly revision: number;
 };
 
-export function toastFingerprint(record: Pick<ToastRecord, "tone" | "title" | "description">): string {
+export function toastFingerprint(
+  record: Pick<ToastRecord, "tone" | "title" | "description">,
+): string {
   return `${record.tone}\u0000${record.title}\u0000${record.description ?? ""}`;
 }
 

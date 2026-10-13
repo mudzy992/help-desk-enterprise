@@ -37,7 +37,6 @@ vi.mock("@/components/ui/toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-
 const config: SecurityRateLimitConfig = {
   accountWindowSeconds: 900,
   accountDelayStartsAfterFailures: 5,
@@ -81,16 +80,18 @@ describe("findOutOfBoundsRateLimit", () => {
 
   it("flags a value under the minimum and one over the maximum", () => {
     expect(findOutOfBoundsRateLimit({ ...config, ipMaxFailures: 0 }, bounds)).toBe("ipMaxFailures");
-    expect(findOutOfBoundsRateLimit({ ...config, accountDelayMaxMilliseconds: 600_001 }, bounds)).toBe(
-      "accountDelayMaxMilliseconds",
-    );
+    expect(
+      findOutOfBoundsRateLimit({ ...config, accountDelayMaxMilliseconds: 600_001 }, bounds),
+    ).toBe("accountDelayMaxMilliseconds");
   });
 
   it("flags a value that is not a whole number", () => {
     expect(findOutOfBoundsRateLimit({ ...config, accountWindowSeconds: 900.5 }, bounds)).toBe(
       "accountWindowSeconds",
     );
-    expect(findOutOfBoundsRateLimit({ ...config, ipMaxFailures: Number.NaN }, bounds)).toBe("ipMaxFailures");
+    expect(findOutOfBoundsRateLimit({ ...config, ipMaxFailures: Number.NaN }, bounds)).toBe(
+      "ipMaxFailures",
+    );
   });
 });
 

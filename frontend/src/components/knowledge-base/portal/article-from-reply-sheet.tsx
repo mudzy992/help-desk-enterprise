@@ -39,7 +39,11 @@ interface ArticleFromReplySheetProperties {
  * text before saving. The article is owned by the agent and starts as DRAFT;
  * the ticket gets an internal note.
  */
-export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: ArticleFromReplySheetProperties) {
+export function ArticleFromReplySheet({
+  source,
+  currentUserId,
+  onOpenChange,
+}: ArticleFromReplySheetProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [draft, setDraft] = useState<KnowledgeDraftFromReply | null>(null);
@@ -91,7 +95,11 @@ export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: A
   );
 
   const canSave =
-    draft !== null && currentUserId !== null && title.trim().length > 0 && body.trim().length > 0 && reason.trim().length > 0;
+    draft !== null &&
+    currentUserId !== null &&
+    title.trim().length > 0 &&
+    body.trim().length > 0 &&
+    reason.trim().length > 0;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -154,7 +162,11 @@ export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: A
         ) : draft === null ? (
           <PanelSkeleton className="mt-4" label={t("knowledgeBase.portal.fromReply.title")} />
         ) : (
-          <form className="mt-4 grid gap-3" onSubmit={onSubmit} data-testid="article-from-reply-form">
+          <form
+            className="mt-4 grid gap-3"
+            onSubmit={onSubmit}
+            data-testid="article-from-reply-form"
+          >
             <div
               role="status"
               className="flex items-start gap-2 rounded-md border border-primary/25 bg-primary/8 px-3 py-2 text-[12px] text-foreground"
@@ -174,12 +186,20 @@ export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: A
             </div>
             <p className="text-[11.5px] text-muted-foreground">
               {t("knowledgeBase.portal.fromReply.source")}{" "}
-              <Link to={`/tickets/${draft.sourceTicketId}`} className="tnum font-medium text-link hover:underline">
+              <Link
+                to={`/tickets/${draft.sourceTicketId}`}
+                className="tnum font-medium text-link hover:underline"
+              >
                 {draft.ticketNumber}
               </Link>
             </p>
             <Field label={t("knowledgeBase.titleField")} required>
-              <Input value={title} maxLength={200} required onChange={(event) => setTitle(event.target.value)} />
+              <Input
+                value={title}
+                maxLength={200}
+                required
+                onChange={(event) => setTitle(event.target.value)}
+              />
             </Field>
             <Field label={t("knowledgeBase.bodyField")} required>
               <Textarea
@@ -201,7 +221,12 @@ export function ArticleFromReplySheet({ source, currentUserId, onOpenChange }: A
               </Select>
             </Field>
             <Field label={t("knowledgeBase.reason")} required>
-              <Input value={reason} maxLength={512} required onChange={(event) => setReason(event.target.value)} />
+              <Input
+                value={reason}
+                maxLength={512}
+                required
+                onChange={(event) => setReason(event.target.value)}
+              />
             </Field>
             {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
             <div className="flex gap-2">

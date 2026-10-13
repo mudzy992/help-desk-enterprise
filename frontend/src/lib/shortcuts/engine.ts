@@ -133,7 +133,8 @@ export function dispatchableIds(
   const ids = new Set<ShortcutId>();
   for (const definition of catalog) {
     if (definition.handledByComponent || !registered.has(definition.id)) continue;
-    if (isSingleKeyShortcut(definition) && (!options.singleKeysEnabled || options.ignoreSingleKeys)) continue;
+    if (isSingleKeyShortcut(definition) && (!options.singleKeysEnabled || options.ignoreSingleKeys))
+      continue;
     ids.add(definition.id);
   }
   return ids;

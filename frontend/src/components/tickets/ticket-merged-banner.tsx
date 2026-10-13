@@ -21,7 +21,11 @@ interface TicketMergedBannerProperties {
  * Package 1.2 (M7): on a merged child — where the work continues, and for
  * staff with `ticket.merge` the way back (unmerge with a reason).
  */
-export function TicketMergedBanner({ ticket, canUnmerge, onUnmerged }: TicketMergedBannerProperties) {
+export function TicketMergedBanner({
+  ticket,
+  canUnmerge,
+  onUnmerged,
+}: TicketMergedBannerProperties) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -48,7 +52,14 @@ export function TicketMergedBanner({ ticket, canUnmerge, onUnmerged }: TicketMer
         . {t("tickets.merge.bannerHint")}
       </span>
       {canUnmerge ? (
-        <Button type="button" size="sm" variant="outline" className="ml-auto" onClick={() => setOpen(true)} data-testid="ticket-unmerge">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() => setOpen(true)}
+          data-testid="ticket-unmerge"
+        >
           {t("tickets.merge.unmerge")}
         </Button>
       ) : null}

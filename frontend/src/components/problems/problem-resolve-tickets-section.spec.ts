@@ -12,7 +12,9 @@ const preview = (overrides: Partial<ProblemResolvePreview> = {}): ProblemResolve
 
 describe("isResolveTicketsValid", () => {
   it("is valid when the group resolution is off", () => {
-    expect(isResolveTicketsValid({ enabled: false, message: "", closeCode: "" }, undefined)).toBe(true);
+    expect(isResolveTicketsValid({ enabled: false, message: "", closeCode: "" }, undefined)).toBe(
+      true,
+    );
   });
 
   it("needs a loaded preview with resolvable tickets and a message", () => {
@@ -24,8 +26,14 @@ describe("isResolveTicketsValid", () => {
   });
 
   it("needs a close code when the policy requires one", () => {
-    const required = preview({ closeCodes: { enabled: true, required: true, codes: [{ key: "fixed", name: "Fixed" }] } });
-    expect(isResolveTicketsValid({ enabled: true, message: "Riješeno.", closeCode: "" }, required)).toBe(false);
-    expect(isResolveTicketsValid({ enabled: true, message: "Riješeno.", closeCode: "fixed" }, required)).toBe(true);
+    const required = preview({
+      closeCodes: { enabled: true, required: true, codes: [{ key: "fixed", name: "Fixed" }] },
+    });
+    expect(
+      isResolveTicketsValid({ enabled: true, message: "Riješeno.", closeCode: "" }, required),
+    ).toBe(false);
+    expect(
+      isResolveTicketsValid({ enabled: true, message: "Riješeno.", closeCode: "fixed" }, required),
+    ).toBe(true);
   });
 });

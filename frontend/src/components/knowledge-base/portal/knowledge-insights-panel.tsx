@@ -41,7 +41,8 @@ export function KnowledgeInsightsPanel() {
   }, [load]);
 
   if (errorKey !== null) return <ApiErrorText messageKey={errorKey} requestId={requestId} />;
-  if (insights === null) return <PanelSkeleton className="mt-0" label={t("knowledgeBase.portal.insights.title")} />;
+  if (insights === null)
+    return <PanelSkeleton className="mt-0" label={t("knowledgeBase.portal.insights.title")} />;
 
   const rating = (article: KnowledgePortalArticle) => {
     const average = formatAverageRating(article.averageRating, i18n.language);
@@ -62,12 +63,20 @@ export function KnowledgeInsightsPanel() {
         }))}
       />
       <InsightList
-        title={t("knowledgeBase.portal.insights.lowestRated", { count: insights.thresholds.minRatings })}
+        title={t("knowledgeBase.portal.insights.lowestRated", {
+          count: insights.thresholds.minRatings,
+        })}
         empty={t("knowledgeBase.portal.insights.emptyRated")}
-        items={insights.lowestRated.map((article) => ({ id: article.id, title: article.title, meta: rating(article) }))}
+        items={insights.lowestRated.map((article) => ({
+          id: article.id,
+          title: article.title,
+          meta: rating(article),
+        }))}
       />
       <InsightList
-        title={t("knowledgeBase.portal.insights.notViewed", { count: insights.thresholds.notViewedDays })}
+        title={t("knowledgeBase.portal.insights.notViewed", {
+          count: insights.thresholds.notViewedDays,
+        })}
         empty={t("knowledgeBase.portal.insights.emptyNotViewed")}
         items={insights.notViewed.map((article) => ({
           id: article.id,
@@ -76,25 +85,36 @@ export function KnowledgeInsightsPanel() {
         }))}
       />
       <Card className="p-4">
-        <h2 className="text-[13px] font-semibold text-foreground">{t("knowledgeBase.portal.insights.comments")}</h2>
+        <h2 className="text-[13px] font-semibold text-foreground">
+          {t("knowledgeBase.portal.insights.comments")}
+        </h2>
         {insights.openComments.length === 0 ? (
-          <p className="mt-2 text-[12px] text-muted-foreground">{t("knowledgeBase.portal.insights.emptyComments")}</p>
+          <p className="mt-2 text-[12px] text-muted-foreground">
+            {t("knowledgeBase.portal.insights.emptyComments")}
+          </p>
         ) : (
           <ul className="mt-2 grid gap-2">
             {insights.openComments.map((comment) => (
               <li key={comment.id} className="rounded-md border border-border/70 px-3 py-2">
                 <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                  <Link to={`/knowledge-base/${comment.articleId}`} className="font-medium text-link hover:underline">
+                  <Link
+                    to={`/knowledge-base/${comment.articleId}`}
+                    className="font-medium text-link hover:underline"
+                  >
                     {comment.articleTitle}
                   </Link>
                   <span className="tnum flex items-center gap-1">
                     <Star size={11} aria-hidden="true" className="fill-warning text-warning" />
-                    <span className="sr-only">{t("knowledgeBase.portal.rating.starLabel", { count: comment.rating })}</span>
+                    <span className="sr-only">
+                      {t("knowledgeBase.portal.rating.starLabel", { count: comment.rating })}
+                    </span>
                     <span aria-hidden="true">{comment.rating}</span>
                     <RelativeTime value={comment.createdAt} locale={i18n.language} />
                   </span>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-[12.5px] text-foreground">{comment.comment}</p>
+                <p className="mt-1 whitespace-pre-wrap text-[12.5px] text-foreground">
+                  {comment.comment}
+                </p>
                 <Button
                   type="button"
                   size="xs"
@@ -102,7 +122,8 @@ export function KnowledgeInsightsPanel() {
                   className="mt-1"
                   onClick={() => void resolveKnowledgeComment(comment.id).then(load)}
                 >
-                  <Check size={12} aria-hidden="true" /> {t("knowledgeBase.portal.insights.resolve")}
+                  <Check size={12} aria-hidden="true" />{" "}
+                  {t("knowledgeBase.portal.insights.resolve")}
                 </Button>
               </li>
             ))}
@@ -120,7 +141,11 @@ function InsightList({
 }: {
   readonly title: string;
   readonly empty: string;
-  readonly items: readonly { readonly id: string; readonly title: string; readonly meta: ReactNode }[];
+  readonly items: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly meta: ReactNode;
+  }[];
 }) {
   return (
     <Card className="p-4">
@@ -131,7 +156,10 @@ function InsightList({
         <ol className="mt-2 grid gap-1.5">
           {items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 text-[12.5px]">
-              <Link to={`/knowledge-base/${item.id}`} className="min-w-0 truncate text-foreground hover:text-link hover:underline">
+              <Link
+                to={`/knowledge-base/${item.id}`}
+                className="min-w-0 truncate text-foreground hover:text-link hover:underline"
+              >
                 {item.title}
               </Link>
               <span className="tnum shrink-0 text-[11px] text-muted-foreground">{item.meta}</span>

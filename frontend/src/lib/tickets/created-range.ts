@@ -11,7 +11,14 @@
  * (a "Last 7 days" view saved yesterday reads as "Custom" today, by design:
  * it keeps the range it was saved with).
  */
-export const createdRangePresets = ["any", "today", "last7", "last30", "thisMonth", "custom"] as const;
+export const createdRangePresets = [
+  "any",
+  "today",
+  "last7",
+  "last30",
+  "thisMonth",
+  "custom",
+] as const;
 export type CreatedRangePreset = (typeof createdRangePresets)[number];
 
 export type CreatedRange = {
@@ -65,7 +72,10 @@ export function rangeFromLocalDays(fromDay: string, toDay: string): CreatedRange
   };
 }
 
-export function rangeForPreset(preset: CreatedRangePreset, now: Date = new Date()): CreatedRange | null {
+export function rangeForPreset(
+  preset: CreatedRangePreset,
+  now: Date = new Date(),
+): CreatedRange | null {
   const end = endOfLocalDay(now).toISOString();
   switch (preset) {
     case "any":
@@ -86,7 +96,10 @@ export function rangeForPreset(preset: CreatedRangePreset, now: Date = new Date(
   }
 }
 
-export function detectCreatedRangePreset(range: CreatedRange, now: Date = new Date()): CreatedRangePreset {
+export function detectCreatedRangePreset(
+  range: CreatedRange,
+  now: Date = new Date(),
+): CreatedRangePreset {
   if (range.createdFrom === "" && range.createdTo === "") return "any";
   for (const preset of ["today", "last7", "last30", "thisMonth"] as const) {
     const candidate = rangeForPreset(preset, now);

@@ -19,7 +19,12 @@ interface ShortcutsHelpDialogProperties {
 const CONTEXT_ORDER: readonly ShortcutContext[] = ["global", "list", "detail", "editor"];
 
 /** Paket 2.8 §4.2: only the shortcuts valid on this screen for this user. */
-export function ShortcutsHelpDialog({ open, onOpenChange, registeredIds, singleKeysEnabled }: ShortcutsHelpDialogProperties) {
+export function ShortcutsHelpDialog({
+  open,
+  onOpenChange,
+  registeredIds,
+  singleKeysEnabled,
+}: ShortcutsHelpDialogProperties) {
   const { t } = useTranslation();
   const visible = shortcutCatalog.filter(
     (item) => registeredIds.has(item.id) && (singleKeysEnabled || !isSingleKeyShortcut(item)),
@@ -32,8 +37,14 @@ export function ShortcutsHelpDialog({ open, onOpenChange, registeredIds, singleK
           {t("a11y.shortcuts.title")}
         </ModalTitle>
         <ModalDescription className="mt-1 text-[12.5px] leading-5 text-muted-foreground">
-          {singleKeysEnabled ? t("a11y.shortcuts.descriptionOn") : t("a11y.shortcuts.descriptionOff")}{" "}
-          <Link to="/appearance#accessibility" className="text-link underline underline-offset-2 hover:decoration-2" onClick={() => onOpenChange(false)}>
+          {singleKeysEnabled
+            ? t("a11y.shortcuts.descriptionOn")
+            : t("a11y.shortcuts.descriptionOff")}{" "}
+          <Link
+            to="/appearance#accessibility"
+            className="text-link underline underline-offset-2 hover:decoration-2"
+            onClick={() => onOpenChange(false)}
+          >
             {t("a11y.shortcuts.settingsLink")}
           </Link>
         </ModalDescription>
@@ -48,8 +59,13 @@ export function ShortcutsHelpDialog({ open, onOpenChange, registeredIds, singleK
                 </h3>
                 <dl className="divide-y divide-border/60 rounded-md border border-border">
                   {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-1.5">
-                      <dt className="text-[12.5px] text-foreground">{t(item.descriptionKey as never)}</dt>
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 px-3 py-1.5"
+                    >
+                      <dt className="text-[12.5px] text-foreground">
+                        {t(item.descriptionKey as never)}
+                      </dt>
                       <dd className="flex shrink-0 items-center gap-1">
                         {item.display.map((label, index) => (
                           <span key={`${label}-${index}`} className="flex items-center gap-1">

@@ -21,9 +21,7 @@ describe("toTicketListSearchParams", () => {
   it("sends several statuses as repeated keys", () => {
     const search = toTicketListSearchParams({ status: ["PENDING", "ASSIGNED"] });
     expect(search.getAll("status")).toEqual(["PENDING", "ASSIGNED"]);
-    expect(toTicketListSearchParams({ status: "CLOSED" }).getAll("status")).toEqual([
-      "CLOSED",
-    ]);
+    expect(toTicketListSearchParams({ status: "CLOSED" }).getAll("status")).toEqual(["CLOSED"]);
   });
 
   it("leaves out empty values and false flags", () => {

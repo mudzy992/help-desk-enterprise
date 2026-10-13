@@ -188,7 +188,10 @@ function ToastCard({
 
   const copyRequestId = () => {
     if (!record.requestId) return;
-    void navigator.clipboard?.writeText(record.requestId).then(() => setCopied(true), () => undefined);
+    void navigator.clipboard?.writeText(record.requestId).then(
+      () => setCopied(true),
+      () => undefined,
+    );
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -213,13 +216,18 @@ function ToastCard({
         <p className="break-words text-[12.5px] font-medium leading-4 text-foreground">
           {record.title}
           {record.count > 1 ? (
-            <span className="ml-1.5 rounded bg-elevated px-1 text-[10.5px] font-semibold text-muted-foreground tnum" aria-label={t("ui.toast.repeated", { count: record.count })}>
+            <span
+              className="ml-1.5 rounded bg-elevated px-1 text-[10.5px] font-semibold text-muted-foreground tnum"
+              aria-label={t("ui.toast.repeated", { count: record.count })}
+            >
               ×{record.count}
             </span>
           ) : null}
         </p>
         {record.description ? (
-          <p className="mt-0.5 break-words text-[11.5px] leading-4 text-muted-foreground">{record.description}</p>
+          <p className="mt-0.5 break-words text-[11.5px] leading-4 text-muted-foreground">
+            {record.description}
+          </p>
         ) : null}
         {record.requestId ? (
           <button
@@ -228,8 +236,16 @@ function ToastCard({
             className="mt-1 inline-flex max-w-full items-center gap-1 rounded text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
             aria-label={t("ui.toast.copyRequestId", { requestId: record.requestId })}
           >
-            {copied ? <Check size={11} aria-hidden="true" /> : <Copy size={11} aria-hidden="true" />}
-            <span className="truncate font-mono">{copied ? t("ui.toast.copied") : t("errors.requestId", { requestId: record.requestId })}</span>
+            {copied ? (
+              <Check size={11} aria-hidden="true" />
+            ) : (
+              <Copy size={11} aria-hidden="true" />
+            )}
+            <span className="truncate font-mono">
+              {copied
+                ? t("ui.toast.copied")
+                : t("errors.requestId", { requestId: record.requestId })}
+            </span>
           </button>
         ) : null}
         {record.action ? (

@@ -22,9 +22,7 @@ export interface IntegrationWorkerStatusState {
  * The socket is deliberately not used here: the queue card is an admin view and its
  * channel is not part of the realtime contract, so nothing new is emitted for it.
  */
-export function useIntegrationWorkerStatus(
-  enabled: boolean,
-): IntegrationWorkerStatusState {
+export function useIntegrationWorkerStatus(enabled: boolean): IntegrationWorkerStatusState {
   const [status, setStatus] = useState<IntegrationWorkerStatus>("unknown");
   const [isRefreshing, setRefreshing] = useState(false);
 

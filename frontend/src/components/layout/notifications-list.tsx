@@ -41,9 +41,7 @@ export function NotificationsList({
   const { t } = useTranslation();
   if (items.length === 0) {
     return (
-      <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
-        {emptyLabel}
-      </p>
+      <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">{emptyLabel}</p>
     );
   }
   return (

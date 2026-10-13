@@ -19,7 +19,14 @@ const report = (overrides: Partial<ConfigPackageImportReport> = {}): ConfigPacka
   signature: "unsigned",
   items: [
     { kind: "service", key: "vpn", status: "resolved", localId: "s1", blocking: false, usedBy: [] },
-    { kind: "playbook", key: "Onboarding", status: "missing", localId: null, blocking: false, usedBy: ["x"] },
+    {
+      kind: "playbook",
+      key: "Onboarding",
+      status: "missing",
+      localId: null,
+      blocking: false,
+      usedBy: ["x"],
+    },
     { kind: "group", key: "IT", status: "missing", localId: null, blocking: true, usedBy: ["y"] },
   ],
   settings: { applied: [], skippedEnvironmentBound: [], skippedUnknown: [] },
@@ -32,7 +39,10 @@ const report = (overrides: Partial<ConfigPackageImportReport> = {}): ConfigPacka
 
 describe("config package mapping (Paket 2.9 K4)", () => {
   it("lists unresolved items with blocking ones first", () => {
-    expect(unresolvedConfigPackageItems(report()).map((item) => item.key)).toEqual(["IT", "Onboarding"]);
+    expect(unresolvedConfigPackageItems(report()).map((item) => item.key)).toEqual([
+      "IT",
+      "Onboarding",
+    ]);
   });
 
   it("adds and removes mappings immutably", () => {
@@ -45,6 +55,8 @@ describe("config package mapping (Paket 2.9 K4)", () => {
     expect(configPackageImportReady(report(), true)).toBe(false);
     expect(configPackageImportReady(report({ canImport: true }), false)).toBe(false);
     expect(configPackageImportReady(report({ canImport: true }), true)).toBe(true);
-    expect(configPackageImportReady(report({ canImport: true, signature: "valid" }), false)).toBe(true);
+    expect(configPackageImportReady(report({ canImport: true, signature: "valid" }), false)).toBe(
+      true,
+    );
   });
 });

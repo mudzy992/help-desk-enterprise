@@ -49,11 +49,7 @@ export function RoutingCoverageCell({
         <span className="sr-only">{t(labelKey)}</span>
       </button>
       {isActive ? (
-        <RoutingCoverageTooltip
-          anchorRef={buttonRef}
-          item={item}
-          groupName={groupName}
-        />
+        <RoutingCoverageTooltip anchorRef={buttonRef} item={item} groupName={groupName} />
       ) : null}
     </td>
   );

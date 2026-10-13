@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  applyTicketListTab,
-  ticketListTabKey,
-} from "@/components/tickets/ticket-list-filters";
+import { applyTicketListTab, ticketListTabKey } from "@/components/tickets/ticket-list-filters";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 
 function filters(overrides: Partial<TicketListFilters> = {}): TicketListFilters {

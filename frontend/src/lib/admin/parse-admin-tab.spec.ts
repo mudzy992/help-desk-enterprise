@@ -28,13 +28,9 @@ describe("parseAdminTab", () => {
 
   it("builds groups admin path with optional organizational unit filter", () => {
     expect(buildAdminGroupsPath()).toBe("/admin?tab=groups");
-    expect(buildAdminGroupsPath("ou-breza")).toBe(
-      "/admin?tab=groups&ou=ou-breza",
-    );
+    expect(buildAdminGroupsPath("ou-breza")).toBe("/admin?tab=groups&ou=ou-breza");
     expect(
-      parseAdminGroupsOrganizationalUnitFilter(
-        new URLSearchParams("tab=groups&ou=ou-breza"),
-      ),
+      parseAdminGroupsOrganizationalUnitFilter(new URLSearchParams("tab=groups&ou=ou-breza")),
     ).toBe("ou-breza");
   });
 });

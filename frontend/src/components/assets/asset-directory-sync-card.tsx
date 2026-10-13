@@ -6,7 +6,12 @@ import { FlaskConical, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
+import {
+  errorTextClassName,
+  hintClassName,
+  tableHeadClassName,
+  tableRowClassName,
+} from "@/components/ui/control";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
@@ -22,14 +27,25 @@ import {
   type AssetDirectorySyncTotals,
 } from "@/services/assets-api";
 
-const totalKeys = ["seen", "create", "update", "adopt", "missing", "conflicts"] as const satisfies readonly (keyof AssetDirectorySyncTotals)[];
+const totalKeys = [
+  "seen",
+  "create",
+  "update",
+  "adopt",
+  "missing",
+  "conflicts",
+] as const satisfies readonly (keyof AssetDirectorySyncTotals)[];
 
 /** Paket 3.2 (§12): AD computers — status, dry-run and manual sync (admins). */
 export function AssetDirectorySyncCard() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const statusQuery = useQuery({ queryKey: assetDirectoryQueryKeys.status, queryFn: getAssetDirectorySyncStatus, retry: false });
+  const statusQuery = useQuery({
+    queryKey: assetDirectoryQueryKeys.status,
+    queryFn: getAssetDirectorySyncStatus,
+    retry: false,
+  });
   const [report, setReport] = useState<AssetDirectorySyncReport | null>(null);
   const [pending, setPending] = useState<"dry" | "run" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +58,23 @@ export function AssetDirectorySyncCard() {
       const result = await runAssetDirectorySync(dryRun);
       setReport(result);
       if (!dryRun) {
-        toast({ tone: "success", title: t("assets.directory.appliedTitle"), description: t("assets.directory.appliedBody", result.applied ?? { created: 0, updated: 0, failed: 0 }) });
+        toast({
+          tone: "success",
+          title: t("assets.directory.appliedTitle"),
+          description: t(
+            "assets.directory.appliedBody",
+            result.applied ?? { created: 0, updated: 0, failed: 0 },
+          ),
+        });
         void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
       } else {
         void queryClient.invalidateQueries({ queryKey: assetDirectoryQueryKeys.status });
       }
     } catch (caught) {
-      const detail = caught instanceof ApiError && caught.message && caught.message !== caught.code ? ` (${caught.message})` : "";
+      const detail =
+        caught instanceof ApiError && caught.message && caught.message !== caught.code
+          ? ` (${caught.message})`
+          : "";
       setError(`${t(mapAssetError(caught) ?? mapApiError(caught))}${detail}`);
     } finally {
       setPending(null);
@@ -56,7 +82,8 @@ export function AssetDirectorySyncCard() {
   }
 
   const totals = report?.totals ?? status?.lastRun?.totals ?? null;
-  const conflicts: readonly AssetDirectoryConflict[] = report?.conflicts ?? status?.lastRun?.conflicts ?? [];
+  const conflicts: readonly AssetDirectoryConflict[] =
+    report?.conflicts ?? status?.lastRun?.conflicts ?? [];
 
   return (
     <Card className="p-0">
@@ -66,7 +93,9 @@ export function AssetDirectorySyncCard() {
         actions={
           status ? (
             <Badge tone={status.enabled ? "success" : "neutral"} dot>
-              {status.enabled ? t("assets.directory.enabled", { hours: status.intervalHours }) : t("assets.directory.disabled")}
+              {status.enabled
+                ? t("assets.directory.enabled", { hours: status.intervalHours })
+                : t("assets.directory.disabled")}
             </Badge>
           ) : undefined
         }
@@ -75,22 +104,43 @@ export function AssetDirectorySyncCard() {
         {statusQuery.isLoading ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
         {status ? (
           <p className={hintClassName}>
-            {t("assets.directory.summary", { assets: status.directoryAssets, missing: status.missingAssets })}{" "}
-            {status.lastApplied ? t("assets.directory.lastApplied", { time: formatAssetDateTime(status.lastApplied.at, i18n.language) }) : t("assets.directory.neverApplied")}
+            {t("assets.directory.summary", {
+              assets: status.directoryAssets,
+              missing: status.missingAssets,
+            })}{" "}
+            {status.lastApplied
+              ? t("assets.directory.lastApplied", {
+                  time: formatAssetDateTime(status.lastApplied.at, i18n.language),
+                })
+              : t("assets.directory.neverApplied")}
           </p>
         ) : null}
-        {status && !status.configured ? <p className={hintClassName}>{t("assets.directory.notConfigured")}</p> : null}
+        {status && !status.configured ? (
+          <p className={hintClassName}>{t("assets.directory.notConfigured")}</p>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" disabled={pending !== null || status?.configured === false} onClick={() => void run(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending !== null || status?.configured === false}
+            onClick={() => void run(true)}
+          >
             <FlaskConical size={14} aria-hidden="true" />
             {pending === "dry" ? t("ui.loading") : t("assets.directory.dryRun")}
           </Button>
-          <Button variant="primary" size="sm" disabled={pending !== null || !status?.enabled || !status.configured} onClick={() => void run(false)}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={pending !== null || !status?.enabled || !status.configured}
+            onClick={() => void run(false)}
+          >
             <RefreshCw size={14} aria-hidden="true" />
             {pending === "run" ? t("ui.loading") : t("assets.directory.runNow")}
           </Button>
-          {status && !status.enabled ? <span className={hintClassName}>{t("assets.directory.enableHint")}</span> : null}
+          {status && !status.enabled ? (
+            <span className={hintClassName}>{t("assets.directory.enableHint")}</span>
+          ) : null}
         </div>
 
         {error ? (
@@ -107,16 +157,27 @@ export function AssetDirectorySyncCard() {
                   ? t("assets.directory.dryRunResult")
                   : t("assets.directory.runResult")
                 : status?.lastRun
-                  ? t("assets.directory.lastRun", { time: formatAssetDateTime(status.lastRun.at, i18n.language), kind: status.lastRun.dryRun ? t("assets.directory.kindDry") : t("assets.directory.kindApplied") })
+                  ? t("assets.directory.lastRun", {
+                      time: formatAssetDateTime(status.lastRun.at, i18n.language),
+                      kind: status.lastRun.dryRun
+                        ? t("assets.directory.kindDry")
+                        : t("assets.directory.kindApplied"),
+                    })
                   : null}
             </h3>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
               {totalKeys.map((key) => (
-                <StatCard key={key} label={t(`assets.directory.totals.${key}` as const)} value={totals[key]} />
+                <StatCard
+                  key={key}
+                  label={t(`assets.directory.totals.${key}` as const)}
+                  value={totals[key]}
+                />
               ))}
             </div>
             {(report?.missingGuardTripped ?? status?.lastRun?.missingGuardTripped) ? (
-              <p className={errorTextClassName}>{t("assets.directory.guardTripped", { count: report?.wouldFlagMissing ?? 0 })}</p>
+              <p className={errorTextClassName}>
+                {t("assets.directory.guardTripped", { count: report?.wouldFlagMissing ?? 0 })}
+              </p>
             ) : null}
           </section>
         ) : null}
@@ -124,26 +185,44 @@ export function AssetDirectorySyncCard() {
         {conflicts.length > 0 ? (
           <div className="overflow-x-auto rounded-md border border-border/70">
             <table className="w-full text-[12.5px]">
-              <caption className="px-3 py-2 text-left text-[12.5px] font-medium text-foreground">{t("assets.directory.conflictsTitle", { count: conflicts.length })}</caption>
+              <caption className="px-3 py-2 text-left text-[12.5px] font-medium text-foreground">
+                {t("assets.directory.conflictsTitle", { count: conflicts.length })}
+              </caption>
               <thead>
                 <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.directory.asset")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.directory.assigned")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.directory.suggested")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.directory.asset")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.directory.assigned")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.directory.suggested")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {conflicts.map((conflict) => (
                   <tr key={conflict.assetId} className={tableRowClassName}>
                     <td className="px-3 py-2">
-                      <Link className="underline-offset-2 hover:underline" to={`/assets/${encodeURIComponent(conflict.assetId)}`}>
+                      <Link
+                        className="underline-offset-2 hover:underline"
+                        to={`/assets/${encodeURIComponent(conflict.assetId)}`}
+                      >
                         {conflict.name}
                       </Link>
                     </td>
                     <td className="px-3 py-2">{conflict.assignedUser ?? "—"}</td>
                     <td className="px-3 py-2">
                       {conflict.suggestedUser ?? "—"}{" "}
-                      <span className="text-muted-foreground">({t(`assets.directory.matchedBy.${conflict.matchedBy}` as "assets.directory.matchedBy.managedBy", { defaultValue: conflict.matchedBy })})</span>
+                      <span className="text-muted-foreground">
+                        (
+                        {t(
+                          `assets.directory.matchedBy.${conflict.matchedBy}` as "assets.directory.matchedBy.managedBy",
+                          { defaultValue: conflict.matchedBy },
+                        )}
+                        )
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -154,7 +233,9 @@ export function AssetDirectorySyncCard() {
 
         {report && report.skipped.length > 0 ? (
           <details className="text-[12.5px]">
-            <summary className="cursor-pointer text-foreground">{t("assets.directory.skippedTitle", { count: report.skipped.length })}</summary>
+            <summary className="cursor-pointer text-foreground">
+              {t("assets.directory.skippedTitle", { count: report.skipped.length })}
+            </summary>
             <ul className="mt-1 list-disc pl-5">
               {report.skipped.map((skip) => (
                 <li key={skip.externalId}>
@@ -167,12 +248,20 @@ export function AssetDirectorySyncCard() {
 
         {report && report.preview.length > 0 ? (
           <details className="text-[12.5px]">
-            <summary className="cursor-pointer text-foreground">{t("assets.directory.previewTitle", { count: report.preview.length })}</summary>
+            <summary className="cursor-pointer text-foreground">
+              {t("assets.directory.previewTitle", { count: report.preview.length })}
+            </summary>
             <ul className="mt-1 list-disc pl-5">
               {report.preview.map((item, index) => (
                 <li key={`${item.name}-${index}`}>
-                  {t(`assets.directory.actions.${item.action}` as "assets.directory.actions.create", { defaultValue: item.action })}: {item.name}
-                  {item.changes.length > 0 ? <span className="text-muted-foreground"> ({item.changes.join(", ")})</span> : null}
+                  {t(
+                    `assets.directory.actions.${item.action}` as "assets.directory.actions.create",
+                    { defaultValue: item.action },
+                  )}
+                  : {item.name}
+                  {item.changes.length > 0 ? (
+                    <span className="text-muted-foreground"> ({item.changes.join(", ")})</span>
+                  ) : null}
                 </li>
               ))}
             </ul>

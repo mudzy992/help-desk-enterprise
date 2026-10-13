@@ -4,10 +4,7 @@ import {
   mapKnowledgeArticleError,
   type KnowledgeArticleErrorKey,
 } from "@/lib/knowledge-base/map-knowledge-article-error";
-import {
-  getKnowledgeArticle,
-  type KnowledgeArticleResponse,
-} from "@/services/knowledge-base-api";
+import { getKnowledgeArticle, type KnowledgeArticleResponse } from "@/services/knowledge-base-api";
 
 export type KnowledgeArticleDetailState = {
   readonly article: KnowledgeArticleResponse | null;
@@ -17,14 +14,10 @@ export type KnowledgeArticleDetailState = {
   readonly reload: () => Promise<void>;
 };
 
-export function useKnowledgeArticle(
-  articleId: string | undefined,
-): KnowledgeArticleDetailState {
+export function useKnowledgeArticle(articleId: string | undefined): KnowledgeArticleDetailState {
   const [article, setArticle] = useState<KnowledgeArticleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(
-    null,
-  );
+  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {

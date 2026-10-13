@@ -1,11 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { CreateKnowledgeArticleForm } from "@/components/knowledge-base/create-knowledge-article-form";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
 import type { ServiceResponse } from "@/services/service-catalog-api";

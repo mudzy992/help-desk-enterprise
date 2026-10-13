@@ -1,5 +1,13 @@
 import { AlertTriangle, FileText, Search, User } from "lucide-react";
-import { type KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +88,13 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
 
   // Close on outside press (Paket 5.3.0, D3). Escape stays with the picker's
   // own key handler (it also drives arrow/Enter navigation).
-  useDismissable({ isOpen: true, onDismiss: onClose, panelRef: panelReference, restoreFocus: false, closeOnEscape: false });
+  useDismissable({
+    isOpen: true,
+    onDismiss: onClose,
+    panelRef: panelReference,
+    restoreFocus: false,
+    closeOnEscape: false,
+  });
 
   const groups = useMemo(() => groupPickerItems(items ?? [], query), [items, query]);
   const flat = useMemo(() => flattenPickerGroups(groups), [groups]);
@@ -155,11 +169,17 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
       aria-label={t("templates.picker.button")}
       data-testid="template-picker"
       onKeyDown={onKeyDown}
-      className={cn(floatingPanelClassName, "absolute bottom-full left-0 z-40 mb-2 w-[min(720px,calc(100vw-2rem))]")}
+      className={cn(
+        floatingPanelClassName,
+        "absolute bottom-full left-0 z-40 mb-2 w-[min(720px,calc(100vw-2rem))]",
+      )}
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-border/70 p-2">
         <div className="relative min-w-[200px] flex-1">
-          <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={13}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             ref={searchReference}
             type="search"
@@ -187,7 +207,11 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
         <Checkbox
           checked={showAll}
           onChange={(event) => setShowAll(event.target.checked)}
-          label={<span className="text-[12px] text-muted-foreground">{t("templates.picker.showAll")}</span>}
+          label={
+            <span className="text-[12px] text-muted-foreground">
+              {t("templates.picker.showAll")}
+            </span>
+          }
         />
       </div>
       {errorKey !== null ? (
@@ -196,11 +220,19 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
         </p>
       ) : null}
       <div className="grid max-h-[340px] grid-cols-1 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <ul id={listId} role="listbox" className="max-h-[340px] overflow-y-auto border-border/70 py-1 sm:border-r">
+        <ul
+          id={listId}
+          role="listbox"
+          className="max-h-[340px] overflow-y-auto border-border/70 py-1 sm:border-r"
+        >
           {items === null && errorKey === null ? (
-            <li className="px-3 py-2 text-[12.5px] text-muted-foreground">{t("templates.picker.loading")}</li>
+            <li className="px-3 py-2 text-[12.5px] text-muted-foreground">
+              {t("templates.picker.loading")}
+            </li>
           ) : flat.length === 0 ? (
-            <li className="px-3 py-2 text-[12.5px] text-muted-foreground">{t("templates.picker.empty")}</li>
+            <li className="px-3 py-2 text-[12.5px] text-muted-foreground">
+              {t("templates.picker.empty")}
+            </li>
           ) : (
             groups.map((group) => (
               <li key={group.section} role="presentation">
@@ -231,7 +263,9 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
                           ) : (
                             <FileText size={12} className="shrink-0 text-muted-foreground" />
                           )}
-                          <span className="truncate text-[12.5px] font-medium text-foreground">{item.name}</span>
+                          <span className="truncate text-[12.5px] font-medium text-foreground">
+                            {item.name}
+                          </span>
                           {item.hasEnglish ? (
                             <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                               {t("templates.picker.hasEnglish")}
@@ -255,8 +289,12 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
           {current === null ? null : (
             <>
               <div className="mb-2 flex items-center gap-2">
-                <span className="truncate text-[12.5px] font-semibold text-foreground">{current.name}</span>
-                {current.ownership === "personal" ? <Badge>{t("templates.picker.personal")}</Badge> : null}
+                <span className="truncate text-[12.5px] font-semibold text-foreground">
+                  {current.name}
+                </span>
+                {current.ownership === "personal" ? (
+                  <Badge>{t("templates.picker.personal")}</Badge>
+                ) : null}
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/70 bg-elevated/40 p-2.5 text-[12.5px] leading-relaxed text-foreground/95">
                 {preview?.text ?? current.preview}
@@ -265,12 +303,19 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
                 <p className="mt-2 flex items-start gap-1.5 text-[11.5px] text-warning">
                   <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                   {t("templates.picker.missing", {
-                    names: preview.missing.map((name) => t(`templates.variable.${name}`)).join(", "),
+                    names: preview.missing
+                      .map((name) => t(`templates.variable.${name}`))
+                      .join(", "),
                   })}
                 </p>
               ) : null}
               <div className="mt-2 flex items-center justify-end">
-                <Button type="button" size="xs" disabled={isInserting} onClick={() => void insert(current)}>
+                <Button
+                  type="button"
+                  size="xs"
+                  disabled={isInserting}
+                  onClick={() => void insert(current)}
+                >
                   {isInserting ? t("templates.picker.inserting") : t("templates.picker.insert")}
                 </Button>
               </div>

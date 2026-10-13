@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+public
+src/i18n/locales
+package-lock.json

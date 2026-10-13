@@ -32,10 +32,7 @@ export function RoutingResolutionResult({
   const { t } = useTranslation();
   return (
     <Card>
-      <CardHeader
-        title={t("routing.resolutionTitle")}
-        subtitle={t("routing.resolutionSubtitle")}
-      />
+      <CardHeader title={t("routing.resolutionTitle")} subtitle={t("routing.resolutionSubtitle")} />
       <div className="fade-in px-4 py-4">
         {isLoading ? (
           <PanelSkeleton className="mt-0" label={t("routing.resolutionTitle")} />
@@ -96,9 +93,7 @@ function ResolutionBody({
       {resolution.outcome === "UNROUTED" ? (
         <div className="mt-3 rounded-lg border border-danger/30 bg-danger/6 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85">
           {t("routing.unroutedBanner")}
-          {queue ? (
-            <span className="tnum"> {queue.ownerRole}</span>
-          ) : null}
+          {queue ? <span className="tnum"> {queue.ownerRole}</span> : null}
         </div>
       ) : null}
       <FallbackPath resolution={resolution} />
@@ -139,8 +134,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
       <div className="flex flex-wrap items-center gap-1.5">
         {resolution.fallbackPath.map((path, index) => {
           const isMatch =
-            resolution.matchedOriginUnitId !== null &&
-            index === resolution.fallbackPath.length - 1;
+            resolution.matchedOriginUnitId !== null && index === resolution.fallbackPath.length - 1;
           return (
             <span key={`${path}-${index}`} className="flex items-center gap-1.5">
               <span
@@ -153,9 +147,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
               >
                 {path}
                 {index === 0 ? (
-                  <span className="ml-1 text-[9px] text-info">
-                    {t("routing.originChip")}
-                  </span>
+                  <span className="ml-1 text-[9px] text-info">{t("routing.originChip")}</span>
                 ) : null}
                 {isMatch ? <span className="ml-1">✓</span> : null}
               </span>
@@ -172,10 +164,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
 
 function outcomeLabelKey(
   outcome: RoutingResolution["outcome"],
-):
-  | "routing.outcomeExact"
-  | "routing.outcomeInherited"
-  | "routing.outcomeUnrouted" {
+): "routing.outcomeExact" | "routing.outcomeInherited" | "routing.outcomeUnrouted" {
   if (outcome === "EXACT") {
     return "routing.outcomeExact";
   }

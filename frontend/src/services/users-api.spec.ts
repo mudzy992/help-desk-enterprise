@@ -43,9 +43,10 @@ describe("listUsersSummaryPage", () => {
       headers: new Headers({ "X-Total-Count": "1204" }),
     });
 
-    await expect(
-      listUsersSummaryPage({ take: 100, skip: 300, query: " user " }),
-    ).resolves.toEqual({ items: [user], total: 1204 });
+    await expect(listUsersSummaryPage({ take: 100, skip: 300, query: " user " })).resolves.toEqual({
+      items: [user],
+      total: 1204,
+    });
     expect(requestWithHeaders).toHaveBeenCalledWith("/users?take=100&skip=300&q=user");
   });
 

@@ -3,10 +3,22 @@ import { highlightCode, parseInline, parseMarkdown, safeHref } from "./simple-ma
 
 describe("parseMarkdown", () => {
   it("parses the blocks used by the generated notice", () => {
-    const blocks = parseMarkdown("> **NACRT**\n\n# Naslov\n\nUvod\nnastavak.\n\n## Prava\n\n- jedan\n- dva\n\n1. prvi\n2. drugi");
-    expect(blocks.map((block) => block.kind)).toEqual(["quote", "heading", "paragraph", "heading", "list", "list"]);
+    const blocks = parseMarkdown(
+      "> **NACRT**\n\n# Naslov\n\nUvod\nnastavak.\n\n## Prava\n\n- jedan\n- dva\n\n1. prvi\n2. drugi",
+    );
+    expect(blocks.map((block) => block.kind)).toEqual([
+      "quote",
+      "heading",
+      "paragraph",
+      "heading",
+      "list",
+      "list",
+    ]);
     expect(blocks[1]).toMatchObject({ kind: "heading", level: 1 });
-    expect(blocks[2]).toEqual({ kind: "paragraph", children: [{ kind: "text", text: "Uvod nastavak." }] });
+    expect(blocks[2]).toEqual({
+      kind: "paragraph",
+      children: [{ kind: "text", text: "Uvod nastavak." }],
+    });
     expect(blocks[4]).toMatchObject({ kind: "list", ordered: false });
     expect(blocks[5]).toMatchObject({ kind: "list", ordered: true });
   });
@@ -30,7 +42,10 @@ describe("parseMarkdown", () => {
   });
 
   it("drops unsafe link targets but keeps their text", () => {
-    expect(parseInline("[klik](javascript:alert(1))")).toEqual([{ kind: "text", text: "klik" }, { kind: "text", text: ")" }]);
+    expect(parseInline("[klik](javascript:alert(1))")).toEqual([
+      { kind: "text", text: "klik" },
+      { kind: "text", text: ")" },
+    ]);
     expect(safeHref("mailto:dpo@example.com")).toBe("mailto:dpo@example.com");
     expect(safeHref("data:text/html,x")).toBeNull();
   });
@@ -58,7 +73,9 @@ describe("parseMarkdown", () => {
   });
 
   it("leaves an unmatched delimiter as text", () => {
-    expect(parseInline("5 * 3 i **otvoreno")).toEqual([{ kind: "text", text: "5 * 3 i **otvoreno" }]);
+    expect(parseInline("5 * 3 i **otvoreno")).toEqual([
+      { kind: "text", text: "5 * 3 i **otvoreno" },
+    ]);
   });
 });
 
@@ -80,7 +97,7 @@ describe("Faza 3 (c): tabele, kod, callouti i slike", () => {
   });
 
   it("parses a fenced code block with its language", () => {
-    const blocks = parseMarkdown("```json\n{ \"a\": 1 }\n```");
+    const blocks = parseMarkdown('```json\n{ "a": 1 }\n```');
     expect(blocks).toEqual([{ kind: "codeBlock", language: "json", text: '{ "a": 1 }' }]);
   });
 
@@ -102,8 +119,12 @@ describe("Faza 3 (c): tabele, kod, callouti i slike", () => {
 
   it("highlights strings, comments, numbers and known keywords", () => {
     const tokens = highlightCode('const a = 1; // komentar\n"tekst"', "ts");
-    expect(tokens.filter((token) => token.kind === "keyword").map((token) => token.text)).toEqual(["const"]);
-    expect(tokens.some((token) => token.kind === "comment" && token.text.includes("komentar"))).toBe(true);
+    expect(tokens.filter((token) => token.kind === "keyword").map((token) => token.text)).toEqual([
+      "const",
+    ]);
+    expect(
+      tokens.some((token) => token.kind === "comment" && token.text.includes("komentar")),
+    ).toBe(true);
     expect(tokens.some((token) => token.kind === "string" && token.text === '"tekst"')).toBe(true);
     expect(tokens.some((token) => token.kind === "number" && token.text === "1")).toBe(true);
   });

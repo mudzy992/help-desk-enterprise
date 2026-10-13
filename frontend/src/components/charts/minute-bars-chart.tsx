@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChartDataTable } from "@/components/charts/chart-data-table";
 import { describeChart } from "@/lib/charts/chart-summary";
-import { axisTickIndexes, barHeightPercent, minuteBarsMax, seriesPeak } from "@/lib/charts/minute-series";
+import {
+  axisTickIndexes,
+  barHeightPercent,
+  minuteBarsMax,
+  seriesPeak,
+} from "@/lib/charts/minute-series";
 import { cn } from "@/lib/utils";
 
 /*
@@ -78,7 +83,9 @@ export function MinuteBarsChart({
           <span className={cn("h-2 w-3 rounded-sm", stripTones[key].legend)} />
           {label}
         </span>
-        <span className="tnum">{t("a11y.chart.seriesPeak", { value: seriesPeak(series(key)) })}</span>
+        <span className="tnum">
+          {t("a11y.chart.seriesPeak", { value: seriesPeak(series(key)) })}
+        </span>
       </div>
       <div className="mt-1 flex items-end gap-px" style={{ height }}>
         {data.map((point, index) => (

@@ -14,7 +14,11 @@ import {
  * ticket itself changes (`ticket.updated` in the room already refreshes the
  * ticket), so another agent's ticks show up without a dedicated event.
  */
-export function useTicketPlaybook(ticketId: string | undefined, enabled: boolean, ticketVersion: string | undefined) {
+export function useTicketPlaybook(
+  ticketId: string | undefined,
+  enabled: boolean,
+  ticketVersion: string | undefined,
+) {
   const [view, setView] = useState<TicketPlaybookView | null>(null);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
   const [busy, setBusy] = useState(false);
@@ -87,10 +91,15 @@ export function useTicketPlaybook(ticketId: string | undefined, enabled: boolean
     reload,
     setStep,
     attach: (playbookId: string) =>
-      ticketId === undefined ? Promise.resolve(false) : run(() => attachTicketPlaybook(ticketId, playbookId)),
+      ticketId === undefined
+        ? Promise.resolve(false)
+        : run(() => attachTicketPlaybook(ticketId, playbookId)),
     detach: (reason: string) =>
-      ticketId === undefined ? Promise.resolve(false) : run(() => detachTicketPlaybook(ticketId, reason)),
-    upgrade: () => (ticketId === undefined ? Promise.resolve(false) : run(() => upgradeTicketPlaybook(ticketId))),
+      ticketId === undefined
+        ? Promise.resolve(false)
+        : run(() => detachTicketPlaybook(ticketId, reason)),
+    upgrade: () =>
+      ticketId === undefined ? Promise.resolve(false) : run(() => upgradeTicketPlaybook(ticketId)),
   };
 }
 

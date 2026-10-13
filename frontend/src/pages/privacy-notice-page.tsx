@@ -39,7 +39,9 @@ export function PrivacyNoticePage() {
       })
       .catch((caught: unknown) => {
         if (cancelled) return;
-        setState(caught instanceof ApiError && caught.code === "PRIVACY_DISABLED" ? "disabled" : "failed");
+        setState(
+          caught instanceof ApiError && caught.code === "PRIVACY_DISABLED" ? "disabled" : "failed",
+        );
       });
     return () => {
       cancelled = true;
@@ -54,7 +56,10 @@ export function PrivacyNoticePage() {
     <div className="page-in min-h-screen bg-background">
       <header className="border-b border-border/70 bg-surface print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to={signedIn ? "/" : "/login"} className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+          <Link
+            to={signedIn ? "/" : "/login"}
+            className="flex items-center gap-2 text-[13px] font-semibold text-foreground"
+          >
             <BrandMark size={26} className="shadow-none" />
             {appName}
           </Link>
@@ -69,7 +74,12 @@ export function PrivacyNoticePage() {
                 { value: "en", label: "EN" },
               ]}
             />
-            <Button size="sm" variant="ghost" onClick={() => window.print()} aria-label={t("privacy.record.print")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => window.print()}
+              aria-label={t("privacy.record.print")}
+            >
               <Printer size={14} />
             </Button>
           </div>
@@ -79,7 +89,10 @@ export function PrivacyNoticePage() {
         {state === "loading" ? (
           <PanelSkeleton className="mt-0" label={t("privacy.notice.title")} />
         ) : state === "ready" && notice !== null ? (
-          <article data-testid="privacy-notice-content" className="rounded-lg border border-border bg-surface p-6 shadow-card print:border-0 print:p-0 print:shadow-none">
+          <article
+            data-testid="privacy-notice-content"
+            className="rounded-lg border border-border bg-surface p-6 shadow-card print:border-0 print:p-0 print:shadow-none"
+          >
             {notice.draft ? (
               <Badge tone="warning" dot data-testid="privacy-notice-draft-badge" className="mb-3">
                 {t("privacy.notice.draftBadge")}
@@ -91,14 +104,26 @@ export function PrivacyNoticePage() {
             <MarkdownView source={notice.markdown} />
           </article>
         ) : (
-          <div data-testid="privacy-notice-unavailable" data-state={state} className="rounded-lg border border-border bg-surface p-6 text-[13px] text-foreground/90">
-            <h1 className="mb-2 text-[16px] font-semibold text-foreground">{t("privacy.notice.title")}</h1>
-            <p>{state === "disabled" ? t("privacy.notice.unavailable") : t("privacy.notice.failed")}</p>
+          <div
+            data-testid="privacy-notice-unavailable"
+            data-state={state}
+            className="rounded-lg border border-border bg-surface p-6 text-[13px] text-foreground/90"
+          >
+            <h1 className="mb-2 text-[16px] font-semibold text-foreground">
+              {t("privacy.notice.title")}
+            </h1>
+            <p>
+              {state === "disabled" ? t("privacy.notice.unavailable") : t("privacy.notice.failed")}
+            </p>
           </div>
         )}
         <p className="mt-6 print:hidden">
-          <Link to={signedIn ? "/" : "/login"} className="inline-flex items-center gap-1.5 text-[12.5px] text-link hover:underline">
-            <ArrowLeft size={13} /> {signedIn ? t("privacy.notice.backToApp") : t("privacy.notice.backToLogin")}
+          <Link
+            to={signedIn ? "/" : "/login"}
+            className="inline-flex items-center gap-1.5 text-[12.5px] text-link hover:underline"
+          >
+            <ArrowLeft size={13} />{" "}
+            {signedIn ? t("privacy.notice.backToApp") : t("privacy.notice.backToLogin")}
           </Link>
         </p>
       </main>

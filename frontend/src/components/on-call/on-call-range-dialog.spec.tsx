@@ -24,13 +24,18 @@ describe("OnCallRangeDialog zone (O4)", () => {
           groupName="Podrška"
           timeZone="Europe/Sarajevo"
           people={[]}
-          initialRange={{ startsAt: "2026-10-13T06:00:00.000Z", endsAt: "2026-10-14T06:00:00.000Z" }}
+          initialRange={{
+            startsAt: "2026-10-13T06:00:00.000Z",
+            endsAt: "2026-10-14T06:00:00.000Z",
+          }}
           onSaved={vi.fn()}
         />
       </ToastProvider>,
     );
 
-    const [from, to] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="datetime-local"]'));
+    const [from, to] = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="datetime-local"]'),
+    );
     expect(from?.value).toBe("2026-10-13T08:00");
     expect(to?.value).toBe("2026-10-14T08:00");
     expect(document.body.textContent).toContain("onCall.zoneHint");

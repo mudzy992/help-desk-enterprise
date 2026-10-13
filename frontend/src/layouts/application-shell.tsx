@@ -50,61 +50,56 @@ export function ApplicationShell() {
 
   return (
     <ShortcutsProvider defaultEnabled={isStaff}>
-    <GlobalShortcuts
-      onTogglePalette={() => setIsCommandPaletteOpen((current) => !current)}
-      onOpenPalette={() => setIsCommandPaletteOpen(true)}
-    />
-    <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
-      <SkipToContentLink targetId={mainContentId} />
-      <AnnouncerRegions />
-      <RouteFocusManager />
-      <HelpdeskSocketHost />
-      {isStaff ? (
-        <ActiveTimerHost accessToken={storedSession.accessToken} />
-      ) : null}
-      <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block print:hidden">
-        <AppSidebar />
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col print:block">
-        <AppHeader
-          onOpenNavigation={() => setIsMobileNavigationOpen(true)}
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        />
-        <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
-          <SheetContent side="left" className="flex w-[min(86vw,280px)] flex-col p-0">
-            <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
-            <SheetDescription className="sr-only">
-              {t("shell.applicationSections")}
-            </SheetDescription>
-            <AppSidebar onNavigate={closeMobileNavigation} />
-          </SheetContent>
-        </Sheet>
-        <CommandPalette
-          open={isCommandPaletteOpen}
-          onOpenChange={setIsCommandPaletteOpen}
-        />
-        {/* a11y-focus: main only receives programmatic focus (skip link); a ring around the whole page would be noise. */}
-        <main
-          id={mainContentId}
-          tabIndex={-1}
-          className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
-        >
-          <div
-            key={location.pathname}
-            className="page-in mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0"
+      <GlobalShortcuts
+        onTogglePalette={() => setIsCommandPaletteOpen((current) => !current)}
+        onOpenPalette={() => setIsCommandPaletteOpen(true)}
+      />
+      <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
+        <SkipToContentLink targetId={mainContentId} />
+        <AnnouncerRegions />
+        <RouteFocusManager />
+        <HelpdeskSocketHost />
+        {isStaff ? <ActiveTimerHost accessToken={storedSession.accessToken} /> : null}
+        <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block print:hidden">
+          <AppSidebar />
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col print:block">
+          <AppHeader
+            onOpenNavigation={() => setIsMobileNavigationOpen(true)}
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          />
+          <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
+            <SheetContent side="left" className="flex w-[min(86vw,280px)] flex-col p-0">
+              <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
+              <SheetDescription className="sr-only">
+                {t("shell.applicationSections")}
+              </SheetDescription>
+              <AppSidebar onNavigate={closeMobileNavigation} />
+            </SheetContent>
+          </Sheet>
+          <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+          {/* a11y-focus: main only receives programmatic focus (skip link); a ring around the whole page would be noise. */}
+          <main
+            id={mainContentId}
+            tabIndex={-1}
+            className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
           >
-            <div className="print:hidden">
-              <MaintenanceBanner maintenance={maintenance} />
-              <PasswordExpiryBanner />
-              <AnnouncementsHost />
+            <div
+              key={location.pathname}
+              className="page-in mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0"
+            >
+              <div className="print:hidden">
+                <MaintenanceBanner maintenance={maintenance} />
+                <PasswordExpiryBanner />
+                <AnnouncementsHost />
+              </div>
+              <RouteErrorBoundary resetKey={location.pathname}>
+                <Outlet />
+              </RouteErrorBoundary>
             </div>
-            <RouteErrorBoundary resetKey={location.pathname}>
-              <Outlet />
-            </RouteErrorBoundary>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
     </ShortcutsProvider>
   );
 }

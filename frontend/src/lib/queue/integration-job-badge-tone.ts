@@ -12,8 +12,6 @@ const tones: Record<IntegrationJobAdminStatus, BadgeTone> = {
   [integrationJobStatuses.dlq]: "danger",
 };
 
-export function integrationJobBadgeTone(
-  status: IntegrationJobAdminStatus,
-): BadgeTone {
+export function integrationJobBadgeTone(status: IntegrationJobAdminStatus): BadgeTone {
   return tones[status];
 }

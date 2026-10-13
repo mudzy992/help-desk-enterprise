@@ -44,7 +44,9 @@ describe("MfaSection", () => {
   });
 
   it("explains that a registered passkey is an alternative way to confirm", () => {
-    const html = renderToStaticMarkup(<MfaSection mfa={mfa} passkeyCount={2} onChanged={vi.fn()} />);
+    const html = renderToStaticMarkup(
+      <MfaSection mfa={mfa} passkeyCount={2} onChanged={vi.fn()} />,
+    );
     expect(html).toContain('data-testid="mfa-passkey-hint"');
     expect(html).toContain("account.security.mfaPasskeyHint");
     expect(html).toContain("count&quot;:2");
@@ -54,7 +56,10 @@ describe("MfaSection", () => {
 
   it("keeps the disabled state honest about the requirement", () => {
     const html = renderToStaticMarkup(
-      <MfaSection mfa={{ ...mfa, enabled: false, recoveryCodesRemaining: 0 }} onChanged={vi.fn()} />,
+      <MfaSection
+        mfa={{ ...mfa, enabled: false, recoveryCodesRemaining: 0 }}
+        onChanged={vi.fn()}
+      />,
     );
     expect(html).toContain("account.security.mfaOff");
     expect(html).not.toContain("account.security.recoveryRemaining");

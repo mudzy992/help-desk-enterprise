@@ -103,7 +103,10 @@ export function TicketParticipantsPanel({
         })}
       </div>
       {canManage && adding ? (
-        <form className="grid gap-2 border-t border-border/70 px-4 py-3" onSubmit={(event) => void submit(event)}>
+        <form
+          className="grid gap-2 border-t border-border/70 px-4 py-3"
+          onSubmit={(event) => void submit(event)}
+        >
           {assignable.length === 0 ? (
             <span className={hintClassName}>{t("tickets.detail.participantDirectoryEmpty")}</span>
           ) : (
@@ -121,7 +124,12 @@ export function TicketParticipantsPanel({
               ))}
             </select>
           )}
-          <Button type="submit" size="xs" variant="outline" disabled={isSaving || userId.trim().length === 0}>
+          <Button
+            type="submit"
+            size="xs"
+            variant="outline"
+            disabled={isSaving || userId.trim().length === 0}
+          >
             {t("tickets.detail.addParticipant")}
           </Button>
         </form>

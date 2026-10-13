@@ -22,13 +22,23 @@ const visibleMax = 8;
  * Paket 3.4 (§11): several services for one change. Chosen services are chips;
  * a filter narrows the rest (the catalog can hold hundreds of services).
  */
-export function ChangeServicePicker({ label, options, value, onChange, disabled, hint }: ChangeServicePickerProperties) {
+export function ChangeServicePicker({
+  label,
+  options,
+  value,
+  onChange,
+  disabled,
+  hint,
+}: ChangeServicePickerProperties) {
   const { t } = useTranslation();
   const id = useId();
   const [filter, setFilter] = useState("");
   const byId = useMemo(() => new Map(options.map((option) => [option.id, option])), [options]);
   const text = filter.trim().toLocaleLowerCase();
-  const candidates = options.filter((option) => !value.includes(option.id) && (text === "" || option.name.toLocaleLowerCase().includes(text)));
+  const candidates = options.filter(
+    (option) =>
+      !value.includes(option.id) && (text === "" || option.name.toLocaleLowerCase().includes(text)),
+  );
 
   return (
     <fieldset className="grid gap-1.5" disabled={disabled}>
@@ -39,8 +49,12 @@ export function ChangeServicePicker({ label, options, value, onChange, disabled,
             <Chip
               key={serviceId}
               active
-              onRemove={disabled ? undefined : () => onChange(value.filter((item) => item !== serviceId))}
-              removeLabel={t("changes.form.removeService", { name: byId.get(serviceId)?.name ?? serviceId })}
+              onRemove={
+                disabled ? undefined : () => onChange(value.filter((item) => item !== serviceId))
+              }
+              removeLabel={t("changes.form.removeService", {
+                name: byId.get(serviceId)?.name ?? serviceId,
+              })}
             >
               {byId.get(serviceId)?.name ?? serviceId}
             </Chip>
@@ -57,7 +71,10 @@ export function ChangeServicePicker({ label, options, value, onChange, disabled,
         placeholder={t("changes.form.serviceSearch")}
         aria-label={t("changes.form.serviceSearch")}
       />
-      <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("changes.form.serviceResults")}>
+      <ul
+        className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
+        aria-label={t("changes.form.serviceResults")}
+      >
         {candidates.length === 0 ? (
           <li className={`px-2 py-1 ${hintClassName}`}>{t("changes.form.serviceNone")}</li>
         ) : (
@@ -77,7 +94,11 @@ export function ChangeServicePicker({ label, options, value, onChange, disabled,
             </li>
           ))
         )}
-        {candidates.length > visibleMax ? <li className={`px-2 py-1 ${hintClassName}`}>{t("changes.form.serviceMore", { count: candidates.length - visibleMax })}</li> : null}
+        {candidates.length > visibleMax ? (
+          <li className={`px-2 py-1 ${hintClassName}`}>
+            {t("changes.form.serviceMore", { count: candidates.length - visibleMax })}
+          </li>
+        ) : null}
       </ul>
       {hint ? <p className={hintClassName}>{hint}</p> : null}
     </fieldset>

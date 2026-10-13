@@ -49,7 +49,9 @@ export function SlaAdminSelectorCard({
       </div>
       <p className="mt-0.5 text-[13px] font-medium text-foreground">{title}</p>
       {description ? (
-        <p className="mt-1 line-clamp-2 text-[11.5px] leading-[18px] text-muted-foreground">{description}</p>
+        <p className="mt-1 line-clamp-2 text-[11.5px] leading-[18px] text-muted-foreground">
+          {description}
+        </p>
       ) : null}
       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <MetaIcon size={11.5} />

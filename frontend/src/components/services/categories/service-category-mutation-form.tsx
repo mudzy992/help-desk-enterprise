@@ -55,11 +55,21 @@ export function ServiceCategoryMutationForm({
   return (
     <form className="fade-in mt-4 grid gap-3" onSubmit={submit}>
       <Field label={t("services.name")} required>
-        <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
+        <Input
+          value={name}
+          maxLength={128}
+          required
+          onChange={(event) => setName(event.target.value)}
+        />
       </Field>
       {isCreate ? (
         <Field label={t("services.slug")} required hint={t("services.categories.slugHint")}>
-          <Input value={slug} maxLength={64} required onChange={(event) => setSlug(event.target.value)} />
+          <Input
+            value={slug}
+            maxLength={64}
+            required
+            onChange={(event) => setSlug(event.target.value)}
+          />
         </Field>
       ) : null}
       <Field label={t("services.categories.sortOrder")}>

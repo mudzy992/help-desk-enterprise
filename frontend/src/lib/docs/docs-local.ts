@@ -26,11 +26,16 @@ function writeJson(key: string, value: unknown): void {
 
 export function readRecentDocs(): readonly string[] {
   const value = readJson<unknown>(recentKey, []);
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
 }
 
 export function rememberRecentDoc(slug: string): readonly string[] {
-  const next = [slug, ...readRecentDocs().filter((entry) => entry !== slug)].slice(0, docsRecentLimit);
+  const next = [slug, ...readRecentDocs().filter((entry) => entry !== slug)].slice(
+    0,
+    docsRecentLimit,
+  );
   writeJson(recentKey, next);
   return next;
 }

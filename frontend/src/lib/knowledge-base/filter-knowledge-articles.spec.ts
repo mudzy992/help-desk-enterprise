@@ -60,9 +60,9 @@ describe("filterKnowledgeArticles", () => {
   ];
 
   it("filters by search, status, service, and stale", () => {
-    expect(filterKnowledgeArticles(rows, filters({ search: "vpn" })).map((item) => item.id)).toEqual(
-      ["a", "c"],
-    );
+    expect(
+      filterKnowledgeArticles(rows, filters({ search: "vpn" })).map((item) => item.id),
+    ).toEqual(["a", "c"]);
     expect(
       filterKnowledgeArticles(rows, filters({ status: "DRAFT", serviceId: "svc-hr" })).map(
         (item) => item.id,

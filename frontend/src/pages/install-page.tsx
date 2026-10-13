@@ -11,10 +11,7 @@ import { BrandLockup } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
-import {
-  installWizardCopyKeys,
-  type InstallWizardStep,
-} from "@/lib/resolve-install-wizard-step";
+import { installWizardCopyKeys, type InstallWizardStep } from "@/lib/resolve-install-wizard-step";
 import { loadInstallSetupStatus } from "@/services/install-api";
 
 /*
@@ -119,18 +116,15 @@ function InstallWizard() {
 
             <div className="mt-6">
               {step === null ? (
-                <PanelSkeleton className="mt-0 border-0 bg-transparent p-0 shadow-none" label={t("install.loading")} />
+                <PanelSkeleton
+                  className="mt-0 border-0 bg-transparent p-0 shadow-none"
+                  label={t("install.loading")}
+                />
               ) : null}
               {step === "complete" ? <InstallCompleteStep /> : null}
-              {step === "addons" ? (
-                <InstallAddonsStep onSaved={() => setStep("complete")} />
-              ) : null}
-              {step === "seed" ? (
-                <InstallSeedStep onSaved={() => setStep("addons")} />
-              ) : null}
-              {step === "smtp" ? (
-                <InstallSmtpStep onSaved={() => setStep("seed")} />
-              ) : null}
+              {step === "addons" ? <InstallAddonsStep onSaved={() => setStep("complete")} /> : null}
+              {step === "seed" ? <InstallSeedStep onSaved={() => setStep("addons")} /> : null}
+              {step === "smtp" ? <InstallSmtpStep onSaved={() => setStep("seed")} /> : null}
               {step === "loginProvider" ? (
                 <InstallLoginProviderStep onSaved={() => setStep("smtp")} />
               ) : null}

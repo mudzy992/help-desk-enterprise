@@ -11,15 +11,16 @@ type Scorer = (password: string) => number;
 let scorerPromise: Promise<Scorer> | null = null;
 
 function loadScorer(): Promise<Scorer> {
-  scorerPromise ??= Promise.all([import("@zxcvbn-ts/core"), import("@zxcvbn-ts/language-common")]).then(
-    ([core, common]) => {
-      const factory = new core.ZxcvbnFactory({
-        dictionary: { ...common.dictionary },
-        graphs: common.adjacencyGraphs,
-      });
-      return (password: string) => factory.check(password).score;
-    },
-  );
+  scorerPromise ??= Promise.all([
+    import("@zxcvbn-ts/core"),
+    import("@zxcvbn-ts/language-common"),
+  ]).then(([core, common]) => {
+    const factory = new core.ZxcvbnFactory({
+      dictionary: { ...common.dictionary },
+      graphs: common.adjacencyGraphs,
+    });
+    return (password: string) => factory.check(password).score;
+  });
   return scorerPromise;
 }
 

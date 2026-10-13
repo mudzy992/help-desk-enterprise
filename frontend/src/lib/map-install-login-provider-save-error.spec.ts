@@ -5,22 +5,14 @@ import { mapInstallLoginProviderSaveError } from "@/lib/map-install-login-provid
 describe("mapInstallLoginProviderSaveError", () => {
   it("maps incomplete configuration without using secret values", () => {
     const secret = "ldaps-bind-secret-value";
-    const error = new ApiError(
-      400,
-      "INVALID_LOGIN_PROVIDER_CONFIGURATION",
-      secret,
-    );
-    expect(mapInstallLoginProviderSaveError(error)).toBe(
-      "install.loginProvider.errorInvalid",
-    );
+    const error = new ApiError(400, "INVALID_LOGIN_PROVIDER_CONFIGURATION", secret);
+    expect(mapInstallLoginProviderSaveError(error)).toBe("install.loginProvider.errorInvalid");
     expect(mapInstallLoginProviderSaveError(error)).not.toContain(secret);
   });
 
   it("maps a missing SuperAdmin as a conflict", () => {
     expect(
-      mapInstallLoginProviderSaveError(
-        new ApiError(409, "SUPER_ADMIN_REQUIRED", "required"),
-      ),
+      mapInstallLoginProviderSaveError(new ApiError(409, "SUPER_ADMIN_REQUIRED", "required")),
     ).toBe("install.loginProvider.errorSuperAdmin");
   });
 });

@@ -10,12 +10,7 @@
  */
 
 export type PasskeyDeviceKind =
-  | "apple"
-  | "windows_hello"
-  | "google"
-  | "android"
-  | "security_key"
-  | "unknown";
+  "apple" | "windows_hello" | "google" | "android" | "security_key" | "unknown";
 
 const kindsByAaguid: Readonly<Record<string, PasskeyDeviceKind>> = {
   // iCloud Keychain / Safari (Apple platform authenticator).

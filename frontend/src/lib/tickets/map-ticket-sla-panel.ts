@@ -137,11 +137,7 @@ function signedRemainingMs(dueAt: string | null, clock: Date): number | null {
   return due - clock.getTime();
 }
 
-function usedWindowPercent(
-  startedAt: string,
-  dueAt: string | null,
-  clock: Date,
-): number {
+function usedWindowPercent(startedAt: string, dueAt: string | null, clock: Date): number {
   if (dueAt === null) {
     return 0;
   }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
+import {
+  canShowClaimAction,
+  canShowReopenAction,
+  nextTicketStatuses,
+} from "@/lib/tickets/ticket-actions";
 import type { TicketResponse } from "@/services/tickets-api";
 
 const base: TicketResponse = {

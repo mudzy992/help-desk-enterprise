@@ -23,9 +23,7 @@ export const emptyHeaderSearchGroups: HeaderSearchGroups = {
   users: [],
 };
 
-export function flattenHeaderSearchHits(
-  groups: HeaderSearchGroups,
-): readonly HeaderSearchHit[] {
+export function flattenHeaderSearchHits(groups: HeaderSearchGroups): readonly HeaderSearchHit[] {
   return [...groups.tickets, ...groups.articles, ...groups.users];
 }
 
@@ -46,15 +44,13 @@ export function toHeaderSearchGroups(
 ): HeaderSearchGroups {
   const trimmed = query.trim();
   return {
-    tickets: response.tickets
-      .slice(0, headerSearchGroupLimit)
-      .map((ticket) => ({
-        id: ticket.id,
-        kind: "ticket" as const,
-        title: ticket.ticketNumber,
-        subtitle: ticket.title,
-        href: `/tickets/${ticket.id}`,
-      })),
+    tickets: response.tickets.slice(0, headerSearchGroupLimit).map((ticket) => ({
+      id: ticket.id,
+      kind: "ticket" as const,
+      title: ticket.ticketNumber,
+      subtitle: ticket.title,
+      href: `/tickets/${ticket.id}`,
+    })),
     articles: response.articles.slice(0, headerSearchGroupLimit).map((article) => ({
       id: article.id,
       kind: "article" as const,
@@ -94,7 +90,10 @@ export async function searchHeaderSources(
 }
 
 function HitRow({
-  hit, itemIndex, isActive, onSelect,
+  hit,
+  itemIndex,
+  isActive,
+  onSelect,
 }: {
   readonly hit: HeaderSearchHit;
   readonly itemIndex: number;
@@ -118,21 +117,30 @@ function HitRow({
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => onSelect(hit)}
     >
-      <span className={hit.kind === "ticket"
-        ? "tnum text-[12px] font-medium text-link"
-        : "text-[12.5px] text-foreground"}
+      <span
+        className={
+          hit.kind === "ticket"
+            ? "tnum text-[12px] font-medium text-link"
+            : "text-[12.5px] text-foreground"
+        }
       >
         {hit.title}
       </span>
       {hit.subtitle ? (
-        <span className="max-w-full truncate text-[11.5px] text-muted-foreground">{hit.subtitle}</span>
+        <span className="max-w-full truncate text-[11.5px] text-muted-foreground">
+          {hit.subtitle}
+        </span>
       ) : null}
     </button>
   );
 }
 
 export function HeaderSearchResultsPanel({
-  groups, activeIndex, isLoading, labels, onSelect,
+  groups,
+  activeIndex,
+  isLoading,
+  labels,
+  onSelect,
 }: {
   readonly groups: HeaderSearchGroups;
   readonly activeIndex: number;

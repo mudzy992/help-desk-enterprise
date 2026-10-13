@@ -42,26 +42,18 @@ export function diffConfigVersions(
   );
 }
 
-export function validateConfigVersion(
-  versionId: string,
-): Promise<ConfigValidationResult> {
+export function validateConfigVersion(versionId: string): Promise<ConfigValidationResult> {
   return apiRequest(`/config-versions/${versionId}/validate`, { method: "POST" });
 }
 
-export function activateConfigVersion(
-  versionId: string,
-  reason: string,
-): Promise<ConfigVersion> {
+export function activateConfigVersion(versionId: string, reason: string): Promise<ConfigVersion> {
   return apiRequest(`/config-versions/${versionId}/activate`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
 }
 
-export function rollbackConfigVersion(
-  versionId: string,
-  reason: string,
-): Promise<ConfigVersion> {
+export function rollbackConfigVersion(versionId: string, reason: string): Promise<ConfigVersion> {
   return apiRequest(`/config-versions/${versionId}/rollback`, {
     method: "POST",
     body: JSON.stringify({ reason }),
@@ -106,7 +98,10 @@ function configPackageForm(input: ConfigPackageImportInput): FormData {
 export function previewConfigPackageImport(
   input: ConfigPackageImportInput,
 ): Promise<ConfigPackageImportReport> {
-  return apiRequest("/config-versions/import/preview", { method: "POST", body: configPackageForm(input) });
+  return apiRequest("/config-versions/import/preview", {
+    method: "POST",
+    body: configPackageForm(input),
+  });
 }
 
 export function importConfigPackage(input: ConfigPackageImportInput): Promise<ConfigVersion> {

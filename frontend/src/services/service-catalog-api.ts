@@ -9,11 +9,7 @@ export type ServiceCategoryResponse = ServiceCategoryApiResponse;
 export const listServiceCategories = listServiceCategoriesFromApi;
 
 export type ServiceLifecycle = "DRAFT" | "ACTIVE" | "DEPRECATED";
-export type ServiceAvailability =
-  | "OPERATIONAL"
-  | "DEGRADED"
-  | "DOWN"
-  | "MAINTENANCE";
+export type ServiceAvailability = "OPERATIONAL" | "DEGRADED" | "DOWN" | "MAINTENANCE";
 export type DataClassification = "INTERNAL" | "CONFIDENTIAL" | "RESTRICTED";
 export type AutoAssignStrategy = "NONE" | "LEAST_BUSY" | "ROUND_ROBIN";
 
@@ -207,10 +203,9 @@ export function activateServiceFormVersion(
   serviceId: string,
   formVersionRef: string,
 ): Promise<FormVersionResponse> {
-  return apiRequest(
-    `/services/${serviceId}/form/versions/${formVersionRef}/activate`,
-    { method: "POST" },
-  );
+  return apiRequest(`/services/${serviceId}/form/versions/${formVersionRef}/activate`, {
+    method: "POST",
+  });
 }
 
 export function getService(serviceId: string): Promise<ServiceResponse> {
@@ -227,9 +222,7 @@ export function getTicketCreationEligibility(
   return apiRequest(`/services/${serviceId}/ticket-creation-eligibility`);
 }
 
-export function activeFormVersion(
-  form: ServiceFormResponse,
-): FormVersionResponse | null {
+export function activeFormVersion(form: ServiceFormResponse): FormVersionResponse | null {
   const activeRef = form.activeFormVersionRef;
   if (activeRef === null) {
     return null;

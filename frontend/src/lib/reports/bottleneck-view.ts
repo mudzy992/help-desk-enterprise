@@ -71,9 +71,7 @@ export function bottleneckBreakdownBars(
   return rows
     .map((row) => ({ label: bottleneckRowLabel(row, translate), value: bottleneckTotal(row) }))
     .sort((left, right) =>
-      right.value === left.value
-        ? left.label.localeCompare(right.label)
-        : right.value - left.value,
+      right.value === left.value ? left.label.localeCompare(right.label) : right.value - left.value,
     );
 }
 
@@ -84,7 +82,5 @@ export function bottleneckBreakdownBars(
 export function bottleneckTrendRows(
   rows: readonly BottleneckTrendRow[],
 ): readonly BottleneckTrendRow[] {
-  return rows.filter(
-    (row) => row.createdCount > 0 || bottleneckTotal(row) > 0,
-  );
+  return rows.filter((row) => row.createdCount > 0 || bottleneckTotal(row) > 0);
 }

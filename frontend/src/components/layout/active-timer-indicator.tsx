@@ -39,7 +39,11 @@ export function ActiveTimerIndicator() {
       <Link
         to={`/tickets/${timer.ticketId}`}
         className="max-w-[180px] truncate font-medium hover:underline"
-        title={timer.ticketTitle.length > 0 ? `${timer.ticketNumber} · ${timer.ticketTitle}` : timer.ticketNumber}
+        title={
+          timer.ticketTitle.length > 0
+            ? `${timer.ticketNumber} · ${timer.ticketTitle}`
+            : timer.ticketNumber
+        }
         aria-label={label}
       >
         {timer.ticketNumber}

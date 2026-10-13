@@ -2,14 +2,9 @@ import { Field, Select } from "@/components/ui/field";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { GroupListItemResponse } from "@/services/groups-api";
 
-export const knowledgeClassificationValues = [
-  "INTERNAL",
-  "CONFIDENTIAL",
-  "RESTRICTED",
-] as const;
+export const knowledgeClassificationValues = ["INTERNAL", "CONFIDENTIAL", "RESTRICTED"] as const;
 
-export type KnowledgeClassification =
-  (typeof knowledgeClassificationValues)[number];
+export type KnowledgeClassification = (typeof knowledgeClassificationValues)[number];
 
 export type KnowledgeOwnerMode = "user" | "group";
 
@@ -59,9 +54,7 @@ export function KnowledgeArticleAdminFields({
         <Select
           value={ownerMode}
           required
-          onChange={(event) =>
-            onOwnerModeChange(event.target.value as KnowledgeOwnerMode)
-          }
+          onChange={(event) => onOwnerModeChange(event.target.value as KnowledgeOwnerMode)}
         >
           <option value="user">{labels.ownerModeUser}</option>
           <option value="group">{labels.ownerModeGroup}</option>
@@ -116,9 +109,7 @@ export function KnowledgeArticleAdminFields({
           value={classification}
           required
           onChange={(event) =>
-            onClassificationChange(
-              event.target.value as KnowledgeClassification,
-            )
+            onClassificationChange(event.target.value as KnowledgeClassification)
           }
         >
           {knowledgeClassificationValues.map((value) => (

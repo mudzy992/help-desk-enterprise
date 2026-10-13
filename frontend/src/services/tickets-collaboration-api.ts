@@ -11,11 +11,7 @@ export type ParticipantRole =
   | "SYSTEM";
 
 export type MessageType =
-  | "USER_REPLY"
-  | "AGENT_REPLY"
-  | "INTERNAL_NOTE"
-  | "SYSTEM_EVENT"
-  | "APPROVAL_DECISION";
+  "USER_REPLY" | "AGENT_REPLY" | "INTERNAL_NOTE" | "SYSTEM_EVENT" | "APPROVAL_DECISION";
 
 export type TicketParticipantResponse = {
   readonly id: string;
@@ -65,11 +61,7 @@ export type TicketTimeLogResponse = {
 };
 
 export type TimeLogSource = "TIMER" | "MANUAL";
-export type TimeLogStopReason =
-  | "MANUAL"
-  | "AUTO_IDLE"
-  | "AUTO_MAX_DURATION"
-  | "AUTO_TICKET_CLOSED";
+export type TimeLogStopReason = "MANUAL" | "AUTO_IDLE" | "AUTO_MAX_DURATION" | "AUTO_TICKET_CLOSED";
 
 export function listTicketParticipants(
   ticketId: string,
@@ -91,18 +83,13 @@ export function addTicketParticipant(
   });
 }
 
-export function removeTicketParticipant(
-  ticketId: string,
-  participantId: string,
-): Promise<void> {
+export function removeTicketParticipant(ticketId: string, participantId: string): Promise<void> {
   return apiRequest(`/tickets/${ticketId}/participants/${participantId}`, {
     method: "DELETE",
   });
 }
 
-export function listTicketMessages(
-  ticketId: string,
-): Promise<readonly TicketMessageResponse[]> {
+export function listTicketMessages(ticketId: string): Promise<readonly TicketMessageResponse[]> {
   return apiRequest(`/tickets/${ticketId}/messages`);
 }
 

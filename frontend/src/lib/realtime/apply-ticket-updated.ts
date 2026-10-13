@@ -44,8 +44,6 @@ export function applyTicketUpdatedPayload(
 }
 
 /** SLA events must be re-read from the server; the payload has no snapshot. */
-export function shouldReloadTicketFromUpdated(
-  payload: TicketUpdatedRealtimePayload,
-): boolean {
+export function shouldReloadTicketFromUpdated(payload: TicketUpdatedRealtimePayload): boolean {
   return payload.change === "sla";
 }

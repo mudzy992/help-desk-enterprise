@@ -12,12 +12,7 @@ interface SlaChangeLogPanelProperties {
 export function SlaChangeLogPanel({ entries }: SlaChangeLogPanelProperties) {
   const { t, i18n } = useTranslation();
   if (entries.length === 0) {
-    return (
-      <EmptyState
-        title={t("sla.changeLogEmptyTitle")}
-        body={t("sla.changeLogEmptyBody")}
-      />
-    );
+    return <EmptyState title={t("sla.changeLogEmptyTitle")} body={t("sla.changeLogEmptyBody")} />;
   }
   return (
     <ScrollRegion className={tableWrapClassName}>

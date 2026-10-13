@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   browserCanUsePasskeys,
   browserSupportsPasskeyCeremonies,
@@ -27,7 +27,9 @@ describe("browser capability probes", () => {
 
 describe("passkeyErrorCode", () => {
   it("extracts nothing from a plain error and never rewrites the message", () => {
-    expect(passkeyErrorCode(new Error("The operation either timed out or was not allowed."))).toBeNull();
+    expect(
+      passkeyErrorCode(new Error("The operation either timed out or was not allowed.")),
+    ).toBeNull();
     expect(passkeyErrorCode(null)).toBeNull();
   });
 
@@ -35,6 +37,8 @@ describe("passkeyErrorCode", () => {
     // Chrome reports a wrong RP ID/origin as a SecurityError, and an existing
     // credential on the device as an InvalidStateError.
     expect(passkeyErrorCode(new DOMException("bad rp id", "SecurityError"))).toBe("SecurityError");
-    expect(passkeyErrorCode(new DOMException("already", "InvalidStateError"))).toBe("InvalidStateError");
+    expect(passkeyErrorCode(new DOMException("already", "InvalidStateError"))).toBe(
+      "InvalidStateError",
+    );
   });
 });

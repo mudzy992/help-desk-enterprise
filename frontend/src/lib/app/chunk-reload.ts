@@ -42,7 +42,8 @@ function sessionStore(): ReloadStore | null {
 
 /** Reloads the page for a stale chunk; returns false when the caller must show an error instead. */
 export function reloadForChunkError(error: unknown): boolean {
-  if (!isChunkLoadError(error) || !shouldReloadForChunkError(sessionStore(), Date.now())) return false;
+  if (!isChunkLoadError(error) || !shouldReloadForChunkError(sessionStore(), Date.now()))
+    return false;
   window.location.reload();
   return true;
 }

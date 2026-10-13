@@ -23,8 +23,7 @@ export function PermissionsPage({ embedded = false }: PermissionsPageProperties)
       <RequireAccess
         icon={<ShieldCheck size={18} strokeWidth={1.8} />}
         check={(capabilities) =>
-          capabilities.session?.isSuperAdmin === true ||
-          capabilities.hasRole(roleKeys.superAdmin)
+          capabilities.session?.isSuperAdmin === true || capabilities.hasRole(roleKeys.superAdmin)
         }
         forbiddenTitleKey="permissions.forbiddenTitle"
         forbiddenBodyKey="permissions.forbiddenBody"

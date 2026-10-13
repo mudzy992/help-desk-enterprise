@@ -1,7 +1,10 @@
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CreateTicketSidePanel } from "@/components/tickets/create-ticket-side-panel";
-import { CreateTicketStepper, CREATE_TICKET_STEP_TOTAL } from "@/components/tickets/create-ticket-stepper";
+import {
+  CreateTicketStepper,
+  CREATE_TICKET_STEP_TOTAL,
+} from "@/components/tickets/create-ticket-stepper";
 import { KnowledgeInterceptPanel } from "@/components/tickets/knowledge-intercept-panel";
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";

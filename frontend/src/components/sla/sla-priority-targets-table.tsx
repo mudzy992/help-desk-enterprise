@@ -34,12 +34,7 @@ export function SlaPriorityTargetsTable({
   const { t, i18n } = useTranslation();
 
   if (rules.length === 0) {
-    return (
-      <EmptyState
-        title={t("sla.rulesEmptyTitle")}
-        body={t("sla.rulesEmptyBody")}
-      />
-    );
+    return <EmptyState title={t("sla.rulesEmptyTitle")} body={t("sla.rulesEmptyBody")} />;
   }
 
   return (
@@ -87,12 +82,16 @@ export function SlaPriorityTargetsTable({
                     </span>
                     {priorityExposure.atRisk > 0 ? (
                       <Badge tone="warning" dot={false}>
-                        {t("sla.exposedAtRisk", { value: formatNumber(priorityExposure.atRisk, i18n.language) })}
+                        {t("sla.exposedAtRisk", {
+                          value: formatNumber(priorityExposure.atRisk, i18n.language),
+                        })}
                       </Badge>
                     ) : null}
                     {priorityExposure.breached > 0 ? (
                       <Badge tone="danger" dot={false}>
-                        {t("sla.exposedBreached", { value: formatNumber(priorityExposure.breached, i18n.language) })}
+                        {t("sla.exposedBreached", {
+                          value: formatNumber(priorityExposure.breached, i18n.language),
+                        })}
                       </Badge>
                     ) : null}
                   </div>

@@ -48,13 +48,7 @@ export function RequireAccess({
   }
 
   if (!check(capabilities)) {
-    return (
-      <EmptyState
-        icon={icon}
-        title={t(forbiddenTitleKey)}
-        body={t(forbiddenBodyKey)}
-      />
-    );
+    return <EmptyState icon={icon} title={t(forbiddenTitleKey)} body={t(forbiddenBodyKey)} />;
   }
 
   return <>{children}</>;

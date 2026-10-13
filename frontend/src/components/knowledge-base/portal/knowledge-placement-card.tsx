@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
-import { buildKnowledgeCategoryTree, knowledgeCategoryName } from "@/lib/knowledge-base/knowledge-portal";
+import {
+  buildKnowledgeCategoryTree,
+  knowledgeCategoryName,
+} from "@/lib/knowledge-base/knowledge-portal";
 import {
   mapKnowledgeArticleError,
   type KnowledgeArticleErrorKey,
@@ -33,7 +36,9 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
   const [categories, setCategories] = useState<readonly KnowledgeCategory[]>([]);
   const [categoryId, setCategoryId] = useState(article.categoryId ?? "");
   const [isFaq, setIsFaq] = useState(article.isFaq === true);
-  const [faqOrder, setFaqOrder] = useState(article.faqOrder === null || article.faqOrder === undefined ? "" : String(article.faqOrder));
+  const [faqOrder, setFaqOrder] = useState(
+    article.faqOrder === null || article.faqOrder === undefined ? "" : String(article.faqOrder),
+  );
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,8 +98,14 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
   };
 
   return (
-    <form className="grid gap-3 border-t border-border/70 px-4 py-3" onSubmit={onSubmit} data-testid="knowledge-placement">
-      <h3 className="text-[12.5px] font-semibold text-foreground">{t("knowledgeBase.portal.placement.title")}</h3>
+    <form
+      className="grid gap-3 border-t border-border/70 px-4 py-3"
+      onSubmit={onSubmit}
+      data-testid="knowledge-placement"
+    >
+      <h3 className="text-[12.5px] font-semibold text-foreground">
+        {t("knowledgeBase.portal.placement.title")}
+      </h3>
       <Field label={t("knowledgeBase.portal.placement.category")}>
         <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
           <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
@@ -106,7 +117,11 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
         </Select>
       </Field>
       <label className="flex items-center gap-2 text-[12.5px] text-foreground">
-        <Switch checked={isFaq} onCheckedChange={setIsFaq} aria-label={t("knowledgeBase.portal.placement.faq")} />
+        <Switch
+          checked={isFaq}
+          onCheckedChange={setIsFaq}
+          aria-label={t("knowledgeBase.portal.placement.faq")}
+        />
         {t("knowledgeBase.portal.placement.faq")}
       </label>
       {isFaq ? (

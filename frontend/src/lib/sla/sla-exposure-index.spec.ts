@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildSlaExposureIndex,
-  emptySlaExposure,
-} from "@/lib/sla/sla-exposure-index";
+import { buildSlaExposureIndex, emptySlaExposure } from "@/lib/sla/sla-exposure-index";
 import type { SlaSummaryResponse } from "@/services/report-summary-api";
 
 const summary: SlaSummaryResponse = {

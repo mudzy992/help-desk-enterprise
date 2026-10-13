@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createHelpdeskSocketOptions,
-  helpdeskSocketReconnect,
-} from "@/services/helpdesk-socket";
+import { createHelpdeskSocketOptions, helpdeskSocketReconnect } from "@/services/helpdesk-socket";
 
 /**
  * Faza 3.1 (plan §3.1): the socket must keep working exactly as before (same auth
@@ -23,8 +20,6 @@ describe("createHelpdeskSocketOptions", () => {
     expect(helpdeskSocketReconnect.randomizationFactor).toBeGreaterThan(0);
     expect(helpdeskSocketReconnect.randomizationFactor).toBeLessThanOrEqual(1);
     const options = createHelpdeskSocketOptions("access-token-1");
-    expect(options.randomizationFactor).toBe(
-      helpdeskSocketReconnect.randomizationFactor,
-    );
+    expect(options.randomizationFactor).toBe(helpdeskSocketReconnect.randomizationFactor);
   });
 });

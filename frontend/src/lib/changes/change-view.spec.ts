@@ -49,18 +49,36 @@ describe("action rules (§6, §9, §12)", () => {
 
 describe("mapChangeError", () => {
   it("names the missing requirement", () => {
-    expect(mapChangeError(new ApiError(409, "CHANGE_REQUIREMENT_MISSING", "backoutPlan"))).toBe("changes.errors.requirement.backoutPlan");
-    expect(mapChangeError(new ApiError(403, "CHANGE_NOT_APPROVER", "requester"))).toBe("changes.errors.requesterVote");
-    expect(mapChangeError(new ApiError(409, "CHANGE_FREEZE", "Kraj godine"))).toBe("changes.errors.freeze");
+    expect(mapChangeError(new ApiError(409, "CHANGE_REQUIREMENT_MISSING", "backoutPlan"))).toBe(
+      "changes.errors.requirement.backoutPlan",
+    );
+    expect(mapChangeError(new ApiError(403, "CHANGE_NOT_APPROVER", "requester"))).toBe(
+      "changes.errors.requesterVote",
+    );
+    expect(mapChangeError(new ApiError(409, "CHANGE_FREEZE", "Kraj godine"))).toBe(
+      "changes.errors.freeze",
+    );
     expect(mapChangeError(new Error("x"))).toBeNull();
   });
 });
 
 describe("changeHistoryText", () => {
-  const t = (key: string, options?: Record<string, unknown>) => `${key}${options ? JSON.stringify(options) : ""}`;
+  const t = (key: string, options?: Record<string, unknown>) =>
+    `${key}${options ? JSON.stringify(options) : ""}`;
   it("describes CAB votes and status changes", () => {
-    expect(changeHistoryText(t, "approval", { decision: "APPROVED", approvals: 1, quorum: 2, round: 1 })).toContain("changes.history.approved");
-    expect(changeHistoryText(t, "status", { from: "DRAFT", to: "ASSESSMENT", action: "submit" })).toContain("changes.status.ASSESSMENT");
-    expect(changeHistoryText(t, "downtime", { created: 2, updated: 0, deleted: 0, skippedServiceIds: ["s"] })).toContain('"skipped":1');
+    expect(
+      changeHistoryText(t, "approval", { decision: "APPROVED", approvals: 1, quorum: 2, round: 1 }),
+    ).toContain("changes.history.approved");
+    expect(
+      changeHistoryText(t, "status", { from: "DRAFT", to: "ASSESSMENT", action: "submit" }),
+    ).toContain("changes.status.ASSESSMENT");
+    expect(
+      changeHistoryText(t, "downtime", {
+        created: 2,
+        updated: 0,
+        deleted: 0,
+        skippedServiceIds: ["s"],
+      }),
+    ).toContain('"skipped":1');
   });
 });

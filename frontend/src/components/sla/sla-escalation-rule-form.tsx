@@ -2,7 +2,12 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { controlClassName, errorTextClassName, hintClassName, labelClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  errorTextClassName,
+  hintClassName,
+  labelClassName,
+} from "@/components/ui/control";
 import type { SlaErrorKey } from "@/lib/sla/map-sla-error";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { listRoles, type RoleSummaryResponse } from "@/services/rbac-api";
@@ -98,7 +103,11 @@ export function SlaEscalationRuleForm(props: SlaEscalationRuleFormProperties) {
           <Checkbox
             checked={targetOnCall}
             onChange={(event) => setTargetOnCall(event.target.checked)}
-            label={<span className="text-[12.5px] font-medium text-foreground">{t("sla.escalationTargetOnCall")}</span>}
+            label={
+              <span className="text-[12.5px] font-medium text-foreground">
+                {t("sla.escalationTargetOnCall")}
+              </span>
+            }
           />
           <span className={`pl-6 ${hintClassName}`}>{t("sla.escalationTargetOnCallHint")}</span>
         </div>

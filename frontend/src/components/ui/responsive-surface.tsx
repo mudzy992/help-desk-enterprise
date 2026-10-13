@@ -1,16 +1,6 @@
 import type { ReactNode } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalDescription,
-  ModalTitle,
-} from "@/components/ui/modal";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Modal, ModalContent, ModalDescription, ModalTitle } from "@/components/ui/modal";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useIsCompactViewport } from "@/lib/ui/use-is-compact-viewport";
 import { cn } from "@/lib/utils";
 

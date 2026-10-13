@@ -12,9 +12,7 @@ export type GroupFeedChangedPayload = {
   readonly occurredAt: string;
 };
 
-export function isGroupFeedChangedPayload(
-  payload: unknown,
-): payload is GroupFeedChangedPayload {
+export function isGroupFeedChangedPayload(payload: unknown): payload is GroupFeedChangedPayload {
   if (typeof payload !== "object" || payload === null) {
     return false;
   }

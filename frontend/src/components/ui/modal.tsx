@@ -56,7 +56,5 @@ export function ModalHeader({ title, description }: ModalHeaderProperties) {
 }
 
 export function ModalFooter({ children }: { readonly children: ReactNode }) {
-  return (
-    <div className="mt-5 flex flex-wrap items-center justify-end gap-2">{children}</div>
-  );
+  return <div className="mt-5 flex flex-wrap items-center justify-end gap-2">{children}</div>;
 }

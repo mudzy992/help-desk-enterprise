@@ -9,9 +9,7 @@ describe("buildSuggestedOrganizationalUnitDistinguishedName", () => {
         parentDistinguishedName:
           "OU=Sektor podrške,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com",
       }),
-    ).toBe(
-      "OU=Visoko,OU=Sektor podrške,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com",
-    );
+    ).toBe("OU=Visoko,OU=Sektor podrške,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com");
     expect(
       buildSuggestedOrganizationalUnitDistinguishedName({
         displayName: "Staff",

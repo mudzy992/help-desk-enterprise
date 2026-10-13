@@ -54,11 +54,7 @@ export function KnowledgeArticleSearchCard({
           {t("knowledgeBase.filterAll")}
         </Chip>
         {knowledgeArticleStatusValues.map((value) => (
-          <Chip
-            key={value}
-            active={status === value}
-            onClick={() => onStatusChange(value)}
-          >
+          <Chip key={value} active={status === value} onClick={() => onStatusChange(value)}>
             {t(`knowledgeBase.status.${value}`)}
           </Chip>
         ))}

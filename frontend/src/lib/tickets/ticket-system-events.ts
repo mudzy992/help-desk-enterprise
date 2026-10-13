@@ -1,13 +1,7 @@
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 export type TicketActivityKind =
-  | "status"
-  | "assign"
-  | "approval"
-  | "sla"
-  | "routing"
-  | "security"
-  | "edit";
+  "status" | "assign" | "approval" | "sla" | "routing" | "security" | "edit";
 
 /**
  * Every action the backend writes as a SYSTEM_EVENT message body

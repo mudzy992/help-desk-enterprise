@@ -1,14 +1,6 @@
-import type {
-  TicketPriority,
-  TicketStatus,
-} from "@/services/tickets-api";
+import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
-export type TicketSortField =
-  | "updatedAt"
-  | "createdAt"
-  | "priority"
-  | "status"
-  | "slaDueAt";
+export type TicketSortField = "updatedAt" | "createdAt" | "priority" | "status" | "slaDueAt";
 
 /** Server-side list query: every filter is optional and applied by the API. */
 export type TicketPageQuery = {
@@ -78,9 +70,7 @@ const flagFilters = [
  * the API only answers with `{ items, total, page, pageSize }` when it is asked
  * for a page, otherwise it returns the legacy plain array.
  */
-export function toTicketListSearchParams(
-  query: TicketPageQuery,
-): URLSearchParams {
+export function toTicketListSearchParams(query: TicketPageQuery): URLSearchParams {
   const search = new URLSearchParams();
   for (const key of textFilters) {
     const value = query[key];
@@ -145,9 +135,7 @@ const countsTextFilters = [
 ] as const;
 
 /** Query string of GET /tickets/counts; empty values and `false` are omitted. */
-export function toTicketCountsSearchParams(
-  query: TicketCountsQuery,
-): URLSearchParams {
+export function toTicketCountsSearchParams(query: TicketCountsQuery): URLSearchParams {
   const search = new URLSearchParams();
   for (const key of countsTextFilters) {
     const value = query[key];

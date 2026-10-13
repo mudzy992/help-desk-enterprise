@@ -7,7 +7,11 @@ import { Field, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { mapApiError } from "@/lib/map-api-error";
-import { localizedIncidentTitle, mapStatusError, nextIncidentStatuses } from "@/lib/status/status-view";
+import {
+  localizedIncidentTitle,
+  mapStatusError,
+  nextIncidentStatuses,
+} from "@/lib/status/status-view";
 import {
   getResolvePreview,
   postIncidentUpdate,
@@ -30,7 +34,13 @@ interface IncidentUpdateDialogProperties {
  * people will be told (subscribers + requesters of linked tickets) before
  * the operator confirms; the notice is in-app only.
  */
-export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStatus, onSaved }: IncidentUpdateDialogProperties) {
+export function IncidentUpdateDialog({
+  open,
+  onOpenChange,
+  incident,
+  initialStatus,
+  onSaved,
+}: IncidentUpdateDialogProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const options = nextIncidentStatuses(incident.status);
@@ -82,7 +92,8 @@ export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStat
       toast({
         tone: "success",
         title: resolving ? t("status.update.resolved") : t("status.update.posted"),
-        description: resolving && notify ? t("status.update.notified", { count: result.notified }) : undefined,
+        description:
+          resolving && notify ? t("status.update.notified", { count: result.notified }) : undefined,
       });
       onOpenChange(false);
       onSaved();
@@ -102,7 +113,10 @@ export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStat
         />
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
           <Field label={t("status.update.status")} required>
-            <Select value={status} onChange={(event) => setStatus(event.target.value as IncidentStatus)}>
+            <Select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as IncidentStatus)}
+            >
               {options.map((value) => (
                 <option key={value} value={value}>
                   {t(`status.status.${value}`)}
@@ -113,16 +127,28 @@ export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStat
           <Field
             label={t("status.update.message")}
             required
-            hint={resolving ? t("status.update.resolveMessageHint") : t("status.update.messageHint")}
+            hint={
+              resolving ? t("status.update.resolveMessageHint") : t("status.update.messageHint")
+            }
           >
-            <Textarea rows={5} value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} autoFocus />
+            <Textarea
+              rows={5}
+              value={message}
+              maxLength={4000}
+              onChange={(event) => setMessage(event.target.value)}
+              autoFocus
+            />
           </Field>
           {resolving ? (
             <div className="grid gap-1.5 rounded-md border border-border bg-elevated/40 p-3">
               <Checkbox
                 checked={notify}
                 onChange={(event) => setNotify(event.target.checked)}
-                label={<span className="text-[12.5px] font-medium text-foreground">{t("status.update.notify")}</span>}
+                label={
+                  <span className="text-[12.5px] font-medium text-foreground">
+                    {t("status.update.notify")}
+                  </span>
+                }
               />
               <span className={`pl-6 ${hintClassName}`}>
                 {previewFailed
@@ -136,7 +162,9 @@ export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStat
                       })}
               </span>
               {preview !== null && preview.linkedTickets > 0 ? (
-                <span className={`pl-6 ${hintClassName}`}>{t("status.update.previewTickets", { count: preview.linkedTickets })}</span>
+                <span className={`pl-6 ${hintClassName}`}>
+                  {t("status.update.previewTickets", { count: preview.linkedTickets })}
+                </span>
               ) : null}
             </div>
           ) : null}
@@ -146,11 +174,20 @@ export function IncidentUpdateDialog({ open, onOpenChange, incident, initialStat
             </p>
           ) : null}
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("status.cancel")}
             </Button>
             <Button type="submit" disabled={message.trim().length < 3 || saving}>
-              {saving ? t("status.saving") : resolving ? t("status.update.resolveSubmit") : t("status.update.submit")}
+              {saving
+                ? t("status.saving")
+                : resolving
+                  ? t("status.update.resolveSubmit")
+                  : t("status.update.submit")}
             </Button>
           </ModalFooter>
         </form>

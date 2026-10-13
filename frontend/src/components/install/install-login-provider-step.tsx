@@ -27,11 +27,7 @@ import {
   type InstallLoginProviderRecord,
 } from "@/services/install-api";
 
-export function InstallLoginProviderStep({
-  onSaved,
-}: {
-  readonly onSaved?: () => void;
-}) {
+export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallLoginProviderRecord | null>(null);
   const [mode, setMode] = useState<InstallLoginProviderMode>("local");
@@ -40,8 +36,7 @@ export function InstallLoginProviderStep({
   const [adLdapsUrlsCsv, setAdLdapsUrlsCsv] = useState("");
   const [adBindDn, setAdBindDn] = useState("");
   const [adBindPassword, setAdBindPassword] = useState("");
-  const [errorKey, setErrorKey] =
-    useState<InstallLoginProviderErrorKey | null>(null);
+  const [errorKey, setErrorKey] = useState<InstallLoginProviderErrorKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,8 +67,7 @@ export function InstallLoginProviderStep({
     adBindDn,
     adBindPassword,
     entraAlreadyConfigured: record !== null && isEntraConfigured(record),
-    directoryBindAlreadyConfigured:
-      record !== null && isDirectoryBindConfigured(record),
+    directoryBindAlreadyConfigured: record !== null && isDirectoryBindConfigured(record),
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -85,9 +79,7 @@ export function InstallLoginProviderStep({
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      const saved = await saveInstallLoginProvider(
-        buildInstallLoginProviderInput(formValues),
-      );
+      const saved = await saveInstallLoginProvider(buildInstallLoginProviderInput(formValues));
       applyRecord(saved);
       setAzureTenantId("");
       setAzureClientId("");
@@ -163,9 +155,7 @@ export function InstallLoginProviderStep({
             bindDn={adBindDn}
             bindPassword={adBindPassword}
             bindDnConfigured={record?.directoryBind.bindDnConfigured === true}
-            bindPasswordConfigured={
-              record?.directoryBind.bindPasswordConfigured === true
-            }
+            bindPasswordConfigured={record?.directoryBind.bindPasswordConfigured === true}
             urlsLabel={t("install.loginProvider.ldapsUrls")}
             bindDnLabel={t("install.loginProvider.bindDn")}
             bindPasswordLabel={t("install.loginProvider.bindPassword")}
@@ -179,17 +169,13 @@ export function InstallLoginProviderStep({
           </p>
         </>
       )}
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
         <Button
           type="submit"
           disabled={isSubmitting || !isInstallLoginProviderFormReady(formValues)}
         >
-          {isSubmitting
-            ? t("install.loginProvider.saving")
-            : t("install.loginProvider.submit")}
+          {isSubmitting ? t("install.loginProvider.saving") : t("install.loginProvider.submit")}
         </Button>
       </div>
     </form>

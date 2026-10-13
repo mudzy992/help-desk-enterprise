@@ -48,7 +48,10 @@ export function matchesServiceQuery(service: ServiceResponse, query: string): bo
   return needle.split(/\s+/).every((word) => haystack.includes(word));
 }
 
-function compareGroups(left: ServicePickerGroup & { sort: number }, right: ServicePickerGroup & { sort: number }): number {
+function compareGroups(
+  left: ServicePickerGroup & { sort: number },
+  right: ServicePickerGroup & { sort: number },
+): number {
   if (left.key === uncategorizedKey) return 1;
   if (right.key === uncategorizedKey) return -1;
   return left.sort - right.sort || (left.name ?? "").localeCompare(right.name ?? "");
@@ -59,7 +62,10 @@ export function buildServiceChips(
   services: readonly ServiceResponse[],
   query: string,
 ): readonly ServicePickerChip[] {
-  const byKey = new Map<string, ServicePickerChip & { sort: number; services: ServiceResponse[] }>();
+  const byKey = new Map<
+    string,
+    ServicePickerChip & { sort: number; services: ServiceResponse[] }
+  >();
   for (const service of services) {
     if (!matchesServiceQuery(service, query)) continue;
     const key = categoryKey(service);
@@ -88,7 +94,10 @@ export function buildServiceGroups(input: {
       matchesServiceQuery(service, input.query) &&
       (input.categoryKey === null || categoryKey(service) === input.categoryKey),
   );
-  const groups = new Map<string, ServicePickerGroup & { sort: number; services: ServiceResponse[] }>();
+  const groups = new Map<
+    string,
+    ServicePickerGroup & { sort: number; services: ServiceResponse[] }
+  >();
   for (const service of visible) {
     const key = categoryKey(service);
     const group = groups.get(key) ?? {
@@ -124,6 +133,9 @@ export function buildServiceGroups(input: {
 }
 
 /** Most-recent-first list of ids with `serviceId` moved to the front. */
-export function pushRecentService(recentIds: readonly string[], serviceId: string): readonly string[] {
+export function pushRecentService(
+  recentIds: readonly string[],
+  serviceId: string,
+): readonly string[] {
   return [serviceId, ...recentIds.filter((id) => id !== serviceId)].slice(0, maxRecentServices);
 }

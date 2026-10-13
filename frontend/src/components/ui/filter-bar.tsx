@@ -54,7 +54,11 @@ export function FilterBar({
     <div className="grid gap-2" role="search" aria-label={label}>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
           <input
             type="search"
             className={`${controlCompactClassName} w-full pl-8`}
@@ -65,7 +69,13 @@ export function FilterBar({
             onChange={(event) => onSearchChange(event.target.value)}
           />
         </div>
-        <Button variant={open || activeCount > 0 ? "secondary" : "outline"} size="sm" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((value) => !value)}>
+        <Button
+          variant={open || activeCount > 0 ? "secondary" : "outline"}
+          size="sm"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((value) => !value)}
+        >
           <SlidersHorizontal aria-hidden="true" />
           {t("ui.filters.advanced")}
           {activeCount > 0 ? (
@@ -87,7 +97,10 @@ export function FilterBar({
         role="group"
         aria-label={t("ui.filters.advanced")}
         hidden={!open}
-        className={cn("rounded-lg border border-border bg-surface p-3", open ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-4" : undefined)}
+        className={cn(
+          "rounded-lg border border-border bg-surface p-3",
+          open ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-4" : undefined,
+        )}
       >
         {children}
       </div>
@@ -96,9 +109,19 @@ export function FilterBar({
 }
 
 /** A labelled control inside the advanced panel; the label is visible. */
-export function FilterField({ label, children, className }: { readonly label: string; readonly children: ReactNode; readonly className?: string }) {
+export function FilterField({
+  label,
+  children,
+  className,
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+  readonly className?: string;
+}) {
   return (
-    <label className={cn("grid min-w-0 gap-1 text-[12px] font-medium text-muted-foreground", className)}>
+    <label
+      className={cn("grid min-w-0 gap-1 text-[12px] font-medium text-muted-foreground", className)}
+    >
       <span>{label}</span>
       {children}
     </label>
@@ -106,7 +129,13 @@ export function FilterField({ label, children, className }: { readonly label: st
 }
 
 /** Checkbox-style filters grouped in one cell, aligned with the labelled selects. */
-export function FilterToggles({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+export function FilterToggles({
+  label,
+  children,
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
   return (
     <fieldset className="grid min-w-0 gap-1">
       <legend className="mb-1 text-[12px] font-medium text-muted-foreground">{label}</legend>

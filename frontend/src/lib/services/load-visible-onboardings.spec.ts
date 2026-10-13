@@ -73,9 +73,8 @@ describe("loadVisibleOnboardings", () => {
     );
     const loaded: Array<{ serviceId: string; onboarding: ServiceOnboardingResponse | null }> = [];
     let settled = false;
-    const loading = loadVisibleOnboardings(
-      ["service-fast", "service-slow"],
-      (serviceId, record) => loaded.push({ serviceId, onboarding: record }),
+    const loading = loadVisibleOnboardings(["service-fast", "service-slow"], (serviceId, record) =>
+      loaded.push({ serviceId, onboarding: record }),
     ).finally(() => {
       settled = true;
     });

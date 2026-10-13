@@ -24,8 +24,6 @@ describe("integration queue API cursor contract", () => {
     requestMock.mockResolvedValue(page as never);
 
     await expect(listIntegrationJobs("DLQ", "next-page-id")).resolves.toEqual(page);
-    expect(requestMock).toHaveBeenCalledWith(
-      "/integration-jobs?status=DLQ&cursor=next-page-id",
-    );
+    expect(requestMock).toHaveBeenCalledWith("/integration-jobs?status=DLQ&cursor=next-page-id");
   });
 });

@@ -2,7 +2,11 @@ import { useMemo } from "react";
 import { Download, Plus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketErrorState, TicketEmptyState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
+import {
+  TicketErrorState,
+  TicketEmptyState,
+  TicketLoadingState,
+} from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxPanel } from "@/components/tickets/ticket-inbox-panel";
 import {
   TicketListFiltersBar,
@@ -39,10 +43,7 @@ export function TicketListPage() {
   const workspaceCounts = useSidebarTicketCounts(list.isStaff);
   const isInbox = list.view === "inbox";
   const inboxActiveTab = list.filters.inboxTab ?? defaultInboxTab;
-  const assigneeNames = useMemo(
-    () => directoryAssigneeNames(directory.users),
-    [directory.users],
-  );
+  const assigneeNames = useMemo(() => directoryAssigneeNames(directory.users), [directory.users]);
   const originNames = useMemo(
     () => flattenOrganizationalUnitNames(directory.tree),
     [directory.tree],
@@ -53,9 +54,7 @@ export function TicketListPage() {
   const riskCount = list.counts?.overdue ?? 0;
   // Paket 5.3.1 (D10): the inbox is a tab of "All tickets"; the heading names
   // the section, the active tab names the view.
-  const pageTitle = isInbox
-    ? t("tickets.views.all")
-    : ticketText(t, ticketViewLabelKey[list.view]);
+  const pageTitle = isInbox ? t("tickets.views.all") : ticketText(t, ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox
     ? t("tickets.inboxHint")
     : ticketText(t, "tickets.listSubtitle", { open: openCount, risk: riskCount });
@@ -150,12 +149,19 @@ export function TicketListPage() {
             />
             <TicketBulkBar
               selectedIds={list.selectedIds}
-              ticketNumbers={new Map(list.pageItems.map((ticket) => [ticket.id, ticket.ticketNumber]))}
+              ticketNumbers={
+                new Map(list.pageItems.map((ticket) => [ticket.id, ticket.ticketNumber]))
+              }
               ticketSummaries={
                 new Map(
                   list.pageItems.map((ticket) => [
                     ticket.id,
-                    { id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority },
+                    {
+                      id: ticket.id,
+                      ticketNumber: ticket.ticketNumber,
+                      title: ticket.title,
+                      priority: ticket.priority,
+                    },
                   ]),
                 )
               }
@@ -180,7 +186,9 @@ export function TicketListPage() {
                       type="button"
                       size="sm"
                       variant="secondary"
-                      onClick={() => list.setFilters(clearedTicketListFilters(list.filters, list.isStaff))}
+                      onClick={() =>
+                        list.setFilters(clearedTicketListFilters(list.filters, list.isStaff))
+                      }
                     >
                       {t("tickets.clearFilters")}
                     </Button>
@@ -203,17 +211,38 @@ export function TicketListPage() {
             )}
             {list.totalPages > 1 ? (
               <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
-                <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={list.page === 1}
+                  onClick={() => list.setPage(list.page - 1)}
+                >
                   {t("tickets.previous")}
                 </Button>
-                <span className="tnum">{ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", { page: list.page, total: list.totalPages })}</span>
-                <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
+                <span className="tnum">
+                  {ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", {
+                    page: list.page,
+                    total: list.totalPages,
+                  })}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={list.page === list.totalPages}
+                  onClick={() => list.setPage(list.page + 1)}
+                >
                   {t("tickets.next")}
                 </Button>
               </div>
             ) : (
               <p className="mt-3 text-[11.5px] text-muted-foreground">
-                {ticketText(t, list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
+                {ticketText(
+                  t,
+                  list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown",
+                  { shown: list.pageItems.length, total: list.total },
+                )}
               </p>
             )}
             {canExport ? (

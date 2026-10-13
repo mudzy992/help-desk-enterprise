@@ -9,14 +9,12 @@ import {
 } from "@/services/service-catalog-api";
 
 vi.mock("@/services/organizational-units-api", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/services/organizational-units-api")>();
+  const actual = await importOriginal<typeof import("@/services/organizational-units-api")>();
   return { ...actual, listOrganizationalUnitTree: vi.fn() };
 });
 
 vi.mock("@/services/service-catalog-api", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/services/service-catalog-api")>();
+  const actual = await importOriginal<typeof import("@/services/service-catalog-api")>();
   return { ...actual, listOfferedServices: vi.fn() };
 });
 
@@ -74,9 +72,7 @@ describe("loadCreateTicketCatalog", () => {
   });
 
   it("sets catalog error only when offered services fail", async () => {
-    vi.mocked(listOfferedServices).mockRejectedValue(
-      new ApiError(500, "INTERNAL", "Server error"),
-    );
+    vi.mocked(listOfferedServices).mockRejectedValue(new ApiError(500, "INTERNAL", "Server error"));
     vi.mocked(listOrganizationalUnitTree).mockResolvedValue([
       { id: "ou-it", name: "IT", ouPath: "/IT", children: [] },
     ]);

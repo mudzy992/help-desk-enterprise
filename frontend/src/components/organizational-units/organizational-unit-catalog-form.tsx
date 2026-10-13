@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
-import { defaultOrganizationalUnitTypeForParent, organizationalUnitTypes, type OrganizationalUnitType } from "@/lib/directory/organizational-unit-types";
+import {
+  defaultOrganizationalUnitTypeForParent,
+  organizationalUnitTypes,
+  type OrganizationalUnitType,
+} from "@/lib/directory/organizational-unit-types";
 import { useOrganizationalUnitCatalogFormState } from "@/lib/directory/use-organizational-unit-catalog-form-state";
 import type { OrganizationalUnitFormMode } from "@/lib/directory/organizational-unit-form-mode";
 import { ApiError } from "@/services/api";
@@ -55,10 +59,7 @@ export function OrganizationalUnitCatalogForm({
         setErrorMessage(t("directory.catalogSaveFailed"));
       } else if (error.code === "CIRCULAR_REFERENCE") {
         setErrorMessage(t("directory.ouCircularReference"));
-      } else if (
-        error.code === "HAS_CHILDREN" ||
-        error.code === "HAS_MAPPED_USERS"
-      ) {
+      } else if (error.code === "HAS_CHILDREN" || error.code === "HAS_MAPPED_USERS") {
         setErrorMessage(t("directory.ouDeleteBlocked"));
       } else {
         setErrorMessage(t("directory.catalogSaveFailed"));
@@ -113,9 +114,7 @@ export function OrganizationalUnitCatalogForm({
             className={`${controlCompactClassName} w-full`}
             value={form.unitType}
             aria-label={t("directory.ouTypePlaceholder")}
-            onChange={(event) =>
-              form.setUnitType(event.target.value as OrganizationalUnitType)
-            }
+            onChange={(event) => form.setUnitType(event.target.value as OrganizationalUnitType)}
           >
             {organizationalUnitTypes.map((type) => (
               <option key={type} value={type}>

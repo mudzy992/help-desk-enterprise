@@ -12,7 +12,8 @@ export function WorkflowParametersCard({
   readonly parameters: TicketWorkflowResponse["parameters"];
 }) {
   const { t } = useTranslation();
-  const onOff = (value: boolean | undefined) => (value === true ? t("workflow.on") : t("workflow.off"));
+  const onOff = (value: boolean | undefined) =>
+    value === true ? t("workflow.on") : t("workflow.off");
   const unavailable = t("workflow.unavailable");
   const { unrouted } = parameters;
   const rows: readonly Row[] = [
@@ -76,7 +77,11 @@ export function WorkflowParametersCard({
         {rows.map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3 py-2.5">
             <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
-            <dd className={row.alert ? "text-right font-medium text-danger" : "text-right text-foreground/90"}>
+            <dd
+              className={
+                row.alert ? "text-right font-medium text-danger" : "text-right text-foreground/90"
+              }
+            >
               {row.value}
             </dd>
           </div>
@@ -84,7 +89,10 @@ export function WorkflowParametersCard({
       </dl>
       <p className="border-t border-border/40 px-4 py-3 text-[11.5px] text-muted-foreground">
         {t("workflow.paramsHint")}{" "}
-        <Link className="text-link underline underline-offset-2 hover:decoration-2" to="/admin?tab=settings">
+        <Link
+          className="text-link underline underline-offset-2 hover:decoration-2"
+          to="/admin?tab=settings"
+        >
           {t("workflow.paramsLink")}
         </Link>
       </p>

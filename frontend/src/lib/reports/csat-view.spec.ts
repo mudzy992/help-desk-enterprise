@@ -30,15 +30,9 @@ describe("csat-view (val 1, M9/B3)", () => {
   });
 
   it("prag dolazi iz konfiguracije: na skali 10 traži 8", () => {
-    const onFive = csatBucketRows(
-      [{ key: "a", label: "A", count: 1, average: 4 }],
-      4,
-    );
+    const onFive = csatBucketRows([{ key: "a", label: "A", count: 1, average: 4 }], 4);
     expect(onFive[0].meetsTarget).toBe(true);
-    const onTen = csatBucketRows(
-      [{ key: "a", label: "A", count: 1, average: 4 }],
-      8,
-    );
+    const onTen = csatBucketRows([{ key: "a", label: "A", count: 1, average: 4 }], 8);
     expect(onTen[0].meetsTarget).toBe(false);
   });
 

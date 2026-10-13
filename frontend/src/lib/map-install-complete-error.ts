@@ -1,12 +1,9 @@
 import { ApiError } from "@/services/api";
 
 export type InstallCompleteErrorKey =
-  | "install.complete.errorSuperAdmin"
-  | "install.complete.errorGeneric";
+  "install.complete.errorSuperAdmin" | "install.complete.errorGeneric";
 
-export function mapInstallCompleteError(
-  error: unknown,
-): InstallCompleteErrorKey {
+export function mapInstallCompleteError(error: unknown): InstallCompleteErrorKey {
   if (!(error instanceof ApiError)) {
     return "install.complete.errorGeneric";
   }

@@ -28,8 +28,7 @@ export function parseAdminConfigEvent(payload: unknown): AdminConfigUpdatedEvent
   if (!adminConfigDomains.includes(value.domain as AdminConfigDomain)) {
     return null;
   }
-  const action =
-    value.action === "create" || value.action === "delete" ? value.action : "update";
+  const action = value.action === "create" || value.action === "delete" ? value.action : "update";
   return {
     domain: value.domain as AdminConfigDomain,
     action,
@@ -84,7 +83,10 @@ export function subscribeAdminConfigEvents(listener: Listener): () => void {
  * "The admin is editing": focus in a form field inside the screen, or an open
  * dialog/drawer anywhere. Then the screen is not reloaded under their hands.
  */
-export function isEditingWithin(container: HTMLElement | null, doc: Document | undefined = globalThis.document): boolean {
+export function isEditingWithin(
+  container: HTMLElement | null,
+  doc: Document | undefined = globalThis.document,
+): boolean {
   if (doc === undefined) {
     return false;
   }

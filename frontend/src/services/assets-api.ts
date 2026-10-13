@@ -7,13 +7,33 @@ import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
  * unit scope; these calls only decide what the UI renders.
  */
 
-export const assetStatuses = ["ORDERED", "IN_STOCK", "IN_USE", "IN_REPAIR", "LOST", "RETIRED", "DISPOSED"] as const;
+export const assetStatuses = [
+  "ORDERED",
+  "IN_STOCK",
+  "IN_USE",
+  "IN_REPAIR",
+  "LOST",
+  "RETIRED",
+  "DISPOSED",
+] as const;
 export type AssetStatus = (typeof assetStatuses)[number];
-export const assetCategories = ["HARDWARE", "SOFTWARE", "NETWORK", "INFRASTRUCTURE", "OTHER"] as const;
+export const assetCategories = [
+  "HARDWARE",
+  "SOFTWARE",
+  "NETWORK",
+  "INFRASTRUCTURE",
+  "OTHER",
+] as const;
 export type AssetCategory = (typeof assetCategories)[number];
 export const assetAttributeDataTypes = ["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT"] as const;
 export type AssetAttributeDataType = (typeof assetAttributeDataTypes)[number];
-export const assetRelationKinds = ["DEPENDS_ON", "INSTALLED_ON", "CONNECTED_TO", "RUNS_ON", "PART_OF"] as const;
+export const assetRelationKinds = [
+  "DEPENDS_ON",
+  "INSTALLED_ON",
+  "CONNECTED_TO",
+  "RUNS_ON",
+  "PART_OF",
+] as const;
 export type AssetRelationKind = (typeof assetRelationKinds)[number];
 export type AssetSource = "MANUAL" | "IMPORT" | "DIRECTORY";
 
@@ -105,7 +125,11 @@ export type AssetListItem = {
   readonly manufacturer: string | null;
   readonly model: string | null;
   readonly assignedUser: AssetUserSummary | null;
-  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string };
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+  };
   readonly location: { readonly id: string; readonly label: string | null } | null;
   readonly warrantyEndsAt: string | null;
   readonly source: AssetSource;
@@ -171,7 +195,12 @@ export type AssetAttributeDefinition = {
 
 export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   readonly version: number;
-  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string; readonly pathLabel: string };
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+    readonly pathLabel: string;
+  };
   readonly service: { readonly id: string; readonly name: string } | null;
   readonly assignedAt: string | null;
   readonly purchaseDate: string | null;
@@ -187,8 +216,17 @@ export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   readonly attributeDefinitions: readonly AssetAttributeDefinition[];
   readonly attributes: Readonly<Record<string, unknown>>;
   readonly relations: readonly AssetRelation[];
-  readonly tickets: { readonly total: number; readonly open: number; readonly recent: readonly AssetTicketLink[] };
-  readonly frequentFailure: { readonly flagged: boolean; readonly count: number; readonly threshold: number; readonly days: number };
+  readonly tickets: {
+    readonly total: number;
+    readonly open: number;
+    readonly recent: readonly AssetTicketLink[];
+  };
+  readonly frequentFailure: {
+    readonly flagged: boolean;
+    readonly count: number;
+    readonly threshold: number;
+    readonly days: number;
+  };
   readonly canManage: boolean;
   readonly licenses?: readonly AssetLicenseLink[];
   readonly contracts?: readonly AssetContractLink[];
@@ -248,7 +286,11 @@ export type MyAsset = {
   readonly type: AssetTypeSummary;
   readonly manufacturer: string | null;
   readonly model: string | null;
-  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string };
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+  };
   readonly location: { readonly id: string; readonly label: string | null } | null;
   readonly assignedAt: string | null;
   readonly warrantyEndsAt: string | null;
@@ -302,13 +344,16 @@ const path = (id: string) => `/assets/${encodeURIComponent(id)}`;
 
 export function buildAssetListQuery(filters: AssetListFilters): string {
   const params = new URLSearchParams();
-  if (filters.search && filters.search.trim().length > 0) params.set("search", filters.search.trim());
+  if (filters.search && filters.search.trim().length > 0)
+    params.set("search", filters.search.trim());
   if (filters.typeId) params.set("typeId", filters.typeId);
   if (filters.status && filters.status.length > 0) params.set("status", filters.status.join(","));
-  if (filters.organizationalUnitId) params.set("organizationalUnitId", filters.organizationalUnitId);
+  if (filters.organizationalUnitId)
+    params.set("organizationalUnitId", filters.organizationalUnitId);
   if (filters.locationId) params.set("locationId", filters.locationId);
   if (filters.unassigned) params.set("unassigned", "true");
-  if (filters.warrantyWithinDays !== undefined) params.set("warrantyWithinDays", String(filters.warrantyWithinDays));
+  if (filters.warrantyWithinDays !== undefined)
+    params.set("warrantyWithinDays", String(filters.warrantyWithinDays));
   if (filters.source) params.set("source", filters.source);
   if (filters.cursor) params.set("cursor", filters.cursor);
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
@@ -321,14 +366,18 @@ export function getAssetCapabilities(): Promise<AssetCapabilities> {
 }
 
 export function getAssetCatalog(includeArchived = false): Promise<AssetCatalog> {
-  return apiRequest<AssetCatalog>(`/assets/catalog${includeArchived ? "?includeArchived=true" : ""}`);
+  return apiRequest<AssetCatalog>(
+    `/assets/catalog${includeArchived ? "?includeArchived=true" : ""}`,
+  );
 }
 
 export function getAssetOptions(): Promise<AssetOptions> {
   return apiRequest<AssetOptions>("/assets/options");
 }
 
-export function searchAssetUsers(search: string): Promise<{ readonly items: readonly AssetUserSummary[] }> {
+export function searchAssetUsers(
+  search: string,
+): Promise<{ readonly items: readonly AssetUserSummary[] }> {
   return apiRequest(`/assets/users?search=${encodeURIComponent(search)}`);
 }
 
@@ -336,7 +385,10 @@ export function listAssets(filters: AssetListFilters): Promise<AssetList> {
   return apiRequest<AssetList>(`/assets${buildAssetListQuery(filters)}`);
 }
 
-export function lookupAssets(search: string, excludeId?: string): Promise<{ readonly items: readonly AssetListItem[] }> {
+export function lookupAssets(
+  search: string,
+  excludeId?: string,
+): Promise<{ readonly items: readonly AssetListItem[] }> {
   const exclude = excludeId ? `&excludeId=${encodeURIComponent(excludeId)}` : "";
   return apiRequest(`/assets/lookup?search=${encodeURIComponent(search)}${exclude}`);
 }
@@ -358,7 +410,12 @@ export type AssetOverview = {
   };
   readonly overAllocatedLicenses: {
     readonly total: number;
-    readonly items: readonly { readonly productName: string; readonly unitName: string; readonly seats: number | null; readonly used: number }[];
+    readonly items: readonly {
+      readonly productName: string;
+      readonly unitName: string;
+      readonly seats: number | null;
+      readonly used: number;
+    }[];
   };
   readonly topAssets: {
     readonly days: number;
@@ -410,32 +467,57 @@ export function deleteAsset(id: string): Promise<void> {
   return apiRequest<void>(path(id), { method: "DELETE" });
 }
 
-export function changeAssetStatus(id: string, status: AssetStatus, reason?: string): Promise<unknown> {
-  return apiRequest(`${path(id)}/status`, { method: "POST", ...json({ status, reason: reason || undefined }) });
+export function changeAssetStatus(
+  id: string,
+  status: AssetStatus,
+  reason?: string,
+): Promise<unknown> {
+  return apiRequest(`${path(id)}/status`, {
+    method: "POST",
+    ...json({ status, reason: reason || undefined }),
+  });
 }
 
 export function assignAsset(id: string, userId: string, note?: string): Promise<unknown> {
-  return apiRequest(`${path(id)}/assign`, { method: "POST", ...json({ userId, note: note || undefined }) });
+  return apiRequest(`${path(id)}/assign`, {
+    method: "POST",
+    ...json({ userId, note: note || undefined }),
+  });
 }
 
-export function unassignAsset(id: string, status: "IN_STOCK" | "IN_REPAIR", note?: string): Promise<unknown> {
-  return apiRequest(`${path(id)}/unassign`, { method: "POST", ...json({ status, note: note || undefined }) });
+export function unassignAsset(
+  id: string,
+  status: "IN_STOCK" | "IN_REPAIR",
+  note?: string,
+): Promise<unknown> {
+  return apiRequest(`${path(id)}/unassign`, {
+    method: "POST",
+    ...json({ status, note: note || undefined }),
+  });
 }
 
 export function getAssetHistory(id: string, cursor?: string): Promise<AssetHistory> {
-  return apiRequest<AssetHistory>(`${path(id)}/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`);
+  return apiRequest<AssetHistory>(
+    `${path(id)}/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+  );
 }
 
 export function getAssetImpact(id: string): Promise<AssetImpact> {
   return apiRequest<AssetImpact>(`${path(id)}/impact`);
 }
 
-export function addAssetRelation(id: string, toAssetId: string, kind: AssetRelationKind): Promise<{ readonly id: string }> {
+export function addAssetRelation(
+  id: string,
+  toAssetId: string,
+  kind: AssetRelationKind,
+): Promise<{ readonly id: string }> {
   return apiRequest(`${path(id)}/relations`, { method: "POST", ...json({ toAssetId, kind }) });
 }
 
 export function removeAssetRelation(id: string, relationId: string): Promise<void> {
-  return apiRequest<void>(`${path(id)}/relations/${encodeURIComponent(relationId)}`, { method: "DELETE" });
+  return apiRequest<void>(`${path(id)}/relations/${encodeURIComponent(relationId)}`, {
+    method: "DELETE",
+  });
 }
 
 export function createAssetType(input: AssetTypeInput): Promise<unknown> {
@@ -443,23 +525,38 @@ export function createAssetType(input: AssetTypeInput): Promise<unknown> {
 }
 
 export function updateAssetType(id: string, input: AssetTypeInput): Promise<unknown> {
-  return apiRequest(`/assets/catalog/types/${encodeURIComponent(id)}`, { method: "PUT", ...json(input) });
+  return apiRequest(`/assets/catalog/types/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    ...json(input),
+  });
 }
 
 export function setAssetTypeArchived(id: string, archived: boolean): Promise<unknown> {
-  return apiRequest(`/assets/catalog/types/${encodeURIComponent(id)}/archive`, { method: "POST", ...json({ archived }) });
+  return apiRequest(`/assets/catalog/types/${encodeURIComponent(id)}/archive`, {
+    method: "POST",
+    ...json({ archived }),
+  });
 }
 
 export function createAssetAttribute(typeId: string, input: AssetAttributeInput): Promise<unknown> {
-  return apiRequest(`/assets/catalog/types/${encodeURIComponent(typeId)}/attributes`, { method: "POST", ...json(input) });
+  return apiRequest(`/assets/catalog/types/${encodeURIComponent(typeId)}/attributes`, {
+    method: "POST",
+    ...json(input),
+  });
 }
 
 export function updateAssetAttribute(id: string, input: AssetAttributeInput): Promise<unknown> {
-  return apiRequest(`/assets/catalog/attributes/${encodeURIComponent(id)}`, { method: "PUT", ...json(input) });
+  return apiRequest(`/assets/catalog/attributes/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    ...json(input),
+  });
 }
 
 export function setAssetAttributeArchived(id: string, archived: boolean): Promise<unknown> {
-  return apiRequest(`/assets/catalog/attributes/${encodeURIComponent(id)}/archive`, { method: "POST", ...json({ archived }) });
+  return apiRequest(`/assets/catalog/attributes/${encodeURIComponent(id)}/archive`, {
+    method: "POST",
+    ...json({ archived }),
+  });
 }
 
 export function createAssetLocation(input: AssetLocationInput): Promise<unknown> {
@@ -467,11 +564,17 @@ export function createAssetLocation(input: AssetLocationInput): Promise<unknown>
 }
 
 export function updateAssetLocation(id: string, input: AssetLocationInput): Promise<unknown> {
-  return apiRequest(`/assets/catalog/locations/${encodeURIComponent(id)}`, { method: "PUT", ...json(input) });
+  return apiRequest(`/assets/catalog/locations/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    ...json(input),
+  });
 }
 
 export function setAssetLocationArchived(id: string, archived: boolean): Promise<unknown> {
-  return apiRequest(`/assets/catalog/locations/${encodeURIComponent(id)}/archive`, { method: "POST", ...json({ archived }) });
+  return apiRequest(`/assets/catalog/locations/${encodeURIComponent(id)}/archive`, {
+    method: "POST",
+    ...json({ archived }),
+  });
 }
 
 /** Paket 3.2 (§8): the requester's own equipment for the create form. */
@@ -509,7 +612,10 @@ export const ticketAssetQueryKeys = {
   ticket: (ticketId: string) => ["assets", "ticket", ticketId] as const,
 };
 
-export function getTicketAssetPicker(): Promise<{ readonly enabled: boolean; readonly items: readonly TicketAssetPickerItem[] }> {
+export function getTicketAssetPicker(): Promise<{
+  readonly enabled: boolean;
+  readonly items: readonly TicketAssetPickerItem[];
+}> {
   return apiRequest("/assets/ticket-picker");
 }
 
@@ -517,7 +623,11 @@ export function getTicketAssets(ticketId: string): Promise<TicketAssetsView> {
   return apiRequest(`/assets/tickets/${encodeURIComponent(ticketId)}`);
 }
 
-export function linkTicketAsset(ticketId: string, assetId: string, isPrimary = false): Promise<TicketAssetsView> {
+export function linkTicketAsset(
+  ticketId: string,
+  assetId: string,
+  isPrimary = false,
+): Promise<TicketAssetsView> {
   return apiRequest(`/assets/tickets/${encodeURIComponent(ticketId)}/links`, {
     method: "POST",
     ...json({ assetId, ...(isPrimary ? { isPrimary: true } : {}) }),
@@ -525,11 +635,20 @@ export function linkTicketAsset(ticketId: string, assetId: string, isPrimary = f
 }
 
 export function unlinkTicketAsset(ticketId: string, assetId: string): Promise<TicketAssetsView> {
-  return apiRequest(`/assets/tickets/${encodeURIComponent(ticketId)}/links/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+  return apiRequest(
+    `/assets/tickets/${encodeURIComponent(ticketId)}/links/${encodeURIComponent(assetId)}`,
+    { method: "DELETE" },
+  );
 }
 
-export function setPrimaryTicketAsset(ticketId: string, assetId: string): Promise<TicketAssetsView> {
-  return apiRequest(`/assets/tickets/${encodeURIComponent(ticketId)}/links/${encodeURIComponent(assetId)}/primary`, { method: "POST" });
+export function setPrimaryTicketAsset(
+  ticketId: string,
+  assetId: string,
+): Promise<TicketAssetsView> {
+  return apiRequest(
+    `/assets/tickets/${encodeURIComponent(ticketId)}/links/${encodeURIComponent(assetId)}/primary`,
+    { method: "POST" },
+  );
 }
 
 // ------------------------------------------------------------ licences and contracts (§9, §10)
@@ -583,8 +702,17 @@ export type SoftwareLicenseDetail = SoftwareLicenseItem & {
   readonly assignments: readonly {
     readonly id: string;
     readonly assignedAt: string;
-    readonly asset: { readonly id: string; readonly assetTag: string; readonly name: string } | null;
-    readonly user: { readonly id: string; readonly displayName: string; readonly email: string; readonly isActive: boolean } | null;
+    readonly asset: {
+      readonly id: string;
+      readonly assetTag: string;
+      readonly name: string;
+    } | null;
+    readonly user: {
+      readonly id: string;
+      readonly displayName: string;
+      readonly email: string;
+      readonly isActive: boolean;
+    } | null;
   }[];
 };
 
@@ -637,8 +765,18 @@ export type AssetContractInput = {
   readonly organizationalUnitId: string;
 };
 
-export type LicenseListFilters = { readonly search?: string; readonly kind?: SoftwareLicenseKind; readonly expiringWithinDays?: number; readonly overAllocated?: boolean };
-export type ContractListFilters = { readonly search?: string; readonly kind?: AssetContractKind; readonly expiringWithinDays?: number; readonly includeExpired?: boolean };
+export type LicenseListFilters = {
+  readonly search?: string;
+  readonly kind?: SoftwareLicenseKind;
+  readonly expiringWithinDays?: number;
+  readonly overAllocated?: boolean;
+};
+export type ContractListFilters = {
+  readonly search?: string;
+  readonly kind?: AssetContractKind;
+  readonly expiringWithinDays?: number;
+  readonly includeExpired?: boolean;
+};
 
 export const assetContractQueryKeys = {
   licenses: (filters: LicenseListFilters) => ["assets", "licenses", filters] as const,
@@ -647,7 +785,9 @@ export const assetContractQueryKeys = {
   contract: (id: string) => ["assets", "contract", id] as const,
 };
 
-function listQuery(filters: Readonly<Record<string, string | number | boolean | undefined>>): string {
+function listQuery(
+  filters: Readonly<Record<string, string | number | boolean | undefined>>,
+): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value === undefined || value === "" || value === false) continue;
@@ -660,7 +800,9 @@ function listQuery(filters: Readonly<Record<string, string | number | boolean | 
 const licensePath = (id: string) => `/assets/licenses/${encodeURIComponent(id)}`;
 const contractPath = (id: string) => `/assets/contracts/${encodeURIComponent(id)}`;
 
-export function listLicenses(filters: LicenseListFilters): Promise<{ readonly items: readonly SoftwareLicenseItem[] }> {
+export function listLicenses(
+  filters: LicenseListFilters,
+): Promise<{ readonly items: readonly SoftwareLicenseItem[] }> {
   return apiRequest(`/assets/licenses${listQuery(filters)}`);
 }
 
@@ -684,15 +826,22 @@ export function revealLicenseKey(id: string): Promise<{ readonly licenseKey: str
   return apiRequest(`${licensePath(id)}/key`, { method: "POST" });
 }
 
-export function assignLicense(id: string, target: { readonly assetId?: string; readonly userId?: string }): Promise<unknown> {
+export function assignLicense(
+  id: string,
+  target: { readonly assetId?: string; readonly userId?: string },
+): Promise<unknown> {
   return apiRequest(`${licensePath(id)}/assignments`, { method: "POST", ...json(target) });
 }
 
 export function releaseLicense(id: string, assignmentId: string): Promise<unknown> {
-  return apiRequest(`${licensePath(id)}/assignments/${encodeURIComponent(assignmentId)}`, { method: "DELETE" });
+  return apiRequest(`${licensePath(id)}/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "DELETE",
+  });
 }
 
-export function listContracts(filters: ContractListFilters): Promise<{ readonly items: readonly AssetContractItem[] }> {
+export function listContracts(
+  filters: ContractListFilters,
+): Promise<{ readonly items: readonly AssetContractItem[] }> {
   return apiRequest(`/assets/contracts${listQuery(filters)}`);
 }
 
@@ -717,7 +866,9 @@ export function addContractItem(id: string, assetId: string): Promise<unknown> {
 }
 
 export function removeContractItem(id: string, assetId: string): Promise<unknown> {
-  return apiRequest(`${contractPath(id)}/items/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+  return apiRequest(`${contractPath(id)}/items/${encodeURIComponent(assetId)}`, {
+    method: "DELETE",
+  });
 }
 
 // ------------------------------------------------------------ import / export (§11, §13)
@@ -733,7 +884,11 @@ export type AssetImportTotals = {
   readonly skipped: number;
   readonly errors: number;
   readonly duplicateSkipped?: number;
-  readonly applied?: { readonly created: number; readonly updated: number; readonly failed: number };
+  readonly applied?: {
+    readonly created: number;
+    readonly updated: number;
+    readonly failed: number;
+  };
 };
 
 export type AssetImportRowError = {
@@ -743,12 +898,21 @@ export type AssetImportRowError = {
   readonly value?: string;
 };
 
-export type AssetImportColumn = { readonly key: string; readonly labelBs: string; readonly labelEn: string };
+export type AssetImportColumn = {
+  readonly key: string;
+  readonly labelBs: string;
+  readonly labelEn: string;
+};
 
 export type AssetImportPreview = {
   readonly id: string;
   readonly status: "PREVIEW";
-  readonly type: { readonly id: string; readonly key: string; readonly nameBs: string; readonly nameEn: string };
+  readonly type: {
+    readonly id: string;
+    readonly key: string;
+    readonly nameBs: string;
+    readonly nameEn: string;
+  };
   readonly fileName: string;
   readonly mode: AssetImportMode;
   readonly allOrNothing: boolean;
@@ -777,7 +941,12 @@ export type AssetImportJob = {
   readonly mode: AssetImportMode;
   readonly allOrNothing: boolean;
   readonly totals: AssetImportTotals;
-  readonly type: { readonly id: string; readonly key: string; readonly nameBs: string; readonly nameEn: string } | null;
+  readonly type: {
+    readonly id: string;
+    readonly key: string;
+    readonly nameBs: string;
+    readonly nameEn: string;
+  } | null;
   readonly createdBy: string | null;
   readonly createdAt: string;
   readonly appliedAt: string | null;
@@ -789,7 +958,9 @@ export const assetImportQueryKeys = {
 };
 
 export async function downloadAssetImportTemplate(typeId: string, locale: string): Promise<void> {
-  const result = await apiDownloadRequest(`/assets/import/template?typeId=${encodeURIComponent(typeId)}&locale=${encodeURIComponent(locale)}`);
+  const result = await apiDownloadRequest(
+    `/assets/import/template?typeId=${encodeURIComponent(typeId)}&locale=${encodeURIComponent(locale)}`,
+  );
   triggerBlobDownload(result.blob, result.fileName ?? "asset-import.xlsx");
 }
 
@@ -822,14 +993,22 @@ export function listAssetImports(): Promise<{ readonly items: readonly AssetImpo
 }
 
 export async function downloadAssetImportErrors(id: string, locale: string): Promise<void> {
-  const result = await apiDownloadRequest(`/assets/import/${encodeURIComponent(id)}/errors?locale=${encodeURIComponent(locale)}`);
+  const result = await apiDownloadRequest(
+    `/assets/import/${encodeURIComponent(id)}/errors?locale=${encodeURIComponent(locale)}`,
+  );
   triggerBlobDownload(result.blob, result.fileName ?? "asset-import-errors.xlsx");
 }
 
-export async function exportAssets(filters: AssetListFilters, format: "xlsx" | "csv", locale: string): Promise<void> {
+export async function exportAssets(
+  filters: AssetListFilters,
+  format: "xlsx" | "csv",
+  locale: string,
+): Promise<void> {
   const query = buildAssetListQuery({ ...filters, cursor: undefined, limit: undefined });
   const separator = query.length > 0 ? "&" : "?";
-  const result = await apiDownloadRequest(`/assets/export${query}${separator}format=${format}&locale=${encodeURIComponent(locale)}`);
+  const result = await apiDownloadRequest(
+    `/assets/export${query}${separator}format=${format}&locale=${encodeURIComponent(locale)}`,
+  );
   triggerBlobDownload(result.blob, result.fileName ?? `assets.${format}`);
 }
 
@@ -879,12 +1058,24 @@ export type AssetDirectorySyncReport = {
   readonly startedAt: string;
   readonly durationMs: number;
   readonly totals: AssetDirectorySyncTotals;
-  readonly applied: { readonly created: number; readonly updated: number; readonly failed: number } | null;
+  readonly applied: {
+    readonly created: number;
+    readonly updated: number;
+    readonly failed: number;
+  } | null;
   readonly missingGuardTripped: boolean;
   readonly wouldFlagMissing: number;
   readonly conflicts: readonly AssetDirectoryConflict[];
-  readonly skipped: readonly { readonly externalId: string; readonly name: string; readonly reason: "no_unit" | "no_type" | "hostname_ambiguous" }[];
-  readonly preview: readonly { readonly name: string; readonly action: string; readonly changes: readonly string[] }[];
+  readonly skipped: readonly {
+    readonly externalId: string;
+    readonly name: string;
+    readonly reason: "no_unit" | "no_type" | "hostname_ambiguous";
+  }[];
+  readonly preview: readonly {
+    readonly name: string;
+    readonly action: string;
+    readonly changes: readonly string[];
+  }[];
   readonly domainController: string | null;
 };
 

@@ -105,11 +105,7 @@ function toSignInOutcome(response: AuthenticationLoginResponse): SignInOutcome {
 }
 
 export function useSession() {
-  const session = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
+  const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const signIn = useCallback(
     async (
@@ -142,10 +138,7 @@ export function useSession() {
   }, []);
 
   const completePasswordChange = useCallback(
-    async (
-      passwordChangeToken: string,
-      newPassword: string,
-    ): Promise<SignInOutcome> => {
+    async (passwordChangeToken: string, newPassword: string): Promise<SignInOutcome> => {
       const response = await changePasswordOnFirstLogin({
         passwordChangeToken,
         newPassword,

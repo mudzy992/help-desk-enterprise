@@ -53,7 +53,9 @@ export function OnCallRangeDialog({
   useEffect(() => {
     if (!open) return;
     const start = initialRange ? new Date(initialRange.startsAt) : new Date(Date.now() + 3_600_000);
-    const end = initialRange ? new Date(initialRange.endsAt) : new Date(start.getTime() + 86_400_000);
+    const end = initialRange
+      ? new Date(initialRange.endsAt)
+      : new Date(start.getTime() + 86_400_000);
     setUserId("");
     setStartsAt(toZoneInputValue(start, timeZone));
     setEndsAt(toZoneInputValue(end, timeZone));
@@ -63,8 +65,14 @@ export function OnCallRangeDialog({
 
   const startIso = fromZoneInputValue(startsAt, timeZone);
   const endIso = fromZoneInputValue(endsAt, timeZone);
-  const orderError = startIso !== null && endIso !== null && Date.parse(endIso) <= Date.parse(startIso);
-  const valid = userId !== "" && startIso !== null && endIso !== null && !orderError && reason.trim().length >= 3;
+  const orderError =
+    startIso !== null && endIso !== null && Date.parse(endIso) <= Date.parse(startIso);
+  const valid =
+    userId !== "" &&
+    startIso !== null &&
+    endIso !== null &&
+    !orderError &&
+    reason.trim().length >= 3;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -73,10 +81,20 @@ export function OnCallRangeDialog({
     setError(null);
     try {
       if (mode === "override") {
-        await createOnCallOverride(groupId, { userId, startsAt: startIso, endsAt: endIso, reason: reason.trim() });
+        await createOnCallOverride(groupId, {
+          userId,
+          startsAt: startIso,
+          endsAt: endIso,
+          reason: reason.trim(),
+        });
         toast({ tone: "success", title: t("onCall.override.saved") });
       } else {
-        await requestOnCallSwap(groupId, { colleagueId: userId, startsAt: startIso, endsAt: endIso, reason: reason.trim() });
+        await requestOnCallSwap(groupId, {
+          colleagueId: userId,
+          startsAt: startIso,
+          endsAt: endIso,
+          reason: reason.trim(),
+        });
         toast({ tone: "success", title: t("onCall.swap.requested") });
       }
       onOpenChange(false);
@@ -93,10 +111,15 @@ export function OnCallRangeDialog({
       <ModalContent className="max-w-lg">
         <ModalHeader
           title={mode === "override" ? t("onCall.override.title") : t("onCall.swap.title")}
-          description={mode === "override" ? groupName : t("onCall.swap.description", { group: groupName })}
+          description={
+            mode === "override" ? groupName : t("onCall.swap.description", { group: groupName })
+          }
         />
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
-          <Field label={mode === "override" ? t("onCall.override.person") : t("onCall.swap.colleague")} required>
+          <Field
+            label={mode === "override" ? t("onCall.override.person") : t("onCall.swap.colleague")}
+            required
+          >
             <Select value={userId} onChange={(event) => setUserId(event.target.value)}>
               <option value="">{t("onCall.schedule.pick")}</option>
               {people.map((person) => (
@@ -107,20 +130,49 @@ export function OnCallRangeDialog({
             </Select>
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={t("onCall.from")} required error={startsAt !== "" && startIso === null ? t("onCall.errors.time") : null}>
-              <Input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required />
+            <Field
+              label={t("onCall.from")}
+              required
+              error={startsAt !== "" && startIso === null ? t("onCall.errors.time") : null}
+            >
+              <Input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(event) => setStartsAt(event.target.value)}
+                required
+              />
             </Field>
             <Field
               label={t("onCall.to")}
               required
-              error={orderError ? t("onCall.errors.order") : endsAt !== "" && endIso === null ? t("onCall.errors.time") : null}
+              error={
+                orderError
+                  ? t("onCall.errors.order")
+                  : endsAt !== "" && endIso === null
+                    ? t("onCall.errors.time")
+                    : null
+              }
             >
-              <Input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} required />
+              <Input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(event) => setEndsAt(event.target.value)}
+                required
+              />
             </Field>
           </div>
           <p className={hintClassName}>{t("onCall.zoneHint", { zone: timeZone })}</p>
-          <Field label={t("onCall.reason")} required hint={mode === "swap" ? t("onCall.swap.reasonHint") : t("onCall.reasonHint")}>
-            <Textarea rows={2} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+          <Field
+            label={t("onCall.reason")}
+            required
+            hint={mode === "swap" ? t("onCall.swap.reasonHint") : t("onCall.reasonHint")}
+          >
+            <Textarea
+              rows={2}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+            />
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>
@@ -128,11 +180,20 @@ export function OnCallRangeDialog({
             </p>
           ) : null}
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={!valid || saving}>
-              {saving ? t("onCall.saving") : mode === "override" ? t("onCall.override.save") : t("onCall.swap.send")}
+              {saving
+                ? t("onCall.saving")
+                : mode === "override"
+                  ? t("onCall.override.save")
+                  : t("onCall.swap.send")}
             </Button>
           </ModalFooter>
         </form>

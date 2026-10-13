@@ -21,7 +21,15 @@ import {
   shouldWarnOrganizationalUnitMissingForRoleAssignment,
 } from "@/lib/users/user-role-organizational-unit-scope";
 
-const assignableRoleKeys = ["USER", "AGENT", "ASSET_MANAGER", "PROBLEM_MANAGER", "CHANGE_MANAGER", "ADMIN", "SUPER_ADMIN"] as const;
+const assignableRoleKeys = [
+  "USER",
+  "AGENT",
+  "ASSET_MANAGER",
+  "PROBLEM_MANAGER",
+  "CHANGE_MANAGER",
+  "ADMIN",
+  "SUPER_ADMIN",
+] as const;
 
 interface UserRolesSectionProperties {
   readonly userId: string;
@@ -29,11 +37,7 @@ interface UserRolesSectionProperties {
   readonly services: readonly ServiceResponse[];
 }
 
-export function UserRolesSection({
-  userId,
-  originUnits,
-  services,
-}: UserRolesSectionProperties) {
+export function UserRolesSection({ userId, originUnits, services }: UserRolesSectionProperties) {
   const { t } = useTranslation();
   const [roles, setRoles] = useState<readonly UserRoleResponse[]>([]);
   const [roleKey, setRoleKey] = useState<string>("AGENT");
@@ -64,17 +68,14 @@ export function UserRolesSection({
   }, [reload]);
 
   const groupCoverageGaps = useUserRoleGroupCoverageGaps(userId, roles, isLoading);
-  const groupCoverageGapByRoleId = new Map(
-    groupCoverageGaps.map((gap) => [gap.userRoleId, gap]),
-  );
+  const groupCoverageGapByRoleId = new Map(groupCoverageGaps.map((gap) => [gap.userRoleId, gap]));
 
   const showOrganizationalUnitWildcard =
     shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey);
-  const showOrganizationalUnitScopeWarning =
-    shouldWarnOrganizationalUnitMissingForRoleAssignment(
-      roleKey,
-      organizationalUnitId,
-    );
+  const showOrganizationalUnitScopeWarning = shouldWarnOrganizationalUnitMissingForRoleAssignment(
+    roleKey,
+    organizationalUnitId,
+  );
   const canAssignRole =
     !roleRequiresOrganizationalUnitForTicketScope(roleKey) ||
     organizationalUnitId.trim().length > 0;
@@ -150,9 +151,7 @@ export function UserRolesSection({
                     {t("users.removeRole")}
                   </Button>
                 </div>
-                {coverageGap ? (
-                  <UserRoleGroupCoverageNotice gap={coverageGap} />
-                ) : null}
+                {coverageGap ? <UserRoleGroupCoverageNotice gap={coverageGap} /> : null}
               </li>
             );
           })}
@@ -178,9 +177,7 @@ export function UserRolesSection({
           onChange={(event) => setOrganizationalUnitId(event.target.value)}
         >
           {showOrganizationalUnitWildcard ? (
-            <option value="">
-              {t("users.scopeNoTicketAccessByOrganizationalUnit")}
-            </option>
+            <option value="">{t("users.scopeNoTicketAccessByOrganizationalUnit")}</option>
           ) : (
             <option value="" disabled>
               {t("users.scopeSelectOrganizationalUnit")}
@@ -215,10 +212,7 @@ export function UserRolesSection({
         </Button>
       </div>
       {showOrganizationalUnitScopeWarning ? (
-        <p
-          role="status"
-          className="mt-2 text-[12px] text-warning"
-        >
+        <p role="status" className="mt-2 text-[12px] text-warning">
           {t("users.scopeOrganizationalUnitRequiredWarning")}
         </p>
       ) : null}

@@ -48,9 +48,7 @@ export function ServiceDowntimeWindowRow({
           disabled={!canCancel || isCancelling}
           onClick={onCancel}
         >
-          {isCancelling
-            ? t("services.downtime.cancelling")
-            : t("services.downtime.cancelWindow")}
+          {isCancelling ? t("services.downtime.cancelling") : t("services.downtime.cancelWindow")}
         </Button>
       </div>
     </li>

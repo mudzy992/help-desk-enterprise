@@ -36,7 +36,9 @@ export type InboundProblemKey = (typeof inboundProblemKeys)[number];
 
 export function toInboundReasonKey(reason: string | null): InboundReasonKey | null {
   if (reason === null || reason.length === 0) return null;
-  return (inboundReasonKeys as readonly string[]).includes(reason) ? (reason as InboundReasonKey) : "OTHER";
+  return (inboundReasonKeys as readonly string[]).includes(reason)
+    ? (reason as InboundReasonKey)
+    : "OTHER";
 }
 
 export function toInboundProblemKeys(problems: readonly string[]): InboundProblemKey[] {

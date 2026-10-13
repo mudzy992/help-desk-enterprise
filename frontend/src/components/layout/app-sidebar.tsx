@@ -5,11 +5,7 @@ import { BrandLockup } from "@/components/layout/brand-mark";
 import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
 import { SidebarUserCard } from "@/components/layout/sidebar-user-card";
 import { navigationIconFor } from "@/lib/navigation-icons";
-import {
-  isNavigationItemActive,
-  navigationSections,
-  type NavigationItem,
-} from "@/lib/navigation";
+import { isNavigationItemActive, navigationSections, type NavigationItem } from "@/lib/navigation";
 import { filterNavigationSections, isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
@@ -31,7 +27,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex h-14 shrink-0 items-center border-b border-border/70 px-4">
-        <Link to="/" onClick={onNavigate} className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-primary/70">
+        <Link
+          to="/"
+          onClick={onNavigate}
+          className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-primary/70"
+        >
           <BrandLockup subtitle={t("shell.brandTagline")} />
         </Link>
       </div>
@@ -65,11 +65,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <li key={item.labelKey}>
-                  <SidebarLink
-                    item={item}
-                    onNavigate={onNavigate}
-                    ticketCounts={ticketCounts}
-                  />
+                  <SidebarLink item={item} onNavigate={onNavigate} ticketCounts={ticketCounts} />
                 </li>
               ))}
             </ul>
@@ -88,19 +84,11 @@ interface SidebarLinkProperties {
   readonly ticketCounts: SidebarTicketCounts | null;
 }
 
-function SidebarLink({
-  item,
-  onNavigate,
-  ticketCounts,
-}: SidebarLinkProperties) {
+function SidebarLink({ item, onNavigate, ticketCounts }: SidebarLinkProperties) {
   const { t } = useTranslation();
   const location = useLocation();
   const Icon = navigationIconFor(item.path);
-  const isActive = isNavigationItemActive(
-    item,
-    location.pathname,
-    location.search,
-  );
+  const isActive = isNavigationItemActive(item, location.pathname, location.search);
 
   return (
     <Link

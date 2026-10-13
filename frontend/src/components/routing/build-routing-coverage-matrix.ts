@@ -6,10 +6,7 @@ import type {
 
 export type RoutingCoverageCellKind = "exact" | "inherited" | "unrouted";
 
-export const ROUTING_COVERAGE_CELL_STYLE: Record<
-  RoutingCoverageCellKind,
-  string
-> = {
+export const ROUTING_COVERAGE_CELL_STYLE: Record<RoutingCoverageCellKind, string> = {
   exact: "border-success/35 bg-success/15 text-ok",
   inherited: "border-info/25 bg-info/10 text-info",
   unrouted: "border-danger/30 bg-danger/8 text-danger",
@@ -41,16 +38,11 @@ export type RoutingCoverageMatrix = {
   readonly stats: RoutingCoverageMatrixStats;
 };
 
-export function coverageCellKey(
-  serviceId: string,
-  originUnitId: string,
-): string {
+export function coverageCellKey(serviceId: string, originUnitId: string): string {
   return `${serviceId}:${originUnitId}`;
 }
 
-export function coverageCellKind(
-  outcome: RoutingOutcome,
-): RoutingCoverageCellKind {
+export function coverageCellKind(outcome: RoutingOutcome): RoutingCoverageCellKind {
   if (outcome === "EXACT") {
     return "exact";
   }
@@ -79,10 +71,7 @@ export function markKeyForKind(
 
 export function outcomeLabelKeyForKind(
   kind: RoutingCoverageCellKind,
-):
-  | "routing.outcomeExact"
-  | "routing.outcomeInherited"
-  | "routing.outcomeUnrouted" {
+): "routing.outcomeExact" | "routing.outcomeInherited" | "routing.outcomeUnrouted" {
   if (kind === "exact") {
     return "routing.outcomeExact";
   }

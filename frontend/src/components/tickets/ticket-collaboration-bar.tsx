@@ -70,7 +70,10 @@ function StaffPresence({ people }: { readonly people: readonly PresencePerson[] 
   // 2.8 §3.5: at most one "is typing" announcement per person per 15 s.
   useEffect(() => {
     if (typist !== undefined && typingMessage !== null) {
-      announce(typingMessage, { dedupeKey: `typing:${typist.userId}`, throttleMs: TYPING_ANNOUNCE_MS });
+      announce(typingMessage, {
+        dedupeKey: `typing:${typist.userId}`,
+        throttleMs: TYPING_ANNOUNCE_MS,
+      });
     }
   }, [typist, typingMessage]);
   return (
@@ -90,7 +93,9 @@ function StaffPresence({ people }: { readonly people: readonly PresencePerson[] 
         ))}
       </div>
       {extra > 0 ? (
-        <span className="text-[11px] text-muted-foreground">{t("tickets.collaboration.presence.more", { count: extra })}</span>
+        <span className="text-[11px] text-muted-foreground">
+          {t("tickets.collaboration.presence.more", { count: extra })}
+        </span>
       ) : null}
       <span className="truncate text-[11.5px] text-muted-foreground">
         {typist !== undefined ? <TypingDots /> : null}
@@ -148,7 +153,9 @@ function FollowButton({ ticketId }: { readonly ticketId: string }) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists });
       toast({
         tone: "success",
-        title: next.following ? t("tickets.collaboration.follow.followed") : t("tickets.collaboration.follow.unfollowed"),
+        title: next.following
+          ? t("tickets.collaboration.follow.followed")
+          : t("tickets.collaboration.follow.unfollowed"),
       });
     },
     onError: () => {
@@ -169,7 +176,9 @@ function FollowButton({ ticketId }: { readonly ticketId: string }) {
       data-testid="ticket-follow-button"
     >
       {following ? <BellOff size={12} /> : <Bell size={12} />}
-      {following ? t("tickets.collaboration.follow.unfollow") : t("tickets.collaboration.follow.follow")}
+      {following
+        ? t("tickets.collaboration.follow.unfollow")
+        : t("tickets.collaboration.follow.follow")}
       {state.data !== undefined && state.data.followerCount > 0 ? (
         <span className="tnum text-muted-foreground">· {state.data.followerCount}</span>
       ) : null}

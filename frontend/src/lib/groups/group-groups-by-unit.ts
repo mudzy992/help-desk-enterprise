@@ -30,11 +30,7 @@ export function groupGroupsByUnit<T extends GroupUnitReference>(
   return [...sections.values()]
     .map((section) => ({
       ...section,
-      groups: [...section.groups].sort((left, right) =>
-        left.name.localeCompare(right.name),
-      ),
+      groups: [...section.groups].sort((left, right) => left.name.localeCompare(right.name)),
     }))
-    .sort((left, right) =>
-      left.organizationalUnitPath.localeCompare(right.organizationalUnitPath),
-    );
+    .sort((left, right) => left.organizationalUnitPath.localeCompare(right.organizationalUnitPath));
 }

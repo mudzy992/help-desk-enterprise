@@ -16,10 +16,7 @@ export function SlaCalendarDetailCard({ calendar }: SlaCalendarDetailCardPropert
       <Card>
         <CardHeader title={t("sla.calendar")} />
         <div className="px-4 py-3.5">
-          <EmptyState
-            title={t("sla.calendarsEmptyTitle")}
-            body={t("sla.calendarsEmptyBody")}
-          />
+          <EmptyState title={t("sla.calendarsEmptyTitle")} body={t("sla.calendarsEmptyBody")} />
         </div>
       </Card>
     );

@@ -21,10 +21,7 @@ export interface PlotSize {
 }
 
 /** Upper bound of the value axis: 15% headroom, never zero or NaN. */
-export function resolvePlotMax(
-  values: readonly number[],
-  headroom = 1.15,
-): number {
+export function resolvePlotMax(values: readonly number[], headroom = 1.15): number {
   const highest = values.reduce(
     (max, value) => (Number.isFinite(value) && value > max ? value : max),
     0,
@@ -63,11 +60,7 @@ export function plotY(value: number, max: number, size: PlotSize): number {
 }
 
 /** `M…L…` polyline for one series. */
-export function buildLinePath(
-  values: readonly number[],
-  max: number,
-  size: PlotSize,
-): string {
+export function buildLinePath(values: readonly number[], max: number, size: PlotSize): string {
   return values
     .map(
       (value, index) =>
@@ -77,11 +70,7 @@ export function buildLinePath(
 }
 
 /** Closed area under the line — the gradient fill of the dual area chart. */
-export function buildAreaPath(
-  values: readonly number[],
-  max: number,
-  size: PlotSize,
-): string {
+export function buildAreaPath(values: readonly number[], max: number, size: PlotSize): string {
   const baselineY = size.padding.top + plotInnerHeight(size);
   const rightX = size.padding.left + plotInnerWidth(size);
   return `${buildLinePath(values, max, size)} L${rightX.toFixed(1)},${baselineY} L${size.padding.left},${baselineY} Z`;

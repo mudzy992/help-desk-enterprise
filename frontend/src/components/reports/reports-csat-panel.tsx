@@ -11,10 +11,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { csatBucketBars, csatBucketRows } from "@/lib/reports/csat-view";
 import { formatCsat } from "@/lib/reports/report-format";
-import {
-  fetchTicketCsatSummary,
-  type TicketCsatSummary,
-} from "@/services/tickets-csat-api";
+import { fetchTicketCsatSummary, type TicketCsatSummary } from "@/services/tickets-csat-api";
 
 /**
  * Val 1 (M9/B3): RAW traži CSAT razrez po OU/servisu/grupi, a `GET
@@ -73,9 +70,21 @@ export function ReportsCsatPanel() {
   }
 
   const dimensions = [
-    { key: "unit", title: t("reports.csat.byUnit"), rows: csatBucketRows(summary.byOriginUnit, summary.satisfiedMinRating) },
-    { key: "service", title: t("reports.csat.byService"), rows: csatBucketRows(summary.byService, summary.satisfiedMinRating) },
-    { key: "group", title: t("reports.csat.byGroup"), rows: csatBucketRows(summary.byGroup, summary.satisfiedMinRating) },
+    {
+      key: "unit",
+      title: t("reports.csat.byUnit"),
+      rows: csatBucketRows(summary.byOriginUnit, summary.satisfiedMinRating),
+    },
+    {
+      key: "service",
+      title: t("reports.csat.byService"),
+      rows: csatBucketRows(summary.byService, summary.satisfiedMinRating),
+    },
+    {
+      key: "group",
+      title: t("reports.csat.byGroup"),
+      rows: csatBucketRows(summary.byGroup, summary.satisfiedMinRating),
+    },
   ] as const;
 
   return (
@@ -106,10 +115,7 @@ export function ReportsCsatPanel() {
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
         {dimensions.map((dimension) => (
           <Card key={dimension.key} className="fade-in">
-            <CardHeader
-              title={dimension.title}
-              subtitle={t("reports.csat.dimensionSubtitle")}
-            />
+            <CardHeader title={dimension.title} subtitle={t("reports.csat.dimensionSubtitle")} />
             <div className="px-4 py-4">
               {dimension.rows.length === 0 ? (
                 <p className="text-[12.5px] text-muted-foreground">
@@ -122,7 +128,9 @@ export function ReportsCsatPanel() {
                     <thead>
                       <tr className="text-[10.5px] uppercase tracking-[0.07em] text-muted-foreground">
                         <th className="py-1.5 pr-2 font-medium">{t("reports.csat.columnKey")}</th>
-                        <th className="py-1.5 pr-2 font-medium">{t("reports.csat.columnSample")}</th>
+                        <th className="py-1.5 pr-2 font-medium">
+                          {t("reports.csat.columnSample")}
+                        </th>
                         <th className="py-1.5 font-medium">
                           {t("reports.csat.columnAverage", { max: summary.scaleMax })}
                         </th>

@@ -1,10 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  parseLocale,
-  persistLocale,
-  type Locale,
-} from "@/i18n/locale";
+import { parseLocale, persistLocale, type Locale } from "@/i18n/locale";
 import { readStoredSession } from "@/services/session-store";
 import { updateUserPreferences } from "@/services/user-preferences-api";
 

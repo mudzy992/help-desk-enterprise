@@ -49,7 +49,9 @@ export function ConfigVersionsPage() {
           body={t("configVersions.forbiddenBody")}
         />
       ) : null}
-      {!isLoading && canOpen ? <ConfigVersionsWorkspace canWrite={canWrite} canImport={canImport} /> : null}
+      {!isLoading && canOpen ? (
+        <ConfigVersionsWorkspace canWrite={canWrite} canImport={canImport} />
+      ) : null}
     </section>
   );
 }

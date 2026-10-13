@@ -1,11 +1,25 @@
-import { CalendarClock, History, MoreHorizontal, Pencil, Play, Plus, Send, Trash2 } from "lucide-react";
+import {
+  CalendarClock,
+  History,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  Plus,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import {
+  hintClassName,
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+} from "@/components/ui/control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +31,10 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
-import { reportErrorMessageKeys, type TrendsFilterOption } from "@/components/reports/trends/report-trends-panel";
+import {
+  reportErrorMessageKeys,
+  type TrendsFilterOption,
+} from "@/components/reports/trends/report-trends-panel";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import {
@@ -66,11 +83,19 @@ const frequencyKeys = {
 } as const;
 
 /** Paket 2.5 (design §7.3): „Zakazani” — only with `reports.schedule.manage`. */
-export function ReportSchedulesPanel({ units, services, groups, draft, onDraftConsumed }: ReportSchedulesPanelProperties) {
+export function ReportSchedulesPanel({
+  units,
+  services,
+  groups,
+  draft,
+  onDraftConsumed,
+}: ReportSchedulesPanelProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [list, setList] = useState<ReportScheduleList | null>(null);
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [formDraft, setFormDraft] = useState<ReportScheduleDraft | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -102,7 +127,11 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
 
   const fail = (caught: unknown) => {
     const code = readReportErrorCode(caught);
-    toast({ title: code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]), tone: "danger", error: caught });
+    toast({
+      title: code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]),
+      tone: "danger",
+      error: caught,
+    });
   };
 
   const replace = (schedule: ReportSchedule) =>
@@ -135,7 +164,11 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
       toast(
         result.sent
           ? { title: t("reports.schedules.testSent"), tone: "success" }
-          : { title: t("reports.schedules.testNotSent"), description: result.reason, tone: "warning" },
+          : {
+              title: t("reports.schedules.testNotSent"),
+              description: result.reason,
+              tone: "warning",
+            },
       );
     } catch (caught) {
       fail(caught);
@@ -166,7 +199,9 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
     try {
       await deleteReportSchedule(schedule.id);
       setList((current) =>
-        current === null ? current : { ...current, schedules: current.schedules.filter((item) => item.id !== schedule.id) },
+        current === null
+          ? current
+          : { ...current, schedules: current.schedules.filter((item) => item.id !== schedule.id) },
       );
       setConfirmDelete(null);
     } catch (caught) {
@@ -234,7 +269,9 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
                 <th className="px-3 py-2 text-left">{t("reports.schedules.columns.name")}</th>
                 <th className="px-3 py-2 text-left">{t("reports.schedules.columns.when")}</th>
                 <th className="px-3 py-2 text-left">{t("reports.schedules.columns.scope")}</th>
-                <th className="px-3 py-2 text-right">{t("reports.schedules.columns.recipients")}</th>
+                <th className="px-3 py-2 text-right">
+                  {t("reports.schedules.columns.recipients")}
+                </th>
                 <th className="px-3 py-2 text-left">{t("reports.schedules.columns.lastRun")}</th>
                 <th className="px-3 py-2 text-left">{t("reports.schedules.columns.next")}</th>
                 <th className="px-3 py-2 text-center">{t("reports.schedules.columns.enabled")}</th>
@@ -249,7 +286,11 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
                     {t(frequencyKeys[schedule.frequency])} · {schedule.sendTime}
                   </td>
                   <td className="max-w-[220px] truncate px-3 text-muted-foreground">
-                    {[schedule.organizationalUnit.name, schedule.service?.name, schedule.group?.name]
+                    {[
+                      schedule.organizationalUnit.name,
+                      schedule.service?.name,
+                      schedule.group?.name,
+                    ]
                       .filter((part): part is string => part !== undefined && part !== null)
                       .join(" · ")}
                   </td>
@@ -263,7 +304,9 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
                       </Badge>
                     )}
                   </td>
-                  <td className="px-3 text-muted-foreground">{schedule.enabled ? dateTime(schedule.nextRunAt) : "—"}</td>
+                  <td className="px-3 text-muted-foreground">
+                    {schedule.enabled ? dateTime(schedule.nextRunAt) : "—"}
+                  </td>
                   <td className="px-3 text-center">
                     <Switch
                       checked={schedule.enabled}
@@ -275,7 +318,12 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
                   <td className="px-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="xs" variant="ghost" aria-label={t("reports.schedules.actions")} data-testid="schedule-menu">
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          aria-label={t("reports.schedules.actions")}
+                          data-testid="schedule-menu"
+                        >
                           <MoreHorizontal size={14} />
                         </Button>
                       </DropdownMenuTrigger>
@@ -289,13 +337,19 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
                         >
                           <Pencil size={14} /> {t("reports.schedules.edit")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => void sendTest(schedule)} data-testid="schedule-send-test">
+                        <DropdownMenuItem
+                          onSelect={() => void sendTest(schedule)}
+                          data-testid="schedule-send-test"
+                        >
                           <Send size={14} /> {t("reports.schedules.sendTest")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setConfirmRun(schedule)}>
                           <Play size={14} /> {t("reports.schedules.runNow")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setRunsFor(schedule)} data-testid="schedule-history">
+                        <DropdownMenuItem
+                          onSelect={() => setRunsFor(schedule)}
+                          data-testid="schedule-history"
+                        >
                           <History size={14} /> {t("reports.schedules.history")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setConfirmDelete(schedule)}>
@@ -349,7 +403,11 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
         isPending={confirmDelete !== null && busy === confirmDelete.id}
         onConfirm={() => confirmDelete !== null && void remove(confirmDelete)}
       />
-      <ReportScheduleRunsSheet schedule={runsFor} timeZone={list.settings.timeZone} onClose={() => setRunsFor(null)} />
+      <ReportScheduleRunsSheet
+        schedule={runsFor}
+        timeZone={list.settings.timeZone}
+        onClose={() => setRunsFor(null)}
+      />
     </div>
   );
 }
@@ -413,13 +471,20 @@ function ReportScheduleRunsSheet({
     return key === null ? code : t(key as unknown as "reports.schedules.skip.inactive");
   };
   const date = (value: string) =>
-    new Date(value).toLocaleDateString(i18n.language, { timeZone, day: "2-digit", month: "2-digit", year: "numeric" });
+    new Date(value).toLocaleDateString(i18n.language, {
+      timeZone,
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 
   return (
     <Sheet open={schedule !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="flex w-full max-w-md flex-col p-0" data-testid="schedule-runs-sheet">
         <div className="border-b border-border/70 px-5 py-4">
-          <SheetTitle className="text-[15px] font-semibold text-foreground">{t("reports.schedules.historyTitle")}</SheetTitle>
+          <SheetTitle className="text-[15px] font-semibold text-foreground">
+            {t("reports.schedules.historyTitle")}
+          </SheetTitle>
           <SheetDescription className={hintClassName}>{schedule?.name}</SheetDescription>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -448,7 +513,10 @@ function ReportScheduleRunsSheet({
                     })}
                   </p>
                   <p className={hintClassName}>
-                    {t("reports.schedules.runCounts", { sent: run.sentCount, total: run.recipientCount })}
+                    {t("reports.schedules.runCounts", {
+                      sent: run.sentCount,
+                      total: run.recipientCount,
+                    })}
                     {run.trigger === "MANUAL"
                       ? ` · ${t("reports.schedules.manual", { name: run.triggeredBy?.displayName ?? "—" })}`
                       : ""}
@@ -462,8 +530,7 @@ function ReportScheduleRunsSheet({
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-[12px] text-muted-foreground">
                       {run.skipped.map((item) => (
                         <li key={`${item.userId}-${item.reason}`}>
-                          {item.displayName ?? item.userId}:{" "}
-                          {describe(skipReasonKeys, item.reason)}
+                          {item.displayName ?? item.userId}: {describe(skipReasonKeys, item.reason)}
                         </li>
                       ))}
                     </ul>
@@ -472,9 +539,12 @@ function ReportScheduleRunsSheet({
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-[12px] text-muted-foreground">
                       {run.omittedAttachments.map((item) => (
                         <li key={`${item.pack}-${item.reason}`}>
-                          {t(`reports.packs.names.${item.pack}` as "reports.packs.names.monthly_kpi", {
-                            defaultValue: item.pack,
-                          })}
+                          {t(
+                            `reports.packs.names.${item.pack}` as "reports.packs.names.monthly_kpi",
+                            {
+                              defaultValue: item.pack,
+                            },
+                          )}
                           : {describe(omitReasonKeys, item.reason)}
                         </li>
                       ))}

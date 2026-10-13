@@ -19,14 +19,8 @@ describe("allowedServiceLifecycleTransitions", () => {
   });
 
   it("picks activate / deprecate / reactivate labels from the matrix", () => {
-    expect(serviceLifecycleActionLabelKey("DRAFT", "ACTIVE")).toBe(
-      "services.activate",
-    );
-    expect(serviceLifecycleActionLabelKey("ACTIVE", "DEPRECATED")).toBe(
-      "services.deprecate",
-    );
-    expect(serviceLifecycleActionLabelKey("DEPRECATED", "ACTIVE")).toBe(
-      "services.reactivate",
-    );
+    expect(serviceLifecycleActionLabelKey("DRAFT", "ACTIVE")).toBe("services.activate");
+    expect(serviceLifecycleActionLabelKey("ACTIVE", "DEPRECATED")).toBe("services.deprecate");
+    expect(serviceLifecycleActionLabelKey("DEPRECATED", "ACTIVE")).toBe("services.reactivate");
   });
 });

@@ -17,10 +17,8 @@ export function useOrganizationalUnitCatalogFormState(input: {
   readonly editingUnit: ManualDirectoryOrganizationalUnit | null;
 }) {
   const defaultParent =
-    input.catalog.find((unit) => unit.organizationalUnitPath === "/Korisnici")
-      ?.externalId ??
-    input.catalog.find((unit) => unit.organizationalUnitPath === "/Users")
-      ?.externalId ??
+    input.catalog.find((unit) => unit.organizationalUnitPath === "/Korisnici")?.externalId ??
+    input.catalog.find((unit) => unit.organizationalUnitPath === "/Users")?.externalId ??
     "";
   const [displayName, setDisplayName] = useState("");
   const [parentExternalId, setParentExternalId] = useState(defaultParent);
@@ -35,9 +33,7 @@ export function useOrganizationalUnitCatalogFormState(input: {
       setUnitType(
         isOrganizationalUnitType(input.editingUnit.type)
           ? input.editingUnit.type
-          : defaultOrganizationalUnitTypeForParent(
-              input.editingUnit.parentExternalId ?? "",
-            ),
+          : defaultOrganizationalUnitTypeForParent(input.editingUnit.parentExternalId ?? ""),
       );
       return;
     }
@@ -58,8 +54,7 @@ export function useOrganizationalUnitCatalogFormState(input: {
     );
   }, [input.catalog, input.editingUnit, input.mode]);
 
-  const parentUnit =
-    parentOptions.find((unit) => unit.externalId === parentExternalId) ?? null;
+  const parentUnit = parentOptions.find((unit) => unit.externalId === parentExternalId) ?? null;
   const distinguishedName = buildSuggestedOrganizationalUnitDistinguishedName({
     displayName,
     parentDistinguishedName: parentUnit?.distinguishedName ?? null,

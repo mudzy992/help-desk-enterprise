@@ -4260,7 +4260,8 @@
     "errorForbidden": "Nemate dozvolu za izmjenu usmjeravanja.",
     "errorDuplicate": "Pravilo za ovu kombinaciju OU i servisa već postoji.",
     "errorReason": "Razlog izmjene je obavezan.",
-    "errorGeneric": "Usmjeravanje trenutno nije dostupno."
+    "errorGeneric": "Usmjeravanje trenutno nije dostupno.",
+    "unknownGroup": "Nepoznata grupa"
   },
   "sla": {
     "title": "SLA pravila",

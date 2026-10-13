@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  applyTicketUpdatedPayload,
-  shouldReloadTicketFromUpdated,
-} from "./apply-ticket-updated";
+import { applyTicketUpdatedPayload, shouldReloadTicketFromUpdated } from "./apply-ticket-updated";
 import { nextJoinedTicketRoom } from "./next-joined-ticket-room";
 import { subscribeSocketEvent } from "./subscribe-socket-event";
 import {
@@ -35,7 +32,10 @@ const baseTicket: TicketResponse = {
   updatedAt: "2026-01-02T00:00:00.000Z",
 };
 
-const message = (id: string, extra: Partial<TicketMessageResponse> = {}): TicketMessageResponse => ({
+const message = (
+  id: string,
+  extra: Partial<TicketMessageResponse> = {},
+): TicketMessageResponse => ({
   id,
   ticketId: "ticket-a",
   type: "AGENT_REPLY",

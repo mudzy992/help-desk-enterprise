@@ -81,13 +81,13 @@ export function MfaCodeForm({
                   ? "auth.mfa.signInExpired"
                   : error === "recoveryCodesExhausted"
                     ? "auth.mfa.recoveryCodesExhausted"
-                : error === "captchaRequired"
-                  ? "auth.mfa.captchaRequired"
-                : error === "captchaFailed"
-                  ? "auth.mfa.captchaFailed"
-                : error === "invalid"
-                  ? "auth.mfa.invalidCode"
-                  : "auth.mfa.failed",
+                    : error === "captchaRequired"
+                      ? "auth.mfa.captchaRequired"
+                      : error === "captchaFailed"
+                        ? "auth.mfa.captchaFailed"
+                        : error === "invalid"
+                          ? "auth.mfa.invalidCode"
+                          : "auth.mfa.failed",
           )}
         </p>
       ) : null}

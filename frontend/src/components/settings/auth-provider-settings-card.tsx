@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { hintClassName } from "@/components/ui/control";
 import { authSettingKeys } from "@/lib/settings/is-featured-setting-key";
-import {
-  filterSettingsByPrefix,
-  readStringSetting,
-} from "@/lib/settings/read-setting-entry";
+import { filterSettingsByPrefix, readStringSetting } from "@/lib/settings/read-setting-entry";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { cn } from "@/lib/utils";
 import type { SettingRegistryEntry } from "@/services/settings-api";
@@ -32,10 +29,7 @@ export function AuthProviderSettingsCard({
   const mode = readStringSetting(entries, authSettingKeys.mode, "local");
   const [draftMode, setDraftMode] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const authEntries = useMemo(
-    () => filterSettingsByPrefix(entries, "private.auth."),
-    [entries],
-  );
+  const authEntries = useMemo(() => filterSettingsByPrefix(entries, "private.auth."), [entries]);
   const detailEntries = useMemo(
     () => authEntries.filter((entry) => entry.key !== authSettingKeys.mode),
     [authEntries],
@@ -46,16 +40,17 @@ export function AuthProviderSettingsCard({
   return (
     <>
       <Card className="fade-in">
-        <CardHeader
-          title={t("settings.auth.title")}
-          subtitle={t("settings.auth.subtitle")}
-        />
+        <CardHeader title={t("settings.auth.title")} subtitle={t("settings.auth.subtitle")} />
         <div className="space-y-3 px-4 py-4">
           <div className="grid grid-cols-2 gap-2">
             {(
               [
                 { id: "local", nameKey: "settings.auth.local", descKey: "settings.auth.localDesc" },
-                { id: "entra_ad", nameKey: "settings.auth.entra", descKey: "settings.auth.entraDesc" },
+                {
+                  id: "entra_ad",
+                  nameKey: "settings.auth.entra",
+                  descKey: "settings.auth.entraDesc",
+                },
               ] as const
             ).map((provider) => (
               <button
@@ -74,21 +69,14 @@ export function AuthProviderSettingsCard({
                   <KeyRound size={13} className="text-link" />
                   {t(provider.nameKey)}
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {t(provider.descKey)}
-                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{t(provider.descKey)}</p>
               </button>
             ))}
           </div>
           {isEntra ? (
             <div className="flex items-center justify-between gap-2">
               <p className={hintClassName}>{t("settings.auth.entraSummary")}</p>
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                onClick={() => setDrawerOpen(true)}
-              >
+              <Button type="button" size="xs" variant="outline" onClick={() => setDrawerOpen(true)}>
                 {t("settings.drawer.edit")}
               </Button>
             </div>

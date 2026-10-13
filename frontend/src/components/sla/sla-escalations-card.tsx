@@ -7,10 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
 import { useSlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
-import {
-  listSlaEscalationRules,
-  type SlaEscalationRule,
-} from "@/services/sla-api";
+import { listSlaEscalationRules, type SlaEscalationRule } from "@/services/sla-api";
 
 interface SlaEscalationsCardProperties {
   readonly slaProfileId: string;
@@ -52,10 +49,7 @@ export function SlaEscalationsCard({
       />
       <div className="space-y-3 px-4 py-3.5">
         {rules.length === 0 ? (
-          <EmptyState
-            title={t("sla.escalationsHeading")}
-            body={t("sla.escalationsEmptyBody")}
-          />
+          <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
         ) : (
           rules.map((rule) => {
             const isImmediate = rule.triggerOffsetMinutes === 0;
@@ -69,10 +63,7 @@ export function SlaEscalationsCard({
                       : "border-warning/30 bg-warning/10",
                   )}
                 >
-                  <BellRing
-                    size={11.5}
-                    className={isImmediate ? "text-danger" : "text-warning"}
-                  />
+                  <BellRing size={11.5} className={isImmediate ? "text-danger" : "text-warning"} />
                 </span>
                 <div className="flex-1">
                   <p className="tnum text-[12.5px] font-medium text-foreground">

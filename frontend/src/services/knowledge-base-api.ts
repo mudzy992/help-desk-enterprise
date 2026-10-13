@@ -1,10 +1,6 @@
 import { apiRequest } from "@/services/api";
 
-export type KnowledgeArticleStatus =
-  | "DRAFT"
-  | "IN_REVIEW"
-  | "PUBLISHED"
-  | "ARCHIVED";
+export type KnowledgeArticleStatus = "DRAFT" | "IN_REVIEW" | "PUBLISHED" | "ARCHIVED";
 
 export type KnowledgeArticleResponse = {
   readonly id: string;
@@ -74,11 +70,7 @@ export type UpdateKnowledgeArticleInput = {
 };
 
 export type KnowledgeLifecycleAction =
-  | "submit-review"
-  | "approve-review"
-  | "reject-review"
-  | "publish"
-  | "archive";
+  "submit-review" | "approve-review" | "reject-review" | "publish" | "archive";
 
 export type ListKnowledgeArticlesParams = {
   readonly q?: string;
@@ -91,9 +83,7 @@ export function listKnowledgeArticles(
   params: ListKnowledgeArticlesParams | string = {},
 ): Promise<readonly KnowledgeArticleResponse[]> {
   const normalized =
-    typeof params === "string"
-      ? { serviceId: params.length > 0 ? params : undefined }
-      : params;
+    typeof params === "string" ? { serviceId: params.length > 0 ? params : undefined } : params;
   const search = new URLSearchParams();
   if (normalized.q !== undefined && normalized.q.trim().length > 0) {
     search.set("q", normalized.q.trim());
@@ -101,10 +91,7 @@ export function listKnowledgeArticles(
   if (normalized.status !== undefined) {
     search.set("status", normalized.status);
   }
-  if (
-    normalized.serviceId !== undefined &&
-    normalized.serviceId.length > 0
-  ) {
+  if (normalized.serviceId !== undefined && normalized.serviceId.length > 0) {
     search.set("serviceId", normalized.serviceId);
   }
   if (normalized.staleOnly === true) {
@@ -123,9 +110,7 @@ export function createKnowledgeArticle(
   });
 }
 
-export function getKnowledgeArticle(
-  articleId: string,
-): Promise<KnowledgeArticleResponse> {
+export function getKnowledgeArticle(articleId: string): Promise<KnowledgeArticleResponse> {
   return apiRequest(`/knowledge-base/articles/${articleId}`);
 }
 
@@ -139,10 +124,7 @@ export function updateKnowledgeArticle(
   });
 }
 
-export function deleteKnowledgeArticle(
-  articleId: string,
-  reason: string,
-): Promise<void> {
+export function deleteKnowledgeArticle(articleId: string, reason: string): Promise<void> {
   return apiRequest(`/knowledge-base/articles/${articleId}`, {
     method: "DELETE",
     body: JSON.stringify({ reason }),

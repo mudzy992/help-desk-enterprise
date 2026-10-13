@@ -19,15 +19,11 @@ export type InboxGroupCount = {
   readonly count: number;
 };
 
-export function isDashboardOpenTicket(
-  ticket: Pick<TicketResponse, "status">,
-): boolean {
+export function isDashboardOpenTicket(ticket: Pick<TicketResponse, "status">): boolean {
   return dashboardOpenStatuses.includes(ticket.status);
 }
 
-export function selectSlaWatchlist(
-  tickets: readonly TicketResponse[],
-): readonly TicketResponse[] {
+export function selectSlaWatchlist(tickets: readonly TicketResponse[]): readonly TicketResponse[] {
   return tickets
     .filter(isTicketOverdue)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
@@ -35,33 +31,22 @@ export function selectSlaWatchlist(
 }
 
 function isTerminalTicket(ticket: Pick<TicketResponse, "status">): boolean {
-  return (
-    ticket.status === "CLOSED" ||
-    ticket.status === "ARCHIVED" ||
-    ticket.status === "RESOLVED"
-  );
+  return ticket.status === "CLOSED" || ticket.status === "ARCHIVED" || ticket.status === "RESOLVED";
 }
 
 function isUnroutedTicket(ticket: TicketResponse): boolean {
   return ticket.status === "UNROUTED" || ticket.assignedGroupId === null;
 }
 
-function isAssignedToCurrentUser(
-  ticket: TicketResponse,
-  currentUserId: string | null,
-): boolean {
+function isAssignedToCurrentUser(ticket: TicketResponse, currentUserId: string | null): boolean {
   return (
-    currentUserId !== null &&
-    ticket.assignedUserId === currentUserId &&
-    !isTerminalTicket(ticket)
+    currentUserId !== null && ticket.assignedUserId === currentUserId && !isTerminalTicket(ticket)
   );
 }
 
 function isCriticalWithoutOwner(ticket: TicketResponse): boolean {
   return (
-    ticket.priority === "CRITICAL" &&
-    ticket.assignedUserId === null &&
-    !isTerminalTicket(ticket)
+    ticket.priority === "CRITICAL" && ticket.assignedUserId === null && !isTerminalTicket(ticket)
   );
 }
 
@@ -116,8 +101,7 @@ export function groupInboxCounts(
   return [...counts.entries()]
     .map(([key, count]) => ({
       groupId: key.length === 0 ? null : key,
-      label:
-        key.length === 0 ? "" : (groupNames.get(key) ?? truncateIdentifier(key)),
+      label: key.length === 0 ? "" : (groupNames.get(key) ?? truncateIdentifier(key)),
       count,
     }))
     .sort((left, right) => {

@@ -8,10 +8,7 @@ export function nextTicketStatuses(status: TicketStatus): readonly TicketStatus[
   return allowedTicketStatusTransitions[status];
 }
 
-export function canShowClaimAction(
-  ticket: TicketResponse,
-  actorIsStaff = true,
-): boolean {
+export function canShowClaimAction(ticket: TicketResponse, actorIsStaff = true): boolean {
   return (
     actorIsStaff &&
     ticket.assignedUserId === null &&

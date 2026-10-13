@@ -20,9 +20,7 @@ interface SlaEscalationTargetFieldsProperties {
   readonly onTargetUserIdChange: (value: string) => void;
 }
 
-export function SlaEscalationTargetFields(
-  props: SlaEscalationTargetFieldsProperties,
-) {
+export function SlaEscalationTargetFields(props: SlaEscalationTargetFieldsProperties) {
   const { t } = useTranslation();
   return (
     <>
@@ -31,9 +29,7 @@ export function SlaEscalationTargetFields(
         <select
           className={controlClassName}
           value={props.targetKind}
-          onChange={(event) =>
-            props.onTargetKindChange(event.target.value as TargetKind)
-          }
+          onChange={(event) => props.onTargetKindChange(event.target.value as TargetKind)}
         >
           <option value="group">{t("sla.escalationTargetGroup")}</option>
           <option value="role">{t("sla.escalationTargetRole")}</option>
@@ -51,7 +47,9 @@ export function SlaEscalationTargetFields(
           >
             <option value="">{t("sla.escalationSelectTarget")}</option>
             {props.groups.map((group) => (
-              <option key={group.id} value={group.id}>{group.name}</option>
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
             ))}
           </select>
         </label>
@@ -67,7 +65,9 @@ export function SlaEscalationTargetFields(
           >
             <option value="">{t("sla.escalationSelectTarget")}</option>
             {props.roles.map((role) => (
-              <option key={role.key} value={role.key}>{role.name}</option>
+              <option key={role.key} value={role.key}>
+                {role.name}
+              </option>
             ))}
           </select>
         </label>
@@ -83,7 +83,9 @@ export function SlaEscalationTargetFields(
           >
             <option value="">{t("sla.escalationSelectTarget")}</option>
             {props.users.map((user) => (
-              <option key={user.id} value={user.id}>{user.displayName}</option>
+              <option key={user.id} value={user.id}>
+                {user.displayName}
+              </option>
             ))}
           </select>
         </label>

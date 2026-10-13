@@ -53,7 +53,11 @@ describe("notification preferences diff", () => {
   it("sends only changed, unlocked values", () => {
     const draft: NotificationPreferences = {
       ...base,
-      categories: base.categories.map((category) => ({ ...category, email: "DIGEST" as const, inApp: false })),
+      categories: base.categories.map((category) => ({
+        ...category,
+        email: "DIGEST" as const,
+        inApp: false,
+      })),
       schedule: { ...base.schedule, quietHoursEnabled: true },
     };
     expect(diffNotificationPreferences(base, draft)).toEqual({

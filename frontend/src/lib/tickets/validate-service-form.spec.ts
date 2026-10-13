@@ -19,9 +19,7 @@ const schema: ServiceFormSchema = {
 
 describe("validateServiceFormData", () => {
   it("accepts complete values and rejects missing required fields", () => {
-    expect(
-      validateServiceFormData(schema, { hostname: "laptop-1", urgent: false }),
-    ).toEqual([]);
+    expect(validateServiceFormData(schema, { hostname: "laptop-1", urgent: false })).toEqual([]);
     expect(validateServiceFormData(schema, { hostname: "ab", urgent: true })).toEqual([
       { fieldId: "hostname", messageKey: "tickets.form.invalid" },
     ]);

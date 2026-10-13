@@ -5,9 +5,7 @@ import type { TicketsExportQuery } from "@/services/tickets-export-api";
  * Maps the filters applied on the ticket list to the export query so the CSV
  * matches what the person currently sees.
  */
-export function buildTicketExportQuery(
-  filters: TicketListFilters,
-): TicketsExportQuery {
+export function buildTicketExportQuery(filters: TicketListFilters): TicketsExportQuery {
   const currentUserId = filters.currentUserId ?? "";
   const assignedUserId =
     filters.assignedUserId.length > 0
@@ -22,9 +20,7 @@ export function buildTicketExportQuery(
     serviceId: filters.serviceId === "" ? undefined : filters.serviceId,
     assignedUserId,
     requesterId:
-      filters.view === "requested" && currentUserId.length > 0
-        ? currentUserId
-        : undefined,
+      filters.view === "requested" && currentUserId.length > 0 ? currentUserId : undefined,
     unassigned: filters.view === "unassigned" ? true : undefined,
     overdue: filters.overdue ? true : undefined,
     createdFrom: filters.createdFrom === "" ? undefined : filters.createdFrom,

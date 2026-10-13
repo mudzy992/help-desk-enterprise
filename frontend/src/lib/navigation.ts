@@ -26,8 +26,7 @@ export const navigationLabelKeys = {
   docs: "navigation.docs",
 } as const;
 
-export type NavigationLabelKey =
-  (typeof navigationLabelKeys)[keyof typeof navigationLabelKeys];
+export type NavigationLabelKey = (typeof navigationLabelKeys)[keyof typeof navigationLabelKeys];
 
 export const navigationSectionKeys = {
   overview: "navigation.sections.overview",
@@ -209,7 +208,13 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem, problemsNavigationItem, changesNavigationItem, templatesNavigationItem, onCallNavigationItem],
+    items: [
+      ticketsNavigationItem,
+      problemsNavigationItem,
+      changesNavigationItem,
+      templatesNavigationItem,
+      onCallNavigationItem,
+    ],
   },
   {
     labelKey: navigationSectionKeys.services,
@@ -235,8 +240,9 @@ export const navigationSections: readonly NavigationSection[] = [
   },
 ];
 
-export const primaryNavigationItems: readonly NavigationItem[] =
-  navigationSections.flatMap((section) => section.items);
+export const primaryNavigationItems: readonly NavigationItem[] = navigationSections.flatMap(
+  (section) => section.items,
+);
 
 export const allNavigationItems: readonly NavigationItem[] = primaryNavigationItems;
 
@@ -266,10 +272,7 @@ export function isNavigationItemActive(
   return pathname === itemPathname || pathname.startsWith(`${itemPathname}/`);
 }
 
-export function getActiveNavigationItem(
-  pathname: string,
-  search = "",
-): NavigationItem {
+export function getActiveNavigationItem(pathname: string, search = ""): NavigationItem {
   const matchedItem = allNavigationItems.find((item) =>
     isNavigationItemActive(item, pathname, search),
   );

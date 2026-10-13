@@ -1,7 +1,4 @@
-import type {
-  SettingCondition,
-  SettingRegistryEntry,
-} from "@/services/settings-api";
+import type { SettingCondition, SettingRegistryEntry } from "@/services/settings-api";
 
 /**
  * Paket 5.3.4 (D6): the client half of the dependency rule. The server is the
@@ -13,9 +10,7 @@ import type {
  * server: "active" means a boolean that is true, a number above zero or a text
  * that is filled in.
  */
-export function readEffectiveValue(
-  entry: SettingRegistryEntry,
-): string | number | boolean | null {
+export function readEffectiveValue(entry: SettingRegistryEntry): string | number | boolean | null {
   if (entry.visibility === "secret") {
     return entry.isSet ? null : null;
   }
@@ -111,9 +106,7 @@ export function listDirectDependents(
   entries: readonly SettingRegistryEntry[],
   key: string,
 ): readonly SettingRegistryEntry[] {
-  return entries.filter((entry) =>
-    entry.requires.some((condition) => condition.key === key),
-  );
+  return entries.filter((entry) => entry.requires.some((condition) => condition.key === key));
 }
 
 /**

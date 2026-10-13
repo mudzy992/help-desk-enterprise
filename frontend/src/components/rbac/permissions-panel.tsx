@@ -38,30 +38,33 @@ export function PermissionsPanel() {
     setEnabledKeys(await getRolePermissions(roleKey));
   }, []);
 
-  const reload = useCallback(async (roleKey?: string) => {
-    setIsLoading(true);
-    setErrorKey(null);
-    setRequestId(null);
-    setPreview(null);
-    try {
-      const [loadedRoles, loadedCatalog] = await Promise.all([
-        listRoles(),
-        listPermissionCatalog(),
-      ]);
-      setRoles(loadedRoles);
-      setCatalog(loadedCatalog);
-      const nextRole = roleKey ?? loadedRoles[0]?.key ?? "";
-      setSelectedRoleKey(nextRole);
-      if (nextRole.length > 0) {
-        await loadRolePermissions(nextRole);
+  const reload = useCallback(
+    async (roleKey?: string) => {
+      setIsLoading(true);
+      setErrorKey(null);
+      setRequestId(null);
+      setPreview(null);
+      try {
+        const [loadedRoles, loadedCatalog] = await Promise.all([
+          listRoles(),
+          listPermissionCatalog(),
+        ]);
+        setRoles(loadedRoles);
+        setCatalog(loadedCatalog);
+        const nextRole = roleKey ?? loadedRoles[0]?.key ?? "";
+        setSelectedRoleKey(nextRole);
+        if (nextRole.length > 0) {
+          await loadRolePermissions(nextRole);
+        }
+      } catch (error) {
+        setErrorKey(mapRbacError(error));
+        setRequestId(readApiRequestId(error));
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      setErrorKey(mapRbacError(error));
-      setRequestId(readApiRequestId(error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadRolePermissions]);
+    },
+    [loadRolePermissions],
+  );
 
   useEffect(() => {
     void reload();
@@ -113,12 +116,7 @@ export function PermissionsPanel() {
     setErrorKey(null);
     try {
       // Paket 5.1 (M4 B2): the token proves the preview ran for this set.
-      await replaceRolePermissions(
-        selectedRoleKey,
-        enabledKeys,
-        preview.previewToken,
-        reason,
-      );
+      await replaceRolePermissions(selectedRoleKey, enabledKeys, preview.previewToken, reason);
       setPreview(null);
       await reload(selectedRoleKey);
     } catch (error) {
@@ -158,11 +156,7 @@ export function PermissionsPanel() {
           <ApiErrorText messageKey={errorKey} requestId={requestId} />
         </div>
       ) : null}
-      <PermissionsCatalogList
-        groups={groups}
-        enabledKeys={enabledKeys}
-        onToggle={handleToggle}
-      />
+      <PermissionsCatalogList groups={groups} enabledKeys={enabledKeys} onToggle={handleToggle} />
       <div className="border-t border-border/70 px-4 py-3">
         <Button type="button" size="sm" onClick={() => void handlePreview()} disabled={pending}>
           {t("permissions.previewAction")}

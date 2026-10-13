@@ -19,10 +19,7 @@ export type PublicMaintenanceState = {
   readonly affectedServiceTokens: readonly string[];
 };
 
-function readString(
-  snapshot: Readonly<Record<string, unknown>>,
-  key: string,
-): string {
+function readString(snapshot: Readonly<Record<string, unknown>>, key: string): string {
   const value = snapshot[key];
   return typeof value === "string" ? value : "";
 }
@@ -38,18 +35,13 @@ export function parsePublicMaintenance(
   snapshot: Readonly<Record<string, unknown>>,
 ): PublicMaintenanceState {
   const enabled = snapshot[publicMaintenanceSettingKeys.enabled] === true;
-  const csv = readString(
-    snapshot,
-    publicMaintenanceSettingKeys.affectedServicesCsv,
-  );
+  const csv = readString(snapshot, publicMaintenanceSettingKeys.affectedServicesCsv);
   return {
     enabled,
     message: readString(snapshot, publicMaintenanceSettingKeys.message),
     fromAt: readString(snapshot, publicMaintenanceSettingKeys.fromAt),
     toAt: readString(snapshot, publicMaintenanceSettingKeys.toAt),
-    scope: parseScope(
-      readString(snapshot, publicMaintenanceSettingKeys.scope),
-    ),
+    scope: parseScope(readString(snapshot, publicMaintenanceSettingKeys.scope)),
     affectedServiceTokens: csv
       .split(",")
       .map((token) => token.trim().toLowerCase())
@@ -57,9 +49,7 @@ export function parsePublicMaintenance(
   };
 }
 
-export function shouldShowGlobalMaintenanceBanner(
-  state: PublicMaintenanceState,
-): boolean {
+export function shouldShowGlobalMaintenanceBanner(state: PublicMaintenanceState): boolean {
   if (!state.enabled) {
     return false;
   }

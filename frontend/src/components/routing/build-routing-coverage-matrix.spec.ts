@@ -67,14 +67,8 @@ describe("buildRoutingCoverageMatrix", () => {
       }),
     ]);
 
-    expect(matrix.services.map((row) => row.serviceId)).toEqual([
-      "sv-vpn",
-      "sv-mail",
-    ]);
-    expect(matrix.originUnits.map((column) => column.originUnitId)).toEqual([
-      "ou-it",
-      "ou-hr",
-    ]);
+    expect(matrix.services.map((row) => row.serviceId)).toEqual(["sv-vpn", "sv-mail"]);
+    expect(matrix.originUnits.map((column) => column.originUnitId)).toEqual(["ou-it", "ou-hr"]);
     expect(matrix.originUnits[0]?.originUnitShortName).toBe("IT");
     expect(matrix.stats).toEqual({
       exact: 1,
@@ -82,10 +76,9 @@ describe("buildRoutingCoverageMatrix", () => {
       unrouted: 2,
       total: 4,
     });
-    expect(
-      matrix.cellByKey.get(coverageCellKey("sv-vpn", "ou-hr"))?.resolution
-        .outcome,
-    ).toBe("PARENT_FALLBACK");
+    expect(matrix.cellByKey.get(coverageCellKey("sv-vpn", "ou-hr"))?.resolution.outcome).toBe(
+      "PARENT_FALLBACK",
+    );
   });
 
   it("maps outcomes to cell kinds and short OU labels", () => {

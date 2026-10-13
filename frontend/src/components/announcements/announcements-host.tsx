@@ -2,10 +2,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { AlertOctagon, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Info, Megaphone, X } from "lucide-react";
+import {
+  AlertOctagon,
+  AlertTriangle,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Megaphone,
+  X,
+} from "lucide-react";
 import { MarkdownView } from "@/components/privacy/markdown-view";
 import { Button } from "@/components/ui/button";
-import { Modal, ModalContent, ModalDescription, ModalFooter, ModalTitle } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalTitle,
+} from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import {
   announcementToneClasses,
@@ -43,8 +58,15 @@ function sessionStore(): Storage | null {
   }
 }
 
-function SeverityIcon({ severity, className }: { readonly severity: AnnouncementSeverity; readonly className?: string }) {
-  const Icon = severity === "CRITICAL" ? AlertOctagon : severity === "WARNING" ? AlertTriangle : Info;
+function SeverityIcon({
+  severity,
+  className,
+}: {
+  readonly severity: AnnouncementSeverity;
+  readonly className?: string;
+}) {
+  const Icon =
+    severity === "CRITICAL" ? AlertOctagon : severity === "WARNING" ? AlertTriangle : Info;
   return <Icon size={16} className={className} aria-hidden />;
 }
 
@@ -78,7 +100,8 @@ export function AnnouncementsHost() {
   const current = announcements[Math.min(index, Math.max(0, announcements.length - 1))];
 
   useEffect(() => {
-    if (index >= announcements.length && announcements.length > 0) setIndex(announcements.length - 1);
+    if (index >= announcements.length && announcements.length > 0)
+      setIndex(announcements.length - 1);
   }, [announcements.length, index]);
 
   useEffect(() => {
@@ -101,7 +124,9 @@ export function AnnouncementsHost() {
 
   const removeLocally = (id: string) => {
     queryClient.setQueryData<ActiveAnnouncements>(announcementQueryKeys.active, (previous) =>
-      previous === undefined ? previous : { ...previous, announcements: previous.announcements.filter((item) => item.id !== id) },
+      previous === undefined
+        ? previous
+        : { ...previous, announcements: previous.announcements.filter((item) => item.id !== id) },
     );
   };
 
@@ -118,7 +143,11 @@ export function AnnouncementsHost() {
       if (modal?.id === item.id) setModal(null);
       void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
       void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
     } finally {
       setBusyId(null);
@@ -126,7 +155,14 @@ export function AnnouncementsHost() {
   };
 
   if (data === undefined || !data.enabled || current === undefined) {
-    return <AnnouncementModal item={modal} busy={busyId !== null} onClose={() => setModal(null)} onAcknowledge={settle} />;
+    return (
+      <AnnouncementModal
+        item={modal}
+        busy={busyId !== null}
+        onClose={() => setModal(null)}
+        onAcknowledge={settle}
+      />
+    );
   }
 
   const tone = severityTone(current.severity);
@@ -137,17 +173,25 @@ export function AnnouncementsHost() {
     <>
       <section
         aria-label={t("announcements.banner.region")}
-        className={cn("fade-in mb-4 rounded-lg border px-3.5 py-3 text-[12.5px] text-foreground", classes.frame)}
+        className={cn(
+          "fade-in mb-4 rounded-lg border px-3.5 py-3 text-[12.5px] text-foreground",
+          classes.frame,
+        )}
       >
         <div role={severityRole(current.severity)} className="flex items-start gap-2.5">
-          <SeverityIcon severity={current.severity} className={cn("mt-0.5 shrink-0", classes.icon)} />
+          <SeverityIcon
+            severity={current.severity}
+            className={cn("mt-0.5 shrink-0", classes.icon)}
+          />
           <div className="min-w-0 flex-1">
             <p className="font-semibold leading-5">
               <span className="sr-only">{t(severityKeys[current.severity])}: </span>
               {current.title}
             </p>
             {current.serviceName ? (
-              <p className="text-[11.5px] text-muted-foreground">{t("announcements.banner.service", { name: current.serviceName })}</p>
+              <p className="text-[11.5px] text-muted-foreground">
+                {t("announcements.banner.service", { name: current.serviceName })}
+              </p>
             ) : null}
           </div>
         </div>
@@ -164,7 +208,11 @@ export function AnnouncementsHost() {
             aria-controls={bodyId}
             onClick={() => setExpanded((value) => !value)}
           >
-            <ChevronDown size={14} className={cn("transition-transform", expanded ? "rotate-180" : "")} aria-hidden />
+            <ChevronDown
+              size={14}
+              className={cn("transition-transform", expanded ? "rotate-180" : "")}
+              aria-hidden
+            />
             {expanded ? t("announcements.banner.less") : t("announcements.banner.more")}
           </Button>
           {current.requiresAcknowledgement ? (
@@ -172,12 +220,20 @@ export function AnnouncementsHost() {
               {t("announcements.banner.acknowledge")}
             </Button>
           ) : (
-            <Button variant="outline" size="xs" onClick={() => void settle(current)} disabled={busyId !== null}>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => void settle(current)}
+              disabled={busyId !== null}
+            >
               <X size={14} aria-hidden />
               {t("announcements.banner.dismiss")}
             </Button>
           )}
-          <Link to="/announcements" className="text-[12px] text-link underline-offset-4 hover:underline">
+          <Link
+            to="/announcements"
+            className="text-[12px] text-link underline-offset-4 hover:underline"
+          >
             {t("announcements.banner.all")}
           </Link>
           {announcements.length > 1 ? (
@@ -193,7 +249,10 @@ export function AnnouncementsHost() {
                 <ChevronLeft size={14} aria-hidden />
               </Button>
               <span className="tnum text-[11.5px] text-muted-foreground" aria-live="polite">
-                {t("announcements.banner.counter", { current: index + 1, total: announcements.length })}
+                {t("announcements.banner.counter", {
+                  current: index + 1,
+                  total: announcements.length,
+                })}
               </span>
               <Button
                 variant="ghost"
@@ -209,7 +268,12 @@ export function AnnouncementsHost() {
           ) : null}
         </div>
       </section>
-      <AnnouncementModal item={modal} busy={busyId !== null} onClose={() => setModal(null)} onAcknowledge={settle} />
+      <AnnouncementModal
+        item={modal}
+        busy={busyId !== null}
+        onClose={() => setModal(null)}
+        onAcknowledge={settle}
+      />
     </>
   );
 }
@@ -236,7 +300,9 @@ function AnnouncementModal({
             <Megaphone size={16} className={classes.icon} aria-hidden />
           </span>
           <div className="min-w-0">
-            <ModalTitle className="text-[14px] font-semibold leading-5 text-foreground">{item.title}</ModalTitle>
+            <ModalTitle className="text-[14px] font-semibold leading-5 text-foreground">
+              {item.title}
+            </ModalTitle>
             <ModalDescription className="text-[12px] text-muted-foreground">
               {t(severityKeys[item.severity])}
               {item.serviceName ? ` · ${item.serviceName}` : ""}
@@ -244,7 +310,10 @@ function AnnouncementModal({
           </div>
         </div>
         <div className="max-h-[50vh] overflow-y-auto">
-          <MarkdownView source={item.body} className="grid gap-2 text-[12.5px] leading-5 text-foreground" />
+          <MarkdownView
+            source={item.body}
+            className="grid gap-2 text-[12.5px] leading-5 text-foreground"
+          />
         </div>
         <ModalFooter>
           <Button variant="outline" onClick={onClose}>

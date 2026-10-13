@@ -32,10 +32,7 @@ export type DashboardVolumeLoad<TTicket> = {
  * nije dokazala da je podataka manje, pa tipičan dan ostaje jedan zahtjev.
  */
 export async function loadDashboardVolume<TTicket>(input: {
-  readonly fetchPage: (
-    page: number,
-    pageSize: number,
-  ) => Promise<DashboardVolumePage<TTicket>>;
+  readonly fetchPage: (page: number, pageSize: number) => Promise<DashboardVolumePage<TTicket>>;
   readonly pageSize?: number;
   readonly maxPages?: number;
 }): Promise<DashboardVolumeLoad<TTicket>> {

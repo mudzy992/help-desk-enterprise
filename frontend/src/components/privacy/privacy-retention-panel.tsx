@@ -59,7 +59,9 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
   const [overview, setOverview] = useState<RetentionOverview | null>(null);
   const [runs, setRuns] = useState<readonly RetentionRun[] | null>(null);
   const [filter, setFilter] = useState<RetentionCategory | "all">("all");
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmRun, setConfirmRun] = useState<RetentionCategoryView | null>(null);
 
@@ -97,7 +99,8 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
     try {
       await (mode === "dry" ? startRetentionDryRun(category) : startRetentionRunNow(category));
       toast({
-        title: mode === "dry" ? t("privacy.retention.dryRunQueued") : t("privacy.retention.runQueued"),
+        title:
+          mode === "dry" ? t("privacy.retention.dryRunQueued") : t("privacy.retention.runQueued"),
         tone: "success",
       });
       setConfirmRun(null);
@@ -119,8 +122,10 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
     }
   };
 
-  if (loadError !== null) return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
-  if (overview === null || runs === null) return <PanelSkeleton className="mt-0" label={t("privacy.tabs.retention")} />;
+  if (loadError !== null)
+    return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
+  if (overview === null || runs === null)
+    return <PanelSkeleton className="mt-0" label={t("privacy.tabs.retention")} />;
 
   const number = new Intl.NumberFormat(i18n.language);
   const gateText = (view: RetentionCategoryView) =>
@@ -151,7 +156,9 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className={sectionTitleClassName}>{t(categoryKey(view.category))}</h3>
-                <p className={`${hintClassName} mt-0.5 leading-5`}>{t(categoryHintKey(view.category))}</p>
+                <p className={`${hintClassName} mt-0.5 leading-5`}>
+                  {t(categoryHintKey(view.category))}
+                </p>
               </div>
               <Badge tone={view.enabled ? "success" : "neutral"} dot>
                 {view.enabled
@@ -253,11 +260,21 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
               </thead>
               <tbody>
                 {runs.map((run) => (
-                  <tr key={run.id} className={tableRowClassName} data-testid="privacy-retention-run">
-                    <td className="px-3 font-medium text-foreground">{t(categoryKey(run.category))}</td>
+                  <tr
+                    key={run.id}
+                    className={tableRowClassName}
+                    data-testid="privacy-retention-run"
+                  >
+                    <td className="px-3 font-medium text-foreground">
+                      {t(categoryKey(run.category))}
+                    </td>
                     <td className="px-3 text-muted-foreground">
-                      {run.mode === "DRY_RUN" ? t("privacy.retention.dryRun") : t("privacy.retention.execution")}
-                      {run.configDays !== null ? ` · ${t("privacy.retention.days", { count: run.configDays })}` : ""}
+                      {run.mode === "DRY_RUN"
+                        ? t("privacy.retention.dryRun")
+                        : t("privacy.retention.execution")}
+                      {run.configDays !== null
+                        ? ` · ${t("privacy.retention.days", { count: run.configDays })}`
+                        : ""}
                     </td>
                     <td className="px-3">
                       <Badge tone={runTones[run.status]} dot>
@@ -268,9 +285,13 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
                       ) : null}
                     </td>
                     <td className="tnum px-3 text-right">{number.format(run.itemCount)}</td>
-                    <td className="tnum px-3 text-right">{run.bytesFreed > 0 ? formatBytes(run.bytesFreed, i18n.language) : "—"}</td>
+                    <td className="tnum px-3 text-right">
+                      {run.bytesFreed > 0 ? formatBytes(run.bytesFreed, i18n.language) : "—"}
+                    </td>
                     <td className="px-3 text-muted-foreground">
-                      {run.oldestAt === null ? "—" : `${format.date(run.oldestAt)} – ${format.date(run.newestAt)}`}
+                      {run.oldestAt === null
+                        ? "—"
+                        : `${format.date(run.oldestAt)} – ${format.date(run.newestAt)}`}
                     </td>
                     <td className="px-3 text-muted-foreground">{format.dateTime(run.startedAt)}</td>
                     <td className="px-2 text-right">
@@ -279,7 +300,9 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
                           size="xs"
                           variant="ghost"
                           onClick={() => void downloadRefs(run)}
-                          title={run.refsTruncated ? t("privacy.retention.refsTruncated") : undefined}
+                          title={
+                            run.refsTruncated ? t("privacy.retention.refsTruncated") : undefined
+                          }
                         >
                           <FileDown size={13} /> CSV
                         </Button>
@@ -296,7 +319,9 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
       <ConfirmDialog
         open={confirmRun !== null}
         onOpenChange={(open) => !open && setConfirmRun(null)}
-        title={t("privacy.retention.runNowTitle", { category: confirmRun === null ? "" : t(categoryKey(confirmRun.category)) })}
+        title={t("privacy.retention.runNowTitle", {
+          category: confirmRun === null ? "" : t(categoryKey(confirmRun.category)),
+        })}
         description={t("privacy.retention.runNowBody", { count: confirmRun?.days ?? 0 })}
         confirmLabel={t("privacy.retention.runNow")}
         intent="danger"

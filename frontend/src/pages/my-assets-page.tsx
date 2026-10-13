@@ -27,8 +27,18 @@ import { assetTransferQueryKeys, listMyAssetTransfers } from "@/services/asset-t
 export function MyAssetsPage() {
   const { t, i18n } = useTranslation();
   const locationsEnabled = useAssetLocationsEnabled();
-  const { data, error, isLoading } = useQuery({ queryKey: assetQueryKeys.mine, queryFn: getMyAssets, retry: false });
-  const header = <PageHeader crumbs={[t("navigation.sections.services")]} title={t("assets.mine.title")} subtitle={t("assets.mine.subtitle")} />;
+  const { data, error, isLoading } = useQuery({
+    queryKey: assetQueryKeys.mine,
+    queryFn: getMyAssets,
+    retry: false,
+  });
+  const header = (
+    <PageHeader
+      crumbs={[t("navigation.sections.services")]}
+      title={t("assets.mine.title")}
+      subtitle={t("assets.mine.subtitle")}
+    />
+  );
 
   if (isLoading) {
     return (
@@ -44,7 +54,11 @@ export function MyAssetsPage() {
       <section>
         {header}
         {key === "assets.errors.disabled" ? (
-          <EmptyState icon={<Laptop size={18} />} title={t("assets.disabledTitle")} body={t("assets.disabledBody")} />
+          <EmptyState
+            icon={<Laptop size={18} />}
+            title={t("assets.disabledTitle")}
+            body={t("assets.disabledBody")}
+          />
         ) : (
           <p role="alert" className={errorTextClassName}>
             {t(key ?? mapApiError(error))}
@@ -59,7 +73,11 @@ export function MyAssetsPage() {
       <section>
         {header}
         <div className="grid gap-4">
-          <EmptyState icon={<Laptop size={18} />} title={t("assets.mine.emptyTitle")} body={t("assets.mine.emptyBody")} />
+          <EmptyState
+            icon={<Laptop size={18} />}
+            title={t("assets.mine.emptyTitle")}
+            body={t("assets.mine.emptyBody")}
+          />
           <MyTransfers />
         </div>
       </section>
@@ -69,7 +87,10 @@ export function MyAssetsPage() {
     <section>
       {header}
       <div className="grid gap-4">
-        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label={t("assets.mine.listLabel")}>
+        <ul
+          className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+          aria-label={t("assets.mine.listLabel")}
+        >
           {items.map((item) => {
             const Icon = resolveAssetIcon(item.type.icon);
             return (
@@ -80,22 +101,38 @@ export function MyAssetsPage() {
                       <Icon size={18} aria-hidden="true" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate text-[13.5px] font-semibold text-foreground">{item.name}</h2>
+                      <h2 className="truncate text-[13.5px] font-semibold text-foreground">
+                        {item.name}
+                      </h2>
                       <p className="truncate text-[12px] text-muted-foreground">
                         {localizedName(item.type, i18n.language)} · {item.assetTag}
                       </p>
                     </div>
-                    <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge>
+                    <Badge tone={assetStatusTone(item.status)}>
+                      {t(assetStatusKeys[item.status])}
+                    </Badge>
                   </div>
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
                     <dt className="text-muted-foreground">{t("assets.fields.model")}</dt>
-                    <dd className="truncate text-foreground">{[item.manufacturer, item.model].filter(Boolean).join(" ") || "—"}</dd>
-                    <dt className="text-muted-foreground">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</dt>
-                    <dd className="truncate text-foreground">{locationsEnabled ? (item.location?.label ?? "—") : item.organizationalUnit.path}</dd>
+                    <dd className="truncate text-foreground">
+                      {[item.manufacturer, item.model].filter(Boolean).join(" ") || "—"}
+                    </dd>
+                    <dt className="text-muted-foreground">
+                      {t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}
+                    </dt>
+                    <dd className="truncate text-foreground">
+                      {locationsEnabled
+                        ? (item.location?.label ?? "—")
+                        : item.organizationalUnit.path}
+                    </dd>
                     <dt className="text-muted-foreground">{t("assets.fields.assignedAt")}</dt>
-                    <dd className="text-foreground">{formatAssetDate(item.assignedAt, i18n.language)}</dd>
+                    <dd className="text-foreground">
+                      {formatAssetDate(item.assignedAt, i18n.language)}
+                    </dd>
                     <dt className="text-muted-foreground">{t("assets.fields.warrantyEndsAt")}</dt>
-                    <dd className="text-foreground">{formatAssetDate(item.warrantyEndsAt, i18n.language)}</dd>
+                    <dd className="text-foreground">
+                      {formatAssetDate(item.warrantyEndsAt, i18n.language)}
+                    </dd>
                   </dl>
                   {item.status === "IN_USE" || item.status === "IN_REPAIR" ? (
                     <Button asChild variant="outline" size="sm" className="justify-self-start">
@@ -109,7 +146,9 @@ export function MyAssetsPage() {
                     </Button>
                   ) : null}
                   <section>
-                    <h3 className="mb-1 text-[12px] font-semibold text-foreground">{t("assets.mine.tickets")}</h3>
+                    <h3 className="mb-1 text-[12px] font-semibold text-foreground">
+                      {t("assets.mine.tickets")}
+                    </h3>
                     {item.tickets.length === 0 ? (
                       <p className={hintClassName}>{t("assets.mine.noTickets")}</p>
                     ) : (
@@ -139,7 +178,11 @@ export function MyAssetsPage() {
 /** C9 (§7a.7): the user's own transfer records (download only). */
 function MyTransfers() {
   const { t } = useTranslation();
-  const { data } = useQuery({ queryKey: assetTransferQueryKeys.mine, queryFn: listMyAssetTransfers, retry: false });
+  const { data } = useQuery({
+    queryKey: assetTransferQueryKeys.mine,
+    queryFn: listMyAssetTransfers,
+    retry: false,
+  });
   if (!data || data.length === 0) return null;
   return (
     <section className="grid gap-3" aria-labelledby="my-transfers-heading">

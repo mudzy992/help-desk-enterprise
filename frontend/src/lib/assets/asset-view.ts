@@ -93,7 +93,11 @@ export function mapAssetError(error: unknown): AssetErrorKey | null {
 /** Server detail (field or `key:problem` list) for invalid-input errors. */
 export function assetErrorDetail(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
-  if (error.code !== "ASSET_INVALID" && error.code !== "ASSET_ATTRIBUTE_INVALID" && error.code !== "ASSET_ATTRIBUTE_NOT_UNIQUE") {
+  if (
+    error.code !== "ASSET_INVALID" &&
+    error.code !== "ASSET_ATTRIBUTE_INVALID" &&
+    error.code !== "ASSET_ATTRIBUTE_NOT_UNIQUE"
+  ) {
     return null;
   }
   return error.message && error.message !== error.code ? error.message : null;
@@ -139,14 +143,31 @@ export const assetStatusTransitions: Readonly<Record<AssetStatus, readonly Asset
 };
 
 export const assetStatusesNeedingReason: readonly AssetStatus[] = ["LOST", "RETIRED", "DISPOSED"];
-export const assetAssignableStatuses: readonly AssetStatus[] = ["ORDERED", "IN_STOCK", "IN_USE", "IN_REPAIR"];
+export const assetAssignableStatuses: readonly AssetStatus[] = [
+  "ORDERED",
+  "IN_STOCK",
+  "IN_USE",
+  "IN_REPAIR",
+];
 
 export const assetRelationKindKeys: {
-  readonly [K in AssetRelationKind]: { readonly out: `assets.relations.kinds.${K}.out`; readonly in: `assets.relations.kinds.${K}.in` };
+  readonly [K in AssetRelationKind]: {
+    readonly out: `assets.relations.kinds.${K}.out`;
+    readonly in: `assets.relations.kinds.${K}.in`;
+  };
 } = {
-  DEPENDS_ON: { out: "assets.relations.kinds.DEPENDS_ON.out", in: "assets.relations.kinds.DEPENDS_ON.in" },
-  INSTALLED_ON: { out: "assets.relations.kinds.INSTALLED_ON.out", in: "assets.relations.kinds.INSTALLED_ON.in" },
-  CONNECTED_TO: { out: "assets.relations.kinds.CONNECTED_TO.out", in: "assets.relations.kinds.CONNECTED_TO.in" },
+  DEPENDS_ON: {
+    out: "assets.relations.kinds.DEPENDS_ON.out",
+    in: "assets.relations.kinds.DEPENDS_ON.in",
+  },
+  INSTALLED_ON: {
+    out: "assets.relations.kinds.INSTALLED_ON.out",
+    in: "assets.relations.kinds.INSTALLED_ON.in",
+  },
+  CONNECTED_TO: {
+    out: "assets.relations.kinds.CONNECTED_TO.out",
+    in: "assets.relations.kinds.CONNECTED_TO.in",
+  },
   RUNS_ON: { out: "assets.relations.kinds.RUNS_ON.out", in: "assets.relations.kinds.RUNS_ON.in" },
   PART_OF: { out: "assets.relations.kinds.PART_OF.out", in: "assets.relations.kinds.PART_OF.in" },
 };
@@ -175,11 +196,17 @@ export function resolveAssetIcon(name: string): LucideIcon {
 }
 
 /** Bosnian UI shows the Bosnian name; every other language the English one. */
-export function localizedName(item: { readonly nameBs: string; readonly nameEn: string }, language: string): string {
+export function localizedName(
+  item: { readonly nameBs: string; readonly nameEn: string },
+  language: string,
+): string {
   return language.startsWith("bs") ? item.nameBs : item.nameEn;
 }
 
-export function localizedLabel(item: { readonly labelBs: string; readonly labelEn: string }, language: string): string {
+export function localizedLabel(
+  item: { readonly labelBs: string; readonly labelEn: string },
+  language: string,
+): string {
   return language.startsWith("bs") ? item.labelBs : item.labelEn;
 }
 
@@ -194,7 +221,11 @@ export function daysUntil(date: string | null, now: Date = new Date()): number |
 
 export type WarrantyState = "none" | "expired" | "expiring" | "valid";
 
-export function warrantyState(date: string | null, withinDays = 30, now: Date = new Date()): WarrantyState {
+export function warrantyState(
+  date: string | null,
+  withinDays = 30,
+  now: Date = new Date(),
+): WarrantyState {
   const days = daysUntil(date, now);
   if (days === null) return "none";
   if (days < 0) return "expired";
@@ -247,16 +278,18 @@ export function formatAttributeValue(
 /** Mirrors backend `assetLimits.locationDepthMax` (§7). */
 export const assetLocationDepthMax = 6;
 
-export type LocationTreeRow<T extends { readonly id: string; readonly parentId: string | null; readonly name: string }> = {
+export type LocationTreeRow<
+  T extends { readonly id: string; readonly parentId: string | null; readonly name: string },
+> = {
   readonly location: T;
   readonly depth: number;
   readonly path: string;
 };
 
 /** Depth-first rows (parents before children, siblings in input order) with full paths. */
-export function flattenLocationTree<T extends { readonly id: string; readonly parentId: string | null; readonly name: string }>(
-  locations: readonly T[],
-): LocationTreeRow<T>[] {
+export function flattenLocationTree<
+  T extends { readonly id: string; readonly parentId: string | null; readonly name: string },
+>(locations: readonly T[]): LocationTreeRow<T>[] {
   const ids = new Set(locations.map((location) => location.id));
   const children = new Map<string | null, T[]>();
   for (const location of locations) {
@@ -298,13 +331,15 @@ export function locationSubtree(
 }
 
 /** Levels below the location (0 for a leaf). */
-export function locationHeight<T extends { readonly id: string; readonly parentId: string | null; readonly name: string }>(
-  locations: readonly T[],
-  id: string,
-): number {
+export function locationHeight<
+  T extends { readonly id: string; readonly parentId: string | null; readonly name: string },
+>(locations: readonly T[], id: string): number {
   const rows = flattenLocationTree(locations);
   const own = rows.find((row) => row.location.id === id);
   if (own === undefined) return 0;
   const subtree = locationSubtree(locations, id);
-  return Math.max(0, ...rows.filter((row) => subtree.has(row.location.id)).map((row) => row.depth - own.depth));
+  return Math.max(
+    0,
+    ...rows.filter((row) => subtree.has(row.location.id)).map((row) => row.depth - own.depth),
+  );
 }

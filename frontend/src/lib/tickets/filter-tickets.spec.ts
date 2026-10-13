@@ -6,9 +6,7 @@ import {
 } from "@/lib/tickets/filter-tickets";
 import type { TicketResponse } from "@/services/tickets-api";
 
-function ticket(
-  overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">,
-): TicketResponse {
+function ticket(overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">): TicketResponse {
   return {
     ticketNumber: "T-000001",
     title: "VPN access",
@@ -75,10 +73,9 @@ describe("filterTickets", () => {
       "c",
     ]);
     expect(
-      filterTickets(
-        rows,
-        filters({ status: "ASSIGNED", priority: "LOW", serviceId: "svc-2" }),
-      ).map((item) => item.id),
+      filterTickets(rows, filters({ status: "ASSIGNED", priority: "LOW", serviceId: "svc-2" })).map(
+        (item) => item.id,
+      ),
     ).toEqual(["b"]);
   });
 

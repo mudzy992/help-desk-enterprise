@@ -125,11 +125,8 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
 
   const toggleMode = useCallback(() => {
     setModeState((previous) => {
-      const isCurrentlyDark = resolveColorMode(
-        design,
-        previous,
-        readSystemPrefersDark(),
-      ) === "dark";
+      const isCurrentlyDark =
+        resolveColorMode(design, previous, readSystemPrefersDark()) === "dark";
       const next: ThemeMode = isCurrentlyDark ? "light" : "dark";
       writeStored(THEME_MODE_STORAGE_KEY, next);
       return next;

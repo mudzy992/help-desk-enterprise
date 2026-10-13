@@ -15,7 +15,9 @@ describe("created range", () => {
   it("turns local days into inclusive local-day bounds", () => {
     const range = rangeFromLocalDays("2026-10-01", "2026-10-08");
     expect(new Date(range.createdFrom).getTime()).toBe(new Date(2026, 9, 1, 0, 0, 0, 0).getTime());
-    expect(new Date(range.createdTo).getTime()).toBe(new Date(2026, 9, 8, 23, 59, 59, 999).getTime());
+    expect(new Date(range.createdTo).getTime()).toBe(
+      new Date(2026, 9, 8, 23, 59, 59, 999).getTime(),
+    );
     expect(instantToLocalDateInput(range.createdFrom)).toBe("2026-10-01");
     expect(instantToLocalDateInput(range.createdTo)).toBe("2026-10-08");
   });
@@ -38,7 +40,9 @@ describe("created range", () => {
     const month = rangeForPreset("thisMonth", now)!;
     expect(instantToLocalDateInput(month.createdFrom)).toBe("2026-10-01");
     expect(detectCreatedRangePreset({ createdFrom: "", createdTo: "" }, now)).toBe("any");
-    expect(detectCreatedRangePreset(rangeFromLocalDays("2026-09-01", "2026-09-15"), now)).toBe("custom");
+    expect(detectCreatedRangePreset(rangeFromLocalDays("2026-09-01", "2026-09-15"), now)).toBe(
+      "custom",
+    );
   });
 
   it("flags an inverted range", () => {

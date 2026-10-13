@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
-import {
-  joinTicketRoom,
-  leaveTicketRoom,
-  ticketSocketEvents,
-} from "@/services/ticket-socket";
+import { joinTicketRoom, leaveTicketRoom, ticketSocketEvents } from "@/services/ticket-socket";
 import {
   applyTicketUpdatedPayload,
   shouldReloadTicketFromUpdated,
@@ -12,10 +8,7 @@ import {
 } from "@/lib/realtime/apply-ticket-updated";
 import { nextJoinedTicketRoom } from "@/lib/realtime/next-joined-ticket-room";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
-import {
-  isStaleTicketEvent,
-  upsertTicketMessage,
-} from "@/lib/realtime/upsert-ticket-message";
+import { isStaleTicketEvent, upsertTicketMessage } from "@/lib/realtime/upsert-ticket-message";
 import { useSession } from "@/lib/session/use-session";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 import type { TicketResponse } from "@/services/tickets-api";

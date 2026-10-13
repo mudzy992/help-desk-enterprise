@@ -41,9 +41,7 @@ const codeKeys: Partial<Record<string, ServiceOnboardingErrorKey>> = {
   UNAVAILABLE: "services.onboarding.errorUnavailable",
 };
 
-export function mapServiceOnboardingError(
-  error: unknown,
-): ServiceOnboardingErrorKey {
+export function mapServiceOnboardingError(error: unknown): ServiceOnboardingErrorKey {
   if (!(error instanceof ApiError)) {
     return "services.onboarding.errorGeneric";
   }

@@ -131,25 +131,39 @@ export function useTicketDetail(ticketId: string | undefined) {
     applyTicket: setTicket,
     setTimeLogs,
     reload: load,
-    claim: () => onTicket((id) => runAction(async () => {
-      setTicket(await claimTicket(id));
-    }, mapClaimError)),
-    changeStatus: (status: TicketStatus, extras: { closeCode?: string; resolutionNote?: string } = {}) =>
-      onTicket((id) => runAction(async () => {
-        setTicket(await updateTicket(id, { status, ...extras }));
-      })),
-    sendMessage: (type: MessageType, body: string, options?: { readonly alsoToMerged?: boolean; readonly responseTemplateId?: string }) =>
-      onTicket((id) => sendTicketMessageOptimistic({
-        ticketId: id,
-        type,
-        body,
-        alsoToMerged: options?.alsoToMerged,
-        responseTemplateId: options?.responseTemplateId,
-        authorUserId: currentUserId,
-        setMessages,
-        setTicket,
-        setActionError,
-      })),
+    claim: () =>
+      onTicket((id) =>
+        runAction(async () => {
+          setTicket(await claimTicket(id));
+        }, mapClaimError),
+      ),
+    changeStatus: (
+      status: TicketStatus,
+      extras: { closeCode?: string; resolutionNote?: string } = {},
+    ) =>
+      onTicket((id) =>
+        runAction(async () => {
+          setTicket(await updateTicket(id, { status, ...extras }));
+        }),
+      ),
+    sendMessage: (
+      type: MessageType,
+      body: string,
+      options?: { readonly alsoToMerged?: boolean; readonly responseTemplateId?: string },
+    ) =>
+      onTicket((id) =>
+        sendTicketMessageOptimistic({
+          ticketId: id,
+          type,
+          body,
+          alsoToMerged: options?.alsoToMerged,
+          responseTemplateId: options?.responseTemplateId,
+          authorUserId: currentUserId,
+          setMessages,
+          setTicket,
+          setActionError,
+        }),
+      ),
     reopen: async () => {
       if (ticketId === undefined) {
         return null;
@@ -169,25 +183,34 @@ export function useTicketDetail(ticketId: string | undefined) {
       }
     },
     addParticipant: (role: ParticipantRole, userId: string) =>
-      onTicket((id) => runAction(async () => {
-        const created = await addTicketParticipant(id, { role, userId });
-        setParticipants((current) => [...current, created]);
-      })),
+      onTicket((id) =>
+        runAction(async () => {
+          const created = await addTicketParticipant(id, { role, userId });
+          setParticipants((current) => [...current, created]);
+        }),
+      ),
     removeParticipant: (participantId: string) =>
-      onTicket((id) => runAction(async () => {
-        await removeTicketParticipant(id, participantId);
-        setParticipants((current) => current.filter((item) => item.id !== participantId));
-      })),
-    upload: (file: File) => onTicket((id) => runAction(async () => {
-      const created = await uploadTicketAttachment(id, file);
-      setAttachments((current) => [...current, created]);
-    })),
+      onTicket((id) =>
+        runAction(async () => {
+          await removeTicketParticipant(id, participantId);
+          setParticipants((current) => current.filter((item) => item.id !== participantId));
+        }),
+      ),
+    upload: (file: File) =>
+      onTicket((id) =>
+        runAction(async () => {
+          const created = await uploadTicketAttachment(id, file);
+          setAttachments((current) => [...current, created]);
+        }),
+      ),
     download: (attachment: TicketAttachmentResponse) =>
       onTicket((id) => downloadAttachmentFile(id, attachment)),
     removeAttachment: (attachmentId: string) =>
-      onTicket((id) => runAction(async () => {
-        await deleteTicketAttachment(id, attachmentId);
-        setAttachments((current) => current.filter((item) => item.id !== attachmentId));
-      })),
+      onTicket((id) =>
+        runAction(async () => {
+          await deleteTicketAttachment(id, attachmentId);
+          setAttachments((current) => current.filter((item) => item.id !== attachmentId));
+        }),
+      ),
   };
 }

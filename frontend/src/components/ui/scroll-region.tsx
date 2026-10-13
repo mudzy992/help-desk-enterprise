@@ -54,7 +54,10 @@ export function ScrollRegion({ label, className, children, ...rest }: ScrollRegi
       tabIndex={focusable ? 0 : undefined}
       role={focusable ? "region" : rest.role}
       aria-label={focusable ? (label ?? t("a11y.scrollRegion")) : rest["aria-label"]}
-      className={cn(className, "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70")}
+      className={cn(
+        className,
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+      )}
     >
       {children}
     </div>

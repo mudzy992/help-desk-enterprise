@@ -135,7 +135,11 @@ export function KnowledgePortalHome() {
               </h2>
               <Card className="divide-y divide-border/70">
                 {home.faq.map((item) => (
-                  <details key={item.id} className="group px-4 py-2.5" data-testid="knowledge-faq-item">
+                  <details
+                    key={item.id}
+                    className="group px-4 py-2.5"
+                    data-testid="knowledge-faq-item"
+                  >
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md text-[13px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 [&::-webkit-details-marker]:hidden">
                       <span>{item.title}</span>
                       <ChevronDown
@@ -160,7 +164,10 @@ export function KnowledgePortalHome() {
           ) : null}
 
           <section aria-labelledby="kb-categories-heading">
-            <h2 id="kb-categories-heading" className="mb-2 text-[13px] font-semibold text-foreground">
+            <h2
+              id="kb-categories-heading"
+              className="mb-2 text-[13px] font-semibold text-foreground"
+            >
               {t("knowledgeBase.portal.categoriesTitle")}
             </h2>
             {tree.length === 0 && home.uncategorizedCount === 0 ? (
@@ -222,7 +229,9 @@ export function KnowledgePortalHome() {
                             {t("knowledgeBase.portal.uncategorized")}
                           </span>
                           <span className="tnum block text-[11.5px] text-muted-foreground">
-                            {t("knowledgeBase.portal.articleCount", { count: home.uncategorizedCount })}
+                            {t("knowledgeBase.portal.articleCount", {
+                              count: home.uncategorizedCount,
+                            })}
                           </span>
                         </span>
                       </button>
@@ -256,18 +265,24 @@ export function PortalArticleRow({ article }: { readonly article: KnowledgePorta
             <span className="tnum flex items-center gap-0.5">
               <Star size={11} aria-hidden="true" className="fill-warning text-warning" />
               <span aria-hidden="true">{average}</span>
-              <span className="sr-only">{t("knowledgeBase.portal.rating.summary", { average, count: article.ratingCount })}</span>
+              <span className="sr-only">
+                {t("knowledgeBase.portal.rating.summary", { average, count: article.ratingCount })}
+              </span>
             </span>
           ) : null}
           <span className="tnum flex items-center gap-0.5">
             <Eye size={11} aria-hidden="true" />
             <span aria-hidden="true">{article.viewCount}</span>
-            <span className="sr-only">{t("knowledgeBase.portal.views", { count: article.viewCount })}</span>
+            <span className="sr-only">
+              {t("knowledgeBase.portal.views", { count: article.viewCount })}
+            </span>
           </span>
         </span>
       </div>
       {article.bodyPreview.length > 0 ? (
-        <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-muted-foreground">{article.bodyPreview}</p>
+        <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-muted-foreground">
+          {article.bodyPreview}
+        </p>
       ) : null}
     </li>
   );

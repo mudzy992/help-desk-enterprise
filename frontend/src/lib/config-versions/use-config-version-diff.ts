@@ -4,15 +4,9 @@ import {
   type ConfigVersionErrorKey,
 } from "@/lib/config-versions/map-config-version-error";
 import { readApiRequestId } from "@/lib/map-api-error";
-import {
-  diffConfigVersions,
-  type ConfigVersionDiff,
-} from "@/services/config-versions-api";
+import { diffConfigVersions, type ConfigVersionDiff } from "@/services/config-versions-api";
 
-export function useConfigVersionDiff(
-  versionId: string | null,
-  againstId: string | null,
-) {
+export function useConfigVersionDiff(versionId: string | null, againstId: string | null) {
   const [diff, setDiff] = useState<ConfigVersionDiff | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorKey, setErrorKey] = useState<ConfigVersionErrorKey | null>(null);

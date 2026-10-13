@@ -36,12 +36,7 @@ export function OnboardingApprovalsStep({
         )}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          disabled={isSaving}
-          onClick={() => onContinue(reference)}
-        >
+        <Button type="button" size="sm" disabled={isSaving} onClick={() => onContinue(reference)}>
           {isSaving ? t("services.onboarding.saving") : t("services.onboarding.next")}
         </Button>
         <Button

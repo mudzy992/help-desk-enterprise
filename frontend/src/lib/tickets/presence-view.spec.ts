@@ -13,7 +13,9 @@ describe("presence view (Paket 2.4)", () => {
   };
 
   it("hides me and ignores other tickets", () => {
-    expect(applyPresenceUpdate("t1", "me", staffPayload)?.others.map((person) => person.userId)).toEqual(["u2", "u3"]);
+    expect(
+      applyPresenceUpdate("t1", "me", staffPayload)?.others.map((person) => person.userId),
+    ).toEqual(["u2", "u3"]);
     expect(applyPresenceUpdate("t2", "me", staffPayload)).toBeNull();
   });
 
@@ -23,7 +25,13 @@ describe("presence view (Paket 2.4)", () => {
   });
 
   it("gives the requester only the anonymous flag", () => {
-    expect(applyPresenceUpdate("t1", "req", { ticketId: "t1", audience: "requester", agentTyping: true })).toEqual({
+    expect(
+      applyPresenceUpdate("t1", "req", {
+        ticketId: "t1",
+        audience: "requester",
+        agentTyping: true,
+      }),
+    ).toEqual({
       others: [],
       agentTyping: true,
     });

@@ -7,11 +7,25 @@ import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
  * these calls only decide what the UI renders.
  */
 
-export const problemStatuses = ["NEW", "INVESTIGATING", "KNOWN_ERROR", "RESOLVED", "CLOSED", "CANCELLED"] as const;
+export const problemStatuses = [
+  "NEW",
+  "INVESTIGATING",
+  "KNOWN_ERROR",
+  "RESOLVED",
+  "CLOSED",
+  "CANCELLED",
+] as const;
 export type ProblemStatus = (typeof problemStatuses)[number];
-export const problemOpenStatuses: readonly ProblemStatus[] = ["NEW", "INVESTIGATING", "KNOWN_ERROR"];
+export const problemOpenStatuses: readonly ProblemStatus[] = [
+  "NEW",
+  "INVESTIGATING",
+  "KNOWN_ERROR",
+];
 /** P5: a resolved problem still accepts links; the link is recorded as a recurrence. */
-export const problemLinkableStatuses: readonly ProblemStatus[] = [...problemOpenStatuses, "RESOLVED"];
+export const problemLinkableStatuses: readonly ProblemStatus[] = [
+  ...problemOpenStatuses,
+  "RESOLVED",
+];
 export type ProblemSeverity = TicketPriority;
 
 type NamedRef = { readonly id: string; readonly name: string };
@@ -44,7 +58,8 @@ export type ProblemListResponse = {
   readonly nextCursor: string | null;
 };
 
-export type ProblemTicketSkipReason = "not_found" | "merged" | "already_linked" | "other_problem" | "read_only";
+export type ProblemTicketSkipReason =
+  "not_found" | "merged" | "already_linked" | "other_problem" | "read_only";
 
 export type ProblemTicketLinkResult = {
   readonly linked: readonly { readonly ticketId: string; readonly ticketNumber: string }[];
@@ -118,7 +133,11 @@ export const problemQueryKeys = {
   tickets: (problemId: string) => ["problems", problemId, "tickets"] as const,
 };
 
-export function listProblems(query: { readonly search?: string; readonly status?: readonly ProblemStatus[]; readonly limit?: number }) {
+export function listProblems(query: {
+  readonly search?: string;
+  readonly status?: readonly ProblemStatus[];
+  readonly limit?: number;
+}) {
   const params = new URLSearchParams();
   if (query.search) params.set("search", query.search);
   if (query.status && query.status.length > 0) params.set("status", query.status.join(","));
@@ -135,12 +154,21 @@ export function getTicketProblem(ticketId: string): Promise<TicketProblemPanel> 
   return apiRequest(`/problems/tickets/${encodeURIComponent(ticketId)}`);
 }
 
-export function linkProblemTickets(problemId: string, ticketIds: readonly string[]): Promise<ProblemTicketLinkResult> {
-  return apiRequest(`/problems/${encodeURIComponent(problemId)}/tickets`, { method: "POST", ...json({ ticketIds }) });
+export function linkProblemTickets(
+  problemId: string,
+  ticketIds: readonly string[],
+): Promise<ProblemTicketLinkResult> {
+  return apiRequest(`/problems/${encodeURIComponent(problemId)}/tickets`, {
+    method: "POST",
+    ...json({ ticketIds }),
+  });
 }
 
 export function unlinkProblemTicket(problemId: string, ticketId: string): Promise<void> {
-  return apiRequest(`/problems/${encodeURIComponent(problemId)}/tickets/${encodeURIComponent(ticketId)}`, { method: "DELETE" });
+  return apiRequest(
+    `/problems/${encodeURIComponent(problemId)}/tickets/${encodeURIComponent(ticketId)}`,
+    { method: "DELETE" },
+  );
 }
 
 export function getProblemTickets(problemId: string): Promise<ProblemTicketsResponse> {
@@ -178,7 +206,11 @@ export type ProblemDetail = ProblemListItem & {
   readonly workaround: string | null;
   readonly workaroundAt: string | null;
   readonly resolution: string | null;
-  readonly knowledgeArticle: { readonly id: string; readonly title: string; readonly status: string } | null;
+  readonly knowledgeArticle: {
+    readonly id: string;
+    readonly title: string;
+    readonly status: string;
+  } | null;
   readonly identifiedAt: string | null;
   readonly resolvedAt: string | null;
   readonly closedAt: string | null;
@@ -187,7 +219,12 @@ export type ProblemDetail = ProblemListItem & {
   readonly createdBy: UserRef | null;
   readonly version: number;
   readonly allowedTransitions: readonly ProblemStatus[];
-  readonly permissions: { readonly canManage: boolean; readonly canClose: boolean; readonly canClaim: boolean; readonly canLink: boolean };
+  readonly permissions: {
+    readonly canManage: boolean;
+    readonly canClose: boolean;
+    readonly canClaim: boolean;
+    readonly canLink: boolean;
+  };
 };
 
 export type ProblemOptions = {
@@ -263,7 +300,10 @@ export function getProblemOptions(): Promise<ProblemOptions> {
   return apiRequest("/problems/options");
 }
 
-export function searchProblemOwners(search: string, groupId: string): Promise<{ readonly items: readonly UserRef[] }> {
+export function searchProblemOwners(
+  search: string,
+  groupId: string,
+): Promise<{ readonly items: readonly UserRef[] }> {
   const params = new URLSearchParams({ search, groupId });
   return apiRequest(`/problems/owners?${params.toString()}`);
 }
@@ -272,15 +312,21 @@ export function claimProblem(id: string): Promise<ProblemDetail> {
   return apiRequest(`/problems/${encodeURIComponent(id)}/claim`, { method: "POST" });
 }
 
-export function listProblemsPage(filters: ProblemListFilters, cursor?: string, limit = 25): Promise<ProblemListResponse> {
+export function listProblemsPage(
+  filters: ProblemListFilters,
+  cursor?: string,
+  limit = 25,
+): Promise<ProblemListResponse> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.status && filters.status.length > 0) params.set("status", filters.status.join(","));
-  if (filters.priority && filters.priority.length > 0) params.set("priority", filters.priority.join(","));
+  if (filters.priority && filters.priority.length > 0)
+    params.set("priority", filters.priority.join(","));
   if (filters.ownerUserId) params.set("ownerUserId", filters.ownerUserId);
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.serviceId) params.set("serviceId", filters.serviceId);
-  if (filters.organizationalUnitId) params.set("organizationalUnitId", filters.organizationalUnitId);
+  if (filters.organizationalUnitId)
+    params.set("organizationalUnitId", filters.organizationalUnitId);
   if (filters.overdue) params.set("overdue", "true");
   if (filters.rootCauseCategory) params.set("rootCauseCategory", filters.rootCauseCategory);
   if (cursor) params.set("cursor", cursor);
@@ -300,12 +346,25 @@ export function updateProblem(id: string, input: UpdateProblemInput): Promise<Pr
   return apiRequest(`/problems/${encodeURIComponent(id)}`, { method: "PATCH", ...json(input) });
 }
 
-export type ProblemTicketResolveSkip = "waiting_for_user" | "pending_approval" | "merged" | "no_access" | "limit";
+export type ProblemTicketResolveSkip =
+  "waiting_for_user" | "pending_approval" | "merged" | "no_access" | "limit";
 
 export type ProblemTicketResolveOutcome = {
-  readonly resolved: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly messageSent: boolean }[];
-  readonly skipped: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly reason: ProblemTicketResolveSkip }[];
-  readonly failed: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly code: string }[];
+  readonly resolved: readonly {
+    readonly ticketId: string;
+    readonly ticketNumber: string;
+    readonly messageSent: boolean;
+  }[];
+  readonly skipped: readonly {
+    readonly ticketId: string;
+    readonly ticketNumber: string;
+    readonly reason: ProblemTicketResolveSkip;
+  }[];
+  readonly failed: readonly {
+    readonly ticketId: string;
+    readonly ticketNumber: string;
+    readonly code: string;
+  }[];
 };
 
 export type ProblemResolvePreview = {
@@ -331,7 +390,12 @@ export type ProblemArticleDraft = {
   readonly body: string;
   readonly serviceId: string | null;
   readonly organizationalUnitId: string;
-  readonly replacements: { readonly email: number; readonly person: number; readonly ip: number; readonly phone: number };
+  readonly replacements: {
+    readonly email: number;
+    readonly person: number;
+    readonly ip: number;
+    readonly phone: number;
+  };
 };
 
 export type ProblemStatusInput = {
@@ -354,16 +418,27 @@ export function getProblemArticleDraft(id: string): Promise<ProblemArticleDraft>
 
 export function createProblemArticle(
   id: string,
-  input: { readonly title: string; readonly body: string; readonly serviceId: string; readonly organizationalUnitId: string },
+  input: {
+    readonly title: string;
+    readonly body: string;
+    readonly serviceId: string;
+    readonly organizationalUnitId: string;
+  },
 ): Promise<{ readonly id: string; readonly title: string; readonly status: string }> {
-  return apiRequest(`/problems/${encodeURIComponent(id)}/knowledge-article`, { method: "POST", ...json(input) });
+  return apiRequest(`/problems/${encodeURIComponent(id)}/knowledge-article`, {
+    method: "POST",
+    ...json(input),
+  });
 }
 
 export function changeProblemStatus(
   id: string,
   input: ProblemStatusInput,
 ): Promise<ProblemDetail & { readonly ticketResolution: ProblemTicketResolveOutcome | null }> {
-  return apiRequest(`/problems/${encodeURIComponent(id)}/status`, { method: "POST", ...json(input) });
+  return apiRequest(`/problems/${encodeURIComponent(id)}/status`, {
+    method: "POST",
+    ...json(input),
+  });
 }
 
 export function getProblemEvents(id: string): Promise<{ readonly items: readonly ProblemEvent[] }> {
@@ -412,8 +487,10 @@ export type ProblemReference = {
 
 export const problemLinkKeys = {
   links: (problemId: string) => ["problems", problemId, "links"] as const,
-  assetSearch: (problemId: string, search: string) => ["problems", problemId, "links", "assets", search] as const,
-  incidentSearch: (problemId: string, search: string) => ["problems", problemId, "links", "incidents", search] as const,
+  assetSearch: (problemId: string, search: string) =>
+    ["problems", problemId, "links", "assets", search] as const,
+  incidentSearch: (problemId: string, search: string) =>
+    ["problems", problemId, "links", "incidents", search] as const,
   byAsset: (assetId: string) => ["problems", "by-asset", assetId] as const,
   byIncident: (incidentId: string) => ["problems", "by-incident", incidentId] as const,
 };
@@ -424,42 +501,77 @@ export function getProblemLinks(problemId: string): Promise<ProblemLinks> {
   return apiRequest(`${problemPath(problemId)}/links`);
 }
 
-export function searchProblemAssets(problemId: string, search: string): Promise<{ readonly items: readonly ProblemLinkedAsset[] }> {
-  return apiRequest(`${problemPath(problemId)}/links/asset-search?${new URLSearchParams({ search }).toString()}`);
+export function searchProblemAssets(
+  problemId: string,
+  search: string,
+): Promise<{ readonly items: readonly ProblemLinkedAsset[] }> {
+  return apiRequest(
+    `${problemPath(problemId)}/links/asset-search?${new URLSearchParams({ search }).toString()}`,
+  );
 }
 
-export function linkProblemAssets(problemId: string, assetIds: readonly string[]): Promise<{ readonly linked: number }> {
+export function linkProblemAssets(
+  problemId: string,
+  assetIds: readonly string[],
+): Promise<{ readonly linked: number }> {
   return apiRequest(`${problemPath(problemId)}/assets`, { method: "POST", ...json({ assetIds }) });
 }
 
 export function unlinkProblemAsset(problemId: string, assetId: string): Promise<void> {
-  return apiRequest(`${problemPath(problemId)}/assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+  return apiRequest(`${problemPath(problemId)}/assets/${encodeURIComponent(assetId)}`, {
+    method: "DELETE",
+  });
 }
 
-export function linkProblemService(problemId: string, serviceId: string): Promise<{ readonly linked: number }> {
-  return apiRequest(`${problemPath(problemId)}/services`, { method: "POST", ...json({ serviceId }) });
+export function linkProblemService(
+  problemId: string,
+  serviceId: string,
+): Promise<{ readonly linked: number }> {
+  return apiRequest(`${problemPath(problemId)}/services`, {
+    method: "POST",
+    ...json({ serviceId }),
+  });
 }
 
 export function unlinkProblemService(problemId: string, serviceId: string): Promise<void> {
-  return apiRequest(`${problemPath(problemId)}/services/${encodeURIComponent(serviceId)}`, { method: "DELETE" });
+  return apiRequest(`${problemPath(problemId)}/services/${encodeURIComponent(serviceId)}`, {
+    method: "DELETE",
+  });
 }
 
-export function searchProblemIncidents(problemId: string, search: string): Promise<{ readonly items: readonly ProblemLinkedIncident[] }> {
-  return apiRequest(`${problemPath(problemId)}/links/incident-search?${new URLSearchParams({ search }).toString()}`);
+export function searchProblemIncidents(
+  problemId: string,
+  search: string,
+): Promise<{ readonly items: readonly ProblemLinkedIncident[] }> {
+  return apiRequest(
+    `${problemPath(problemId)}/links/incident-search?${new URLSearchParams({ search }).toString()}`,
+  );
 }
 
-export function linkProblemIncident(problemId: string, incidentId: string): Promise<{ readonly linked: number }> {
-  return apiRequest(`${problemPath(problemId)}/incidents`, { method: "POST", ...json({ incidentId }) });
+export function linkProblemIncident(
+  problemId: string,
+  incidentId: string,
+): Promise<{ readonly linked: number }> {
+  return apiRequest(`${problemPath(problemId)}/incidents`, {
+    method: "POST",
+    ...json({ incidentId }),
+  });
 }
 
 export function unlinkProblemIncident(problemId: string, incidentId: string): Promise<void> {
-  return apiRequest(`${problemPath(problemId)}/incidents/${encodeURIComponent(incidentId)}`, { method: "DELETE" });
+  return apiRequest(`${problemPath(problemId)}/incidents/${encodeURIComponent(incidentId)}`, {
+    method: "DELETE",
+  });
 }
 
-export function getProblemsForAsset(assetId: string): Promise<{ readonly items: readonly ProblemReference[] }> {
+export function getProblemsForAsset(
+  assetId: string,
+): Promise<{ readonly items: readonly ProblemReference[] }> {
   return apiRequest(`/problems/by-asset/${encodeURIComponent(assetId)}`);
 }
 
-export function getProblemsForIncident(incidentId: string): Promise<{ readonly items: readonly ProblemReference[] }> {
+export function getProblemsForIncident(
+  incidentId: string,
+): Promise<{ readonly items: readonly ProblemReference[] }> {
   return apiRequest(`/problems/by-incident/${encodeURIComponent(incidentId)}`);
 }

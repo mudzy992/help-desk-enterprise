@@ -33,7 +33,10 @@ const thresholds = {
   clamavFailuresBeforeAlert: 3,
 };
 
-function overview(patch: Partial<OpsOverview> = {}, components: Partial<OpsOverview["components"]> = {}): OpsOverview {
+function overview(
+  patch: Partial<OpsOverview> = {},
+  components: Partial<OpsOverview["components"]> = {},
+): OpsOverview {
   return {
     generatedAt: "2026-11-20T10:00:00.000Z",
     snapshot: { generatedAt: "2026-11-20T09:59:30.000Z", ageSeconds: 30 },
@@ -98,10 +101,14 @@ describe("ops health view", () => {
     expect(overallOpsState(overview())).toBe("ok");
     expect(overallOpsState(overview({ alerts: [alert()] }))).toBe("degraded");
     expect(overallOpsState(overview({ snapshot: null }))).toBe("degraded");
-    expect(overallOpsState(overview({ snapshot: { generatedAt: "x", ageSeconds: 400 } }))).toBe("degraded");
+    expect(overallOpsState(overview({ snapshot: { generatedAt: "x", ageSeconds: 400 } }))).toBe(
+      "degraded",
+    );
     expect(overallOpsState(overview({ alerts: [alert({ severity: "CRITICAL" })] }))).toBe("down");
     expect(overallOpsState(overview({}, { redis: "fail" }))).toBe("down");
-    expect(overallOpsState(overview({}, { worker: { status: "stale", heartbeatAgeSeconds: 500 } }))).toBe("down");
+    expect(
+      overallOpsState(overview({}, { worker: { status: "stale", heartbeatAgeSeconds: 500 } })),
+    ).toBe("down");
   });
 
   it("colours components by the configured thresholds", () => {
@@ -114,14 +121,26 @@ describe("ops health view", () => {
     expect(clamavState({ configured: true, ok: false, failOpen: false })).toBe("fail");
     expect(eventLoopState(600)).toBe("warning");
     expect(eventLoopState(2500)).toBe("fail");
-    expect(inboundState({ mailboxKey: "m", lastRunAt: null, lastSuccessAt: null, lastError: "x", lastErrorAt: null, consecutiveFails: 3 })).toBe("fail");
+    expect(
+      inboundState({
+        mailboxKey: "m",
+        lastRunAt: null,
+        lastSuccessAt: null,
+        lastError: "x",
+        lastErrorAt: null,
+        consecutiveFails: 3,
+      }),
+    ).toBe("fail");
   });
 
   it("counts LDAPS CA days with the backend 30/7 limits", () => {
     const now = Date.parse("2026-11-20T00:00:00.000Z");
     expect(ldapsCaState(null, now)).toEqual({ state: "off", daysLeft: null });
     expect(ldapsCaState("2027-06-01T00:00:00.000Z", now).state).toBe("ok");
-    expect(ldapsCaState("2026-12-10T00:00:00.000Z", now)).toEqual({ state: "warning", daysLeft: 20 });
+    expect(ldapsCaState("2026-12-10T00:00:00.000Z", now)).toEqual({
+      state: "warning",
+      daysLeft: 20,
+    });
     expect(ldapsCaState("2026-11-25T00:00:00.000Z", now)).toEqual({ state: "fail", daysLeft: 5 });
   });
 
@@ -162,9 +181,21 @@ describe("ops health view", () => {
     expect(totalErrors).toBe(6);
     expect(bars.map((bar) => bar.heightPercent)).toEqual([0, 100, 50]);
     expect(httpBars([]).max).toBe(1);
-    expect(dlqGrowthTotal({ integrationDlq: 5, growth: { integrationDlq: 2, failedByQueue: { a: 1, b: 3 } } })).toBe(6);
+    expect(
+      dlqGrowthTotal({
+        integrationDlq: 5,
+        growth: { integrationDlq: 2, failedByQueue: { a: 1, b: 3 } },
+      }),
+    ).toBe(6);
     expect(dlqGrowthTotal({ integrationDlq: 5, growth: null })).toBe(0);
-    const base = { everyMs: 60_000, pattern: null, nextAt: null, lastSuccessAt: null, lastFailureAt: null, graceMs: 0 };
+    const base = {
+      everyMs: 60_000,
+      pattern: null,
+      nextAt: null,
+      lastSuccessAt: null,
+      lastFailureAt: null,
+      graceMs: 0,
+    };
     expect(
       sortSchedulers([
         { ...base, queue: "b", schedulerId: "x", state: "on_time" },
@@ -174,7 +205,6 @@ describe("ops health view", () => {
     ).toEqual(["z", "a", "b"]);
   });
 });
-
 
 /*
   Live review 2026-10-12 (429 alarm): the card rendered `auth.login429.high` as
@@ -197,21 +227,27 @@ describe("alarm catalogue coverage (frontend view)", () => {
   });
 
   it.each(dictionaries)("has a title and an action for every slug (%s)", (_locale, dictionary) => {
-    const keys = dictionary.admin.opsHealth.alertKeys as Record<string, { title: string; action: string }>;
+    const keys = dictionary.admin.opsHealth.alertKeys as Record<
+      string,
+      { title: string; action: string }
+    >;
     for (const slug of opsAlertSlugs) {
       expect(keys[slug]?.title?.trim().length ?? 0).toBeGreaterThan(0);
       expect(keys[slug]?.action?.trim().length ?? 0).toBeGreaterThan(0);
     }
   });
 
-  it.each(dictionaries)("labels every alarm detail field the backend can send (%s)", (_locale, dictionary) => {
-    const labels = dictionary.admin.opsHealth.alertDetailLabels as Record<string, string>;
-    for (const field of alertDetailFieldSlugs) {
-      expect(labels[field]?.trim().length ?? 0).toBeGreaterThan(0);
-      expect(alertDetailLabelKey(field)).toBe(`admin.opsHealth.alertDetailLabels.${field}`);
-    }
-    expect(alertDetailLabelKey("unknownField")).toBeNull();
-  });
+  it.each(dictionaries)(
+    "labels every alarm detail field the backend can send (%s)",
+    (_locale, dictionary) => {
+      const labels = dictionary.admin.opsHealth.alertDetailLabels as Record<string, string>;
+      for (const field of alertDetailFieldSlugs) {
+        expect(labels[field]?.trim().length ?? 0).toBeGreaterThan(0);
+        expect(alertDetailLabelKey(field)).toBe(`admin.opsHealth.alertDetailLabels.${field}`);
+      }
+      expect(alertDetailLabelKey("unknownField")).toBeNull();
+    },
+  );
 
   it("puts the measured number before the thresholds it is compared against", () => {
     const sorted = sortAlertDetailEntries([
@@ -227,7 +263,12 @@ describe("alarm catalogue coverage (frontend view)", () => {
       "criticalThreshold",
     ]);
     // An unknown field stays visible and ends up last.
-    expect(sortAlertDetailEntries([["futureField", "1"], ["usedPercent", "90"]])).toEqual([
+    expect(
+      sortAlertDetailEntries([
+        ["futureField", "1"],
+        ["usedPercent", "90"],
+      ]),
+    ).toEqual([
       ["usedPercent", "90"],
       ["futureField", "1"],
     ]);

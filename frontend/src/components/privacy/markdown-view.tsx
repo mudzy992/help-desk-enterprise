@@ -1,6 +1,11 @@
 import { Fragment, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { highlightCode, parseMarkdown, type BlockNode, type InlineNode } from "@/lib/privacy/simple-markdown";
+import {
+  highlightCode,
+  parseMarkdown,
+  type BlockNode,
+  type InlineNode,
+} from "@/lib/privacy/simple-markdown";
 import { slugifyHeading } from "@/lib/docs/slugify-heading";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +28,11 @@ export function MarkdownView({
   readonly onHeadingClick?: (id: string) => void;
 }) {
   const state: RenderState = { headingIds: headingIds ?? null, headingIndex: 0, onHeadingClick };
-  return <div className={className}>{parseMarkdown(source).map((block, index) => renderBlock(block, index, state))}</div>;
+  return (
+    <div className={className}>
+      {parseMarkdown(source).map((block, index) => renderBlock(block, index, state))}
+    </div>
+  );
 }
 
 type RenderState = {
@@ -60,7 +69,13 @@ function renderInline(nodes: readonly InlineNode[]): ReactNode {
             {renderInline(node.children)}
           </Link>
         ) : (
-          <a key={index} href={node.href} className={classes} rel="noopener noreferrer" target="_blank">
+          <a
+            key={index}
+            href={node.href}
+            className={classes}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
             {renderInline(node.children)}
           </a>
         );
@@ -79,11 +94,16 @@ function renderInline(nodes: readonly InlineNode[]): ReactNode {
   });
 }
 
-function headingAnchorId(block: Extract<BlockNode, { kind: "heading" }>, state: RenderState): string | null {
+function headingAnchorId(
+  block: Extract<BlockNode, { kind: "heading" }>,
+  state: RenderState,
+): string | null {
   if (block.level === 1) return null;
   const fromManifest = state.headingIds?.[state.headingIndex] ?? null;
   state.headingIndex += 1;
-  const text = block.children.map((child) => (child.kind === "text" ? child.text : child.kind === "code" ? child.text : "")).join("");
+  const text = block.children
+    .map((child) => (child.kind === "text" ? child.text : child.kind === "code" ? child.text : ""))
+    .join("");
   return fromManifest ?? (slugifyHeading(text) || null);
 }
 
@@ -91,18 +111,31 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
   switch (block.kind) {
     case "heading": {
       const content = renderInline(block.children);
-      if (block.level === 1) return <h1 key={key} className="mb-3 mt-2 text-[20px] font-semibold leading-7 text-foreground">{content}</h1>;
+      if (block.level === 1)
+        return (
+          <h1 key={key} className="mb-3 mt-2 text-[20px] font-semibold leading-7 text-foreground">
+            {content}
+          </h1>
+        );
       const anchorId = headingAnchorId(block, state);
       if (block.level === 2) {
         return (
-          <h2 key={key} id={anchorId ?? undefined} className="group mb-2 mt-6 scroll-mt-20 text-[15px] font-semibold text-foreground">
+          <h2
+            key={key}
+            id={anchorId ?? undefined}
+            className="group mb-2 mt-6 scroll-mt-20 text-[15px] font-semibold text-foreground"
+          >
             {content}
             {anchorId === null ? null : (
               <a
                 aria-label={content === null ? anchorId : anchorId}
                 className="ml-1.5 text-[12px] text-muted-foreground opacity-0 transition-opacity hover:text-link group-hover:opacity-100"
                 href={`#${anchorId}`}
-                onClick={state.onHeadingClick === undefined ? undefined : () => state.onHeadingClick?.(anchorId)}
+                onClick={
+                  state.onHeadingClick === undefined
+                    ? undefined
+                    : () => state.onHeadingClick?.(anchorId)
+                }
               >
                 #
               </a>
@@ -111,10 +144,17 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
         );
       }
       return (
-        <h3 key={key} id={anchorId ?? undefined} className="group mb-1.5 mt-4 scroll-mt-20 text-[13.5px] font-semibold text-foreground">
+        <h3
+          key={key}
+          id={anchorId ?? undefined}
+          className="group mb-1.5 mt-4 scroll-mt-20 text-[13.5px] font-semibold text-foreground"
+        >
           {content}
           {anchorId === null ? null : (
-            <a className="ml-1.5 text-[12px] text-muted-foreground opacity-0 transition-opacity hover:text-link group-hover:opacity-100" href={`#${anchorId}`}>
+            <a
+              className="ml-1.5 text-[12px] text-muted-foreground opacity-0 transition-opacity hover:text-link group-hover:opacity-100"
+              href={`#${anchorId}`}
+            >
               #
             </a>
           )}
@@ -134,14 +174,21 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
         </li>
       ));
       return block.ordered ? (
-        <ol key={key} className="mb-3 list-decimal space-y-0.5 pl-5 text-[13px] text-foreground/90">{items}</ol>
+        <ol key={key} className="mb-3 list-decimal space-y-0.5 pl-5 text-[13px] text-foreground/90">
+          {items}
+        </ol>
       ) : (
-        <ul key={key} className="mb-3 list-disc space-y-0.5 pl-5 text-[13px] text-foreground/90">{items}</ul>
+        <ul key={key} className="mb-3 list-disc space-y-0.5 pl-5 text-[13px] text-foreground/90">
+          {items}
+        </ul>
       );
     }
     case "quote":
       return (
-        <blockquote key={key} className="mb-4 rounded-md border border-warning/30 bg-warning/6 px-3 py-2 [&>p]:mb-0">
+        <blockquote
+          key={key}
+          className="mb-4 rounded-md border border-warning/30 bg-warning/6 px-3 py-2 [&>p]:mb-0"
+        >
           {block.children.map((child, index) => renderBlock(child, index, state))}
         </blockquote>
       );
@@ -153,7 +200,13 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
             ? "border-success/30 bg-success/10"
             : "border-info/30 bg-info/10";
       return (
-        <div key={key} className={cn("mb-4 rounded-md border px-3 py-2 text-[13px] [&>p]:mb-1 [&>p:last-child]:mb-0", surface)}>
+        <div
+          key={key}
+          className={cn(
+            "mb-4 rounded-md border px-3 py-2 text-[13px] [&>p]:mb-1 [&>p:last-child]:mb-0",
+            surface,
+          )}
+        >
           {block.children.map((child, index) => renderBlock(child, index, state))}
         </div>
       );
@@ -165,7 +218,10 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
             <thead className="bg-elevated">
               <tr>
                 {block.header.map((cell, index) => (
-                  <th key={index} className="border-b border-border/70 px-3 py-2 text-left font-semibold text-foreground">
+                  <th
+                    key={index}
+                    className="border-b border-border/70 px-3 py-2 text-left font-semibold text-foreground"
+                  >
                     {renderInline(cell)}
                   </th>
                 ))}
@@ -187,7 +243,10 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
       );
     case "codeBlock":
       return (
-        <pre key={key} className="mb-4 overflow-x-auto rounded-md border border-border bg-elevated px-3 py-2 text-[12px] leading-5">
+        <pre
+          key={key}
+          className="mb-4 overflow-x-auto rounded-md border border-border bg-elevated px-3 py-2 text-[12px] leading-5"
+        >
           <code>
             {highlightCode(block.text, block.language).map((token, index) => (
               <span key={index} className={codeTokenClassName(token.kind)}>

@@ -7,15 +7,15 @@ describe("mapServiceCatalogError", () => {
     expect(mapServiceCatalogError(new ApiError(409, "DUPLICATE_SLUG", "x"))).toBe(
       "services.errorDuplicateSlug",
     );
-    expect(
-      mapServiceCatalogError(new ApiError(400, "INVALID_LIFECYCLE_TRANSITION", "x")),
-    ).toBe("services.errorLifecycle");
-    expect(
-      mapServiceCatalogError(new ApiError(400, "INVALID_LIFECYCLE_STATE", "x")),
-    ).toBe("services.errorLifecycle");
-    expect(
-      mapServiceCatalogError(new ApiError(409, "NO_ACTIVE_FORM_VERSION", "x")),
-    ).toBe("services.forms.errorNoActive");
+    expect(mapServiceCatalogError(new ApiError(400, "INVALID_LIFECYCLE_TRANSITION", "x"))).toBe(
+      "services.errorLifecycle",
+    );
+    expect(mapServiceCatalogError(new ApiError(400, "INVALID_LIFECYCLE_STATE", "x"))).toBe(
+      "services.errorLifecycle",
+    );
+    expect(mapServiceCatalogError(new ApiError(409, "NO_ACTIVE_FORM_VERSION", "x"))).toBe(
+      "services.forms.errorNoActive",
+    );
     expect(mapServiceCatalogError(new ApiError(409, "NOT_DELETABLE", "x"))).toBe(
       "services.errorNotDeletable",
     );
@@ -31,9 +31,9 @@ describe("mapServiceCatalogError", () => {
     expect(mapServiceCatalogError(new ApiError(400, "INVALID_SLUG", "x"))).toBe(
       "services.errorValidation",
     );
-    expect(
-      mapServiceCatalogError(new ApiError(409, "OVERLAPPING_DOWNTIME_WINDOW", "x")),
-    ).toBe("services.errorDowntimeOverlap");
+    expect(mapServiceCatalogError(new ApiError(409, "OVERLAPPING_DOWNTIME_WINDOW", "x"))).toBe(
+      "services.errorDowntimeOverlap",
+    );
     expect(mapServiceCatalogError(new ApiError(400, "INVALID_DOWNTIME_RANGE", "x"))).toBe(
       "services.errorDowntimeRange",
     );
@@ -49,9 +49,9 @@ describe("mapServiceCatalogError", () => {
     expect(mapServiceCatalogError(new ApiError(403, "READ_ONLY_MODE", "x"))).toBe(
       "services.errorReadOnly",
     );
-    expect(
-      mapServiceCatalogError(new ApiError(503, "LIFECYCLE_UNAVAILABLE", "x")),
-    ).toBe("services.errorUnavailable");
+    expect(mapServiceCatalogError(new ApiError(503, "LIFECYCLE_UNAVAILABLE", "x"))).toBe(
+      "services.errorUnavailable",
+    );
   });
 
   it("falls back by HTTP status when the code is unknown", () => {

@@ -1,4 +1,9 @@
-import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerInsertText, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type {
+  ComposerCollaborationOptions,
+  ComposerSendOptions,
+  ComposerInsertText,
+  ComposerTemplatesOptions,
+} from "@/components/tickets/ticket-message-composer";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { ArticleFromReplySheet } from "@/components/knowledge-base/portal/article-from-reply-sheet";
@@ -24,7 +29,11 @@ interface TicketDetailConversationProperties {
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
-  readonly onSend: (type: MessageType, body: string, options?: ComposerSendOptions) => Promise<void>;
+  readonly onSend: (
+    type: MessageType,
+    body: string,
+    options?: ComposerSendOptions,
+  ) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly onUpload?: (file: File) => Promise<void>;
   readonly composerExtra?: ReactNode;
@@ -40,7 +49,10 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
   // Paket 2.9 (K1c): public agent replies can become an article draft
   // (knowledge writers only; never from confidential tickets).
   const canDraftArticle = props.canWriteKnowledge === true && !props.ticket.isConfidential;
-  const [articleSource, setArticleSource] = useState<{ ticketId: string; messageId: string } | null>(null);
+  const [articleSource, setArticleSource] = useState<{
+    ticketId: string;
+    messageId: string;
+  } | null>(null);
   return (
     <>
       {canDraftArticle ? (
@@ -56,9 +68,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
         <Avatar name={props.requesterName} size="md" />
         <div className="min-w-0 max-w-[78%]">
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-medium text-foreground">
-              {props.requesterName}
-            </span>
+            <span className="text-[12px] font-medium text-foreground">{props.requesterName}</span>
             <span className="text-[10.5px] text-muted-foreground">
               {t("tickets.detail.description")}
             </span>
@@ -83,9 +93,12 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
                       size="xs"
                       variant="ghost"
                       data-testid="message-to-article"
-                      onClick={() => setArticleSource({ ticketId: props.ticket.id, messageId: message.id })}
+                      onClick={() =>
+                        setArticleSource({ ticketId: props.ticket.id, messageId: message.id })
+                      }
                     >
-                      <BookPlus size={12} aria-hidden="true" /> {t("knowledgeBase.portal.fromReply.action")}
+                      <BookPlus size={12} aria-hidden="true" />{" "}
+                      {t("knowledgeBase.portal.fromReply.action")}
                     </Button>
                   ) : null
               : undefined
@@ -94,9 +107,15 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
       </div>
       {props.ticket.status === "ARCHIVED" ? null : props.ticket.mergedIntoTicketId ? (
         // Package 1.2 (M3): a merged child is read-only; replies go to the parent.
-        <p className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-foreground" data-testid="ticket-merged-composer-notice">
+        <p
+          className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-foreground"
+          data-testid="ticket-merged-composer-notice"
+        >
           {t("tickets.merge.composerNotice")}{" "}
-          <Link className="tnum font-medium text-link hover:underline" to={`/tickets/${props.ticket.mergedIntoTicketId}`}>
+          <Link
+            className="tnum font-medium text-link hover:underline"
+            to={`/tickets/${props.ticket.mergedIntoTicketId}`}
+          >
             {props.ticket.mergedIntoTicketNumber ?? t("tickets.merge.parentFallback")}
           </Link>
         </p>

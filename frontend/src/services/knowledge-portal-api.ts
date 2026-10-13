@@ -96,11 +96,15 @@ export function listKnowledgeCategoryArticles(
   return apiRequest(`${base}/categories/${encodeURIComponent(categoryId)}/articles`);
 }
 
-export function listKnowledgeCategories(includeArchived = false): Promise<readonly KnowledgeCategory[]> {
+export function listKnowledgeCategories(
+  includeArchived = false,
+): Promise<readonly KnowledgeCategory[]> {
   return apiRequest(`${base}/categories${includeArchived ? "?includeArchived=true" : ""}`);
 }
 
-export function createKnowledgeCategory(input: SaveKnowledgeCategoryInput): Promise<KnowledgeCategory> {
+export function createKnowledgeCategory(
+  input: SaveKnowledgeCategoryInput,
+): Promise<KnowledgeCategory> {
   return apiRequest(`${base}/categories`, { method: "POST", body: JSON.stringify(input) });
 }
 
@@ -111,8 +115,13 @@ export function updateKnowledgeCategory(
   return apiRequest(`${base}/categories/${id}`, { method: "PATCH", body: JSON.stringify(input) });
 }
 
-export function setKnowledgeCategoryArchived(id: string, archived: boolean): Promise<KnowledgeCategory> {
-  return apiRequest(`${base}/categories/${id}/${archived ? "archive" : "restore"}`, { method: "POST" });
+export function setKnowledgeCategoryArchived(
+  id: string,
+  archived: boolean,
+): Promise<KnowledgeCategory> {
+  return apiRequest(`${base}/categories/${id}/${archived ? "archive" : "restore"}`, {
+    method: "POST",
+  });
 }
 
 export function placeKnowledgeArticle(
@@ -177,6 +186,10 @@ export function rateKnowledgeArticle(
 ): Promise<{ readonly rating: number | null; readonly isHelpful: boolean }> {
   return apiRequest(`/knowledge-base/articles/${articleId}/feedback`, {
     method: "POST",
-    body: JSON.stringify(comment !== undefined && comment.trim().length > 0 ? { rating, comment: comment.trim() } : { rating }),
+    body: JSON.stringify(
+      comment !== undefined && comment.trim().length > 0
+        ? { rating, comment: comment.trim() }
+        : { rating },
+    ),
   });
 }

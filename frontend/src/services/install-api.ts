@@ -1,12 +1,7 @@
 import { apiRequest } from "@/services/api";
 
 export type InstallWizardStep =
-  | "superAdmin"
-  | "loginProvider"
-  | "smtp"
-  | "seed"
-  | "addons"
-  | "complete";
+  "superAdmin" | "loginProvider" | "smtp" | "seed" | "addons" | "complete";
 
 export type InstallStepState = {
   readonly completed: boolean;

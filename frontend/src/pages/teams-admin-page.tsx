@@ -1,8 +1,19 @@
-import { CheckCircle2, Download, MessageSquare, RefreshCw, Send, Trash2, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { AdaptiveCardPreview, type AdaptiveCardAction } from "@/components/teams/adaptive-card-preview";
+import {
+  AdaptiveCardPreview,
+  type AdaptiveCardAction,
+} from "@/components/teams/adaptive-card-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -55,7 +66,13 @@ const readinessKeys = {
   simulatorSecret: "teamsAdmin.readiness.checks.simulatorSecret",
 } as const;
 
-const eventKeys: Record<string, "teamsAdmin.channels.event.created" | "teamsAdmin.channels.event.assigned" | "teamsAdmin.channels.event.slaWarning" | "teamsAdmin.channels.event.slaBreached"> = {
+const eventKeys: Record<
+  string,
+  | "teamsAdmin.channels.event.created"
+  | "teamsAdmin.channels.event.assigned"
+  | "teamsAdmin.channels.event.slaWarning"
+  | "teamsAdmin.channels.event.slaBreached"
+> = {
   "ticket.created_in_group": "teamsAdmin.channels.event.created",
   "ticket.assigned_in_group": "teamsAdmin.channels.event.assigned",
   "sla.warning": "teamsAdmin.channels.event.slaWarning",
@@ -84,7 +101,9 @@ export function TeamsAdminPage() {
   const tabs = [
     { key: "status", label: t("teamsAdmin.tabs.status") },
     { key: "channels", label: t("teamsAdmin.tabs.channels") },
-    ...(status?.simulatorAvailable ? [{ key: "simulator", label: t("teamsAdmin.tabs.simulator") }] : []),
+    ...(status?.simulatorAvailable
+      ? [{ key: "simulator", label: t("teamsAdmin.tabs.simulator") }]
+      : []),
   ];
 
   return (
@@ -94,17 +113,30 @@ export function TeamsAdminPage() {
         title={t("teamsAdmin.title")}
         subtitle={t("teamsAdmin.subtitle")}
       />
-      <UnderlineTabs className="mb-4" active={tab} onChange={(key) => setTab(key as TeamsTab)} items={tabs} />
+      <UnderlineTabs
+        className="mb-4"
+        active={tab}
+        onChange={(key) => setTab(key as TeamsTab)}
+        items={tabs}
+      />
       {errorKey ? <p className={`mb-3 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
       {status === null && errorKey === null ? <PanelSkeleton label={t("session.loading")} /> : null}
-      {status !== null && tab === "status" ? <StatusTab status={status} onRefresh={loadStatus} /> : null}
+      {status !== null && tab === "status" ? (
+        <StatusTab status={status} onRefresh={loadStatus} />
+      ) : null}
       {status !== null && tab === "channels" ? <ChannelsTab /> : null}
       {status?.simulatorAvailable && tab === "simulator" ? <SimulatorTab /> : null}
     </section>
   );
 }
 
-function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readonly onRefresh: () => void }) {
+function StatusTab({
+  status,
+  onRefresh,
+}: {
+  readonly status: TeamsStatus;
+  readonly onRefresh: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const [readiness, setReadiness] = useState<TeamsReadiness | null>(null);
   const [busy, setBusy] = useState(false);
@@ -143,7 +175,8 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
       <span className="text-right text-foreground">{value}</span>
     </div>
   );
-  const time = (value: string | null) => (value ? <RelativeTime value={value} locale={locale} /> : t("teamsAdmin.status.never"));
+  const time = (value: string | null) =>
+    value ? <RelativeTime value={value} locale={locale} /> : t("teamsAdmin.status.never");
 
   return (
     <div className="fade-in grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -151,7 +184,12 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
         <CardHeader
           title={t("teamsAdmin.status.title")}
           actions={
-            <Button size="xs" variant="ghost" onClick={onRefresh} aria-label={t("teamsAdmin.refresh")}>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={onRefresh}
+              aria-label={t("teamsAdmin.refresh")}
+            >
               <RefreshCw />
             </Button>
           }
@@ -159,7 +197,10 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
         <div className="px-4 py-3.5">
           {fact(
             t("teamsAdmin.status.mode"),
-            <Badge tone={status.mode === "off" ? "neutral" : status.mode === "live" ? "success" : "info"} dot>
+            <Badge
+              tone={status.mode === "off" ? "neutral" : status.mode === "live" ? "success" : "info"}
+              dot
+            >
               {t(modeKeys[status.mode])}
             </Badge>,
           )}
@@ -171,13 +212,23 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
           {fact(t("teamsAdmin.status.lastDelivery"), time(status.lastDeliveryAt))}
           {fact(
             t("teamsAdmin.status.failed"),
-            <Badge tone={status.failedDeliveries > 0 ? "danger" : "neutral"}>{status.failedDeliveries}</Badge>,
+            <Badge tone={status.failedDeliveries > 0 ? "danger" : "neutral"}>
+              {status.failedDeliveries}
+            </Badge>,
           )}
-          {fact(t("teamsAdmin.status.endpoint"), <span className="break-all font-mono text-[11.5px]">{status.messagingEndpoint ?? "—"}</span>)}
+          {fact(
+            t("teamsAdmin.status.endpoint"),
+            <span className="break-all font-mono text-[11.5px]">
+              {status.messagingEndpoint ?? "—"}
+            </span>,
+          )}
           {!status.addonEnabled ? (
             <p className={`mt-3 ${hintClassName}`}>
               {t("teamsAdmin.status.addonOff")}{" "}
-              <Link className="text-link underline-offset-4 hover:underline" to="/admin?tab=settings">
+              <Link
+                className="text-link underline-offset-4 hover:underline"
+                to="/admin?tab=settings"
+              >
                 {t("teamsAdmin.status.openSettings")}
               </Link>
             </p>
@@ -190,7 +241,12 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
             title={t("teamsAdmin.readiness.title")}
             subtitle={t("teamsAdmin.readiness.subtitle")}
             actions={
-              <Button size="xs" variant="outline" disabled={busy} onClick={() => void runReadiness()}>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void runReadiness()}
+              >
                 {t("teamsAdmin.readiness.run")}
               </Button>
             }
@@ -203,19 +259,33 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
                 {readiness.checks.map((check) => (
                   <li key={check.key} className="flex items-start gap-2 text-[12.5px]">
                     {check.ok ? (
-                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-ok" aria-label={t("teamsAdmin.readiness.ok")} />
+                      <CheckCircle2
+                        size={15}
+                        className="mt-0.5 shrink-0 text-ok"
+                        aria-label={t("teamsAdmin.readiness.ok")}
+                      />
                     ) : (
-                      <XCircle size={15} className="mt-0.5 shrink-0 text-danger" aria-label={t("teamsAdmin.readiness.fail")} />
+                      <XCircle
+                        size={15}
+                        className="mt-0.5 shrink-0 text-danger"
+                        aria-label={t("teamsAdmin.readiness.fail")}
+                      />
                     )}
                     <span>
                       <span className="text-foreground">{t(readinessKeys[check.key])}</span>
-                      {check.detail ? <span className="block break-all text-[11.5px] text-muted-foreground">{check.detail}</span> : null}
+                      {check.detail ? (
+                        <span className="block break-all text-[11.5px] text-muted-foreground">
+                          {check.detail}
+                        </span>
+                      ) : null}
                     </span>
                   </li>
                 ))}
                 <li className="pt-1">
                   <Badge tone={readiness.ready ? "success" : "warning"}>
-                    {readiness.ready ? t("teamsAdmin.readiness.ready") : t("teamsAdmin.readiness.notReady")}
+                    {readiness.ready
+                      ? t("teamsAdmin.readiness.ready")
+                      : t("teamsAdmin.readiness.notReady")}
                   </Badge>
                 </li>
               </ul>
@@ -223,12 +293,25 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
           </div>
         </Card>
         <Card>
-          <CardHeader title={t("teamsAdmin.package.title")} subtitle={t("teamsAdmin.package.subtitle")} />
+          <CardHeader
+            title={t("teamsAdmin.package.title")}
+            subtitle={t("teamsAdmin.package.subtitle")}
+          />
           <div className="flex flex-wrap gap-2 px-4 py-3.5">
-            <Button size="xs" variant="outline" disabled={busy} onClick={() => void runPackage("bs")}>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void runPackage("bs")}
+            >
               <Download /> {t("teamsAdmin.package.downloadBs")}
             </Button>
-            <Button size="xs" variant="outline" disabled={busy} onClick={() => void runPackage("en")}>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void runPackage("en")}
+            >
               <Download /> {t("teamsAdmin.package.downloadEn")}
             </Button>
           </div>
@@ -264,13 +347,27 @@ function ChannelsTab() {
     }
   };
 
-  if (channels === null) return errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : <PanelSkeleton label={t("session.loading")} />;
+  if (channels === null)
+    return errorKey ? (
+      <p className={errorTextClassName}>{t(errorKey)}</p>
+    ) : (
+      <PanelSkeleton label={t("session.loading")} />
+    );
   if (channels.items.length === 0) {
-    return <EmptyState icon={<MessageSquare size={18} strokeWidth={1.8} />} title={t("teamsAdmin.channels.emptyTitle")} body={t("teamsAdmin.channels.emptyBody")} />;
+    return (
+      <EmptyState
+        icon={<MessageSquare size={18} strokeWidth={1.8} />}
+        title={t("teamsAdmin.channels.emptyTitle")}
+        body={t("teamsAdmin.channels.emptyBody")}
+      />
+    );
   }
   return (
     <Card className="fade-in">
-      <CardHeader title={t("teamsAdmin.channels.title")} subtitle={t("teamsAdmin.channels.subtitle")} />
+      <CardHeader
+        title={t("teamsAdmin.channels.title")}
+        subtitle={t("teamsAdmin.channels.subtitle")}
+      />
       <div className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
@@ -291,24 +388,32 @@ function ChannelsTab() {
                     {link.teamName ?? "—"} / {link.channelName ?? "—"}
                   </span>
                   <span className="mt-0.5 flex gap-1">
-                    <Badge tone={link.mode === "live" ? "success" : "info"}>{t(modeKeys[link.mode])}</Badge>
-                    {link.removed ? <Badge tone="warning">{t("teamsAdmin.channels.removed")}</Badge> : null}
+                    <Badge tone={link.mode === "live" ? "success" : "info"}>
+                      {t(modeKeys[link.mode])}
+                    </Badge>
+                    {link.removed ? (
+                      <Badge tone="warning">{t("teamsAdmin.channels.removed")}</Badge>
+                    ) : null}
                   </span>
                 </td>
                 <td className="px-4 py-2">
                   <div className="grid gap-1">
-                    {channels.events.filter((event) => event in eventKeys).map((event) => (
-                      <Checkbox
-                        key={event}
-                        label={t(eventKeys[event]!)}
-                        checked={link.events.includes(event)}
-                        disabled={busy}
-                        onChange={(changeEvent) => {
-                          const next = changeEvent.target.checked ? [...link.events, event] : link.events.filter((item) => item !== event);
-                          void run(() => updateTeamsChannel(link.id, { events: next }));
-                        }}
-                      />
-                    ))}
+                    {channels.events
+                      .filter((event) => event in eventKeys)
+                      .map((event) => (
+                        <Checkbox
+                          key={event}
+                          label={t(eventKeys[event]!)}
+                          checked={link.events.includes(event)}
+                          disabled={busy}
+                          onChange={(changeEvent) => {
+                            const next = changeEvent.target.checked
+                              ? [...link.events, event]
+                              : link.events.filter((item) => item !== event);
+                            void run(() => updateTeamsChannel(link.id, { events: next }));
+                          }}
+                        />
+                      ))}
                   </div>
                 </td>
                 <td className="px-4 py-2">
@@ -316,11 +421,21 @@ function ChannelsTab() {
                     label={t("teamsAdmin.channels.includeTitleShort")}
                     checked={link.includeTitle}
                     disabled={busy}
-                    onChange={(changeEvent) => void run(() => updateTeamsChannel(link.id, { includeTitle: changeEvent.target.checked }))}
+                    onChange={(changeEvent) =>
+                      void run(() =>
+                        updateTeamsChannel(link.id, { includeTitle: changeEvent.target.checked }),
+                      )
+                    }
                   />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <Button size="xs" variant="ghost" disabled={busy} onClick={() => setPendingRemove(link)} aria-label={t("teamsAdmin.channels.remove")}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => setPendingRemove(link)}
+                    aria-label={t("teamsAdmin.channels.remove")}
+                  >
                     <Trash2 />
                   </Button>
                 </td>
@@ -353,13 +468,25 @@ function cardsOf(message: TeamsSimulatorMessage): readonly Record<string, unknow
   if (!Array.isArray(attachments)) return [];
   return attachments
     .map((attachment) => (attachment as { content?: unknown }).content)
-    .filter((content): content is Record<string, unknown> => typeof content === "object" && content !== null);
+    .filter(
+      (content): content is Record<string, unknown> =>
+        typeof content === "object" && content !== null,
+    );
 }
 
-function inboundLabel(message: TeamsSimulatorMessage, labels: { readonly actionSent: string; readonly installed: string }): string {
-  const payload = message.payload as { type?: unknown; text?: unknown; value?: { action?: { verb?: unknown } } };
-  if (payload.type === "message" && typeof payload.text === "string") return payload.text.replace(/<at>[^<]*<\/at>\s*/g, "");
-  if (payload.type === "invoke") return `${labels.actionSent}: ${String(payload.value?.action?.verb ?? "")}`;
+function inboundLabel(
+  message: TeamsSimulatorMessage,
+  labels: { readonly actionSent: string; readonly installed: string },
+): string {
+  const payload = message.payload as {
+    type?: unknown;
+    text?: unknown;
+    value?: { action?: { verb?: unknown } };
+  };
+  if (payload.type === "message" && typeof payload.text === "string")
+    return payload.text.replace(/<at>[^<]*<\/at>\s*/g, "");
+  if (payload.type === "invoke")
+    return `${labels.actionSent}: ${String(payload.value?.action?.verb ?? "")}`;
   return labels.installed;
 }
 
@@ -403,11 +530,18 @@ function SimulatorTab() {
 
   const lastCount = useRef(0);
   useEffect(() => {
-    if (messages.length > lastCount.current) endReference.current?.scrollIntoView?.({ block: "nearest" });
+    if (messages.length > lastCount.current)
+      endReference.current?.scrollIntoView?.({ block: "nearest" });
     lastCount.current = messages.length;
   }, [messages.length]);
 
-  const send = async (input: { kind: "install" | "message" | "action"; text?: string; verb?: string; data?: Record<string, unknown>; replyToId?: string }) => {
+  const send = async (input: {
+    kind: "install" | "message" | "action";
+    text?: string;
+    verb?: string;
+    data?: Record<string, unknown>;
+    replyToId?: string;
+  }) => {
     if (!userId) return;
     setBusy(true);
     setErrorKey(null);
@@ -423,7 +557,12 @@ function SimulatorTab() {
   };
 
   const onCardAction = (message: TeamsSimulatorMessage) => (action: AdaptiveCardAction) =>
-    void send({ kind: "action", verb: action.verb, data: action.data, replyToId: message.activityId });
+    void send({
+      kind: "action",
+      verb: action.verb,
+      data: action.data,
+      replyToId: message.activityId,
+    });
 
   return (
     <div className="fade-in space-y-4">
@@ -448,19 +587,39 @@ function SimulatorTab() {
               { value: "channel", label: t("teamsAdmin.simulator.channel") },
             ]}
           />
-          <Button size="sm" variant="outline" disabled={busy || !userId} onClick={() => void send({ kind: "install" })}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || !userId}
+            onClick={() => void send({ kind: "install" })}
+          >
             {t("teamsAdmin.simulator.install")}
           </Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void refresh()} aria-label={t("teamsAdmin.refresh")}>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void refresh()}
+            aria-label={t("teamsAdmin.refresh")}
+          >
             <RefreshCw />
           </Button>
         </div>
         <p className={`px-4 pb-3 ${hintClassName}`}>{t("teamsAdmin.simulator.hint")}</p>
       </Card>
       <Card>
-        <CardHeader title={t("teamsAdmin.simulator.transcript")} subtitle={lastStatus === null ? undefined : t("teamsAdmin.simulator.lastStatus", { status: lastStatus })} />
+        <CardHeader
+          title={t("teamsAdmin.simulator.transcript")}
+          subtitle={
+            lastStatus === null
+              ? undefined
+              : t("teamsAdmin.simulator.lastStatus", { status: lastStatus })
+          }
+        />
         <div className="max-h-[60vh] space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
-          {messages.length === 0 ? <p className={hintClassName}>{t("teamsAdmin.simulator.empty")}</p> : null}
+          {messages.length === 0 ? (
+            <p className={hintClassName}>{t("teamsAdmin.simulator.empty")}</p>
+          ) : null}
           {messages.map((message) => {
             const inbound = message.direction === "INBOUND";
             const cards = cardsOf(message);
@@ -469,15 +628,30 @@ function SimulatorTab() {
               <div key={message.id} className={inbound ? "flex justify-end" : "flex justify-start"}>
                 <div className="max-w-[min(560px,100%)] space-y-1">
                   <p className="text-[11px] text-muted-foreground">
-                    {inbound ? t("teamsAdmin.simulator.you") : t("teamsAdmin.simulator.bot")} · <RelativeTime value={message.updatedAt} locale={i18n.language} />
+                    {inbound ? t("teamsAdmin.simulator.you") : t("teamsAdmin.simulator.bot")} ·{" "}
+                    <RelativeTime value={message.updatedAt} locale={i18n.language} />
                   </p>
                   {inbound ? (
-                    <p className="rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-[12.5px] text-foreground">{inboundLabel(message, { actionSent: t("teamsAdmin.simulator.actionSent"), installed: t("teamsAdmin.simulator.installed") })}</p>
+                    <p className="rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-[12.5px] text-foreground">
+                      {inboundLabel(message, {
+                        actionSent: t("teamsAdmin.simulator.actionSent"),
+                        installed: t("teamsAdmin.simulator.installed"),
+                      })}
+                    </p>
                   ) : (
                     <>
-                      {plain ? <p className="rounded-lg border border-border bg-surface px-3 py-2 text-[12.5px] text-foreground">{plain}</p> : null}
+                      {plain ? (
+                        <p className="rounded-lg border border-border bg-surface px-3 py-2 text-[12.5px] text-foreground">
+                          {plain}
+                        </p>
+                      ) : null}
                       {cards.map((card, index) => (
-                        <AdaptiveCardPreview key={`${message.updatedAt}-${index}`} card={card} disabled={busy} onAction={onCardAction(message)} />
+                        <AdaptiveCardPreview
+                          key={`${message.updatedAt}-${index}`}
+                          card={card}
+                          disabled={busy}
+                          onAction={onCardAction(message)}
+                        />
                       ))}
                     </>
                   )}
@@ -504,7 +678,11 @@ function SimulatorTab() {
             aria-label={t("teamsAdmin.simulator.placeholder")}
             maxLength={2000}
           />
-          <Button type="submit" size="default" disabled={busy || !userId || text.trim().length === 0}>
+          <Button
+            type="submit"
+            size="default"
+            disabled={busy || !userId || text.trim().length === 0}
+          >
             <Send /> {t("teamsAdmin.simulator.send")}
           </Button>
         </form>

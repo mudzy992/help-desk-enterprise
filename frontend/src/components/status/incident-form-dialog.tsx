@@ -48,7 +48,12 @@ function toLocalInput(date: Date): string {
  * Paket 2.7 (§8.3): one dialog for "New incident" on /status, "Create
  * incident from selected" in the ticket list and editing an open incident.
  */
-export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: IncidentFormDialogProperties) {
+export function IncidentFormDialog({
+  open,
+  onOpenChange,
+  mode,
+  onSaved,
+}: IncidentFormDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const editing = mode.kind === "edit" ? mode.incident : null;
@@ -74,7 +79,10 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
     setTitleEn(editing?.titleEn ?? "");
     setImpact(editing?.impact ?? "DEGRADED");
     setVisibility(editing?.visibility ?? "ALL_USERS");
-    setServiceIds(editing?.services.map((service) => service.id) ?? (mode.kind === "create" ? [...(mode.presetServiceIds ?? [])] : []));
+    setServiceIds(
+      editing?.services.map((service) => service.id) ??
+        (mode.kind === "create" ? [...(mode.presetServiceIds ?? [])] : []),
+    );
     setServiceFilter("");
     setMessage("");
     setStartedAt("");
@@ -87,7 +95,12 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
     let active = true;
     listServices()
       .then((loaded) => {
-        if (active) setServices(loaded.filter((service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id)));
+        if (active)
+          setServices(
+            loaded.filter(
+              (service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id),
+            ),
+          );
       })
       .catch(() => {
         if (active) setServicesFailed(true);
@@ -100,11 +113,17 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
   const filtered = useMemo(() => {
     const query = serviceFilter.trim().toLocaleLowerCase();
     const list = services ?? [];
-    return query.length === 0 ? list : list.filter((service) => service.name.toLocaleLowerCase().includes(query));
+    return query.length === 0
+      ? list
+      : list.filter((service) => service.name.toLocaleLowerCase().includes(query));
   }, [services, serviceFilter]);
 
   const toggleService = (serviceId: string) =>
-    setServiceIds((current) => (current.includes(serviceId) ? current.filter((id) => id !== serviceId) : [...current, serviceId]));
+    setServiceIds((current) =>
+      current.includes(serviceId)
+        ? current.filter((id) => id !== serviceId)
+        : [...current, serviceId],
+    );
 
   const valid =
     title.trim().length >= 3 &&
@@ -135,8 +154,12 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
           title: t("status.form.created"),
           description:
             [
-              ticketIds.length > 0 ? t("status.form.createdLinked", { count: ticketIds.length }) : null,
-              visibility === "ALL_USERS" && notify ? t("status.form.createdNotified", { count: result.notified }) : null,
+              ticketIds.length > 0
+                ? t("status.form.createdLinked", { count: ticketIds.length })
+                : null,
+              visibility === "ALL_USERS" && notify
+                ? t("status.form.createdNotified", { count: result.notified })
+                : null,
             ]
               .filter((part): part is string => part !== null)
               .join(" · ") || undefined,
@@ -173,16 +196,31 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
               : t("status.form.editDescription")
           }
         />
-        <form className="grid max-h-[70vh] gap-3 overflow-y-auto pr-1" onSubmit={(event) => void submit(event)}>
+        <form
+          className="grid max-h-[70vh] gap-3 overflow-y-auto pr-1"
+          onSubmit={(event) => void submit(event)}
+        >
           <Field label={t("status.form.title")} required>
-            <Input value={title} maxLength={titleMax} onChange={(event) => setTitle(event.target.value)} autoFocus />
+            <Input
+              value={title}
+              maxLength={titleMax}
+              onChange={(event) => setTitle(event.target.value)}
+              autoFocus
+            />
           </Field>
           <Field label={t("status.form.titleEn")} hint={t("status.form.titleEnHint")}>
-            <Input value={titleEn} maxLength={titleMax} onChange={(event) => setTitleEn(event.target.value)} />
+            <Input
+              value={titleEn}
+              maxLength={titleMax}
+              onChange={(event) => setTitleEn(event.target.value)}
+            />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("status.form.impact")} required>
-              <Select value={impact} onChange={(event) => setImpact(event.target.value as IncidentImpact)}>
+              <Select
+                value={impact}
+                onChange={(event) => setImpact(event.target.value as IncidentImpact)}
+              >
                 {incidentImpacts.map((value) => (
                   <option key={value} value={value}>
                     {t(`status.impact.${value}`)}
@@ -190,8 +228,15 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
                 ))}
               </Select>
             </Field>
-            <Field label={t("status.form.visibility")} required hint={t(`status.visibilityHint.${visibility}`)}>
-              <Select value={visibility} onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}>
+            <Field
+              label={t("status.form.visibility")}
+              required
+              hint={t(`status.visibilityHint.${visibility}`)}
+            >
+              <Select
+                value={visibility}
+                onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}
+              >
                 {incidentVisibilities.map((value) => (
                   <option key={value} value={value}>
                     {t(`status.visibility.${value}`)}
@@ -204,7 +249,9 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
             <span className="mb-1.5 flex items-baseline gap-1 text-[12.5px] font-medium text-foreground">
               {t("status.form.services")}
               <span className="text-danger">*</span>
-              <span className={hintClassName}>· {t("status.form.servicesSelected", { count: serviceIds.length })}</span>
+              <span className={hintClassName}>
+                · {t("status.form.servicesSelected", { count: serviceIds.length })}
+              </span>
             </span>
             <Input
               value={serviceFilter}
@@ -254,7 +301,11 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
                   <Checkbox
                     checked={notify}
                     onChange={(event) => setNotify(event.target.checked)}
-                    label={<span className="text-[12.5px] text-foreground">{t("status.form.notify")}</span>}
+                    label={
+                      <span className="text-[12.5px] text-foreground">
+                        {t("status.form.notify")}
+                      </span>
+                    }
                   />
                   <span className={`pl-6 ${hintClassName}`}>{t("status.form.notifyHint")}</span>
                 </div>
@@ -267,11 +318,20 @@ export function IncidentFormDialog({ open, onOpenChange, mode, onSaved }: Incide
             </p>
           ) : null}
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("status.cancel")}
             </Button>
             <Button type="submit" disabled={!valid || saving}>
-              {saving ? t("status.saving") : editing === null ? t("status.form.createSubmit") : t("status.form.saveSubmit")}
+              {saving
+                ? t("status.saving")
+                : editing === null
+                  ? t("status.form.createSubmit")
+                  : t("status.form.saveSubmit")}
             </Button>
           </ModalFooter>
         </form>

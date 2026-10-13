@@ -42,7 +42,12 @@ interface ChangeActionSheetProperties {
  * a reason (return, withdraw, cancel), the outcome (finish), review notes
  * (close) and the conflict acknowledgement where the window is committed.
  */
-export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeActionSheetProperties) {
+export function ChangeActionSheet({
+  action,
+  change,
+  onClose,
+  onDone,
+}: ChangeActionSheetProperties) {
   const { t } = useTranslation();
   const open = action !== null;
   const [reason, setReason] = useState("");
@@ -61,7 +66,11 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
     setError(null);
   }, [open, change.reviewNotes]);
 
-  const checksConflicts = action !== null && actionChecksConflicts(action, change.type) && change.plannedStart !== null && change.plannedEnd !== null;
+  const checksConflicts =
+    action !== null &&
+    actionChecksConflicts(action, change.type) &&
+    change.plannedStart !== null &&
+    change.plannedEnd !== null;
   const conflictsQuery = useQuery({
     queryKey: [...changeQueryKeys.conflicts(change.id), change.version],
     queryFn: () => getChangeConflicts(change.id),
@@ -69,7 +78,8 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
     retry: false,
   });
   const conflicts = conflictsQuery.data;
-  const needsAcknowledge = conflicts !== undefined && conflicts.hasWarnings && !conflicts.acknowledgedAt;
+  const needsAcknowledge =
+    conflicts !== undefined && conflicts.hasWarnings && !conflicts.acknowledgedAt;
   const blocked = conflicts?.freezeBlocks === true;
 
   const needsReason = action !== null && actionNeedsReason(action);
@@ -95,7 +105,9 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
         action,
         ...(needsReason ? { reason: reason.trim() } : {}),
         ...(action === "finish" && outcome !== "" ? { outcome } : {}),
-        ...(action === "close" || (action === "finish" && reviewNotes.trim() !== "") ? { reviewNotes: reviewNotes.trim() } : {}),
+        ...(action === "close" || (action === "finish" && reviewNotes.trim() !== "")
+          ? { reviewNotes: reviewNotes.trim() }
+          : {}),
         ...(needsAcknowledge ? { acknowledgeConflicts: true } : {}),
       });
       onDone(next);
@@ -109,7 +121,11 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
 
   return (
     <Sheet open={open} onOpenChange={(next) => (pending || next ? undefined : onClose())}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5" data-testid="change-action-sheet">
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-md flex-col overflow-y-auto p-5"
+        data-testid="change-action-sheet"
+      >
         <SheetTitle>{action !== null ? t(changeActionKeys[action]) : ""}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("changes.actionSheet.current", { status: t(changeStatusKeys[change.status]) })}
@@ -122,7 +138,9 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
                 <PanelSkeleton label={t("ui.loading")} />
               ) : conflicts !== undefined ? (
                 <div className="grid gap-2">
-                  <p className="text-[12.5px] font-medium text-foreground">{t("changes.conflicts.title")}</p>
+                  <p className="text-[12.5px] font-medium text-foreground">
+                    {t("changes.conflicts.title")}
+                  </p>
                   <ChangeConflictsList conflicts={conflicts} />
                   {needsAcknowledge ? (
                     <Checkbox
@@ -136,14 +154,31 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
               ) : null
             ) : null}
             {needsReason ? (
-              <Field label={t("changes.actionSheet.reason")} required hint={t("changes.actionSheet.reasonHint", { min: changeReasonMin })}>
-                {(control) => <Textarea {...control} rows={3} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} />}
+              <Field
+                label={t("changes.actionSheet.reason")}
+                required
+                hint={t("changes.actionSheet.reasonHint", { min: changeReasonMin })}
+              >
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={3}
+                    maxLength={1000}
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                )}
               </Field>
             ) : null}
             {action === "finish" ? (
               <Field label={t("changes.fields.outcome")} required>
                 {(control) => (
-                  <Select {...control} value={outcome} onChange={(event) => setOutcome(event.target.value as ChangeOutcome | "")} data-testid="change-outcome">
+                  <Select
+                    {...control}
+                    value={outcome}
+                    onChange={(event) => setOutcome(event.target.value as ChangeOutcome | "")}
+                    data-testid="change-outcome"
+                  >
                     <option value="">{t("changes.actionSheet.outcomePlaceholder")}</option>
                     {changeOutcomes.map((value) => (
                       <option key={value} value={value}>
@@ -158,10 +193,21 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
               <Field
                 label={t("changes.fields.reviewNotes")}
                 required={action === "close"}
-                hint={action === "close" ? t("changes.actionSheet.reviewHint", { min: notesMin }) : t("changes.actionSheet.reviewLaterHint")}
+                hint={
+                  action === "close"
+                    ? t("changes.actionSheet.reviewHint", { min: notesMin })
+                    : t("changes.actionSheet.reviewLaterHint")
+                }
               >
                 {(control) => (
-                  <Textarea {...control} rows={5} maxLength={8000} value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} data-testid="change-review-notes" />
+                  <Textarea
+                    {...control}
+                    rows={5}
+                    maxLength={8000}
+                    value={reviewNotes}
+                    onChange={(event) => setReviewNotes(event.target.value)}
+                    data-testid="change-review-notes"
+                  />
                 )}
               </Field>
             ) : null}
@@ -174,7 +220,12 @@ export function ChangeActionSheet({ action, change, onClose, onDone }: ChangeAct
               <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
                 {t("ui.cancel")}
               </Button>
-              <Button type="submit" variant={isDestructiveAction(action) ? "danger" : "primary"} disabled={!canSubmit} data-testid="change-action-submit">
+              <Button
+                type="submit"
+                variant={isDestructiveAction(action) ? "danger" : "primary"}
+                disabled={!canSubmit}
+                data-testid="change-action-submit"
+              >
                 {pending ? t("ui.loading") : t(changeActionKeys[action])}
               </Button>
             </div>

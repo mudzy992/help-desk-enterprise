@@ -2,10 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  controlCompactClassName,
-  errorTextClassName,
-} from "@/components/ui/control";
+import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
 import { useSession } from "@/lib/session/use-session";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/services/api";

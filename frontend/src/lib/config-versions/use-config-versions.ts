@@ -4,10 +4,7 @@ import {
   type ConfigVersionErrorKey,
 } from "@/lib/config-versions/map-config-version-error";
 import { readApiRequestId } from "@/lib/map-api-error";
-import {
-  listConfigVersions,
-  type ConfigVersion,
-} from "@/services/config-versions-api";
+import { listConfigVersions, type ConfigVersion } from "@/services/config-versions-api";
 
 export function useConfigVersions(enabled: boolean) {
   const [versions, setVersions] = useState<readonly ConfigVersion[]>([]);

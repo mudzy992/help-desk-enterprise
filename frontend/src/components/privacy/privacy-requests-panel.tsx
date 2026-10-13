@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { hintClassName, rowActionButtonClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import {
+  hintClassName,
+  rowActionButtonClassName,
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+} from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -33,7 +39,13 @@ import {
   type DataSubjectRequestType,
 } from "@/services/privacy-api";
 import type { UserSummary } from "@/services/users-api";
-import { PanelIntro, PersonPicker, useDateFormat, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import {
+  PanelIntro,
+  PersonPicker,
+  useDateFormat,
+  usePrivacyFailure,
+  useUserDirectory,
+} from "./privacy-shared";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const statusTones: Record<DataSubjectRequestStatus, BadgeTone> = {
@@ -59,12 +71,18 @@ interface PrivacyRequestsPanelProperties {
 }
 
 /** Paket 2.6 (§4, §11): register of data subject requests with the 30/60-day deadlines. */
-export function PrivacyRequestsPanel({ canManage, canAnonymize, onFollowUp }: PrivacyRequestsPanelProperties) {
+export function PrivacyRequestsPanel({
+  canManage,
+  canAnonymize,
+  onFollowUp,
+}: PrivacyRequestsPanelProperties) {
   const { t, i18n } = useTranslation();
   const format = useDateFormat();
   const [scope, setScope] = useState<DataSubjectRequestScope>("open");
   const [requests, setRequests] = useState<readonly DataSubjectRequest[] | null>(null);
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<DataSubjectRequest | null>(null);
   const users = useUserDirectory(canManage);
@@ -105,7 +123,11 @@ export function PrivacyRequestsPanel({ canManage, canAnonymize, onFollowUp }: Pr
               ]}
             />
             {canManage ? (
-              <Button size="sm" onClick={() => setCreating(true)} data-testid="privacy-request-create">
+              <Button
+                size="sm"
+                onClick={() => setCreating(true)}
+                data-testid="privacy-request-create"
+              >
                 <Plus size={14} /> {t("privacy.requests.create")}
               </Button>
             ) : null}
@@ -264,7 +286,8 @@ function CreateRequestSheet({
     setNotes("");
   }, [open]);
 
-  const valid = subjectLabel.trim().length >= 2 && receivedAt.length === 10 && receivedAt <= todayInputValue();
+  const valid =
+    subjectLabel.trim().length >= 2 && receivedAt.length === 10 && receivedAt <= todayInputValue();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -291,16 +314,24 @@ function CreateRequestSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full max-w-md flex-col overflow-y-auto p-0" data-testid="privacy-request-sheet">
+      <SheetContent
+        className="flex w-full max-w-md flex-col overflow-y-auto p-0"
+        data-testid="privacy-request-sheet"
+      >
         <div className="border-b border-border/70 px-5 py-4">
-          <SheetTitle className="text-[15px] font-semibold text-foreground">{t("privacy.requests.create")}</SheetTitle>
+          <SheetTitle className="text-[15px] font-semibold text-foreground">
+            {t("privacy.requests.create")}
+          </SheetTitle>
           <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
             {t("privacy.requests.createHint")}
           </SheetDescription>
         </div>
         <form className="flex flex-col gap-4 px-5 py-4" onSubmit={(event) => void submit(event)}>
           <Field label={t("privacy.requests.columns.type")} required>
-            <Select value={type} onChange={(event) => setType(event.target.value as DataSubjectRequestType)}>
+            <Select
+              value={type}
+              onChange={(event) => setType(event.target.value as DataSubjectRequestType)}
+            >
               {dataSubjectRequestTypes.map((value) => (
                 <option key={value} value={value}>
                   {t(requestTypeKey(value))}
@@ -310,7 +341,10 @@ function CreateRequestSheet({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("privacy.requests.form.channel")} required>
-              <Select value={channel} onChange={(event) => setChannel(event.target.value as DataSubjectRequestChannel)}>
+              <Select
+                value={channel}
+                onChange={(event) => setChannel(event.target.value as DataSubjectRequestChannel)}
+              >
                 {dataSubjectRequestChannels.map((value) => (
                   <option key={value} value={value}>
                     {t(channelKey(value))}
@@ -340,20 +374,25 @@ function CreateRequestSheet({
             />
           </Field>
           <div>
-            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("privacy.requests.form.subjectUser")}</p>
+            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
+              {t("privacy.requests.form.subjectUser")}
+            </p>
             <PersonPicker
               id="privacy-request-subject"
               users={users}
               value={subjectUserId}
               onChange={(user) => {
                 setSubjectUserId(user?.id ?? null);
-                if (user !== null && subjectLabel.trim().length === 0) setSubjectLabel(user.displayName);
+                if (user !== null && subjectLabel.trim().length === 0)
+                  setSubjectLabel(user.displayName);
               }}
             />
             <p className={`${hintClassName} mt-1`}>{t("privacy.requests.form.subjectUserHint")}</p>
           </div>
           <div>
-            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("privacy.requests.columns.handler")}</p>
+            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
+              {t("privacy.requests.columns.handler")}
+            </p>
             <PersonPicker
               id="privacy-request-handler"
               users={users}
@@ -362,15 +401,27 @@ function CreateRequestSheet({
               onChange={(user) => setHandlerUserId(user?.id ?? null)}
             />
           </div>
-          <Field label={t("privacy.requests.form.notes")} hint={t("privacy.requests.form.notesHint")}>
-            <Textarea value={notes} maxLength={4000} onChange={(event) => setNotes(event.target.value)} />
+          <Field
+            label={t("privacy.requests.form.notes")}
+            hint={t("privacy.requests.form.notesHint")}
+          >
+            <Textarea
+              value={notes}
+              maxLength={4000}
+              onChange={(event) => setNotes(event.target.value)}
+            />
           </Field>
           <p className={hintClassName}>{t("privacy.requests.form.deadlineHint")}</p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               {t("ui.cancel")}
             </Button>
-            <Button type="submit" size="sm" disabled={!valid || busy} data-testid="privacy-request-save">
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!valid || busy}
+              data-testid="privacy-request-save"
+            >
               {t("privacy.requests.form.save")}
             </Button>
           </div>
@@ -441,29 +492,48 @@ function RequestDetailSheet({
     [t("privacy.requests.columns.received"), format.date(request.receivedAt)],
     [t("privacy.requests.detail.dueAt"), format.date(request.dueAt)],
     ...(request.extendedDueAt !== null
-      ? ([[t("privacy.requests.detail.extendedDueAt"), format.date(request.extendedDueAt)]] as [string, string][])
+      ? ([[t("privacy.requests.detail.extendedDueAt"), format.date(request.extendedDueAt)]] as [
+          string,
+          string,
+        ][])
       : []),
     ...(request.extensionReason !== null
-      ? ([[t("privacy.requests.detail.extensionReason"), request.extensionReason]] as [string, string][])
+      ? ([[t("privacy.requests.detail.extensionReason"), request.extensionReason]] as [
+          string,
+          string,
+        ][])
       : []),
     ...(request.rejectionReason !== null
-      ? ([[t("privacy.requests.detail.rejectionReason"), request.rejectionReason]] as [string, string][])
+      ? ([[t("privacy.requests.detail.rejectionReason"), request.rejectionReason]] as [
+          string,
+          string,
+        ][])
       : []),
     ...(request.resultRef !== null
       ? ([[t("privacy.requests.detail.resultRef"), request.resultRef]] as [string, string][])
       : []),
     ...(request.closedAt !== null
-      ? ([[t("privacy.requests.detail.closedAt"), format.date(request.closedAt)]] as [string, string][])
+      ? ([[t("privacy.requests.detail.closedAt"), format.date(request.closedAt)]] as [
+          string,
+          string,
+        ][])
       : []),
   ];
   const canExport =
-    canManage && isOpen && request.subjectUser !== null && (request.type === "ACCESS" || request.type === "PORTABILITY");
-  const canErase = canAnonymize && isOpen && request.subjectUser !== null && request.type === "ERASURE";
+    canManage &&
+    isOpen &&
+    request.subjectUser !== null &&
+    (request.type === "ACCESS" || request.type === "PORTABILITY");
+  const canErase =
+    canAnonymize && isOpen && request.subjectUser !== null && request.type === "ERASURE";
   const rejectionValid = outcome !== "REJECTED" || reason.trim().length >= 10;
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="flex w-full max-w-md flex-col overflow-y-auto p-0" data-testid="privacy-request-detail">
+      <SheetContent
+        className="flex w-full max-w-md flex-col overflow-y-auto p-0"
+        data-testid="privacy-request-detail"
+      >
         <div className="border-b border-border/70 px-5 py-4">
           <SheetTitle className="text-[15px] font-semibold text-foreground">
             {t(requestTypeKey(request.type))} · {request.subjectLabel}
@@ -483,7 +553,9 @@ function RequestDetailSheet({
           </dl>
           {request.notes !== null ? (
             <div>
-              <p className="mb-1 text-[12px] font-medium text-foreground">{t("privacy.requests.form.notes")}</p>
+              <p className="mb-1 text-[12px] font-medium text-foreground">
+                {t("privacy.requests.form.notes")}
+              </p>
               <p className="whitespace-pre-wrap rounded-md border border-border/70 bg-elevated px-3 py-2 text-[12.5px]">
                 {request.notes}
               </p>
@@ -513,16 +585,29 @@ function RequestDetailSheet({
                 </Button>
               ) : null}
               {canErase ? (
-                <Button size="sm" variant="outline" onClick={() => onFollowUp("anonymization", request)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onFollowUp("anonymization", request)}
+                >
                   {t("privacy.requests.detail.toAnonymization")}
                 </Button>
               ) : null}
               {request.canExtend ? (
-                <Button size="sm" variant="outline" onClick={() => setMode("extend")} data-testid="privacy-request-extend">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMode("extend")}
+                  data-testid="privacy-request-extend"
+                >
                   {t("privacy.requests.detail.extend")}
                 </Button>
               ) : null}
-              <Button size="sm" onClick={() => setMode("close")} data-testid="privacy-request-close">
+              <Button
+                size="sm"
+                onClick={() => setMode("close")}
+                data-testid="privacy-request-close"
+              >
                 {t("privacy.requests.detail.close")}
               </Button>
             </div>
@@ -531,8 +616,16 @@ function RequestDetailSheet({
           {mode === "extend" ? (
             <div className="flex flex-col gap-3 border-t border-border/70 pt-4">
               <p className={hintClassName}>{t("privacy.requests.detail.extendHint")}</p>
-              <Field label={t("privacy.requests.detail.extensionReason")} hint={t("privacy.common.minChars", { count: 10 })} required>
-                <Textarea value={reason} maxLength={1000} onChange={(event) => setReason(event.target.value)} />
+              <Field
+                label={t("privacy.requests.detail.extensionReason")}
+                hint={t("privacy.common.minChars", { count: 10 })}
+                required
+              >
+                <Textarea
+                  value={reason}
+                  maxLength={1000}
+                  onChange={(event) => setReason(event.target.value)}
+                />
               </Field>
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setMode("view")}>
@@ -572,11 +665,22 @@ function RequestDetailSheet({
                   hint={t("privacy.requests.detail.rejectionHint")}
                   required
                 >
-                  <Textarea value={reason} maxLength={1000} onChange={(event) => setReason(event.target.value)} />
+                  <Textarea
+                    value={reason}
+                    maxLength={1000}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
                 </Field>
               ) : null}
-              <Field label={t("privacy.requests.detail.resultRef")} hint={t("privacy.requests.detail.resultRefHint")}>
-                <Input value={resultRef} maxLength={300} onChange={(event) => setResultRef(event.target.value)} />
+              <Field
+                label={t("privacy.requests.detail.resultRef")}
+                hint={t("privacy.requests.detail.resultRefHint")}
+              >
+                <Input
+                  value={resultRef}
+                  maxLength={300}
+                  onChange={(event) => setResultRef(event.target.value)}
+                />
               </Field>
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setMode("view")}>

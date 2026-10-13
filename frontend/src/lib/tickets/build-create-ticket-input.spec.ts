@@ -75,10 +75,7 @@ describe("buildCreateTicketInput", () => {
       serviceId: "svc-1",
     });
     expect(
-      isCreateTicketDraftReady(
-        { ...draft, originUnitId: "" },
-        { isOriginUnitLocked: true },
-      ),
+      isCreateTicketDraftReady({ ...draft, originUnitId: "" }, { isOriginUnitLocked: true }),
     ).toBe(true);
     expect(isCreateTicketDraftReady({ ...draft, originUnitId: "" })).toBe(false);
   });
@@ -92,9 +89,7 @@ describe("isServiceReadyForTicketCreation", () => {
   });
 
   it("stays ready while no service is selected or forms are disabled", () => {
-    expect(
-      isServiceReadyForTicketCreation({ ...draft, serviceId: "" }, false),
-    ).toBe(true);
+    expect(isServiceReadyForTicketCreation({ ...draft, serviceId: "" }, false)).toBe(true);
     expect(isServiceReadyForTicketCreation(draft, false, false)).toBe(true);
   });
 });

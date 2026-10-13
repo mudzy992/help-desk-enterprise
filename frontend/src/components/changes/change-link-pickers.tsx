@@ -45,17 +45,23 @@ export function ChangeAssetPicker({
     enabled: term.length >= 2 && !disabled,
     retry: false,
   });
-  const candidates = (results.data?.items ?? []).filter((item) => !value.some((chosen) => chosen.id === item.id));
+  const candidates = (results.data?.items ?? []).filter(
+    (item) => !value.some((chosen) => chosen.id === item.id),
+  );
   return (
     <fieldset className="grid gap-1.5" disabled={disabled}>
-      <legend className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("changes.fields.assets")}</legend>
+      <legend className="mb-1.5 text-[12.5px] font-medium text-foreground">
+        {t("changes.fields.assets")}
+      </legend>
       {value.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {value.map((asset) => (
             <Chip
               key={asset.id}
               active
-              onRemove={disabled ? undefined : () => onChange(value.filter((item) => item.id !== asset.id))}
+              onRemove={
+                disabled ? undefined : () => onChange(value.filter((item) => item.id !== asset.id))
+              }
               removeLabel={t("changes.form.removeAsset", { tag: asset.assetTag })}
             >
               {asset.assetTag} · {asset.name}
@@ -63,11 +69,22 @@ export function ChangeAssetPicker({
           ))}
         </div>
       ) : null}
-      <Input value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} placeholder={t("changes.form.assetSearch")} aria-label={t("changes.form.assetSearch")} />
+      <Input
+        value={search}
+        maxLength={120}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={t("changes.form.assetSearch")}
+        aria-label={t("changes.form.assetSearch")}
+      />
       {term.length >= 2 ? (
-        <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("changes.form.assetResults")}>
+        <ul
+          className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
+          aria-label={t("changes.form.assetResults")}
+        >
           {candidates.length === 0 ? (
-            <li className={`px-2 py-1 ${hintClassName}`}>{results.isFetching ? t("ui.loading") : t("changes.form.assetNone")}</li>
+            <li className={`px-2 py-1 ${hintClassName}`}>
+              {results.isFetching ? t("ui.loading") : t("changes.form.assetNone")}
+            </li>
           ) : (
             candidates.map((item) => (
               <li key={item.id}>
@@ -115,14 +132,23 @@ export function ChangeProblemPicker({
   });
   return (
     <div className="grid gap-1.5">
-      <span className="text-[12.5px] font-medium text-foreground">{t("changes.fields.problem")}</span>
+      <span className="text-[12.5px] font-medium text-foreground">
+        {t("changes.fields.problem")}
+      </span>
       {value !== null ? (
         <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
           <span className="min-w-0 truncate">
-            <span className="tnum font-medium text-foreground">{value.number}</span> <span className="text-muted-foreground">{value.title}</span>
+            <span className="tnum font-medium text-foreground">{value.number}</span>{" "}
+            <span className="text-muted-foreground">{value.title}</span>
           </span>
           {disabled ? null : (
-            <Button type="button" variant="ghost" size="icon" aria-label={t("changes.form.clearProblem")} onClick={() => onChange(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t("changes.form.clearProblem")}
+              onClick={() => onChange(null)}
+            >
               <X size={13} aria-hidden="true" />
             </Button>
           )}
@@ -138,9 +164,14 @@ export function ChangeProblemPicker({
             aria-label={t("changes.form.problemSearch")}
           />
           {term.length >= 1 ? (
-            <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("changes.form.problemResults")}>
+            <ul
+              className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
+              aria-label={t("changes.form.problemResults")}
+            >
               {(results.data?.items ?? []).length === 0 ? (
-                <li className={`px-2 py-1 ${hintClassName}`}>{results.isFetching ? t("ui.loading") : t("changes.form.problemNone")}</li>
+                <li className={`px-2 py-1 ${hintClassName}`}>
+                  {results.isFetching ? t("ui.loading") : t("changes.form.problemNone")}
+                </li>
               ) : (
                 (results.data?.items ?? []).map((item) => (
                   <li key={item.id}>

@@ -3,7 +3,15 @@ import { ApiError } from "@/services/api";
 
 /** Paket 2.6 (§11): pure helpers of the privacy screens. */
 
-export const privacyTabs = ["requests", "anonymization", "exports", "retention", "holds", "notice", "record"] as const;
+export const privacyTabs = [
+  "requests",
+  "anonymization",
+  "exports",
+  "retention",
+  "holds",
+  "notice",
+  "record",
+] as const;
 export type PrivacyTab = (typeof privacyTabs)[number];
 
 export type PrivacyTabAccess = {
@@ -86,7 +94,9 @@ export type PrivacyErrorCode = (typeof privacyErrorCodes)[number];
 
 export function readPrivacyErrorCode(error: unknown): PrivacyErrorCode | null {
   if (!(error instanceof ApiError)) return null;
-  return (privacyErrorCodes as readonly string[]).includes(error.code) ? (error.code as PrivacyErrorCode) : null;
+  return (privacyErrorCodes as readonly string[]).includes(error.code)
+    ? (error.code as PrivacyErrorCode)
+    : null;
 }
 
 /** The action needs an MFA code (or a fresher session) — ask and retry. */
@@ -131,6 +141,7 @@ export function matchesPersonQuery(
   const needle = query.trim().toLocaleLowerCase();
   if (needle.length === 0) return true;
   return (
-    person.displayName.toLocaleLowerCase().includes(needle) || person.email.toLocaleLowerCase().includes(needle)
+    person.displayName.toLocaleLowerCase().includes(needle) ||
+    person.email.toLocaleLowerCase().includes(needle)
   );
 }

@@ -8,9 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import {
-  smtpSettingKeys,
-} from "@/lib/settings/is-featured-setting-key";
+import { smtpSettingKeys } from "@/lib/settings/is-featured-setting-key";
 import {
   filterSettingsByKeys,
   filterSettingsByPrefix,
@@ -50,12 +48,9 @@ export function SmtpEmailSettingsCard({
   const [draftEnabled, setDraftEnabled] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingReason, setPendingReason] = useState<string | null>(null);
-  const [dependents, setDependents] = useState<
-    readonly SettingDependentReset[] | null
-  >(null);
+  const [dependents, setDependents] = useState<readonly SettingDependentReset[] | null>(null);
   const effectiveEnabled = draftEnabled ?? smtpEnabled;
-  const enabledEntry =
-    entries.find((entry) => entry.key === smtpSettingKeys.enabled) ?? null;
+  const enabledEntry = entries.find((entry) => entry.key === smtpSettingKeys.enabled) ?? null;
   // Paket 5.3.3: SMTP may only be switched on with a host configured. The
   // server refuses the write either way; saying it here saves a round trip and
   // explains what to do first.
@@ -70,18 +65,11 @@ export function SmtpEmailSettingsCard({
   const provider = readStringSetting(entries, "private.smtp.provider", "o365");
   const typedHost = readStringSetting(entries, smtpSettingKeys.host, "");
   // Paket 1.5 (E10): an empty host means the provider preset is used.
-  const host =
-    typedHost.length > 0
-      ? typedHost
-      : (providerPresetHosts[provider] ?? "—");
+  const host = typedHost.length > 0 ? typedHost : (providerPresetHosts[provider] ?? "—");
   const username = readStringSetting(entries, smtpSettingKeys.username, "—");
   const passwordSet =
     entries.find((entry) => entry.key === smtpSettingKeys.password)?.isSet === true;
-  const internalOnly = readBooleanSetting(
-    entries,
-    emailChannelSettingKeys.internalOnly,
-    true,
-  );
+  const internalOnly = readBooleanSetting(entries, emailChannelSettingKeys.internalOnly, true);
   // Restricted delivery with nothing on any list reaches nobody: say so.
   const restrictedToNobody =
     internalOnly &&
@@ -189,15 +177,16 @@ export function SmtpEmailSettingsCard({
               {t("settings.dependencies.blocked", {
                 count: blockingParents.length,
                 keys: blockingParents
-                  .map((key) => resolveRegistryTitle(t, { key, titleKey: `settings.registry.keys.${key}`, description: key }))
+                  .map((key) =>
+                    resolveRegistryTitle(t, {
+                      key,
+                      titleKey: `settings.registry.keys.${key}`,
+                      description: key,
+                    }),
+                  )
                   .join(", "),
               })}
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                onClick={() => setDrawerOpen(true)}
-              >
+              <Button type="button" size="xs" variant="outline" onClick={() => setDrawerOpen(true)}>
                 {t("settings.dependencies.fixNow")}
               </Button>
             </p>

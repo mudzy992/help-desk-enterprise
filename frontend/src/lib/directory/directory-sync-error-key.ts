@@ -21,8 +21,7 @@ const KNOWN_CODES = [
 export type DirectorySyncErrorCode = (typeof KNOWN_CODES)[number];
 
 export type DirectorySyncErrorKey =
-  | `directory.ldaps.errors.${DirectorySyncErrorCode}`
-  | "directory.ldaps.errors.unknown";
+  `directory.ldaps.errors.${DirectorySyncErrorCode}` | "directory.ldaps.errors.unknown";
 
 export function directorySyncErrorKey(error: unknown): DirectorySyncErrorKey {
   if (error instanceof ApiError && (KNOWN_CODES as readonly string[]).includes(error.code)) {

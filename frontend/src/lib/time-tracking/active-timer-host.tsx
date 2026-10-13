@@ -117,7 +117,9 @@ export function ActiveTimerHost({ accessToken }: { readonly accessToken: string 
         if (decision.kind === "idle") {
           await stopTicketTimeLog(timer.ticketId, timer.timeLogId, {
             reason: "AUTO_IDLE",
-            endedAt: new Date(Math.max(decision.endedAt, new Date(timer.startedAt).getTime())).toISOString(),
+            endedAt: new Date(
+              Math.max(decision.endedAt, new Date(timer.startedAt).getTime()),
+            ).toISOString(),
           }).catch(() => undefined);
           setPausedTicket({ ticketId: timer.ticketId, ticketNumber: timer.ticketNumber });
           toastRef.current({

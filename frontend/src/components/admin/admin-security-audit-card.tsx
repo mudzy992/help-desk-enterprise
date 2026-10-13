@@ -357,4 +357,3 @@ function actorLabel(
   // print it — this surface is documented as pseudonymous.
   return pseudonymousLabel;
 }
-

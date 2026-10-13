@@ -28,7 +28,14 @@ import {
   type ExportStatus,
   type PrivacyExport,
 } from "@/services/privacy-api";
-import { PanelIntro, PersonPicker, useDateFormat, useIdentityGuard, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import {
+  PanelIntro,
+  PersonPicker,
+  useDateFormat,
+  useIdentityGuard,
+  usePrivacyFailure,
+  useUserDirectory,
+} from "./privacy-shared";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const statusTones: Record<ExportStatus, BadgeTone> = {
@@ -38,7 +45,8 @@ const statusTones: Record<ExportStatus, BadgeTone> = {
   FAILED: "danger",
   EXPIRED: "neutral",
 };
-const statusKey = (status: ExportStatus) => `privacy.exports.status.${status}` as "privacy.exports.status.READY";
+const statusKey = (status: ExportStatus) =>
+  `privacy.exports.status.${status}` as "privacy.exports.status.READY";
 
 interface PrivacyExportsPanelProperties {
   readonly initialSubjectId: string | null;
@@ -47,14 +55,20 @@ interface PrivacyExportsPanelProperties {
 }
 
 /** Paket 2.6 (§5, §11): access / portability export — only the requester downloads, with MFA. */
-export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillConsumed }: PrivacyExportsPanelProperties) {
+export function PrivacyExportsPanel({
+  initialSubjectId,
+  requestId,
+  onPrefillConsumed,
+}: PrivacyExportsPanelProperties) {
   const { t, i18n } = useTranslation();
   const format = useDateFormat();
   const { toast } = useToast();
   const fail = usePrivacyFailure();
   const users = useUserDirectory();
   const [exports, setExports] = useState<readonly PrivacyExport[] | null>(null);
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [linkedRequestId, setLinkedRequestId] = useState<string | null>(null);
   const [includeAttachments, setIncludeAttachments] = useState(true);
@@ -84,7 +98,8 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
     onPrefillConsumed();
   }, [initialSubjectId, requestId, onPrefillConsumed]);
 
-  const building = exports?.some((item) => item.status === "QUEUED" || item.status === "RUNNING") ?? false;
+  const building =
+    exports?.some((item) => item.status === "QUEUED" || item.status === "RUNNING") ?? false;
   useEffect(() => {
     if (!building) return;
     const timer = window.setInterval(() => void reload(), 5000);
@@ -118,18 +133,24 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
   };
 
   const download = (item: PrivacyExport) =>
-    guard(t("privacy.exports.downloadTitle", { name: localizePersonName(item.subjectName, i18n.language) }), async (code) => {
-      setDownloading(item.id);
-      try {
-        const file = await downloadPrivacyExport(item.id, code);
-        triggerBlobDownload(file.blob, file.fileName ?? `export-${item.id}.zip`);
-        await reload();
-      } finally {
-        setDownloading(null);
-      }
-    });
+    guard(
+      t("privacy.exports.downloadTitle", {
+        name: localizePersonName(item.subjectName, i18n.language),
+      }),
+      async (code) => {
+        setDownloading(item.id);
+        try {
+          const file = await downloadPrivacyExport(item.id, code);
+          triggerBlobDownload(file.blob, file.fileName ?? `export-${item.id}.zip`);
+          await reload();
+        } finally {
+          setDownloading(null);
+        }
+      },
+    );
 
-  if (loadError !== null) return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
+  if (loadError !== null)
+    return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
   if (exports === null) return <PanelSkeleton className="mt-0" label={t("privacy.tabs.exports")} />;
 
   return (
@@ -139,7 +160,9 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
       <Card className="flex max-w-2xl flex-col gap-3 p-4">
         <h2 className={sectionTitleClassName}>{t("privacy.exports.createTitle")}</h2>
         <div>
-          <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("privacy.exports.subject")}</p>
+          <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
+            {t("privacy.exports.subject")}
+          </p>
           <PersonPicker
             id="privacy-export-subject"
             users={users}
@@ -170,7 +193,11 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
             hint={t("privacy.exports.internalNotesReasonHint")}
             required
           >
-            <Textarea value={notesReason} maxLength={1000} onChange={(event) => setNotesReason(event.target.value)} />
+            <Textarea
+              value={notesReason}
+              maxLength={1000}
+              onChange={(event) => setNotesReason(event.target.value)}
+            />
           </Field>
         ) : null}
         <p className={hintClassName}>{t("privacy.exports.handoverHint")}</p>
@@ -229,8 +256,12 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
                         <p className={`${errorTextClassName} mt-1 text-[11.5px]`}>{item.error}</p>
                       ) : null}
                     </td>
-                    <td className="tnum px-3 text-right">{formatBytes(item.sizeBytes, i18n.language)}</td>
-                    <td className="px-3 text-muted-foreground">{format.dateTime(item.createdAt)}</td>
+                    <td className="tnum px-3 text-right">
+                      {formatBytes(item.sizeBytes, i18n.language)}
+                    </td>
+                    <td className="px-3 text-muted-foreground">
+                      {format.dateTime(item.createdAt)}
+                    </td>
                     <td className="px-3 text-muted-foreground">{format.date(item.expiresAt)}</td>
                     <td className="tnum px-3 text-right">{item.downloadCount}</td>
                     <td className="px-2 text-right">
@@ -246,7 +277,10 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
                             <Download size={13} /> {t("privacy.exports.download")}
                           </Button>
                         ) : (
-                          <span className={hintClassName} title={t("privacy.exports.onlyRequesterHint")}>
+                          <span
+                            className={hintClassName}
+                            title={t("privacy.exports.onlyRequesterHint")}
+                          >
                             {t("privacy.exports.onlyRequester")}
                           </span>
                         )

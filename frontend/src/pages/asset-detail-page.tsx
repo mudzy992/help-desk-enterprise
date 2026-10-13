@@ -3,12 +3,30 @@ import { AssetCoveragePanel } from "@/components/assets/asset-coverage-panel";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Boxes, Copy, History, Pencil, RefreshCw, Trash2, UserMinus, UserPlus } from "lucide-react";
-import { AssetAssignSheet, AssetStatusSheet, AssetUnassignSheet } from "@/components/assets/asset-action-sheets";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Boxes,
+  Copy,
+  History,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
+import {
+  AssetAssignSheet,
+  AssetStatusSheet,
+  AssetUnassignSheet,
+} from "@/components/assets/asset-action-sheets";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
 import { AssetRelationsPanel } from "@/components/assets/asset-relations-panel";
 import { AssetProblemsPanel, useAssetProblems } from "@/components/problems/problem-reference-list";
-import { RelatedChangesPanel, useChangeModuleAccess } from "@/components/changes/related-changes-panel";
+import {
+  RelatedChangesPanel,
+  useChangeModuleAccess,
+} from "@/components/changes/related-changes-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -47,7 +65,15 @@ import {
   type AssetHistoryItem,
 } from "@/services/assets-api";
 
-type Tab = "overview" | "tickets" | "relations" | "coverage" | "transfers" | "problems" | "changes" | "history";
+type Tab =
+  | "overview"
+  | "tickets"
+  | "relations"
+  | "coverage"
+  | "transfers"
+  | "problems"
+  | "changes"
+  | "history";
 type Sheet = "edit" | "duplicate" | "status" | "assign" | "unassign" | null;
 
 /** Paket 3.2 (§17.3): asset card with overview, tickets, relations and history. */
@@ -63,13 +89,32 @@ export function AssetDetailPage() {
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const capabilitiesQuery = useQuery({ queryKey: assetQueryKeys.capabilities, queryFn: getAssetCapabilities, retry: false });
-  const assetQuery = useQuery({ queryKey: assetQueryKeys.detail(assetId), queryFn: () => getAsset(assetId), retry: false, enabled: assetId !== "" });
+  const capabilitiesQuery = useQuery({
+    queryKey: assetQueryKeys.capabilities,
+    queryFn: getAssetCapabilities,
+    retry: false,
+  });
+  const assetQuery = useQuery({
+    queryKey: assetQueryKeys.detail(assetId),
+    queryFn: () => getAsset(assetId),
+    retry: false,
+    enabled: assetId !== "",
+  });
   const changeAccess = useChangeModuleAccess();
   const problemItems = useAssetProblems(assetId).data?.items ?? [];
   const canManage = assetQuery.data?.canManage === true;
-  const catalogQuery = useQuery({ queryKey: assetQueryKeys.catalog(false), queryFn: () => getAssetCatalog(false), enabled: canManage, retry: false });
-  const optionsQuery = useQuery({ queryKey: assetQueryKeys.options, queryFn: getAssetOptions, enabled: canManage, retry: false });
+  const catalogQuery = useQuery({
+    queryKey: assetQueryKeys.catalog(false),
+    queryFn: () => getAssetCatalog(false),
+    enabled: canManage,
+    retry: false,
+  });
+  const optionsQuery = useQuery({
+    queryKey: assetQueryKeys.options,
+    queryFn: getAssetOptions,
+    enabled: canManage,
+    retry: false,
+  });
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
@@ -98,7 +143,10 @@ export function AssetDetailPage() {
         <EmptyState
           icon={<Boxes size={18} />}
           title={t("assets.detail.notFoundTitle")}
-          body={t(mapAssetError(assetQuery.error) ?? (assetQuery.error ? mapApiError(assetQuery.error) : "assets.errors.notFound"))}
+          body={t(
+            mapAssetError(assetQuery.error) ??
+              (assetQuery.error ? mapApiError(assetQuery.error) : "assets.errors.notFound"),
+          )}
         />
       </section>
     );
@@ -130,11 +178,21 @@ export function AssetDetailPage() {
       {back}
       {canManage ? (
         <>
-          <Button variant="outline" size="sm" onClick={() => setSheet("edit")} disabled={!formReady}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSheet("edit")}
+            disabled={!formReady}
+          >
             <Pencil size={14} aria-hidden="true" />
             {t("assets.actions.edit")}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setSheet("duplicate")} disabled={!formReady}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSheet("duplicate")}
+            disabled={!formReady}
+          >
             <Copy size={14} aria-hidden="true" />
             {t("assets.actions.duplicate")}
           </Button>
@@ -195,19 +253,31 @@ export function AssetDetailPage() {
         actions={actions}
       />
       <div className="grid gap-4">
-
         {asset.frequentFailure.flagged ? (
-          <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground"
+          >
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
             <span>
-              {t("assets.detail.frequentFailure", { count: asset.frequentFailure.count, days: asset.frequentFailure.days })}
+              {t("assets.detail.frequentFailure", {
+                count: asset.frequentFailure.count,
+                days: asset.frequentFailure.days,
+              })}
             </span>
           </div>
         ) : null}
         {asset.missingFromDirectoryAt ? (
-          <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground"
+          >
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
-            <span>{t("assets.detail.missingFromDirectory", { date: formatAssetDate(asset.missingFromDirectoryAt, i18n.language) })}</span>
+            <span>
+              {t("assets.detail.missingFromDirectory", {
+                date: formatAssetDate(asset.missingFromDirectoryAt, i18n.language),
+              })}
+            </span>
           </div>
         ) : null}
 
@@ -215,11 +285,27 @@ export function AssetDetailPage() {
           items={[
             { key: "overview", label: t("assets.detail.tabs.overview") },
             { key: "tickets", label: t("assets.detail.tabs.tickets"), count: asset.tickets.total },
-            { key: "relations", label: t("assets.detail.tabs.relations"), count: asset.relations.length },
-            { key: "coverage", label: t("assets.detail.tabs.coverage"), count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0) },
+            {
+              key: "relations",
+              label: t("assets.detail.tabs.relations"),
+              count: asset.relations.length,
+            },
+            {
+              key: "coverage",
+              label: t("assets.detail.tabs.coverage"),
+              count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0),
+            },
             { key: "transfers", label: t("assets.detail.tabs.transfers") },
             // P5b: only when the asset is affected by problems the viewer may see.
-            ...(problemItems.length > 0 ? [{ key: "problems", label: t("problems.links.assetProblemsTab"), count: problemItems.length }] : []),
+            ...(problemItems.length > 0
+              ? [
+                  {
+                    key: "problems",
+                    label: t("problems.links.assetProblemsTab"),
+                    count: problemItems.length,
+                  },
+                ]
+              : []),
             ...(changeAccess.visible ? [{ key: "changes", label: t("changes.related.tab") }] : []),
             { key: "history", label: t("assets.detail.tabs.history") },
           ]}
@@ -231,10 +317,17 @@ export function AssetDetailPage() {
         {tab === "tickets" ? <AssetTickets asset={asset} /> : null}
         {tab === "relations" ? <AssetRelationsPanel asset={asset} onChanged={refresh} /> : null}
         {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
-        {tab === "transfers" ? <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} /> : null}
-        {tab === "problems" && problemItems.length > 0 ? <AssetProblemsPanel items={problemItems} /> : null}
+        {tab === "transfers" ? (
+          <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} />
+        ) : null}
+        {tab === "problems" && problemItems.length > 0 ? (
+          <AssetProblemsPanel items={problemItems} />
+        ) : null}
         {tab === "changes" && changeAccess.visible ? (
-          <RelatedChangesPanel target={{ kind: "asset", assetId: asset.id }} prefill={{ assets: [{ id: asset.id, assetTag: asset.assetTag, name: asset.name }] }} />
+          <RelatedChangesPanel
+            target={{ kind: "asset", assetId: asset.id }}
+            prefill={{ assets: [{ id: asset.id, assetTag: asset.assetTag, name: asset.name }] }}
+          />
         ) : null}
         {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
 
@@ -255,9 +348,24 @@ export function AssetDetailPage() {
         ) : null}
         {canManage ? (
           <>
-            <AssetStatusSheet open={sheet === "status"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
-            <AssetAssignSheet open={sheet === "assign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
-            <AssetUnassignSheet open={sheet === "unassign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
+            <AssetStatusSheet
+              open={sheet === "status"}
+              onOpenChange={(open) => (open ? undefined : setSheet(null))}
+              asset={asset}
+              onDone={refresh}
+            />
+            <AssetAssignSheet
+              open={sheet === "assign"}
+              onOpenChange={(open) => (open ? undefined : setSheet(null))}
+              asset={asset}
+              onDone={refresh}
+            />
+            <AssetUnassignSheet
+              open={sheet === "unassign"}
+              onOpenChange={(open) => (open ? undefined : setSheet(null))}
+              asset={asset}
+              onDone={refresh}
+            />
           </>
         ) : null}
         <ConfirmDialog
@@ -281,7 +389,13 @@ export function AssetDetailPage() {
   );
 }
 
-function DefinitionRow({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+function DefinitionRow({
+  label,
+  children,
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
   return (
     <div className="grid grid-cols-[minmax(120px,40%)_1fr] gap-2 py-1.5 text-[12.5px]">
       <dt className="text-muted-foreground">{label}</dt>
@@ -302,7 +416,9 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
           style: "currency",
           currency: asset.currency ?? "BAM",
         }).format(asset.purchaseCost);
-  const attributes = asset.attributeDefinitions.filter((definition) => !definition.archived || asset.attributes[definition.key] !== undefined);
+  const attributes = asset.attributeDefinitions.filter(
+    (definition) => !definition.archived || asset.attributes[definition.key] !== undefined,
+  );
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -310,13 +426,23 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
         <CardHeader title={t("assets.detail.basics")} />
         <dl className="divide-y divide-border/60 px-4 py-2">
           <DefinitionRow label={t("assets.fields.assetTag")}>{asset.assetTag}</DefinitionRow>
-          <DefinitionRow label={t("assets.fields.manufacturer")}>{asset.manufacturer ?? "—"}</DefinitionRow>
+          <DefinitionRow label={t("assets.fields.manufacturer")}>
+            {asset.manufacturer ?? "—"}
+          </DefinitionRow>
           <DefinitionRow label={t("assets.fields.model")}>{asset.model ?? "—"}</DefinitionRow>
-          <DefinitionRow label={t("assets.fields.serialNumber")}>{asset.serialNumber ?? "—"}</DefinitionRow>
-          <DefinitionRow label={t("assets.fields.service")}>{asset.service?.name ?? "—"}</DefinitionRow>
-          {asset.externalId ? <DefinitionRow label={t("assets.fields.externalId")}>{asset.externalId}</DefinitionRow> : null}
+          <DefinitionRow label={t("assets.fields.serialNumber")}>
+            {asset.serialNumber ?? "—"}
+          </DefinitionRow>
+          <DefinitionRow label={t("assets.fields.service")}>
+            {asset.service?.name ?? "—"}
+          </DefinitionRow>
+          {asset.externalId ? (
+            <DefinitionRow label={t("assets.fields.externalId")}>{asset.externalId}</DefinitionRow>
+          ) : null}
           {asset.lastSeenAt ? (
-            <DefinitionRow label={t("assets.fields.lastSeenAt")}>{formatAssetDateTime(asset.lastSeenAt, language)}</DefinitionRow>
+            <DefinitionRow label={t("assets.fields.lastSeenAt")}>
+              {formatAssetDateTime(asset.lastSeenAt, language)}
+            </DefinitionRow>
           ) : null}
           <DefinitionRow label={t("assets.fields.notes")}>
             {asset.notes ? <span className="whitespace-pre-wrap">{asset.notes}</span> : "—"}
@@ -331,7 +457,9 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
             {asset.assignedUser ? (
               <span>
                 {asset.assignedUser.displayName}
-                <span className="block text-[11.5px] text-muted-foreground">{asset.assignedUser.email}</span>
+                <span className="block text-[11.5px] text-muted-foreground">
+                  {asset.assignedUser.email}
+                </span>
                 {asset.assignmentSuggested ? (
                   <Badge tone="warning" className="mt-1">
                     {t("assets.detail.assignmentSuggested")}
@@ -347,12 +475,18 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
           </DefinitionRow>
           <DefinitionRow label={t("assets.fields.organizationalUnit")}>
             {asset.organizationalUnit.name}
-            <span className="block text-[11.5px] text-muted-foreground">{asset.organizationalUnit.path}</span>
+            <span className="block text-[11.5px] text-muted-foreground">
+              {asset.organizationalUnit.path}
+            </span>
           </DefinitionRow>
           {locationsEnabled ? (
-            <DefinitionRow label={t("assets.fields.location")}>{asset.location?.label ?? "—"}</DefinitionRow>
+            <DefinitionRow label={t("assets.fields.location")}>
+              {asset.location?.label ?? "—"}
+            </DefinitionRow>
           ) : (
-            <DefinitionRow label={t("assets.fields.place")}>{asset.organizationalUnit.pathLabel}</DefinitionRow>
+            <DefinitionRow label={t("assets.fields.place")}>
+              {asset.organizationalUnit.pathLabel}
+            </DefinitionRow>
           )}
         </dl>
       </Card>
@@ -360,14 +494,20 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
       <Card className="p-0">
         <CardHeader title={t("assets.detail.purchase")} />
         <dl className="divide-y divide-border/60 px-4 py-2">
-          <DefinitionRow label={t("assets.fields.purchaseDate")}>{formatAssetDate(asset.purchaseDate, language)}</DefinitionRow>
+          <DefinitionRow label={t("assets.fields.purchaseDate")}>
+            {formatAssetDate(asset.purchaseDate, language)}
+          </DefinitionRow>
           <DefinitionRow label={t("assets.fields.purchaseCost")}>{money}</DefinitionRow>
           <DefinitionRow label={t("assets.fields.supplier")}>{asset.supplier ?? "—"}</DefinitionRow>
           <DefinitionRow label={t("assets.fields.warrantyEndsAt")}>
             <span className="flex flex-wrap items-center gap-2">
               {formatAssetDate(asset.warrantyEndsAt, language)}
-              {warranty === "expired" ? <Badge tone="danger">{t("assets.warranty.expired")}</Badge> : null}
-              {warranty === "expiring" ? <Badge tone="warning">{t("assets.warranty.expiring")}</Badge> : null}
+              {warranty === "expired" ? (
+                <Badge tone="danger">{t("assets.warranty.expired")}</Badge>
+              ) : null}
+              {warranty === "expiring" ? (
+                <Badge tone="warning">{t("assets.warranty.expiring")}</Badge>
+              ) : null}
             </span>
           </DefinitionRow>
         </dl>
@@ -381,7 +521,13 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
           <dl className="divide-y divide-border/60 px-4 py-2">
             {attributes.map((definition) => (
               <DefinitionRow key={definition.key} label={localizedLabel(definition, language)}>
-                {formatAttributeValue(asset.attributes[definition.key], definition.dataType, language, t("assets.detail.yes"), t("assets.detail.no"))}
+                {formatAttributeValue(
+                  asset.attributes[definition.key],
+                  definition.dataType,
+                  language,
+                  t("assets.detail.yes"),
+                  t("assets.detail.no"),
+                )}
               </DefinitionRow>
             ))}
           </dl>
@@ -394,23 +540,37 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
 function AssetTickets({ asset }: { readonly asset: AssetDetail }) {
   const { t, i18n } = useTranslation();
   if (asset.tickets.recent.length === 0) {
-    return <EmptyState icon={<History size={18} />} title={t("assets.detail.noTicketsTitle")} body={t("assets.detail.noTicketsBody")} />;
+    return (
+      <EmptyState
+        icon={<History size={18} />}
+        title={t("assets.detail.noTicketsTitle")}
+        body={t("assets.detail.noTicketsBody")}
+      />
+    );
   }
   return (
     <Card className="p-0">
       <CardHeader
         title={t("assets.detail.ticketsTitle")}
-        subtitle={t("assets.detail.ticketsSubtitle", { total: asset.tickets.total, open: asset.tickets.open })}
+        subtitle={t("assets.detail.ticketsSubtitle", {
+          total: asset.tickets.total,
+          open: asset.tickets.open,
+        })}
       />
       <ul className="divide-y divide-border/60">
         {asset.tickets.recent.map((ticket) => (
-          <li key={ticket.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-[12.5px]">
+          <li
+            key={ticket.id}
+            className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-[12.5px]"
+          >
             <span className="flex min-w-0 items-center gap-2">
               <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                 {ticket.ticketNumber}
               </Link>
               <span className="truncate text-foreground">{ticket.title}</span>
-              {ticket.isPrimary ? <Badge tone="primary">{t("assets.detail.primaryLink")}</Badge> : null}
+              {ticket.isPrimary ? (
+                <Badge tone="primary">{t("assets.detail.primaryLink")}</Badge>
+              ) : null}
             </span>
             <span className="flex items-center gap-2 text-muted-foreground">
               <Badge tone="neutral">{ticket.status}</Badge>
@@ -423,9 +583,16 @@ function AssetTickets({ asset }: { readonly asset: AssetDetail }) {
   );
 }
 
-function historyText(item: AssetHistoryItem, users: Readonly<Record<string, string | null>>, t: (key: string, options?: Record<string, unknown>) => string): string {
+function historyText(
+  item: AssetHistoryItem,
+  users: Readonly<Record<string, string | null>>,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   const detail = item.detail;
-  const userName = typeof detail.userId === "string" ? (users[detail.userId] ?? t("assets.history.unknownUser")) : null;
+  const userName =
+    typeof detail.userId === "string"
+      ? (users[detail.userId] ?? t("assets.history.unknownUser"))
+      : null;
   switch (item.action) {
     case "status":
       return t("assets.history.text.status", {
@@ -437,7 +604,10 @@ function historyText(item: AssetHistoryItem, users: Readonly<Record<string, stri
     case "unassigned":
       return t("assets.history.text.unassigned", { name: userName ?? "—" });
     case "updated": {
-      const changes = detail.changes && typeof detail.changes === "object" ? Object.keys(detail.changes as object) : [];
+      const changes =
+        detail.changes && typeof detail.changes === "object"
+          ? Object.keys(detail.changes as object)
+          : [];
       return t("assets.history.text.updated", { fields: changes.join(", ") || "—" });
     }
     default:
@@ -463,7 +633,10 @@ function AssetHistoryPanel({ assetId }: { readonly assetId: string }) {
     );
   }
   const pages = historyQuery.data?.pages ?? [];
-  const users = Object.assign({}, ...pages.map((page) => page.users)) as Record<string, string | null>;
+  const users = Object.assign({}, ...pages.map((page) => page.users)) as Record<
+    string,
+    string | null
+  >;
   const items = pages.flatMap((page) => page.items);
   const translate = t as unknown as (key: string, options?: Record<string, unknown>) => string;
   return (
@@ -471,17 +644,26 @@ function AssetHistoryPanel({ assetId }: { readonly assetId: string }) {
       <CardHeader title={t("assets.history.title")} />
       <ol className="divide-y divide-border/60">
         {items.map((item) => {
-          const reason = typeof item.detail.reason === "string" ? item.detail.reason : typeof item.detail.note === "string" ? item.detail.note : null;
+          const reason =
+            typeof item.detail.reason === "string"
+              ? item.detail.reason
+              : typeof item.detail.note === "string"
+                ? item.detail.note
+                : null;
           return (
             <li key={item.id} className="grid gap-0.5 px-4 py-2 text-[12.5px]">
               <span className="text-foreground">{historyText(item, users, translate)}</span>
               {reason ? <span className="text-muted-foreground">„{reason}“</span> : null}
               {typeof item.detail.transferNumber === "string" ? (
-                <span className="text-muted-foreground">{t("assets.history.transfer", { number: item.detail.transferNumber })}</span>
+                <span className="text-muted-foreground">
+                  {t("assets.history.transfer", { number: item.detail.transferNumber })}
+                </span>
               ) : null}
               <span className="text-[11.5px] text-muted-foreground">
                 {formatAssetDateTime(item.createdAt, i18n.language)} ·{" "}
-                {item.actorUserId ? (users[item.actorUserId] ?? t("assets.history.unknownUser")) : t("assets.history.system")}
+                {item.actorUserId
+                  ? (users[item.actorUserId] ?? t("assets.history.unknownUser"))
+                  : t("assets.history.system")}
               </span>
             </li>
           );
@@ -489,7 +671,12 @@ function AssetHistoryPanel({ assetId }: { readonly assetId: string }) {
       </ol>
       {historyQuery.hasNextPage ? (
         <div className="flex justify-center p-3">
-          <Button variant="outline" size="sm" onClick={() => void historyQuery.fetchNextPage()} disabled={historyQuery.isFetchingNextPage}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void historyQuery.fetchNextPage()}
+            disabled={historyQuery.isFetchingNextPage}
+          >
             {t("assets.list.loadMore")}
           </Button>
         </div>

@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { CheckSquare, Puzzle, Siren, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ProblemLinkDialog, type ProblemLinkTicket } from "@/components/problems/problem-link-dialog";
+import {
+  ProblemLinkDialog,
+  type ProblemLinkTicket,
+} from "@/components/problems/problem-link-dialog";
 import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -61,9 +64,13 @@ export function TicketBulkBar({
   const { session, hasPermission, hasRole } = useSessionCapabilities();
   const canLinkProblem =
     session?.modules?.problems === true &&
-    (session.isSuperAdmin === true || hasRole(roleKeys.superAdmin) || hasPermission(permissionKeys.problemManage));
+    (session.isSuperAdmin === true ||
+      hasRole(roleKeys.superAdmin) ||
+      hasPermission(permissionKeys.problemManage));
   const canCreateIncident =
-    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin) || hasPermission(permissionKeys.statusIncidentsManage);
+    session?.isSuperAdmin === true ||
+    hasRole(roleKeys.superAdmin) ||
+    hasPermission(permissionKeys.statusIncidentsManage);
   if (selectedIds.size === 0) {
     return null;
   }
@@ -72,10 +79,16 @@ export function TicketBulkBar({
     <div className="pop-in mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/6 px-3 py-2 shadow-card">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-surface px-2 py-0.5 text-[11.5px] font-medium text-link">
         <CheckSquare size={12} aria-hidden="true" />
-        <span className="tnum">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
+        <span className="tnum">
+          {ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}
+        </span>
       </span>
       <div className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
-      <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
+      <select
+        className={`${selectCompactClassName} w-auto min-w-[10rem]`}
+        value={actionType}
+        onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}
+      >
         <option value="assign_group">{t("tickets.bulk.assignGroup")}</option>
         <option value="assign_user">{t("tickets.bulk.assignUser")}</option>
         <option value="set_status">{t("tickets.bulk.setStatus")}</option>
@@ -84,17 +97,31 @@ export function TicketBulkBar({
         <option value="merge_into_parent">{t("tickets.bulk.merge")}</option>
       </select>
       {actionType === "set_status" ? (
-        <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
+        <select
+          className={`${selectCompactClassName} w-auto min-w-[9rem]`}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        >
           <option value="">{t("tickets.filters.all")}</option>
-          {ticketStatusValues.filter((status) => !isBulkCloseStatus(status)).map((status) => (
-            <option key={status} value={status}>{ticketText(t, ticketStatusLabelKey[status])}</option>
-          ))}
+          {ticketStatusValues
+            .filter((status) => !isBulkCloseStatus(status))
+            .map((status) => (
+              <option key={status} value={status}>
+                {ticketText(t, ticketStatusLabelKey[status])}
+              </option>
+            ))}
         </select>
       ) : actionType === "set_priority" ? (
-        <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
+        <select
+          className={`${selectCompactClassName} w-auto min-w-[9rem]`}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        >
           <option value="">{t("tickets.filters.all")}</option>
           {ticketPriorityValues.map((priority) => (
-            <option key={priority} value={priority}>{ticketText(t, ticketPriorityLabelKey[priority])}</option>
+            <option key={priority} value={priority}>
+              {ticketText(t, ticketPriorityLabelKey[priority])}
+            </option>
           ))}
         </select>
       ) : actionType === "merge_into_parent" ? (
@@ -107,26 +134,47 @@ export function TicketBulkBar({
         >
           <option value="">{t("tickets.bulk.mergeParent")}</option>
           {ticketIds.map((id) => (
-            <option key={id} value={id}>{ticketNumbers?.get(id) ?? id}</option>
+            <option key={id} value={id}>
+              {ticketNumbers?.get(id) ?? id}
+            </option>
           ))}
         </select>
       ) : (
-        <input className={`${controlCompactClassName} w-40`} value={value} onChange={(event) => setValue(event.target.value)} placeholder={t("tickets.bulk.valuePlaceholder")} />
+        <input
+          className={`${controlCompactClassName} w-40`}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={t("tickets.bulk.valuePlaceholder")}
+        />
       )}
-      <input className={`${controlCompactClassName} w-44`} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("tickets.bulk.reasonPlaceholder")} />
+      <input
+        className={`${controlCompactClassName} w-44`}
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        placeholder={t("tickets.bulk.reasonPlaceholder")}
+      />
       <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.closeForbidden")}</span>
       {broadcastArmed ? (
-        <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>
+        <span className="text-[11px] text-muted-foreground">
+          {t("tickets.bulk.confirmRecipients")}
+        </span>
       ) : null}
       <Button
         type="button"
         size="sm"
         disabled={
           busy ||
-          (actionType === "merge_into_parent" && (value === "" || !selectedIds.has(value) || reason.trim().length < 3))
+          (actionType === "merge_into_parent" &&
+            (value === "" || !selectedIds.has(value) || reason.trim().length < 3))
         }
-        onClick={() => void runBulk()} className="ml-auto">
-        {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
+        onClick={() => void runBulk()}
+        className="ml-auto"
+      >
+        {busy
+          ? t("tickets.bulk.applying")
+          : broadcastArmed
+            ? t("tickets.bulk.confirmSend")
+            : t("tickets.bulk.apply")}
       </Button>
       {canCreateIncident ? (
         <Button
@@ -134,7 +182,11 @@ export function TicketBulkBar({
           variant="outline"
           size="sm"
           disabled={busy || selectedIds.size > incidentTicketLimit}
-          title={selectedIds.size > incidentTicketLimit ? t("status.bulk.tooMany", { max: incidentTicketLimit }) : undefined}
+          title={
+            selectedIds.size > incidentTicketLimit
+              ? t("status.bulk.tooMany", { max: incidentTicketLimit })
+              : undefined
+          }
           onClick={() => setIncidentOpen(true)}
           data-testid="ticket-bulk-create-incident"
         >
@@ -148,7 +200,11 @@ export function TicketBulkBar({
           variant="outline"
           size="sm"
           disabled={busy || selectedIds.size > problemTicketLimit}
-          title={selectedIds.size > problemTicketLimit ? t("problems.link.tooMany", { max: problemTicketLimit }) : undefined}
+          title={
+            selectedIds.size > problemTicketLimit
+              ? t("problems.link.tooMany", { max: problemTicketLimit })
+              : undefined
+          }
           onClick={() => setProblemOpen(true)}
           data-testid="ticket-bulk-problem"
         >
@@ -161,10 +217,19 @@ export function TicketBulkBar({
           open
           onOpenChange={(open) => (open ? undefined : setProblemOpen(false))}
           tickets={ticketIds.map(
-            (id) => ticketSummaries?.get(id) ?? { id, ticketNumber: ticketNumbers?.get(id) ?? id, title: "", priority: "MEDIUM" as const },
+            (id) =>
+              ticketSummaries?.get(id) ?? {
+                id,
+                ticketNumber: ticketNumbers?.get(id) ?? id,
+                title: "",
+                priority: "MEDIUM" as const,
+              },
           )}
           onDone={({ number, result }) => {
-            toast({ tone: "success", title: t("problems.link.doneToast", { number, count: result?.linked.length ?? 0 }) });
+            toast({
+              tone: "success",
+              title: t("problems.link.doneToast", { number, count: result?.linked.length ?? 0 }),
+            });
             onClear();
             onComplete();
           }}

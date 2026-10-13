@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, BellOff, CheckCircle2, ChevronDown, ChevronUp, Link2, Megaphone, Pencil } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Link2,
+  Megaphone,
+  Pencil,
+} from "lucide-react";
 import { IncidentProblemLinks } from "@/components/problems/problem-reference-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +46,8 @@ export function useDurationLabel() {
   return (minutes: number) => {
     const parts = splitDuration(minutes);
     if (parts.days > 0) return t("status.duration.days", { days: parts.days, hours: parts.hours });
-    if (parts.hours > 0) return t("status.duration.hours", { hours: parts.hours, minutes: parts.minutes });
+    if (parts.hours > 0)
+      return t("status.duration.hours", { hours: parts.hours, minutes: parts.minutes });
     return t("status.duration.minutes", { minutes: parts.minutes });
   };
 }
@@ -69,8 +79,12 @@ export function IncidentCard({
             <Badge tone={availabilityTone(incident.impact)} dot>
               {t(`status.impact.${incident.impact}`)}
             </Badge>
-            <Badge tone={incidentStatusTone(incident.status)}>{t(`status.status.${incident.status}`)}</Badge>
-            {incident.visibility === "STAFF_ONLY" ? <Badge tone="hold">{t("status.visibility.STAFF_ONLY")}</Badge> : null}
+            <Badge tone={incidentStatusTone(incident.status)}>
+              {t(`status.status.${incident.status}`)}
+            </Badge>
+            {incident.visibility === "STAFF_ONLY" ? (
+              <Badge tone="hold">{t("status.visibility.STAFF_ONLY")}</Badge>
+            ) : null}
           </div>
           <h3 className="mt-1.5 text-[14px] font-semibold leading-5 text-foreground">
             {localizedIncidentTitle(incident, i18n.language)}
@@ -80,12 +94,17 @@ export function IncidentCard({
           </p>
           <p className={`mt-1 ${hintClassName}`}>
             <span title={formatTicketTimestamp(incident.startedAt, i18n.language)}>
-              {t("status.card.started")} <RelativeTime value={incident.startedAt} locale={i18n.language} />
+              {t("status.card.started")}{" "}
+              <RelativeTime value={incident.startedAt} locale={i18n.language} />
             </span>
             {" · "}
             {resolved
-              ? t("status.card.lasted", { duration: durationLabel(incidentDurationMinutes(incident, nowMs)) })
-              : t("status.card.ongoing", { duration: durationLabel(incidentDurationMinutes(incident, nowMs)) })}
+              ? t("status.card.lasted", {
+                  duration: durationLabel(incidentDurationMinutes(incident, nowMs)),
+                })
+              : t("status.card.ongoing", {
+                  duration: durationLabel(incidentDurationMinutes(incident, nowMs)),
+                })}
             {incident.linkedTicketCount !== null && incident.linkedTicketCount > 0 ? (
               <>
                 {" · "}
@@ -106,7 +125,12 @@ export function IncidentCard({
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {!resolved && onSubscribe ? (
-            <Button size="xs" variant={incident.subscribed ? "secondary" : "outline"} disabled={busy} onClick={() => onSubscribe(incident)}>
+            <Button
+              size="xs"
+              variant={incident.subscribed ? "secondary" : "outline"}
+              disabled={busy}
+              onClick={() => onSubscribe(incident)}
+            >
               {incident.subscribed ? <BellOff /> : <Bell />}
               {incident.subscribed ? t("status.card.unsubscribe") : t("status.card.subscribe")}
             </Button>
@@ -114,13 +138,24 @@ export function IncidentCard({
           {canManage && !resolved ? (
             <>
               {onEdit ? (
-                <Button size="xs" variant="ghost" disabled={busy} onClick={() => onEdit(incident)} aria-label={t("status.card.edit")}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => onEdit(incident)}
+                  aria-label={t("status.card.edit")}
+                >
                   <Pencil />
                   {t("status.card.edit")}
                 </Button>
               ) : null}
               {onUpdate ? (
-                <Button size="xs" variant="outline" disabled={busy} onClick={() => onUpdate(incident)}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => onUpdate(incident)}
+                >
                   <Megaphone />
                   {t("status.card.postUpdate")}
                 </Button>
@@ -153,20 +188,26 @@ export function IncidentCard({
               <span className="mt-1.5 size-2 rounded-full bg-border" aria-hidden="true" />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-medium text-foreground">{t(`status.status.${update.status}`)}</span>
+                  <span className="font-medium text-foreground">
+                    {t(`status.status.${update.status}`)}
+                  </span>
                   <span className={hintClassName}>
                     {formatTicketTimestamp(update.createdAt, i18n.language)}
                     {update.authorName ? ` · ${update.authorName}` : ""}
                   </span>
                 </div>
-                <p className="mt-0.5 whitespace-pre-wrap break-words text-foreground/85">{update.message}</p>
+                <p className="mt-0.5 whitespace-pre-wrap break-words text-foreground/85">
+                  {update.message}
+                </p>
               </div>
             </li>
           ))}
           {incident.updates.length > visibleUpdates ? (
             <li>
               <Button size="xs" variant="link" onClick={() => setShowAll((value) => !value)}>
-                {showAll ? t("status.card.showLess") : t("status.card.showAll", { count: incident.updates.length })}
+                {showAll
+                  ? t("status.card.showLess")
+                  : t("status.card.showAll", { count: incident.updates.length })}
               </Button>
             </li>
           ) : null}

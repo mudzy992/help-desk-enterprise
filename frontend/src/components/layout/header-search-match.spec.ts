@@ -12,9 +12,7 @@ const response = {
     { id: "ticket-1", ticketNumber: "T-000042", title: "VPN pristup" },
     { id: "ticket-2", ticketNumber: "T-000043", title: "VPN pristup 2" },
   ],
-  articles: [
-    { id: "article-1", slug: "reset-lozinke", title: "Reset lozinke" },
-  ],
+  articles: [{ id: "article-1", slug: "reset-lozinke", title: "Reset lozinke" }],
   users: [{ id: "user-1", displayName: "Ana Hodžić", email: "ana@example.com" }],
 };
 
@@ -66,9 +64,9 @@ describe("header search projection", () => {
   });
 
   it("answers with empty groups for any response shape without hits", () => {
-    expect(
-      toHeaderSearchGroups("vpn", { tickets: [], articles: [], users: [] }),
-    ).toEqual(emptyHeaderSearchGroups);
+    expect(toHeaderSearchGroups("vpn", { tickets: [], articles: [], users: [] })).toEqual(
+      emptyHeaderSearchGroups,
+    );
     const groups: HeaderSearchGroups = toHeaderSearchGroups("vpn", {
       tickets: [],
       articles: response.articles,

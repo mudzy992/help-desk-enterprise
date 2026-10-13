@@ -31,8 +31,7 @@ export function KnowledgeBasePage() {
   const { t } = useTranslation();
   const directory = useDirectory();
   const capabilities = useSessionCapabilities();
-  const { isSuperAdmin, canWrite, canManageLifecycle } =
-    resolveKnowledgeCapabilities(capabilities);
+  const { isSuperAdmin, canWrite, canManageLifecycle } = resolveKnowledgeCapabilities(capabilities);
   const [searchParams, setSearchParams] = useSearchParams();
   // Paket 2.9 (K1): portal (default) | all articles | insights (curators).
   const canSeeInsights = canWrite || canManageLifecycle;
@@ -113,10 +112,7 @@ export function KnowledgeBasePage() {
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
     [directory.users],
   );
-  const originUnits = useMemo(
-    () => flattenOriginUnitOptions(directory.tree),
-    [directory.tree],
-  );
+  const originUnits = useMemo(() => flattenOriginUnitOptions(directory.tree), [directory.tree]);
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
@@ -175,60 +171,62 @@ export function KnowledgeBasePage() {
         items={[
           { key: "portal", label: t("knowledgeBase.portal.tabPortal") },
           { key: "articles", label: t("knowledgeBase.portal.tabArticles") },
-          ...(canSeeInsights ? [{ key: "insights", label: t("knowledgeBase.portal.tabInsights") }] : []),
+          ...(canSeeInsights
+            ? [{ key: "insights", label: t("knowledgeBase.portal.tabInsights") }]
+            : []),
         ]}
       />
       {view === "portal" ? <KnowledgePortalHome /> : null}
       {view === "insights" ? <KnowledgeInsightsPanel /> : null}
       {view === "articles" ? (
-      <>
-      <KnowledgeArticleSearchCard
-        search={search}
-        status={status}
-        serviceId={serviceId}
-        staleOnly={staleOnly}
-        services={services}
-        onSearchChange={setSearch}
-        onStatusChange={setStatus}
-        onServiceIdChange={setServiceId}
-        onStaleOnlyChange={setStaleOnly}
-      />
-      {isLoading ? (
-        <PanelSkeleton className="mt-0" label={t("knowledgeBase.listHeading")} />
-      ) : errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : (
         <>
-          <KnowledgeArticleList
-            items={items}
-            canManageLifecycle={canManageLifecycle}
-            isFiltered={filtersActive}
-            searchQuery={debouncedSearch}
-            ownerNames={ownerNames}
-            serviceNames={serviceNames}
-            canWrite={canWrite}
-            onCreate={() => {
-              setCreatePrefillTitle("");
-              setIsCreateOpen(true);
-            }}
-            onCreateForQuery={() => {
-              setCreatePrefillTitle(debouncedSearch.trim());
-              setIsCreateOpen(true);
-            }}
-            onClearFilters={() => {
-              setSearch("");
-              setStatus("");
-              setServiceId("");
-              setStaleOnly(false);
-            }}
-            onFeedback={loadArticles}
+          <KnowledgeArticleSearchCard
+            search={search}
+            status={status}
+            serviceId={serviceId}
+            staleOnly={staleOnly}
+            services={services}
+            onSearchChange={setSearch}
+            onStatusChange={setStatus}
+            onServiceIdChange={setServiceId}
+            onStaleOnlyChange={setStaleOnly}
           />
-          <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground">
-            {t("knowledgeBase.interceptRankingHint")}
-          </p>
+          {isLoading ? (
+            <PanelSkeleton className="mt-0" label={t("knowledgeBase.listHeading")} />
+          ) : errorKey ? (
+            <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          ) : (
+            <>
+              <KnowledgeArticleList
+                items={items}
+                canManageLifecycle={canManageLifecycle}
+                isFiltered={filtersActive}
+                searchQuery={debouncedSearch}
+                ownerNames={ownerNames}
+                serviceNames={serviceNames}
+                canWrite={canWrite}
+                onCreate={() => {
+                  setCreatePrefillTitle("");
+                  setIsCreateOpen(true);
+                }}
+                onCreateForQuery={() => {
+                  setCreatePrefillTitle(debouncedSearch.trim());
+                  setIsCreateOpen(true);
+                }}
+                onClearFilters={() => {
+                  setSearch("");
+                  setStatus("");
+                  setServiceId("");
+                  setStaleOnly(false);
+                }}
+                onFeedback={loadArticles}
+              />
+              <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground">
+                {t("knowledgeBase.interceptRankingHint")}
+              </p>
+            </>
+          )}
         </>
-      )}
-      </>
       ) : null}
     </section>
   );

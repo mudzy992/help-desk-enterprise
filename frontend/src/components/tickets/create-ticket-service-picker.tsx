@@ -71,13 +71,19 @@ export function CreateTicketServicePicker({
 
   const chips = useMemo(() => buildServiceChips(services, query), [services, query]);
   // A chip that the search emptied must not leave the list blank.
-  const activeCategory = categoryKey !== null && chips.some((chip) => chip.key === categoryKey) ? categoryKey : null;
+  const activeCategory =
+    categoryKey !== null && chips.some((chip) => chip.key === categoryKey) ? categoryKey : null;
   const groups = useMemo(
     () => buildServiceGroups({ services, query, categoryKey: activeCategory, recentIds }),
     [services, query, activeCategory, recentIds],
   );
   const visibleCount = useMemo(
-    () => new Set(groups.filter((group) => group.key !== recentGroupKey).flatMap((group) => group.services.map((item) => item.id))).size,
+    () =>
+      new Set(
+        groups
+          .filter((group) => group.key !== recentGroupKey)
+          .flatMap((group) => group.services.map((item) => item.id)),
+      ).size,
     [groups],
   );
   const focusTargetId = useMemo(() => {
@@ -90,7 +96,9 @@ export function CreateTicketServicePicker({
     setRecentIds(rememberRecentService(currentUserId, serviceId));
   };
 
-  const options = () => [...(listRef.current?.querySelectorAll<HTMLButtonElement>("[data-service-option]") ?? [])];
+  const options = () => [
+    ...(listRef.current?.querySelectorAll<HTMLButtonElement>("[data-service-option]") ?? []),
+  ];
 
   const onListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const all = options();
@@ -122,12 +130,8 @@ export function CreateTicketServicePicker({
 
   return (
     <div className="p-4 sm:p-5">
-      <h2 className="text-[14px] font-semibold text-foreground">
-        {t("tickets.pickService")}
-      </h2>
-      <p className="mt-0.5 text-[12px] text-muted-foreground">
-        {t("tickets.pickServiceHint")}
-      </p>
+      <h2 className="text-[14px] font-semibold text-foreground">{t("tickets.pickService")}</h2>
+      <p className="mt-0.5 text-[12px] text-muted-foreground">{t("tickets.pickServiceHint")}</p>
 
       <div className="relative mt-3">
         <Search
@@ -175,10 +179,16 @@ export function CreateTicketServicePicker({
       </div>
 
       {chips.length >= minCategoriesForChips ? (
-        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label={t("tickets.servicePicker.categories")}>
+        <div
+          className="mt-2.5 flex flex-wrap gap-1.5"
+          role="group"
+          aria-label={t("tickets.servicePicker.categories")}
+        >
           <Chip active={activeCategory === null} onClick={() => setCategoryKey(null)}>
             {t("tickets.servicePicker.allCategories")}
-            <span className="ml-1 tnum text-muted-foreground">{chips.reduce((sum, chip) => sum + chip.count, 0)}</span>
+            <span className="ml-1 tnum text-muted-foreground">
+              {chips.reduce((sum, chip) => sum + chip.count, 0)}
+            </span>
           </Chip>
           {chips.map((chip) => (
             <Chip
@@ -198,11 +208,16 @@ export function CreateTicketServicePicker({
       </p>
 
       {groups.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-border px-4 py-8 text-center" data-testid="service-picker-empty">
+        <div
+          className="mt-4 rounded-lg border border-dashed border-border px-4 py-8 text-center"
+          data-testid="service-picker-empty"
+        >
           <p className="text-[13px] font-medium text-foreground">
             {t("tickets.servicePicker.emptyTitle", { query: query.trim() })}
           </p>
-          <p className="mt-1 text-[12px] text-muted-foreground">{t("tickets.servicePicker.emptyHint")}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            {t("tickets.servicePicker.emptyHint")}
+          </p>
           <Button
             type="button"
             size="sm"
@@ -234,7 +249,9 @@ export function CreateTicketServicePicker({
               >
                 {group.key === recentGroupKey ? <Clock size={11} aria-hidden="true" /> : null}
                 {groupLabel(group)}
-                <span className="font-normal normal-case tracking-normal tnum">· {group.services.length}</span>
+                <span className="font-normal normal-case tracking-normal tnum">
+                  · {group.services.length}
+                </span>
               </h3>
               <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border">
                 {group.services.map((service) => (
@@ -273,7 +290,8 @@ function ServiceOption({
   const { t } = useTranslation();
   const availability = shownAvailability(service);
   const isUnavailable =
-    service.runtimeAvailability.showStatusInTicketCreate && service.runtimeAvailability.isCurrentlyUnavailable;
+    service.runtimeAvailability.showStatusInTicketCreate &&
+    service.runtimeAvailability.isCurrentlyUnavailable;
   const showSettingsHint = listedInMaintenance && service.availability !== "MAINTENANCE";
   return (
     <button
@@ -299,12 +317,18 @@ function ServiceOption({
         {selected ? <Check size={10} strokeWidth={3} /> : null}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium leading-5 text-foreground">{service.name}</span>
+        <span className="block text-[13px] font-medium leading-5 text-foreground">
+          {service.name}
+        </span>
         {isUnavailable ? (
-          <span className="mt-0.5 block text-[11.5px] text-warning">{t("tickets.availabilityUnavailable")}</span>
+          <span className="mt-0.5 block text-[11.5px] text-warning">
+            {t("tickets.availabilityUnavailable")}
+          </span>
         ) : null}
         {showSettingsHint ? (
-          <span className="mt-0.5 block text-[11.5px] text-warning">{t("maintenance.serviceHint")}</span>
+          <span className="mt-0.5 block text-[11.5px] text-warning">
+            {t("maintenance.serviceHint")}
+          </span>
         ) : null}
         {service.requiresApproval ? (
           <span className="mt-0.5 block text-[11px] text-warning">

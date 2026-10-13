@@ -121,8 +121,7 @@ export function ServiceOnboardingWizard({
       const updatedService = await getService(next.serviceId);
       setRecord(next);
       setService(updatedService);
-      const hasCoverageWarning =
-        next.warnings?.includes("ROUTING_COVERAGE_MISSING") === true;
+      const hasCoverageWarning = next.warnings?.includes("ROUTING_COVERAGE_MISSING") === true;
       setCoverageWarning(hasCoverageWarning);
       await onFinished();
       if (next.status === "ABANDONED" || (next.status === "COMPLETED" && !hasCoverageWarning)) {
@@ -211,7 +210,9 @@ export function ServiceOnboardingWizard({
 
               {errorKey ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/25 bg-danger/5 px-4 py-3">
-                  <p role="alert" className={errorTextClassName}>{t(errorKey)}</p>
+                  <p role="alert" className={errorTextClassName}>
+                    {t(errorKey)}
+                  </p>
                   {serviceId !== null ? (
                     <Button
                       type="button"
@@ -282,7 +283,9 @@ export function ServiceOnboardingWizard({
                     }}
                     onReloadRouting={() => {
                       if (record) {
-                        void run(async () => (await loadOrStartOnboarding(record.serviceId)).record);
+                        void run(
+                          async () => (await loadOrStartOnboarding(record.serviceId)).record,
+                        );
                       }
                     }}
                   />

@@ -47,7 +47,7 @@ export function SlaCalendarsPanel() {
         const candidateId = preferredId === undefined ? currentId : preferredId;
         return candidateId !== null && items.some((item) => item.id === candidateId)
           ? candidateId
-          : items[0]?.id ?? null;
+          : (items[0]?.id ?? null);
       });
     } catch (error) {
       setCalendars([]);

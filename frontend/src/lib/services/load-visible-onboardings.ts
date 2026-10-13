@@ -13,10 +13,7 @@ const visibleStatuses: readonly ServiceOnboardingStatus[] = [
 
 export async function loadVisibleOnboardings(
   draftServiceIds: readonly string[],
-  onServiceLoaded?: (
-    serviceId: string,
-    onboarding: ServiceOnboardingResponse | null,
-  ) => void,
+  onServiceLoaded?: (serviceId: string, onboarding: ServiceOnboardingResponse | null) => void,
 ): Promise<readonly ServiceOnboardingResponse[]> {
   // Isolate failures per draft and publish each completed read immediately:
   // one slow or inaccessible service must not delay every other progress chip.
@@ -24,9 +21,7 @@ export async function loadVisibleOnboardings(
     draftServiceIds.map(async (serviceId) => {
       const onboarding = await loadOnboardingOrNull(serviceId);
       const visibleOnboarding =
-        onboarding !== null && visibleStatuses.includes(onboarding.status)
-          ? onboarding
-          : null;
+        onboarding !== null && visibleStatuses.includes(onboarding.status) ? onboarding : null;
       onServiceLoaded?.(serviceId, visibleOnboarding);
       return visibleOnboarding;
     }),
@@ -36,9 +31,7 @@ export async function loadVisibleOnboardings(
   );
 }
 
-async function loadOnboardingOrNull(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse | null> {
+async function loadOnboardingOrNull(serviceId: string): Promise<ServiceOnboardingResponse | null> {
   try {
     return await getServiceOnboarding(serviceId);
   } catch (error) {

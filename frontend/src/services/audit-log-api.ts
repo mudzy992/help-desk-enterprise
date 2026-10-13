@@ -49,14 +49,10 @@ export async function exportAuditLog(input: {
     organizationalUnitId: input.organizationalUnitId,
     format: input.format,
   });
-  const downloaded = await apiDownloadRequest(
-    `/audit-logs/export?${query.toString()}`,
-  );
+  const downloaded = await apiDownloadRequest(`/audit-logs/export?${query.toString()}`);
   return {
     blob: downloaded.blob,
-    fileName:
-      downloaded.fileName ??
-      (input.format === "csv" ? "audit-log.csv" : "audit-log.json"),
+    fileName: downloaded.fileName ?? (input.format === "csv" ? "audit-log.csv" : "audit-log.json"),
   };
 }
 

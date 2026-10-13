@@ -20,7 +20,9 @@ export function SessionsList({ sessions, onRevoke, busySessionId = null }: Sessi
   const { locale } = useLocale();
 
   if (sessions.length === 0) {
-    return <p className="text-[12.5px] text-muted-foreground">{t("account.security.sessionsEmpty")}</p>;
+    return (
+      <p className="text-[12.5px] text-muted-foreground">{t("account.security.sessionsEmpty")}</p>
+    );
   }
 
   return (
@@ -30,14 +32,20 @@ export function SessionsList({ sessions, onRevoke, busySessionId = null }: Sessi
           <Monitor size={16} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-medium text-foreground">
-              {formatDevice(describeUserAgent(session.userAgent), t("account.security.unknownDevice"))}
-              {session.current ? <Badge tone="success">{t("account.security.thisDevice")}</Badge> : null}
+              {formatDevice(
+                describeUserAgent(session.userAgent),
+                t("account.security.unknownDevice"),
+              )}
+              {session.current ? (
+                <Badge tone="success">{t("account.security.thisDevice")}</Badge>
+              ) : null}
               {session.provider === "entra" ? <Badge tone="accent">Microsoft</Badge> : null}
               {session.mfaMethod ? <Badge tone="primary">MFA</Badge> : null}
             </p>
             <p className="mt-0.5 text-[11.5px] text-muted-foreground">
               {session.ipAddress ?? "—"} · {t("account.security.lastActive")}{" "}
-              <RelativeTime value={session.lastSeenAt} locale={locale} /> · {t("account.security.signedIn")}{" "}
+              <RelativeTime value={session.lastSeenAt} locale={locale} /> ·{" "}
+              {t("account.security.signedIn")}{" "}
               <RelativeTime value={session.createdAt} locale={locale} />
             </p>
           </div>

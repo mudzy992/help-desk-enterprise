@@ -11,11 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  ticketIdClassName,
-} from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, ticketIdClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { pickName } from "@/lib/tickets/ticket-names";
@@ -37,20 +33,14 @@ function AttentionAssignmentCell({ ticket }: { readonly ticket: TicketResponse }
   if (ticket.assignedUserId === null) {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="tnum text-[12px] text-foreground/80">
-          {groupName}
-        </span>
+        <span className="tnum text-[12px] text-foreground/80">{groupName}</span>
         <Badge tone="info" dot={false}>
           {t("tickets.assignment.groupOnly")}
         </Badge>
       </div>
     );
   }
-  return (
-    <span className="text-[12px] text-foreground/80">
-      {t("tickets.assignment.assigned")}
-    </span>
-  );
+  return <span className="text-[12px] text-foreground/80">{t("tickets.assignment.assigned")}</span>;
 }
 
 export function DashboardAttentionTable({
@@ -88,24 +78,12 @@ export function DashboardAttentionTable({
           <table className="w-full min-w-[760px] text-left">
             <thead>
               <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnTicket")}
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnService")}
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnOrigin")}
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnStatus")}
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnPriority")}
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  {t("dashboard.columnAssignment")}
-                </th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnTicket")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnService")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnOrigin")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnStatus")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnPriority")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnAssignment")}</th>
                 <th className="px-4 py-2.5 text-right font-medium">
                   {t("dashboard.columnOverdue")}
                 </th>
@@ -128,10 +106,7 @@ export function DashboardAttentionTable({
                           aria-hidden="true"
                         />
                       ) : null}
-                      <Link
-                        to={`/tickets/${ticket.id}`}
-                        className={ticketIdClassName}
-                      >
+                      <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                         {ticket.ticketNumber}
                       </Link>
                     </div>
@@ -149,10 +124,7 @@ export function DashboardAttentionTable({
                     <TicketStatusBadge status={ticket.status} />
                   </td>
                   <td className="px-4 py-2.5">
-                    <TicketPriorityBadge
-                      priority={ticket.priority}
-                      showCriticalMark
-                    />
+                    <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
                   </td>
                   <td className="px-4 py-2.5">
                     <AttentionAssignmentCell ticket={ticket} />

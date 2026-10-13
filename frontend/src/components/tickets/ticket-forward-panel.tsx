@@ -112,10 +112,7 @@ export function TicketForwardPanel({
     };
   }, [open, groupId, ticket.id]);
 
-  const ordered = useMemo(
-    () => (targets === null ? [] : orderForwardTargets(targets)),
-    [targets],
-  );
+  const ordered = useMemo(() => (targets === null ? [] : orderForwardTargets(targets)), [targets]);
   const current = ordered.find((group) => group.isCurrent) ?? null;
   const sameOu = ordered.filter((group) => !group.isCurrent && !group.isCrossOu);
   const otherOu = ordered.filter((group) => !group.isCurrent && group.isCrossOu);

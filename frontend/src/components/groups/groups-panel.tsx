@@ -112,8 +112,7 @@ export function GroupsPanel({
         group={
           actions.drawerGroupId === null
             ? null
-            : (groups.find((group) => group.id === actions.drawerGroupId) ??
-              null)
+            : (groups.find((group) => group.id === actions.drawerGroupId) ?? null)
         }
         detail={actions.detail}
         originUnits={originUnits}
@@ -135,9 +134,7 @@ export function GroupsPanel({
           }
         }}
         intent="danger"
-        isPending={
-          actions.pendingId !== null && actions.deleteTarget?.id === actions.pendingId
-        }
+        isPending={actions.pendingId !== null && actions.deleteTarget?.id === actions.pendingId}
         title={t("groups.deleteConfirmTitle", {
           name: actions.deleteTarget?.name ?? "",
         })}

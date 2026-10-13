@@ -33,9 +33,7 @@ interface SlaProfileDetailDrawersProperties {
   readonly onClose: () => void;
   readonly onEditingRuleChange: (rule: SlaRule | undefined) => void;
   readonly onDeleteReasonChange: (value: string) => void;
-  readonly onSaveProfile: (
-    input: ProfileWriteInput & { readonly key: string },
-  ) => Promise<void>;
+  readonly onSaveProfile: (input: ProfileWriteInput & { readonly key: string }) => Promise<void>;
   readonly onSaveRule: (input: RuleWriteInput, editing?: SlaRule) => Promise<void>;
   readonly onDeleteRule: (rule: SlaRule, reason: string) => Promise<void>;
   readonly onDeleteProfile: (reason: string) => Promise<void>;
@@ -62,8 +60,7 @@ export function SlaProfileDetailDrawers({
   onDeleteProfile,
 }: SlaProfileDetailDrawersProperties) {
   const { t } = useTranslation();
-  const overrideEdit =
-    editingRule && !isBaselineSlaRule(editingRule) ? editingRule : undefined;
+  const overrideEdit = editingRule && !isBaselineSlaRule(editingRule) ? editingRule : undefined;
 
   return (
     <>
@@ -152,11 +149,7 @@ export function SlaProfileDetailDrawers({
           if (!open) onClose();
         }}
       >
-        <SlaEscalationRulesPanel
-          slaProfileId={profile.id}
-          canWrite={canWrite}
-          embedded
-        />
+        <SlaEscalationRulesPanel slaProfileId={profile.id} canWrite={canWrite} embedded />
       </SlaEditDrawer>
     </>
   );

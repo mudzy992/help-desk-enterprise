@@ -1,9 +1,7 @@
 import type { UserRoleResponse } from "@/services/users-api";
 import { roleRequiresOrganizationalUnitForTicketScope } from "@/lib/users/user-role-organizational-unit-scope";
 
-export function formatUserRoleScopeSummary(
-  roles: readonly UserRoleResponse[],
-): string {
+export function formatUserRoleScopeSummary(roles: readonly UserRoleResponse[]): string {
   const ticketScopedRoles = roles.filter(
     (role) =>
       roleRequiresOrganizationalUnitForTicketScope(role.roleKey) &&

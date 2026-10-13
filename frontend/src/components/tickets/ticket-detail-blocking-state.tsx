@@ -27,10 +27,7 @@ export function TicketDetailBlockingState({
   }
   return (
     <section className="fade-in max-w-[1400px]">
-      <TicketErrorState
-        errorKey={errorKey ?? "tickets.errorNotFound"}
-        onRetry={onReload}
-      />
+      <TicketErrorState errorKey={errorKey ?? "tickets.errorNotFound"} onRetry={onReload} />
     </section>
   );
 }

@@ -16,7 +16,9 @@ export function readRecentServices(userId: string | null): readonly string[] {
     const raw = window.localStorage.getItem(storageKey(userId));
     const parsed: unknown = raw === null ? [] : JSON.parse(raw);
     return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === "string").slice(0, maxRecentServices)
+      ? parsed
+          .filter((value): value is string => typeof value === "string")
+          .slice(0, maxRecentServices)
       : [];
   } catch {
     return [];

@@ -11,11 +11,7 @@ interface SlaOverrideRulesCardProperties {
   readonly onEdit: () => void;
 }
 
-export function SlaOverrideRulesCard({
-  rules,
-  canWrite,
-  onEdit,
-}: SlaOverrideRulesCardProperties) {
+export function SlaOverrideRulesCard({ rules, canWrite, onEdit }: SlaOverrideRulesCardProperties) {
   const { t } = useTranslation();
 
   return (

@@ -31,7 +31,9 @@ describe("Field (2.8 §3.2)", () => {
   });
 
   it("omits error wiring when valid", () => {
-    const html = renderToStaticMarkup(createElement(Field, { id: "x", label: "X", children: renderInput }));
+    const html = renderToStaticMarkup(
+      createElement(Field, { id: "x", label: "X", children: renderInput }),
+    );
     expect(html).not.toContain("aria-invalid");
     expect(html).not.toContain("aria-describedby");
   });

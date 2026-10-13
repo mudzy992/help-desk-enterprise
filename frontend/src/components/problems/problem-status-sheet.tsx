@@ -8,7 +8,13 @@ import { Field, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { mapApiError } from "@/lib/map-api-error";
-import { mapProblemError, problemReasonMin, problemStatusKeys, transitionLabelKey, transitionNeedsReason } from "@/lib/problems/problem-view";
+import {
+  mapProblemError,
+  problemReasonMin,
+  problemStatusKeys,
+  transitionLabelKey,
+  transitionNeedsReason,
+} from "@/lib/problems/problem-view";
 import {
   isResolveTicketsValid,
   ProblemResolveTicketsSection,
@@ -35,7 +41,13 @@ interface ProblemStatusSheetProperties {
  * Paket 3.3 (§5, §8.4): status change with the reason where the rules ask for
  * one; RESOLVED optionally resolves the open linked tickets (P4).
  */
-export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus, onDone }: ProblemStatusSheetProperties) {
+export function ProblemStatusSheet({
+  open,
+  onOpenChange,
+  problem,
+  initialStatus,
+  onDone,
+}: ProblemStatusSheetProperties) {
   const { t } = useTranslation();
   const targets = problem.allowedTransitions;
   const [status, setStatus] = useState<ProblemStatus | "">("");
@@ -43,7 +55,11 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const defaultMessage = t("problems.resolveTickets.defaultMessage", { number: problem.number });
-  const [resolveTickets, setResolveTickets] = useState<ProblemResolveTicketsValue>({ enabled: false, message: defaultMessage, closeCode: "" });
+  const [resolveTickets, setResolveTickets] = useState<ProblemResolveTicketsValue>({
+    enabled: false,
+    message: defaultMessage,
+    closeCode: "",
+  });
   const [outcome, setOutcome] = useState<ProblemTicketResolveOutcome | null>(null);
 
   useEffect(() => {
@@ -84,7 +100,11 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
         status,
         reason: reason.trim() || undefined,
         ...(groupResolve
-          ? { resolveTickets: true, message: resolveTickets.message.trim(), closeCode: resolveTickets.closeCode || undefined }
+          ? {
+              resolveTickets: true,
+              message: resolveTickets.message.trim(),
+              closeCode: resolveTickets.closeCode || undefined,
+            }
           : {}),
       });
       onDone();
@@ -103,7 +123,11 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
 
   return (
     <Sheet open={open} onOpenChange={(next) => (pending ? undefined : onOpenChange(next))}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5" data-testid="problem-status-sheet">
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-md flex-col overflow-y-auto p-5"
+        data-testid="problem-status-sheet"
+      >
         <SheetTitle>{t("problems.statusSheet.title")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("problems.statusSheet.current", { status: t(problemStatusKeys[problem.status]) })}
@@ -116,7 +140,11 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
           <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
             <Field label={t("problems.statusSheet.newStatus")} required>
               {(control) => (
-                <Select {...control} value={status} onChange={(event) => setStatus(event.target.value as ProblemStatus)}>
+                <Select
+                  {...control}
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as ProblemStatus)}
+                >
                   {targets.map((target) => (
                     <option key={target} value={target}>
                       {ticketText(t, transitionLabelKey(problem.status, target))}
@@ -125,14 +153,35 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
                 </Select>
               )}
             </Field>
-            {status !== "" ? <p className={hintClassName}>{ticketText(t, `problems.statusSheet.hint.${status}`)}</p> : null}
+            {status !== "" ? (
+              <p className={hintClassName}>
+                {ticketText(t, `problems.statusSheet.hint.${status}`)}
+              </p>
+            ) : null}
             {needsReason ? (
-              <Field label={t("problems.statusSheet.reason")} required hint={t("problems.statusSheet.reasonHint", { min: problemReasonMin })}>
-                {(control) => <Textarea {...control} rows={3} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} />}
+              <Field
+                label={t("problems.statusSheet.reason")}
+                required
+                hint={t("problems.statusSheet.reasonHint", { min: problemReasonMin })}
+              >
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={3}
+                    maxLength={1000}
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                )}
               </Field>
             ) : null}
             {offersGroupResolve ? (
-              <ProblemResolveTicketsSection problemId={problem.id} value={resolveTickets} onChange={setResolveTickets} disabled={pending} />
+              <ProblemResolveTicketsSection
+                problemId={problem.id}
+                value={resolveTickets}
+                onChange={setResolveTickets}
+                disabled={pending}
+              />
             ) : null}
             {error !== null ? (
               <p role="alert" className={errorTextClassName}>
@@ -140,10 +189,20 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
               </p>
             ) : null}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                disabled={pending}
+              >
                 {t("ui.cancel")}
               </Button>
-              <Button type="submit" variant={status === "CANCELLED" ? "danger" : "primary"} disabled={!canSubmit} data-testid="problem-status-submit">
+              <Button
+                type="submit"
+                variant={status === "CANCELLED" ? "danger" : "primary"}
+                disabled={!canSubmit}
+                data-testid="problem-status-submit"
+              >
                 {pending ? t("ui.loading") : t("problems.statusSheet.submit")}
               </Button>
             </div>
@@ -154,12 +213,21 @@ export function ProblemStatusSheet({ open, onOpenChange, problem, initialStatus,
   );
 }
 
-function ResolveOutcome({ outcome, onClose }: { readonly outcome: ProblemTicketResolveOutcome; readonly onClose: () => void }) {
+function ResolveOutcome({
+  outcome,
+  onClose,
+}: {
+  readonly outcome: ProblemTicketResolveOutcome;
+  readonly onClose: () => void;
+}) {
   const { t } = useTranslation();
   const withoutMessage = outcome.resolved.filter((item) => !item.messageSent);
   return (
     <div className="mt-4 grid gap-3" data-testid="problem-resolve-outcome">
-      <div role="status" className="flex items-start gap-2 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-[12.5px] text-foreground">
+      <div
+        role="status"
+        className="flex items-start gap-2 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-[12.5px] text-foreground"
+      >
         <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-success" aria-hidden="true" />
         <span>
           {t("problems.resolveTickets.outcome", {
@@ -171,16 +239,21 @@ function ResolveOutcome({ outcome, onClose }: { readonly outcome: ProblemTicketR
       </div>
       {withoutMessage.length > 0 ? (
         <p className={hintClassName}>
-          {t("problems.resolveTickets.withoutMessage", { tickets: withoutMessage.map((item) => item.ticketNumber).join(", ") })}
+          {t("problems.resolveTickets.withoutMessage", {
+            tickets: withoutMessage.map((item) => item.ticketNumber).join(", "),
+          })}
         </p>
       ) : null}
       {outcome.failed.length > 0 ? (
         <div className="grid gap-1">
-          <p className="text-[12.5px] font-medium text-foreground">{t("problems.resolveTickets.failedTitle")}</p>
+          <p className="text-[12.5px] font-medium text-foreground">
+            {t("problems.resolveTickets.failedTitle")}
+          </p>
           <ul className="grid gap-0.5 text-[12px] text-muted-foreground">
             {outcome.failed.map((item) => (
               <li key={item.ticketId}>
-                <span className="tnum font-medium text-foreground">{item.ticketNumber}</span> · {item.code}
+                <span className="tnum font-medium text-foreground">{item.ticketNumber}</span> ·{" "}
+                {item.code}
               </li>
             ))}
           </ul>
@@ -188,7 +261,12 @@ function ResolveOutcome({ outcome, onClose }: { readonly outcome: ProblemTicketR
         </div>
       ) : null}
       <div className="flex justify-end">
-        <Button type="button" variant="primary" onClick={onClose} data-testid="problem-resolve-outcome-close">
+        <Button
+          type="button"
+          variant="primary"
+          onClick={onClose}
+          data-testid="problem-resolve-outcome-close"
+        >
           {t("problems.resolveTickets.close")}
         </Button>
       </div>

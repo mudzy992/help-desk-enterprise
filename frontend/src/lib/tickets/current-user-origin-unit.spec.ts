@@ -38,20 +38,10 @@ function session(input: {
 
 describe("current user origin unit", () => {
   it("locks the origin unit field for USER and keeps it editable for AGENT", () => {
-    expect(canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.user] }))).toBe(
-      false,
-    );
-    expect(
-      canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.agent] })),
-    ).toBe(true);
-    expect(
-      canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.admin] })),
-    ).toBe(true);
-    expect(
-      canChooseTicketOriginUnit(
-        session({ roleKeys: [], isSuperAdmin: true }),
-      ),
-    ).toBe(true);
+    expect(canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.user] }))).toBe(false);
+    expect(canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.agent] }))).toBe(true);
+    expect(canChooseTicketOriginUnit(session({ roleKeys: [roleKeys.admin] }))).toBe(true);
+    expect(canChooseTicketOriginUnit(session({ roleKeys: [], isSuperAdmin: true }))).toBe(true);
   });
 
   it("prefers the session home unit over the single-unit catalog fallback", () => {
@@ -105,9 +95,9 @@ describe("current user origin unit", () => {
   });
 
   it("adds the session home unit to the select when the tree omitted it", () => {
-    expect(
-      originUnitOptionsForSelect([], { id: "ou-it", name: "IT Breza" }),
-    ).toEqual([{ id: "ou-it", label: "IT Breza" }]);
+    expect(originUnitOptionsForSelect([], { id: "ou-it", name: "IT Breza" })).toEqual([
+      { id: "ou-it", label: "IT Breza" },
+    ]);
   });
 
   it("maps USER to a locked origin unit field and AGENT to a prefilled select", () => {

@@ -14,10 +14,7 @@ import {
   type SlaProfile,
   type SlaRule,
 } from "@/services/sla-api";
-import {
-  buildSlaExposureIndex,
-  type SlaExposureIndex,
-} from "@/lib/sla/sla-exposure-index";
+import { buildSlaExposureIndex, type SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
 import { fetchSlaSummary } from "@/services/report-summary-api";
 
 export function useSlaPageData(organizationalUnitId: string | null) {
@@ -28,9 +25,7 @@ export function useSlaPageData(organizationalUnitId: string | null) {
   const [changes, setChanges] = useState<readonly SlaChangeLogEntry[]>([]);
   // Phase 2.4: the exposure numbers are served as aggregates; the screen keeps
   // only the lookup it renders from.
-  const [exposure, setExposure] = useState<SlaExposureIndex>(
-    () => buildSlaExposureIndex(null),
-  );
+  const [exposure, setExposure] = useState<SlaExposureIndex>(() => buildSlaExposureIndex(null));
   const [compliance, setCompliance] = useState<SlaComplianceResponse | null>(null);
   const [selectedId, setSelectedIdState] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -58,18 +53,17 @@ export function useSlaPageData(organizationalUnitId: string | null) {
     setIsLoading(true);
     setErrorKey(null);
     try {
-      const [profileItems, calendarItems, slaSummary, complianceData] =
-        await Promise.all([
-          listSlaProfiles(),
-          listSlaCalendars(),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.slaSummary,
-            queryFn: () => fetchSlaSummary(),
-          }),
-          organizationalUnitId === null
-            ? Promise.resolve(null)
-            : fetchSlaCompliance({ organizationalUnitId, days: 30 }),
-        ]);
+      const [profileItems, calendarItems, slaSummary, complianceData] = await Promise.all([
+        listSlaProfiles(),
+        listSlaCalendars(),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.slaSummary,
+          queryFn: () => fetchSlaSummary(),
+        }),
+        organizationalUnitId === null
+          ? Promise.resolve(null)
+          : fetchSlaCompliance({ organizationalUnitId, days: 30 }),
+      ]);
       setProfiles(profileItems);
       setCalendars(calendarItems);
       setExposure(buildSlaExposureIndex(slaSummary));
@@ -111,9 +105,7 @@ export function useSlaPageData(organizationalUnitId: string | null) {
     exposure,
     compliance,
     selectedId,
-    selected: isCreating
-      ? undefined
-      : profiles.find((profile) => profile.id === selectedId),
+    selected: isCreating ? undefined : profiles.find((profile) => profile.id === selectedId),
     isLoading,
     errorKey,
     setErrorKey,

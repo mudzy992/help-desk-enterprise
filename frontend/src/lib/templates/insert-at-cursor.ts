@@ -16,11 +16,18 @@ export function insertAtCursor(
   const lead = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
   const trail = after.length > 0 && !after.startsWith("\n") ? "\n" : "";
   const inserted = `${lead}${snippet}${trail}`;
-  return { value: `${before}${inserted}${after}`, caret: before.length + lead.length + snippet.length };
+  return {
+    value: `${before}${inserted}${after}`,
+    caret: before.length + lead.length + snippet.length,
+  };
 }
 
 /** `/` opens the picker only on an empty line start and without a selection. */
-export function isSlashTrigger(value: string, selectionStart: number, selectionEnd: number): boolean {
+export function isSlashTrigger(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+): boolean {
   if (selectionStart !== selectionEnd) return false;
   if (selectionStart === 0) return true;
   return value[selectionStart - 1] === "\n";

@@ -20,7 +20,12 @@ const apiError = (code: string) => new ApiError(403, code, "x");
 
 describe("privacy tabs", () => {
   it("hides anonymization, exports and the notice editor without the matching permission", () => {
-    expect(visiblePrivacyTabs({ canManage: false, canAnonymize: false })).toEqual(["requests", "retention", "holds", "record"]);
+    expect(visiblePrivacyTabs({ canManage: false, canAnonymize: false })).toEqual([
+      "requests",
+      "retention",
+      "holds",
+      "record",
+    ]);
     expect(visiblePrivacyTabs({ canManage: true, canAnonymize: false })).toEqual([
       "requests",
       "exports",
@@ -99,8 +104,12 @@ describe("formatting helpers", () => {
     const morning = new Date(2026, 8, 29, 7, 15, 0);
     expect(dateInputToIso("2026-09-29", morning)).toBe(morning.toISOString());
     const afternoon = new Date(2026, 8, 29, 15, 0, 0);
-    expect(dateInputToIso("2026-09-29", afternoon)).toBe(new Date(2026, 8, 29, 12, 0, 0).toISOString());
-    expect(dateInputToIso("2026-09-20", morning)).toBe(new Date(2026, 8, 20, 12, 0, 0).toISOString());
+    expect(dateInputToIso("2026-09-29", afternoon)).toBe(
+      new Date(2026, 8, 29, 12, 0, 0).toISOString(),
+    );
+    expect(dateInputToIso("2026-09-20", morning)).toBe(
+      new Date(2026, 8, 20, 12, 0, 0).toISOString(),
+    );
   });
 
   it("matches people by name or e-mail, case-insensitively", () => {

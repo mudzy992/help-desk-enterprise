@@ -11,12 +11,17 @@ export function pickerSectionOf(item: ResponseTemplatePickerItem): PickerSection
 }
 
 function normalize(text: string): string {
-  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("bs");
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("bs");
 }
 
 /** Every word of the query must appear in the name, a tag or the text. */
 export function matchesPickerQuery(item: ResponseTemplatePickerItem, query: string): boolean {
-  const words = normalize(query).split(/\s+/).filter((word) => word.length > 0);
+  const words = normalize(query)
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
   if (words.length === 0) return true;
   const haystack = normalize([item.name, ...item.tags, item.preview].join(" "));
   return words.every((word) => haystack.includes(word));
@@ -30,7 +35,10 @@ export function matchesPickerQuery(item: ResponseTemplatePickerItem, query: stri
 export function groupPickerItems(
   items: readonly ResponseTemplatePickerItem[],
   query: string,
-): readonly { readonly section: PickerSection; readonly items: readonly ResponseTemplatePickerItem[] }[] {
+): readonly {
+  readonly section: PickerSection;
+  readonly items: readonly ResponseTemplatePickerItem[];
+}[] {
   const filtered = items.filter((item) => matchesPickerQuery(item, query));
   return pickerSections
     .map((section) => ({

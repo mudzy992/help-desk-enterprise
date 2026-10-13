@@ -51,4 +51,3 @@ export const slaTimezoneOptions = [
   "Europe/Vienna",
   "UTC",
 ] as const;
-

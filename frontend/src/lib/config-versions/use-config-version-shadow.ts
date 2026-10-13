@@ -4,10 +4,7 @@ import {
   type ConfigVersionErrorKey,
 } from "@/lib/config-versions/map-config-version-error";
 import { readApiRequestId } from "@/lib/map-api-error";
-import {
-  shadowConfigVersion,
-  type ConfigShadowDiff,
-} from "@/services/config-versions-api";
+import { shadowConfigVersion, type ConfigShadowDiff } from "@/services/config-versions-api";
 
 export function useConfigVersionShadow() {
   const [result, setResult] = useState<ConfigShadowDiff | null>(null);

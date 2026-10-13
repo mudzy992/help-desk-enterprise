@@ -49,8 +49,21 @@ interface CommandPaletteProperties {
 }
 
 type Row =
-  | { readonly kind: "action"; readonly id: string; readonly label: string; readonly hint: string; readonly shortcut: string; readonly path: string; readonly icon: LucideIcon }
-  | { readonly kind: "navigation"; readonly id: string; readonly command: NavigationCommand; readonly label: string }
+  | {
+      readonly kind: "action";
+      readonly id: string;
+      readonly label: string;
+      readonly hint: string;
+      readonly shortcut: string;
+      readonly path: string;
+      readonly icon: LucideIcon;
+    }
+  | {
+      readonly kind: "navigation";
+      readonly id: string;
+      readonly command: NavigationCommand;
+      readonly label: string;
+    }
   | { readonly kind: "hit"; readonly id: string; readonly hit: HeaderSearchHit };
 
 const HIT_ICONS: Record<HeaderSearchHit["kind"], LucideIcon> = {
@@ -194,9 +207,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       setActiveIndex((index) => (rows.length === 0 ? 0 : (index + 1) % rows.length));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setActiveIndex((index) =>
-        rows.length === 0 ? 0 : (index - 1 + rows.length) % rows.length,
-      );
+      setActiveIndex((index) => (rows.length === 0 ? 0 : (index - 1 + rows.length) % rows.length));
     } else if (event.key === "Home") {
       event.preventDefault();
       setActiveIndex(0);
@@ -212,8 +223,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
     }
   };
 
-  const isAction = (row: Row): row is Extract<Row, { kind: "action" }> =>
-    row.kind === "action";
+  const isAction = (row: Row): row is Extract<Row, { kind: "action" }> => row.kind === "action";
   const isNavigation = (row: Row): row is Extract<Row, { kind: "navigation" }> =>
     row.kind === "navigation";
   const isHit = (row: Row): row is Extract<Row, { kind: "hit" }> => row.kind === "hit";
@@ -353,13 +363,9 @@ function PaletteRow({
         ? HIT_ICONS[row.hit.kind]
         : navigationIconFor(row.command.path);
 
-  const label = row.kind === "navigation" ? row.label : row.kind === "hit" ? row.hit.title : row.label;
-  const hint =
-    row.kind === "action"
-      ? row.hint
-      : row.kind === "hit"
-        ? row.hit.subtitle
-        : undefined;
+  const label =
+    row.kind === "navigation" ? row.label : row.kind === "hit" ? row.hit.title : row.label;
+  const hint = row.kind === "action" ? row.hint : row.kind === "hit" ? row.hit.subtitle : undefined;
 
   return (
     <button
@@ -398,9 +404,7 @@ function PaletteRow({
           <span className="block truncate text-[11.5px] text-muted-foreground">{hint}</span>
         ) : null}
       </span>
-      {row.kind === "action" ? (
-        <Kbd>{row.shortcut}</Kbd>
-      ) : null}
+      {row.kind === "action" ? <Kbd>{row.shortcut}</Kbd> : null}
     </button>
   );
 }

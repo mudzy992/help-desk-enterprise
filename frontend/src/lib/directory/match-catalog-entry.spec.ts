@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  matchCatalogEntry,
-  normalizeDirectoryPath,
-} from "@/lib/directory/match-catalog-entry";
+import { matchCatalogEntry, normalizeDirectoryPath } from "@/lib/directory/match-catalog-entry";
 import type { ManualDirectoryOrganizationalUnit } from "@/services/directory-sync-api";
 
 function entry(

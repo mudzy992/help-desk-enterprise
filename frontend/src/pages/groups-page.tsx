@@ -19,11 +19,7 @@ import { readApiRequestId } from "@/lib/map-api-error";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
-import {
-  createGroup,
-  listGroups,
-  type GroupListItemResponse,
-} from "@/services/groups-api";
+import { createGroup, listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { listRoutingRules } from "@/services/routing-api";
 
 interface GroupsPageProperties {
@@ -83,8 +79,7 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   });
 
   useEffect(() => {
-    const organizationalUnitIdFromUrl =
-      parseAdminGroupsOrganizationalUnitFilter(searchParams);
+    const organizationalUnitIdFromUrl = parseAdminGroupsOrganizationalUnitFilter(searchParams);
     if (organizationalUnitIdFromUrl.length > 0) {
       setFilterUnitId(organizationalUnitIdFromUrl);
     }
@@ -114,7 +109,11 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
 
   return (
     <section ref={containerRef}>
-      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+      <AdminConfigChangedBanner
+        pending={live.pending}
+        onRefresh={live.refreshNow}
+        onDismiss={live.dismiss}
+      />
       {embedded ? null : (
         <PageHeader
           crumbs={[brandCrumb, t("navigation.groups")]}

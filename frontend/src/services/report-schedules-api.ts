@@ -68,7 +68,11 @@ export type ReportScheduleRun = {
   readonly periodEnd: string;
   readonly recipientCount: number;
   readonly sentCount: number;
-  readonly skipped: readonly { readonly userId: string; readonly reason: string; readonly displayName: string | null }[];
+  readonly skipped: readonly {
+    readonly userId: string;
+    readonly reason: string;
+    readonly displayName: string | null;
+  }[];
   readonly omittedAttachments: readonly { readonly pack: string; readonly reason: string }[];
   readonly errorCode: string | null;
   readonly durationMs: number | null;
@@ -101,8 +105,14 @@ export function createReportSchedule(input: SaveReportScheduleInput): Promise<Re
   return apiRequest(base, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function updateReportSchedule(id: string, input: SaveReportScheduleInput): Promise<ReportSchedule> {
-  return apiRequest(`${base}/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(input) });
+export function updateReportSchedule(
+  id: string,
+  input: SaveReportScheduleInput,
+): Promise<ReportSchedule> {
+  return apiRequest(`${base}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
 }
 
 export function setReportScheduleEnabled(id: string, enabled: boolean): Promise<ReportSchedule> {
@@ -116,11 +126,15 @@ export function deleteReportSchedule(id: string): Promise<void> {
   return apiRequest(`${base}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-export function listReportScheduleRuns(id: string): Promise<{ readonly runs: readonly ReportScheduleRun[] }> {
+export function listReportScheduleRuns(
+  id: string,
+): Promise<{ readonly runs: readonly ReportScheduleRun[] }> {
   return apiRequest(`${base}/${encodeURIComponent(id)}/runs`);
 }
 
-export function sendReportScheduleTest(id: string): Promise<{ readonly sent: boolean; readonly reason?: string }> {
+export function sendReportScheduleTest(
+  id: string,
+): Promise<{ readonly sent: boolean; readonly reason?: string }> {
   return apiRequest(`${base}/${encodeURIComponent(id)}/send-test`, { method: "POST" });
 }
 

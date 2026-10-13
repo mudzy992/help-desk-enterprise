@@ -1,6 +1,13 @@
 import type { BadgeTone } from "@/components/ui/badge";
 import { ApiError } from "@/services/api";
-import type { ChangeAction, ChangeLevel, ChangeOutcome, ChangeRisk, ChangeStatus, ChangeType } from "@/services/changes-api";
+import type {
+  ChangeAction,
+  ChangeLevel,
+  ChangeOutcome,
+  ChangeRisk,
+  ChangeStatus,
+  ChangeType,
+} from "@/services/changes-api";
 
 /** Paket 3.4: labels, tones, rules mirrored from the backend and error keys. */
 
@@ -35,7 +42,9 @@ export const changeLevelKeys: Readonly<Record<ChangeLevel, `changes.level.${Chan
   HIGH: "changes.level.HIGH",
 };
 
-export const changeOutcomeKeys: Readonly<Record<ChangeOutcome, `changes.outcome.${ChangeOutcome}`>> = {
+export const changeOutcomeKeys: Readonly<
+  Record<ChangeOutcome, `changes.outcome.${ChangeOutcome}`>
+> = {
   SUCCESSFUL: "changes.outcome.SUCCESSFUL",
   PARTIAL: "changes.outcome.PARTIAL",
   FAILED: "changes.outcome.FAILED",
@@ -123,7 +132,9 @@ export function actionNeedsReason(action: ChangeAction): boolean {
 
 /** §9: actions whose window is checked for conflicts (target AUTHORIZATION or STANDARD schedule). */
 export function actionChecksConflicts(action: ChangeAction, type: ChangeType): boolean {
-  return action === "authorize" || action === "schedule" || (action === "submit" && type === "EMERGENCY");
+  return (
+    action === "authorize" || action === "schedule" || (action === "submit" && type === "EMERGENCY")
+  );
 }
 
 /** §12: review notes; failed or rolled-back changes need a real lesson. */
@@ -138,7 +149,9 @@ export function isDestructiveAction(action: ChangeAction): boolean {
 
 /** The natural next step gets the primary button; return, withdraw and cancel sit behind it. */
 export function primaryChangeAction(actions: readonly ChangeAction[]): ChangeAction | undefined {
-  return actions.find((action) => action !== "cancel" && action !== "return" && action !== "withdraw");
+  return actions.find(
+    (action) => action !== "cancel" && action !== "return" && action !== "withdraw",
+  );
 }
 
 const changeErrorKeys = {
@@ -193,25 +206,47 @@ export const changeRequirementFields = [
 export type ChangeRequirementField = (typeof changeRequirementFields)[number];
 
 /** Domain error -> i18n key; null when the error is not a change error. */
-export function mapChangeError(error: unknown): ChangeErrorKey | "changes.errors.requesterVote" | `changes.errors.requirement.${ChangeRequirementField}` | null {
+export function mapChangeError(
+  error: unknown,
+):
+  | ChangeErrorKey
+  | "changes.errors.requesterVote"
+  | `changes.errors.requirement.${ChangeRequirementField}`
+  | null {
   if (!(error instanceof ApiError)) return null;
   if (error.code === "CHANGE_REQUIREMENT_MISSING") {
     const field = changeRequirementFields.find((candidate) => candidate === error.message);
     if (field !== undefined) return `changes.errors.requirement.${field}`;
   }
-  if (error.code === "CHANGE_NOT_APPROVER" && error.message === "requester") return "changes.errors.requesterVote";
+  if (error.code === "CHANGE_NOT_APPROVER" && error.message === "requester")
+    return "changes.errors.requesterVote";
   return (changeErrorKeys as Readonly<Record<string, ChangeErrorKey>>)[error.code] ?? null;
 }
 
 /** Window shown as "start – end"; the end drops the date when on the same day. */
-export function formatChangeWindow(start: string | null, end: string | null, language: string): string {
+export function formatChangeWindow(
+  start: string | null,
+  end: string | null,
+  language: string,
+): string {
   if (start === null || end === null) return "—";
   const locale = language.startsWith("bs") ? "bs-BA" : "en-GB";
   const startDate = new Date(start);
   const endDate = new Date(end);
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return "—";
-  const full = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const full = new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const time = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
   const sameDay = startDate.toDateString() === endDate.toDateString();
   return `${full.format(startDate)} – ${sameDay ? time.format(endDate) : full.format(endDate)}`;
 }
@@ -240,7 +275,9 @@ const historyFieldKeys: Readonly<Record<string, string>> = {
 };
 
 const statusLabel = (t: Translate, value: unknown) =>
-  typeof value === "string" && value in changeStatusKeys ? t(changeStatusKeys[value as ChangeStatus]) : "—";
+  typeof value === "string" && value in changeStatusKeys
+    ? t(changeStatusKeys[value as ChangeStatus])
+    : "—";
 
 const countOf = (detail: Record<string, unknown> | null, key: string): number => {
   const value = detail?.[key];
@@ -249,33 +286,61 @@ const countOf = (detail: Record<string, unknown> | null, key: string): number =>
 };
 
 /** One line of the change history (§19). */
-export function changeHistoryText(t: Translate, action: string, detail: Record<string, unknown> | null): string {
-  const text = (key: string) => (detail !== null && typeof detail[key] === "string" ? (detail[key] as string) : null);
+export function changeHistoryText(
+  t: Translate,
+  action: string,
+  detail: Record<string, unknown> | null,
+): string {
+  const text = (key: string) =>
+    detail !== null && typeof detail[key] === "string" ? (detail[key] as string) : null;
   switch (action) {
     case "created":
       return t("changes.history.created", { number: text("number") ?? "" });
     case "status": {
       const via = text("action");
-      if (via === "cab") return t("changes.history.statusCab", { from: statusLabel(t, detail?.from), to: statusLabel(t, detail?.to) });
+      if (via === "cab")
+        return t("changes.history.statusCab", {
+          from: statusLabel(t, detail?.from),
+          to: statusLabel(t, detail?.to),
+        });
       if (via === "reschedule") return t("changes.history.statusReschedule");
-      return t("changes.history.status", { from: statusLabel(t, detail?.from), to: statusLabel(t, detail?.to) });
+      return t("changes.history.status", {
+        from: statusLabel(t, detail?.from),
+        to: statusLabel(t, detail?.to),
+      });
     }
     case "owner":
       return detail?.claimed === true ? t("changes.history.claimed") : t("changes.history.owner");
     case "updated": {
-      const changes = detail !== null && typeof detail.changes === "object" && detail.changes !== null ? Object.keys(detail.changes) : [];
-      const texts = Array.isArray(detail?.textChanged) ? (detail.textChanged as unknown[]).filter((item): item is string => typeof item === "string") : [];
-      const fields = [...changes, ...texts].map((field) => (historyFieldKeys[field] ? t(historyFieldKeys[field]) : field));
-      const links = countOf(detail, "addedServices") + countOf(detail, "removedServices") + countOf(detail, "addedAssets") + countOf(detail, "removedAssets");
+      const changes =
+        detail !== null && typeof detail.changes === "object" && detail.changes !== null
+          ? Object.keys(detail.changes)
+          : [];
+      const texts = Array.isArray(detail?.textChanged)
+        ? (detail.textChanged as unknown[]).filter(
+            (item): item is string => typeof item === "string",
+          )
+        : [];
+      const fields = [...changes, ...texts].map((field) =>
+        historyFieldKeys[field] ? t(historyFieldKeys[field]) : field,
+      );
+      const links =
+        countOf(detail, "addedServices") +
+        countOf(detail, "removedServices") +
+        countOf(detail, "addedAssets") +
+        countOf(detail, "removedAssets");
       if (links > 0) fields.push(t("changes.history.linksChanged"));
       return t("changes.history.updated", { fields: fields.join(", ") || "—" });
     }
     case "approval":
-      return t(detail?.decision === "REJECTED" ? "changes.history.rejected" : "changes.history.approved", {
-        approvals: countOf(detail, "approvals"),
-        quorum: countOf(detail, "quorum"),
-        round: countOf(detail, "round"),
-      });
+      return t(
+        detail?.decision === "REJECTED" ? "changes.history.rejected" : "changes.history.approved",
+        {
+          approvals: countOf(detail, "approvals"),
+          quorum: countOf(detail, "quorum"),
+          round: countOf(detail, "round"),
+        },
+      );
     case "conflicts_acknowledged":
       return t("changes.history.conflictsAcknowledged");
     case "downtime":
@@ -286,7 +351,9 @@ export function changeHistoryText(t: Translate, action: string, detail: Record<s
         skipped: countOf(detail, "skippedServiceIds"),
       });
     case "reminder":
-      return text("kind") === "overdue" ? t("changes.history.reminderOverdue") : t("changes.history.reminderStartingSoon");
+      return text("kind") === "overdue"
+        ? t("changes.history.reminderOverdue")
+        : t("changes.history.reminderStartingSoon");
     default:
       return action;
   }

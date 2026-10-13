@@ -36,10 +36,7 @@ describe("groupCategoryEntries", () => {
       "authentication",
       "sender",
     ]);
-    expect(groups[0]?.entries.map((item) => item.key)).toEqual([
-      "smtp.host",
-      "smtp.port",
-    ]);
+    expect(groups[0]?.entries.map((item) => item.key)).toEqual(["smtp.host", "smtp.port"]);
   });
 
   it("puts ungrouped entries last, whatever their position", () => {
@@ -50,10 +47,7 @@ describe("groupCategoryEntries", () => {
       entry("smtp.note", null),
     ]);
     expect(groups.map((group) => group.groupId)).toEqual(["connection", null]);
-    expect(groups[1]?.entries.map((item) => item.key)).toEqual([
-      "smtp.enabled",
-      "smtp.note",
-    ]);
+    expect(groups[1]?.entries.map((item) => item.key)).toEqual(["smtp.enabled", "smtp.note"]);
   });
 
   it("returns a single ungrouped bucket when nothing declares a group", () => {

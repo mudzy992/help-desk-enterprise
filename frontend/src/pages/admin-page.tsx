@@ -1,12 +1,16 @@
-import { Database, FolderTree, Server, Settings2, ShieldCheck, Users, UsersRound } from "lucide-react";
+import {
+  Database,
+  FolderTree,
+  Server,
+  Settings2,
+  ShieldCheck,
+  Users,
+  UsersRound,
+} from "lucide-react";
 import { type ReactNode, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import {
-  defaultAdminTab,
-  isAdminTab,
-  parseAdminTab,
-} from "@/lib/admin/parse-admin-tab";
+import { defaultAdminTab, isAdminTab, parseAdminTab } from "@/lib/admin/parse-admin-tab";
 import { AdminOpsPanel } from "@/components/admin/admin-ops-panel";
 import { AdminSecurityPanel } from "@/components/admin/admin-security-panel";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
@@ -28,9 +32,7 @@ export function AdminPage() {
   const { session, isLoading, hasRole } = useSessionCapabilities();
   const tab = parseAdminTab(searchParams.get("tab"));
   const canOpenAdmin =
-    session?.isSuperAdmin === true ||
-    hasRole(roleKeys.admin) ||
-    hasRole(roleKeys.superAdmin);
+    session?.isSuperAdmin === true || hasRole(roleKeys.admin) || hasRole(roleKeys.superAdmin);
 
   useEffect(() => {
     const raw = searchParams.get("tab");
@@ -144,17 +146,13 @@ export function AdminPage() {
             : []),
         ]}
       />
-      {tab === "org"
-        ? renderRestrictedTab(<OrganizationalUnitsPage embedded />)
-        : null}
+      {tab === "org" ? renderRestrictedTab(<OrganizationalUnitsPage embedded />) : null}
       {tab === "groups" ? renderRestrictedTab(<GroupsPage embedded />) : null}
       {tab === "users" ? renderRestrictedTab(<UsersPage embedded />) : null}
       {tab === "permissions" ? renderRestrictedTab(<PermissionsPage embedded />) : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
       {tab === "ops" ? renderRestrictedTab(<AdminOpsPanel />) : null}
-      {tab === "security" ? (
-        <AdminSecurityPanel isLoading={isLoading} session={session} />
-      ) : null}
+      {tab === "security" ? <AdminSecurityPanel isLoading={isLoading} session={session} /> : null}
     </section>
   );
 }

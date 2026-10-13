@@ -1,11 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ServiceDowntimeWindowsPanel } from "@/components/services/service-downtime-windows-panel";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 interface ServiceDowntimeWindowsSheetProperties {
   readonly serviceId: string | null;
@@ -31,10 +26,7 @@ export function ServiceDowntimeWindowsSheet({
         </SheetDescription>
         {serviceId !== null ? (
           <div className="mt-4">
-            <ServiceDowntimeWindowsPanel
-              serviceId={serviceId}
-              onChanged={onChanged}
-            />
+            <ServiceDowntimeWindowsPanel serviceId={serviceId} onChanged={onChanged} />
           </div>
         ) : null}
       </SheetContent>

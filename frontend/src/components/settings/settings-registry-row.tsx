@@ -17,10 +17,7 @@ interface SettingsRegistryRowProperties {
  * button: the whole row opens the detail dialog, which keeps the touch target
  * large on a phone.
  */
-export function SettingsRegistryRow({
-  entry,
-  onOpen,
-}: SettingsRegistryRowProperties) {
+export function SettingsRegistryRow({ entry, onOpen }: SettingsRegistryRowProperties) {
   const { t } = useTranslation();
   const title = resolveRegistryTitle(t, entry);
   const isSecret = entry.visibility === "secret";

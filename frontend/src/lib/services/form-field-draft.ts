@@ -47,9 +47,7 @@ export function withSelectOptions(field: ServiceFormField): ServiceFormField {
     }
     return { ...rest, validation: restValidation };
   }
-  const options = field.validation?.options ?? [
-    { value: "opcija_1", label: "Opcija 1" },
-  ];
+  const options = field.validation?.options ?? [{ value: "opcija_1", label: "Opcija 1" }];
   return {
     ...field,
     validation: {
@@ -59,9 +57,7 @@ export function withSelectOptions(field: ServiceFormField): ServiceFormField {
   };
 }
 
-export function orderedFormSchema(
-  fields: readonly ServiceFormField[],
-): ServiceFormSchema {
+export function orderedFormSchema(fields: readonly ServiceFormField[]): ServiceFormSchema {
   return {
     schemaVersion: 1,
     fields: fields.map((field, index) => ({ ...field, order: index })),

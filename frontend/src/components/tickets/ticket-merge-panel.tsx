@@ -2,14 +2,23 @@ import { useEffect, useState } from "react";
 import { GitMerge, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName, textareaClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  errorTextClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
-import { listMergeCandidates, mergeTicket, type MergeCandidate } from "@/services/tickets-merge-api";
+import {
+  listMergeCandidates,
+  mergeTicket,
+  type MergeCandidate,
+} from "@/services/tickets-merge-api";
 
 const minimumReasonLength = 3;
 const maximumReasonLength = 500;
@@ -26,7 +35,12 @@ interface TicketMergePanelProperties {
  * tickets that pass rule M1 and that the person handles as staff; the server
  * checks everything again on submit.
  */
-export function TicketMergePanel({ ticket, open, onOpenChange, onComplete }: TicketMergePanelProperties) {
+export function TicketMergePanel({
+  ticket,
+  open,
+  onOpenChange,
+  onComplete,
+}: TicketMergePanelProperties) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<readonly MergeCandidate[]>([]);
@@ -80,19 +94,30 @@ export function TicketMergePanel({ ticket, open, onOpenChange, onComplete }: Tic
   }, [open, query, ticket.id]);
 
   const trimmed = reason.trim();
-  const reasonValid = trimmed.length >= minimumReasonLength && trimmed.length <= maximumReasonLength;
+  const reasonValid =
+    trimmed.length >= minimumReasonLength && trimmed.length <= maximumReasonLength;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5" data-testid="ticket-merge-panel">
-        <SheetTitle>{ticketText(t, "tickets.merge.title", { number: ticket.ticketNumber })}</SheetTitle>
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-md flex-col overflow-y-auto p-5"
+        data-testid="ticket-merge-panel"
+      >
+        <SheetTitle>
+          {ticketText(t, "tickets.merge.title", { number: ticket.ticketNumber })}
+        </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("tickets.merge.hint")}
         </SheetDescription>
         <label className={`mt-4 ${labelClassName}`}>
           {t("tickets.merge.search")}
           <span className="relative block">
-            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Search
+              size={13}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
             <input
               className={cn(controlClassName, "pl-8")}
               value={query}
@@ -102,7 +127,10 @@ export function TicketMergePanel({ ticket, open, onOpenChange, onComplete }: Tic
             />
           </span>
         </label>
-        <ul className="mt-2 max-h-64 divide-y divide-border/50 overflow-y-auto rounded-md border border-border" aria-busy={searching}>
+        <ul
+          className="mt-2 max-h-64 divide-y divide-border/50 overflow-y-auto rounded-md border border-border"
+          aria-busy={searching}
+        >
           {candidates.length === 0 ? (
             <li className="px-3 py-3 text-[12px] text-muted-foreground">
               {query.trim().length < 2
@@ -195,6 +223,8 @@ export function TicketMergePanel({ ticket, open, onOpenChange, onComplete }: Tic
 }
 
 function statusLabel(t: ReturnType<typeof useTranslation>["t"], status: string): string {
-  const key = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[status as TicketStatus];
+  const key = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[
+    status as TicketStatus
+  ];
   return key === undefined ? status : ticketText(t, key);
 }

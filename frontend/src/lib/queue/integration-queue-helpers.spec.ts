@@ -16,18 +16,14 @@ describe("integration queue helpers", () => {
   });
 
   it("gates manage access to SuperAdmin or queue permission", () => {
-    expect(
-      canManageIntegrationQueue({ isSuperAdmin: true, permissionKeys: [] }),
-    ).toBe(true);
+    expect(canManageIntegrationQueue({ isSuperAdmin: true, permissionKeys: [] })).toBe(true);
     expect(
       canManageIntegrationQueue({
         isSuperAdmin: false,
         permissionKeys: [permissionKeys.integrationsQueueManage],
       }),
     ).toBe(true);
-    expect(
-      canManageIntegrationQueue({ isSuperAdmin: false, permissionKeys: [] }),
-    ).toBe(false);
+    expect(canManageIntegrationQueue({ isSuperAdmin: false, permissionKeys: [] })).toBe(false);
   });
 
   it("maps admin-disabled and invalid-status codes", () => {

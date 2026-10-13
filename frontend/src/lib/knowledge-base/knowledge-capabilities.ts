@@ -18,8 +18,7 @@ export function resolveKnowledgeCapabilities(
   capabilities: SessionCapabilities,
 ): KnowledgeCapabilities {
   const isSuperAdmin =
-    capabilities.session?.isSuperAdmin === true ||
-    capabilities.hasRole(roleKeys.superAdmin);
+    capabilities.session?.isSuperAdmin === true || capabilities.hasRole(roleKeys.superAdmin);
   const isStaff = isTicketStaff(capabilities);
   return {
     isSuperAdmin,

@@ -20,7 +20,10 @@ import { useCatalogRoutingCoverage } from "@/lib/services/use-catalog-routing-co
 import { useServiceCatalog } from "@/lib/services/use-service-catalog";
 import { useServiceCategories } from "@/lib/services/use-service-categories";
 import { useVisibleOnboardings } from "@/lib/services/use-visible-onboardings";
-import { canBypassAdminReadOnly, resolveCatalogWriteFlags } from "@/lib/services/resolve-catalog-write-flags";
+import {
+  canBypassAdminReadOnly,
+  resolveCatalogWriteFlags,
+} from "@/lib/services/resolve-catalog-write-flags";
 import {
   adminReadOnlyModuleKeys,
   useAdminModuleReadOnly,
@@ -38,9 +41,7 @@ export function ServicesPage() {
   const routingCoverage = useCatalogRoutingCoverage();
   const onboardings = useVisibleOnboardings(catalog.rows);
   const { session, hasPermission } = useSessionCapabilities();
-  const catalogReadOnly = useAdminModuleReadOnly(
-    adminReadOnlyModuleKeys.serviceCatalog,
-  );
+  const catalogReadOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.serviceCatalog);
   const writeFlags = resolveCatalogWriteFlags({
     hasCatalogWrite: hasPermission(permissionKeys.serviceCatalogWrite),
     hasAvailabilityWrite: hasPermission(permissionKeys.serviceAvailabilityWrite),
@@ -48,9 +49,7 @@ export function ServicesPage() {
     isModuleLocked: catalogReadOnly.isLocked,
     canBypass: canBypassAdminReadOnly(session),
   });
-  const [wizardServiceId, setWizardServiceId] = useState<string | null | undefined>(
-    undefined,
-  );
+  const [wizardServiceId, setWizardServiceId] = useState<string | null | undefined>(undefined);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceResponse | null>(null);
   const [lifecycleService, setLifecycleService] = useState<ServiceResponse | null>(null);
@@ -58,9 +57,7 @@ export function ServicesPage() {
   const [formServiceId, setFormServiceId] = useState<string | null>(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(
-    null,
-  );
+  const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(null);
   const reloadCatalog = useCallback(async () => {
     await Promise.all([catalog.reload(), routingCoverage.reload()]);
   }, [catalog.reload, routingCoverage.reload]);
@@ -131,9 +128,17 @@ export function ServicesPage() {
         <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
       ) : catalogView === "error" ? (
         <div className="grid gap-3 rounded-lg border border-danger/25 bg-danger/5 p-4 sm:p-5">
-          <ApiErrorText messageKey={catalog.errorKey ?? "errors.network"} requestId={catalog.requestId} />
+          <ApiErrorText
+            messageKey={catalog.errorKey ?? "errors.network"}
+            requestId={catalog.requestId}
+          />
           <div>
-            <Button type="button" size="sm" variant="outline" onClick={() => void reloadCategories()}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void reloadCategories()}
+            >
               {t("services.retryLoad")}
             </Button>
           </div>

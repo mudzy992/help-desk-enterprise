@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  applyNotificationCreated,
-  applyNotificationRead,
-} from "./apply-notification-realtime";
+import { applyNotificationCreated, applyNotificationRead } from "./apply-notification-realtime";
 import type { InAppNotification } from "@/services/notifications-api";
 
 const item = (id: string, isRead = false): InAppNotification => ({

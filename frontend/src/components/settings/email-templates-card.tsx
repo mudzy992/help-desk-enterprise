@@ -40,7 +40,9 @@ export function EmailTemplatesCard(_properties: EmailTemplatesCardProperties) {
         overview.keys.filter((key) => {
           const current = overview.templates[locale][key];
           const fallback = overview.defaults[locale][key];
-          return current !== undefined && fallback !== undefined && isTemplateModified(current, fallback);
+          return (
+            current !== undefined && fallback !== undefined && isTemplateModified(current, fallback)
+          );
         }).length,
       0,
     );
@@ -59,13 +61,17 @@ export function EmailTemplatesCard(_properties: EmailTemplatesCardProperties) {
           {delivery !== undefined ? (
             <>
               <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t("settings.emailTemplates.provider")}</span>
+                <span className="text-muted-foreground">
+                  {t("settings.emailTemplates.provider")}
+                </span>
                 <span className="text-foreground/90">
                   {t(`settings.emailTemplates.providers.${delivery.provider}`)}
                 </span>
               </p>
               <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t("settings.emailTemplates.replyMode")}</span>
+                <span className="text-muted-foreground">
+                  {t("settings.emailTemplates.replyMode")}
+                </span>
                 <Badge tone={delivery.replyMode === "shared_mailbox" ? "info" : "neutral"}>
                   {delivery.replyMode === "shared_mailbox"
                     ? t("settings.emailTemplates.replyShared", {
@@ -75,7 +81,9 @@ export function EmailTemplatesCard(_properties: EmailTemplatesCardProperties) {
                 </Badge>
               </p>
               <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t("settings.emailTemplates.customized")}</span>
+                <span className="text-muted-foreground">
+                  {t("settings.emailTemplates.customized")}
+                </span>
                 <span className="tnum text-foreground/90">
                   {modifiedCount === 0
                     ? t("settings.emailTemplates.allDefault")
@@ -86,7 +94,10 @@ export function EmailTemplatesCard(_properties: EmailTemplatesCardProperties) {
                 <Warning text={t("settings.emailTemplates.replyFallbackWarning")} />
               ) : null}
               {!delivery.publicUrlConfigured ? (
-                <Warning text={t("settings.emailTemplates.publicUrlWarning")} testId="public-url-warning" />
+                <Warning
+                  text={t("settings.emailTemplates.publicUrlWarning")}
+                  testId="public-url-warning"
+                />
               ) : null}
               {!delivery.hasSmtpTransport ? (
                 <Warning text={t("settings.emailTemplates.smtpMissingWarning")} />
@@ -121,4 +132,3 @@ export function Warning({ text, testId }: { readonly text: string; readonly test
     </p>
   );
 }
-

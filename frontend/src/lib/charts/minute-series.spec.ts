@@ -63,7 +63,12 @@ describe("alignMinuteSeries", () => {
 describe("minuteBarsMax and barHeightPercent", () => {
   it("shares one scale over both series and never divides by zero", () => {
     expect(minuteBarsMax([{ a: 0, b: 0 }])).toBe(1);
-    expect(minuteBarsMax([{ a: 3, b: 9 }, { a: 4, b: 0 }])).toBe(9);
+    expect(
+      minuteBarsMax([
+        { a: 3, b: 9 },
+        { a: 4, b: 0 },
+      ]),
+    ).toBe(9);
   });
 
   it("gives an empty minute no bar and a small value a visible one", () => {

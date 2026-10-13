@@ -231,7 +231,9 @@ export function listPlaybooks(input: {
   readonly serviceId?: string;
   readonly state?: TemplateListState;
 }): Promise<readonly Playbook[]> {
-  return apiRequest(`/playbooks${query({ q: input.q, serviceId: input.serviceId, state: input.state })}`);
+  return apiRequest(
+    `/playbooks${query({ q: input.q, serviceId: input.serviceId, state: input.state })}`,
+  );
 }
 
 export function getPlaybook(playbookId: string): Promise<Playbook> {
@@ -246,8 +248,14 @@ export function updatePlaybook(playbookId: string, input: SavePlaybookInput): Pr
   return apiRequest(`/playbooks/${playbookId}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
-export function deletePlaybook(playbookId: string, reason: string): Promise<{ readonly id: string }> {
-  return apiRequest(`/playbooks/${playbookId}`, { method: "DELETE", body: JSON.stringify({ reason }) });
+export function deletePlaybook(
+  playbookId: string,
+  reason: string,
+): Promise<{ readonly id: string }> {
+  return apiRequest(`/playbooks/${playbookId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ reason }),
+  });
 }
 
 // ------------------------------------------------------ ticket checklist
@@ -299,14 +307,20 @@ export function getTicketPlaybook(ticketId: string): Promise<TicketPlaybookView>
   return apiRequest(`/tickets/${ticketId}/playbook`);
 }
 
-export function attachTicketPlaybook(ticketId: string, playbookId: string): Promise<TicketPlaybookView> {
+export function attachTicketPlaybook(
+  ticketId: string,
+  playbookId: string,
+): Promise<TicketPlaybookView> {
   return apiRequest(`/tickets/${ticketId}/playbook`, {
     method: "POST",
     body: JSON.stringify({ playbookId }),
   });
 }
 
-export function detachTicketPlaybook(ticketId: string, reason: string): Promise<TicketPlaybookView> {
+export function detachTicketPlaybook(
+  ticketId: string,
+  reason: string,
+): Promise<TicketPlaybookView> {
   return apiRequest(`/tickets/${ticketId}/playbook`, {
     method: "DELETE",
     body: JSON.stringify({ reason }),

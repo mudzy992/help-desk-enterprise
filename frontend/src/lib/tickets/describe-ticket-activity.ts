@@ -120,7 +120,11 @@ export function describeMergeOrPriorityEvent(
     };
   }
   // Paket 2.7: `ticket_incident_*:<incidentId>|<title>`.
-  if (action === "ticket_incident_linked" || action === "ticket_incident_unlinked" || action === "ticket_incident_resolved") {
+  if (
+    action === "ticket_incident_linked" ||
+    action === "ticket_incident_unlinked" ||
+    action === "ticket_incident_resolved"
+  ) {
     const parsed = parseIncidentEventDetail(detail);
     if (parsed === null) {
       return null;
@@ -139,7 +143,10 @@ export function describeMergeOrPriorityEvent(
     if (parsed === null) {
       return null;
     }
-    const key = action === "ticket_problem_linked" ? "tickets.activity.problemLinked" : "tickets.activity.problemUnlinked";
+    const key =
+      action === "ticket_problem_linked"
+        ? "tickets.activity.problemLinked"
+        : "tickets.activity.problemUnlinked";
     return { text: ticketText(t, key, { problem: parsed.title }), note: null };
   }
   // Paket 3.3: unstarted ticket taken over by the problem group resolution.
@@ -148,7 +155,10 @@ export function describeMergeOrPriorityEvent(
     if (parsed === null) {
       return null;
     }
-    return { text: ticketText(t, "tickets.activity.problemTakeover", { problem: parsed.title }), note: null };
+    return {
+      text: ticketText(t, "tickets.activity.problemTakeover", { problem: parsed.title }),
+      note: null,
+    };
   }
   // Paket 2.9 (K1c): `ticket_knowledge_draft_created:<articleId>|<title>` (staff only).
   if (action === "ticket_knowledge_draft_created") {
@@ -204,9 +214,11 @@ export function describeMergeOrPriorityEvent(
 }
 
 /** The last manual priority change, for the "manual" badge tooltip. */
-export function findLastPriorityOverride(
-  messages: readonly TicketMessageResponse[],
-): { readonly authorUserId: string | null; readonly at: string; readonly reason: string | null } | null {
+export function findLastPriorityOverride(messages: readonly TicketMessageResponse[]): {
+  readonly authorUserId: string | null;
+  readonly at: string;
+  readonly reason: string | null;
+} | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message === undefined || message.type !== "SYSTEM_EVENT") {
@@ -220,17 +232,17 @@ export function findLastPriorityOverride(
     if (mode !== "manual") {
       return null;
     }
-    return { authorUserId: message.authorUserId, at: message.createdAt, reason: rest.join(":").trim() || null };
+    return {
+      authorUserId: message.authorUserId,
+      at: message.createdAt,
+      reason: rest.join(":").trim() || null,
+    };
   }
   return null;
 }
 
 /** Event text; an assignment names who the ticket was assigned to. */
-function describeEventText(
-  action: string,
-  targetName: string | null,
-  t: TFunction,
-): string {
+function describeEventText(action: string, targetName: string | null, t: TFunction): string {
   if (action === "ticket_assigned" && targetName !== null) {
     return ticketText(t, "tickets.activity.assignedTo", { name: targetName });
   }
@@ -252,11 +264,7 @@ export function describePublicActivity(
   };
 }
 
-function formatHistoryValue(
-  field: string,
-  value: string | null,
-  t: TFunction,
-): string {
+function formatHistoryValue(field: string, value: string | null, t: TFunction): string {
   if (value === null) {
     return "—";
   }
@@ -278,12 +286,17 @@ export function describeHistoryActivity(
   return {
     id: `history-${entry.id}`,
     at: entry.createdAt,
-    kind: entry.changes.some((change) => change.field === "assignedUser" || change.field === "assignedGroup")
+    kind: entry.changes.some(
+      (change) => change.field === "assignedUser" || change.field === "assignedGroup",
+    )
       ? "assign"
       : "status",
     actor:
       entry.actorName ??
-      ticketText(t, entry.actorUserId === null ? "tickets.activity.system" : "tickets.detail.unknownUser"),
+      ticketText(
+        t,
+        entry.actorUserId === null ? "tickets.activity.system" : "tickets.detail.unknownUser",
+      ),
     text: entry.changes.map((change) => describeHistoryChange(change, t)).join("; "),
     note: null,
   };

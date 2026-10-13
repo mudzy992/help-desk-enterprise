@@ -29,7 +29,12 @@ describe("map-report-dashboard-charts", () => {
   it("mapira starenje u četiri korpe, od najsvježije do najstarije", () => {
     const items = mapAgingBars(
       { lessThanOneDay: 3, oneToThreeDays: 2, threeToSevenDays: 1, moreThanSevenDays: 0 },
-      { lessThanOneDay: "do 1 dan", oneToThreeDays: "1–3", threeToSevenDays: "3–7", moreThanSevenDays: "> 7" },
+      {
+        lessThanOneDay: "do 1 dan",
+        oneToThreeDays: "1–3",
+        threeToSevenDays: "3–7",
+        moreThanSevenDays: "> 7",
+      },
     );
 
     expect(items.map((item) => item.value)).toEqual([3, 2, 1, 0]);

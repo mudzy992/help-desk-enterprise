@@ -124,9 +124,7 @@ export function loadSettingsAddons(): Promise<InstallAddonsStatus> {
 }
 
 /** Paket 5.3.3: exactly what switching this key off would change right now. */
-export function getSettingDependents(
-  key: string,
-): Promise<readonly SettingDependentReset[]> {
+export function getSettingDependents(key: string): Promise<readonly SettingDependentReset[]> {
   return apiRequest(`/settings/dependents?key=${encodeURIComponent(key)}`);
 }
 
@@ -135,10 +133,8 @@ export const emailChannelSettingKeys = {
   templatesEnabled: "private.notifications.templates.enabled",
   internalOnly: "private.notifications.email.internalOnly",
   internalDomainsCsv: "private.notifications.email.internalDomainsCsv",
-  allowedExternalDomainsCsv:
-    "private.notifications.email.allowedExternalDomainsCsv",
-  allowedExternalEmailsCsv:
-    "private.notifications.email.allowedExternalEmailsCsv",
+  allowedExternalDomainsCsv: "private.notifications.email.allowedExternalDomainsCsv",
+  allowedExternalEmailsCsv: "private.notifications.email.allowedExternalEmailsCsv",
   templatesJson: "private.notifications.templates.registryJson",
   replyMode: "private.notifications.email.replyMode",
   replyToAddress: "private.notifications.email.replyToAddress",

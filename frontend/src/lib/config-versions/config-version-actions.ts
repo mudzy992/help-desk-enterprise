@@ -1,7 +1,4 @@
-import {
-  configVersionStatuses,
-  type ConfigVersionStatus,
-} from "@/services/config-versions-types";
+import { configVersionStatuses, type ConfigVersionStatus } from "@/services/config-versions-types";
 
 export function canValidateConfigVersion(status: ConfigVersionStatus): boolean {
   return (

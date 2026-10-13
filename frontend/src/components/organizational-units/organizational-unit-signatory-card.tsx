@@ -10,7 +10,11 @@ import { hintClassName } from "@/components/ui/control";
 import { useToast } from "@/components/ui/toast";
 import { mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { assetTransferQueryKeys, getAssetSignatories, removeAssetSignatory } from "@/services/asset-transfers-api";
+import {
+  assetTransferQueryKeys,
+  getAssetSignatories,
+  removeAssetSignatory,
+} from "@/services/asset-transfers-api";
 
 interface OrganizationalUnitSignatoryCardProperties {
   readonly unitId: string;
@@ -24,25 +28,43 @@ interface OrganizationalUnitSignatoryCardProperties {
  * Only admins with asset.type.manage over every unit get data; anybody else
  * gets 403/404 and the card stays hidden.
  */
-export function OrganizationalUnitSignatoryCard({ unitId, enabled }: OrganizationalUnitSignatoryCardProperties) {
+export function OrganizationalUnitSignatoryCard({
+  unitId,
+  enabled,
+}: OrganizationalUnitSignatoryCardProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const query = useQuery({ queryKey: assetTransferQueryKeys.signatories, queryFn: getAssetSignatories, enabled, retry: false });
+  const query = useQuery({
+    queryKey: assetTransferQueryKeys.signatories,
+    queryFn: getAssetSignatories,
+    enabled,
+    retry: false,
+  });
   if (!enabled || !query.data) return null;
   const units = query.data.units;
   const unit = units.find((entry) => entry.id === unitId);
   if (!unit) return null;
-  const inheritedFrom = unit.effective.inheritedFromUnitId ? units.find((entry) => entry.id === unit.effective.inheritedFromUnitId)?.name : null;
+  const inheritedFrom = unit.effective.inheritedFromUnitId
+    ? units.find((entry) => entry.id === unit.effective.inheritedFromUnitId)?.name
+    : null;
 
   async function remove() {
     try {
       await removeAssetSignatory(unitId);
       await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.signatories });
-      toast({ tone: "success", title: t("assets.transfers.signatories.removed", { unit: unit?.name ?? "" }) });
+      toast({
+        tone: "success",
+        title: t("assets.transfers.signatories.removed", { unit: unit?.name ?? "" }),
+      });
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.transfers.actionFailed"),
+        description: t(mapAssetError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     }
   }
 
@@ -55,10 +77,18 @@ export function OrganizationalUnitSignatoryCard({ unitId, enabled }: Organizatio
           <div className="flex gap-1">
             <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}>
               <Pencil size={13} aria-hidden="true" />
-              {unit.own ? t("assets.transfers.signatories.change") : t("assets.transfers.signatories.set")}
+              {unit.own
+                ? t("assets.transfers.signatories.change")
+                : t("assets.transfers.signatories.set")}
             </Button>
             {unit.own ? (
-              <Button type="button" size="sm" variant="ghost" onClick={() => void remove()} aria-label={t("assets.transfers.signatories.removeFor", { unit: unit.name })}>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => void remove()}
+                aria-label={t("assets.transfers.signatories.removeFor", { unit: unit.name })}
+              >
                 <X size={13} aria-hidden="true" />
               </Button>
             ) : null}
@@ -69,7 +99,9 @@ export function OrganizationalUnitSignatoryCard({ unitId, enabled }: Organizatio
         {unit.own ? (
           <p className="text-foreground">
             {unit.own.displayName}
-            {unit.own.title ? <span className="text-muted-foreground"> · {unit.own.title}</span> : null}
+            {unit.own.title ? (
+              <span className="text-muted-foreground"> · {unit.own.title}</span>
+            ) : null}
             {!unit.own.isActive ? (
               <Badge tone="warning" className="ml-2">
                 {t("assets.transfers.signatories.inactive")}
@@ -79,8 +111,18 @@ export function OrganizationalUnitSignatoryCard({ unitId, enabled }: Organizatio
         ) : (
           <p className="text-foreground">
             {unit.effective.displayName ?? t("assets.transfers.noSignatory")}
-            {inheritedFrom ? <span className="text-muted-foreground"> ({t("assets.transfers.signatories.inheritedFrom", { unit: inheritedFrom })})</span> : null}
-            {unit.effective.source === "default" ? <span className="text-muted-foreground"> ({t("assets.transfers.signatories.fromDefault")})</span> : null}
+            {inheritedFrom ? (
+              <span className="text-muted-foreground">
+                {" "}
+                ({t("assets.transfers.signatories.inheritedFrom", { unit: inheritedFrom })})
+              </span>
+            ) : null}
+            {unit.effective.source === "default" ? (
+              <span className="text-muted-foreground">
+                {" "}
+                ({t("assets.transfers.signatories.fromDefault")})
+              </span>
+            ) : null}
           </p>
         )}
         <p className={hintClassName}>{t("assets.transfers.signatories.sheetDescription")}</p>

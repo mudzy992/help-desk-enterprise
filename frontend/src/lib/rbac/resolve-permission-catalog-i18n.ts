@@ -8,11 +8,7 @@ export function resolvePermissionDescription(
   const catalog = translate("permissions.catalog.keys", {
     returnObjects: true,
   });
-  if (
-    typeof catalog === "object" &&
-    catalog !== null &&
-    !Array.isArray(catalog)
-  ) {
+  if (typeof catalog === "object" && catalog !== null && !Array.isArray(catalog)) {
     const override = (catalog as Record<string, unknown>)[key];
     if (typeof override === "string" && override.trim().length > 0) {
       return override;
@@ -21,18 +17,11 @@ export function resolvePermissionDescription(
   return backendDescription;
 }
 
-export function resolvePermissionCategoryTitle(
-  translate: TFunction,
-  categoryId: string,
-): string {
+export function resolvePermissionCategoryTitle(translate: TFunction, categoryId: string): string {
   const catalog = translate("permissions.catalog.categories", {
     returnObjects: true,
   });
-  if (
-    typeof catalog === "object" &&
-    catalog !== null &&
-    !Array.isArray(catalog)
-  ) {
+  if (typeof catalog === "object" && catalog !== null && !Array.isArray(catalog)) {
     const override = (catalog as Record<string, unknown>)[categoryId];
     if (typeof override === "string" && override.trim().length > 0) {
       return override;

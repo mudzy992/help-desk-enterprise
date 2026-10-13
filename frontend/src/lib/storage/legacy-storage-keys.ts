@@ -13,7 +13,9 @@ export const legacyStorageKeys: readonly (readonly [legacy: string, current: str
   ["ephelpdesk.locale", "service-desk.locale"],
 ];
 
-export function migrateLegacyStorageKeys(storage: Pick<Storage, "getItem" | "setItem" | "removeItem">): void {
+export function migrateLegacyStorageKeys(
+  storage: Pick<Storage, "getItem" | "setItem" | "removeItem">,
+): void {
   for (const [legacy, current] of legacyStorageKeys) {
     try {
       const value = storage.getItem(legacy);

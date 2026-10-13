@@ -50,10 +50,7 @@ describe("user-role-group-coverage", () => {
         },
       ],
     });
-    const actual = await userIsMemberOfAnyGroupForOrganizationalUnit(
-      "user-1",
-      "ou-1",
-    );
+    const actual = await userIsMemberOfAnyGroupForOrganizationalUnit("user-1", "ou-1");
     expect(actual).toBe(true);
   });
 

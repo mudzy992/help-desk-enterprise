@@ -58,7 +58,9 @@ export function PasskeySection({
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   /** The attestation the device produced, waiting for the TOTP code. */
-  const [pendingAttestation, setPendingAttestation] = useState<Record<string, unknown> | null>(null);
+  const [pendingAttestation, setPendingAttestation] = useState<Record<string, unknown> | null>(
+    null,
+  );
 
   const confirmRegistration = useCallback(
     async (attestation: Record<string, unknown>, code?: string) => {
@@ -80,43 +82,40 @@ export function PasskeySection({
     [onChanged, t, toast],
   );
 
-  const runRegistration = useCallback(
-    async () => {
-      setErrorKey(null);
-      setStep("ceremony");
-      const started = await startPasskeyRegistration().catch((error: unknown) => {
-        setErrorKey(t(passkeyMessageKey(error)));
-        return null;
-      });
-      if (started === null) {
-        setStep("idle");
-        return;
+  const runRegistration = useCallback(async () => {
+    setErrorKey(null);
+    setStep("ceremony");
+    const started = await startPasskeyRegistration().catch((error: unknown) => {
+      setErrorKey(t(passkeyMessageKey(error)));
+      return null;
+    });
+    if (started === null) {
+      setStep("idle");
+      return;
+    }
+    const ceremony = await createPasskeyCredential(started.options);
+    if (ceremony.kind !== "ok") {
+      if (ceremony.kind !== "cancelled") {
+        setErrorKey(t(ceremonyMessageKey(ceremony)));
       }
-      const ceremony = await createPasskeyCredential(started.options);
-      if (ceremony.kind !== "ok") {
-        if (ceremony.kind !== "cancelled") {
-          setErrorKey(t(ceremonyMessageKey(ceremony)));
-        }
-        setStep("idle");
-        return;
-      }
-      const attestation = ceremony.value as unknown as Record<string, unknown>;
-      if (hasTotp) {
-        // Ask for the code only now: it stays valid while it is being typed.
-        setPendingAttestation(attestation);
-        setStep("code");
-        return;
-      }
-      try {
-        await confirmRegistration(attestation);
-      } catch {
-        // The message is already on screen; the challenge is spent either way.
-      } finally {
-        setStep("idle");
-      }
-    },
-    [confirmRegistration, hasTotp, t],
-  );
+      setStep("idle");
+      return;
+    }
+    const attestation = ceremony.value as unknown as Record<string, unknown>;
+    if (hasTotp) {
+      // Ask for the code only now: it stays valid while it is being typed.
+      setPendingAttestation(attestation);
+      setStep("code");
+      return;
+    }
+    try {
+      await confirmRegistration(attestation);
+    } catch {
+      // The message is already on screen; the challenge is spent either way.
+    } finally {
+      setStep("idle");
+    }
+  }, [confirmRegistration, hasTotp, t]);
 
   const startAdd = () => {
     setErrorKey(null);

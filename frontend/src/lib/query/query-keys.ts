@@ -36,8 +36,7 @@ export const queryKeys = {
    * left open across midnight asks for the new day instead of keeping the
    * previous day's payload.
    */
-  dashboardSummary: (dayKey: string) =>
-    ["dashboard", "summary", dayKey] as const,
+  dashboardSummary: (dayKey: string) => ["dashboard", "summary", dayKey] as const,
   /**
    * The invalidation handle: React Query matches keys by prefix, so a realtime
    * event drops every day's entry without having to know which day is on screen.

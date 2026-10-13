@@ -27,7 +27,11 @@ export function usePrivacyFailure() {
   return useCallback(
     (caught: unknown) => {
       const code = readPrivacyErrorCode(caught);
-      toast({ title: code === null ? t(mapApiError(caught)) : t(privacyErrorKey(code)), tone: "danger", error: caught });
+      toast({
+        title: code === null ? t(mapApiError(caught)) : t(privacyErrorKey(code)),
+        tone: "danger",
+        error: caught,
+      });
     },
     [t, toast],
   );
@@ -121,7 +125,15 @@ interface PersonPickerProperties {
 }
 
 /** Search by name or e-mail; at most 8 suggestions, the choice shown as a line. */
-export function PersonPicker({ id, users, value, onChange, placeholder, filter, testId }: PersonPickerProperties) {
+export function PersonPicker({
+  id,
+  users,
+  value,
+  onChange,
+  placeholder,
+  filter,
+  testId,
+}: PersonPickerProperties) {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const selected = users?.find((user) => user.id === value) ?? null;
@@ -129,7 +141,9 @@ export function PersonPicker({ id, users, value, onChange, placeholder, filter, 
     () =>
       query.trim().length === 0 || users === null
         ? []
-        : users.filter((user) => (filter ? filter(user) : true) && matchesPersonQuery(user, query)).slice(0, 8),
+        : users
+            .filter((user) => (filter ? filter(user) : true) && matchesPersonQuery(user, query))
+            .slice(0, 8),
     [filter, query, users],
   );
 
@@ -137,7 +151,9 @@ export function PersonPicker({ id, users, value, onChange, placeholder, filter, 
     return (
       <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-[12.5px]">
         <span className="min-w-0 truncate">
-          <span className="font-medium text-foreground">{localizePersonName(selected.displayName, i18n.language)}</span>
+          <span className="font-medium text-foreground">
+            {localizePersonName(selected.displayName, i18n.language)}
+          </span>
           <span className="ml-2 text-muted-foreground">{selected.email}</span>
         </span>
         <button
@@ -174,7 +190,9 @@ export function PersonPicker({ id, users, value, onChange, placeholder, filter, 
                 className="flex w-full flex-col px-3 py-1.5 text-left text-[12.5px] hover:bg-surface-hover"
                 onClick={() => onChange(user)}
               >
-                <span className="font-medium text-foreground">{localizePersonName(user.displayName, i18n.language)}</span>
+                <span className="font-medium text-foreground">
+                  {localizePersonName(user.displayName, i18n.language)}
+                </span>
                 <span className={hintClassName}>
                   {user.email}
                   {user.isActive ? "" : ` · ${t("privacy.picker.inactive")}`}
@@ -190,7 +208,13 @@ export function PersonPicker({ id, users, value, onChange, placeholder, filter, 
   );
 }
 
-export function PanelIntro({ children, actions }: { readonly children: ReactNode; readonly actions?: ReactNode }) {
+export function PanelIntro({
+  children,
+  actions,
+}: {
+  readonly children: ReactNode;
+  readonly actions?: ReactNode;
+}) {
   return (
     <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
       <p className={`${hintClassName} max-w-3xl leading-5`}>{children}</p>
@@ -206,7 +230,11 @@ export function useDateFormat() {
       date: (value: string | null) =>
         value === null
           ? "—"
-          : new Date(value).toLocaleDateString(i18n.language, { day: "2-digit", month: "2-digit", year: "numeric" }),
+          : new Date(value).toLocaleDateString(i18n.language, {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }),
       dateTime: (value: string | null) =>
         value === null
           ? "—"

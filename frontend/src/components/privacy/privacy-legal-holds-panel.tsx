@@ -14,7 +14,13 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { Modal, ModalContent, ModalDescription, ModalFooter, ModalTitle } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalTitle,
+} from "@/components/ui/modal";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
@@ -26,7 +32,13 @@ import {
   type LegalHold,
   type LegalHoldTarget,
 } from "@/services/privacy-api";
-import { PanelIntro, PersonPicker, useDateFormat, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import {
+  PanelIntro,
+  PersonPicker,
+  useDateFormat,
+  usePrivacyFailure,
+  useUserDirectory,
+} from "./privacy-shared";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface LegalHoldDialogProperties {
@@ -41,7 +53,15 @@ interface LegalHoldDialogProperties {
 }
 
 /** §7.4: setting and lifting a hold both need a reason (≥ 10 characters, audited). */
-export function LegalHoldDialog({ open, onOpenChange, mode, target, targetId, label, onDone }: LegalHoldDialogProperties) {
+export function LegalHoldDialog({
+  open,
+  onOpenChange,
+  mode,
+  target,
+  targetId,
+  label,
+  onDone,
+}: LegalHoldDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const fail = usePrivacyFailure();
@@ -57,7 +77,10 @@ export function LegalHoldDialog({ open, onOpenChange, mode, target, targetId, la
     try {
       if (mode === "set") await setLegalHold(target, targetId, reason.trim());
       else await clearLegalHold(target, targetId, reason.trim());
-      toast({ title: mode === "set" ? t("privacy.holds.setToast") : t("privacy.holds.clearedToast"), tone: "success" });
+      toast({
+        title: mode === "set" ? t("privacy.holds.setToast") : t("privacy.holds.clearedToast"),
+        tone: "success",
+      });
       onOpenChange(false);
       onDone();
     } catch (caught) {
@@ -71,12 +94,18 @@ export function LegalHoldDialog({ open, onOpenChange, mode, target, targetId, la
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent data-testid="privacy-hold-dialog">
         <ModalTitle className="pr-6 text-[14px] font-semibold leading-5 text-foreground">
-          {mode === "set" ? t("privacy.holds.setTitle", { label }) : t("privacy.holds.clearTitle", { label })}
+          {mode === "set"
+            ? t("privacy.holds.setTitle", { label })
+            : t("privacy.holds.clearTitle", { label })}
         </ModalTitle>
         <ModalDescription className="mb-3 mt-1 text-[12.5px] leading-5 text-muted-foreground">
           {mode === "set" ? t("privacy.holds.setBody") : t("privacy.holds.clearBody")}
         </ModalDescription>
-        <Field label={t("privacy.holds.reason")} hint={t("privacy.common.minChars", { count: 10 })} required>
+        <Field
+          label={t("privacy.holds.reason")}
+          hint={t("privacy.common.minChars", { count: 10 })}
+          required
+        >
           <Textarea
             value={reason}
             maxLength={500}
@@ -109,13 +138,18 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
   const format = useDateFormat();
   const users = useUserDirectory(canChange);
   const [holds, setHolds] = useState<readonly LegalHold[] | null>(null);
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [target, setTarget] = useState<LegalHoldTarget>("ticket");
   const [ticketNumber, setTicketNumber] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<{ mode: "set" | "clear"; target: LegalHoldTarget; id: string; label: string } | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<{
+    mode: "set" | "clear";
+    target: LegalHoldTarget;
+    id: string;
+    label: string;
+  } | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -130,7 +164,8 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
     void reload();
   }, [reload]);
 
-  if (loadError !== null) return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
+  if (loadError !== null)
+    return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
   if (holds === null) return <PanelSkeleton className="mt-0" label={t("privacy.tabs.holds")} />;
 
   const selectedUser = users?.find((user) => user.id === userId) ?? null;
@@ -152,13 +187,19 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
           <h2 className={sectionTitleClassName}>{t("privacy.holds.newTitle")}</h2>
           <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
             <Field label={t("privacy.holds.target")}>
-              <Select value={target} onChange={(event) => setTarget(event.target.value as LegalHoldTarget)}>
+              <Select
+                value={target}
+                onChange={(event) => setTarget(event.target.value as LegalHoldTarget)}
+              >
                 <option value="ticket">{t("privacy.holds.targetTicket")}</option>
                 <option value="user">{t("privacy.holds.targetUser")}</option>
               </Select>
             </Field>
             {target === "ticket" ? (
-              <Field label={t("privacy.holds.ticketNumber")} hint={t("privacy.holds.ticketNumberHint")}>
+              <Field
+                label={t("privacy.holds.ticketNumber")}
+                hint={t("privacy.holds.ticketNumberHint")}
+              >
                 <Input
                   value={ticketNumber}
                   maxLength={40}
@@ -168,7 +209,9 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
               </Field>
             ) : (
               <div>
-                <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("privacy.holds.targetUser")}</p>
+                <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
+                  {t("privacy.holds.targetUser")}
+                </p>
                 <PersonPicker
                   id="privacy-hold-user"
                   users={users}
@@ -212,13 +255,22 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
             </thead>
             <tbody>
               {holds.map((hold) => (
-                <tr key={`${hold.target}:${hold.id}`} className={tableRowClassName} data-testid="privacy-hold-row">
+                <tr
+                  key={`${hold.target}:${hold.id}`}
+                  className={tableRowClassName}
+                  data-testid="privacy-hold-row"
+                >
                   <td className="px-3 text-muted-foreground">
-                    {hold.target === "ticket" ? t("privacy.holds.targetTicket") : t("privacy.holds.targetUser")}
+                    {hold.target === "ticket"
+                      ? t("privacy.holds.targetTicket")
+                      : t("privacy.holds.targetUser")}
                   </td>
                   <td className="px-3 font-medium text-foreground">
                     {hold.target === "ticket" ? (
-                      <Link className="text-link hover:underline" to={`/tickets/${encodeURIComponent(hold.id)}`}>
+                      <Link
+                        className="text-link hover:underline"
+                        to={`/tickets/${encodeURIComponent(hold.id)}`}
+                      >
                         {hold.label}
                       </Link>
                     ) : (
@@ -234,7 +286,14 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
                       <Button
                         size="xs"
                         variant="outline"
-                        onClick={() => setDialog({ mode: "clear", target: hold.target, id: hold.id, label: hold.label })}
+                        onClick={() =>
+                          setDialog({
+                            mode: "clear",
+                            target: hold.target,
+                            id: hold.id,
+                            label: hold.label,
+                          })
+                        }
                       >
                         {t("privacy.holds.clear")}
                       </Button>

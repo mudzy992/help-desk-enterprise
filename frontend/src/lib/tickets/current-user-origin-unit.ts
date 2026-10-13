@@ -1,13 +1,8 @@
 import { roleKeys } from "@/lib/session/permission-keys";
-import {
-  defaultOriginUnitId,
-  type OriginUnitOption,
-} from "@/lib/tickets/ticket-display";
+import { defaultOriginUnitId, type OriginUnitOption } from "@/lib/tickets/ticket-display";
 import type { CurrentSessionResponse } from "@/services/session-api";
 
-export function canChooseTicketOriginUnit(
-  session: CurrentSessionResponse | null,
-): boolean {
+export function canChooseTicketOriginUnit(session: CurrentSessionResponse | null): boolean {
   if (session === null) {
     return false;
   }
@@ -16,9 +11,7 @@ export function canChooseTicketOriginUnit(
   }
   return session.roleKeys.some(
     (roleKey) =>
-      roleKey === roleKeys.agent ||
-      roleKey === roleKeys.admin ||
-      roleKey === roleKeys.superAdmin,
+      roleKey === roleKeys.agent || roleKey === roleKeys.admin || roleKey === roleKeys.superAdmin,
   );
 }
 
@@ -86,8 +79,7 @@ export function resolveCreateTicketOriginUnit(input: {
 } {
   const homeId = input.session?.organizationalUnitId;
   const homeName = input.session?.organizationalUnitName;
-  const home =
-    homeId && homeName ? { id: homeId, name: homeName } : null;
+  const home = homeId && homeName ? { id: homeId, name: homeName } : null;
   return {
     canChooseOriginUnit: canChooseTicketOriginUnit(input.session),
     preferredOriginUnitId: resolvePreferredOriginUnitId({

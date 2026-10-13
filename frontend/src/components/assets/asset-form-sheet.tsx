@@ -5,7 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName, sectionTitleClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { assetErrorDetail, flattenLocationTree, localizedLabel, localizedName, mapAssetError } from "@/lib/assets/asset-view";
+import {
+  assetErrorDetail,
+  flattenLocationTree,
+  localizedLabel,
+  localizedName,
+  mapAssetError,
+} from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
@@ -46,11 +52,21 @@ type FormState = {
   attributes: Record<string, string | boolean>;
 };
 
-function initialState(catalog: AssetCatalog, options: AssetOptions, asset: AssetDetail | null | undefined, duplicate: boolean): FormState {
+function initialState(
+  catalog: AssetCatalog,
+  options: AssetOptions,
+  asset: AssetDetail | null | undefined,
+  duplicate: boolean,
+): FormState {
   const attributes: Record<string, string | boolean> = {};
   if (asset) {
     for (const [key, value] of Object.entries(asset.attributes)) {
-      attributes[key] = typeof value === "boolean" ? value : value === null || value === undefined ? "" : String(value);
+      attributes[key] =
+        typeof value === "boolean"
+          ? value
+          : value === null || value === undefined
+            ? ""
+            : String(value);
     }
   }
   return {
@@ -64,7 +80,10 @@ function initialState(catalog: AssetCatalog, options: AssetOptions, asset: Asset
     locationId: asset?.location?.id ?? "",
     serviceId: asset?.service?.id ?? "",
     purchaseDate: asset?.purchaseDate ?? "",
-    purchaseCost: asset?.purchaseCost === null || asset?.purchaseCost === undefined ? "" : String(asset.purchaseCost),
+    purchaseCost:
+      asset?.purchaseCost === null || asset?.purchaseCost === undefined
+        ? ""
+        : String(asset.purchaseCost),
     supplier: asset?.supplier ?? "",
     warrantyEndsAt: asset?.warrantyEndsAt ?? "",
     notes: asset?.notes ?? "",
@@ -72,16 +91,27 @@ function initialState(catalog: AssetCatalog, options: AssetOptions, asset: Asset
   };
 }
 
-const nullable = (value: string): string | null => (value.trim().length === 0 ? null : value.trim());
+const nullable = (value: string): string | null =>
+  value.trim().length === 0 ? null : value.trim();
 
 /**
  * Paket 3.2 (§3, §4, §17): create, edit or duplicate an asset. Attributes
  * follow the selected type; the server validates types, uniqueness and scope.
  */
-export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, duplicate = false, onSaved }: AssetFormSheetProperties) {
+export function AssetFormSheet({
+  open,
+  onOpenChange,
+  catalog,
+  options,
+  asset,
+  duplicate = false,
+  onSaved,
+}: AssetFormSheetProperties) {
   const { t, i18n } = useTranslation();
   const isEdit = asset !== null && asset !== undefined && !duplicate;
-  const [state, setState] = useState<FormState>(() => initialState(catalog, options, asset, duplicate));
+  const [state, setState] = useState<FormState>(() =>
+    initialState(catalog, options, asset, duplicate),
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +130,8 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
   const locationsEnabled = useAssetLocationsEnabled();
   const locationRows = useMemo(() => flattenLocationTree(catalog.locations), [catalog.locations]);
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setState((current) => ({ ...current, [key]: value }));
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setState((current) => ({ ...current, [key]: value }));
   const setAttribute = (key: string, value: string | boolean) =>
     setState((current) => ({ ...current, attributes: { ...current.attributes, [key]: value } }));
 
@@ -133,7 +164,11 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
       attributes: attributeValues,
       ...(isEdit ? { version: asset.version } : {}),
     };
-    if (input.purchaseCost !== null && input.purchaseCost !== undefined && !Number.isFinite(input.purchaseCost)) {
+    if (
+      input.purchaseCost !== null &&
+      input.purchaseCost !== undefined &&
+      !Number.isFinite(input.purchaseCost)
+    ) {
       setError(t("assets.form.invalidCost"));
       setPending(false);
       return;
@@ -156,19 +191,30 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
     }
   }
 
-  const title = isEdit ? t("assets.form.editTitle") : duplicate ? t("assets.form.duplicateTitle") : t("assets.form.createTitle");
+  const title = isEdit
+    ? t("assets.form.editTitle")
+    : duplicate
+      ? t("assets.form.duplicateTitle")
+      : t("assets.form.createTitle");
   const directoryLocked = isEdit && asset.source === "DIRECTORY";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-xl flex-col overflow-y-auto p-5">
         <SheetTitle>{title}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.form.description")}</SheetDescription>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.form.description")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.fields.type")} required>
               {(control) => (
-                <Select {...control} value={state.typeId} onChange={(event) => set("typeId", event.target.value)} required>
+                <Select
+                  {...control}
+                  value={state.typeId}
+                  onChange={(event) => set("typeId", event.target.value)}
+                  required
+                >
                   {catalog.types
                     .filter((type) => type.archivedAt === null || type.id === state.typeId)
                     .map((type) => (
@@ -179,13 +225,25 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
                 </Select>
               )}
             </Field>
-            <Field label={t("assets.fields.assetTag")} hint={isEdit ? undefined : t("assets.form.tagHint")}>
+            <Field
+              label={t("assets.fields.assetTag")}
+              hint={isEdit ? undefined : t("assets.form.tagHint")}
+            >
               {(control) => (
-                <Input {...control} value={state.assetTag} maxLength={64} onChange={(event) => set("assetTag", event.target.value)} />
+                <Input
+                  {...control}
+                  value={state.assetTag}
+                  maxLength={64}
+                  onChange={(event) => set("assetTag", event.target.value)}
+                />
               )}
             </Field>
           </div>
-          <Field label={t("assets.fields.name")} required hint={directoryLocked ? t("assets.form.directoryNameHint") : undefined}>
+          <Field
+            label={t("assets.fields.name")}
+            required
+            hint={directoryLocked ? t("assets.form.directoryNameHint") : undefined}
+          >
             {(control) => (
               <Input
                 {...control}
@@ -199,19 +257,45 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
           </Field>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label={t("assets.fields.manufacturer")}>
-              {(control) => <Input {...control} value={state.manufacturer} maxLength={120} onChange={(event) => set("manufacturer", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={state.manufacturer}
+                  maxLength={120}
+                  onChange={(event) => set("manufacturer", event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.fields.model")}>
-              {(control) => <Input {...control} value={state.model} maxLength={120} onChange={(event) => set("model", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={state.model}
+                  maxLength={120}
+                  onChange={(event) => set("model", event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.fields.serialNumber")}>
-              {(control) => <Input {...control} value={state.serialNumber} maxLength={120} onChange={(event) => set("serialNumber", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={state.serialNumber}
+                  maxLength={120}
+                  onChange={(event) => set("serialNumber", event.target.value)}
+                />
+              )}
             </Field>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.fields.organizationalUnit")} required>
               {(control) => (
-                <Select {...control} value={state.organizationalUnitId} onChange={(event) => set("organizationalUnitId", event.target.value)} required>
+                <Select
+                  {...control}
+                  value={state.organizationalUnitId}
+                  onChange={(event) => set("organizationalUnitId", event.target.value)}
+                  required
+                >
                   {options.units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.path}
@@ -221,25 +305,36 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
               )}
             </Field>
             {locationsEnabled ? (
-            <Field label={t("assets.fields.location")}>
-              {(control) => (
-                <Select {...control} value={state.locationId} onChange={(event) => set("locationId", event.target.value)}>
-                  <option value="">{t("assets.form.none")}</option>
-                  {locationRows
-                    .filter((row) => row.location.archivedAt === null || row.location.id === state.locationId)
-                    .map((row) => (
-                      <option key={row.location.id} value={row.location.id}>
-                        {row.path}
-                      </option>
-                    ))}
-                </Select>
-              )}
-            </Field>
+              <Field label={t("assets.fields.location")}>
+                {(control) => (
+                  <Select
+                    {...control}
+                    value={state.locationId}
+                    onChange={(event) => set("locationId", event.target.value)}
+                  >
+                    <option value="">{t("assets.form.none")}</option>
+                    {locationRows
+                      .filter(
+                        (row) =>
+                          row.location.archivedAt === null || row.location.id === state.locationId,
+                      )
+                      .map((row) => (
+                        <option key={row.location.id} value={row.location.id}>
+                          {row.path}
+                        </option>
+                      ))}
+                  </Select>
+                )}
+              </Field>
             ) : null}
           </div>
           <Field label={t("assets.fields.service")} hint={t("assets.form.serviceHint")}>
             {(control) => (
-              <Select {...control} value={state.serviceId} onChange={(event) => set("serviceId", event.target.value)}>
+              <Select
+                {...control}
+                value={state.serviceId}
+                onChange={(event) => set("serviceId", event.target.value)}
+              >
                 <option value="">{t("assets.form.none")}</option>
                 {options.services.map((service) => (
                   <option key={service.id} value={service.id}>
@@ -253,18 +348,44 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
           <h3 className={sectionTitleClassName}>{t("assets.form.purchaseSection")}</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.fields.purchaseDate")}>
-              {(control) => <Input {...control} type="date" value={state.purchaseDate} onChange={(event) => set("purchaseDate", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={state.purchaseDate}
+                  onChange={(event) => set("purchaseDate", event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.fields.warrantyEndsAt")}>
-              {(control) => <Input {...control} type="date" value={state.warrantyEndsAt} onChange={(event) => set("warrantyEndsAt", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={state.warrantyEndsAt}
+                  onChange={(event) => set("warrantyEndsAt", event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.fields.purchaseCost")}>
               {(control) => (
-                <Input {...control} inputMode="decimal" value={state.purchaseCost} onChange={(event) => set("purchaseCost", event.target.value)} />
+                <Input
+                  {...control}
+                  inputMode="decimal"
+                  value={state.purchaseCost}
+                  onChange={(event) => set("purchaseCost", event.target.value)}
+                />
               )}
             </Field>
             <Field label={t("assets.fields.supplier")}>
-              {(control) => <Input {...control} value={state.supplier} maxLength={160} onChange={(event) => set("supplier", event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={state.supplier}
+                  maxLength={160}
+                  onChange={(event) => set("supplier", event.target.value)}
+                />
+              )}
             </Field>
           </div>
 
@@ -289,7 +410,11 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
                     <Field key={attribute.id} label={label} required={attribute.isRequired}>
                       {(control) =>
                         attribute.dataType === "SELECT" ? (
-                          <Select {...control} value={typeof value === "string" ? value : ""} onChange={(event) => setAttribute(attribute.key, event.target.value)}>
+                          <Select
+                            {...control}
+                            value={typeof value === "string" ? value : ""}
+                            onChange={(event) => setAttribute(attribute.key, event.target.value)}
+                          >
                             <option value="">{t("assets.form.none")}</option>
                             {attribute.options.map((option) => (
                               <option key={option} value={option}>
@@ -316,9 +441,19 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
           ) : null}
 
           <Field label={t("assets.fields.notes")}>
-            {(control) => <Textarea {...control} rows={3} maxLength={4000} value={state.notes} onChange={(event) => set("notes", event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                maxLength={4000}
+                value={state.notes}
+                onChange={(event) => set("notes", event.target.value)}
+              />
+            )}
           </Field>
-          {options.units.length === 0 ? <p className={hintClassName}>{t("assets.form.noUnits")}</p> : null}
+          {options.units.length === 0 ? (
+            <p className={hintClassName}>{t("assets.form.noUnits")}</p>
+          ) : null}
           {error ? (
             <p role="alert" className={errorTextClassName}>
               {error}
@@ -328,7 +463,16 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               {t("ui.cancel")}
             </Button>
-            <Button type="submit" variant="primary" disabled={pending || state.name.trim().length === 0 || state.typeId === "" || state.organizationalUnitId === ""}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={
+                pending ||
+                state.name.trim().length === 0 ||
+                state.typeId === "" ||
+                state.organizationalUnitId === ""
+              }
+            >
               {pending ? t("ui.loading") : t("assets.form.save")}
             </Button>
           </div>

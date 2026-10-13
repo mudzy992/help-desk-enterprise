@@ -18,8 +18,7 @@ interface HorizontalBarsProperties {
   readonly className?: string;
 }
 
-const DEFAULT_FILL =
-  "linear-gradient(to right, rgb(var(--primary) / 0.78), rgb(var(--primary)))";
+const DEFAULT_FILL = "linear-gradient(to right, rgb(var(--primary) / 0.78), rgb(var(--primary)))";
 
 export function HBars({ items, className }: HorizontalBarsProperties) {
   const max = Math.max(...items.map((item) => item.value), 1);

@@ -33,13 +33,9 @@ export function HelpdeskSocketHost() {
         signOut();
       },
     );
-    const stopSettings = subscribeSocketEvent(
-      socket,
-      ticketSocketEvents.settingsUpdated,
-      () => {
-        bumpSettingsGeneration();
-      },
-    );
+    const stopSettings = subscribeSocketEvent(socket, ticketSocketEvents.settingsUpdated, () => {
+      bumpSettingsGeneration();
+    });
     // Faza 3.3: the socket is the only place that marks cached queries stale —
     // screens then refetch on their own schedule, and a screen that is not
     // visible pulls nothing at all.

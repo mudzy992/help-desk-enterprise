@@ -38,7 +38,13 @@ const icons: Readonly<Record<string, LucideIcon>> = {
   "help-circle": HelpCircle,
 };
 
-export function KnowledgeCategoryIcon({ name, size = 18 }: { readonly name: string; readonly size?: number }) {
+export function KnowledgeCategoryIcon({
+  name,
+  size = 18,
+}: {
+  readonly name: string;
+  readonly size?: number;
+}) {
   const Icon = icons[name] ?? BookOpen;
   return <Icon size={size} strokeWidth={1.8} aria-hidden="true" />;
 }

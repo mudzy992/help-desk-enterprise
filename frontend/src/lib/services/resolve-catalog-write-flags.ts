@@ -1,11 +1,7 @@
 import type { CurrentSessionResponse } from "@/services/session-api";
 
-export function canBypassAdminReadOnly(
-  session: CurrentSessionResponse | null,
-): boolean {
-  return (
-    session?.isSuperAdmin === true && session.principal.isLocalOnly === true
-  );
+export function canBypassAdminReadOnly(session: CurrentSessionResponse | null): boolean {
+  return session?.isSuperAdmin === true && session.principal.isLocalOnly === true;
 }
 
 export function resolveCatalogWriteFlags(input: {

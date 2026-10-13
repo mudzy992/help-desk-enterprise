@@ -27,14 +27,22 @@ export function CreateTicketStepNav({
       </Button>
       <div className="flex items-center gap-2">
         <span className="tnum text-[11px] text-muted-foreground">
-          {ticketText(t, "tickets.stepCount", { current: step + 1, total: CREATE_TICKET_STEP_TOTAL })}
+          {ticketText(t, "tickets.stepCount", {
+            current: step + 1,
+            total: CREATE_TICKET_STEP_TOTAL,
+          })}
         </span>
         {step === 0 ? (
           <Button type="submit" variant="primary" size="sm" disabled={!canNextService}>
             {t("tickets.stepNext")} <ArrowRight size={14} />
           </Button>
         ) : (
-          <Button type="submit" variant="primary" size="sm" disabled={isSubmitting || !canSubmitDetails}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={isSubmitting || !canSubmitDetails}
+          >
             {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}
           </Button>
         )}

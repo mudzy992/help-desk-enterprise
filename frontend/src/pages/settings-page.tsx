@@ -29,11 +29,8 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
   const { session, isLoading, hasPermission, hasRole } = useSessionCapabilities();
   const registry = useSettingsRegistry();
   const canOpen =
-    session?.isSuperAdmin === true ||
-    hasRole(roleKeys.admin) ||
-    hasRole(roleKeys.superAdmin);
-  const canWrite =
-    session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
+    session?.isSuperAdmin === true || hasRole(roleKeys.admin) || hasRole(roleKeys.superAdmin);
+  const canWrite = session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
   const canOpenSecurityTab = canOpenAdminSecurityTab(session);
 
   return (

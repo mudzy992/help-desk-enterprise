@@ -6,8 +6,6 @@ export type TicketRemoteRequestResponse = {
   readonly rateLimitMinutes: number;
 };
 
-export function requestTicketRemote(
-  ticketId: string,
-): Promise<TicketRemoteRequestResponse> {
+export function requestTicketRemote(ticketId: string): Promise<TicketRemoteRequestResponse> {
   return apiRequest(`/tickets/${ticketId}/remote-requests`, { method: "POST" });
 }

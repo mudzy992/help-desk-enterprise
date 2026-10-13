@@ -86,15 +86,11 @@ describe("filterServiceCatalogRows", () => {
   });
 
   it("filters by category and lifecycle", () => {
-    expect(
-      filterServiceCatalogRows(rows, { ...baseFilters, categoryId: "other" }),
-    ).toEqual([]);
-    expect(
-      filterServiceCatalogRows(rows, { ...baseFilters, categoryId: "cat-it" }),
-    ).toEqual(rows);
-    expect(
-      filterServiceCatalogRows(rows, { ...baseFilters, lifecycle: "DRAFT" }),
-    ).toEqual([rows[2]]);
+    expect(filterServiceCatalogRows(rows, { ...baseFilters, categoryId: "other" })).toEqual([]);
+    expect(filterServiceCatalogRows(rows, { ...baseFilters, categoryId: "cat-it" })).toEqual(rows);
+    expect(filterServiceCatalogRows(rows, { ...baseFilters, lifecycle: "DRAFT" })).toEqual([
+      rows[2],
+    ]);
   });
 
   it("filters by services with an exact rule at the selected OU only", () => {

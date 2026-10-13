@@ -27,11 +27,7 @@ export function PermissionsCatalogList({
           </h3>
           <ul className="space-y-0">
             {group.entries.map((entry) => {
-              const description = resolvePermissionDescription(
-                t,
-                entry.key,
-                entry.description,
-              );
+              const description = resolvePermissionDescription(t, entry.key, entry.description);
               const checked = enabledKeys.includes(entry.key);
               return (
                 <li key={entry.key}>

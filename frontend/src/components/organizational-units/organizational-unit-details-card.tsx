@@ -14,8 +14,7 @@ export function OrganizationalUnitDetailsCard({
   memberCount,
 }: OrganizationalUnitDetailsCardProperties) {
   const { t } = useTranslation();
-  const distinguishedName =
-    node.distinguishedName?.trim() || t("directory.detailsEmpty");
+  const distinguishedName = node.distinguishedName?.trim() || t("directory.detailsEmpty");
   const TypeIcon = resolveOrganizationalUnitTypeIcon(node.type);
   const typeLabel = node.type
     ? t(`directory.ouType.${node.type}`, { defaultValue: node.type })
@@ -23,10 +22,7 @@ export function OrganizationalUnitDetailsCard({
 
   return (
     <Card className="fade-in">
-      <CardHeader
-        title={t("directory.detailsTitle", { name: node.name })}
-        subtitle={node.ouPath}
-      />
+      <CardHeader title={t("directory.detailsTitle", { name: node.name })} subtitle={node.ouPath} />
       <dl className="space-y-3 px-4 pb-3 pt-4 text-[12px]">
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
@@ -47,9 +43,7 @@ export function OrganizationalUnitDetailsCard({
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsPathLabel")}
           </dt>
-          <dd className="tnum mt-0.5 font-mono text-[11px] text-foreground/90">
-            {node.ouPath}
-          </dd>
+          <dd className="tnum mt-0.5 font-mono text-[11px] text-foreground/90">{node.ouPath}</dd>
         </div>
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">

@@ -22,10 +22,7 @@ describe("groupPermissionsByCategory", () => {
       },
     ];
     const actual = groupPermissionsByCategory(input);
-    expect(actual.map((group) => group.categoryId)).toEqual([
-      "settings",
-      "ticket",
-    ]);
+    expect(actual.map((group) => group.categoryId)).toEqual(["settings", "ticket"]);
     expect(actual[1]?.entries.map((entry) => entry.key)).toEqual([
       "ticket.bulk.assign",
       "ticket.merge",

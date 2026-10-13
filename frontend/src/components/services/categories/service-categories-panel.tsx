@@ -71,9 +71,7 @@ export function ServiceCategoriesPanel({
 
   return (
     <div className="fade-in grid gap-3">
-      {errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : null}
+      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       {categories.map((category) => {
         const parent = categories.find((item) => item.id === category.parentId);
         return (
@@ -88,7 +86,12 @@ export function ServiceCategoriesPanel({
               </div>
               {canWrite ? (
                 <div className="flex flex-wrap gap-1.5">
-                  <Button type="button" size="xs" variant="outline" onClick={() => onEdit(category)}>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => onEdit(category)}
+                  >
                     {t("services.categories.edit")}
                   </Button>
                   {confirmId === category.id ? (
@@ -104,7 +107,12 @@ export function ServiceCategoriesPanel({
                           ? t("services.categories.deleting")
                           : t("services.categories.confirmDelete")}
                       </Button>
-                      <Button type="button" size="xs" variant="ghost" onClick={() => setConfirmId(null)}>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setConfirmId(null)}
+                      >
                         {t("services.cancel")}
                       </Button>
                     </>

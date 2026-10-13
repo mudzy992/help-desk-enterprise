@@ -69,8 +69,6 @@ describe("InstallSetupLayout", () => {
 
     renderGate("/tickets");
 
-    await waitFor(() =>
-      expect(screen.getByTestId("current-path").textContent).toBe("/install"),
-    );
+    await waitFor(() => expect(screen.getByTestId("current-path").textContent).toBe("/install"));
   });
 });

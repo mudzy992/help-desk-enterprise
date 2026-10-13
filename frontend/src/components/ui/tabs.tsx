@@ -26,10 +26,7 @@ export function UnderlineTabs({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cn(
-        "flex items-center gap-1 overflow-x-auto border-b border-border/70",
-        className,
-      )}
+      className={cn("flex items-center gap-1 overflow-x-auto border-b border-border/70", className)}
     >
       {items.map((item) => {
         const isActive = active === item.key;
@@ -43,9 +40,7 @@ export function UnderlineTabs({
             onClick={() => onChange(item.key)}
             className={cn(
               "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-              isActive
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground",
+              isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {item.label}

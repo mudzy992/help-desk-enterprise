@@ -37,7 +37,11 @@ export function CreateTicketAssetPicker({
   return (
     <label className={`${labelClassName} md:col-span-2`}>
       <span>{t("assets.ticket.pickerLabel")}</span>
-      <select className={selectClassName} value={known ? value : ""} onChange={(event) => onChange(event.target.value)}>
+      <select
+        className={selectClassName}
+        value={known ? value : ""}
+        onChange={(event) => onChange(event.target.value)}
+      >
         <option value="">{t("assets.ticket.pickerNone")}</option>
         {items.map((item) => (
           <option key={item.id} value={item.id}>

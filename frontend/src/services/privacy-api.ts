@@ -19,7 +19,8 @@ export type DataSubjectRequestType = (typeof dataSubjectRequestTypes)[number];
 export const dataSubjectRequestChannels = ["EMAIL", "PAPER", "PORTAL", "IN_PERSON"] as const;
 export type DataSubjectRequestChannel = (typeof dataSubjectRequestChannels)[number];
 
-export type DataSubjectRequestStatus = "RECEIVED" | "IN_PROGRESS" | "EXTENDED" | "COMPLETED" | "REJECTED";
+export type DataSubjectRequestStatus =
+  "RECEIVED" | "IN_PROGRESS" | "EXTENDED" | "COMPLETED" | "REJECTED";
 export type DataSubjectRequestScope = "open" | "closed" | "all";
 
 export type PersonRef = { readonly id: string; readonly displayName: string };
@@ -170,7 +171,8 @@ export type SubjectAssessment = {
   readonly deleteOwnAttachmentsDefault: boolean;
 };
 
-export type ErasureStatus = "PENDING_APPROVAL" | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+export type ErasureStatus =
+  "PENDING_APPROVAL" | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
 
 export type Erasure = {
   readonly id: string;
@@ -250,10 +252,14 @@ const json = (method: string, body?: unknown): RequestInit => ({
 });
 
 // --- §4 Requests ---------------------------------------------------------------
-export function listDataSubjectRequests(scope: DataSubjectRequestScope): Promise<readonly DataSubjectRequest[]> {
+export function listDataSubjectRequests(
+  scope: DataSubjectRequestScope,
+): Promise<readonly DataSubjectRequest[]> {
   return apiRequest(`/privacy/requests?scope=${scope}`);
 }
-export function createDataSubjectRequest(input: CreateDataSubjectRequestInput): Promise<DataSubjectRequest> {
+export function createDataSubjectRequest(
+  input: CreateDataSubjectRequestInput,
+): Promise<DataSubjectRequest> {
   return apiRequest("/privacy/requests", json("POST", input));
 }
 export function updateDataSubjectRequest(
@@ -262,7 +268,10 @@ export function updateDataSubjectRequest(
 ): Promise<DataSubjectRequest> {
   return apiRequest(`/privacy/requests/${id(requestId)}`, json("PATCH", input));
 }
-export function extendDataSubjectRequest(requestId: string, reason: string): Promise<DataSubjectRequest> {
+export function extendDataSubjectRequest(
+  requestId: string,
+  reason: string,
+): Promise<DataSubjectRequest> {
   return apiRequest(`/privacy/requests/${id(requestId)}/extend`, json("POST", { reason }));
 }
 export function closeDataSubjectRequest(
@@ -277,7 +286,9 @@ export function getRetentionOverview(): Promise<RetentionOverview> {
   return apiRequest("/privacy/retention");
 }
 export function listRetentionRuns(category?: RetentionCategory): Promise<readonly RetentionRun[]> {
-  return apiRequest(`/privacy/retention/runs${category === undefined ? "" : `?category=${category}`}`);
+  return apiRequest(
+    `/privacy/retention/runs${category === undefined ? "" : `?category=${category}`}`,
+  );
 }
 export function downloadRetentionRunRefs(runId: string): Promise<ApiDownloadResult> {
   return apiDownloadRequest(`/privacy/retention/runs/${id(runId)}/refs.csv`);
@@ -293,10 +304,18 @@ export function startRetentionRunNow(category: RetentionCategory): Promise<unkno
 export function listLegalHolds(): Promise<readonly LegalHold[]> {
   return apiRequest("/privacy/legal-holds");
 }
-export function setLegalHold(target: LegalHoldTarget, targetId: string, reason: string): Promise<LegalHold> {
+export function setLegalHold(
+  target: LegalHoldTarget,
+  targetId: string,
+  reason: string,
+): Promise<LegalHold> {
   return apiRequest(`/privacy/legal-holds/${target}/${id(targetId)}`, json("PUT", { reason }));
 }
-export function clearLegalHold(target: LegalHoldTarget, targetId: string, reason: string): Promise<void> {
+export function clearLegalHold(
+  target: LegalHoldTarget,
+  targetId: string,
+  reason: string,
+): Promise<void> {
   return apiRequest(`/privacy/legal-holds/${target}/${id(targetId)}`, json("DELETE", { reason }));
 }
 
@@ -307,14 +326,20 @@ export function listAnonymizationCandidates(): Promise<readonly AnonymizationCan
 export function assessAnonymization(userId: string): Promise<SubjectAssessment> {
   return apiRequest(`/privacy/anonymization/users/${id(userId)}/preview`);
 }
-export function requestAnonymization(userId: string, input: RequestAnonymizationInput): Promise<Erasure> {
+export function requestAnonymization(
+  userId: string,
+  input: RequestAnonymizationInput,
+): Promise<Erasure> {
   return apiRequest(`/privacy/anonymization/users/${id(userId)}`, json("POST", input));
 }
 export function listErasures(): Promise<readonly Erasure[]> {
   return apiRequest("/privacy/anonymization/erasures");
 }
 export function approveErasure(erasureId: string, code?: string): Promise<Erasure> {
-  return apiRequest(`/privacy/anonymization/erasures/${id(erasureId)}/approve`, json("POST", code ? { code } : {}));
+  return apiRequest(
+    `/privacy/anonymization/erasures/${id(erasureId)}/approve`,
+    json("POST", code ? { code } : {}),
+  );
 }
 export function cancelErasure(erasureId: string): Promise<Erasure> {
   return apiRequest(`/privacy/anonymization/erasures/${id(erasureId)}/cancel`, json("POST"));

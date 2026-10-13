@@ -38,9 +38,7 @@ export function DashboardPage() {
     requestId,
   } = useDashboardSummary();
   const recentExclusive =
-    summary === null
-      ? []
-      : recentTicketsExcluding(summary.recent, summary.attention);
+    summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
 
   return (
     <section>
@@ -85,11 +83,7 @@ export function DashboardPage() {
           <DashboardMetricGrid summary={summary} inboxCount={inboxCount} isStaff={isStaff} />
           <DashboardCharts summary={summary} />
           <div
-            className={
-              isStaff
-                ? "grid grid-cols-1 gap-3 xl:grid-cols-3"
-                : "grid grid-cols-1 gap-3"
-            }
+            className={isStaff ? "grid grid-cols-1 gap-3 xl:grid-cols-3" : "grid grid-cols-1 gap-3"}
           >
             {isStaff ? (
               <>

@@ -16,10 +16,7 @@ import {
   listDirectDependents,
   readEffectiveValue,
 } from "@/lib/settings/setting-dependency-model";
-import {
-  resolveRegistryHelp,
-  resolveRegistryTitle,
-} from "@/lib/settings/resolve-registry-i18n";
+import { resolveRegistryHelp, resolveRegistryTitle } from "@/lib/settings/resolve-registry-i18n";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import type {
   SettingCondition,
@@ -63,9 +60,7 @@ export function SettingDetailDialog({
   const [reason, setReason] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [isDiscardOpen, setIsDiscardOpen] = useState(false);
-  const [dependents, setDependents] = useState<
-    readonly SettingDependentReset[] | null
-  >(null);
+  const [dependents, setDependents] = useState<readonly SettingDependentReset[] | null>(null);
 
   const title = resolveRegistryTitle(t, entry);
   const help = resolveRegistryHelp(t, entry);
@@ -174,9 +169,7 @@ export function SettingDetailDialog({
         testId="setting-detail-dialog"
         title={title}
         description={
-          <span className="font-mono text-[11px] text-muted-foreground">
-            {entry.key}
-          </span>
+          <span className="font-mono text-[11px] text-muted-foreground">{entry.key}</span>
         }
       >
         <div className="flex flex-wrap items-center gap-1.5">
@@ -219,7 +212,9 @@ export function SettingDetailDialog({
             >
               <ExternalLink size={13} aria-hidden /> {t("settings.detail.noticeEditorLink")}
             </Link>
-            <span className="mt-0.5 block text-muted-foreground">{t("settings.detail.noticeEditorHint")}</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              {t("settings.detail.noticeEditorHint")}
+            </span>
           </p>
         ) : null}
 
@@ -247,18 +242,13 @@ export function SettingDetailDialog({
             <h3 className="text-[12px] font-semibold text-foreground">
               {t("settings.dependencies.requiresTitle")}
             </h3>
-            <ul
-              data-testid="setting-detail-requires"
-              className="mt-1.5 space-y-1"
-            >
+            <ul data-testid="setting-detail-requires" className="mt-1.5 space-y-1">
               {entry.requires.map((condition) => (
                 <li
                   key={`${condition.key}:${JSON.stringify(condition)}`}
                   className="flex flex-wrap items-center gap-2 text-[12px]"
                 >
-                  <span className="text-foreground/90">
-                    {conditionLabel(condition)}
-                  </span>
+                  <span className="text-foreground/90">{conditionLabel(condition)}</span>
                   <span className="font-mono text-[11px] text-muted-foreground">
                     {condition.key}
                   </span>
@@ -328,13 +318,7 @@ export function SettingDetailDialog({
               </Button>
             </>
           ) : null}
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            disabled={isBusy}
-            onClick={requestClose}
-          >
+          <Button type="button" size="xs" variant="ghost" disabled={isBusy} onClick={requestClose}>
             {t("ui.close")}
           </Button>
         </div>
@@ -374,10 +358,7 @@ export function SettingDetailDialog({
   );
 }
 
-function formatValue(
-  value: string | number | boolean | null,
-  fallback: string,
-): string {
+function formatValue(value: string | number | boolean | null, fallback: string): string {
   if (value === null || value === "") {
     return fallback;
   }
@@ -386,4 +367,3 @@ function formatValue(
   }
   return String(value);
 }
-

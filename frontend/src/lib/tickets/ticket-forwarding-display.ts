@@ -8,7 +8,9 @@ export type TicketForwardFacts = {
 };
 
 export function forwardCountOf(ticket: TicketForwardFacts): number {
-  return typeof ticket.forwardCount === "number" && ticket.forwardCount > 0 ? ticket.forwardCount : 0;
+  return typeof ticket.forwardCount === "number" && ticket.forwardCount > 0
+    ? ticket.forwardCount
+    : 0;
 }
 
 export function isForwardPingPong(ticket: TicketForwardFacts): boolean {
@@ -25,6 +27,8 @@ export function describeLastForward(
     date === null || Number.isNaN(date.getTime())
       ? null
       : new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(date);
-  const from = ticket.lastForwardFromGroupName?.trim() ? ticket.lastForwardFromGroupName.trim() : null;
+  const from = ticket.lastForwardFromGroupName?.trim()
+    ? ticket.lastForwardFromGroupName.trim()
+    : null;
   return { when, from };
 }

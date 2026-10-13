@@ -30,7 +30,10 @@ interface ConfigVersionsWorkspaceProperties {
   readonly canImport: boolean;
 }
 
-export function ConfigVersionsWorkspace({ canWrite, canImport }: ConfigVersionsWorkspaceProperties) {
+export function ConfigVersionsWorkspace({
+  canWrite,
+  canImport,
+}: ConfigVersionsWorkspaceProperties) {
   const { t } = useTranslation();
   const admin = useConfigVersions(true);
   const shadow = useConfigVersionShadow();

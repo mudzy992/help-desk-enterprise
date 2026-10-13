@@ -36,8 +36,7 @@ export function AdminOpsPanel() {
       permissionKeys: session.permissionKeys,
     });
   const canExportAudit =
-    session?.isSuperAdmin === true ||
-    hasPermission(permissionKeys.auditExport);
+    session?.isSuperAdmin === true || hasPermission(permissionKeys.auditExport);
   // Paket 2.7: System health; SUPER_ADMIN holds every permission anyway.
   const canViewHealth =
     session?.isSuperAdmin === true || hasPermission(permissionKeys.opsHealthView);
@@ -46,17 +45,12 @@ export function AdminOpsPanel() {
   // Paket 3.1: Microsoft Teams connector administration.
   const canManageTeams =
     session?.isSuperAdmin === true || hasPermission(permissionKeys.integrationsTeamsManage);
-  const canSupportBundle =
-    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
+  const canSupportBundle = session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [unitId, setUnitId] = useState("");
-  const [unitOptions, setUnitOptions] = useState<
-    readonly { id: string; label: string }[]
-  >([]);
+  const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<AdminOpsMessageKey | null>(null);
-  const [verifyResult, setVerifyResult] = useState<AuditLogVerifyResult | null>(
-    null,
-  );
+  const [verifyResult, setVerifyResult] = useState<AuditLogVerifyResult | null>(null);
 
   useEffect(() => {
     void listOrganizationalUnitTree()
@@ -127,7 +121,9 @@ export function AdminOpsPanel() {
                 <MessageSquare size={14} className="text-link" />
                 {t("teamsAdmin.title")}
               </p>
-              <p className="mt-1 text-[11.5px] leading-[15px] text-muted-foreground">{t("teamsAdmin.cardBody")}</p>
+              <p className="mt-1 text-[11.5px] leading-[15px] text-muted-foreground">
+                {t("teamsAdmin.cardBody")}
+              </p>
             </div>
             <Button asChild size="xs" variant="outline">
               <Link to="/admin/teams">{t("teamsAdmin.open")}</Link>

@@ -21,7 +21,12 @@ interface TicketCsatPanelProperties {
  * so it is visible the moment the ticket is resolved. The card has no header —
  * the caller supplies the context.
  */
-export function TicketCsatPanel({ ticket, onComplete, onError, className }: TicketCsatPanelProperties) {
+export function TicketCsatPanel({
+  ticket,
+  onComplete,
+  onError,
+  className,
+}: TicketCsatPanelProperties) {
   const { t } = useTranslation();
   const csat = ticket.csat;
   const [rating, setRating] = useState(csat?.rating ?? 0);
@@ -55,7 +60,9 @@ export function TicketCsatPanel({ ticket, onComplete, onError, className }: Tick
   return (
     <Card className={className} data-testid="ticket-csat-panel">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pb-2 pt-3">
-        <span className="text-[12.5px] font-semibold text-foreground">{t("tickets.csat.title")}</span>
+        <span className="text-[12.5px] font-semibold text-foreground">
+          {t("tickets.csat.title")}
+        </span>
         <span className="text-[11.5px] text-muted-foreground">{t("tickets.csat.hint")}</span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4">

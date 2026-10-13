@@ -13,13 +13,19 @@ export type GuardDescription = {
  * Paket 1.7 (W2/W3): a guard, as this installation actually applies it —
  * the numbers come from the live settings, not from a generic description.
  */
-export function describeWorkflowGuard(guard: WorkflowGuard, parameters: Parameters): GuardDescription {
+export function describeWorkflowGuard(
+  guard: WorkflowGuard,
+  parameters: Parameters,
+): GuardDescription {
   switch (guard) {
     case "close_code":
       return {
         key: "workflow.guards.close_code",
         values: {},
-        inactive: parameters.closeCodes === null || !parameters.closeCodes.enabled || !parameters.closeCodes.requireOnResolve,
+        inactive:
+          parameters.closeCodes === null ||
+          !parameters.closeCodes.enabled ||
+          !parameters.closeCodes.requireOnResolve,
       };
     case "required_fields":
       return {

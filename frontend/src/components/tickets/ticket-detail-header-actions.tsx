@@ -12,7 +12,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
+import {
+  canShowClaimAction,
+  canShowReopenAction,
+  nextTicketStatuses,
+} from "@/lib/tickets/ticket-actions";
 import { isResolveOrCloseStatus } from "@/lib/tickets/is-resolve-or-close-status";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
@@ -137,7 +141,13 @@ export function TicketDetailHeaderActions({
         </Button>
       ) : null}
       {canMerge && onMerge ? (
-        <Button type="button" variant="outline" size="sm" onClick={onMerge} data-testid="ticket-merge">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onMerge}
+          data-testid="ticket-merge"
+        >
           <GitMerge size={14} /> {t("tickets.merge.action")}
         </Button>
       ) : null}

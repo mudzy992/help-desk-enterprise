@@ -20,15 +20,11 @@ export type InstallLoginProviderInput = {
   readonly adBindPassword?: string;
 };
 
-export function isInstallLoginProviderFormReady(
-  values: InstallLoginProviderFormValues,
-): boolean {
+export function isInstallLoginProviderFormReady(values: InstallLoginProviderFormValues): boolean {
   if (values.mode === "local") {
     return true;
   }
-  const hasEntra =
-    values.azureTenantId.trim().length > 0 &&
-    values.azureClientId.trim().length > 0;
+  const hasEntra = values.azureTenantId.trim().length > 0 && values.azureClientId.trim().length > 0;
   const hasDirectoryBind =
     values.adLdapsUrlsCsv.trim().length > 0 &&
     values.adBindDn.trim().length > 0 &&
@@ -57,10 +53,7 @@ export function buildInstallLoginProviderInput(
   };
 }
 
-function optionalField<K extends string>(
-  key: K,
-  value: string,
-): Partial<Record<K, string>> {
+function optionalField<K extends string>(key: K, value: string): Partial<Record<K, string>> {
   const normalized = value.trim();
   return normalized.length === 0 ? {} : ({ [key]: normalized } as Record<K, string>);
 }

@@ -1,10 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 interface SlaEditDrawerProperties {
   readonly open: boolean;
@@ -30,9 +25,7 @@ export function SlaEditDrawer({
             {description}
           </SheetDescription>
         </div>
-        {open ? (
-          <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        ) : null}
+        {open ? <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div> : null}
       </SheetContent>
     </Sheet>
   );

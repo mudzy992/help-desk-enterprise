@@ -85,11 +85,7 @@ export function CreateRoutingRuleForm({
         </Select>
       </Field>
       <Field label={t("routing.serviceId")} required>
-        <Select
-          value={serviceId}
-          required
-          onChange={(event) => setServiceId(event.target.value)}
-        >
+        <Select value={serviceId} required onChange={(event) => setServiceId(event.target.value)}>
           <option value="">{t("routing.selectPlaceholder")}</option>
           {services.map((service) => (
             <option key={service.id} value={service.id}>
@@ -99,11 +95,7 @@ export function CreateRoutingRuleForm({
         </Select>
       </Field>
       <Field label={t("routing.groupId")} required>
-        <Select
-          value={groupId}
-          required
-          onChange={(event) => setGroupId(event.target.value)}
-        >
+        <Select value={groupId} required onChange={(event) => setGroupId(event.target.value)}>
           <option value="">{t("routing.selectPlaceholder")}</option>
           {groups.map((group) => (
             <option key={group.id} value={group.id}>
@@ -117,11 +109,7 @@ export function CreateRoutingRuleForm({
           {t("routing.duplicateWarning")}
         </p>
       ) : null}
-      <Field
-        label={t("routing.reason")}
-        required
-        hint={t("routing.reasonHint")}
-      >
+      <Field label={t("routing.reason")} required hint={t("routing.reasonHint")}>
         <Textarea
           value={reason}
           required
@@ -130,9 +118,7 @@ export function CreateRoutingRuleForm({
           onChange={(event) => setReason(event.target.value)}
         />
       </Field>
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <Button type="submit" variant="primary" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? t("routing.saving") : t("routing.createRule")}
       </Button>

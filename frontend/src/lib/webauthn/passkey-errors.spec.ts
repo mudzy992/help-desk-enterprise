@@ -69,15 +69,17 @@ describe("ceremonyMessageKey", () => {
   });
 
   it("explains an already-registered authenticator and a refused user verification", () => {
-    expect(ceremonyMessageKey({ kind: "failed", code: "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED" })).toBe(
-      "account.passkeys.errorAlreadyRegistered",
-    );
+    expect(
+      ceremonyMessageKey({ kind: "failed", code: "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED" }),
+    ).toBe("account.passkeys.errorAlreadyRegistered");
     expect(
       ceremonyMessageKey({ kind: "failed", code: "ERROR_AUTO_REGISTER_USER_VERIFICATION_FAILURE" }),
     ).toBe("account.passkeys.errorDevice");
     expect(ceremonyMessageKey({ kind: "failed", code: "SOMETHING_ELSE" })).toBe(
       "account.passkeys.errorGeneric",
     );
-    expect(ceremonyMessageKey({ kind: "failed", code: null })).toBe("account.passkeys.errorGeneric");
+    expect(ceremonyMessageKey({ kind: "failed", code: null })).toBe(
+      "account.passkeys.errorGeneric",
+    );
   });
 });

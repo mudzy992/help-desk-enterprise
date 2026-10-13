@@ -9,10 +9,29 @@ import { Card } from "@/components/ui/card";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { buildMonthGrid, dayKey, freezeOn, isSameDay, monthOf, overlapsDay, shiftMonth, type CalendarMonth } from "@/lib/changes/change-calendar";
-import { changeRiskKeys, changeRiskTone, changeStatusKeys, formatChangeWindow, mapChangeError } from "@/lib/changes/change-view";
+import {
+  buildMonthGrid,
+  dayKey,
+  freezeOn,
+  isSameDay,
+  monthOf,
+  overlapsDay,
+  shiftMonth,
+  type CalendarMonth,
+} from "@/lib/changes/change-calendar";
+import {
+  changeRiskKeys,
+  changeRiskTone,
+  changeStatusKeys,
+  formatChangeWindow,
+  mapChangeError,
+} from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { changeExtraKeys, getChangeCalendar, type ChangeCalendar as CalendarData } from "@/services/changes-api";
+import {
+  changeExtraKeys,
+  getChangeCalendar,
+  type ChangeCalendar as CalendarData,
+} from "@/services/changes-api";
 
 const cellItemMax = 3;
 
@@ -34,14 +53,31 @@ export function ChangeCalendar() {
   const grid = useMemo(() => buildMonthGrid(month), [month]);
   const from = grid.from.toISOString();
   const to = grid.to.toISOString();
-  const query = useQuery({ queryKey: changeExtraKeys.calendar(from, to), queryFn: () => getChangeCalendar(from, to), retry: false });
+  const query = useQuery({
+    queryKey: changeExtraKeys.calendar(from, to),
+    queryFn: () => getChangeCalendar(from, to),
+    retry: false,
+  });
 
   // Month and weekday names come from i18n: browsers without bs locale data print "M10" / "Mon".
-  const monthName = (index: number) => t(`changes.calendar.months.m${index}` as "changes.calendar.months.m0");
-  const weekdayName = (date: Date, form: "short" | "long") => t(`changes.calendar.weekdays.${form}${(date.getDay() + 6) % 7}` as "changes.calendar.weekdays.short0");
+  const monthName = (index: number) =>
+    t(`changes.calendar.months.m${index}` as "changes.calendar.months.m0");
+  const weekdayName = (date: Date, form: "short" | "long") =>
+    t(
+      `changes.calendar.weekdays.${form}${(date.getDay() + 6) % 7}` as "changes.calendar.weekdays.short0",
+    );
   const monthLabel = `${monthName(month.month)} ${month.year}`;
-  const dayFormat = { format: (date: Date) => t("changes.calendar.dayLabel", { weekday: weekdayName(date, "long"), day: date.getDate(), month: monthName(date.getMonth()), year: date.getFullYear() }) };
-  const weekdays = grid.weeks[0]?.map((day) => ({ short: weekdayName(day, "short"), key: dayKey(day) })) ?? [];
+  const dayFormat = {
+    format: (date: Date) =>
+      t("changes.calendar.dayLabel", {
+        weekday: weekdayName(date, "long"),
+        day: date.getDate(),
+        month: monthName(date.getMonth()),
+        year: date.getFullYear(),
+      }),
+  };
+  const weekdays =
+    grid.weeks[0]?.map((day) => ({ short: weekdayName(day, "short"), key: dayKey(day) })) ?? [];
 
   const itemsFor = (day: Date): DayItems => {
     const data = query.data;
@@ -49,7 +85,9 @@ export function ChangeCalendar() {
     return {
       changes: data.changes.filter((item) => overlapsDay(day, item.plannedStart, item.plannedEnd)),
       // Windows created by a change are shown through the change itself.
-      downtime: data.downtime.filter((item) => item.changeRequestId === null && overlapsDay(day, item.startsAt, item.endsAt)),
+      downtime: data.downtime.filter(
+        (item) => item.changeRequestId === null && overlapsDay(day, item.startsAt, item.endsAt),
+      ),
       freeze: freezeOn(day, data.freezePeriods),
     };
   };
@@ -60,13 +98,23 @@ export function ChangeCalendar() {
         {monthLabel}
       </h2>
       <div className="flex gap-1.5">
-        <Button variant="outline" size="sm" onClick={() => setMonth((value) => shiftMonth(value, -1))} aria-label={t("changes.calendar.previous")}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMonth((value) => shiftMonth(value, -1))}
+          aria-label={t("changes.calendar.previous")}
+        >
           <ChevronLeft size={14} aria-hidden="true" />
         </Button>
         <Button variant="outline" size="sm" onClick={() => setMonth(monthOf(new Date()))}>
           {t("changes.calendar.today")}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setMonth((value) => shiftMonth(value, 1))} aria-label={t("changes.calendar.next")}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMonth((value) => shiftMonth(value, 1))}
+          aria-label={t("changes.calendar.next")}
+        >
           <ChevronRight size={14} aria-hidden="true" />
         </Button>
       </div>
@@ -93,8 +141,12 @@ export function ChangeCalendar() {
   }
 
   const days = grid.weeks.flat();
-  const listDays = days.filter((day) => day.getMonth() === month.month).map((day) => ({ day, items: itemsFor(day) }));
-  const busyDays = listDays.filter(({ items }) => items.changes.length > 0 || items.downtime.length > 0 || items.freeze !== null);
+  const listDays = days
+    .filter((day) => day.getMonth() === month.month)
+    .map((day) => ({ day, items: itemsFor(day) }));
+  const busyDays = listDays.filter(
+    ({ items }) => items.changes.length > 0 || items.downtime.length > 0 || items.freeze !== null,
+  );
 
   const changeLink = (item: CalendarData["changes"][number], compact: boolean) => (
     <Link
@@ -107,23 +159,35 @@ export function ChangeCalendar() {
         <Badge tone={changeRiskTone(item.risk)}>{t(changeRiskKeys[item.risk])}</Badge>
         <span className="tnum font-medium">{item.number}</span>
       </span>
-      {compact ? <span className="sr-only">{item.title}</span> : <span className="block truncate text-muted-foreground">{item.title}</span>}
+      {compact ? (
+        <span className="sr-only">{item.title}</span>
+      ) : (
+        <span className="block truncate text-muted-foreground">{item.title}</span>
+      )}
     </Link>
   );
 
   return (
     <div className="grid gap-3" data-testid="change-calendar">
       {navigation}
-      {query.data.truncated ? <p className={hintClassName}>{t("changes.calendar.truncated")}</p> : null}
+      {query.data.truncated ? (
+        <p className={hintClassName}>{t("changes.calendar.truncated")}</p>
+      ) : null}
       <p className={hintClassName}>{t("changes.calendar.legend")}</p>
 
       <Card className="hidden overflow-hidden p-0 md:block">
         <table className="w-full table-fixed text-[12px]">
-          <caption className="sr-only">{t("changes.calendar.caption", { month: monthLabel })}</caption>
+          <caption className="sr-only">
+            {t("changes.calendar.caption", { month: monthLabel })}
+          </caption>
           <thead>
             <tr className="border-b border-border/70">
               {weekdays.map((weekday) => (
-                <th key={weekday.key} scope="col" className="px-2 py-1.5 text-left text-[11.5px] font-medium capitalize text-muted-foreground">
+                <th
+                  key={weekday.key}
+                  scope="col"
+                  className="px-2 py-1.5 text-left text-[11.5px] font-medium capitalize text-muted-foreground"
+                >
                   {weekday.short}
                 </th>
               ))}
@@ -139,13 +203,22 @@ export function ChangeCalendar() {
                   const label = [
                     dayFormat.format(day),
                     t("changes.calendar.cellChanges", { count: items.changes.length }),
-                    items.downtime.length > 0 ? t("changes.calendar.cellDowntime", { count: items.downtime.length }) : null,
-                    items.freeze ? t("changes.calendar.cellFreeze", { label: items.freeze.label || t("changes.conflicts.freezeUnnamed") }) : null,
+                    items.downtime.length > 0
+                      ? t("changes.calendar.cellDowntime", { count: items.downtime.length })
+                      : null,
+                    items.freeze
+                      ? t("changes.calendar.cellFreeze", {
+                          label: items.freeze.label || t("changes.conflicts.freezeUnnamed"),
+                        })
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(", ");
                   const visibleChanges = items.changes.slice(0, cellItemMax);
-                  const visibleDowntime = items.downtime.slice(0, Math.max(0, cellItemMax - visibleChanges.length));
+                  const visibleDowntime = items.downtime.slice(
+                    0,
+                    Math.max(0, cellItemMax - visibleChanges.length),
+                  );
                   const hidden = count - visibleChanges.length - visibleDowntime.length;
                   return (
                     <td
@@ -160,15 +233,25 @@ export function ChangeCalendar() {
                         >
                           {day.getDate()}
                         </span>
-                        {items.freeze ? <Snowflake size={12} className="text-info" aria-hidden="true" /> : null}
+                        {items.freeze ? (
+                          <Snowflake size={12} className="text-info" aria-hidden="true" />
+                        ) : null}
                       </div>
                       {visibleChanges.map((item) => changeLink(item, true))}
                       {visibleDowntime.map((item) => (
-                        <span key={item.id} className="block truncate px-1 py-0.5 text-[11.5px] text-muted-foreground" title={item.message ?? undefined}>
+                        <span
+                          key={item.id}
+                          className="block truncate px-1 py-0.5 text-[11.5px] text-muted-foreground"
+                          title={item.message ?? undefined}
+                        >
                           {t("changes.calendar.downtimeItem", { service: item.service.name })}
                         </span>
                       ))}
-                      {hidden > 0 ? <span className="block px-1 text-[11px] text-muted-foreground">{t("changes.calendar.more", { count: hidden })}</span> : null}
+                      {hidden > 0 ? (
+                        <span className="block px-1 text-[11px] text-muted-foreground">
+                          {t("changes.calendar.more", { count: hidden })}
+                        </span>
+                      ) : null}
                     </td>
                   );
                 })}
@@ -180,22 +263,31 @@ export function ChangeCalendar() {
 
       <div className="grid gap-2 md:hidden">
         {busyDays.length === 0 ? (
-          <EmptyState icon={<CalendarDays size={18} />} title={t("changes.calendar.emptyTitle")} body={t("changes.calendar.emptyBody")} />
+          <EmptyState
+            icon={<CalendarDays size={18} />}
+            title={t("changes.calendar.emptyTitle")}
+            body={t("changes.calendar.emptyBody")}
+          />
         ) : (
           busyDays.map(({ day, items }) => (
             <Card key={dayKey(day)} className="p-0">
-              <h3 className="border-b border-border/60 px-3 py-1.5 text-[12.5px] font-medium capitalize text-foreground">{dayFormat.format(day)}</h3>
+              <h3 className="border-b border-border/60 px-3 py-1.5 text-[12.5px] font-medium capitalize text-foreground">
+                {dayFormat.format(day)}
+              </h3>
               <div className="grid gap-1 px-2 py-2">
                 {items.freeze ? (
                   <p className="flex items-center gap-1.5 px-1 text-[12px] text-foreground">
                     <Snowflake size={12} className="text-info" aria-hidden="true" />
-                    {t("changes.calendar.cellFreeze", { label: items.freeze.label || t("changes.conflicts.freezeUnnamed") })}
+                    {t("changes.calendar.cellFreeze", {
+                      label: items.freeze.label || t("changes.conflicts.freezeUnnamed"),
+                    })}
                   </p>
                 ) : null}
                 {items.changes.map((item) => changeLink(item, false))}
                 {items.downtime.map((item) => (
                   <p key={item.id} className="px-1 text-[12px] text-muted-foreground">
-                    {t("changes.calendar.downtimeItem", { service: item.service.name })} · {formatChangeWindow(item.startsAt, item.endsAt, i18n.language)}
+                    {t("changes.calendar.downtimeItem", { service: item.service.name })} ·{" "}
+                    {formatChangeWindow(item.startsAt, item.endsAt, i18n.language)}
                   </p>
                 ))}
               </div>

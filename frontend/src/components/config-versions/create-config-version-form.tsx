@@ -8,10 +8,7 @@ interface CreateConfigVersionFormProperties {
   readonly onCreate: (releaseNotes: string) => Promise<boolean>;
 }
 
-export function CreateConfigVersionForm({
-  isBusy,
-  onCreate,
-}: CreateConfigVersionFormProperties) {
+export function CreateConfigVersionForm({ isBusy, onCreate }: CreateConfigVersionFormProperties) {
   const { t } = useTranslation();
   const [releaseNotes, setReleaseNotes] = useState("");
 

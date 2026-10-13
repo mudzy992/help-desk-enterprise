@@ -16,8 +16,6 @@ export function lookupTicketPriority(
   urgency: TicketUrgency,
   cells: readonly PriorityMatrixCell[] | null | undefined,
 ): TicketPriority {
-  const match = cells?.find(
-    (cell) => cell.impact === impact && cell.urgency === urgency,
-  );
+  const match = cells?.find((cell) => cell.impact === impact && cell.urgency === urgency);
   return match?.priority ?? PRIORITY_MATRIX_LOADING_PLACEHOLDER;
 }

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildInstallSmtpInput,
-  isInstallSmtpFormReady,
-} from "@/lib/build-install-smtp-input";
+import { buildInstallSmtpInput, isInstallSmtpFormReady } from "@/lib/build-install-smtp-input";
 
 const completeOn = {
   enabled: true as const,
@@ -29,15 +26,9 @@ describe("buildInstallSmtpInput", () => {
 
   it("requires SMTP fields when the switch is on", () => {
     expect(isInstallSmtpFormReady(completeOn)).toBe(true);
-    expect(
-      isInstallSmtpFormReady({ ...completeOn, host: "" }),
-    ).toBe(false);
-    expect(
-      isInstallSmtpFormReady({ ...completeOn, port: "0" }),
-    ).toBe(false);
-    expect(
-      isInstallSmtpFormReady({ ...completeOn, fromAddress: "not-an-email" }),
-    ).toBe(false);
+    expect(isInstallSmtpFormReady({ ...completeOn, host: "" })).toBe(false);
+    expect(isInstallSmtpFormReady({ ...completeOn, port: "0" })).toBe(false);
+    expect(isInstallSmtpFormReady({ ...completeOn, fromAddress: "not-an-email" })).toBe(false);
     expect(
       isInstallSmtpFormReady({
         ...completeOn,

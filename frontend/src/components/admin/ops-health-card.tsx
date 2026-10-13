@@ -28,7 +28,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { hintClassName, sectionTitleClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import {
+  hintClassName,
+  sectionTitleClassName,
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+} from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -173,12 +179,13 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
     try {
       const { channels } = await sendOpsTestAlert();
       const summary = channels
-        .map((channel) =>
-          t("admin.opsHealth.test.channel", {
-            channel: t(`admin.opsHealth.channels.${channel.channel}`),
-            status: t(`admin.opsHealth.test.status.${channel.status}`),
-            delivered: channel.delivered,
-          }) + (channel.reason ? ` – ${reasonLabel(channel.reason)}` : ""),
+        .map(
+          (channel) =>
+            t("admin.opsHealth.test.channel", {
+              channel: t(`admin.opsHealth.channels.${channel.channel}`),
+              status: t(`admin.opsHealth.test.status.${channel.status}`),
+              delivered: channel.delivered,
+            }) + (channel.reason ? ` – ${reasonLabel(channel.reason)}` : ""),
         )
         .join(" · ");
       const anyDelivered = channels.some((channel) => channel.delivered > 0);
@@ -220,7 +227,9 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
         subtitle={
           overview.snapshot === null
             ? t("admin.opsHealth.noSnapshot")
-            : t("admin.opsHealth.snapshotAge", { age: formatOpsDuration((overview.snapshot.ageSeconds ?? 0) * 1000) })
+            : t("admin.opsHealth.snapshotAge", {
+                age: formatOpsDuration((overview.snapshot.ageSeconds ?? 0) * 1000),
+              })
         }
         actions={
           <>
@@ -241,10 +250,15 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
         }
       />
       <div className="grid gap-5 px-4 py-3.5">
-        {loadError ? <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} /> : null}
+        {loadError ? (
+          <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+        ) : null}
 
         {overview.silence ? (
-          <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-[12.5px] text-warning">
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-[12.5px] text-warning"
+          >
             <span className="flex items-center gap-1.5">
               <BellOff size={14} />
               {t("admin.opsHealth.silence.active", {
@@ -258,7 +272,9 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
                 size="xs"
                 variant="secondary"
                 disabled={pending !== null}
-                onClick={() => void run("unsilence", unsilenceOpsAlerts, t("admin.opsHealth.silence.cleared"))}
+                onClick={() =>
+                  void run("unsilence", unsilenceOpsAlerts, t("admin.opsHealth.silence.cleared"))
+                }
               >
                 {t("admin.opsHealth.silence.clear")}
               </Button>
@@ -279,11 +295,21 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
             <h4 className={sectionTitleClassName}>{t("admin.opsHealth.alerts.title")}</h4>
             {canManage ? (
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" disabled={pending !== null} onClick={() => void runTest()}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={pending !== null}
+                  onClick={() => void runTest()}
+                >
                   <Send /> {t("admin.opsHealth.test.action")}
                 </Button>
                 {overview.silence === null ? (
-                  <Button size="sm" variant="secondary" disabled={pending !== null} onClick={() => setSilenceOpen(true)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={pending !== null}
+                    onClick={() => setSilenceOpen(true)}
+                  >
                     <BellOff /> {t("admin.opsHealth.silence.action")}
                   </Button>
                 ) : null}
@@ -305,7 +331,11 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
                   nowMs={nowMs}
                   busy={pending !== null}
                   onAcknowledge={() =>
-                    void run(`ack:${alert.id}`, () => acknowledgeOpsAlert(alert.id), t("admin.opsHealth.alerts.acknowledged"))
+                    void run(
+                      `ack:${alert.id}`,
+                      () => acknowledgeOpsAlert(alert.id),
+                      t("admin.opsHealth.alerts.acknowledged"),
+                    )
                   }
                 />
               ))}
@@ -329,7 +359,12 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
               </p>
             </div>
             {canManage ? (
-              <Button size="sm" variant="secondary" disabled={pending !== null || growth === 0} onClick={() => setConfirmDlq(true)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={pending !== null || growth === 0}
+                onClick={() => setConfirmDlq(true)}
+              >
                 <CheckCheck /> {t("admin.opsHealth.queues.acknowledge")}
               </Button>
             ) : null}
@@ -366,7 +401,15 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
   );
 }
 
-function ComponentTile({ label, state, children }: { readonly label: string; readonly state: ComponentState; readonly children?: ReactNode }) {
+function ComponentTile({
+  label,
+  state,
+  children,
+}: {
+  readonly label: string;
+  readonly state: ComponentState;
+  readonly children?: ReactNode;
+}) {
   const { t } = useTranslation();
   return (
     <div className="grid gap-1 rounded-md border border-border bg-surface px-3 py-2.5">
@@ -381,11 +424,18 @@ function ComponentTile({ label, state, children }: { readonly label: string; rea
   );
 }
 
-function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; readonly nowMs: number }) {
+function ComponentGrid({
+  overview,
+  nowMs,
+}: {
+  readonly overview: OpsOverview;
+  readonly nowMs: number;
+}) {
   const { t, i18n } = useTranslation();
   const { components, configuration } = overview;
   const worker = components.worker;
-  const workerState: ComponentState = worker.status === "active" ? "ok" : worker.status === "stale" ? "fail" : "unknown";
+  const workerState: ComponentState =
+    worker.status === "active" ? "ok" : worker.status === "stale" ? "fail" : "unknown";
   const disk = components.disk;
   const ldaps = ldapsCaState(components.ldapsCaExpiresAt, nowMs);
   const clamav = components.clamav;
@@ -395,20 +445,39 @@ function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; re
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <ComponentTile
           label={t("admin.opsHealth.components.api")}
-          state={components.api !== "ok" ? "fail" : eventLoopState(components.eventLoopLagMs) === "unknown" ? "ok" : eventLoopState(components.eventLoopLagMs)}
+          state={
+            components.api !== "ok"
+              ? "fail"
+              : eventLoopState(components.eventLoopLagMs) === "unknown"
+                ? "ok"
+                : eventLoopState(components.eventLoopLagMs)
+          }
         >
           {components.eventLoopLagMs === null
             ? null
-            : t("admin.opsHealth.components.eventLoop", { ms: Math.round(components.eventLoopLagMs) })}
+            : t("admin.opsHealth.components.eventLoop", {
+                ms: Math.round(components.eventLoopLagMs),
+              })}
         </ComponentTile>
-        <ComponentTile label={t("admin.opsHealth.components.database")} state={components.database === "ok" ? "ok" : "fail"} />
-        <ComponentTile label={t("admin.opsHealth.components.redis")} state={components.redis === "ok" ? "ok" : "fail"} />
+        <ComponentTile
+          label={t("admin.opsHealth.components.database")}
+          state={components.database === "ok" ? "ok" : "fail"}
+        />
+        <ComponentTile
+          label={t("admin.opsHealth.components.redis")}
+          state={components.redis === "ok" ? "ok" : "fail"}
+        />
         <ComponentTile label={t("admin.opsHealth.components.worker")} state={workerState}>
           {worker.heartbeatAgeSeconds === null
             ? t("admin.opsHealth.components.noHeartbeat")
-            : t("admin.opsHealth.components.heartbeat", { age: formatOpsDuration(worker.heartbeatAgeSeconds * 1000) })}
+            : t("admin.opsHealth.components.heartbeat", {
+                age: formatOpsDuration(worker.heartbeatAgeSeconds * 1000),
+              })}
         </ComponentTile>
-        <ComponentTile label={t("admin.opsHealth.components.disk")} state={diskState(disk, configuration.thresholds)}>
+        <ComponentTile
+          label={t("admin.opsHealth.components.disk")}
+          state={diskState(disk, configuration.thresholds)}
+        >
           {disk === null
             ? t("admin.opsHealth.components.unknown")
             : t("admin.opsHealth.components.diskUsage", {
@@ -419,7 +488,11 @@ function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; re
         </ComponentTile>
         <ComponentTile label={t("admin.opsHealth.components.clamav")} state={clamavState(clamav)}>
           {clamav !== null && clamav.configured && !clamav.ok
-            ? t(clamav.failOpen ? "admin.opsHealth.components.clamavFailOpen" : "admin.opsHealth.components.clamavBlocking")
+            ? t(
+                clamav.failOpen
+                  ? "admin.opsHealth.components.clamavFailOpen"
+                  : "admin.opsHealth.components.clamavBlocking",
+              )
             : clamav !== null && !clamav.configured
               ? t("admin.opsHealth.components.notConfigured")
               : null}
@@ -471,7 +544,9 @@ function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; re
             )}
             {mailbox.consecutiveFails > 0 && mailbox.lastError ? (
               <span className="mt-0.5 block break-words text-danger" title={mailbox.lastError}>
-                {t("admin.opsHealth.components.lastError", { error: mailbox.lastError.slice(0, 160) })}
+                {t("admin.opsHealth.components.lastError", {
+                  error: mailbox.lastError.slice(0, 160),
+                })}
               </span>
             ) : null}
           </ComponentTile>
@@ -537,7 +612,9 @@ function AlertItem({
             </span>
           </div>
           <span className={`${hintClassName} tnum`}>
-            {t("admin.opsHealth.alerts.activeFor", { duration: formatOpsDuration(alertDurationMs(alert, nowMs)) })}
+            {t("admin.opsHealth.alerts.activeFor", {
+              duration: formatOpsDuration(alertDurationMs(alert, nowMs)),
+            })}
             {" · "}
             {t("admin.opsHealth.alerts.notified", { count: alert.notifyCount })}
           </span>
@@ -546,7 +623,10 @@ function AlertItem({
           <Badge tone="info">
             {t("admin.opsHealth.alerts.acknowledgedBy", {
               name: alert.acknowledgedBy ?? "—",
-              at: alert.acknowledgedAt === null ? "" : new Date(alert.acknowledgedAt).toLocaleString(i18n.language),
+              at:
+                alert.acknowledgedAt === null
+                  ? ""
+                  : new Date(alert.acknowledgedAt).toLocaleString(i18n.language),
             })}
           </Badge>
         ) : (
@@ -555,7 +635,11 @@ function AlertItem({
           </Button>
         )}
       </div>
-      {slug !== null ? <p className="text-[12.5px] text-foreground">{t(`admin.opsHealth.alertKeys.${slug}.action`)}</p> : null}
+      {slug !== null ? (
+        <p className="text-[12.5px] text-foreground">
+          {t(`admin.opsHealth.alertKeys.${slug}.action`)}
+        </p>
+      ) : null}
       {details.length > 0 ? (
         <dl className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-muted-foreground">
           {details.map(([label, value]) => (
@@ -568,7 +652,8 @@ function AlertItem({
       ) : null}
       {alert.runbook ? (
         <p className={hintClassName}>
-          {t("admin.opsHealth.alerts.runbook")} <code className="text-[11.5px]">{alert.runbook}</code>
+          {t("admin.opsHealth.alerts.runbook")}{" "}
+          <code className="text-[11.5px]">{alert.runbook}</code>
         </p>
       ) : null}
     </li>
@@ -583,7 +668,9 @@ function HttpChart({ overview }: { readonly overview: OpsOverview }) {
     <section className="grid gap-2">
       <div>
         <h4 className={sectionTitleClassName}>{t("admin.opsHealth.http.title")}</h4>
-        <p className={hintClassName}>{t("admin.opsHealth.http.summary", { errors: totalErrors, requests })}</p>
+        <p className={hintClassName}>
+          {t("admin.opsHealth.http.summary", { errors: totalErrors, requests })}
+        </p>
       </div>
       {bars.length === 0 ? (
         <p className={hintClassName}>{t("admin.opsHealth.http.empty")}</p>
@@ -598,20 +685,29 @@ function HttpChart({ overview }: { readonly overview: OpsOverview }) {
               key={bar.at}
               className="flex h-full flex-1 items-end"
               title={t("admin.opsHealth.http.bar", {
-                time: new Date(bar.at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit" }),
+                time: new Date(bar.at).toLocaleTimeString(i18n.language, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
                 errors: bar.errors5xx,
                 total: bar.total,
               })}
             >
               <div
-                className={bar.errors5xx > 0 ? "w-full rounded-t-sm bg-danger/70" : "w-full rounded-t-sm bg-border"}
+                className={
+                  bar.errors5xx > 0
+                    ? "w-full rounded-t-sm bg-danger/70"
+                    : "w-full rounded-t-sm bg-border"
+                }
                 style={{ height: bar.errors5xx > 0 ? `${Math.max(6, bar.heightPercent)}%` : "2px" }}
               />
             </div>
           ))}
         </div>
       )}
-      {bars.length > 0 ? <p className={`${hintClassName} tnum`}>{t("admin.opsHealth.http.scale", { max })}</p> : null}
+      {bars.length > 0 ? (
+        <p className={`${hintClassName} tnum`}>{t("admin.opsHealth.http.scale", { max })}</p>
+      ) : null}
     </section>
   );
 }
@@ -640,7 +736,10 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
               {schedulers.map((scheduler) => {
                 const nameKey = scheduledJobTranslationKey(scheduler.schedulerId);
                 return (
-                  <tr key={`${scheduler.queue}/${scheduler.schedulerId}`} className={tableRowClassName}>
+                  <tr
+                    key={`${scheduler.queue}/${scheduler.schedulerId}`}
+                    className={tableRowClassName}
+                  >
                     <td className="px-3">
                       <span className="font-medium text-foreground">
                         {nameKey === null ? scheduler.queue : t(nameKey as never)}
@@ -651,7 +750,9 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
                     </td>
                     <td className="tnum px-3 text-muted-foreground">
                       {scheduler.everyMs !== null
-                        ? t("admin.opsHealth.schedulers.every", { interval: formatOpsDuration(scheduler.everyMs) })
+                        ? t("admin.opsHealth.schedulers.every", {
+                            interval: formatOpsDuration(scheduler.everyMs),
+                          })
                         : (scheduler.pattern ?? "—")}
                     </td>
                     <td className="px-3">
@@ -661,7 +762,8 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
                         <RelativeTime value={scheduler.lastSuccessAt} locale={i18n.language} />
                       )}
                       {scheduler.lastFailureAt !== null &&
-                      (scheduler.lastSuccessAt === null || scheduler.lastFailureAt > scheduler.lastSuccessAt) ? (
+                      (scheduler.lastSuccessAt === null ||
+                        scheduler.lastFailureAt > scheduler.lastSuccessAt) ? (
                         <span className="block text-[11.5px] text-danger">
                           {t("admin.opsHealth.schedulers.lastFailure")}{" "}
                           <RelativeTime value={scheduler.lastFailureAt} locale={i18n.language} />
@@ -694,7 +796,8 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
 function QueueTable({ overview }: { readonly overview: OpsOverview }) {
   const { t } = useTranslation();
   const growth = overview.dlq.growth?.failedByQueue ?? {};
-  if (overview.queues.length === 0) return <p className={hintClassName}>{t("admin.opsHealth.queues.empty")}</p>;
+  if (overview.queues.length === 0)
+    return <p className={hintClassName}>{t("admin.opsHealth.queues.empty")}</p>;
   return (
     <ScrollRegion className={tableWrapClassName}>
       <table className="w-full text-left text-[12.5px]">
@@ -716,7 +819,9 @@ function QueueTable({ overview }: { readonly overview: OpsOverview }) {
                 <td className="tnum px-3 text-right">{queue.waiting}</td>
                 <td className="tnum px-3 text-right">{queue.active}</td>
                 <td className="tnum px-3 text-right">{queue.delayed}</td>
-                <td className={`tnum px-3 text-right ${(growth[queue.queue] ?? 0) > 0 ? "font-semibold text-danger" : ""}`}>
+                <td
+                  className={`tnum px-3 text-right ${(growth[queue.queue] ?? 0) > 0 ? "font-semibold text-danger" : ""}`}
+                >
                   {queue.failed}
                   {(growth[queue.queue] ?? 0) > 0 ? ` (+${growth[queue.queue]})` : null}
                 </td>
@@ -731,32 +836,47 @@ function QueueTable({ overview }: { readonly overview: OpsOverview }) {
 function ChannelSummary({ overview }: { readonly overview: OpsOverview }) {
   const { t } = useTranslation();
   const configuration = overview.configuration;
-  const rows: ReadonlyArray<{ key: string; label: string; state: ComponentState; value: string }> = [
-    {
-      key: "recipients",
-      label: t("admin.opsHealth.channelsSummary.extraRecipients"),
-      state: "ok",
-      value: t("admin.opsHealth.channelsSummary.extraRecipientsValue", { count: configuration.extraRecipientCount }),
-    },
-    {
-      key: "teams",
-      label: t("admin.opsHealth.channels.teams"),
-      state: configuration.teamsConfigured ? "ok" : "off",
-      value: t(configuration.teamsConfigured ? "admin.opsHealth.channelsSummary.configured" : "admin.opsHealth.channelsSummary.notConfigured"),
-    },
-    {
-      key: "fallback",
-      label: t("admin.opsHealth.channelsSummary.fallback"),
-      state: configuration.fallbackConfigured ? "ok" : "warning",
-      value: t(configuration.fallbackConfigured ? "admin.opsHealth.channelsSummary.configured" : "admin.opsHealth.channelsSummary.fallbackMissing"),
-    },
-    {
-      key: "uptime",
-      label: t("admin.opsHealth.channelsSummary.uptime"),
-      state: configuration.uptimePushConfigured ? "ok" : "off",
-      value: t(configuration.uptimePushConfigured ? "admin.opsHealth.channelsSummary.configured" : "admin.opsHealth.channelsSummary.notConfigured"),
-    },
-  ];
+  const rows: ReadonlyArray<{ key: string; label: string; state: ComponentState; value: string }> =
+    [
+      {
+        key: "recipients",
+        label: t("admin.opsHealth.channelsSummary.extraRecipients"),
+        state: "ok",
+        value: t("admin.opsHealth.channelsSummary.extraRecipientsValue", {
+          count: configuration.extraRecipientCount,
+        }),
+      },
+      {
+        key: "teams",
+        label: t("admin.opsHealth.channels.teams"),
+        state: configuration.teamsConfigured ? "ok" : "off",
+        value: t(
+          configuration.teamsConfigured
+            ? "admin.opsHealth.channelsSummary.configured"
+            : "admin.opsHealth.channelsSummary.notConfigured",
+        ),
+      },
+      {
+        key: "fallback",
+        label: t("admin.opsHealth.channelsSummary.fallback"),
+        state: configuration.fallbackConfigured ? "ok" : "warning",
+        value: t(
+          configuration.fallbackConfigured
+            ? "admin.opsHealth.channelsSummary.configured"
+            : "admin.opsHealth.channelsSummary.fallbackMissing",
+        ),
+      },
+      {
+        key: "uptime",
+        label: t("admin.opsHealth.channelsSummary.uptime"),
+        state: configuration.uptimePushConfigured ? "ok" : "off",
+        value: t(
+          configuration.uptimePushConfigured
+            ? "admin.opsHealth.channelsSummary.configured"
+            : "admin.opsHealth.channelsSummary.notConfigured",
+        ),
+      },
+    ];
   return (
     <section className="grid gap-2">
       <div>
@@ -776,7 +896,13 @@ function ChannelSummary({ overview }: { readonly overview: OpsOverview }) {
   );
 }
 
-function AlertHistory({ nowMs, historyDays }: { readonly nowMs: number; readonly historyDays: number }) {
+function AlertHistory({
+  nowMs,
+  historyDays,
+}: {
+  readonly nowMs: number;
+  readonly historyDays: number;
+}) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<readonly OpsAlert[] | null>(null);
@@ -803,7 +929,9 @@ function AlertHistory({ nowMs, historyDays }: { readonly nowMs: number; readonly
         onClick={() => setOpen((current) => !current)}
       >
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span className={sectionTitleClassName}>{t("admin.opsHealth.history.title", { days: historyDays })}</span>
+        <span className={sectionTitleClassName}>
+          {t("admin.opsHealth.history.title", { days: historyDays })}
+        </span>
       </button>
       {open ? (
         error ? (
@@ -835,8 +963,12 @@ function AlertHistory({ nowMs, historyDays }: { readonly nowMs: number; readonly
                         {t(`admin.opsHealth.severity.${alert.severity}`)}
                       </Badge>
                     </td>
-                    <td className="tnum px-3">{new Date(alert.firstSeenAt).toLocaleString(i18n.language)}</td>
-                    <td className="tnum px-3">{formatOpsDuration(alertDurationMs(alert, nowMs))}</td>
+                    <td className="tnum px-3">
+                      {new Date(alert.firstSeenAt).toLocaleString(i18n.language)}
+                    </td>
+                    <td className="tnum px-3">
+                      {formatOpsDuration(alertDurationMs(alert, nowMs))}
+                    </td>
                     <td className="px-3 text-muted-foreground">{alert.acknowledgedBy ?? "—"}</td>
                   </tr>
                 ))}

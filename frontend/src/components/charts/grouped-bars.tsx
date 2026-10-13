@@ -28,8 +28,7 @@ interface GroupedBarsProperties {
 /** Series colours come from tokens, so both themes stay in sync. */
 const SERIES_A_BACKGROUND =
   "linear-gradient(to top, rgb(var(--primary) / 0.72), rgb(var(--primary)))";
-const SERIES_B_BACKGROUND =
-  "linear-gradient(to top, rgb(var(--ok) / 0.72), rgb(var(--ok)))";
+const SERIES_B_BACKGROUND = "linear-gradient(to top, rgb(var(--ok) / 0.72), rgb(var(--ok)))";
 
 export function GroupedBars({
   data,
@@ -38,10 +37,7 @@ export function GroupedBars({
   height = 148,
   className,
 }: GroupedBarsProperties) {
-  const max = Math.max(
-    ...data.map((item) => Math.max(item.created, item.resolved)),
-    1,
-  );
+  const max = Math.max(...data.map((item) => Math.max(item.created, item.resolved)), 1);
   const [hover, setHover] = useState<number | null>(null);
   const groupId = useId();
   const { t } = useTranslation();

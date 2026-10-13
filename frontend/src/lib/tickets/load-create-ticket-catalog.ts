@@ -1,9 +1,6 @@
 import { flattenOriginUnitOptions, type OriginUnitOption } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import {
-  listOfferedServices,
-  type ServiceResponse,
-} from "@/services/service-catalog-api";
+import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
 
 export type CreateTicketCatalogLoadResult = {
   readonly services: readonly ServiceResponse[];

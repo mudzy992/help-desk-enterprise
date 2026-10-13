@@ -17,7 +17,8 @@ const refreshEveryMs = 5 * 60_000;
 export function OnCallHeaderIndicator() {
   const { t, i18n } = useTranslation();
   const { hasPermission, session } = useSessionCapabilities();
-  const allowed = session !== null && (session.isSuperAdmin || hasPermission(permissionKeys.onCallRead));
+  const allowed =
+    session !== null && (session.isSuperAdmin || hasPermission(permissionKeys.onCallRead));
   const [me, setMe] = useState<OnCallMe | null>(null);
 
   useEffect(() => {

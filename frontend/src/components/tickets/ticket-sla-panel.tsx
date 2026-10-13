@@ -90,11 +90,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
           label={ticketText(t, "tickets.detail.sla.resolution")}
           remaining={remainingText(view.resolution, t)}
           timer={view.resolution}
-          pauseLabel={
-            view.resolution.paused
-              ? ticketText(t, "tickets.detail.sla.pause")
-              : null
-          }
+          pauseLabel={view.resolution.paused ? ticketText(t, "tickets.detail.sla.pause") : null}
           hint={ticketText(t, "tickets.detail.sla.usedFrame", {
             percent: Math.round(view.resolution.usedPercent),
             risk: SLA_RISK_PERCENT,
@@ -110,9 +106,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
           {view.dueAt === null ? null : (
             <span className="text-[10.5px] text-muted-foreground">
               {ticketText(t, "tickets.detail.sla.due")}{" "}
-              <span className="tnum">
-                {formatTicketTimestamp(view.dueAt, i18n.language)}
-              </span>
+              <span className="tnum">{formatTicketTimestamp(view.dueAt, i18n.language)}</span>
             </span>
           )}
         </div>
@@ -147,15 +141,11 @@ function SlaTimerBlock({
             </Badge>
           )}
         </span>
-        <span className={cn("tnum font-medium", remainingToneClass(timer))}>
-          {remaining}
-        </span>
+        <span className={cn("tnum font-medium", remainingToneClass(timer))}>{remaining}</span>
       </div>
       <Progress value={timer.usedPercent} tone={timer.tone} />
       {hint === undefined ? null : (
-        <p className="mt-1 text-[10.5px] text-muted-foreground">
-          {hint}
-        </p>
+        <p className="mt-1 text-[10.5px] text-muted-foreground">{hint}</p>
       )}
     </div>
   );

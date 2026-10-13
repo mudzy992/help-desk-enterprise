@@ -68,8 +68,7 @@ export function ServiceCatalogList({
         lifecycle: lifecycle === "ALL" ? null : lifecycle,
         originUnitId,
         categoryNames,
-        serviceIdsWithExactRuleByOriginUnit:
-          routingCoverage.serviceIdsWithExactRuleByOriginUnit,
+        serviceIdsWithExactRuleByOriginUnit: routingCoverage.serviceIdsWithExactRuleByOriginUnit,
       }),
     [
       categoryId,
@@ -82,10 +81,7 @@ export function ServiceCatalogList({
     ],
   );
   const hasActiveFilters =
-    query.trim().length > 0 ||
-    categoryId !== null ||
-    lifecycle !== "ALL" ||
-    originUnitId !== null;
+    query.trim().length > 0 || categoryId !== null || lifecycle !== "ALL" || originUnitId !== null;
   const numberFormat = useMemo(
     () => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }),
     [i18n.language],
@@ -103,7 +99,12 @@ export function ServiceCatalogList({
     ) {
       setOriginUnitId(null);
     }
-  }, [originUnitId, routingCoverage.isAvailable, routingCoverage.isLoading, routingCoverage.originUnits]);
+  }, [
+    originUnitId,
+    routingCoverage.isAvailable,
+    routingCoverage.isLoading,
+    routingCoverage.originUnits,
+  ]);
 
   const clearFilters = () => {
     setQuery("");
@@ -139,20 +140,11 @@ export function ServiceCatalogList({
       />
       {visibleRows.length === 0 ? (
         <EmptyState
-          title={
-            hasActiveFilters ? t("services.searchEmptyTitle") : t("services.emptyTitle")
-          }
-          body={
-            hasActiveFilters ? t("services.searchEmptyBody") : t("services.emptyBody")
-          }
+          title={hasActiveFilters ? t("services.searchEmptyTitle") : t("services.emptyTitle")}
+          body={hasActiveFilters ? t("services.searchEmptyBody") : t("services.emptyBody")}
           action={
             hasActiveFilters ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={clearFilters}
-              >
+              <Button type="button" size="sm" variant="outline" onClick={clearFilters}>
                 {t("services.clearFilters")}
               </Button>
             ) : canWriteCatalog ? (

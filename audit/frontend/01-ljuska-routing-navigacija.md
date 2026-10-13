@@ -264,5 +264,5 @@ Refaktor se ne radi bez potvrde obima.
 | B4 `from` sa query i hash | Urađeno (login prolazi kroz `safeReturnPath`) |
 | B14 uklonjen prop `loadingLabelKey` | Urađeno |
 | Testovi `RequireAuth`, `RequireAccess`, install gate | Urađeno (`*.spec.tsx`) |
-| ESLint, Prettier, skripta u CI | Otvoreno, čeka odluku vlasnika o obimu |
+| ESLint, Prettier, skripte `lint`/`format:check` u CI | Urađeno (cijeli `frontend/src` formatiran, 0 grešaka; 14 upozorenja `exhaustive-deps` je dug) |
 | B10–B13, B15–B22 | Otvoreno (niski prioritet, po završetku Must-Have) |

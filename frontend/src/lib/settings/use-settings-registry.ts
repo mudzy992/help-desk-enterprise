@@ -28,9 +28,7 @@ export type SettingsSaveInput = {
  * Paket 5.3.4: both endpoints answer with what actually changed, and the screen
  * needs that answer to tell the administrator which dependent keys were reset.
  */
-export type SettingsSaver = (
-  input: SettingsSaveInput,
-) => Promise<SettingsWriteResponse>;
+export type SettingsSaver = (input: SettingsSaveInput) => Promise<SettingsWriteResponse>;
 
 export type SettingsSaveManyInput = {
   readonly entries: readonly {
@@ -41,9 +39,7 @@ export type SettingsSaveManyInput = {
   readonly resetDependents?: boolean;
 };
 
-export type SettingsSaverMany = (
-  input: SettingsSaveManyInput,
-) => Promise<SettingsWriteResponse>;
+export type SettingsSaverMany = (input: SettingsSaveManyInput) => Promise<SettingsWriteResponse>;
 
 export function useSettingsRegistry() {
   const settingsGeneration = useSyncExternalStore(
@@ -72,21 +68,24 @@ export function useSettingsRegistry() {
     void reload();
   }, [reload, settingsGeneration]);
 
-  const save = useCallback(async (input: SettingsSaveInput): Promise<SettingsWriteResponse> => {
-    setPendingKey(input.key);
-    setErrorKey(null);
-    try {
-      const response = await updateSetting(input);
-      bumpSettingsGeneration();
-      await reload();
-      return response;
-    } catch (error) {
-      setErrorKey(mapApiError(error));
-      throw error;
-    } finally {
-      setPendingKey(null);
-    }
-  }, [reload]);
+  const save = useCallback(
+    async (input: SettingsSaveInput): Promise<SettingsWriteResponse> => {
+      setPendingKey(input.key);
+      setErrorKey(null);
+      try {
+        const response = await updateSetting(input);
+        bumpSettingsGeneration();
+        await reload();
+        return response;
+      } catch (error) {
+        setErrorKey(mapApiError(error));
+        throw error;
+      } finally {
+        setPendingKey(null);
+      }
+    },
+    [reload],
+  );
 
   /** Paket 4.1: one request, one reload - the card never re-renders mid-save. */
   const saveMany = useCallback(

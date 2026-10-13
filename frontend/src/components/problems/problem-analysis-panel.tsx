@@ -32,7 +32,8 @@ export function ProblemAnalysisPanel({
   readonly onSaved: (next: ProblemDetail) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const editable = problem.permissions.canManage && problem.status !== "CLOSED" && problem.status !== "CANCELLED";
+  const editable =
+    problem.permissions.canManage && problem.status !== "CLOSED" && problem.status !== "CANCELLED";
   const [category, setCategory] = useState(problem.rootCauseCategory ?? "");
   const [rootCause, setRootCause] = useState(problem.rootCause ?? "");
   const [whys, setWhys] = useState<ProblemWhy[]>([...problem.rcaWhys]);
@@ -61,7 +62,10 @@ export function ProblemAnalysisPanel({
     resolution.trim() !== (problem.resolution ?? "");
 
   // A category removed from the setting stays visible on old problems.
-  const categoryOptions = problem.rootCauseCategory && !categories.includes(problem.rootCauseCategory) ? [problem.rootCauseCategory, ...categories] : categories;
+  const categoryOptions =
+    problem.rootCauseCategory && !categories.includes(problem.rootCauseCategory)
+      ? [problem.rootCauseCategory, ...categories]
+      : categories;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -92,7 +96,10 @@ export function ProblemAnalysisPanel({
         <Card className="p-0">
           <CardHeader title={t("problems.analysis.causeTitle")} />
           <dl className="grid gap-3 px-4 py-3 text-[12.5px]">
-            <ReadRow label={t("problems.fields.rootCauseCategory")} value={rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)} />
+            <ReadRow
+              label={t("problems.fields.rootCauseCategory")}
+              value={rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)}
+            />
             <ReadRow label={t("problems.fields.rootCause")} value={problem.rootCause} />
             <div>
               <dt className="text-muted-foreground">{t("problems.fields.whys")}</dt>
@@ -104,7 +111,9 @@ export function ProblemAnalysisPanel({
                     {problem.rcaWhys.map((why, index) => (
                       <li key={index}>
                         <span className="font-medium text-foreground">{why.question}</span>
-                        {why.answer ? <span className="block text-muted-foreground">{why.answer}</span> : null}
+                        {why.answer ? (
+                          <span className="block text-muted-foreground">{why.answer}</span>
+                        ) : null}
                       </li>
                     ))}
                   </ol>
@@ -125,14 +134,29 @@ export function ProblemAnalysisPanel({
   }
 
   return (
-    <form className="grid gap-4" onSubmit={(event) => void submit(event)} noValidate data-testid="problem-analysis-form">
+    <form
+      className="grid gap-4"
+      onSubmit={(event) => void submit(event)}
+      noValidate
+      data-testid="problem-analysis-form"
+    >
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-0">
-          <CardHeader title={t("problems.analysis.causeTitle")} subtitle={t("problems.analysis.causeSubtitle")} />
+          <CardHeader
+            title={t("problems.analysis.causeTitle")}
+            subtitle={t("problems.analysis.causeSubtitle")}
+          />
           <div className="grid gap-3 px-4 py-3">
-            <Field label={t("problems.fields.rootCauseCategory")} hint={t("problems.analysis.categoryHint")}>
+            <Field
+              label={t("problems.fields.rootCauseCategory")}
+              hint={t("problems.analysis.categoryHint")}
+            >
               {(control) => (
-                <Select {...control} value={category} onChange={(event) => setCategory(event.target.value)}>
+                <Select
+                  {...control}
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
                   <option value="">{t("problems.form.none")}</option>
                   {categoryOptions.map((key) => (
                     <option key={key} value={key}>
@@ -142,22 +166,43 @@ export function ProblemAnalysisPanel({
                 </Select>
               )}
             </Field>
-            <Field label={t("problems.fields.rootCause")} hint={t("problems.analysis.rootCauseHint")}>
-              {(control) => <Textarea {...control} rows={4} maxLength={8000} value={rootCause} onChange={(event) => setRootCause(event.target.value)} />}
+            <Field
+              label={t("problems.fields.rootCause")}
+              hint={t("problems.analysis.rootCauseHint")}
+            >
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={4}
+                  maxLength={8000}
+                  value={rootCause}
+                  onChange={(event) => setRootCause(event.target.value)}
+                />
+              )}
             </Field>
             <fieldset className="grid gap-2">
-              <legend className="mb-1 text-[12.5px] font-medium text-foreground">{t("problems.fields.whys")}</legend>
+              <legend className="mb-1 text-[12.5px] font-medium text-foreground">
+                {t("problems.fields.whys")}
+              </legend>
               <p className={hintClassName}>{t("problems.analysis.whysHint")}</p>
               {whys.map((why, index) => (
                 <div key={index} className="grid gap-1.5 rounded-md border border-border/70 p-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="tnum text-[11.5px] font-medium text-muted-foreground">{index + 1}.</span>
+                    <span className="tnum text-[11.5px] font-medium text-muted-foreground">
+                      {index + 1}.
+                    </span>
                     <Input
                       value={why.question}
                       maxLength={500}
                       placeholder={t("problems.analysis.whyQuestion")}
                       aria-label={t("problems.analysis.whyQuestionLabel", { index: index + 1 })}
-                      onChange={(event) => setWhys((current) => current.map((item, i) => (i === index ? { ...item, question: event.target.value } : item)))}
+                      onChange={(event) =>
+                        setWhys((current) =>
+                          current.map((item, i) =>
+                            i === index ? { ...item, question: event.target.value } : item,
+                          ),
+                        )
+                      }
                     />
                     <Button
                       type="button"
@@ -175,7 +220,13 @@ export function ProblemAnalysisPanel({
                     maxLength={500}
                     placeholder={t("problems.analysis.whyAnswer")}
                     aria-label={t("problems.analysis.whyAnswerLabel", { index: index + 1 })}
-                    onChange={(event) => setWhys((current) => current.map((item, i) => (i === index ? { ...item, answer: event.target.value } : item)))}
+                    onChange={(event) =>
+                      setWhys((current) =>
+                        current.map((item, i) =>
+                          i === index ? { ...item, answer: event.target.value } : item,
+                        ),
+                      )
+                    }
                   />
                 </div>
               ))}
@@ -185,7 +236,15 @@ export function ProblemAnalysisPanel({
                   variant="ghost"
                   size="xs"
                   className="justify-self-start"
-                  onClick={() => setWhys((current) => [...current, { question: current.length === 0 ? t("problems.analysis.whyDefault") : "", answer: "" }])}
+                  onClick={() =>
+                    setWhys((current) => [
+                      ...current,
+                      {
+                        question: current.length === 0 ? t("problems.analysis.whyDefault") : "",
+                        answer: "",
+                      },
+                    ])
+                  }
                 >
                   <Plus size={12} aria-hidden="true" />
                   {t("problems.analysis.whyAdd")}
@@ -195,20 +254,44 @@ export function ProblemAnalysisPanel({
           </div>
         </Card>
         <Card className="p-0">
-          <CardHeader title={t("problems.analysis.outcomeTitle")} subtitle={t("problems.analysis.outcomeSubtitle")} />
+          <CardHeader
+            title={t("problems.analysis.outcomeTitle")}
+            subtitle={t("problems.analysis.outcomeSubtitle")}
+          />
           <div className="grid gap-3 px-4 py-3">
             <Field
               label={t("problems.fields.workaround")}
               hint={
                 problem.workaroundAt
-                  ? t("problems.analysis.workaroundUpdated", { date: formatAssetDateTime(problem.workaroundAt, i18n.language) })
+                  ? t("problems.analysis.workaroundUpdated", {
+                      date: formatAssetDateTime(problem.workaroundAt, i18n.language),
+                    })
                   : t("problems.analysis.workaroundHint")
               }
             >
-              {(control) => <Textarea {...control} rows={5} maxLength={8000} value={workaround} onChange={(event) => setWorkaround(event.target.value)} />}
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={5}
+                  maxLength={8000}
+                  value={workaround}
+                  onChange={(event) => setWorkaround(event.target.value)}
+                />
+              )}
             </Field>
-            <Field label={t("problems.fields.resolution")} hint={t("problems.analysis.resolutionHint")}>
-              {(control) => <Textarea {...control} rows={5} maxLength={8000} value={resolution} onChange={(event) => setResolution(event.target.value)} />}
+            <Field
+              label={t("problems.fields.resolution")}
+              hint={t("problems.analysis.resolutionHint")}
+            >
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={5}
+                  maxLength={8000}
+                  value={resolution}
+                  onChange={(event) => setResolution(event.target.value)}
+                />
+              )}
             </Field>
           </div>
         </Card>
@@ -235,7 +318,9 @@ function ReadRow({ label, value }: { readonly label: string; readonly value: str
   return (
     <div>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 whitespace-pre-wrap text-foreground">{value && value.length > 0 ? value : "—"}</dd>
+      <dd className="mt-0.5 whitespace-pre-wrap text-foreground">
+        {value && value.length > 0 ? value : "—"}
+      </dd>
     </div>
   );
 }

@@ -34,9 +34,7 @@ export function isCreateTicketDraftReady(
   draft: CreateTicketDraft,
   options: { readonly isOriginUnitLocked?: boolean } = {},
 ): boolean {
-  const hasOriginUnit =
-    draft.originUnitId.trim().length > 0 ||
-    options.isOriginUnitLocked === true;
+  const hasOriginUnit = draft.originUnitId.trim().length > 0 || options.isOriginUnitLocked === true;
   return (
     draft.title.trim().length > 0 &&
     draft.description.trim().length > 0 &&
@@ -53,10 +51,7 @@ export function isServiceReadyForTicketCreation(
   requireVersionOnTicket = true,
 ): boolean {
   return (
-    draft.serviceId.trim().length === 0 ||
-    !formsEnabled ||
-    !requireVersionOnTicket ||
-    hasActiveForm
+    draft.serviceId.trim().length === 0 || !formsEnabled || !requireVersionOnTicket || hasActiveForm
   );
 }
 
@@ -72,18 +67,14 @@ export function buildCreateTicketInput(
     urgency: draft.urgency,
     serviceId: draft.serviceId,
     ...(originUnitId.length > 0 ? { originUnitId } : {}),
-    ...(draft.formVersionRef === null
-      ? {}
-      : { formVersionRef: draft.formVersionRef }),
+    ...(draft.formVersionRef === null ? {} : { formVersionRef: draft.formVersionRef }),
     ...(Object.keys(draft.formData).length === 0 ? {} : { formData: draft.formData }),
     ...(draft.assetId.length > 0 ? { assetId: draft.assetId } : {}),
     // `?? ""` keeps older callers (and persisted drafts) working.
     ...((draft.requestType ?? "").trim().length > 0
       ? { requestType: (draft.requestType ?? "").trim() }
       : {}),
-    ...((draft.dueAt ?? "").length > 0
-      ? { dueAt: new Date(draft.dueAt).toISOString() }
-      : {}),
+    ...((draft.dueAt ?? "").length > 0 ? { dueAt: new Date(draft.dueAt).toISOString() } : {}),
     ...(options.acknowledgeDuplicate === true ? { acknowledgeDuplicate: true } : {}),
   };
 }

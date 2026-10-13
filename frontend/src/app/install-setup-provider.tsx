@@ -61,11 +61,7 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
     [state, reload, markCompleted],
   );
 
-  return (
-    <InstallSetupContext.Provider value={value}>
-      {children}
-    </InstallSetupContext.Provider>
-  );
+  return <InstallSetupContext.Provider value={value}>{children}</InstallSetupContext.Provider>;
 }
 
 export function useInstallSetup(): InstallSetupState {

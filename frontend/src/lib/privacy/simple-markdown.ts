@@ -21,9 +21,17 @@ export type InlineNode =
 export type CalloutTone = "info" | "warning" | "success";
 
 export type BlockNode =
-  | { readonly kind: "heading"; readonly level: 1 | 2 | 3; readonly children: readonly InlineNode[] }
+  | {
+      readonly kind: "heading";
+      readonly level: 1 | 2 | 3;
+      readonly children: readonly InlineNode[];
+    }
   | { readonly kind: "paragraph"; readonly children: readonly InlineNode[] }
-  | { readonly kind: "list"; readonly ordered: boolean; readonly items: readonly (readonly InlineNode[])[] }
+  | {
+      readonly kind: "list";
+      readonly ordered: boolean;
+      readonly items: readonly (readonly InlineNode[])[];
+    }
   | { readonly kind: "quote"; readonly children: readonly BlockNode[] }
   | {
       readonly kind: "table";
@@ -31,7 +39,11 @@ export type BlockNode =
       readonly rows: readonly (readonly (readonly InlineNode[])[])[];
     }
   | { readonly kind: "codeBlock"; readonly language: string | null; readonly text: string }
-  | { readonly kind: "callout"; readonly tone: CalloutTone; readonly children: readonly BlockNode[] };
+  | {
+      readonly kind: "callout";
+      readonly tone: CalloutTone;
+      readonly children: readonly BlockNode[];
+    };
 
 const escapable = "\\`*_[]()<>#|+-.!~";
 
@@ -196,7 +208,11 @@ export function parseMarkdown(source: string): BlockNode[] {
     }
     const heading = /^(#{1,3})\s+(.*)$/.exec(line);
     if (heading !== null) {
-      blocks.push({ kind: "heading", level: heading[1].length as 1 | 2 | 3, children: parseInline(heading[2].trim()) });
+      blocks.push({
+        kind: "heading",
+        level: heading[1].length as 1 | 2 | 3,
+        children: parseInline(heading[2].trim()),
+      });
       index += 1;
       continue;
     }
@@ -272,18 +288,90 @@ export type CodeToken = {
 const codeKeywordSets: Readonly<Record<string, readonly string[]>> = {
   json: ["true", "false", "null"],
   ts: [
-    "import", "export", "from", "const", "let", "function", "return", "type", "interface",
-    "extends", "implements", "class", "new", "async", "await", "if", "else", "for", "of", "in",
-    "null", "undefined", "true", "false", "readonly", "public", "private", "readonly",
+    "import",
+    "export",
+    "from",
+    "const",
+    "let",
+    "function",
+    "return",
+    "type",
+    "interface",
+    "extends",
+    "implements",
+    "class",
+    "new",
+    "async",
+    "await",
+    "if",
+    "else",
+    "for",
+    "of",
+    "in",
+    "null",
+    "undefined",
+    "true",
+    "false",
+    "readonly",
+    "public",
+    "private",
+    "readonly",
   ],
   bash: [
-    "sudo", "docker", "docker-compose", "npm", "npx", "node", "git", "cd", "ls", "cat", "echo",
-    "export", "curl", "ssh", "systemctl", "journalctl", "if", "then", "fi", "for", "do", "done",
+    "sudo",
+    "docker",
+    "docker-compose",
+    "npm",
+    "npx",
+    "node",
+    "git",
+    "cd",
+    "ls",
+    "cat",
+    "echo",
+    "export",
+    "curl",
+    "ssh",
+    "systemctl",
+    "journalctl",
+    "if",
+    "then",
+    "fi",
+    "for",
+    "do",
+    "done",
   ],
   sql: [
-    "select", "from", "where", "join", "left", "right", "inner", "outer", "on", "group", "by",
-    "order", "limit", "insert", "into", "values", "update", "set", "delete", "create", "table",
-    "index", "and", "or", "not", "null", "as", "distinct", "count", "sum",
+    "select",
+    "from",
+    "where",
+    "join",
+    "left",
+    "right",
+    "inner",
+    "outer",
+    "on",
+    "group",
+    "by",
+    "order",
+    "limit",
+    "insert",
+    "into",
+    "values",
+    "update",
+    "set",
+    "delete",
+    "create",
+    "table",
+    "index",
+    "and",
+    "or",
+    "not",
+    "null",
+    "as",
+    "distinct",
+    "count",
+    "sum",
   ],
 };
 

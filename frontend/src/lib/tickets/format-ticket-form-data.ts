@@ -1,7 +1,4 @@
-import type {
-  ServiceFormFieldType,
-  ServiceFormSchema,
-} from "@/services/service-catalog-api";
+import type { ServiceFormFieldType, ServiceFormSchema } from "@/services/service-catalog-api";
 
 export interface TicketFormDataDisplayEntry {
   readonly key: string;

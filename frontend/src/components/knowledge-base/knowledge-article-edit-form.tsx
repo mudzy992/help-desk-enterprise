@@ -28,12 +28,8 @@ interface KnowledgeArticleEditFormProperties {
   readonly onSaved: () => Promise<void>;
 }
 
-function readClassification(
-  value: string,
-): KnowledgeClassification {
-  return knowledgeClassificationValues.includes(
-    value as KnowledgeClassification,
-  )
+function readClassification(value: string): KnowledgeClassification {
+  return knowledgeClassificationValues.includes(value as KnowledgeClassification)
     ? (value as KnowledgeClassification)
     : "INTERNAL";
 }
@@ -52,18 +48,14 @@ export function KnowledgeArticleEditForm({
   );
   const [ownerUserId, setOwnerUserId] = useState(article.ownerUserId ?? "");
   const [ownerGroupId, setOwnerGroupId] = useState(article.ownerGroupId ?? "");
-  const [reviewerUserId, setReviewerUserId] = useState(
-    article.reviewerUserId ?? "",
-  );
+  const [reviewerUserId, setReviewerUserId] = useState(article.reviewerUserId ?? "");
   const [classification, setClassification] = useState<KnowledgeClassification>(
     readClassification(article.classification),
   );
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(
-    null,
-  );
+  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,15 +94,9 @@ export function KnowledgeArticleEditForm({
   );
 
   const hasOwner =
-    !isSuperAdmin ||
-    (ownerMode === "user"
-      ? ownerUserId.length > 0
-      : ownerGroupId.length > 0);
+    !isSuperAdmin || (ownerMode === "user" ? ownerUserId.length > 0 : ownerGroupId.length > 0);
   const canSubmit =
-    title.trim().length > 0 &&
-    body.trim().length > 0 &&
-    reason.trim().length > 0 &&
-    hasOwner;
+    title.trim().length > 0 && body.trim().length > 0 && reason.trim().length > 0 && hasOwner;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,8 +115,7 @@ export function KnowledgeArticleEditForm({
           ? {
               ownerUserId: ownerMode === "user" ? ownerUserId : null,
               ownerGroupId: ownerMode === "group" ? ownerGroupId : null,
-              reviewerUserId:
-                reviewerUserId.length > 0 ? reviewerUserId : null,
+              reviewerUserId: reviewerUserId.length > 0 ? reviewerUserId : null,
               classification,
             }
           : {}),
@@ -189,9 +174,7 @@ export function KnowledgeArticleEditForm({
           onChange={(event) => setReason(event.target.value)}
         />
       </Field>
-      {errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : null}
+      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div>
         <Button type="submit" disabled={!canSubmit || isSaving}>
           {isSaving ? t("knowledgeBase.saving") : t("knowledgeBase.save")}

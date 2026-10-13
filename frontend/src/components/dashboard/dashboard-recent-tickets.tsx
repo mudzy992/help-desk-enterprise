@@ -1,14 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  TicketPriorityBadge,
-  TicketStatusBadge,
-} from "@/components/tickets/ticket-badges";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  ticketIdClassName,
-} from "@/components/ui/control";
+import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { tableHeadClassName, tableRowClassName, ticketIdClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { TicketResponse } from "@/services/tickets-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
@@ -17,18 +10,13 @@ interface DashboardRecentTicketsProperties {
   readonly items: readonly TicketResponse[];
 }
 
-export function DashboardRecentTickets({
-  items,
-}: DashboardRecentTicketsProperties) {
+export function DashboardRecentTickets({ items }: DashboardRecentTicketsProperties) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   if (items.length === 0) {
     return (
-      <EmptyState
-        title={t("dashboard.recentEmptyTitle")}
-        body={t("dashboard.recentEmptyBody")}
-      />
+      <EmptyState title={t("dashboard.recentEmptyTitle")} body={t("dashboard.recentEmptyBody")} />
     );
   }
 

@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useToast } from "@/components/ui/toast";
-import { directorySyncErrorKey, type DirectorySyncErrorKey } from "@/lib/directory/directory-sync-error-key";
+import {
+  directorySyncErrorKey,
+  type DirectorySyncErrorKey,
+} from "@/lib/directory/directory-sync-error-key";
 import {
   applyDirectoryDryRun,
   getDirectorySyncRunPlan,
@@ -100,7 +103,11 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
   const handleDryRun = () =>
     run("dryRun", async () => {
       const result = await runDirectoryDryRun();
-      setOpenPlan({ runId: result.runId, plan: result.plan, applicableUntil: result.applicableUntil });
+      setOpenPlan({
+        runId: result.runId,
+        plan: result.plan,
+        applicableUntil: result.applicableUntil,
+      });
     });
 
   const handleOpenRunPlan = (runId: string) =>
@@ -119,7 +126,8 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
       toast({
         tone: failures > 0 ? "warning" : "success",
         title: t("directory.ldaps.applyDone"),
-        description: failures > 0 ? t("directory.ldaps.applyFailures", { count: failures }) : undefined,
+        description:
+          failures > 0 ? t("directory.ldaps.applyFailures", { count: failures }) : undefined,
       });
       setOpenPlan(null);
       await onChanged();
@@ -177,7 +185,11 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
               disabled={busy !== null || !configured}
               onClick={() => void handleTest()}
             >
-              {busy === "test" ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
+              {busy === "test" ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <PlugZap size={12} />
+              )}
               {t("directory.ldaps.testConnection")}
             </Button>
             <Button
@@ -185,7 +197,11 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
               disabled={busy !== null || !configured}
               onClick={() => void handleDryRun()}
             >
-              {busy === "dryRun" ? <Loader2 size={12} className="animate-spin" /> : <FileSearch size={12} />}
+              {busy === "dryRun" ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <FileSearch size={12} />
+              )}
               {t("directory.ldaps.dryRun")}
             </Button>
           </div>
@@ -194,21 +210,37 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
       <div className="space-y-4 px-4 py-4 text-[12px]">
         {status === null ? null : (
           <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 xl:grid-cols-3">
-            <SummaryItem label={t("directory.ldaps.domainControllers")} value={status.domainControllers.join(", ") || "—"} />
-            <SummaryItem label={t("directory.ldaps.usersBaseDn")} value={status.usersBaseDn || "—"} />
+            <SummaryItem
+              label={t("directory.ldaps.domainControllers")}
+              value={status.domainControllers.join(", ") || "—"}
+            />
+            <SummaryItem
+              label={t("directory.ldaps.usersBaseDn")}
+              value={status.usersBaseDn || "—"}
+            />
             <SummaryItem
               label={t("directory.ldaps.bind")}
-              value={status.bindConfigured ? t("directory.ldaps.bindConfigured") : t("directory.ldaps.bindMissing")}
+              value={
+                status.bindConfigured
+                  ? t("directory.ldaps.bindConfigured")
+                  : t("directory.ldaps.bindMissing")
+              }
             />
             <SummaryItem
               label={t("directory.ldaps.certificate")}
-              value={status.customCaCertificate ? t("directory.ldaps.certificateCustom") : t("directory.ldaps.certificateSystem")}
+              value={
+                status.customCaCertificate
+                  ? t("directory.ldaps.certificateCustom")
+                  : t("directory.ldaps.certificateSystem")
+              }
             />
             <SummaryItem label={t("directory.ldaps.schedule")} value={status.scheduleCron} mono />
             <SummaryItem label={t("directory.ldaps.roleSource")} value={status.roleSource} />
             <SummaryItem
               label={t("directory.ldaps.safeguard")}
-              value={t("directory.ldaps.safeguardValue", { percent: status.maxDeactivationPercent })}
+              value={t("directory.ldaps.safeguardValue", {
+                percent: status.maxDeactivationPercent,
+              })}
             />
             <SummaryItem
               label={t("directory.ldaps.cooldown")}
@@ -219,12 +251,18 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
         )}
 
         {status !== null && status.missing.length > 0 ? (
-          <p role="status" className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-foreground">
+          <p
+            role="status"
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-foreground"
+          >
             {t("directory.ldaps.missingSettings", { keys: status.missing.join(", ") })}
           </p>
         ) : null}
         {backoffActive && status?.backoff.retryAt ? (
-          <p role="status" className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-foreground">
+          <p
+            role="status"
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-foreground"
+          >
             {t("directory.ldaps.backoffActive", {
               time: new Date(status.backoff.retryAt).toLocaleTimeString(i18n.language),
               code: status.backoff.lastErrorCode ?? "—",
@@ -239,15 +277,22 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
         ) : null}
 
         {testResult ? (
-          <div role="status" className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-foreground">
+          <div
+            role="status"
+            className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-foreground"
+          >
             <p className="font-medium">
               {t("directory.ldaps.testOk", { url: testResult.url, ms: testResult.durationMs })}
             </p>
             <p className="mt-0.5 text-muted-foreground">
-              {testResult.baseFound ? t("directory.ldaps.testBaseFound") : t("directory.ldaps.testBaseMissing")}
+              {testResult.baseFound
+                ? t("directory.ldaps.testBaseFound")
+                : t("directory.ldaps.testBaseMissing")}
               {testResult.failedUrls.length > 0
                 ? ` · ${t("directory.ldaps.testFailover", {
-                    urls: testResult.failedUrls.map((entry) => `${entry.url} (${entry.code})`).join(", "),
+                    urls: testResult.failedUrls
+                      .map((entry) => `${entry.url} (${entry.code})`)
+                      .join(", "),
                   })}`
                 : ""}
             </p>
@@ -255,9 +300,14 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
         ) : null}
 
         {openPlan ? (
-          <section aria-label={t("directory.ldaps.planHeading")} className="rounded-md border border-border/70 p-3">
+          <section
+            aria-label={t("directory.ldaps.planHeading")}
+            className="rounded-md border border-border/70 p-3"
+          >
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[13px] font-semibold text-foreground">{t("directory.ldaps.planHeading")}</h3>
+              <h3 className="text-[13px] font-semibold text-foreground">
+                {t("directory.ldaps.planHeading")}
+              </h3>
               <p className="text-[11.5px] text-muted-foreground">
                 {openPlan.applicableUntil
                   ? t("directory.ldaps.planValidUntil", {
@@ -280,7 +330,11 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
                       disabled={busy !== null || !planIsApplicable}
                       onClick={() => setConfirmOpen(true)}
                     >
-                      {busy === "apply" ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
+                      {busy === "apply" ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <PlayCircle size={13} />
+                      )}
                       {t("directory.ldaps.apply")}
                     </Button>
                   ) : null}
@@ -292,8 +346,15 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
 
         <section aria-label={t("directory.ldaps.historyHeading")}>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-foreground">{t("directory.ldaps.historyHeading")}</h3>
-            <Button variant="ghost" size="xs" disabled={busy !== null} onClick={() => void reloadRuns()}>
+            <h3 className="text-[13px] font-semibold text-foreground">
+              {t("directory.ldaps.historyHeading")}
+            </h3>
+            <Button
+              variant="ghost"
+              size="xs"
+              disabled={busy !== null}
+              onClick={() => void reloadRuns()}
+            >
               <RefreshCw size={12} /> {t("directory.ldaps.historyRefresh")}
             </Button>
           </div>
@@ -363,12 +424,16 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
                 create: openPlan.plan.users.create.length,
                 update: openPlan.plan.users.update.length + openPlan.plan.users.reactivate.length,
                 deactivate: openPlan.plan.users.deactivate.length,
-                units: openPlan.plan.organizationalUnits.create.length + openPlan.plan.organizationalUnits.update.length,
+                units:
+                  openPlan.plan.organizationalUnits.create.length +
+                  openPlan.plan.organizationalUnits.update.length,
               })
             : undefined
         }
         confirmLabel={t("directory.ldaps.apply")}
-        intent={openPlan !== null && openPlan.plan.users.deactivate.length > 0 ? "danger" : "default"}
+        intent={
+          openPlan !== null && openPlan.plan.users.deactivate.length > 0 ? "danger" : "default"
+        }
         isPending={busy === "apply"}
         onConfirm={handleApply}
       />
@@ -376,11 +441,22 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
   );
 }
 
-function SummaryItem({ label, value, mono = false }: { readonly label: string; readonly value: string; readonly mono?: boolean }) {
+function SummaryItem({
+  label,
+  value,
+  mono = false,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly mono?: boolean;
+}) {
   return (
     <div className="flex min-w-0 justify-between gap-3">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className={`truncate text-foreground/90 ${mono ? "font-mono text-[11.5px]" : ""}`} title={value}>
+      <dd
+        className={`truncate text-foreground/90 ${mono ? "font-mono text-[11.5px]" : ""}`}
+        title={value}
+      >
         {value}
       </dd>
     </div>

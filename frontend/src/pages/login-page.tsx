@@ -11,11 +11,7 @@ import { BrandMark } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import { useBranding } from "@/lib/branding/branding-store";
 import { Button } from "@/components/ui/button";
-import {
-  controlClassName,
-  errorTextClassName,
-  labelClassName,
-} from "@/components/ui/control";
+import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { safeReturnPath, startEntraSignIn } from "@/lib/auth/entra-redirect";
 import {
@@ -363,9 +359,7 @@ export function LoginPage() {
                       providers?.captcha?.provider === "turnstile" &&
                       captchaToken === null
                     }
-                    onCompletePasskey={(assertion) =>
-                      completeMfaWithPasskey(step.token, assertion)
-                    }
+                    onCompletePasskey={(assertion) => completeMfaWithPasskey(step.token, assertion)}
                     onVerified={() => navigate(redirectPath, { replace: true })}
                     onCancel={() => setStep({ kind: "credentials" })}
                   />
@@ -384,7 +378,11 @@ export function LoginPage() {
                     loadSecret={() => startSignInMfaEnrollment(step.token)}
                     onConfirm={async (code) => {
                       const result = await confirmMfaEnrollment(step.token, code);
-                      setStep({ kind: "codes", codes: result.recoveryCodes, finish: result.finish });
+                      setStep({
+                        kind: "codes",
+                        codes: result.recoveryCodes,
+                        finish: result.finish,
+                      });
                     }}
                     onCancel={() => setStep({ kind: "credentials" })}
                   />
@@ -447,101 +445,107 @@ export function LoginPage() {
                   </div>
                 ) : null}
                 {localFormVisible ? (
-                <form
-                  id="login-local-form"
-                  className="mt-6 space-y-4"
-                  onSubmit={(event) => void handleSubmit(event)}
-                >
-                  <label className={labelClassName} htmlFor="login-email">
-                    <span>{t("session.email")}</span>
-                    <input
-                      id="login-email"
-                      className={controlClassName}
-                      type="email"
-                      inputMode="email"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      autoFocus={!isEntraMode}
-                      aria-invalid={hasError ? true : undefined}
-                      aria-describedby={hasError ? "login-error" : undefined}
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <div className={labelClassName}>
-                    <label htmlFor="login-password">{t("session.password")}</label>
-                    <div className="relative">
+                  <form
+                    id="login-local-form"
+                    className="mt-6 space-y-4"
+                    onSubmit={(event) => void handleSubmit(event)}
+                  >
+                    <label className={labelClassName} htmlFor="login-email">
+                      <span>{t("session.email")}</span>
                       <input
-                        id="login-password"
-                        className={cn(controlClassName, "pr-10")}
-                        type={isPasswordVisible ? "text" : "password"}
-                        autoComplete="current-password"
+                        id="login-email"
+                        className={controlClassName}
+                        type="email"
+                        inputMode="email"
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        autoFocus={!isEntraMode}
                         aria-invalid={hasError ? true : undefined}
-                        aria-describedby={
-                          [hasError ? "login-error" : null, isCapsLockOn ? "login-caps" : null]
-                            .filter(Boolean)
-                            .join(" ") || undefined
-                        }
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        onKeyDown={readCapsLock}
-                        onKeyUp={readCapsLock}
-                        onBlur={() => setIsCapsLockOn(false)}
+                        aria-describedby={hasError ? "login-error" : undefined}
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
                       />
-                      <button
-                        type="button"
-                        onClick={() => setIsPasswordVisible((value) => !value)}
-                        aria-label={t(isPasswordVisible ? "login.hidePassword" : "login.showPassword")}
-                        aria-pressed={isPasswordVisible}
-                        aria-controls="login-password"
-                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary/70"
-                      >
-                        {isPasswordVisible ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
-                      </button>
+                    </label>
+                    <div className={labelClassName}>
+                      <label htmlFor="login-password">{t("session.password")}</label>
+                      <div className="relative">
+                        <input
+                          id="login-password"
+                          className={cn(controlClassName, "pr-10")}
+                          type={isPasswordVisible ? "text" : "password"}
+                          autoComplete="current-password"
+                          aria-invalid={hasError ? true : undefined}
+                          aria-describedby={
+                            [hasError ? "login-error" : null, isCapsLockOn ? "login-caps" : null]
+                              .filter(Boolean)
+                              .join(" ") || undefined
+                          }
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          onKeyDown={readCapsLock}
+                          onKeyUp={readCapsLock}
+                          onBlur={() => setIsCapsLockOn(false)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsPasswordVisible((value) => !value)}
+                          aria-label={t(
+                            isPasswordVisible ? "login.hidePassword" : "login.showPassword",
+                          )}
+                          aria-pressed={isPasswordVisible}
+                          aria-controls="login-password"
+                          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary/70"
+                        >
+                          {isPasswordVisible ? (
+                            <EyeOff size={15} aria-hidden="true" />
+                          ) : (
+                            <Eye size={15} aria-hidden="true" />
+                          )}
+                        </button>
+                      </div>
+                      {isCapsLockOn ? (
+                        <p id="login-caps" className="text-[11.5px] text-warning" role="status">
+                          {t("login.capsLock")}
+                        </p>
+                      ) : null}
                     </div>
-                    {isCapsLockOn ? (
-                      <p id="login-caps" className="text-[11.5px] text-warning" role="status">
-                        {t("login.capsLock")}
+                    <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-primary"
+                        checked={rememberMe}
+                        onChange={(event) => setRememberMe(event.target.checked)}
+                      />
+                      <span>{t("login.rememberMe")}</span>
+                    </label>
+                    {isCaptchaRequired && providers?.captcha?.siteKey != null ? (
+                      <CaptchaChallenge
+                        siteKey={providers.captcha.siteKey}
+                        onToken={setCaptchaToken}
+                        resetSignal={captchaResetSignal}
+                      />
+                    ) : null}
+                    {hasError ? (
+                      <p id="login-error" className={errorTextClassName} role="alert">
+                        {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
                       </p>
                     ) : null}
-                  </div>
-                  <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-primary"
-                      checked={rememberMe}
-                      onChange={(event) => setRememberMe(event.target.checked)}
-                    />
-                    <span>{t("login.rememberMe")}</span>
-                  </label>
-                  {isCaptchaRequired && providers?.captcha?.siteKey != null ? (
-                    <CaptchaChallenge
-                      siteKey={providers.captcha.siteKey}
-                      onToken={setCaptchaToken}
-                      resetSignal={captchaResetSignal}
-                    />
-                  ) : null}
-                  {hasError ? (
-                    <p id="login-error" className={errorTextClassName} role="alert">
-                      {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
-                    </p>
-                  ) : null}
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={
-                      isSubmitting ||
-                      (isCaptchaRequired &&
-                        providers?.captcha?.provider === "turnstile" &&
-                        captchaToken === null)
-                    }
-                  >
-                    {isSubmitting ? t("session.signingIn") : t("session.signIn")}
-                  </Button>
-                </form>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={
+                        isSubmitting ||
+                        (isCaptchaRequired &&
+                          providers?.captcha?.provider === "turnstile" &&
+                          captchaToken === null)
+                      }
+                    >
+                      {isSubmitting ? t("session.signingIn") : t("session.signIn")}
+                    </Button>
+                  </form>
                 ) : null}
               </>
             )}
@@ -550,29 +554,41 @@ export function LoginPage() {
           <p className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-[11.5px] text-muted-foreground">
             <Lock size={11} aria-hidden="true" />
             {t("login.installHint")}
-            <Link
-              to="/install"
-              className="text-link underline-offset-4 hover:underline"
-            >
+            <Link to="/install" className="text-link underline-offset-4 hover:underline">
               {t("login.installLink")}
             </Link>
           </p>
           <p className="mt-2 text-center text-[11.5px]">
-            <Link to="/privacy-notice" className="text-link underline-offset-4 hover:underline" data-testid="login-privacy-notice">
+            <Link
+              to="/privacy-notice"
+              className="text-link underline-offset-4 hover:underline"
+              data-testid="login-privacy-notice"
+            >
               {t("privacy.notice.loginLink")}
             </Link>
           </p>
           {branding.supportEmail || branding.supportUrl ? (
-            <p className="mt-2 text-center text-[11.5px] text-muted-foreground" data-testid="login-support-contact">
+            <p
+              className="mt-2 text-center text-[11.5px] text-muted-foreground"
+              data-testid="login-support-contact"
+            >
               {t("login.supportHelp")}{" "}
               {branding.supportEmail ? (
-                <a href={`mailto:${branding.supportEmail}`} className="text-link underline-offset-4 hover:underline">
+                <a
+                  href={`mailto:${branding.supportEmail}`}
+                  className="text-link underline-offset-4 hover:underline"
+                >
                   {branding.supportEmail}
                 </a>
               ) : null}
               {branding.supportEmail && branding.supportUrl ? " · " : null}
               {branding.supportUrl ? (
-                <a href={branding.supportUrl} target="_blank" rel="noreferrer noopener" className="text-link underline-offset-4 hover:underline">
+                <a
+                  href={branding.supportUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-link underline-offset-4 hover:underline"
+                >
                   {branding.supportUrl.replace(/^https:\/\//, "")}
                 </a>
               ) : null}

@@ -29,8 +29,6 @@ export function formatCivilDate(value: string, t: TFunction): string | null {
   if (!valid) {
     return null;
   }
-  const monthName = t(
-    `changes.calendar.months.m${month - 1}` as "changes.calendar.months.m0",
-  );
+  const monthName = t(`changes.calendar.months.m${month - 1}` as "changes.calendar.months.m0");
   return t("ui.dateValue", { day, month: monthName, year });
 }

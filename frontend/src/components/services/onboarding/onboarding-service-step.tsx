@@ -30,12 +30,8 @@ export function OnboardingServiceStep({
   const isCreate = service === null;
   const [name, setName] = useState(service?.name ?? "");
   const [slug, setSlug] = useState(service?.slug ?? "");
-  const [categoryId, setCategoryId] = useState(
-    service?.categoryId ?? categories[0]?.id ?? "",
-  );
-  const [requiresApproval, setRequiresApproval] = useState(
-    service?.requiresApproval ?? false,
-  );
+  const [categoryId, setCategoryId] = useState(service?.categoryId ?? categories[0]?.id ?? "");
+  const [requiresApproval, setRequiresApproval] = useState(service?.requiresApproval ?? false);
   const canSubmit =
     name.trim().length > 0 && categoryId.length > 0 && (!isCreate || slug.trim().length > 0);
 
@@ -55,11 +51,21 @@ export function OnboardingServiceStep({
   return (
     <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.name")} required>
-        <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
+        <Input
+          value={name}
+          maxLength={128}
+          required
+          onChange={(event) => setName(event.target.value)}
+        />
       </Field>
       {isCreate ? (
         <Field label={t("services.slug")} required>
-          <Input value={slug} maxLength={64} required onChange={(event) => setSlug(event.target.value)} />
+          <Input
+            value={slug}
+            maxLength={64}
+            required
+            onChange={(event) => setSlug(event.target.value)}
+          />
         </Field>
       ) : null}
       <Field label={t("services.category")} required>
@@ -83,7 +89,12 @@ export function OnboardingServiceStep({
       <Field label={t("services.requiresApproval")}>
         <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
       </Field>
-      <Button type="submit" size="sm" className="justify-self-start" disabled={isSaving || !canSubmit}>
+      <Button
+        type="submit"
+        size="sm"
+        className="justify-self-start"
+        disabled={isSaving || !canSubmit}
+      >
         {isSaving ? t("services.onboarding.saving") : t("services.onboarding.next")}
       </Button>
     </form>

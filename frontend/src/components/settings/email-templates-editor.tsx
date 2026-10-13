@@ -58,9 +58,10 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const focused = useRef<{ field: EmailTemplateField; element: HTMLInputElement | HTMLTextAreaElement } | null>(
-    null,
-  );
+  const focused = useRef<{
+    field: EmailTemplateField;
+    element: HTMLInputElement | HTMLTextAreaElement;
+  } | null>(null);
 
   useEffect(() => {
     setDraft(overview.templates);
@@ -132,7 +133,12 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
       setDraft(saved.templates);
       toast({ tone: "success", title: t("settings.emailTemplates.saved") });
     } catch (error) {
-      toast({ tone: "danger", title: t("settings.emailTemplates.saveFailed"), description: describeError(error), error: error });
+      toast({
+        tone: "danger",
+        title: t("settings.emailTemplates.saveFailed"),
+        description: describeError(error),
+        error: error,
+      });
     } finally {
       setSaving(false);
     }
@@ -166,188 +172,206 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   };
 
   return (
-    <Card className="fade-in flex flex-col overflow-hidden p-0" data-testid="email-templates-editor">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-3">
-          <select
-            className={cn(selectCompactClassName, "w-72")}
-            value={key}
-            aria-label={t("settings.emailTemplates.event")}
-            data-testid="email-template-key"
-            onChange={(event) => setKey(event.target.value)}
-          >
-            {overview.keys.map((item) => {
-              const current = draft[locale][item];
-              const base = overview.defaults[locale][item];
-              const changed = current !== undefined && base !== undefined && isTemplateModified(current, base);
+    <Card
+      className="fade-in flex flex-col overflow-hidden p-0"
+      data-testid="email-templates-editor"
+    >
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-3">
+        <select
+          className={cn(selectCompactClassName, "w-72")}
+          value={key}
+          aria-label={t("settings.emailTemplates.event")}
+          data-testid="email-template-key"
+          onChange={(event) => setKey(event.target.value)}
+        >
+          {overview.keys.map((item) => {
+            const current = draft[locale][item];
+            const base = overview.defaults[locale][item];
+            const changed =
+              current !== undefined && base !== undefined && isTemplateModified(current, base);
+            return (
+              <option key={item} value={item}>
+                {t(eventLabelKey(item), { defaultValue: item })}
+                {changed ? ` • ${t("settings.emailTemplates.modified")}` : ""}
+              </option>
+            );
+          })}
+        </select>
+        <Segmented
+          size="sm"
+          ariaLabel={t("settings.emailTemplates.language")}
+          value={locale}
+          onChange={setLocale}
+          items={overview.locales.map((item) => ({
+            value: item,
+            label: t(`settings.emailTemplates.locales.${item}`),
+          }))}
+        />
+        {content !== undefined &&
+        fallback !== undefined &&
+        isTemplateModified(content, fallback) ? (
+          <Badge tone="primary">{t("settings.emailTemplates.modified")}</Badge>
+        ) : (
+          <Badge tone="neutral">{t("settings.emailTemplates.default")}</Badge>
+        )}
+      </div>
+      {content !== undefined && fallback !== undefined ? (
+        <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-2">
+          <div className="space-y-3 border-b border-border/70 px-5 py-4 lg:border-b-0 lg:border-r">
+            {overview.fields.map((field) => {
+              if (field === "subjectConfidential" && !isTicketKey) return null;
+              if (field === "accentColor") {
+                return (
+                  <AccentColorField
+                    key={field}
+                    value={content.accentColor}
+                    disabled={!canWrite}
+                    onChange={(value) => update(field, value)}
+                  />
+                );
+              }
+              const Control = multilineFields.has(field) ? Textarea : Input;
+              const unknown = unknownByField[field];
               return (
-                <option key={item} value={item}>
-                  {t(eventLabelKey(item), { defaultValue: item })}
-                  {changed ? ` • ${t("settings.emailTemplates.modified")}` : ""}
-                </option>
+                <Field
+                  key={field}
+                  label={t(`settings.emailTemplates.fields.${field}`)}
+                  hint={t(`settings.emailTemplates.hints.${field}`, literalPlaceholders)}
+                >
+                  <Control
+                    value={content[field]}
+                    disabled={!canWrite}
+                    data-testid={`email-template-field-${field}`}
+                    onFocus={(event) => {
+                      focused.current = { field, element: event.currentTarget };
+                    }}
+                    onChange={(event) => update(field, event.target.value)}
+                    aria-invalid={unknown !== undefined}
+                  />
+                  {unknown !== undefined ? (
+                    <span className="mt-1 block text-[11.5px] text-danger" role="alert">
+                      {t("settings.emailTemplates.unknownPlaceholder", {
+                        names: unknown.map((name) => `{{${name}}}`).join(", "),
+                      })}
+                    </span>
+                  ) : null}
+                </Field>
               );
             })}
-          </select>
-          <Segmented
-            size="sm"
-            ariaLabel={t("settings.emailTemplates.language")}
-            value={locale}
-            onChange={setLocale}
-            items={overview.locales.map((item) => ({
-              value: item,
-              label: t(`settings.emailTemplates.locales.${item}`),
-            }))}
-          />
-          {content !== undefined && fallback !== undefined && isTemplateModified(content, fallback) ? (
-            <Badge tone="primary">{t("settings.emailTemplates.modified")}</Badge>
-          ) : (
-            <Badge tone="neutral">{t("settings.emailTemplates.default")}</Badge>
-          )}
-        </div>
-        {content !== undefined && fallback !== undefined ? (
-          <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-2">
-            <div className="space-y-3 border-b border-border/70 px-5 py-4 lg:border-b-0 lg:border-r">
-              {overview.fields.map((field) => {
-                if (field === "subjectConfidential" && !isTicketKey) return null;
-                if (field === "accentColor") {
-                  return (
-                    <AccentColorField
-                      key={field}
-                      value={content.accentColor}
-                      disabled={!canWrite}
-                      onChange={(value) => update(field, value)}
-                    />
-                  );
-                }
-                const Control = multilineFields.has(field) ? Textarea : Input;
-                const unknown = unknownByField[field];
-                return (
-                  <Field
-                    key={field}
-                    label={t(`settings.emailTemplates.fields.${field}`)}
-                    hint={t(`settings.emailTemplates.hints.${field}`, literalPlaceholders)}
+            <div>
+              <p className={cn("mb-1.5", hintClassName)}>
+                {t("settings.emailTemplates.placeholdersHint")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {overview.placeholders.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    disabled={!canWrite}
+                    className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary/45 hover:text-link disabled:cursor-not-allowed disabled:border-border disabled:bg-elevated"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => insert(name)}
                   >
-                    <Control
-                      value={content[field]}
-                      disabled={!canWrite}
-                      data-testid={`email-template-field-${field}`}
-                      onFocus={(event) => {
-                        focused.current = { field, element: event.currentTarget };
-                      }}
-                      onChange={(event) => update(field, event.target.value)}
-                      aria-invalid={unknown !== undefined}
-                    />
-                    {unknown !== undefined ? (
-                      <span className="mt-1 block text-[11.5px] text-danger" role="alert">
-                        {t("settings.emailTemplates.unknownPlaceholder", {
-                          names: unknown.map((name) => `{{${name}}}`).join(", "),
-                        })}
-                      </span>
-                    ) : null}
-                  </Field>
-                );
-              })}
-              <div>
-                <p className={cn("mb-1.5", hintClassName)}>{t("settings.emailTemplates.placeholdersHint")}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {overview.placeholders.map((name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      disabled={!canWrite}
-                      className="rounded-full border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary/45 hover:text-link disabled:cursor-not-allowed disabled:border-border disabled:bg-elevated"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => insert(name)}
-                    >
-                      {`{{${name}}}`}
-                    </button>
-                  ))}
-                </div>
+                    {`{{${name}}}`}
+                  </button>
+                ))}
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button
-                  type="button"
-                  size="xs"
-                  variant="ghost"
-                  disabled={!canWrite || !isTemplateModified(content, fallback)}
-                  onClick={() => setDraft((current) => replaceTemplate(current, locale, key, fallback))}
-                >
-                  <RotateCcw size={13} />
-                  {t("settings.emailTemplates.resetTemplate")}
-                </Button>
-                <Button
-                  type="button"
-                  size="xs"
-                  variant="outline"
-                  disabled={!canWrite || testing || hasUnknown || !overview.delivery.hasSmtpTransport}
-                  data-testid="email-template-send-test"
-                  onClick={() => void sendTest()}
-                >
-                  <Send size={13} />
-                  {testing ? t("settings.emailTemplates.testSending") : t("settings.emailTemplates.sendTest")}
-                </Button>
-              </div>
-              {canWrite && dirty && !hasUnknown ? (
-                <SettingsReasonConfirm
-                  pending={saving}
-                  onCancel={() => setDraft(overview.templates)}
-                  onConfirm={save}
-                />
-              ) : null}
             </div>
-            <div className="flex min-h-[640px] flex-col px-5 py-4">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                disabled={!canWrite || !isTemplateModified(content, fallback)}
+                onClick={() =>
+                  setDraft((current) => replaceTemplate(current, locale, key, fallback))
+                }
+              >
+                <RotateCcw size={13} />
+                {t("settings.emailTemplates.resetTemplate")}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                disabled={!canWrite || testing || hasUnknown || !overview.delivery.hasSmtpTransport}
+                data-testid="email-template-send-test"
+                onClick={() => void sendTest()}
+              >
+                <Send size={13} />
+                {testing
+                  ? t("settings.emailTemplates.testSending")
+                  : t("settings.emailTemplates.sendTest")}
+              </Button>
+            </div>
+            {canWrite && dirty && !hasUnknown ? (
+              <SettingsReasonConfirm
+                pending={saving}
+                onCancel={() => setDraft(overview.templates)}
+                onConfirm={save}
+              />
+            ) : null}
+          </div>
+          <div className="flex min-h-[640px] flex-col px-5 py-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Segmented
+                size="sm"
+                ariaLabel={t("settings.emailTemplates.previewFormat")}
+                value={view}
+                onChange={setView}
+                items={[
+                  { value: "html", label: "HTML" },
+                  { value: "text", label: t("settings.emailTemplates.plainText") },
+                ]}
+              />
+              {isTicketKey ? (
                 <Segmented
                   size="sm"
-                  ariaLabel={t("settings.emailTemplates.previewFormat")}
-                  value={view}
-                  onChange={setView}
+                  ariaLabel={t("settings.emailTemplates.sensitivity")}
+                  value={confidential ? "confidential" : "normal"}
+                  onChange={(value) => setConfidential(value === "confidential")}
                   items={[
-                    { value: "html", label: "HTML" },
-                    { value: "text", label: t("settings.emailTemplates.plainText") },
+                    { value: "normal", label: t("settings.emailTemplates.normal") },
+                    { value: "confidential", label: t("settings.emailTemplates.confidential") },
                   ]}
                 />
-                {isTicketKey ? (
-                  <Segmented
-                    size="sm"
-                    ariaLabel={t("settings.emailTemplates.sensitivity")}
-                    value={confidential ? "confidential" : "normal"}
-                    onChange={(value) => setConfidential(value === "confidential")}
-                    items={[
-                      { value: "normal", label: t("settings.emailTemplates.normal") },
-                      { value: "confidential", label: t("settings.emailTemplates.confidential") },
-                    ]}
-                  />
-                ) : null}
-              </div>
-              {previewError !== null ? <p className="mb-2 text-[12px] text-danger">{previewError}</p> : null}
-              {preview !== null ? (
-                <>
-                  <p className="mb-2 truncate text-[12.5px]" data-testid="email-template-preview-subject">
-                    <span className="text-muted-foreground">{t("settings.emailTemplates.subjectLabel")} </span>
-                    <span className="font-medium text-foreground">{preview.subject}</span>
-                  </p>
-                  {view === "html" ? (
-                    <iframe
-                      title={t("settings.emailTemplates.previewTitle")}
-                      // No scripts, no same-origin: the preview cannot touch the app.
-                      sandbox=""
-                      srcDoc={preview.html}
-                      className="min-h-[600px] w-full flex-1 rounded-md border border-border bg-white"
-                    />
-                  ) : (
-                    <pre className="min-h-[600px] flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface p-3 font-mono text-[12px] leading-5 text-foreground">
-                      {preview.text}
-                    </pre>
-                  )}
-                </>
               ) : null}
             </div>
+            {previewError !== null ? (
+              <p className="mb-2 text-[12px] text-danger">{previewError}</p>
+            ) : null}
+            {preview !== null ? (
+              <>
+                <p
+                  className="mb-2 truncate text-[12.5px]"
+                  data-testid="email-template-preview-subject"
+                >
+                  <span className="text-muted-foreground">
+                    {t("settings.emailTemplates.subjectLabel")}{" "}
+                  </span>
+                  <span className="font-medium text-foreground">{preview.subject}</span>
+                </p>
+                {view === "html" ? (
+                  <iframe
+                    title={t("settings.emailTemplates.previewTitle")}
+                    // No scripts, no same-origin: the preview cannot touch the app.
+                    sandbox=""
+                    srcDoc={preview.html}
+                    className="min-h-[600px] w-full flex-1 rounded-md border border-border bg-white"
+                  />
+                ) : (
+                  <pre className="min-h-[600px] flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface p-3 font-mono text-[12px] leading-5 text-foreground">
+                    {preview.text}
+                  </pre>
+                )}
+              </>
+            ) : null}
           </div>
-        ) : null}
+        </div>
+      ) : null}
     </Card>
   );
 }
-
 
 /** Empty = installation accent; the picker and the hex field stay in sync. */
 function AccentColorField({
@@ -417,4 +441,3 @@ function describeError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return error instanceof Error ? error.message : String(error);
 }
-

@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ServiceCatalogMutationForm,
-} from "@/components/services/service-catalog-mutation-form";
+import { ServiceCatalogMutationForm } from "@/components/services/service-catalog-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
   mapServiceCatalogError,
   type ServiceCatalogErrorKey,
@@ -44,9 +37,7 @@ export function ServiceCatalogMutationSheet({
 }: ServiceCatalogMutationSheetProperties) {
   const { t } = useTranslation();
   const isCreate = service === null;
-  const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>(
-    [],
-  );
+  const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>([]);
   const [policyPacks, setPolicyPacks] = useState<readonly PersistedPolicyPackOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -104,9 +95,7 @@ export function ServiceCatalogMutationSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>
-          {t(isCreate ? "services.createService" : "services.editService")}
-        </SheetTitle>
+        <SheetTitle>{t(isCreate ? "services.createService" : "services.editService")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("services.mutationHint")}
         </SheetDescription>

@@ -64,25 +64,18 @@ export function deleteServiceDowntimeWindow(
   reason?: string,
 ): Promise<ServiceResponse> {
   const query =
-    reason !== undefined && reason.length > 0
-      ? `?reason=${encodeURIComponent(reason)}`
-      : "";
-  return apiRequest(
-    `/services/${serviceId}/downtime-windows/${downtimeWindowId}${query}`,
-    { method: "DELETE" },
-  );
+    reason !== undefined && reason.length > 0 ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiRequest(`/services/${serviceId}/downtime-windows/${downtimeWindowId}${query}`, {
+    method: "DELETE",
+  });
 }
 
-export function countUpcomingDowntimeWindows(
-  windows: readonly DowntimeWindowResponse[],
-): number {
+export function countUpcomingDowntimeWindows(windows: readonly DowntimeWindowResponse[]): number {
   return windows.filter((window) => window.phase === "UPCOMING").length;
 }
 
 export function listManagedDowntimeWindows(
   windows: readonly DowntimeWindowResponse[],
 ): readonly DowntimeWindowResponse[] {
-  return windows.filter(
-    (window) => window.phase === "ACTIVE" || window.phase === "UPCOMING",
-  );
+  return windows.filter((window) => window.phase === "ACTIVE" || window.phase === "UPCOMING");
 }

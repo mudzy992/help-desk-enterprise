@@ -1,8 +1,5 @@
 import { apiRequest } from "@/services/api";
-import type {
-  TicketPriority,
-  TicketStatus,
-} from "@/services/tickets-api";
+import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
 /**
  * Phase 2.4 (plan §2.4): the dashboard and SLA counters as served by

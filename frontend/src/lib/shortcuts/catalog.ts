@@ -110,12 +110,18 @@ export function ariaKeyShortcuts(id: ShortcutId): string {
   const named: Record<string, string> = { enter: "Enter", escape: "Escape" };
   return step
     .split("+")
-    .map((part) => (part === "mod" ? "Control" : (named[part] ?? (/^[a-z]$/.test(part) ? part.toUpperCase() : part))))
+    .map((part) =>
+      part === "mod"
+        ? "Control"
+        : (named[part] ?? (/^[a-z]$/.test(part) ? part.toUpperCase() : part)),
+    )
     .join("+");
 }
 
 /** Label suffix for tooltips: "Preuzmi (C)". */
 export function shortcutHint(id: ShortcutId): string {
   const definition = shortcutById.get(id);
-  return definition === undefined ? "" : definition.display.join(definition.sequence.length > 1 ? " " : "+");
+  return definition === undefined
+    ? ""
+    : definition.display.join(definition.sequence.length > 1 ? " " : "+");
 }

@@ -2,14 +2,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type BadgeTone =
-  | "neutral"
-  | "primary"
-  | "accent"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info"
-  | "hold";
+  "neutral" | "primary" | "accent" | "success" | "warning" | "danger" | "info" | "hold";
 
 /*
   One badge shape for the whole application: a pill with a tinted background,
@@ -54,7 +47,9 @@ export function Badge({
       )}
       {...rest}
     >
-      {dot ? <span data-status-dot="" aria-hidden="true" className="size-1.5 rounded-full bg-current" /> : null}
+      {dot ? (
+        <span data-status-dot="" aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      ) : null}
       {children}
     </span>
   );
@@ -71,11 +66,7 @@ interface MetaBadgeProperties {
   readonly dot?: boolean;
 }
 
-export function MetaBadge({
-  meta,
-  className,
-  dot = true,
-}: MetaBadgeProperties) {
+export function MetaBadge({ meta, className, dot = true }: MetaBadgeProperties) {
   return (
     <Badge tone={meta.tone} className={className} dot={dot}>
       {meta.label}

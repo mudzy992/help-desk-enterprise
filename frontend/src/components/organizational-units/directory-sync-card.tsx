@@ -7,10 +7,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
 import { syncManualDirectoryCatalog } from "@/lib/directory/sync-manual-directory-catalog";
 import { ApiError } from "@/services/api";
-import {
-  getDirectorySyncStatus,
-  type DirectorySyncStatus,
-} from "@/services/directory-sync-api";
+import { getDirectorySyncStatus, type DirectorySyncStatus } from "@/services/directory-sync-api";
 
 interface DirectorySyncCardProperties {
   readonly onSynced: () => Promise<void>;
@@ -39,9 +36,7 @@ export function DirectorySyncCard({
       onStatusLoaded?.(next);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : t("directory.syncLoadFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("directory.syncLoadFailed"));
     }
   }, [t, onStatusLoaded]);
 
@@ -59,9 +54,7 @@ export function DirectorySyncCard({
       await reloadStatus();
       await onSynced();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : t("directory.syncFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("directory.syncFailed"));
     } finally {
       setIsRunning(false);
     }
@@ -116,9 +109,7 @@ export function DirectorySyncCard({
           </span>
         </p>
         <p className="flex justify-between">
-          <span className="text-muted-foreground">
-            {t("directory.syncLastRead")}
-          </span>
+          <span className="text-muted-foreground">{t("directory.syncLastRead")}</span>
           <span className="tnum text-foreground/90">
             {status?.lastSuccessfulReadAt
               ? new Date(status.lastSuccessfulReadAt).toLocaleString()

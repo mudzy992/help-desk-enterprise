@@ -45,9 +45,7 @@ export function ServiceOnboardingPipelineCard({
       />
       <div className="grid grid-cols-1 gap-3 px-4 pb-4 md:grid-cols-[220px_1fr]">
         <div className="rounded-lg border border-border bg-elevated/40 p-3">
-          <p className="text-[12.5px] font-semibold text-foreground">
-            {service?.name ?? "—"}
-          </p>
+          <p className="text-[12.5px] font-semibold text-foreground">{service?.name ?? "—"}</p>
           <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
             {categoryNames.get(service?.categoryId ?? "") ?? service?.slug}
           </p>

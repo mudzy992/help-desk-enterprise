@@ -76,8 +76,13 @@ export function TicketAttachmentsPanel({
         }}
       />
       {purgedAt !== null ? (
-        <p className="border-b border-border/50 bg-elevated px-4 py-2 text-[12px] text-muted-foreground" data-testid="ticket-attachments-purged">
-          {t("privacy.markers.attachmentsPurged", { date: new Date(purgedAt).toLocaleDateString(i18n.language) })}
+        <p
+          className="border-b border-border/50 bg-elevated px-4 py-2 text-[12px] text-muted-foreground"
+          data-testid="ticket-attachments-purged"
+        >
+          {t("privacy.markers.attachmentsPurged", {
+            date: new Date(purgedAt).toLocaleDateString(i18n.language),
+          })}
         </p>
       ) : null}
       {items.length === 0 ? (
@@ -108,7 +113,10 @@ export function TicketAttachmentsPanel({
                   <RelativeTime value={item.createdAt} locale={i18n.language} />
                 </p>
               </button>
-              <Badge tone={item.classification === "CONFIDENTIAL" ? "warning" : "neutral"} dot={false}>
+              <Badge
+                tone={item.classification === "CONFIDENTIAL" ? "warning" : "neutral"}
+                dot={false}
+              >
                 {item.classification}
               </Badge>
               <Button

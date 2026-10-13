@@ -46,7 +46,7 @@ describe("AuditMetadataList", () => {
     const html = render({
       ipMaxFailures: 5,
       ipWindowSeconds: 300,
-      reason: 'Nalog je deaktiviran, provjeriti ručno',
+      reason: "Nalog je deaktiviran, provjeriti ručno",
       status: "must_change",
     });
     expect(html).toContain("field:ipMaxFailures");

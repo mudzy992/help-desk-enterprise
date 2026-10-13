@@ -17,9 +17,7 @@ export type KnowledgeListFilters = {
   readonly staleOnly: boolean;
 };
 
-export function knowledgeListFiltersAreActive(
-  filters: KnowledgeListFilters,
-): boolean {
+export function knowledgeListFiltersAreActive(filters: KnowledgeListFilters): boolean {
   return (
     filters.search.trim().length > 0 ||
     filters.status !== "" ||

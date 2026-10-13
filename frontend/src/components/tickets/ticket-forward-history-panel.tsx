@@ -5,10 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DetailSection } from "@/components/ui/detail-section";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import {
-  listForwardHistory,
-  type ForwardHistoryItem,
-} from "@/services/tickets-forwarding-api";
+import { listForwardHistory, type ForwardHistoryItem } from "@/services/tickets-forwarding-api";
 
 interface TicketForwardHistoryPanelProperties {
   readonly ticketId: string;

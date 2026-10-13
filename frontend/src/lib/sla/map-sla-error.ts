@@ -23,7 +23,11 @@ export function mapSlaError(error: unknown): SlaErrorKey {
   if (error.code === "REASON_REQUIRED") {
     return "sla.errorReason";
   }
-  if (error.code === "DUPLICATE_KEY" || error.code === "DUPLICATE_RULE" || error.code === "DUPLICATE_ESCALATION_OFFSET") {
+  if (
+    error.code === "DUPLICATE_KEY" ||
+    error.code === "DUPLICATE_RULE" ||
+    error.code === "DUPLICATE_ESCALATION_OFFSET"
+  ) {
     return "sla.errorDuplicate";
   }
   if (error.code === "MAX_ESCALATION_LEVELS_EXCEEDED") {

@@ -102,11 +102,7 @@ interface AppearanceDesignOptionProperties {
   readonly onSelect: (design: ThemeDesign) => void;
 }
 
-function AppearanceDesignOption({
-  design,
-  isActive,
-  onSelect,
-}: AppearanceDesignOptionProperties) {
+function AppearanceDesignOption({ design, isActive, onSelect }: AppearanceDesignOptionProperties) {
   const { t } = useTranslation();
   return (
     <button
@@ -136,10 +132,7 @@ function AppearanceDesignOption({
       </span>
       <span className="flex items-center gap-1.5" aria-hidden="true">
         {DESIGN_SWATCHES.map((swatch) => (
-          <span
-            key={swatch}
-            className={cn("size-5 rounded-full border border-border", swatch)}
-          />
+          <span key={swatch} className={cn("size-5 rounded-full border border-border", swatch)} />
         ))}
       </span>
     </button>
@@ -152,11 +145,7 @@ interface AppearanceAccentOptionProperties {
   readonly onSelect: (accent: ThemeAccent) => void;
 }
 
-function AppearanceAccentOption({
-  accent,
-  isActive,
-  onSelect,
-}: AppearanceAccentOptionProperties) {
+function AppearanceAccentOption({ accent, isActive, onSelect }: AppearanceAccentOptionProperties) {
   const { t } = useTranslation();
   return (
     <button
@@ -182,9 +171,7 @@ function AppearanceAccentOption({
         <span className="text-[12.5px] font-medium text-foreground">
           {t(ACCENT_LABEL_KEYS[accent])}
         </span>
-        <span className="text-[11px] text-muted-foreground">
-          {t(ACCENT_HINT_KEYS[accent])}
-        </span>
+        <span className="text-[11px] text-muted-foreground">{t(ACCENT_HINT_KEYS[accent])}</span>
       </span>
       {isActive ? <Check size={13} className="text-link" aria-hidden="true" /> : null}
     </button>
@@ -281,10 +268,7 @@ export function AppearancePage() {
       />
       <div className="grid gap-4">
         <Card>
-          <CardHeader
-            title={t("appearance.designHeading")}
-            subtitle={t("appearance.designHint")}
-          />
+          <CardHeader title={t("appearance.designHeading")} subtitle={t("appearance.designHint")} />
           <div className="px-4 py-3.5">
             <div
               role="radiogroup"
@@ -303,10 +287,7 @@ export function AppearancePage() {
           </div>
         </Card>
         <Card>
-          <CardHeader
-            title={t("appearance.accentHeading")}
-            subtitle={t("appearance.accentHint")}
-          />
+          <CardHeader title={t("appearance.accentHeading")} subtitle={t("appearance.accentHint")} />
           <div className="grid gap-3 px-4 py-3.5">
             <div
               role="radiogroup"
@@ -331,10 +312,7 @@ export function AppearancePage() {
         </Card>
         <AccessibilityPreferencesCard />
         <Card>
-          <CardHeader
-            title={t("appearance.modeHeading")}
-            subtitle={t("appearance.modeHint")}
-          />
+          <CardHeader title={t("appearance.modeHeading")} subtitle={t("appearance.modeHint")} />
           <div className="grid gap-3 px-4 py-3.5">
             <Segmented
               ariaLabel={t("appearance.modeHeading")}

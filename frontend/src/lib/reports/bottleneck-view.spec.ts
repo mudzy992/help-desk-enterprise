@@ -7,10 +7,7 @@ import {
 } from "@/lib/reports/bottleneck-view";
 import type { BottleneckBreakdownRow, BottleneckTrendRow } from "@/services/reports-api";
 
-function row(
-  key: string,
-  counts: Partial<BottleneckBreakdownRow> = {},
-): BottleneckBreakdownRow {
+function row(key: string, counts: Partial<BottleneckBreakdownRow> = {}): BottleneckBreakdownRow {
   return {
     key,
     label: counts.label ?? key,
@@ -30,7 +27,9 @@ describe("bottleneck-view (val 1, M15/B2)", () => {
       "unrouted",
       "overdue",
     ]);
-    expect(bottleneckTotal(row("x", { pendingApproval: 1, waitingForUser: 2, unrouted: 3, overdue: 4 }))).toBe(10);
+    expect(
+      bottleneckTotal(row("x", { pendingApproval: 1, waitingForUser: 2, unrouted: 3, overdue: 4 })),
+    ).toBe(10);
     expect(bottleneckTotal(row("x"))).toBe(0);
   });
 
@@ -69,9 +68,30 @@ describe("bottleneck-view (val 1, M15/B2)", () => {
 
   it("iz trenda izbacuje dane bez ijednog događaja", () => {
     const trend: readonly BottleneckTrendRow[] = [
-      { date: "2026-09-01", createdCount: 0, pendingApproval: 0, waitingForUser: 0, unrouted: 0, overdue: 0 },
-      { date: "2026-09-02", createdCount: 3, pendingApproval: 0, waitingForUser: 0, unrouted: 0, overdue: 0 },
-      { date: "2026-09-03", createdCount: 0, pendingApproval: 0, waitingForUser: 0, unrouted: 0, overdue: 1 },
+      {
+        date: "2026-09-01",
+        createdCount: 0,
+        pendingApproval: 0,
+        waitingForUser: 0,
+        unrouted: 0,
+        overdue: 0,
+      },
+      {
+        date: "2026-09-02",
+        createdCount: 3,
+        pendingApproval: 0,
+        waitingForUser: 0,
+        unrouted: 0,
+        overdue: 0,
+      },
+      {
+        date: "2026-09-03",
+        createdCount: 0,
+        pendingApproval: 0,
+        waitingForUser: 0,
+        unrouted: 0,
+        overdue: 1,
+      },
     ];
 
     expect(bottleneckTrendRows(trend).map((entry) => entry.date)).toEqual([

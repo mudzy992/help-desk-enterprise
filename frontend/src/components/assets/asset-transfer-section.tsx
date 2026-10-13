@@ -26,7 +26,10 @@ export type TransferPreviewState = {
 };
 
 /** Transfer switches + a debounced server preview (parties, signatory, problems). */
-export function useTransferPreview(active: boolean, input: AssetMovementInput): TransferPreviewState {
+export function useTransferPreview(
+  active: boolean,
+  input: AssetMovementInput,
+): TransferPreviewState {
   const configurationQuery = useQuery({
     queryKey: assetTransferQueryKeys.configuration,
     queryFn: getTransferConfiguration,
@@ -46,7 +49,11 @@ export function useTransferPreview(active: boolean, input: AssetMovementInput): 
     enabled: active && configurationQuery.data?.enabled === true,
     retry: false,
   });
-  return { configuration: configurationQuery.data, preview: previewQuery.data, loading: previewQuery.isFetching };
+  return {
+    configuration: configurationQuery.data,
+    preview: previewQuery.data,
+    loading: previewQuery.isFetching,
+  };
 }
 
 interface AssetTransferSectionProperties {
@@ -56,19 +63,32 @@ interface AssetTransferSectionProperties {
 }
 
 /** What the record will print; the switch only when records are optional. */
-export function AssetTransferSection({ preview, issueDocument, onIssueDocumentChange }: AssetTransferSectionProperties) {
+export function AssetTransferSection({
+  preview,
+  issueDocument,
+  onIssueDocumentChange,
+}: AssetTransferSectionProperties) {
   const { t } = useTranslation();
   const configuration = preview.configuration;
   if (!configuration?.enabled) return null;
   const willIssue = configuration.required || issueDocument;
   const data = preview.preview;
-  const problems = (data?.problems ?? []).map(transferProblem).filter((problem) => problem !== null);
+  const problems = (data?.problems ?? [])
+    .map(transferProblem)
+    .filter((problem) => problem !== null);
   return (
-    <section className="grid gap-2 rounded-md border border-border p-3" aria-label={t("assets.transfers.sectionLabel")}>
+    <section
+      className="grid gap-2 rounded-md border border-border p-3"
+      aria-label={t("assets.transfers.sectionLabel")}
+    >
       {configuration.required ? (
         <p className={hintClassName}>{t("assets.transfers.requiredHint")}</p>
       ) : (
-        <Checkbox label={t("assets.transfers.issueDocument")} checked={issueDocument} onChange={(event) => onIssueDocumentChange(event.target.checked)} />
+        <Checkbox
+          label={t("assets.transfers.issueDocument")}
+          checked={issueDocument}
+          onChange={(event) => onIssueDocumentChange(event.target.checked)}
+        />
       )}
       {willIssue && data ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
@@ -79,11 +99,15 @@ export function AssetTransferSection({ preview, issueDocument, onIssueDocumentCh
           <dt className="text-muted-foreground">{t("assets.transfers.signatory")}</dt>
           <dd className="truncate text-foreground">
             {data.signatory.name || t("assets.transfers.noSignatory")}
-            {data.signatory.title ? <span className="text-muted-foreground"> · {data.signatory.title}</span> : null}
+            {data.signatory.title ? (
+              <span className="text-muted-foreground"> · {data.signatory.title}</span>
+            ) : null}
           </dd>
         </dl>
       ) : null}
-      {willIssue && preview.loading && !data ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
+      {willIssue && preview.loading && !data ? (
+        <p className={hintClassName}>{t("ui.loading")}</p>
+      ) : null}
       {problems.length > 0 ? (
         <ul className={`grid gap-0.5 ${errorTextClassName}`}>
           {problems.map((problem, index) => (
@@ -96,7 +120,13 @@ export function AssetTransferSection({ preview, issueDocument, onIssueDocumentCh
 }
 
 /** Success state after a move that issued a record: download right away. */
-export function AssetTransferIssued({ result, onClose }: { readonly result: AssetMovementResult; readonly onClose: () => void }) {
+export function AssetTransferIssued({
+  result,
+  onClose,
+}: {
+  readonly result: AssetMovementResult;
+  readonly onClose: () => void;
+}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [pending, setPending] = useState(false);
@@ -106,7 +136,12 @@ export function AssetTransferIssued({ result, onClose }: { readonly result: Asse
     try {
       await downloadTransferDocument(result.transferId, result.number);
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.transfers.downloadFailed"),
+        description: t(mapAssetError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setPending(false);
     }

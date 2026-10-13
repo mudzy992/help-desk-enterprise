@@ -3,7 +3,8 @@ import type { TicketStatus } from "@/services/tickets-api";
 
 /** Paket 1.7 (W2): `GET /workflow/ticket-status`, ADMIN/SUPER_ADMIN only. */
 export type WorkflowActor = "STAFF" | "REQUESTER" | "APPROVER" | "SYSTEM";
-export type WorkflowTrigger = "status_change" | "claim" | "forward" | "approval" | "reopen" | "automation";
+export type WorkflowTrigger =
+  "status_change" | "claim" | "forward" | "approval" | "reopen" | "automation";
 export type WorkflowGuard =
   | "close_code"
   | "required_fields"

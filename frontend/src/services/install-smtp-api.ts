@@ -30,9 +30,7 @@ export function loadInstallSmtp(): Promise<InstallSmtpStatus> {
   return apiRequest<InstallSmtpStatus>("/install/smtp");
 }
 
-export function saveInstallSmtp(
-  input: SaveInstallSmtpInput,
-): Promise<InstallSmtpRecord> {
+export function saveInstallSmtp(input: SaveInstallSmtpInput): Promise<InstallSmtpRecord> {
   return apiRequest<InstallSmtpRecord>("/install/smtp", {
     method: "POST",
     body: JSON.stringify(input),

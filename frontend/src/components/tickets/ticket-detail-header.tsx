@@ -3,7 +3,11 @@ import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indi
 import { Link } from "react-router-dom";
 import { ArrowLeft, Lock, Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import {
+  TicketConfidentialBadge,
+  TicketPriorityBadge,
+  TicketStatusBadge,
+} from "@/components/tickets/ticket-badges";
 import { TicketConfidentialBanner } from "@/components/tickets/ticket-confidential-banner";
 import { TicketDetailHeaderActions } from "@/components/tickets/ticket-detail-header-actions";
 import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
@@ -74,8 +78,7 @@ export function TicketDetailHeader({
   const [closeCode, setCloseCode] = useState(ticket.closePolicy?.closeCode?.key ?? "");
   const [resolutionNote, setResolutionNote] = useState(ticket.closePolicy?.resolutionNote ?? "");
   const formVersionLabel = t("tickets.detail.formVersion").toLowerCase();
-  const isPaused =
-    ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL";
+  const isPaused = ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL";
   return (
     <div className="page-in">
       <div className="mb-4 flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -135,7 +138,8 @@ export function TicketDetailHeader({
               <span>{originName}</span>
               {metaSeparator()}
               <RelativeTime value={ticket.createdAt} locale={i18n.language} />
-              {ticket.formVersionNumber === null || ticket.formVersionNumber === undefined ? null : (
+              {ticket.formVersionNumber === null ||
+              ticket.formVersionNumber === undefined ? null : (
                 <>
                   {metaSeparator()}
                   <span>

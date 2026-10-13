@@ -63,11 +63,7 @@ export function EditRoutingRuleForm({
         </Select>
       </Field>
       <Field label={t("routing.groupId")} required>
-        <Select
-          value={groupId}
-          required
-          onChange={(event) => setGroupId(event.target.value)}
-        >
+        <Select value={groupId} required onChange={(event) => setGroupId(event.target.value)}>
           {groups.map((group) => (
             <option key={group.id} value={group.id}>
               {group.name}

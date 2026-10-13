@@ -12,15 +12,7 @@ export function startOfLocalDay(date: Date): Date {
 }
 
 export function endOfLocalDay(date: Date): Date {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-    23,
-    59,
-    59,
-    999,
-  );
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 }
 
 export function addLocalDays(date: Date, days: number): Date {
@@ -42,11 +34,7 @@ export function parseDateInputValue(value: string): Date | null {
   if (match === null) {
     return null;
   }
-  const parsed = new Date(
-    Number(match[1]),
-    Number(match[2]) - 1,
-    Number(match[3]),
-  );
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -62,10 +50,7 @@ export function resolveReportWindow(input: {
       return custom;
     }
   }
-  return rollingWindow(
-    input.preset === "custom" ? "30d" : input.preset,
-    input.now,
-  );
+  return rollingWindow(input.preset === "custom" ? "30d" : input.preset, input.now);
 }
 
 export function previousReportWindow(window: ReportWindow): ReportWindow {
@@ -116,10 +101,7 @@ function customWindow(fromValue: string, toValue: string): ReportWindow | null {
   return { from: startOfLocalDay(to), to: endOfLocalDay(from) };
 }
 
-function rollingWindow(
-  preset: Exclude<ReportPreset, "custom">,
-  now: Date,
-): ReportWindow {
+function rollingWindow(preset: Exclude<ReportPreset, "custom">, now: Date): ReportWindow {
   const startToday = startOfLocalDay(now);
   if (preset === "15d") {
     return { from: addLocalDays(startToday, -14), to: now };

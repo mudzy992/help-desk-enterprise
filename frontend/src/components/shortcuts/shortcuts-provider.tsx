@@ -1,8 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { shortcutCatalog, type ShortcutId } from "@/lib/shortcuts/catalog";
-import { createSequenceMatcher, dispatchableIds, normaliseKey, shouldIgnoreTarget } from "@/lib/shortcuts/engine";
-import { ShortcutsContext, type ShortcutHandler, type ShortcutsRegistry } from "@/lib/shortcuts/shortcuts-context";
+import {
+  createSequenceMatcher,
+  dispatchableIds,
+  normaliseKey,
+  shouldIgnoreTarget,
+} from "@/lib/shortcuts/engine";
+import {
+  ShortcutsContext,
+  type ShortcutHandler,
+  type ShortcutsRegistry,
+} from "@/lib/shortcuts/shortcuts-context";
 import { queryKeys } from "@/lib/query/query-keys";
 import { getUserPreferences } from "@/services/user-preferences-api";
 import { ShortcutsHelpDialog } from "@/components/shortcuts/shortcuts-help-dialog";
@@ -67,7 +76,10 @@ export function ShortcutsProvider({ defaultEnabled, children }: ShortcutsProvide
       const registered = new Set(handlersRef.current.keys());
       const active = dispatchableIds(shortcutCatalog, registered, {
         singleKeysEnabled,
-        ignoreSingleKeys: shouldIgnoreTarget(event.target instanceof Element ? event.target : null, isDialogOpen()),
+        ignoreSingleKeys: shouldIgnoreTarget(
+          event.target instanceof Element ? event.target : null,
+          isDialogOpen(),
+        ),
       });
       if (active.size === 0) return;
       const result = matcherRef.current.feed(key, performance.now(), active);
@@ -86,10 +98,7 @@ export function ShortcutsProvider({ defaultEnabled, children }: ShortcutsProvide
     [register, singleKeysEnabled, openHelp],
   );
 
-  const registeredIds = useMemo(
-    () => new Set(handlersRef.current.keys()),
-    [registeredVersion],
-  );
+  const registeredIds = useMemo(() => new Set(handlersRef.current.keys()), [registeredVersion]);
 
   return (
     <ShortcutsContext.Provider value={registry}>

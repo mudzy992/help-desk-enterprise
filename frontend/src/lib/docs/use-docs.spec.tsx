@@ -16,9 +16,12 @@ describe("useDocsNavigation (KB1)", () => {
   it("loads the navigation again when the locale changes", async () => {
     getDocsNavigation.mockResolvedValue({ sections: [] });
 
-    const { rerender } = renderHook(({ locale }: { readonly locale: "bs" | "en" }) => useDocsNavigation(locale), {
-      initialProps: { locale: "bs" },
-    });
+    const { rerender } = renderHook(
+      ({ locale }: { readonly locale: "bs" | "en" }) => useDocsNavigation(locale),
+      {
+        initialProps: { locale: "bs" },
+      },
+    );
     await waitFor(() => expect(getDocsNavigation).toHaveBeenLastCalledWith("bs"));
 
     rerender({ locale: "en" });

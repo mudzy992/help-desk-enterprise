@@ -27,11 +27,7 @@ export function queryKeysForTicketEvent(input: {
   switch (input.eventName) {
     case ticketSocketEvents.ticketUpdated:
       return ticketId === null
-        ? [
-            queryKeys.ticketLists,
-            QUERY_KEYS_DASHBOARD_SUMMARY,
-            queryKeys.slaSummary,
-          ]
+        ? [queryKeys.ticketLists, QUERY_KEYS_DASHBOARD_SUMMARY, queryKeys.slaSummary]
         : [
             queryKeys.ticketLists,
             queryKeys.ticket(ticketId),
@@ -60,13 +56,10 @@ export type QueryInvalidationOptions = {
   readonly isScreenVisible?: () => boolean;
 };
 
-export function subscribeToQueryInvalidation(
-  options: QueryInvalidationOptions,
-): () => void {
+export function subscribeToQueryInvalidation(options: QueryInvalidationOptions): () => void {
   const isVisible =
     options.isScreenVisible ??
-    (() =>
-      typeof document === "undefined" || document.visibilityState === "visible");
+    (() => typeof document === "undefined" || document.visibilityState === "visible");
   const watched = [
     ticketSocketEvents.ticketUpdated,
     ticketSocketEvents.messageCreated,

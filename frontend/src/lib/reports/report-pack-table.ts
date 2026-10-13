@@ -61,7 +61,9 @@ export function formatReportCell(
   if (isoInstant.test(value)) {
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(date);
+      return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
+        date,
+      );
     }
   }
   return value;

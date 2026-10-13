@@ -49,15 +49,17 @@ export function TicketDetailSidebar({
     withoutRule && hasPermission(permissionKeys.routingWrite)
       ? `/routing?${new URLSearchParams({ originUnitId: ticket.originUnitId, serviceId: ticket.serviceId }).toString()}`
       : null;
-  const requester =
-    ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
+  const requester = ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
   const assignee =
     ticket.assignedUserId === null
       ? null
       : (ticketAssigneeName(ticket, authorNames) ?? t("tickets.detail.unknownUser"));
-  const group =
-    ticketGroupName(ticket, groupNames) ?? t("tickets.detail.unknownGroup");
-  const rows: readonly { readonly label: string; readonly value: ReactNode; readonly hint?: string }[] = [
+  const group = ticketGroupName(ticket, groupNames) ?? t("tickets.detail.unknownGroup");
+  const rows: readonly {
+    readonly label: string;
+    readonly value: ReactNode;
+    readonly hint?: string;
+  }[] = [
     { label: t("tickets.detail.service"), value: serviceName },
     {
       label: t("tickets.detail.formVersion"),
@@ -165,9 +167,7 @@ export function TicketDetailSidebar({
             <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
             <dd className="text-right text-foreground/90">
               {row.value}
-              {row.hint ? (
-                <p className="text-[10.5px] text-muted-foreground">{row.hint}</p>
-              ) : null}
+              {row.hint ? <p className="text-[10.5px] text-muted-foreground">{row.hint}</p> : null}
             </dd>
           </div>
         ))}

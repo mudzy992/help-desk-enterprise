@@ -23,7 +23,10 @@ export function DocsFeedback({ slug }: { readonly slug: string }) {
   };
 
   return (
-    <section aria-label={t("docs.feedback.label")} className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-4 print:hidden">
+    <section
+      aria-label={t("docs.feedback.label")}
+      className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-4 print:hidden"
+    >
       <p className="text-[12.5px] text-muted-foreground">{t("docs.feedback.question")}</p>
       <div className="flex items-center gap-1">
         <button
@@ -57,7 +60,9 @@ export function DocsFeedback({ slug }: { readonly slug: string }) {
           {t("docs.feedback.no")}
         </button>
       </div>
-      {answer === null ? null : <p className="text-[12px] text-muted-foreground">{t("docs.feedback.thanks")}</p>}
+      {answer === null ? null : (
+        <p className="text-[12px] text-muted-foreground">{t("docs.feedback.thanks")}</p>
+      )}
     </section>
   );
 }

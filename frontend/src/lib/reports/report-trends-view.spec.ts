@@ -47,12 +47,19 @@ describe("granularity (mirrors the backend rules)", () => {
 describe("URL state", () => {
   it("defaults to 12 months with automatic granularity", () => {
     const state = parseTrendsSearch(new URLSearchParams("tab=trends"), now);
-    expect(state).toMatchObject({ preset: "12m", from: "2025-10-01", to: "2026-09-27", granularity: null });
+    expect(state).toMatchObject({
+      preset: "12m",
+      from: "2025-10-01",
+      to: "2026-09-27",
+      granularity: null,
+    });
   });
 
   it("reads the link from the scheduled e-mail as a custom range", () => {
     const state = parseTrendsSearch(
-      new URLSearchParams("tab=trends&organizationalUnitId=ou-it&from=2025-03-01&to=2026-02-28&granularity=month&groupId=grp"),
+      new URLSearchParams(
+        "tab=trends&organizationalUnitId=ou-it&from=2025-03-01&to=2026-02-28&granularity=month&groupId=grp",
+      ),
       now,
     );
     expect(state).toMatchObject({
@@ -68,14 +75,19 @@ describe("URL state", () => {
 
   it("ignores invalid values", () => {
     const state = parseTrendsSearch(
-      new URLSearchParams("from=2026-09-10&to=2026-09-01&granularity=year&priority=URGENT&preset=7y"),
+      new URLSearchParams(
+        "from=2026-09-10&to=2026-09-01&granularity=year&priority=URGENT&preset=7y",
+      ),
       now,
     );
     expect(state).toMatchObject({ preset: "12m", granularity: null, priority: null });
   });
 
   it("round-trips through the URL and re-resolves named presets", () => {
-    const state = parseTrendsSearch(new URLSearchParams("preset=90d&priority=HIGH&serviceId=svc"), now);
+    const state = parseTrendsSearch(
+      new URLSearchParams("preset=90d&priority=HIGH&serviceId=svc"),
+      now,
+    );
     const search = toTrendsSearch(state);
     expect(search.toString()).toBe("tab=trends&preset=90d&serviceId=svc&priority=HIGH");
     expect(parseTrendsSearch(search, now)).toEqual(state);
@@ -83,7 +95,11 @@ describe("URL state", () => {
 
   it("builds the API query without empty filters", () => {
     const state = parseTrendsSearch(new URLSearchParams("preset=6m"), now);
-    expect(toTrendsQuery(state, "ou-it")).toEqual({ organizationalUnitId: "ou-it", from: "2026-04-01", to: "2026-09-27" });
+    expect(toTrendsQuery(state, "ou-it")).toEqual({
+      organizationalUnitId: "ou-it",
+      from: "2026-04-01",
+      to: "2026-09-27",
+    });
   });
 });
 
@@ -106,7 +122,9 @@ describe("formatting", () => {
 
 describe("error codes", () => {
   it("recognises report domain codes only", () => {
-    expect(readReportErrorCode(new ApiError(400, "REPORT_WINDOW_INVALID", "x", null))).toBe("REPORT_WINDOW_INVALID");
+    expect(readReportErrorCode(new ApiError(400, "REPORT_WINDOW_INVALID", "x", null))).toBe(
+      "REPORT_WINDOW_INVALID",
+    );
     expect(readReportErrorCode(new ApiError(403, "FORBIDDEN", "x", null))).toBeNull();
     expect(readReportErrorCode(new Error("x"))).toBeNull();
   });

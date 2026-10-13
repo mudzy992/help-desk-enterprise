@@ -23,7 +23,10 @@ function hashCode(value: string): number {
 }
 
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter((part) => part.length > 0);
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.length > 0);
   return parts
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")

@@ -82,17 +82,18 @@ export function SlaEscalationRulesPanel({
     }
   };
 
-  const table = rules.length === 0 ? (
-    <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
-  ) : (
-    <SlaEscalationRulesTable
-      rules={rules}
-      groupNames={groupNames}
-      canWrite={canWrite}
-      onEdit={setEditing}
-      onDelete={(rule) => void handleDelete(rule)}
-    />
-  );
+  const table =
+    rules.length === 0 ? (
+      <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
+    ) : (
+      <SlaEscalationRulesTable
+        rules={rules}
+        groupNames={groupNames}
+        canWrite={canWrite}
+        onEdit={setEditing}
+        onDelete={(rule) => void handleDelete(rule)}
+      />
+    );
 
   const form = canWrite ? (
     <div className={embedded ? "mt-3 space-y-3" : "p-4"}>

@@ -43,7 +43,9 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
   const [number, setNumber] = useState("");
   const [note, setNote] = useState("");
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
-  const [removing, setRemoving] = useState<{ readonly id: string; readonly number: string } | null>(null);
+  const [removing, setRemoving] = useState<{ readonly id: string; readonly number: string } | null>(
+    null,
+  );
   const query = useQuery({
     queryKey: [...queryKeys.ticketLinks(ticketId), versionKey],
     queryFn: () => listTicketLinks(ticketId),
@@ -52,7 +54,8 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
     queryClient.setQueryData([...queryKeys.ticketLinks(ticketId), versionKey], next);
   };
   const add = useMutation({
-    mutationFn: () => addTicketLink(ticketId, { ticketNumber: number.trim(), note: note.trim() || undefined }),
+    mutationFn: () =>
+      addTicketLink(ticketId, { ticketNumber: number.trim(), note: note.trim() || undefined }),
     onSuccess: (next) => {
       apply(next);
       setAdding(false);
@@ -96,18 +99,28 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
     >
       <div className="grid gap-2">
         {data.related.map((item) => (
-          <LinkRow key={`${item.relation}-${item.ticketNumber}`} side={item} badge={ticketText(t, relationKey[item.relation])} />
+          <LinkRow
+            key={`${item.relation}-${item.ticketNumber}`}
+            side={item}
+            badge={ticketText(t, relationKey[item.relation])}
+          />
         ))}
         {data.links.map((link) => (
           <LinkRow
             key={link.id}
             side={link.ticket}
             note={link.note}
-            onRemove={data.canManage ? () => setRemoving({ id: link.id, number: link.ticket.ticketNumber }) : undefined}
+            onRemove={
+              data.canManage
+                ? () => setRemoving({ id: link.id, number: link.ticket.ticketNumber })
+                : undefined
+            }
           />
         ))}
         {total === 0 ? (
-          <p className="text-[12px] text-muted-foreground">{t("tickets.collaboration.links.empty")}</p>
+          <p className="text-[12px] text-muted-foreground">
+            {t("tickets.collaboration.links.empty")}
+          </p>
         ) : null}
         {errorKey !== null ? (
           <p role="alert" className={errorTextClassName}>
@@ -134,10 +147,22 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
                 maxLength={200}
               />
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="xs" onClick={() => { setAdding(false); setErrorKey(null); }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setAdding(false);
+                    setErrorKey(null);
+                  }}
+                >
                   {t("tickets.collaboration.links.cancel")}
                 </Button>
-                <Button type="submit" size="xs" disabled={add.isPending || number.trim().length === 0}>
+                <Button
+                  type="submit"
+                  size="xs"
+                  disabled={add.isPending || number.trim().length === 0}
+                >
                   <Link2 size={12} />
                   {t("tickets.collaboration.links.add")}
                 </Button>
@@ -166,7 +191,9 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
         }}
         intent="danger"
         title={t("tickets.collaboration.links.removeTitle")}
-        description={t("tickets.collaboration.links.removeBody", { number: removing?.number ?? "" })}
+        description={t("tickets.collaboration.links.removeBody", {
+          number: removing?.number ?? "",
+        })}
         confirmLabel={t("tickets.collaboration.links.remove")}
         isPending={remove.isPending}
         onConfirm={() => {
@@ -186,7 +213,9 @@ function LinkRow(props: {
   const { t } = useTranslation();
   const { side } = props;
   const statusKey =
-    side.status === null ? null : (ticketStatusLabelKey as Readonly<Record<string, string>>)[side.status];
+    side.status === null
+      ? null
+      : (ticketStatusLabelKey as Readonly<Record<string, string>>)[side.status];
   return (
     <div className="group flex items-start gap-2 text-[12px]">
       <div className="min-w-0 flex-1">
@@ -208,11 +237,15 @@ function LinkRow(props: {
             <Badge tone="info">{t(statusKey as "tickets.status.PENDING")}</Badge>
           ) : null}
         </div>
-        {side.title !== null ? <div className="truncate text-foreground/90">{side.title}</div> : null}
+        {side.title !== null ? (
+          <div className="truncate text-foreground/90">{side.title}</div>
+        ) : null}
         {side.groupName !== null ? (
           <div className="text-[11px] text-muted-foreground">{side.groupName}</div>
         ) : null}
-        {props.note ? <div className="text-[11px] italic text-muted-foreground">{props.note}</div> : null}
+        {props.note ? (
+          <div className="text-[11px] italic text-muted-foreground">{props.note}</div>
+        ) : null}
       </div>
       {props.onRemove !== undefined ? (
         <button

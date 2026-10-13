@@ -13,7 +13,13 @@ import { Field, Textarea } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
-import { signedCopyAccept, signedCopyMaxBytes, transferScenarioKeys, transferStatusKeys, transferStatusTone } from "@/lib/assets/asset-transfer-view";
+import {
+  signedCopyAccept,
+  signedCopyMaxBytes,
+  transferScenarioKeys,
+  transferStatusKeys,
+  transferStatusTone,
+} from "@/lib/assets/asset-transfer-view";
 import { formatAssetDate, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -33,7 +39,10 @@ import {
   type AssetTransferStatus,
 } from "@/services/asset-transfers-api";
 
-type PanelMode = { readonly kind: "all" } | { readonly kind: "asset"; readonly assetId: string } | { readonly kind: "mine" };
+type PanelMode =
+  | { readonly kind: "all" }
+  | { readonly kind: "asset"; readonly assetId: string }
+  | { readonly kind: "mine" };
 
 interface AssetTransfersPanelProperties {
   readonly mode: PanelMode;
@@ -52,7 +61,10 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
   const [cancelling, setCancelling] = useState<AssetTransferListItem | null>(null);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => setFilters((current) => ({ ...current, search: searchText.trim() || undefined })), 300);
+    const handle = window.setTimeout(
+      () => setFilters((current) => ({ ...current, search: searchText.trim() || undefined })),
+      300,
+    );
     return () => window.clearTimeout(handle);
   }, [searchText]);
 
@@ -65,13 +77,20 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
     retry: false,
   });
   const scopedQuery = useQuery({
-    queryKey: mode.kind === "asset" ? assetTransferQueryKeys.forAsset(mode.assetId) : assetTransferQueryKeys.mine,
-    queryFn: () => (mode.kind === "asset" ? listAssetTransfersForAsset(mode.assetId) : listMyAssetTransfers()),
+    queryKey:
+      mode.kind === "asset"
+        ? assetTransferQueryKeys.forAsset(mode.assetId)
+        : assetTransferQueryKeys.mine,
+    queryFn: () =>
+      mode.kind === "asset" ? listAssetTransfersForAsset(mode.assetId) : listMyAssetTransfers(),
     enabled: mode.kind !== "all",
     retry: false,
   });
 
-  const items = mode.kind === "all" ? (registerQuery.data?.pages.flatMap((page) => page.items) ?? []) : (scopedQuery.data ?? []);
+  const items =
+    mode.kind === "all"
+      ? (registerQuery.data?.pages.flatMap((page) => page.items) ?? [])
+      : (scopedQuery.data ?? []);
   const loading = mode.kind === "all" ? registerQuery.isLoading : scopedQuery.isLoading;
   const error = mode.kind === "all" ? registerQuery.error : scopedQuery.error;
 
@@ -87,7 +106,12 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
           activeCount={[filters.status, filters.scenario].filter(Boolean).length}
           onReset={() => {
             setSearchText("");
-            setFilters((current) => ({ ...current, status: undefined, scenario: undefined, search: undefined }));
+            setFilters((current) => ({
+              ...current,
+              status: undefined,
+              scenario: undefined,
+              search: undefined,
+            }));
           }}
         >
           <FilterField label={t("assets.transfers.statusFilter")}>
@@ -95,9 +119,16 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
               className={`${selectCompactClassName} w-full`}
               aria-label={t("assets.transfers.statusFilter")}
               value={filters.status ?? ""}
-              onChange={(event) => setFilters((current) => ({ ...current, status: (event.target.value || undefined) as AssetTransferStatus | undefined }))}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  status: (event.target.value || undefined) as AssetTransferStatus | undefined,
+                }))
+              }
             >
-              <option value="">{t("assets.transfers.statusFilter")}: {t("assets.transfers.any")}</option>
+              <option value="">
+                {t("assets.transfers.statusFilter")}: {t("assets.transfers.any")}
+              </option>
               {assetTransferStatuses.map((status) => (
                 <option key={status} value={status}>
                   {t(transferStatusKeys[status])}
@@ -110,9 +141,16 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
               className={`${selectCompactClassName} w-full`}
               aria-label={t("assets.transfers.scenarioFilter")}
               value={filters.scenario ?? ""}
-              onChange={(event) => setFilters((current) => ({ ...current, scenario: (event.target.value || undefined) as AssetTransferScenario | undefined }))}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  scenario: (event.target.value || undefined) as AssetTransferScenario | undefined,
+                }))
+              }
             >
-              <option value="">{t("assets.transfers.scenarioFilter")}: {t("assets.transfers.any")}</option>
+              <option value="">
+                {t("assets.transfers.scenarioFilter")}: {t("assets.transfers.any")}
+              </option>
               {assetTransferScenarios.map((scenario) => (
                 <option key={scenario} value={scenario}>
                   {t(transferScenarioKeys[scenario])}
@@ -129,21 +167,42 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
         </p>
       ) : null}
       {!loading && !error && items.length === 0 ? (
-        <EmptyState icon={<FileText size={18} />} title={t("assets.transfers.emptyTitle")} body={t(mode.kind === "mine" ? "assets.transfers.emptyMine" : "assets.transfers.emptyBody")} />
+        <EmptyState
+          icon={<FileText size={18} />}
+          title={t("assets.transfers.emptyTitle")}
+          body={t(
+            mode.kind === "mine" ? "assets.transfers.emptyMine" : "assets.transfers.emptyBody",
+          )}
+        />
       ) : null}
       {items.length > 0 ? (
         <ul className="grid gap-2" aria-label={t("assets.transfers.listLabel")}>
           {items.map((item) => (
-            <TransferRow key={item.id} item={item} canManage={canManage && mode.kind !== "mine"} showItems={mode.kind !== "asset"} onCancel={() => setCancelling(item)} />
+            <TransferRow
+              key={item.id}
+              item={item}
+              canManage={canManage && mode.kind !== "mine"}
+              showItems={mode.kind !== "asset"}
+              onCancel={() => setCancelling(item)}
+            />
           ))}
         </ul>
       ) : null}
       {mode.kind === "all" && registerQuery.hasNextPage ? (
-        <Button type="button" variant="outline" className="justify-self-center" disabled={registerQuery.isFetchingNextPage} onClick={() => void registerQuery.fetchNextPage()}>
+        <Button
+          type="button"
+          variant="outline"
+          className="justify-self-center"
+          disabled={registerQuery.isFetchingNextPage}
+          onClick={() => void registerQuery.fetchNextPage()}
+        >
           {registerQuery.isFetchingNextPage ? t("ui.loading") : t("assets.transfers.loadMore")}
         </Button>
       ) : null}
-      <CancelTransferSheet transfer={cancelling} onOpenChange={(open) => (open ? undefined : setCancelling(null))} />
+      <CancelTransferSheet
+        transfer={cancelling}
+        onOpenChange={(open) => (open ? undefined : setCancelling(null))}
+      />
     </div>
   );
 }
@@ -165,13 +224,22 @@ function TransferRow({
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"docx" | "signed" | "upload" | null>(null);
 
-  async function run(kind: "docx" | "signed" | "upload", action: () => Promise<unknown>, successTitle?: string) {
+  async function run(
+    kind: "docx" | "signed" | "upload",
+    action: () => Promise<unknown>,
+    successTitle?: string,
+  ) {
     setBusy(kind);
     try {
       await action();
       if (successTitle) toast({ tone: "success", title: successTitle });
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.transfers.actionFailed"),
+        description: t(mapAssetError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusy(null);
     }
@@ -180,7 +248,11 @@ function TransferRow({
   function onFile(file: File | undefined) {
     if (!file) return;
     if (file.size > signedCopyMaxBytes) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t("assets.errors.transferFileTooLarge") });
+      toast({
+        tone: "danger",
+        title: t("assets.transfers.actionFailed"),
+        description: t("assets.errors.transferFileTooLarge"),
+      });
       return;
     }
     void run(
@@ -198,16 +270,24 @@ function TransferRow({
       <Card className="grid gap-2 p-3 md:grid-cols-[1fr_auto] md:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[13px] font-semibold text-foreground">{item.number}</span>
-            <Badge tone={transferStatusTone(item.status)}>{t(transferStatusKeys[item.status])}</Badge>
-            <span className="text-[12px] text-muted-foreground">{t(transferScenarioKeys[item.scenario])}</span>
+            <span className="font-mono text-[13px] font-semibold text-foreground">
+              {item.number}
+            </span>
+            <Badge tone={transferStatusTone(item.status)}>
+              {t(transferStatusKeys[item.status])}
+            </Badge>
+            <span className="text-[12px] text-muted-foreground">
+              {t(transferScenarioKeys[item.scenario])}
+            </span>
           </div>
           <p className="mt-1 truncate text-[12.5px] text-foreground">
             {item.from.name || "—"} → {item.to.name || "—"}
           </p>
           <p className="text-[11.5px] text-muted-foreground">
             {formatAssetDate(item.issuedAt, i18n.language)}
-            {item.signatoryName ? ` · ${t("assets.transfers.signatory")}: ${item.signatoryName}` : ""}
+            {item.signatoryName
+              ? ` · ${t("assets.transfers.signatory")}: ${item.signatoryName}`
+              : ""}
             {` · ${t("assets.transfers.itemCount", { count: item.itemCount })}`}
           </p>
           {showItems && item.items.length > 0 ? (
@@ -215,7 +295,10 @@ function TransferRow({
               {item.items.map((entry, index) => (
                 <span key={entry.assetId}>
                   {index > 0 ? ", " : ""}
-                  <Link to={`/assets/${entry.assetId}`} className="underline-offset-2 hover:underline">
+                  <Link
+                    to={`/assets/${entry.assetId}`}
+                    className="underline-offset-2 hover:underline"
+                  >
                     {entry.assetTag}
                   </Link>
                 </span>
@@ -224,7 +307,9 @@ function TransferRow({
             </p>
           ) : null}
           {item.status === "CANCELLED" && item.cancelReason ? (
-            <p className="text-[11.5px] text-muted-foreground">{t("assets.transfers.cancelledBecause", { reason: item.cancelReason })}</p>
+            <p className="text-[11.5px] text-muted-foreground">
+              {t("assets.transfers.cancelledBecause", { reason: item.cancelReason })}
+            </p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-1.5 md:justify-end">
@@ -254,22 +339,51 @@ function TransferRow({
           ) : null}
           {canManage && item.status !== "CANCELLED" ? (
             <>
-              <input ref={fileInput} type="file" accept={signedCopyAccept} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(event) => { onFile(event.target.files?.[0]); event.target.value = ""; }} />
+              <input
+                ref={fileInput}
+                type="file"
+                accept={signedCopyAccept}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(event) => {
+                  onFile(event.target.files?.[0]);
+                  event.target.value = "";
+                }}
+              />
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 disabled={busy !== null}
                 onClick={() => fileInput.current?.click()}
-                aria-label={t(item.hasSignedCopy ? "assets.transfers.replaceSignedFor" : "assets.transfers.uploadSignedFor", { number: item.number })}
+                aria-label={t(
+                  item.hasSignedCopy
+                    ? "assets.transfers.replaceSignedFor"
+                    : "assets.transfers.uploadSignedFor",
+                  { number: item.number },
+                )}
               >
                 <Upload size={14} aria-hidden="true" />
-                {busy === "upload" ? t("ui.loading") : t(item.hasSignedCopy ? "assets.transfers.replaceSigned" : "assets.transfers.uploadSigned")}
+                {busy === "upload"
+                  ? t("ui.loading")
+                  : t(
+                      item.hasSignedCopy
+                        ? "assets.transfers.replaceSigned"
+                        : "assets.transfers.uploadSigned",
+                    )}
               </Button>
             </>
           ) : null}
           {canManage && item.status === "ISSUED" ? (
-            <Button type="button" size="sm" variant="ghost" disabled={busy !== null} onClick={onCancel} aria-label={t("assets.transfers.cancelFor", { number: item.number })}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy !== null}
+              onClick={onCancel}
+              aria-label={t("assets.transfers.cancelFor", { number: item.number })}
+            >
               <Ban size={14} aria-hidden="true" />
               {t("assets.transfers.cancel")}
             </Button>
@@ -280,7 +394,13 @@ function TransferRow({
   );
 }
 
-function CancelTransferSheet({ transfer, onOpenChange }: { readonly transfer: AssetTransferListItem | null; readonly onOpenChange: (open: boolean) => void }) {
+function CancelTransferSheet({
+  transfer,
+  onOpenChange,
+}: {
+  readonly transfer: AssetTransferListItem | null;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -303,7 +423,10 @@ function CancelTransferSheet({ transfer, onOpenChange }: { readonly transfer: As
     try {
       await cancelAssetTransfer(transfer.id, reason.trim());
       await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.all });
-      toast({ tone: "success", title: t("assets.transfers.cancelled", { number: transfer.number }) });
+      toast({
+        tone: "success",
+        title: t("assets.transfers.cancelled", { number: transfer.number }),
+      });
       onOpenChange(false);
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));
@@ -315,11 +438,27 @@ function CancelTransferSheet({ transfer, onOpenChange }: { readonly transfer: As
   return (
     <Sheet open={transfer !== null} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{t("assets.transfers.cancelTitle", { number: transfer?.number ?? "" })}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.transfers.cancelDescription")}</SheetDescription>
+        <SheetTitle>
+          {t("assets.transfers.cancelTitle", { number: transfer?.number ?? "" })}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.transfers.cancelDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.transfers.cancelReason")} required hint={t("assets.transfers.cancelReasonHint")}>
-            {(control) => <Textarea {...control} rows={3} maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} />}
+          <Field
+            label={t("assets.transfers.cancelReason")}
+            required
+            hint={t("assets.transfers.cancelReasonHint")}
+          >
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                maxLength={500}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
           </Field>
           <p className={hintClassName}>{t("assets.transfers.cancelNoRollback")}</p>
           {error ? (

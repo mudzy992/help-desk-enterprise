@@ -29,9 +29,7 @@ export function ApiErrorText({ messageKey, requestId }: ApiErrorTextProperties) 
   return (
     <div role="alert" className="grid gap-0.5">
       <p className={errorTextClassName}>{t(messageKey)}</p>
-      {requestId ? (
-        <p className={hintClassName}>{t("errors.requestId", { requestId })}</p>
-      ) : null}
+      {requestId ? <p className={hintClassName}>{t("errors.requestId", { requestId })}</p> : null}
     </div>
   );
 }

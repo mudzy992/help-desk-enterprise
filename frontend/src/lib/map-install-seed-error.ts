@@ -1,8 +1,6 @@
 import { ApiError } from "@/services/api";
 
-export type InstallSeedErrorKey =
-  | "install.seed.errorSuperAdmin"
-  | "install.seed.errorGeneric";
+export type InstallSeedErrorKey = "install.seed.errorSuperAdmin" | "install.seed.errorGeneric";
 
 export function mapInstallSeedError(error: unknown): InstallSeedErrorKey {
   if (!(error instanceof ApiError)) {

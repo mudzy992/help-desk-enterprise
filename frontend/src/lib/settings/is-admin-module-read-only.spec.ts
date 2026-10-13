@@ -5,10 +5,7 @@ import {
 } from "@/lib/settings/is-admin-module-read-only";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
-function entry(
-  key: string,
-  value: string | boolean,
-): SettingRegistryEntry {
+function entry(key: string, value: string | boolean): SettingRegistryEntry {
   return {
     key,
     description: key,
@@ -35,9 +32,7 @@ describe("isAdminModuleReadOnly", () => {
       entry("private.readOnlyMode.modulesCsv", "service_catalog"),
       entry("private.readOnlyMode.activeModulesCsv", "service_catalog"),
     ];
-    expect(
-      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog),
-    ).toBe(false);
+    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog)).toBe(false);
   });
 
   it("locks service_catalog when listed in active modules", () => {
@@ -49,15 +44,9 @@ describe("isAdminModuleReadOnly", () => {
       ),
       entry("private.readOnlyMode.activeModulesCsv", "service_catalog"),
     ];
-    expect(
-      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog),
-    ).toBe(true);
-    expect(
-      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceForms),
-    ).toBe(true);
-    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.sla)).toBe(
-      false,
-    );
+    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog)).toBe(true);
+    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceForms)).toBe(true);
+    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.sla)).toBe(false);
   });
 
   it("locks every module when admin is active", () => {
@@ -69,8 +58,6 @@ describe("isAdminModuleReadOnly", () => {
       ),
       entry("private.readOnlyMode.activeModulesCsv", "admin"),
     ];
-    expect(
-      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog),
-    ).toBe(true);
+    expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.serviceCatalog)).toBe(true);
   });
 });

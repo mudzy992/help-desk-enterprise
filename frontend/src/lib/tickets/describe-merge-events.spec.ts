@@ -22,19 +22,31 @@ function event(body: string, createdAt: string): TicketMessageResponse {
 
 describe("describeMergeOrPriorityEvent", () => {
   it("describes an article draft made from a reply (K1c)", () => {
-    const result = describeMergeOrPriorityEvent("ticket_knowledge_draft_created", "a1|VPN | klijent", t);
+    const result = describeMergeOrPriorityEvent(
+      "ticket_knowledge_draft_created",
+      "a1|VPN | klijent",
+      t,
+    );
     expect(result?.text).toContain("tickets.activity.knowledgeDraftCreated");
     expect(result?.text).toContain("VPN | klijent");
   });
 
   it("describes a manual priority change with its reason (colons kept)", () => {
-    const result = describeMergeOrPriorityEvent("ticket_priority_overridden", "LOW:HIGH:manual:VIP: CEO", t);
+    const result = describeMergeOrPriorityEvent(
+      "ticket_priority_overridden",
+      "LOW:HIGH:manual:VIP: CEO",
+      t,
+    );
     expect(result?.text).toContain("tickets.priority.eventManual");
     expect(result?.note).toBe("VIP: CEO");
   });
 
   it("describes a reset to the matrix", () => {
-    const result = describeMergeOrPriorityEvent("ticket_priority_overridden", "HIGH:LOW:matrix:ok", t);
+    const result = describeMergeOrPriorityEvent(
+      "ticket_priority_overridden",
+      "HIGH:LOW:matrix:ok",
+      t,
+    );
     expect(result?.text).toContain("tickets.priority.eventReset");
   });
 

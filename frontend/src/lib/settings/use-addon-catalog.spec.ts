@@ -10,17 +10,10 @@ import { loadSettingsAddons } from "@/services/settings-api";
  * finding M1 #5) — which is exactly why a switch went back to "off" after a save
  * that the server had accepted.
  */
-function stubAddonResponse(
-  expectedFragment: string,
-  enabled: Record<string, boolean>,
-) {
+function stubAddonResponse(expectedFragment: string, enabled: Record<string, boolean>) {
   const fetchMock = vi.fn(async (input: string | URL | Request) => {
     const target =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
+      typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     expect(target).toContain(expectedFragment);
     return new Response(
       JSON.stringify({

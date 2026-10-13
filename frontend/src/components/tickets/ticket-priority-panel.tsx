@@ -26,7 +26,12 @@ interface TicketPriorityPanelProperties {
  * are re-measured from the ticket start. A manual priority can be handed back
  * to the impact × urgency matrix.
  */
-export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: TicketPriorityPanelProperties) {
+export function TicketPriorityPanel({
+  ticket,
+  open,
+  onOpenChange,
+  onComplete,
+}: TicketPriorityPanelProperties) {
   const { t } = useTranslation();
   const [priority, setPriority] = useState<TicketPriority>(ticket.priority);
   const [reason, setReason] = useState("");
@@ -40,7 +45,8 @@ export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: 
     }
   }, [open, ticket.priority]);
   const trimmed = reason.trim();
-  const reasonValid = trimmed.length >= minimumReasonLength && trimmed.length <= maximumReasonLength;
+  const reasonValid =
+    trimmed.length >= minimumReasonLength && trimmed.length <= maximumReasonLength;
 
   const submit = (resetToMatrix: boolean) => {
     setBusy(true);
@@ -59,7 +65,11 @@ export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5" data-testid="ticket-priority-panel">
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-md flex-col overflow-y-auto p-5"
+        data-testid="ticket-priority-panel"
+      >
         <SheetTitle>{t("tickets.priority.title")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("tickets.priority.hint")}
@@ -69,7 +79,9 @@ export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: 
           <div className="mt-1 flex items-center gap-2">
             <TicketPriorityBadge priority={ticket.priority} />
             {ticket.priorityOverridden ? (
-              <span className="text-[11px] text-muted-foreground">{t("tickets.priority.manualBadge")}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {t("tickets.priority.manualBadge")}
+              </span>
             ) : null}
           </div>
         </div>
@@ -107,7 +119,9 @@ export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: 
             data-testid="ticket-priority-reason"
           />
         </label>
-        <p className="mt-2 text-[11.5px] text-muted-foreground">{t("tickets.priority.slaNotice")}</p>
+        <p className="mt-2 text-[11.5px] text-muted-foreground">
+          {t("tickets.priority.slaNotice")}
+        </p>
         {errorKey ? (
           <p className={`mt-2 ${errorTextClassName}`} role="alert">
             {ticketText(t, errorKey)}
@@ -124,7 +138,13 @@ export function TicketPriorityPanel({ ticket, open, onOpenChange, onComplete }: 
             {busy ? t("tickets.detail.saving") : t("tickets.priority.save")}
           </Button>
           {ticket.priorityOverridden ? (
-            <Button type="button" size="sm" variant="outline" disabled={busy || !reasonValid} onClick={() => submit(true)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy || !reasonValid}
+              onClick={() => submit(true)}
+            >
               {t("tickets.priority.resetToMatrix")}
             </Button>
           ) : null}

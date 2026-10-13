@@ -1,4 +1,9 @@
-import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerInsertText, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type {
+  ComposerCollaborationOptions,
+  ComposerSendOptions,
+  ComposerInsertText,
+  ComposerTemplatesOptions,
+} from "@/components/tickets/ticket-message-composer";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
@@ -16,10 +21,7 @@ import type {
 import type { TicketTimeTrackingControls } from "@/lib/time-tracking/use-ticket-time-tracking";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 import type { TicketResponse } from "@/services/tickets-api";
-import type {
-  TicketHistoryEntry,
-  TicketPublicActivityEntry,
-} from "@/services/tickets-context-api";
+import type { TicketHistoryEntry, TicketPublicActivityEntry } from "@/services/tickets-context-api";
 
 type DetailTab = "chat" | "activity" | "time" | "files";
 
@@ -36,7 +38,11 @@ interface TicketDetailWorkspaceProperties {
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
-  readonly onSend: (type: MessageType, body: string, options?: ComposerSendOptions) => Promise<void>;
+  readonly onSend: (
+    type: MessageType,
+    body: string,
+    options?: ComposerSendOptions,
+  ) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly timeLogs: readonly TicketTimeLogResponse[];
   readonly timeVisible: boolean;
@@ -72,9 +78,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
   tabItems.push({
     key: "activity",
     label: t("tickets.detail.activity"),
-    count: props.isStaff
-      ? auditCount + props.history.length
-      : props.publicActivity.length,
+    count: props.isStaff ? auditCount + props.history.length : props.publicActivity.length,
   });
   if (props.timeVisible) {
     tabItems.push({ key: "time", label: t("tickets.detail.time"), count: props.timeLogs.length });

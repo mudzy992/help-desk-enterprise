@@ -2,7 +2,12 @@ import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { labelClassName, textareaClassName, hintClassName, errorTextClassName } from "@/components/ui/control";
+import {
+  labelClassName,
+  textareaClassName,
+  hintClassName,
+  errorTextClassName,
+} from "@/components/ui/control";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { requestTicketBreakGlass } from "@/services/tickets-confidential-api";
@@ -12,10 +17,7 @@ interface TicketBreakGlassPanelProperties {
   readonly onGranted: () => void;
 }
 
-export function TicketBreakGlassPanel({
-  ticketId,
-  onGranted,
-}: TicketBreakGlassPanelProperties) {
+export function TicketBreakGlassPanel({ ticketId, onGranted }: TicketBreakGlassPanelProperties) {
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -29,9 +31,7 @@ export function TicketBreakGlassPanel({
           <h2 className="text-[13.5px] font-semibold text-foreground">
             {t("tickets.confidential.breakGlassTitle")}
           </h2>
-          <p className={`mt-1 ${hintClassName}`}>
-            {t("tickets.confidential.breakGlassHint")}
-          </p>
+          <p className={`mt-1 ${hintClassName}`}>{t("tickets.confidential.breakGlassHint")}</p>
         </div>
       </div>
       <label className={`mt-4 ${labelClassName}`}>

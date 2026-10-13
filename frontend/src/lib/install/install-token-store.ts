@@ -6,7 +6,7 @@
 const storageKey = "helpdesk.installToken";
 
 function storage(): Storage | null {
-  return typeof window === "undefined" ? null : window.sessionStorage ?? null;
+  return typeof window === "undefined" ? null : (window.sessionStorage ?? null);
 }
 
 export function readInstallToken(): string | null {

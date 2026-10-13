@@ -35,9 +35,7 @@ function ticket(
   };
 }
 
-function counts(
-  overrides: Partial<DashboardSummaryCounts> = {},
-): DashboardSummaryCounts {
+function counts(overrides: Partial<DashboardSummaryCounts> = {}): DashboardSummaryCounts {
   return {
     generatedAt: "2026-09-14T15:00:00.000Z",
     total: 0,
@@ -60,17 +58,19 @@ function counts(
 }
 
 /** Val 1 (M15/B6): every list now has its own server-filtered input. */
-function summaryInput(overrides: {
-  readonly recentTickets?: readonly TicketResponse[];
-  readonly overdueTickets?: readonly TicketResponse[];
-  readonly assignedToMeTickets?: readonly TicketResponse[];
-  readonly unassignedTickets?: readonly TicketResponse[];
-  readonly volumeTickets?: readonly TicketResponse[];
-  readonly volumeTruncated?: boolean;
-  readonly currentUserId?: string | null;
-  readonly now?: Date;
-  readonly counts?: Partial<DashboardSummaryCounts>;
-} = {}) {
+function summaryInput(
+  overrides: {
+    readonly recentTickets?: readonly TicketResponse[];
+    readonly overdueTickets?: readonly TicketResponse[];
+    readonly assignedToMeTickets?: readonly TicketResponse[];
+    readonly unassignedTickets?: readonly TicketResponse[];
+    readonly volumeTickets?: readonly TicketResponse[];
+    readonly volumeTruncated?: boolean;
+    readonly currentUserId?: string | null;
+    readonly now?: Date;
+    readonly counts?: Partial<DashboardSummaryCounts>;
+  } = {},
+) {
   return {
     counts: counts(overrides.counts),
     recentTickets: overrides.recentTickets ?? [],
@@ -118,9 +118,7 @@ describe("composeDashboardSummary", () => {
           ticket("2", "IN_PROGRESS", { isOverdue: true }),
         ],
         // Attention: open tickets assigned to the caller plus open unassigned ones.
-        assignedToMeTickets: [
-          ticket("6", "IN_PROGRESS", { assignedUserId: "user-1" }),
-        ],
+        assignedToMeTickets: [ticket("6", "IN_PROGRESS", { assignedUserId: "user-1" })],
         unassignedTickets: [
           ticket("1", "PENDING", { priority: "CRITICAL", assignedUserId: null }),
           ticket("7", "UNROUTED", { assignedUserId: null }),
@@ -139,9 +137,7 @@ describe("composeDashboardSummary", () => {
         createdAt: `2026-09-${String(10 + index).padStart(2, "0")}T10:00:00.000Z`,
       }),
     );
-    const summary = composeDashboardSummary(
-      summaryInput({ recentTickets: [...many].reverse() }),
-    );
+    const summary = composeDashboardSummary(summaryInput({ recentTickets: [...many].reverse() }));
 
     expect(summary.recent).toHaveLength(dashboardRecentTicketLimit);
     expect(summary.recent[0].createdAt >= summary.recent[1].createdAt).toBe(true);
@@ -176,17 +172,15 @@ describe("composeDashboardSummary", () => {
     const summary = composeDashboardSummary(summaryInput());
 
     expect(summary.volume14d).toHaveLength(14);
-    expect(
-      summary.volume14d.every((day) => day.created === 0 && day.resolved === 0),
-    ).toBe(true);
+    expect(summary.volume14d.every((day) => day.created === 0 && day.resolved === 0)).toBe(true);
     expect(summary.recent).toEqual([]);
     expect(summary.attention).toEqual([]);
   });
 
   it("marks the chart as a lower bound when the window held more than one page", () => {
-    expect(
-      composeDashboardSummary(summaryInput({ volumeTruncated: true })).volumeTruncated,
-    ).toBe(true);
+    expect(composeDashboardSummary(summaryInput({ volumeTruncated: true })).volumeTruncated).toBe(
+      true,
+    );
     expect(composeDashboardSummary(summaryInput()).volumeTruncated).toBe(false);
   });
 });

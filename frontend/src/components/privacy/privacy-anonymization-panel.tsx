@@ -67,7 +67,11 @@ interface PrivacyAnonymizationPanelProperties {
 }
 
 /** Paket 2.6 (§6, §11): SUPER_ADMIN only — irreversible, so every step is explicit. */
-export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillConsumed }: PrivacyAnonymizationPanelProperties) {
+export function PrivacyAnonymizationPanel({
+  initialUserId,
+  requestId,
+  onPrefillConsumed,
+}: PrivacyAnonymizationPanelProperties) {
   const { t, i18n } = useTranslation();
   const format = useDateFormat();
   const fail = usePrivacyFailure();
@@ -75,7 +79,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
   const users = useUserDirectory();
   const [candidates, setCandidates] = useState<readonly AnonymizationCandidate[] | null>(null);
   const [erasures, setErasures] = useState<readonly Erasure[] | null>(null);
-  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [loadError, setLoadError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [subject, setSubject] = useState<{ userId: string; requestId: string | null } | null>(null);
   const [manualUserId, setManualUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -83,7 +89,10 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
 
   const reload = useCallback(async () => {
     try {
-      const [loadedCandidates, loadedErasures] = await Promise.all([listAnonymizationCandidates(), listErasures()]);
+      const [loadedCandidates, loadedErasures] = await Promise.all([
+        listAnonymizationCandidates(),
+        listErasures(),
+      ]);
       setCandidates(loadedCandidates);
       setErasures(loadedErasures);
       setLoadError(null);
@@ -103,7 +112,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
   }, [initialUserId, requestId, onPrefillConsumed]);
 
   // A queued or running erasure finishes in the worker — follow it without a manual refresh.
-  const active = erasures?.some((erasure) => erasure.status === "QUEUED" || erasure.status === "RUNNING") ?? false;
+  const active =
+    erasures?.some((erasure) => erasure.status === "QUEUED" || erasure.status === "RUNNING") ??
+    false;
   useEffect(() => {
     if (!active) return;
     const timer = window.setInterval(() => void reload(), 5000);
@@ -117,16 +128,21 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
   }, [i18n.language, users]);
 
   const approve = (erasure: Erasure) =>
-    guard(t("privacy.anonymization.approveTitle", { name: localizePersonName(erasure.pseudonym, i18n.language) }), async (code) => {
-      setBusy(erasure.id);
-      try {
-        await approveErasure(erasure.id, code);
-        toast({ title: t("privacy.anonymization.approvedToast"), tone: "success" });
-        await reload();
-      } finally {
-        setBusy(null);
-      }
-    });
+    guard(
+      t("privacy.anonymization.approveTitle", {
+        name: localizePersonName(erasure.pseudonym, i18n.language),
+      }),
+      async (code) => {
+        setBusy(erasure.id);
+        try {
+          await approveErasure(erasure.id, code);
+          toast({ title: t("privacy.anonymization.approvedToast"), tone: "success" });
+          await reload();
+        } finally {
+          setBusy(null);
+        }
+      },
+    );
 
   const cancel = async (erasure: Erasure) => {
     setBusy(erasure.id);
@@ -140,7 +156,8 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
     }
   };
 
-  if (loadError !== null) return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
+  if (loadError !== null)
+    return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
   if (candidates === null || erasures === null) {
     return <PanelSkeleton className="mt-0" label={t("privacy.tabs.anonymization")} />;
   }
@@ -150,7 +167,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
       <PanelIntro>{t("privacy.anonymization.intro")}</PanelIntro>
 
       <section>
-        <h2 className={`${sectionTitleClassName} mb-2`}>{t("privacy.anonymization.candidatesTitle")}</h2>
+        <h2 className={`${sectionTitleClassName} mb-2`}>
+          {t("privacy.anonymization.candidatesTitle")}
+        </h2>
         {candidates.length === 0 ? (
           <EmptyState
             icon={<UserX size={18} strokeWidth={1.8} />}
@@ -163,22 +182,36 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
                   <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.user")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.inactiveSince")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.deactivatedBy")}</th>
-                  <th className="px-3 py-2 text-right">{t("privacy.anonymization.columns.tickets")}</th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.inactiveSince")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.deactivatedBy")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {t("privacy.anonymization.columns.tickets")}
+                  </th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {candidates.map((candidate) => (
-                  <tr key={candidate.id} className={tableRowClassName} data-testid="privacy-candidate-row">
+                  <tr
+                    key={candidate.id}
+                    className={tableRowClassName}
+                    data-testid="privacy-candidate-row"
+                  >
                     <td className="px-3">
                       <span className="font-medium text-foreground">{candidate.displayName}</span>
                       <span className={`${hintClassName} ml-2`}>{candidate.email}</span>
                     </td>
-                    <td className="px-3 text-muted-foreground">{format.date(candidate.inactiveSince)}</td>
                     <td className="px-3 text-muted-foreground">
-                      {t(`privacy.anonymization.deactivatedBy.${candidate.deactivatedBy}` as "privacy.anonymization.deactivatedBy.admin")}
+                      {format.date(candidate.inactiveSince)}
+                    </td>
+                    <td className="px-3 text-muted-foreground">
+                      {t(
+                        `privacy.anonymization.deactivatedBy.${candidate.deactivatedBy}` as "privacy.anonymization.deactivatedBy.admin",
+                      )}
                     </td>
                     <td className="tnum px-3 text-right">{candidate.requestedTickets}</td>
                     <td className="px-2 text-right">
@@ -199,7 +232,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
         )}
         <div className="mt-3 flex max-w-xl flex-wrap items-end gap-2">
           <div className="min-w-[260px] flex-1">
-            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("privacy.anonymization.otherUser")}</p>
+            <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
+              {t("privacy.anonymization.otherUser")}
+            </p>
             <PersonPicker
               id="privacy-anonymize-user"
               users={users}
@@ -213,7 +248,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
             size="sm"
             variant="outline"
             disabled={manualUserId === null}
-            onClick={() => manualUserId !== null && setSubject({ userId: manualUserId, requestId: null })}
+            onClick={() =>
+              manualUserId !== null && setSubject({ userId: manualUserId, requestId: null })
+            }
           >
             {t("privacy.anonymization.review")}
           </Button>
@@ -222,7 +259,9 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
       </section>
 
       <section>
-        <h2 className={`${sectionTitleClassName} mb-2`}>{t("privacy.anonymization.historyTitle")}</h2>
+        <h2 className={`${sectionTitleClassName} mb-2`}>
+          {t("privacy.anonymization.historyTitle")}
+        </h2>
         {erasures.length === 0 ? (
           <p className={hintClassName}>{t("privacy.anonymization.historyEmpty")}</p>
         ) : (
@@ -230,18 +269,34 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.pseudonym")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.status")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.requestedBy")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.approvedBy")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.created")}</th>
-                  <th className="px-3 py-2 text-left">{t("privacy.anonymization.columns.completed")}</th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.pseudonym")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.status")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.requestedBy")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.approvedBy")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.created")}
+                  </th>
+                  <th className="px-3 py-2 text-left">
+                    {t("privacy.anonymization.columns.completed")}
+                  </th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {erasures.map((erasure) => (
-                  <tr key={erasure.id} className={tableRowClassName} data-testid="privacy-erasure-row">
+                  <tr
+                    key={erasure.id}
+                    className={tableRowClassName}
+                    data-testid="privacy-erasure-row"
+                  >
                     <td className="px-3 font-medium text-foreground">
                       {localizePersonName(erasure.pseudonym, i18n.language)}
                     </td>
@@ -249,19 +304,34 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
                       <Badge tone={statusTones[erasure.status]} dot>
                         {t(erasureStatusKey(erasure.status))}
                       </Badge>
-                      {erasure.status === "PENDING_APPROVAL" && erasure.approvalDeadline !== null ? (
+                      {erasure.status === "PENDING_APPROVAL" &&
+                      erasure.approvalDeadline !== null ? (
                         <span className={`${hintClassName} ml-2`}>
-                          {t("privacy.anonymization.approvalUntil", { date: format.date(erasure.approvalDeadline) })}
+                          {t("privacy.anonymization.approvalUntil", {
+                            date: format.date(erasure.approvalDeadline),
+                          })}
                         </span>
                       ) : null}
                       {erasure.error !== null ? (
-                        <p className={`${errorTextClassName} mt-1 text-[11.5px]`}>{describeErasureError(erasure.error, (reason) => t(blockerKey(reason), { defaultValue: reason }))}</p>
+                        <p className={`${errorTextClassName} mt-1 text-[11.5px]`}>
+                          {describeErasureError(erasure.error, (reason) =>
+                            t(blockerKey(reason), { defaultValue: reason }),
+                          )}
+                        </p>
                       ) : null}
                     </td>
-                    <td className="px-3 text-muted-foreground">{nameOf(erasure.requestedByUserId)}</td>
-                    <td className="px-3 text-muted-foreground">{nameOf(erasure.approvedByUserId)}</td>
-                    <td className="px-3 text-muted-foreground">{format.dateTime(erasure.createdAt)}</td>
-                    <td className="px-3 text-muted-foreground">{format.dateTime(erasure.completedAt)}</td>
+                    <td className="px-3 text-muted-foreground">
+                      {nameOf(erasure.requestedByUserId)}
+                    </td>
+                    <td className="px-3 text-muted-foreground">
+                      {nameOf(erasure.approvedByUserId)}
+                    </td>
+                    <td className="px-3 text-muted-foreground">
+                      {format.dateTime(erasure.createdAt)}
+                    </td>
+                    <td className="px-3 text-muted-foreground">
+                      {format.dateTime(erasure.completedAt)}
+                    </td>
                     <td className="whitespace-nowrap px-2 text-right">
                       {erasure.status === "PENDING_APPROVAL" ? (
                         <span className="inline-flex gap-1.5">
@@ -273,7 +343,12 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
                           >
                             {t("privacy.anonymization.approve")}
                           </Button>
-                          <Button size="xs" variant="outline" disabled={busy === erasure.id} onClick={() => void cancel(erasure)}>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={busy === erasure.id}
+                            onClick={() => void cancel(erasure)}
+                          >
                             {t("privacy.anonymization.cancel")}
                           </Button>
                         </span>
@@ -311,7 +386,10 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
   );
 }
 
-function describeErasureError(error: string, label: (reason: AnonymizationBlockReason) => string): string {
+function describeErasureError(
+  error: string,
+  label: (reason: AnonymizationBlockReason) => string,
+): string {
   // "blocked:active,legal_hold" → the blocker labels; anything else as stored.
   if (error.startsWith("blocked:")) {
     return error
@@ -328,7 +406,8 @@ function CountsTable({ counts }: { readonly counts: Readonly<Record<string, unkn
   const entries = Object.entries(counts).filter(
     (entry): entry is [string, number] => typeof entry[1] === "number" && entry[1] > 0,
   );
-  if (entries.length === 0) return <p className={hintClassName}>{t("privacy.anonymization.nothingToChange")}</p>;
+  if (entries.length === 0)
+    return <p className={hintClassName}>{t("privacy.anonymization.nothingToChange")}</p>;
   const number = new Intl.NumberFormat(i18n.language);
   return (
     <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-[12.5px]">
@@ -408,46 +487,62 @@ function AssessmentSheet({
   }, [subject]);
 
   const emailMatches =
-    assessment !== null && confirmEmail.trim().toLowerCase() === assessment.email.trim().toLowerCase();
+    assessment !== null &&
+    confirmEmail.trim().toLowerCase() === assessment.email.trim().toLowerCase();
   const blocked = assessment !== null && assessment.blockers.length > 0;
   const fallbackName = users?.find((user) => user.id === subject?.userId)?.displayName ?? "";
 
   const submit = () => {
     if (assessment === null || subject === null || !emailMatches || blocked) return;
     setSubmitting(true);
-    void guard(t("privacy.anonymization.confirmTitle", { name: assessment.displayName }), async (code) => {
-      const erasure = await requestAnonymization(assessment.userId, {
-        confirmEmail: confirmEmail.trim(),
-        deleteOwnAttachments,
-        ...(subject.requestId !== null ? { requestId: subject.requestId } : {}),
-        ...(code !== undefined ? { code } : {}),
-      });
-      onRequested(erasure);
-    }).finally(() => setSubmitting(false));
+    void guard(
+      t("privacy.anonymization.confirmTitle", { name: assessment.displayName }),
+      async (code) => {
+        const erasure = await requestAnonymization(assessment.userId, {
+          confirmEmail: confirmEmail.trim(),
+          deleteOwnAttachments,
+          ...(subject.requestId !== null ? { requestId: subject.requestId } : {}),
+          ...(code !== undefined ? { code } : {}),
+        });
+        onRequested(erasure);
+      },
+    ).finally(() => setSubmitting(false));
   };
 
   return (
     <Sheet open={subject !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="flex w-full max-w-lg flex-col overflow-y-auto p-0" data-testid="privacy-assessment">
+      <SheetContent
+        className="flex w-full max-w-lg flex-col overflow-y-auto p-0"
+        data-testid="privacy-assessment"
+      >
         <div className="border-b border-border/70 px-5 py-4">
           <SheetTitle className="text-[15px] font-semibold text-foreground">
             {t("privacy.anonymization.assessTitle", {
               name: localizePersonName(assessment?.displayName ?? fallbackName, i18n.language),
             })}
           </SheetTitle>
-          <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{assessment?.email ?? ""}</SheetDescription>
+          <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+            {assessment?.email ?? ""}
+          </SheetDescription>
         </div>
         <div className="flex flex-col gap-5 px-5 py-4">
           {error !== null ? (
             <ApiErrorText messageKey={error} />
           ) : assessment === null ? (
-            <PanelSkeleton className="mt-0" label={t("privacy.anonymization.assessTitle", { name: "" })} />
+            <PanelSkeleton
+              className="mt-0"
+              label={t("privacy.anonymization.assessTitle", { name: "" })}
+            />
           ) : (
             <>
               {blocked ? (
-                <div className="rounded-md border border-danger/30 bg-danger/6 px-3 py-2.5" data-testid="privacy-blockers">
+                <div
+                  className="rounded-md border border-danger/30 bg-danger/6 px-3 py-2.5"
+                  data-testid="privacy-blockers"
+                >
                   <p className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-medium text-danger">
-                    <ShieldAlert size={14} aria-hidden="true" /> {t("privacy.anonymization.blockedTitle")}
+                    <ShieldAlert size={14} aria-hidden="true" />{" "}
+                    {t("privacy.anonymization.blockedTitle")}
                   </p>
                   <ul className="list-disc pl-5 text-[12.5px] text-foreground/90">
                     {assessment.blockers.map((reason) => (
@@ -459,7 +554,9 @@ function AssessmentSheet({
 
               {assessment.preview !== null ? (
                 <section className="flex flex-col gap-3">
-                  <h3 className={sectionTitleClassName}>{t("privacy.anonymization.previewTitle")}</h3>
+                  <h3 className={sectionTitleClassName}>
+                    {t("privacy.anonymization.previewTitle")}
+                  </h3>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     {(
                       [
@@ -470,13 +567,19 @@ function AssessmentSheet({
                     ).map(([key, value]) => (
                       <div key={key} className="rounded-md border border-border/70 px-2 py-2">
                         <p className="tnum text-[16px] font-semibold text-foreground">{value}</p>
-                        <p className={hintClassName}>{t(`privacy.anonymization.preview.${key}` as "privacy.anonymization.preview.ticketsInScope")}</p>
+                        <p className={hintClassName}>
+                          {t(
+                            `privacy.anonymization.preview.${key}` as "privacy.anonymization.preview.ticketsInScope",
+                          )}
+                        </p>
                       </div>
                     ))}
                   </div>
                   {assessment.preview.examples.length > 0 ? (
                     <div>
-                      <p className="mb-1 text-[12px] font-medium text-foreground">{t("privacy.anonymization.examples")}</p>
+                      <p className="mb-1 text-[12px] font-medium text-foreground">
+                        {t("privacy.anonymization.examples")}
+                      </p>
                       <ul className="flex flex-col gap-1.5">
                         {assessment.preview.examples.map((example, index) => (
                           <li
@@ -487,11 +590,15 @@ function AssessmentSheet({
                           </li>
                         ))}
                       </ul>
-                      <p className={`${hintClassName} mt-1`}>{t("privacy.anonymization.examplesHint")}</p>
+                      <p className={`${hintClassName} mt-1`}>
+                        {t("privacy.anonymization.examplesHint")}
+                      </p>
                     </div>
                   ) : null}
                   <div>
-                    <p className="mb-1 text-[12px] font-medium text-foreground">{t("privacy.anonymization.countsTitle")}</p>
+                    <p className="mb-1 text-[12px] font-medium text-foreground">
+                      {t("privacy.anonymization.countsTitle")}
+                    </p>
                     <CountsTable counts={assessment.preview.counts} />
                   </div>
                 </section>
@@ -504,7 +611,9 @@ function AssessmentSheet({
                     onChange={(event) => setDeleteOwnAttachments(event.target.checked)}
                     label={t("privacy.anonymization.deleteOwnAttachments")}
                   />
-                  <p className={`${hintClassName} -mt-1 pl-6`}>{t("privacy.anonymization.deleteOwnAttachmentsHint")}</p>
+                  <p className={`${hintClassName} -mt-1 pl-6`}>
+                    {t("privacy.anonymization.deleteOwnAttachmentsHint")}
+                  </p>
                   {assessment.requireSecondApprover ? (
                     <p className="rounded-md border border-warning/30 bg-warning/6 px-3 py-2 text-[12px]">
                       {t("privacy.anonymization.secondApproverNote")}
@@ -523,7 +632,9 @@ function AssessmentSheet({
                       data-testid="privacy-confirm-email"
                     />
                   </Field>
-                  <p className="text-[12px] text-danger">{t("privacy.anonymization.irreversible")}</p>
+                  <p className="text-[12px] text-danger">
+                    {t("privacy.anonymization.irreversible")}
+                  </p>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="outline" onClick={onClose}>
                       {t("ui.cancel")}

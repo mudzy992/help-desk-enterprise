@@ -14,10 +14,7 @@ import {
   type KnowledgeArticleErrorKey,
 } from "@/lib/knowledge-base/map-knowledge-article-error";
 import { readApiRequestId } from "@/lib/map-api-error";
-import {
-  defaultOriginUnitId,
-  type OriginUnitOption,
-} from "@/lib/tickets/ticket-display";
+import { defaultOriginUnitId, type OriginUnitOption } from "@/lib/tickets/ticket-display";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { createKnowledgeArticle } from "@/services/knowledge-base-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
@@ -54,8 +51,7 @@ export function CreateKnowledgeArticleForm({
   const [ownerUserId, setOwnerUserId] = useState("");
   const [ownerGroupId, setOwnerGroupId] = useState("");
   const [reviewerUserId, setReviewerUserId] = useState("");
-  const [classification, setClassification] =
-    useState<KnowledgeClassification>("INTERNAL");
+  const [classification, setClassification] = useState<KnowledgeClassification>("INTERNAL");
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
@@ -97,8 +93,7 @@ export function CreateKnowledgeArticleForm({
     [t],
   );
 
-  const hasOwner =
-    ownerMode === "user" ? ownerUserId.length > 0 : ownerGroupId.length > 0;
+  const hasOwner = ownerMode === "user" ? ownerUserId.length > 0 : ownerGroupId.length > 0;
   const canSubmit =
     title.trim().length > 0 &&
     body.trim().length > 0 &&
@@ -123,10 +118,7 @@ export function CreateKnowledgeArticleForm({
         organizationalUnitId,
         ownerUserId: ownerMode === "user" ? ownerUserId : undefined,
         ownerGroupId: ownerMode === "group" ? ownerGroupId : undefined,
-        reviewerUserId:
-          isSuperAdmin && reviewerUserId.length > 0
-            ? reviewerUserId
-            : undefined,
+        reviewerUserId: isSuperAdmin && reviewerUserId.length > 0 ? reviewerUserId : undefined,
         classification: isSuperAdmin ? classification : undefined,
         reason: reason.trim(),
       });
@@ -159,11 +151,7 @@ export function CreateKnowledgeArticleForm({
         />
       </Field>
       <Field label={t("knowledgeBase.serviceId")} required>
-        <Select
-          value={serviceId}
-          required
-          onChange={(event) => setServiceId(event.target.value)}
-        >
+        <Select value={serviceId} required onChange={(event) => setServiceId(event.target.value)}>
           <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
           {services.map((service) => (
             <option key={service.id} value={service.id}>
@@ -226,9 +214,7 @@ export function CreateKnowledgeArticleForm({
           onChange={(event) => setReason(event.target.value)}
         />
       </Field>
-      {errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : null}
+      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div>
         <Button type="submit" disabled={!canSubmit || isSubmitting}>
           {isSubmitting ? t("knowledgeBase.saving") : t("knowledgeBase.create")}

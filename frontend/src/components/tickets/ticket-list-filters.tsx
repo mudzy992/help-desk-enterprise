@@ -13,7 +13,11 @@ import {
   ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { parseForwardedFilter, parsePersonalFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import {
+  parseForwardedFilter,
+  parsePersonalFilter,
+  type TicketListFilters,
+} from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { TicketStatus } from "@/services/tickets-api";
 import type { TicketCounts } from "@/services/tickets-counts-api";
@@ -27,10 +31,7 @@ export function ticketListTabKey(filters: TicketListFilters): string {
   return filters.status === "" ? "ALL" : filters.status;
 }
 
-export function applyTicketListTab(
-  filters: TicketListFilters,
-  key: string,
-): TicketListFilters {
+export function applyTicketListTab(filters: TicketListFilters, key: string): TicketListFilters {
   if (key === SLA_RISK_TAB) {
     return { ...filters, status: "", overdue: true };
   }
@@ -52,17 +53,12 @@ export function applyTicketListTab(
  * "All" is every status the counters know except ARCHIVED: the default list
  * hides the archive, and the counters group over all statuses.
  */
-export function ticketStatusTabItems(
-  t: TFunction,
-  counts: TicketCounts | null,
-  riskCount: number,
-) {
+export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null, riskCount: number) {
   const allCount =
     counts === null
       ? 0
       : ticketStatusValues.reduce(
-          (sum, status) =>
-            status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0),
+          (sum, status) => (status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0)),
           0,
         );
   return [
@@ -174,7 +170,9 @@ export function TicketListFiltersBar({
             data-testid="ticket-list-personal"
             className={cn(selectCompactClassName, "w-auto min-w-[9rem]")}
             value={filters.personal ?? ""}
-            onChange={(event) => onChange({ ...filters, personal: parsePersonalFilter(event.target.value) })}
+            onChange={(event) =>
+              onChange({ ...filters, personal: parsePersonalFilter(event.target.value) })
+            }
           >
             <option value="">{t("tickets.collaboration.filter.all")}</option>
             <option value="following">{t("tickets.collaboration.filter.following")}</option>
@@ -207,7 +205,10 @@ export function TicketListFiltersBar({
       </label>
       <select
         id="ticket-list-service"
-        className={cn(selectCompactClassName, isStaff ? "w-auto min-w-[9rem]" : "ml-auto w-auto min-w-[9rem]")}
+        className={cn(
+          selectCompactClassName,
+          isStaff ? "w-auto min-w-[9rem]" : "ml-auto w-auto min-w-[9rem]",
+        )}
         value={filters.serviceId}
         onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
       >

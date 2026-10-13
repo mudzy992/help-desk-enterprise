@@ -21,7 +21,12 @@ interface ChartDataTableProperties {
  * "Show as table" (2.8 §3.6): the same data as a real <table>, for screen
  * readers and for anyone who needs exact numbers.
  */
-export function ChartDataTable({ caption, bucketHeader, bucketLabels, columns }: ChartDataTableProperties) {
+export function ChartDataTable({
+  caption,
+  bucketHeader,
+  bucketLabels,
+  columns,
+}: ChartDataTableProperties) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const tableId = `chart-table-${useId().replace(/:/g, "")}`;
@@ -64,7 +69,10 @@ export function ChartDataTable({ caption, bucketHeader, bucketLabels, columns }:
                   {columns.map((column) => {
                     const value = column.values[index] ?? null;
                     return (
-                      <td key={column.key} className="tnum px-3 py-1.5 text-right text-foreground/90">
+                      <td
+                        key={column.key}
+                        className="tnum px-3 py-1.5 text-right text-foreground/90"
+                      >
                         {value === null ? "—" : (column.format ?? String)(value)}
                       </td>
                     );

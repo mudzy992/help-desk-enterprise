@@ -27,9 +27,7 @@ export function listServiceCategories(): Promise<readonly ServiceCategoryRespons
   return apiRequest("/service-categories");
 }
 
-export function getServiceCategory(
-  serviceCategoryId: string,
-): Promise<ServiceCategoryResponse> {
+export function getServiceCategory(serviceCategoryId: string): Promise<ServiceCategoryResponse> {
   return apiRequest(`/service-categories/${serviceCategoryId}`);
 }
 

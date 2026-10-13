@@ -27,8 +27,7 @@ export function isInstallSmtpFormReady(values: InstallSmtpFormValues): boolean {
     return true;
   }
   const port = Number(values.port);
-  const hasPassword =
-    values.password.trim().length > 0 || values.passwordAlreadyConfigured;
+  const hasPassword = values.password.trim().length > 0 || values.passwordAlreadyConfigured;
   return (
     hostPattern.test(values.host.trim()) &&
     Number.isInteger(port) &&
@@ -40,9 +39,7 @@ export function isInstallSmtpFormReady(values: InstallSmtpFormValues): boolean {
   );
 }
 
-export function buildInstallSmtpInput(
-  values: InstallSmtpFormValues,
-): InstallSmtpInput {
+export function buildInstallSmtpInput(values: InstallSmtpFormValues): InstallSmtpInput {
   if (!values.enabled) {
     return { enabled: false };
   }
@@ -57,12 +54,7 @@ export function buildInstallSmtpInput(
   };
 }
 
-function optionalField<K extends string>(
-  key: K,
-  value: string,
-): Partial<Record<K, string>> {
+function optionalField<K extends string>(key: K, value: string): Partial<Record<K, string>> {
   const normalized = value.trim();
-  return normalized.length === 0
-    ? {}
-    : ({ [key]: normalized } as Record<K, string>);
+  return normalized.length === 0 ? {} : ({ [key]: normalized } as Record<K, string>);
 }

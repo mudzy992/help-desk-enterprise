@@ -59,7 +59,11 @@ interface ReportTrendsPanelProperties {
   readonly onLoaded?: (trends: ReportTrendsResponse | null) => void;
 }
 
-type LoadError = { readonly code: ReportTrendErrorCode | null; readonly key: ApiErrorKey; readonly requestId: string | null };
+type LoadError = {
+  readonly code: ReportTrendErrorCode | null;
+  readonly key: ApiErrorKey;
+  readonly requestId: string | null;
+};
 
 const presetKeys = {
   "30d": "reports.trends.presets.30d",
@@ -151,7 +155,11 @@ export function ReportTrendsPanel({
         if (cancelled) return;
         setTrends(null);
         onLoaded?.(null);
-        setError({ code: readReportErrorCode(caught), key: mapApiError(caught), requestId: readApiRequestId(caught) });
+        setError({
+          code: readReportErrorCode(caught),
+          key: mapApiError(caught),
+          requestId: readApiRequestId(caught),
+        });
       })
       .finally(() => !cancelled && setIsLoading(false));
     return () => {
@@ -177,7 +185,11 @@ export function ReportTrendsPanel({
       toast({ title: t("reports.packs.downloaded", { file: file.fileName }) });
     } catch (caught) {
       const code = readReportErrorCode(caught);
-      toast({ title: code === null ? t(mapApiError(caught)) : t(errorKeys[code]), tone: "danger", error: caught });
+      toast({
+        title: code === null ? t(mapApiError(caught)) : t(errorKeys[code]),
+        tone: "danger",
+        error: caught,
+      });
     } finally {
       setDownloading(null);
     }
@@ -186,13 +198,17 @@ export function ReportTrendsPanel({
   const granularity: ReportTrendGranularity = trends?.granularity ?? state.granularity ?? automatic;
   const points = trends?.points ?? [];
   const labels = points.map((point) => formatTrendBucketShort(point.key, granularity, locale));
-  const tooltipLabels = points.map((point) => formatTrendBucketLong(point.key, granularity, locale));
+  const tooltipLabels = points.map((point) =>
+    formatTrendBucketLong(point.key, granularity, locale),
+  );
   const partialLast = points[points.length - 1]?.partial === true;
   const number = (value: number) => new Intl.NumberFormat(locale).format(value);
   const hours = (value: number) => formatTrendHours(value, locale);
   const percent = (value: number) => formatTrendPercent(value, locale);
   const csatFormat = (value: number) =>
-    new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+    new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+      value,
+    );
 
   const filterBar = (
     <div className="mb-3 flex flex-wrap items-end gap-2 print:hidden" data-testid="trends-filters">
@@ -219,7 +235,8 @@ export function ReportTrendsPanel({
               value={state.from}
               max={state.to}
               onChange={(event) =>
-                event.target.value !== "" && onChange({ ...state, from: event.target.value, granularity: null })
+                event.target.value !== "" &&
+                onChange({ ...state, from: event.target.value, granularity: null })
               }
               data-testid="trends-from"
             />
@@ -231,7 +248,8 @@ export function ReportTrendsPanel({
               value={state.to}
               min={state.from}
               onChange={(event) =>
-                event.target.value !== "" && onChange({ ...state, to: event.target.value, granularity: null })
+                event.target.value !== "" &&
+                onChange({ ...state, to: event.target.value, granularity: null })
               }
               data-testid="trends-to"
             />
@@ -245,12 +263,15 @@ export function ReportTrendsPanel({
           onChange={(event) =>
             onChange({
               ...state,
-              granularity: event.target.value === "" ? null : (event.target.value as ReportTrendGranularity),
+              granularity:
+                event.target.value === "" ? null : (event.target.value as ReportTrendGranularity),
             })
           }
           data-testid="trends-granularity"
         >
-          <option value="">{t("reports.trends.granularity.auto", { value: t(granularityKeys[automatic]) })}</option>
+          <option value="">
+            {t("reports.trends.granularity.auto", { value: t(granularityKeys[automatic]) })}
+          </option>
           {allowed.map((option) => (
             <option key={option} value={option}>
               {t(granularityKeys[option])}
@@ -262,7 +283,9 @@ export function ReportTrendsPanel({
         <select
           className={cn(selectCompactClassName, "max-w-[220px]")}
           value={state.serviceId ?? ""}
-          onChange={(event) => onChange({ ...state, serviceId: event.target.value === "" ? null : event.target.value })}
+          onChange={(event) =>
+            onChange({ ...state, serviceId: event.target.value === "" ? null : event.target.value })
+          }
           data-testid="trends-service"
         >
           <option value="">{t("reports.trends.filters.all")}</option>
@@ -278,7 +301,9 @@ export function ReportTrendsPanel({
           <select
             className={cn(selectCompactClassName, "max-w-[220px]")}
             value={state.groupId ?? ""}
-            onChange={(event) => onChange({ ...state, groupId: event.target.value === "" ? null : event.target.value })}
+            onChange={(event) =>
+              onChange({ ...state, groupId: event.target.value === "" ? null : event.target.value })
+            }
             data-testid="trends-group"
           >
             <option value="">{t("reports.trends.filters.all")}</option>
@@ -295,7 +320,11 @@ export function ReportTrendsPanel({
           className={selectCompactClassName}
           value={state.priority ?? ""}
           onChange={(event) =>
-            onChange({ ...state, priority: event.target.value === "" ? null : (event.target.value as ReportTrendPriority) })
+            onChange({
+              ...state,
+              priority:
+                event.target.value === "" ? null : (event.target.value as ReportTrendPriority),
+            })
           }
           data-testid="trends-priority"
         >
@@ -329,11 +358,22 @@ export function ReportTrendsPanel({
             </Button>
           </>
         ) : null}
-        <Button size="sm" variant="outline" disabled={trends === null} onClick={onPrint} data-testid="trends-print">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={trends === null}
+          onClick={onPrint}
+          data-testid="trends-print"
+        >
           <Printer size={14} /> {t("reports.print.action")}
         </Button>
         {canSchedule ? (
-          <Button size="sm" variant="secondary" onClick={() => onSchedule(state)} data-testid="trends-schedule">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onSchedule(state)}
+            data-testid="trends-schedule"
+          >
             <CalendarClock size={14} /> {t("reports.trends.scheduleThis")}
           </Button>
         ) : null}
@@ -354,7 +394,10 @@ export function ReportTrendsPanel({
       <>
         {filterBar}
         {error.code !== null ? (
-          <p className="rounded-md border border-border bg-surface px-4 py-3 text-[13px] text-foreground" role="alert">
+          <p
+            className="rounded-md border border-border bg-surface px-4 py-3 text-[13px] text-foreground"
+            role="alert"
+          >
             {t(errorKeys[error.code])}
           </p>
         ) : (
@@ -370,21 +413,84 @@ export function ReportTrendsPanel({
   const settings = trends.settings;
 
   const flowSeries: TrendSeries[] = [
-    { key: "net", label: t("reports.trends.series.net"), kind: "bar", tone: "muted", values: points.map((p) => p.net), format: number },
-    { key: "created", label: t("reports.trends.series.created"), kind: "line", tone: "primary", values: points.map((p) => p.created), format: number },
-    { key: "resolved", label: t("reports.trends.series.resolved"), kind: "line", tone: "ok", values: points.map((p) => p.resolved), format: number },
+    {
+      key: "net",
+      label: t("reports.trends.series.net"),
+      kind: "bar",
+      tone: "muted",
+      values: points.map((p) => p.net),
+      format: number,
+    },
+    {
+      key: "created",
+      label: t("reports.trends.series.created"),
+      kind: "line",
+      tone: "primary",
+      values: points.map((p) => p.created),
+      format: number,
+    },
+    {
+      key: "resolved",
+      label: t("reports.trends.series.resolved"),
+      kind: "line",
+      tone: "ok",
+      values: points.map((p) => p.resolved),
+      format: number,
+    },
   ];
   const backlogSeries: TrendSeries[] = [
-    { key: "backlog", label: t("reports.trends.series.backlog"), kind: "line", tone: "warning", values: points.map((p) => p.backlog), format: number },
+    {
+      key: "backlog",
+      label: t("reports.trends.series.backlog"),
+      kind: "line",
+      tone: "warning",
+      values: points.map((p) => p.backlog),
+      format: number,
+    },
   ];
   const slaSeries: TrendSeries[] = [
-    { key: "slaResponse", label: t("reports.trends.series.slaResponse"), kind: "line", tone: "primary", values: points.map((p) => p.slaResponse.percent), format: percent },
-    { key: "slaResolution", label: t("reports.trends.series.slaResolution"), kind: "line", tone: "ok", values: points.map((p) => p.slaResolution.percent), format: percent },
+    {
+      key: "slaResponse",
+      label: t("reports.trends.series.slaResponse"),
+      kind: "line",
+      tone: "primary",
+      values: points.map((p) => p.slaResponse.percent),
+      format: percent,
+    },
+    {
+      key: "slaResolution",
+      label: t("reports.trends.series.slaResolution"),
+      kind: "line",
+      tone: "ok",
+      values: points.map((p) => p.slaResolution.percent),
+      format: percent,
+    },
   ];
   const durationSeries: TrendSeries[] = [
-    { key: "resolutionMedian", label: t("reports.trends.series.resolutionMedian"), kind: "line", tone: "primary", values: points.map((p) => p.resolution.medianHours), format: hours },
-    { key: "resolutionP90", label: t("reports.trends.series.resolutionP90"), kind: "line", tone: "warning", values: points.map((p) => p.resolution.p90Hours), format: hours },
-    { key: "firstResponseMedian", label: t("reports.trends.series.firstResponseMedian"), kind: "line", tone: "info", values: points.map((p) => p.firstResponse.medianHours), format: hours },
+    {
+      key: "resolutionMedian",
+      label: t("reports.trends.series.resolutionMedian"),
+      kind: "line",
+      tone: "primary",
+      values: points.map((p) => p.resolution.medianHours),
+      format: hours,
+    },
+    {
+      key: "resolutionP90",
+      label: t("reports.trends.series.resolutionP90"),
+      kind: "line",
+      tone: "warning",
+      values: points.map((p) => p.resolution.p90Hours),
+      format: hours,
+    },
+    {
+      key: "firstResponseMedian",
+      label: t("reports.trends.series.firstResponseMedian"),
+      kind: "line",
+      tone: "info",
+      values: points.map((p) => p.firstResponse.medianHours),
+      format: hours,
+    },
   ];
   const csatSeries: TrendSeries[] = [
     {
@@ -398,7 +504,8 @@ export function ReportTrendsPanel({
     },
   ];
   const csatTooltips = points.map(
-    (point, index) => `${tooltipLabels[index] ?? ""} · ${t("reports.trends.ratings", { count: point.csat.count })}`,
+    (point, index) =>
+      `${tooltipLabels[index] ?? ""} · ${t("reports.trends.ratings", { count: point.csat.count })}`,
   );
 
   return (
@@ -476,7 +583,9 @@ export function ReportTrendsPanel({
             </TrendCard>
             <TrendCard
               title={t("reports.trends.cards.sla.title")}
-              subtitle={t("reports.trends.cards.sla.subtitle", { target: settings.slaTargetPercent })}
+              subtitle={t("reports.trends.cards.sla.subtitle", {
+                target: settings.slaTargetPercent,
+              })}
               how={t("reports.trends.cards.sla.how")}
               labels={tooltipLabels}
               series={slaSeries}
@@ -493,7 +602,10 @@ export function ReportTrendsPanel({
                 partialLast={partialLast}
                 partialLabel={t("reports.trends.partial")}
                 yMax={100}
-                target={{ value: settings.slaTargetPercent, label: t("reports.trends.target", { value: settings.slaTargetPercent }) }}
+                target={{
+                  value: settings.slaTargetPercent,
+                  label: t("reports.trends.target", { value: settings.slaTargetPercent }),
+                }}
               />
             </TrendCard>
             <TrendCard
@@ -561,7 +673,13 @@ function slaTone(percent: number | null, target: number): "ok" | "danger" | unde
   return percent >= target ? "ok" : "danger";
 }
 
-function FilterField({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+function FilterField({
+  label,
+  children,
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
@@ -594,7 +712,9 @@ function Tile({
       >
         {value}
       </p>
-      {hint !== undefined ? <p className="truncate text-[11px] text-muted-foreground">{hint}</p> : null}
+      {hint !== undefined ? (
+        <p className="truncate text-[11px] text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -636,7 +756,12 @@ function TrendCard({
             >
               <HelpCircle size={13} /> {t("reports.trends.how")}
             </Button>
-            <Button size="xs" variant="ghost" aria-pressed={asTable} onClick={() => setAsTable((current) => !current)}>
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-pressed={asTable}
+              onClick={() => setAsTable((current) => !current)}
+            >
               {asTable ? <LineChart size={13} /> : <Table2 size={13} />}
               {asTable ? t("reports.trends.showChart") : t("reports.trends.showTable")}
             </Button>
@@ -645,7 +770,9 @@ function TrendCard({
       />
       <div className="px-4 py-4">
         {showHow ? (
-          <p className="mb-3 rounded-md bg-surface-hover px-3 py-2 text-[12px] leading-5 text-muted-foreground">{how}</p>
+          <p className="mb-3 rounded-md bg-surface-hover px-3 py-2 text-[12px] leading-5 text-muted-foreground">
+            {how}
+          </p>
         ) : null}
         {asTable ? <SeriesTable labels={labels} series={series} /> : children}
         {footer !== undefined ? <p className={cn(hintClassName, "mt-2")}>{footer}</p> : null}
@@ -654,7 +781,13 @@ function TrendCard({
   );
 }
 
-function SeriesTable({ labels, series }: { readonly labels: readonly string[]; readonly series: readonly TrendSeries[] }) {
+function SeriesTable({
+  labels,
+  series,
+}: {
+  readonly labels: readonly string[];
+  readonly series: readonly TrendSeries[];
+}) {
   const { t } = useTranslation();
   return (
     <div className="max-h-[320px] overflow-auto">
@@ -690,14 +823,23 @@ function SeriesTable({ labels, series }: { readonly labels: readonly string[]; r
   );
 }
 
-function TopServicesCard({ trends, locale }: { readonly trends: ReportTrendsResponse; readonly locale: string }) {
+function TopServicesCard({
+  trends,
+  locale,
+}: {
+  readonly trends: ReportTrendsResponse;
+  readonly locale: string;
+}) {
   const { t } = useTranslation();
   const top = trends.topServices;
   const max = Math.max(1, ...top.items.map((item) => item.current));
   const number = (value: number) => new Intl.NumberFormat(locale).format(value);
   return (
     <Card className="fade-in print-avoid-break" data-testid="trends-card-services">
-      <CardHeader title={t("reports.trends.cards.services.title")} subtitle={t("reports.trends.cards.services.subtitle")} />
+      <CardHeader
+        title={t("reports.trends.cards.services.title")}
+        subtitle={t("reports.trends.cards.services.subtitle")}
+      />
       <div className="px-4 py-3">
         {top.items.length === 0 ? (
           <p className={hintClassName}>{t("reports.trends.cards.services.empty")}</p>
@@ -717,20 +859,31 @@ function TopServicesCard({ trends, locale }: { readonly trends: ReportTrendsResp
                   <td className="max-w-[180px] truncate pr-2">{item.name}</td>
                   <td className="pr-3">
                     <div className="h-2 rounded-full bg-surface-hover">
-                      <div className="h-2 rounded-full bg-primary/70" style={{ width: `${(item.current / max) * 100}%` }} />
+                      <div
+                        className="h-2 rounded-full bg-primary/70"
+                        style={{ width: `${(item.current / max) * 100}%` }}
+                      />
                     </div>
                   </td>
                   <td className="tnum text-right">{number(item.current)}</td>
                   <td className="text-right">
-                    <ChangeBadge value={item.changePercent} previous={item.previous} locale={locale} />
+                    <ChangeBadge
+                      value={item.changePercent}
+                      previous={item.previous}
+                      locale={locale}
+                    />
                   </td>
                 </tr>
               ))}
               {top.other.current > 0 || top.other.previous > 0 ? (
                 <tr className={tableRowClassName}>
-                  <td className="text-muted-foreground">{t("reports.trends.cards.services.other")}</td>
+                  <td className="text-muted-foreground">
+                    {t("reports.trends.cards.services.other")}
+                  </td>
                   <td />
-                  <td className="tnum text-right text-muted-foreground">{number(top.other.current)}</td>
+                  <td className="tnum text-right text-muted-foreground">
+                    {number(top.other.current)}
+                  </td>
                   <td />
                 </tr>
               ) : null}
@@ -753,7 +906,11 @@ function ChangeBadge({
 }) {
   const { t } = useTranslation();
   if (value === null) {
-    return <span className="text-[11.5px] text-muted-foreground">{previous === 0 ? t("reports.trends.new") : "—"}</span>;
+    return (
+      <span className="text-[11.5px] text-muted-foreground">
+        {previous === 0 ? t("reports.trends.new") : "—"}
+      </span>
+    );
   }
   const formatted = `${value > 0 ? "+" : ""}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value)} %`;
   return (

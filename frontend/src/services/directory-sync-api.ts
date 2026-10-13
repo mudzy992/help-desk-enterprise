@@ -58,9 +58,7 @@ export type DirectoryUserForLinking = {
   readonly organizationalUnitPath: string | null;
 };
 
-export function listDirectoryUsersForLinking(): Promise<
-  readonly DirectoryUserForLinking[]
-> {
+export function listDirectoryUsersForLinking(): Promise<readonly DirectoryUserForLinking[]> {
   return apiRequest("/directory-sync/directory-users");
 }
 
@@ -246,7 +244,11 @@ export type DirectoryApplyResult = {
   readonly dryRunId: string | null;
   readonly durationMs: number;
   readonly result: Record<string, unknown> & {
-    readonly failures?: readonly { readonly step: string; readonly email?: string; readonly path?: string }[];
+    readonly failures?: readonly {
+      readonly step: string;
+      readonly email?: string;
+      readonly path?: string;
+    }[];
   };
 };
 

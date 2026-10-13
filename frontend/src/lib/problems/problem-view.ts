@@ -1,10 +1,17 @@
 import type { BadgeTone } from "@/components/ui/badge";
 import { ApiError } from "@/services/api";
-import type { ProblemSeverity, ProblemStatus, ProblemTicketResolveSkip, ProblemTicketSkipReason } from "@/services/problems-api";
+import type {
+  ProblemSeverity,
+  ProblemStatus,
+  ProblemTicketResolveSkip,
+  ProblemTicketSkipReason,
+} from "@/services/problems-api";
 
 /** Paket 3.3: labels, tones and error keys shared by the problem screens. */
 
-export const problemStatusKeys: Readonly<Record<ProblemStatus, `problems.status.${ProblemStatus}`>> = {
+export const problemStatusKeys: Readonly<
+  Record<ProblemStatus, `problems.status.${ProblemStatus}`>
+> = {
   NEW: "problems.status.NEW",
   INVESTIGATING: "problems.status.INVESTIGATING",
   KNOWN_ERROR: "problems.status.KNOWN_ERROR",
@@ -28,7 +35,9 @@ export function problemStatusTone(status: ProblemStatus): BadgeTone {
   }
 }
 
-export const problemSkipReasonKeys: Readonly<Record<ProblemTicketSkipReason, `problems.link.skip.${ProblemTicketSkipReason}`>> = {
+export const problemSkipReasonKeys: Readonly<
+  Record<ProblemTicketSkipReason, `problems.link.skip.${ProblemTicketSkipReason}`>
+> = {
   not_found: "problems.link.skip.not_found",
   merged: "problems.link.skip.merged",
   already_linked: "problems.link.skip.already_linked",
@@ -36,7 +45,9 @@ export const problemSkipReasonKeys: Readonly<Record<ProblemTicketSkipReason, `pr
   read_only: "problems.link.skip.read_only",
 };
 
-export const problemResolveSkipKeys: Readonly<Record<ProblemTicketResolveSkip, `problems.resolveTickets.skip.${ProblemTicketResolveSkip}`>> = {
+export const problemResolveSkipKeys: Readonly<
+  Record<ProblemTicketResolveSkip, `problems.resolveTickets.skip.${ProblemTicketResolveSkip}`>
+> = {
   waiting_for_user: "problems.resolveTickets.skip.waiting_for_user",
   pending_approval: "problems.resolveTickets.skip.pending_approval",
   merged: "problems.resolveTickets.skip.merged",
@@ -81,25 +92,46 @@ export function problemAgeDays(createdAt: string, nowMs: number): number {
 
 export type ProblemErrorKey = (typeof problemErrorKeys)[keyof typeof problemErrorKeys];
 
-const requirementFields = ["owner", "rootCause", "rootCauseCategory", "workaround", "resolution"] as const;
+const requirementFields = [
+  "owner",
+  "rootCause",
+  "rootCauseCategory",
+  "workaround",
+  "resolution",
+] as const;
 export type ProblemRequirementField = (typeof requirementFields)[number];
 
-export function mapProblemError(error: unknown): ProblemErrorKey | "problems.errors.validationUnit" | `problems.errors.requirement.${ProblemRequirementField}` | null {
+export function mapProblemError(
+  error: unknown,
+):
+  | ProblemErrorKey
+  | "problems.errors.validationUnit"
+  | `problems.errors.requirement.${ProblemRequirementField}`
+  | null {
   if (!(error instanceof ApiError)) return null;
   if (error.code === "PROBLEM_REQUIREMENT_MISSING") {
     const field = requirementFields.find((candidate) => candidate === error.message);
     if (field !== undefined) return `problems.errors.requirement.${field}`;
   }
   // A validation error names its field; the most common one gets its own text.
-  if (error.code === "PROBLEM_VALIDATION" && error.message === "organizationalUnitId") return "problems.errors.validationUnit";
+  if (error.code === "PROBLEM_VALIDATION" && error.message === "organizationalUnitId")
+    return "problems.errors.validationUnit";
   return (problemErrorKeys as Readonly<Record<string, ProblemErrorKey>>)[error.code] ?? null;
 }
 
-const severityRank: Readonly<Record<ProblemSeverity, number>> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
+const severityRank: Readonly<Record<ProblemSeverity, number>> = {
+  LOW: 0,
+  MEDIUM: 1,
+  HIGH: 2,
+  CRITICAL: 3,
+};
 
 /** §8.1: a problem created from tickets starts at their highest priority. */
 export function highestSeverity(values: readonly ProblemSeverity[]): ProblemSeverity {
-  return values.reduce<ProblemSeverity>((best, value) => (severityRank[value] > severityRank[best] ? value : best), "MEDIUM");
+  return values.reduce<ProblemSeverity>(
+    (best, value) => (severityRank[value] > severityRank[best] ? value : best),
+    "MEDIUM",
+  );
 }
 
 /**
@@ -118,17 +150,30 @@ export function suggestProblemDraft(
 
 /** Mirrors the backend (§5): cancel and reopen need a reason. */
 export function transitionNeedsReason(from: ProblemStatus, to: ProblemStatus): boolean {
-  return to === "CANCELLED" || (to === "INVESTIGATING" && (from === "RESOLVED" || from === "CANCELLED"));
+  return (
+    to === "CANCELLED" || (to === "INVESTIGATING" && (from === "RESOLVED" || from === "CANCELLED"))
+  );
 }
 
 export const problemReasonMin = 5;
 
 /** Known category keys have labels; custom keys from the setting show as typed. */
-export const knownRootCauseCategories = ["hardware", "software", "network", "configuration", "process", "human", "supplier", "unknown"] as const;
+export const knownRootCauseCategories = [
+  "hardware",
+  "software",
+  "network",
+  "configuration",
+  "process",
+  "human",
+  "supplier",
+  "unknown",
+] as const;
 
 export function rootCauseLabel(t: (key: string) => string, key: string | null): string {
   if (key === null || key === "") return "—";
-  return (knownRootCauseCategories as readonly string[]).includes(key) ? t(`problems.rootCause.${key}`) : key;
+  return (knownRootCauseCategories as readonly string[]).includes(key)
+    ? t(`problems.rootCause.${key}`)
+    : key;
 }
 
 /** Status transition button label: reopen is worded differently. */
@@ -158,41 +203,72 @@ const historyFieldKeys: Readonly<Record<string, string>> = {
 };
 
 /** One line of the problem history (§16). */
-export function problemHistoryText(t: Translate, action: string, detail: Record<string, unknown> | null): string {
-  const value = (key: string) => (detail !== null && typeof detail[key] === "string" ? (detail[key] as string) : null);
+export function problemHistoryText(
+  t: Translate,
+  action: string,
+  detail: Record<string, unknown> | null,
+): string {
+  const value = (key: string) =>
+    detail !== null && typeof detail[key] === "string" ? (detail[key] as string) : null;
   switch (action) {
     case "created":
       return t("problems.history.created", { number: value("number") ?? "" });
     case "status": {
       const from = value("from");
       const to = value("to");
-      const label = (status: string | null) => (status !== null && status in problemStatusKeys ? t(problemStatusKeys[status as ProblemStatus]) : "—");
+      const label = (status: string | null) =>
+        status !== null && status in problemStatusKeys
+          ? t(problemStatusKeys[status as ProblemStatus])
+          : "—";
       // P5: the sweep closes resolved problems without an actor after N days.
       if (detail !== null && detail.auto === true) {
-        return t("problems.history.statusAuto", { from: label(from), to: label(to), days: typeof detail.days === "number" ? detail.days : 0 });
+        return t("problems.history.statusAuto", {
+          from: label(from),
+          to: label(to),
+          days: typeof detail.days === "number" ? detail.days : 0,
+        });
       }
       return t("problems.history.status", { from: label(from), to: label(to) });
     }
     case "ticket_linked":
       // P5: a link on a resolved problem signals a recurrence.
       if (detail !== null && detail.recurrence === true) {
-        return t("problems.history.ticketLinkedRecurrence", { ticket: value("ticketNumber") ?? "—" });
+        return t("problems.history.ticketLinkedRecurrence", {
+          ticket: value("ticketNumber") ?? "—",
+        });
       }
       return t("problems.history.ticketLinked", { ticket: value("ticketNumber") ?? "—" });
     case "ticket_unlinked":
       return t("problems.history.ticketUnlinked", { ticket: value("ticketNumber") ?? "—" });
     case "owner":
     case "updated": {
-      const changes = detail !== null && typeof detail.changes === "object" && detail.changes !== null ? Object.keys(detail.changes) : [];
-      const texts = detail !== null && Array.isArray(detail.textChanged) ? (detail.textChanged as unknown[]).filter((item): item is string => typeof item === "string") : [];
-      const fields = [...changes, ...texts].map((field) => (historyFieldKeys[field] ? t(historyFieldKeys[field]) : field));
-      return t(action === "owner" ? "problems.history.owner" : "problems.history.updated", { fields: fields.join(", ") || "—" });
+      const changes =
+        detail !== null && typeof detail.changes === "object" && detail.changes !== null
+          ? Object.keys(detail.changes)
+          : [];
+      const texts =
+        detail !== null && Array.isArray(detail.textChanged)
+          ? (detail.textChanged as unknown[]).filter(
+              (item): item is string => typeof item === "string",
+            )
+          : [];
+      const fields = [...changes, ...texts].map((field) =>
+        historyFieldKeys[field] ? t(historyFieldKeys[field]) : field,
+      );
+      return t(action === "owner" ? "problems.history.owner" : "problems.history.updated", {
+        fields: fields.join(", ") || "—",
+      });
     }
     case "knowledge_article":
       return t("problems.history.knowledgeArticle", { title: value("title") ?? "—" });
     case "tickets_resolved": {
-      const count = (key: string) => (detail !== null && typeof detail[key] === "number" ? (detail[key] as number) : 0);
-      return t("problems.history.ticketsResolved", { resolved: count("resolved"), skipped: count("skipped"), failed: count("failed") });
+      const count = (key: string) =>
+        detail !== null && typeof detail[key] === "number" ? (detail[key] as number) : 0;
+      return t("problems.history.ticketsResolved", {
+        resolved: count("resolved"),
+        skipped: count("skipped"),
+        failed: count("failed"),
+      });
     }
     // P5b (§9): affected CMDB items, extra services, status-page incidents.
     case "asset_linked":

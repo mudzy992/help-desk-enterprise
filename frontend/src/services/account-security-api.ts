@@ -61,7 +61,8 @@ const post = (body?: unknown): RequestInit => ({
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 });
 
-export const getAccountSecurity = (): Promise<AccountSecurityOverview> => apiRequest("/auth/security");
+export const getAccountSecurity = (): Promise<AccountSecurityOverview> =>
+  apiRequest("/auth/security");
 
 /* Paket 5.4.0-e: passkey ceremonies on the caller's own account. The confirm
    call carries the (optional) TOTP code the server asks for when the account
@@ -89,24 +90,32 @@ export const removePasskey = (credentialId: string): Promise<void> =>
     method: "DELETE",
   });
 
-export const changeOwnPassword = (input: { currentPassword: string; newPassword: string }): Promise<void> =>
-  apiRequest("/auth/password", post(input));
+export const changeOwnPassword = (input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> => apiRequest("/auth/password", post(input));
 
-export const listOwnSessions = (): Promise<{ items: readonly UserSession[] }> => apiRequest("/auth/sessions");
+export const listOwnSessions = (): Promise<{ items: readonly UserSession[] }> =>
+  apiRequest("/auth/sessions");
 
 export const revokeOwnSession = (sessionId: string): Promise<void> =>
   apiRequest(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
 
-export const revokeOtherSessions = (): Promise<{ revoked: number }> => apiRequest("/auth/sessions/revoke-others", post());
+export const revokeOtherSessions = (): Promise<{ revoked: number }> =>
+  apiRequest("/auth/sessions/revoke-others", post());
 
-export const startMfaSetup = (): Promise<MfaEnrollmentSecret> => apiRequest("/auth/mfa/setup", post());
+export const startMfaSetup = (): Promise<MfaEnrollmentSecret> =>
+  apiRequest("/auth/mfa/setup", post());
 
 export const confirmMfaSetup = (code: string): Promise<{ recoveryCodes: readonly string[] }> =>
   apiRequest("/auth/mfa/setup/confirm", post({ code }));
 
-export const disableMfa = (code: string): Promise<void> => apiRequest("/auth/mfa/disable", post({ code }));
+export const disableMfa = (code: string): Promise<void> =>
+  apiRequest("/auth/mfa/disable", post({ code }));
 
-export const regenerateRecoveryCodes = (code: string): Promise<{ recoveryCodes: readonly string[] }> =>
+export const regenerateRecoveryCodes = (
+  code: string,
+): Promise<{ recoveryCodes: readonly string[] }> =>
   apiRequest("/auth/mfa/recovery-codes", post({ code }));
 
 export const getUserSecurity = (userId: string): Promise<UserSecurity> =>

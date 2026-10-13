@@ -11,8 +11,7 @@ import {
 } from "@/services/tickets-collaboration-api";
 
 vi.mock("@/services/tickets-collaboration-api", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/services/tickets-collaboration-api")>();
+  const actual = await importOriginal<typeof import("@/services/tickets-collaboration-api")>();
   return { ...actual, createTicketMessage: vi.fn() };
 });
 
@@ -46,9 +45,7 @@ const ticket: TicketResponse = {
 function applyState<T>(current: { value: T }): Dispatch<SetStateAction<T>> {
   return (action) => {
     current.value =
-      typeof action === "function"
-        ? (action as (previous: T) => T)(current.value)
-        : action;
+      typeof action === "function" ? (action as (previous: T) => T)(current.value) : action;
   };
 }
 
@@ -59,9 +56,7 @@ describe("sendTicketMessageOptimistic", () => {
   });
 
   it("removes the pending row and surfaces a mapped error without losing the throw", async () => {
-    vi.mocked(createTicketMessage).mockRejectedValue(
-      new ApiError(400, "INVALID_MESSAGE_BODY", ""),
-    );
+    vi.mocked(createTicketMessage).mockRejectedValue(new ApiError(400, "INVALID_MESSAGE_BODY", ""));
     const messages = { value: [] as readonly TicketMessageResponse[] };
     const actionError = { value: null as TicketErrorKey | null };
     await expect(

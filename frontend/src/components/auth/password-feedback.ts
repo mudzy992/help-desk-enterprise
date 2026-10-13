@@ -32,6 +32,8 @@ export function readPasswordFeedbackKeys(error: unknown): PasswordFeedbackKey[] 
   const raw = error.details?.["violations"];
   const keys = (Array.isArray(raw) ? raw : [])
     .map((value) => VIOLATION_KEYS[String(value) as keyof typeof VIOLATION_KEYS])
-    .filter((key): key is (typeof VIOLATION_KEYS)[keyof typeof VIOLATION_KEYS] => key !== undefined);
+    .filter(
+      (key): key is (typeof VIOLATION_KEYS)[keyof typeof VIOLATION_KEYS] => key !== undefined,
+    );
   return keys.length > 0 ? keys : ["auth.passwordPolicy.generic"];
 }

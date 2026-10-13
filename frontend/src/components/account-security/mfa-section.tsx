@@ -33,7 +33,9 @@ export function MfaSection({ mfa, passkeyCount = 0, onChanged }: MfaSectionPrope
   const [dialog, setDialog] = useState<"disable" | "regenerate" | null>(null);
 
   if (mfa.requirement === "unavailable" && !mfa.enabled) {
-    return <p className="text-[12.5px] text-muted-foreground">{t("account.security.mfaUnavailable")}</p>;
+    return (
+      <p className="text-[12.5px] text-muted-foreground">{t("account.security.mfaUnavailable")}</p>
+    );
   }
 
   if (mode === "enroll") {
@@ -80,7 +82,9 @@ export function MfaSection({ mfa, passkeyCount = 0, onChanged }: MfaSectionPrope
             {t("account.security.mfaOff")}
           </Badge>
         )}
-        {mfa.requirement === "required" ? <Badge tone="warning">{t("account.security.mfaRequired")}</Badge> : null}
+        {mfa.requirement === "required" ? (
+          <Badge tone="warning">{t("account.security.mfaRequired")}</Badge>
+        ) : null}
       </div>
       {!mfa.serverConfigured ? (
         <p className="text-[12px] text-warning">{t("auth.mfa.serverNotConfigured")}</p>
@@ -103,7 +107,12 @@ export function MfaSection({ mfa, passkeyCount = 0, onChanged }: MfaSectionPrope
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setDialog("regenerate")}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setDialog("regenerate")}
+            >
               <ShieldCheck /> {t("account.security.regenerateCodes")}
             </Button>
             {mfa.requirement !== "required" ? (
@@ -115,8 +124,15 @@ export function MfaSection({ mfa, passkeyCount = 0, onChanged }: MfaSectionPrope
         </>
       ) : (
         <>
-          <p className="text-[12.5px] leading-5 text-muted-foreground">{t("account.security.mfaIntro")}</p>
-          <Button type="button" size="sm" disabled={!mfa.serverConfigured} onClick={() => setMode("enroll")}>
+          <p className="text-[12.5px] leading-5 text-muted-foreground">
+            {t("account.security.mfaIntro")}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!mfa.serverConfigured}
+            onClick={() => setMode("enroll")}
+          >
             <ShieldCheck /> {t("account.security.enableMfa")}
           </Button>
         </>

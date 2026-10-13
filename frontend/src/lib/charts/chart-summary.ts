@@ -18,7 +18,11 @@ export interface SeriesExtremes {
 }
 
 export function seriesExtremes(values: readonly (number | null)[]): SeriesExtremes | null {
-  let result: { max: SeriesExtremes["max"]; min: SeriesExtremes["min"]; last: SeriesExtremes["last"] } | null = null;
+  let result: {
+    max: SeriesExtremes["max"];
+    min: SeriesExtremes["min"];
+    last: SeriesExtremes["last"];
+  } | null = null;
   values.forEach((value, index) => {
     if (value === null || !Number.isFinite(value)) {
       return;

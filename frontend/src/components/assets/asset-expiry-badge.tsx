@@ -7,7 +7,11 @@ export function AssetExpiryBadge({ daysLeft }: { readonly daysLeft: number | nul
   if (daysLeft === null) return null;
   if (daysLeft < 0) return <Badge tone="danger">{t("assets.expiry.expired")}</Badge>;
   if (daysLeft === 0) return <Badge tone="danger">{t("assets.expiry.today")}</Badge>;
-  return <Badge tone={daysLeft <= 30 ? "warning" : "neutral"}>{t("assets.expiry.days", { count: daysLeft })}</Badge>;
+  return (
+    <Badge tone={daysLeft <= 30 ? "warning" : "neutral"}>
+      {t("assets.expiry.days", { count: daysLeft })}
+    </Badge>
+  );
 }
 
 /** "" → null, otherwise a non-negative number with at most two decimals. */

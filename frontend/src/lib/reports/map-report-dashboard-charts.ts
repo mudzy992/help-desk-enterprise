@@ -1,9 +1,6 @@
 import type { HorizontalBarItem } from "@/components/charts/h-bars";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
-import type {
-  ReportDashboardAging,
-  ReportDashboardNamedBar,
-} from "@/services/reports-api";
+import type { ReportDashboardAging, ReportDashboardNamedBar } from "@/services/reports-api";
 
 export const reportHoursSuffix = "h";
 
@@ -21,9 +18,7 @@ export function dashboardChartSections(dashboard: {
     : ["volume", "unit", "workload", "flow"];
 }
 
-export function showBottleneckChart(dashboard: {
-  readonly bottlenecksEnabled: boolean;
-}): boolean {
+export function showBottleneckChart(dashboard: { readonly bottlenecksEnabled: boolean }): boolean {
   return dashboardChartSections(dashboard).includes("bottleneck");
 }
 
@@ -34,9 +29,10 @@ export type ReportAgingLabels = {
   readonly moreThanSevenDays: string;
 };
 
-export function mapBottleneckBars(
-  rows: readonly ReportDashboardNamedBar[],
-): { readonly items: readonly HorizontalBarItem[]; readonly bottleneckLabel: string | null } {
+export function mapBottleneckBars(rows: readonly ReportDashboardNamedBar[]): {
+  readonly items: readonly HorizontalBarItem[];
+  readonly bottleneckLabel: string | null;
+} {
   const max = rows[0]?.value;
   return {
     bottleneckLabel: rows[0]?.label ?? null,
@@ -85,9 +81,7 @@ export function mapWorkloadBars(
     label: row.label,
     value: row.value,
     color:
-      max !== undefined && row.value === max
-        ? SEMANTIC_DOT_HEX.warning
-        : SEMANTIC_DOT_HEX.primary,
+      max !== undefined && row.value === max ? SEMANTIC_DOT_HEX.warning : SEMANTIC_DOT_HEX.primary,
   }));
 }
 

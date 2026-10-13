@@ -30,8 +30,6 @@ export function buildSuggestedOrganizationalUnitDistinguishedName(input: {
     return `OU=${name}${existing.slice(commaIndex)}`;
   }
   const domain =
-    input.domainSuffix?.trim() ||
-    extractDirectoryDomainSuffix(existing) ||
-    "DC=example,DC=com";
+    input.domainSuffix?.trim() || extractDirectoryDomainSuffix(existing) || "DC=example,DC=com";
   return `OU=${name},${domain}`;
 }

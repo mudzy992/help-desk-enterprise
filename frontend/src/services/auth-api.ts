@@ -58,14 +58,13 @@ export type MfaLoginResponse = {
 export type MfaMethod = "totp" | "passkey";
 
 export type AuthenticationLoginResponse =
-  | AuthenticationSessionResponse
-  | MustChangePasswordLoginResponse
-  | MfaLoginResponse;
+  AuthenticationSessionResponse | MustChangePasswordLoginResponse | MfaLoginResponse;
 
-export function isMfaResponse(
-  response: AuthenticationLoginResponse,
-): response is MfaLoginResponse {
-  return "status" in response && (response.status === "MFA_REQUIRED" || response.status === "MFA_ENROLLMENT_REQUIRED");
+export function isMfaResponse(response: AuthenticationLoginResponse): response is MfaLoginResponse {
+  return (
+    "status" in response &&
+    (response.status === "MFA_REQUIRED" || response.status === "MFA_ENROLLMENT_REQUIRED")
+  );
 }
 
 export function verifyMfaCode(input: {
@@ -105,7 +104,10 @@ export type MfaEnrollmentSecret = {
 };
 
 export function startSignInMfaEnrollment(mfaToken: string): Promise<MfaEnrollmentSecret> {
-  return apiRequest("/auth/mfa/enroll/start", { method: "POST", body: JSON.stringify({ mfaToken }) });
+  return apiRequest("/auth/mfa/enroll/start", {
+    method: "POST",
+    body: JSON.stringify({ mfaToken }),
+  });
 }
 
 export function confirmSignInMfaEnrollment(input: {

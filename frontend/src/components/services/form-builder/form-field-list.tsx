@@ -1,10 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { FormFieldEditor } from "@/components/services/form-builder/form-field-editor";
 import { Button } from "@/components/ui/button";
-import {
-  createBlankFormField,
-  moveFormField,
-} from "@/lib/services/form-field-draft";
+import { createBlankFormField, moveFormField } from "@/lib/services/form-field-draft";
 import type { ServiceFormField } from "@/services/service-catalog-api";
 
 interface FormFieldListProperties {
@@ -13,11 +10,7 @@ interface FormFieldListProperties {
   readonly onChange: (fields: ServiceFormField[]) => void;
 }
 
-export function FormFieldList({
-  fields,
-  editable,
-  onChange,
-}: FormFieldListProperties) {
+export function FormFieldList({ fields, editable, onChange }: FormFieldListProperties) {
   const { t } = useTranslation();
   return (
     <div className="fade-in grid gap-3">

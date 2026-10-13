@@ -21,7 +21,11 @@ interface TicketForwardIndicatorProperties {
  * Package 1.6 (plan §3 D8/D9): "↪ 2" next to a forwarded ticket, amber from
  * three forwards. Staff only: the internal movement is not requester data.
  */
-export function TicketForwardIndicator({ ticket, variant = "inline", onClick }: TicketForwardIndicatorProperties) {
+export function TicketForwardIndicator({
+  ticket,
+  variant = "inline",
+  onClick,
+}: TicketForwardIndicatorProperties) {
   const { t, i18n } = useTranslation();
   const capabilities = useSessionCapabilities();
   const count = forwardCountOf(ticket);
@@ -60,7 +64,12 @@ export function TicketForwardIndicator({ ticket, variant = "inline", onClick }: 
     );
   }
   return (
-    <span className={cn(className, "text-[11.5px]")} title={title} aria-label={title} data-testid="ticket-forward-indicator">
+    <span
+      className={cn(className, "text-[11.5px]")}
+      title={title}
+      aria-label={title}
+      data-testid="ticket-forward-indicator"
+    >
       <CornerUpRight size={12} aria-hidden="true" />
       {count}
     </span>

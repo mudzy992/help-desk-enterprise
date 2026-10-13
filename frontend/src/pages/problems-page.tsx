@@ -23,7 +23,13 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDate } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { mapProblemError, problemAgeDays, problemStatusKeys, problemStatusTone, rootCauseLabel } from "@/lib/problems/problem-view";
+import {
+  mapProblemError,
+  problemAgeDays,
+  problemStatusKeys,
+  problemStatusTone,
+  rootCauseLabel,
+} from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import {
@@ -49,7 +55,9 @@ function statusesOf(filter: StatusFilter): readonly ProblemStatus[] | undefined 
 
 function parseStatusFilter(raw: string | null): StatusFilter {
   if (raw === "all") return "all";
-  return raw !== null && (problemStatuses as readonly string[]).includes(raw) ? (raw as ProblemStatus) : "open";
+  return raw !== null && (problemStatuses as readonly string[]).includes(raw)
+    ? (raw as ProblemStatus)
+    : "open";
 }
 
 /** Paket 3.3 (§14): problem register with filters and cursor paging. */
@@ -61,7 +69,11 @@ export function ProblemsPage() {
   const [searchText, setSearchText] = useState(params.get("search") ?? "");
   const [search, setSearch] = useState(searchText.trim());
   const status = parseStatusFilter(params.get("status"));
-  const priority = (ticketPriorityValues as readonly string[]).includes(params.get("priority") ?? "") ? (params.get("priority") as ProblemSeverity) : "";
+  const priority = (ticketPriorityValues as readonly string[]).includes(
+    params.get("priority") ?? "",
+  )
+    ? (params.get("priority") as ProblemSeverity)
+    : "";
   const owner = params.get("owner") ?? "";
   const groupId = params.get("group") ?? "";
   const serviceId = params.get("service") ?? "";
@@ -87,10 +99,19 @@ export function ProblemsPage() {
     );
   };
 
-  const capabilitiesQuery = useQuery({ queryKey: problemDetailKeys.capabilities, queryFn: getProblemCapabilities, retry: false });
+  const capabilitiesQuery = useQuery({
+    queryKey: problemDetailKeys.capabilities,
+    queryFn: getProblemCapabilities,
+    retry: false,
+  });
   const capabilities = capabilitiesQuery.data;
   const canRead = capabilities?.enabled === true && capabilities.canRead;
-  const optionsQuery = useQuery({ queryKey: problemDetailKeys.options, queryFn: getProblemOptions, enabled: canRead, retry: false });
+  const optionsQuery = useQuery({
+    queryKey: problemDetailKeys.options,
+    queryFn: getProblemOptions,
+    enabled: canRead,
+    retry: false,
+  });
 
   const filters: ProblemListFilters = useMemo(
     () => ({
@@ -115,7 +136,15 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const advancedCount = [status !== "open", priority !== "", owner !== "", groupId !== "", serviceId !== "", overdue, category !== ""].filter(Boolean).length;
+  const advancedCount = [
+    status !== "open",
+    priority !== "",
+    owner !== "",
+    groupId !== "",
+    serviceId !== "",
+    overdue,
+    category !== "",
+  ].filter(Boolean).length;
   const hasFilters = search !== "" || advancedCount > 0;
   const targetEnabled = capabilities?.configuration?.targetEnabled === true;
 
@@ -126,7 +155,13 @@ export function ProblemsPage() {
       subtitle={t("problems.subtitle")}
       actions={
         capabilities?.canReport === true && capabilities.enabled ? (
-          <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)} disabled={optionsQuery.data === undefined} data-testid="problems-create">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            disabled={optionsQuery.data === undefined}
+            data-testid="problems-create"
+          >
             <Plus size={14} aria-hidden="true" />
             {t("problems.list.create")}
           </Button>
@@ -147,7 +182,11 @@ export function ProblemsPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<Puzzle size={18} />} title={t("problems.setupTitle")} body={t("problems.setupBody")} />
+        <EmptyState
+          icon={<Puzzle size={18} />}
+          title={t("problems.setupTitle")}
+          body={t("problems.setupBody")}
+        />
       </section>
     );
   }
@@ -155,7 +194,11 @@ export function ProblemsPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<Puzzle size={18} />} title={t("problems.disabledTitle")} body={t("problems.disabledBody")} />
+        <EmptyState
+          icon={<Puzzle size={18} />}
+          title={t("problems.disabledTitle")}
+          body={t("problems.disabledBody")}
+        />
       </section>
     );
   }
@@ -163,7 +206,11 @@ export function ProblemsPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<Puzzle size={18} />} title={t("problems.forbiddenTitle")} body={t("problems.forbiddenBody")} />
+        <EmptyState
+          icon={<Puzzle size={18} />}
+          title={t("problems.forbiddenTitle")}
+          body={t("problems.forbiddenBody")}
+        />
       </section>
     );
   }
@@ -189,7 +236,14 @@ export function ProblemsPage() {
           }}
         >
           <FilterField label={t("problems.list.statusFilter")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.list.statusFilter")} value={status} onChange={(event) => setParam("status", event.target.value === "open" ? "" : event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.list.statusFilter")}
+              value={status}
+              onChange={(event) =>
+                setParam("status", event.target.value === "open" ? "" : event.target.value)
+              }
+            >
               <option value="open">{t("problems.list.statusOpen")}</option>
               {problemStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -200,7 +254,12 @@ export function ProblemsPage() {
             </select>
           </FilterField>
           <FilterField label={t("problems.fields.priority")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.priority")} value={priority} onChange={(event) => setParam("priority", event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.fields.priority")}
+              value={priority}
+              onChange={(event) => setParam("priority", event.target.value)}
+            >
               <option value="">{t("problems.list.allPriorities")}</option>
               {ticketPriorityValues.map((value) => (
                 <option key={value} value={value}>
@@ -210,13 +269,23 @@ export function ProblemsPage() {
             </select>
           </FilterField>
           <FilterField label={t("problems.fields.owner")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.owner")} value={owner} onChange={(event) => setParam("owner", event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.fields.owner")}
+              value={owner}
+              onChange={(event) => setParam("owner", event.target.value)}
+            >
               <option value="">{t("problems.list.anyOwner")}</option>
               <option value="me">{t("problems.list.mine")}</option>
             </select>
           </FilterField>
           <FilterField label={t("problems.fields.group")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.group")} value={groupId} onChange={(event) => setParam("group", event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.fields.group")}
+              value={groupId}
+              onChange={(event) => setParam("group", event.target.value)}
+            >
               <option value="">{t("problems.list.allGroups")}</option>
               {(optionsQuery.data?.groups ?? []).map((group) => (
                 <option key={group.id} value={group.id}>
@@ -226,7 +295,12 @@ export function ProblemsPage() {
             </select>
           </FilterField>
           <FilterField label={t("problems.fields.service")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.service")} value={serviceId} onChange={(event) => setParam("service", event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.fields.service")}
+              value={serviceId}
+              onChange={(event) => setParam("service", event.target.value)}
+            >
               <option value="">{t("problems.list.allServices")}</option>
               {(optionsQuery.data?.services ?? []).map((service) => (
                 <option key={service.id} value={service.id}>
@@ -236,7 +310,12 @@ export function ProblemsPage() {
             </select>
           </FilterField>
           <FilterField label={t("problems.fields.rootCauseCategory")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.rootCauseCategory")} value={category} onChange={(event) => setParam("category", event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("problems.fields.rootCauseCategory")}
+              value={category}
+              onChange={(event) => setParam("category", event.target.value)}
+            >
               <option value="">{t("problems.list.allCategories")}</option>
               <option value="none">{t("problems.list.noCategory")}</option>
               {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
@@ -248,13 +327,19 @@ export function ProblemsPage() {
           </FilterField>
           {targetEnabled ? (
             <FilterToggles label={t("ui.filters.options")}>
-              <Checkbox label={t("problems.list.overdueFilter")} checked={overdue} onChange={(event) => setParam("overdue", event.target.checked ? "true" : "")} />
+              <Checkbox
+                label={t("problems.list.overdueFilter")}
+                checked={overdue}
+                onChange={(event) => setParam("overdue", event.target.checked ? "true" : "")}
+              />
             </FilterToggles>
           ) : null}
         </FilterBar>
 
         <p className={hintClassName} aria-live="polite">
-          {listQuery.isLoading ? t("ui.loading") : t("problems.list.count", { count: total, shown: items.length })}
+          {listQuery.isLoading
+            ? t("ui.loading")
+            : t("problems.list.count", { count: total, shown: items.length })}
         </p>
 
         {listQuery.error ? (
@@ -278,16 +363,38 @@ export function ProblemsPage() {
                 <caption className="sr-only">{t("problems.list.caption")}</caption>
                 <thead>
                   <tr className={tableHeadClassName}>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.list.number")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.title")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.list.status")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.priority")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.owner")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.organizationalUnit")}</th>
-                    <th scope="col" className="px-3 py-2 text-right">{t("problems.list.tickets")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("problems.list.created")}</th>
-                    <th scope="col" className="px-3 py-2 text-right">{t("problems.list.age")}</th>
-                    {targetEnabled ? <th scope="col" className="px-3 py-2 text-left">{t("problems.list.target")}</th> : null}
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.list.number")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.fields.title")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.list.status")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.fields.priority")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.fields.owner")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.fields.organizationalUnit")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right">
+                      {t("problems.list.tickets")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-left">
+                      {t("problems.list.created")}
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right">
+                      {t("problems.list.age")}
+                    </th>
+                    {targetEnabled ? (
+                      <th scope="col" className="px-3 py-2 text-left">
+                        {t("problems.list.target")}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -300,30 +407,66 @@ export function ProblemsPage() {
                       </td>
                       <td className="max-w-[26rem] px-3 py-2">
                         <span className="block truncate text-foreground">{item.title}</span>
-                        {item.service ? <span className="block truncate text-[11.5px] text-muted-foreground">{item.service.name}</span> : null}
+                        {item.service ? (
+                          <span className="block truncate text-[11.5px] text-muted-foreground">
+                            {item.service.name}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2">
-                        <Badge tone={problemStatusTone(item.status)}>{t(problemStatusKeys[item.status])}</Badge>
+                        <Badge tone={problemStatusTone(item.status)}>
+                          {t(problemStatusKeys[item.status])}
+                        </Badge>
                       </td>
-                      <td className="px-3 py-2">{ticketText(t, ticketPriorityLabelKey[item.priority])}</td>
                       <td className="px-3 py-2">
-                        {item.owner?.displayName ?? <span className="text-muted-foreground">{t("problems.list.noOwner")}</span>}
-                        {item.group ? <span className="block text-[11.5px] text-muted-foreground">{item.group.name}</span> : null}
+                        {ticketText(t, ticketPriorityLabelKey[item.priority])}
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.owner?.displayName ?? (
+                          <span className="text-muted-foreground">
+                            {t("problems.list.noOwner")}
+                          </span>
+                        )}
+                        {item.group ? (
+                          <span className="block text-[11.5px] text-muted-foreground">
+                            {item.group.name}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2">{item.organizationalUnit.name}</td>
-                      <td className="tnum px-3 py-2 text-right" title={t("problems.list.ticketsTitle", { open: item.openTicketCount ?? 0, total: item.ticketCount })}>
+                      <td
+                        className="tnum px-3 py-2 text-right"
+                        title={t("problems.list.ticketsTitle", {
+                          open: item.openTicketCount ?? 0,
+                          total: item.ticketCount,
+                        })}
+                      >
                         {item.openTicketCount ?? 0} / {item.ticketCount}
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">{formatAssetDate(item.createdAt, i18n.language)}</td>
-                      <td className="tnum px-3 py-2 text-right text-muted-foreground">{t("problems.list.ageDays", { count: problemAgeDays(item.createdAt, nowMs) })}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {formatAssetDate(item.createdAt, i18n.language)}
+                      </td>
+                      <td className="tnum px-3 py-2 text-right text-muted-foreground">
+                        {t("problems.list.ageDays", {
+                          count: problemAgeDays(item.createdAt, nowMs),
+                        })}
+                      </td>
                       {targetEnabled ? (
                         <td className="px-3 py-2">
                           {item.targetAt === null ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5">
-                              <span className={item.targetOverdue ? "text-foreground" : "text-muted-foreground"}>{formatAssetDate(item.targetAt, i18n.language)}</span>
-                              {item.targetOverdue ? <Badge tone="danger">{t("problems.list.overdue")}</Badge> : null}
+                              <span
+                                className={
+                                  item.targetOverdue ? "text-foreground" : "text-muted-foreground"
+                                }
+                              >
+                                {formatAssetDate(item.targetAt, i18n.language)}
+                              </span>
+                              {item.targetOverdue ? (
+                                <Badge tone="danger">{t("problems.list.overdue")}</Badge>
+                              ) : null}
                             </span>
                           )}
                         </td>
@@ -336,7 +479,13 @@ export function ProblemsPage() {
           </Card>
         )}
         {listQuery.hasNextPage ? (
-          <Button variant="outline" size="sm" className="justify-self-center" disabled={listQuery.isFetchingNextPage} onClick={() => void listQuery.fetchNextPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-self-center"
+            disabled={listQuery.isFetchingNextPage}
+            onClick={() => void listQuery.fetchNextPage()}
+          >
             {listQuery.isFetchingNextPage ? t("ui.loading") : t("problems.list.loadMore")}
           </Button>
         ) : null}

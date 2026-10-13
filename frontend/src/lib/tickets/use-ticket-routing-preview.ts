@@ -10,10 +10,7 @@ import {
  * the ticket would land in, using the same decision `POST /tickets` makes.
  * Nothing is created; the request is skipped until a service is selected.
  */
-export function useTicketRoutingPreview(
-  serviceId: string,
-  originUnitId: string,
-) {
+export function useTicketRoutingPreview(serviceId: string, originUnitId: string) {
   return useQuery<TicketRoutingPreview>({
     queryKey: queryKeys.ticketRoutingPreview(serviceId, originUnitId),
     queryFn: () =>

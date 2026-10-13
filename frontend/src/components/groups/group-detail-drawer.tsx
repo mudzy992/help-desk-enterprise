@@ -3,12 +3,7 @@ import { GroupMembersSection } from "@/components/groups/group-members-section";
 import { GroupMutationForm } from "@/components/groups/group-mutation-form";
 import { Badge } from "@/components/ui/badge";
 import { ScrollRegion } from "@/components/ui/scroll-region";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
@@ -90,15 +85,12 @@ export function GroupDetailDrawer({
             ) : null}
           </SheetTitle>
           <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-            {group.organizationalUnitPath} ·{" "}
-            {t("groups.memberCount", { count: group.memberCount })}
+            {group.organizationalUnitPath} · {t("groups.memberCount", { count: group.memberCount })}
           </SheetDescription>
           <UnderlineTabs
             className="mt-3"
             items={[
-              ...(canWrite
-                ? [{ key: "edit", label: t("groups.edit") }]
-                : []),
+              ...(canWrite ? [{ key: "edit", label: t("groups.edit") }] : []),
               {
                 key: "members",
                 label: t("groups.manageMembers"),
@@ -122,9 +114,7 @@ export function GroupDetailDrawer({
               onCancel={() => onOpenChange(false)}
             />
           ) : detail === null ? (
-            <p className="text-[12px] text-muted-foreground">
-              {t("groups.loadingDetail")}
-            </p>
+            <p className="text-[12px] text-muted-foreground">{t("groups.loadingDetail")}</p>
           ) : (
             <GroupMembersSection
               group={detail}

@@ -21,7 +21,11 @@ export function TicketFormDataView({ formData, schema }: TicketFormDataViewPrope
             <dt className="shrink-0 text-muted-foreground">{entry.label}</dt>
             <dd className="text-right text-foreground/90" data-value-type={entry.valueType}>
               {entry.isBoolean
-                ? t(entry.value === "true" ? "tickets.detail.formBooleanTrue" : "tickets.detail.formBooleanFalse")
+                ? t(
+                    entry.value === "true"
+                      ? "tickets.detail.formBooleanTrue"
+                      : "tickets.detail.formBooleanFalse",
+                  )
                 : entry.value}
             </dd>
           </div>

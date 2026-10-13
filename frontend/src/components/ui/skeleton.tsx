@@ -12,10 +12,7 @@ interface PanelSkeletonProperties {
 export function PanelSkeleton({ label, className }: PanelSkeletonProperties) {
   return (
     <div
-      className={cn(
-        "mt-3 rounded-lg border border-border bg-surface p-4 shadow-card",
-        className,
-      )}
+      className={cn("mt-3 rounded-lg border border-border bg-surface p-4 shadow-card", className)}
       role="status"
       aria-live="polite"
       aria-label={label}

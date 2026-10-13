@@ -88,7 +88,9 @@ export function GroupMutationForm({
           />
           {t("groups.form.problemGroup")}
         </span>
-        <span className="pl-5 text-[11px] text-muted-foreground">{t("groups.form.problemGroupHint")}</span>
+        <span className="pl-5 text-[11px] text-muted-foreground">
+          {t("groups.form.problemGroupHint")}
+        </span>
       </label>
       <label className="grid gap-0.5 text-[12px]">
         <span className="flex items-center gap-2">
@@ -99,7 +101,9 @@ export function GroupMutationForm({
           />
           {t("groups.form.cabGroup")}
         </span>
-        <span className="pl-5 text-[11px] text-muted-foreground">{t("groups.form.cabGroupHint")}</span>
+        <span className="pl-5 text-[11px] text-muted-foreground">
+          {t("groups.form.cabGroupHint")}
+        </span>
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={pending} onClick={handleSubmit}>

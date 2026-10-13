@@ -33,10 +33,7 @@ export function DashboardActivityFeed() {
 
   return (
     <Card className="fade-in">
-      <CardHeader
-        title={t("dashboard.activityTitle")}
-        subtitle={t("dashboard.activitySubtitle")}
-      />
+      <CardHeader title={t("dashboard.activityTitle")} subtitle={t("dashboard.activitySubtitle")} />
       {items.length === 0 ? (
         <EmptyState
           title={t("dashboard.activityEmpty")}
@@ -75,8 +72,7 @@ export function DashboardActivityFeed() {
                   <span className="min-w-0 flex-1">
                     <span className="block text-[12px] leading-[18px] text-foreground/85">
                       {t(notificationTitleKey(notification.type), {
-                        ticketNumber:
-                          notification.payload?.ticketNumber ?? "",
+                        ticketNumber: notification.payload?.ticketNumber ?? "",
                       })}
                     </span>
                     {notification.body ? (

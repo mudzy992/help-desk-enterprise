@@ -100,4 +100,3 @@ export const ticketViewLabelKey = {
   requested: "tickets.views.requested",
   all: "tickets.views.all",
 } as const;
-

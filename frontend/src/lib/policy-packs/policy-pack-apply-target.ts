@@ -13,14 +13,10 @@ export type PolicyPackApplyDraft = {
 };
 
 export function hasPolicyPackTarget(draft: PolicyPackApplyDraft): boolean {
-  return (
-    draft.organizationalUnitId.length > 0 || draft.serviceId.length > 0
-  );
+  return draft.organizationalUnitId.length > 0 || draft.serviceId.length > 0;
 }
 
-export function buildPolicyPackApplyInput(
-  draft: PolicyPackApplyDraft,
-): PolicyPackApplyInput {
+export function buildPolicyPackApplyInput(draft: PolicyPackApplyDraft): PolicyPackApplyInput {
   return {
     packKey: draft.packKey,
     ...(draft.organizationalUnitId.length > 0

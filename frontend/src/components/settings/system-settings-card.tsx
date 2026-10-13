@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { installSettingKeys } from "@/lib/settings/is-featured-setting-key";
 import { readStringSetting } from "@/lib/settings/read-setting-entry";
-import {
-  listConfigVersions,
-  type ConfigVersion,
-} from "@/services/config-versions-api";
+import { listConfigVersions, type ConfigVersion } from "@/services/config-versions-api";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 interface SystemSettingsCardProperties {
@@ -20,10 +17,7 @@ interface SystemSettingsCardProperties {
 export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
   const { t } = useTranslation();
   const [activeVersion, setActiveVersion] = useState<ConfigVersion | null>(null);
-  const installCompletedAt = readStringSetting(
-    entries,
-    installSettingKeys.completedAt,
-  );
+  const installCompletedAt = readStringSetting(entries, installSettingKeys.completedAt);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +26,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
         if (cancelled) {
           return;
         }
-        const active =
-          versions.find((version) => version.status === "ACTIVE") ?? null;
+        const active = versions.find((version) => version.status === "ACTIVE") ?? null;
         setActiveVersion(active);
       })
       .catch(() => {
@@ -48,10 +41,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
 
   return (
     <Card className="fade-in">
-      <CardHeader
-        title={t("settings.system.title")}
-        subtitle={t("settings.system.subtitle")}
-      />
+      <CardHeader title={t("settings.system.title")} subtitle={t("settings.system.subtitle")} />
       <div className="space-y-2.5 px-4 py-4 text-[12px]">
         <p className="flex justify-between gap-2">
           <span className="text-muted-foreground">ConfigVersion</span>
@@ -85,9 +75,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
           </Button>
           {activeVersion ? (
             <Button asChild variant="ghost" size="xs">
-              <Link to="/admin/config-versions">
-                {t("settings.system.openValidation")}
-              </Link>
+              <Link to="/admin/config-versions">{t("settings.system.openValidation")}</Link>
             </Button>
           ) : null}
         </div>

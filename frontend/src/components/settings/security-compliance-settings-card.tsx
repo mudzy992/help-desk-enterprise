@@ -5,10 +5,7 @@ import { SettingsCategoryDialog } from "@/components/settings/settings-category-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { securityFeatureKeys } from "@/lib/settings/is-featured-setting-key";
-import {
-  filterSettingsByPrefix,
-  readBooleanSetting,
-} from "@/lib/settings/read-setting-entry";
+import { filterSettingsByPrefix, readBooleanSetting } from "@/lib/settings/read-setting-entry";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
@@ -77,9 +74,7 @@ export function SecurityComplianceSettingsCard({
     if (activeRow === null) {
       return [];
     }
-    return activeRow.prefixes.flatMap((prefix) =>
-      filterSettingsByPrefix(entries, prefix),
-    );
+    return activeRow.prefixes.flatMap((prefix) => filterSettingsByPrefix(entries, prefix));
   }, [activeRow, entries]);
 
   return (
@@ -94,17 +89,10 @@ export function SecurityComplianceSettingsCard({
               className="flex w-full items-center gap-2.5 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
               onClick={() => setOpenRow(row.id)}
             >
-              <row.icon
-                size={14}
-                className={row.enabled ? "text-ok" : "text-muted-foreground"}
-              />
-              <span className="flex-1 text-[12px] text-foreground/90">
-                {t(row.labelKey)}
-              </span>
+              <row.icon size={14} className={row.enabled ? "text-ok" : "text-muted-foreground"} />
+              <span className="flex-1 text-[12px] text-foreground/90">{t(row.labelKey)}</span>
               <Badge tone={row.enabled ? "success" : "neutral"} dot={false}>
-                {row.enabled
-                  ? t("settings.security.enabled")
-                  : t("settings.security.disabled")}
+                {row.enabled ? t("settings.security.enabled") : t("settings.security.disabled")}
               </Badge>
             </button>
           ))}

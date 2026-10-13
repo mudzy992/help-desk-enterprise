@@ -36,9 +36,7 @@ export function flattenOriginUnitOptions(
   return options;
 }
 
-export function defaultOriginUnitId(
-  options: readonly OriginUnitOption[],
-): string {
+export function defaultOriginUnitId(options: readonly OriginUnitOption[]): string {
   const only = options.length === 1 ? options[0] : undefined;
   return only?.id ?? "";
 }

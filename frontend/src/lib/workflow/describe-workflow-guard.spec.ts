@@ -9,12 +9,22 @@ const parameters: TicketWorkflowResponse["parameters"] = {
   waitingForUser: { enabled: false, reminderAfterDays: 3, autoCloseAfterDays: 10 },
   approvals: null,
   archive: { enabled: true, afterClosedDays: 90 },
-  unrouted: { enabled: true, ownerRole: "SUPER_ADMIN", cleanupSlaHours: 8, weeklyDigest: true, targetGroup: null, targetGroupMissing: false },
+  unrouted: {
+    enabled: true,
+    ownerRole: "SUPER_ADMIN",
+    cleanupSlaHours: 8,
+    weeklyDigest: true,
+    targetGroup: null,
+    targetGroupMissing: false,
+  },
 };
 
 describe("describeWorkflowGuard (paket 1.7)", () => {
   it("uses the live numbers", () => {
-    expect(describeWorkflowGuard("reopen_window", parameters)).toMatchObject({ values: { days: 7 }, inactive: false });
+    expect(describeWorkflowGuard("reopen_window", parameters)).toMatchObject({
+      values: { days: 7 },
+      inactive: false,
+    });
     expect(describeWorkflowGuard("archive_after", parameters).values).toEqual({ days: 90 });
   });
 

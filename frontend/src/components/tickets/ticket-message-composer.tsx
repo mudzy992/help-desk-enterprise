@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MentionPicker } from "@/components/tickets/mention-picker";
-import { detectMentionQuery, insertMentionToken, type MentionQuery } from "@/lib/tickets/mention-tokens";
+import {
+  detectMentionQuery,
+  insertMentionToken,
+  type MentionQuery,
+} from "@/lib/tickets/mention-tokens";
 import type { MentionCandidate } from "@/services/tickets-agent-collaboration-api";
 import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
 import { errorTextClassName, textareaClassName } from "@/components/ui/control";
@@ -36,7 +40,11 @@ export type ComposerTemplatesOptions = {
   readonly ticketId: string;
   readonly canSavePersonal: boolean;
   /** A playbook step asked to insert its template (P1); `nonce` makes repeats fire. */
-  readonly insertRequest?: { readonly templateId: string; readonly name: string; readonly nonce: number } | null;
+  readonly insertRequest?: {
+    readonly templateId: string;
+    readonly name: string;
+    readonly nonce: number;
+  } | null;
 };
 
 /** Paket 3.3 (P4): plain text to insert into the public reply; `nonce` makes repeats fire. */
@@ -57,7 +65,11 @@ interface TicketMessageComposerProperties {
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser?: boolean;
-  readonly onSend: (type: MessageType, body: string, options?: ComposerSendOptions) => Promise<void>;
+  readonly onSend: (
+    type: MessageType,
+    body: string,
+    options?: ComposerSendOptions,
+  ) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly onUpload?: (file: File) => Promise<void>;
   /** Package 1.2: extra control shown only for public replies ("also to merged"). */
@@ -91,7 +103,10 @@ export function TicketMessageComposer({
   const textareaReference = useRef<HTMLTextAreaElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saveAsOpen, setSaveAsOpen] = useState(false);
-  const [usedTemplate, setUsedTemplate] = useState<{ readonly id: string; readonly name: string } | null>(null);
+  const [usedTemplate, setUsedTemplate] = useState<{
+    readonly id: string;
+    readonly name: string;
+  } | null>(null);
   const selectionReference = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const publicType = defaultMessageType(access);
   const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
@@ -147,7 +162,11 @@ export function TicketMessageComposer({
   };
 
   const send = async () => {
-    await onSend(type, body.trim(), usedTemplate === null ? undefined : { responseTemplateId: usedTemplate.id });
+    await onSend(
+      type,
+      body.trim(),
+      usedTemplate === null ? undefined : { responseTemplateId: usedTemplate.id },
+    );
     setBody("");
     setUsedTemplate(null);
     setMention(null);
@@ -183,16 +202,19 @@ export function TicketMessageComposer({
     textareaReference.current?.focus();
   }, []);
 
-  const [insertErrorKey, setInsertErrorKey] = useState<ReturnType<typeof mapTemplatesError> | null>(null);
+  const [insertErrorKey, setInsertErrorKey] = useState<ReturnType<typeof mapTemplatesError> | null>(
+    null,
+  );
   const insertNonce = templates?.insertRequest?.nonce;
   useEffect(() => {
     const request = templates?.insertRequest;
     if (templates === undefined || request === undefined || request === null) return;
     let active = true;
     const area = textareaReference.current;
-    selectionReference.current = area === null
-      ? { start: body.length, end: body.length }
-      : { start: area.selectionStart, end: area.selectionEnd };
+    selectionReference.current =
+      area === null
+        ? { start: body.length, end: body.length }
+        : { start: area.selectionStart, end: area.selectionEnd };
     renderTicketTemplate(templates.ticketId, request.templateId)
       .then((rendered) => {
         if (!active) return;
@@ -294,13 +316,21 @@ export function TicketMessageComposer({
             ref={textareaReference}
             value={body}
             data-testid="ticket-composer-body"
-            aria-label={internal && canInternal ? t("tickets.detail.internalNote") : t("tickets.detail.publicReply")}
+            aria-label={
+              internal && canInternal
+                ? t("tickets.detail.internalNote")
+                : t("tickets.detail.publicReply")
+            }
             onChange={(event) => {
               setBody(event.target.value);
               if (event.target.value.trim().length === 0) setUsedTemplate(null);
               updateMention(event.target.value, event.target.selectionStart);
               collaboration?.onTyping(
-                event.target.value.trim().length === 0 ? null : type === "INTERNAL_NOTE" ? "internal" : "public",
+                event.target.value.trim().length === 0
+                  ? null
+                  : type === "INTERNAL_NOTE"
+                    ? "internal"
+                    : "public",
               );
             }}
             onBlur={() => setMention(null)}
@@ -315,25 +345,40 @@ export function TicketMessageComposer({
                   if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                     event.preventDefault();
                     const step = event.key === "ArrowDown" ? 1 : -1;
-                    setMentionIndex((current) => (current + step + mentionCandidates.length) % mentionCandidates.length);
+                    setMentionIndex(
+                      (current) =>
+                        (current + step + mentionCandidates.length) % mentionCandidates.length,
+                    );
                     return;
                   }
-                  if ((event.key === "Enter" || event.key === "Tab") && !event.ctrlKey && !event.metaKey) {
+                  if (
+                    (event.key === "Enter" || event.key === "Tab") &&
+                    !event.ctrlKey &&
+                    !event.metaKey
+                  ) {
                     event.preventDefault();
-                    const candidate = mentionCandidates[Math.min(mentionIndex, mentionCandidates.length - 1)];
+                    const candidate =
+                      mentionCandidates[Math.min(mentionIndex, mentionCandidates.length - 1)];
                     if (candidate !== undefined) pickMention(candidate);
                     return;
                   }
                 }
               }
               if (templates) {
-                const shortcut = event.key.toLowerCase() === "t" && event.shiftKey && (event.ctrlKey || event.metaKey);
+                const shortcut =
+                  event.key.toLowerCase() === "t" &&
+                  event.shiftKey &&
+                  (event.ctrlKey || event.metaKey);
                 const slash =
                   event.key === "/" &&
                   !event.ctrlKey &&
                   !event.metaKey &&
                   !event.altKey &&
-                  isSlashTrigger(body, event.currentTarget.selectionStart, event.currentTarget.selectionEnd);
+                  isSlashTrigger(
+                    body,
+                    event.currentTarget.selectionStart,
+                    event.currentTarget.selectionEnd,
+                  );
                 if (shortcut || slash) {
                   event.preventDefault();
                   openPicker();
@@ -365,7 +410,10 @@ export function TicketMessageComposer({
             </p>
           ) : null}
           {usedTemplate !== null ? (
-            <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-border bg-elevated/60 px-2 py-0.5 text-[11.5px] text-muted-foreground" data-testid="composer-used-template">
+            <div
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-border bg-elevated/60 px-2 py-0.5 text-[11.5px] text-muted-foreground"
+              data-testid="composer-used-template"
+            >
               <FileText size={11} />
               {t("templates.picker.usedTemplate", { name: usedTemplate.name })}
               <button

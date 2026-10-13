@@ -25,9 +25,7 @@ export function PermissionsPreviewPanel({
   const canConfirm = trimmedReason.length > 0 && trimmedReason.length <= 500;
   return (
     <div className="fade-in mt-4 rounded-lg border border-border/70 bg-elevated/40 p-4">
-      <p className="text-[13px] font-medium text-foreground">
-        {t("permissions.previewTitle")}
-      </p>
+      <p className="text-[13px] font-medium text-foreground">{t("permissions.previewTitle")}</p>
       <p className="mt-1 text-[12px] text-muted-foreground">
         {t("permissions.previewSummary", {
           count: preview.affectedUserCount,
@@ -71,9 +69,7 @@ export function PermissionsPreviewPanel({
         />
       </label>
       {trimmedReason.length === 0 ? (
-        <p className="mt-1 text-[12px] text-muted-foreground">
-          {t("permissions.reasonRequired")}
-        </p>
+        <p className="mt-1 text-[12px] text-muted-foreground">{t("permissions.reasonRequired")}</p>
       ) : null}
       <div className="mt-4 flex gap-2">
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

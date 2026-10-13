@@ -21,14 +21,8 @@ interface RoutingCoverageTableProperties {
 
 const LEGEND: readonly {
   readonly kind: RoutingCoverageCellKind;
-  readonly markKey:
-    | "routing.markExact"
-    | "routing.markFallback"
-    | "routing.markUnrouted";
-  readonly labelKey:
-    | "routing.legendExact"
-    | "routing.legendInherited"
-    | "routing.legendUnrouted";
+  readonly markKey: "routing.markExact" | "routing.markFallback" | "routing.markUnrouted";
+  readonly labelKey: "routing.legendExact" | "routing.legendInherited" | "routing.legendUnrouted";
 }[] = [
   { kind: "exact", markKey: "routing.markExact", labelKey: "routing.legendExact" },
   {
@@ -88,10 +82,7 @@ export function RoutingCoverageTable({
         </div>
       </div>
       <ScrollRegion className="overflow-x-auto">
-        <table
-          className="w-full min-w-[1080px] border-separate"
-          style={{ borderSpacing: 3 }}
-        >
+        <table className="w-full min-w-[1080px] border-separate" style={{ borderSpacing: 3 }}>
           <thead>
             <tr>
               <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
@@ -161,7 +152,7 @@ export function RoutingCoverageTable({
                       groupName={
                         item.resolution.groupId
                           ? (groupNameById.get(item.resolution.groupId) ??
-                            item.resolution.groupId)
+                            t("routing.unknownGroup"))
                           : null
                       }
                       isActive={

@@ -47,8 +47,7 @@ export function useTicketDetailSections(computedDefaults?: DetailSectionOverride
   }, [overrides]);
 
   const isOpen = useCallback(
-    (key: DetailSectionKey) =>
-      sectionOpen(key, overrides, computedDefaults?.[key] ?? undefined),
+    (key: DetailSectionKey) => sectionOpen(key, overrides, computedDefaults?.[key] ?? undefined),
     [overrides, computedDefaults],
   );
 

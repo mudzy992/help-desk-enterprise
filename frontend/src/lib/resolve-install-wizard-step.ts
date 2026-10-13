@@ -1,10 +1,5 @@
 export type InstallWizardStep =
-  | "superAdmin"
-  | "loginProvider"
-  | "smtp"
-  | "seed"
-  | "addons"
-  | "complete";
+  "superAdmin" | "loginProvider" | "smtp" | "seed" | "addons" | "complete";
 
 export function resolveInstallWizardStep(input: {
   readonly hasSuperAdmin: boolean;
@@ -15,11 +10,7 @@ export function resolveInstallWizardStep(input: {
   if (!input.hasSuperAdmin) {
     return "superAdmin";
   }
-  if (
-    !input.loginProviderSaved &&
-    !input.isSmtpConfigured &&
-    !input.isSeeded
-  ) {
+  if (!input.loginProviderSaved && !input.isSmtpConfigured && !input.isSeeded) {
     return "loginProvider";
   }
   if (!input.isSmtpConfigured && !input.isSeeded) {

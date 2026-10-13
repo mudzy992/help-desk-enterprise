@@ -22,9 +22,7 @@ describe("buildInstallLoginProviderInput", () => {
   });
 
   it("requires Entra tenant and client or a complete LDAPS bind", () => {
-    expect(
-      isInstallLoginProviderFormReady({ mode: "entra_ad", ...emptyEntra }),
-    ).toBe(false);
+    expect(isInstallLoginProviderFormReady({ mode: "entra_ad", ...emptyEntra })).toBe(false);
     expect(
       isInstallLoginProviderFormReady({
         mode: "entra_ad",

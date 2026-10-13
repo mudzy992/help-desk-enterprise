@@ -83,7 +83,11 @@ export function VisualQaChartsBoard() {
             subtitle="Dvije trake, jedan stupac po minuti (koristi ih Nadzor → Sigurnosne metrike)"
           />
           <div className="px-4 py-4">
-            <MinuteBarsChart data={MINUTE_DATA} aLabel="Blokade (429)" bLabel="Kašnjenja po računu" />
+            <MinuteBarsChart
+              data={MINUTE_DATA}
+              aLabel="Blokade (429)"
+              bLabel="Kašnjenja po računu"
+            />
           </div>
         </Card>
         <Card>

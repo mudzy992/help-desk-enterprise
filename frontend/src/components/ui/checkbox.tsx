@@ -33,8 +33,7 @@ function assignReference(
   }
 }
 
-export interface CheckboxProperties
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
+export interface CheckboxProperties extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   readonly label?: ReactNode;
   /** Mixed state — used by the "select all" control in list headers. */
   readonly indeterminate?: boolean;

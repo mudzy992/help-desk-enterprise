@@ -96,8 +96,7 @@ export function TicketConversation({
   }, [messages, currentUserId, authorNames, systemOnly, t, i18n.language]);
   const visible = systemOnly
     ? messages.filter(
-        (message) =>
-          message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION",
+        (message) => message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION",
       )
     : messages;
   if (visible.length === 0) {
@@ -133,20 +132,20 @@ export function TicketConversation({
       aria-label={t("tickets.detail.conversation")}
     >
       {visible.map((message) => {
-        const isSystem =
-          message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
+        const isSystem = message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
         if (isSystem) {
           const isApproval = message.type === "APPROVAL_DECISION";
           const activity = describeMessageActivity(message, authorNames, t);
           const SystemIcon = isApproval ? CheckCheck : GitBranch;
           return (
-            <div key={message.id} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-surface-hover">
+            <div
+              key={message.id}
+              className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-surface-hover"
+            >
               <SystemIcon
                 size={13}
                 className={
-                  isApproval
-                    ? "mt-0.5 shrink-0 text-ok"
-                    : "mt-0.5 shrink-0 text-muted-foreground"
+                  isApproval ? "mt-0.5 shrink-0 text-ok" : "mt-0.5 shrink-0 text-muted-foreground"
                 }
                 aria-hidden="true"
               />
@@ -168,13 +167,8 @@ export function TicketConversation({
         if (systemOnly) {
           return null;
         }
-        const authorName = resolveActivityActor(
-          message.authorUserId,
-          authorNames,
-          t,
-        );
-        const isOwn =
-          currentUserId !== null && message.authorUserId === currentUserId;
+        const authorName = resolveActivityActor(message.authorUserId, authorNames, t);
+        const isOwn = currentUserId !== null && message.authorUserId === currentUserId;
         return (
           <TicketMessageBubble
             key={message.id}

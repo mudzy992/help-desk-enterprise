@@ -85,7 +85,12 @@ export type OnCallGroupDetail = {
 
 export type OnCallMe = {
   readonly enabled: boolean;
-  readonly current: ReadonlyArray<{ readonly groupId: string; readonly groupName: string; readonly timezone: string; readonly endsAt: string }>;
+  readonly current: ReadonlyArray<{
+    readonly groupId: string;
+    readonly groupName: string;
+    readonly timezone: string;
+    readonly endsAt: string;
+  }>;
   readonly next: {
     readonly groupId: string;
     readonly groupName: string;
@@ -137,11 +142,17 @@ export function getOnCallOverview(): Promise<OnCallOverview> {
 export function getOnCallMe(): Promise<OnCallMe> {
   return apiRequest("/on-call/me");
 }
-export function getOnCallGroup(groupId: string, range: { readonly from: string; readonly to: string }): Promise<OnCallGroupDetail> {
+export function getOnCallGroup(
+  groupId: string,
+  range: { readonly from: string; readonly to: string },
+): Promise<OnCallGroupDetail> {
   const query = new URLSearchParams(range).toString();
   return apiRequest(`/on-call/groups/${id(groupId)}?${query}`);
 }
-export function saveOnCallSchedule(groupId: string, input: SaveOnCallScheduleInput): Promise<{ readonly id: string }> {
+export function saveOnCallSchedule(
+  groupId: string,
+  input: SaveOnCallScheduleInput,
+): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}`, json("PUT", input));
 }
 export function deleteOnCallSchedule(groupId: string, reason: string): Promise<void> {
@@ -149,7 +160,12 @@ export function deleteOnCallSchedule(groupId: string, reason: string): Promise<v
 }
 export function createOnCallOverride(
   groupId: string,
-  input: { readonly userId: string; readonly startsAt: string; readonly endsAt: string; readonly reason: string },
+  input: {
+    readonly userId: string;
+    readonly startsAt: string;
+    readonly endsAt: string;
+    readonly reason: string;
+  },
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}/overrides`, json("POST", input));
 }
@@ -158,17 +174,28 @@ export function deleteOnCallOverride(overrideId: string, reason: string): Promis
 }
 export function requestOnCallSwap(
   groupId: string,
-  input: { readonly colleagueId: string; readonly startsAt: string; readonly endsAt: string; readonly reason: string },
+  input: {
+    readonly colleagueId: string;
+    readonly startsAt: string;
+    readonly endsAt: string;
+    readonly reason: string;
+  },
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}/swaps`, json("POST", input));
 }
 export function listOnCallSwaps(): Promise<{ readonly swaps: readonly OnCallSwapView[] }> {
   return apiRequest("/on-call/swaps");
 }
-export function decideOnCallSwap(swapId: string, decision: "accept" | "decline" | "cancel"): Promise<void> {
+export function decideOnCallSwap(
+  swapId: string,
+  decision: "accept" | "decline" | "cancel",
+): Promise<void> {
   return apiRequest(`/on-call/swaps/${id(swapId)}/${decision}`, json("POST"));
 }
-export function getOnCallCalendarToken(): Promise<{ readonly exists: boolean; readonly createdAt: string | null }> {
+export function getOnCallCalendarToken(): Promise<{
+  readonly exists: boolean;
+  readonly createdAt: string | null;
+}> {
   return apiRequest("/on-call/calendar-token");
 }
 export function rotateOnCallCalendarToken(): Promise<{ readonly token: string }> {

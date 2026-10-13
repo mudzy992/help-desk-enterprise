@@ -78,7 +78,5 @@ export function listForwardTargetAgents(
   ticketId: string,
   groupId: string,
 ): Promise<readonly ForwardTargetAgent[]> {
-  return apiRequest(
-    `/tickets/${ticketId}/forward-targets/${encodeURIComponent(groupId)}/agents`,
-  );
+  return apiRequest(`/tickets/${ticketId}/forward-targets/${encodeURIComponent(groupId)}/agents`);
 }

@@ -8,7 +8,10 @@ import {
 export function staffDeepLinkFilters(
   searchParams: URLSearchParams,
   isStaff: boolean,
-): Pick<TicketListFilters, "forwarded" | "personal" | "hideMerged" | "unroutedOverdue" | "inboxTab"> {
+): Pick<
+  TicketListFilters,
+  "forwarded" | "personal" | "hideMerged" | "unroutedOverdue" | "inboxTab"
+> {
   const rawTab = searchParams.get("inboxTab");
   return {
     // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
@@ -22,9 +25,6 @@ export function staffDeepLinkFilters(
     // Package 5.2.3 (M8 B6): preserve the inbox sub-tab across reloads when
     // explicitly set in the URL. Defaulting is handled by use-ticket-list so
     // non-inbox views are not polluted with an "unrouted" tab value.
-    inboxTab:
-      isStaff && rawTab !== null && rawTab.trim().length > 0
-        ? rawTab.trim()
-        : undefined,
+    inboxTab: isStaff && rawTab !== null && rawTab.trim().length > 0 ? rawTab.trim() : undefined,
   };
 }

@@ -36,9 +36,13 @@ function readSource(file: string): string {
   return readFileSync(resolve(settingsModule, file), "utf8");
 }
 
-const catalogKeys = [...new Set([...readSource("setting-keys.ts").matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map((match) => match[1] ?? ""))].filter(
-  (key) => keyPrefixes.some((prefix) => key.startsWith(prefix)),
-);
+const catalogKeys = [
+  ...new Set(
+    [...readSource("setting-keys.ts").matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map(
+      (match) => match[1] ?? "",
+    ),
+  ),
+].filter((key) => keyPrefixes.some((prefix) => key.startsWith(prefix)));
 
 /** The catalogue builds `private.addons.*` keys from the addon list at runtime. */
 const addonKeys = [...readSource("addon-catalog.ts").matchAll(/\bkey:\s*'([a-zA-Z]+)'/g)].map(
@@ -53,20 +57,29 @@ const allKeys = [...new Set([...catalogKeys, ...addonKeys])].sort();
  * `settings.registry.groups.<categoryId>.<groupId>`, so a missing pair would
  * show the raw key to the administrator.
  */
-function readDefinitionGroups(): readonly { readonly categoryId: string; readonly group: string }[] {
+function readDefinitionGroups(): readonly {
+  readonly categoryId: string;
+  readonly group: string;
+}[] {
   const directory = resolve(settingsModule, "definitions");
   const categoryMap = new Map(
-    [...readSource("setting-categories.ts").matchAll(/(\w+):\s*'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map(
-      (match) => [match[1] ?? "", match[2] ?? ""],
-    ),
+    [
+      ...readSource("setting-categories.ts").matchAll(
+        /(\w+):\s*'((?:private|public)\.[A-Za-z0-9_.]+)'/g,
+      ),
+    ].map((match) => [match[1] ?? "", match[2] ?? ""]),
   );
   const pairs: { categoryId: string; group: string }[] = [];
-  for (const file of readdirSync(directory).filter((name) => name.endsWith(".ts") && !name.endsWith(".spec.ts"))) {
+  for (const file of readdirSync(directory).filter(
+    (name) => name.endsWith(".ts") && !name.endsWith(".spec.ts"),
+  )) {
     const source = readFileSync(resolve(directory, file), "utf8");
     const categoryIds = [...source.matchAll(/categoryId:\s*settingCategoryIds\.(\w+)/g)].map(
       (match) => categoryMap.get(match[1] ?? "") ?? "",
     );
-    const groups = [...source.matchAll(/group:\s*'([A-Za-z0-9_.-]+)'/g)].map((match) => match[1] ?? "");
+    const groups = [...source.matchAll(/group:\s*'([A-Za-z0-9_.-]+)'/g)].map(
+      (match) => match[1] ?? "",
+    );
     // Within one file every grouped definition belongs to the same category.
     for (const group of groups) {
       for (const categoryId of new Set(categoryIds)) {
@@ -82,9 +95,9 @@ const declaredGroups = readDefinitionGroups();
 /** Category ids declared by the backend, which the tab renders as headings. */
 const declaredCategories = [
   ...new Set(
-    [...readSource("setting-categories.ts").matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g)].map(
-      (match) => match[1] ?? "",
-    ),
+    [
+      ...readSource("setting-categories.ts").matchAll(/'((?:private|public)\.[A-Za-z0-9_.]+)'/g),
+    ].map((match) => match[1] ?? ""),
   ),
 ];
 

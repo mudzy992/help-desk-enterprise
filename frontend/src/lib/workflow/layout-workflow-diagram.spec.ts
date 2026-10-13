@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { boxExit, layoutWorkflowEdges, layoutWorkflowNodes, primaryActor } from "./layout-workflow-diagram";
+import {
+  boxExit,
+  layoutWorkflowEdges,
+  layoutWorkflowNodes,
+  primaryActor,
+} from "./layout-workflow-diagram";
 
 describe("layout-workflow-diagram (paket 1.7 W3)", () => {
   const nodes = layoutWorkflowNodes([

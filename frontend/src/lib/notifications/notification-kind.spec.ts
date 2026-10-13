@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { notificationKind, notificationTicketPath, notificationTitleKey } from "./notification-kind";
+import {
+  notificationKind,
+  notificationTicketPath,
+  notificationTitleKey,
+} from "./notification-kind";
 
 const TICKET_ID = "ticket-1";
 const TICKET_PATH = `/tickets/${TICKET_ID}`;
@@ -9,12 +13,8 @@ describe("notification helpers", () => {
     expect(notificationKind("ticket.sla")).toBe("sla");
     expect(notificationKind("ticket.approval")).toBe("approval");
     expect(notificationKind("unknown")).toBe("system");
-    expect(notificationTitleKey("ticket.created")).toBe(
-      "notifications.items.ticketCreated",
-    );
-    expect(notificationTitleKey("remote.requested")).toBe(
-      "notifications.items.remoteRequested",
-    );
+    expect(notificationTitleKey("ticket.created")).toBe("notifications.items.ticketCreated");
+    expect(notificationTitleKey("remote.requested")).toBe("notifications.items.remoteRequested");
     expect(notificationTicketPath("ticket-1")).toBe("/tickets/ticket-1");
     expect(notificationTicketPath(null)).toBeNull();
   });
@@ -47,16 +47,22 @@ describe("notification helpers", () => {
 describe("directory sync notifications (paket 1.8)", () => {
   it("routes the aborted sync to the organizational units page", () => {
     expect(notificationTicketPath(null, "directory.syncAborted")).toBe("/organizational-units");
-    expect(notificationTitleKey("directory.syncAborted")).toBe("notifications.items.directorySyncAborted");
+    expect(notificationTitleKey("directory.syncAborted")).toBe(
+      "notifications.items.directorySyncAborted",
+    );
     expect(notificationKind("directory.syncAborted")).toBe("system");
     expect(notificationTicketPath(null, "account.newDevice")).toBe("/account/security");
-    expect(notificationTitleKey("account.recoveryCodeUsed")).toBe("notifications.items.accountRecoveryCodeUsed");
+    expect(notificationTitleKey("account.recoveryCodeUsed")).toBe(
+      "notifications.items.accountRecoveryCodeUsed",
+    );
   });
 });
 
 describe("problem notifications (P5)", () => {
   it("open the problem from the payload", () => {
-    expect(notificationTicketPath(null, "problem.assigned", { problemId: "p-1" })).toBe("/problems/p-1");
+    expect(notificationTicketPath(null, "problem.assigned", { problemId: "p-1" })).toBe(
+      "/problems/p-1",
+    );
   });
   it("fall back to the register without a problem id", () => {
     expect(notificationTicketPath(null, "problem.resolved", null)).toBe("/problems");

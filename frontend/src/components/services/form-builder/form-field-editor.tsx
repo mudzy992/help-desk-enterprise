@@ -87,11 +87,7 @@ export function FormFieldEditor({
         />
       </Field>
       {isSelectFormFieldType(field.type) ? (
-        <FormFieldOptionsEditor
-          field={field}
-          disabled={disabled}
-          onChange={onChange}
-        />
+        <FormFieldOptionsEditor field={field} disabled={disabled} onChange={onChange} />
       ) : null}
       <div className="flex flex-wrap gap-1.5">
         <Button type="button" size="xs" variant="outline" disabled={disabled} onClick={onMoveUp}>

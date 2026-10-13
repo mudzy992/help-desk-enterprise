@@ -13,19 +13,12 @@ import { controlCompactClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import {
-  mapApiError,
-  readApiRequestId,
-  type ApiErrorKey,
-} from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import {
-  listServices,
-  type ServiceResponse,
-} from "@/services/service-catalog-api";
+import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
 import {
   listUsersSummaryPage,
   type CreateUserResponse,
@@ -46,8 +39,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
     roleKeys.includes("ADMIN") ||
     roleKeys.includes("SUPER_ADMIN");
   const canLinkDirectory =
-    capabilities.session?.isSuperAdmin === true ||
-    roleKeys.includes("SUPER_ADMIN");
+    capabilities.session?.isSuperAdmin === true || roleKeys.includes("SUPER_ADMIN");
   const pageSize = 100;
   const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -55,12 +47,9 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [passwordReveal, setPasswordReveal] =
-    useState<CreateUserResponse | null>(null);
+  const [passwordReveal, setPasswordReveal] = useState<CreateUserResponse | null>(null);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
-  const [originUnits, setOriginUnits] = useState<
-    readonly { id: string; label: string }[]
-  >([]);
+  const [originUnits, setOriginUnits] = useState<readonly { id: string; label: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -115,8 +104,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
   const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
   const firstVisible = totalUsers === 0 ? 0 : pageIndex * pageSize + 1;
   const lastVisible = Math.min(totalUsers, pageIndex * pageSize + users.length);
-  const selectedUser =
-    users.find((user) => user.id === selectedUserId) ?? null;
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
 
   return (
     <section>

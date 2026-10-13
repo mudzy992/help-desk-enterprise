@@ -10,7 +10,11 @@ import {
   uncategorizedKey,
 } from "./service-picker-model";
 
-function service(id: string, name: string, category: { id: string; name: string; sortOrder: number } | null): ServiceResponse {
+function service(
+  id: string,
+  name: string,
+  category: { id: string; name: string; sortOrder: number } | null,
+): ServiceResponse {
   return {
     id,
     name,
@@ -48,15 +52,30 @@ describe("service picker model", () => {
   });
 
   it("puts recent services first only on the untouched list", () => {
-    const groups = buildServiceGroups({ services, query: "", categoryKey: null, recentIds: ["s3", "gone", "s1"] });
+    const groups = buildServiceGroups({
+      services,
+      query: "",
+      categoryKey: null,
+      recentIds: ["s3", "gone", "s1"],
+    });
     expect(groups[0]!.key).toBe(recentGroupKey);
     expect(groups[0]!.services.map((item) => item.id)).toEqual(["s3", "s1"]);
-    const searched = buildServiceGroups({ services, query: "vpn", categoryKey: null, recentIds: ["s3"] });
+    const searched = buildServiceGroups({
+      services,
+      query: "vpn",
+      categoryKey: null,
+      recentIds: ["s3"],
+    });
     expect(searched.map((group) => group.key)).toEqual(["c-it"]);
   });
 
   it("narrows by category chip and counts chips after the search", () => {
-    const groups = buildServiceGroups({ services, query: "", categoryKey: "c-it", recentIds: ["s3"] });
+    const groups = buildServiceGroups({
+      services,
+      query: "",
+      categoryKey: "c-it",
+      recentIds: ["s3"],
+    });
     expect(groups.map((group) => group.key)).toEqual(["c-it"]);
     const chips = buildServiceChips(services, "o");
     expect(chips.find((chip) => chip.key === "c-hr")?.count).toBe(1);

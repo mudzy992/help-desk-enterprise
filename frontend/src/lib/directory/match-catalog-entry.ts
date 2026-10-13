@@ -31,9 +31,7 @@ export function matchCatalogEntry(
 ): CatalogEntryMatch {
   const treePath = normalizeDirectoryPath(node.ouPath);
   const nodeDn =
-    node.distinguishedName === undefined
-      ? null
-      : normalizeDirectoryPath(node.distinguishedName);
+    node.distinguishedName === undefined ? null : normalizeDirectoryPath(node.distinguishedName);
   const byPath = entries.find(
     (entry) => normalizeDirectoryPath(entry.organizationalUnitPath) === treePath,
   );
@@ -43,9 +41,7 @@ export function matchCatalogEntry(
   const byDn =
     nodeDn === null
       ? undefined
-      : entries.find(
-          (entry) => normalizeDirectoryPath(entry.distinguishedName) === nodeDn,
-        );
+      : entries.find((entry) => normalizeDirectoryPath(entry.distinguishedName) === nodeDn);
   if (byDn !== undefined) {
     return { kind: "path-mismatch", entry: byDn, treePath: node.ouPath };
   }

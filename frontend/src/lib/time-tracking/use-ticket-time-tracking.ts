@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { markActiveTimerChanged, useActiveTimer } from "@/lib/time-tracking/active-timer-store";
 import {
   isActiveElsewhere,
@@ -114,9 +121,13 @@ export function useTicketTimeTracking(input: {
       }
     },
     stop: (timeLogId: string) =>
-      ticketId === undefined ? Promise.resolve(false) : run(() => stopTicketTimeLog(ticketId, timeLogId)),
+      ticketId === undefined
+        ? Promise.resolve(false)
+        : run(() => stopTicketTimeLog(ticketId, timeLogId)),
     addManual: (entry: ManualEntryInput) =>
-      ticketId === undefined ? Promise.resolve(false) : run(() => addManualTicketTimeLog(ticketId, entry)),
+      ticketId === undefined
+        ? Promise.resolve(false)
+        : run(() => addManualTicketTimeLog(ticketId, entry)),
     correct: (timeLogId: string, correction: CorrectionInput) =>
       ticketId === undefined
         ? Promise.resolve(false)

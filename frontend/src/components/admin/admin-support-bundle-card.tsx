@@ -36,9 +36,7 @@ export function AdminSupportBundleCard({
           {t("admin.ops.supportGenerate")}
         </Button>
         {!canGenerate ? (
-          <p className={`mt-2 ${errorTextClassName}`}>
-            {t("admin.ops.supportForbidden")}
-          </p>
+          <p className={`mt-2 ${errorTextClassName}`}>{t("admin.ops.supportForbidden")}</p>
         ) : null}
       </div>
     </Card>

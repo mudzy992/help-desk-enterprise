@@ -1,4 +1,7 @@
-import { catalogCoverageNote, type CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
+import {
+  catalogCoverageNote,
+  type CatalogCoverageNote,
+} from "@/lib/services/catalog-coverage-note";
 import type { RoutingCoverageItem } from "@/services/routing-api";
 
 export type CatalogOriginUnitOption = {

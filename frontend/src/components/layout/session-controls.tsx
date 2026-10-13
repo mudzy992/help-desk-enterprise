@@ -1,4 +1,15 @@
-import { BellRing, ChevronDown, FileText, Keyboard, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
+import {
+  BellRing,
+  ChevronDown,
+  FileText,
+  Keyboard,
+  Languages,
+  LogOut,
+  Palette,
+  Settings2,
+  ShieldCheck,
+  Ticket,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
@@ -47,12 +58,8 @@ export function SessionControls() {
         >
           <Avatar name={displayName} size="sm" />
           <span className="hidden text-left leading-tight md:block">
-            <span className="block text-[12px] font-medium text-foreground">
-              {displayName}
-            </span>
-            <span className="block text-[10px] text-muted-foreground">
-              {subtitle}
-            </span>
+            <span className="block text-[12px] font-medium text-foreground">{displayName}</span>
+            <span className="block text-[10px] text-muted-foreground">{subtitle}</span>
           </span>
           <ChevronDown
             size={13}
@@ -79,7 +86,10 @@ export function SessionControls() {
           <Settings2 size={13} /> {t("shell.accountSettings")}
         </DropdownMenuItem>
         {shortcuts !== null ? (
-          <DropdownMenuItem onSelect={() => shortcuts.openHelp()} data-testid="menu-keyboard-shortcuts">
+          <DropdownMenuItem
+            onSelect={() => shortcuts.openHelp()}
+            data-testid="menu-keyboard-shortcuts"
+          >
             <Keyboard size={13} /> {t("a11y.shortcuts.menu")}
           </DropdownMenuItem>
         ) : null}

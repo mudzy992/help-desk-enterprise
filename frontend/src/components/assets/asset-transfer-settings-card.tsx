@@ -6,7 +6,12 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
+import {
+  errorTextClassName,
+  hintClassName,
+  tableHeadClassName,
+  tableRowClassName,
+} from "@/components/ui/control";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
@@ -36,7 +41,11 @@ export function AssetTransferSettingsCard() {
 
 function SignatoriesCard() {
   const { t } = useTranslation();
-  const query = useQuery({ queryKey: assetTransferQueryKeys.signatories, queryFn: getAssetSignatories, retry: false });
+  const query = useQuery({
+    queryKey: assetTransferQueryKeys.signatories,
+    queryFn: getAssetSignatories,
+    retry: false,
+  });
   const units = query.data?.units ?? [];
   const names = new Map(units.map((unit) => [unit.id, unit.name]));
 
@@ -47,13 +56,19 @@ function SignatoriesCard() {
         subtitle={t("assets.transfers.signatories.subtitleOverview")}
         actions={
           <Button asChild size="sm" variant="outline">
-            <Link to="/organizational-units">{t("assets.transfers.signatories.editInOrganization")}</Link>
+            <Link to="/organizational-units">
+              {t("assets.transfers.signatories.editInOrganization")}
+            </Link>
           </Button>
         }
       />
       <div className="grid gap-2 p-4">
         {query.data?.defaultSignatory ? (
-          <p className={hintClassName}>{t("assets.transfers.signatories.defaultIs", { name: query.data.defaultSignatory.displayName })}</p>
+          <p className={hintClassName}>
+            {t("assets.transfers.signatories.defaultIs", {
+              name: query.data.defaultSignatory.displayName,
+            })}
+          </p>
         ) : (
           <p className={hintClassName}>{t("assets.transfers.signatories.noDefault")}</p>
         )}
@@ -68,22 +83,33 @@ function SignatoriesCard() {
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.unit")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.own")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.effective")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.transfers.signatories.unit")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.transfers.signatories.own")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.transfers.signatories.effective")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {units.map((unit) => (
                   <tr key={unit.id} className={tableRowClassName}>
-                    <td className="px-3 py-2 text-foreground" style={{ paddingLeft: `${0.75 + Math.max(unit.depth, 0) * 1}rem` }}>
+                    <td
+                      className="px-3 py-2 text-foreground"
+                      style={{ paddingLeft: `${0.75 + Math.max(unit.depth, 0) * 1}rem` }}
+                    >
                       {unit.name}
                     </td>
                     <td className="px-3 py-2">
                       {unit.own ? (
                         <span className="text-foreground">
                           {unit.own.displayName}
-                          {unit.own.title ? <span className="text-muted-foreground"> · {unit.own.title}</span> : null}
+                          {unit.own.title ? (
+                            <span className="text-muted-foreground"> · {unit.own.title}</span>
+                          ) : null}
                           {!unit.own.isActive ? (
                             <Badge tone="warning" className="ml-2">
                               {t("assets.transfers.signatories.inactive")}
@@ -121,14 +147,23 @@ function TemplatesCard() {
   const [notes, setNotes] = useState("");
   const [pending, setPending] = useState(false);
   const [problems, setProblems] = useState<string | null>(null);
-  const query = useQuery({ queryKey: assetTransferQueryKeys.templates, queryFn: listTransferTemplates, retry: false });
+  const query = useQuery({
+    queryKey: assetTransferQueryKeys.templates,
+    queryFn: listTransferTemplates,
+    retry: false,
+  });
   const templates = query.data ?? [];
 
   async function download(version: number | "default" | "sample", locale?: string) {
     try {
       await downloadTransferTemplate(version, locale);
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.downloadFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.transfers.downloadFailed"),
+        description: t(mapAssetError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     }
   }
 
@@ -143,11 +178,23 @@ function TemplatesCard() {
       toast({
         tone: result.unknownTags.length > 0 ? "warning" : "success",
         title: t("assets.transfers.templates.uploaded", { version: result.version }),
-        description: result.unknownTags.length > 0 ? t("assets.transfers.templates.unknownTags", { tags: result.unknownTags.join(", ") }) : undefined,
+        description:
+          result.unknownTags.length > 0
+            ? t("assets.transfers.templates.unknownTags", { tags: result.unknownTags.join(", ") })
+            : undefined,
       });
     } catch (caught) {
-      const detail = caught instanceof ApiError && caught.code === "ASSET_TRANSFER_TEMPLATE_INVALID" && caught.message !== caught.code ? caught.message : null;
-      setProblems(detail ? t("assets.transfers.templates.invalidDetail", { detail }) : t(mapAssetError(caught) ?? mapApiError(caught)));
+      const detail =
+        caught instanceof ApiError &&
+        caught.code === "ASSET_TRANSFER_TEMPLATE_INVALID" &&
+        caught.message !== caught.code
+          ? caught.message
+          : null;
+      setProblems(
+        detail
+          ? t("assets.transfers.templates.invalidDetail", { detail })
+          : t(mapAssetError(caught) ?? mapApiError(caught)),
+      );
     } finally {
       setPending(false);
     }
@@ -168,18 +215,35 @@ function TemplatesCard() {
       <div className="grid gap-3 p-4">
         <p className={hintClassName}>{t("assets.transfers.templates.placeholdersHint")}</p>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={() => void download("default", "bs")}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void download("default", "bs")}
+          >
             <FileDown size={14} aria-hidden="true" />
             {t("assets.transfers.templates.defaultBs")}
           </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => void download("default", "en")}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void download("default", "en")}
+          >
             <FileDown size={14} aria-hidden="true" />
             {t("assets.transfers.templates.defaultEn")}
           </Button>
         </div>
         <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-end">
           <Field label={t("assets.transfers.templates.notes")}>
-            {(control) => <Input {...control} maxLength={500} value={notes} onChange={(event) => setNotes(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={500}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            )}
           </Field>
           <div>
             <input
@@ -194,7 +258,12 @@ function TemplatesCard() {
                 event.target.value = "";
               }}
             />
-            <Button type="button" variant="primary" disabled={pending} onClick={() => fileInput.current?.click()}>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={pending}
+              onClick={() => fileInput.current?.click()}
+            >
               <FileUp size={14} aria-hidden="true" />
               {pending ? t("ui.loading") : t("assets.transfers.templates.upload")}
             </Button>
@@ -205,23 +274,38 @@ function TemplatesCard() {
             {problems}
           </p>
         ) : null}
-        {templates.length === 0 && !query.isLoading ? <p className={hintClassName}>{t("assets.transfers.templates.usingDefault")}</p> : null}
+        {templates.length === 0 && !query.isLoading ? (
+          <p className={hintClassName}>{t("assets.transfers.templates.usingDefault")}</p>
+        ) : null}
         {templates.length > 0 ? (
           <ul className="grid gap-1.5 text-[12.5px]">
             {templates.map((template) => (
-              <li key={template.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2">
+              <li
+                key={template.id}
+                className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2"
+              >
                 <span className="font-semibold text-foreground">v{template.version}</span>
                 <span className="truncate text-foreground">{template.fileName}</span>
-                {template.isActive ? <Badge tone="success">{t("assets.transfers.templates.active")}</Badge> : null}
-                <span className="text-[11.5px] text-muted-foreground">{formatAssetDateTime(template.createdAt, i18n.language)}</span>
-                {template.notes ? <span className="truncate text-[11.5px] text-muted-foreground">· {template.notes}</span> : null}
+                {template.isActive ? (
+                  <Badge tone="success">{t("assets.transfers.templates.active")}</Badge>
+                ) : null}
+                <span className="text-[11.5px] text-muted-foreground">
+                  {formatAssetDateTime(template.createdAt, i18n.language)}
+                </span>
+                {template.notes ? (
+                  <span className="truncate text-[11.5px] text-muted-foreground">
+                    · {template.notes}
+                  </span>
+                ) : null}
                 <Button
                   type="button"
                   size="xs"
                   variant="ghost"
                   className="ml-auto"
                   onClick={() => void download(template.version)}
-                  aria-label={t("assets.transfers.templates.downloadVersion", { version: template.version })}
+                  aria-label={t("assets.transfers.templates.downloadVersion", {
+                    version: template.version,
+                  })}
                 >
                   <FileDown size={13} aria-hidden="true" />
                 </Button>

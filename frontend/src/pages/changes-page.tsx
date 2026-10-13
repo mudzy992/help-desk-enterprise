@@ -63,7 +63,9 @@ function statusesOf(filter: StatusFilter): readonly ChangeStatus[] | undefined {
 
 function parseStatusFilter(raw: string | null): StatusFilter {
   if (raw === "all") return "all";
-  return raw !== null && (changeStatuses as readonly string[]).includes(raw) ? (raw as ChangeStatus) : "open";
+  return raw !== null && (changeStatuses as readonly string[]).includes(raw)
+    ? (raw as ChangeStatus)
+    : "open";
 }
 
 function parseOne<T extends string>(raw: string | null, values: readonly T[]): T | "" {
@@ -106,10 +108,19 @@ export function ChangesPage() {
     );
   };
 
-  const capabilitiesQuery = useQuery({ queryKey: changeQueryKeys.capabilities, queryFn: getChangeCapabilities, retry: false });
+  const capabilitiesQuery = useQuery({
+    queryKey: changeQueryKeys.capabilities,
+    queryFn: getChangeCapabilities,
+    retry: false,
+  });
   const capabilities = capabilitiesQuery.data;
   const canRead = capabilities?.enabled === true && capabilities.canRead;
-  const optionsQuery = useQuery({ queryKey: changeQueryKeys.options, queryFn: getChangeOptions, enabled: canRead, retry: false });
+  const optionsQuery = useQuery({
+    queryKey: changeQueryKeys.options,
+    queryFn: getChangeOptions,
+    enabled: canRead,
+    retry: false,
+  });
 
   const filters: ChangeListFilters = useMemo(
     () => ({
@@ -135,7 +146,16 @@ export function ChangesPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const advancedCount = [status !== "open", type !== "", risk !== "", owner !== "", cabGroupId !== "", serviceId !== "", mine, awaitingMyVote].filter(Boolean).length;
+  const advancedCount = [
+    status !== "open",
+    type !== "",
+    risk !== "",
+    owner !== "",
+    cabGroupId !== "",
+    serviceId !== "",
+    mine,
+    awaitingMyVote,
+  ].filter(Boolean).length;
   const hasFilters = search !== "" || advancedCount > 0;
 
   const header = (
@@ -145,7 +165,13 @@ export function ChangesPage() {
       subtitle={t("changes.subtitle")}
       actions={
         capabilities?.enabled === true && capabilities.canRequest ? (
-          <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)} disabled={optionsQuery.data === undefined} data-testid="changes-create">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            disabled={optionsQuery.data === undefined}
+            data-testid="changes-create"
+          >
             <Plus size={14} aria-hidden="true" />
             {t("changes.list.create")}
           </Button>
@@ -166,7 +192,11 @@ export function ChangesPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<GitPullRequestArrow size={18} />} title={t("changes.setupTitle")} body={t("changes.setupBody")} />
+        <EmptyState
+          icon={<GitPullRequestArrow size={18} />}
+          title={t("changes.setupTitle")}
+          body={t("changes.setupBody")}
+        />
       </section>
     );
   }
@@ -174,7 +204,11 @@ export function ChangesPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<GitPullRequestArrow size={18} />} title={t("changes.disabledTitle")} body={t("changes.disabledBody")} />
+        <EmptyState
+          icon={<GitPullRequestArrow size={18} />}
+          title={t("changes.disabledTitle")}
+          body={t("changes.disabledBody")}
+        />
       </section>
     );
   }
@@ -182,21 +216,35 @@ export function ChangesPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<GitPullRequestArrow size={18} />} title={t("changes.forbiddenTitle")} body={t("changes.forbiddenBody")} />
+        <EmptyState
+          icon={<GitPullRequestArrow size={18} />}
+          title={t("changes.forbiddenTitle")}
+          body={t("changes.forbiddenBody")}
+        />
       </section>
     );
   }
 
   const select = (label: string, value: string, key: string, children: ReactNode) => (
     <FilterField label={label}>
-      <select className={`${selectCompactClassName} w-full`} aria-label={label} value={value} onChange={(event) => setParam(key, event.target.value)}>
+      <select
+        className={`${selectCompactClassName} w-full`}
+        aria-label={label}
+        value={value}
+        onChange={(event) => setParam(key, event.target.value)}
+      >
         {children}
       </select>
     </FilterField>
   );
 
   // §17: calendar for everyone who reads changes; templates only for change managers.
-  const tab: PageTab = tabParam === "calendar" ? "calendar" : tabParam === "templates" && capabilities.canManage ? "templates" : "register";
+  const tab: PageTab =
+    tabParam === "calendar"
+      ? "calendar"
+      : tabParam === "templates" && capabilities.canManage
+        ? "templates"
+        : "register";
 
   return (
     <section>
@@ -205,204 +253,254 @@ export function ChangesPage() {
         items={[
           { key: "register", label: t("changes.tabs.register") },
           { key: "calendar", label: t("changes.tabs.calendar") },
-          ...(capabilities.canManage ? [{ key: "templates", label: t("changes.tabs.templates") }] : []),
+          ...(capabilities.canManage
+            ? [{ key: "templates", label: t("changes.tabs.templates") }]
+            : []),
         ]}
         active={tab}
         onChange={(key) => setParam("tab", key === "register" ? "" : key)}
       />
       <div className="mt-3">
-      {tab === "calendar" ? <ChangeCalendar /> : null}
-      {tab === "templates" ? <ChangeTemplatesPanel options={optionsQuery.data} /> : null}
-      {tab === "register" ? (
-      <div className="grid gap-3">
-        <FilterBar
-          label={t("changes.list.filtersLabel")}
-          searchLabel={t("changes.list.searchLabel")}
-          searchPlaceholder={t("changes.list.searchPlaceholder")}
-          searchValue={searchText}
-          onSearchChange={(value) => {
-            setSearchText(value);
-            setParam("search", value.trim());
-          }}
-          activeCount={advancedCount}
-          resetLabel={t("changes.list.resetFilters")}
-          onReset={() => {
-            setSearchText("");
-            setParams(new URLSearchParams(), { replace: true });
-          }}
-        >
-          <FilterField label={t("changes.list.statusFilter")}>
-            <select
-              className={`${selectCompactClassName} w-full`}
-              aria-label={t("changes.list.statusFilter")}
-              value={status}
-              onChange={(event) => setParam("status", event.target.value === "open" ? "" : event.target.value)}
+        {tab === "calendar" ? <ChangeCalendar /> : null}
+        {tab === "templates" ? <ChangeTemplatesPanel options={optionsQuery.data} /> : null}
+        {tab === "register" ? (
+          <div className="grid gap-3">
+            <FilterBar
+              label={t("changes.list.filtersLabel")}
+              searchLabel={t("changes.list.searchLabel")}
+              searchPlaceholder={t("changes.list.searchPlaceholder")}
+              searchValue={searchText}
+              onSearchChange={(value) => {
+                setSearchText(value);
+                setParam("search", value.trim());
+              }}
+              activeCount={advancedCount}
+              resetLabel={t("changes.list.resetFilters")}
+              onReset={() => {
+                setSearchText("");
+                setParams(new URLSearchParams(), { replace: true });
+              }}
             >
-              <option value="open">{t("changes.list.statusOpen")}</option>
-              {changeStatuses.map((value) => (
-                <option key={value} value={value}>
-                  {t(changeStatusKeys[value])}
-                </option>
-              ))}
-              <option value="all">{t("changes.list.statusAll")}</option>
-            </select>
-          </FilterField>
-          {select(
-            t("changes.fields.type"),
-            type,
-            "type",
-            <>
-              <option value="">{t("changes.list.allTypes")}</option>
-              {changeTypes.map((value) => (
-                <option key={value} value={value}>
-                  {t(changeTypeKeys[value])}
-                </option>
-              ))}
-            </>,
-          )}
-          {select(
-            t("changes.fields.risk"),
-            risk,
-            "risk",
-            <>
-              <option value="">{t("changes.list.allRisks")}</option>
-              {changeRisks.map((value) => (
-                <option key={value} value={value}>
-                  {t(changeRiskKeys[value])}
-                </option>
-              ))}
-            </>,
-          )}
-          {select(
-            t("changes.fields.cabGroup"),
-            cabGroupId,
-            "cab",
-            <>
-              <option value="">{t("changes.list.allCabGroups")}</option>
-              {(optionsQuery.data?.cabGroups ?? []).map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </>,
-          )}
-          {select(
-            t("changes.fields.service"),
-            serviceId,
-            "service",
-            <>
-              <option value="">{t("changes.list.allServices")}</option>
-              {(optionsQuery.data?.services ?? []).map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </>,
-          )}
-          {select(
-            t("changes.fields.owner"),
-            owner,
-            "owner",
-            <>
-              <option value="">{t("changes.list.anyOwner")}</option>
-              <option value="me">{t("changes.list.ownedByMe")}</option>
-            </>,
-          )}
-          <FilterToggles label={t("ui.filters.options")}>
-            <Checkbox label={t("changes.list.mine")} checked={mine} onChange={(event) => setParam("mine", event.target.checked ? "true" : "")} />
-            {capabilities.canApprove ? (
-              <Checkbox
-                label={t("changes.list.awaitingMyVote")}
-                checked={awaitingMyVote}
-                onChange={(event) => setParam("vote", event.target.checked ? "true" : "")}
-                data-testid="changes-filter-vote"
-              />
-            ) : null}
-          </FilterToggles>
-        </FilterBar>
-
-        <p className={hintClassName} aria-live="polite">
-          {listQuery.isLoading ? t("ui.loading") : t("changes.list.count", { count: total, shown: items.length })}
-        </p>
-
-        {listQuery.error ? (
-          <p role="alert" className={errorTextClassName}>
-            {t(mapChangeError(listQuery.error) ?? mapApiError(listQuery.error))}
-          </p>
-        ) : null}
-
-        {listQuery.isLoading ? (
-          <PanelSkeleton label={t("ui.loading")} />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={<GitPullRequestArrow size={18} />}
-            title={hasFilters ? t("changes.list.noMatchesTitle") : t("changes.list.emptyTitle")}
-            body={hasFilters ? t("changes.list.noMatchesBody") : t("changes.list.emptyBody")}
-          />
-        ) : (
-          <Card className="overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-[12.5px]" data-testid="changes-table">
-                <caption className="sr-only">{t("changes.list.caption")}</caption>
-                <thead>
-                  <tr className={tableHeadClassName}>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.list.number")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.title")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.type")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.risk")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.list.status")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.list.window")}</th>
-                    <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.owner")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} className={tableRowClassName}>
-                      <td className="px-3 py-2">
-                        <Link to={`/changes/${item.id}`} className={ticketIdClassName}>
-                          {item.number}
-                        </Link>
-                      </td>
-                      <td className="max-w-[26rem] px-3 py-2">
-                        <span className="block truncate text-foreground">{item.title}</span>
-                        {item.services.length > 0 ? (
-                          <span className="block truncate text-[11.5px] text-muted-foreground">
-                            {item.services.map((service) => service.name).join(", ")}
-                            {item.serviceCount > item.services.length ? ` +${item.serviceCount - item.services.length}` : ""}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge tone={changeTypeTone(item.type)}>{t(changeTypeKeys[item.type])}</Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge tone={changeRiskTone(item.risk)}>{t(changeRiskKeys[item.risk])}</Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge tone={changeStatusTone(item.status)}>{t(changeStatusKeys[item.status])}</Badge>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                        {formatChangeWindow(item.plannedStart, item.plannedEnd, i18n.language)}
-                        {item.causesDowntime ? <span className="block text-[11.5px]">{t("changes.list.causesDowntime")}</span> : null}
-                      </td>
-                      <td className="px-3 py-2">
-                        {item.owner?.displayName ?? <span className="text-muted-foreground">{t("changes.list.noOwner")}</span>}
-                        {item.cabGroup ? <span className="block text-[11.5px] text-muted-foreground">{item.cabGroup.name}</span> : null}
-                      </td>
-                    </tr>
+              <FilterField label={t("changes.list.statusFilter")}>
+                <select
+                  className={`${selectCompactClassName} w-full`}
+                  aria-label={t("changes.list.statusFilter")}
+                  value={status}
+                  onChange={(event) =>
+                    setParam("status", event.target.value === "open" ? "" : event.target.value)
+                  }
+                >
+                  <option value="open">{t("changes.list.statusOpen")}</option>
+                  {changeStatuses.map((value) => (
+                    <option key={value} value={value}>
+                      {t(changeStatusKeys[value])}
+                    </option>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-        {listQuery.hasNextPage ? (
-          <Button variant="outline" size="sm" className="justify-self-center" disabled={listQuery.isFetchingNextPage} onClick={() => void listQuery.fetchNextPage()}>
-            {listQuery.isFetchingNextPage ? t("ui.loading") : t("changes.list.loadMore")}
-          </Button>
+                  <option value="all">{t("changes.list.statusAll")}</option>
+                </select>
+              </FilterField>
+              {select(
+                t("changes.fields.type"),
+                type,
+                "type",
+                <>
+                  <option value="">{t("changes.list.allTypes")}</option>
+                  {changeTypes.map((value) => (
+                    <option key={value} value={value}>
+                      {t(changeTypeKeys[value])}
+                    </option>
+                  ))}
+                </>,
+              )}
+              {select(
+                t("changes.fields.risk"),
+                risk,
+                "risk",
+                <>
+                  <option value="">{t("changes.list.allRisks")}</option>
+                  {changeRisks.map((value) => (
+                    <option key={value} value={value}>
+                      {t(changeRiskKeys[value])}
+                    </option>
+                  ))}
+                </>,
+              )}
+              {select(
+                t("changes.fields.cabGroup"),
+                cabGroupId,
+                "cab",
+                <>
+                  <option value="">{t("changes.list.allCabGroups")}</option>
+                  {(optionsQuery.data?.cabGroups ?? []).map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </>,
+              )}
+              {select(
+                t("changes.fields.service"),
+                serviceId,
+                "service",
+                <>
+                  <option value="">{t("changes.list.allServices")}</option>
+                  {(optionsQuery.data?.services ?? []).map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </>,
+              )}
+              {select(
+                t("changes.fields.owner"),
+                owner,
+                "owner",
+                <>
+                  <option value="">{t("changes.list.anyOwner")}</option>
+                  <option value="me">{t("changes.list.ownedByMe")}</option>
+                </>,
+              )}
+              <FilterToggles label={t("ui.filters.options")}>
+                <Checkbox
+                  label={t("changes.list.mine")}
+                  checked={mine}
+                  onChange={(event) => setParam("mine", event.target.checked ? "true" : "")}
+                />
+                {capabilities.canApprove ? (
+                  <Checkbox
+                    label={t("changes.list.awaitingMyVote")}
+                    checked={awaitingMyVote}
+                    onChange={(event) => setParam("vote", event.target.checked ? "true" : "")}
+                    data-testid="changes-filter-vote"
+                  />
+                ) : null}
+              </FilterToggles>
+            </FilterBar>
+
+            <p className={hintClassName} aria-live="polite">
+              {listQuery.isLoading
+                ? t("ui.loading")
+                : t("changes.list.count", { count: total, shown: items.length })}
+            </p>
+
+            {listQuery.error ? (
+              <p role="alert" className={errorTextClassName}>
+                {t(mapChangeError(listQuery.error) ?? mapApiError(listQuery.error))}
+              </p>
+            ) : null}
+
+            {listQuery.isLoading ? (
+              <PanelSkeleton label={t("ui.loading")} />
+            ) : items.length === 0 ? (
+              <EmptyState
+                icon={<GitPullRequestArrow size={18} />}
+                title={hasFilters ? t("changes.list.noMatchesTitle") : t("changes.list.emptyTitle")}
+                body={hasFilters ? t("changes.list.noMatchesBody") : t("changes.list.emptyBody")}
+              />
+            ) : (
+              <Card className="overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[12.5px]" data-testid="changes-table">
+                    <caption className="sr-only">{t("changes.list.caption")}</caption>
+                    <thead>
+                      <tr className={tableHeadClassName}>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.list.number")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.fields.title")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.fields.type")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.fields.risk")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.list.status")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.list.window")}
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left">
+                          {t("changes.fields.owner")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item) => (
+                        <tr key={item.id} className={tableRowClassName}>
+                          <td className="px-3 py-2">
+                            <Link to={`/changes/${item.id}`} className={ticketIdClassName}>
+                              {item.number}
+                            </Link>
+                          </td>
+                          <td className="max-w-[26rem] px-3 py-2">
+                            <span className="block truncate text-foreground">{item.title}</span>
+                            {item.services.length > 0 ? (
+                              <span className="block truncate text-[11.5px] text-muted-foreground">
+                                {item.services.map((service) => service.name).join(", ")}
+                                {item.serviceCount > item.services.length
+                                  ? ` +${item.serviceCount - item.services.length}`
+                                  : ""}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge tone={changeTypeTone(item.type)}>
+                              {t(changeTypeKeys[item.type])}
+                            </Badge>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge tone={changeRiskTone(item.risk)}>
+                              {t(changeRiskKeys[item.risk])}
+                            </Badge>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge tone={changeStatusTone(item.status)}>
+                              {t(changeStatusKeys[item.status])}
+                            </Badge>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                            {formatChangeWindow(item.plannedStart, item.plannedEnd, i18n.language)}
+                            {item.causesDowntime ? (
+                              <span className="block text-[11.5px]">
+                                {t("changes.list.causesDowntime")}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2">
+                            {item.owner?.displayName ?? (
+                              <span className="text-muted-foreground">
+                                {t("changes.list.noOwner")}
+                              </span>
+                            )}
+                            {item.cabGroup ? (
+                              <span className="block text-[11.5px] text-muted-foreground">
+                                {item.cabGroup.name}
+                              </span>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+            {listQuery.hasNextPage ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-self-center"
+                disabled={listQuery.isFetchingNextPage}
+                onClick={() => void listQuery.fetchNextPage()}
+              >
+                {listQuery.isFetchingNextPage ? t("ui.loading") : t("changes.list.loadMore")}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
-      </div>
-      ) : null}
       </div>
       {optionsQuery.data ? (
         <ChangeFormSheet

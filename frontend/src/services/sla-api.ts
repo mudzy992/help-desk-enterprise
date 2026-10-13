@@ -64,9 +64,7 @@ export function deleteSlaCalendar(calendarId: string, reason: string): Promise<v
   });
 }
 
-export function listSlaCalendarChanges(
-  calendarId: string,
-): Promise<readonly SlaChangeLogEntry[]> {
+export function listSlaCalendarChanges(calendarId: string): Promise<readonly SlaChangeLogEntry[]> {
   return apiRequest(`/sla/calendars/${calendarId}/changes`);
 }
 
@@ -83,10 +81,7 @@ export function createSlaProfile(
   });
 }
 
-export function updateSlaProfile(
-  profileId: string,
-  input: ProfileWriteInput,
-): Promise<SlaProfile> {
+export function updateSlaProfile(profileId: string, input: ProfileWriteInput): Promise<SlaProfile> {
   return apiRequest(`/sla/profiles/${profileId}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -106,9 +101,7 @@ export function deleteSlaProfile(profileId: string, reason: string): Promise<voi
   });
 }
 
-export function listSlaProfileChanges(
-  profileId: string,
-): Promise<readonly SlaChangeLogEntry[]> {
+export function listSlaProfileChanges(profileId: string): Promise<readonly SlaChangeLogEntry[]> {
   return apiRequest(`/sla/profiles/${profileId}/changes`);
 }
 
@@ -146,9 +139,7 @@ export function listSlaRuleChanges(ruleId: string): Promise<readonly SlaChangeLo
 export function listSlaEscalationRules(
   slaProfileId: string,
 ): Promise<readonly SlaEscalationRule[]> {
-  return apiRequest(
-    `/sla/escalation-rules?slaProfileId=${encodeURIComponent(slaProfileId)}`,
-  );
+  return apiRequest(`/sla/escalation-rules?slaProfileId=${encodeURIComponent(slaProfileId)}`);
 }
 
 export function createSlaEscalationRule(
@@ -177,9 +168,7 @@ export function deleteSlaEscalationRule(ruleId: string, reason: string): Promise
   });
 }
 
-export function fetchSlaCompliance(
-  query: SlaComplianceQuery,
-): Promise<SlaComplianceResponse> {
+export function fetchSlaCompliance(query: SlaComplianceQuery): Promise<SlaComplianceResponse> {
   const search = new URLSearchParams({
     organizationalUnitId: query.organizationalUnitId,
   });
@@ -197,9 +186,7 @@ function toRulePayload(input: RuleWriteInput) {
     resolutionMinutes: input.resolutionMinutes,
     evaluationOrder: input.evaluationOrder,
     organizationalUnitId:
-      input.organizationalUnitId.trim().length === 0
-        ? null
-        : input.organizationalUnitId,
+      input.organizationalUnitId.trim().length === 0 ? null : input.organizationalUnitId,
     serviceId: input.serviceId.trim().length === 0 ? null : input.serviceId,
     reason: input.reason,
   };
@@ -219,4 +206,3 @@ function toEscalationPayload(input: EscalationRuleWriteInput) {
     reason: input.reason,
   };
 }
-

@@ -232,9 +232,7 @@ export type TicketPage = {
  * array with every ticket in the table when no `page`/`pageSize` was sent, and
  * four screens did exactly that. This is the only list read the client has.
  */
-export function listTicketsPage(
-  query: TicketPageQuery = {},
-): Promise<TicketPage> {
+export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
   const search = toTicketListSearchParams(query).toString();
   return apiRequest(`/tickets?${search}`);
 }
@@ -244,9 +242,7 @@ export function listTicketsPage(
  * screens that only need a small slice while their dedicated endpoints arrive
  * (dashboard/SLA aggregates in phase 2.4, `/search` in phase 1.2).
  */
-export function listTickets(
-  query: ListTicketsQuery = {},
-): Promise<TicketPage> {
+export function listTickets(query: ListTicketsQuery = {}): Promise<TicketPage> {
   return listTicketsPage({
     originUnitId: query.originUnitId,
     serviceId: query.serviceId,
@@ -262,10 +258,7 @@ export function getTicketForm(ticketId: string): Promise<TicketFormResponse> {
   return apiRequest(`/tickets/${ticketId}/form`);
 }
 
-export function updateTicket(
-  ticketId: string,
-  input: UpdateTicketInput,
-): Promise<TicketResponse> {
+export function updateTicket(ticketId: string, input: UpdateTicketInput): Promise<TicketResponse> {
   return apiRequest(`/tickets/${ticketId}`, {
     method: "PATCH",
     body: JSON.stringify(input),

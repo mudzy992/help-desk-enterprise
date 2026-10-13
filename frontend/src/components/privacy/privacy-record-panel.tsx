@@ -64,7 +64,13 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
                   <ExternalLink size={14} /> {t("privacy.record.openNotice")}
                 </Link>
               </Button>
-              <Button size="sm" variant="outline" disabled={record === null} onClick={() => window.print()} data-testid="privacy-record-print">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={record === null}
+                onClick={() => window.print()}
+                data-testid="privacy-record-print"
+              >
                 <Printer size={14} /> {t("privacy.record.print")}
               </Button>
             </>
@@ -83,11 +89,18 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
               className="mb-5 flex gap-2 rounded-md border border-warning/30 bg-warning/6 px-3 py-2.5 text-[12.5px] print:hidden"
               data-testid="privacy-record-missing"
             >
-              <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+              <AlertTriangle
+                size={15}
+                className="mt-0.5 shrink-0 text-warning"
+                aria-hidden="true"
+              />
               <div>
                 <p className="font-medium text-foreground">{t("privacy.record.missingTitle")}</p>
                 <p className="text-foreground/90">
-                  {record.missing.map((field) => t(missingKey(field), { defaultValue: field })).join(", ")}.{" "}
+                  {record.missing
+                    .map((field) => t(missingKey(field), { defaultValue: field }))
+                    .join(", ")}
+                  .{" "}
                   <Link to="/admin?tab=settings" className="text-link hover:underline">
                     {t("privacy.record.missingAction")}
                   </Link>
@@ -96,10 +109,15 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
             </div>
           ) : null}
           <header className="mb-5 border-b border-border pb-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{branding.organizationName || branding.appName}</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {branding.organizationName || branding.appName}
+            </p>
             <h2 className="mt-0.5 text-[18px] font-semibold text-foreground">{record.title}</h2>
             <p className="mt-1 text-[11.5px] text-muted-foreground">
-              {t("privacy.record.generated", { when: format.dateTime(record.generatedAt), who: generatedBy ?? "—" })}
+              {t("privacy.record.generated", {
+                when: format.dateTime(record.generatedAt),
+                who: generatedBy ?? "—",
+              })}
             </p>
           </header>
           <div className="flex flex-col gap-5">
@@ -112,7 +130,9 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
                   {section.rows.map((row) => (
                     <div key={row.label} className="contents">
                       <dt className="text-muted-foreground">{row.label}</dt>
-                      <dd className="whitespace-pre-wrap break-words text-foreground">{row.value}</dd>
+                      <dd className="whitespace-pre-wrap break-words text-foreground">
+                        {row.value}
+                      </dd>
                     </div>
                   ))}
                 </dl>

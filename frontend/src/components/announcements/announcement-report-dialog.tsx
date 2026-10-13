@@ -7,7 +7,11 @@ import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/m
 import { Progress } from "@/components/ui/progress";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { acknowledgementPercent, announcementDateTimeFormatter, mapAnnouncementError } from "@/lib/announcements/announcement-view";
+import {
+  acknowledgementPercent,
+  announcementDateTimeFormatter,
+  mapAnnouncementError,
+} from "@/lib/announcements/announcement-view";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -23,21 +27,27 @@ interface AnnouncementReportDialogProperties {
 }
 
 /** Paket 2.9 (K2, §3.3): acknowledged X of Y, per unit, who is missing, CSV and one reminder per 24 h. */
-export function AnnouncementReportDialog({ announcementId, onOpenChange }: AnnouncementReportDialogProperties) {
+export function AnnouncementReportDialog({
+  announcementId,
+  onOpenChange,
+}: AnnouncementReportDialogProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [report, setReport] = useState<AnnouncementReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"csv" | "remind" | null>(null);
 
-  const load = useCallback(async (id: string) => {
-    setError(null);
-    try {
-      setReport(await getAnnouncementReport(id));
-    } catch (caught) {
-      setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-    }
-  }, [t]);
+  const load = useCallback(
+    async (id: string) => {
+      setError(null);
+      try {
+        setReport(await getAnnouncementReport(id));
+      } catch (caught) {
+        setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     setReport(null);
@@ -51,7 +61,11 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
       const file = await downloadAnnouncementReport(announcementId);
       triggerBlobDownload(file.blob, file.fileName);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusy(null);
     }
@@ -69,14 +83,21 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
       });
       await load(announcementId);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusy(null);
     }
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
-  const percent = report === null ? 0 : acknowledgementPercent(report.acknowledgedCount, report.audienceSizeAtPublish);
+  const percent =
+    report === null
+      ? 0
+      : acknowledgementPercent(report.acknowledgedCount, report.audienceSizeAtPublish);
 
   return (
     <Modal open={announcementId !== null} onOpenChange={onOpenChange}>
@@ -90,7 +111,9 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
           <PanelSkeleton label={t("ui.loading")} />
         ) : (
           <div className="grid max-h-[65vh] gap-4 overflow-y-auto pr-1">
-            {!report.requiresAcknowledgement ? <p className={hintClassName}>{t("announcements.report.noAcknowledgement")}</p> : null}
+            {!report.requiresAcknowledgement ? (
+              <p className={hintClassName}>{t("announcements.report.noAcknowledgement")}</p>
+            ) : null}
             <div className="grid gap-1.5">
               <p className="text-[13px] font-medium text-foreground">
                 {t("announcements.report.summary", {
@@ -110,15 +133,23 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
                 <caption className="sr-only">{t("announcements.report.byUnit")}</caption>
                 <thead className="text-[11.5px] text-muted-foreground">
                   <tr className="border-b border-border">
-                    <th scope="col" className="py-1.5 pr-2 font-medium">{t("announcements.report.unit")}</th>
-                    <th scope="col" className="py-1.5 pr-2 text-right font-medium">{t("announcements.report.acknowledgedColumn")}</th>
-                    <th scope="col" className="py-1.5 text-right font-medium">{t("announcements.report.audienceColumn")}</th>
+                    <th scope="col" className="py-1.5 pr-2 font-medium">
+                      {t("announcements.report.unit")}
+                    </th>
+                    <th scope="col" className="py-1.5 pr-2 text-right font-medium">
+                      {t("announcements.report.acknowledgedColumn")}
+                    </th>
+                    <th scope="col" className="py-1.5 text-right font-medium">
+                      {t("announcements.report.audienceColumn")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.byUnit.map((row) => (
                     <tr key={row.unit} className="border-b border-border/60">
-                      <th scope="row" className="py-1.5 pr-2 font-normal">{row.unit || t("announcements.report.noUnit")}</th>
+                      <th scope="row" className="py-1.5 pr-2 font-normal">
+                        {row.unit || t("announcements.report.noUnit")}
+                      </th>
                       <td className="tnum py-1.5 pr-2 text-right">{row.acknowledged}</td>
                       <td className="tnum py-1.5 text-right">{row.audience}</td>
                     </tr>
@@ -139,17 +170,25 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
                     {report.pending.map((person) => (
                       <li key={person.id}>
                         {person.displayName}
-                        {person.unit ? <span className="text-muted-foreground"> · {person.unit}</span> : null}
+                        {person.unit ? (
+                          <span className="text-muted-foreground"> · {person.unit}</span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
                 )}
                 {report.pendingCount > report.pending.length ? (
-                  <p className={hintClassName}>{t("announcements.report.pendingMore", { count: report.pendingCount - report.pending.length })}</p>
+                  <p className={hintClassName}>
+                    {t("announcements.report.pendingMore", {
+                      count: report.pendingCount - report.pending.length,
+                    })}
+                  </p>
                 ) : null}
                 {report.lastReminderAt ? (
                   <p className={hintClassName}>
-                    {t("announcements.report.lastReminder", { at: formatter.format(new Date(report.lastReminderAt)) })}
+                    {t("announcements.report.lastReminder", {
+                      at: formatter.format(new Date(report.lastReminderAt)),
+                    })}
                   </p>
                 ) : null}
               </div>
@@ -158,12 +197,19 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
           </div>
         )}
         <ModalFooter>
-          <Button variant="outline" onClick={() => void download()} disabled={report === null || busy !== null}>
+          <Button
+            variant="outline"
+            onClick={() => void download()}
+            disabled={report === null || busy !== null}
+          >
             <Download aria-hidden />
             {t("announcements.report.csv")}
           </Button>
           {report?.requiresAcknowledgement ? (
-            <Button onClick={() => void remind()} disabled={!report.canRemind || report.pendingCount === 0 || busy !== null}>
+            <Button
+              onClick={() => void remind()}
+              disabled={!report.canRemind || report.pendingCount === 0 || busy !== null}
+            >
               <BellRing aria-hidden />
               {t("announcements.report.remind")}
             </Button>
@@ -193,12 +239,20 @@ const teamsResultKeys = {
 } as const;
 
 /** K2b: what went out by e-mail (per run) and to Teams. */
-function AnnouncementDeliverySummary({ report, formatter }: { readonly report: AnnouncementReport; readonly formatter: Intl.DateTimeFormat }) {
+function AnnouncementDeliverySummary({
+  report,
+  formatter,
+}: {
+  readonly report: AnnouncementReport;
+  readonly formatter: Intl.DateTimeFormat;
+}) {
   const { t } = useTranslation();
   if (!report.sendEmail && !report.postToTeams) return null;
   return (
     <div className="grid gap-1.5">
-      <h3 className="text-[12.5px] font-semibold text-foreground">{t("announcements.report.delivery.title")}</h3>
+      <h3 className="text-[12.5px] font-semibold text-foreground">
+        {t("announcements.report.delivery.title")}
+      </h3>
       {report.sendEmail ? (
         report.emailRuns.length === 0 ? (
           <p className={hintClassName}>{t("announcements.report.delivery.emailWaiting")}</p>
@@ -207,8 +261,15 @@ function AnnouncementDeliverySummary({ report, formatter }: { readonly report: A
             {report.emailRuns.map((run) => (
               <li key={`${run.kind}-${run.createdAt}`}>
                 <span className="font-medium">{t(runKindKeys[run.kind])}</span>
-                <span className="text-muted-foreground"> · {formatter.format(new Date(run.createdAt))} · </span>
-                {t("announcements.report.delivery.counts", { sent: run.sentCount, skipped: run.skippedCount, failed: run.failedCount })}
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {formatter.format(new Date(run.createdAt))} ·{" "}
+                </span>
+                {t("announcements.report.delivery.counts", {
+                  sent: run.sentCount,
+                  skipped: run.skippedCount,
+                  failed: run.failedCount,
+                })}
                 <span className="text-muted-foreground">
                   {" · "}
                   {run.endReason !== null
@@ -227,7 +288,10 @@ function AnnouncementDeliverySummary({ report, formatter }: { readonly report: A
           {report.teamsResult === null
             ? t("announcements.report.delivery.teams.waiting")
             : t(teamsResultKeys[report.teamsResult], {
-                at: report.teamsPostedAt === null ? "" : formatter.format(new Date(report.teamsPostedAt)),
+                at:
+                  report.teamsPostedAt === null
+                    ? ""
+                    : formatter.format(new Date(report.teamsPostedAt)),
               })}
         </p>
       ) : null}

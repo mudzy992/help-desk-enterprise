@@ -19,7 +19,13 @@ import {
  * healthy service costs no extra request. The requester may still create
  * the ticket - the banner informs, it never blocks.
  */
-export function ServiceIncidentBanner({ serviceId, hasIncident }: { readonly serviceId: string; readonly hasIncident: boolean }) {
+export function ServiceIncidentBanner({
+  serviceId,
+  hasIncident,
+}: {
+  readonly serviceId: string;
+  readonly hasIncident: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [incidents, setIncidents] = useState<readonly Incident[]>([]);
@@ -50,11 +56,20 @@ export function ServiceIncidentBanner({ serviceId, hasIncident }: { readonly ser
       if (incident.subscribed) await unsubscribeFromIncident(incident.id);
       else await subscribeToIncident(incident.id);
       setIncidents((current) =>
-        current.map((item) => (item.id === incident.id ? { ...item, subscribed: !incident.subscribed } : item)),
+        current.map((item) =>
+          item.id === incident.id ? { ...item, subscribed: !incident.subscribed } : item,
+        ),
       );
-      toast({ tone: "success", title: incident.subscribed ? t("status.card.unsubscribed") : t("status.card.subscribed") });
+      toast({
+        tone: "success",
+        title: incident.subscribed ? t("status.card.unsubscribed") : t("status.card.subscribed"),
+      });
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapStatusError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusyId(null);
     }
@@ -74,7 +89,9 @@ export function ServiceIncidentBanner({ serviceId, hasIncident }: { readonly ser
               {t("status.banner.title")}: {localizedIncidentTitle(incident, i18n.language)}
             </p>
             {incident.updates[0] ? (
-              <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-foreground/85">{incident.updates[0].message}</p>
+              <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-foreground/85">
+                {incident.updates[0].message}
+              </p>
             ) : null}
             <p className="mt-1 text-[11.5px] text-muted-foreground">
               {t("status.banner.hint")}{" "}
@@ -83,7 +100,13 @@ export function ServiceIncidentBanner({ serviceId, hasIncident }: { readonly ser
               </Link>
             </p>
           </div>
-          <Button type="button" size="xs" variant={incident.subscribed ? "secondary" : "outline"} disabled={busyId === incident.id} onClick={() => void toggle(incident)}>
+          <Button
+            type="button"
+            size="xs"
+            variant={incident.subscribed ? "secondary" : "outline"}
+            disabled={busyId === incident.id}
+            onClick={() => void toggle(incident)}
+          >
             {incident.subscribed ? <BellOff /> : <Bell />}
             {incident.subscribed ? t("status.card.unsubscribe") : t("status.card.subscribe")}
           </Button>

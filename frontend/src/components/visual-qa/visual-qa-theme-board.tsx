@@ -45,7 +45,16 @@ const SEMANTIC: readonly { readonly label: string; readonly className: string }[
   { label: "hold", className: "bg-hold" },
 ];
 
-const TONES = ["neutral", "primary", "accent", "success", "warning", "danger", "info", "hold"] as const;
+const TONES = [
+  "neutral",
+  "primary",
+  "accent",
+  "success",
+  "warning",
+  "danger",
+  "info",
+  "hold",
+] as const;
 
 const RADII: readonly { readonly label: string; readonly className: string }[] = [
   { label: "rounded-md", className: "rounded-md" },
@@ -66,9 +75,7 @@ function Swatches({
             className={`size-8 shrink-0 rounded-lg border border-border ${item.className}`}
             aria-hidden="true"
           />
-          <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">
-            {item.label}
-          </span>
+          <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">{item.label}</span>
         </div>
       ))}
     </div>
@@ -239,8 +246,8 @@ export function VisualQaThemeBoard() {
             }
           />
           <div className="px-4 py-3 text-[13px] text-muted-foreground">
-            Kartice se razlikuju od podloge obrubom i jedva vidljivom sjenom. Hover
-            je <span className="text-foreground">border-line-strong</span>.
+            Kartice se razlikuju od podloge obrubom i jedva vidljivom sjenom. Hover je{" "}
+            <span className="text-foreground">border-line-strong</span>.
           </div>
         </Card>
       </VisualQaSection>

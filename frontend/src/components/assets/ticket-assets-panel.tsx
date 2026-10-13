@@ -9,7 +9,12 @@ import { DetailSection } from "@/components/ui/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input } from "@/components/ui/field";
-import { assetStatusKeys, assetStatusTone, mapAssetError, resolveAssetIcon } from "@/lib/assets/asset-view";
+import {
+  assetStatusKeys,
+  assetStatusTone,
+  mapAssetError,
+  resolveAssetIcon,
+} from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   getTicketAssets,
@@ -27,7 +32,13 @@ import {
  * Hidden when the module is off or nothing is linked and editing is not
  * possible.
  */
-export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId: string; readonly versionKey: string }) {
+export function TicketAssetsPanel({
+  ticketId,
+  versionKey,
+}: {
+  readonly ticketId: string;
+  readonly versionKey: string;
+}) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const key = [...ticketAssetQueryKeys.ticket(ticketId), versionKey];
@@ -35,7 +46,10 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<{ readonly assetId: string; readonly label: string } | null>(null);
+  const [removing, setRemoving] = useState<{
+    readonly assetId: string;
+    readonly label: string;
+  } | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(search.trim()), 250);
@@ -74,7 +88,11 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
       onError(cause);
     },
   });
-  const primary = useMutation({ mutationFn: (assetId: string) => setPrimaryTicketAsset(ticketId, assetId), onSuccess: apply, onError });
+  const primary = useMutation({
+    mutationFn: (assetId: string) => setPrimaryTicketAsset(ticketId, assetId),
+    onSuccess: apply,
+    onError,
+  });
 
   const data = query.data;
   if (data === undefined || !data.enabled) return null;
@@ -91,7 +109,9 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
       subtitle={t("assets.ticket.count", { count: data.items.length })}
     >
       <div className="grid gap-2">
-        {data.items.length === 0 ? <p className={hintClassName}>{t("assets.ticket.empty")}</p> : null}
+        {data.items.length === 0 ? (
+          <p className={hintClassName}>{t("assets.ticket.empty")}</p>
+        ) : null}
         <ul className="grid gap-2">
           {data.items.map((item) => {
             const Icon = resolveAssetIcon(item.typeIcon);
@@ -101,16 +121,25 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
                 <Icon size={14} aria-hidden="true" className="shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   {item.canOpen ? (
-                    <Link to={`/assets/${item.assetId}`} className="block truncate font-medium text-foreground hover:underline">
+                    <Link
+                      to={`/assets/${item.assetId}`}
+                      className="block truncate font-medium text-foreground hover:underline"
+                    >
                       {label}
                     </Link>
                   ) : (
                     <span className="block truncate font-medium text-foreground">{label}</span>
                   )}
-                  <span className="block truncate text-[11.5px] text-muted-foreground">{english ? item.typeNameEn : item.typeName}</span>
+                  <span className="block truncate text-[11.5px] text-muted-foreground">
+                    {english ? item.typeNameEn : item.typeName}
+                  </span>
                 </div>
                 {item.isPrimary ? <Badge tone="primary">{t("assets.ticket.primary")}</Badge> : null}
-                {item.status !== "" ? <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge> : null}
+                {item.status !== "" ? (
+                  <Badge tone={assetStatusTone(item.status)}>
+                    {t(assetStatusKeys[item.status])}
+                  </Badge>
+                ) : null}
                 {data.canEdit && !item.isPrimary ? (
                   <Button
                     type="button"
@@ -179,12 +208,27 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
               ) : (
                 <p className={hintClassName}>{t("assets.ticket.searchHint")}</p>
               )}
-              <Button type="button" variant="ghost" size="xs" className="justify-self-end" onClick={() => { setAdding(false); setSearch(""); }}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                className="justify-self-end"
+                onClick={() => {
+                  setAdding(false);
+                  setSearch("");
+                }}
+              >
                 {t("ui.cancel")}
               </Button>
             </div>
           ) : (
-            <Button type="button" variant="ghost" size="xs" className="justify-self-start" onClick={() => setAdding(true)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="justify-self-start"
+              onClick={() => setAdding(true)}
+            >
               <Plus size={12} aria-hidden="true" />
               {t("assets.ticket.add")}
             </Button>

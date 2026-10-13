@@ -59,10 +59,7 @@ export type ReportPackScope = {
   readonly to: string;
 };
 
-export function buildReportPackQuery(
-  scope: ReportPackScope,
-  format?: ReportExportFormat,
-): string {
+export function buildReportPackQuery(scope: ReportPackScope, format?: ReportExportFormat): string {
   const params = new URLSearchParams({
     organizationalUnitId: scope.organizationalUnitId,
     from: scope.from,

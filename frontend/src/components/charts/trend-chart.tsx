@@ -83,7 +83,9 @@ export function TrendChart({
   const count = labels.length;
   if (count === 0) return null;
 
-  const values = series.flatMap((item) => item.values.filter((value): value is number => value !== null));
+  const values = series.flatMap((item) =>
+    item.values.filter((value): value is number => value !== null),
+  );
   const rawMax = Math.max(0, ...values, target?.value ?? 0);
   const rawMin = Math.min(0, ...values);
   const top = yMax ?? (rawMax > 0 ? rawMax * 1.15 : 1);
@@ -121,9 +123,14 @@ export function TrendChart({
     <div className={cn("w-full", className)} data-testid={testId}>
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         {series.map((item) => (
-          <span key={item.key} className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
+          <span
+            key={item.key}
+            className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground"
+          >
             <span
-              className={cn(item.kind === "bar" ? "h-2.5 w-2.5 rounded-sm" : "h-0.5 w-4 rounded-full")}
+              className={cn(
+                item.kind === "bar" ? "h-2.5 w-2.5 rounded-sm" : "h-0.5 w-4 rounded-full",
+              )}
               style={{ background: toneColor[item.tone] }}
             />
             {item.label}
@@ -150,7 +157,13 @@ export function TrendChart({
       </div>
 
       <div className="relative" style={{ height }}>
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="none" role="img" aria-label={summary}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-full w-full"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={summary}
+        >
           {GRID.map((ratio) => (
             <line
               key={ratio}
@@ -283,7 +296,10 @@ export function TrendChart({
                       left: `${(x(index) / W) * 100}%`,
                       top: `${(y(value) / H) * 100}%`,
                       borderColor: toneColor[item.tone],
-                      background: item.lowSample?.[index] === true ? "rgb(var(--surface))" : toneColor[item.tone],
+                      background:
+                        item.lowSample?.[index] === true
+                          ? "rgb(var(--surface))"
+                          : toneColor[item.tone],
                       opacity: item.lowSample?.[index] === true ? 0.7 : 1,
                     }}
                   />
@@ -294,8 +310,13 @@ export function TrendChart({
 
         {hover !== null ? (
           <div
-            className={cn(floatingPanelClassName, "pointer-events-none absolute top-1 z-10 w-48 p-2.5")}
-            style={{ left: `min(max(calc(${(x(hover) / W) * 100}% - 96px), 0px), calc(100% - 192px))` }}
+            className={cn(
+              floatingPanelClassName,
+              "pointer-events-none absolute top-1 z-10 w-48 p-2.5",
+            )}
+            style={{
+              left: `min(max(calc(${(x(hover) / W) * 100}% - 96px), 0px), calc(100% - 192px))`,
+            }}
           >
             <p className="text-[11px] font-semibold text-foreground">
               {tooltipLabels[hover] ?? labels[hover]}
@@ -336,7 +357,12 @@ export function TrendChart({
       <ChartDataTable
         caption={series.map((item) => item.label).join(", ")}
         bucketLabels={bucketLabels}
-        columns={series.map((item) => ({ key: item.key, label: item.label, values: item.values, format: item.format }))}
+        columns={series.map((item) => ({
+          key: item.key,
+          label: item.label,
+          values: item.values,
+          format: item.format,
+        }))}
       />
     </div>
   );

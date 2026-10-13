@@ -2,25 +2,51 @@ import { describe, expect, it } from "vitest";
 import type { DirectorySyncPlan } from "@/services/directory-sync-api";
 import { buildDirectoryPlanCsv } from "./directory-sync-plan-csv";
 
-const safeguard = { activeManagedUsers: 10, deactivations: 1, percent: 10, limitPercent: 10, tripped: false };
+const safeguard = {
+  activeManagedUsers: 10,
+  deactivations: 1,
+  percent: 10,
+  limitPercent: 10,
+  tripped: false,
+};
 
 function plan(): DirectorySyncPlan {
   return {
     organizationalUnits: {
-      create: [{ distinguishedName: "OU=Visoko,DC=x", path: "/Visoko", name: "Visoko", type: "unit", parentPath: null }],
+      create: [
+        {
+          distinguishedName: "OU=Visoko,DC=x",
+          path: "/Visoko",
+          name: "Visoko",
+          type: "unit",
+          parentPath: null,
+        },
+      ],
       update: [],
     },
     users: {
-      create: [{
-        guid: "g", email: "a@example.com", displayName: "Čedo \"Ć\" Šabić", distinguishedName: "CN=a",
-        company: null, department: null, ouPath: "/Visoko",
-      }],
+      create: [
+        {
+          guid: "g",
+          email: "a@example.com",
+          displayName: 'Čedo "Ć" Šabić',
+          distinguishedName: "CN=a",
+          company: null,
+          department: null,
+          ouPath: "/Visoko",
+        },
+      ],
       update: [],
       reactivate: [],
-      deactivate: [{ userId: "u", email: "b@example.com", displayName: "=HYPERLINK()", reason: "missing" }],
+      deactivate: [
+        { userId: "u", email: "b@example.com", displayName: "=HYPERLINK()", reason: "missing" },
+      ],
       unchanged: 3,
     },
-    roles: { grant: [{ userId: null, email: "a@example.com", roleKey: "AGENT", ouPath: "/Visoko" }], revoke: [] },
+    roles: {
+      grant: [{ userId: null, email: "a@example.com", roleKey: "AGENT", ouPath: "/Visoko" }],
+      revoke: [],
+    },
     exceptions: [{ code: "NO_EMAIL", distinguishedName: "CN=c", email: null, detail: null }],
     unitCounts: [],
     safeguard,

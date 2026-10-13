@@ -34,7 +34,8 @@ export function UserNotificationPreferencesSection({ userId }: { readonly userId
   }, [load]);
 
   if (summary === null) return null;
-  const customized = summary.customizedCategories > 0 || summary.quietHours !== null || summary.digestTime !== null;
+  const customized =
+    summary.customizedCategories > 0 || summary.quietHours !== null || summary.digestTime !== null;
 
   return (
     <div className="space-y-2" data-testid="user-notification-preferences-section">

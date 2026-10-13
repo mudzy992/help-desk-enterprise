@@ -48,13 +48,7 @@ describe("selectSlaWatchlist", () => {
       ticket("7", "PENDING", { isOverdue: true, updatedAt: "2026-09-06T10:00:00.000Z" }),
       ticket("8", "PENDING", { isOverdue: true, updatedAt: "2026-09-07T10:00:00.000Z" }),
     ];
-    expect(selectSlaWatchlist(tickets).map((item) => item.id)).toEqual([
-      "8",
-      "7",
-      "3",
-      "6",
-      "2",
-    ]);
+    expect(selectSlaWatchlist(tickets).map((item) => item.id)).toEqual(["8", "7", "3", "6", "2"]);
   });
 });
 
@@ -83,9 +77,7 @@ describe("recentTicketsExcluding", () => {
   it("drops recent rows that already appear in the attention set", () => {
     const recent = [ticket("1", "PENDING"), ticket("2", "PENDING")];
     const attention = [ticket("2", "UNROUTED")];
-    expect(recentTicketsExcluding(recent, attention).map((item) => item.id)).toEqual([
-      "1",
-    ]);
+    expect(recentTicketsExcluding(recent, attention).map((item) => item.id)).toEqual(["1"]);
   });
 });
 

@@ -10,7 +10,9 @@ import { queryKeys } from "@/lib/query/query-keys";
 
 describe("admin config events (paket 1.7 R3)", () => {
   it("parses only known domains", () => {
-    expect(parseAdminConfigEvent({ domain: "sla", action: "delete", actorName: "Emir" })).toMatchObject({
+    expect(
+      parseAdminConfigEvent({ domain: "sla", action: "delete", actorName: "Emir" }),
+    ).toMatchObject({
       domain: "sla",
       action: "delete",
       actorName: "Emir",

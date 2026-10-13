@@ -38,7 +38,14 @@ interface ProblemFormSheetProperties {
  * description, impact/urgency, unit, owner, group, service). The analysis
  * fields are edited on the Analysis tab.
  */
-export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved, canAssignOwner }: ProblemFormSheetProperties) {
+export function ProblemFormSheet({
+  open,
+  onOpenChange,
+  options,
+  problem,
+  onSaved,
+  canAssignOwner,
+}: ProblemFormSheetProperties) {
   const { t } = useTranslation();
   const editing = problem !== undefined;
   const [title, setTitle] = useState("");
@@ -60,7 +67,12 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
     setDescription(problem?.description ?? "");
     setImpact(problem?.impact ?? "MEDIUM");
     setUrgency(problem?.urgency ?? "MEDIUM");
-    setUnitId(problem?.organizationalUnit.id ?? options.homeOrganizationalUnitId ?? options.units[0]?.id ?? "");
+    setUnitId(
+      problem?.organizationalUnit.id ??
+        options.homeOrganizationalUnitId ??
+        options.units[0]?.id ??
+        "",
+    );
     setGroupId(problem?.group?.id ?? "");
     setServiceId(problem?.service?.id ?? "");
     setOwner(problem?.owner ?? null);
@@ -83,11 +95,24 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
 
   // A unit outside the list (another scope) stays selectable while editing.
   const units =
-    problem !== undefined && !options.units.some((unit) => unit.id === problem.organizationalUnit.id)
-      ? [{ id: problem.organizationalUnit.id, name: problem.organizationalUnit.name, path: problem.organizationalUnit.ouPath }, ...options.units]
+    problem !== undefined &&
+    !options.units.some((unit) => unit.id === problem.organizationalUnit.id)
+      ? [
+          {
+            id: problem.organizationalUnit.id,
+            name: problem.organizationalUnit.name,
+            path: problem.organizationalUnit.ouPath,
+          },
+          ...options.units,
+        ]
       : options.units;
 
-  const canSubmit = !saving && title.trim().length >= 3 && description.trim().length > 0 && unitId !== "" && groupId !== "";
+  const canSubmit =
+    !saving &&
+    title.trim().length >= 3 &&
+    description.trim().length > 0 &&
+    unitId !== "" &&
+    groupId !== "";
 
   const changeGroup = (next: string) => {
     setGroupId(next);
@@ -112,7 +137,9 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
         groupId,
         ...(canAssignOwner ? { ownerUserId: owner?.id ?? null } : {}),
       };
-      const saved = editing ? await updateProblem(problem.id, { version: problem.version, ...base }) : await createProblemFull(base);
+      const saved = editing
+        ? await updateProblem(problem.id, { version: problem.version, ...base })
+        : await createProblemFull(base);
       onOpenChange(false);
       onSaved(saved.id);
     } catch (caught) {
@@ -130,29 +157,59 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
 
   return (
     <Sheet open={open} onOpenChange={(next) => (saving ? undefined : onOpenChange(next))}>
-      <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-y-auto p-5" data-testid="problem-form-sheet">
-        <SheetTitle>{editing ? t("problems.form.editTitle") : t("problems.form.createTitle")}</SheetTitle>
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-lg flex-col overflow-y-auto p-5"
+        data-testid="problem-form-sheet"
+      >
+        <SheetTitle>
+          {editing ? t("problems.form.editTitle") : t("problems.form.createTitle")}
+        </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {editing ? t("problems.form.editDescription") : t("problems.form.createDescription")}
         </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           <Field label={t("problems.fields.title")} required>
-            {(control) => <Input {...control} value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} autoFocus />}
+            {(control) => (
+              <Input
+                {...control}
+                value={title}
+                maxLength={200}
+                onChange={(event) => setTitle(event.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label={t("problems.fields.description")} required>
-            {(control) => <Textarea {...control} rows={5} value={description} maxLength={8000} onChange={(event) => setDescription(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={5}
+                value={description}
+                maxLength={8000}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("problems.fields.impact")}>
               {(control) => (
-                <Select {...control} value={impact} onChange={(event) => setImpact(event.target.value as ProblemSeverity)}>
+                <Select
+                  {...control}
+                  value={impact}
+                  onChange={(event) => setImpact(event.target.value as ProblemSeverity)}
+                >
                   {severityOptions}
                 </Select>
               )}
             </Field>
             <Field label={t("problems.fields.urgency")}>
               {(control) => (
-                <Select {...control} value={urgency} onChange={(event) => setUrgency(event.target.value as ProblemSeverity)}>
+                <Select
+                  {...control}
+                  value={urgency}
+                  onChange={(event) => setUrgency(event.target.value as ProblemSeverity)}
+                >
                   {severityOptions}
                 </Select>
               )}
@@ -161,7 +218,11 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
           <p className={hintClassName}>{t("problems.form.priorityHint")}</p>
           <Field label={t("problems.fields.organizationalUnit")} required>
             {(control) => (
-              <Select {...control} value={unitId} onChange={(event) => setUnitId(event.target.value)}>
+              <Select
+                {...control}
+                value={unitId}
+                onChange={(event) => setUnitId(event.target.value)}
+              >
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
                     {unit.path}
@@ -172,9 +233,14 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
           </Field>
           <Field label={t("problems.fields.group")} hint={t("problems.form.groupHint")} required>
             {(control) => (
-              <Select {...control} value={groupId} onChange={(event) => changeGroup(event.target.value)}>
+              <Select
+                {...control}
+                value={groupId}
+                onChange={(event) => changeGroup(event.target.value)}
+              >
                 <option value="">{t("problems.form.groupPlaceholder")}</option>
-                {problem?.group && !options.groups.some((group) => group.id === problem.group?.id) ? (
+                {problem?.group &&
+                !options.groups.some((group) => group.id === problem.group?.id) ? (
                   <option value={problem.group.id}>{problem.group.name}</option>
                 ) : null}
                 {options.groups.map((group) => (
@@ -186,62 +252,85 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
             )}
           </Field>
           {canAssignOwner ? (
-          <div className="grid gap-1.5">
-            <span className="text-[12.5px] font-medium text-foreground">{t("problems.fields.owner")}</span>
-            {owner !== null ? (
-              <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
-                <span className="min-w-0">
-                  <span className="block truncate text-foreground">{owner.displayName}</span>
-                  {owner.email ? <span className="block truncate text-[11.5px] text-muted-foreground">{owner.email}</span> : null}
-                </span>
-                <Button type="button" variant="ghost" size="icon" aria-label={t("problems.form.clearOwner")} onClick={() => setOwner(null)}>
-                  <X size={13} aria-hidden="true" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Input
-                  value={ownerSearch}
-                  maxLength={120}
-                  onChange={(event) => setOwnerSearch(event.target.value)}
-                  placeholder={t("problems.form.ownerSearch")}
-                  aria-label={t("problems.form.ownerSearch")}
-                />
-                {groupId !== "" ? (
-                  <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("problems.form.ownerResults")}>
-                    {(owners.data?.items ?? []).length === 0 ? (
-                      <li className={`px-2 py-1 ${hintClassName}`}>{owners.isFetching ? t("ui.loading") : t("problems.form.ownerNone")}</li>
-                    ) : (
-                      (owners.data?.items ?? []).map((item) => (
-                        <li key={item.id}>
-                          <button
-                            type="button"
-                            className="w-full truncate rounded-md px-2 py-1 text-left text-[12.5px] text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                            onClick={() => {
-                              setOwner(item);
-                              setOwnerSearch("");
-                            }}
-                          >
-                            {item.displayName}
-                            {item.email ? <span className="text-muted-foreground"> · {item.email}</span> : null}
-                          </button>
+            <div className="grid gap-1.5">
+              <span className="text-[12.5px] font-medium text-foreground">
+                {t("problems.fields.owner")}
+              </span>
+              {owner !== null ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
+                  <span className="min-w-0">
+                    <span className="block truncate text-foreground">{owner.displayName}</span>
+                    {owner.email ? (
+                      <span className="block truncate text-[11.5px] text-muted-foreground">
+                        {owner.email}
+                      </span>
+                    ) : null}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("problems.form.clearOwner")}
+                    onClick={() => setOwner(null)}
+                  >
+                    <X size={13} aria-hidden="true" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    value={ownerSearch}
+                    maxLength={120}
+                    onChange={(event) => setOwnerSearch(event.target.value)}
+                    placeholder={t("problems.form.ownerSearch")}
+                    aria-label={t("problems.form.ownerSearch")}
+                  />
+                  {groupId !== "" ? (
+                    <ul
+                      className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
+                      aria-label={t("problems.form.ownerResults")}
+                    >
+                      {(owners.data?.items ?? []).length === 0 ? (
+                        <li className={`px-2 py-1 ${hintClassName}`}>
+                          {owners.isFetching ? t("ui.loading") : t("problems.form.ownerNone")}
                         </li>
-                      ))
-                    )}
-                  </ul>
-                ) : (
-                  <p className={hintClassName}>{t("problems.form.ownerPickGroup")}</p>
-                )}
-              </>
-            )}
-          </div>
+                      ) : (
+                        (owners.data?.items ?? []).map((item) => (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              className="w-full truncate rounded-md px-2 py-1 text-left text-[12.5px] text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                              onClick={() => {
+                                setOwner(item);
+                                setOwnerSearch("");
+                              }}
+                            >
+                              {item.displayName}
+                              {item.email ? (
+                                <span className="text-muted-foreground"> · {item.email}</span>
+                              ) : null}
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  ) : (
+                    <p className={hintClassName}>{t("problems.form.ownerPickGroup")}</p>
+                  )}
+                </>
+              )}
+            </div>
           ) : (
             <p className={hintClassName}>{t("problems.form.ownerByGroup")}</p>
           )}
           <div className="grid gap-3">
             <Field label={t("problems.fields.service")}>
               {(control) => (
-                <Select {...control} value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
+                <Select
+                  {...control}
+                  value={serviceId}
+                  onChange={(event) => setServiceId(event.target.value)}
+                >
                   <option value="">{t("problems.form.none")}</option>
                   {options.services.map((service) => (
                     <option key={service.id} value={service.id}>
@@ -258,11 +347,20 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={!canSubmit} data-testid="problem-form-submit">
-              {saving ? t("problems.link.saving") : editing ? t("problems.form.save") : t("problems.form.create")}
+              {saving
+                ? t("problems.link.saving")
+                : editing
+                  ? t("problems.form.save")
+                  : t("problems.form.create")}
             </Button>
           </div>
         </form>

@@ -15,9 +15,7 @@ export function EmptyState({ icon, title, body, action }: EmptyStateProperties) 
         {icon ?? <Inbox size={18} strokeWidth={1.8} />}
       </div>
       <p className="text-[13px] font-medium text-foreground">{title}</p>
-      {body ? (
-        <p className="max-w-sm text-[12px] leading-5 text-muted-foreground">{body}</p>
-      ) : null}
+      {body ? <p className="max-w-sm text-[12px] leading-5 text-muted-foreground">{body}</p> : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );

@@ -31,16 +31,12 @@ export function csatBucketRows(
       meetsTarget: bucket.average >= satisfiedMinRating,
     }))
     .sort((left, right) =>
-      right.count === left.count
-        ? left.label.localeCompare(right.label)
-        : right.count - left.count,
+      right.count === left.count ? left.label.localeCompare(right.label) : right.count - left.count,
     );
 }
 
 /** Prosjek kao traka: boja prati prag, broj ostaje tačan (jedna decimala). */
-export function csatBucketBars(
-  rows: readonly CsatBucketRow[],
-): readonly HorizontalBarItem[] {
+export function csatBucketBars(rows: readonly CsatBucketRow[]): readonly HorizontalBarItem[] {
   return rows.map((row) => ({
     label: row.label,
     value: Math.round(row.average * 10) / 10,

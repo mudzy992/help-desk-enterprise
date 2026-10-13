@@ -17,7 +17,11 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
   if (items.length === 0) {
     return null;
   }
-  const dateFormat = new Intl.DateTimeFormat(i18n.language === "en" ? "en-GB" : "bs-BA", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const dateFormat = new Intl.DateTimeFormat(i18n.language === "en" ? "en-GB" : "bs-BA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
   return (
     <DetailSection
       id="merged"
@@ -26,21 +30,31 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
     >
       <ul className="divide-y divide-border/40 text-[12px]">
         {items.map((item) => {
-          const statusKey = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[item.status as TicketStatus];
+          const statusKey = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[
+            item.status as TicketStatus
+          ];
           return (
             <li key={item.id} className="py-2">
               <div className="flex items-center gap-1.5">
                 <GitMerge size={12} className="text-muted-foreground" aria-hidden="true" />
-                <Link className="tnum font-medium text-link hover:underline" to={`/tickets/${item.id}`}>
+                <Link
+                  className="tnum font-medium text-link hover:underline"
+                  to={`/tickets/${item.id}`}
+                >
                   {item.ticketNumber}
                 </Link>
                 <span className="ml-auto text-[11px] text-muted-foreground">
                   {statusKey === undefined ? item.status : ticketText(t, statusKey)}
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-foreground/85" title={item.title}>{item.title}</p>
+              <p className="mt-0.5 truncate text-foreground/85" title={item.title}>
+                {item.title}
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                {[item.requesterName, item.mergedAt === null ? null : dateFormat.format(new Date(item.mergedAt))]
+                {[
+                  item.requesterName,
+                  item.mergedAt === null ? null : dateFormat.format(new Date(item.mergedAt)),
+                ]
                   .filter((part): part is string => part !== null && part.length > 0)
                   .join(" · ")}
               </p>

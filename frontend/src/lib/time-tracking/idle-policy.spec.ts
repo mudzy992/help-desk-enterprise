@@ -6,19 +6,34 @@ const minute = 60_000;
 describe("decideIdle (package 1.3, T3)", () => {
   it("stays active and sends heartbeats while the user works", () => {
     expect(
-      decideIdle({ now: 10 * minute, lastActivityAt: 9.5 * minute, hiddenSince: null, idleMinutes: 10 }),
+      decideIdle({
+        now: 10 * minute,
+        lastActivityAt: 9.5 * minute,
+        hiddenSince: null,
+        idleMinutes: 10,
+      }),
     ).toEqual({ kind: "active", sendHeartbeat: true });
   });
 
   it("pauses at the last activity after the idle window", () => {
     expect(
-      decideIdle({ now: 20 * minute, lastActivityAt: 9 * minute, hiddenSince: null, idleMinutes: 10 }),
+      decideIdle({
+        now: 20 * minute,
+        lastActivityAt: 9 * minute,
+        hiddenSince: null,
+        idleMinutes: 10,
+      }),
     ).toEqual({ kind: "idle", endedAt: 9 * minute });
   });
 
   it("does not send heartbeats from a hidden tab", () => {
     expect(
-      decideIdle({ now: 5 * minute, lastActivityAt: 4.5 * minute, hiddenSince: 4.6 * minute, idleMinutes: 10 }),
+      decideIdle({
+        now: 5 * minute,
+        lastActivityAt: 4.5 * minute,
+        hiddenSince: 4.6 * minute,
+        idleMinutes: 10,
+      }),
     ).toEqual({ kind: "active", sendHeartbeat: false });
   });
 

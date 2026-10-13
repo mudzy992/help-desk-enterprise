@@ -42,9 +42,7 @@ export function DocsSearch({
       </label>
       <p className={hintClassName}>{t("docs.searchHint")}</p>
 
-      {error === null ? null : (
-        <p className="text-[12.5px] text-danger">{t(error.key)}</p>
-      )}
+      {error === null ? null : <p className="text-[12.5px] text-danger">{t(error.key)}</p>}
 
       {loading && response === null ? <PanelSkeleton label={t("docs.searching")} /> : null}
 
@@ -60,7 +58,10 @@ export function DocsSearch({
         <ul className="divide-y divide-border/70 rounded-md border border-border">
           {results.map((result) => (
             <li key={result.slug}>
-              <Link className="block px-3 py-2.5 hover:bg-surface-hover" to={`/docs/${result.slug}`}>
+              <Link
+                className="block px-3 py-2.5 hover:bg-surface-hover"
+                to={`/docs/${result.slug}`}
+              >
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="text-[13px] font-medium text-foreground">{result.title}</span>
                   <span className="text-[11px] text-muted-foreground">
@@ -70,7 +71,10 @@ export function DocsSearch({
                 <span className="mt-1 block text-[12px] leading-5 text-muted-foreground">
                   {result.excerptParts.map((part, index) =>
                     part.match ? (
-                      <mark key={index} className={cn("rounded bg-warning/20 px-0.5 text-foreground")}>
+                      <mark
+                        key={index}
+                        className={cn("rounded bg-warning/20 px-0.5 text-foreground")}
+                      >
                         {part.text}
                       </mark>
                     ) : (

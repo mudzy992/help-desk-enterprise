@@ -67,7 +67,7 @@ export function TemplatesPage() {
 
   const requested = searchParams.get("tab");
   const tab: TabKey | null =
-    tabs.find((item) => item.key === requested)?.key as TabKey | undefined ??
+    (tabs.find((item) => item.key === requested)?.key as TabKey | undefined) ??
     (tabs[0]?.key as TabKey | undefined) ??
     null;
 
@@ -94,7 +94,11 @@ export function TemplatesPage() {
         setPlaybooks(await listPlaybooks({ q: debounced, state }));
       } else {
         setTemplates(
-          await listManagedTemplates({ ownership: tab === "mine" ? "mine" : "shared", q: debounced, state }),
+          await listManagedTemplates({
+            ownership: tab === "mine" ? "mine" : "shared",
+            q: debounced,
+            state,
+          }),
         );
       }
       setErrorKey(null);
@@ -122,7 +126,11 @@ export function TemplatesPage() {
         await deletePlaybook(deleteTarget.item.id, reason.trim());
         toast({ tone: "success", title: t("templates.playbook.deleted") });
       } else {
-        await deleteResponseTemplate(deleteTarget.item.ownership, deleteTarget.item.id, reason.trim());
+        await deleteResponseTemplate(
+          deleteTarget.item.ownership,
+          deleteTarget.item.id,
+          reason.trim(),
+        );
         toast({ tone: "success", title: t("templates.editor.deleted") });
       }
       setDeleteTarget(null);
@@ -135,7 +143,9 @@ export function TemplatesPage() {
     }
   };
 
-  const needsReason = deleteTarget !== null && !(deleteTarget.type === "template" && deleteTarget.item.ownership === "personal");
+  const needsReason =
+    deleteTarget !== null &&
+    !(deleteTarget.type === "template" && deleteTarget.item.ownership === "personal");
 
   const newAction =
     tab === "playbooks" ? (
@@ -168,7 +178,11 @@ export function TemplatesPage() {
         subtitle={t("templates.intro")}
         actions={newAction}
       />
-      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+      <AdminConfigChangedBanner
+        pending={live.pending}
+        onRefresh={live.refreshNow}
+        onDismiss={live.dismiss}
+      />
       {tab === null ? (
         <EmptyState icon={<FileText size={18} />} title={t("templates.errors.FORBIDDEN")} />
       ) : (
@@ -184,7 +198,10 @@ export function TemplatesPage() {
           />
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
-              <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                size={13}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <input
                 type="search"
                 value={query}
@@ -227,7 +244,11 @@ export function TemplatesPage() {
               action={newAction ?? undefined}
             />
           ) : tab === "playbooks" && playbooks !== null ? (
-            <PlaybookTable items={playbooks} locale={locale} onDelete={(item) => setDeleteTarget({ type: "playbook", item })} />
+            <PlaybookTable
+              items={playbooks}
+              locale={locale}
+              onDelete={(item) => setDeleteTarget({ type: "playbook", item })}
+            />
           ) : templates !== null ? (
             <TemplateTable
               items={templates}
@@ -245,16 +266,33 @@ export function TemplatesPage() {
             setReason("");
           }
         }}
-        title={deleteTarget?.type === "playbook" ? t("templates.playbook.deleteTitle") : t("templates.editor.deleteTitle")}
-        description={deleteTarget?.type === "playbook" ? t("templates.playbook.deleteBody") : t("templates.editor.deleteBody")}
+        title={
+          deleteTarget?.type === "playbook"
+            ? t("templates.playbook.deleteTitle")
+            : t("templates.editor.deleteTitle")
+        }
+        description={
+          deleteTarget?.type === "playbook"
+            ? t("templates.playbook.deleteBody")
+            : t("templates.editor.deleteBody")
+        }
         intent="danger"
         confirmLabel={t("templates.actions.delete")}
         isPending={deleting || (needsReason && reason.trim().length < 3)}
         onConfirm={() => void confirmDelete()}
       >
         {needsReason ? (
-          <Field label={t("templates.editor.reason")} required hint={t("templates.editor.reasonHint")}>
-            <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} maxLength={500} />
+          <Field
+            label={t("templates.editor.reason")}
+            required
+            hint={t("templates.editor.reasonHint")}
+          >
+            <Textarea
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              rows={3}
+              maxLength={500}
+            />
           </Field>
         ) : null}
       </ConfirmDialog>
@@ -314,7 +352,10 @@ function TemplateTable({
           {items.map((item) => (
             <tr key={item.id} className={cn(tableRowClassName, "[&>td]:px-3")}>
               <td className="max-w-[320px]">
-                <Link to={`/admin/templates/${item.id}`} className="flex items-center gap-1.5 font-medium text-foreground hover:text-link">
+                <Link
+                  to={`/admin/templates/${item.id}`}
+                  className="flex items-center gap-1.5 font-medium text-foreground hover:text-link"
+                >
                   {item.ownership === "personal" ? <User size={12} /> : <FileText size={12} />}
                   <span className="truncate">{item.name}</span>
                 </Link>
@@ -329,10 +370,16 @@ function TemplateTable({
                 {item.ownership === "personal" ? (
                   <Badge>{t("templates.picker.personal")}</Badge>
                 ) : (
-                  <ScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} groupIds={item.groupIds} />
+                  <ScopeCell
+                    serviceIds={item.serviceIds}
+                    categoryIds={item.categoryIds}
+                    groupIds={item.groupIds}
+                  />
                 )}
               </td>
-              <td className="tnum text-right">{t("templates.list.usageCount", { count: item.usageCount })}</td>
+              <td className="tnum text-right">
+                {t("templates.list.usageCount", { count: item.usageCount })}
+              </td>
               <td className="text-muted-foreground">
                 <RelativeTime value={item.updatedAt} locale={locale} />
               </td>
@@ -393,7 +440,9 @@ function PlaybookTable({
                   <span className="truncate">{item.name}</span>
                 </Link>
                 {item.description ? (
-                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.description}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {item.description}
+                  </p>
                 ) : null}
               </td>
               <td>
@@ -403,7 +452,8 @@ function PlaybookTable({
                 {item.steps.length}
                 {item.steps.some((step) => step.required) ? (
                   <span className="ml-1 text-[11px] text-muted-foreground">
-                    ({item.steps.filter((step) => step.required).length} {t("templates.checklist.requiredBadge").toLocaleLowerCase()})
+                    ({item.steps.filter((step) => step.required).length}{" "}
+                    {t("templates.checklist.requiredBadge").toLocaleLowerCase()})
                   </span>
                 ) : null}
               </td>
@@ -450,7 +500,13 @@ function RowActions({
         </Link>
       </Button>
       {canEdit ? (
-        <Button type="button" variant="ghost" size="xs" onClick={onDelete} aria-label={t("templates.actions.delete")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          onClick={onDelete}
+          aria-label={t("templates.actions.delete")}
+        >
           <Trash2 size={12} />
         </Button>
       ) : null}

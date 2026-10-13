@@ -5,12 +5,7 @@ import {
   type ServiceCategoryMutationValues,
 } from "@/components/services/categories/service-category-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
   mapServiceCategoryError,
   type ServiceCategoryErrorKey,

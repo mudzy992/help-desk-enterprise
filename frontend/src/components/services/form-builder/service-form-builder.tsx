@@ -19,10 +19,7 @@ import {
   type ServiceFormField,
   type ServiceFormResponse,
 } from "@/services/service-catalog-api";
-import {
-  createServiceFormVersion,
-  updateServiceFormVersion,
-} from "@/services/service-forms-api";
+import { createServiceFormVersion, updateServiceFormVersion } from "@/services/service-forms-api";
 
 interface ServiceFormBuilderProperties {
   readonly serviceId: string;
@@ -41,10 +38,8 @@ export function ServiceFormBuilder({
   const [fields, setFields] = useState<ServiceFormField[]>([]);
   const [errorKey, setErrorKey] = useState<ServiceFormsErrorKey | null>(null);
   const [pending, setPending] = useState<string | null>(null);
-  const selected =
-    form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
-  const editable =
-    canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
+  const selected = form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
+  const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
 
   const applyForm = (loaded: ServiceFormResponse, preferredRef?: string) => {
     const nextRef =
@@ -102,9 +97,7 @@ export function ServiceFormBuilder({
         selectedRef={selectedRef}
         onSelect={(formVersionRef) => {
           setSelectedRef(formVersionRef);
-          const version = form?.versions.find(
-            (item) => item.formVersionRef === formVersionRef,
-          );
+          const version = form?.versions.find((item) => item.formVersionRef === formVersionRef);
           setFields(version ? [...version.schema.fields] : []);
         }}
       />
@@ -122,9 +115,7 @@ export function ServiceFormBuilder({
           hasFields={fields.length > 0}
           pending={pending}
           onCreateFirst={() => {
-            void run("create", () =>
-              createServiceForm(serviceId, defaultServiceFormSchema),
-            );
+            void run("create", () => createServiceForm(serviceId, defaultServiceFormSchema));
           }}
           onSave={() => {
             if (selected) {
@@ -147,10 +138,7 @@ export function ServiceFormBuilder({
           onCopy={() => {
             if (selected) {
               void run("copy", () =>
-                createServiceFormVersion(
-                  serviceId,
-                  orderedFormSchema(selected.schema.fields),
-                ),
+                createServiceFormVersion(serviceId, orderedFormSchema(selected.schema.fields)),
               );
             }
           }}

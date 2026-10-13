@@ -2,10 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
-import {
-  slaPriorities,
-  slaPriorityLabelKey,
-} from "@/lib/sla/sla-form-defaults";
+import { slaPriorities, slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import {
   listOrganizationalUnitTree,
@@ -32,9 +29,13 @@ export function SlaRuleForm({
   const { t } = useTranslation();
   const [priority, setPriority] = useState(rule?.priority ?? "MEDIUM");
   const [responseMinutes, setResponseMinutes] = useState(String(rule?.responseMinutes ?? 60));
-  const [resolutionMinutes, setResolutionMinutes] = useState(String(rule?.resolutionMinutes ?? 480));
+  const [resolutionMinutes, setResolutionMinutes] = useState(
+    String(rule?.resolutionMinutes ?? 480),
+  );
   const [evaluationOrder, setEvaluationOrder] = useState(String(rule?.evaluationOrder ?? 100));
-  const [organizationalUnitId, setOrganizationalUnitId] = useState(rule?.organizationalUnitId ?? "");
+  const [organizationalUnitId, setOrganizationalUnitId] = useState(
+    rule?.organizationalUnitId ?? "",
+  );
   const [serviceId, setServiceId] = useState(rule?.serviceId ?? "");
   const [reason, setReason] = useState("");
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
@@ -164,9 +165,7 @@ export function SlaRuleForm({
           required
         />
       </label>
-      {matchError ? (
-        <p className={errorTextClassName}>{t("sla.overrideMatchRequired")}</p>
-      ) : null}
+      {matchError ? <p className={errorTextClassName}>{t("sla.overrideMatchRequired")}</p> : null}
       {errorKey ? <p className={errorTextClassName}>{t(errorKey as never)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>

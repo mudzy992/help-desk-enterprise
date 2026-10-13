@@ -12,7 +12,13 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapChangeError } from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { changeQueryKeys, getChangeApprovals, voteOnChange, type ChangeDetail, type ChangeVoteDecision } from "@/services/changes-api";
+import {
+  changeQueryKeys,
+  getChangeApprovals,
+  voteOnChange,
+  type ChangeDetail,
+  type ChangeVoteDecision,
+} from "@/services/changes-api";
 
 interface ChangeApprovalsPanelProperties {
   readonly change: ChangeDetail;
@@ -55,7 +61,11 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
     setPending(decision);
     setError(null);
     try {
-      await voteOnChange(change.id, { version: change.version, decision, comment: comment.trim() || undefined });
+      await voteOnChange(change.id, {
+        version: change.version,
+        decision,
+        comment: comment.trim() || undefined,
+      });
       setComment("");
       onVoted();
     } catch (caught) {
@@ -71,19 +81,35 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
         <li key={item.id} className="grid gap-0.5 px-4 py-2 text-[12.5px]">
           <span className="flex flex-wrap items-center gap-2">
             <Badge tone={item.decision === "APPROVED" ? "success" : "danger"}>
-              {t(item.decision === "APPROVED" ? "changes.approvals.approved" : "changes.approvals.rejected")}
+              {t(
+                item.decision === "APPROVED"
+                  ? "changes.approvals.approved"
+                  : "changes.approvals.rejected",
+              )}
             </Badge>
-            <span className="text-foreground">{item.approver?.displayName ?? t("changes.history.system")}</span>
-            <span className="text-[11.5px] text-muted-foreground">{formatAssetDateTime(item.decidedAt, i18n.language)}</span>
+            <span className="text-foreground">
+              {item.approver?.displayName ?? t("changes.history.system")}
+            </span>
+            <span className="text-[11.5px] text-muted-foreground">
+              {formatAssetDateTime(item.decidedAt, i18n.language)}
+            </span>
           </span>
-          {item.comment ? <span className="whitespace-pre-wrap text-muted-foreground">{item.comment}</span> : null}
+          {item.comment ? (
+            <span className="whitespace-pre-wrap text-muted-foreground">{item.comment}</span>
+          ) : null}
         </li>
       ))}
     </ol>
   );
 
   if (change.type === "STANDARD") {
-    return <EmptyState icon={<Vote size={18} />} title={t("changes.approvals.standardTitle")} body={t("changes.approvals.standardBody")} />;
+    return (
+      <EmptyState
+        icon={<Vote size={18} />}
+        title={t("changes.approvals.standardTitle")}
+        body={t("changes.approvals.standardBody")}
+      />
+    );
   }
 
   return (
@@ -94,7 +120,11 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
           <p className="text-foreground" data-testid="change-approvals-progress">
             {t("changes.approvals.progress", { approvals: data.approvals, quorum: data.quorum })}
           </p>
-          <p className={hintClassName}>{data.cabGroup ? t("changes.approvals.cab", { name: data.cabGroup.name }) : t("changes.approvals.noCab")}</p>
+          <p className={hintClassName}>
+            {data.cabGroup
+              ? t("changes.approvals.cab", { name: data.cabGroup.name })
+              : t("changes.approvals.noCab")}
+          </p>
           {data.voters.length === 0 ? (
             <p className={hintClassName}>{t("changes.approvals.noVoters")}</p>
           ) : (
@@ -107,7 +137,9 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
                     <CircleDashed size={14} className="text-muted-foreground" aria-hidden="true" />
                   )}
                   <span className="text-foreground">{voter.displayName}</span>
-                  <span className="text-[11.5px] text-muted-foreground">{voter.voted ? t("changes.approvals.voted") : t("changes.approvals.waiting")}</span>
+                  <span className="text-[11.5px] text-muted-foreground">
+                    {voter.voted ? t("changes.approvals.voted") : t("changes.approvals.waiting")}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -118,9 +150,25 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
         <CardHeader title={t("changes.approvals.voteTitle")} />
         <div className="px-4 py-3">
           {data.canVote ? (
-            <form className="grid gap-3" onSubmit={(event) => void vote("APPROVED", event)} noValidate data-testid="change-vote-form">
-              <Field label={t("changes.approvals.comment")} hint={t("changes.approvals.commentHint")}>
-                {(control) => <Textarea {...control} rows={3} maxLength={2000} value={comment} onChange={(event) => setComment(event.target.value)} />}
+            <form
+              className="grid gap-3"
+              onSubmit={(event) => void vote("APPROVED", event)}
+              noValidate
+              data-testid="change-vote-form"
+            >
+              <Field
+                label={t("changes.approvals.comment")}
+                hint={t("changes.approvals.commentHint")}
+              >
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={3}
+                    maxLength={2000}
+                    value={comment}
+                    onChange={(event) => setComment(event.target.value)}
+                  />
+                )}
               </Field>
               {error !== null ? (
                 <p role="alert" className={errorTextClassName}>
@@ -128,11 +176,22 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
                 </p>
               ) : null}
               <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="danger" disabled={pending !== null} onClick={() => void vote("REJECTED")} data-testid="change-vote-reject">
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={pending !== null}
+                  onClick={() => void vote("REJECTED")}
+                  data-testid="change-vote-reject"
+                >
                   <ThumbsDown size={14} aria-hidden="true" />
                   {pending === "REJECTED" ? t("ui.loading") : t("changes.approvals.reject")}
                 </Button>
-                <Button type="submit" variant="primary" disabled={pending !== null} data-testid="change-vote-approve">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={pending !== null}
+                  data-testid="change-vote-approve"
+                >
                   <ThumbsUp size={14} aria-hidden="true" />
                   {pending === "APPROVED" ? t("ui.loading") : t("changes.approvals.approve")}
                 </Button>
@@ -151,7 +210,11 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
       </Card>
       <Card className="p-0 lg:col-span-2">
         <CardHeader title={t("changes.approvals.votesTitle")} />
-        {currentVotes.length === 0 ? <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.approvals.noVotes")}</p> : voteList(currentVotes)}
+        {currentVotes.length === 0 ? (
+          <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.approvals.noVotes")}</p>
+        ) : (
+          voteList(currentVotes)
+        )}
       </Card>
       {earlierVotes.length > 0 ? (
         <Card className="p-0 lg:col-span-2">

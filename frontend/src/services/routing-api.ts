@@ -71,9 +71,7 @@ export type CreateRoutingRuleInput = {
   readonly reason: string;
 };
 
-export function listRoutingHandlerGroups(): Promise<
-  readonly RoutingHandlerGroup[]
-> {
+export function listRoutingHandlerGroups(): Promise<readonly RoutingHandlerGroup[]> {
   return apiRequest("/routing/groups");
 }
 
@@ -144,9 +142,7 @@ export type RoutingRuleDeleteImpact = {
   readonly after: RoutingResolution;
 };
 
-export function createRoutingRule(
-  input: CreateRoutingRuleInput,
-): Promise<unknown> {
+export function createRoutingRule(input: CreateRoutingRuleInput): Promise<unknown> {
   return apiRequest("/routing/rules", {
     method: "POST",
     body: JSON.stringify(input),
@@ -173,9 +169,7 @@ export function deleteRoutingRule(
   });
 }
 
-export function getRoutingRuleDeleteImpact(
-  ruleId: string,
-): Promise<RoutingRuleDeleteImpact> {
+export function getRoutingRuleDeleteImpact(ruleId: string): Promise<RoutingRuleDeleteImpact> {
   return apiRequest(`/routing/rules/${ruleId}/delete-impact`);
 }
 

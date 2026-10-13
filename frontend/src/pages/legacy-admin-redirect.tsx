@@ -1,8 +1,5 @@
 import { Navigate, useSearchParams } from "react-router-dom";
-import {
-  buildAdminPath,
-  type AdminTabKey,
-} from "@/lib/admin/parse-admin-tab";
+import { buildAdminPath, type AdminTabKey } from "@/lib/admin/parse-admin-tab";
 
 export function LegacyAdminRedirect({ tab }: { readonly tab: AdminTabKey }) {
   const [searchParams] = useSearchParams();

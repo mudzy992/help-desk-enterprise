@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
-import {
-  toTicketCountsQuery,
-  toTicketPageQuery,
-} from "@/lib/tickets/ticket-page-query";
+import { toTicketCountsQuery, toTicketPageQuery } from "@/lib/tickets/ticket-page-query";
 
 const filters = (overrides: Partial<TicketListFilters> = {}): TicketListFilters => ({
   view: "all",

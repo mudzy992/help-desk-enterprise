@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CalendarClock, ChevronLeft, ChevronRight, Pencil, Plus, RefreshCw, Repeat, Trash2 } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Repeat,
+  Trash2,
+} from "lucide-react";
 import { OnCallCalendar } from "@/components/on-call/on-call-calendar";
 import { OnCallRangeDialog, type OnCallRangeMode } from "@/components/on-call/on-call-range-dialog";
 import { OnCallReasonDialog } from "@/components/on-call/on-call-reason-dialog";
@@ -41,8 +50,13 @@ import {
 const calendarDays = 28;
 const dayMs = 86_400_000;
 
-type LoadError = { readonly key: ApiErrorKey; readonly requestId: string | null; readonly disabled: boolean };
-type PendingDelete = { readonly kind: "schedule" } | { readonly kind: "override"; readonly id: string };
+type LoadError = {
+  readonly key: ApiErrorKey;
+  readonly requestId: string | null;
+  readonly disabled: boolean;
+};
+type PendingDelete =
+  { readonly kind: "schedule" } | { readonly kind: "override"; readonly id: string };
 
 /**
  * Paket 2.9 (K3, §4.4): who is on call, the four-week calendar, overrides and
@@ -72,7 +86,10 @@ export function OnCallPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const timeZone = detail?.schedule?.timezone ?? detail?.defaultTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeZone =
+    detail?.schedule?.timezone ??
+    detail?.defaultTimezone ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
   const rangeStart = useMemo(
     () => new Date(startOfWeek(new Date(), timeZone).getTime() + weekOffset * 7 * dayMs),
     [timeZone, weekOffset],
@@ -81,14 +98,28 @@ export function OnCallPage() {
   const loadOverview = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [loadedOverview, loadedMe, loadedSwaps] = await Promise.all([getOnCallOverview(), getOnCallMe(), listOnCallSwaps()]);
+      const [loadedOverview, loadedMe, loadedSwaps] = await Promise.all([
+        getOnCallOverview(),
+        getOnCallMe(),
+        listOnCallSwaps(),
+      ]);
       setOverview(loadedOverview);
       setMe(loadedMe);
       setSwaps(loadedSwaps.swaps);
       setLoadError(null);
-      setSelectedGroupId((current) => current ?? loadedOverview.groups.find((group) => group.hasSchedule)?.groupId ?? loadedOverview.groups[0]?.groupId ?? null);
+      setSelectedGroupId(
+        (current) =>
+          current ??
+          loadedOverview.groups.find((group) => group.hasSchedule)?.groupId ??
+          loadedOverview.groups[0]?.groupId ??
+          null,
+      );
     } catch (caught) {
-      setLoadError({ key: mapApiError(caught), requestId: readApiRequestId(caught), disabled: isOnCallDisabledError(caught) });
+      setLoadError({
+        key: mapApiError(caught),
+        requestId: readApiRequestId(caught),
+        disabled: isOnCallDisabledError(caught),
+      });
     } finally {
       setRefreshing(false);
     }
@@ -136,7 +167,10 @@ export function OnCallPage() {
   };
 
   const days = useMemo(
-    () => (detail === null ? [] : groupSegmentsByDay(detail.segments, rangeStart, calendarDays, timeZone)),
+    () =>
+      detail === null
+        ? []
+        : groupSegmentsByDay(detail.segments, rangeStart, calendarDays, timeZone),
     [detail, rangeStart, timeZone],
   );
 
@@ -146,11 +180,20 @@ export function OnCallPage() {
       await decideOnCallSwap(swap.id, decision);
       toast({
         tone: "success",
-        title: decision === "accept" ? t("onCall.swaps.accepted") : decision === "decline" ? t("onCall.swaps.declined") : t("onCall.swaps.cancelled"),
+        title:
+          decision === "accept"
+            ? t("onCall.swaps.accepted")
+            : decision === "decline"
+              ? t("onCall.swaps.declined")
+              : t("onCall.swaps.cancelled"),
       });
       reloadAll();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapOnCallError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusy(null);
     }
@@ -198,7 +241,11 @@ export function OnCallPage() {
         {loadError === null ? (
           <PanelSkeleton label={t("onCall.loading")} />
         ) : loadError.disabled ? (
-          <EmptyState icon={<CalendarClock size={18} />} title={t("onCall.disabledTitle")} body={t("onCall.disabledBody")} />
+          <EmptyState
+            icon={<CalendarClock size={18} />}
+            title={t("onCall.disabledTitle")}
+            body={t("onCall.disabledBody")}
+          />
         ) : (
           <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
         )}
@@ -207,7 +254,8 @@ export function OnCallPage() {
   }
 
   const schedule = detail?.schedule ?? null;
-  const isRotationMember = schedule?.members.some((member) => member.userId === currentUserId) ?? false;
+  const isRotationMember =
+    schedule?.members.some((member) => member.userId === currentUserId) ?? false;
   const colleagues = (schedule?.members ?? [])
     .filter((member) => member.userId !== currentUserId && member.isAvailable)
     .map((member) => ({ userId: member.userId, displayName: member.displayName }));
@@ -224,7 +272,9 @@ export function OnCallPage() {
   return (
     <div className="page-in grid gap-4">
       {header}
-      {loadError === null ? null : <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />}
+      {loadError === null ? null : (
+        <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -239,7 +289,9 @@ export function OnCallPage() {
                   {t("onCall.mine.now")}
                 </Badge>
                 <span className="font-medium text-foreground">{shift.groupName}</span>
-                <span className={hintClassName}>{t("onCall.until", { time: formatOnCallTime(shift.endsAt, t, shift.timezone) })}</span>
+                <span className={hintClassName}>
+                  {t("onCall.until", { time: formatOnCallTime(shift.endsAt, t, shift.timezone) })}
+                </span>
               </p>
             ))}
             {me?.next ? (
@@ -247,7 +299,8 @@ export function OnCallPage() {
                 <Badge tone="neutral">{t("onCall.mine.next")}</Badge>
                 <span className="font-medium text-foreground">{me.next.groupName}</span>
                 <span className={hintClassName}>
-                  {formatOnCallTime(me.next.startsAt, t, me.next.timezone)} – {formatOnCallTime(me.next.endsAt, t, me.next.timezone)}
+                  {formatOnCallTime(me.next.startsAt, t, me.next.timezone)} –{" "}
+                  {formatOnCallTime(me.next.endsAt, t, me.next.timezone)}
                 </span>
               </p>
             ) : null}
@@ -257,30 +310,57 @@ export function OnCallPage() {
         <Card>
           <CardHeader title={t("onCall.swaps.title")} subtitle={t("onCall.swaps.subtitle")} />
           <div className="grid gap-2 px-4 py-3.5">
-            {pendingSwaps.length === 0 ? <p className={hintClassName}>{t("onCall.swaps.none")}</p> : null}
+            {pendingSwaps.length === 0 ? (
+              <p className={hintClassName}>{t("onCall.swaps.none")}</p>
+            ) : null}
             <ul className="grid gap-2">
               {pendingSwaps.map((swap) => (
-                <li key={swap.id} className="grid gap-1.5 rounded-md border border-border/70 bg-background/40 px-3 py-2 text-[12.5px]" data-testid="on-call-swap">
+                <li
+                  key={swap.id}
+                  className="grid gap-1.5 rounded-md border border-border/70 bg-background/40 px-3 py-2 text-[12.5px]"
+                  data-testid="on-call-swap"
+                >
                   <p className="text-foreground">
                     {swap.direction === "incoming"
-                      ? t("onCall.swaps.incoming", { name: swap.requester.displayName, group: swap.groupName })
-                      : t("onCall.swaps.outgoing", { name: swap.colleague.displayName, group: swap.groupName })}
+                      ? t("onCall.swaps.incoming", {
+                          name: swap.requester.displayName,
+                          group: swap.groupName,
+                        })
+                      : t("onCall.swaps.outgoing", {
+                          name: swap.colleague.displayName,
+                          group: swap.groupName,
+                        })}
                   </p>
                   <p className={hintClassName}>
-                    {formatOnCallTime(swap.startsAt, t, swap.timezone)} – {formatOnCallTime(swap.endsAt, t, swap.timezone)} · {swap.reason}
+                    {formatOnCallTime(swap.startsAt, t, swap.timezone)} –{" "}
+                    {formatOnCallTime(swap.endsAt, t, swap.timezone)} · {swap.reason}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {swap.direction === "incoming" ? (
                       <>
-                        <Button size="sm" onClick={() => void decide(swap, "accept")} disabled={busy === swap.id}>
+                        <Button
+                          size="sm"
+                          onClick={() => void decide(swap, "accept")}
+                          disabled={busy === swap.id}
+                        >
                           {t("onCall.swaps.accept")}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => void decide(swap, "decline")} disabled={busy === swap.id}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void decide(swap, "decline")}
+                          disabled={busy === swap.id}
+                        >
                           {t("onCall.swaps.decline")}
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => void decide(swap, "cancel")} disabled={busy === swap.id}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void decide(swap, "cancel")}
+                        disabled={busy === swap.id}
+                      >
                         {t("onCall.swaps.cancel")}
                       </Button>
                     )}
@@ -290,12 +370,15 @@ export function OnCallPage() {
             </ul>
             {recentSwaps.length > 0 ? (
               <details className="text-[12px]">
-                <summary className="cursor-pointer text-muted-foreground">{t("onCall.swaps.history", { count: recentSwaps.length })}</summary>
+                <summary className="cursor-pointer text-muted-foreground">
+                  {t("onCall.swaps.history", { count: recentSwaps.length })}
+                </summary>
                 <ul className="mt-1.5 grid gap-1">
                   {recentSwaps.map((swap) => (
                     <li key={swap.id} className={hintClassName}>
-                      {swap.groupName}: {swap.requester.displayName} → {swap.colleague.displayName} ·{" "}
-                      {formatOnCallTime(swap.startsAt, t, swap.timezone)} · {t(`onCall.swaps.status.${swap.status}` as never) as unknown as string}
+                      {swap.groupName}: {swap.requester.displayName} → {swap.colleague.displayName}{" "}
+                      · {formatOnCallTime(swap.startsAt, t, swap.timezone)} ·{" "}
+                      {t(`onCall.swaps.status.${swap.status}` as never) as unknown as string}
                     </li>
                   ))}
                 </ul>
@@ -309,7 +392,9 @@ export function OnCallPage() {
         <CardHeader title={t("onCall.groups.title")} subtitle={t("onCall.groups.subtitle")} />
         {overview.groups.length === 0 ? (
           <div className="px-4 py-4">
-            <p className={hintClassName}>{overview.canManage ? t("onCall.groups.noneManager") : t("onCall.groups.none")}</p>
+            <p className={hintClassName}>
+              {overview.canManage ? t("onCall.groups.noneManager") : t("onCall.groups.none")}
+            </p>
           </div>
         ) : (
           <ul className="grid gap-1.5 px-4 py-3.5 sm:grid-cols-2 xl:grid-cols-3">
@@ -328,7 +413,9 @@ export function OnCallPage() {
                   data-testid="on-call-group"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-foreground">{group.groupName}</span>
+                    <span className="block truncate font-medium text-foreground">
+                      {group.groupName}
+                    </span>
                     <span className={cn("block truncate", hintClassName)}>
                       {!group.hasSchedule
                         ? t("onCall.groups.noSchedule")
@@ -338,7 +425,11 @@ export function OnCallPage() {
                             ? t("onCall.nobody")
                             : t("onCall.groups.current", {
                                 name: group.current.displayName,
-                                time: formatOnCallTime(group.current.endsAt, t, group.timezone ?? undefined),
+                                time: formatOnCallTime(
+                                  group.current.endsAt,
+                                  t,
+                                  group.timezone ?? undefined,
+                                ),
                               })}
                     </span>
                   </span>
@@ -360,7 +451,10 @@ export function OnCallPage() {
               schedule === null
                 ? t("onCall.detail.noSchedule")
                 : t("onCall.detail.summary", {
-                    length: schedule.rotationLength === "WEEK" ? t("onCall.schedule.week") : t("onCall.schedule.day"),
+                    length:
+                      schedule.rotationLength === "WEEK"
+                        ? t("onCall.schedule.week")
+                        : t("onCall.schedule.day"),
                     time: schedule.handoffTime,
                     zone: schedule.timezone,
                   })
@@ -387,7 +481,12 @@ export function OnCallPage() {
                     </Button>
                   ) : null}
                   {detail.canManage && schedule !== null ? (
-                    <Button size="sm" variant="ghost" onClick={() => setPendingDelete({ kind: "schedule" })} aria-label={t("onCall.schedule.delete")}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPendingDelete({ kind: "schedule" })}
+                      aria-label={t("onCall.schedule.delete")}
+                    >
                       <Trash2 />
                     </Button>
                   ) : null}
@@ -396,8 +495,12 @@ export function OnCallPage() {
             }
           />
           <div className="grid gap-4 px-4 py-3.5">
-            {detailError !== null ? <ApiErrorText messageKey={detailError} requestId={null} /> : null}
-            {detail === null && detailError === null ? <PanelSkeleton label={t("onCall.loading")} /> : null}
+            {detailError !== null ? (
+              <ApiErrorText messageKey={detailError} requestId={null} />
+            ) : null}
+            {detail === null && detailError === null ? (
+              <PanelSkeleton label={t("onCall.loading")} />
+            ) : null}
             {detail !== null && schedule !== null ? (
               <>
                 <div
@@ -422,13 +525,28 @@ export function OnCallPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-[12.5px] font-medium text-foreground">{rangeLabel}</p>
                   <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" onClick={() => setWeekOffset((value) => value - 4)} aria-label={t("onCall.calendar.previous")}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWeekOffset((value) => value - 4)}
+                      aria-label={t("onCall.calendar.previous")}
+                    >
                       <ChevronLeft />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWeekOffset(0)}
+                      disabled={weekOffset === 0}
+                    >
                       {t("onCall.calendar.today")}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setWeekOffset((value) => value + 4)} aria-label={t("onCall.calendar.next")}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWeekOffset((value) => value + 4)}
+                      aria-label={t("onCall.calendar.next")}
+                    >
                       <ChevronRight />
                     </Button>
                   </div>
@@ -438,7 +556,10 @@ export function OnCallPage() {
                     {t("onCall.loading")}
                   </p>
                 ) : null}
-                <div aria-busy={detailLoading} className={cn("transition-opacity", detailLoading && "opacity-60")}>
+                <div
+                  aria-busy={detailLoading}
+                  className={cn("transition-opacity", detailLoading && "opacity-60")}
+                >
                   <OnCallCalendar days={days} timeZone={timeZone} currentUserId={currentUserId} />
                 </div>
                 <p className={hintClassName}>{t("onCall.calendar.legend", { zone: timeZone })}</p>
@@ -452,9 +573,14 @@ export function OnCallPage() {
                   ) : (
                     <ol className="flex flex-wrap gap-1.5 text-[12px]">
                       {schedule.members.map((member, index) => (
-                        <li key={member.userId} className="rounded border border-border/70 px-2 py-1 text-foreground">
+                        <li
+                          key={member.userId}
+                          className="rounded border border-border/70 px-2 py-1 text-foreground"
+                        >
                           {index + 1}. {member.displayName}
-                          {member.isAvailable ? null : <span className="ml-1 text-warning">({t("onCall.unavailable")})</span>}
+                          {member.isAvailable ? null : (
+                            <span className="ml-1 text-warning">({t("onCall.unavailable")})</span>
+                          )}
                         </li>
                       ))}
                     </ol>
@@ -466,7 +592,10 @@ export function OnCallPage() {
                 </section>
 
                 <section aria-labelledby="on-call-overrides" className="grid gap-1.5">
-                  <h3 id="on-call-overrides" className="text-[12.5px] font-semibold text-foreground">
+                  <h3
+                    id="on-call-overrides"
+                    className="text-[12.5px] font-semibold text-foreground"
+                  >
                     {t("onCall.override.list")}
                   </h3>
                   {detail.overrides.length === 0 ? (
@@ -474,13 +603,24 @@ export function OnCallPage() {
                   ) : (
                     <ul className="grid gap-1.5">
                       {detail.overrides.map((item) => (
-                        <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 px-3 py-1.5 text-[12.5px]">
-                          <span className="font-medium text-foreground">{item.person?.displayName ?? "—"}</span>
-                          <span className={hintClassName}>
-                            {formatOnCallTime(item.startsAt, t, timeZone)} – {formatOnCallTime(item.endsAt, t, timeZone)}
+                        <li
+                          key={item.id}
+                          className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 px-3 py-1.5 text-[12.5px]"
+                        >
+                          <span className="font-medium text-foreground">
+                            {item.person?.displayName ?? "—"}
                           </span>
-                          {item.fromSwap ? <Badge tone="info">{t("onCall.override.fromSwap")}</Badge> : null}
-                          <span className={cn("min-w-0 flex-1 truncate", hintClassName)} title={item.reason}>
+                          <span className={hintClassName}>
+                            {formatOnCallTime(item.startsAt, t, timeZone)} –{" "}
+                            {formatOnCallTime(item.endsAt, t, timeZone)}
+                          </span>
+                          {item.fromSwap ? (
+                            <Badge tone="info">{t("onCall.override.fromSwap")}</Badge>
+                          ) : null}
+                          <span
+                            className={cn("min-w-0 flex-1 truncate", hintClassName)}
+                            title={item.reason}
+                          >
                             {item.reason}
                           </span>
                           {detail.canManage ? (
@@ -501,14 +641,19 @@ export function OnCallPage() {
 
                 {detail.swaps.length > 0 ? (
                   <section aria-labelledby="on-call-group-swaps" className="grid gap-1.5">
-                    <h3 id="on-call-group-swaps" className="text-[12.5px] font-semibold text-foreground">
+                    <h3
+                      id="on-call-group-swaps"
+                      className="text-[12.5px] font-semibold text-foreground"
+                    >
                       {t("onCall.swaps.groupPending")}
                     </h3>
                     <ul className="grid gap-1">
                       {detail.swaps.map((swap) => (
                         <li key={swap.id} className={hintClassName}>
-                          {swap.requester?.displayName ?? "—"} → {swap.colleague?.displayName ?? "—"} ·{" "}
-                          {formatOnCallTime(swap.startsAt, t, timeZone)} – {formatOnCallTime(swap.endsAt, t, timeZone)}
+                          {swap.requester?.displayName ?? "—"} →{" "}
+                          {swap.colleague?.displayName ?? "—"} ·{" "}
+                          {formatOnCallTime(swap.startsAt, t, timeZone)} –{" "}
+                          {formatOnCallTime(swap.endsAt, t, timeZone)}
                         </li>
                       ))}
                     </ul>
@@ -520,7 +665,11 @@ export function OnCallPage() {
               <EmptyState
                 icon={<CalendarClock size={18} />}
                 title={t("onCall.detail.noSchedule")}
-                body={detail.canManage ? t("onCall.detail.noScheduleManager") : t("onCall.detail.noScheduleReader")}
+                body={
+                  detail.canManage
+                    ? t("onCall.detail.noScheduleManager")
+                    : t("onCall.detail.noScheduleReader")
+                }
               />
             ) : null}
           </div>
@@ -528,7 +677,12 @@ export function OnCallPage() {
       ) : null}
 
       {detail !== null && scheduleOpen ? (
-        <OnCallScheduleDialog open onOpenChange={setScheduleOpen} detail={detail} onSaved={reloadAll} />
+        <OnCallScheduleDialog
+          open
+          onOpenChange={setScheduleOpen}
+          detail={detail}
+          onSaved={reloadAll}
+        />
       ) : null}
       {detail !== null && rangeMode !== null ? (
         <OnCallRangeDialog
@@ -550,8 +704,16 @@ export function OnCallPage() {
             setDeleteError(null);
           }
         }}
-        title={pendingDelete?.kind === "schedule" ? t("onCall.schedule.deleteTitle") : t("onCall.override.deleteTitle")}
-        description={pendingDelete?.kind === "schedule" ? t("onCall.schedule.deleteBody") : t("onCall.override.deleteBody")}
+        title={
+          pendingDelete?.kind === "schedule"
+            ? t("onCall.schedule.deleteTitle")
+            : t("onCall.override.deleteTitle")
+        }
+        description={
+          pendingDelete?.kind === "schedule"
+            ? t("onCall.schedule.deleteBody")
+            : t("onCall.override.deleteBody")
+        }
         confirmLabel={t("onCall.delete")}
         error={deleteError}
         isPending={busy === "delete"}

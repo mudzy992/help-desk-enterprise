@@ -2,10 +2,7 @@ import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import {
-  listServices,
-  type ServiceResponse,
-} from "@/services/service-catalog-api";
+import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
 
 export type ServiceCatalogRow = {
   readonly service: ServiceResponse;

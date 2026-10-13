@@ -26,7 +26,9 @@ describe("chart summary", () => {
       ["1.9.", "15.9.", "28.9."],
     );
     expect(text).toContain('a11y.chart.range{"from":"1.9.","to":"28.9."}');
-    expect(text).toContain('"series":"Novi","max":"42","maxAt":"15.9.","min":"3","minAt":"1.9.","last":"7","lastAt":"28.9."');
+    expect(text).toContain(
+      '"series":"Novi","max":"42","maxAt":"15.9.","min":"3","minAt":"1.9.","last":"7","lastAt":"28.9."',
+    );
     expect(text).toContain('a11y.chart.seriesEmpty{"series":"SLA"}');
     expect(text).toContain('"max":"100 %"');
   });

@@ -21,7 +21,9 @@ export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPa
   const text = codes.join("\n");
 
   const download = () => {
-    const blob = new Blob([`${appName} — ${t("auth.mfa.recoveryTitle")}\n\n${text}\n`], { type: "text/plain" });
+    const blob = new Blob([`${appName} — ${t("auth.mfa.recoveryTitle")}\n\n${text}\n`], {
+      type: "text/plain",
+    });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -33,7 +35,10 @@ export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPa
   return (
     <div className="space-y-4">
       <p className="text-[12.5px] leading-5 text-muted-foreground">{t("auth.mfa.recoveryIntro")}</p>
-      <ul className="tnum grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-border bg-elevated/60 p-3 text-[13px] font-medium text-foreground" data-testid="recovery-codes">
+      <ul
+        className="tnum grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-border bg-elevated/60 p-3 text-[13px] font-medium text-foreground"
+        data-testid="recovery-codes"
+      >
         {codes.map((code) => (
           <li key={code} className="select-all">
             {code}

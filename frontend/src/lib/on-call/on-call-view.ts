@@ -34,7 +34,12 @@ const dayMs = 86_400_000;
 
 function civilDateKey(date: Date, timeZone: string): string {
   // en-CA gives YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 export type OnCallDay = {
@@ -65,7 +70,11 @@ export function groupSegmentsByDay(
   const result: OnCallDay[] = [];
   const seen = new Set<string>();
   // Step in 12 h increments so DST days are never skipped or doubled.
-  for (let cursor = from.getTime(); result.length < days && cursor < from.getTime() + (days + 2) * dayMs; cursor += dayMs / 2) {
+  for (
+    let cursor = from.getTime();
+    result.length < days && cursor < from.getTime() + (days + 2) * dayMs;
+    cursor += dayMs / 2
+  ) {
     const key = civilDateKey(new Date(cursor), timeZone);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -73,7 +82,11 @@ export function groupSegmentsByDay(
     const dayStart = zonedMidnight(year, month, day, timeZone);
     const dayEnd = zonedMidnight(year, month, day + 1, timeZone);
     const entries = segments
-      .filter((segment) => Date.parse(segment.startsAt) < dayEnd.getTime() && Date.parse(segment.endsAt) > dayStart.getTime())
+      .filter(
+        (segment) =>
+          Date.parse(segment.startsAt) < dayEnd.getTime() &&
+          Date.parse(segment.endsAt) > dayStart.getTime(),
+      )
       .map((segment) => ({
         segment,
         startsHere: Date.parse(segment.startsAt) >= dayStart.getTime(),
@@ -95,12 +108,26 @@ function offsetMs(date: Date, timeZone: string): number {
     second: "2-digit",
   }).formatToParts(date);
   const value = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
-  const asUtc = Date.UTC(value("year"), value("month") - 1, value("day"), value("hour") % 24, value("minute"), value("second"));
+  const asUtc = Date.UTC(
+    value("year"),
+    value("month") - 1,
+    value("day"),
+    value("hour") % 24,
+    value("minute"),
+    value("second"),
+  );
   return asUtc - Math.floor(date.getTime() / 1000) * 1000;
 }
 
 /** Instant of a civil date and time on the wall clock of `timeZone` (day overflow allowed). */
-export function zonedDateTime(year: number, month: number, day: number, hour: number, minute: number, timeZone: string): Date {
+export function zonedDateTime(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  timeZone: string,
+): Date {
   const guess = Date.UTC(year, month - 1, day, hour, minute);
   const first = guess - offsetMs(new Date(guess), timeZone);
   return new Date(guess - offsetMs(new Date(first), timeZone));
@@ -161,7 +188,13 @@ export function toZoneInputValue(iso: string | Date, timeZone: string): string {
 export function fromZoneInputValue(value: string, timeZone: string): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (match === null) return null;
-  const [year, month, day, hour, minute] = match.slice(1).map(Number) as [number, number, number, number, number];
+  const [year, month, day, hour, minute] = match.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   const instant = zonedDateTime(year, month, day, hour, minute, timeZone);
   if (Number.isNaN(instant.getTime()) || toZoneInputValue(instant, timeZone) !== value) return null;
   return instant.toISOString();
@@ -169,7 +202,11 @@ export function fromZoneInputValue(value: string, timeZone: string): string | nu
 
 /** Indeks dana u sedmici u `timeZone`, 0 = ponedjeljak … 6 = nedjelja. */
 export function onCallWeekdayIndex(date: Date, timeZone: string): number {
-  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [number, number, number];
+  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
   // `civilDateKey` već daje datum u zoni, pa je dan u sedmici jednoznačan.
   return (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
 }
@@ -191,7 +228,11 @@ export function formatOnCallWeekday(
 
 /** Puni label dana (za `sr-only`): „ponedjeljak, 5. oktobar 2026.“ */
 export function formatOnCallDayLabel(date: Date, timeZone: string, t: TFunction): string {
-  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [number, number, number];
+  const [year, month, day] = civilDateKey(date, timeZone).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
   return t("changes.calendar.dayLabel", {
     weekday: formatOnCallWeekday(date, timeZone, t, "long"),
     day,
@@ -211,7 +252,11 @@ export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): 
     return iso;
   }
   const zone = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const [, month, day] = civilDateKey(date, zone).split("-").map(Number) as [number, number, number];
+  const [, month, day] = civilDateKey(date, zone).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
   return t("onCall.timeWithWeekday", {
     weekday: formatOnCallWeekday(date, zone, t, "short"),
     day,

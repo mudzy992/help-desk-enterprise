@@ -11,7 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { changeLevelKeys, changeRiskKeys, changeRiskTone, changeTypeKeys, computeChangeRisk, mapChangeError } from "@/lib/changes/change-view";
+import {
+  changeLevelKeys,
+  changeRiskKeys,
+  changeRiskTone,
+  changeTypeKeys,
+  computeChangeRisk,
+  mapChangeError,
+} from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/on-call/on-call-view";
 import {
@@ -62,7 +69,15 @@ const textMax = 8000;
  * from a template (plans, impact and likelihood come from it). In SCHEDULED
  * only the window and the owner can change (`editScope = "window"`).
  */
-export function ChangeFormSheet({ open, onOpenChange, options, capabilities, change, prefill, onSaved }: ChangeFormSheetProperties) {
+export function ChangeFormSheet({
+  open,
+  onOpenChange,
+  options,
+  capabilities,
+  change,
+  prefill,
+  onSaved,
+}: ChangeFormSheetProperties) {
   const { t } = useTranslation();
   const editing = change !== undefined;
   const windowOnly = change?.permissions.editScope === "window";
@@ -101,9 +116,16 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
     setReason(change?.reason ?? "");
     setImpact(change?.impact ?? "MEDIUM");
     setLikelihood(change?.likelihood ?? "MEDIUM");
-    setUnitId(change?.organizationalUnit.id ?? options.homeOrganizationalUnitId ?? options.units[0]?.id ?? "");
+    setUnitId(
+      change?.organizationalUnit.id ??
+        options.homeOrganizationalUnitId ??
+        options.units[0]?.id ??
+        "",
+    );
     setCabGroupId(change?.cabGroup?.id ?? options.cabGroups[0]?.id ?? "");
-    setServiceIds(change ? change.services.map((service) => service.id) : [...(prefill?.serviceIds ?? [])]);
+    setServiceIds(
+      change ? change.services.map((service) => service.id) : [...(prefill?.serviceIds ?? [])],
+    );
     setStart(change?.plannedStart ? toDateTimeLocalValue(change.plannedStart) : "");
     setEnd(change?.plannedEnd ? toDateTimeLocalValue(change.plannedEnd) : "");
     setCausesDowntime(change?.causesDowntime ?? false);
@@ -146,22 +168,40 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
   const risk = standard && template ? template.risk : computeChangeRisk(impact, likelihood);
   const startIso = start === "" ? null : fromDateTimeLocalValue(start);
   const endIso = end === "" ? null : fromDateTimeLocalValue(end);
-  const windowInvalid = (start !== "" && startIso === null) || (end !== "" && endIso === null) || (startIso !== null && endIso !== null && startIso >= endIso);
+  const windowInvalid =
+    (start !== "" && startIso === null) ||
+    (end !== "" && endIso === null) ||
+    (startIso !== null && endIso !== null && startIso >= endIso);
   const windowHalf = (startIso === null) !== (endIso === null);
 
   // §9 / §17: live conflicts while the window is chosen (debounced).
   const previewInput: ChangeConflictPreviewInput | null =
     open && startIso !== null && endIso !== null && !windowInvalid
-      ? { type, plannedStart: startIso, plannedEnd: endIso, serviceIds, assetIds: assets.map((asset) => asset.id), ...(change ? { changeId: change.id } : {}) }
+      ? {
+          type,
+          plannedStart: startIso,
+          plannedEnd: endIso,
+          serviceIds,
+          assetIds: assets.map((asset) => asset.id),
+          ...(change ? { changeId: change.id } : {}),
+        }
       : null;
   const [debouncedPreview, setDebouncedPreview] = useState<ChangeConflictPreviewInput | null>(null);
   const previewKey = previewInput === null ? "" : JSON.stringify(previewInput);
   useEffect(() => {
-    const handle = window.setTimeout(() => setDebouncedPreview(previewKey === "" ? null : (JSON.parse(previewKey) as ChangeConflictPreviewInput)), 400);
+    const handle = window.setTimeout(
+      () =>
+        setDebouncedPreview(
+          previewKey === "" ? null : (JSON.parse(previewKey) as ChangeConflictPreviewInput),
+        ),
+      400,
+    );
     return () => window.clearTimeout(handle);
   }, [previewKey]);
   const conflictsPreview = useQuery({
-    queryKey: changeExtraKeys.preview(debouncedPreview ?? { type, plannedStart: "", plannedEnd: "" }),
+    queryKey: changeExtraKeys.preview(
+      debouncedPreview ?? { type, plannedStart: "", plannedEnd: "" },
+    ),
     queryFn: () => previewChangeConflicts(debouncedPreview as ChangeConflictPreviewInput),
     enabled: debouncedPreview !== null,
     retry: false,
@@ -169,7 +209,14 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
 
   const units =
     change !== undefined && !options.units.some((unit) => unit.id === change.organizationalUnit.id)
-      ? [{ id: change.organizationalUnit.id, name: change.organizationalUnit.name, path: change.organizationalUnit.ouPath }, ...options.units]
+      ? [
+          {
+            id: change.organizationalUnit.id,
+            name: change.organizationalUnit.name,
+            path: change.organizationalUnit.ouPath,
+          },
+          ...options.units,
+        ]
       : options.units;
 
   const canSubmit =
@@ -191,7 +238,11 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
       const windowPart = { plannedStart: startIso, plannedEnd: endIso };
       let saved: ChangeDetail;
       if (editing && windowOnly) {
-        saved = await updateChange(change.id, { version: change.version, ...windowPart, ...ownerPart });
+        saved = await updateChange(change.id, {
+          version: change.version,
+          ...windowPart,
+          ...ownerPart,
+        });
       } else {
         const body = {
           title: title.trim(),
@@ -238,18 +289,41 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
 
   return (
     <Sheet open={open} onOpenChange={(next) => (saving ? undefined : onOpenChange(next))}>
-      <SheetContent side="right" className="flex w-full max-w-xl flex-col overflow-y-auto p-5" data-testid="change-form-sheet">
-        <SheetTitle>{editing ? t("changes.form.editTitle") : t("changes.form.createTitle")}</SheetTitle>
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-xl flex-col overflow-y-auto p-5"
+        data-testid="change-form-sheet"
+      >
+        <SheetTitle>
+          {editing ? t("changes.form.editTitle") : t("changes.form.createTitle")}
+        </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-          {windowOnly ? t("changes.form.windowOnlyDescription") : editing ? t("changes.form.editDescription") : t("changes.form.createDescription")}
+          {windowOnly
+            ? t("changes.form.windowOnlyDescription")
+            : editing
+              ? t("changes.form.editDescription")
+              : t("changes.form.createDescription")}
         </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           {!editing ? (
-            <Field label={t("changes.fields.type")} required hint={t(`changes.form.typeHint.${type}`)}>
+            <Field
+              label={t("changes.fields.type")}
+              required
+              hint={t(`changes.form.typeHint.${type}`)}
+            >
               {(control) => (
-                <Select {...control} value={type} onChange={(event) => setType(event.target.value as ChangeType)} data-testid="change-form-type">
+                <Select
+                  {...control}
+                  value={type}
+                  onChange={(event) => setType(event.target.value as ChangeType)}
+                  data-testid="change-form-type"
+                >
                   {changeTypes.map((value) => (
-                    <option key={value} value={value} disabled={value === "STANDARD" && options.templates.length === 0}>
+                    <option
+                      key={value}
+                      value={value}
+                      disabled={value === "STANDARD" && options.templates.length === 0}
+                    >
                       {t(changeTypeKeys[value])}
                     </option>
                   ))}
@@ -258,9 +332,18 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             </Field>
           ) : null}
           {standard && !editing ? (
-            <Field label={t("changes.fields.template")} required hint={t("changes.form.templateHint")}>
+            <Field
+              label={t("changes.fields.template")}
+              required
+              hint={t("changes.form.templateHint")}
+            >
               {(control) => (
-                <Select {...control} value={templateId} onChange={(event) => chooseTemplate(event.target.value)} data-testid="change-form-template">
+                <Select
+                  {...control}
+                  value={templateId}
+                  onChange={(event) => chooseTemplate(event.target.value)}
+                  data-testid="change-form-template"
+                >
                   <option value="">{t("changes.form.templatePlaceholder")}</option>
                   {options.templates.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -272,26 +355,67 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             </Field>
           ) : null}
           <Field label={t("changes.fields.title")} required>
-            {(control) => <Input {...control} value={title} maxLength={200} disabled={locked} onChange={(event) => setTitle(event.target.value)} autoFocus={!editing} />}
+            {(control) => (
+              <Input
+                {...control}
+                value={title}
+                maxLength={200}
+                disabled={locked}
+                onChange={(event) => setTitle(event.target.value)}
+                autoFocus={!editing}
+              />
+            )}
           </Field>
-          <Field label={t("changes.fields.description")} required={!standard} hint={standard ? t("changes.form.descriptionStandardHint") : undefined}>
-            {(control) => <Textarea {...control} rows={4} value={description} maxLength={textMax} disabled={locked} onChange={(event) => setDescription(event.target.value)} />}
+          <Field
+            label={t("changes.fields.description")}
+            required={!standard}
+            hint={standard ? t("changes.form.descriptionStandardHint") : undefined}
+          >
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={4}
+                value={description}
+                maxLength={textMax}
+                disabled={locked}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("changes.fields.reason")} hint={t("changes.form.reasonHint")}>
-            {(control) => <Textarea {...control} rows={2} value={reason} maxLength={4000} disabled={locked} onChange={(event) => setReason(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                value={reason}
+                maxLength={4000}
+                disabled={locked}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
           </Field>
           {!standard ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t("changes.fields.impact")}>
                 {(control) => (
-                  <Select {...control} value={impact} disabled={locked} onChange={(event) => setImpact(event.target.value as ChangeLevel)}>
+                  <Select
+                    {...control}
+                    value={impact}
+                    disabled={locked}
+                    onChange={(event) => setImpact(event.target.value as ChangeLevel)}
+                  >
                     {levelOptions}
                   </Select>
                 )}
               </Field>
               <Field label={t("changes.fields.likelihood")}>
                 {(control) => (
-                  <Select {...control} value={likelihood} disabled={locked} onChange={(event) => setLikelihood(event.target.value as ChangeLevel)}>
+                  <Select
+                    {...control}
+                    value={likelihood}
+                    disabled={locked}
+                    onChange={(event) => setLikelihood(event.target.value as ChangeLevel)}
+                  >
                     {levelOptions}
                   </Select>
                 )}
@@ -304,7 +428,12 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
           </p>
           <Field label={t("changes.fields.organizationalUnit")} required>
             {(control) => (
-              <Select {...control} value={unitId} disabled={locked} onChange={(event) => setUnitId(event.target.value)}>
+              <Select
+                {...control}
+                value={unitId}
+                disabled={locked}
+                onChange={(event) => setUnitId(event.target.value)}
+              >
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
                     {unit.path}
@@ -319,15 +448,27 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             value={serviceIds}
             onChange={setServiceIds}
             disabled={locked}
-            hint={standard ? t("changes.form.servicesStandardHint") : t("changes.form.servicesHint")}
+            hint={
+              standard ? t("changes.form.servicesStandardHint") : t("changes.form.servicesHint")
+            }
           />
-          {capabilities.cmdbEnabled ? <ChangeAssetPicker value={assets} onChange={setAssets} disabled={locked} /> : null}
-          {capabilities.problemsEnabled ? <ChangeProblemPicker value={problem} onChange={setProblem} disabled={locked} /> : null}
+          {capabilities.cmdbEnabled ? (
+            <ChangeAssetPicker value={assets} onChange={setAssets} disabled={locked} />
+          ) : null}
+          {capabilities.problemsEnabled ? (
+            <ChangeProblemPicker value={problem} onChange={setProblem} disabled={locked} />
+          ) : null}
           {!standard ? (
             <Field label={t("changes.fields.cabGroup")} hint={t("changes.form.cabGroupHint")}>
               {(control) => (
-                <Select {...control} value={cabGroupId} disabled={locked} onChange={(event) => setCabGroupId(event.target.value)}>
-                  {change?.cabGroup && !options.cabGroups.some((group) => group.id === change.cabGroup?.id) ? (
+                <Select
+                  {...control}
+                  value={cabGroupId}
+                  disabled={locked}
+                  onChange={(event) => setCabGroupId(event.target.value)}
+                >
+                  {change?.cabGroup &&
+                  !options.cabGroups.some((group) => group.id === change.cabGroup?.id) ? (
                     <option value={change.cabGroup.id}>{change.cabGroup.name}</option>
                   ) : null}
                   {options.cabGroups.map((group) => (
@@ -340,13 +481,31 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             </Field>
           ) : null}
           <fieldset className="grid gap-2">
-            <legend className="mb-1.5 text-[12.5px] font-medium text-foreground">{t("changes.form.window")}</legend>
+            <legend className="mb-1.5 text-[12.5px] font-medium text-foreground">
+              {t("changes.form.window")}
+            </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t("changes.fields.plannedStart")}>
-                {(control) => <Input {...control} type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} data-testid="change-form-start" />}
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="datetime-local"
+                    value={start}
+                    onChange={(event) => setStart(event.target.value)}
+                    data-testid="change-form-start"
+                  />
+                )}
               </Field>
               <Field label={t("changes.fields.plannedEnd")}>
-                {(control) => <Input {...control} type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} data-testid="change-form-end" />}
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="datetime-local"
+                    value={end}
+                    onChange={(event) => setEnd(event.target.value)}
+                    data-testid="change-form-end"
+                  />
+                )}
               </Field>
             </div>
             {windowInvalid ? (
@@ -363,24 +522,47 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
               </p>
             )}
             {debouncedPreview !== null && conflictsPreview.data ? (
-              <div className="grid gap-1.5 rounded-md border border-border/70 px-3 py-2" aria-live="polite" data-testid="change-form-conflicts">
-                <p className="text-[12px] font-medium text-foreground">{t("changes.conflicts.title")}</p>
+              <div
+                className="grid gap-1.5 rounded-md border border-border/70 px-3 py-2"
+                aria-live="polite"
+                data-testid="change-form-conflicts"
+              >
+                <p className="text-[12px] font-medium text-foreground">
+                  {t("changes.conflicts.title")}
+                </p>
                 <ChangeConflictsList conflicts={conflictsPreview.data} />
               </div>
             ) : null}
-            <Checkbox label={t("changes.fields.causesDowntime")} checked={causesDowntime} disabled={locked} onChange={(event) => setCausesDowntime(event.target.checked)} />
+            <Checkbox
+              label={t("changes.fields.causesDowntime")}
+              checked={causesDowntime}
+              disabled={locked}
+              onChange={(event) => setCausesDowntime(event.target.checked)}
+            />
             <p className={hintClassName}>{t("changes.form.causesDowntimeHint")}</p>
           </fieldset>
           {canAssignOwner ? (
             <div className="grid gap-1.5">
-              <span className="text-[12.5px] font-medium text-foreground">{t("changes.fields.owner")}</span>
+              <span className="text-[12.5px] font-medium text-foreground">
+                {t("changes.fields.owner")}
+              </span>
               {owner !== null ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
                   <span className="min-w-0">
                     <span className="block truncate text-foreground">{owner.displayName}</span>
-                    {owner.email ? <span className="block truncate text-[11.5px] text-muted-foreground">{owner.email}</span> : null}
+                    {owner.email ? (
+                      <span className="block truncate text-[11.5px] text-muted-foreground">
+                        {owner.email}
+                      </span>
+                    ) : null}
                   </span>
-                  <Button type="button" variant="ghost" size="icon" aria-label={t("changes.form.clearOwner")} onClick={() => setOwner(null)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("changes.form.clearOwner")}
+                    onClick={() => setOwner(null)}
+                  >
                     <X size={13} aria-hidden="true" />
                   </Button>
                 </div>
@@ -393,9 +575,14 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
                     placeholder={t("changes.form.ownerSearch")}
                     aria-label={t("changes.form.ownerSearch")}
                   />
-                  <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("changes.form.ownerResults")}>
+                  <ul
+                    className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
+                    aria-label={t("changes.form.ownerResults")}
+                  >
                     {(owners.data?.items ?? []).length === 0 ? (
-                      <li className={`px-2 py-1 ${hintClassName}`}>{owners.isFetching ? t("ui.loading") : t("changes.form.ownerNone")}</li>
+                      <li className={`px-2 py-1 ${hintClassName}`}>
+                        {owners.isFetching ? t("ui.loading") : t("changes.form.ownerNone")}
+                      </li>
                     ) : (
                       (owners.data?.items ?? []).map((item) => (
                         <li key={item.id}>
@@ -408,7 +595,9 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
                             }}
                           >
                             {item.displayName}
-                            {item.email ? <span className="text-muted-foreground"> · {item.email}</span> : null}
+                            {item.email ? (
+                              <span className="text-muted-foreground"> · {item.email}</span>
+                            ) : null}
                           </button>
                         </li>
                       ))
@@ -420,19 +609,61 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
           ) : null}
           {!standard ? (
             <>
-              <Field label={t("changes.fields.implementationPlan")} hint={t("changes.form.planHint")}>
-                {(control) => <Textarea {...control} rows={4} value={implementationPlan} maxLength={textMax} disabled={locked} onChange={(event) => setImplementationPlan(event.target.value)} />}
+              <Field
+                label={t("changes.fields.implementationPlan")}
+                hint={t("changes.form.planHint")}
+              >
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={4}
+                    value={implementationPlan}
+                    maxLength={textMax}
+                    disabled={locked}
+                    onChange={(event) => setImplementationPlan(event.target.value)}
+                  />
+                )}
               </Field>
               <Field label={t("changes.fields.backoutPlan")} hint={t("changes.form.planHint")}>
-                {(control) => <Textarea {...control} rows={3} value={backoutPlan} maxLength={textMax} disabled={locked} onChange={(event) => setBackoutPlan(event.target.value)} />}
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={3}
+                    value={backoutPlan}
+                    maxLength={textMax}
+                    disabled={locked}
+                    onChange={(event) => setBackoutPlan(event.target.value)}
+                  />
+                )}
               </Field>
-              <Field label={t("changes.fields.testPlan")} hint={options.requireTestPlan ? t("changes.form.testPlanRequired") : undefined}>
-                {(control) => <Textarea {...control} rows={3} value={testPlan} maxLength={textMax} disabled={locked} onChange={(event) => setTestPlan(event.target.value)} />}
+              <Field
+                label={t("changes.fields.testPlan")}
+                hint={options.requireTestPlan ? t("changes.form.testPlanRequired") : undefined}
+              >
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={3}
+                    value={testPlan}
+                    maxLength={textMax}
+                    disabled={locked}
+                    onChange={(event) => setTestPlan(event.target.value)}
+                  />
+                )}
               </Field>
             </>
           ) : null}
           <Field label={t("changes.fields.communicationPlan")}>
-            {(control) => <Textarea {...control} rows={2} value={communicationPlan} maxLength={textMax} disabled={locked} onChange={(event) => setCommunicationPlan(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                value={communicationPlan}
+                maxLength={textMax}
+                disabled={locked}
+                onChange={(event) => setCommunicationPlan(event.target.value)}
+              />
+            )}
           </Field>
           {error !== null ? (
             <p role="alert" className={errorTextClassName}>
@@ -440,11 +671,20 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={!canSubmit} data-testid="change-form-submit">
-              {saving ? t("changes.form.saving") : editing ? t("changes.form.save") : t("changes.form.create")}
+              {saving
+                ? t("changes.form.saving")
+                : editing
+                  ? t("changes.form.save")
+                  : t("changes.form.create")}
             </Button>
           </div>
         </form>

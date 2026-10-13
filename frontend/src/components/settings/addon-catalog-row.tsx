@@ -16,12 +16,7 @@ interface AddonCatalogRowProperties {
   readonly onSave: SettingsSaver;
 }
 
-export function AddonCatalogRow({
-  item,
-  canWrite,
-  pending,
-  onSave,
-}: AddonCatalogRowProperties) {
+export function AddonCatalogRow({ item, canWrite, pending, onSave }: AddonCatalogRowProperties) {
   const { t } = useTranslation();
   const copy = resolveInstallAddonCopy(item.key);
   const label = copy === null ? item.key : t(copy.label);
@@ -45,9 +40,7 @@ export function AddonCatalogRow({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[12.5px] font-medium text-foreground">{label}</p>
-          {description ? (
-            <p className="text-[11px] text-muted-foreground">{description}</p>
-          ) : null}
+          {description ? <p className="text-[11px] text-muted-foreground">{description}</p> : null}
         </div>
         <span className="tnum hidden font-mono text-[10px] text-muted-foreground md:block">
           {item.key}

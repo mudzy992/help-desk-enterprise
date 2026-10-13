@@ -1,10 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  tableRowClassName,
-  tableWrapClassName,
-} from "@/components/ui/control";
+import { tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { RoutingChangeLogEntry } from "@/services/routing-api";
@@ -18,18 +15,12 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
   const { t, i18n } = useTranslation();
   if (entries.length === 0) {
     return (
-      <EmptyState
-        title={t("routing.changeLogEmptyTitle")}
-        body={t("routing.changeLogEmptyBody")}
-      />
+      <EmptyState title={t("routing.changeLogEmptyTitle")} body={t("routing.changeLogEmptyBody")} />
     );
   }
   return (
     <Card>
-      <CardHeader
-        title={t("routing.changeLogHeading")}
-        subtitle={t("routing.changeLogSubtitle")}
-      />
+      <CardHeader title={t("routing.changeLogHeading")} subtitle={t("routing.changeLogSubtitle")} />
       <ul className="divide-y divide-border/50">
         {entries.map((entry) => (
           <li key={entry.id} className="px-4 py-4">
@@ -38,26 +29,20 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
                 {entry.diff.action} · {entry.entityType}
               </Badge>
               <span className="text-[11.5px] text-muted-foreground">
-                {entry.actorDisplayName ?? t("routing.changeUnknownActor")}{" "}
-                · <RelativeTime value={entry.createdAt} locale={i18n.language} />
+                {entry.actorDisplayName ?? t("routing.changeUnknownActor")} ·{" "}
+                <RelativeTime value={entry.createdAt} locale={i18n.language} />
               </span>
             </div>
-            <p className="mt-1.5 text-[12.5px] italic text-foreground/85">
-              “{entry.reason}”
-            </p>
-            <ScrollRegion className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
+            <p className="mt-1.5 text-[12.5px] italic text-foreground/85">“{entry.reason}”</p>
+            <ScrollRegion
+              className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}
+            >
               <table className="w-full">
                 <thead>
                   <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-                    <th className="px-3 py-1.5 font-medium">
-                      {t("routing.changeField")}
-                    </th>
-                    <th className="px-3 py-1.5 font-medium">
-                      {t("routing.changeBefore")}
-                    </th>
-                    <th className="px-3 py-1.5 font-medium">
-                      {t("routing.changeAfter")}
-                    </th>
+                    <th className="px-3 py-1.5 font-medium">{t("routing.changeField")}</th>
+                    <th className="px-3 py-1.5 font-medium">{t("routing.changeBefore")}</th>
+                    <th className="px-3 py-1.5 font-medium">{t("routing.changeAfter")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -96,11 +81,7 @@ function stringifyChange(value: unknown): string {
   if (value === null || value === undefined) {
     return "—";
   }
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
   return JSON.stringify(value);

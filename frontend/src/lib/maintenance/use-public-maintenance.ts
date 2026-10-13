@@ -22,8 +22,7 @@ export function usePublicMaintenance(): {
   readonly maintenance: PublicMaintenanceState;
   readonly isLoading: boolean;
 } {
-  const [maintenance, setMaintenance] =
-    useState<PublicMaintenanceState>(emptyMaintenance);
+  const [maintenance, setMaintenance] = useState<PublicMaintenanceState>(emptyMaintenance);
   const [isLoading, setIsLoading] = useState(true);
   const [generation, setGeneration] = useState(getSettingsGeneration);
 

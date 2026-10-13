@@ -118,7 +118,10 @@ export function eventLoopState(lagMs: number | null): ComponentState {
 }
 
 /** Mirrors `ldapsCaExpiryDays` (30 / 7) in the backend evaluator. */
-export function ldapsCaState(expiresAt: string | null, nowMs: number): { state: ComponentState; daysLeft: number | null } {
+export function ldapsCaState(
+  expiresAt: string | null,
+  nowMs: number,
+): { state: ComponentState; daysLeft: number | null } {
   if (expiresAt === null) return { state: "off", daysLeft: null };
   const at = Date.parse(expiresAt);
   if (Number.isNaN(at)) return { state: "unknown", daysLeft: null };
@@ -128,7 +131,9 @@ export function ldapsCaState(expiresAt: string | null, nowMs: number): { state: 
   return { state: "ok", daysLeft };
 }
 
-export function inboundState(mailbox: OpsOverview["components"]["inbound"][number]): ComponentState {
+export function inboundState(
+  mailbox: OpsOverview["components"]["inbound"][number],
+): ComponentState {
   if (mailbox.consecutiveFails >= 3) return "fail";
   if (mailbox.consecutiveFails > 0) return "warning";
   return mailbox.lastSuccessAt === null ? "unknown" : "ok";
@@ -151,7 +156,10 @@ export function formatOpsDuration(milliseconds: number): string {
 }
 
 /** How long an alarm has been (or was) active. */
-export function alertDurationMs(alert: Pick<OpsAlert, "firstSeenAt" | "resolvedAt">, nowMs: number): number {
+export function alertDurationMs(
+  alert: Pick<OpsAlert, "firstSeenAt" | "resolvedAt">,
+  nowMs: number,
+): number {
   const start = Date.parse(alert.firstSeenAt);
   const end = alert.resolvedAt === null ? nowMs : Date.parse(alert.resolvedAt);
   return Number.isNaN(start) || Number.isNaN(end) ? 0 : Math.max(0, end - start);
@@ -221,13 +229,17 @@ export function sortAlertDetailEntries(
   entries: ReadonlyArray<readonly [string, string]>,
 ): Array<readonly [string, string]> {
   const rank = (label: string): number => {
-    const index = (alertDetailFieldSlugs as readonly string[]).indexOf(label.split(".")[0] ?? label);
+    const index = (alertDetailFieldSlugs as readonly string[]).indexOf(
+      label.split(".")[0] ?? label,
+    );
     return index === -1 ? alertDetailFieldSlugs.length : index;
   };
   return [...entries].sort((left, right) => rank(left[0]) - rank(right[0]));
 }
 
-export function alertDetailEntries(details: OpsAlert["details"]): ReadonlyArray<readonly [string, string]> {
+export function alertDetailEntries(
+  details: OpsAlert["details"],
+): ReadonlyArray<readonly [string, string]> {
   if (details === null || typeof details !== "object") return [];
   const entries: Array<readonly [string, string]> = [];
   const visit = (prefix: string, value: unknown, depth: number) => {
@@ -259,22 +271,37 @@ export function alertDetailEntries(details: OpsAlert["details"]): ReadonlyArray<
   return entries;
 }
 
-export type HttpBar = { readonly at: string; readonly errors5xx: number; readonly total: number; readonly heightPercent: number };
+export type HttpBar = {
+  readonly at: string;
+  readonly errors5xx: number;
+  readonly total: number;
+  readonly heightPercent: number;
+};
 
 /** Bars of the 5xx mini chart; heights relative to the busiest minute (min 1 so the axis stays readable). */
-export function httpBars(series: OpsOverview["http"]["series"]): { bars: readonly HttpBar[]; max: number; totalErrors: number } {
+export function httpBars(series: OpsOverview["http"]["series"]): {
+  bars: readonly HttpBar[];
+  max: number;
+  totalErrors: number;
+} {
   const max = Math.max(1, ...series.map((entry) => entry.errors5xx));
   return {
     max,
     totalErrors: series.reduce((sum, entry) => sum + entry.errors5xx, 0),
-    bars: series.map((entry) => ({ ...entry, heightPercent: Math.round((entry.errors5xx / max) * 100) })),
+    bars: series.map((entry) => ({
+      ...entry,
+      heightPercent: Math.round((entry.errors5xx / max) * 100),
+    })),
   };
 }
 
 /** Failed jobs above the last acknowledged baseline, per queue and in total. */
 export function dlqGrowthTotal(dlq: OpsOverview["dlq"]): number {
   if (dlq.growth === null) return 0;
-  return dlq.growth.integrationDlq + Object.values(dlq.growth.failedByQueue).reduce((sum, value) => sum + value, 0);
+  return (
+    dlq.growth.integrationDlq +
+    Object.values(dlq.growth.failedByQueue).reduce((sum, value) => sum + value, 0)
+  );
 }
 
 export function sortSchedulers(schedulers: OpsOverview["schedulers"]): OpsOverview["schedulers"] {

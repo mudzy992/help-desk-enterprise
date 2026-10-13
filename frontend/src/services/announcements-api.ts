@@ -9,7 +9,8 @@ import { apiDownloadRequest, apiRequest } from "@/services/api";
 
 export type AnnouncementSeverity = "INFO" | "WARNING" | "CRITICAL";
 export type AnnouncementDisplayMode = "BANNER" | "MODAL";
-export type AnnouncementEffectiveStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ENDED" | "WITHDRAWN";
+export type AnnouncementEffectiveStatus =
+  "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ENDED" | "WITHDRAWN";
 
 export type ActiveAnnouncement = {
   readonly id: string;
@@ -77,7 +78,8 @@ export type AnnouncementEmailRunSummary = {
   readonly sentCount: number;
   readonly skippedCount: number;
   readonly failedCount: number;
-  readonly endReason: "EMAIL_CHANNEL_DISABLED" | "NOT_ACTIVE" | "EMAIL_OFF" | "NO_ACKNOWLEDGEMENT" | null;
+  readonly endReason:
+    "EMAIL_CHANNEL_DISABLED" | "NOT_ACTIVE" | "EMAIL_OFF" | "NO_ACKNOWLEDGEMENT" | null;
   readonly createdAt: string;
   readonly completedAt: string | null;
 };
@@ -110,7 +112,12 @@ export type ManagedAnnouncement = AnnouncementAudienceInput & {
 };
 
 export type ManagedAnnouncementDetail = ManagedAnnouncement & {
-  readonly revisions: ReadonlyArray<{ readonly version: number; readonly title: string; readonly body: string; readonly createdAt: string }>;
+  readonly revisions: ReadonlyArray<{
+    readonly version: number;
+    readonly title: string;
+    readonly body: string;
+    readonly createdAt: string;
+  }>;
 };
 
 export type AnnouncementList = Omit<AnnouncementCapabilities, "enabled"> & {
@@ -123,7 +130,11 @@ export type AnnouncementOptions = Omit<AnnouncementCapabilities, "enabled"> & {
   readonly emailAvailable: boolean;
   /** K2b: Teams is enabled and a webhook is configured. */
   readonly teamsAvailable: boolean;
-  readonly organizationalUnits: ReadonlyArray<{ readonly id: string; readonly name: string; readonly path: string }>;
+  readonly organizationalUnits: ReadonlyArray<{
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+  }>;
   readonly groups: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
 };
@@ -143,8 +154,16 @@ export type AnnouncementReport = {
   readonly teamsPostedAt: string | null;
   readonly teamsResult: AnnouncementTeamsResult | null;
   readonly emailRuns: readonly AnnouncementEmailRunSummary[];
-  readonly byUnit: ReadonlyArray<{ readonly unit: string; readonly audience: number; readonly acknowledged: number }>;
-  readonly pending: ReadonlyArray<{ readonly id: string; readonly displayName: string; readonly unit: string }>;
+  readonly byUnit: ReadonlyArray<{
+    readonly unit: string;
+    readonly audience: number;
+    readonly acknowledged: number;
+  }>;
+  readonly pending: ReadonlyArray<{
+    readonly id: string;
+    readonly displayName: string;
+    readonly unit: string;
+  }>;
 };
 
 export const announcementQueryKeys = {
@@ -160,12 +179,16 @@ export function getActiveAnnouncements(): Promise<ActiveAnnouncements> {
 }
 
 export async function getAnnouncementArchive(): Promise<readonly ArchivedAnnouncement[]> {
-  const response = await apiRequest<{ readonly announcements: readonly ArchivedAnnouncement[] }>("/announcements/archive");
+  const response = await apiRequest<{ readonly announcements: readonly ArchivedAnnouncement[] }>(
+    "/announcements/archive",
+  );
   return response.announcements;
 }
 
 export function acknowledgeAnnouncement(id: string): Promise<void> {
-  return apiRequest<void>(`/announcements/${encodeURIComponent(id)}/acknowledge`, { method: "POST" });
+  return apiRequest<void>(`/announcements/${encodeURIComponent(id)}/acknowledge`, {
+    method: "POST",
+  });
 }
 
 export function dismissAnnouncement(id: string): Promise<void> {
@@ -180,8 +203,13 @@ export function getAnnouncementOptions(): Promise<AnnouncementOptions> {
   return apiRequest<AnnouncementOptions>("/announcements/manage/options");
 }
 
-export function previewAnnouncementAudience(input: AnnouncementAudienceInput): Promise<{ readonly count: number }> {
-  return apiRequest<{ readonly count: number }>("/announcements/manage/audience-preview", { method: "POST", ...json(input) });
+export function previewAnnouncementAudience(
+  input: AnnouncementAudienceInput,
+): Promise<{ readonly count: number }> {
+  return apiRequest<{ readonly count: number }>("/announcements/manage/audience-preview", {
+    method: "POST",
+    ...json(input),
+  });
 }
 
 export function listManagedAnnouncements(): Promise<AnnouncementList> {
@@ -192,12 +220,23 @@ export function getManagedAnnouncement(id: string): Promise<ManagedAnnouncementD
   return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}`);
 }
 
-export function createAnnouncement(input: AnnouncementWriteInput): Promise<ManagedAnnouncementDetail> {
-  return apiRequest<ManagedAnnouncementDetail>("/announcements/manage", { method: "POST", ...json(input) });
+export function createAnnouncement(
+  input: AnnouncementWriteInput,
+): Promise<ManagedAnnouncementDetail> {
+  return apiRequest<ManagedAnnouncementDetail>("/announcements/manage", {
+    method: "POST",
+    ...json(input),
+  });
 }
 
-export function updateAnnouncement(id: string, input: AnnouncementWriteInput): Promise<ManagedAnnouncementDetail> {
-  return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}`, { method: "PUT", ...json(input) });
+export function updateAnnouncement(
+  id: string,
+  input: AnnouncementWriteInput,
+): Promise<ManagedAnnouncementDetail> {
+  return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    ...json(input),
+  });
 }
 
 export function deleteAnnouncement(id: string): Promise<void> {
@@ -205,25 +244,43 @@ export function deleteAnnouncement(id: string): Promise<void> {
 }
 
 export function publishAnnouncement(id: string): Promise<ManagedAnnouncementDetail> {
-  return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}/publish`, { method: "POST" });
+  return apiRequest<ManagedAnnouncementDetail>(
+    `/announcements/manage/${encodeURIComponent(id)}/publish`,
+    { method: "POST" },
+  );
 }
 
-export function withdrawAnnouncement(id: string, reason: string): Promise<ManagedAnnouncementDetail> {
-  return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}/withdraw`, {
-    method: "POST",
-    ...json({ reason }),
-  });
+export function withdrawAnnouncement(
+  id: string,
+  reason: string,
+): Promise<ManagedAnnouncementDetail> {
+  return apiRequest<ManagedAnnouncementDetail>(
+    `/announcements/manage/${encodeURIComponent(id)}/withdraw`,
+    {
+      method: "POST",
+      ...json({ reason }),
+    },
+  );
 }
 
 export function getAnnouncementReport(id: string): Promise<AnnouncementReport> {
   return apiRequest<AnnouncementReport>(`/announcements/manage/${encodeURIComponent(id)}/report`);
 }
 
-export async function downloadAnnouncementReport(id: string): Promise<{ readonly blob: Blob; readonly fileName: string }> {
-  const downloaded = await apiDownloadRequest(`/announcements/manage/${encodeURIComponent(id)}/report.csv`);
+export async function downloadAnnouncementReport(
+  id: string,
+): Promise<{ readonly blob: Blob; readonly fileName: string }> {
+  const downloaded = await apiDownloadRequest(
+    `/announcements/manage/${encodeURIComponent(id)}/report.csv`,
+  );
   return { blob: downloaded.blob, fileName: downloaded.fileName ?? `announcement-${id}.csv` };
 }
 
-export function remindAnnouncement(id: string): Promise<{ readonly notified: number; readonly emailQueued: boolean }> {
-  return apiRequest<{ readonly notified: number; readonly emailQueued: boolean }>(`/announcements/manage/${encodeURIComponent(id)}/remind`, { method: "POST" });
+export function remindAnnouncement(
+  id: string,
+): Promise<{ readonly notified: number; readonly emailQueued: boolean }> {
+  return apiRequest<{ readonly notified: number; readonly emailQueued: boolean }>(
+    `/announcements/manage/${encodeURIComponent(id)}/remind`,
+    { method: "POST" },
+  );
 }

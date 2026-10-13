@@ -49,7 +49,9 @@ export function alignMinuteSeries(
 }
 
 /** Shared scale of both series; 1 as the floor so an all-zero hour still draws. */
-export function minuteBarsMax(points: readonly { readonly a: number; readonly b: number }[]): number {
+export function minuteBarsMax(
+  points: readonly { readonly a: number; readonly b: number }[],
+): number {
   const highest = points.reduce((max, point) => Math.max(max, point.a, point.b), 0);
   return highest > 0 ? highest : 1;
 }

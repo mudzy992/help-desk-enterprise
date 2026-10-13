@@ -34,8 +34,7 @@ export function SlaBaselineRulesEditor({
   onDeleteProfile,
 }: SlaBaselineRulesEditorProperties) {
   const { t } = useTranslation();
-  const activeEdit =
-    editingRule && isBaselineSlaRule(editingRule) ? editingRule : undefined;
+  const activeEdit = editingRule && isBaselineSlaRule(editingRule) ? editingRule : undefined;
 
   return (
     <div className="space-y-3">

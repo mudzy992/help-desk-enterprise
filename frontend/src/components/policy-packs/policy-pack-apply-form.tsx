@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { errorTextClassName, hintClassName, selectCompactClassName } from "@/components/ui/control";
 import {
-  errorTextClassName,
-  hintClassName,
-  selectCompactClassName,
-} from "@/components/ui/control";
-import { mapPolicyPacksError, type PolicyPacksMessageKey } from "@/lib/policy-packs/map-policy-packs-error";
+  mapPolicyPacksError,
+  type PolicyPacksMessageKey,
+} from "@/lib/policy-packs/map-policy-packs-error";
 import {
   buildPolicyPackApplyInput,
   hasPolicyPackTarget,
@@ -44,9 +43,7 @@ export function PolicyPackApplyForm({
   const [isChecking, setIsChecking] = useState(false);
   const [errorKey, setErrorKey] = useState<PolicyPacksMessageKey | null>(null);
   const [result, setResult] = useState<PolicyPackApplyResult | null>(null);
-  const [unapplied, setUnapplied] = useState<PolicyPackUnapplyResult | null>(
-    null,
-  );
+  const [unapplied, setUnapplied] = useState<PolicyPackUnapplyResult | null>(null);
   // M5 B6: nothing is applied before the admin has seen the plan for the exact
   // target below. Any change to the pick clears the plan again.
   const [plan, setPlan] = useState<PolicyPackValidateResult | null>(null);
@@ -204,8 +201,7 @@ export function PolicyPackApplyForm({
                     ? t("policyPacks.approvalYes")
                     : t("policyPacks.approvalNo"),
                   sla: plan.servicePolicy.slaProfileResolved
-                    ? (plan.servicePolicy.slaProfileKey ??
-                      t("policyPacks.slaNone"))
+                    ? (plan.servicePolicy.slaProfileKey ?? t("policyPacks.slaNone"))
                     : t("policyPacks.slaMissing", {
                         key: plan.servicePolicy.slaProfileKey ?? "",
                       }),
@@ -214,7 +210,9 @@ export function PolicyPackApplyForm({
             ) : null}
             <ul className="mt-1.5 space-y-0.5 text-muted-foreground">
               {plan.plannedAssignments.map((assignment) => (
-                <li key={`${assignment.userId}:${assignment.roleKey}:${assignment.serviceId ?? ""}`}>
+                <li
+                  key={`${assignment.userId}:${assignment.roleKey}:${assignment.serviceId ?? ""}`}
+                >
                   {t("policyPacks.grantRoleLine", {
                     role: t(`policyPacks.roles.${assignment.roleKey}`, {
                       defaultValue: assignment.roleKey,

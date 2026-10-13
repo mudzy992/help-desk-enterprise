@@ -1,6 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { readPasswordFeedbackKeys, type PasswordFeedbackKey } from "@/components/auth/password-feedback";
+import {
+  readPasswordFeedbackKeys,
+  type PasswordFeedbackKey,
+} from "@/components/auth/password-feedback";
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
@@ -54,7 +57,9 @@ export function PasswordSection({ password, onChanged }: PasswordSectionProperti
     <form className="max-w-md space-y-3" onSubmit={(event) => void handleSubmit(event)}>
       <p className="text-[12px] leading-5 text-muted-foreground">
         {t("account.security.passwordRules", { minLength: password.minLength })}
-        {password.historyCount > 0 ? ` ${t("account.security.passwordHistoryRule", { count: password.historyCount })}` : ""}
+        {password.historyCount > 0
+          ? ` ${t("account.security.passwordHistoryRule", { count: password.historyCount })}`
+          : ""}
       </p>
       <Field label={t("account.security.currentPassword")} required>
         <Input
@@ -103,7 +108,9 @@ export function PasswordSection({ password, onChanged }: PasswordSectionProperti
           )}
         </p>
       ) : null}
-      <p className="text-[11.5px] text-muted-foreground">{t("account.security.passwordOtherSessions")}</p>
+      <p className="text-[11.5px] text-muted-foreground">
+        {t("account.security.passwordOtherSessions")}
+      </p>
       <Button type="submit" disabled={isSaving}>
         {isSaving ? t("auth.changePassword.saving") : t("account.security.changePassword")}
       </Button>

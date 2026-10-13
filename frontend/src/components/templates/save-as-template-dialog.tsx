@@ -40,7 +40,10 @@ export function SaveAsTemplateDialog({
   return (
     <Modal open onOpenChange={(open) => (open ? undefined : onClose())}>
       <ModalContent>
-        <ModalHeader title={t("templates.picker.saveAsTitle")} description={t("templates.picker.saveAsHint")} />
+        <ModalHeader
+          title={t("templates.picker.saveAsTitle")}
+          description={t("templates.picker.saveAsHint")}
+        />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -48,7 +51,12 @@ export function SaveAsTemplateDialog({
           }}
         >
           <Field label={t("templates.picker.saveAsName")} required>
-            <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} autoFocus />
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={120}
+              autoFocus
+            />
           </Field>
           <p className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/70 bg-elevated/40 p-2 text-[12px] text-muted-foreground">
             {body.trim()}

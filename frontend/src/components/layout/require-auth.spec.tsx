@@ -58,9 +58,7 @@ describe("RequireAuth", () => {
   it("keeps the query string and hash when sending an anonymous user to sign in", () => {
     renderAt("/tickets?view=all#row-42");
 
-    expect(screen.getByTestId("login-from").textContent).toBe(
-      "/tickets?view=all#row-42",
-    );
+    expect(screen.getByTestId("login-from").textContent).toBe("/tickets?view=all#row-42");
   });
 
   it("keeps the plain pathname when there is no query or hash", () => {

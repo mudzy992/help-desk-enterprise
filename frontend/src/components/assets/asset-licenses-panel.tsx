@@ -47,7 +47,10 @@ const searchDelayMs = 300;
 function useDebounced(value: string, minLength = 2): string {
   const [debounced, setDebounced] = useState("");
   useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(value.trim().length >= minLength ? value.trim() : ""), searchDelayMs);
+    const handle = window.setTimeout(
+      () => setDebounced(value.trim().length >= minLength ? value.trim() : ""),
+      searchDelayMs,
+    );
     return () => window.clearTimeout(handle);
   }, [value, minLength]);
   return debounced;
@@ -65,10 +68,19 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
   const [openId, setOpenId] = useState<string | null>(null);
 
   const filters = useMemo(
-    () => ({ search: search || undefined, kind: kind || undefined, expiringWithinDays: expiring ? 60 : undefined, overAllocated: overAllocated || undefined }),
+    () => ({
+      search: search || undefined,
+      kind: kind || undefined,
+      expiringWithinDays: expiring ? 60 : undefined,
+      overAllocated: overAllocated || undefined,
+    }),
     [search, kind, expiring, overAllocated],
   );
-  const listQuery = useQuery({ queryKey: assetContractQueryKeys.licenses(filters), queryFn: () => listLicenses(filters), retry: false });
+  const listQuery = useQuery({
+    queryKey: assetContractQueryKeys.licenses(filters),
+    queryFn: () => listLicenses(filters),
+    retry: false,
+  });
   const items = listQuery.data?.items ?? [];
 
   return (
@@ -113,8 +125,16 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
           </select>
         </FilterField>
         <FilterToggles label={t("ui.filters.options")}>
-          <Checkbox label={t("assets.licenses.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
-          <Checkbox label={t("assets.licenses.overAllocatedFilter")} checked={overAllocated} onChange={(event) => setOverAllocated(event.target.checked)} />
+          <Checkbox
+            label={t("assets.licenses.expiringFilter")}
+            checked={expiring}
+            onChange={(event) => setExpiring(event.target.checked)}
+          />
+          <Checkbox
+            label={t("assets.licenses.overAllocatedFilter")}
+            checked={overAllocated}
+            onChange={(event) => setOverAllocated(event.target.checked)}
+          />
         </FilterToggles>
       </FilterBar>
 
@@ -127,7 +147,11 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
       {listQuery.isLoading ? (
         <PanelSkeleton label={t("ui.loading")} />
       ) : items.length === 0 ? (
-        <EmptyState icon={<KeyRound size={18} />} title={t("assets.licenses.emptyTitle")} body={t("assets.licenses.emptyBody")} />
+        <EmptyState
+          icon={<KeyRound size={18} />}
+          title={t("assets.licenses.emptyTitle")}
+          body={t("assets.licenses.emptyBody")}
+        />
       ) : (
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
@@ -135,30 +159,52 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
               <caption className="sr-only">{t("assets.licenses.caption")}</caption>
               <thead>
                 <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.licenses.fields.productName")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.licenses.fields.kind")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.licenses.fields.usage")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.licenses.fields.validUntil")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.organizationalUnit")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.licenses.fields.productName")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.licenses.fields.kind")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.licenses.fields.usage")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.licenses.fields.validUntil")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.organizationalUnit")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id} className={tableRowClassName}>
                     <td className="px-3 py-2">
-                      <button type="button" className="text-left text-foreground underline-offset-2 hover:underline" onClick={() => setOpenId(item.id)}>
+                      <button
+                        type="button"
+                        className="text-left text-foreground underline-offset-2 hover:underline"
+                        onClick={() => setOpenId(item.id)}
+                      >
                         {item.productName}
                       </button>
-                      {item.vendor ? <span className="block text-[11.5px] text-muted-foreground">{item.vendor}</span> : null}
+                      {item.vendor ? (
+                        <span className="block text-[11.5px] text-muted-foreground">
+                          {item.vendor}
+                        </span>
+                      ) : null}
                     </td>
-                    <td className="px-3 py-2">{t(`assets.licenses.kinds.${item.kind}` as const)}</td>
+                    <td className="px-3 py-2">
+                      {t(`assets.licenses.kinds.${item.kind}` as const)}
+                    </td>
                     <td className="px-3 py-2">
                       {item.seats === null ? (
                         t("assets.licenses.usageUnlimited", { used: item.used })
                       ) : (
                         <span className="flex items-center gap-1.5">
                           {t("assets.licenses.usage", { used: item.used, seats: item.seats })}
-                          {item.overAllocated ? <Badge tone="danger">{t("assets.licenses.overAllocated")}</Badge> : null}
+                          {item.overAllocated ? (
+                            <Badge tone="danger">{t("assets.licenses.overAllocated")}</Badge>
+                          ) : null}
                         </span>
                       )}
                     </td>
@@ -207,7 +253,12 @@ function LicenseFormSheet({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const optionsQuery = useQuery({ queryKey: assetQueryKeys.options, queryFn: getAssetOptions, enabled: open, retry: false });
+  const optionsQuery = useQuery({
+    queryKey: assetQueryKeys.options,
+    queryFn: getAssetOptions,
+    enabled: open,
+    retry: false,
+  });
   const [productName, setProductName] = useState("");
   const [vendor, setVendor] = useState("");
   const [kind, setKind] = useState<SoftwareLicenseKind>("PER_DEVICE");
@@ -245,9 +296,12 @@ function LicenseFormSheet({
     event.preventDefault();
     const money = parseMoneyInput(cost);
     const seatCount = kind === "SITE" ? null : seats.trim() === "" ? null : Number(seats);
-    if (productName.trim() === "" || unitId === "") return setError(t("assets.licenses.errors.required"));
-    if (kind !== "SITE" && (seatCount === null || !Number.isInteger(seatCount) || seatCount < 0)) return setError(t("assets.licenses.errors.seats"));
-    if (kind === "SUBSCRIPTION" && validUntil === "") return setError(t("assets.licenses.errors.validUntil"));
+    if (productName.trim() === "" || unitId === "")
+      return setError(t("assets.licenses.errors.required"));
+    if (kind !== "SITE" && (seatCount === null || !Number.isInteger(seatCount) || seatCount < 0))
+      return setError(t("assets.licenses.errors.seats"));
+    if (kind === "SUBSCRIPTION" && validUntil === "")
+      return setError(t("assets.licenses.errors.validUntil"));
     if (money === "invalid") return setError(t("assets.licenses.errors.cost"));
     const input = {
       productName: productName.trim(),
@@ -258,7 +312,11 @@ function LicenseFormSheet({
       cost: money,
       notes: notes.trim() || null,
       organizationalUnitId: unitId,
-      ...(removeKey ? { licenseKey: "" } : licenseKey.trim() !== "" ? { licenseKey: licenseKey.trim() } : {}),
+      ...(removeKey
+        ? { licenseKey: "" }
+        : licenseKey.trim() !== ""
+          ? { licenseKey: licenseKey.trim() }
+          : {}),
     };
     setPending(true);
     setError(null);
@@ -278,18 +336,43 @@ function LicenseFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{license === null ? t("assets.licenses.create") : t("assets.licenses.edit")}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.licenses.formDescription")}</SheetDescription>
+        <SheetTitle>
+          {license === null ? t("assets.licenses.create") : t("assets.licenses.edit")}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.licenses.formDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           <Field label={t("assets.licenses.fields.productName")} required>
-            {(control) => <Input {...control} maxLength={160} value={productName} onChange={(event) => setProductName(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={160}
+                value={productName}
+                onChange={(event) => setProductName(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("assets.licenses.fields.vendor")}>
-            {(control) => <Input {...control} maxLength={120} value={vendor} onChange={(event) => setVendor(event.target.value)} />}
-          </Field>
-          <Field label={t("assets.licenses.fields.kind")} hint={t(`assets.licenses.kindHints.${kind}` as const)}>
             {(control) => (
-              <Select {...control} value={kind} onChange={(event) => setKind(event.target.value as SoftwareLicenseKind)}>
+              <Input
+                {...control}
+                maxLength={120}
+                value={vendor}
+                onChange={(event) => setVendor(event.target.value)}
+              />
+            )}
+          </Field>
+          <Field
+            label={t("assets.licenses.fields.kind")}
+            hint={t(`assets.licenses.kindHints.${kind}` as const)}
+          >
+            {(control) => (
+              <Select
+                {...control}
+                value={kind}
+                onChange={(event) => setKind(event.target.value as SoftwareLicenseKind)}
+              >
                 {softwareLicenseKinds.map((value) => (
                   <option key={value} value={value}>
                     {t(`assets.licenses.kinds.${value}` as const)}
@@ -301,19 +384,49 @@ function LicenseFormSheet({
           {kind !== "SITE" ? (
             <Field label={t("assets.licenses.fields.seats")} required>
               {(control) => (
-                <Input {...control} type="number" min={0} step={1} inputMode="numeric" value={seats} onChange={(event) => setSeats(event.target.value)} />
+                <Input
+                  {...control}
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  value={seats}
+                  onChange={(event) => setSeats(event.target.value)}
+                />
               )}
             </Field>
           ) : null}
           <Field label={t("assets.licenses.fields.validUntil")} required={kind === "SUBSCRIPTION"}>
-            {(control) => <Input {...control} type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                type="date"
+                value={validUntil}
+                onChange={(event) => setValidUntil(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("assets.licenses.fields.cost")}>
-            {(control) => <Input {...control} inputMode="decimal" value={cost} onChange={(event) => setCost(event.target.value)} />}
-          </Field>
-          <Field label={t("assets.fields.organizationalUnit")} required hint={t("assets.licenses.unitHint")}>
             {(control) => (
-              <Select {...control} value={unitId} onChange={(event) => setUnitId(event.target.value)}>
+              <Input
+                {...control}
+                inputMode="decimal"
+                value={cost}
+                onChange={(event) => setCost(event.target.value)}
+              />
+            )}
+          </Field>
+          <Field
+            label={t("assets.fields.organizationalUnit")}
+            required
+            hint={t("assets.licenses.unitHint")}
+          >
+            {(control) => (
+              <Select
+                {...control}
+                value={unitId}
+                onChange={(event) => setUnitId(event.target.value)}
+              >
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>
                     {unit.path}
@@ -324,7 +437,9 @@ function LicenseFormSheet({
           </Field>
           <Field
             label={t("assets.licenses.fields.licenseKey")}
-            hint={license?.hasKey ? t("assets.licenses.keyStoredHint") : t("assets.licenses.keyHint")}
+            hint={
+              license?.hasKey ? t("assets.licenses.keyStoredHint") : t("assets.licenses.keyHint")
+            }
           >
             {(control) => (
               <Input
@@ -339,10 +454,22 @@ function LicenseFormSheet({
             )}
           </Field>
           {license?.hasKey ? (
-            <Checkbox label={t("assets.licenses.removeKey")} checked={removeKey} onChange={(event) => setRemoveKey(event.target.checked)} />
+            <Checkbox
+              label={t("assets.licenses.removeKey")}
+              checked={removeKey}
+              onChange={(event) => setRemoveKey(event.target.checked)}
+            />
           ) : null}
           <Field label={t("assets.licenses.fields.notes")}>
-            {(control) => <Textarea {...control} rows={3} maxLength={4000} value={notes} onChange={(event) => setNotes(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                maxLength={4000}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>
@@ -398,14 +525,32 @@ function LicenseDetailSheet({
   }, [licenseId]);
 
   const license = detailQuery.data;
-  const effectiveTarget = license?.assignmentTarget === "user" ? "user" : license?.assignmentTarget === "asset" ? "asset" : target;
+  const effectiveTarget =
+    license?.assignmentTarget === "user"
+      ? "user"
+      : license?.assignmentTarget === "asset"
+        ? "asset"
+        : target;
   const candidatesQuery = useQuery({
     queryKey: ["assets", "license-candidates", effectiveTarget, search],
     queryFn: async () =>
       effectiveTarget === "asset"
-        ? (await lookupAssets(search)).items.map((item) => ({ id: item.id, title: `${item.assetTag} · ${item.name}`, subtitle: item.assignedUser?.displayName ?? "" }))
-        : (await searchAssetUsers(search)).items.map((item) => ({ id: item.id, title: item.displayName, subtitle: item.email })),
-    enabled: open && canManage && search.length >= 2 && license !== undefined && license.assignmentTarget !== "none",
+        ? (await lookupAssets(search)).items.map((item) => ({
+            id: item.id,
+            title: `${item.assetTag} · ${item.name}`,
+            subtitle: item.assignedUser?.displayName ?? "",
+          }))
+        : (await searchAssetUsers(search)).items.map((item) => ({
+            id: item.id,
+            title: item.displayName,
+            subtitle: item.email,
+          })),
+    enabled:
+      open &&
+      canManage &&
+      search.length >= 2 &&
+      license !== undefined &&
+      license.assignmentTarget !== "none",
     retry: false,
   });
 
@@ -430,7 +575,9 @@ function LicenseDetailSheet({
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
         <SheetTitle>{license?.productName ?? t("assets.licenses.detailTitle")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-          {license ? `${t(`assets.licenses.kinds.${license.kind}` as const)} · ${license.organizationalUnit.name}` : t("ui.loading")}
+          {license
+            ? `${t(`assets.licenses.kinds.${license.kind}` as const)} · ${license.organizationalUnit.name}`
+            : t("ui.loading")}
         </SheetDescription>
         {detailQuery.isLoading ? <PanelSkeleton label={t("ui.loading")} /> : null}
         {detailQuery.error ? (
@@ -448,11 +595,14 @@ function LicenseDetailSheet({
                 {license.seats === null
                   ? t("assets.licenses.usageUnlimited", { used: license.used })
                   : t("assets.licenses.usage", { used: license.used, seats: license.seats })}
-                {license.overAllocated ? <Badge tone="danger">{t("assets.licenses.overAllocated")}</Badge> : null}
+                {license.overAllocated ? (
+                  <Badge tone="danger">{t("assets.licenses.overAllocated")}</Badge>
+                ) : null}
               </dd>
               <dt className="text-muted-foreground">{t("assets.licenses.fields.validUntil")}</dt>
               <dd className="flex items-center gap-1.5">
-                {formatAssetDate(license.validUntil, i18n.language)} <AssetExpiryBadge daysLeft={license.daysLeft} />
+                {formatAssetDate(license.validUntil, i18n.language)}{" "}
+                <AssetExpiryBadge daysLeft={license.daysLeft} />
               </dd>
               <dt className="text-muted-foreground">{t("assets.licenses.fields.cost")}</dt>
               <dd>{license.cost ?? "—"}</dd>
@@ -461,13 +611,19 @@ function LicenseDetailSheet({
                 {!license.hasKey ? (
                   "—"
                 ) : revealed !== null ? (
-                  <code className="break-all rounded bg-muted px-1.5 py-0.5 text-[12px]">{revealed}</code>
+                  <code className="break-all rounded bg-muted px-1.5 py-0.5 text-[12px]">
+                    {revealed}
+                  </code>
                 ) : canManage ? (
                   <Button
                     variant="outline"
                     size="xs"
                     disabled={pending}
-                    onClick={() => void run(async () => setRevealed((await revealLicenseKey(license.id)).licenseKey))}
+                    onClick={() =>
+                      void run(async () =>
+                        setRevealed((await revealLicenseKey(license.id)).licenseKey),
+                      )
+                    }
                   >
                     <Eye size={12} aria-hidden="true" />
                     {t("assets.licenses.reveal")}
@@ -477,22 +633,35 @@ function LicenseDetailSheet({
                 )}
               </dd>
             </dl>
-            {license.notes ? <p className="whitespace-pre-wrap text-muted-foreground">{license.notes}</p> : null}
+            {license.notes ? (
+              <p className="whitespace-pre-wrap text-muted-foreground">{license.notes}</p>
+            ) : null}
 
             <section aria-labelledby="license-assignments-title" className="grid gap-2">
-              <h3 id="license-assignments-title" className="text-[13px] font-semibold text-foreground">
+              <h3
+                id="license-assignments-title"
+                className="text-[13px] font-semibold text-foreground"
+              >
                 {t("assets.licenses.assignmentsTitle")}
               </h3>
-              {license.assignmentTarget === "none" ? <p className={hintClassName}>{t("assets.licenses.siteHint")}</p> : null}
+              {license.assignmentTarget === "none" ? (
+                <p className={hintClassName}>{t("assets.licenses.siteHint")}</p>
+              ) : null}
               {license.assignments.length === 0 && license.assignmentTarget !== "none" ? (
                 <p className={hintClassName}>{t("assets.licenses.noAssignments")}</p>
               ) : null}
               <ul className="grid gap-1">
                 {license.assignments.map((assignment) => (
-                  <li key={assignment.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5">
+                  <li
+                    key={assignment.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5"
+                  >
                     <span className="min-w-0 truncate">
                       {assignment.asset ? (
-                        <Link to={`/assets/${assignment.asset.id}`} className="text-foreground underline-offset-2 hover:underline">
+                        <Link
+                          to={`/assets/${assignment.asset.id}`}
+                          className="text-foreground underline-offset-2 hover:underline"
+                        >
                           {assignment.asset.assetTag} · {assignment.asset.name}
                         </Link>
                       ) : (
@@ -512,7 +681,12 @@ function LicenseDetailSheet({
                         size="icon"
                         aria-label={t("assets.licenses.release")}
                         disabled={pending}
-                        onClick={() => void run(() => releaseLicense(license.id, assignment.id), t("assets.licenses.released"))}
+                        onClick={() =>
+                          void run(
+                            () => releaseLicense(license.id, assignment.id),
+                            t("assets.licenses.released"),
+                          )
+                        }
                       >
                         <Trash2 size={14} aria-hidden="true" />
                       </Button>
@@ -523,7 +697,11 @@ function LicenseDetailSheet({
               {canManage && license.assignmentTarget !== "none" ? (
                 <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
                   {license.assignmentTarget === "either" ? (
-                    <Select aria-label={t("assets.licenses.assignTarget")} value={target} onChange={(event) => setTarget(event.target.value as "asset" | "user")}>
+                    <Select
+                      aria-label={t("assets.licenses.assignTarget")}
+                      value={target}
+                      onChange={(event) => setTarget(event.target.value as "asset" | "user")}
+                    >
                       <option value="asset">{t("assets.licenses.targetAsset")}</option>
                       <option value="user">{t("assets.licenses.targetUser")}</option>
                     </Select>
@@ -531,8 +709,16 @@ function LicenseDetailSheet({
                   <Input
                     type="search"
                     autoComplete="off"
-                    aria-label={effectiveTarget === "asset" ? t("assets.licenses.searchAsset") : t("assets.licenses.searchUser")}
-                    placeholder={effectiveTarget === "asset" ? t("assets.licenses.searchAsset") : t("assets.licenses.searchUser")}
+                    aria-label={
+                      effectiveTarget === "asset"
+                        ? t("assets.licenses.searchAsset")
+                        : t("assets.licenses.searchUser")
+                    }
+                    placeholder={
+                      effectiveTarget === "asset"
+                        ? t("assets.licenses.searchAsset")
+                        : t("assets.licenses.searchUser")
+                    }
                     value={searchText}
                     onChange={(event) => setSearchText(event.target.value)}
                   />
@@ -540,7 +726,11 @@ function LicenseDetailSheet({
                     <div key={candidate.id} className="flex items-center justify-between gap-2">
                       <span className="min-w-0">
                         <span className="block truncate">{candidate.title}</span>
-                        {candidate.subtitle ? <span className="block truncate text-[11.5px] text-muted-foreground">{candidate.subtitle}</span> : null}
+                        {candidate.subtitle ? (
+                          <span className="block truncate text-[11.5px] text-muted-foreground">
+                            {candidate.subtitle}
+                          </span>
+                        ) : null}
                       </span>
                       <Button
                         variant="outline"
@@ -548,7 +738,13 @@ function LicenseDetailSheet({
                         disabled={pending}
                         onClick={() =>
                           void run(
-                            () => assignLicense(license.id, effectiveTarget === "asset" ? { assetId: candidate.id } : { userId: candidate.id }),
+                            () =>
+                              assignLicense(
+                                license.id,
+                                effectiveTarget === "asset"
+                                  ? { assetId: candidate.id }
+                                  : { userId: candidate.id },
+                              ),
                             t("assets.licenses.assigned"),
                           ).then((ok) => (ok ? setSearchText("") : undefined))
                         }
@@ -557,7 +753,9 @@ function LicenseDetailSheet({
                       </Button>
                     </div>
                   ))}
-                  {search.length >= 2 && candidatesQuery.data?.length === 0 ? <p className={hintClassName}>{t("assets.licenses.noCandidates")}</p> : null}
+                  {search.length >= 2 && candidatesQuery.data?.length === 0 ? (
+                    <p className={hintClassName}>{t("assets.licenses.noCandidates")}</p>
+                  ) : null}
                 </div>
               ) : null}
             </section>
@@ -575,7 +773,9 @@ function LicenseDetailSheet({
                   disabled={pending}
                   onClick={() => {
                     if (!window.confirm(t("assets.licenses.confirmDelete"))) return;
-                    void run(() => deleteLicense(license.id), t("assets.licenses.deleted")).then((ok) => (ok ? onOpenChange(false) : undefined));
+                    void run(() => deleteLicense(license.id), t("assets.licenses.deleted")).then(
+                      (ok) => (ok ? onOpenChange(false) : undefined),
+                    );
                   }}
                 >
                   {t("assets.licenses.delete")}

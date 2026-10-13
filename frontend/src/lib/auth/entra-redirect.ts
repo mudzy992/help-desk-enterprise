@@ -18,7 +18,8 @@ export type EntraClientConfiguration = NonNullable<AuthenticationProviders["entr
 const CONFIGURATION_STORAGE_KEY = "service-desk.entra.configuration";
 export const ENTRA_CALLBACK_PATH = "/auth/callback";
 
-let cached: { readonly key: string; readonly instance: Promise<IPublicClientApplication> } | null = null;
+let cached: { readonly key: string; readonly instance: Promise<IPublicClientApplication> } | null =
+  null;
 
 export function entraRedirectUri(): string {
   return `${window.location.origin}${ENTRA_CALLBACK_PATH}`;

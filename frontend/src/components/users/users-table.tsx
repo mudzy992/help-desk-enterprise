@@ -10,19 +10,13 @@ interface UsersTableProperties {
   readonly onEditUser: (userId: string) => void;
 }
 
-export function UsersTable({
-  visible,
-  canManageUsers,
-  onEditUser,
-}: UsersTableProperties) {
+export function UsersTable({ visible, canManageUsers, onEditUser }: UsersTableProperties) {
   const { t } = useTranslation();
   return (
     <ScrollRegion className="fade-in overflow-x-auto">
       <table className="w-full min-w-[860px] text-left">
         <thead>
-          <tr
-            className={`border-b border-border/70 text-left ${tableHeadClassName}`}
-          >
+          <tr className={`border-b border-border/70 text-left ${tableHeadClassName}`}>
             <th className="px-4 py-2.5">{t("users.columnUser")}</th>
             <th className="px-4 py-2.5">{t("users.columnRole")}</th>
             <th className="px-4 py-2.5">{t("users.columnOuGroup")}</th>

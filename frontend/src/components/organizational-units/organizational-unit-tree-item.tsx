@@ -81,11 +81,7 @@ export function OrganizationalUnitTreeItem({
           <button
             type="button"
             className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
-            aria-label={
-              collapsed
-                ? t("directory.expandUnit")
-                : t("directory.collapseUnit")
-            }
+            aria-label={collapsed ? t("directory.expandUnit") : t("directory.collapseUnit")}
             onClick={(event) => {
               event.stopPropagation();
               setCollapsed((value) => !value);
@@ -98,10 +94,7 @@ export function OrganizationalUnitTreeItem({
         )}
         <TypeIcon
           size={14}
-          className={cn(
-            "shrink-0",
-            depth === 0 ? "text-link" : "text-muted-foreground",
-          )}
+          className={cn("shrink-0", depth === 0 ? "text-link" : "text-muted-foreground")}
           aria-label={
             node.type
               ? t(`directory.ouType.${node.type}`, { defaultValue: node.type })
@@ -111,9 +104,7 @@ export function OrganizationalUnitTreeItem({
         <span
           className={cn(
             "text-[12.5px]",
-            depth === 0
-              ? "font-semibold text-foreground"
-              : "text-foreground/90",
+            depth === 0 ? "font-semibold text-foreground" : "text-foreground/90",
           )}
         >
           {node.name}
@@ -145,10 +136,7 @@ export function OrganizationalUnitTreeItem({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[140px]">
-              <DropdownMenuItem
-                onSelect={() => onEdit?.(node)}
-                data-testid={`ou-edit-${node.id}`}
-              >
+              <DropdownMenuItem onSelect={() => onEdit?.(node)} data-testid={`ou-edit-${node.id}`}>
                 {t("directory.ouEdit")}
               </DropdownMenuItem>
               <DropdownMenuItem

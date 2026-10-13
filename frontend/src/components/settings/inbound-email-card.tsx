@@ -52,7 +52,11 @@ export function InboundEmailCard() {
     try {
       setTest(await testInboundEmailConnection());
     } catch (error) {
-      setTest({ ok: false, error: error instanceof Error ? error.message : String(error), problems: [] });
+      setTest({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+        problems: [],
+      });
     } finally {
       setTesting(false);
     }
@@ -62,14 +66,28 @@ export function InboundEmailCard() {
   const healthy = state !== null && state.consecutiveFails === 0 && state.lastSuccessAt !== null;
   return (
     <Card className="fade-in" data-testid="inbound-email-card">
-      <CardHeader title={t("settings.inboundEmail.title")} subtitle={t("settings.inboundEmail.subtitle")} />
+      <CardHeader
+        title={t("settings.inboundEmail.title")}
+        subtitle={t("settings.inboundEmail.subtitle")}
+      />
       <div className="space-y-2.5 px-4 pb-4 pt-4 text-[12px]">
         {loadError !== null ? <p className="text-danger">{loadError}</p> : null}
         {status !== null ? (
           <>
             <p className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("settings.inboundEmail.state")}</span>
-              <Badge tone={!status.enabled ? "neutral" : healthy ? "success" : state === null ? "info" : "danger"} dot>
+              <Badge
+                tone={
+                  !status.enabled
+                    ? "neutral"
+                    : healthy
+                      ? "success"
+                      : state === null
+                        ? "info"
+                        : "danger"
+                }
+                dot
+              >
                 {!status.enabled
                   ? t("settings.inboundEmail.disabled")
                   : healthy
@@ -82,13 +100,20 @@ export function InboundEmailCard() {
             <p className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("settings.inboundEmail.mailbox")}</span>
               <span className="text-foreground/90">
-                {status.address.length > 0 ? status.address : "—"} · {t(`settings.inboundEmail.providers.${status.provider}`)}
+                {status.address.length > 0 ? status.address : "—"} ·{" "}
+                {t(`settings.inboundEmail.providers.${status.provider}`)}
               </span>
             </p>
             {state?.lastSuccessAt ? (
               <p className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t("settings.inboundEmail.lastSuccess")}</span>
-                <RelativeTime value={state.lastSuccessAt} locale={i18n.language} className="text-foreground/90" />
+                <span className="text-muted-foreground">
+                  {t("settings.inboundEmail.lastSuccess")}
+                </span>
+                <RelativeTime
+                  value={state.lastSuccessAt}
+                  locale={i18n.language}
+                  className="text-foreground/90"
+                />
               </p>
             ) : null}
             <p className="flex items-center justify-between">
@@ -101,7 +126,10 @@ export function InboundEmailCard() {
                 })}
               </span>
             </p>
-            {status.enabled && state?.lastError && state.consecutiveFails > 0 && !state.lastError.startsWith("MISCONFIGURED") ? (
+            {status.enabled &&
+            state?.lastError &&
+            state.consecutiveFails > 0 &&
+            !state.lastError.startsWith("MISCONFIGURED") ? (
               <Warning text={t("settings.inboundEmail.lastError", { error: state.lastError })} />
             ) : null}
             {status.enabled
@@ -110,14 +138,20 @@ export function InboundEmailCard() {
                 ))
               : null}
             {status.enabled && !status.replyModeReady ? (
-              <Warning text={t("settings.inboundEmail.replyModeWarning")} testId="inbound-reply-mode-warning" />
+              <Warning
+                text={t("settings.inboundEmail.replyModeWarning")}
+                testId="inbound-reply-mode-warning"
+              />
             ) : null}
             {status.enabled && !status.replyTokenReady ? (
               <Warning text={t("settings.inboundEmail.tokenWarning")} />
             ) : null}
             {test !== null ? (
               test.ok ? (
-                <p className="rounded-md border border-success/30 bg-success/10 px-2.5 py-2 text-[11.5px] text-ok" role="status">
+                <p
+                  className="rounded-md border border-success/30 bg-success/10 px-2.5 py-2 text-[11.5px] text-ok"
+                  role="status"
+                >
                   {t("settings.inboundEmail.testOk", { count: test.inboxCount ?? 0 })}
                 </p>
               ) : (
@@ -134,15 +168,33 @@ export function InboundEmailCard() {
           </>
         ) : null}
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button type="button" size="xs" variant="outline" disabled={status === null || testing} onClick={() => void runTest()}>
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            disabled={status === null || testing}
+            onClick={() => void runTest()}
+          >
             <PlugZap size={13} />
             {testing ? t("settings.inboundEmail.testing") : t("settings.inboundEmail.test")}
           </Button>
-          <Button type="button" size="xs" variant="outline" disabled={status === null} onClick={() => setLogOpen(true)}>
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            disabled={status === null}
+            onClick={() => setLogOpen(true)}
+          >
             <Inbox size={13} />
             {t("settings.inboundEmail.openLog")}
           </Button>
-          <Button type="button" size="xs" variant="ghost" onClick={() => void reload()} aria-label={t("settings.inboundEmail.refresh")}>
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={() => void reload()}
+            aria-label={t("settings.inboundEmail.refresh")}
+          >
             <RefreshCw size={13} />
           </Button>
         </div>
@@ -150,27 +202,47 @@ export function InboundEmailCard() {
       <Sheet open={logOpen} onOpenChange={setLogOpen}>
         <SheetContent side="right" className="flex w-full max-w-xl flex-col p-0">
           <div className="border-b border-border px-5 py-4 pr-12">
-            <SheetTitle className="text-[15px] font-semibold text-foreground">{t("settings.inboundEmail.logTitle")}</SheetTitle>
+            <SheetTitle className="text-[15px] font-semibold text-foreground">
+              {t("settings.inboundEmail.logTitle")}
+            </SheetTitle>
             <SheetDescription className="mt-1 text-[12px] leading-5 text-muted-foreground">
               {t("settings.inboundEmail.logSubtitle")}
             </SheetDescription>
           </div>
-          <ul className="flex-1 space-y-2 overflow-y-auto px-5 py-4 text-[12px]" data-testid="inbound-email-log">
+          <ul
+            className="flex-1 space-y-2 overflow-y-auto px-5 py-4 text-[12px]"
+            data-testid="inbound-email-log"
+          >
             {(status?.recent ?? []).length === 0 ? (
-              <li className="py-10 text-center text-muted-foreground">{t("settings.inboundEmail.logEmpty")}</li>
+              <li className="py-10 text-center text-muted-foreground">
+                {t("settings.inboundEmail.logEmpty")}
+              </li>
             ) : null}
             {(status?.recent ?? []).map((entry) => {
               const reason = toInboundReasonKey(entry.reason);
               return (
-                <li key={entry.id} className="space-y-1.5 rounded-lg border border-border bg-elevated/40 px-3.5 py-3">
+                <li
+                  key={entry.id}
+                  className="space-y-1.5 rounded-lg border border-border bg-elevated/40 px-3.5 py-3"
+                >
                   <div className="flex items-center justify-between gap-3">
-                    <Badge tone={statusTones[entry.status]}>{t(`settings.inboundEmail.statuses.${entry.status}`)}</Badge>
-                    <RelativeTime value={entry.createdAt} locale={i18n.language} className="text-[11px] text-muted-foreground" />
+                    <Badge tone={statusTones[entry.status]}>
+                      {t(`settings.inboundEmail.statuses.${entry.status}`)}
+                    </Badge>
+                    <RelativeTime
+                      value={entry.createdAt}
+                      locale={i18n.language}
+                      className="text-[11px] text-muted-foreground"
+                    />
                   </div>
-                  <p className="truncate font-medium text-foreground/90">{entry.subject.length > 0 ? entry.subject : "—"}</p>
+                  <p className="truncate font-medium text-foreground/90">
+                    {entry.subject.length > 0 ? entry.subject : "—"}
+                  </p>
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
                     <span className="break-all">{entry.fromAddress ?? "—"}</span>
-                    {reason !== null ? <span>· {t(`settings.inboundEmail.reasons.${reason}`)}</span> : null}
+                    {reason !== null ? (
+                      <span>· {t(`settings.inboundEmail.reasons.${reason}`)}</span>
+                    ) : null}
                     {entry.ticketId !== null ? (
                       <Link className="text-link hover:underline" to={`/tickets/${entry.ticketId}`}>
                         · {entry.ticketNumber ?? t("settings.inboundEmail.ticket")}

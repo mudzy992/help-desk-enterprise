@@ -37,8 +37,11 @@ import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { getTeamsMe } from "@/services/teams-api";
 
-type CategoryLabelKey = `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
-type Replace<S extends string> = S extends `${infer Head}.${infer Tail}` ? `${Head}_${Replace<Tail>}` : S;
+type CategoryLabelKey =
+  `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
+type Replace<S extends string> = S extends `${infer Head}.${infer Tail}`
+  ? `${Head}_${Replace<Tail>}`
+  : S;
 
 const categoryLabel = (key: NotificationPreferenceCategoryKey) =>
   `account.notifications.categories.${key.replace(/\./g, "_")}` as CategoryLabelKey;
@@ -59,7 +62,10 @@ export function AccountNotificationsPage() {
   const { locale } = useLocale();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: queryKeys.accountNotifications, queryFn: getNotificationPreferences });
+  const query = useQuery({
+    queryKey: queryKeys.accountNotifications,
+    queryFn: getNotificationPreferences,
+  });
   const [draft, setDraft] = useState<NotificationPreferences | null>(null);
   const [busy, setBusy] = useState<"save" | "reset" | "test" | "weekly" | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -118,14 +124,21 @@ export function AccountNotificationsPage() {
       const rateLimited = caught instanceof ApiError && caught.status === 429;
       toast({
         tone: "danger",
-        title: t(rateLimited ? "account.notifications.testRateLimited" : "account.notifications.testFailed"),
+        title: t(
+          rateLimited
+            ? "account.notifications.testRateLimited"
+            : "account.notifications.testFailed",
+        ),
       });
     } finally {
       setBusy(null);
     }
   };
 
-  const updateCategory = (key: NotificationPreferenceCategoryKey, patch: Partial<NotificationPreferenceCategory>) =>
+  const updateCategory = (
+    key: NotificationPreferenceCategoryKey,
+    patch: Partial<NotificationPreferenceCategory>,
+  ) =>
     setDraft((current) =>
       current
         ? {
@@ -138,7 +151,9 @@ export function AccountNotificationsPage() {
     );
 
   const updateSchedule = (patch: Partial<NotificationPreferences["schedule"]>) =>
-    setDraft((current) => (current ? { ...current, schedule: { ...current.schedule, ...patch } } : current));
+    setDraft((current) =>
+      current ? { ...current, schedule: { ...current.schedule, ...patch } } : current,
+    );
 
   const policy = draft?.policy;
   // Paket 3.1: Teams column only while the connector can deliver to personal chats.
@@ -161,11 +176,24 @@ export function AccountNotificationsPage() {
         actions={
           editable ? (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmReset(true)} disabled={busy !== null}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmReset(true)}
+                disabled={busy !== null}
+              >
                 {t("account.notifications.reset")}
               </Button>
-              <Button type="button" size="sm" onClick={() => void save()} disabled={!dirty || busy !== null}>
-                {busy === "save" ? t("account.notifications.saving") : t("account.notifications.save")}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void save()}
+                disabled={!dirty || busy !== null}
+              >
+                {busy === "save"
+                  ? t("account.notifications.saving")
+                  : t("account.notifications.save")}
               </Button>
             </div>
           ) : null
@@ -190,16 +218,27 @@ export function AccountNotificationsPage() {
             </p>
           ) : null}
           {showTeams && teamsConnected !== null ? (
-            <p className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="teams-connection">
-              <span className="font-medium text-foreground">{t("account.notifications.teamsLabel")}</span>
+            <p
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground"
+              data-testid="teams-connection"
+            >
+              <span className="font-medium text-foreground">
+                {t("account.notifications.teamsLabel")}
+              </span>
               <Badge tone={teamsConnected ? "success" : "neutral"} dot>
-                {teamsConnected ? t("account.notifications.teamsConnected") : t("account.notifications.teamsNotInstalled")}
+                {teamsConnected
+                  ? t("account.notifications.teamsConnected")
+                  : t("account.notifications.teamsNotInstalled")}
               </Badge>
               {teamsConnected ? null : <span>{t("account.notifications.teamsInstallHint")}</span>}
             </p>
           ) : null}
           {problems.length > 0 ? (
-            <ul className={errorTextClassName} role="alert" data-testid="notification-preferences-problems">
+            <ul
+              className={errorTextClassName}
+              role="alert"
+              data-testid="notification-preferences-problems"
+            >
               {problems.map((problem) => (
                 <li key={problem}>{problem}</li>
               ))}
@@ -207,23 +246,40 @@ export function AccountNotificationsPage() {
           ) : null}
 
           <Card>
-            <CardHeader title={t("account.notifications.eventsTitle")} subtitle={t("account.notifications.eventsSubtitle")} />
+            <CardHeader
+              title={t("account.notifications.eventsTitle")}
+              subtitle={t("account.notifications.eventsSubtitle")}
+            />
             <ScrollRegion className="overflow-x-auto">
               <table className="w-full text-[12.5px]" data-testid="notification-preferences-table">
                 <thead>
                   <tr className="border-b border-border/70 text-left text-[11.5px] text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">{t("account.notifications.columnEvent")}</th>
-                    <th className="px-4 py-2 font-medium">{t("account.notifications.columnInApp")}</th>
-                    <th className="px-4 py-2 font-medium">{t("account.notifications.columnEmail")}</th>
-                    {showTeams ? <th className="px-4 py-2 font-medium">{t("account.notifications.columnTeams")}</th> : null}
+                    <th className="px-4 py-2 font-medium">
+                      {t("account.notifications.columnEvent")}
+                    </th>
+                    <th className="px-4 py-2 font-medium">
+                      {t("account.notifications.columnInApp")}
+                    </th>
+                    <th className="px-4 py-2 font-medium">
+                      {t("account.notifications.columnEmail")}
+                    </th>
+                    {showTeams ? (
+                      <th className="px-4 py-2 font-medium">
+                        {t("account.notifications.columnTeams")}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
                   {draft.categories.map((category) => (
                     <tr key={category.key} className="border-b border-border/50 last:border-0">
                       <td className="px-4 py-2.5 align-top">
-                        <p className="font-medium text-foreground">{t(`${categoryLabel(category.key)}.label`)}</p>
-                        <p className="text-[11.5px] text-muted-foreground">{t(`${categoryLabel(category.key)}.hint`)}</p>
+                        <p className="font-medium text-foreground">
+                          {t(`${categoryLabel(category.key)}.label`)}
+                        </p>
+                        <p className="text-[11.5px] text-muted-foreground">
+                          {t(`${categoryLabel(category.key)}.hint`)}
+                        </p>
                       </td>
                       <td className="px-4 py-2.5 align-top">
                         {category.channels.inApp ? (
@@ -231,13 +287,19 @@ export function AccountNotificationsPage() {
                             <Switch
                               checked={category.inApp}
                               disabled={!editable || category.alwaysOn || category.inAppLocked}
-                              onCheckedChange={(checked) => updateCategory(category.key, { inApp: checked })}
+                              onCheckedChange={(checked) =>
+                                updateCategory(category.key, { inApp: checked })
+                              }
                               aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnInApp")}`}
                             />
-                            {category.alwaysOn || category.inAppLocked ? <LockHint alwaysOn={category.alwaysOn} /> : null}
+                            {category.alwaysOn || category.inAppLocked ? (
+                              <LockHint alwaysOn={category.alwaysOn} />
+                            ) : null}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">{t("account.notifications.emailOnly")}</span>
+                          <span className="text-muted-foreground">
+                            {t("account.notifications.emailOnly")}
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 align-top">
@@ -247,7 +309,9 @@ export function AccountNotificationsPage() {
                               value={category.email}
                               disabled={!editable || category.emailLocked}
                               onChange={(event) =>
-                                updateCategory(category.key, { email: event.target.value as NotificationEmailMode })
+                                updateCategory(category.key, {
+                                  email: event.target.value as NotificationEmailMode,
+                                })
                               }
                               aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnEmail")}`}
                               className="w-auto min-w-[9rem]"
@@ -268,7 +332,9 @@ export function AccountNotificationsPage() {
                             {category.emailLocked ? <LockHint alwaysOn={false} /> : null}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">{t("account.notifications.inAppOnly")}</span>
+                          <span className="text-muted-foreground">
+                            {t("account.notifications.inAppOnly")}
+                          </span>
                         )}
                       </td>
                       {showTeams ? (
@@ -277,7 +343,9 @@ export function AccountNotificationsPage() {
                             <Switch
                               checked={category.teams === true}
                               disabled={!editable}
-                              onCheckedChange={(checked) => updateCategory(category.key, { teams: checked })}
+                              onCheckedChange={(checked) =>
+                                updateCategory(category.key, { teams: checked })
+                              }
                               aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnTeams")}`}
                             />
                           ) : (
@@ -323,10 +391,16 @@ export function AccountNotificationsPage() {
                   <Select
                     value={draft.schedule.digestTime ?? ""}
                     disabled={!editable}
-                    onChange={(event) => updateSchedule({ digestTime: event.target.value === "" ? null : event.target.value })}
+                    onChange={(event) =>
+                      updateSchedule({
+                        digestTime: event.target.value === "" ? null : event.target.value,
+                      })
+                    }
                   >
                     <option value="">
-                      {t("account.notifications.digestTimeDefault", { time: policy.digestDefaultTime })}
+                      {t("account.notifications.digestTimeDefault", {
+                        time: policy.digestDefaultTime,
+                      })}
                     </option>
                     {quarterHourOptions.map((value) => (
                       <option key={value} value={value}>
@@ -340,14 +414,22 @@ export function AccountNotificationsPage() {
                     label={t("account.notifications.digestWorkdaysOnly")}
                     checked={draft.schedule.digestWorkdaysOnly}
                     disabled={!editable}
-                    onChange={(event) => updateSchedule({ digestWorkdaysOnly: event.target.checked })}
+                    onChange={(event) =>
+                      updateSchedule({ digestWorkdaysOnly: event.target.checked })
+                    }
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground sm:col-span-2">
                   {draft.digest.nextAt ? (
-                    <span>{t("account.notifications.digestNext", { at: formatTicketTimestamp(draft.digest.nextAt, locale) })}</span>
+                    <span>
+                      {t("account.notifications.digestNext", {
+                        at: formatTicketTimestamp(draft.digest.nextAt, locale),
+                      })}
+                    </span>
                   ) : null}
-                  <Badge>{t("account.notifications.digestPending", { count: draft.digest.pendingItems })}</Badge>
+                  <Badge>
+                    {t("account.notifications.digestPending", { count: draft.digest.pendingItems })}
+                  </Badge>
                   <Button
                     type="button"
                     variant="outline"
@@ -411,7 +493,9 @@ export function AccountNotificationsPage() {
                     onChange={(event) => updateSchedule({ quietWeekends: event.target.checked })}
                   />
                 </div>
-                <p className="text-[11.5px] text-muted-foreground sm:col-span-3">{t("account.notifications.quietHint")}</p>
+                <p className="text-[11.5px] text-muted-foreground sm:col-span-3">
+                  {t("account.notifications.quietHint")}
+                </p>
               </div>
             </Card>
           ) : null}
@@ -436,7 +520,10 @@ function LockHint({ alwaysOn }: { readonly alwaysOn: boolean }) {
   const { t } = useTranslation();
   const label = t(alwaysOn ? "account.notifications.alwaysOn" : "account.notifications.locked");
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title={label}>
+    <span
+      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+      title={label}
+    >
       <Lock size={12} aria-hidden="true" />
       <span className="sr-only sm:not-sr-only">{label}</span>
     </span>

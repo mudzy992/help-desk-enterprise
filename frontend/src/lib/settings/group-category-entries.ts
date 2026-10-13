@@ -31,9 +31,10 @@ export function groupCategoryEntries(
     }
     bucket.push(entry);
   }
-  const groups: SettingsEntryGroup[] = [...buckets.entries()].map(
-    ([groupId, groupEntries]) => ({ groupId, entries: groupEntries }),
-  );
+  const groups: SettingsEntryGroup[] = [...buckets.entries()].map(([groupId, groupEntries]) => ({
+    groupId,
+    entries: groupEntries,
+  }));
   if (ungrouped.length > 0) {
     groups.push({ groupId: null, entries: ungrouped });
   }

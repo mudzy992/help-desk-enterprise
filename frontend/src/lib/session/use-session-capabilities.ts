@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/session/use-session";
 import type { PermissionKey, RoleKey } from "@/lib/session/permission-keys";
-import {
-  getCurrentSession,
-  type CurrentSessionResponse,
-} from "@/services/session-api";
+import { getCurrentSession, type CurrentSessionResponse } from "@/services/session-api";
 
 export type SessionCapabilities = {
   readonly session: CurrentSessionResponse | null;
@@ -49,8 +46,7 @@ export function useSessionCapabilities(): SessionCapabilities {
   }, [accessToken]);
 
   const hasPermission = useCallback(
-    (permission: PermissionKey) =>
-      session?.permissionKeys.includes(permission) ?? false,
+    (permission: PermissionKey) => session?.permissionKeys.includes(permission) ?? false,
     [session],
   );
 

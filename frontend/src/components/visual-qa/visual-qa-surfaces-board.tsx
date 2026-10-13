@@ -33,13 +33,7 @@ export function VisualQaSurfacesBoard() {
         <div className="grid gap-3 sm:grid-cols-3">
           <StatCard label="Otvoreno" value="12" hint="Bez delte" />
           <StatCard label="Riješeno" value="8" delta="+2" deltaTone="success" />
-          <StatCard
-            label="Prekoračeno"
-            value="3"
-            delta="-1"
-            deltaTone="danger"
-            emphasis
-          />
+          <StatCard label="Prekoračeno" value="3" delta="-1" deltaTone="danger" emphasis />
         </div>
       </VisualQaSection>
       <VisualQaSection title="Tabs">

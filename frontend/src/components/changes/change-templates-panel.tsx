@@ -7,13 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
+import {
+  errorTextClassName,
+  hintClassName,
+  tableHeadClassName,
+  tableRowClassName,
+} from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { changeLevelKeys, changeRiskKeys, changeRiskTone, computeChangeRisk, mapChangeError } from "@/lib/changes/change-view";
+import {
+  changeLevelKeys,
+  changeRiskKeys,
+  changeRiskTone,
+  computeChangeRisk,
+  mapChangeError,
+} from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   changeExtraKeys,
@@ -37,13 +48,27 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
   const { toast } = useToast();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [editing, setEditing] = useState<ChangeTemplate | "new" | null>(null);
-  const query = useQuery({ queryKey: changeExtraKeys.templates(includeInactive), queryFn: () => listChangeTemplates(includeInactive), retry: false });
+  const query = useQuery({
+    queryKey: changeExtraKeys.templates(includeInactive),
+    queryFn: () => listChangeTemplates(includeInactive),
+    retry: false,
+  });
 
   return (
     <div className="grid gap-3" data-testid="change-templates">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Checkbox label={t("changes.templates.includeInactive")} checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
-        <Button variant="primary" size="sm" onClick={() => setEditing("new")} disabled={options === undefined} data-testid="change-template-create">
+        <Checkbox
+          label={t("changes.templates.includeInactive")}
+          checked={includeInactive}
+          onChange={(event) => setIncludeInactive(event.target.checked)}
+        />
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setEditing("new")}
+          disabled={options === undefined}
+          data-testid="change-template-create"
+        >
           <Plus size={14} aria-hidden="true" />
           {t("changes.templates.create")}
         </Button>
@@ -55,7 +80,11 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
           {t(mapChangeError(query.error) ?? mapApiError(query.error))}
         </p>
       ) : query.data.items.length === 0 ? (
-        <EmptyState icon={<FileStack size={18} />} title={t("changes.templates.emptyTitle")} body={t("changes.templates.emptyBody")} />
+        <EmptyState
+          icon={<FileStack size={18} />}
+          title={t("changes.templates.emptyTitle")}
+          body={t("changes.templates.emptyBody")}
+        />
       ) : (
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
@@ -63,11 +92,21 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
               <caption className="sr-only">{t("changes.templates.caption")}</caption>
               <thead>
                 <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">{t("changes.templates.name")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.risk")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("changes.fields.services")}</th>
-                  <th scope="col" className="px-3 py-2 text-right">{t("changes.templates.usage")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("changes.templates.state")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("changes.templates.name")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("changes.fields.risk")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("changes.fields.services")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right">
+                    {t("changes.templates.usage")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("changes.templates.state")}
+                  </th>
                   <th scope="col" className="px-3 py-2 text-right">
                     <span className="sr-only">{t("changes.templates.actions")}</span>
                   </th>
@@ -77,19 +116,37 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
                 {query.data.items.map((item) => (
                   <tr key={item.id} className={tableRowClassName}>
                     <td className="max-w-[22rem] px-3 py-2">
-                      <span className="block truncate font-medium text-foreground">{item.name}</span>
-                      {item.description ? <span className="block truncate text-[11.5px] text-muted-foreground">{item.description}</span> : null}
+                      <span className="block truncate font-medium text-foreground">
+                        {item.name}
+                      </span>
+                      {item.description ? (
+                        <span className="block truncate text-[11.5px] text-muted-foreground">
+                          {item.description}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">
                       <Badge tone={changeRiskTone(item.risk)}>{t(changeRiskKeys[item.risk])}</Badge>
                     </td>
-                    <td className="max-w-[16rem] truncate px-3 py-2 text-muted-foreground">{item.services.map((service) => service.name).join(", ") || "—"}</td>
+                    <td className="max-w-[16rem] truncate px-3 py-2 text-muted-foreground">
+                      {item.services.map((service) => service.name).join(", ") || "—"}
+                    </td>
                     <td className="tnum px-3 py-2 text-right">{item.usageCount}</td>
                     <td className="px-3 py-2">
-                      <Badge tone={item.isActive ? "success" : "neutral"}>{item.isActive ? t("changes.templates.active") : t("changes.templates.inactive")}</Badge>
+                      <Badge tone={item.isActive ? "success" : "neutral"}>
+                        {item.isActive
+                          ? t("changes.templates.active")
+                          : t("changes.templates.inactive")}
+                      </Badge>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(item)} disabled={options === undefined} aria-label={t("changes.templates.editNamed", { name: item.name })}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditing(item)}
+                        disabled={options === undefined}
+                        aria-label={t("changes.templates.editNamed", { name: item.name })}
+                      >
                         <Pencil size={13} aria-hidden="true" />
                       </Button>
                     </td>
@@ -124,7 +181,13 @@ interface ChangeTemplateSheetProperties {
   readonly onSaved: () => void;
 }
 
-function ChangeTemplateSheet({ open, onOpenChange, template, options, onSaved }: ChangeTemplateSheetProperties) {
+function ChangeTemplateSheet({
+  open,
+  onOpenChange,
+  template,
+  options,
+  onSaved,
+}: ChangeTemplateSheetProperties) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -156,7 +219,12 @@ function ChangeTemplateSheet({ open, onOpenChange, template, options, onSaved }:
 
   const risk = computeChangeRisk(impact, likelihood);
   const riskTooHigh = risk === "HIGH" || risk === "CRITICAL";
-  const canSubmit = !saving && !riskTooHigh && name.trim().length >= 3 && implementationPlan.trim().length > 0 && backoutPlan.trim().length > 0;
+  const canSubmit =
+    !saving &&
+    !riskTooHigh &&
+    name.trim().length >= 3 &&
+    implementationPlan.trim().length > 0 &&
+    backoutPlan.trim().length > 0;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -195,36 +263,92 @@ function ChangeTemplateSheet({ open, onOpenChange, template, options, onSaved }:
 
   return (
     <Sheet open={open} onOpenChange={(next) => (saving ? undefined : onOpenChange(next))}>
-      <SheetContent side="right" className="flex w-full max-w-xl flex-col overflow-y-auto p-5" data-testid="change-template-sheet">
-        <SheetTitle>{template ? t("changes.templates.editTitle") : t("changes.templates.createTitle")}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("changes.templates.sheetDescription")}</SheetDescription>
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-xl flex-col overflow-y-auto p-5"
+        data-testid="change-template-sheet"
+      >
+        <SheetTitle>
+          {template ? t("changes.templates.editTitle") : t("changes.templates.createTitle")}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("changes.templates.sheetDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           <Field label={t("changes.templates.name")} required>
-            {(control) => <Input {...control} value={name} maxLength={200} onChange={(event) => setName(event.target.value)} autoFocus />}
+            {(control) => (
+              <Input
+                {...control}
+                value={name}
+                maxLength={200}
+                onChange={(event) => setName(event.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label={t("changes.fields.description")}>
-            {(control) => <Textarea {...control} rows={3} value={description} maxLength={4000} onChange={(event) => setDescription(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                value={description}
+                maxLength={4000}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("changes.fields.implementationPlan")} required>
-            {(control) => <Textarea {...control} rows={4} value={implementationPlan} maxLength={8000} onChange={(event) => setImplementationPlan(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={4}
+                value={implementationPlan}
+                maxLength={8000}
+                onChange={(event) => setImplementationPlan(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("changes.fields.backoutPlan")} required>
-            {(control) => <Textarea {...control} rows={3} value={backoutPlan} maxLength={8000} onChange={(event) => setBackoutPlan(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                value={backoutPlan}
+                maxLength={8000}
+                onChange={(event) => setBackoutPlan(event.target.value)}
+              />
+            )}
           </Field>
           <Field label={t("changes.fields.testPlan")}>
-            {(control) => <Textarea {...control} rows={3} value={testPlan} maxLength={8000} onChange={(event) => setTestPlan(event.target.value)} />}
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                value={testPlan}
+                maxLength={8000}
+                onChange={(event) => setTestPlan(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("changes.fields.impact")}>
               {(control) => (
-                <Select {...control} value={impact} onChange={(event) => setImpact(event.target.value as ChangeLevel)}>
+                <Select
+                  {...control}
+                  value={impact}
+                  onChange={(event) => setImpact(event.target.value as ChangeLevel)}
+                >
                   {levelOptions}
                 </Select>
               )}
             </Field>
             <Field label={t("changes.fields.likelihood")}>
               {(control) => (
-                <Select {...control} value={likelihood} onChange={(event) => setLikelihood(event.target.value as ChangeLevel)}>
+                <Select
+                  {...control}
+                  value={likelihood}
+                  onChange={(event) => setLikelihood(event.target.value as ChangeLevel)}
+                >
                   {levelOptions}
                 </Select>
               )}
@@ -239,9 +363,22 @@ function ChangeTemplateSheet({ open, onOpenChange, template, options, onSaved }:
               {t("changes.errors.templateRisk")}
             </p>
           ) : null}
-          <ChangeServicePicker label={t("changes.fields.services")} options={options.services} value={serviceIds} onChange={setServiceIds} />
-          <Checkbox label={t("changes.fields.causesDowntime")} checked={causesDowntime} onChange={(event) => setCausesDowntime(event.target.checked)} />
-          <Checkbox label={t("changes.templates.active")} checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+          <ChangeServicePicker
+            label={t("changes.fields.services")}
+            options={options.services}
+            value={serviceIds}
+            onChange={setServiceIds}
+          />
+          <Checkbox
+            label={t("changes.fields.causesDowntime")}
+            checked={causesDowntime}
+            onChange={(event) => setCausesDowntime(event.target.checked)}
+          />
+          <Checkbox
+            label={t("changes.templates.active")}
+            checked={isActive}
+            onChange={(event) => setIsActive(event.target.checked)}
+          />
           <p className={hintClassName}>{t("changes.templates.activeHint")}</p>
           {error !== null ? (
             <p role="alert" className={errorTextClassName}>
@@ -249,7 +386,12 @@ function ChangeTemplateSheet({ open, onOpenChange, template, options, onSaved }:
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={!canSubmit} data-testid="change-template-submit">

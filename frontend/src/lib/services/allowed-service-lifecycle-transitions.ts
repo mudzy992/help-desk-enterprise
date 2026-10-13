@@ -9,9 +9,7 @@ export const allowedServiceLifecycleTransitions: Readonly<
 };
 
 export type ServiceLifecycleActionLabelKey =
-  | "services.activate"
-  | "services.deprecate"
-  | "services.reactivate";
+  "services.activate" | "services.deprecate" | "services.reactivate";
 
 export function nextServiceLifecycleTargets(
   lifecycle: ServiceLifecycle,

@@ -86,14 +86,10 @@ describe("isTimestampInWindow", () => {
   };
 
   it("accepts timestamps on the inclusive bounds", () => {
-    expect(isTimestampInWindow(new Date(2026, 8, 1).toISOString(), window)).toBe(
+    expect(isTimestampInWindow(new Date(2026, 8, 1).toISOString(), window)).toBe(true);
+    expect(isTimestampInWindow(new Date(2026, 8, 15, 23, 59, 59, 999).toISOString(), window)).toBe(
       true,
     );
-    expect(
-      isTimestampInWindow(new Date(2026, 8, 15, 23, 59, 59, 999).toISOString(), window),
-    ).toBe(true);
-    expect(isTimestampInWindow(new Date(2026, 7, 31).toISOString(), window)).toBe(
-      false,
-    );
+    expect(isTimestampInWindow(new Date(2026, 7, 31).toISOString(), window)).toBe(false);
   });
 });

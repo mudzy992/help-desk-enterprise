@@ -25,9 +25,7 @@ export function KnowledgeArticleDeletePanel({
   const [reason, setReason] = useState("");
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(
-    null,
-  );
+  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const canDelete = reason.trim().length > 0;
 
@@ -53,12 +51,7 @@ export function KnowledgeArticleDeletePanel({
   if (!isConfirmOpen) {
     return (
       <div className="border-t border-border/70 px-4 py-3">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setIsConfirmOpen(true)}
-        >
+        <Button type="button" size="sm" variant="outline" onClick={() => setIsConfirmOpen(true)}>
           {t("knowledgeBase.deleteAction")}
         </Button>
       </div>
@@ -81,26 +74,12 @@ export function KnowledgeArticleDeletePanel({
           onChange={(event) => setReason(event.target.value)}
         />
       </Field>
-      {errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : null}
+      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="submit"
-          size="sm"
-          variant="primary"
-          disabled={!canDelete || isDeleting}
-        >
-          {isDeleting
-            ? t("knowledgeBase.deleting")
-            : t("knowledgeBase.deleteConfirmAction")}
+        <Button type="submit" size="sm" variant="primary" disabled={!canDelete || isDeleting}>
+          {isDeleting ? t("knowledgeBase.deleting") : t("knowledgeBase.deleteConfirmAction")}
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setIsConfirmOpen(false)}
-        >
+        <Button type="button" size="sm" variant="outline" onClick={() => setIsConfirmOpen(false)}>
           {t("knowledgeBase.deleteCancel")}
         </Button>
       </div>

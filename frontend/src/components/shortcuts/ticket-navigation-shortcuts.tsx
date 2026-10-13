@@ -11,7 +11,10 @@ interface TicketNavigationShortcutsProperties {
 }
 
 /** Paket 2.8 §4.1: next / previous ticket from the last list, and back to the list. */
-export function TicketNavigationShortcuts({ ticketId, isStaff }: TicketNavigationShortcutsProperties) {
+export function TicketNavigationShortcuts({
+  ticketId,
+  isStaff,
+}: TicketNavigationShortcutsProperties) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 

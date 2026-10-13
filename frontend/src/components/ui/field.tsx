@@ -14,13 +14,8 @@ import {
 } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 
-export function Input({
-  className,
-  ...properties
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input className={cn(controlClassName, className)} {...properties} />
-  );
+export function Input({ className, ...properties }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={cn(controlClassName, className)} {...properties} />;
 }
 
 export function Select({
@@ -39,9 +34,7 @@ export function Textarea({
   className,
   ...properties
 }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea className={cn(textareaClassName, className)} {...properties} />
-  );
+  return <textarea className={cn(textareaClassName, className)} {...properties} />;
 }
 
 /** Props a Field hands to its control in the render-function form (2.8 §3.2). */

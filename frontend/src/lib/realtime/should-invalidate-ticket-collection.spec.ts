@@ -29,18 +29,12 @@ const notificationPayload = (
 
 describe("shouldInvalidateTicketCollection", () => {
   it("reloads on ticket.updated when the event has a ticket id", () => {
-    expect(
-      shouldInvalidateTicketCollectionFromUpdated({ ticketId: "ticket-1" }),
-    ).toBe(true);
-    expect(shouldInvalidateTicketCollectionFromUpdated({ ticketId: "" })).toBe(
-      false,
-    );
+    expect(shouldInvalidateTicketCollectionFromUpdated({ ticketId: "ticket-1" })).toBe(true);
+    expect(shouldInvalidateTicketCollectionFromUpdated({ ticketId: "" })).toBe(false);
   });
 
   it("reloads on notification.created for ticket-scoped and ticket-less rows", () => {
-    expect(
-      shouldInvalidateTicketCollectionFromNotification(notificationPayload()),
-    ).toBe(true);
+    expect(shouldInvalidateTicketCollectionFromNotification(notificationPayload())).toBe(true);
     expect(
       shouldInvalidateTicketCollectionFromNotification(
         notificationPayload({
@@ -49,9 +43,7 @@ describe("shouldInvalidateTicketCollection", () => {
       ),
     ).toBe(true);
     expect(
-      shouldInvalidateTicketCollectionFromNotification(
-        notificationPayload({ notification: null }),
-      ),
+      shouldInvalidateTicketCollectionFromNotification(notificationPayload({ notification: null })),
     ).toBe(false);
   });
 });

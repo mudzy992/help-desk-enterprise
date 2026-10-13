@@ -36,11 +36,7 @@ describe("localDayKey", () => {
 describe("queryKeys", () => {
   it("builds stable keys for the same resource", () => {
     expect(queryKeys.routingCatalog).toEqual(["catalog", "routing"]);
-    expect(queryKeys.ticket("ticket-1")).toEqual([
-      "tickets",
-      "detail",
-      "ticket-1",
-    ]);
+    expect(queryKeys.ticket("ticket-1")).toEqual(["tickets", "detail", "ticket-1"]);
     expect(queryKeys.dashboardSummary("2026-09-24")).toEqual([
       "dashboard",
       "summary",
@@ -50,10 +46,7 @@ describe("queryKeys", () => {
     expect(queryKeys.dashboardSummary("2026-09-25")).not.toEqual(
       queryKeys.dashboardSummary("2026-09-24"),
     );
-    expect(queryKeys.dashboardSummaryPrefix).toEqual([
-      "dashboard",
-      "summary",
-    ]);
+    expect(queryKeys.dashboardSummaryPrefix).toEqual(["dashboard", "summary"]);
     expect(queryKeys.ticket("ticket-1")).toEqual(queryKeys.ticket("ticket-1"));
   });
 

@@ -56,7 +56,12 @@ export function OnboardingSlaStep({
           ))}
         </Select>
       </Field>
-      <Button type="submit" size="sm" className="justify-self-start" disabled={isSaving || value.length === 0}>
+      <Button
+        type="submit"
+        size="sm"
+        className="justify-self-start"
+        disabled={isSaving || value.length === 0}
+      >
         {isSaving ? t("services.onboarding.saving") : t("services.onboarding.next")}
       </Button>
     </form>

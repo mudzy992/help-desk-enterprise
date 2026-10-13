@@ -59,7 +59,9 @@ export type ConfigPackageResolutionItem = {
   readonly usedBy: readonly string[];
 };
 
-export type ConfigPackageMappings = Partial<Record<ConfigPackageReferenceKind, Record<string, string>>>;
+export type ConfigPackageMappings = Partial<
+  Record<ConfigPackageReferenceKind, Record<string, string>>
+>;
 
 export type ConfigPackageImportReport = {
   readonly header: {
@@ -80,7 +82,10 @@ export type ConfigPackageImportReport = {
     readonly skippedEnvironmentBound: readonly string[];
     readonly skippedUnknown: readonly string[];
   };
-  readonly created: { readonly calendars: readonly string[]; readonly slaProfiles: readonly string[] };
+  readonly created: {
+    readonly calendars: readonly string[];
+    readonly slaProfiles: readonly string[];
+  };
   readonly skipped: Readonly<Record<string, readonly string[]>>;
   readonly blockingCount: number;
   readonly canImport: boolean;

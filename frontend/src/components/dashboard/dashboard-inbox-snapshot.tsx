@@ -35,7 +35,10 @@ export function DashboardInboxSnapshot({
         if (active) {
           setQueueCount(counts.unroutedQueue);
           if (counts.unroutedQueueOverdue !== undefined) {
-            setOverdue({ count: counts.unroutedQueueOverdue, hours: counts.unroutedCleanupHours ?? 0 });
+            setOverdue({
+              count: counts.unroutedQueueOverdue,
+              hours: counts.unroutedCleanupHours ?? 0,
+            });
           }
         }
       })
@@ -53,15 +56,9 @@ export function DashboardInboxSnapshot({
           new Map([...groupNamesFromTickets(inboxTickets), ...groupNames]),
         );
   const bars = groups.map((group) => ({
-    label:
-      group.label.length > 0
-        ? group.label
-        : t("dashboard.inboxGroupFallback"),
+    label: group.label.length > 0 ? group.label : t("dashboard.inboxGroupFallback"),
     value: group.count,
-    color:
-      group.groupId === null
-        ? SEMANTIC_DOT_HEX.danger
-        : SEMANTIC_DOT_HEX.primary,
+    color: group.groupId === null ? SEMANTIC_DOT_HEX.danger : SEMANTIC_DOT_HEX.primary,
     suffix: t("dashboard.inboxGroupCountSuffix"),
   }));
 

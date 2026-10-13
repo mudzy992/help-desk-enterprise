@@ -42,9 +42,7 @@ export type UserSummary = {
   readonly legalHold?: boolean;
 };
 
-export function listUserRoles(
-  userId: string,
-): Promise<readonly UserRoleResponse[]> {
+export function listUserRoles(userId: string): Promise<readonly UserRoleResponse[]> {
   return apiRequest(`/users/${encodeURIComponent(userId)}/roles`);
 }
 
@@ -58,10 +56,7 @@ export function assignUserRole(
   });
 }
 
-export function removeUserRole(
-  userId: string,
-  userRoleId: string,
-): Promise<void> {
+export function removeUserRole(userId: string, userRoleId: string): Promise<void> {
   return apiRequest(
     `/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(userRoleId)}`,
     { method: "DELETE" },
@@ -124,9 +119,7 @@ export type CreateUserResponse = {
   readonly temporaryPasswordDelivery: "ui" | "email";
 };
 
-export function resetUserTemporaryPassword(
-  userId: string,
-): Promise<CreateUserResponse> {
+export function resetUserTemporaryPassword(userId: string): Promise<CreateUserResponse> {
   return apiRequest(`/users/${encodeURIComponent(userId)}/reset-password`, {
     method: "POST",
   });
@@ -136,22 +129,16 @@ export function linkUserDirectoryIdentity(
   userId: string,
   directoryExternalId: string,
 ): Promise<UserSummary> {
-  return apiRequest(
-    `/users/${encodeURIComponent(userId)}/link-directory-identity`,
-    {
-      method: "POST",
-      body: JSON.stringify({ directoryExternalId }),
-    },
-  );
+  return apiRequest(`/users/${encodeURIComponent(userId)}/link-directory-identity`, {
+    method: "POST",
+    body: JSON.stringify({ directoryExternalId }),
+  });
 }
 
-export function unlinkUserDirectoryIdentity(
-  userId: string,
-): Promise<CreateUserResponse> {
-  return apiRequest(
-    `/users/${encodeURIComponent(userId)}/link-directory-identity`,
-    { method: "DELETE" },
-  );
+export function unlinkUserDirectoryIdentity(userId: string): Promise<CreateUserResponse> {
+  return apiRequest(`/users/${encodeURIComponent(userId)}/link-directory-identity`, {
+    method: "DELETE",
+  });
 }
 
 export function updateUser(

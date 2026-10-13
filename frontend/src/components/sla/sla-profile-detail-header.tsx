@@ -3,10 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import {
-  formatSlaProfileName,
-  slaProfileNameTranslationKey,
-} from "@/lib/sla/sla-profile-name";
+import { formatSlaProfileName, slaProfileNameTranslationKey } from "@/lib/sla/sla-profile-name";
 import type { SlaProfile } from "@/services/sla-types";
 
 interface SlaProfileDetailHeaderProperties {
@@ -25,12 +22,8 @@ export function SlaProfileDetailHeader({
   children,
 }: SlaProfileDetailHeaderProperties) {
   const { t } = useTranslation();
-  const profileNameKey = profile
-    ? slaProfileNameTranslationKey(profile.key, profile.name)
-    : null;
-  const profileName = profile
-    ? formatSlaProfileName(profile.key, profile.name, t as never)
-    : null;
+  const profileNameKey = profile ? slaProfileNameTranslationKey(profile.key, profile.name) : null;
+  const profileName = profile ? formatSlaProfileName(profile.key, profile.name, t as never) : null;
 
   return (
     <Card>
@@ -52,22 +45,12 @@ export function SlaProfileDetailHeader({
         actions={
           profile ? (
             <div className="flex gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={onOpenHistory}
-              >
+              <Button type="button" variant="outline" size="xs" onClick={onOpenHistory}>
                 <History size={12} />
                 {t("sla.history")}
               </Button>
               {canWrite ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={onOpenEdit}
-                >
+                <Button type="button" variant="outline" size="xs" onClick={onOpenEdit}>
                   {t("sla.edit")}
                 </Button>
               ) : null}

@@ -1,7 +1,4 @@
-import {
-  controlCompactClassName,
-  selectCompactClassName,
-} from "@/components/ui/control";
+import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 import { cn } from "@/lib/utils";

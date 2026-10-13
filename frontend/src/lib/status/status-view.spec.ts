@@ -20,7 +20,12 @@ describe("status view (Paket 2.7)", () => {
   });
 
   it("offers forward statuses only", () => {
-    expect(nextIncidentStatuses("INVESTIGATING")).toEqual(["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"]);
+    expect(nextIncidentStatuses("INVESTIGATING")).toEqual([
+      "INVESTIGATING",
+      "IDENTIFIED",
+      "MONITORING",
+      "RESOLVED",
+    ]);
     expect(nextIncidentStatuses("MONITORING")).toEqual(["MONITORING", "RESOLVED"]);
     expect(nextIncidentStatuses("RESOLVED")).toEqual([]);
   });
@@ -33,19 +38,31 @@ describe("status view (Paket 2.7)", () => {
 
   it("computes durations", () => {
     const start = "2026-01-01T10:00:00.000Z";
-    expect(incidentDurationMinutes({ startedAt: start, resolvedAt: "2026-01-01T11:20:00.000Z" }, 0)).toBe(80);
-    expect(incidentDurationMinutes({ startedAt: start, resolvedAt: null }, Date.parse(start) + 5 * 60_000)).toBe(5);
+    expect(
+      incidentDurationMinutes({ startedAt: start, resolvedAt: "2026-01-01T11:20:00.000Z" }, 0),
+    ).toBe(80);
+    expect(
+      incidentDurationMinutes(
+        { startedAt: start, resolvedAt: null },
+        Date.parse(start) + 5 * 60_000,
+      ),
+    ).toBe(5);
     expect(splitDuration(1530)).toEqual({ days: 1, hours: 1, minutes: 30 });
   });
 
   it("parses the ticket event detail", () => {
-    expect(parseIncidentEventDetail("abc|VPN: prekid")).toEqual({ incidentId: "abc", title: "VPN: prekid" });
+    expect(parseIncidentEventDetail("abc|VPN: prekid")).toEqual({
+      incidentId: "abc",
+      title: "VPN: prekid",
+    });
     expect(parseIncidentEventDetail("broken")).toBeNull();
     expect(parseIncidentEventDetail(null)).toBeNull();
   });
 
   it("maps known incident error codes", () => {
-    expect(mapStatusError(new ApiError(409, "INCIDENT_CHANGED", "x"))).toBe("status.errors.changed");
+    expect(mapStatusError(new ApiError(409, "INCIDENT_CHANGED", "x"))).toBe(
+      "status.errors.changed",
+    );
     expect(mapStatusError(new ApiError(409, "OTHER", "x"))).toBeNull();
     expect(mapStatusError(new Error("x"))).toBeNull();
   });

@@ -47,28 +47,14 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { listGroups } from "@/services/groups-api";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import {
-  fetchReportsDashboard,
-  type ReportsDashboardResponse,
-} from "@/services/reports-api";
+import { fetchReportsDashboard, type ReportsDashboardResponse } from "@/services/reports-api";
 import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
 import { listServices } from "@/services/service-catalog-api";
 
-type ReportsTab =
-  | "overview"
-  | "bottlenecks"
-  | "csat"
-  | "trends"
-  | "packs"
-  | "schedules";
+type ReportsTab = "overview" | "bottlenecks" | "csat" | "trends" | "packs" | "schedules";
 
 function readTab(value: string | null, canSchedule: boolean): ReportsTab {
-  if (
-    value === "trends" ||
-    value === "packs" ||
-    value === "bottlenecks" ||
-    value === "csat"
-  ) {
+  if (value === "trends" || value === "packs" || value === "bottlenecks" || value === "csat") {
     return value;
   }
   if (value === "schedules" && canSchedule) return "schedules";
@@ -80,12 +66,8 @@ export function ReportsPage() {
   const { session, hasPermission } = useSessionCapabilities();
   const canExport = hasPermission(permissionKeys.reportsExport);
   const canSchedule = hasPermission(permissionKeys.reportsScheduleManage);
-  const [dashboard, setDashboard] = useState<ReportsDashboardResponse | null>(
-    null,
-  );
-  const [organizationalUnitId, setOrganizationalUnitId] = useState<string | null>(
-    null,
-  );
+  const [dashboard, setDashboard] = useState<ReportsDashboardResponse | null>(null);
+  const [organizationalUnitId, setOrganizationalUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -102,10 +84,7 @@ export function ReportsPage() {
   const needsFilters = tab === "trends" || tab === "schedules";
   useLightPrintTheme();
 
-  const trendsState = useMemo(
-    () => parseTrendsSearch(searchParams, new Date()),
-    [searchParams],
-  );
+  const trendsState = useMemo(() => parseTrendsSearch(searchParams, new Date()), [searchParams]);
 
   useEffect(() => {
     void listOrganizationalUnitTree()
@@ -144,10 +123,7 @@ export function ReportsPage() {
       .catch(() => setGroupOptions(null));
   }, [needsFilters, serviceOptions.length, i18n.language]);
 
-  const now = useMemo(
-    () => new Date(),
-    [preset, customFrom, customTo, organizationalUnitId],
-  );
+  const now = useMemo(() => new Date(), [preset, customFrom, customTo, organizationalUnitId]);
   const window_ = resolveReportWindow({
     preset,
     customFrom,
@@ -201,7 +177,9 @@ export function ReportsPage() {
   const changeUnit = (next: string) => {
     setOrganizationalUnitId(next);
     if (tab === "trends") {
-      setSearchParams(toTrendsSearch({ ...trendsState, organizationalUnitId: next }), { replace: true });
+      setSearchParams(toTrendsSearch({ ...trendsState, organizationalUnitId: next }), {
+        replace: true,
+      });
     }
   };
 
@@ -249,18 +227,10 @@ export function ReportsPage() {
     window.print();
   };
 
-  const bottleneck =
-    dashboard === null
-      ? null
-      : mapBottleneckBars(dashboard.bottleneckByGroup);
-  const serviceItems =
-    dashboard === null
-      ? null
-      : mapServiceVolumeBars(dashboard.serviceVolume);
-  const unitItems =
-    dashboard === null ? null : mapCountBars(dashboard.originUnitVolume);
-  const workloadItems =
-    dashboard === null ? null : mapWorkloadBars(dashboard.assigneeWorkload);
+  const bottleneck = dashboard === null ? null : mapBottleneckBars(dashboard.bottleneckByGroup);
+  const serviceItems = dashboard === null ? null : mapServiceVolumeBars(dashboard.serviceVolume);
+  const unitItems = dashboard === null ? null : mapCountBars(dashboard.originUnitVolume);
+  const workloadItems = dashboard === null ? null : mapWorkloadBars(dashboard.assigneeWorkload);
   const agingItems =
     dashboard === null
       ? null
@@ -290,11 +260,7 @@ export function ReportsPage() {
       />
       <div className="print:hidden">
         <PageHeader
-          crumbs={[
-            brandCrumb,
-            t("navigation.sections.overview"),
-            t("navigation.reports"),
-          ]}
+          crumbs={[brandCrumb, t("navigation.sections.overview"), t("navigation.reports")]}
           title={t("reports.title")}
           subtitle={t("reports.intro")}
           actions={
@@ -390,7 +356,12 @@ export function ReportsPage() {
         agingItems === null ? null : (
         <>
           <div className="mb-2 flex justify-end print:hidden">
-            <Button size="sm" variant="outline" onClick={() => print("overview")} data-testid="overview-print">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => print("overview")}
+              data-testid="overview-print"
+            >
               <Printer size={14} /> {t("reports.print.action")}
             </Button>
           </div>

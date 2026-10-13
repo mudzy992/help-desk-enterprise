@@ -33,11 +33,7 @@ export function UnroutedQueueSettingsCard({
 }: UnroutedQueueSettingsCardProperties) {
   const { t } = useTranslation();
   const enabled = readBooleanSetting(entries, unroutedSettingKeys.enabled, true);
-  const ownerRole = readStringSetting(
-    entries,
-    unroutedSettingKeys.ownerRole,
-    "SUPER_ADMIN",
-  );
+  const ownerRole = readStringSetting(entries, unroutedSettingKeys.ownerRole, "SUPER_ADMIN");
   const targetGroupId = readStringSetting(entries, unroutedSettingKeys.targetGroupId, "");
   const cleanupEntry = entries.find((entry) => entry.key === unroutedSettingKeys.cleanupSlaHours);
   const cleanupHours = typeof cleanupEntry?.value === "number" ? cleanupEntry.value : 8;
@@ -56,7 +52,9 @@ export function UnroutedQueueSettingsCard({
     };
   }, []);
   const targetMissing =
-    targetGroupId.length > 0 && groups.length > 0 && !groups.some((group) => group.id === targetGroupId);
+    targetGroupId.length > 0 &&
+    groups.length > 0 &&
+    !groups.some((group) => group.id === targetGroupId);
   const [draftEnabled, setDraftEnabled] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerEntries = useMemo(
@@ -99,7 +97,9 @@ export function UnroutedQueueSettingsCard({
             </Badge>
           </p>
           <label className="flex items-center justify-between gap-2">
-            <span className="text-[11.5px] text-muted-foreground">{t("settings.unrouted.targetGroup")}</span>
+            <span className="text-[11.5px] text-muted-foreground">
+              {t("settings.unrouted.targetGroup")}
+            </span>
             <select
               className={`${selectCompactClassName} max-w-[220px]`}
               value={draftTarget ?? targetGroupId}
@@ -118,20 +118,28 @@ export function UnroutedQueueSettingsCard({
             </select>
           </label>
           {targetMissing ? (
-            <p role="alert" className="text-[11px] text-danger">{t("settings.unrouted.targetGroupMissingHint")}</p>
+            <p role="alert" className="text-[11px] text-danger">
+              {t("settings.unrouted.targetGroupMissingHint")}
+            </p>
           ) : null}
           {draftTarget !== null && draftTarget !== targetGroupId ? (
             <SettingsReasonConfirm
               pending={pendingKey === unroutedSettingKeys.targetGroupId}
               onCancel={() => setDraftTarget(null)}
               onConfirm={async (reason) => {
-                await onSave({ key: unroutedSettingKeys.targetGroupId, value: draftTarget, reason });
+                await onSave({
+                  key: unroutedSettingKeys.targetGroupId,
+                  value: draftTarget,
+                  reason,
+                });
                 setDraftTarget(null);
               }}
             />
           ) : null}
           <p className="flex items-center justify-between gap-2">
-            <span className="text-[11.5px] text-muted-foreground">{t("settings.unrouted.cleanup")}</span>
+            <span className="text-[11.5px] text-muted-foreground">
+              {t("settings.unrouted.cleanup")}
+            </span>
             <Badge tone={cleanupHours === 0 ? "neutral" : "warning"} dot={false}>
               {cleanupHours === 0
                 ? t("settings.unrouted.cleanupOff")
@@ -143,12 +151,7 @@ export function UnroutedQueueSettingsCard({
             <Mail size={11.5} className="mt-0.5 shrink-0" />
             {t("settings.unrouted.hint")}
           </p>
-          <Button
-            type="button"
-            size="xs"
-            variant="outline"
-            onClick={() => setDrawerOpen(true)}
-          >
+          <Button type="button" size="xs" variant="outline" onClick={() => setDrawerOpen(true)}>
             {t("settings.drawer.edit")}
           </Button>
           {draftEnabled !== null && draftEnabled !== enabled ? (

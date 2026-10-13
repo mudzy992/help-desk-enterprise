@@ -7,11 +7,7 @@ import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { useUserRoleScopeSummaries } from "@/lib/users/use-user-role-scope-summaries";
-import {
-  addGroupMember,
-  removeGroupMember,
-  type GroupResponse,
-} from "@/services/groups-api";
+import { addGroupMember, removeGroupMember, type GroupResponse } from "@/services/groups-api";
 
 interface GroupMembersSectionProperties {
   readonly group: GroupResponse;
@@ -34,10 +30,7 @@ export function GroupMembersSection({
   const availableUsers = users.filter(
     (user) => !group.members.some((member) => member.userId === user.id),
   );
-  const availableUserIds = useMemo(
-    () => availableUsers.map((user) => user.id),
-    [availableUsers],
-  );
+  const availableUserIds = useMemo(() => availableUsers.map((user) => user.id), [availableUsers]);
   const roleScopeSummaries = useUserRoleScopeSummaries(availableUserIds);
 
   const mutate = async (operation: () => Promise<GroupResponse>) => {
@@ -54,9 +47,7 @@ export function GroupMembersSection({
 
   return (
     <div className="grid gap-2 border-t border-border/70 pt-3">
-      <p className="text-[12px] font-semibold text-foreground">
-        {t("groups.members.heading")}
-      </p>
+      <p className="text-[12px] font-semibold text-foreground">{t("groups.members.heading")}</p>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       {group.members.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">{t("groups.members.empty")}</p>
@@ -79,8 +70,8 @@ export function GroupMembersSection({
                   disabled={pendingUserId !== null}
                   onClick={() => {
                     setPendingUserId(member.userId);
-                    void mutate(() => removeGroupMember(group.id, member.userId)).finally(
-                      () => setPendingUserId(null),
+                    void mutate(() => removeGroupMember(group.id, member.userId)).finally(() =>
+                      setPendingUserId(null),
                     );
                   }}
                 >

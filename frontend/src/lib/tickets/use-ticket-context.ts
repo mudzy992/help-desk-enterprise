@@ -101,9 +101,7 @@ export function useTicketContext(
     };
   }, [ticketId, versionKey]);
 
-  const needsCandidates =
-    state.actions !== null &&
-    state.actions.manageParticipants;
+  const needsCandidates = state.actions !== null && state.actions.manageParticipants;
 
   useEffect(() => {
     if (ticketId === undefined || !needsCandidates) {

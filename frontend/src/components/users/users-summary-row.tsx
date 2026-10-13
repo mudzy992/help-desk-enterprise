@@ -19,11 +19,7 @@ interface UsersSummaryRowProperties {
   readonly onEdit: () => void;
 }
 
-export function UsersSummaryRow({
-  user,
-  canManageUsers,
-  onEdit,
-}: UsersSummaryRowProperties) {
+export function UsersSummaryRow({ user, canManageUsers, onEdit }: UsersSummaryRowProperties) {
   const { t } = useTranslation();
   const permissionScope =
     user.roleTone === "super"
@@ -50,13 +46,9 @@ export function UsersSummaryRow({
                 </Badge>
               ) : null}
               <Badge tone={user.isLocalOnly ? "neutral" : "accent"} dot={false}>
-                {user.isLocalOnly
-                  ? t("users.badgeLocal")
-                  : t("users.badgeDirectoryLinked")}
+                {user.isLocalOnly ? t("users.badgeLocal") : t("users.badgeDirectoryLinked")}
               </Badge>
-              {user.roleTone === "super" ? (
-                <ShieldCheck size={12} className="text-danger" />
-              ) : null}
+              {user.roleTone === "super" ? <ShieldCheck size={12} className="text-danger" /> : null}
             </p>
             <p className="text-[11px] text-muted-foreground">{user.email}</p>
           </div>
@@ -75,9 +67,7 @@ export function UsersSummaryRow({
       <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
         {user.organizationalUnitName ?? "—"}
         {user.groupName ? (
-          <span className="block text-[10.5px] text-muted-foreground">
-            {user.groupName}
-          </span>
+          <span className="block text-[10.5px] text-muted-foreground">{user.groupName}</span>
         ) : null}
       </td>
       <td className="px-4 py-2.5">
@@ -114,9 +104,7 @@ export function UsersSummaryRow({
           </span>
         )}
       </td>
-      <td className="px-4 py-2.5 text-[11px] text-muted-foreground">
-        {permissionScope}
-      </td>
+      <td className="px-4 py-2.5 text-[11px] text-muted-foreground">{permissionScope}</td>
       <td className="px-4 py-2.5 text-center">
         {user.mfa === "not_applicable" ? (
           <span className="text-[11px] text-muted-foreground">
@@ -124,11 +112,7 @@ export function UsersSummaryRow({
           </span>
         ) : (
           <Badge tone={user.mfa === "enabled" ? "success" : "neutral"} dot={false}>
-            {t(
-              user.mfa === "enabled"
-                ? "users.mfaState.enabled"
-                : "users.mfaState.disabled",
-            )}
+            {t(user.mfa === "enabled" ? "users.mfaState.enabled" : "users.mfaState.disabled")}
           </Badge>
         )}
       </td>
@@ -146,13 +130,7 @@ export function UsersSummaryRow({
           <span className="block text-muted-foreground">—</span>
         )}
         {canManageUsers ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="mt-1"
-            onClick={onEdit}
-          >
+          <Button type="button" size="sm" variant="outline" className="mt-1" onClick={onEdit}>
             {t("users.editUser")}
           </Button>
         ) : null}

@@ -19,9 +19,7 @@ export type OrganizationalUnitUser = {
   readonly organizationalUnitId: string | null;
 };
 
-export function listOrganizationalUnitTree(): Promise<
-  readonly OrganizationalUnitTreeNode[]
-> {
+export function listOrganizationalUnitTree(): Promise<readonly OrganizationalUnitTreeNode[]> {
   return apiRequest("/organizational-units/tree");
 }
 

@@ -38,9 +38,10 @@ export async function loadDirectory(): Promise<DirectoryLoadResult> {
   const units = flattenOriginUnitOptions(treeResult.tree);
   const collected = await Promise.all(
     units.map(async (unit) =>
-      (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map(
-        (user) => ({ ...user, organizationalUnitPath: unit.label }),
-      ),
+      (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map((user) => ({
+        ...user,
+        organizationalUnitPath: unit.label,
+      })),
     ),
   );
   return {
@@ -51,10 +52,8 @@ export async function loadDirectory(): Promise<DirectoryLoadResult> {
   };
 }
 
-export function dedupeDirectoryUsers(
-  users: readonly DirectoryUser[],
-): readonly DirectoryUser[] {
-  return [...new Map(users.map((user) => [user.id, user])).values()].sort(
-    (left, right) => left.displayName.localeCompare(right.displayName),
+export function dedupeDirectoryUsers(users: readonly DirectoryUser[]): readonly DirectoryUser[] {
+  return [...new Map(users.map((user) => [user.id, user])).values()].sort((left, right) =>
+    left.displayName.localeCompare(right.displayName),
   );
 }

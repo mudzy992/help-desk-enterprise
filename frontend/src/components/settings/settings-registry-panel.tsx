@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import { SettingsRegistryCard } from "@/components/settings/settings-registry-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
-import { controlCompactClassName, hintClassName, sectionTitleClassName } from "@/components/ui/control";
+import {
+  controlCompactClassName,
+  hintClassName,
+  sectionTitleClassName,
+} from "@/components/ui/control";
 import { groupSettingsByCategory } from "@/lib/settings/group-settings-by-category";
 import { isFeaturedSettingKey } from "@/lib/settings/is-featured-setting-key";
 import { resolveRegistryTitle } from "@/lib/settings/resolve-registry-i18n";
@@ -64,9 +68,7 @@ export function SettingsRegistryPanel({
         <div className="min-w-0">
           <h2 className={sectionTitleClassName}>{t("settings.registry.title")}</h2>
           <p className={hintClassName}>{t("settings.registry.subtitle")}</p>
-          {!canWrite ? (
-            <p className={hintClassName}>{t("settings.registry.readOnly")}</p>
-          ) : null}
+          {!canWrite ? <p className={hintClassName}>{t("settings.registry.readOnly")}</p> : null}
         </div>
         <Badge tone="primary" dot={false} className="tnum">
           {isFiltered

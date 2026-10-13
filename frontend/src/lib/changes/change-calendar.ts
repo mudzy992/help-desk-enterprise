@@ -32,7 +32,7 @@ export function buildMonthGrid(value: CalendarMonth): CalendarGrid {
   const tail = 6 - ((last.getDay() + 6) % 7);
   const end = new Date(value.year, value.month + 1, tail); // last visible day (Sunday)
   const weeks: Date[][] = [];
-  for (let cursor = new Date(start); cursor <= end; ) {
+  for (let cursor = new Date(start); cursor <= end;) {
     const week: Date[] = [];
     for (let index = 0; index < 7; index += 1) {
       week.push(new Date(cursor));
@@ -57,7 +57,10 @@ export function overlapsDay(day: Date, start: string, end: string): boolean {
 }
 
 /** Freeze dates are inclusive calendar days. */
-export function freezeOn(day: Date, periods: readonly ChangeFreezePeriod[]): ChangeFreezePeriod | null {
+export function freezeOn(
+  day: Date,
+  periods: readonly ChangeFreezePeriod[],
+): ChangeFreezePeriod | null {
   const key = dayKey(day);
   return periods.find((period) => period.from <= key && key <= period.to) ?? null;
 }

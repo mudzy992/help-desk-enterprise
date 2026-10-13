@@ -52,7 +52,10 @@ export function incidentStatusTone(status: IncidentStatus): BadgeTone {
 export type OverallStatus = "operational" | "partial" | "major" | "maintenance";
 
 /** The banner on top: an outage anywhere wins, then degradation, then maintenance. */
-export function overallStatus(incidents: readonly Pick<Incident, "impact">[], affectedServiceCount: number): OverallStatus {
+export function overallStatus(
+  incidents: readonly Pick<Incident, "impact">[],
+  affectedServiceCount: number,
+): OverallStatus {
   if (incidents.some((incident) => incident.impact === "DOWN")) return "major";
   if (incidents.some((incident) => incident.impact === "DEGRADED")) return "partial";
   if (incidents.some((incident) => incident.impact === "MAINTENANCE")) return "maintenance";
@@ -60,7 +63,13 @@ export function overallStatus(incidents: readonly Pick<Incident, "impact">[], af
 }
 
 export function overallTone(status: OverallStatus): BadgeTone {
-  return status === "major" ? "danger" : status === "partial" ? "warning" : status === "maintenance" ? "info" : "success";
+  return status === "major"
+    ? "danger"
+    : status === "partial"
+      ? "warning"
+      : status === "maintenance"
+        ? "info"
+        : "success";
 }
 
 /** Statuses an operator may pick next: forward only, RESOLVED is final (mirrors the backend). */
@@ -69,24 +78,42 @@ export function nextIncidentStatuses(current: IncidentStatus): readonly Incident
   return incidentStatuses.slice(incidentStatuses.indexOf(current));
 }
 
-export function localizedIncidentTitle(incident: Pick<Incident, "title" | "titleEn">, language: string): string {
-  return language.startsWith("en") && incident.titleEn !== null && incident.titleEn.trim().length > 0
+export function localizedIncidentTitle(
+  incident: Pick<Incident, "title" | "titleEn">,
+  language: string,
+): string {
+  return language.startsWith("en") &&
+    incident.titleEn !== null &&
+    incident.titleEn.trim().length > 0
     ? incident.titleEn
     : incident.title;
 }
 
 /** Whole minutes between start and resolution (or now), for "trajalo 1 h 20 min". */
-export function incidentDurationMinutes(incident: Pick<Incident, "startedAt" | "resolvedAt">, nowMs: number): number {
+export function incidentDurationMinutes(
+  incident: Pick<Incident, "startedAt" | "resolvedAt">,
+  nowMs: number,
+): number {
   const end = incident.resolvedAt === null ? nowMs : Date.parse(incident.resolvedAt);
   return Math.max(0, Math.round((end - Date.parse(incident.startedAt)) / 60_000));
 }
 
-export function splitDuration(minutes: number): { readonly days: number; readonly hours: number; readonly minutes: number } {
-  return { days: Math.floor(minutes / 1440), hours: Math.floor((minutes % 1440) / 60), minutes: minutes % 60 };
+export function splitDuration(minutes: number): {
+  readonly days: number;
+  readonly hours: number;
+  readonly minutes: number;
+} {
+  return {
+    days: Math.floor(minutes / 1440),
+    hours: Math.floor((minutes % 1440) / 60),
+    minutes: minutes % 60,
+  };
 }
 
 /** `ticket_incident_*` event detail is `<incidentId>|<title>`. */
-export function parseIncidentEventDetail(detail: string | null): { readonly incidentId: string; readonly title: string } | null {
+export function parseIncidentEventDetail(
+  detail: string | null,
+): { readonly incidentId: string; readonly title: string } | null {
   if (detail === null) return null;
   const separator = detail.indexOf("|");
   if (separator <= 0) return null;

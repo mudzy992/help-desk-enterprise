@@ -21,7 +21,13 @@ interface WorkflowDiagramProperties {
 }
 
 /** Paket 1.7 (W3): SVG status flow, no chart library. */
-export function WorkflowDiagram({ statuses, transitions, counts, selected, onSelect }: WorkflowDiagramProperties) {
+export function WorkflowDiagram({
+  statuses,
+  transitions,
+  counts,
+  selected,
+  onSelect,
+}: WorkflowDiagramProperties) {
   const { t } = useTranslation();
   const nodes = useMemo(() => layoutWorkflowNodes(statuses), [statuses]);
   const edges = useMemo(() => layoutWorkflowEdges(nodes, transitions), [nodes, transitions]);
@@ -61,7 +67,12 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
               y={26}
               textAnchor="middle"
               className="fill-current text-muted-foreground"
-              style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase" }}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 0.6,
+                textTransform: "uppercase",
+              }}
             >
               {t(`workflow.phases.${phase}`)}
             </text>
@@ -137,7 +148,12 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
                   className="opacity-0 group-focus-visible:opacity-100"
                   style={{ fill: "none", stroke: "rgb(var(--primary))", strokeWidth: 2 }}
                 />
-                <circle cx={16} cy={nodeHeight / 2} r={4.5} fill={TICKET_STATUS_META[node.status].dot} />
+                <circle
+                  cx={16}
+                  cy={nodeHeight / 2}
+                  r={4.5}
+                  fill={TICKET_STATUS_META[node.status].dot}
+                />
                 <text
                   x={28}
                   y={nodeHeight / 2 + 4}

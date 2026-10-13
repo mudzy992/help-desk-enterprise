@@ -4,10 +4,7 @@ import type { SlaEscalationRule } from "@/services/sla-api";
 type Translate = (key: string, options?: Record<string, string>) => string;
 
 export function formatSlaEscalationTarget(
-  rule: Pick<
-    SlaEscalationRule,
-    "targetRole" | "targetGroupId" | "targetUserId" | "targetOnCall"
-  >,
+  rule: Pick<SlaEscalationRule, "targetRole" | "targetGroupId" | "targetUserId" | "targetOnCall">,
   translate: Translate,
   groupNames: ReadonlyMap<string, string> | null,
 ): string {
@@ -21,7 +18,7 @@ export function formatSlaEscalationTarget(
     const groupName =
       groupNames === null
         ? translate("sla.escalationGroupLoading")
-        : groupNames.get(rule.targetGroupId) ?? translate("sla.escalationGroupUnknown");
+        : (groupNames.get(rule.targetGroupId) ?? translate("sla.escalationGroupUnknown"));
     return rule.targetOnCall
       ? translate("sla.escalationTargetOnCallValue", { group: groupName })
       : translate("sla.escalationTargetGroupValue", { group: groupName });

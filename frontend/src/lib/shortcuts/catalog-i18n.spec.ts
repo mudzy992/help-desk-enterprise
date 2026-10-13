@@ -4,7 +4,9 @@ import en from "@/i18n/locales/en/common.json";
 import { shortcutCatalog } from "./catalog";
 
 function lookup(tree: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], tree);
+  return path
+    .split(".")
+    .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], tree);
 }
 
 describe("shortcut catalogue i18n", () => {

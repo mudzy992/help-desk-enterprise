@@ -27,7 +27,10 @@ interface TicketPlaybookPanelProperties {
  * may change the ticket ticks steps; closed/archived/merged tickets are
  * read-only. The requester never sees this panel.
  */
-export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlaybookPanelProperties) {
+export function TicketPlaybookPanel({
+  controller,
+  onInsertTemplate,
+}: TicketPlaybookPanelProperties) {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { toast } = useToast();
@@ -47,7 +50,8 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
 
   const playbook = view.playbook;
   const progress = playbook?.progress;
-  const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const percent =
+    progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <DetailSection
@@ -55,7 +59,8 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
       testId="ticket-playbook-panel"
       title={
         <span className="flex items-center gap-1.5">
-          <ClipboardList size={14} aria-hidden="true" /> {playbook?.name ?? t("templates.checklist.title")}
+          <ClipboardList size={14} aria-hidden="true" />{" "}
+          {playbook?.name ?? t("templates.checklist.title")}
         </span>
       }
       subtitle={
@@ -72,7 +77,13 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
       }
       actions={
         playbook && !view.readOnly ? (
-          <Button type="button" size="xs" variant="ghost" disabled={busy} onClick={() => setDetachOpen(true)}>
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setDetachOpen(true)}
+          >
             {t("templates.checklist.detach")}
           </Button>
         ) : null
@@ -102,17 +113,22 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
         ) : (
           <>
             <Progress value={percent} tone={progress?.complete ? "success" : "primary"} />
-            {playbook.latestVersion !== null && playbook.latestVersion > playbook.version && !view.readOnly ? (
+            {playbook.latestVersion !== null &&
+            playbook.latestVersion > playbook.version &&
+            !view.readOnly ? (
               <div className="flex items-center gap-2 rounded-md border border-info/35 bg-info/8 px-2.5 py-1.5 text-[12px] text-foreground">
                 <ArrowUpCircle size={13} className="shrink-0 text-info" />
-                <span className="flex-1">{t("templates.checklist.upgradeAvailable", { version: playbook.latestVersion })}</span>
+                <span className="flex-1">
+                  {t("templates.checklist.upgradeAvailable", { version: playbook.latestVersion })}
+                </span>
                 <Button
                   type="button"
                   size="xs"
                   variant="secondary"
                   disabled={busy}
                   onClick={async () => {
-                    if (await controller.upgrade()) toast({ tone: "success", title: t("templates.checklist.upgraded") });
+                    if (await controller.upgrade())
+                      toast({ tone: "success", title: t("templates.checklist.upgraded") });
                   }}
                 >
                   {t("templates.checklist.upgrade")}
@@ -132,17 +148,27 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
                     <Checkbox
                       checked={step.checked}
                       disabled={view.readOnly || busy}
-                      onChange={(event) => void controller.setStep(step.stepKey, event.target.checked)}
+                      onChange={(event) =>
+                        void controller.setStep(step.stepKey, event.target.checked)
+                      }
                       aria-label={step.title}
                       data-testid={`playbook-step-${index + 1}`}
                       label={
-                        <span className={cn("text-[12.5px] leading-5 text-foreground", step.checked && "text-muted-foreground line-through")}>
+                        <span
+                          className={cn(
+                            "text-[12.5px] leading-5 text-foreground",
+                            step.checked && "text-muted-foreground line-through",
+                          )}
+                        >
                           {step.title}
                         </span>
                       }
                     />
                     {step.required ? (
-                      <Badge tone={step.checked ? "success" : "warning"} className="ml-auto shrink-0">
+                      <Badge
+                        tone={step.checked ? "success" : "warning"}
+                        className="ml-auto shrink-0"
+                      >
                         {t("templates.checklist.requiredBadge")}
                       </Badge>
                     ) : null}
@@ -159,13 +185,19 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
                           to={`/knowledge-base/${step.knowledgeArticleId}`}
                           className="inline-flex items-center gap-1 text-[11.5px] text-link hover:underline"
                         >
-                          <BookOpen size={11} /> {step.knowledgeArticleTitle ?? t("templates.checklist.article")}
+                          <BookOpen size={11} />{" "}
+                          {step.knowledgeArticleTitle ?? t("templates.checklist.article")}
                         </Link>
                       ) : null}
                       {step.responseTemplateId && onInsertTemplate && !view.readOnly ? (
                         <button
                           type="button"
-                          onClick={() => onInsertTemplate(step.responseTemplateId as string, step.responseTemplateName ?? "")}
+                          onClick={() =>
+                            onInsertTemplate(
+                              step.responseTemplateId as string,
+                              step.responseTemplateName ?? "",
+                            )
+                          }
                           className="inline-flex items-center gap-1 text-[11.5px] text-link hover:underline"
                         >
                           <FileText size={11} /> {t("templates.checklist.insertTemplate")}
@@ -221,7 +253,12 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
         }}
       >
         <Field label={t("templates.checklist.detachReason")} required>
-          <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} maxLength={500} />
+          <Textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+            maxLength={500}
+          />
         </Field>
       </ConfirmDialog>
     </DetailSection>
@@ -243,7 +280,11 @@ function NoPlaybook({
 }) {
   const { t } = useTranslation();
   if (view.available.length === 0) {
-    return <p className="text-[12.5px] text-muted-foreground">{t("templates.checklist.noneAvailable")}</p>;
+    return (
+      <p className="text-[12.5px] text-muted-foreground">
+        {t("templates.checklist.noneAvailable")}
+      </p>
+    );
   }
   if (view.readOnly) {
     return <p className="text-[12.5px] text-muted-foreground">{t("templates.checklist.none")}</p>;
@@ -252,7 +293,11 @@ function NoPlaybook({
     <div className="flex flex-wrap items-end gap-2">
       <label className="min-w-[180px] flex-1">
         <span className="sr-only">{t("templates.checklist.choose")}</span>
-        <Select value={choice} onChange={(event) => onChoice(event.target.value)} data-testid="ticket-playbook-select">
+        <Select
+          value={choice}
+          onChange={(event) => onChoice(event.target.value)}
+          data-testid="ticket-playbook-select"
+        >
           <option value="">{t("templates.checklist.choose")}</option>
           {view.available.map((item) => (
             <option key={item.id} value={item.id}>
@@ -261,7 +306,12 @@ function NoPlaybook({
           ))}
         </Select>
       </label>
-      <Button type="button" size="sm" disabled={busy || choice === ""} onClick={() => void onAttach()}>
+      <Button
+        type="button"
+        size="sm"
+        disabled={busy || choice === ""}
+        onClick={() => void onAttach()}
+      >
         {t("templates.checklist.attach")}
       </Button>
     </div>

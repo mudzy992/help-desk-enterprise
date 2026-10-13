@@ -106,7 +106,9 @@ export type BulkPasswordResetResult = {
   readonly failedUsers: number;
 };
 
-export function bulkPasswordReset(input?: { readonly code?: string }): Promise<BulkPasswordResetResult> {
+export function bulkPasswordReset(input?: {
+  readonly code?: string;
+}): Promise<BulkPasswordResetResult> {
   return apiRequest("/security/bulk-password-reset", {
     method: "POST",
     body: JSON.stringify(input ?? {}),

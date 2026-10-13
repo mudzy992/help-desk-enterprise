@@ -24,19 +24,11 @@ import { listOrganizationalUnitTree } from "@/services/organizational-units-api"
 import { listRoutingRules } from "@/services/routing-api";
 import { listOfferedServices, listServices } from "@/services/service-catalog-api";
 import { fetchDashboardSummary } from "@/services/report-summary-api";
-import {
-  listGroupInbox,
-  listTicketsPage,
-  type TicketResponse,
-} from "@/services/tickets-api";
+import { listGroupInbox, listTicketsPage, type TicketResponse } from "@/services/tickets-api";
 
 /** Početak lokalne civilne noći 13 dana prije `now` (prvi dan grafikona). */
 function dashboardVolumeWindowStart(now: Date): Date {
-  return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - (dashboardVolumeDayCount - 1),
-  );
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dashboardVolumeDayCount - 1));
 }
 
 export type DashboardSummaryState = {
@@ -62,181 +54,172 @@ export function useDashboardSummary(): DashboardSummaryState {
   const queryClient = useQueryClient();
   const isStaff = isTicketStaff(useSessionCapabilities());
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [inboxTickets, setInboxTickets] = useState<
-    readonly TicketResponse[] | null
-  >(null);
-  const [serviceNames, setServiceNames] = useState<
-    ReadonlyMap<string, string>
-  >(new Map());
-  const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(
-    new Map(),
-  );
-  const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(
-    new Map(),
-  );
+  const [inboxTickets, setInboxTickets] = useState<readonly TicketResponse[] | null>(null);
+  const [serviceNames, setServiceNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(new Map());
+  const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
-  const reload = useCallback(async (silent = false) => {
-    if (!silent) {
-      setIsLoading(true);
-      setErrorKey(null);
-      setRequestId(null);
-    }
-    try {
-      // Phase 2.4: the counters come from the server aggregate (SQL over the
-      // same visibility scope as the lists).
-      //
-      // Val 1 (M15/B6): the lists used to be derived from „the first page of 50
-      // tickets“ (newest first), so an overdue or critical ticket outside it
-      // silently vanished from the dashboard. Each list now has its own
-      // server-filtered query with a small take, and the chart window walks
-      // its own bounded pages (`load-dashboard-volume`).
-      // Grafik se čita u stranicama koje API stvarno prihvata (najviše 50 po
-      // stranici) — prva stranica kreće odmah, sljedeća samo ako je puna.
-      const volume = loadDashboardVolume({
-        fetchPage: (page, pageSize) =>
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-volume", page }),
-            queryFn: () =>
-              listTicketsPage({
-                createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
-                sort: "createdAt",
-                dir: "desc",
-                page,
-                pageSize,
-              }),
-          }),
-      });
-      const [counts, recentPage, overduePage, minePage, unassignedPage, volumeLoad] =
-        await Promise.all([
-          queryClient.fetchQuery({
-            queryKey: queryKeys.dashboardSummary(dayKey),
-            queryFn: () => fetchDashboardSummary(),
-          }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),
-            queryFn: () =>
-              listTicketsPage({
-                sort: "createdAt",
-                dir: "desc",
-                pageSize: dashboardRecentTicketLimit,
-              }),
-          }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-overdue" }),
-            queryFn: () =>
-              listTicketsPage({
-                overdue: true,
-                sort: "updatedAt",
-                dir: "desc",
-                pageSize: dashboardSlaWatchlistLimit,
-              }),
-          }),
-          currentUserId === null
-            ? Promise.resolve(null)
-            : queryClient.fetchQuery({
-                queryKey: queryKeys.ticketList({
-                  view: "dashboard-assigned",
-                  userId: currentUserId,
-                }),
-                queryFn: () =>
-                  listTicketsPage({
-                    assignedUserId: currentUserId,
-                    status: [...dashboardOpenStatuses],
-                    sort: "updatedAt",
-                    dir: "desc",
-                    pageSize: dashboardAttentionTicketLimit,
-                  }),
-              }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-unassigned" }),
-            queryFn: () =>
-              listTicketsPage({
-                unassigned: true,
-                status: [...dashboardOpenStatuses],
-                sort: "updatedAt",
-                dir: "desc",
-                pageSize: dashboardAttentionTicketLimit,
-              }),
-          }),
-          volume,
-        ]);
-      setSummary(
-        composeDashboardSummary({
-          counts,
-          recentTickets: recentPage.items,
-          overdueTickets: overduePage.items,
-          assignedToMeTickets: minePage?.items ?? [],
-          unassignedTickets: unassignedPage.items,
-          volumeTickets: volumeLoad.tickets,
-          volumeTruncated: volumeLoad.truncated,
-          currentUserId,
-        }),
-      );
-      const [inbox, catalog, tree, rules] = await Promise.all([
-        isStaff
-          ? queryClient
-              .fetchQuery({
-                queryKey: queryKeys.groupInbox,
-                queryFn: () => listGroupInbox(),
-              })
-              .catch(() => null)
-          : Promise.resolve(null),
-        queryClient
-          .fetchQuery({
-            queryKey: queryKeys.dashboardServiceNames,
-            queryFn: () => listServices(),
-          })
-          .catch(() =>
-            queryClient
-              .fetchQuery({
-                queryKey: queryKeys.offeredServices,
-                queryFn: () => listOfferedServices(),
-              })
-              .catch(() => []),
-          ),
-        queryClient
-          .fetchQuery({
-            queryKey: queryKeys.organizationalUnits,
-            queryFn: () => listOrganizationalUnitTree(),
-          })
-          .catch(() => []),
-        isStaff
-          ? queryClient
-              .fetchQuery({
-                queryKey: queryKeys.routingRules,
-                queryFn: () => listRoutingRules(),
-              })
-              .catch(() => [])
-          : Promise.resolve([]),
-      ]);
-      setInboxTickets(inbox);
-      setServiceNames(
-        new Map(catalog.map((service) => [service.id, service.name])),
-      );
-      setOriginNames(flattenOrganizationalUnitNames(tree));
-      setGroupNames(
-        new Map(rules.map((rule) => [rule.groupId, rule.groupName])),
-      );
-    } catch (error) {
-      if (silent) {
-        return;
-      }
-      setSummary(null);
-      setInboxTickets(null);
-      setServiceNames(new Map());
-      setOriginNames(new Map());
-      setGroupNames(new Map());
-      setErrorKey(mapTicketError(error));
-      setRequestId(readApiRequestId(error));
-    } finally {
+  const reload = useCallback(
+    async (silent = false) => {
       if (!silent) {
-        setIsLoading(false);
+        setIsLoading(true);
+        setErrorKey(null);
+        setRequestId(null);
       }
-    }
-  }, [currentUserId, dayKey, isStaff, queryClient]);
+      try {
+        // Phase 2.4: the counters come from the server aggregate (SQL over the
+        // same visibility scope as the lists).
+        //
+        // Val 1 (M15/B6): the lists used to be derived from „the first page of 50
+        // tickets“ (newest first), so an overdue or critical ticket outside it
+        // silently vanished from the dashboard. Each list now has its own
+        // server-filtered query with a small take, and the chart window walks
+        // its own bounded pages (`load-dashboard-volume`).
+        // Grafik se čita u stranicama koje API stvarno prihvata (najviše 50 po
+        // stranici) — prva stranica kreće odmah, sljedeća samo ako je puna.
+        const volume = loadDashboardVolume({
+          fetchPage: (page, pageSize) =>
+            queryClient.fetchQuery({
+              queryKey: queryKeys.ticketList({ view: "dashboard-volume", page }),
+              queryFn: () =>
+                listTicketsPage({
+                  createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
+                  sort: "createdAt",
+                  dir: "desc",
+                  page,
+                  pageSize,
+                }),
+            }),
+        });
+        const [counts, recentPage, overduePage, minePage, unassignedPage, volumeLoad] =
+          await Promise.all([
+            queryClient.fetchQuery({
+              queryKey: queryKeys.dashboardSummary(dayKey),
+              queryFn: () => fetchDashboardSummary(),
+            }),
+            queryClient.fetchQuery({
+              queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),
+              queryFn: () =>
+                listTicketsPage({
+                  sort: "createdAt",
+                  dir: "desc",
+                  pageSize: dashboardRecentTicketLimit,
+                }),
+            }),
+            queryClient.fetchQuery({
+              queryKey: queryKeys.ticketList({ view: "dashboard-overdue" }),
+              queryFn: () =>
+                listTicketsPage({
+                  overdue: true,
+                  sort: "updatedAt",
+                  dir: "desc",
+                  pageSize: dashboardSlaWatchlistLimit,
+                }),
+            }),
+            currentUserId === null
+              ? Promise.resolve(null)
+              : queryClient.fetchQuery({
+                  queryKey: queryKeys.ticketList({
+                    view: "dashboard-assigned",
+                    userId: currentUserId,
+                  }),
+                  queryFn: () =>
+                    listTicketsPage({
+                      assignedUserId: currentUserId,
+                      status: [...dashboardOpenStatuses],
+                      sort: "updatedAt",
+                      dir: "desc",
+                      pageSize: dashboardAttentionTicketLimit,
+                    }),
+                }),
+            queryClient.fetchQuery({
+              queryKey: queryKeys.ticketList({ view: "dashboard-unassigned" }),
+              queryFn: () =>
+                listTicketsPage({
+                  unassigned: true,
+                  status: [...dashboardOpenStatuses],
+                  sort: "updatedAt",
+                  dir: "desc",
+                  pageSize: dashboardAttentionTicketLimit,
+                }),
+            }),
+            volume,
+          ]);
+        setSummary(
+          composeDashboardSummary({
+            counts,
+            recentTickets: recentPage.items,
+            overdueTickets: overduePage.items,
+            assignedToMeTickets: minePage?.items ?? [],
+            unassignedTickets: unassignedPage.items,
+            volumeTickets: volumeLoad.tickets,
+            volumeTruncated: volumeLoad.truncated,
+            currentUserId,
+          }),
+        );
+        const [inbox, catalog, tree, rules] = await Promise.all([
+          isStaff
+            ? queryClient
+                .fetchQuery({
+                  queryKey: queryKeys.groupInbox,
+                  queryFn: () => listGroupInbox(),
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+          queryClient
+            .fetchQuery({
+              queryKey: queryKeys.dashboardServiceNames,
+              queryFn: () => listServices(),
+            })
+            .catch(() =>
+              queryClient
+                .fetchQuery({
+                  queryKey: queryKeys.offeredServices,
+                  queryFn: () => listOfferedServices(),
+                })
+                .catch(() => []),
+            ),
+          queryClient
+            .fetchQuery({
+              queryKey: queryKeys.organizationalUnits,
+              queryFn: () => listOrganizationalUnitTree(),
+            })
+            .catch(() => []),
+          isStaff
+            ? queryClient
+                .fetchQuery({
+                  queryKey: queryKeys.routingRules,
+                  queryFn: () => listRoutingRules(),
+                })
+                .catch(() => [])
+            : Promise.resolve([]),
+        ]);
+        setInboxTickets(inbox);
+        setServiceNames(new Map(catalog.map((service) => [service.id, service.name])));
+        setOriginNames(flattenOrganizationalUnitNames(tree));
+        setGroupNames(new Map(rules.map((rule) => [rule.groupId, rule.groupName])));
+      } catch (error) {
+        if (silent) {
+          return;
+        }
+        setSummary(null);
+        setInboxTickets(null);
+        setServiceNames(new Map());
+        setOriginNames(new Map());
+        setGroupNames(new Map());
+        setErrorKey(mapTicketError(error));
+        setRequestId(readApiRequestId(error));
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [currentUserId, dayKey, isStaff, queryClient],
+  );
 
   useEffect(() => {
     void reload();

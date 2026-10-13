@@ -15,8 +15,7 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
   const [drawerTab, setDrawerTab] = useState<GroupDrawerTab>("members");
   const [detail, setDetail] = useState<GroupResponse | null>(null);
   /** Paket 5.3.2: the danger dialog carries the name, so the row never asks twice. */
-  const [deleteTarget, setDeleteTarget] =
-    useState<GroupListItemResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GroupListItemResponse | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<GroupsErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);

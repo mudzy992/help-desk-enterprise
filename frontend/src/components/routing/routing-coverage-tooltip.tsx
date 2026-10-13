@@ -1,9 +1,4 @@
-import {
-  useLayoutEffect,
-  useState,
-  type CSSProperties,
-  type RefObject,
-} from "react";
+import { useLayoutEffect, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { MetaBadge } from "@/components/ui/badge";
@@ -11,10 +6,7 @@ import { floatingPanelClassName } from "@/components/ui/control";
 import { ROUTING_OUTCOME_META } from "@/lib/theme/semantic-meta";
 import { cn } from "@/lib/utils";
 import type { RoutingCoverageItem } from "@/services/routing-api";
-import {
-  coverageCellKind,
-  outcomeLabelKeyForKind,
-} from "./build-routing-coverage-matrix";
+import { coverageCellKind, outcomeLabelKeyForKind } from "./build-routing-coverage-matrix";
 
 const TOOLTIP_WIDTH_PX = 224;
 const VIEWPORT_PAD_PX = 8;
@@ -72,10 +64,7 @@ export function RoutingCoverageTooltip({
 
   return createPortal(
     <div
-      className={cn(
-        floatingPanelClassName,
-        "pointer-events-none p-2.5 text-left",
-      )}
+      className={cn(floatingPanelClassName, "pointer-events-none p-2.5 text-left")}
       style={style}
       role="tooltip"
     >
@@ -99,9 +88,7 @@ export function RoutingCoverageTooltip({
         {t("routing.fallbackDepth", { depth: item.resolution.fallbackDepth })}
       </p>
       {kind === "unrouted" ? (
-        <p className="mt-1 text-[10px] text-danger">
-          {t("routing.tooltipUnrouted")}
-        </p>
+        <p className="mt-1 text-[10px] text-danger">{t("routing.tooltipUnrouted")}</p>
       ) : null}
     </div>,
     document.body,

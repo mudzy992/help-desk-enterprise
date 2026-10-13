@@ -1,8 +1,5 @@
 import { apiRequest } from "@/services/api";
-import type {
-  FormVersionResponse,
-  ServiceFormSchema,
-} from "@/services/service-catalog-api";
+import type { FormVersionResponse, ServiceFormSchema } from "@/services/service-catalog-api";
 
 export function getServiceFormVersion(
   serviceId: string,

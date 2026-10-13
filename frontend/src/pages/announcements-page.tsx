@@ -17,7 +17,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
-import { announcementDateTimeFormatter, mapAnnouncementError, severityTone, statusTone } from "@/lib/announcements/announcement-view";
+import {
+  announcementDateTimeFormatter,
+  mapAnnouncementError,
+  severityTone,
+  statusTone,
+} from "@/lib/announcements/announcement-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
@@ -41,7 +46,9 @@ const severityKeys = {
   CRITICAL: "announcements.severity.CRITICAL",
 } as const;
 
-const statusKeys: Readonly<Record<AnnouncementEffectiveStatus, `announcements.status.${AnnouncementEffectiveStatus}`>> = {
+const statusKeys: Readonly<
+  Record<AnnouncementEffectiveStatus, `announcements.status.${AnnouncementEffectiveStatus}`>
+> = {
   DRAFT: "announcements.status.DRAFT",
   SCHEDULED: "announcements.status.SCHEDULED",
   PUBLISHED: "announcements.status.PUBLISHED",
@@ -50,7 +57,11 @@ const statusKeys: Readonly<Record<AnnouncementEffectiveStatus, `announcements.st
 };
 
 type PendingAction =
-  | { readonly kind: "publish"; readonly item: ManagedAnnouncement; readonly audience: number | null }
+  | {
+      readonly kind: "publish";
+      readonly item: ManagedAnnouncement;
+      readonly audience: number | null;
+    }
   | { readonly kind: "withdraw"; readonly item: ManagedAnnouncement }
   | { readonly kind: "delete"; readonly item: ManagedAnnouncement };
 
@@ -67,7 +78,13 @@ export function AnnouncementsPage() {
   });
   const [tab, setTab] = useState<"mine" | "manage">("mine");
 
-  const header = <PageHeader crumbs={[t("navigation.sections.overview")]} title={t("announcements.title")} subtitle={t("announcements.subtitle")} />;
+  const header = (
+    <PageHeader
+      crumbs={[t("navigation.sections.overview")]}
+      title={t("announcements.title")}
+      subtitle={t("announcements.subtitle")}
+    />
+  );
 
   if (isLoading) {
     return (
@@ -81,7 +98,11 @@ export function AnnouncementsPage() {
     return (
       <div>
         {header}
-        <EmptyState icon={<Megaphone size={18} />} title={t("announcements.disabledTitle")} body={t("announcements.disabledBody")} />
+        <EmptyState
+          icon={<Megaphone size={18} />}
+          title={t("announcements.disabledTitle")}
+          body={t("announcements.disabledBody")}
+        />
       </div>
     );
   }
@@ -133,7 +154,13 @@ function AnnouncementArchive() {
     );
   }
   if (data === undefined || data.length === 0) {
-    return <EmptyState icon={<Megaphone size={18} />} title={t("announcements.archive.emptyTitle")} body={t("announcements.archive.emptyBody")} />;
+    return (
+      <EmptyState
+        icon={<Megaphone size={18} />}
+        title={t("announcements.archive.emptyTitle")}
+        body={t("announcements.archive.emptyBody")}
+      />
+    );
   }
   return (
     <ul className="grid gap-3" aria-label={t("announcements.archive.label")}>
@@ -143,23 +170,35 @@ function AnnouncementArchive() {
             <details className="group" id={`announcement-${item.id}`}>
               <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
                 <Badge tone={severityTone(item.severity)}>{t(severityKeys[item.severity])}</Badge>
-                <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+                <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
+                  {item.title}
+                </span>
                 {item.requiresAcknowledgement ? (
                   item.acknowledgedAt ? (
                     <Badge tone="success">
-                      {t("announcements.archive.acknowledgedAt", { at: formatter.format(new Date(item.acknowledgedAt)) })}
+                      {t("announcements.archive.acknowledgedAt", {
+                        at: formatter.format(new Date(item.acknowledgedAt)),
+                      })}
                     </Badge>
                   ) : (
                     <Badge tone="warning">{t("announcements.archive.notAcknowledged")}</Badge>
                   )
                 ) : null}
                 <span className="text-[11.5px] text-muted-foreground">
-                  {formatter.format(new Date(item.startsAt))} – {formatter.format(new Date(item.endsAt))}
+                  {formatter.format(new Date(item.startsAt))} –{" "}
+                  {formatter.format(new Date(item.endsAt))}
                 </span>
               </summary>
               <div className="border-t border-border/70 px-4 py-3">
-                {item.serviceName ? <p className={hintClassName}>{t("announcements.banner.service", { name: item.serviceName })}</p> : null}
-                <MarkdownView source={item.body} className="grid gap-2 text-[12.5px] leading-5 text-foreground" />
+                {item.serviceName ? (
+                  <p className={hintClassName}>
+                    {t("announcements.banner.service", { name: item.serviceName })}
+                  </p>
+                ) : null}
+                <MarkdownView
+                  source={item.body}
+                  className="grid gap-2 text-[12.5px] leading-5 text-foreground"
+                />
               </div>
             </details>
           </Card>
@@ -186,7 +225,10 @@ function ManageAnnouncements() {
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const [nextList, nextOptions] = await Promise.all([listManagedAnnouncements(), getAnnouncementOptions()]);
+      const [nextList, nextOptions] = await Promise.all([
+        listManagedAnnouncements(),
+        getAnnouncementOptions(),
+      ]);
       setList(nextList);
       setOptions(nextOptions);
     } catch (caught) {
@@ -213,7 +255,11 @@ function ManageAnnouncements() {
         organizationalUnitIds: item.organizationalUnitIds,
         groupIds: item.groupIds,
       });
-      setPending((previous) => (previous?.kind === "publish" && previous.item.id === item.id ? { ...previous, audience: count } : previous));
+      setPending((previous) =>
+        previous?.kind === "publish" && previous.item.id === item.id
+          ? { ...previous, audience: count }
+          : previous,
+      );
     } catch {
       // The count is informative only; publishing still works.
     }
@@ -259,14 +305,22 @@ function ManageAnnouncements() {
     );
 
   if (list === null || options === null) {
-    return loadError === null ? <PanelSkeleton label={t("ui.loading")} /> : <Card>{loadFailure}</Card>;
+    return loadError === null ? (
+      <PanelSkeleton label={t("ui.loading")} />
+    ) : (
+      <Card>{loadFailure}</Card>
+    );
   }
 
   return (
     <Card>
       <CardHeader
         title={t("announcements.manage.title")}
-        subtitle={list.scopedToUnit ? t("announcements.manage.scopedSubtitle") : t("announcements.manage.subtitle")}
+        subtitle={
+          list.scopedToUnit
+            ? t("announcements.manage.scopedSubtitle")
+            : t("announcements.manage.subtitle")
+        }
         actions={
           <Button size="sm" onClick={() => setEditing(null)}>
             <Plus aria-hidden />
@@ -277,7 +331,11 @@ function ManageAnnouncements() {
       {loadFailure}
       {list.announcements.length === 0 ? (
         <div className="p-4">
-          <EmptyState icon={<Megaphone size={18} />} title={t("announcements.manage.emptyTitle")} body={t("announcements.manage.emptyBody")} />
+          <EmptyState
+            icon={<Megaphone size={18} />}
+            title={t("announcements.manage.emptyTitle")}
+            body={t("announcements.manage.emptyBody")}
+          />
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -285,21 +343,36 @@ function ManageAnnouncements() {
             <caption className="sr-only">{t("announcements.manage.title")}</caption>
             <thead className="text-[11.5px] text-muted-foreground">
               <tr className="border-b border-border">
-                <th scope="col" className="px-4 py-2 font-medium">{t("announcements.manage.columns.title")}</th>
-                <th scope="col" className="px-2 py-2 font-medium">{t("announcements.manage.columns.status")}</th>
-                <th scope="col" className="px-2 py-2 font-medium">{t("announcements.manage.columns.period")}</th>
-                <th scope="col" className="px-2 py-2 text-right font-medium">{t("announcements.manage.columns.acknowledged")}</th>
-                <th scope="col" className="px-4 py-2 text-right font-medium">{t("announcements.manage.columns.actions")}</th>
+                <th scope="col" className="px-4 py-2 font-medium">
+                  {t("announcements.manage.columns.title")}
+                </th>
+                <th scope="col" className="px-2 py-2 font-medium">
+                  {t("announcements.manage.columns.status")}
+                </th>
+                <th scope="col" className="px-2 py-2 font-medium">
+                  {t("announcements.manage.columns.period")}
+                </th>
+                <th scope="col" className="px-2 py-2 text-right font-medium">
+                  {t("announcements.manage.columns.acknowledged")}
+                </th>
+                <th scope="col" className="px-4 py-2 text-right font-medium">
+                  {t("announcements.manage.columns.actions")}
+                </th>
               </tr>
             </thead>
             <tbody>
               {list.announcements.map((item) => {
-                const editable = item.status === "DRAFT" || item.effectiveStatus === "PUBLISHED" || item.effectiveStatus === "SCHEDULED";
+                const editable =
+                  item.status === "DRAFT" ||
+                  item.effectiveStatus === "PUBLISHED" ||
+                  item.effectiveStatus === "SCHEDULED";
                 return (
                   <tr key={item.id} className="border-b border-border/60 align-top">
                     <th scope="row" className="px-4 py-2.5 font-normal">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <Badge tone={severityTone(item.severity)}>{t(severityKeys[item.severity])}</Badge>
+                        <Badge tone={severityTone(item.severity)}>
+                          {t(severityKeys[item.severity])}
+                        </Badge>
                         <span className="font-semibold text-foreground">{item.title}</span>
                       </span>
                       <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
@@ -308,11 +381,15 @@ function ManageAnnouncements() {
                             ? t("announcements.manage.modeModal")
                             : t("announcements.manage.modeAcknowledge")
                           : t("announcements.manage.modeBanner")}
-                        {item.version > 1 ? ` · ${t("announcements.manage.version", { version: item.version })}` : ""}
+                        {item.version > 1
+                          ? ` · ${t("announcements.manage.version", { version: item.version })}`
+                          : ""}
                       </span>
                     </th>
                     <td className="px-2 py-2.5">
-                      <Badge tone={statusTone(item.effectiveStatus)}>{t(statusKeys[item.effectiveStatus])}</Badge>
+                      <Badge tone={statusTone(item.effectiveStatus)}>
+                        {t(statusKeys[item.effectiveStatus])}
+                      </Badge>
                     </td>
                     <td className="px-2 py-2.5 text-[12px] text-muted-foreground">
                       {formatter.format(new Date(item.startsAt))}
@@ -338,7 +415,11 @@ function ManageAnnouncements() {
                               <Send aria-hidden />
                               {t("announcements.manage.publish")}
                             </Button>
-                            <Button variant="ghost" size="xs" onClick={() => setPending({ kind: "delete", item })}>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => setPending({ kind: "delete", item })}
+                            >
                               <Trash2 aria-hidden />
                               {t("announcements.manage.delete")}
                             </Button>
@@ -384,7 +465,10 @@ function ManageAnnouncements() {
           void refreshEverywhere();
         }}
       />
-      <AnnouncementReportDialog announcementId={reportId} onOpenChange={(open) => (open ? undefined : setReportId(null))} />
+      <AnnouncementReportDialog
+        announcementId={reportId}
+        onOpenChange={(open) => (open ? undefined : setReportId(null))}
+      />
       <ConfirmDialog
         open={pending !== null}
         onOpenChange={(open) => (open ? undefined : setPending(null))}
@@ -418,8 +502,17 @@ function ManageAnnouncements() {
       >
         <div className="grid gap-2">
           {pending?.kind === "withdraw" ? (
-            <Field label={t("announcements.manage.reason")} required hint={t("announcements.manage.reasonHint")}>
-              <Textarea rows={2} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+            <Field
+              label={t("announcements.manage.reason")}
+              required
+              hint={t("announcements.manage.reasonHint")}
+            >
+              <Textarea
+                rows={2}
+                value={reason}
+                maxLength={500}
+                onChange={(event) => setReason(event.target.value)}
+              />
             </Field>
           ) : null}
           {actionError ? (

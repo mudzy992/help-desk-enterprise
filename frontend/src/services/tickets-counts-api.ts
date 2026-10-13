@@ -32,9 +32,7 @@ export type TicketCounts = {
  * badge and the list it opens agree. Pass the list's narrowing filters to get
  * tab counters that follow them.
  */
-export function getTicketCounts(
-  query: TicketCountsQuery = {},
-): Promise<TicketCounts> {
+export function getTicketCounts(query: TicketCountsQuery = {}): Promise<TicketCounts> {
   const search = toTicketCountsSearchParams(query).toString();
   return apiRequest(`/tickets/counts${search === "" ? "" : `?${search}`}`);
 }

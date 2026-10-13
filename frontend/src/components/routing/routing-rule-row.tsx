@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button";
 import { tableRowClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { truncateIdentifier } from "@/lib/tickets/ticket-display";
-import type {
-  RoutingHandlerGroup,
-  RoutingRuleResponse,
-} from "@/services/routing-api";
+import type { RoutingHandlerGroup, RoutingRuleResponse } from "@/services/routing-api";
 
 interface RoutingRuleRowProperties {
   readonly rule: RoutingRuleResponse;
@@ -91,11 +88,7 @@ export function RoutingRuleRow({
                 onCancel={onCancel}
               />
             ) : (
-              <DeleteRoutingRuleDialog
-                rule={rule}
-                onDeleted={onChanged}
-                onCancel={onCancel}
-              />
+              <DeleteRoutingRuleDialog rule={rule} onDeleted={onChanged} onCancel={onCancel} />
             )}
           </td>
         </tr>

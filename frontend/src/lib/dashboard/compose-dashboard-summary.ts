@@ -1,11 +1,5 @@
-import {
-  buildVolume14d,
-  type TicketVolumeDay,
-} from "@/lib/dashboard/build-volume-14d";
-import {
-  selectAttentionTickets,
-  selectSlaWatchlist,
-} from "@/lib/dashboard/dashboard-ticket-sets";
+import { buildVolume14d, type TicketVolumeDay } from "@/lib/dashboard/build-volume-14d";
+import { selectAttentionTickets, selectSlaWatchlist } from "@/lib/dashboard/dashboard-ticket-sets";
 import type { DashboardSummaryCounts } from "@/services/report-summary-api";
 import type { TicketResponse } from "@/services/tickets-api";
 

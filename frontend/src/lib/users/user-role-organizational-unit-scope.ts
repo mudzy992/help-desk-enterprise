@@ -5,15 +5,11 @@ const organizationalUnitTicketScopedRoleKeys: ReadonlySet<string> = new Set([
   roleKeys.admin,
 ]);
 
-export function roleRequiresOrganizationalUnitForTicketScope(
-  roleKey: string,
-): boolean {
+export function roleRequiresOrganizationalUnitForTicketScope(roleKey: string): boolean {
   return organizationalUnitTicketScopedRoleKeys.has(roleKey);
 }
 
-export function shouldShowOrganizationalUnitWildcardInRoleAssignment(
-  roleKey: string,
-): boolean {
+export function shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey: string): boolean {
   return !roleRequiresOrganizationalUnitForTicketScope(roleKey);
 }
 

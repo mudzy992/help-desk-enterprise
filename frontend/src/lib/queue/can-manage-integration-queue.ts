@@ -5,7 +5,6 @@ export function canManageIntegrationQueue(input: {
   readonly permissionKeys: readonly string[];
 }): boolean {
   return (
-    input.isSuperAdmin ||
-    input.permissionKeys.includes(permissionKeys.integrationsQueueManage)
+    input.isSuperAdmin || input.permissionKeys.includes(permissionKeys.integrationsQueueManage)
   );
 }

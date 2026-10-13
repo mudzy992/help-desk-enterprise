@@ -83,7 +83,11 @@ interface CaptchaChallengeProperties {
   readonly resetSignal?: number;
 }
 
-export function CaptchaChallenge({ siteKey, onToken, resetSignal = 0 }: CaptchaChallengeProperties) {
+export function CaptchaChallenge({
+  siteKey,
+  onToken,
+  resetSignal = 0,
+}: CaptchaChallengeProperties) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement | null>(null);
   const widgetId = useRef<string | null>(null);

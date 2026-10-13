@@ -17,17 +17,11 @@ export function isExcludedGroupEvent(
   payload: NotificationRealtimePayload,
   currentUserId: string | null,
 ): boolean {
-  return (
-    currentUserId !== null &&
-    (payload.excludedUserIds ?? []).includes(currentUserId)
-  );
+  return currentUserId !== null && (payload.excludedUserIds ?? []).includes(currentUserId);
 }
 
 /** Next badge value: the server's count when sent, otherwise the local count + delta. */
-export function nextUnreadCount(
-  current: number,
-  payload: NotificationRealtimePayload,
-): number {
+export function nextUnreadCount(current: number, payload: NotificationRealtimePayload): number {
   if (typeof payload.unreadCount === "number") {
     return payload.unreadCount;
   }

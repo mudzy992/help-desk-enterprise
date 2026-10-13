@@ -3,10 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TemporaryPasswordReveal } from "@/components/users/temporary-password-reveal";
 import { Button } from "@/components/ui/button";
-import {
-  controlCompactClassName,
-  errorTextClassName,
-} from "@/components/ui/control";
+import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
 import { roleKeys } from "@/lib/session/permission-keys";
 import {
   roleRequiresOrganizationalUnitForTicketScope,
@@ -22,11 +19,7 @@ interface AddUserFormProperties {
   readonly onCancel: () => void;
 }
 
-export function AddUserForm({
-  unitOptions,
-  onCreated,
-  onCancel,
-}: AddUserFormProperties) {
+export function AddUserForm({ unitOptions, onCreated, onCancel }: AddUserFormProperties) {
   const { t } = useTranslation();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,17 +27,14 @@ export function AddUserForm({
   const [roleKey, setRoleKey] = useState<string>(roleKeys.user);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [createdResult, setCreatedResult] = useState<CreateUserResponse | null>(
-    null,
-  );
+  const [createdResult, setCreatedResult] = useState<CreateUserResponse | null>(null);
 
   const showOrganizationalUnitWildcard =
     shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey);
-  const showOrganizationalUnitScopeWarning =
-    shouldWarnOrganizationalUnitMissingForRoleAssignment(
-      roleKey,
-      organizationalUnitId,
-    );
+  const showOrganizationalUnitScopeWarning = shouldWarnOrganizationalUnitMissingForRoleAssignment(
+    roleKey,
+    organizationalUnitId,
+  );
   const hasRequiredOrganizationalUnit =
     !roleRequiresOrganizationalUnitForTicketScope(roleKey) ||
     organizationalUnitId.trim().length > 0;
@@ -65,21 +55,14 @@ export function AddUserForm({
       setCreatedResult(response);
       await onCreated();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : t("users.createFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("users.createFailed"));
     } finally {
       setIsSaving(false);
     }
   };
 
   if (createdResult !== null) {
-    return (
-      <TemporaryPasswordReveal
-        result={createdResult}
-        onClose={onCancel}
-      />
-    );
+    return <TemporaryPasswordReveal result={createdResult} onClose={onCancel} />;
   }
 
   return (
@@ -106,9 +89,7 @@ export function AddUserForm({
         onChange={(event) => setOrganizationalUnitId(event.target.value)}
       >
         {showOrganizationalUnitWildcard ? (
-          <option value="">
-            {t("users.scopeNoTicketAccessByOrganizationalUnit")}
-          </option>
+          <option value="">{t("users.scopeNoTicketAccessByOrganizationalUnit")}</option>
         ) : (
           <option value="" disabled>
             {t("users.scopeSelectOrganizationalUnit")}
@@ -121,10 +102,7 @@ export function AddUserForm({
         ))}
       </select>
       {showOrganizationalUnitScopeWarning ? (
-        <p
-          role="status"
-          className="text-[12px] text-warning"
-        >
+        <p role="status" className="text-[12px] text-warning">
           {t("users.scopeOrganizationalUnitRequiredWarning")}
         </p>
       ) : null}

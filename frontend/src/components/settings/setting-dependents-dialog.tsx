@@ -65,9 +65,7 @@ export function SettingDependentsDialog({
               })}
             </p>
             <p className="mt-0.5 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] text-muted-foreground">
-                {dependent.key}
-              </span>
+              <span className="font-mono text-[11px] text-muted-foreground">{dependent.key}</span>
               <span className="text-[11px] text-muted-foreground">
                 {dependent.action === "delete"
                   ? t("settings.dependencies.actionDelete")
@@ -96,9 +94,7 @@ export function SettingDependentsDialog({
           disabled={isPending}
           onClick={onConfirm}
         >
-          {isPending
-            ? t("settings.registry.saving")
-            : t("settings.dependencies.confirmAction")}
+          {isPending ? t("settings.registry.saving") : t("settings.dependencies.confirmAction")}
         </Button>
       </ModalFooter>
     </ResponsiveSurface>

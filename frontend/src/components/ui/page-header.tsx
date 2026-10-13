@@ -14,12 +14,7 @@ interface PageHeaderProperties {
   readonly actions?: ReactNode;
 }
 
-export function PageHeader({
-  crumbs,
-  title,
-  subtitle,
-  actions,
-}: PageHeaderProperties) {
+export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderProperties) {
   const { appName } = useBranding();
   const { pathname } = useLocation();
   // Faza 3 (d): kontekstualna „?" pomoć stoji uz naslov ekrana, kad za rutu
@@ -41,9 +36,7 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-page font-semibold tracking-[-0.02em] text-foreground">
-            {title}
-          </h1>
+          <h1 className="text-page font-semibold tracking-[-0.02em] text-foreground">{title}</h1>
           {subtitle ? (
             <p className="mt-1 max-w-2xl text-[12.5px] leading-5 text-muted-foreground">
               {subtitle}

@@ -4,9 +4,7 @@ import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
 import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
 
 export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
-  const [onboardings, setOnboardings] = useState<readonly ServiceOnboardingResponse[]>(
-    [],
-  );
+  const [onboardings, setOnboardings] = useState<readonly ServiceOnboardingResponse[]>([]);
   const requestSequence = useRef(0);
 
   useEffect(() => {

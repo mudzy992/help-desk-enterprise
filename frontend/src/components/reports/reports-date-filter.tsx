@@ -9,10 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import {
-  reportPresets,
-  type ReportPreset,
-} from "@/lib/reports/report-window";
+import { reportPresets, type ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsDateFilterProperties {
   readonly preset: ReportPreset;
@@ -51,10 +48,7 @@ export function ReportsDateFilter({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {reportPresets.map((item) => (
-            <DropdownMenuItem
-              key={item}
-              onSelect={() => onPresetChange(item)}
-            >
+            <DropdownMenuItem key={item} onSelect={() => onPresetChange(item)}>
               {t(presetKeys[item])}
             </DropdownMenuItem>
           ))}

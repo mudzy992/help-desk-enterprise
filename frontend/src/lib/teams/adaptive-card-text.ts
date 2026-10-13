@@ -34,6 +34,9 @@ export function mergeActionData(
   data: unknown,
   inputs: Readonly<Record<string, string>>,
 ): Record<string, unknown> {
-  const base = typeof data === "object" && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : {};
+  const base =
+    typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {};
   return { ...inputs, ...base };
 }

@@ -11,9 +11,7 @@ interface TicketRequestRemoteButtonProperties {
   readonly ticket: TicketResponse;
 }
 
-export function TicketRequestRemoteButton({
-  ticket,
-}: TicketRequestRemoteButtonProperties) {
+export function TicketRequestRemoteButton({ ticket }: TicketRequestRemoteButtonProperties) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -38,9 +36,7 @@ export function TicketRequestRemoteButton({
         }}
       >
         <Monitor size={14} />
-        {saving
-          ? t("tickets.detail.requestingRemote")
-          : t("tickets.detail.requestRemote")}
+        {saving ? t("tickets.detail.requestingRemote") : t("tickets.detail.requestRemote")}
       </Button>
       {errorKey !== null ? (
         <span className="max-w-48 text-right text-[11px] text-danger">

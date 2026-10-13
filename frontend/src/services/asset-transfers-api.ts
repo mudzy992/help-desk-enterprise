@@ -6,7 +6,11 @@ import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
  * Types mirror `backend/src/modules/assets/transfers`.
  */
 
-export const assetTransferScenarios = ["WAREHOUSE_TO_USER", "USER_TO_USER", "USER_TO_WAREHOUSE"] as const;
+export const assetTransferScenarios = [
+  "WAREHOUSE_TO_USER",
+  "USER_TO_USER",
+  "USER_TO_WAREHOUSE",
+] as const;
 export type AssetTransferScenario = (typeof assetTransferScenarios)[number];
 export const assetTransferStatuses = ["ISSUED", "SIGNED", "CANCELLED"] as const;
 export type AssetTransferStatus = (typeof assetTransferStatuses)[number];
@@ -64,7 +68,11 @@ export type AssetTransferListItem = {
   readonly to: { readonly userId: string | null; readonly name: string };
   readonly signatoryName: string;
   readonly itemCount: number;
-  readonly items: readonly { readonly assetId: string; readonly assetTag: string; readonly name: string }[];
+  readonly items: readonly {
+    readonly assetId: string;
+    readonly assetTag: string;
+    readonly name: string;
+  }[];
   readonly hasSignedCopy: boolean;
 };
 
@@ -80,7 +88,13 @@ export type AssetSignatoryUnit = {
   readonly name: string;
   readonly parentId: string | null;
   readonly depth: number;
-  readonly own: { readonly userId: string; readonly displayName: string; readonly email: string; readonly title: string | null; readonly isActive: boolean } | null;
+  readonly own: {
+    readonly userId: string;
+    readonly displayName: string;
+    readonly email: string;
+    readonly title: string | null;
+    readonly isActive: boolean;
+  } | null;
   readonly effective: {
     readonly source: "unit" | "default" | "none";
     readonly userId: string | null;
@@ -90,7 +104,11 @@ export type AssetSignatoryUnit = {
 };
 
 export type AssetSignatoryOverview = {
-  readonly defaultSignatory: { readonly id: string; readonly displayName: string; readonly email: string } | null;
+  readonly defaultSignatory: {
+    readonly id: string;
+    readonly displayName: string;
+    readonly email: string;
+  } | null;
   readonly units: readonly AssetSignatoryUnit[];
 };
 
@@ -119,7 +137,10 @@ export const assetTransferQueryKeys = {
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 const transferPath = (id: string) => `/assets/transfers/${encodeURIComponent(id)}`;
 
-export function getTransferConfiguration(): Promise<{ readonly enabled: boolean; readonly required: boolean }> {
+export function getTransferConfiguration(): Promise<{
+  readonly enabled: boolean;
+  readonly required: boolean;
+}> {
   return apiRequest("/assets/transfers/configuration");
 }
 
@@ -131,7 +152,10 @@ export function moveAssets(input: AssetMovementInput): Promise<AssetMovementResu
   return apiRequest("/assets/movements", { method: "POST", ...json(input) });
 }
 
-export function listAssetTransfers(filters: AssetTransferFilters): Promise<{ readonly items: readonly AssetTransferListItem[]; readonly nextCursor: string | null }> {
+export function listAssetTransfers(filters: AssetTransferFilters): Promise<{
+  readonly items: readonly AssetTransferListItem[];
+  readonly nextCursor: string | null;
+}> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.status) params.set("status", filters.status);
@@ -141,7 +165,9 @@ export function listAssetTransfers(filters: AssetTransferFilters): Promise<{ rea
   return apiRequest(`/assets/transfers${query ? `?${query}` : ""}`);
 }
 
-export function listAssetTransfersForAsset(assetId: string): Promise<readonly AssetTransferListItem[]> {
+export function listAssetTransfersForAsset(
+  assetId: string,
+): Promise<readonly AssetTransferListItem[]> {
   return apiRequest(`/assets/${encodeURIComponent(assetId)}/transfers`);
 }
 
@@ -173,12 +199,21 @@ export function getAssetSignatories(): Promise<AssetSignatoryOverview> {
   return apiRequest("/assets/transfers/signatories");
 }
 
-export function saveAssetSignatory(unitId: string, userId: string, title: string): Promise<unknown> {
-  return apiRequest(`/assets/transfers/signatories/${encodeURIComponent(unitId)}`, { method: "PUT", ...json({ userId, title: title || undefined }) });
+export function saveAssetSignatory(
+  unitId: string,
+  userId: string,
+  title: string,
+): Promise<unknown> {
+  return apiRequest(`/assets/transfers/signatories/${encodeURIComponent(unitId)}`, {
+    method: "PUT",
+    ...json({ userId, title: title || undefined }),
+  });
 }
 
 export function removeAssetSignatory(unitId: string): Promise<unknown> {
-  return apiRequest(`/assets/transfers/signatories/${encodeURIComponent(unitId)}`, { method: "DELETE" });
+  return apiRequest(`/assets/transfers/signatories/${encodeURIComponent(unitId)}`, {
+    method: "DELETE",
+  });
 }
 
 export function listTransferTemplates(): Promise<readonly AssetTransferTemplate[]> {
@@ -188,15 +223,26 @@ export function listTransferTemplates(): Promise<readonly AssetTransferTemplate[
 export function uploadTransferTemplate(
   file: File,
   notes: string,
-): Promise<{ readonly id: string; readonly version: number; readonly tags: readonly string[]; readonly unknownTags: readonly string[] }> {
+): Promise<{
+  readonly id: string;
+  readonly version: number;
+  readonly tags: readonly string[];
+  readonly unknownTags: readonly string[];
+}> {
   const body = new FormData();
   body.append("file", file);
   if (notes) body.append("notes", notes);
   return apiRequest("/assets/transfers/templates", { method: "POST", body });
 }
 
-export async function downloadTransferTemplate(version: number | "default" | "sample", locale?: string): Promise<void> {
-  const suffix = version === "default" && locale ? `default?locale=${encodeURIComponent(locale)}` : String(version);
+export async function downloadTransferTemplate(
+  version: number | "default" | "sample",
+  locale?: string,
+): Promise<void> {
+  const suffix =
+    version === "default" && locale
+      ? `default?locale=${encodeURIComponent(locale)}`
+      : String(version);
   const result = await apiDownloadRequest(`/assets/transfers/templates/${suffix}`);
   triggerBlobDownload(result.blob, result.fileName ?? "prenosnica.docx");
 }

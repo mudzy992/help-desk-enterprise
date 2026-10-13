@@ -1,7 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName, textareaClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  errorTextClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
 import type { BusinessHoursCalendar, ProfileWriteInput, SlaProfile } from "@/services/sla-api";
 
@@ -39,20 +44,39 @@ export function SlaProfileForm({
       {profile === undefined ? (
         <label className={labelClassName}>
           {t("sla.key")}
-          <input className={controlClassName} value={key} onChange={(event) => setKey(event.target.value)} required />
+          <input
+            className={controlClassName}
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            required
+          />
         </label>
       ) : null}
       <label className={labelClassName}>
         {t("sla.name")}
-        <input className={controlClassName} value={name} onChange={(event) => setName(event.target.value)} required />
+        <input
+          className={controlClassName}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+        />
       </label>
       <label className={labelClassName}>
         {t("sla.description")}
-        <textarea className={textareaClassName} value={description} onChange={(event) => setDescription(event.target.value)} />
+        <textarea
+          className={textareaClassName}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
       </label>
       <label className={labelClassName}>
         {t("sla.calendar")}
-        <select className={controlClassName} value={calendarId} onChange={(event) => setCalendarId(event.target.value)} required>
+        <select
+          className={controlClassName}
+          value={calendarId}
+          onChange={(event) => setCalendarId(event.target.value)}
+          required
+        >
           {calendars.map((calendar) => (
             <option key={calendar.id} value={calendar.id}>
               {calendar.name}
@@ -66,7 +90,12 @@ export function SlaProfileForm({
       </label>
       <label className={labelClassName}>
         {t("sla.reason")}
-        <input className={controlClassName} value={reason} onChange={(event) => setReason(event.target.value)} required />
+        <input
+          className={controlClassName}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          required
+        />
       </label>
       {errorKey ? <p className={errorTextClassName}>{t(errorKey as never)}</p> : null}
       <div>

@@ -26,8 +26,7 @@ export function KnowledgeLifecycleActions({
 }: KnowledgeLifecycleActionsProperties) {
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
-  const [pendingAction, setPendingAction] =
-    useState<KnowledgeLifecycleAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<KnowledgeLifecycleAction | null>(null);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -81,9 +80,7 @@ export function KnowledgeLifecycleActions({
           </Button>
         ))}
       </div>
-      {errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : null}
+      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
     </div>
   );
 }

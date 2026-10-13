@@ -21,9 +21,7 @@ export function appendUniqueIntegrationJobs(
 }
 
 export function useIntegrationQueue(enabled: boolean) {
-  const [status, setStatus] = useState<IntegrationJobAdminStatus>(
-    integrationJobStatuses.failed,
-  );
+  const [status, setStatus] = useState<IntegrationJobAdminStatus>(integrationJobStatuses.failed);
   const [jobs, setJobs] = useState<readonly IntegrationJob[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -33,9 +33,7 @@ interface SlaProfileDetailProperties {
   readonly canWrite: boolean;
   readonly errorKey: string | null;
   readonly isSubmitting: boolean;
-  readonly onSaveProfile: (
-    input: ProfileWriteInput & { readonly key: string },
-  ) => Promise<void>;
+  readonly onSaveProfile: (input: ProfileWriteInput & { readonly key: string }) => Promise<void>;
   readonly onSaveRule: (input: RuleWriteInput, editing?: SlaRule) => Promise<void>;
   readonly onDeleteRule: (rule: SlaRule, reason: string) => Promise<void>;
   readonly onDeleteProfile: (reason: string) => Promise<void>;

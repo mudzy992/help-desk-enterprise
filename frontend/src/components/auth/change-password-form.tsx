@@ -1,12 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  controlClassName,
-  errorTextClassName,
-} from "@/components/ui/control";
+import { controlClassName, errorTextClassName } from "@/components/ui/control";
 import { ApiError } from "@/services/api";
-import { readPasswordFeedbackKeys, type PasswordFeedbackKey } from "@/components/auth/password-feedback";
+import {
+  readPasswordFeedbackKeys,
+  type PasswordFeedbackKey,
+} from "@/components/auth/password-feedback";
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 import { fallbackMinimumPasswordLength } from "@/services/auth-api";
 
@@ -119,7 +119,11 @@ export function ChangePasswordForm({
         />
       </div>
       {policyKeys ? (
-        <ul id="change-password-policy" className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
+        <ul
+          id="change-password-policy"
+          className={`${errorTextClassName} list-disc space-y-0.5 pl-4`}
+          role="alert"
+        >
           {policyKeys.map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
@@ -132,9 +136,7 @@ export function ChangePasswordForm({
       ) : null}
       <div className="flex gap-2">
         <Button type="submit" className="flex-1" disabled={isSubmitting}>
-          {isSubmitting
-            ? t("auth.changePassword.saving")
-            : t("auth.changePassword.submit")}
+          {isSubmitting ? t("auth.changePassword.saving") : t("auth.changePassword.submit")}
         </Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>

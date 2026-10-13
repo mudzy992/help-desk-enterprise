@@ -25,7 +25,10 @@ import {
 export function OnCallCalendarFeedCard() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const [status, setStatus] = useState<{ readonly exists: boolean; readonly createdAt: string | null } | null>(null);
+  const [status, setStatus] = useState<{
+    readonly exists: boolean;
+    readonly createdAt: string | null;
+  } | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<"rotate" | "revoke" | null>(null);
@@ -55,7 +58,11 @@ export function OnCallCalendarFeedCard() {
       setStatus({ exists: true, createdAt: new Date().toISOString() });
       setConfirm(null);
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapOnCallError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapOnCallError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusy(false);
     }
@@ -94,7 +101,13 @@ export function OnCallCalendarFeedCard() {
         actions={
           <div className="flex flex-wrap gap-2">
             {status.exists ? (
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirm("revoke")} disabled={busy}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirm("revoke")}
+                disabled={busy}
+              >
                 {t("onCall.feed.revoke")}
               </Button>
             ) : null}
@@ -115,8 +128,19 @@ export function OnCallCalendarFeedCard() {
         {url !== null ? (
           <>
             <div className="flex gap-2">
-              <Input readOnly value={url} aria-label={t("onCall.feed.url")} onFocus={(event) => event.currentTarget.select()} />
-              <Button type="button" variant="outline" size="sm" onClick={() => void copy()} aria-label={t("onCall.feed.copy")}>
+              <Input
+                readOnly
+                value={url}
+                aria-label={t("onCall.feed.url")}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void copy()}
+                aria-label={t("onCall.feed.copy")}
+              >
                 <Copy />
               </Button>
             </div>
@@ -125,7 +149,11 @@ export function OnCallCalendarFeedCard() {
             </p>
           </>
         ) : status.exists && status.createdAt ? (
-          <p className={hintClassName}>{t("onCall.feed.active", { time: formatTicketTimestamp(status.createdAt, i18n.language) })}</p>
+          <p className={hintClassName}>
+            {t("onCall.feed.active", {
+              time: formatTicketTimestamp(status.createdAt, i18n.language),
+            })}
+          </p>
         ) : (
           <p className={hintClassName}>{t("onCall.feed.none")}</p>
         )}
@@ -135,7 +163,9 @@ export function OnCallCalendarFeedCard() {
         open={confirm !== null}
         onOpenChange={(open) => (open ? undefined : setConfirm(null))}
         title={confirm === "revoke" ? t("onCall.feed.revokeTitle") : t("onCall.feed.rotateTitle")}
-        description={confirm === "revoke" ? t("onCall.feed.revokeBody") : t("onCall.feed.rotateBody")}
+        description={
+          confirm === "revoke" ? t("onCall.feed.revokeBody") : t("onCall.feed.rotateBody")
+        }
         confirmLabel={confirm === "revoke" ? t("onCall.feed.revoke") : t("onCall.feed.rotate")}
         intent="danger"
         isPending={busy}

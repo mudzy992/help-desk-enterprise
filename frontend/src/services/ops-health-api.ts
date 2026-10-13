@@ -74,9 +74,16 @@ export type OpsOverview = {
     readonly api: ProbeState;
     readonly database: ProbeState;
     readonly redis: ProbeState;
-    readonly worker: { readonly status: "active" | "stale" | "unknown"; readonly heartbeatAgeSeconds: number | null };
+    readonly worker: {
+      readonly status: "active" | "stale" | "unknown";
+      readonly heartbeatAgeSeconds: number | null;
+    };
     readonly clamav: OpsClamavState | null;
-    readonly disk: { readonly usedPercent: number; readonly freeBytes: number; readonly totalBytes: number } | null;
+    readonly disk: {
+      readonly usedPercent: number;
+      readonly freeBytes: number;
+      readonly totalBytes: number;
+    } | null;
     readonly eventLoopLagMs: number | null;
     readonly ldapsCaExpiresAt: string | null;
     readonly email: {
@@ -98,9 +105,18 @@ export type OpsOverview = {
   readonly queues: readonly OpsQueue[];
   readonly dlq: {
     readonly integrationDlq: number | null;
-    readonly growth: { readonly integrationDlq: number; readonly failedByQueue: Readonly<Record<string, number>> } | null;
+    readonly growth: {
+      readonly integrationDlq: number;
+      readonly failedByQueue: Readonly<Record<string, number>>;
+    } | null;
   };
-  readonly http: { readonly series: ReadonlyArray<{ readonly at: string; readonly errors5xx: number; readonly total: number }> };
+  readonly http: {
+    readonly series: ReadonlyArray<{
+      readonly at: string;
+      readonly errors5xx: number;
+      readonly total: number;
+    }>;
+  };
   readonly alerts: readonly OpsAlert[];
   readonly silence: OpsSilence | null;
   readonly configuration: {
@@ -124,7 +140,12 @@ export type OpsChannelResult = {
 };
 
 /** §5.4 limits, mirrored from `SilenceOpsAlertsDto`. */
-export const opsSilenceLimits = { minMinutes: 15, maxMinutes: 480, minReason: 5, maxReason: 300 } as const;
+export const opsSilenceLimits = {
+  minMinutes: 15,
+  maxMinutes: 480,
+  minReason: 5,
+  maxReason: 300,
+} as const;
 export const opsSilencePresetMinutes = [30, 60, 120, 240, 480] as const;
 
 const post = (body?: unknown): RequestInit => ({
@@ -156,6 +177,9 @@ export function sendOpsTestAlert(): Promise<{ readonly channels: readonly OpsCha
   return apiRequest("/ops/alerts/test", post());
 }
 
-export function acknowledgeOpsDlq(): Promise<{ readonly integrationDlq: number; readonly failedByQueue: Readonly<Record<string, number>> }> {
+export function acknowledgeOpsDlq(): Promise<{
+  readonly integrationDlq: number;
+  readonly failedByQueue: Readonly<Record<string, number>>;
+}> {
   return apiRequest("/ops/dlq/acknowledge", post());
 }

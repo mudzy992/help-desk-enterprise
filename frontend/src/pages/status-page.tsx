@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, AlertTriangle, CalendarClock, CheckCircle2, Plus, RefreshCw, Wrench, XCircle } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  Plus,
+  RefreshCw,
+  Wrench,
+  XCircle,
+} from "lucide-react";
 import { IncidentCard } from "@/components/status/incident-card";
-import { IncidentFormDialog, type IncidentFormMode } from "@/components/status/incident-form-dialog";
+import {
+  IncidentFormDialog,
+  type IncidentFormMode,
+} from "@/components/status/incident-form-dialog";
 import { IncidentUpdateDialog } from "@/components/status/incident-update-dialog";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +46,11 @@ import {
 /** Status changes minute by minute at most; faster polling only adds load. */
 const refreshEveryMs = 60_000;
 
-type LoadError = { readonly key: ApiErrorKey; readonly requestId: string | null; readonly disabled: boolean };
+type LoadError = {
+  readonly key: ApiErrorKey;
+  readonly requestId: string | null;
+  readonly disabled: boolean;
+};
 
 const overallIcon: Record<OverallStatus, typeof CheckCircle2> = {
   operational: CheckCircle2,
@@ -63,7 +79,10 @@ export function StatusPage() {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<IncidentFormMode | null>(null);
-  const [updateTarget, setUpdateTarget] = useState<{ readonly incident: Incident; readonly status?: IncidentStatus } | null>(null);
+  const [updateTarget, setUpdateTarget] = useState<{
+    readonly incident: Incident;
+    readonly status?: IncidentStatus;
+  } | null>(null);
   const inFlight = useRef(false);
 
   const load = useCallback(async () => {
@@ -106,7 +125,11 @@ export function StatusPage() {
       }
       await load();
     } catch (caught) {
-      toast({ tone: "danger", title: t(mapStatusError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t(mapStatusError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setBusyId(null);
     }
@@ -141,7 +164,11 @@ export function StatusPage() {
         {loadError === null ? (
           <PanelSkeleton label={t("status.loading")} />
         ) : loadError.disabled ? (
-          <EmptyState icon={<Activity size={18} />} title={t("status.disabledTitle")} body={t("status.disabledBody")} />
+          <EmptyState
+            icon={<Activity size={18} />}
+            title={t("status.disabledTitle")}
+            body={t("status.disabledBody")}
+          />
         ) : (
           <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
         )}
@@ -157,12 +184,21 @@ export function StatusPage() {
       {header}
 
       {!overview.configuration.enabled ? (
-        <div role="status" className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-[12.5px] text-warning">
+        <div
+          role="status"
+          className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-[12.5px] text-warning"
+        >
           {t("status.disabledForUsers")}
         </div>
       ) : null}
 
-      <div className={cn("flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3.5", overallSurface[state])} data-testid="status-overall">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3.5",
+          overallSurface[state],
+        )}
+        data-testid="status-overall"
+      >
         <StateIcon size={20} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold">{t(`status.overall.${state}`)}</p>
@@ -173,7 +209,9 @@ export function StatusPage() {
           </p>
         </div>
         <span className="text-[11.5px] text-foreground/65">
-          {t("status.updatedAt", { time: formatTicketTimestamp(overview.generatedAt, i18n.language) })}
+          {t("status.updatedAt", {
+            time: formatTicketTimestamp(overview.generatedAt, i18n.language),
+          })}
         </span>
       </div>
 
@@ -203,14 +241,20 @@ export function StatusPage() {
           <CardHeader title={t("status.planned")} subtitle={t("status.plannedHint")} />
           <ul className="grid gap-2.5 px-4 py-3.5">
             {overview.planned.map((window) => (
-              <li key={`${window.serviceId}-${window.startsAt}`} className="flex flex-wrap items-start gap-2 text-[12.5px]">
+              <li
+                key={`${window.serviceId}-${window.startsAt}`}
+                className="flex flex-wrap items-start gap-2 text-[12.5px]"
+              >
                 <CalendarClock size={14} className="mt-0.5 text-info" aria-hidden="true" />
                 <div className="min-w-0">
                   <p className="font-medium text-foreground">{window.serviceName}</p>
                   <p className={hintClassName}>
-                    {formatTicketTimestamp(window.startsAt, i18n.language)} – {formatTicketTimestamp(window.endsAt, i18n.language)}
+                    {formatTicketTimestamp(window.startsAt, i18n.language)} –{" "}
+                    {formatTicketTimestamp(window.endsAt, i18n.language)}
                   </p>
-                  {window.message ? <p className="mt-0.5 text-foreground/85">{window.message}</p> : null}
+                  {window.message ? (
+                    <p className="mt-0.5 text-foreground/85">{window.message}</p>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -245,8 +289,17 @@ export function StatusPage() {
                       className="flex items-center gap-2.5 rounded-md border border-border/70 bg-background/40 px-3 py-2"
                       data-testid="status-service"
                     >
-                      <span className={cn("size-2 shrink-0 rounded-full", availabilityDotClassName(service.availability))} aria-hidden="true" />
-                      <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground" title={service.name}>
+                      <span
+                        className={cn(
+                          "size-2 shrink-0 rounded-full",
+                          availabilityDotClassName(service.availability),
+                        )}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="min-w-0 flex-1 truncate text-[12.5px] text-foreground"
+                        title={service.name}
+                      >
                         {service.name}
                       </span>
                       <span className="shrink-0 text-[11.5px] text-muted-foreground">
@@ -255,7 +308,9 @@ export function StatusPage() {
                       {service.uptimePercent !== null ? (
                         <Badge tone="neutral" className="shrink-0">
                           {t("status.uptime", {
-                            value: service.uptimePercent.toLocaleString(i18n.language, { maximumFractionDigits: 1 }),
+                            value: service.uptimePercent.toLocaleString(i18n.language, {
+                              maximumFractionDigits: 1,
+                            }),
                           })}
                         </Badge>
                       ) : null}
@@ -276,7 +331,13 @@ export function StatusPage() {
           <p className={hintClassName}>{t("status.historyEmpty")}</p>
         ) : (
           overview.history.map((incident) => (
-            <IncidentCard key={incident.id} incident={incident} canManage={false} nowMs={nowMs} defaultExpanded={false} />
+            <IncidentCard
+              key={incident.id}
+              incident={incident}
+              canManage={false}
+              nowMs={nowMs}
+              defaultExpanded={false}
+            />
           ))
         )}
       </section>

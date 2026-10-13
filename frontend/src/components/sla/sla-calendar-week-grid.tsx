@@ -28,7 +28,9 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
           const hours = formatSlaDayHours(calendar.weeklyHours, weekday.key);
           return (
             <div key={weekday.key} className="text-center">
-              <p className="text-[9.5px] text-muted-foreground">{t(WEEKDAY_SHORT_KEYS[weekday.key])}</p>
+              <p className="text-[9.5px] text-muted-foreground">
+                {t(WEEKDAY_SHORT_KEYS[weekday.key])}
+              </p>
               <div
                 className={cn(
                   "mt-1 flex h-9 items-center justify-center rounded-lg border text-[10.5px] tnum",

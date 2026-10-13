@@ -24,8 +24,7 @@ export function AdminAuditExportCard({
   onVerify,
 }: AdminAuditExportCardProperties) {
   const { t } = useTranslation();
-  const verify =
-    verifyResult === null ? null : describeVerifyResult(verifyResult);
+  const verify = verifyResult === null ? null : describeVerifyResult(verifyResult);
   return (
     <Card className="fade-in">
       <div className="px-4 py-4">
@@ -37,12 +36,7 @@ export function AdminAuditExportCard({
           {t("admin.ops.auditBody")}
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <Button
-            variant="outline"
-            size="xs"
-            disabled={!canExport || isBusy}
-            onClick={onExportCsv}
-          >
+          <Button variant="outline" size="xs" disabled={!canExport || isBusy} onClick={onExportCsv}>
             CSV
           </Button>
           <Button
@@ -53,12 +47,7 @@ export function AdminAuditExportCard({
           >
             JSON
           </Button>
-          <Button
-            variant="outline"
-            size="xs"
-            disabled={!canExport || isBusy}
-            onClick={onVerify}
-          >
+          <Button variant="outline" size="xs" disabled={!canExport || isBusy} onClick={onVerify}>
             {t("admin.ops.verify")}
           </Button>
         </div>

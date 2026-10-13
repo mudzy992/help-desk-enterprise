@@ -106,8 +106,7 @@ export function KnowledgeArticleList({
     <ul className="fade-in grid grid-cols-1 gap-3 xl:grid-cols-2">
       {items.map((item) => {
         const owner = ownerLabel(item, ownerNames, t("tickets.detail.unknownUser"));
-        const serviceName =
-          pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
+        const serviceName = pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
         return (
           <li key={item.id}>
             <Card className="group h-full transition-colors hover:border-line-strong">
@@ -131,9 +130,7 @@ export function KnowledgeArticleList({
                         tone: statusTone(item.status),
                       }}
                     />
-                    {item.isStale ? (
-                      <Badge tone="warning">{t("knowledgeBase.stale")}</Badge>
-                    ) : null}
+                    {item.isStale ? <Badge tone="warning">{t("knowledgeBase.stale")}</Badge> : null}
                   </span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-5 text-muted-foreground">
@@ -154,7 +151,9 @@ export function KnowledgeArticleList({
                     {item.averageRating !== null && item.averageRating !== undefined ? (
                       <span className="flex items-center gap-0.5">
                         <Star size={11} aria-hidden="true" className="fill-warning text-warning" />
-                        <span aria-hidden="true">{formatAverageRating(item.averageRating, i18n.language)}</span>
+                        <span aria-hidden="true">
+                          {formatAverageRating(item.averageRating, i18n.language)}
+                        </span>
                         <span className="sr-only">
                           {t("knowledgeBase.portal.rating.summary", {
                             average: formatAverageRating(item.averageRating, i18n.language),
@@ -166,7 +165,9 @@ export function KnowledgeArticleList({
                     <span className="flex items-center gap-0.5">
                       <Eye size={11} aria-hidden="true" />
                       <span aria-hidden="true">{item.viewCount ?? 0}</span>
-                      <span className="sr-only">{t("knowledgeBase.portal.views", { count: item.viewCount ?? 0 })}</span>
+                      <span className="sr-only">
+                        {t("knowledgeBase.portal.views", { count: item.viewCount ?? 0 })}
+                      </span>
                     </span>
                   </span>
                 ) : null}
@@ -178,10 +179,7 @@ export function KnowledgeArticleList({
                 </span>
                 {item.reviewDueAt ? (
                   <span
-                    className={cn(
-                      "tnum flex items-center gap-1",
-                      item.isStale && "text-warning",
-                    )}
+                    className={cn("tnum flex items-center gap-1", item.isStale && "text-warning")}
                   >
                     {item.isStale ? <Lightbulb size={10.5} /> : null}
                     {t("knowledgeBase.reviewDue")}:{" "}

@@ -58,8 +58,6 @@ describe("listSecurityAuditLog", () => {
 
     await listSecurityAuditLog({ action: "auth.login_failed", take: 10 });
 
-    expect(request).toHaveBeenCalledWith(
-      "/security/audit-log?take=10&action=auth.login_failed",
-    );
+    expect(request).toHaveBeenCalledWith("/security/audit-log?take=10&action=auth.login_failed");
   });
 });

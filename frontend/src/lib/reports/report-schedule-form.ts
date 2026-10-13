@@ -1,4 +1,7 @@
-import type { ReportScheduleFrequency, ReportScheduleSection } from "@/services/report-schedules-api";
+import type {
+  ReportScheduleFrequency,
+  ReportScheduleSection,
+} from "@/services/report-schedules-api";
 
 /** Paket 2.5 (design §7.3): client-side checks and the „next send” preview. */
 export type ReportScheduleFormValues = {
@@ -10,7 +13,8 @@ export type ReportScheduleFormValues = {
   readonly recipientUserIds: readonly string[];
 };
 
-export type ReportScheduleFormError = "name" | "sendTime" | "unit" | "sections" | "recipients" | "recipientLimit";
+export type ReportScheduleFormError =
+  "name" | "sendTime" | "unit" | "sections" | "recipients" | "recipientLimit";
 
 export const reportScheduleNameMaxLength = 120;
 
@@ -39,16 +43,34 @@ export function validateReportScheduleForm(
  * (design §5.1). Strictly after `now`. The saved schedule shows the server's
  * `nextRunAt`; this is only the preview while editing (same zone in practice).
  */
-export function previewNextReportRun(frequency: ReportScheduleFrequency, sendTime: string, now: Date): Date | null {
+export function previewNextReportRun(
+  frequency: ReportScheduleFrequency,
+  sendTime: string,
+  now: Date,
+): Date | null {
   if (!isValidSendTime(sendTime)) return null;
   const [hours, minutes] = sendTime.split(":").map(Number) as [number, number];
   if (frequency === "WEEKLY") {
     const daysToMonday = (8 - now.getDay()) % 7;
-    const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToMonday, hours, minutes);
+    const candidate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + daysToMonday,
+      hours,
+      minutes,
+    );
     return candidate.getTime() > now.getTime()
       ? candidate
-      : new Date(candidate.getFullYear(), candidate.getMonth(), candidate.getDate() + 7, hours, minutes);
+      : new Date(
+          candidate.getFullYear(),
+          candidate.getMonth(),
+          candidate.getDate() + 7,
+          hours,
+          minutes,
+        );
   }
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1, hours, minutes);
-  return thisMonth.getTime() > now.getTime() ? thisMonth : new Date(now.getFullYear(), now.getMonth() + 1, 1, hours, minutes);
+  return thisMonth.getTime() > now.getTime()
+    ? thisMonth
+    : new Date(now.getFullYear(), now.getMonth() + 1, 1, hours, minutes);
 }

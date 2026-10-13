@@ -8,28 +8,20 @@ interface TicketInboxNoGroupNoticeProperties {
   readonly canManageGroups: boolean;
 }
 
-export function TicketInboxNoGroupNotice({
-  canManageGroups,
-}: TicketInboxNoGroupNoticeProperties) {
+export function TicketInboxNoGroupNotice({ canManageGroups }: TicketInboxNoGroupNoticeProperties) {
   const { t } = useTranslation();
   return (
     <div
       role="status"
       className="fade-in mb-3 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/6 px-4 py-3"
     >
-      <Users
-        size={16}
-        className="mt-0.5 shrink-0 text-warning"
-        aria-hidden="true"
-      />
+      <Users size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="text-[12.5px] font-medium text-foreground">
           {t("tickets.inboxNoGroupTitle")}
         </p>
         <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
-          {canManageGroups
-            ? t("tickets.inboxNoGroupAdminBody")
-            : t("tickets.inboxNoGroupBody")}
+          {canManageGroups ? t("tickets.inboxNoGroupAdminBody") : t("tickets.inboxNoGroupBody")}
         </p>
       </div>
       {canManageGroups ? (

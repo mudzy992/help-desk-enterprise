@@ -15,12 +15,7 @@ export async function syncManualDirectoryCatalog(input?: {
     input?.focus !== undefined
       ? [input.focus]
       : catalog.filter((unit) => unit.parentExternalId === null);
-  const targets =
-    roots.length > 0
-      ? roots
-      : catalog.length > 0
-        ? [catalog[0]]
-        : [];
+  const targets = roots.length > 0 ? roots : catalog.length > 0 ? [catalog[0]] : [];
   for (const unit of targets) {
     await runDirectorySyncRead({
       operation: "organizational_units",
@@ -43,8 +38,7 @@ export async function syncManualDirectoryCatalog(input?: {
   }
   const groupRoots = catalog.filter(
     (unit) =>
-      unit.parentExternalId === null &&
-      unit.organizationalUnitPath.toLowerCase().includes("group"),
+      unit.parentExternalId === null && unit.organizationalUnitPath.toLowerCase().includes("group"),
   );
   for (const unit of groupRoots.length > 0 ? groupRoots : targets) {
     await runDirectorySyncRead({

@@ -75,7 +75,10 @@ export function AccountSecurityPage() {
       {data ? (
         <div className="space-y-5">
           <Card>
-            <CardHeader title={t("account.security.mfaTitle")} subtitle={t("account.security.mfaSubtitle")} />
+            <CardHeader
+              title={t("account.security.mfaTitle")}
+              subtitle={t("account.security.mfaSubtitle")}
+            />
             <div className="p-4">
               <MfaSection mfa={data.mfa} passkeyCount={data.passkeys.length} onChanged={refresh} />
             </div>
@@ -108,8 +111,14 @@ export function AccountSecurityPage() {
               }
               actions={
                 expiresAt ? (
-                  <Badge tone={Date.parse(expiresAt) - Date.now() < 14 * 86_400_000 ? "warning" : "neutral"}>
-                    {t("account.security.passwordExpiresAt", { date: formatTicketTimestamp(expiresAt, locale) })}
+                  <Badge
+                    tone={
+                      Date.parse(expiresAt) - Date.now() < 14 * 86_400_000 ? "warning" : "neutral"
+                    }
+                  >
+                    {t("account.security.passwordExpiresAt", {
+                      date: formatTicketTimestamp(expiresAt, locale),
+                    })}
                   </Badge>
                 ) : null
               }
@@ -118,7 +127,9 @@ export function AccountSecurityPage() {
               {data.password.hasLocalPassword ? (
                 <PasswordSection password={data.password} onChanged={refresh} />
               ) : (
-                <p className="text-[12.5px] text-muted-foreground">{t("account.security.passwordExternal")}</p>
+                <p className="text-[12.5px] text-muted-foreground">
+                  {t("account.security.passwordExternal")}
+                </p>
               )}
             </div>
           </Card>
@@ -129,7 +140,12 @@ export function AccountSecurityPage() {
               subtitle={t("account.security.sessionsSubtitle")}
               actions={
                 sessions && sessions.some((session) => !session.current) ? (
-                  <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmOthers(true)}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setConfirmOthers(true)}
+                  >
                     {t("account.security.revokeOthers")}
                   </Button>
                 ) : null
@@ -151,7 +167,9 @@ export function AccountSecurityPage() {
                         toast({ tone: "success", title: t("account.security.sessionRevoked") });
                         return loadSessions();
                       })
-                      .catch(() => toast({ tone: "danger", title: t("account.security.actionFailed") }))
+                      .catch(() =>
+                        toast({ tone: "danger", title: t("account.security.actionFailed") }),
+                      )
                       .finally(() => setBusySessionId(null));
                   }}
                 />
@@ -171,7 +189,10 @@ export function AccountSecurityPage() {
           setConfirmOthers(false);
           void revokeOtherSessions()
             .then((result) => {
-              toast({ tone: "success", title: t("account.security.othersRevoked", { count: result.revoked }) });
+              toast({
+                tone: "success",
+                title: t("account.security.othersRevoked", { count: result.revoked }),
+              });
               return loadSessions();
             })
             .catch(() => toast({ tone: "danger", title: t("account.security.actionFailed") }));

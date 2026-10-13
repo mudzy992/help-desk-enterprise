@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { errorTextClassName } from "@/components/ui/control";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
 import {
@@ -153,13 +148,18 @@ export function KnowledgeInterceptPanel({
                   className={cn(votes[item.id] === false && "text-danger")}
                   onClick={() => void vote(item.id, false)}
                 >
-                  <ThumbsDown size={13} className={cn(votes[item.id] === false && "fill-current")} />{" "}
+                  <ThumbsDown
+                    size={13}
+                    className={cn(votes[item.id] === false && "fill-current")}
+                  />{" "}
                   {t("knowledgeBase.notHelpful")}
                 </Button>
               </div>
               {votes[item.id] !== undefined ? (
                 <p role="status" className="text-[11.5px] text-muted-foreground">
-                  {votes[item.id] ? t("tickets.interceptVoteHelpful") : t("tickets.interceptVoteNotHelpful")}
+                  {votes[item.id]
+                    ? t("tickets.interceptVoteHelpful")
+                    : t("tickets.interceptVoteNotHelpful")}
                 </p>
               ) : null}
             </li>
@@ -170,10 +170,16 @@ export function KnowledgeInterceptPanel({
       <div className="grid gap-2.5 md:grid-cols-2">
         <button
           type="button"
-          onClick={() => onHelped(helpedArticleId ?? Object.entries(votes).find(([, v]) => v)?.[0] ?? items[0]?.id)}
+          onClick={() =>
+            onHelped(
+              helpedArticleId ?? Object.entries(votes).find(([, v]) => v)?.[0] ?? items[0]?.id,
+            )
+          }
           className={cn(
             "rounded-lg border p-4 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-            helped ? "border-success/50 bg-success/10" : "border-border bg-surface shadow-card hover:border-success/40",
+            helped
+              ? "border-success/50 bg-success/10"
+              : "border-border bg-surface shadow-card hover:border-success/40",
           )}
         >
           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">

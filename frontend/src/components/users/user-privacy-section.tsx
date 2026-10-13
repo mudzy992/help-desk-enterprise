@@ -15,7 +15,13 @@ import type { UserSummary } from "@/services/users-api";
  * Paket 2.6 (§11): privacy shortcuts on the user profile — export, erasure
  * (deactivated people only) and legal hold. Hidden without `privacy.view`.
  */
-export function UserPrivacySection({ user, onChanged }: { readonly user: UserSummary; readonly onChanged: () => Promise<void> }) {
+export function UserPrivacySection({
+  user,
+  onChanged,
+}: {
+  readonly user: UserSummary;
+  readonly onChanged: () => Promise<void>;
+}) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const capabilities = useSessionCapabilities();
@@ -31,7 +37,9 @@ export function UserPrivacySection({ user, onChanged }: { readonly user: UserSum
 
   return (
     <section data-testid="user-privacy-section">
-      <h3 className="mb-3 text-[12px] font-medium text-foreground">{t("privacy.userSection.heading")}</h3>
+      <h3 className="mb-3 text-[12px] font-medium text-foreground">
+        {t("privacy.userSection.heading")}
+      </h3>
       <div className="mb-3 flex flex-wrap gap-2">
         {anonymized ? (
           <Badge tone="neutral">
@@ -45,7 +53,9 @@ export function UserPrivacySection({ user, onChanged }: { readonly user: UserSum
             <Lock size={10} aria-hidden="true" /> {t("privacy.markers.legalHold")}
           </Badge>
         ) : null}
-        {!anonymized && !onHold ? <p className={hintClassName}>{t("privacy.userSection.none")}</p> : null}
+        {!anonymized && !onHold ? (
+          <p className={hintClassName}>{t("privacy.userSection.none")}</p>
+        ) : null}
       </div>
       {anonymized ? null : (
         <div className="flex flex-wrap gap-2">
@@ -53,7 +63,9 @@ export function UserPrivacySection({ user, onChanged }: { readonly user: UserSum
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigate(`/privacy?tab=exports&subject=${encodeURIComponent(user.id)}`)}
+              onClick={() =>
+                navigate(`/privacy?tab=exports&subject=${encodeURIComponent(user.id)}`)
+              }
             >
               <Download size={14} /> {t("privacy.userSection.export")}
             </Button>
@@ -63,13 +75,20 @@ export function UserPrivacySection({ user, onChanged }: { readonly user: UserSum
               size="sm"
               variant="outline"
               disabled={onHold}
-              onClick={() => navigate(`/privacy?tab=anonymization&user=${encodeURIComponent(user.id)}`)}
+              onClick={() =>
+                navigate(`/privacy?tab=anonymization&user=${encodeURIComponent(user.id)}`)
+              }
             >
               <UserX size={14} /> {t("privacy.userSection.anonymize")}
             </Button>
           ) : null}
           {canHold ? (
-            <Button size="sm" variant="outline" onClick={() => setHoldMode(onHold ? "clear" : "set")} data-testid="user-legal-hold">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHoldMode(onHold ? "clear" : "set")}
+              data-testid="user-legal-hold"
+            >
               {onHold ? <LockOpen size={14} /> : <Lock size={14} />}{" "}
               {onHold ? t("privacy.holds.clear") : t("privacy.holds.set")}
             </Button>

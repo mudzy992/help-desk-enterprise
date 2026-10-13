@@ -91,7 +91,9 @@ describe("formatCivilDate", () => {
   });
 
   it("ignoriše dio s vremenom i ne pomjera datum zbog vremenske zone", () => {
-    expect(formatCivilDate("2026-10-04T23:30:00Z", fakeDateTranslator("bs"))).toBe("4. oktobar 2026.");
+    expect(formatCivilDate("2026-10-04T23:30:00Z", fakeDateTranslator("bs"))).toBe(
+      "4. oktobar 2026.",
+    );
     expect(formatCivilDate("  2026-10-04  ", fakeDateTranslator("bs"))).toBe("4. oktobar 2026.");
   });
 

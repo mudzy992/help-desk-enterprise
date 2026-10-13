@@ -19,50 +19,34 @@ describe("navigation IA matching", () => {
   });
 
   it("no longer lists the group inbox as its own sidebar item (5.3.1)", () => {
-    const labels = navigationSections.flatMap((section) => section.items.map((item) => item.labelKey as string));
+    const labels = navigationSections.flatMap((section) =>
+      section.items.map((item) => item.labelKey as string),
+    );
     expect(labels).not.toContain("navigation.inbox");
-    expect(getActiveNavigationItem("/tickets", "?view=inbox").labelKey).toBe(navigationLabelKeys.tickets);
+    expect(getActiveNavigationItem("/tickets", "?view=inbox").labelKey).toBe(
+      navigationLabelKeys.tickets,
+    );
   });
 
   it("activates reports only on /reports", () => {
-    expect(
-      isNavigationItemActive(reportsNavigationItem, "/reports", ""),
-    ).toBe(true);
+    expect(isNavigationItemActive(reportsNavigationItem, "/reports", "")).toBe(true);
     expect(isNavigationItemActive(reportsNavigationItem, "/", "")).toBe(false);
-    expect(getActiveNavigationItem("/reports").labelKey).toBe(
-      navigationLabelKeys.reports,
-    );
+    expect(getActiveNavigationItem("/reports").labelKey).toBe(navigationLabelKeys.reports);
   });
 
   it("does not activate tickets on /tickets/new", () => {
-    expect(
-      isNavigationItemActive(ticketsNavigationItem, "/tickets/new", ""),
-    ).toBe(false);
-    expect(
-      getActiveNavigationItem("/tickets/new").labelKey,
-    ).not.toBe(navigationLabelKeys.tickets);
+    expect(isNavigationItemActive(ticketsNavigationItem, "/tickets/new", "")).toBe(false);
+    expect(getActiveNavigationItem("/tickets/new").labelKey).not.toBe(navigationLabelKeys.tickets);
   });
 
   it("activates admin only on /admin, not on admin subpages", () => {
-    expect(isNavigationItemActive(adminNavigationItem, "/admin", "")).toBe(
+    expect(isNavigationItemActive(adminNavigationItem, "/admin", "")).toBe(true);
+    expect(isNavigationItemActive(adminNavigationItem, "/admin", "?tab=users")).toBe(true);
+    expect(isNavigationItemActive(adminNavigationItem, "/admin/config-versions", "")).toBe(false);
+    expect(isNavigationItemActive(configVersionsNavigationItem, "/admin/config-versions", "")).toBe(
       true,
     );
-    expect(
-      isNavigationItemActive(adminNavigationItem, "/admin", "?tab=users"),
-    ).toBe(true);
-    expect(
-      isNavigationItemActive(adminNavigationItem, "/admin/config-versions", ""),
-    ).toBe(false);
-    expect(
-      isNavigationItemActive(
-        configVersionsNavigationItem,
-        "/admin/config-versions",
-        "",
-      ),
-    ).toBe(true);
-    expect(getActiveNavigationItem("/admin").labelKey).toBe(
-      navigationLabelKeys.admin,
-    );
+    expect(getActiveNavigationItem("/admin").labelKey).toBe(navigationLabelKeys.admin);
     expect(getActiveNavigationItem("/admin/config-versions").labelKey).toBe(
       navigationLabelKeys.configVersions,
     );

@@ -10,10 +10,7 @@ import {
 } from "@/lib/realtime/apply-notification-realtime";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
 import { useSocketHealth } from "@/lib/realtime/use-socket-health";
-import {
-  shouldPollUnreadCount,
-  unreadCountFallbackIntervalMs,
-} from "@/lib/realtime/socket-health";
+import { shouldPollUnreadCount, unreadCountFallbackIntervalMs } from "@/lib/realtime/socket-health";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
 import {
@@ -137,13 +134,14 @@ export function useInboxNotifications() {
     };
   }, [refreshUnread, session]);
 
-  const markOneRead = useCallback(async (notificationId: string) => {
-    const updated = await markNotificationRead(notificationId);
-    setItems((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item)),
-    );
-    await refreshUnread();
-  }, [refreshUnread]);
+  const markOneRead = useCallback(
+    async (notificationId: string) => {
+      const updated = await markNotificationRead(notificationId);
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      await refreshUnread();
+    },
+    [refreshUnread],
+  );
 
   const markAllRead = useCallback(async () => {
     await markAllNotificationsRead();

@@ -112,7 +112,13 @@ interface AnnouncementEditorDialogProperties {
  * A published announcement keeps its audience and acknowledgement mode (the
  * report counts against the audience captured at publication).
  */
-export function AnnouncementEditorDialog({ open, onOpenChange, options, announcement, onSaved }: AnnouncementEditorDialogProperties) {
+export function AnnouncementEditorDialog({
+  open,
+  onOpenChange,
+  options,
+  announcement,
+  onSaved,
+}: AnnouncementEditorDialogProperties) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [preview, setPreview] = useState(false);
@@ -142,7 +148,11 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
     }
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      previewAnnouncementAudience({ roles: draft.roles, organizationalUnitIds: draft.organizationalUnitIds, groupIds: draft.groupIds })
+      previewAnnouncementAudience({
+        roles: draft.roles,
+        organizationalUnitIds: draft.organizationalUnitIds,
+        groupIds: draft.groupIds,
+      })
         .then((result) => {
           if (!cancelled) {
             setAudienceCount(result.count);
@@ -164,10 +174,13 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
     const needle = unitFilter.trim().toLowerCase();
     return needle.length === 0
       ? options.organizationalUnits
-      : options.organizationalUnits.filter((unit) => `${unit.name} ${unit.path}`.toLowerCase().includes(needle));
+      : options.organizationalUnits.filter((unit) =>
+          `${unit.name} ${unit.path}`.toLowerCase().includes(needle),
+        );
   }, [options.organizationalUnits, unitFilter]);
 
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
+  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+    setDraft((previous) => ({ ...previous, [key]: value }));
 
   const save = async () => {
     const startsAt = fromLocalInputValue(draft.startsAt);
@@ -199,12 +212,17 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
     setSaving(true);
     setError(null);
     try {
-      const saved = announcement === null ? await createAnnouncement(input) : await updateAnnouncement(announcement.id, input);
+      const saved =
+        announcement === null
+          ? await createAnnouncement(input)
+          : await updateAnnouncement(announcement.id, input);
       onSaved(saved);
     } catch (caught) {
       const detail = announcementErrorDetail(caught);
       if (detail !== null && detail.startsWith("duration:")) {
-        setError(t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }));
+        setError(
+          t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
+        );
       } else {
         setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
       }
@@ -223,13 +241,26 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent className="max-w-3xl">
         <ModalHeader
-          title={announcement === null ? t("announcements.editor.createTitle") : t("announcements.editor.editTitle")}
-          description={isPublished ? t("announcements.editor.publishedHint") : t("announcements.editor.description")}
+          title={
+            announcement === null
+              ? t("announcements.editor.createTitle")
+              : t("announcements.editor.editTitle")
+          }
+          description={
+            isPublished
+              ? t("announcements.editor.publishedHint")
+              : t("announcements.editor.description")
+          }
         />
         <div className="grid max-h-[68vh] gap-4 overflow-y-auto pr-1">
           <Field label={t("announcements.editor.title")} required>
             {(control) => (
-              <Input {...control} value={draft.title} maxLength={120} onChange={(event) => update("title", event.target.value)} />
+              <Input
+                {...control}
+                value={draft.title}
+                maxLength={120}
+                onChange={(event) => update("title", event.target.value)}
+              />
             )}
           </Field>
           <div className="grid gap-1.5">
@@ -240,13 +271,21 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                   *
                 </span>
               </span>
-              <Button variant="ghost" size="xs" aria-pressed={preview} onClick={() => setPreview((value) => !value)}>
+              <Button
+                variant="ghost"
+                size="xs"
+                aria-pressed={preview}
+                onClick={() => setPreview((value) => !value)}
+              >
                 {preview ? t("announcements.editor.edit") : t("announcements.editor.preview")}
               </Button>
             </div>
             {preview ? (
               <div className="min-h-[120px] rounded-md border border-border bg-elevated/40 p-3">
-                <MarkdownView source={draft.body} className="grid gap-2 text-[12.5px] leading-5 text-foreground" />
+                <MarkdownView
+                  source={draft.body}
+                  className="grid gap-2 text-[12.5px] leading-5 text-foreground"
+                />
               </div>
             ) : (
               <Textarea
@@ -264,7 +303,13 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("announcements.editor.severity")}>
               {(control) => (
-                <Select {...control} value={draft.severity} onChange={(event) => update("severity", event.target.value as AnnouncementSeverity)}>
+                <Select
+                  {...control}
+                  value={draft.severity}
+                  onChange={(event) =>
+                    update("severity", event.target.value as AnnouncementSeverity)
+                  }
+                >
                   {(["INFO", "WARNING", "CRITICAL"] as const).map((severity) => (
                     <option key={severity} value={severity}>
                       {t(severityKeys[severity])}
@@ -273,9 +318,16 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                 </Select>
               )}
             </Field>
-            <Field label={t("announcements.editor.service")} hint={t("announcements.editor.serviceHint")}>
+            <Field
+              label={t("announcements.editor.service")}
+              hint={t("announcements.editor.serviceHint")}
+            >
               {(control) => (
-                <Select {...control} value={draft.serviceId} onChange={(event) => update("serviceId", event.target.value)}>
+                <Select
+                  {...control}
+                  value={draft.serviceId}
+                  onChange={(event) => update("serviceId", event.target.value)}
+                >
                   <option value="">{t("announcements.editor.noService")}</option>
                   {options.services.map((service) => (
                     <option key={service.id} value={service.id}>
@@ -296,31 +348,51 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                 />
               )}
             </Field>
-            <Field label={t("announcements.editor.endsAt")} required hint={t("announcements.editor.maxDuration", { days: options.maxDurationDays })}>
+            <Field
+              label={t("announcements.editor.endsAt")}
+              required
+              hint={t("announcements.editor.maxDuration", { days: options.maxDurationDays })}
+            >
               {(control) => (
-                <Input {...control} type="datetime-local" value={draft.endsAt} onChange={(event) => update("endsAt", event.target.value)} />
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={draft.endsAt}
+                  onChange={(event) => update("endsAt", event.target.value)}
+                />
               )}
             </Field>
           </div>
 
           <fieldset className="grid gap-2.5">
-            <legend className="mb-1 text-[12.5px] font-medium text-foreground">{t("announcements.editor.behaviour")}</legend>
+            <legend className="mb-1 text-[12.5px] font-medium text-foreground">
+              {t("announcements.editor.behaviour")}
+            </legend>
             <Checkbox
               label={t("announcements.editor.requiresAcknowledgement")}
               checked={draft.requiresAcknowledgement}
               disabled={isPublished}
               onChange={(event) => {
                 const checked = event.target.checked;
-                setDraft((previous) => ({ ...previous, requiresAcknowledgement: checked, displayMode: checked ? previous.displayMode : "BANNER" }));
+                setDraft((previous) => ({
+                  ...previous,
+                  requiresAcknowledgement: checked,
+                  displayMode: checked ? previous.displayMode : "BANNER",
+                }));
               }}
             />
-            <Field label={t("announcements.editor.displayMode")} hint={t("announcements.editor.displayModeHint")}>
+            <Field
+              label={t("announcements.editor.displayMode")}
+              hint={t("announcements.editor.displayModeHint")}
+            >
               {(control) => (
                 <Select
                   {...control}
                   value={draft.requiresAcknowledgement ? draft.displayMode : "BANNER"}
                   disabled={!draft.requiresAcknowledgement}
-                  onChange={(event) => update("displayMode", event.target.value as AnnouncementDisplayMode)}
+                  onChange={(event) =>
+                    update("displayMode", event.target.value as AnnouncementDisplayMode)
+                  }
                 >
                   <option value="BANNER">{t("announcements.displayMode.BANNER")}</option>
                   <option value="MODAL">{t("announcements.displayMode.MODAL")}</option>
@@ -340,7 +412,9 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                 onChange={(event) => update("sendEmail", event.target.checked)}
               />
               <p className={hintClassName}>
-                {options.emailAvailable ? t("announcements.editor.sendEmailHint") : t("announcements.editor.sendEmailUnavailable")}
+                {options.emailAvailable
+                  ? t("announcements.editor.sendEmailHint")
+                  : t("announcements.editor.sendEmailUnavailable")}
               </p>
             </div>
             {options.teamsAvailable ? (
@@ -361,19 +435,27 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
           </fieldset>
 
           <fieldset className="grid gap-3" disabled={isPublished}>
-            <legend className="mb-1 text-[12.5px] font-medium text-foreground">{t("announcements.editor.audience")}</legend>
+            <legend className="mb-1 text-[12.5px] font-medium text-foreground">
+              {t("announcements.editor.audience")}
+            </legend>
             <p className={hintClassName}>
-              {options.scopedToUnit ? t("announcements.editor.audienceScopedHint") : t("announcements.editor.audienceHint")}
+              {options.scopedToUnit
+                ? t("announcements.editor.audienceScopedHint")
+                : t("announcements.editor.audienceHint")}
             </p>
             <div className="grid gap-1.5">
-              <span className="text-[12px] font-medium text-muted-foreground">{t("announcements.editor.roles")}</span>
+              <span className="text-[12px] font-medium text-muted-foreground">
+                {t("announcements.editor.roles")}
+              </span>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {roleKeys.map((role) => (
                   <Checkbox
                     key={role}
                     label={t(roleLabelKeys[role])}
                     checked={draft.roles.includes(role)}
-                    onChange={(event) => update("roles", toggle(draft.roles, role, event.target.checked))}
+                    onChange={(event) =>
+                      update("roles", toggle(draft.roles, role, event.target.checked))
+                    }
                   />
                 ))}
               </div>
@@ -397,11 +479,17 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                       key={unit.id}
                       label={
                         <span>
-                          {unit.name} <span className="text-[11px] text-muted-foreground">{unit.path}</span>
+                          {unit.name}{" "}
+                          <span className="text-[11px] text-muted-foreground">{unit.path}</span>
                         </span>
                       }
                       checked={draft.organizationalUnitIds.includes(unit.id)}
-                      onChange={(event) => update("organizationalUnitIds", toggle(draft.organizationalUnitIds, unit.id, event.target.checked))}
+                      onChange={(event) =>
+                        update(
+                          "organizationalUnitIds",
+                          toggle(draft.organizationalUnitIds, unit.id, event.target.checked),
+                        )
+                      }
                     />
                   ))
                 )}
@@ -419,7 +507,9 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
                       key={group.id}
                       label={group.name}
                       checked={draft.groupIds.includes(group.id)}
-                      onChange={(event) => update("groupIds", toggle(draft.groupIds, group.id, event.target.checked))}
+                      onChange={(event) =>
+                        update("groupIds", toggle(draft.groupIds, group.id, event.target.checked))
+                      }
                     />
                   ))}
                 </div>
@@ -444,7 +534,9 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
             {t("ui.cancel")}
           </Button>
           <Button onClick={() => void save()} disabled={!canSave}>
-            {announcement === null ? t("announcements.editor.saveDraft") : t("announcements.editor.save")}
+            {announcement === null
+              ? t("announcements.editor.saveDraft")
+              : t("announcements.editor.save")}
           </Button>
         </ModalFooter>
       </ModalContent>

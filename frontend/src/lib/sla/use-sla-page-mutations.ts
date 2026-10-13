@@ -18,9 +18,7 @@ type SlaPageData = ReturnType<typeof useSlaPageData>;
 export function useSlaPageMutations(data: SlaPageData, canWrite: boolean) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const saveProfile = async (
-    input: ProfileWriteInput & { readonly key: string },
-  ) => {
+  const saveProfile = async (input: ProfileWriteInput & { readonly key: string }) => {
     if (!canWrite) return;
     setIsSubmitting(true);
     data.setErrorKey(null);

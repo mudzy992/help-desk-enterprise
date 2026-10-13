@@ -12,8 +12,18 @@ import {
   mapAssetError,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { changeAssetStatus, searchAssetUsers, type AssetDetail, type AssetStatus, type AssetUserSummary } from "@/services/assets-api";
-import { AssetTransferIssued, AssetTransferSection, useTransferPreview } from "@/components/assets/asset-transfer-section";
+import {
+  changeAssetStatus,
+  searchAssetUsers,
+  type AssetDetail,
+  type AssetStatus,
+  type AssetUserSummary,
+} from "@/services/assets-api";
+import {
+  AssetTransferIssued,
+  AssetTransferSection,
+  useTransferPreview,
+} from "@/components/assets/asset-transfer-section";
 import { moveAssets, type AssetMovementResult } from "@/services/asset-transfers-api";
 
 interface ActionSheetProperties {
@@ -99,7 +109,11 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
           <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
             <Field label={t("assets.statusSheet.newStatus")} required>
               {(control) => (
-                <Select {...control} value={status} onChange={(event) => setStatus(event.target.value as AssetStatus)}>
+                <Select
+                  {...control}
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as AssetStatus)}
+                >
                   {targets.map((target) => (
                     <option key={target} value={target}>
                       {t(assetStatusKeys[target])}
@@ -111,9 +125,19 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
             {status === "RETIRED" || status === "LOST" || status === "IN_STOCK" ? (
               <p className={hintClassName}>{t("assets.statusSheet.releaseHint")}</p>
             ) : null}
-            {status === "DISPOSED" ? <p className={hintClassName}>{t("assets.statusSheet.disposedHint")}</p> : null}
+            {status === "DISPOSED" ? (
+              <p className={hintClassName}>{t("assets.statusSheet.disposedHint")}</p>
+            ) : null}
             <Field label={t("assets.statusSheet.reason")} required={needsReason}>
-              {(control) => <Textarea {...control} rows={3} maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} />}
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={3}
+                  maxLength={500}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              )}
             </Field>
             {error ? (
               <p role="alert" className={errorTextClassName}>
@@ -215,12 +239,18 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveShee
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{asset.assignedUser ? t("assets.actions.reassign") : t("assets.actions.assign")}</SheetTitle>
+        <SheetTitle>
+          {asset.assignedUser ? t("assets.actions.reassign") : t("assets.actions.assign")}
+        </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {asset.assignedUser
             ? t("assets.assignSheet.currentUser", { name: asset.assignedUser.displayName })
             : t("assets.assignSheet.description")}
-          {ids.length > 1 ? <span className="mt-1 block">{t("assets.bulk.selectedCount", { count: ids.length })}</span> : null}
+          {ids.length > 1 ? (
+            <span className="mt-1 block">
+              {t("assets.bulk.selectedCount", { count: ids.length })}
+            </span>
+          ) : null}
         </SheetDescription>
         {result ? (
           <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />
@@ -228,37 +258,75 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveShee
           <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
             <Field label={t("assets.assignSheet.search")} hint={t("assets.assignSheet.searchHint")}>
               {(control) => (
-                <Input {...control} type="search" value={searchText} autoComplete="off" onChange={(event) => setSearchText(event.target.value)} />
+                <Input
+                  {...control}
+                  type="search"
+                  value={searchText}
+                  autoComplete="off"
+                  onChange={(event) => setSearchText(event.target.value)}
+                />
               )}
             </Field>
             {search.length >= 2 ? (
               <fieldset className="grid gap-1">
                 <legend className="sr-only">{t("assets.assignSheet.results")}</legend>
                 {usersQuery.isLoading ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
-                {!usersQuery.isLoading && users.length === 0 ? <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p> : null}
+                {!usersQuery.isLoading && users.length === 0 ? (
+                  <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p>
+                ) : null}
                 {users.map((user) => (
                   <label
                     key={user.id}
                     className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
-                    <input type="radio" name="asset-assign-user" value={user.id} checked={userId === user.id} onChange={() => setUserId(user.id)} />
+                    <input
+                      type="radio"
+                      name="asset-assign-user"
+                      value={user.id}
+                      checked={userId === user.id}
+                      onChange={() => setUserId(user.id)}
+                    />
                     <span className="min-w-0">
                       <span className="block truncate text-foreground">{user.displayName}</span>
-                      <span className="block truncate text-[11.5px] text-muted-foreground">{user.email}</span>
+                      <span className="block truncate text-[11.5px] text-muted-foreground">
+                        {user.email}
+                      </span>
                     </span>
                   </label>
                 ))}
               </fieldset>
             ) : null}
             {scenario === "WAREHOUSE_TO_USER" && preview.configuration?.enabled ? (
-              <Field label={t("assets.transfers.fromLabel")} hint={t("assets.transfers.fromLabelHint")}>
-                {(control) => <Input {...control} maxLength={200} value={fromLabel} onChange={(event) => setFromLabel(event.target.value)} />}
+              <Field
+                label={t("assets.transfers.fromLabel")}
+                hint={t("assets.transfers.fromLabelHint")}
+              >
+                {(control) => (
+                  <Input
+                    {...control}
+                    maxLength={200}
+                    value={fromLabel}
+                    onChange={(event) => setFromLabel(event.target.value)}
+                  />
+                )}
               </Field>
             ) : null}
             <Field label={t("assets.assignSheet.note")}>
-              {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={2}
+                  maxLength={500}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                />
+              )}
             </Field>
-            <AssetTransferSection preview={preview} issueDocument={issueDocument} onIssueDocumentChange={setIssueDocument} />
+            <AssetTransferSection
+              preview={preview}
+              issueDocument={issueDocument}
+              onIssueDocumentChange={setIssueDocument}
+            />
             {error ? (
               <p role="alert" className={errorTextClassName}>
                 {error}
@@ -336,7 +404,11 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: MoveSh
         <SheetTitle>{t("assets.actions.unassign")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("assets.unassignSheet.description", { name: asset.assignedUser?.displayName ?? "—" })}
-          {ids.length > 1 ? <span className="mt-1 block">{t("assets.bulk.selectedCount", { count: ids.length })}</span> : null}
+          {ids.length > 1 ? (
+            <span className="mt-1 block">
+              {t("assets.bulk.selectedCount", { count: ids.length })}
+            </span>
+          ) : null}
         </SheetDescription>
         {result ? (
           <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />
@@ -344,7 +416,13 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: MoveSh
           <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
             <Field label={t("assets.unassignSheet.nextStatus")}>
               {(control) => (
-                <Select {...control} value={status} onChange={(event) => setStatus(event.target.value === "IN_REPAIR" ? "IN_REPAIR" : "IN_STOCK")}>
+                <Select
+                  {...control}
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value === "IN_REPAIR" ? "IN_REPAIR" : "IN_STOCK")
+                  }
+                >
                   <option value="IN_STOCK">{t(assetStatusKeys.IN_STOCK)}</option>
                   <option value="IN_REPAIR">{t(assetStatusKeys.IN_REPAIR)}</option>
                 </Select>
@@ -352,13 +430,32 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: MoveSh
             </Field>
             {preview.configuration?.enabled ? (
               <Field label={t("assets.transfers.toLabel")} hint={t("assets.transfers.toLabelHint")}>
-                {(control) => <Input {...control} maxLength={200} value={toLabel} onChange={(event) => setToLabel(event.target.value)} />}
+                {(control) => (
+                  <Input
+                    {...control}
+                    maxLength={200}
+                    value={toLabel}
+                    onChange={(event) => setToLabel(event.target.value)}
+                  />
+                )}
               </Field>
             ) : null}
             <Field label={t("assets.assignSheet.note")}>
-              {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={2}
+                  maxLength={500}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                />
+              )}
             </Field>
-            <AssetTransferSection preview={preview} issueDocument={issueDocument} onIssueDocumentChange={setIssueDocument} />
+            <AssetTransferSection
+              preview={preview}
+              issueDocument={issueDocument}
+              onIssueDocumentChange={setIssueDocument}
+            />
             {error ? (
               <p role="alert" className={errorTextClassName}>
                 {error}

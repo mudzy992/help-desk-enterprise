@@ -87,7 +87,10 @@ export function ResponseTemplateEditorPage() {
   const [preview, setPreview] = useState<RenderedTemplate | null>(null);
   const [previewErrorKey, setPreviewErrorKey] = useState<TemplatesErrorKey | null>(null);
   const [activeBody, setActiveBody] = useState<BodyField>("bodyBs");
-  const bodyReferences = { bodyBs: useRef<HTMLTextAreaElement>(null), bodyEn: useRef<HTMLTextAreaElement>(null) };
+  const bodyReferences = {
+    bodyBs: useRef<HTMLTextAreaElement>(null),
+    bodyEn: useRef<HTMLTextAreaElement>(null),
+  };
   const containerRef = useRef<HTMLElement>(null);
   const shared = ownership === "shared";
 
@@ -138,7 +141,11 @@ export function ResponseTemplateEditorPage() {
         }
         if (groupResult.status === "fulfilled") {
           setGroups(
-            groupResult.value.map((item) => ({ id: item.id, name: item.name, hint: item.organizationalUnitPath })),
+            groupResult.value.map((item) => ({
+              id: item.id,
+              name: item.name,
+              hint: item.organizationalUnitPath,
+            })),
           );
         }
       },
@@ -149,7 +156,8 @@ export function ResponseTemplateEditorPage() {
   }, [shared]);
 
   // Live preview (debounced).
-  const previewBody = previewLocale === "en" && form.bodyEn.trim().length > 0 ? form.bodyEn : form.bodyBs;
+  const previewBody =
+    previewLocale === "en" && form.bodyEn.trim().length > 0 ? form.bodyEn : form.bodyBs;
   useEffect(() => {
     if (previewBody.trim().length === 0) {
       setPreview(null);
@@ -179,11 +187,17 @@ export function ResponseTemplateEditorPage() {
   }, [previewBody, previewLocale, previewTicketId]);
 
   const unknown = useMemo(
-    () => [...new Set([...unknownTemplateVariables(form.bodyBs), ...unknownTemplateVariables(form.bodyEn)])],
+    () => [
+      ...new Set([
+        ...unknownTemplateVariables(form.bodyBs),
+        ...unknownTemplateVariables(form.bodyEn),
+      ]),
+    ],
     [form.bodyBs, form.bodyEn],
   );
 
-  const update = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const update = <K extends keyof Form>(key: K, value: Form[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const insertVariable = (placeholder: string) => {
     const area = bodyReferences[activeBody].current;
@@ -261,7 +275,11 @@ export function ResponseTemplateEditorPage() {
       >
         <ArrowLeft size={13} /> {t("templates.actions.back")}
       </Link>
-      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+      <AdminConfigChangedBanner
+        pending={live.pending}
+        onRefresh={live.refreshNow}
+        onDismiss={live.dismiss}
+      />
       {!loaded ? (
         <PanelSkeleton label={title} />
       ) : (
@@ -325,13 +343,18 @@ export function ResponseTemplateEditorPage() {
             </Field>
             {unknown.length > 0 ? (
               <p role="alert" className="flex items-center gap-1.5 text-[12px] text-danger">
-                <AlertTriangle size={12} /> {t("templates.editor.unknownVariables", { names: unknown.join(", ") })}
+                <AlertTriangle size={12} />{" "}
+                {t("templates.editor.unknownVariables", { names: unknown.join(", ") })}
               </p>
             ) : null}
             <VariablePalette onInsert={insertVariable} disabled={disabled} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("templates.editor.tags")} hint={t("templates.editor.tagsHint")}>
-                <Input value={form.tags} onChange={(event) => update("tags", event.target.value)} disabled={disabled} />
+                <Input
+                  value={form.tags}
+                  onChange={(event) => update("tags", event.target.value)}
+                  disabled={disabled}
+                />
               </Field>
               <div className="flex items-end pb-2">
                 <Checkbox
@@ -345,7 +368,9 @@ export function ResponseTemplateEditorPage() {
             {shared ? (
               <div className="space-y-3 border-t border-border/70 pt-4">
                 <div>
-                  <p className="text-[13px] font-semibold text-foreground">{t("templates.editor.scope")}</p>
+                  <p className="text-[13px] font-semibold text-foreground">
+                    {t("templates.editor.scope")}
+                  </p>
                   <p className={hintClassName}>{t("templates.editor.scopeHint")}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -372,7 +397,11 @@ export function ResponseTemplateEditorPage() {
                     disabled={disabled}
                   />
                 </div>
-                <Field label={t("templates.editor.reason")} required hint={t("templates.editor.reasonHint")}>
+                <Field
+                  label={t("templates.editor.reason")}
+                  required
+                  hint={t("templates.editor.reasonHint")}
+                >
                   <Input
                     value={form.reason}
                     onChange={(event) => update("reason", event.target.value)}
@@ -390,7 +419,12 @@ export function ResponseTemplateEditorPage() {
             ) : null}
             {canEdit ? (
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => navigate(-1)} disabled={saving}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate(-1)}
+                  disabled={saving}
+                >
                   {t("templates.editor.cancel")}
                 </Button>
                 <Button type="submit" disabled={!canSubmit} data-testid="template-save">
@@ -419,7 +453,10 @@ export function ResponseTemplateEditorPage() {
               }
             />
             <div className="space-y-3 overflow-y-auto p-4">
-              <Field label={t("templates.editor.previewTicket")} hint={t("templates.editor.previewTicketHint")}>
+              <Field
+                label={t("templates.editor.previewTicket")}
+                hint={t("templates.editor.previewTicketHint")}
+              >
                 <Input
                   value={previewTicketId}
                   onChange={(event) => setPreviewTicketId(event.target.value)}
@@ -437,13 +474,19 @@ export function ResponseTemplateEditorPage() {
                 data-testid="template-preview"
                 aria-live="polite"
               >
-                {preview?.text ?? <span className="text-muted-foreground">{t("templates.editor.previewEmpty")}</span>}
+                {preview?.text ?? (
+                  <span className="text-muted-foreground">
+                    {t("templates.editor.previewEmpty")}
+                  </span>
+                )}
               </div>
               {preview !== null && preview.missing.length > 0 ? (
                 <p className="flex items-start gap-1.5 text-[12px] text-warning">
                   <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                   {t("templates.editor.previewMissing", {
-                    names: preview.missing.map((name) => t(`templates.variable.${name}`)).join(", "),
+                    names: preview.missing
+                      .map((name) => t(`templates.variable.${name}`))
+                      .join(", "),
                   })}
                 </p>
               ) : null}

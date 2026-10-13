@@ -11,10 +11,10 @@ describe("saved-view-filters", () => {
       priority: "",
       serviceId: "",
       assignedUserId: "",
-    createdFrom: "",
-    createdTo: "",
-    overdue: false,
-    currentUserId: "agent-1",
+      createdFrom: "",
+      createdTo: "",
+      overdue: false,
+      currentUserId: "agent-1",
     };
     const next = filtersFromSavedView(current, {
       id: "v1",

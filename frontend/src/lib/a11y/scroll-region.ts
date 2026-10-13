@@ -20,8 +20,10 @@ export const FOCUSABLE_SELECTOR =
 
 /** 1 px tolerance: sub-pixel layout rounding must not flip the state. */
 export function isScrollable(metrics: ScrollMetrics): boolean {
-  const horizontal = SCROLLING.has(metrics.overflowX) && metrics.scrollWidth > metrics.clientWidth + 1;
-  const vertical = SCROLLING.has(metrics.overflowY) && metrics.scrollHeight > metrics.clientHeight + 1;
+  const horizontal =
+    SCROLLING.has(metrics.overflowX) && metrics.scrollWidth > metrics.clientWidth + 1;
+  const vertical =
+    SCROLLING.has(metrics.overflowY) && metrics.scrollHeight > metrics.clientHeight + 1;
   return horizontal || vertical;
 }
 

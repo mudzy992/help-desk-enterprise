@@ -37,25 +37,56 @@ export function buildDirectoryPlanCsv(plan: DirectorySyncPlan): string {
     lines.push(row(["ou", "update", null, unit.name, unit.path, (unit.changes ?? []).join(", ")]));
   }
   for (const user of plan.users.create) {
-    lines.push(row(["user", "create", user.email, user.displayName, user.ouPath, user.distinguishedName]));
+    lines.push(
+      row(["user", "create", user.email, user.displayName, user.ouPath, user.distinguishedName]),
+    );
   }
   for (const user of plan.users.update) {
-    lines.push(row(["user", "update", user.email, user.displayName, user.ouPath, (user.changes ?? []).join(", ")]));
+    lines.push(
+      row([
+        "user",
+        "update",
+        user.email,
+        user.displayName,
+        user.ouPath,
+        (user.changes ?? []).join(", "),
+      ]),
+    );
   }
   for (const user of plan.users.reactivate) {
-    lines.push(row(["user", "reactivate", user.email, user.displayName, user.ouPath, (user.changes ?? []).join(", ")]));
+    lines.push(
+      row([
+        "user",
+        "reactivate",
+        user.email,
+        user.displayName,
+        user.ouPath,
+        (user.changes ?? []).join(", "),
+      ]),
+    );
   }
   for (const user of plan.users.deactivate) {
     lines.push(row(["user", "deactivate", user.email, user.displayName, null, user.reason]));
   }
   for (const grant of plan.roles.grant) {
-    lines.push(row(["role", "grant", grant.email, null, `${grant.roleKey} @ ${grant.ouPath}`, null]));
+    lines.push(
+      row(["role", "grant", grant.email, null, `${grant.roleKey} @ ${grant.ouPath}`, null]),
+    );
   }
   for (const revoke of plan.roles.revoke) {
     lines.push(row(["role", "revoke", revoke.email, null, revoke.roleKey, null]));
   }
   for (const exception of plan.exceptions) {
-    lines.push(row(["exception", exception.code, exception.email, null, exception.distinguishedName, exception.detail]));
+    lines.push(
+      row([
+        "exception",
+        exception.code,
+        exception.email,
+        null,
+        exception.distinguishedName,
+        exception.detail,
+      ]),
+    );
   }
   // BOM so Excel detects UTF-8 (č, ć, š, ž, đ); CRLF per RFC 4180.
   return `\uFEFF${lines.join("\r\n")}\r\n`;

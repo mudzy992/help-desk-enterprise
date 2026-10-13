@@ -1,7 +1,12 @@
 import { Bell, Flame, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import {
+  TicketAtRiskBadge,
+  TicketOverdueBadge,
+  TicketPriorityBadge,
+  TicketStatusBadge,
+} from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,15 +59,9 @@ export function TicketInboxList({
         {tickets.length === 0 ? (
           <EmptyState
             title={
-              isUnroutedTab
-                ? t("tickets.inboxUnroutedEmptyTitle")
-                : t("tickets.inboxEmptyTitle")
+              isUnroutedTab ? t("tickets.inboxUnroutedEmptyTitle") : t("tickets.inboxEmptyTitle")
             }
-            body={
-              isUnroutedTab
-                ? t("tickets.inboxUnroutedEmptyBody")
-                : t("tickets.inboxEmptyBody")
-            }
+            body={isUnroutedTab ? t("tickets.inboxUnroutedEmptyBody") : t("tickets.inboxEmptyBody")}
           />
         ) : (
           <ul className="fade-in divide-y divide-border/50">
@@ -76,9 +75,7 @@ export function TicketInboxList({
                 requesterNames={requesterNames}
                 locale={i18n.language}
                 claimingId={claimingId}
-                claimLabel={
-                  claimingId === ticket.id ? t("tickets.claiming") : t("tickets.claim")
-                }
+                claimLabel={claimingId === ticket.id ? t("tickets.claiming") : t("tickets.claim")}
                 onClaim={onClaim}
               />
             ))}
@@ -196,9 +193,7 @@ function InboxTicketRow({
       </button>
       <div className="hidden items-center gap-1.5 md:flex">
         {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
-        {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
-          <TicketAtRiskBadge />
-        ) : null}
+        {ticket.isOverdue !== true && ticket.isAtRisk === true ? <TicketAtRiskBadge /> : null}
         <TicketStatusBadge status={ticket.status} />
         <TicketPriorityBadge priority={ticket.priority} />
       </div>

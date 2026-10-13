@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { isScrollable, needsOwnFocus } from "./scroll-region";
 
-const base = { scrollWidth: 500, clientWidth: 500, scrollHeight: 200, clientHeight: 200, overflowX: "auto", overflowY: "visible" };
+const base = {
+  scrollWidth: 500,
+  clientWidth: 500,
+  scrollHeight: 200,
+  clientHeight: 200,
+  overflowX: "auto",
+  overflowY: "visible",
+};
 
 describe("scroll region focus", () => {
   it("detects horizontal overflow only when the axis can scroll", () => {

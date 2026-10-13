@@ -3,10 +3,7 @@ import {
   toSidebarTicketCounts,
   type SidebarTicketCounts,
 } from "@/lib/tickets/count-sidebar-ticket-badges";
-import {
-  getTicketCounts,
-  type TicketCounts,
-} from "@/services/tickets-counts-api";
+import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
 
 export type { SidebarTicketCounts };
 
@@ -21,10 +18,7 @@ let cachedTicketCounts: CachedTicketCounts | null = null;
 let inFlightTicketCounts: Promise<TicketCounts> | null = null;
 
 function isCacheFresh(entry: CachedTicketCounts): boolean {
-  return (
-    Date.now() - entry.cachedAtMilliseconds <
-    sidebarTicketCountsCacheTimeToLiveMilliseconds
-  );
+  return Date.now() - entry.cachedAtMilliseconds < sidebarTicketCountsCacheTimeToLiveMilliseconds;
 }
 
 async function loadTicketCounts(): Promise<TicketCounts> {
@@ -45,9 +39,7 @@ async function loadTicketCounts(): Promise<TicketCounts> {
   }
 }
 
-export function useSidebarTicketCounts(
-  includeInbox: boolean,
-): SidebarTicketCounts | null {
+export function useSidebarTicketCounts(includeInbox: boolean): SidebarTicketCounts | null {
   const [counts, setCounts] = useState<TicketCounts | null>(
     () => cachedTicketCounts?.counts ?? null,
   );

@@ -52,7 +52,11 @@ interface ConfigPackageImportProperties {
  * Paket 2.9 (K4): upload → preview (resolution report, manual mappings) →
  * import as DRAFT. Nothing is activated here.
  */
-export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPackageImportProperties) {
+export function ConfigPackageImport({
+  isBusy,
+  runAction,
+  onImported,
+}: ConfigPackageImportProperties) {
   const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [fileTooLarge, setFileTooLarge] = useState(false);
@@ -63,7 +67,9 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
   const [report, setReport] = useState<ConfigPackageImportReport | null>(null);
   const [inputKey, setInputKey] = useState(0);
 
-  const input = (nextMappings: ConfigPackageMappings = mappings): ConfigPackageImportInput | null =>
+  const input = (
+    nextMappings: ConfigPackageMappings = mappings,
+  ): ConfigPackageImportInput | null =>
     file === null
       ? null
       : { file, mappings: nextMappings, applyEnvironmentBound, confirmUnsigned, releaseNotes };
@@ -117,7 +123,13 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
         </p>
       ) : null}
       <div>
-        <Button type="button" size="sm" variant="outline" disabled={isBusy || file === null} onClick={() => preview()}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={isBusy || file === null}
+          onClick={() => preview()}
+        >
           <Upload /> {t("configVersions.package.preview")}
         </Button>
       </div>
@@ -159,7 +171,9 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
                 <div key={kind} className="contents">
                   <dt className="text-muted-foreground">
                     {t("configVersions.package.skipped", {
-                      kind: t(`configVersions.package.skippedKinds.${kind}`, { defaultValue: kind }),
+                      kind: t(`configVersions.package.skippedKinds.${kind}`, {
+                        defaultValue: kind,
+                      }),
                     })}
                   </dt>
                   <dd>{keys.join(", ")}</dd>
@@ -170,7 +184,9 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
           {unresolved.length > 0 ? (
             <ScrollRegion className={tableWrapClassName}>
               <table className="w-full min-w-[640px] text-left text-[13px]">
-                <caption className="sr-only">{t("configVersions.package.referencesCaption")}</caption>
+                <caption className="sr-only">
+                  {t("configVersions.package.referencesCaption")}
+                </caption>
                 <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
                   <tr>
                     <th className="px-3 py-2">{t("configVersions.package.columnKind")}</th>
@@ -190,7 +206,15 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
                           {item.key}
                         </td>
                         <td className="px-3">
-                          <Badge tone={item.blocking ? "danger" : item.status === "mapped" ? "success" : "neutral"}>
+                          <Badge
+                            tone={
+                              item.blocking
+                                ? "danger"
+                                : item.status === "mapped"
+                                  ? "success"
+                                  : "neutral"
+                            }
+                          >
                             {t(
                               item.blocking
                                 ? "configVersions.package.statusBlocking"
@@ -206,7 +230,12 @@ export function ConfigPackageImport({ isBusy, runAction, onImported }: ConfigPac
                               value={mappedId}
                               disabled={isBusy}
                               onChange={(event) => {
-                                const next = withConfigPackageMapping(mappings, item.kind, item.key, event.target.value);
+                                const next = withConfigPackageMapping(
+                                  mappings,
+                                  item.kind,
+                                  item.key,
+                                  event.target.value,
+                                );
                                 setMappings(next);
                                 preview(next);
                               }}

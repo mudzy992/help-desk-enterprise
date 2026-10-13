@@ -42,7 +42,10 @@ export function ConfigPackageExport({ version, isBusy, onError }: ConfigPackageE
             setIsExporting(true);
             void exportConfigPackage(version.id, includeEnvironmentBound)
               .then((result) =>
-                triggerBlobDownload(result.blob, result.fileName ?? `helpdesk-config-v${version.version}.json`),
+                triggerBlobDownload(
+                  result.blob,
+                  result.fileName ?? `helpdesk-config-v${version.version}.json`,
+                ),
               )
               .catch(onError)
               .finally(() => setIsExporting(false));

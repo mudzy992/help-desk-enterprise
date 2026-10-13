@@ -109,14 +109,21 @@ export function MfaMethodStep({
       ) : null}
       {method === "passkey" && canUsePasskey ? (
         <>
-          <p className="text-[12.5px] leading-5 text-muted-foreground">{t("auth.mfa.passkeyIntro")}</p>
+          <p className="text-[12.5px] leading-5 text-muted-foreground">
+            {t("auth.mfa.passkeyIntro")}
+          </p>
           {errorKey ? (
             <p className={errorTextClassName} role="alert">
               {errorKey}
             </p>
           ) : null}
           <div className="flex gap-2">
-            <Button type="button" className="flex-1" disabled={isRunning} onClick={() => void runPasskey()}>
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={isRunning}
+              onClick={() => void runPasskey()}
+            >
               {isRunning ? t("auth.mfa.verifying") : t("auth.mfa.usePasskey")}
             </Button>
             <Button type="button" variant="outline" onClick={onCancel}>

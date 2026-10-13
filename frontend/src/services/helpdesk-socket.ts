@@ -1,9 +1,4 @@
-import {
-  io,
-  type ManagerOptions,
-  type Socket,
-  type SocketOptions,
-} from "socket.io-client";
+import { io, type ManagerOptions, type Socket, type SocketOptions } from "socket.io-client";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 

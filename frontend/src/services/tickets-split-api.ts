@@ -21,10 +21,7 @@ export type SplitTicketResult = {
   readonly children: readonly TicketResponse[];
 };
 
-export function splitTicket(
-  ticketId: string,
-  input: SplitTicketInput,
-): Promise<SplitTicketResult> {
+export function splitTicket(ticketId: string, input: SplitTicketInput): Promise<SplitTicketResult> {
   return apiRequest(`/tickets/${ticketId}/split`, {
     method: "POST",
     body: JSON.stringify(input),

@@ -137,9 +137,7 @@ export function canOpenSla(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
 
-export function canOpenConfigVersionsPage(
-  capabilities: SessionCapabilities,
-): boolean {
+export function canOpenConfigVersionsPage(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;
   if (session === null) {
     return false;
@@ -221,9 +219,7 @@ export function filterNavigationSections(
   return sections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) =>
-        canAccessNavigationItem(item, capabilities),
-      ),
+      items: section.items.filter((item) => canAccessNavigationItem(item, capabilities)),
     }))
     .filter((section) => section.items.length > 0);
 }

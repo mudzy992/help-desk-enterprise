@@ -17,7 +17,11 @@ import type {
   UpdateServiceInput,
 } from "@/services/service-catalog-api";
 
-const classificationOptions: readonly DataClassification[] = ["INTERNAL", "CONFIDENTIAL", "RESTRICTED"];
+const classificationOptions: readonly DataClassification[] = [
+  "INTERNAL",
+  "CONFIDENTIAL",
+  "RESTRICTED",
+];
 const classificationLabelKey = {
   INTERNAL: "services.classificationOptions.INTERNAL",
   CONFIDENTIAL: "services.classificationOptions.CONFIDENTIAL",
@@ -70,31 +74,22 @@ export function ServiceCatalogMutationForm({
   const isCreate = service === null;
   const [name, setName] = useState(service?.name ?? "");
   const [slug, setSlug] = useState(service?.slug ?? "");
-  const [categoryId, setCategoryId] = useState(
-    service?.categoryId ?? categories[0]?.id ?? "",
-  );
+  const [categoryId, setCategoryId] = useState(service?.categoryId ?? categories[0]?.id ?? "");
   const [classification, setClassification] = useState<DataClassification>(
     service?.classification ?? "INTERNAL",
   );
-  const [requiresApproval, setRequiresApproval] = useState(
-    service?.requiresApproval ?? false,
-  );
+  const [requiresApproval, setRequiresApproval] = useState(service?.requiresApproval ?? false);
   const [isConfidentialDefault, setIsConfidentialDefault] = useState(
     service?.isConfidentialDefault ?? false,
   );
   const [autoAssignStrategy, setAutoAssignStrategy] = useState<AutoAssignStrategy>(
     service?.autoAssignStrategy ?? "NONE",
   );
-  const [policyPackId, setPolicyPackId] = useState<string | null>(
-    service?.policyPackId ?? null,
-  );
+  const [policyPackId, setPolicyPackId] = useState<string | null>(service?.policyPackId ?? null);
   const [slaProfiles, setSlaProfiles] = useState<readonly SlaProfile[]>([]);
-  const [slaProfileId, setSlaProfileId] = useState<string | null>(
-    service?.slaProfileId ?? null,
-  );
+  const [slaProfileId, setSlaProfileId] = useState<string | null>(service?.slaProfileId ?? null);
   const [reason, setReason] = useState("");
-  const canSubmit =
-    requireCatalogChangeReason(reason) !== null && categoryId.length > 0;
+  const canSubmit = requireCatalogChangeReason(reason) !== null && categoryId.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -199,16 +194,10 @@ export function ServiceCatalogMutationForm({
         </Select>
       </Field>
       <Field label={t("services.requiresApproval")}>
-        <Switch
-          checked={requiresApproval}
-          onCheckedChange={setRequiresApproval}
-        />
+        <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
       </Field>
       <Field label={label(t, "services.isConfidentialDefault")}>
-        <Switch
-          checked={isConfidentialDefault}
-          onCheckedChange={setIsConfidentialDefault}
-        />
+        <Switch checked={isConfidentialDefault} onCheckedChange={setIsConfidentialDefault} />
       </Field>
       <Field label={label(t, "services.autoAssignStrategy")}>
         <Select

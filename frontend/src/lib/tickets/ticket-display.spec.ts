@@ -34,9 +34,9 @@ describe("flattenOriginUnitOptions", () => {
 
   it("selects the only origin unit and leaves a multi-unit tree unselected", () => {
     expect(defaultOriginUnitId(flattenOriginUnitOptions(tree))).toBe("");
-    expect(
-      defaultOriginUnitId(flattenOriginUnitOptions([{ ...tree[0], children: [] }])),
-    ).toBe("ou-root");
+    expect(defaultOriginUnitId(flattenOriginUnitOptions([{ ...tree[0], children: [] }]))).toBe(
+      "ou-root",
+    );
   });
 });
 
@@ -50,9 +50,7 @@ describe("ticket display formatting", () => {
   });
 
   it("resolves directory names and falls back to a truncated id", () => {
-    expect(directoryDisplayName(new Map([["u1", "Amar Softić"]]), "u1")).toBe(
-      "Amar Softić",
-    );
+    expect(directoryDisplayName(new Map([["u1", "Amar Softić"]]), "u1")).toBe("Amar Softić");
     expect(directoryDisplayName(new Map(), "abcdefghijklmn")).toBe("abcdefgh…");
     expect(directoryDisplayName(new Map(), null)).toBeNull();
   });

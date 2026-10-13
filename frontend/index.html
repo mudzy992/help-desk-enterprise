@@ -24,12 +24,13 @@
             ["ep-helpdesk.theme.accent", "service-desk.theme.accent"],
             ["ep-helpdesk.session", "service-desk.session"],
             ["ep-helpdesk.timeActivityAt", "service-desk.timeActivityAt"],
-            ["ephelpdesk.locale", "service-desk.locale"]
+            ["ephelpdesk.locale", "service-desk.locale"],
           ];
           for (var i = 0; i < legacy.length; i++) {
             var value = window.localStorage.getItem(legacy[i][0]);
             if (value === null) continue;
-            if (window.localStorage.getItem(legacy[i][1]) === null) window.localStorage.setItem(legacy[i][1], value);
+            if (window.localStorage.getItem(legacy[i][1]) === null)
+              window.localStorage.setItem(legacy[i][1], value);
             window.localStorage.removeItem(legacy[i][0]);
           }
         } catch (error) {}

@@ -11,10 +11,7 @@ export function formatSlaHourLabel(value: string): string {
   return match[2] === "00" ? hours : `${hours}:${match[2]}`;
 }
 
-export function formatSlaDayHours(
-  weeklyHours: WeeklyHours,
-  weekday: string,
-): string | null {
+export function formatSlaDayHours(weeklyHours: WeeklyHours, weekday: string): string | null {
   const intervals = weeklyHours[weekday];
   if (intervals === undefined || intervals.length === 0) {
     return null;

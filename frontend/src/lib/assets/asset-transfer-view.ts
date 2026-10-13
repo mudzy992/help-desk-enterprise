@@ -1,13 +1,17 @@
 import type { AssetTransferScenario, AssetTransferStatus } from "@/services/asset-transfers-api";
 
 /** Paket 3.2 C9: labels and tones for transfer records (const maps keep t() keys typed). */
-export const transferScenarioKeys: Readonly<Record<AssetTransferScenario, `assets.transfers.scenario.${AssetTransferScenario}`>> = {
+export const transferScenarioKeys: Readonly<
+  Record<AssetTransferScenario, `assets.transfers.scenario.${AssetTransferScenario}`>
+> = {
   WAREHOUSE_TO_USER: "assets.transfers.scenario.WAREHOUSE_TO_USER",
   USER_TO_USER: "assets.transfers.scenario.USER_TO_USER",
   USER_TO_WAREHOUSE: "assets.transfers.scenario.USER_TO_WAREHOUSE",
 };
 
-export const transferStatusKeys: Readonly<Record<AssetTransferStatus, `assets.transfers.status.${AssetTransferStatus}`>> = {
+export const transferStatusKeys: Readonly<
+  Record<AssetTransferStatus, `assets.transfers.status.${AssetTransferStatus}`>
+> = {
   ISSUED: "assets.transfers.status.ISSUED",
   SIGNED: "assets.transfers.status.SIGNED",
   CANCELLED: "assets.transfers.status.CANCELLED",
@@ -32,7 +36,9 @@ const problemKeys = {
 export type TransferProblemKey = (typeof problemKeys)[keyof typeof problemKeys];
 
 /** "code" or "code:INV-1" from the preview → i18n key + asset tag. */
-export function transferProblem(raw: string): { readonly key: TransferProblemKey; readonly assetTag: string } | null {
+export function transferProblem(
+  raw: string,
+): { readonly key: TransferProblemKey; readonly assetTag: string } | null {
   const [code, assetTag = ""] = raw.split(":");
   const key = (problemKeys as Readonly<Record<string, TransferProblemKey>>)[code];
   return key ? { key, assetTag } : null;

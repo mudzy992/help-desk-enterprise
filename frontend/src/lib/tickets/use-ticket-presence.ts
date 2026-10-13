@@ -3,7 +3,11 @@ import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdes
 import { ticketSocketEvents } from "@/services/ticket-socket";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
 import { useSession } from "@/lib/session/use-session";
-import { applyPresenceUpdate, emptyPresenceView, type PresenceView } from "@/lib/tickets/presence-view";
+import {
+  applyPresenceUpdate,
+  emptyPresenceView,
+  type PresenceView,
+} from "@/lib/tickets/presence-view";
 
 /* Paket 2.4 (A1): heartbeat every 20 s, state changes at most every 2 s,
    typing falls back to viewing after 6 s without a keystroke. */
@@ -18,7 +22,10 @@ export function useTicketPresence(input: {
   readonly ticketId: string | undefined;
   readonly currentUserId: string | null;
   readonly enabled: boolean;
-}): { readonly view: PresenceView; readonly reportTyping: (channel: TypingChannel | null) => void } {
+}): {
+  readonly view: PresenceView;
+  readonly reportTyping: (channel: TypingChannel | null) => void;
+} {
   const { session } = useSession();
   const [view, setView] = useState<PresenceView>(emptyPresenceView);
   const stateRef = useRef<{ state: "viewing" | "typing"; channel: TypingChannel }>({
@@ -48,10 +55,14 @@ export function useTicketPresence(input: {
       });
     };
     emitRef.current = emit;
-    const stopUpdate = subscribeSocketEvent<unknown>(socket, ticketSocketEvents.presenceUpdate, (payload) => {
-      const next = applyPresenceUpdate(ticketId, currentUserId, payload);
-      if (next !== null) setView(next);
-    });
+    const stopUpdate = subscribeSocketEvent<unknown>(
+      socket,
+      ticketSocketEvents.presenceUpdate,
+      (payload) => {
+        const next = applyPresenceUpdate(ticketId, currentUserId, payload);
+        if (next !== null) setView(next);
+      },
+    );
     // The join is handled first on the server; give it a moment before the first beat.
     const first = window.setTimeout(emit, firstBeatDelayMs);
     const beat = window.setInterval(() => {
@@ -92,10 +103,12 @@ export function useTicketPresence(input: {
 
   const reportTyping = useCallback(
     (channel: TypingChannel | null) => {
-      const next = channel === null
-        ? { state: "viewing" as const, channel: stateRef.current.channel }
-        : { state: "typing" as const, channel };
-      const changed = next.state !== stateRef.current.state || next.channel !== stateRef.current.channel;
+      const next =
+        channel === null
+          ? { state: "viewing" as const, channel: stateRef.current.channel }
+          : { state: "typing" as const, channel };
+      const changed =
+        next.state !== stateRef.current.state || next.channel !== stateRef.current.channel;
       stateRef.current = next;
       if (idleRef.current !== null) window.clearTimeout(idleRef.current);
       if (channel !== null) {

@@ -17,9 +17,7 @@ const warnAboutMissingTranslation = (
   namespace: string,
   key: string,
 ): void => {
-  console.warn(
-    `[i18n] Missing translation: ${namespace}:${key} (${languages.join(", ")})`,
-  );
+  console.warn(`[i18n] Missing translation: ${namespace}:${key} (${languages.join(", ")})`);
 };
 
 i18n.on("languageChanged", (language: string) => {
@@ -47,9 +45,7 @@ export const initializeI18n = (): Promise<typeof i18n> => {
       returnNull: false,
       returnEmptyString: false,
       saveMissing: false,
-      ...(import.meta.env.DEV
-        ? { missingKeyHandler: warnAboutMissingTranslation }
-        : {}),
+      ...(import.meta.env.DEV ? { missingKeyHandler: warnAboutMissingTranslation } : {}),
       react: {
         useSuspense: false,
       },

@@ -1,10 +1,7 @@
 import { ArrowRight, Hourglass } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  TicketOverdueBadge,
-  TicketPauseChip,
-} from "@/components/tickets/ticket-badges";
+import { TicketOverdueBadge, TicketPauseChip } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,9 +13,7 @@ interface DashboardSlaWatchlistProperties {
   readonly items: readonly TicketResponse[];
 }
 
-export function DashboardSlaWatchlist({
-  items,
-}: DashboardSlaWatchlistProperties) {
+export function DashboardSlaWatchlist({ items }: DashboardSlaWatchlistProperties) {
   const { t } = useTranslation();
 
   return (
@@ -39,9 +34,7 @@ export function DashboardSlaWatchlist({
           title={t("dashboard.slaEmpty")}
           action={
             <Button asChild size="sm" variant="outline">
-              <Link to="/tickets?view=all&overdue=true">
-                {t("dashboard.slaAll")}
-              </Link>
+              <Link to="/tickets?view=all&overdue=true">{t("dashboard.slaAll")}</Link>
             </Button>
           }
         />

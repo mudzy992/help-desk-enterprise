@@ -13,9 +13,7 @@ export function catalogCoverageNote(
   if (forService.length === 0) {
     return null;
   }
-  const hasUnrouted = forService.some(
-    (item) => item.resolution.outcome === "UNROUTED",
-  );
+  const hasUnrouted = forService.some((item) => item.resolution.outcome === "UNROUTED");
   if (hasUnrouted) {
     return { tone: "warning", key: "services.coverageUnrouted" };
   }

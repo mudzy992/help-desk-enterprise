@@ -26,13 +26,8 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { shouldWarnServiceRuntimeAvailability } from "@/lib/services/filter-service-catalog-rows";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
-import {
-  completedOnboardingCount,
-} from "@/lib/services/onboarding-step-state";
-import {
-  SERVICE_AVAILABILITY_META,
-  SERVICE_LIFECYCLE_META,
-} from "@/lib/theme/semantic-meta";
+import { completedOnboardingCount } from "@/lib/services/onboarding-step-state";
+import { SERVICE_AVAILABILITY_META, SERVICE_LIFECYCLE_META } from "@/lib/theme/semantic-meta";
 import {
   SERVICE_ONBOARDING_STEPS,
   type ServiceOnboardingResponse,
@@ -79,14 +74,30 @@ export function ServiceCatalogTable({
         <caption className="sr-only">{t("services.catalogTableCaption")}</caption>
         <thead className="bg-elevated/45">
           <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
-            <th scope="col" className="px-4 py-2.5">{t("services.columnName")}</th>
-            <th scope="col" className="px-3 py-2.5">{t("services.columnLifecycle")}</th>
-            <th scope="col" className="px-3 py-2.5">{t("services.columnAvailability")}</th>
-            <th scope="col" className="px-3 py-2.5">{t("services.columnForm")}</th>
-            <th scope="col" className="px-3 py-2.5">{t("services.columnClassification")}</th>
-            <th scope="col" className="px-3 py-2.5">{t("services.columnCoverage")}</th>
-            <th scope="col" className="px-3 py-2.5 text-right">{t("services.columnTickets")}</th>
-            <th scope="col" className="px-4 py-2.5 text-right">{t("services.columnActions")}</th>
+            <th scope="col" className="px-4 py-2.5">
+              {t("services.columnName")}
+            </th>
+            <th scope="col" className="px-3 py-2.5">
+              {t("services.columnLifecycle")}
+            </th>
+            <th scope="col" className="px-3 py-2.5">
+              {t("services.columnAvailability")}
+            </th>
+            <th scope="col" className="px-3 py-2.5">
+              {t("services.columnForm")}
+            </th>
+            <th scope="col" className="px-3 py-2.5">
+              {t("services.columnClassification")}
+            </th>
+            <th scope="col" className="px-3 py-2.5">
+              {t("services.columnCoverage")}
+            </th>
+            <th scope="col" className="px-3 py-2.5 text-right">
+              {t("services.columnTickets")}
+            </th>
+            <th scope="col" className="px-4 py-2.5 text-right">
+              {t("services.columnActions")}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/50">
@@ -96,7 +107,9 @@ export function ServiceCatalogTable({
               <ServiceCatalogTableRow
                 key={service.id}
                 row={row}
-                categoryName={categoryNames.get(service.categoryId) ?? service.category?.name ?? service.slug}
+                categoryName={
+                  categoryNames.get(service.categoryId) ?? service.category?.name ?? service.slug
+                }
                 coverage={coverageByServiceId.get(service.id) ?? null}
                 onboarding={onboardingByServiceId.get(service.id) ?? null}
                 canManageForms={canManageForms}
@@ -154,30 +167,31 @@ function ServiceCatalogTableRow({
     service.runtimeAvailability.hasActiveDowntime,
   );
   const actionsAvailable = canWriteCatalog || canWriteAvailability;
-  const onboardingComplete = onboarding === null
-    ? 0
-    : completedOnboardingCount(onboarding.completedSteps);
-  const onboardingLabel = onboarding === null
-    ? null
-    : onboarding.status === "ABANDONED"
-      ? t("services.onboarding.progressPaused", {
-          completed: onboardingComplete,
-          total: SERVICE_ONBOARDING_STEPS.length,
-        })
-      : onboarding.status === "READY_FOR_FINALIZATION"
-        ? t("services.onboarding.progressReady", {
+  const onboardingComplete =
+    onboarding === null ? 0 : completedOnboardingCount(onboarding.completedSteps);
+  const onboardingLabel =
+    onboarding === null
+      ? null
+      : onboarding.status === "ABANDONED"
+        ? t("services.onboarding.progressPaused", {
             completed: onboardingComplete,
             total: SERVICE_ONBOARDING_STEPS.length,
           })
-        : t("services.onboarding.progress", {
-            completed: onboardingComplete,
-            total: SERVICE_ONBOARDING_STEPS.length,
-          });
-  const onboardingTone = onboarding?.status === "ABANDONED"
-    ? "warning"
-    : onboarding?.status === "READY_FOR_FINALIZATION"
-      ? "success"
-      : "info";
+        : onboarding.status === "READY_FOR_FINALIZATION"
+          ? t("services.onboarding.progressReady", {
+              completed: onboardingComplete,
+              total: SERVICE_ONBOARDING_STEPS.length,
+            })
+          : t("services.onboarding.progress", {
+              completed: onboardingComplete,
+              total: SERVICE_ONBOARDING_STEPS.length,
+            });
+  const onboardingTone =
+    onboarding?.status === "ABANDONED"
+      ? "warning"
+      : onboarding?.status === "READY_FOR_FINALIZATION"
+        ? "success"
+        : "info";
 
   return (
     <tr data-testid={`service-row-${service.id}`} className={tableRowClassName}>
@@ -202,9 +216,7 @@ function ServiceCatalogTableRow({
                 </Badge>
               ) : null}
             </div>
-            <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-              {categoryName}
-            </p>
+            <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{categoryName}</p>
           </div>
         </div>
       </td>
@@ -227,7 +239,11 @@ function ServiceCatalogTableRow({
               className="text-[10px]"
             />
             {showRuntimeWarning ? (
-              <Badge tone="warning" className="max-w-[230px] whitespace-normal text-[10px] leading-4" dot={false}>
+              <Badge
+                tone="warning"
+                className="max-w-[230px] whitespace-normal text-[10px] leading-4"
+                dot={false}
+              >
                 {t("services.runtimeUnavailableWarning")}
               </Badge>
             ) : null}
@@ -295,11 +311,17 @@ function ServiceCatalogTableRow({
       </td>
       <td className="px-3 align-middle">
         {coverage ? (
-          <Badge tone={coverage.tone} dot={false} className="max-w-[210px] whitespace-normal text-[10px] leading-4">
+          <Badge
+            tone={coverage.tone}
+            dot={false}
+            className="max-w-[210px] whitespace-normal text-[10px] leading-4"
+          >
             {t(coverage.key)}
           </Badge>
         ) : (
-          <span className="text-muted-foreground" aria-label={t("services.coverageUnavailable")}>—</span>
+          <span className="text-muted-foreground" aria-label={t("services.coverageUnavailable")}>
+            —
+          </span>
         )}
       </td>
       <td className="px-3 text-right align-middle">
@@ -346,9 +368,11 @@ function ServiceCatalogTableRow({
                     <Blocks size={14} aria-hidden="true" />
                     {onboarding === null
                       ? t("services.startOnboarding")
-                      : t(onboarding.status === "ABANDONED"
-                        ? "services.onboarding.resume"
-                        : "services.onboarding.continue")}
+                      : t(
+                          onboarding.status === "ABANDONED"
+                            ? "services.onboarding.resume"
+                            : "services.onboarding.continue",
+                        )}
                   </DropdownMenuItem>
                 ) : null}
                 {canWriteCatalog && canManageForms ? (

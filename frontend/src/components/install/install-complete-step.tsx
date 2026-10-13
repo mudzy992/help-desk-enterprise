@@ -31,9 +31,7 @@ export function InstallCompleteStep() {
 
   return (
     <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t("install.complete.saving") : t("install.complete.submit")}

@@ -11,10 +11,7 @@ export function groupSettingsByCategory(
   entries: readonly SettingRegistryEntry[],
 ): readonly SettingsCategoryGroup[] {
   const groups = new Map<string, SettingRegistryEntry[]>();
-  const metaByCategory = new Map<
-    string,
-    { readonly icon: string; readonly priority: number }
-  >();
+  const metaByCategory = new Map<string, { readonly icon: string; readonly priority: number }>();
   for (const entry of entries) {
     const categoryKey = entry.categoryId;
     metaByCategory.set(categoryKey, {

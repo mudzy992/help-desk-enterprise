@@ -5,21 +5,43 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { problemStatusKeys, problemStatusTone } from "@/lib/problems/problem-view";
-import { getProblemsForAsset, getProblemsForIncident, problemLinkKeys, type ProblemReference } from "@/services/problems-api";
+import {
+  getProblemsForAsset,
+  getProblemsForIncident,
+  problemLinkKeys,
+  type ProblemReference,
+} from "@/services/problems-api";
 
 /** P5b: problems linked to an asset, for the asset card ("Problems" tab count and list). */
 export function useAssetProblems(assetId: string) {
-  return useQuery({ queryKey: problemLinkKeys.byAsset(assetId), queryFn: () => getProblemsForAsset(assetId), retry: false, staleTime: 60_000 });
+  return useQuery({
+    queryKey: problemLinkKeys.byAsset(assetId),
+    queryFn: () => getProblemsForAsset(assetId),
+    retry: false,
+    staleTime: 60_000,
+  });
 }
 
-function ProblemRows({ items, compact = false }: { readonly items: readonly ProblemReference[]; readonly compact?: boolean }) {
+function ProblemRows({
+  items,
+  compact = false,
+}: {
+  readonly items: readonly ProblemReference[];
+  readonly compact?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <ul className={compact ? "grid gap-0.5" : "grid gap-0.5 px-2 py-2"}>
       {items.map((item) => (
-        <li key={item.id} className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-muted/60">
+        <li
+          key={item.id}
+          className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-muted/60"
+        >
           <Puzzle size={13} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-          <Link to={`/problems/${encodeURIComponent(item.id)}`} className="tnum shrink-0 font-medium text-link hover:underline">
+          <Link
+            to={`/problems/${encodeURIComponent(item.id)}`}
+            className="tnum shrink-0 font-medium text-link hover:underline"
+          >
             {item.number}
           </Link>
           <span className="min-w-0 flex-1 truncate text-foreground">{item.title}</span>
@@ -35,7 +57,10 @@ export function AssetProblemsPanel({ items }: { readonly items: readonly Problem
   const { t } = useTranslation();
   return (
     <Card data-testid="asset-problems-panel">
-      <CardHeader title={t("problems.links.assetProblemsTitle")} subtitle={t("problems.links.assetProblemsSubtitle")} />
+      <CardHeader
+        title={t("problems.links.assetProblemsTitle")}
+        subtitle={t("problems.links.assetProblemsSubtitle")}
+      />
       <ProblemRows items={items} />
     </Card>
   );
@@ -47,12 +72,22 @@ export function AssetProblemsPanel({ items }: { readonly items: readonly Problem
  */
 export function IncidentProblemLinks({ incidentId }: { readonly incidentId: string }) {
   const { t } = useTranslation();
-  const query = useQuery({ queryKey: problemLinkKeys.byIncident(incidentId), queryFn: () => getProblemsForIncident(incidentId), retry: false, staleTime: 60_000 });
+  const query = useQuery({
+    queryKey: problemLinkKeys.byIncident(incidentId),
+    queryFn: () => getProblemsForIncident(incidentId),
+    retry: false,
+    staleTime: 60_000,
+  });
   const items = query.data?.items ?? [];
   if (items.length === 0) return null;
   return (
-    <div className="mt-2 grid gap-1 rounded-md border border-border/70 p-2" data-testid="incident-problem-links">
-      <p className="px-2 text-[12px] font-medium text-muted-foreground">{t("problems.links.incidentCausedBy", { count: items.length })}</p>
+    <div
+      className="mt-2 grid gap-1 rounded-md border border-border/70 p-2"
+      data-testid="incident-problem-links"
+    >
+      <p className="px-2 text-[12px] font-medium text-muted-foreground">
+        {t("problems.links.incidentCausedBy", { count: items.length })}
+      </p>
       <ProblemRows items={items} compact />
     </div>
   );

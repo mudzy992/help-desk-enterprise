@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  controlCompactClassName,
-  errorTextClassName,
-} from "@/components/ui/control";
+import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/services/api";
 import { updateUser, type UserSummary } from "@/services/users-api";
@@ -25,9 +22,7 @@ export function UserDetailForm({
   const { t } = useTranslation();
   const [displayName, setDisplayName] = useState(user.displayName);
   const [email, setEmail] = useState(user.email);
-  const [organizationalUnitId, setOrganizationalUnitId] = useState(
-    user.organizationalUnitId ?? "",
-  );
+  const [organizationalUnitId, setOrganizationalUnitId] = useState(user.organizationalUnitId ?? "");
   const [isActive, setIsActive] = useState(user.isActive);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -52,9 +47,7 @@ export function UserDetailForm({
       });
       await onSaved();
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError ? error.message : t("users.updateFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("users.updateFailed"));
     } finally {
       setIsSaving(false);
     }

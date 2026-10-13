@@ -23,13 +23,7 @@ describe("groupGroupsByUnit", () => {
         organizationalUnitPath: "Org / Alpha",
       },
     ]);
-    expect(actual.map((section) => section.organizationalUnitId)).toEqual([
-      "ou-a",
-      "ou-b",
-    ]);
-    expect(actual[0]?.groups.map((group) => group.name)).toEqual([
-      "Alpha",
-      "Beta",
-    ]);
+    expect(actual.map((section) => section.organizationalUnitId)).toEqual(["ou-a", "ou-b"]);
+    expect(actual[0]?.groups.map((group) => group.name)).toEqual(["Alpha", "Beta"]);
   });
 });

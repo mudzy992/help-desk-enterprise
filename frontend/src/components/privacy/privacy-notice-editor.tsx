@@ -22,15 +22,22 @@ import {
   type PrivacyNoticeStatus,
 } from "@/services/privacy-api";
 
-const noticeLocales = ["bs", "en"] as const;
-type NoticeLocale = (typeof noticeLocales)[number];
+type NoticeLocale = "bs" | "en";
 
-const stateLabelKeys: Record<PrivacyNoticeState, "privacy.noticeEditor.statePublished" | "privacy.noticeEditor.stateDraft" | "privacy.noticeEditor.stateDisabled"> = {
+const stateLabelKeys: Record<
+  PrivacyNoticeState,
+  | "privacy.noticeEditor.statePublished"
+  | "privacy.noticeEditor.stateDraft"
+  | "privacy.noticeEditor.stateDisabled"
+> = {
   published: "privacy.noticeEditor.statePublished",
   draft: "privacy.noticeEditor.stateDraft",
   disabled: "privacy.noticeEditor.stateDisabled",
 };
-const editorLabelKeys: Record<NoticeLocale, "privacy.noticeEditor.editorLabelBs" | "privacy.noticeEditor.editorLabelEn"> = {
+const editorLabelKeys: Record<
+  NoticeLocale,
+  "privacy.noticeEditor.editorLabelBs" | "privacy.noticeEditor.editorLabelEn"
+> = {
   bs: "privacy.noticeEditor.editorLabelBs",
   en: "privacy.noticeEditor.editorLabelEn",
 };
@@ -50,7 +57,10 @@ export function PrivacyNoticeEditor() {
   const [status, setStatus] = useState<PrivacyNoticeStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState<NoticeLocale>("bs");
-  const [drafts, setDrafts] = useState<{ readonly bs: string; readonly en: string }>({ bs: "", en: "" });
+  const [drafts, setDrafts] = useState<{ readonly bs: string; readonly en: string }>({
+    bs: "",
+    en: "",
+  });
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -72,7 +82,10 @@ export function PrivacyNoticeEditor() {
 
   if (failed) {
     return (
-      <div data-testid="privacy-notice-editor-failed" className="rounded-lg border border-border bg-surface p-5">
+      <div
+        data-testid="privacy-notice-editor-failed"
+        className="rounded-lg border border-border bg-surface p-5"
+      >
         <p className={`${hintClassName} mb-3`}>{t("privacy.noticeEditor.loadFailed")}</p>
         <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
           {t("privacy.noticeEditor.retry")}
@@ -214,7 +227,9 @@ export function PrivacyNoticeEditor() {
         >
           <Save size={14} /> {t("privacy.noticeEditor.save")}
         </Button>
-        {dirty ? <span className="text-[11.5px] text-warning">{t("privacy.noticeEditor.dirty")}</span> : null}
+        {dirty ? (
+          <span className="text-[11.5px] text-warning">{t("privacy.noticeEditor.dirty")}</span>
+        ) : null}
       </div>
     </div>
   );

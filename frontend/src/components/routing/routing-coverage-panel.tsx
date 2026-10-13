@@ -10,10 +10,7 @@ import { labelClassName, selectCompactClassName } from "@/components/ui/control"
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import { useRoutingCatalog } from "@/lib/routing/use-routing-catalog";
-import {
-  listRoutingCoverage,
-  type RoutingCoveragePage,
-} from "@/services/routing-api";
+import { listRoutingCoverage, type RoutingCoveragePage } from "@/services/routing-api";
 
 interface RoutingCoveragePanelProperties {
   readonly onCreateRule: () => void;
@@ -112,7 +109,9 @@ export function RoutingCoveragePanel({ onCreateRule }: RoutingCoveragePanelPrope
             >
               <option value="">{t("routing.coverageAllOrigins")}</option>
               {catalog.originUnits.map((unit) => (
-                <option key={unit.id} value={unit.id}>{unit.label}</option>
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
               ))}
             </select>
           </label>

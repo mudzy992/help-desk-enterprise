@@ -115,7 +115,6 @@ export function useManualDirectoryCatalogActions(input: {
     void reloadCatalog();
   }, [reloadCatalog]);
 
-
   const materializeCatalogUnit = async (
     unit: Pick<
       ManualDirectoryOrganizationalUnit,
@@ -209,8 +208,7 @@ export function useManualDirectoryCatalogActions(input: {
     } catch (error) {
       setActionError({
         organizationalUnitId: unit.externalId,
-        message:
-          error instanceof ApiError ? error.message : t("directory.syncFailed"),
+        message: error instanceof ApiError ? error.message : t("directory.syncFailed"),
       });
       await reloadCatalog();
     }

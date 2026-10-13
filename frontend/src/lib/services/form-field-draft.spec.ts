@@ -9,10 +9,7 @@ describe("form-field-draft", () => {
   });
 
   it("reorders fields without dropping items", () => {
-    const fields = [
-      createBlankFormField(0, []),
-      createBlankFormField(1, ["polje_1"]),
-    ];
+    const fields = [createBlankFormField(0, []), createBlankFormField(1, ["polje_1"])];
     const moved = moveFormField(fields, 0, 1);
     expect(moved[0]?.id).toBe(fields[1]?.id);
     expect(moved[1]?.id).toBe(fields[0]?.id);

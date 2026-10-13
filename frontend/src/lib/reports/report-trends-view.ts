@@ -6,7 +6,12 @@ import {
   type ReportTrendPriority,
   type ReportTrendsQuery,
 } from "@/services/report-trends-api";
-import { addLocalDays, addLocalMonths, parseDateInputValue, toDateInputValue } from "./report-window";
+import {
+  addLocalDays,
+  addLocalMonths,
+  parseDateInputValue,
+  toDateInputValue,
+} from "./report-window";
 
 /**
  * Paket 2.5 (design §7.2): the Trends tab state lives in the URL
@@ -32,14 +37,22 @@ export type TrendsViewState = {
 export const trendAutoGranularity = { dayMaxDays: 31, weekMaxDays: 183 } as const;
 export const trendBucketLimits = { day: 92, week: 104 } as const;
 
-const monthPresets: Partial<Record<TrendPreset, number>> = { "6m": 6, "12m": 12, "24m": 24, "36m": 36 };
+const monthPresets: Partial<Record<TrendPreset, number>> = {
+  "6m": 6,
+  "12m": 12,
+  "24m": 24,
+  "36m": 36,
+};
 const dayPresets: Partial<Record<TrendPreset, number>> = { "30d": 30, "90d": 90 };
 
 /**
  * Month presets start on the 1st so every bucket but the current one is a
  * whole month; day presets end today and include it.
  */
-export function resolveTrendPresetRange(preset: TrendPreset, now: Date): { from: string; to: string } | null {
+export function resolveTrendPresetRange(
+  preset: TrendPreset,
+  now: Date,
+): { from: string; to: string } | null {
   const days = dayPresets[preset];
   if (days !== undefined) {
     return { from: toDateInputValue(addLocalDays(now, 1 - days)), to: toDateInputValue(now) };
@@ -47,7 +60,10 @@ export function resolveTrendPresetRange(preset: TrendPreset, now: Date): { from:
   const months = monthPresets[preset];
   if (months !== undefined) {
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { from: toDateInputValue(addLocalMonths(firstOfMonth, 1 - months)), to: toDateInputValue(now) };
+    return {
+      from: toDateInputValue(addLocalMonths(firstOfMonth, 1 - months)),
+      to: toDateInputValue(now),
+    };
   }
   return null;
 }
@@ -69,7 +85,10 @@ export function estimateTrendGranularity(from: string, to: string): ReportTrendG
 }
 
 /** Granularities the backend accepts for this range (month is capped by a setting). */
-export function allowedTrendGranularities(from: string, to: string): readonly ReportTrendGranularity[] {
+export function allowedTrendGranularities(
+  from: string,
+  to: string,
+): readonly ReportTrendGranularity[] {
   const days = daysBetweenInclusive(from, to);
   if (days === null || days < 1) return ["month"];
   const allowed: ReportTrendGranularity[] = [];
@@ -96,7 +115,9 @@ export function parseTrendsSearch(params: URLSearchParams, now: Date): TrendsVie
   const to = params.get("to");
   const namedPreset = pick(params.get("preset"), trendPresets);
   const presetRange =
-    namedPreset !== null && namedPreset !== "custom" ? resolveTrendPresetRange(namedPreset, now) : null;
+    namedPreset !== null && namedPreset !== "custom"
+      ? resolveTrendPresetRange(namedPreset, now)
+      : null;
   const explicit = isDate(from) && isDate(to) && from <= to;
   const [preset, range]: [TrendPreset, { from: string; to: string }] =
     presetRange !== null && namedPreset !== null
@@ -130,14 +151,18 @@ export function toTrendsSearch(state: TrendsViewState): URLSearchParams {
     params.set("preset", state.preset);
   }
   if (state.granularity !== null) params.set("granularity", state.granularity);
-  if (state.organizationalUnitId !== null) params.set("organizationalUnitId", state.organizationalUnitId);
+  if (state.organizationalUnitId !== null)
+    params.set("organizationalUnitId", state.organizationalUnitId);
   if (state.serviceId !== null) params.set("serviceId", state.serviceId);
   if (state.groupId !== null) params.set("groupId", state.groupId);
   if (state.priority !== null) params.set("priority", state.priority);
   return params;
 }
 
-export function toTrendsQuery(state: TrendsViewState, organizationalUnitId: string): ReportTrendsQuery {
+export function toTrendsQuery(
+  state: TrendsViewState,
+  organizationalUnitId: string,
+): ReportTrendsQuery {
   return {
     organizationalUnitId,
     from: state.from,
@@ -150,11 +175,39 @@ export function toTrendsQuery(state: TrendsViewState, organizationalUnitId: stri
 }
 
 /** Bosnian month names — fallback for runtimes with trimmed ICU data (they render `M09`). */
-const bsMonthsShort = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
-const bsMonthsLong = ["januar", "februar", "mart", "april", "maj", "juni", "juli", "august", "septembar", "oktobar", "novembar", "decembar"];
+const bsMonthsShort = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "maj",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+];
+const bsMonthsLong = [
+  "januar",
+  "februar",
+  "mart",
+  "april",
+  "maj",
+  "juni",
+  "juli",
+  "august",
+  "septembar",
+  "oktobar",
+  "novembar",
+  "decembar",
+];
 
 function monthName(date: Date, locale: string, style: "short" | "long"): string {
-  const formatted = new Intl.DateTimeFormat(locale, { month: style }).format(date).replace(/\.$/, "");
+  const formatted = new Intl.DateTimeFormat(locale, { month: style })
+    .format(date)
+    .replace(/\.$/, "");
   if (locale.startsWith("bs") && /^M?\d+$/.test(formatted)) {
     return (style === "short" ? bsMonthsShort : bsMonthsLong)[date.getMonth()] ?? formatted;
   }
@@ -167,7 +220,11 @@ function civil(key: string): Date {
 }
 
 /** Axis label: `27.09.` (day, week start) or `sep 26` (month). */
-export function formatTrendBucketShort(key: string, granularity: ReportTrendGranularity, locale: string): string {
+export function formatTrendBucketShort(
+  key: string,
+  granularity: ReportTrendGranularity,
+  locale: string,
+): string {
   const date = civil(key);
   if (granularity === "month") {
     const month = monthName(date, locale, "short");
@@ -177,7 +234,11 @@ export function formatTrendBucketShort(key: string, granularity: ReportTrendGran
 }
 
 /** Tooltip/table label: `27.09.2026.`, `22.03. – 28.03.2026.` or `septembar 2026.` */
-export function formatTrendBucketLong(key: string, granularity: ReportTrendGranularity, locale: string): string {
+export function formatTrendBucketLong(
+  key: string,
+  granularity: ReportTrendGranularity,
+  locale: string,
+): string {
   const date = civil(key);
   const dotted = (value: Date, withYear: boolean) =>
     `${String(value.getDate()).padStart(2, "0")}.${String(value.getMonth() + 1).padStart(2, "0")}.${withYear ? `${value.getFullYear()}.` : ""}`;
@@ -194,7 +255,9 @@ export function formatTrendBucketLong(key: string, granularity: ReportTrendGranu
 export function formatTrendHours(hours: number | null, locale: string): string {
   if (hours === null) return "—";
   const number = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 }).format(value);
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 }).format(
+      value,
+    );
   if (hours < 1) return `${Math.round(hours * 60)} min`;
   if (hours < 48) return `${number(hours)} h`;
   return `${number(hours / 24)} d`;

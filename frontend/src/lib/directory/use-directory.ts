@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import {
-  loadDirectory,
-  type DirectoryUser,
-} from "@/lib/directory/load-directory";
+import { loadDirectory, type DirectoryUser } from "@/lib/directory/load-directory";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 export type { DirectoryUser } from "@/lib/directory/load-directory";

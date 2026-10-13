@@ -23,7 +23,14 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
 }
 
-const sessionlessPaths = ["/auth/login", "/auth/change-password", "/auth/entra", "/auth/logout", "/auth/providers", "/install/"];
+const sessionlessPaths = [
+  "/auth/login",
+  "/auth/change-password",
+  "/auth/entra",
+  "/auth/logout",
+  "/auth/providers",
+  "/install/",
+];
 
 /**
  * Review 2026-10-12 (5.4.0-e, live test): on these paths a 401 is an *answer to
@@ -85,9 +92,7 @@ type ApiErrorPayload = {
 };
 
 async function readApiError(response: Response): Promise<ApiError> {
-  const payload = (await response
-    .json()
-    .catch(() => null)) as ApiErrorPayload | null;
+  const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
   return new ApiError(
     response.status,
     payload?.code ?? "REQUEST_FAILED",
@@ -97,10 +102,7 @@ async function readApiError(response: Response): Promise<ApiError> {
   );
 }
 
-async function authenticatedApiResponse(
-  path: string,
-  init: RequestInit,
-): Promise<Response> {
+async function authenticatedApiResponse(path: string, init: RequestInit): Promise<Response> {
   const authHeaders = authorizationHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
@@ -115,7 +117,11 @@ async function authenticatedApiResponse(
     },
   });
   if (!response.ok) {
-    notifyUnauthorized(path, "Authorization" in authHeaders && !overridesAuthorization(init.headers), response.status);
+    notifyUnauthorized(
+      path,
+      "Authorization" in authHeaders && !overridesAuthorization(init.headers),
+      response.status,
+    );
     throw await readApiError(response);
   }
   return response;
@@ -144,17 +150,11 @@ export async function apiRequestWithHeaders<T>(
   return { data: await readApiResponse<T>(response), headers: response.headers };
 }
 
-export async function apiRequest<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await apiRequestWithHeaders<T>(path, init)).data;
 }
 
-export async function apiBlobRequest(
-  path: string,
-  init: RequestInit = {},
-): Promise<Blob> {
+export async function apiBlobRequest(path: string, init: RequestInit = {}): Promise<Blob> {
   const downloaded = await apiDownloadRequest(path, init);
   return downloaded.blob;
 }
@@ -183,15 +183,11 @@ export async function apiDownloadRequest(
   }
   return {
     blob: await response.blob(),
-    fileName: readContentDispositionFileName(
-      response.headers.get("Content-Disposition"),
-    ),
+    fileName: readContentDispositionFileName(response.headers.get("Content-Disposition")),
   };
 }
 
-function readContentDispositionFileName(
-  header: string | null,
-): string | null {
+function readContentDispositionFileName(header: string | null): string | null {
   if (header === null || header.length === 0) {
     return null;
   }

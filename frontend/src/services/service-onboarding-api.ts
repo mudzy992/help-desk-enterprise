@@ -1,21 +1,12 @@
 import { apiRequest } from "@/services/api";
 import type { CreateServiceInput, ServiceLifecycle } from "@/services/service-catalog-api";
 
-export const SERVICE_ONBOARDING_STEPS = [
-  "SERVICE",
-  "FORM",
-  "ROUTING",
-  "SLA",
-  "APPROVALS",
-] as const;
+export const SERVICE_ONBOARDING_STEPS = ["SERVICE", "FORM", "ROUTING", "SLA", "APPROVALS"] as const;
 
 export type ServiceOnboardingStep = (typeof SERVICE_ONBOARDING_STEPS)[number];
 
 export type ServiceOnboardingStatus =
-  | "IN_PROGRESS"
-  | "READY_FOR_FINALIZATION"
-  | "COMPLETED"
-  | "ABANDONED";
+  "IN_PROGRESS" | "READY_FOR_FINALIZATION" | "COMPLETED" | "ABANDONED";
 
 export type ServiceOnboardingValidationIssue = {
   readonly code: string;
@@ -59,15 +50,11 @@ export function createServiceOnboarding(
   });
 }
 
-export function startServiceOnboarding(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse> {
+export function startServiceOnboarding(serviceId: string): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding`, { method: "POST" });
 }
 
-export function getServiceOnboarding(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse> {
+export function getServiceOnboarding(serviceId: string): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding`);
 }
 
@@ -135,25 +122,19 @@ export function completeOnboardingStep(
   });
 }
 
-export function finalizeServiceOnboarding(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse> {
+export function finalizeServiceOnboarding(serviceId: string): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding/finalize`, {
     method: "POST",
   });
 }
 
-export function abandonServiceOnboarding(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse> {
+export function abandonServiceOnboarding(serviceId: string): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding/abandon`, {
     method: "POST",
   });
 }
 
-export function resumeServiceOnboarding(
-  serviceId: string,
-): Promise<ServiceOnboardingResponse> {
+export function resumeServiceOnboarding(serviceId: string): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding/resume`, {
     method: "POST",
   });

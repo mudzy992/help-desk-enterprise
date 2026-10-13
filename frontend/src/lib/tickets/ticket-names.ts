@@ -1,9 +1,7 @@
 import type { TicketResponse } from "@/services/tickets-api";
 
 /** First candidate that is a non-empty name, or null. */
-export function pickName(
-  ...candidates: readonly (string | null | undefined)[]
-): string | null {
+export function pickName(...candidates: readonly (string | null | undefined)[]): string | null {
   for (const candidate of candidates) {
     const trimmed = candidate?.trim() ?? "";
     if (trimmed.length > 0) {

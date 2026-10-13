@@ -20,9 +20,7 @@ export type KnowledgeLifecycleOption = {
 const optionsByStatus: Readonly<
   Record<KnowledgeArticleStatus, readonly KnowledgeLifecycleOption[]>
 > = {
-  DRAFT: [
-    { action: "submit-review", labelKey: "knowledgeBase.actionSubmitReview" },
-  ],
+  DRAFT: [{ action: "submit-review", labelKey: "knowledgeBase.actionSubmitReview" }],
   IN_REVIEW: [
     { action: "approve-review", labelKey: "knowledgeBase.actionApproveReview" },
     { action: "reject-review", labelKey: "knowledgeBase.actionRejectReview" },

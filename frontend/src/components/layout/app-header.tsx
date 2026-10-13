@@ -14,10 +14,7 @@ interface AppHeaderProperties {
   readonly onOpenCommandPalette: () => void;
 }
 
-export function AppHeader({
-  onOpenNavigation,
-  onOpenCommandPalette,
-}: AppHeaderProperties) {
+export function AppHeader({ onOpenNavigation, onOpenCommandPalette }: AppHeaderProperties) {
   const { t } = useTranslation();
 
   return (

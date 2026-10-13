@@ -89,10 +89,7 @@ export function createGroup(input: CreateGroupInput): Promise<GroupResponse> {
   });
 }
 
-export function updateGroup(
-  groupId: string,
-  input: UpdateGroupInput,
-): Promise<GroupResponse> {
+export function updateGroup(groupId: string, input: UpdateGroupInput): Promise<GroupResponse> {
   return apiRequest(`/groups/${groupId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
@@ -103,17 +100,11 @@ export function deleteGroup(groupId: string): Promise<void> {
   return apiRequest(`/groups/${groupId}`, { method: "DELETE" });
 }
 
-export function addGroupMember(
-  groupId: string,
-  userId: string,
-): Promise<GroupResponse> {
+export function addGroupMember(groupId: string, userId: string): Promise<GroupResponse> {
   return apiRequest(`/groups/${groupId}/members/${userId}`, { method: "POST" });
 }
 
-export function removeGroupMember(
-  groupId: string,
-  userId: string,
-): Promise<GroupResponse> {
+export function removeGroupMember(groupId: string, userId: string): Promise<GroupResponse> {
   return apiRequest(`/groups/${groupId}/members/${userId}`, {
     method: "DELETE",
   });

@@ -35,7 +35,9 @@ describe("readPasswordFeedbackKeys", () => {
       "auth.passwordPolicy.generic",
     ]);
     expect(
-      readPasswordFeedbackKeys(failure("PASSWORD_POLICY_VIOLATIONS", { violations: ["NOT_A_RULE"] })),
+      readPasswordFeedbackKeys(
+        failure("PASSWORD_POLICY_VIOLATIONS", { violations: ["NOT_A_RULE"] }),
+      ),
     ).toEqual(["auth.passwordPolicy.generic"]);
   });
 

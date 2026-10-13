@@ -20,7 +20,10 @@ import {
 } from "@/lib/reports/report-schedule-form";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { reportErrorMessageKeys, type TrendsFilterOption } from "@/components/reports/trends/report-trends-panel";
+import {
+  reportErrorMessageKeys,
+  type TrendsFilterOption,
+} from "@/components/reports/trends/report-trends-panel";
 import {
   createReportSchedule,
   listReportRecipientCandidates,
@@ -170,9 +173,14 @@ export function ReportScheduleSheet({
     list.settings.maxRecipients,
   );
   const next = previewNextReportRun(frequency, sendTime, new Date());
-  const selectedIds = useMemo(() => new Set(recipients.map((recipient) => recipient.id)), [recipients]);
+  const selectedIds = useMemo(
+    () => new Set(recipients.map((recipient) => recipient.id)),
+    [recipients],
+  );
   const toggle = <T extends string>(values: readonly T[], value: T, on: boolean): readonly T[] =>
-    on ? [...values.filter((item) => item !== value), value] : values.filter((item) => item !== value);
+    on
+      ? [...values.filter((item) => item !== value), value]
+      : values.filter((item) => item !== value);
 
   const submit = async () => {
     setShowErrors(true);
@@ -194,7 +202,10 @@ export function ReportScheduleSheet({
       enabled,
     };
     try {
-      const saved = schedule === null ? await createReportSchedule(input) : await updateReportSchedule(schedule.id, input);
+      const saved =
+        schedule === null
+          ? await createReportSchedule(input)
+          : await updateReportSchedule(schedule.id, input);
       onSaved(saved);
       onOpenChange(false);
     } catch (caught) {
@@ -207,10 +218,15 @@ export function ReportScheduleSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full max-w-md flex-col p-0" data-testid="report-schedule-sheet">
+      <SheetContent
+        className="flex w-full max-w-md flex-col p-0"
+        data-testid="report-schedule-sheet"
+      >
         <div className="border-b border-border/70 px-5 py-4">
           <SheetTitle className="text-[15px] font-semibold text-foreground">
-            {schedule === null ? t("reports.schedules.form.createTitle") : t("reports.schedules.form.editTitle")}
+            {schedule === null
+              ? t("reports.schedules.form.createTitle")
+              : t("reports.schedules.form.editTitle")}
           </SheetTitle>
           <SheetDescription className={hintClassName}>
             {t("reports.schedules.form.description", { zone: list.settings.timeZone })}
@@ -286,7 +302,11 @@ export function ReportScheduleSheet({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("reports.trends.filters.service")}>
-              <select className={selectClassName} value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
+              <select
+                className={selectClassName}
+                value={serviceId}
+                onChange={(event) => setServiceId(event.target.value)}
+              >
                 <option value="">{t("reports.trends.filters.all")}</option>
                 {services.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -296,7 +316,11 @@ export function ReportScheduleSheet({
               </select>
             </Field>
             <Field label={t("reports.trends.filters.priority")}>
-              <select className={selectClassName} value={priority} onChange={(event) => setPriority(event.target.value)}>
+              <select
+                className={selectClassName}
+                value={priority}
+                onChange={(event) => setPriority(event.target.value)}
+              >
                 <option value="">{t("reports.trends.filters.all")}</option>
                 {reportTrendPriorities.map((option) => (
                   <option key={option} value={option}>
@@ -308,7 +332,11 @@ export function ReportScheduleSheet({
           </div>
           {groups !== null ? (
             <Field label={t("reports.trends.filters.group")}>
-              <select className={selectClassName} value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+              <select
+                className={selectClassName}
+                value={groupId}
+                onChange={(event) => setGroupId(event.target.value)}
+              >
                 <option value="">{t("reports.trends.filters.all")}</option>
                 {groups.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -340,7 +368,9 @@ export function ReportScheduleSheet({
               {t("reports.schedules.form.attachments")}
             </legend>
             <p className={`${hintClassName} mb-2`}>
-              {t("reports.schedules.form.attachmentsHint", { rows: list.settings.attachmentMaxRows })}
+              {t("reports.schedules.form.attachmentsHint", {
+                rows: list.settings.attachmentMaxRows,
+              })}
             </p>
             {list.packs.length === 0 ? (
               <p className={hintClassName}>{t("reports.packs.noneBody")}</p>
@@ -351,7 +381,9 @@ export function ReportScheduleSheet({
                     key={pack}
                     checked={packKeys.includes(pack)}
                     onChange={(event) => setPackKeys(toggle(packKeys, pack, event.target.checked))}
-                    label={t(`reports.packs.names.${pack}` as "reports.packs.names.monthly_kpi", { defaultValue: pack })}
+                    label={t(`reports.packs.names.${pack}` as "reports.packs.names.monthly_kpi", {
+                      defaultValue: pack,
+                    })}
                   />
                 ))}
               </div>
@@ -380,8 +412,12 @@ export function ReportScheduleSheet({
                     <button
                       type="button"
                       className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-                      aria-label={t("reports.schedules.form.removeRecipient", { name: recipient.displayName })}
-                      onClick={() => setRecipients(recipients.filter((item) => item.id !== recipient.id))}
+                      aria-label={t("reports.schedules.form.removeRecipient", {
+                        name: recipient.displayName,
+                      })}
+                      onClick={() =>
+                        setRecipients(recipients.filter((item) => item.id !== recipient.id))
+                      }
                     >
                       <X size={12} />
                     </button>
@@ -390,7 +426,10 @@ export function ReportScheduleSheet({
               </div>
             ) : null}
             <div className="relative">
-              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <input
                 className={`${controlClassName} pl-8`}
                 placeholder={t("reports.schedules.form.searchRecipients")}
@@ -401,7 +440,9 @@ export function ReportScheduleSheet({
             </div>
             <ul className="mt-1.5 max-h-44 overflow-y-auto rounded-md border border-border/70">
               {candidates.filter((candidate) => !selectedIds.has(candidate.id)).length === 0 ? (
-                <li className={`${hintClassName} px-3 py-2`}>{t("reports.schedules.form.noCandidates")}</li>
+                <li className={`${hintClassName} px-3 py-2`}>
+                  {t("reports.schedules.form.noCandidates")}
+                </li>
               ) : (
                 candidates
                   .filter((candidate) => !selectedIds.has(candidate.id))
@@ -414,7 +455,9 @@ export function ReportScheduleSheet({
                         data-testid="schedule-candidate"
                       >
                         <span className="truncate text-foreground">{candidate.displayName}</span>
-                        <span className="truncate text-[11.5px] text-muted-foreground">{candidate.email}</span>
+                        <span className="truncate text-[11.5px] text-muted-foreground">
+                          {candidate.email}
+                        </span>
                       </button>
                     </li>
                   ))
@@ -423,7 +466,9 @@ export function ReportScheduleSheet({
           </fieldset>
 
           <label className="flex items-center justify-between gap-3">
-            <span className="text-[12.5px] font-medium text-foreground">{t("reports.schedules.form.enabled")}</span>
+            <span className="text-[12.5px] font-medium text-foreground">
+              {t("reports.schedules.form.enabled")}
+            </span>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </label>
 

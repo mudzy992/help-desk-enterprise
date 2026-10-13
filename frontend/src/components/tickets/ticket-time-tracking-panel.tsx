@@ -112,7 +112,10 @@ export function TicketTimeTrackingPanel({
         }
       />
       {controls.errorKey !== null ? (
-        <p role="alert" className="mx-4 mb-2 rounded-md bg-danger/10 px-3 py-2 text-[12px] text-danger">
+        <p
+          role="alert"
+          className="mx-4 mb-2 rounded-md bg-danger/10 px-3 py-2 text-[12px] text-danger"
+        >
           {t(controls.errorKey)}
         </p>
       ) : null}
@@ -345,7 +348,12 @@ function ManualEntryDialog(props: {
           </Field>
         </div>
         <ModalFooter>
-          <Button type="button" variant="secondary" onClick={props.onClose} disabled={props.isSaving}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={props.onClose}
+            disabled={props.isSaving}
+          >
             {t("ui.cancel")}
           </Button>
           <Button
@@ -354,7 +362,11 @@ function ManualEntryDialog(props: {
             data-testid="time-manual-save"
             onClick={() =>
               startedIso !== null &&
-              void props.onSubmit({ startedAt: startedIso, durationMinutes: duration, note: note.trim() })
+              void props.onSubmit({
+                startedAt: startedIso,
+                durationMinutes: duration,
+                note: note.trim(),
+              })
             }
           >
             {t("tickets.timeTracking.save")}
@@ -436,7 +448,12 @@ function CorrectionDialog(props: {
           </Field>
         </div>
         <ModalFooter>
-          <Button type="button" variant="secondary" onClick={props.onClose} disabled={props.isSaving}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={props.onClose}
+            disabled={props.isSaving}
+          >
             {t("ui.cancel")}
           </Button>
           <Button
@@ -479,7 +496,11 @@ function DeleteDialog(props: {
       onConfirm={() => void props.onSubmit(reason.trim())}
     >
       <Field label={t("tickets.timeTracking.reason")} required>
-        <Input maxLength={500} value={reason} onChange={(event) => setReason(event.currentTarget.value)} />
+        <Input
+          maxLength={500}
+          value={reason}
+          onChange={(event) => setReason(event.currentTarget.value)}
+        />
       </Field>
     </ConfirmDialog>
   );

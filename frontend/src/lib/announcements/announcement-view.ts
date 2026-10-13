@@ -1,5 +1,8 @@
 import { ApiError } from "@/services/api";
-import type { AnnouncementEffectiveStatus, AnnouncementSeverity } from "@/services/announcements-api";
+import type {
+  AnnouncementEffectiveStatus,
+  AnnouncementSeverity,
+} from "@/services/announcements-api";
 
 /** Paket 2.9 (K2): pure helpers for the announcement banner and pages. */
 
@@ -14,11 +17,14 @@ export const announcementErrorKeys = {
   ANNOUNCEMENT_FORBIDDEN: "announcements.errors.forbidden",
 } as const;
 
-export type AnnouncementErrorKey = (typeof announcementErrorKeys)[keyof typeof announcementErrorKeys];
+export type AnnouncementErrorKey =
+  (typeof announcementErrorKeys)[keyof typeof announcementErrorKeys];
 
 export function mapAnnouncementError(error: unknown): AnnouncementErrorKey | null {
   if (!(error instanceof ApiError)) return null;
-  return (announcementErrorKeys as Readonly<Record<string, AnnouncementErrorKey>>)[error.code] ?? null;
+  return (
+    (announcementErrorKeys as Readonly<Record<string, AnnouncementErrorKey>>)[error.code] ?? null
+  );
 }
 
 /** The server's detail for ANNOUNCEMENT_INVALID (e.g. "duration:90"). */
@@ -40,13 +46,17 @@ export function severityRole(severity: AnnouncementSeverity): "alert" | "status"
 }
 
 /** Tailwind classes per tone — tokens already contrast-checked in every palette (2.8). */
-export const announcementToneClasses: Readonly<Record<AnnouncementTone, { readonly frame: string; readonly icon: string }>> = {
+export const announcementToneClasses: Readonly<
+  Record<AnnouncementTone, { readonly frame: string; readonly icon: string }>
+> = {
   info: { frame: "border-info/40 bg-info/10", icon: "text-info" },
   warning: { frame: "border-warning/40 bg-warning/10", icon: "text-warning" },
   danger: { frame: "border-danger/40 bg-danger/10", icon: "text-danger" },
 };
 
-export function statusTone(status: AnnouncementEffectiveStatus): "neutral" | "info" | "success" | "warning" | "danger" {
+export function statusTone(
+  status: AnnouncementEffectiveStatus,
+): "neutral" | "info" | "success" | "warning" | "danger" {
   switch (status) {
     case "PUBLISHED":
       return "success";

@@ -5,12 +5,8 @@ export function onboardingStepIndex(step: ServiceOnboardingStep): number {
   return SERVICE_ONBOARDING_STEPS.indexOf(step);
 }
 
-export function completedOnboardingCount(
-  completedSteps: readonly ServiceOnboardingStep[],
-): number {
-  return SERVICE_ONBOARDING_STEPS.filter((step) =>
-    completedSteps.includes(step),
-  ).length;
+export function completedOnboardingCount(completedSteps: readonly ServiceOnboardingStep[]): number {
+  return SERVICE_ONBOARDING_STEPS.filter((step) => completedSteps.includes(step)).length;
 }
 
 export function isOnboardingStepComplete(

@@ -28,7 +28,8 @@ export function planBulkMove(items: readonly BulkMoveItem[]): BulkMovePlan {
   if (items.length === 0) return { kind: "none" };
   if (items.length > assetBulkMoveMax) return { kind: "too_many" };
   const ids = items.map((item) => item.id);
-  if (items.every((item) => item.assignedUser === null && stockStatuses.has(item.status))) return { kind: "warehouse", ids };
+  if (items.every((item) => item.assignedUser === null && stockStatuses.has(item.status)))
+    return { kind: "warehouse", ids };
   const holderIds = new Set(items.map((item) => item.assignedUser?.id ?? null));
   const first = items[0].assignedUser;
   if (holderIds.size === 1 && first !== null) return { kind: "holder", ids, holder: first };

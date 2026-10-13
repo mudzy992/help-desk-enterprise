@@ -25,7 +25,12 @@ describe("formatSlaDayHours", () => {
   it("joins intervals from weeklyHours", () => {
     expect(
       formatSlaDayHours(
-        { "1": [{ start: "08:00", end: "12:00" }, { start: "13:00", end: "16:00" }] },
+        {
+          "1": [
+            { start: "08:00", end: "12:00" },
+            { start: "13:00", end: "16:00" },
+          ],
+        },
         "1",
       ),
     ).toBe("08–12, 13–16");

@@ -33,7 +33,9 @@ describe("problem-view", () => {
   });
 
   it("maps known error codes only", () => {
-    expect(mapProblemError(new ApiError(409, "PROBLEM_TICKET_IN_OTHER_PROBLEM", "x"))).toBe("problems.errors.ticketInOtherProblem");
+    expect(mapProblemError(new ApiError(409, "PROBLEM_TICKET_IN_OTHER_PROBLEM", "x"))).toBe(
+      "problems.errors.ticketInOtherProblem",
+    );
     expect(mapProblemError(new ApiError(500, "SOMETHING", "x"))).toBeNull();
     expect(mapProblemError(new Error("x"))).toBeNull();
   });
@@ -44,8 +46,12 @@ describe("problem-view", () => {
   });
 
   it("maps a missing requirement to its field", () => {
-    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "rootCause"))).toBe("problems.errors.requirement.rootCause");
-    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "other"))).toBe("problems.errors.requirementMissing");
+    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "rootCause"))).toBe(
+      "problems.errors.requirement.rootCause",
+    );
+    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "other"))).toBe(
+      "problems.errors.requirementMissing",
+    );
   });
 
   it("mirrors the reason rule and transition labels", () => {
@@ -54,23 +60,38 @@ describe("problem-view", () => {
     expect(transitionNeedsReason("KNOWN_ERROR", "INVESTIGATING")).toBe(false);
     expect(transitionLabelKey("NEW", "INVESTIGATING")).toBe("problems.transition.start");
     expect(transitionLabelKey("RESOLVED", "INVESTIGATING")).toBe("problems.transition.reopen");
-    expect(transitionLabelKey("INVESTIGATING", "KNOWN_ERROR")).toBe("problems.transition.KNOWN_ERROR");
+    expect(transitionLabelKey("INVESTIGATING", "KNOWN_ERROR")).toBe(
+      "problems.transition.KNOWN_ERROR",
+    );
   });
 
   it("labels root-cause categories and history lines", () => {
-    const t = (key: string, options?: Record<string, unknown>) => (options ? `${key}:${JSON.stringify(options)}` : key);
+    const t = (key: string, options?: Record<string, unknown>) =>
+      options ? `${key}:${JSON.stringify(options)}` : key;
     expect(rootCauseLabel(t, "network")).toBe("problems.rootCause.network");
     expect(rootCauseLabel(t, "custom-key")).toBe("custom-key");
     expect(rootCauseLabel(t, null)).toBe("—");
-    expect(problemHistoryText(t, "updated", { changes: { title: {} }, textChanged: ["rootCause"] })).toBe(
+    expect(
+      problemHistoryText(t, "updated", { changes: { title: {} }, textChanged: ["rootCause"] }),
+    ).toBe(
       'problems.history.updated:{"fields":"problems.fields.title, problems.fields.rootCause"}',
     );
-    expect(problemHistoryText(t, "ticket_linked", { ticketNumber: "T-000001" })).toBe('problems.history.ticketLinked:{"ticket":"T-000001"}');
+    expect(problemHistoryText(t, "ticket_linked", { ticketNumber: "T-000001" })).toBe(
+      'problems.history.ticketLinked:{"ticket":"T-000001"}',
+    );
     // P5b: link events of CMDB items, services and incidents.
-    expect(problemHistoryText(t, "asset_linked", { assetTag: "PC-0042" })).toBe('problems.history.assetLinked:{"asset":"PC-0042"}');
-    expect(problemHistoryText(t, "service_unlinked", { name: "Mail" })).toBe('problems.history.serviceUnlinked:{"service":"Mail"}');
-    expect(problemHistoryText(t, "incident_linked", { title: "VPN prekid" })).toBe('problems.history.incidentLinked:{"incident":"VPN prekid"}');
-    expect(problemHistoryText(t, "knowledge_article", { title: "Printer" })).toBe('problems.history.knowledgeArticle:{"title":"Printer"}');
+    expect(problemHistoryText(t, "asset_linked", { assetTag: "PC-0042" })).toBe(
+      'problems.history.assetLinked:{"asset":"PC-0042"}',
+    );
+    expect(problemHistoryText(t, "service_unlinked", { name: "Mail" })).toBe(
+      'problems.history.serviceUnlinked:{"service":"Mail"}',
+    );
+    expect(problemHistoryText(t, "incident_linked", { title: "VPN prekid" })).toBe(
+      'problems.history.incidentLinked:{"incident":"VPN prekid"}',
+    );
+    expect(problemHistoryText(t, "knowledge_article", { title: "Printer" })).toBe(
+      'problems.history.knowledgeArticle:{"title":"Printer"}',
+    );
     expect(problemHistoryText(t, "tickets_resolved", { resolved: 3, skipped: 1, failed: 0 })).toBe(
       'problems.history.ticketsResolved:{"resolved":3,"skipped":1,"failed":0}',
     );

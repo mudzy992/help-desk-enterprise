@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AdminSecurityMetricsCard } from "@/components/admin/admin-security-metrics-card";
-import type { LoginSecurityMetricsSnapshot, SecurityAuditWebhookStatus } from "@/services/security-api";
+import type {
+  LoginSecurityMetricsSnapshot,
+  SecurityAuditWebhookStatus,
+} from "@/services/security-api";
 
 /*
   Paket 5.4.0-e: the Nadzor security card renders the loading state first — the

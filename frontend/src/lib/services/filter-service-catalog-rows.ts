@@ -18,7 +18,8 @@ export function filterServiceCatalogRows(
   const servicesWithExactRule =
     filters.originUnitId === null
       ? null
-      : filters.serviceIdsWithExactRuleByOriginUnit.get(filters.originUnitId) ?? new Set<string>();
+      : (filters.serviceIdsWithExactRuleByOriginUnit.get(filters.originUnitId) ??
+        new Set<string>());
 
   return rows.filter((row) => {
     if (filters.categoryId !== null && row.service.categoryId !== filters.categoryId) {
@@ -44,7 +45,10 @@ export function filterServiceCatalogRows(
 
 /** Makes service search forgiving of Bosnian/Croatian/Serbian diacritics. */
 export function normalizeServiceSearch(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 export function shouldWarnServiceRuntimeAvailability(

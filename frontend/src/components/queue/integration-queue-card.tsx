@@ -10,9 +10,7 @@ import { UnderlineTabs } from "@/components/ui/tabs";
 import { errorTextClassName } from "@/components/ui/control";
 import { useIntegrationQueue } from "@/lib/queue/use-integration-queue";
 import { useIntegrationWorkerStatus } from "@/lib/queue/use-integration-worker-status";
-import {
-  integrationJobAdminStatuses,
-} from "@/services/integration-queue-types";
+import { integrationJobAdminStatuses } from "@/services/integration-queue-types";
 import type { IntegrationWorkerStatus } from "@/services/integration-queue-types";
 
 const workerBadgeTone: Record<IntegrationWorkerStatus, BadgeTone> = {
@@ -27,11 +25,7 @@ const workerBadgeKey = {
   unknown: "integrationQueue.workerUnknown",
 } as const;
 
-export function IntegrationQueueCard({
-  enabled,
-}: {
-  readonly enabled: boolean;
-}) {
+export function IntegrationQueueCard({ enabled }: { readonly enabled: boolean }) {
   const { t } = useTranslation();
   const queue = useIntegrationQueue(enabled);
   const worker = useIntegrationWorkerStatus(enabled);
@@ -64,9 +58,7 @@ export function IntegrationQueueCard({
         <UnderlineTabs
           className="mb-4"
           active={queue.status}
-          onChange={(key) =>
-            queue.setStatus(key as (typeof integrationJobAdminStatuses)[number])
-          }
+          onChange={(key) => queue.setStatus(key as (typeof integrationJobAdminStatuses)[number])}
           items={integrationJobAdminStatuses.map((status) => ({
             key: status,
             label: t(`integrationQueue.statuses.${status}`),

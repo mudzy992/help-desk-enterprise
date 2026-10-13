@@ -26,7 +26,10 @@ describe("migrateLegacyStorageKeys", () => {
       [legacyKeyOf("service-desk.locale")]: "en",
     });
     migrateLegacyStorageKeys(storage);
-    expect(Object.fromEntries(storage.data)).toEqual({ "service-desk.theme.mode": "dark", "service-desk.locale": "en" });
+    expect(Object.fromEntries(storage.data)).toEqual({
+      "service-desk.theme.mode": "dark",
+      "service-desk.locale": "en",
+    });
   });
 
   it("never overwrites a value already stored under the new key", () => {

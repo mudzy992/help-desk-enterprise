@@ -8,4 +8,9 @@ export const workflowActorColor: Readonly<Record<WorkflowActor, string>> = {
   SYSTEM: "rgb(var(--muted))",
 };
 
-export const workflowActors: readonly WorkflowActor[] = ["STAFF", "REQUESTER", "APPROVER", "SYSTEM"];
+export const workflowActors: readonly WorkflowActor[] = [
+  "STAFF",
+  "REQUESTER",
+  "APPROVER",
+  "SYSTEM",
+];

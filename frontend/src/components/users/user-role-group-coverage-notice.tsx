@@ -7,25 +7,15 @@ interface UserRoleGroupCoverageNoticeProperties {
   readonly gap: UserRoleGroupCoverageGap;
 }
 
-export function UserRoleGroupCoverageNotice({
-  gap,
-}: UserRoleGroupCoverageNoticeProperties) {
+export function UserRoleGroupCoverageNotice({ gap }: UserRoleGroupCoverageNoticeProperties) {
   const groupsPath = buildAdminGroupsPath(gap.organizationalUnitId);
   return (
-    <p
-      role="status"
-      className="mt-1 text-[11px] text-info"
-    >
+    <p role="status" className="mt-1 text-[11px] text-info">
       <Trans
         i18nKey="users.roleGroupCoverageWarning"
         values={{ unitName: gap.organizationalUnitLabel }}
         components={{
-          groupsLink: (
-            <Link
-              to={groupsPath}
-              className="font-medium underline underline-offset-2"
-            />
-          ),
+          groupsLink: <Link to={groupsPath} className="font-medium underline underline-offset-2" />,
         }}
       />
     </p>

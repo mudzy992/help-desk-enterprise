@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildAssetListQuery } from "@/services/assets-api";
-import { assetStatusTransitions, daysUntil, formatAttributeValue, warrantyState } from "@/lib/assets/asset-view";
+import {
+  assetStatusTransitions,
+  daysUntil,
+  formatAttributeValue,
+  warrantyState,
+} from "@/lib/assets/asset-view";
 
 describe("asset view helpers (paket 3.2)", () => {
   const now = new Date("2026-09-29T10:00:00Z");
@@ -29,9 +34,14 @@ describe("asset view helpers (paket 3.2)", () => {
 
   it("builds list query strings without empty filters", () => {
     expect(buildAssetListQuery({})).toBe("");
-    expect(buildAssetListQuery({ search: " pc ", status: ["IN_USE", "IN_REPAIR"], unassigned: true, limit: 50 })).toBe(
-      "?search=pc&status=IN_USE%2CIN_REPAIR&unassigned=true&limit=50",
-    );
+    expect(
+      buildAssetListQuery({
+        search: " pc ",
+        status: ["IN_USE", "IN_REPAIR"],
+        unassigned: true,
+        limit: 50,
+      }),
+    ).toBe("?search=pc&status=IN_USE%2CIN_REPAIR&unassigned=true&limit=50");
   });
 });
 
@@ -45,7 +55,9 @@ describe("location tree (paket 3.2 §7)", () => {
   ];
 
   it("orders parents before children with full paths", () => {
-    expect(flattenLocationTree(locations).map((row) => [row.location.id, row.depth, row.path])).toEqual([
+    expect(
+      flattenLocationTree(locations).map((row) => [row.location.id, row.depth, row.path]),
+    ).toEqual([
       ["hq", 1, "Direkcija"],
       ["ze", 2, "Direkcija › Podružnica Zenica"],
       ["vi", 3, "Direkcija › Podružnica Zenica › Visoko"],

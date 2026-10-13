@@ -19,8 +19,7 @@ const codeKeys = {
 } as const;
 
 export type TimeTrackingErrorKey =
-  | (typeof codeKeys)[keyof typeof codeKeys]
-  | "tickets.timeTracking.errors.generic";
+  (typeof codeKeys)[keyof typeof codeKeys] | "tickets.timeTracking.errors.generic";
 
 export function mapTimeTrackingError(error: unknown): TimeTrackingErrorKey {
   if (error instanceof ApiError && error.code in codeKeys) {

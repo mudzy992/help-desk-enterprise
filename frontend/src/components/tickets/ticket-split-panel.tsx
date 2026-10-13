@@ -3,12 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { splitTicket } from "@/services/tickets-split-api";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -52,22 +47,37 @@ export function TicketSplitPanel({
         {ticket.parentTicketId ? (
           <p className="mt-3 text-[12px]">
             {t("tickets.split.parent")}:{" "}
-            <Link className="tnum text-link transition-colors duration-150 hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
+            <Link
+              className="tnum text-link transition-colors duration-150 hover:underline"
+              to={`/tickets/${ticket.parentTicketId}`}
+            >
               {formatParentTicketLabel(ticket) ?? t("tickets.split.parentFallback")}
             </Link>
           </p>
         ) : null}
         <label className={`mt-4 ${labelClassName}`}>
           {t("tickets.split.reason")}
-          <input className={controlClassName} value={reason} onChange={(event) => setReason(event.target.value)} />
+          <input
+            className={controlClassName}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </label>
         <label className={`mt-3 ${labelClassName}`}>
           {t("tickets.split.childOne")}
-          <input className={controlClassName} value={firstTitle} onChange={(event) => setFirstTitle(event.target.value)} />
+          <input
+            className={controlClassName}
+            value={firstTitle}
+            onChange={(event) => setFirstTitle(event.target.value)}
+          />
         </label>
         <label className={`mt-3 ${labelClassName}`}>
           {t("tickets.split.childTwo")}
-          <input className={controlClassName} value={secondTitle} onChange={(event) => setSecondTitle(event.target.value)} />
+          <input
+            className={controlClassName}
+            value={secondTitle}
+            onChange={(event) => setSecondTitle(event.target.value)}
+          />
         </label>
         <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">
           <Button

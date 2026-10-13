@@ -13,11 +13,21 @@ import { searchAssetUsers } from "@/services/assets-api";
 export type SignatorySheetUnit = {
   readonly id: string;
   readonly name: string;
-  readonly own: { readonly userId: string; readonly displayName: string; readonly title: string | null } | null;
+  readonly own: {
+    readonly userId: string;
+    readonly displayName: string;
+    readonly title: string | null;
+  } | null;
 };
 
 /** Paket 3.2 C9c: pick the transfer-record signatory of one organizational unit. */
-export function AssetSignatorySheet({ unit, onOpenChange }: { readonly unit: SignatorySheetUnit | null; readonly onOpenChange: (open: boolean) => void }) {
+export function AssetSignatorySheet({
+  unit,
+  onOpenChange,
+}: {
+  readonly unit: SignatorySheetUnit | null;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
@@ -69,33 +79,69 @@ export function AssetSignatorySheet({ unit, onOpenChange }: { readonly unit: Sig
   return (
     <Sheet open={unit !== null} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{t("assets.transfers.signatories.sheetTitle", { unit: unit?.name ?? "" })}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.transfers.signatories.sheetDescription")}</SheetDescription>
+        <SheetTitle>
+          {t("assets.transfers.signatories.sheetTitle", { unit: unit?.name ?? "" })}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.transfers.signatories.sheetDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          {unit?.own ? <p className={hintClassName}>{t("assets.transfers.signatories.current", { name: unit.own.displayName })}</p> : null}
+          {unit?.own ? (
+            <p className={hintClassName}>
+              {t("assets.transfers.signatories.current", { name: unit.own.displayName })}
+            </p>
+          ) : null}
           <Field label={t("assets.assignSheet.search")} hint={t("assets.assignSheet.searchHint")}>
-            {(control) => <Input {...control} type="search" value={searchText} autoComplete="off" onChange={(event) => setSearchText(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                type="search"
+                value={searchText}
+                autoComplete="off"
+                onChange={(event) => setSearchText(event.target.value)}
+              />
+            )}
           </Field>
           {search.length >= 2 ? (
             <fieldset className="grid gap-1">
               <legend className="sr-only">{t("assets.assignSheet.results")}</legend>
-              {!usersQuery.isLoading && users.length === 0 ? <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p> : null}
+              {!usersQuery.isLoading && users.length === 0 ? (
+                <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p>
+              ) : null}
               {users.map((user) => (
                 <label
                   key={user.id}
                   className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                 >
-                  <input type="radio" name="asset-signatory-user" value={user.id} checked={userId === user.id} onChange={() => setUserId(user.id)} />
+                  <input
+                    type="radio"
+                    name="asset-signatory-user"
+                    value={user.id}
+                    checked={userId === user.id}
+                    onChange={() => setUserId(user.id)}
+                  />
                   <span className="min-w-0">
                     <span className="block truncate text-foreground">{user.displayName}</span>
-                    <span className="block truncate text-[11.5px] text-muted-foreground">{user.email}</span>
+                    <span className="block truncate text-[11.5px] text-muted-foreground">
+                      {user.email}
+                    </span>
                   </span>
                 </label>
               ))}
             </fieldset>
           ) : null}
-          <Field label={t("assets.transfers.signatories.titleLabel")} hint={t("assets.transfers.signatories.titleHint")}>
-            {(control) => <Input {...control} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} />}
+          <Field
+            label={t("assets.transfers.signatories.titleLabel")}
+            hint={t("assets.transfers.signatories.titleHint")}
+          >
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={160}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>

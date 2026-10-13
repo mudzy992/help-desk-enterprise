@@ -23,9 +23,7 @@ export function AddonsSettingsPanel({
   const catalog = useAddonCatalog();
 
   if (catalog.isLoading) {
-    return (
-      <PanelSkeleton className="mt-0" label={t("settings.addons.loading")} />
-    );
+    return <PanelSkeleton className="mt-0" label={t("settings.addons.loading")} />;
   }
   if (catalog.hasError && catalog.items.length === 0) {
     return (

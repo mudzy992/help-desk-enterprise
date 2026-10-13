@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { announce, resetAnnouncerForTests, subscribeToAnnouncements, type Announcement } from "./announcer";
+import {
+  announce,
+  resetAnnouncerForTests,
+  subscribeToAnnouncements,
+  type Announcement,
+} from "./announcer";
 
 describe("announcer", () => {
   let now = 0;

@@ -32,10 +32,13 @@ export function isOutsidePress(
   isInsidePortal: boolean,
 ): boolean {
   if (target === null || isInsidePortal) return false;
-  return containers.every((container) => container === null || container === undefined || !container.contains(target));
+  return containers.every(
+    (container) => container === null || container === undefined || !container.contains(target),
+  );
 }
 
-const PORTAL_SELECTOR = "[data-radix-popper-content-wrapper], [role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox']";
+const PORTAL_SELECTOR =
+  "[data-radix-popper-content-wrapper], [role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox']";
 
 /**
  * True when the press landed in a layered surface (menu, dialog, listbox)

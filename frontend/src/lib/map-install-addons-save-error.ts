@@ -6,9 +6,7 @@ export type InstallAddonsErrorKey =
   | "install.addons.errorSuperAdmin"
   | "install.addons.errorGeneric";
 
-export function mapInstallAddonsSaveError(
-  error: unknown,
-): InstallAddonsErrorKey {
+export function mapInstallAddonsSaveError(error: unknown): InstallAddonsErrorKey {
   if (!(error instanceof ApiError)) {
     return "install.addons.errorGeneric";
   }

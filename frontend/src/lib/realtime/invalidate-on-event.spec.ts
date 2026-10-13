@@ -40,21 +40,15 @@ describe("queryKeysForTicketEvent", () => {
   });
 
   it("does not throw on a payload without a ticket id", () => {
-    expect(
-      queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null }),
-    ).toEqual([
+    expect(queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null })).toEqual([
       queryKeys.ticketLists,
       queryKeys.dashboardSummaryPrefix,
       queryKeys.slaSummary,
     ]);
-    expect(
-      queryKeysForTicketEvent({ eventName: "group.feed-changed", payload: {} }),
-    ).toEqual([]);
+    expect(queryKeysForTicketEvent({ eventName: "group.feed-changed", payload: {} })).toEqual([]);
   });
 
   it("ignores events it does not know", () => {
-    expect(
-      queryKeysForTicketEvent({ eventName: "settings.updated", payload: {} }),
-    ).toEqual([]);
+    expect(queryKeysForTicketEvent({ eventName: "settings.updated", payload: {} })).toEqual([]);
   });
 });

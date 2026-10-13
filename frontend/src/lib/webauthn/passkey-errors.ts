@@ -63,7 +63,8 @@ export function passkeyMessageKey(error: unknown): PasskeyMessageKey {
  * names, mapped to the sentence that helps the person (or the administrator).
  */
 export function ceremonyMessageKey(
-  result: { readonly kind: "failed"; readonly code: string | null } | { readonly kind: "unsupported" },
+  result:
+    { readonly kind: "failed"; readonly code: string | null } | { readonly kind: "unsupported" },
 ): PasskeyMessageKey {
   if (result.kind === "unsupported") return "account.passkeys.errorUnsupported";
   switch (result.code) {

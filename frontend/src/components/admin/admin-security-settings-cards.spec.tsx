@@ -33,14 +33,24 @@ vi.mock("@/components/ui/toast", () => ({
 // availability); here it only has to be reachable, so it is a marker.
 vi.mock("@/components/auth/identity-confirm-dialog", () => ({
   IdentityConfirmDialog: ({ open, passkeyPurpose }: { open: boolean; passkeyPurpose: string }) => (
-    <div data-testid="identity-confirm" data-open={open ? "true" : "false"} data-purpose={passkeyPurpose} />
+    <div
+      data-testid="identity-confirm"
+      data-open={open ? "true" : "false"}
+      data-purpose={passkeyPurpose}
+    />
   ),
 }));
 
 // The dialog edits through its own spec'd component; here it only has to receive
 // the right rows, so it is reduced to a marker that carries them.
 vi.mock("@/components/settings/settings-category-dialog", () => ({
-  SettingsCategoryDialog: ({ open, entries }: { open: boolean; entries: readonly { key: string }[] }) => (
+  SettingsCategoryDialog: ({
+    open,
+    entries,
+  }: {
+    open: boolean;
+    entries: readonly { key: string }[];
+  }) => (
     <div
       data-testid="category-dialog"
       data-open={open ? "true" : "false"}
@@ -113,7 +123,12 @@ describe("AdminSecurityPolicyCards", () => {
 
   it("hands the dialog only the rows of the chosen surface", () => {
     const sessionOnly = renderToStaticMarkup(
-      <AdminSecurityPolicyCards entries={entries} canWrite={false} pendingKey={null} onSave={noop} />,
+      <AdminSecurityPolicyCards
+        entries={entries}
+        canWrite={false}
+        pendingKey={null}
+        onSave={noop}
+      />,
     );
     // Nothing leaks into the initial render, not even for a read-only viewer.
     expect(sessionOnly).not.toContain("private.security.redaction.enabled");

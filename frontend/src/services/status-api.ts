@@ -109,13 +109,19 @@ const json = (method: string, body?: unknown): RequestInit => ({
 export function getStatusOverview(): Promise<StatusPageOverview> {
   return apiRequest("/status");
 }
-export function listServiceIncidents(serviceId: string): Promise<{ readonly incidents: readonly Incident[] }> {
+export function listServiceIncidents(
+  serviceId: string,
+): Promise<{ readonly incidents: readonly Incident[] }> {
   return apiRequest(`/status/services/${id(serviceId)}/incidents`);
 }
-export function listTicketIncidents(ticketId: string): Promise<{ readonly staff: boolean; readonly incidents: readonly Incident[] }> {
+export function listTicketIncidents(
+  ticketId: string,
+): Promise<{ readonly staff: boolean; readonly incidents: readonly Incident[] }> {
   return apiRequest(`/status/tickets/${id(ticketId)}/incidents`);
 }
-export function createIncident(input: CreateIncidentInput): Promise<{ readonly id: string; readonly notified: number }> {
+export function createIncident(
+  input: CreateIncidentInput,
+): Promise<{ readonly id: string; readonly notified: number }> {
   return apiRequest("/status/incidents", json("POST", input));
 }
 export function editIncident(incidentId: string, input: EditIncidentInput): Promise<void> {
@@ -123,22 +129,34 @@ export function editIncident(incidentId: string, input: EditIncidentInput): Prom
 }
 export function postIncidentUpdate(
   incidentId: string,
-  input: { readonly status: IncidentStatus; readonly message: string; readonly notifyOnResolve?: boolean },
+  input: {
+    readonly status: IncidentStatus;
+    readonly message: string;
+    readonly notifyOnResolve?: boolean;
+  },
 ): Promise<{ readonly notified: number }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/updates`, json("POST", input));
 }
 export function getResolvePreview(incidentId: string): Promise<ResolvePreview> {
   return apiRequest(`/status/incidents/${id(incidentId)}/resolve-preview`);
 }
-export function linkTicketToIncident(incidentId: string, ticketId: string): Promise<{ readonly linked: boolean }> {
+export function linkTicketToIncident(
+  incidentId: string,
+  ticketId: string,
+): Promise<{ readonly linked: boolean }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/tickets`, json("POST", { ticketId }));
 }
-export function unlinkTicketFromIncident(incidentId: string, ticketId: string): Promise<{ readonly unlinked: boolean }> {
+export function unlinkTicketFromIncident(
+  incidentId: string,
+  ticketId: string,
+): Promise<{ readonly unlinked: boolean }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/tickets/${id(ticketId)}`, json("DELETE"));
 }
 export function subscribeToIncident(incidentId: string): Promise<{ readonly subscribed: true }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/subscription`, json("POST"));
 }
-export function unsubscribeFromIncident(incidentId: string): Promise<{ readonly subscribed: false }> {
+export function unsubscribeFromIncident(
+  incidentId: string,
+): Promise<{ readonly subscribed: false }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/subscription`, json("DELETE"));
 }

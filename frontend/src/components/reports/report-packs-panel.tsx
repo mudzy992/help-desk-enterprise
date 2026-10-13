@@ -47,7 +47,10 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   const [listError, setListError] = useState<ApiErrorKey | null>(null);
   const [selected, setSelected] = useState<ReportPackDescriptor | null>(null);
   const [preview, setPreview] = useState<ReportPackPreview | null>(null);
-  const [previewError, setPreviewError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [previewError, setPreviewError] = useState<{
+    key: ApiErrorKey;
+    requestId: string | null;
+  } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sort, setSort] = useState<ReportSort | null>(null);
@@ -225,8 +228,17 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                           <th
                             key={column}
                             scope="col"
-                            aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
-                            className={cn(tableHeadClassName, "whitespace-nowrap px-3 py-2 text-left")}
+                            aria-sort={
+                              active
+                                ? sort.direction === "asc"
+                                  ? "ascending"
+                                  : "descending"
+                                : "none"
+                            }
+                            className={cn(
+                              tableHeadClassName,
+                              "whitespace-nowrap px-3 py-2 text-left",
+                            )}
                           >
                             <button
                               type="button"
@@ -235,7 +247,11 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                             >
                               {columnLabel(column)}
                               {active ? (
-                                sort.direction === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />
+                                sort.direction === "asc" ? (
+                                  <ArrowUp size={11} />
+                                ) : (
+                                  <ArrowDown size={11} />
+                                )
                               ) : null}
                             </button>
                           </th>

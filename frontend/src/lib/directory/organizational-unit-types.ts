@@ -1,11 +1,4 @@
-import {
-  Building2,
-  GitBranch,
-  Landmark,
-  Layers,
-  Store,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, GitBranch, Landmark, Layers, Store, type LucideIcon } from "lucide-react";
 
 export const organizationalUnitTypes = [
   "DIRECTORATE",
@@ -27,9 +20,7 @@ export function isOrganizationalUnitType(
   );
 }
 
-export function resolveOrganizationalUnitTypeIcon(
-  type: string | null | undefined,
-): LucideIcon {
+export function resolveOrganizationalUnitTypeIcon(type: string | null | undefined): LucideIcon {
   switch (type) {
     case "DIRECTORATE":
       return Landmark;

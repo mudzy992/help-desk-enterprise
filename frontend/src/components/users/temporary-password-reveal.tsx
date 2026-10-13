@@ -13,10 +13,7 @@ interface TemporaryPasswordRevealProperties {
   readonly onClose: () => void;
 }
 
-export function TemporaryPasswordReveal({
-  result,
-  onClose,
-}: TemporaryPasswordRevealProperties) {
+export function TemporaryPasswordReveal({ result, onClose }: TemporaryPasswordRevealProperties) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
@@ -35,12 +32,8 @@ export function TemporaryPasswordReveal({
 
   return (
     <div className="space-y-2 border-b border-border/70 px-4 py-3">
-      <p className="text-[13px] font-medium text-foreground">
-        {t("users.temporaryPasswordTitle")}
-      </p>
-      <p className="text-[12px] text-muted-foreground">
-        {t("users.temporaryPasswordHint")}
-      </p>
+      <p className="text-[13px] font-medium text-foreground">{t("users.temporaryPasswordTitle")}</p>
+      <p className="text-[12px] text-muted-foreground">{t("users.temporaryPasswordHint")}</p>
       <div className="flex items-center gap-2">
         <code className="flex-1 break-all rounded-lg border border-border bg-elevated px-2 py-1.5 text-[12px]">
           {result.temporaryPassword}
@@ -58,8 +51,7 @@ export function TemporaryPasswordReveal({
             setCopied(true);
           }}
         >
-          <Copy size={14} />{" "}
-          {copied ? t("users.copied") : t("users.copyTemporaryPassword")}
+          <Copy size={14} /> {copied ? t("users.copied") : t("users.copyTemporaryPassword")}
         </Button>
       </div>
       <Button size="sm" variant="outline" onClick={onClose}>

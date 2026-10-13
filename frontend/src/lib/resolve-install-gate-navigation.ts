@@ -4,10 +4,7 @@ export const applicationHomePath = "/";
 export const visualQaRoutePath = "/_visual-qa";
 
 export function isInstallRoute(pathname: string): boolean {
-  return (
-    pathname === installRoutePath ||
-    pathname.startsWith(`${installRoutePath}/`)
-  );
+  return pathname === installRoutePath || pathname.startsWith(`${installRoutePath}/`);
 }
 
 export function isVisualQaRoute(pathname: string): boolean {

@@ -2,21 +2,13 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { ApiError } from "@/services/api";
 import {
   listDirectoryUsersForLinking,
   type DirectoryUserForLinking,
 } from "@/services/directory-sync-api";
-import {
-  linkUserDirectoryIdentity,
-  type UserSummary,
-} from "@/services/users-api";
+import { linkUserDirectoryIdentity, type UserSummary } from "@/services/users-api";
 
 interface LinkDirectoryIdentityDialogProperties {
   readonly open: boolean;
@@ -32,12 +24,8 @@ export function LinkDirectoryIdentityDialog({
   onLinked,
 }: LinkDirectoryIdentityDialogProperties) {
   const { t } = useTranslation();
-  const [catalogUsers, setCatalogUsers] = useState<
-    readonly DirectoryUserForLinking[]
-  >([]);
-  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(
-    null,
-  );
+  const [catalogUsers, setCatalogUsers] = useState<readonly DirectoryUserForLinking[]>([]);
+  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -54,17 +42,13 @@ export function LinkDirectoryIdentityDialog({
       .catch((error: unknown) => {
         setCatalogUsers([]);
         setErrorMessage(
-          error instanceof ApiError
-            ? error.message
-            : t("users.linkDirectoryLoadFailed"),
+          error instanceof ApiError ? error.message : t("users.linkDirectoryLoadFailed"),
         );
       })
       .finally(() => setIsLoading(false));
   }, [open, t]);
 
-  const selected = catalogUsers.find(
-    (entry) => entry.externalId === selectedExternalId,
-  );
+  const selected = catalogUsers.find((entry) => entry.externalId === selectedExternalId);
 
   const handleConfirm = async () => {
     if (selected === undefined) {
@@ -77,11 +61,7 @@ export function LinkDirectoryIdentityDialog({
       await onLinked();
       onOpenChange(false);
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : t("users.linkDirectoryFailed"),
-      );
+      setErrorMessage(error instanceof ApiError ? error.message : t("users.linkDirectoryFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -89,18 +69,13 @@ export function LinkDirectoryIdentityDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full max-w-lg flex-col overflow-y-auto p-5"
-      >
+      <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-y-auto p-5">
         <SheetTitle>{t("users.linkDirectoryTitle")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("users.linkDirectoryHint")}
         </SheetDescription>
         <div className="mt-4 grid gap-3 rounded-lg border border-border/70 p-3 text-[12px]">
-          <p className="font-medium text-foreground">
-            {t("users.linkDirectoryLocalLabel")}
-          </p>
+          <p className="font-medium text-foreground">{t("users.linkDirectoryLocalLabel")}</p>
           <p>{user.displayName}</p>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
@@ -109,9 +84,7 @@ export function LinkDirectoryIdentityDialog({
             {t("users.linkDirectoryCatalogLabel")}
           </p>
           {isLoading ? (
-            <p className="text-[12px] text-muted-foreground">
-              {t("users.linkDirectoryLoading")}
-            </p>
+            <p className="text-[12px] text-muted-foreground">{t("users.linkDirectoryLoading")}</p>
           ) : (
             <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
               {catalogUsers.map((entry) => (
@@ -150,11 +123,7 @@ export function LinkDirectoryIdentityDialog({
           </p>
         ) : null}
         <div className="mt-auto flex justify-end gap-2 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t("users.linkDirectoryCancel")}
           </Button>
           <Button

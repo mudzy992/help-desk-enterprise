@@ -55,7 +55,11 @@ const emptyDraft: Draft = {
 };
 
 /** Paket 2.9 (K1a): category administration (knowledge.category.manage). */
-export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: KnowledgeCategoriesManagerProperties) {
+export function KnowledgeCategoriesManager({
+  open,
+  onOpenChange,
+  onChanged,
+}: KnowledgeCategoriesManagerProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [categories, setCategories] = useState<readonly KnowledgeCategory[]>([]);
@@ -83,7 +87,8 @@ export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: Kn
   const parentOptions = categories.filter(
     (category) => category.parentId === null && !category.isArchived && category.id !== draft.id,
   );
-  const draftHasChildren = draft.id !== null && categories.some((category) => category.parentId === draft.id);
+  const draftHasChildren =
+    draft.id !== null && categories.some((category) => category.parentId === draft.id);
   const sortOrder = Number(draft.sortOrder);
   const canSave =
     draft.nameBs.trim().length > 0 &&
@@ -161,12 +166,16 @@ export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: Kn
         {knowledgeCategoryName(category, i18n.language)}
         <span className="ml-1.5 text-[11px] text-muted-foreground">{category.key}</span>
       </span>
-      {category.isArchived ? <Badge tone="neutral">{t("knowledgeBase.portal.categories.archived")}</Badge> : null}
+      {category.isArchived ? (
+        <Badge tone="neutral">{t("knowledgeBase.portal.categories.archived")}</Badge>
+      ) : null}
       <Button
         type="button"
         size="icon"
         variant="ghost"
-        aria-label={t("knowledgeBase.portal.categories.edit", { name: knowledgeCategoryName(category, i18n.language) })}
+        aria-label={t("knowledgeBase.portal.categories.edit", {
+          name: knowledgeCategoryName(category, i18n.language),
+        })}
         onClick={() => edit(category)}
       >
         <Pencil size={13} aria-hidden="true" />
@@ -176,12 +185,18 @@ export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: Kn
         size="icon"
         variant="ghost"
         aria-label={t(
-          category.isArchived ? "knowledgeBase.portal.categories.restore" : "knowledgeBase.portal.categories.archive",
+          category.isArchived
+            ? "knowledgeBase.portal.categories.restore"
+            : "knowledgeBase.portal.categories.archive",
           { name: knowledgeCategoryName(category, i18n.language) },
         )}
         onClick={() => void toggleArchived(category)}
       >
-        {category.isArchived ? <RotateCcw size={13} aria-hidden="true" /> : <Archive size={13} aria-hidden="true" />}
+        {category.isArchived ? (
+          <RotateCcw size={13} aria-hidden="true" />
+        ) : (
+          <Archive size={13} aria-hidden="true" />
+        )}
       </Button>
     </li>
   );
@@ -196,9 +211,14 @@ export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: Kn
 
         <ul className="mt-4 grid gap-1.5" data-testid="knowledge-category-list">
           {tree.length === 0 ? (
-            <li className="text-[12px] text-muted-foreground">{t("knowledgeBase.portal.categories.none")}</li>
+            <li className="text-[12px] text-muted-foreground">
+              {t("knowledgeBase.portal.categories.none")}
+            </li>
           ) : (
-            tree.flatMap((node) => [row(node, false), ...node.children.map((child) => row(child, true))])
+            tree.flatMap((node) => [
+              row(node, false),
+              ...node.children.map((child) => row(child, true)),
+            ])
           )}
         </ul>
 
@@ -230,17 +250,26 @@ export function KnowledgeCategoriesManager({ open, onOpenChange, onChanged }: Kn
               onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })}
             />
           </Field>
-          <Field label={t("knowledgeBase.portal.categories.key")} hint={t("knowledgeBase.portal.categories.keyHint")} required>
+          <Field
+            label={t("knowledgeBase.portal.categories.key")}
+            hint={t("knowledgeBase.portal.categories.keyHint")}
+            required
+          >
             <Input
               value={draft.key}
               maxLength={64}
               required
-              onChange={(event) => setDraft({ ...draft, key: event.target.value.toLowerCase(), keyTouched: true })}
+              onChange={(event) =>
+                setDraft({ ...draft, key: event.target.value.toLowerCase(), keyTouched: true })
+              }
             />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("knowledgeBase.portal.categories.icon")}>
-              <Select value={draft.icon} onChange={(event) => setDraft({ ...draft, icon: event.target.value })}>
+              <Select
+                value={draft.icon}
+                onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
+              >
                 {knowledgeCategoryIconNames.map((name) => (
                   <option key={name} value={name}>
                     {name}

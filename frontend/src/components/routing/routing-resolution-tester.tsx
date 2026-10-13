@@ -8,10 +8,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import { useRoutingCatalog } from "@/lib/routing/use-routing-catalog";
-import {
-  resolveRouting,
-  type RoutingResolution,
-} from "@/services/routing-api";
+import { resolveRouting, type RoutingResolution } from "@/services/routing-api";
 
 export function RoutingResolutionTester() {
   const { t } = useTranslation();
@@ -66,27 +63,19 @@ export function RoutingResolutionTester() {
   }, [originUnitId, serviceId]);
 
   const originLabel =
-    catalog.originUnits.find((unit) => unit.id === originUnitId)?.label ??
-    originUnitId;
+    catalog.originUnits.find((unit) => unit.id === originUnitId)?.label ?? originUnitId;
   const serviceLabel =
-    catalog.services.find((service) => service.id === serviceId)?.name ??
-    serviceId;
+    catalog.services.find((service) => service.id === serviceId)?.name ?? serviceId;
   const groupLabel =
     resolution?.groupId == null
       ? null
-      : (catalog.groups.find((group) => group.id === resolution.groupId)?.name ??
-        null);
+      : (catalog.groups.find((group) => group.id === resolution.groupId)?.name ?? null);
 
   if (catalog.isLoading) {
     return <PanelSkeleton label={t("routing.tabTester")} />;
   }
   if (catalog.errorKey) {
-    return (
-      <ApiErrorText
-        messageKey={catalog.errorKey}
-        requestId={catalog.requestId}
-      />
-    );
+    return <ApiErrorText messageKey={catalog.errorKey} requestId={catalog.requestId} />;
   }
 
   return (
@@ -97,15 +86,8 @@ export function RoutingResolutionTester() {
           subtitle={t("routing.testerInputSubtitle")}
         />
         <div className="fade-in space-y-4 px-4 py-4">
-          <Field
-            label={t("routing.originUnitId")}
-            hint={t("routing.testerOriginHint")}
-            required
-          >
-            <Select
-              value={originUnitId}
-              onChange={(event) => setOriginUnitId(event.target.value)}
-            >
+          <Field label={t("routing.originUnitId")} hint={t("routing.testerOriginHint")} required>
+            <Select value={originUnitId} onChange={(event) => setOriginUnitId(event.target.value)}>
               {catalog.originUnits.map((unit) => (
                 <option key={unit.id} value={unit.id}>
                   {unit.label}
@@ -114,10 +96,7 @@ export function RoutingResolutionTester() {
             </Select>
           </Field>
           <Field label={t("routing.serviceId")} required>
-            <Select
-              value={serviceId}
-              onChange={(event) => setServiceId(event.target.value)}
-            >
+            <Select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
               {catalog.services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}

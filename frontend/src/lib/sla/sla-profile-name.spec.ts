@@ -32,7 +32,7 @@ describe("SLA profile names", () => {
   });
 
   it("uses the localized label for a built-in profile", () => {
-    const translate = vi.fn((key: string) => key === "sla.profileNames.ACCESS" ? "Pristup" : key);
+    const translate = vi.fn((key: string) => (key === "sla.profileNames.ACCESS" ? "Pristup" : key));
 
     expect(formatSlaProfileName("ACCESS", "Access", translate)).toBe("Pristup");
     expect(translate).toHaveBeenCalledWith("sla.profileNames.ACCESS", { defaultValue: "Access" });
@@ -41,7 +41,9 @@ describe("SLA profile names", () => {
   it("preserves customized and unknown profile names", () => {
     const translate = vi.fn((key: string) => key);
 
-    expect(formatSlaProfileName("ACCESS", "Privileged Access", translate)).toBe("Privileged Access");
+    expect(formatSlaProfileName("ACCESS", "Privileged Access", translate)).toBe(
+      "Privileged Access",
+    );
     expect(formatSlaProfileName("CUSTOM", "Custom workflow", translate)).toBe("Custom workflow");
     expect(translate).not.toHaveBeenCalled();
   });

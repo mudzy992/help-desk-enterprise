@@ -38,10 +38,7 @@ describe("select-baseline-sla-rules", () => {
       }),
     ];
 
-    expect(selectBaselineSlaRules(rules).map((item) => item.id)).toEqual([
-      "c1",
-      "b0",
-    ]);
+    expect(selectBaselineSlaRules(rules).map((item) => item.id)).toEqual(["c1", "b0"]);
     expect(selectOverrideSlaRules(rules).map((item) => item.id)).toEqual(["o1"]);
   });
 });

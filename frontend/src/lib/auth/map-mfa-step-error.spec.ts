@@ -12,9 +12,15 @@ describe("MFA intermediate-step error mapping (5.2.1 M2 #5)", () => {
   it("keeps actual code, enrollment and rate-limit errors distinct", () => {
     expect(mapMfaCodeError(new ApiError(401, "MFA_INVALID_CODE", "invalid"))).toBe("invalid");
     expect(mapMfaCodeError(new ApiError(400, "MFA_ENROLLMENT_EXPIRED", "expired"))).toBe("expired");
-    expect(mapMfaCodeError(new ApiError(429, "MFA_TOO_MANY_ATTEMPTS", "limited"))).toBe("rateLimited");
-    expect(mapMfaCodeError(new ApiError(401, "MFA_RECOVERY_CODES_EXHAUSTED", "empty"))).toBe("recoveryCodesExhausted");
-    expect(mapMfaEnrollmentLoadError(new ApiError(503, "MFA_UNAVAILABLE", "unavailable"))).toBe("unavailable");
+    expect(mapMfaCodeError(new ApiError(429, "MFA_TOO_MANY_ATTEMPTS", "limited"))).toBe(
+      "rateLimited",
+    );
+    expect(mapMfaCodeError(new ApiError(401, "MFA_RECOVERY_CODES_EXHAUSTED", "empty"))).toBe(
+      "recoveryCodesExhausted",
+    );
+    expect(mapMfaEnrollmentLoadError(new ApiError(503, "MFA_UNAVAILABLE", "unavailable"))).toBe(
+      "unavailable",
+    );
   });
 
   it("never surfaces raw server details for an unrecognized failure", () => {
@@ -23,7 +29,9 @@ describe("MFA intermediate-step error mapping (5.2.1 M2 #5)", () => {
   });
 
   it("maps the human-check codes before the generic 400 (5.4.1 closeout)", () => {
-    expect(mapMfaCodeError(new ApiError(400, "CAPTCHA_REQUIRED", "required"))).toBe("captchaRequired");
+    expect(mapMfaCodeError(new ApiError(400, "CAPTCHA_REQUIRED", "required"))).toBe(
+      "captchaRequired",
+    );
     expect(mapMfaCodeError(new ApiError(400, "CAPTCHA_FAILED", "failed"))).toBe("captchaFailed");
   });
 });

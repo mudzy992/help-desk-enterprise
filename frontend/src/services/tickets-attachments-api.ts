@@ -35,19 +35,11 @@ export function uploadTicketAttachment(
   });
 }
 
-export function downloadTicketAttachment(
-  ticketId: string,
-  attachmentId: string,
-): Promise<Blob> {
-  return apiBlobRequest(
-    `/tickets/${ticketId}/attachments/${attachmentId}/content`,
-  );
+export function downloadTicketAttachment(ticketId: string, attachmentId: string): Promise<Blob> {
+  return apiBlobRequest(`/tickets/${ticketId}/attachments/${attachmentId}/content`);
 }
 
-export function deleteTicketAttachment(
-  ticketId: string,
-  attachmentId: string,
-): Promise<void> {
+export function deleteTicketAttachment(ticketId: string, attachmentId: string): Promise<void> {
   return apiRequest(`/tickets/${ticketId}/attachments/${attachmentId}`, {
     method: "DELETE",
   });

@@ -11,10 +11,7 @@ import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketActivityKind } from "@/lib/tickets/ticket-system-events";
 import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
-import type {
-  TicketHistoryEntry,
-  TicketPublicActivityEntry,
-} from "@/services/tickets-context-api";
+import type { TicketHistoryEntry, TicketPublicActivityEntry } from "@/services/tickets-context-api";
 
 const kindChipClass: Readonly<Record<TicketActivityKind, string>> = {
   sla: "border-warning/30 bg-warning/10 text-warning",
@@ -116,9 +113,7 @@ function ActivityRow({
           <span className="text-muted-foreground">·</span> {item.text}
         </p>
         {item.note !== null ? (
-          <p className="mt-0.5 text-[12px] italic leading-5 text-muted-foreground">
-            {item.note}
-          </p>
+          <p className="mt-0.5 text-[12px] italic leading-5 text-muted-foreground">{item.note}</p>
         ) : null}
         <p className="tnum mt-1 text-[11px] text-muted-foreground">
           {formatTicketTimestamp(item.at, locale)}

@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { controlCompactClassName } from "@/components/ui/control";
 import { ResponsiveSurface } from "@/components/ui/responsive-surface";
 import { groupCategoryEntries } from "@/lib/settings/group-category-entries";
-import { resolveRegistryGroupTitle, resolveRegistryTitle } from "@/lib/settings/resolve-registry-i18n";
+import {
+  resolveRegistryGroupTitle,
+  resolveRegistryTitle,
+} from "@/lib/settings/resolve-registry-i18n";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
@@ -74,9 +77,7 @@ export function SettingsCategoryDialog({
         onOpenChange={onOpenChange}
         testId="settings-category-dialog"
         title={title}
-        description={
-          description ?? t("settings.drawer.categoryDescription", { category: title })
-        }
+        description={description ?? t("settings.drawer.categoryDescription", { category: title })}
       >
         {entries.length >= searchFromEntries ? (
           <label className="mb-3 flex items-center gap-2">
@@ -102,11 +103,7 @@ export function SettingsCategoryDialog({
               const groupTitle =
                 group.groupId === null
                   ? null
-                  : resolveRegistryGroupTitle(
-                      t,
-                      group.entries[0]?.categoryId ?? "",
-                      group.groupId,
-                    );
+                  : resolveRegistryGroupTitle(t, group.entries[0]?.categoryId ?? "", group.groupId);
               return (
                 <section key={group.groupId ?? "ungrouped"}>
                   {groupTitle === null ? null : (
@@ -117,10 +114,7 @@ export function SettingsCategoryDialog({
                   <ul className="divide-y divide-border/60 rounded-lg border border-border/70">
                     {group.entries.map((entry) => (
                       <li key={entry.key}>
-                        <SettingsRegistryRow
-                          entry={entry}
-                          onOpen={() => setOpenKey(entry.key)}
-                        />
+                        <SettingsRegistryRow entry={entry} onOpen={() => setOpenKey(entry.key)} />
                       </li>
                     ))}
                   </ul>
@@ -130,12 +124,7 @@ export function SettingsCategoryDialog({
           </div>
         )}
         <div className="mt-4 flex justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            size="xs"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="secondary" size="xs" onClick={() => onOpenChange(false)}>
             {t("ui.close")}
           </Button>
         </div>

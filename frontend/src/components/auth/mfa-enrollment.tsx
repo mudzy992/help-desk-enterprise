@@ -37,7 +37,11 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
         if (!active) return;
         setSecret(value);
         const qrcode = await import("qrcode");
-        const url = await qrcode.toDataURL(value.otpauthUri, { margin: 1, width: 192, errorCorrectionLevel: "M" });
+        const url = await qrcode.toDataURL(value.otpauthUri, {
+          margin: 1,
+          width: 192,
+          errorCorrectionLevel: "M",
+        });
         if (active) setQrDataUrl(url);
       })
       .catch((error: unknown) => {
@@ -88,12 +92,18 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
             className="rounded-md border border-border bg-surface p-1"
           />
         ) : (
-          <div className="size-48 animate-pulse rounded-md border border-border bg-elevated/60" aria-hidden="true" />
+          <div
+            className="size-48 animate-pulse rounded-md border border-border bg-elevated/60"
+            aria-hidden="true"
+          />
         )}
         {secret ? (
           <div className="text-center">
             <p className="text-[11.5px] text-muted-foreground">{t("auth.mfa.manualKey")}</p>
-            <code className="tnum select-all break-all text-[12.5px] font-medium text-foreground" data-testid="mfa-secret">
+            <code
+              className="tnum select-all break-all text-[12.5px] font-medium text-foreground"
+              data-testid="mfa-secret"
+            >
               {groupSecret(secret.secret)}
             </code>
           </div>

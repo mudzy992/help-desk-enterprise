@@ -2,11 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  tableWrapClassName,
-} from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
 import { truncateQueueError } from "@/lib/queue/truncate-queue-error";

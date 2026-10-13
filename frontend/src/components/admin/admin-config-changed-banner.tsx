@@ -32,7 +32,13 @@ export function AdminConfigChangedBanner({
       <Button type="button" size="xs" variant="outline" onClick={onRefresh}>
         {t("adminRealtime.refresh")}
       </Button>
-      <Button type="button" size="xs" variant="ghost" onClick={onDismiss} aria-label={t("adminRealtime.dismiss")}>
+      <Button
+        type="button"
+        size="xs"
+        variant="ghost"
+        onClick={onDismiss}
+        aria-label={t("adminRealtime.dismiss")}
+      >
         <X size={12} />
       </Button>
     </div>

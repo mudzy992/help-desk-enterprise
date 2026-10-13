@@ -47,14 +47,21 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
 
   if (error) {
     return (
-      <p className={error === "forbidden" ? "text-[12.5px] text-muted-foreground" : errorTextClassName}>
+      <p
+        className={
+          error === "forbidden" ? "text-[12.5px] text-muted-foreground" : errorTextClassName
+        }
+      >
         {t(error === "forbidden" ? "users.security.forbidden" : "users.security.loadFailed")}
       </p>
     );
   }
   if (security === null) return null;
 
-  const run = async (action: () => Promise<unknown>, successKey: "users.security.mfaResetDone" | "users.security.sessionsRevokedDone") => {
+  const run = async (
+    action: () => Promise<unknown>,
+    successKey: "users.security.mfaResetDone" | "users.security.sessionsRevokedDone",
+  ) => {
     setIsBusy(true);
     try {
       await action();
@@ -85,11 +92,15 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
               {t("account.security.mfaOff")}
             </Badge>
           )}
-          {security.mfa.requirement === "required" ? <Badge tone="warning">{t("account.security.mfaRequired")}</Badge> : null}
+          {security.mfa.requirement === "required" ? (
+            <Badge tone="warning">{t("account.security.mfaRequired")}</Badge>
+          ) : null}
           {security.mfa.enabled ? (
             <>
               <span className="text-muted-foreground">
-                {t("account.security.recoveryRemaining", { count: security.mfa.recoveryCodesRemaining })}
+                {t("account.security.recoveryRemaining", {
+                  count: security.mfa.recoveryCodesRemaining,
+                })}
               </span>
               {security.mfa.recoveryCodesRemaining === 0 ? (
                 <span className="text-warning">{t("account.security.recoveryCodesMissing")}</span>
@@ -98,7 +109,11 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
           ) : null}
         </dd>
         <dt className="text-muted-foreground">{t("users.security.passwordChanged")}</dt>
-        <dd>{security.passwordChangedAt ? formatTicketTimestamp(security.passwordChangedAt, locale) : "—"}</dd>
+        <dd>
+          {security.passwordChangedAt
+            ? formatTicketTimestamp(security.passwordChangedAt, locale)
+            : "—"}
+        </dd>
         {security.passwordExpiresAt ? (
           <>
             <dt className="text-muted-foreground">{t("users.security.passwordExpires")}</dt>
@@ -134,10 +149,17 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
         confirmLabel={t("users.security.resetMfaConfirm")}
         intent="danger"
         isPending={isBusy || reason.trim().length < 5}
-        onConfirm={() => void run(() => resetUserMfa(userId, reason.trim()), "users.security.mfaResetDone")}
+        onConfirm={() =>
+          void run(() => resetUserMfa(userId, reason.trim()), "users.security.mfaResetDone")
+        }
       >
         <Field label={t("users.security.reason")} required hint={t("users.security.reasonHint")}>
-          <Textarea rows={2} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+          <Textarea
+            rows={2}
+            value={reason}
+            maxLength={500}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </Field>
       </ConfirmDialog>
       <ConfirmDialog
@@ -148,7 +170,9 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
         confirmLabel={t("users.security.revokeAllConfirm")}
         intent="danger"
         isPending={isBusy}
-        onConfirm={() => void run(() => revokeUserSessions(userId), "users.security.sessionsRevokedDone")}
+        onConfirm={() =>
+          void run(() => revokeUserSessions(userId), "users.security.sessionsRevokedDone")
+        }
       />
     </div>
   );

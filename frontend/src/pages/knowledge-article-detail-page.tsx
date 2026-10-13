@@ -21,9 +21,8 @@ export function KnowledgeArticleDetailPage() {
   const { t } = useTranslation();
   const { articleId } = useParams<{ articleId: string }>();
   const directory = useDirectory();
-  const { isSuperAdmin, canWrite, canManageLifecycle } = resolveKnowledgeCapabilities(
-    useSessionCapabilities(),
-  );
+  const { isSuperAdmin, canWrite, canManageLifecycle } =
+    resolveKnowledgeCapabilities(useSessionCapabilities());
   const detail = useKnowledgeArticle(articleId);
   const ownerNames = useMemo(
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
@@ -64,11 +63,7 @@ export function KnowledgeArticleDetailPage() {
   return (
     <section>
       <PageHeader
-        crumbs={[
-          brandCrumb,
-          t("navigation.sections.services"),
-          articleTitle,
-        ]}
+        crumbs={[brandCrumb, t("navigation.sections.services"), articleTitle]}
         title={articleTitle}
         actions={
           <Button variant="outline" size="sm" asChild>

@@ -29,11 +29,16 @@ export function setProductName(name: string): void {
   productName = next;
   if (typeof document === "undefined" || previous === next) return;
   const suffix = `${SEPARATOR}${previous}`;
-  if (document.title === previous || document.title.startsWith(`${previous} — `)) document.title = next;
-  else if (document.title.endsWith(suffix)) document.title = `${document.title.slice(0, -suffix.length)}${SEPARATOR}${next}`;
+  if (document.title === previous || document.title.startsWith(`${previous} — `))
+    document.title = next;
+  else if (document.title.endsWith(suffix))
+    document.title = `${document.title.slice(0, -suffix.length)}${SEPARATOR}${next}`;
 }
 
-export function formatDocumentTitle(parts: readonly (string | null | undefined)[], product: string): string {
+export function formatDocumentTitle(
+  parts: readonly (string | null | undefined)[],
+  product: string,
+): string {
   const clean = parts
     .map((part) => (part ?? "").replace(/\s+/g, " ").trim())
     .filter((part) => part.length > 0 && part !== product);

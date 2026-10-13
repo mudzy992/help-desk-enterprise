@@ -59,7 +59,15 @@ import {
 } from "@/services/assets-api";
 
 const pageSize = 50;
-const assetsTabs = ["register", "overview", "transfers", "licenses", "contracts", "import", "catalog"] as const;
+const assetsTabs = [
+  "register",
+  "overview",
+  "transfers",
+  "licenses",
+  "contracts",
+  "import",
+  "catalog",
+] as const;
 type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
@@ -69,16 +77,28 @@ const searchDelayMs = 300;
  */
 export function AssetsPage() {
   const { t } = useTranslation();
-  const { data: capabilities, isLoading, error } = useQuery({
+  const {
+    data: capabilities,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: assetQueryKeys.capabilities,
     queryFn: getAssetCapabilities,
     retry: false,
   });
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const tab: AssetsTab = assetsTabs.includes(requestedTab as AssetsTab) ? (requestedTab as AssetsTab) : "register";
+  const tab: AssetsTab = assetsTabs.includes(requestedTab as AssetsTab)
+    ? (requestedTab as AssetsTab)
+    : "register";
 
-  const header = <PageHeader crumbs={[t("navigation.sections.services")]} title={t("assets.title")} subtitle={t("assets.subtitle")} />;
+  const header = (
+    <PageHeader
+      crumbs={[t("navigation.sections.services")]}
+      title={t("assets.title")}
+      subtitle={t("assets.subtitle")}
+    />
+  );
 
   if (isLoading) {
     return (
@@ -92,7 +112,11 @@ export function AssetsPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<Boxes size={18} />} title={t("assets.disabledTitle")} body={t("assets.disabledBody")} />
+        <EmptyState
+          icon={<Boxes size={18} />}
+          title={t("assets.disabledTitle")}
+          body={t("assets.disabledBody")}
+        />
       </section>
     );
   }
@@ -100,7 +124,11 @@ export function AssetsPage() {
     return (
       <section>
         {header}
-        <EmptyState icon={<Boxes size={18} />} title={t("assets.forbiddenTitle")} body={t("assets.forbiddenBody")} />
+        <EmptyState
+          icon={<Boxes size={18} />}
+          title={t("assets.forbiddenTitle")}
+          body={t("assets.forbiddenBody")}
+        />
       </section>
     );
   }
@@ -111,15 +139,27 @@ export function AssetsPage() {
         <UnderlineTabs
           items={[
             { key: "register", label: t("assets.tabs.register") },
-            ...(capabilities.canReadReports ? [{ key: "overview", label: t("assets.tabs.overview") }] : []),
+            ...(capabilities.canReadReports
+              ? [{ key: "overview", label: t("assets.tabs.overview") }]
+              : []),
             { key: "transfers", label: t("assets.tabs.transfers") },
             { key: "licenses", label: t("assets.tabs.licenses") },
             { key: "contracts", label: t("assets.tabs.contracts") },
             ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
-            ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
+            ...(capabilities.canManageTypes
+              ? [{ key: "catalog", label: t("assets.tabs.catalog") }]
+              : []),
           ]}
-          active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) || (tab === "overview" && !capabilities.canReadReports) ? "register" : tab}
-          onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
+          active={
+            (tab === "catalog" && !capabilities.canManageTypes) ||
+            (tab === "import" && !capabilities.canImport) ||
+            (tab === "overview" && !capabilities.canReadReports)
+              ? "register"
+              : tab
+          }
+          onChange={(key) =>
+            setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })
+          }
         />
         {tab === "overview" && capabilities.canReadReports ? (
           <AssetOverviewPanel />
@@ -167,12 +207,23 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim().length >= 2 ? searchText.trim() : ""), searchDelayMs);
+    const handle = window.setTimeout(
+      () => setSearch(searchText.trim().length >= 2 ? searchText.trim() : ""),
+      searchDelayMs,
+    );
     return () => window.clearTimeout(handle);
   }, [searchText]);
 
-  const catalogQuery = useQuery({ queryKey: assetQueryKeys.catalog(false), queryFn: () => getAssetCatalog(false), retry: false });
-  const optionsQuery = useQuery({ queryKey: assetQueryKeys.options, queryFn: getAssetOptions, retry: false });
+  const catalogQuery = useQuery({
+    queryKey: assetQueryKeys.catalog(false),
+    queryFn: () => getAssetCatalog(false),
+    retry: false,
+  });
+  const optionsQuery = useQuery({
+    queryKey: assetQueryKeys.options,
+    queryFn: getAssetOptions,
+    retry: false,
+  });
 
   const filters: AssetListFilters = useMemo(
     () => ({
@@ -186,7 +237,16 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
       unassigned: unassigned || undefined,
       limit: pageSize,
     }),
-    [search, typeId, status, organizationalUnitId, locationId, source, warrantyExpiring, unassigned],
+    [
+      search,
+      typeId,
+      status,
+      organizationalUnitId,
+      locationId,
+      source,
+      warrantyExpiring,
+      unassigned,
+    ],
   );
 
   const listQuery = useInfiniteQuery({
@@ -199,7 +259,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const locationRows = flattenLocationTree(catalogQuery.data?.locations ?? []).filter((row) => row.location.archivedAt === null);
+  const locationRows = flattenLocationTree(catalogQuery.data?.locations ?? []).filter(
+    (row) => row.location.archivedAt === null,
+  );
   const bulkPlan = planBulkMove([...selected.values()]);
   const pageSelected = items.length > 0 && items.every((item) => selected.has(item.id));
 
@@ -226,7 +288,15 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
   }
 
-  const advancedCount = [typeId, status, organizationalUnitId, locationId, source, warrantyExpiring, unassigned].filter(Boolean).length;
+  const advancedCount = [
+    typeId,
+    status,
+    organizationalUnitId,
+    locationId,
+    source,
+    warrantyExpiring,
+    unassigned,
+  ].filter(Boolean).length;
   const hasFilters = Boolean(search) || advancedCount > 0;
 
   function resetFilters() {
@@ -246,7 +316,12 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     try {
       await exportAssets(filters, format, i18n.language.startsWith("en") ? "en" : "bs");
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.export.failed"), description: t(mapAssetError(caught) ?? mapApiError(caught)), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.export.failed"),
+        description: t(mapAssetError(caught) ?? mapApiError(caught)),
+        error: caught,
+      });
     } finally {
       setExporting(null);
     }
@@ -265,19 +340,19 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         onReset={resetFilters}
         actions={
           <>
-              {(["xlsx", "csv"] as const).map((format) => (
-                <Button
-                  key={format}
-                  variant="outline"
-                  size="sm"
-                  disabled={exporting !== null || total === 0}
-                  onClick={() => void runExport(format)}
-                  aria-label={t("assets.export.label", { format: format.toUpperCase() })}
-                >
-                  <Download size={14} aria-hidden="true" />
-                  {exporting === format ? t("ui.loading") : format.toUpperCase()}
-                </Button>
-              ))}
+            {(["xlsx", "csv"] as const).map((format) => (
+              <Button
+                key={format}
+                variant="outline"
+                size="sm"
+                disabled={exporting !== null || total === 0}
+                onClick={() => void runExport(format)}
+                aria-label={t("assets.export.label", { format: format.toUpperCase() })}
+              >
+                <Download size={14} aria-hidden="true" />
+                {exporting === format ? t("ui.loading") : format.toUpperCase()}
+              </Button>
+            ))}
             {canManage ? (
               <Button
                 variant="primary"
@@ -293,7 +368,12 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         }
       >
         <FilterField label={t("assets.fields.type")}>
-          <select className={`${selectCompactClassName} w-full`} aria-label={t("assets.fields.type")} value={typeId} onChange={(event) => setTypeId(event.target.value)}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.fields.type")}
+            value={typeId}
+            onChange={(event) => setTypeId(event.target.value)}
+          >
             <option value="">{t("assets.list.allTypes")}</option>
             {(catalogQuery.data?.types ?? []).map((type) => (
               <option key={type.id} value={type.id}>
@@ -334,7 +414,12 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         </FilterField>
         {locationsEnabled ? (
           <FilterField label={t("assets.fields.location")}>
-            <select className={`${selectCompactClassName} w-full`} aria-label={t("assets.fields.location")} value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+            <select
+              className={`${selectCompactClassName} w-full`}
+              aria-label={t("assets.fields.location")}
+              value={locationId}
+              onChange={(event) => setLocationId(event.target.value)}
+            >
               <option value="">{t("assets.list.allLocations")}</option>
               {locationRows.map((row) => (
                 <option key={row.location.id} value={row.location.id}>
@@ -358,13 +443,23 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
           </select>
         </FilterField>
         <FilterToggles label={t("ui.filters.options")}>
-          <Checkbox label={t("assets.list.warrantyExpiring")} checked={warrantyExpiring} onChange={(event) => setWarrantyExpiring(event.target.checked)} />
-          <Checkbox label={t("assets.list.unassigned")} checked={unassigned} onChange={(event) => setUnassigned(event.target.checked)} />
+          <Checkbox
+            label={t("assets.list.warrantyExpiring")}
+            checked={warrantyExpiring}
+            onChange={(event) => setWarrantyExpiring(event.target.checked)}
+          />
+          <Checkbox
+            label={t("assets.list.unassigned")}
+            checked={unassigned}
+            onChange={(event) => setUnassigned(event.target.checked)}
+          />
         </FilterToggles>
       </FilterBar>
 
       <p className={hintClassName} aria-live="polite">
-        {listQuery.isLoading ? t("ui.loading") : t("assets.list.count", { count: total, shown: items.length })}
+        {listQuery.isLoading
+          ? t("ui.loading")
+          : t("assets.list.count", { count: total, shown: items.length })}
       </p>
 
       {listQuery.error ? (
@@ -374,8 +469,14 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
       ) : null}
 
       {canManage && selected.size > 0 ? (
-        <div role="region" aria-label={t("assets.bulk.region")} className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-[12.5px]">
-          <span className="font-medium text-foreground">{t("assets.bulk.selectedCount", { count: selected.size })}</span>
+        <div
+          role="region"
+          aria-label={t("assets.bulk.region")}
+          className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-[12.5px]"
+        >
+          <span className="font-medium text-foreground">
+            {t("assets.bulk.selectedCount", { count: selected.size })}
+          </span>
           {bulkPlan.kind === "warehouse" ? (
             <Button size="sm" variant="primary" onClick={() => setBulkSheet("assign")}>
               {t("assets.actions.assign")}
@@ -391,9 +492,20 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
               </Button>
             </>
           ) : null}
-          {bulkPlan.kind === "mixed" ? <span className={hintClassName}>{t("assets.bulk.mixed")}</span> : null}
-          {bulkPlan.kind === "too_many" ? <span className={hintClassName}>{t("assets.bulk.tooMany", { max: assetBulkMoveMax })}</span> : null}
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Map())}>
+          {bulkPlan.kind === "mixed" ? (
+            <span className={hintClassName}>{t("assets.bulk.mixed")}</span>
+          ) : null}
+          {bulkPlan.kind === "too_many" ? (
+            <span className={hintClassName}>
+              {t("assets.bulk.tooMany", { max: assetBulkMoveMax })}
+            </span>
+          ) : null}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            onClick={() => setSelected(new Map())}
+          >
             {t("assets.bulk.clear")}
           </Button>
         </div>
@@ -416,17 +528,38 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                 <tr className={tableHeadClassName}>
                   {canManage ? (
                     <th scope="col" className="w-8 px-3 py-2 text-left">
-                      <input type="checkbox" checked={pageSelected} onChange={togglePage} aria-label={t("assets.bulk.selectPage")} />
+                      <input
+                        type="checkbox"
+                        checked={pageSelected}
+                        onChange={togglePage}
+                        aria-label={t("assets.bulk.selectPage")}
+                      />
                     </th>
                   ) : null}
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.assetTag")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.name")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.status")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.assignedUser")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.organizationalUnit")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.warrantyEndsAt")}</th>
-                  <th scope="col" className="px-3 py-2 text-right">{t("assets.list.openTickets")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.assetTag")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.name")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.status")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.assignedUser")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.organizationalUnit")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left">
+                    {t("assets.fields.warrantyEndsAt")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right">
+                    {t("assets.list.openTickets")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -441,7 +574,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                             type="checkbox"
                             checked={selected.has(item.id)}
                             onChange={() => toggleSelected(item)}
-                            aria-label={t("assets.bulk.select", { name: `${item.assetTag} ${item.name}` })}
+                            aria-label={t("assets.bulk.select", {
+                              name: `${item.assetTag} ${item.name}`,
+                            })}
                           />
                         </td>
                       ) : null}
@@ -452,7 +587,11 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                       </td>
                       <td className="px-3 py-2">
                         <span className="flex items-center gap-2">
-                          <Icon size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <Icon
+                            size={14}
+                            className="shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
                           <span className="min-w-0">
                             <span className="block truncate text-foreground">{item.name}</span>
                             <span className="block truncate text-[11.5px] text-muted-foreground">
@@ -463,24 +602,46 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge>
+                        <Badge tone={assetStatusTone(item.status)}>
+                          {t(assetStatusKeys[item.status])}
+                        </Badge>
                         {item.missingFromDirectoryAt ? (
                           <Badge tone="warning" className="ml-1">
                             {t("assets.list.missingFromDirectory")}
                           </Badge>
                         ) : null}
                       </td>
-                      <td className="px-3 py-2">{item.assignedUser?.displayName ?? <span className="text-muted-foreground">—</span>}</td>
+                      <td className="px-3 py-2">
+                        {item.assignedUser?.displayName ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2">{item.organizationalUnit.name}</td>
                       <td className="px-3 py-2">
-                        {locationsEnabled ? (item.location?.label ?? <span className="text-muted-foreground">—</span>) : item.organizationalUnit.path}
+                        {locationsEnabled
+                          ? (item.location?.label ?? (
+                              <span className="text-muted-foreground">—</span>
+                            ))
+                          : item.organizationalUnit.path}
                       </td>
                       <td className="px-3 py-2">
-                        <span className={warranty === "expired" ? "text-danger" : warranty === "expiring" ? "text-warning" : undefined}>
+                        <span
+                          className={
+                            warranty === "expired"
+                              ? "text-danger"
+                              : warranty === "expiring"
+                                ? "text-warning"
+                                : undefined
+                          }
+                        >
                           {formatAssetDate(item.warrantyEndsAt, i18n.language)}
                         </span>
-                        {warranty === "expiring" ? <span className="sr-only"> {t("assets.warranty.expiring")}</span> : null}
-                        {warranty === "expired" ? <span className="sr-only"> {t("assets.warranty.expired")}</span> : null}
+                        {warranty === "expiring" ? (
+                          <span className="sr-only"> {t("assets.warranty.expiring")}</span>
+                        ) : null}
+                        {warranty === "expired" ? (
+                          <span className="sr-only"> {t("assets.warranty.expired")}</span>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{item.openTicketCount}</td>
                     </tr>
@@ -494,7 +655,12 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
       {listQuery.hasNextPage ? (
         <div className="flex justify-center">
-          <Button variant="outline" size="sm" onClick={() => void listQuery.fetchNextPage()} disabled={listQuery.isFetchingNextPage}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void listQuery.fetchNextPage()}
+            disabled={listQuery.isFetchingNextPage}
+          >
             {listQuery.isFetchingNextPage ? t("ui.loading") : t("assets.list.loadMore")}
           </Button>
         </div>
@@ -505,7 +671,11 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
           <AssetAssignSheet
             open={bulkSheet === "assign"}
             onOpenChange={(open) => (open ? undefined : setBulkSheet(null))}
-            asset={{ id: bulkPlan.ids[0], assignedUser: bulkPlan.kind === "holder" ? bulkPlan.holder : null, assetIds: bulkPlan.ids }}
+            asset={{
+              id: bulkPlan.ids[0],
+              assignedUser: bulkPlan.kind === "holder" ? bulkPlan.holder : null,
+              assetIds: bulkPlan.ids,
+            }}
             onDone={bulkDone}
           />
           {bulkPlan.kind === "holder" ? (

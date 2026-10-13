@@ -1,10 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  tableWrapClassName,
-} from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import { formatNumber } from "@/lib/reports/report-format";
 import type { SlaRule } from "@/services/sla-api";
@@ -40,30 +36,26 @@ export function SlaRulesTable({
         <tbody>
           {rules.map((rule) => (
             <tr key={rule.id} className={tableRowClassName}>
-              <td className="px-4 text-[12.5px]">
-                {t(slaPriorityLabelKey(rule.priority))}
+              <td className="px-4 text-[12.5px]">{t(slaPriorityLabelKey(rule.priority))}</td>
+              <td className="px-4 tnum text-[12.5px]">
+                {formatNumber(rule.responseMinutes, i18n.language)}
               </td>
-              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.responseMinutes, i18n.language)}</td>
-              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.resolutionMinutes, i18n.language)}</td>
-              <td className="px-4 tnum text-[12.5px]">{formatNumber(rule.evaluationOrder, i18n.language)}</td>
+              <td className="px-4 tnum text-[12.5px]">
+                {formatNumber(rule.resolutionMinutes, i18n.language)}
+              </td>
+              <td className="px-4 tnum text-[12.5px]">
+                {formatNumber(rule.evaluationOrder, i18n.language)}
+              </td>
               <td className="px-4 text-[12px] text-muted-foreground">
                 {[rule.serviceName, rule.organizationalUnitPath].filter(Boolean).join(" · ") ||
                   t("sla.matchDefault")}
               </td>
               {!readOnly ? (
                 <td className="px-4 text-right">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => onEdit?.(rule)}
-                  >
+                  <Button variant="ghost" size="xs" onClick={() => onEdit?.(rule)}>
                     {t("sla.edit")}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => onDelete?.(rule)}
-                  >
+                  <Button variant="ghost" size="xs" onClick={() => onDelete?.(rule)}>
                     {t("sla.delete")}
                   </Button>
                 </td>

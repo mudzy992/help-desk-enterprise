@@ -40,7 +40,11 @@ export type NotificationPreferenceCategory = {
   readonly inAppLocked: boolean;
   readonly emailLocked: boolean;
   readonly customized: boolean;
-  readonly defaults: { readonly inApp: boolean; readonly email: NotificationEmailMode; readonly teams?: boolean };
+  readonly defaults: {
+    readonly inApp: boolean;
+    readonly email: NotificationEmailMode;
+    readonly teams?: boolean;
+  };
 };
 
 export type NotificationSchedule = {
@@ -80,7 +84,11 @@ export type NotificationPreferencesUpdate = {
 
 export type NotificationPreferencesSummary = {
   readonly customizedCategories: number;
-  readonly quietHours: { readonly start: string; readonly end: string; readonly weekends: boolean } | null;
+  readonly quietHours: {
+    readonly start: string;
+    readonly end: string;
+    readonly weekends: boolean;
+  } | null;
   readonly digestTime: string | null;
   readonly pendingItems: number;
 };
@@ -93,12 +101,15 @@ const json = (method: string, body?: unknown): RequestInit => ({
 
 export const getNotificationPreferences = (): Promise<NotificationPreferences> => apiRequest(path);
 
-export const updateNotificationPreferences = (input: NotificationPreferencesUpdate): Promise<NotificationPreferences> =>
-  apiRequest(path, json("PUT", input));
+export const updateNotificationPreferences = (
+  input: NotificationPreferencesUpdate,
+): Promise<NotificationPreferences> => apiRequest(path, json("PUT", input));
 
-export const resetNotificationPreferences = (): Promise<NotificationPreferences> => apiRequest(path, json("DELETE"));
+export const resetNotificationPreferences = (): Promise<NotificationPreferences> =>
+  apiRequest(path, json("DELETE"));
 
-export const sendTestDigest = (): Promise<{ sent: true }> => apiRequest(`${path}/test-digest`, json("POST"));
+export const sendTestDigest = (): Promise<{ sent: true }> =>
+  apiRequest(`${path}/test-digest`, json("POST"));
 
 /** Paket 2.2a: AGENT+ — sends the weekly ticket report now, marked [TEST]. */
 export const sendTestWeeklyReport = (): Promise<{ sent: true }> =>
@@ -107,7 +118,9 @@ export const sendTestWeeklyReport = (): Promise<{ sent: true }> =>
 /** Scheduled reports are already a summary: no "in digest" choice. */
 export const scheduledReportCategoryKeys: readonly string[] = ["report.weeklyTickets"];
 
-export const getUserNotificationPreferences = (userId: string): Promise<NotificationPreferencesSummary> =>
+export const getUserNotificationPreferences = (
+  userId: string,
+): Promise<NotificationPreferencesSummary> =>
   apiRequest(`/users/${encodeURIComponent(userId)}/notification-preferences`);
 
 export const resetUserNotificationPreferences = (userId: string): Promise<void> =>
@@ -128,10 +141,21 @@ export function diffNotificationPreferences(
   const preferences = draft.categories.flatMap((category) => {
     const before = savedByKey.get(category.key);
     if (before === undefined || category.alwaysOn) return [];
-    const change: { category: string; inApp?: boolean; email?: NotificationEmailMode; teams?: boolean } = { category: category.key };
+    const change: {
+      category: string;
+      inApp?: boolean;
+      email?: NotificationEmailMode;
+      teams?: boolean;
+    } = { category: category.key };
     if (before.inApp !== category.inApp && !category.inAppLocked) change.inApp = category.inApp;
-    if (before.email !== category.email && !category.emailLocked && category.channels.email) change.email = category.email;
-    if (category.teams !== undefined && before.teams !== category.teams && category.channels.teams === true) change.teams = category.teams;
+    if (before.email !== category.email && !category.emailLocked && category.channels.email)
+      change.email = category.email;
+    if (
+      category.teams !== undefined &&
+      before.teams !== category.teams &&
+      category.channels.teams === true
+    )
+      change.teams = category.teams;
     return Object.keys(change).length > 1 ? [change] : [];
   });
   const schedule: Record<string, unknown> = {};
@@ -140,6 +164,8 @@ export function diffNotificationPreferences(
   }
   return {
     ...(preferences.length > 0 ? { preferences } : {}),
-    ...(Object.keys(schedule).length > 0 ? { schedule: schedule as Partial<NotificationSchedule> } : {}),
+    ...(Object.keys(schedule).length > 0
+      ? { schedule: schedule as Partial<NotificationSchedule> }
+      : {}),
   };
 }

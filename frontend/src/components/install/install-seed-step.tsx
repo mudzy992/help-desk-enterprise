@@ -3,21 +3,14 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import {
-  mapInstallSeedError,
-  type InstallSeedErrorKey,
-} from "@/lib/map-install-seed-error";
+import { mapInstallSeedError, type InstallSeedErrorKey } from "@/lib/map-install-seed-error";
 import {
   loadInstallSeed,
   runInstallSeed,
   type InstallSeedRecord,
 } from "@/services/install-seed-api";
 
-export function InstallSeedStep({
-  onSaved,
-}: {
-  readonly onSaved?: () => void;
-}) {
+export function InstallSeedStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallSeedRecord | null>(null);
   const [errorKey, setErrorKey] = useState<InstallSeedErrorKey | null>(null);
@@ -63,9 +56,7 @@ export function InstallSeedStep({
   if (record?.isSeeded === true) {
     return (
       <div className="grid gap-4">
-        <p className="text-body leading-6 text-muted-foreground">
-          {t("install.seed.createdBody")}
-        </p>
+        <p className="text-body leading-6 text-muted-foreground">{t("install.seed.createdBody")}</p>
         <SeedSummary record={record} />
       </div>
     );
@@ -73,9 +64,7 @@ export function InstallSeedStep({
 
   return (
     <div className="grid gap-4">
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
         <Button type="button" disabled={isSubmitting} onClick={() => void onSubmit()}>
           {isSubmitting ? t("install.seed.saving") : t("install.seed.submit")}
@@ -104,23 +93,15 @@ function SeedSummary({ record }: { readonly record: InstallSeedRecord }) {
       <SummaryRow
         label={t("install.seed.service")}
         value={
-          record.service === null
-            ? "—"
-            : `${record.service.name} (${record.service.lifecycle})`
+          record.service === null ? "—" : `${record.service.name} (${record.service.lifecycle})`
         }
       />
-      <SummaryRow
-        label={t("install.seed.routing")}
-        value={record.resolution?.outcome ?? "—"}
-      />
+      <SummaryRow label={t("install.seed.routing")} value={record.resolution?.outcome ?? "—"} />
     </dl>
   );
 }
 
-function SummaryRow(input: {
-  readonly label: string;
-  readonly value: string;
-}) {
+function SummaryRow(input: { readonly label: string; readonly value: string }) {
   return (
     <div>
       <dt className="text-metadata text-muted-foreground">{input.label}</dt>

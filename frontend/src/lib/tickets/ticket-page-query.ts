@@ -1,10 +1,7 @@
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
 import { ticketListPageSize } from "@/lib/tickets/ticket-constants";
-import type {
-  TicketCountsQuery,
-  TicketPageQuery,
-} from "@/lib/tickets/ticket-list-search-params";
+import type { TicketCountsQuery, TicketPageQuery } from "@/lib/tickets/ticket-list-search-params";
 
 /**
  * Turns the screen state of the ticket list into the server query of one page
@@ -59,9 +56,7 @@ export function toTicketPageQuery(input: {
  * no `status` (it breaks the statuses down itself), so the view narrowing is
  * carried over and the status filter is dropped.
  */
-export function toTicketCountsQuery(
-  query: TicketPageQuery,
-): TicketCountsQuery {
+export function toTicketCountsQuery(query: TicketPageQuery): TicketCountsQuery {
   return {
     originUnitId: query.originUnitId,
     serviceId: query.serviceId,

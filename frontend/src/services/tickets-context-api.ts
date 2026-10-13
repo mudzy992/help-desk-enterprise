@@ -21,12 +21,7 @@ export type TicketCandidatesResponse = {
 };
 
 export type TicketHistoryField =
-  | "status"
-  | "priority"
-  | "impact"
-  | "urgency"
-  | "assignedUser"
-  | "assignedGroup";
+  "status" | "priority" | "impact" | "urgency" | "assignedUser" | "assignedGroup";
 
 export type TicketHistoryChange = {
   readonly field: TicketHistoryField;
@@ -81,11 +76,7 @@ export type TicketAllowedActions = {
 };
 
 export type TicketSlaUnavailableReason =
-  | "NO_PROFILE"
-  | "PROFILE_INACTIVE"
-  | "NO_RULE"
-  | "NO_CALENDAR"
-  | "NOT_APPLIED";
+  "NO_PROFILE" | "PROFILE_INACTIVE" | "NO_RULE" | "NO_CALENDAR" | "NOT_APPLIED";
 
 export type TicketSlaContextResponse = {
   readonly profileName: string | null;

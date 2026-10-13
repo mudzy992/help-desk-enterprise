@@ -68,9 +68,7 @@ export function DualAreaChart({
   const baselineY = SIZE.padding.top + (SIZE.height - SIZE.padding.top - SIZE.padding.bottom);
   const max = resolvePlotMax(data.flatMap((point) => [point.a, point.b]));
   const step =
-    data.length > 1
-      ? (SIZE.width - SIZE.padding.left - SIZE.padding.right) / (data.length - 1)
-      : 0;
+    data.length > 1 ? (SIZE.width - SIZE.padding.left - SIZE.padding.right) / (data.length - 1) : 0;
 
   // Safety net for dense callers: never render more than ~8 x-axis labels per
   // row. 60 per-minute buckets belong in the minute bar strip
@@ -185,7 +183,11 @@ export function DualAreaChart({
             return (
               <span
                 key={`${point.label}-${index}`}
-                className={cn("tnum whitespace-nowrap", !visible && "hidden", onlyWide && "hidden sm:inline")}
+                className={cn(
+                  "tnum whitespace-nowrap",
+                  !visible && "hidden",
+                  onlyWide && "hidden sm:inline",
+                )}
               >
                 {point.label}
               </span>
@@ -203,14 +205,10 @@ export function DualAreaChart({
               left: `min(max(${((hover ?? 0) / Math.max(data.length - 1, 1)) * 100}%, 0px), calc(100% - 144px))`,
             }}
           >
-            <p className="text-[11px] font-semibold text-foreground">
-              {activePoint.label}
-            </p>
+            <p className="text-[11px] font-semibold text-foreground">{activePoint.label}</p>
             <p className="mt-1 flex items-center justify-between text-[11.5px] text-muted-foreground">
               {aLabel}
-              <span className="tnum font-semibold text-foreground">
-                {activePoint.a}
-              </span>
+              <span className="tnum font-semibold text-foreground">{activePoint.a}</span>
             </p>
             <p className="flex items-center justify-between text-[11.5px] text-muted-foreground">
               {bLabel}

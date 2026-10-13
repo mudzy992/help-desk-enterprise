@@ -5,7 +5,11 @@ import { Segmented } from "@/components/ui/segmented";
 import { announce } from "@/lib/a11y/announcer";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useShortcutsRegistry } from "@/lib/shortcuts/shortcuts-context";
-import { getUserPreferences, updateUserPreferences, type UserPreferences } from "@/services/user-preferences-api";
+import {
+  getUserPreferences,
+  updateUserPreferences,
+  type UserPreferences,
+} from "@/services/user-preferences-api";
 
 type ShortcutChoice = "default" | "on" | "off";
 
@@ -25,9 +29,13 @@ export function AccessibilityPreferencesCard() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const registry = useShortcutsRegistry();
-  const preferences = useQuery({ queryKey: queryKeys.userPreferences, queryFn: getUserPreferences });
+  const preferences = useQuery({
+    queryKey: queryKeys.userPreferences,
+    queryFn: getUserPreferences,
+  });
   const mutation = useMutation({
-    mutationFn: (choice: ShortcutChoice) => updateUserPreferences({ keyboardShortcuts: fromChoice(choice) }),
+    mutationFn: (choice: ShortcutChoice) =>
+      updateUserPreferences({ keyboardShortcuts: fromChoice(choice) }),
     onSuccess: (updated: UserPreferences) => {
       queryClient.setQueryData(queryKeys.userPreferences, updated);
       announce(
@@ -56,13 +64,17 @@ export function AccessibilityPreferencesCard() {
           items={[
             {
               value: "default",
-              label: roleDefault ? t("a11y.preferences.defaultOn") : t("a11y.preferences.defaultOff"),
+              label: roleDefault
+                ? t("a11y.preferences.defaultOn")
+                : t("a11y.preferences.defaultOff"),
             },
             { value: "on", label: t("a11y.preferences.on") },
             { value: "off", label: t("a11y.preferences.off") },
           ]}
         />
-        <p className="text-[12px] leading-5 text-muted-foreground">{t("a11y.preferences.shortcutsHint")}</p>
+        <p className="text-[12px] leading-5 text-muted-foreground">
+          {t("a11y.preferences.shortcutsHint")}
+        </p>
         {mutation.isError ? (
           <p role="alert" className="text-[12px] font-medium text-danger">
             {t("a11y.preferences.saveError")}

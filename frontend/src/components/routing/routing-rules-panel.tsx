@@ -10,10 +10,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import { useRoutingCatalog } from "@/lib/routing/use-routing-catalog";
-import {
-  listRoutingRules,
-  type RoutingRuleResponse,
-} from "@/services/routing-api";
+import { listRoutingRules, type RoutingRuleResponse } from "@/services/routing-api";
 
 export function RoutingRulesPanel({
   prefill,
@@ -57,60 +54,47 @@ export function RoutingRulesPanel({
 
   return (
     <div ref={containerRef}>
-    <AdminConfigChangedBanner
-      pending={live.pending}
-      onRefresh={live.refreshNow}
-      onDismiss={live.dismiss}
-    />
-    <div className="fade-in grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
-      <Card>
-        <CardHeader
-          title={t("routing.rulesHeading")}
-          subtitle={t("routing.rulesSubtitle")}
-        />
-        {isLoading ? (
-          <div className="px-4 py-3.5">
-            <PanelSkeleton className="mt-0" label={t("routing.rulesHeading")} />
-          </div>
-        ) : errorKey ? (
-          <div className="px-4 py-3.5">
-            <ApiErrorText messageKey={errorKey} requestId={requestId} />
-          </div>
-        ) : (
-          <RoutingRulesTable
-            rules={rules}
-            groups={catalog.groups}
-            onChanged={loadRules}
-          />
-        )}
-      </Card>
-      <Card>
-        <CardHeader
-          title={t("routing.createHeading")}
-          subtitle={t("routing.createSubtitle")}
-        />
-        <div className="px-4 py-4">
-          {catalog.isLoading ? (
-            <PanelSkeleton className="mt-0" label={t("routing.createHeading")} />
-          ) : catalog.errorKey ? (
-            <ApiErrorText
-              messageKey={catalog.errorKey}
-              requestId={catalog.requestId}
-            />
+      <AdminConfigChangedBanner
+        pending={live.pending}
+        onRefresh={live.refreshNow}
+        onDismiss={live.dismiss}
+      />
+      <div className="fade-in grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
+        <Card>
+          <CardHeader title={t("routing.rulesHeading")} subtitle={t("routing.rulesSubtitle")} />
+          {isLoading ? (
+            <div className="px-4 py-3.5">
+              <PanelSkeleton className="mt-0" label={t("routing.rulesHeading")} />
+            </div>
+          ) : errorKey ? (
+            <div className="px-4 py-3.5">
+              <ApiErrorText messageKey={errorKey} requestId={requestId} />
+            </div>
           ) : (
-            <CreateRoutingRuleForm
-              initialOriginUnitId={prefill?.originUnitId}
-              initialServiceId={prefill?.serviceId}
-              originUnits={catalog.originUnits}
-              services={catalog.services}
-              groups={catalog.groups}
-              existingRules={rules}
-              onCreated={loadRules}
-            />
+            <RoutingRulesTable rules={rules} groups={catalog.groups} onChanged={loadRules} />
           )}
-        </div>
-      </Card>
-    </div>
+        </Card>
+        <Card>
+          <CardHeader title={t("routing.createHeading")} subtitle={t("routing.createSubtitle")} />
+          <div className="px-4 py-4">
+            {catalog.isLoading ? (
+              <PanelSkeleton className="mt-0" label={t("routing.createHeading")} />
+            ) : catalog.errorKey ? (
+              <ApiErrorText messageKey={catalog.errorKey} requestId={catalog.requestId} />
+            ) : (
+              <CreateRoutingRuleForm
+                initialOriginUnitId={prefill?.originUnitId}
+                initialServiceId={prefill?.serviceId}
+                originUnits={catalog.originUnits}
+                services={catalog.services}
+                groups={catalog.groups}
+                existingRules={rules}
+                onCreated={loadRules}
+              />
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

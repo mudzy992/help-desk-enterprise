@@ -12,9 +12,7 @@ import {
  * the socket is the source of truth and this is one subscription per caller.
  */
 export function useSocketHealth(socket: Socket | null): SocketHealth {
-  const [health, setHealth] = useState<SocketHealth>(() =>
-    socketHealthOf(socket),
-  );
+  const [health, setHealth] = useState<SocketHealth>(() => socketHealthOf(socket));
   useEffect(() => subscribeSocketHealth(socket, setHealth), [socket]);
   return health;
 }

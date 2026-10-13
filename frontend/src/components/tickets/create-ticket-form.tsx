@@ -24,8 +24,16 @@ import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import { mapServiceFormDataError } from "@/lib/tickets/map-service-form-data-error";
-import { activeFormVersion, getServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
-import { interceptKnowledgeArticles, resolveKnowledgeIntercept, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
+import {
+  activeFormVersion,
+  getServiceForm,
+  type FormVersionResponse,
+} from "@/services/service-catalog-api";
+import {
+  interceptKnowledgeArticles,
+  resolveKnowledgeIntercept,
+  type KnowledgeInterceptSuggestion,
+} from "@/services/knowledge-base-api";
 import { createTicket } from "@/services/tickets-api";
 
 export function CreateTicketForm() {
@@ -87,7 +95,8 @@ export function CreateTicketForm() {
     formsEnabled,
     requireVersionOnTicket,
   );
-  const selectedService = catalog.services.find((service) => service.id === draft.serviceId) ?? null;
+  const selectedService =
+    catalog.services.find((service) => service.id === draft.serviceId) ?? null;
   const suggestedPriority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
   const origin = resolveCreateTicketOriginUnit({
     session: capabilities.session,
@@ -112,9 +121,7 @@ export function CreateTicketForm() {
     }
     setFieldErrors(nextFieldErrors);
     setFailedSubmitCount((count) => count + 1);
-    setErrorKey(
-      hasUnknownField || nextFieldErrors.size === 0 ? "tickets.errorValidation" : null,
-    );
+    setErrorKey(hasUnknownField || nextFieldErrors.size === 0 ? "tickets.errorValidation" : null);
     setStep(1);
   };
 
@@ -158,9 +165,7 @@ export function CreateTicketForm() {
           ...current,
           formVersionRef: active?.formVersionRef ?? null,
           formData:
-            active !== null && current.serviceId === draft.serviceId
-              ? current.formData
-              : {},
+            active !== null && current.serviceId === draft.serviceId ? current.formData : {},
         }));
       })
       .catch(() => {
@@ -184,7 +189,9 @@ export function CreateTicketForm() {
     }
     const schemaErrors = validateServiceFormData(activeForm?.schema ?? null, draft.formData);
     if (schemaErrors.length > 0) {
-      setFieldErrors(new Map(schemaErrors.map((item) => [item.fieldId, ticketText(t, item.messageKey)])));
+      setFieldErrors(
+        new Map(schemaErrors.map((item) => [item.fieldId, ticketText(t, item.messageKey)])),
+      );
       setFailedSubmitCount((count) => count + 1);
       return;
     }

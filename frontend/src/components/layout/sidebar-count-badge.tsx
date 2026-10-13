@@ -1,13 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
-import {
-  navigationLabelKeys,
-  type NavigationItem,
-} from "@/lib/navigation";
+import { navigationLabelKeys, type NavigationItem } from "@/lib/navigation";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
 
-const sidebarCountBadgeClassName =
-  "px-1.5 py-0 text-[10.5px] font-normal leading-4 tnum";
+const sidebarCountBadgeClassName = "px-1.5 py-0 text-[10.5px] font-normal leading-4 tnum";
 
 interface SidebarCountBadgeProperties {
   readonly item: NavigationItem;
@@ -19,10 +15,7 @@ interface SidebarCountBadgeProperties {
  * moved here — the neutral count is open tickets, the second (danger while
  * something is unrouted) is what waits in the group inbox.
  */
-export function SidebarCountBadge({
-  item,
-  ticketCounts,
-}: SidebarCountBadgeProperties) {
+export function SidebarCountBadge({ item, ticketCounts }: SidebarCountBadgeProperties) {
   const { t } = useTranslation();
   if (ticketCounts === null || item.labelKey !== navigationLabelKeys.tickets) {
     return null;
@@ -36,8 +29,15 @@ export function SidebarCountBadge({
         {t("tickets.openBadgeLabel", { count: open })}
       </span>
       {inbox > 0 ? (
-        <span aria-hidden="true" data-testid="sidebar-inbox-badge" title={t("tickets.inboxBadgeLabel", { count: inbox })}>
-          <Badge tone={ticketCounts.unroutedCount > 0 ? "danger" : "primary"} className={sidebarCountBadgeClassName}>
+        <span
+          aria-hidden="true"
+          data-testid="sidebar-inbox-badge"
+          title={t("tickets.inboxBadgeLabel", { count: inbox })}
+        >
+          <Badge
+            tone={ticketCounts.unroutedCount > 0 ? "danger" : "primary"}
+            className={sidebarCountBadgeClassName}
+          >
             {inbox}
           </Badge>
         </span>

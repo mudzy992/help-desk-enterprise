@@ -34,36 +34,61 @@ describe("resolveSecurityAuditViewState", () => {
 
   it("separates loading, empty, error and ready", () => {
     expect(
-      resolveSecurityAuditViewState({ canView: true, isLoading: true, hasError: false, rowCount: 0 }),
+      resolveSecurityAuditViewState({
+        canView: true,
+        isLoading: true,
+        hasError: false,
+        rowCount: 0,
+      }),
     ).toEqual({ kind: "loading" });
     expect(
-      resolveSecurityAuditViewState({ canView: true, isLoading: false, hasError: false, rowCount: 0 }),
+      resolveSecurityAuditViewState({
+        canView: true,
+        isLoading: false,
+        hasError: false,
+        rowCount: 0,
+      }),
     ).toEqual({ kind: "empty" });
     expect(
-      resolveSecurityAuditViewState({ canView: true, isLoading: false, hasError: true, rowCount: 0 }),
+      resolveSecurityAuditViewState({
+        canView: true,
+        isLoading: false,
+        hasError: true,
+        rowCount: 0,
+      }),
     ).toEqual({ kind: "error", hasRows: false });
     expect(
-      resolveSecurityAuditViewState({ canView: true, isLoading: false, hasError: false, rowCount: 3 }),
+      resolveSecurityAuditViewState({
+        canView: true,
+        isLoading: false,
+        hasError: false,
+        rowCount: 3,
+      }),
     ).toEqual({ kind: "ready" });
   });
 
   it("keeps the loaded rows visible when loading another page fails", () => {
     expect(
-      resolveSecurityAuditViewState({ canView: true, isLoading: false, hasError: true, rowCount: 3 }),
+      resolveSecurityAuditViewState({
+        canView: true,
+        isLoading: false,
+        hasError: true,
+        rowCount: 3,
+      }),
     ).toEqual({ kind: "error", hasRows: true });
   });
 });
 
 describe("securityActionLabelKey", () => {
   it("uses the translated label for a known action", () => {
-    expect(
-      securityActionLabelKey(auditActionTranslationKey("auth.login_failed")),
-    ).toBe("admin.ops.auditLog.labels.actions.auth_login_failed");
+    expect(securityActionLabelKey(auditActionTranslationKey("auth.login_failed"))).toBe(
+      "admin.ops.auditLog.labels.actions.auth_login_failed",
+    );
   });
 
   it("falls back to a generic label for an unknown historical action", () => {
-    expect(
-      securityActionLabelKey(auditActionTranslationKey("auth.future_event")),
-    ).toBe("admin.security.unknownAction");
+    expect(securityActionLabelKey(auditActionTranslationKey("auth.future_event"))).toBe(
+      "admin.security.unknownAction",
+    );
   });
 });

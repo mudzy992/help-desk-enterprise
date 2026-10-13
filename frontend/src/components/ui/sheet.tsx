@@ -48,7 +48,8 @@ const sheetVariants = cva(
 );
 
 interface SheetContentProperties
-  extends ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
+  extends
+    ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {}
 
 export const SheetContent = forwardRef<

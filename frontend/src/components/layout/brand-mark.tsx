@@ -63,11 +63,7 @@ interface BrandLockupProperties {
   readonly subtitle?: string;
 }
 
-export function BrandLockup({
-  compact = false,
-  titleClassName,
-  subtitle,
-}: BrandLockupProperties) {
+export function BrandLockup({ compact = false, titleClassName, subtitle }: BrandLockupProperties) {
   const { appName, tagline } = useBranding();
   const secondLine = tagline.length > 0 ? tagline : subtitle;
   return (

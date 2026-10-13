@@ -38,15 +38,11 @@ function createFakeSocket(connected = true) {
 describe("socket health", () => {
   it('treats a missing or disconnected socket as "not healthy"', () => {
     expect(socketHealthOf(null)).toBe("disconnected");
-    expect(socketHealthOf(createFakeSocket(false) as unknown as Socket)).toBe(
-      "disconnected",
-    );
-    expect(socketHealthOf(createFakeSocket(true) as unknown as Socket)).toBe(
-      "connected",
-    );
+    expect(socketHealthOf(createFakeSocket(false) as unknown as Socket)).toBe("disconnected");
+    expect(socketHealthOf(createFakeSocket(true) as unknown as Socket)).toBe("connected");
   });
 
-  it('turns polling on only while the socket is down', () => {
+  it("turns polling on only while the socket is down", () => {
     expect(shouldPollUnreadCount("connected")).toBe(false);
     expect(shouldPollUnreadCount("disconnected")).toBe(true);
     // The fallback keeps the old cadence, so a dropped socket behaves as before.
@@ -56,9 +52,8 @@ describe("socket health", () => {
   it("reports the current state immediately, then follows connect and disconnect", () => {
     const socket = createFakeSocket(true);
     const seen: SocketHealth[] = [];
-    const unsubscribe = subscribeSocketHealth(
-      socket as unknown as Socket,
-      (health) => seen.push(health),
+    const unsubscribe = subscribeSocketHealth(socket as unknown as Socket, (health) =>
+      seen.push(health),
     );
     expect(seen).toEqual(["connected"]);
 

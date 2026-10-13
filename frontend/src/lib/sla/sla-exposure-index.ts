@@ -1,7 +1,4 @@
-import type {
-  SlaExposureCounts,
-  SlaSummaryResponse,
-} from "@/services/report-summary-api";
+import type { SlaExposureCounts, SlaSummaryResponse } from "@/services/report-summary-api";
 import type { TicketPriority } from "@/services/tickets-api";
 
 export const emptySlaExposure: SlaExposureCounts = {
@@ -25,9 +22,7 @@ export type SlaExposureIndex = {
   exposure(profileId: string, priority: TicketPriority): SlaExposureCounts;
 };
 
-export function buildSlaExposureIndex(
-  summary: SlaSummaryResponse | null,
-): SlaExposureIndex {
+export function buildSlaExposureIndex(summary: SlaSummaryResponse | null): SlaExposureIndex {
   const byProfile = new Map<
     string,
     { readonly open: number; readonly priorities: Map<TicketPriority, SlaExposureCounts> }
@@ -35,9 +30,7 @@ export function buildSlaExposureIndex(
   for (const profile of summary?.profiles ?? []) {
     byProfile.set(profile.slaProfileId, {
       open: profile.exposure.open,
-      priorities: new Map(
-        profile.priorities.map((entry) => [entry.priority, entry.exposure]),
-      ),
+      priorities: new Map(profile.priorities.map((entry) => [entry.priority, entry.exposure])),
     });
   }
   return {

@@ -38,16 +38,14 @@ export async function sendTicketMessageOptimistic(input: {
       type: input.type,
       body: input.body,
       ...(input.alsoToMerged === true ? { alsoToMerged: true } : {}),
-      ...(input.responseTemplateId === undefined ? {} : { responseTemplateId: input.responseTemplateId }),
+      ...(input.responseTemplateId === undefined
+        ? {}
+        : { responseTemplateId: input.responseTemplateId }),
     });
-    input.setMessages((current) =>
-      reconcileOptimisticMessage(current, created, pendingId),
-    );
+    input.setMessages((current) => reconcileOptimisticMessage(current, created, pendingId));
     input.setTicket(await getTicket(input.ticketId));
   } catch (error) {
-    input.setMessages((current) =>
-      current.filter((message) => message.id !== pendingId),
-    );
+    input.setMessages((current) => current.filter((message) => message.id !== pendingId));
     input.setActionError(mapTicketError(error));
     throw error;
   }

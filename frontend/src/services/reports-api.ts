@@ -87,9 +87,7 @@ export type BottlenecksResponse = {
   readonly trend: readonly BottleneckTrendRow[];
 };
 
-export function fetchBottlenecks(
-  query: ReportsDashboardQuery,
-): Promise<BottlenecksResponse> {
+export function fetchBottlenecks(query: ReportsDashboardQuery): Promise<BottlenecksResponse> {
   const params = new URLSearchParams({
     organizationalUnitId: query.organizationalUnitId,
     from: query.from,

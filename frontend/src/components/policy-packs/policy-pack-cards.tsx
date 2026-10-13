@@ -20,18 +20,13 @@ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
           defaultValue: pack.description,
         });
         return (
-          <Card
-            key={pack.key}
-            className="transition-colors hover:border-line-strong"
-          >
+          <Card key={pack.key} className="transition-colors hover:border-line-strong">
             <div className="flex items-start gap-3 px-4 py-3.5">
               <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground">
                 <Package size={16} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold text-foreground">
-                  {name}
-                </p>
+                <p className="text-[13px] font-semibold text-foreground">{name}</p>
                 <p className="mt-0.5 text-[11.5px] leading-[15px] text-muted-foreground">
                   {description}
                 </p>

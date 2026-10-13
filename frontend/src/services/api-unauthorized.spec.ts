@@ -21,7 +21,10 @@ describe("global 401 handling (review 2026-09-25, S10)", () => {
     clearStoredSession();
   });
   const respond = (status: number) =>
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ code: "X" }), { status })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ code: "X" }), { status })),
+    );
   const signIn = () => {
     stubWindow();
     writeStoredSession({
@@ -89,7 +92,12 @@ describe("isConfirmationUnauthorizedPath (review 2026-10-12)", () => {
       accessToken: "t",
       principal: { subjectId: "u", email: "e", displayName: "d", isLocalOnly: true },
     });
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ code: "MFA_INVALID_CODE" }), { status: 401 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () => new Response(JSON.stringify({ code: "MFA_INVALID_CODE" }), { status: 401 }),
+      ),
+    );
     const handler = vi.fn();
     setUnauthorizedHandler(handler);
     await expect(

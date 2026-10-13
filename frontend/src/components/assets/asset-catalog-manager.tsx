@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { errorTextClassName, hintClassName, rowActionButtonClassName } from "@/components/ui/control";
+import {
+  errorTextClassName,
+  hintClassName,
+  rowActionButtonClassName,
+} from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -49,8 +53,16 @@ import {
 
 type Editor =
   | { readonly kind: "type"; readonly type: AssetType | null }
-  | { readonly kind: "attribute"; readonly type: AssetType; readonly attribute: AssetAttribute | null }
-  | { readonly kind: "location"; readonly location: AssetLocation | null; readonly parentId?: string }
+  | {
+      readonly kind: "attribute";
+      readonly type: AssetType;
+      readonly attribute: AssetAttribute | null;
+    }
+  | {
+      readonly kind: "location";
+      readonly location: AssetLocation | null;
+      readonly parentId?: string;
+    }
   | null;
 
 function useErrorText() {
@@ -71,7 +83,11 @@ export function AssetCatalogManager() {
   const errorText = useErrorText();
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
-  const catalogQuery = useQuery({ queryKey: assetQueryKeys.catalog(showArchived), queryFn: () => getAssetCatalog(showArchived), retry: false });
+  const catalogQuery = useQuery({
+    queryKey: assetQueryKeys.catalog(showArchived),
+    queryFn: () => getAssetCatalog(showArchived),
+    retry: false,
+  });
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
 
@@ -80,7 +96,12 @@ export function AssetCatalogManager() {
       await action();
       refresh();
     } catch (caught) {
-      toast({ tone: "danger", title: t("assets.catalog.actionFailed"), description: errorText(caught), error: caught });
+      toast({
+        tone: "danger",
+        title: t("assets.catalog.actionFailed"),
+        description: errorText(caught),
+        error: caught,
+      });
     }
   }
 
@@ -98,7 +119,11 @@ export function AssetCatalogManager() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Checkbox label={t("assets.catalog.showArchived")} checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />
+        <Checkbox
+          label={t("assets.catalog.showArchived")}
+          checked={showArchived}
+          onChange={(event) => setShowArchived(event.target.checked)}
+        />
       </div>
 
       <Card className="p-0">
@@ -106,7 +131,11 @@ export function AssetCatalogManager() {
           title={t("assets.catalog.typesTitle")}
           subtitle={t("assets.catalog.typesSubtitle")}
           actions={
-            <Button size="sm" variant="outline" onClick={() => setEditor({ kind: "type", type: null })}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditor({ kind: "type", type: null })}
+            >
               <Plus size={14} aria-hidden="true" />
               {t("assets.catalog.addType")}
             </Button>
@@ -121,23 +150,35 @@ export function AssetCatalogManager() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2 text-[13px]">
                     <Icon size={16} className="text-muted-foreground" aria-hidden="true" />
-                    <span className="font-medium text-foreground">{localizedName(type, i18n.language)}</span>
+                    <span className="font-medium text-foreground">
+                      {localizedName(type, i18n.language)}
+                    </span>
                     <code className="text-[11.5px] text-muted-foreground">{type.key}</code>
                     <Badge tone="neutral">{t(`assets.categories.${type.category}` as const)}</Badge>
-                    {type.isUserSelectable ? <Badge tone="info">{t("assets.catalog.userSelectable")}</Badge> : null}
+                    {type.isUserSelectable ? (
+                      <Badge tone="info">{t("assets.catalog.userSelectable")}</Badge>
+                    ) : null}
                     {type.routingGroupId ? (
                       <Badge tone="neutral">
-                        {t("assets.catalog.routingGroupBadge", { group: catalog.groups?.find((group) => group.id === type.routingGroupId)?.name ?? "—" })}
+                        {t("assets.catalog.routingGroupBadge", {
+                          group:
+                            catalog.groups?.find((group) => group.id === type.routingGroupId)
+                              ?.name ?? "—",
+                        })}
                       </Badge>
                     ) : null}
                     {archived ? <Badge tone="warning">{t("assets.catalog.archived")}</Badge> : null}
-                    <span className={hintClassName}>{t("assets.catalog.assetCount", { count: type.assetCount })}</span>
+                    <span className={hintClassName}>
+                      {t("assets.catalog.assetCount", { count: type.assetCount })}
+                    </span>
                   </span>
                   <span className="flex items-center gap-1">
                     <button
                       type="button"
                       className={rowActionButtonClassName}
-                      aria-label={t("assets.catalog.editType", { name: localizedName(type, i18n.language) })}
+                      aria-label={t("assets.catalog.editType", {
+                        name: localizedName(type, i18n.language),
+                      })}
                       onClick={() => setEditor({ kind: "type", type })}
                     >
                       <Pencil size={14} aria-hidden="true" />
@@ -145,10 +186,19 @@ export function AssetCatalogManager() {
                     <button
                       type="button"
                       className={rowActionButtonClassName}
-                      aria-label={t(archived ? "assets.catalog.restore" : "assets.catalog.archive", { name: localizedName(type, i18n.language) })}
-                      onClick={() => void toggleArchived(() => setAssetTypeArchived(type.id, !archived))}
+                      aria-label={t(
+                        archived ? "assets.catalog.restore" : "assets.catalog.archive",
+                        { name: localizedName(type, i18n.language) },
+                      )}
+                      onClick={() =>
+                        void toggleArchived(() => setAssetTypeArchived(type.id, !archived))
+                      }
                     >
-                      {archived ? <ArchiveRestore size={14} aria-hidden="true" /> : <Archive size={14} aria-hidden="true" />}
+                      {archived ? (
+                        <ArchiveRestore size={14} aria-hidden="true" />
+                      ) : (
+                        <Archive size={14} aria-hidden="true" />
+                      )}
                     </button>
                   </span>
                 </div>
@@ -160,20 +210,37 @@ export function AssetCatalogManager() {
                       {type.attributes.map((attribute) => {
                         const attributeArchived = attribute.archivedAt !== null;
                         return (
-                          <li key={attribute.id} className="flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
+                          <li
+                            key={attribute.id}
+                            className="flex flex-wrap items-center justify-between gap-2 text-[12.5px]"
+                          >
                             <span className="flex flex-wrap items-center gap-2">
-                              <span className="text-foreground">{localizedLabel(attribute, i18n.language)}</span>
-                              <code className="text-[11.5px] text-muted-foreground">{attribute.key}</code>
-                              <Badge tone="neutral">{t(`assets.dataTypes.${attribute.dataType}` as const)}</Badge>
-                              {attribute.isRequired ? <Badge tone="primary">{t("assets.catalog.required")}</Badge> : null}
-                              {attribute.isUnique ? <Badge tone="accent">{t("assets.catalog.unique")}</Badge> : null}
-                              {attributeArchived ? <Badge tone="warning">{t("assets.catalog.archived")}</Badge> : null}
+                              <span className="text-foreground">
+                                {localizedLabel(attribute, i18n.language)}
+                              </span>
+                              <code className="text-[11.5px] text-muted-foreground">
+                                {attribute.key}
+                              </code>
+                              <Badge tone="neutral">
+                                {t(`assets.dataTypes.${attribute.dataType}` as const)}
+                              </Badge>
+                              {attribute.isRequired ? (
+                                <Badge tone="primary">{t("assets.catalog.required")}</Badge>
+                              ) : null}
+                              {attribute.isUnique ? (
+                                <Badge tone="accent">{t("assets.catalog.unique")}</Badge>
+                              ) : null}
+                              {attributeArchived ? (
+                                <Badge tone="warning">{t("assets.catalog.archived")}</Badge>
+                              ) : null}
                             </span>
                             <span className="flex items-center gap-1">
                               <button
                                 type="button"
                                 className={rowActionButtonClassName}
-                                aria-label={t("assets.catalog.editAttribute", { name: localizedLabel(attribute, i18n.language) })}
+                                aria-label={t("assets.catalog.editAttribute", {
+                                  name: localizedLabel(attribute, i18n.language),
+                                })}
                                 onClick={() => setEditor({ kind: "attribute", type, attribute })}
                               >
                                 <Pencil size={14} aria-hidden="true" />
@@ -181,12 +248,25 @@ export function AssetCatalogManager() {
                               <button
                                 type="button"
                                 className={rowActionButtonClassName}
-                                aria-label={t(attributeArchived ? "assets.catalog.restore" : "assets.catalog.archive", {
-                                  name: localizedLabel(attribute, i18n.language),
-                                })}
-                                onClick={() => void toggleArchived(() => setAssetAttributeArchived(attribute.id, !attributeArchived))}
+                                aria-label={t(
+                                  attributeArchived
+                                    ? "assets.catalog.restore"
+                                    : "assets.catalog.archive",
+                                  {
+                                    name: localizedLabel(attribute, i18n.language),
+                                  },
+                                )}
+                                onClick={() =>
+                                  void toggleArchived(() =>
+                                    setAssetAttributeArchived(attribute.id, !attributeArchived),
+                                  )
+                                }
                               >
-                                {attributeArchived ? <ArchiveRestore size={14} aria-hidden="true" /> : <Archive size={14} aria-hidden="true" />}
+                                {attributeArchived ? (
+                                  <ArchiveRestore size={14} aria-hidden="true" />
+                                ) : (
+                                  <Archive size={14} aria-hidden="true" />
+                                )}
                               </button>
                             </span>
                           </li>
@@ -194,7 +274,12 @@ export function AssetCatalogManager() {
                       })}
                     </ul>
                   )}
-                  <Button className="mt-2" size="xs" variant="ghost" onClick={() => setEditor({ kind: "attribute", type, attribute: null })}>
+                  <Button
+                    className="mt-2"
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setEditor({ kind: "attribute", type, attribute: null })}
+                  >
                     <Plus size={12} aria-hidden="true" />
                     {t("assets.catalog.addAttribute")}
                   </Button>
@@ -206,41 +291,63 @@ export function AssetCatalogManager() {
       </Card>
 
       {locationsEnabled ? (
-      <Card className="p-0">
-        <CardHeader
-          title={t("assets.catalog.locationsTitle")}
-          subtitle={t("assets.catalog.locationsSubtitle")}
-          actions={
-            <Button size="sm" variant="outline" onClick={() => setEditor({ kind: "location", location: null })}>
-              <Plus size={14} aria-hidden="true" />
-              {t("assets.catalog.addLocation")}
-            </Button>
-          }
-        />
-        {locationRows.length === 0 ? (
-          <div className="p-4">
-            <EmptyState icon={<MapPin size={18} />} title={t("assets.catalog.noLocationsTitle")} body={t("assets.catalog.noLocationsBody")} />
-          </div>
-        ) : (
-          <ul className="divide-y divide-border/60" aria-label={t("assets.catalog.locationsTitle")}>
-            {locationRows.map((row) => (
-              <li key={row.location.id} className="py-2 pr-4" style={{ paddingLeft: `${16 + (row.depth - 1) * 20}px` }}>
-                <span className="sr-only">{t("assets.catalog.locationLevel", { level: row.depth })}</span>
-                <LocationRow
-                  location={row.location}
-                  onEdit={() => setEditor({ kind: "location", location: row.location })}
-                  onAddChild={
-                    row.depth < assetLocationDepthMax && row.location.archivedAt === null
-                      ? () => setEditor({ kind: "location", location: null, parentId: row.location.id })
-                      : undefined
-                  }
-                  onToggle={toggleArchived}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+        <Card className="p-0">
+          <CardHeader
+            title={t("assets.catalog.locationsTitle")}
+            subtitle={t("assets.catalog.locationsSubtitle")}
+            actions={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditor({ kind: "location", location: null })}
+              >
+                <Plus size={14} aria-hidden="true" />
+                {t("assets.catalog.addLocation")}
+              </Button>
+            }
+          />
+          {locationRows.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={<MapPin size={18} />}
+                title={t("assets.catalog.noLocationsTitle")}
+                body={t("assets.catalog.noLocationsBody")}
+              />
+            </div>
+          ) : (
+            <ul
+              className="divide-y divide-border/60"
+              aria-label={t("assets.catalog.locationsTitle")}
+            >
+              {locationRows.map((row) => (
+                <li
+                  key={row.location.id}
+                  className="py-2 pr-4"
+                  style={{ paddingLeft: `${16 + (row.depth - 1) * 20}px` }}
+                >
+                  <span className="sr-only">
+                    {t("assets.catalog.locationLevel", { level: row.depth })}
+                  </span>
+                  <LocationRow
+                    location={row.location}
+                    onEdit={() => setEditor({ kind: "location", location: row.location })}
+                    onAddChild={
+                      row.depth < assetLocationDepthMax && row.location.archivedAt === null
+                        ? () =>
+                            setEditor({
+                              kind: "location",
+                              location: null,
+                              parentId: row.location.id,
+                            })
+                        : undefined
+                    }
+                    onToggle={toggleArchived}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       ) : null}
 
       <TypeEditor
@@ -287,33 +394,61 @@ function LocationRow({
     <div className="flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
       <span className="flex flex-wrap items-center gap-2">
         <span className="text-foreground">{location.name}</span>
-        {location.code ? <code className="text-[11.5px] text-muted-foreground">{location.code}</code> : null}
+        {location.code ? (
+          <code className="text-[11.5px] text-muted-foreground">{location.code}</code>
+        ) : null}
         {archived ? <Badge tone="warning">{t("assets.catalog.archived")}</Badge> : null}
-        <span className={hintClassName}>{t("assets.catalog.assetCount", { count: location.assetCount })}</span>
+        <span className={hintClassName}>
+          {t("assets.catalog.assetCount", { count: location.assetCount })}
+        </span>
       </span>
       <span className="flex items-center gap-1">
         {onAddChild ? (
-          <button type="button" className={rowActionButtonClassName} aria-label={t("assets.catalog.addChildLocation", { name: location.name })} onClick={onAddChild}>
+          <button
+            type="button"
+            className={rowActionButtonClassName}
+            aria-label={t("assets.catalog.addChildLocation", { name: location.name })}
+            onClick={onAddChild}
+          >
             <Plus size={14} aria-hidden="true" />
           </button>
         ) : null}
-        <button type="button" className={rowActionButtonClassName} aria-label={t("assets.catalog.editLocation", { name: location.name })} onClick={onEdit}>
+        <button
+          type="button"
+          className={rowActionButtonClassName}
+          aria-label={t("assets.catalog.editLocation", { name: location.name })}
+          onClick={onEdit}
+        >
           <Pencil size={14} aria-hidden="true" />
         </button>
         <button
           type="button"
           className={rowActionButtonClassName}
-          aria-label={t(archived ? "assets.catalog.restore" : "assets.catalog.archive", { name: location.name })}
+          aria-label={t(archived ? "assets.catalog.restore" : "assets.catalog.archive", {
+            name: location.name,
+          })}
           onClick={() => void onToggle(() => setAssetLocationArchived(location.id, !archived))}
         >
-          {archived ? <ArchiveRestore size={14} aria-hidden="true" /> : <Archive size={14} aria-hidden="true" />}
+          {archived ? (
+            <ArchiveRestore size={14} aria-hidden="true" />
+          ) : (
+            <Archive size={14} aria-hidden="true" />
+          )}
         </button>
       </span>
     </div>
   );
 }
 
-function EditorFooter({ pending, disabled, onCancel }: { readonly pending: boolean; readonly disabled: boolean; readonly onCancel: () => void }) {
+function EditorFooter({
+  pending,
+  disabled,
+  onCancel,
+}: {
+  readonly pending: boolean;
+  readonly disabled: boolean;
+  readonly onCancel: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <div className="mt-2 flex justify-end gap-2">
@@ -378,7 +513,15 @@ function TypeEditor({
     event.preventDefault();
     setPending(true);
     setError(null);
-    const input = { nameBs: nameBs.trim(), nameEn: nameEn.trim(), icon, category, isUserSelectable, routingGroupId: routingGroupId || null, sortOrder: Number.parseInt(sortOrder, 10) || 0 };
+    const input = {
+      nameBs: nameBs.trim(),
+      nameEn: nameEn.trim(),
+      icon,
+      category,
+      isUserSelectable,
+      routingGroupId: routingGroupId || null,
+      sortOrder: Number.parseInt(sortOrder, 10) || 0,
+    };
     try {
       if (type === null) await createAssetType({ ...input, key });
       else await updateAssetType(type.id, input);
@@ -394,24 +537,59 @@ function TypeEditor({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{type === null ? t("assets.catalog.addType") : t("assets.catalog.editTypeTitle")}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.catalog.typeDescription")}</SheetDescription>
+        <SheetTitle>
+          {type === null ? t("assets.catalog.addType") : t("assets.catalog.editTypeTitle")}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.catalog.typeDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.catalog.key")} required hint={t("assets.catalog.keyHint")} error={key.length > 0 && keyInvalid ? t("assets.catalog.keyInvalid") : null}>
-            {(control) => <Input {...control} value={key} maxLength={48} disabled={type !== null} onChange={(event) => setKey(event.target.value)} />}
+          <Field
+            label={t("assets.catalog.key")}
+            required
+            hint={t("assets.catalog.keyHint")}
+            error={key.length > 0 && keyInvalid ? t("assets.catalog.keyInvalid") : null}
+          >
+            {(control) => (
+              <Input
+                {...control}
+                value={key}
+                maxLength={48}
+                disabled={type !== null}
+                onChange={(event) => setKey(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.catalog.nameBs")} required>
-              {(control) => <Input {...control} value={nameBs} maxLength={80} onChange={(event) => setNameBs(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={nameBs}
+                  maxLength={80}
+                  onChange={(event) => setNameBs(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.catalog.nameEn")} required>
-              {(control) => <Input {...control} value={nameEn} maxLength={80} onChange={(event) => setNameEn(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={nameEn}
+                  maxLength={80}
+                  onChange={(event) => setNameEn(event.target.value)}
+                />
+              )}
             </Field>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.catalog.category")}>
               {(control) => (
-                <Select {...control} value={category} onChange={(event) => setCategory(event.target.value as AssetCategory)}>
+                <Select
+                  {...control}
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value as AssetCategory)}
+                >
                   {assetCategories.map((value) => (
                     <option key={value} value={value}>
                       {t(`assets.categories.${value}` as const)}
@@ -433,13 +611,31 @@ function TypeEditor({
             </Field>
           </div>
           <Field label={t("assets.catalog.sortOrder")}>
-            {(control) => <Input {...control} inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))} />}
-          </Field>
-          <Checkbox label={t("assets.catalog.userSelectableLabel")} checked={isUserSelectable} onChange={(event) => setIsUserSelectable(event.target.checked)} />
-          <p className={hintClassName}>{t("assets.catalog.userSelectableHint")}</p>
-          <Field label={t("assets.catalog.routingGroup")} hint={t("assets.catalog.routingGroupHint")}>
             {(control) => (
-              <Select {...control} value={routingGroupId} onChange={(event) => setRoutingGroupId(event.target.value)}>
+              <Input
+                {...control}
+                inputMode="numeric"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))}
+              />
+            )}
+          </Field>
+          <Checkbox
+            label={t("assets.catalog.userSelectableLabel")}
+            checked={isUserSelectable}
+            onChange={(event) => setIsUserSelectable(event.target.checked)}
+          />
+          <p className={hintClassName}>{t("assets.catalog.userSelectableHint")}</p>
+          <Field
+            label={t("assets.catalog.routingGroup")}
+            hint={t("assets.catalog.routingGroupHint")}
+          >
+            {(control) => (
+              <Select
+                {...control}
+                value={routingGroupId}
+                onChange={(event) => setRoutingGroupId(event.target.value)}
+              >
                 <option value="">{t("assets.catalog.routingGroupNone")}</option>
                 {groups.map((group) => (
                   <option key={group.id} value={group.id}>
@@ -454,7 +650,11 @@ function TypeEditor({
               {error}
             </p>
           ) : null}
-          <EditorFooter pending={pending} disabled={keyInvalid || nameBs.trim() === "" || nameEn.trim() === ""} onCancel={() => onOpenChange(false)} />
+          <EditorFooter
+            pending={pending}
+            disabled={keyInvalid || nameBs.trim() === "" || nameEn.trim() === ""}
+            onCancel={() => onOpenChange(false)}
+          />
         </form>
       </SheetContent>
     </Sheet>
@@ -536,25 +736,63 @@ function AttributeEditor({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{attribute === null ? t("assets.catalog.addAttribute") : t("assets.catalog.editAttributeTitle")}</SheetTitle>
+        <SheetTitle>
+          {attribute === null
+            ? t("assets.catalog.addAttribute")
+            : t("assets.catalog.editAttributeTitle")}
+        </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("assets.catalog.attributeDescription", { type: localizedName(type, i18n.language) })}
         </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.catalog.key")} required hint={t("assets.catalog.attributeKeyHint")} error={key.length > 0 && keyInvalid ? t("assets.catalog.keyInvalid") : null}>
-            {(control) => <Input {...control} value={key} maxLength={48} disabled={attribute !== null} onChange={(event) => setKey(event.target.value)} />}
+          <Field
+            label={t("assets.catalog.key")}
+            required
+            hint={t("assets.catalog.attributeKeyHint")}
+            error={key.length > 0 && keyInvalid ? t("assets.catalog.keyInvalid") : null}
+          >
+            {(control) => (
+              <Input
+                {...control}
+                value={key}
+                maxLength={48}
+                disabled={attribute !== null}
+                onChange={(event) => setKey(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("assets.catalog.labelBs")} required>
-              {(control) => <Input {...control} value={labelBs} maxLength={80} onChange={(event) => setLabelBs(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={labelBs}
+                  maxLength={80}
+                  onChange={(event) => setLabelBs(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.catalog.labelEn")} required>
-              {(control) => <Input {...control} value={labelEn} maxLength={80} onChange={(event) => setLabelEn(event.target.value)} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  value={labelEn}
+                  maxLength={80}
+                  onChange={(event) => setLabelEn(event.target.value)}
+                />
+              )}
             </Field>
           </div>
-          <Field label={t("assets.catalog.dataType")} hint={attribute !== null ? t("assets.catalog.dataTypeHint") : undefined}>
+          <Field
+            label={t("assets.catalog.dataType")}
+            hint={attribute !== null ? t("assets.catalog.dataTypeHint") : undefined}
+          >
             {(control) => (
-              <Select {...control} value={dataType} onChange={(event) => setDataType(event.target.value as AssetAttributeDataType)}>
+              <Select
+                {...control}
+                value={dataType}
+                onChange={(event) => setDataType(event.target.value as AssetAttributeDataType)}
+              >
                 {assetAttributeDataTypes.map((value) => (
                   <option key={value} value={value}>
                     {t(`assets.dataTypes.${value}` as const)}
@@ -564,15 +802,41 @@ function AttributeEditor({
             )}
           </Field>
           {dataType === "SELECT" ? (
-            <Field label={t("assets.catalog.options")} required hint={t("assets.catalog.optionsHint")}>
-              {(control) => <Textarea {...control} rows={4} value={options} onChange={(event) => setOptions(event.target.value)} />}
+            <Field
+              label={t("assets.catalog.options")}
+              required
+              hint={t("assets.catalog.optionsHint")}
+            >
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={4}
+                  value={options}
+                  onChange={(event) => setOptions(event.target.value)}
+                />
+              )}
             </Field>
           ) : null}
           <Field label={t("assets.catalog.sortOrder")}>
-            {(control) => <Input {...control} inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))} />}
+            {(control) => (
+              <Input
+                {...control}
+                inputMode="numeric"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))}
+              />
+            )}
           </Field>
-          <Checkbox label={t("assets.catalog.requiredLabel")} checked={isRequired} onChange={(event) => setIsRequired(event.target.checked)} />
-          <Checkbox label={t("assets.catalog.uniqueLabel")} checked={isUnique} onChange={(event) => setIsUnique(event.target.checked)} />
+          <Checkbox
+            label={t("assets.catalog.requiredLabel")}
+            checked={isRequired}
+            onChange={(event) => setIsRequired(event.target.checked)}
+          />
+          <Checkbox
+            label={t("assets.catalog.uniqueLabel")}
+            checked={isUnique}
+            onChange={(event) => setIsUnique(event.target.checked)}
+          />
           {error ? (
             <p role="alert" className={errorTextClassName}>
               {error}
@@ -580,7 +844,12 @@ function AttributeEditor({
           ) : null}
           <EditorFooter
             pending={pending}
-            disabled={keyInvalid || labelBs.trim() === "" || labelEn.trim() === "" || (dataType === "SELECT" && optionList.length === 0)}
+            disabled={
+              keyInvalid ||
+              labelBs.trim() === "" ||
+              labelEn.trim() === "" ||
+              (dataType === "SELECT" && optionList.length === 0)
+            }
             onCancel={() => onOpenChange(false)}
           />
         </form>
@@ -625,7 +894,8 @@ function LocationEditor({
   // §7: any location may be a parent, except the location itself, its own
   // sub-locations (no cycles) and parents that would exceed the depth limit.
   const rows = flattenLocationTree(catalog.locations);
-  const excluded = location === null ? new Set<string>() : locationSubtree(catalog.locations, location.id);
+  const excluded =
+    location === null ? new Set<string>() : locationSubtree(catalog.locations, location.id);
   const ownHeight = location === null ? 0 : locationHeight(catalog.locations, location.id);
   const parentOptions = rows.filter(
     (row) =>
@@ -638,7 +908,12 @@ function LocationEditor({
     event.preventDefault();
     setPending(true);
     setError(null);
-    const input = { parentId: parentId || null, name: name.trim(), code: code.trim() || null, sortOrder: Number.parseInt(sortOrder, 10) || 0 };
+    const input = {
+      parentId: parentId || null,
+      name: name.trim(),
+      code: code.trim() || null,
+      sortOrder: Number.parseInt(sortOrder, 10) || 0,
+    };
     try {
       if (location === null) await createAssetLocation(input);
       else await updateAssetLocation(location.id, input);
@@ -654,12 +929,25 @@ function LocationEditor({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{location === null ? t("assets.catalog.addLocation") : t("assets.catalog.editLocationTitle")}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.catalog.locationDescription")}</SheetDescription>
+        <SheetTitle>
+          {location === null
+            ? t("assets.catalog.addLocation")
+            : t("assets.catalog.editLocationTitle")}
+        </SheetTitle>
+        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+          {t("assets.catalog.locationDescription")}
+        </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.catalog.parentLocation")} hint={t("assets.catalog.parentHint", { max: assetLocationDepthMax })}>
+          <Field
+            label={t("assets.catalog.parentLocation")}
+            hint={t("assets.catalog.parentHint", { max: assetLocationDepthMax })}
+          >
             {(control) => (
-              <Select {...control} value={parentId} onChange={(event) => setParentId(event.target.value)}>
+              <Select
+                {...control}
+                value={parentId}
+                onChange={(event) => setParentId(event.target.value)}
+              >
                 <option value="">{t("assets.catalog.topLevel")}</option>
                 {parentOptions.map((row) => (
                   <option key={row.location.id} value={row.location.id}>
@@ -670,14 +958,38 @@ function LocationEditor({
             )}
           </Field>
           <Field label={t("assets.catalog.locationName")} required>
-            {(control) => <Input {...control} value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />}
+            {(control) => (
+              <Input
+                {...control}
+                value={name}
+                maxLength={120}
+                onChange={(event) => setName(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={t("assets.catalog.locationCode")} hint={t("assets.catalog.locationCodeHint")}>
-              {(control) => <Input {...control} value={code} maxLength={32} onChange={(event) => setCode(event.target.value)} />}
+            <Field
+              label={t("assets.catalog.locationCode")}
+              hint={t("assets.catalog.locationCodeHint")}
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  value={code}
+                  maxLength={32}
+                  onChange={(event) => setCode(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("assets.catalog.sortOrder")}>
-              {(control) => <Input {...control} inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))} />}
+              {(control) => (
+                <Input
+                  {...control}
+                  inputMode="numeric"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value.replace(/\D/g, ""))}
+                />
+              )}
             </Field>
           </div>
           {error ? (
@@ -685,7 +997,11 @@ function LocationEditor({
               {error}
             </p>
           ) : null}
-          <EditorFooter pending={pending} disabled={name.trim() === ""} onCancel={() => onOpenChange(false)} />
+          <EditorFooter
+            pending={pending}
+            disabled={name.trim() === ""}
+            onCancel={() => onOpenChange(false)}
+          />
         </form>
       </SheetContent>
     </Sheet>

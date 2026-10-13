@@ -36,9 +36,7 @@ const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   INVALID_RATING: "knowledgeBase.errorRating",
 };
 
-export function mapKnowledgeArticleError(
-  error: unknown,
-): KnowledgeArticleErrorKey {
+export function mapKnowledgeArticleError(error: unknown): KnowledgeArticleErrorKey {
   if (!(error instanceof ApiError)) {
     return "knowledgeBase.errorGeneric";
   }

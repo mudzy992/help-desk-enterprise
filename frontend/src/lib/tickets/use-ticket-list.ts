@@ -17,10 +17,7 @@ import {
   workspaceViewsFor,
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
-import {
-  toTicketCountsQuery,
-  toTicketPageQuery,
-} from "@/lib/tickets/ticket-page-query";
+import { toTicketCountsQuery, toTicketPageQuery } from "@/lib/tickets/ticket-page-query";
 import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
 import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
 import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
@@ -43,7 +40,12 @@ function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView 
   return isStaff ? "inbox" : "all";
 }
 
-const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, isStaff: boolean, initialInboxTab?: string): TicketListFilters => ({
+const emptyFilters = (
+  view: TicketWorkspaceView,
+  currentUserId: string | null,
+  isStaff: boolean,
+  initialInboxTab?: string,
+): TicketListFilters => ({
   view,
   search: "",
   status: "",
@@ -58,7 +60,7 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null, i
   // M8 B4: staff lists hide merged children by default; toggled via checkbox.
   hideMerged: isStaff,
   // M8 B6: inbox sub-tab is part of filter state (URL-persisted).
-  inboxTab: view === "inbox" ? initialInboxTab ?? defaultInboxTab : undefined,
+  inboxTab: view === "inbox" ? (initialInboxTab ?? defaultInboxTab) : undefined,
 });
 
 /**
@@ -94,9 +96,10 @@ export function useTicketList() {
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
-  const initialInboxTab = isStaff && view === "inbox"
-    ? (searchParams.get("inboxTab")?.trim() || defaultInboxTab)
-    : undefined;
+  const initialInboxTab =
+    isStaff && view === "inbox"
+      ? searchParams.get("inboxTab")?.trim() || defaultInboxTab
+      : undefined;
   const [filters, setFilters] = useState<TicketListFilters>(() => ({
     ...emptyFilters(view, currentUserId, isStaff, initialInboxTab),
     ...staffDeepLinkFilters(searchParams, isStaff),
@@ -127,152 +130,151 @@ export function useTicketList() {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const queryFromUrl = searchParams.get("q") ?? "";
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) {
-      setIsLoading(true);
-      setErrorKey(null);
-    }
-    try {
-      if (view === "inbox") {
-        // Faza 3.3: reads go through the query cache, so coming back to a screen
-        // inside `staleTime` costs no request — the socket invalidates the keys
-        // when something really changed.
-        const [catalog, inboxRows, unroutedPageResponse] = await Promise.all([
-          queryClient
-            .fetchQuery({
-              queryKey: queryKeys.offeredServices,
-              queryFn: () => listOfferedServices(),
-            })
-            .catch(() => []),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.groupInbox,
-            queryFn: () => listGroupInbox(),
-          }),
-          queryClient
-            .fetchQuery({
-              queryKey: queryKeys.ticketList({
-                unroutedQueue: true,
-                hideMerged: filters.hideMerged === true ? true : undefined,
-                page: unroutedPage,
-                pageSize: unroutedPageSize,
-              }),
-              queryFn: () =>
-                listTicketsPage({
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) {
+        setIsLoading(true);
+        setErrorKey(null);
+      }
+      try {
+        if (view === "inbox") {
+          // Faza 3.3: reads go through the query cache, so coming back to a screen
+          // inside `staleTime` costs no request — the socket invalidates the keys
+          // when something really changed.
+          const [catalog, inboxRows, unroutedPageResponse] = await Promise.all([
+            queryClient
+              .fetchQuery({
+                queryKey: queryKeys.offeredServices,
+                queryFn: () => listOfferedServices(),
+              })
+              .catch(() => []),
+            queryClient.fetchQuery({
+              queryKey: queryKeys.groupInbox,
+              queryFn: () => listGroupInbox(),
+            }),
+            queryClient
+              .fetchQuery({
+                queryKey: queryKeys.ticketList({
                   unroutedQueue: true,
                   hideMerged: filters.hideMerged === true ? true : undefined,
                   page: unroutedPage,
                   pageSize: unroutedPageSize,
                 }),
-            })
-            .catch(() => null),
-        ]);
-        // An empty inbox is ambiguous: ask the server whether it is empty
-        // because the person is in no handler group or simply has no tickets.
-        const membership =
-          inboxRows.length > 0
-            ? true
-            : await getGroupInboxStatus().then(
-                (status) => status.hasGroupMembership,
-                () => null,
-              );
-        setServices(catalog);
-        setPageItems(inboxRows);
-        setPageInfo({
-          page: 1,
-          pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
-          total: inboxRows.length,
-          totalIsCapped: false,
-        });
-        setUnroutedTickets(unroutedTicketsFromList(unroutedPageResponse?.items ?? []));
-        setUnroutedTotal(unroutedPageResponse?.total ?? 0);
-        if (
-          unroutedPageResponse !== null &&
-          unroutedPageResponse.items.length === 0 &&
-          unroutedPageResponse.total > 0 &&
-          unroutedPageResponse.page > 1
-        ) {
-          setUnroutedPage(
-            Math.max(
-              1,
-              Math.ceil(unroutedPageResponse.total / unroutedPageResponse.pageSize),
-            ),
+                queryFn: () =>
+                  listTicketsPage({
+                    unroutedQueue: true,
+                    hideMerged: filters.hideMerged === true ? true : undefined,
+                    page: unroutedPage,
+                    pageSize: unroutedPageSize,
+                  }),
+              })
+              .catch(() => null),
+          ]);
+          // An empty inbox is ambiguous: ask the server whether it is empty
+          // because the person is in no handler group or simply has no tickets.
+          const membership =
+            inboxRows.length > 0
+              ? true
+              : await getGroupInboxStatus().then(
+                  (status) => status.hasGroupMembership,
+                  () => null,
+                );
+          setServices(catalog);
+          setPageItems(inboxRows);
+          setPageInfo({
+            page: 1,
+            pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
+            total: inboxRows.length,
+            totalIsCapped: false,
+          });
+          setUnroutedTickets(unroutedTicketsFromList(unroutedPageResponse?.items ?? []));
+          setUnroutedTotal(unroutedPageResponse?.total ?? 0);
+          if (
+            unroutedPageResponse !== null &&
+            unroutedPageResponse.items.length === 0 &&
+            unroutedPageResponse.total > 0 &&
+            unroutedPageResponse.page > 1
+          ) {
+            setUnroutedPage(
+              Math.max(1, Math.ceil(unroutedPageResponse.total / unroutedPageResponse.pageSize)),
+            );
+          }
+          setCounts(null);
+          setHasGroupMembership(membership);
+        } else {
+          const query = toTicketPageQuery({
+            filters,
+            view,
+            currentUserId,
+            page,
+          });
+          const [catalog, response] = await Promise.all([
+            queryClient
+              .fetchQuery({
+                queryKey: queryKeys.offeredServices,
+                queryFn: () => listOfferedServices(),
+              })
+              .catch(() => []),
+            queryClient.fetchQuery({
+              queryKey: queryKeys.ticketList(query),
+              queryFn: () => listTicketsPage(query),
+            }),
+          ]);
+          setServices(catalog);
+          setPageItems(response.items);
+          setPageInfo({
+            page: response.page,
+            pageSize: response.pageSize,
+            total: response.total,
+            totalIsCapped: response.totalIsCapped === true,
+          });
+          setUnroutedTickets([]);
+          setUnroutedTotal(0);
+          setHasGroupMembership(null);
+          // Counters are a separate, cheaper read: they cover all matching
+          // tickets, not just the page, and they are allowed to fail (the tabs
+          // then show zeros instead of breaking the list).
+          const countsQuery = toTicketCountsQuery(query);
+          setCounts(
+            await queryClient
+              .fetchQuery({
+                queryKey: queryKeys.ticketCounts(countsQuery),
+                queryFn: () => getTicketCounts(countsQuery),
+              })
+              .catch(() => null),
           );
+          // A filter can move the requested page past the end; fall back to the
+          // last page that does have rows.
+          if (response.items.length === 0 && response.total > 0 && response.page > 1) {
+            setPage(Math.max(1, Math.ceil(response.total / response.pageSize)));
+          }
         }
-        setCounts(null);
-        setHasGroupMembership(membership);
-      } else {
-        const query = toTicketPageQuery({
-          filters,
-          view,
-          currentUserId,
-          page,
-        });
-        const [catalog, response] = await Promise.all([
-          queryClient
-            .fetchQuery({
-              queryKey: queryKeys.offeredServices,
-              queryFn: () => listOfferedServices(),
-            })
-            .catch(() => []),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList(query),
-            queryFn: () => listTicketsPage(query),
-          }),
-        ]);
-        setServices(catalog);
-        setPageItems(response.items);
-        setPageInfo({
-          page: response.page,
-          pageSize: response.pageSize,
-          total: response.total,
-          totalIsCapped: response.totalIsCapped === true,
-        });
+        setInboxHidden(false);
+      } catch (error) {
+        const mapped = mapTicketError(error);
+        if (
+          view === "inbox" &&
+          (mapped === "tickets.errorForbidden" || mapped === "tickets.errorInboxDisabled")
+        ) {
+          setInboxHidden(true);
+          setSearchParams({ view: "all" });
+          return;
+        }
+        if (silent) {
+          return;
+        }
+        setPageItems([]);
         setUnroutedTickets([]);
         setUnroutedTotal(0);
-        setHasGroupMembership(null);
-        // Counters are a separate, cheaper read: they cover all matching
-        // tickets, not just the page, and they are allowed to fail (the tabs
-        // then show zeros instead of breaking the list).
-        const countsQuery = toTicketCountsQuery(query);
-        setCounts(
-          await queryClient
-            .fetchQuery({
-              queryKey: queryKeys.ticketCounts(countsQuery),
-              queryFn: () => getTicketCounts(countsQuery),
-            })
-            .catch(() => null),
-        );
-        // A filter can move the requested page past the end; fall back to the
-        // last page that does have rows.
-        if (
-          response.items.length === 0 &&
-          response.total > 0 &&
-          response.page > 1
-        ) {
-          setPage(Math.max(1, Math.ceil(response.total / response.pageSize)));
+        setErrorKey(mapped);
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
         }
       }
-      setInboxHidden(false);
-    } catch (error) {
-      const mapped = mapTicketError(error);
-      if (view === "inbox" && (mapped === "tickets.errorForbidden" || mapped === "tickets.errorInboxDisabled")) {
-        setInboxHidden(true);
-        setSearchParams({ view: "all" });
-        return;
-      }
-      if (silent) {
-        return;
-      }
-      setPageItems([]);
-      setUnroutedTickets([]);
-      setUnroutedTotal(0);
-      setErrorKey(mapped);
-    } finally {
-      if (!silent) {
-        setIsLoading(false);
-      }
-    }
-  }, [view, filters, page, unroutedPage, currentUserId, queryClient, setSearchParams]);
+    },
+    [view, filters, page, unroutedPage, currentUserId, queryClient, setSearchParams],
+  );
 
   useEffect(() => {
     setFilters((current) => ({
@@ -283,7 +285,7 @@ export function useTicketList() {
       // When leaving the inbox the tab is meaningless; when (re-)entering it
       // fall back to the remembered tab or the unrouted default so navigation
       // doesn't accidentally strand the user on a hidden group tab.
-      inboxTab: view === "inbox" ? current.inboxTab ?? defaultInboxTab : undefined,
+      inboxTab: view === "inbox" ? (current.inboxTab ?? defaultInboxTab) : undefined,
     }));
     setPage(1);
     setUnroutedPage(1);
@@ -330,10 +332,7 @@ export function useTicketList() {
   }, [load]);
   useTicketCollectionRealtime(reloadSilent);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(pageInfo.total / pageInfo.pageSize),
-  );
+  const totalPages = Math.max(1, Math.ceil(pageInfo.total / pageInfo.pageSize));
   const unroutedCount = unroutedTotal;
   const unroutedTotalPages = Math.max(1, Math.ceil(unroutedTotal / unroutedPageSize));
   const serviceNames = useMemo(
@@ -435,4 +434,3 @@ export function useTicketList() {
     onClaim,
   };
 }
-

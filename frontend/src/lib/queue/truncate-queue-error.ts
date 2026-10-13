@@ -1,7 +1,4 @@
-export function truncateQueueError(
-  value: string | null,
-  maximumLength = 160,
-): string {
+export function truncateQueueError(value: string | null, maximumLength = 160): string {
   if (value === null || value.trim().length === 0) {
     return "";
   }

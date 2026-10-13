@@ -1,11 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { OrganizationalUnitCatalogForm } from "@/components/organizational-units/organizational-unit-catalog-form";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { OrganizationalUnitFormMode } from "@/lib/directory/organizational-unit-form-mode";
 import type { ManualDirectoryOrganizationalUnit } from "@/services/directory-sync-api";
 
@@ -32,9 +27,7 @@ export function OrganizationalUnitFormDrawer({
       <SheetContent side="right" className="flex w-full max-w-md flex-col p-0">
         <div className="border-b border-border/70 px-5 py-4">
           <SheetTitle>
-            {mode === "edit"
-              ? t("directory.ouEditTitle")
-              : t("directory.ouAddTitle")}
+            {mode === "edit" ? t("directory.ouEditTitle") : t("directory.ouAddTitle")}
           </SheetTitle>
           <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
             {t("directory.ouFormHint")}
@@ -42,11 +35,7 @@ export function OrganizationalUnitFormDrawer({
         </div>
         {open ? (
           <OrganizationalUnitCatalogForm
-            key={
-              mode === "edit"
-                ? editingUnit?.externalId ?? "edit"
-                : "create"
-            }
+            key={mode === "edit" ? (editingUnit?.externalId ?? "edit") : "create"}
             mode={mode}
             catalog={catalog}
             editingUnit={editingUnit}

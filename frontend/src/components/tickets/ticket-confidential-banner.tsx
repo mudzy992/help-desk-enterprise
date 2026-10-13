@@ -6,9 +6,7 @@ interface TicketConfidentialBannerProperties {
   readonly onBreakGlass?: () => void;
 }
 
-export function TicketConfidentialBanner({
-  onBreakGlass,
-}: TicketConfidentialBannerProperties) {
+export function TicketConfidentialBanner({ onBreakGlass }: TicketConfidentialBannerProperties) {
   const { t } = useTranslation();
   return (
     <div className="fade-in flex flex-wrap items-center gap-3 border-t border-warning/25 bg-warning/6 px-5 py-2.5">

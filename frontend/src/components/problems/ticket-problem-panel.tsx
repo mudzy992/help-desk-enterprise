@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CornerDownLeft, Link2, Plus, Unlink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { ProblemLinkDialog, type ProblemLinkTicket } from "@/components/problems/problem-link-dialog";
+import {
+  ProblemLinkDialog,
+  type ProblemLinkTicket,
+} from "@/components/problems/problem-link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetailSection } from "@/components/ui/detail-section";
@@ -34,8 +37,13 @@ export function TicketProblemPanel({
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const query = useQuery({ queryKey: key, queryFn: () => getTicketProblem(ticket.id), retry: false });
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: problemQueryKeys.ticketPanel(ticket.id) });
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () => getTicketProblem(ticket.id),
+    retry: false,
+  });
+  const refresh = () =>
+    void queryClient.invalidateQueries({ queryKey: problemQueryKeys.ticketPanel(ticket.id) });
   const unlink = useMutation({
     mutationFn: (problemId: string) => unlinkProblemTicket(problemId, ticket.id),
     onSuccess: () => {
@@ -55,17 +63,33 @@ export function TicketProblemPanel({
   if (problem === null && !data.canLink) return null;
 
   return (
-    <DetailSection id="problems" testId="ticket-problem-panel" title={t("problems.ticket.panelTitle")}>
+    <DetailSection
+      id="problems"
+      testId="ticket-problem-panel"
+      title={t("problems.ticket.panelTitle")}
+    >
       <div className="grid gap-2">
         {problem === null ? (
           <>
             <p className={hintClassName}>{t("problems.ticket.empty")}</p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="xs" onClick={() => setDialog("attach")} data-testid="ticket-problem-attach">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => setDialog("attach")}
+                data-testid="ticket-problem-attach"
+              >
                 <Link2 size={12} aria-hidden="true" />
                 {t("problems.ticket.attach")}
               </Button>
-              <Button type="button" variant="ghost" size="xs" onClick={() => setDialog("create")} data-testid="ticket-problem-create">
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => setDialog("create")}
+                data-testid="ticket-problem-create"
+              >
                 <Plus size={12} aria-hidden="true" />
                 {t("problems.ticket.create")}
               </Button>
@@ -76,7 +100,10 @@ export function TicketProblemPanel({
             <div className="flex min-w-0 items-start gap-2 text-[12.5px]">
               <div className="min-w-0 flex-1">
                 {problem.canOpen ? (
-                  <Link to={`/problems/${problem.id}`} className="block truncate font-medium text-link hover:underline">
+                  <Link
+                    to={`/problems/${problem.id}`}
+                    className="block truncate font-medium text-link hover:underline"
+                  >
                     {problem.number} · {problem.title}
                   </Link>
                 ) : (
@@ -85,12 +112,18 @@ export function TicketProblemPanel({
                   </span>
                 )}
               </div>
-              <Badge tone={problemStatusTone(problem.status)}>{t(problemStatusKeys[problem.status])}</Badge>
+              <Badge tone={problemStatusTone(problem.status)}>
+                {t(problemStatusKeys[problem.status])}
+              </Badge>
             </div>
             {problem.workaround !== null ? (
               <div className="rounded-md border border-warning/30 bg-warning/6 px-3 py-2">
-                <p className="text-[11.5px] font-medium text-foreground">{t("problems.ticket.workaround")}</p>
-                <p className="mt-0.5 whitespace-pre-wrap text-[12.5px] text-foreground">{problem.workaround}</p>
+                <p className="text-[11.5px] font-medium text-foreground">
+                  {t("problems.ticket.workaround")}
+                </p>
+                <p className="mt-0.5 whitespace-pre-wrap text-[12.5px] text-foreground">
+                  {problem.workaround}
+                </p>
                 {onInsertWorkaround !== undefined ? (
                   <Button
                     type="button"

@@ -20,10 +20,7 @@ import {
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import {
-  fetchBottlenecks,
-  type BottlenecksResponse,
-} from "@/services/reports-api";
+import { fetchBottlenecks, type BottlenecksResponse } from "@/services/reports-api";
 
 /** Poruka se poklapa sa `reports.errors.*` mapom (vidi `ReportTrendsPanel`). */
 const disabledMessageKey = "reports.errors.BOTTLENECKS_DISABLED" as const;
@@ -138,9 +135,7 @@ export function ReportsBottlenecksPanel({
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
         {breakdowns.map((breakdown) => {
           // Prioritet se prevodi na jezik interfejsa; OU i servis stižu kao nazivi.
-          const bars = bottleneckBreakdownBars(breakdown.rows, (key) =>
-            ticketText(t, key),
-          );
+          const bars = bottleneckBreakdownBars(breakdown.rows, (key) => ticketText(t, key));
           return (
             <Card key={breakdown.key} className="fade-in">
               <CardHeader
@@ -165,7 +160,11 @@ export function ReportsBottlenecksPanel({
         <CardHeader
           title={t("reports.bottlenecks.trendTitle")}
           subtitle={t("reports.bottlenecks.trendSubtitle")}
-          actions={<Badge tone="neutral">{data.window.from.slice(0, 10)} – {data.window.to.slice(0, 10)}</Badge>}
+          actions={
+            <Badge tone="neutral">
+              {data.window.from.slice(0, 10)} – {data.window.to.slice(0, 10)}
+            </Badge>
+          }
         />
         <div className="overflow-x-auto px-4 py-4">
           {trend.length === 0 ? (

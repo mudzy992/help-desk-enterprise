@@ -1,10 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  tableWrapClassName,
-} from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import type { ConfigValidationIssue } from "@/services/config-versions-types";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 

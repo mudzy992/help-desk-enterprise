@@ -36,7 +36,11 @@ function buildCapabilities(input: {
       permissionKeys: input.permissionKeys ?? [],
       organizationalUnitId: null,
       organizationalUnitName: null,
-      modules: { cmdb: input.cmdb ?? false, problems: input.problems ?? false, changes: input.changes ?? false },
+      modules: {
+        cmdb: input.cmdb ?? false,
+        problems: input.problems ?? false,
+        changes: input.changes ?? false,
+      },
       principal: {
         subjectId: "user-1",
         displayName: "Test User",
@@ -45,8 +49,7 @@ function buildCapabilities(input: {
       },
     },
     isLoading: false,
-    hasPermission: (permission) =>
-      (input.permissionKeys ?? []).includes(permission),
+    hasPermission: (permission) => (input.permissionKeys ?? []).includes(permission),
     hasRole: (role) => (input.roleKeys ?? []).includes(role),
   };
 }
@@ -75,13 +78,16 @@ describe("route access", () => {
     expect(labels).toContain("/");
     expect(labels).not.toContain("/admin");
     expect(labels).not.toContain("/admin/config-versions");
-    expect(canAccessNavigationItem(configVersionsNavigationItem, capabilities)).toBe(
-      false,
-    );
+    expect(canAccessNavigationItem(configVersionsNavigationItem, capabilities)).toBe(false);
   });
 
   it("allows superadmin into all navigation entries", () => {
-    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true, problems: true, changes: true });
+    const capabilities = buildCapabilities({
+      isSuperAdmin: true,
+      cmdb: true,
+      problems: true,
+      changes: true,
+    });
     const visible = filterNavigationSections(navigationSections, capabilities);
     expect(visible.flatMap((section) => section.items)).toHaveLength(
       navigationSections.flatMap((section) => section.items).length,
@@ -96,32 +102,52 @@ describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
   });
 
   it("opens the register for asset.read and my equipment for everyone", () => {
-    expect(canOpenAssets(buildCapabilities({ cmdb: true, permissionKeys: [permissionKeys.assetRead] }))).toBe(true);
+    expect(
+      canOpenAssets(buildCapabilities({ cmdb: true, permissionKeys: [permissionKeys.assetRead] })),
+    ).toBe(true);
     expect(canOpenAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(false);
-    expect(canOpenMyAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(true);
+    expect(canOpenMyAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(
+      true,
+    );
   });
 });
 
 describe("canOpenProblems (paket 3.3)", () => {
   it("needs the module and problem.read", () => {
     expect(canOpenProblems(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
-    expect(canOpenProblems(buildCapabilities({ problems: true, permissionKeys: [permissionKeys.problemRead] }))).toBe(true);
-    expect(canOpenProblems(buildCapabilities({ problems: true, roleKeys: [roleKeys.user] }))).toBe(false);
+    expect(
+      canOpenProblems(
+        buildCapabilities({ problems: true, permissionKeys: [permissionKeys.problemRead] }),
+      ),
+    ).toBe(true);
+    expect(canOpenProblems(buildCapabilities({ problems: true, roleKeys: [roleKeys.user] }))).toBe(
+      false,
+    );
   });
 });
 
 describe("canOpenChanges (paket 3.4)", () => {
   it("needs the module and change.read", () => {
     expect(canOpenChanges(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
-    expect(canOpenChanges(buildCapabilities({ changes: true, permissionKeys: [permissionKeys.changeRead] }))).toBe(true);
-    expect(canOpenChanges(buildCapabilities({ changes: true, roleKeys: [roleKeys.user] }))).toBe(false);
+    expect(
+      canOpenChanges(
+        buildCapabilities({ changes: true, permissionKeys: [permissionKeys.changeRead] }),
+      ),
+    ).toBe(true);
+    expect(canOpenChanges(buildCapabilities({ changes: true, roleKeys: [roleKeys.user] }))).toBe(
+      false,
+    );
   });
 });
 
 describe("canOpenTeamsAdminPage (paket 3.1)", () => {
   it("needs integrations.teams.manage or super admin", () => {
     expect(canOpenTeamsAdminPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(false);
-    expect(canOpenTeamsAdminPage(buildCapabilities({ permissionKeys: [permissionKeys.integrationsTeamsManage] }))).toBe(true);
+    expect(
+      canOpenTeamsAdminPage(
+        buildCapabilities({ permissionKeys: [permissionKeys.integrationsTeamsManage] }),
+      ),
+    ).toBe(true);
     expect(canOpenTeamsAdminPage(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
   });
 });
@@ -130,6 +156,8 @@ describe("canOpenEmailTemplatesPage", () => {
   it("allows admins and super admins, not agents", () => {
     expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(true);
     expect(canOpenEmailTemplatesPage(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
-    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.agent] }))).toBe(false);
+    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.agent] }))).toBe(
+      false,
+    );
   });
 });

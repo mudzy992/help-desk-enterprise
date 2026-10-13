@@ -22,7 +22,9 @@ describe("install token store (review S4)", () => {
     stubSessionStorage();
     expect(installTokenHeaders("/install/seed")).toEqual({});
     writeInstallToken("  secret-token-value  ");
-    expect(installTokenHeaders("/install/seed")).toEqual({ "X-Install-Token": "secret-token-value" });
+    expect(installTokenHeaders("/install/seed")).toEqual({
+      "X-Install-Token": "secret-token-value",
+    });
     expect(installTokenHeaders("/tickets")).toEqual({});
   });
 

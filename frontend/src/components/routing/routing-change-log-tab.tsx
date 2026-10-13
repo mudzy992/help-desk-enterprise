@@ -5,10 +5,7 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
-import {
-  listRoutingChanges,
-  type RoutingChangeLogEntry,
-} from "@/services/routing-api";
+import { listRoutingChanges, type RoutingChangeLogEntry } from "@/services/routing-api";
 
 export function RoutingChangeLogTab() {
   const { t } = useTranslation();

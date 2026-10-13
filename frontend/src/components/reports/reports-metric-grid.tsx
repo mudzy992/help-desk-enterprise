@@ -24,10 +24,7 @@ const windowShortKeys = {
   "12m": "reports.windowShort12m",
 } as const;
 
-export function ReportsMetricGrid({
-  kpis,
-  preset,
-}: ReportsMetricGridProperties) {
+export function ReportsMetricGrid({ kpis, preset }: ReportsMetricGridProperties) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const empty = t("reports.metricEmpty");
@@ -36,7 +33,8 @@ export function ReportsMetricGrid({
       ? t("reports.metricCreatedCustom")
       : t("reports.metricCreated", { window: t(windowShortKeys[preset]) });
   const createdIcon =
-    kpis.createdDeltaPercent === null || kpis.createdDeltaPercent === 0 ? null : kpis.createdDeltaPercent < 0 ? (
+    kpis.createdDeltaPercent === null ||
+    kpis.createdDeltaPercent === 0 ? null : kpis.createdDeltaPercent < 0 ? (
       <TrendingDown size={15} />
     ) : (
       <TrendingUp size={15} />
@@ -58,9 +56,7 @@ export function ReportsMetricGrid({
       <StatCard
         label={t("reports.metricKbResolution")}
         value={
-          kpis.kbResolutionRate === null
-            ? empty
-            : `${Math.round(kpis.kbResolutionRate * 100)}%`
+          kpis.kbResolutionRate === null ? empty : `${Math.round(kpis.kbResolutionRate * 100)}%`
         }
         delta={
           kpis.kbHelpedCount === 0
@@ -95,11 +91,7 @@ export function ReportsMetricGrid({
       />
       <StatCard
         label={t("reports.metricResolution")}
-        value={
-          kpis.resolutionHours === null
-            ? empty
-            : formatHours(kpis.resolutionHours, locale)
-        }
+        value={kpis.resolutionHours === null ? empty : formatHours(kpis.resolutionHours, locale)}
         delta={
           kpis.resolutionDeltaHours === null
             ? undefined
@@ -116,9 +108,7 @@ export function ReportsMetricGrid({
             : formatCsat(kpis.csatAverage, kpis.csatScaleMax, locale)
         }
         delta={
-          kpis.csatCount === 0
-            ? undefined
-            : t("reports.deltaRatings", { count: kpis.csatCount })
+          kpis.csatCount === 0 ? undefined : t("reports.deltaRatings", { count: kpis.csatCount })
         }
         deltaTone={kpis.csatCount === 0 ? "neutral" : "success"}
         hint={

@@ -81,9 +81,6 @@ export function resolveColorMode(
 }
 
 /** `true` when the `.dark` class must sit on `<html>` (drives `dark:` variants). */
-export function isDarkAppearance(
-  design: ThemeDesign,
-  resolvedMode: ResolvedColorMode,
-): boolean {
+export function isDarkAppearance(design: ThemeDesign, resolvedMode: ResolvedColorMode): boolean {
   return design === "classic" || resolvedMode === "dark";
 }

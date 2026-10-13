@@ -15,10 +15,7 @@ export function canWriteConfigVersions(input: {
   readonly isSuperAdmin: boolean;
   readonly permissionKeys: readonly string[];
 }): boolean {
-  return (
-    input.isSuperAdmin ||
-    input.permissionKeys.includes(permissionKeys.settingsWrite)
-  );
+  return input.isSuperAdmin || input.permissionKeys.includes(permissionKeys.settingsWrite);
 }
 
 /** Paket 2.9 (K4): importing a config package (SUPER_ADMIN by default). */

@@ -35,14 +35,15 @@ export type TeamsReadinessKey =
 export type TeamsReadiness = {
   readonly ready: boolean;
   readonly mode: "simulator" | "live";
-  readonly checks: readonly { readonly key: TeamsReadinessKey; readonly ok: boolean; readonly detail?: string }[];
+  readonly checks: readonly {
+    readonly key: TeamsReadinessKey;
+    readonly ok: boolean;
+    readonly detail?: string;
+  }[];
 };
 
 export type TeamsChannelEvent =
-  | "ticket.created_in_group"
-  | "ticket.assigned_in_group"
-  | "sla.warning"
-  | "sla.breached";
+  "ticket.created_in_group" | "ticket.assigned_in_group" | "sla.warning" | "sla.breached";
 
 export type TeamsChannelLink = {
   readonly id: string;
@@ -89,7 +90,10 @@ export type TeamsSimulatorResult = {
   readonly response: Readonly<Record<string, unknown>> | null;
 };
 
-export function getTeamsMe(): Promise<{ readonly available: boolean; readonly connected: boolean }> {
+export function getTeamsMe(): Promise<{
+  readonly available: boolean;
+  readonly connected: boolean;
+}> {
   return apiRequest("/integrations/teams/me");
 }
 
@@ -101,7 +105,9 @@ export function checkTeamsReadiness(): Promise<TeamsReadiness> {
   return apiRequest("/integrations/teams/admin/readiness", { method: "POST" });
 }
 
-export async function downloadTeamsPackage(locale: "bs" | "en"): Promise<{ readonly blob: Blob; readonly fileName: string }> {
+export async function downloadTeamsPackage(
+  locale: "bs" | "en",
+): Promise<{ readonly blob: Blob; readonly fileName: string }> {
   const downloaded = await apiDownloadRequest(`/integrations/teams/admin/package?locale=${locale}`);
   return { blob: downloaded.blob, fileName: downloaded.fileName ?? "teams-app.zip" };
 }
@@ -121,7 +127,9 @@ export function updateTeamsChannel(
 }
 
 export function removeTeamsChannel(id: string): Promise<TeamsChannels> {
-  return apiRequest(`/integrations/teams/admin/channels/${encodeURIComponent(id)}`, { method: "DELETE" });
+  return apiRequest(`/integrations/teams/admin/channels/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 export function listTeamsSimulatorMessages(
@@ -132,7 +140,9 @@ export function listTeamsSimulatorMessages(
   return apiRequest(`/integrations/teams/admin/simulator/messages?${query.toString()}`);
 }
 
-export function sendTeamsSimulatorActivity(input: TeamsSimulatorActivity): Promise<TeamsSimulatorResult> {
+export function sendTeamsSimulatorActivity(
+  input: TeamsSimulatorActivity,
+): Promise<TeamsSimulatorResult> {
   return apiRequest("/integrations/teams/admin/simulator/activities", {
     method: "POST",
     body: JSON.stringify(input),

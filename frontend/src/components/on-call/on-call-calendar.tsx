@@ -22,10 +22,18 @@ export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendar
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-GB" : "bs-BA";
   // Samo brojevi (bez naziva mjeseca/dana) — sigurno i sa krnjim ICU podacima.
-  const dateFormat = new Intl.DateTimeFormat(locale, { timeZone, day: "2-digit", month: "2-digit" });
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    timeZone,
+    day: "2-digit",
+    month: "2-digit",
+  });
 
   return (
-    <ol className="grid grid-cols-1 gap-1.5 sm:grid-cols-7" aria-label={t("onCall.calendar.label")} data-testid="on-call-calendar">
+    <ol
+      className="grid grid-cols-1 gap-1.5 sm:grid-cols-7"
+      aria-label={t("onCall.calendar.label")}
+      data-testid="on-call-calendar"
+    >
       {days.map((day) => (
         <li
           key={day.key}
@@ -48,7 +56,9 @@ export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendar
             {day.entries.map(({ segment, startsHere }) => {
               const mine = currentUserId !== null && segment.person?.userId === currentUserId;
               const name = segment.person?.displayName ?? t("onCall.nobody");
-              const since = startsHere ? formatOnCallClock(segment.startsAt, i18n.language, timeZone) : null;
+              const since = startsHere
+                ? formatOnCallClock(segment.startsAt, i18n.language, timeZone)
+                : null;
               return (
                 <li
                   key={`${segment.startsAt}-${segment.person?.userId ?? "none"}`}
@@ -62,11 +72,17 @@ export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendar
                     mine && "border border-primary/50 font-semibold",
                   )}
                 >
-                  {since ? <span className="tabular-nums text-muted-foreground">{since} </span> : null}
+                  {since ? (
+                    <span className="tabular-nums text-muted-foreground">{since} </span>
+                  ) : null}
                   <span>{name}</span>
-                  {segment.source === "override" ? <span className="sr-only"> ({t("onCall.source.override")})</span> : null}
+                  {segment.source === "override" ? (
+                    <span className="sr-only"> ({t("onCall.source.override")})</span>
+                  ) : null}
                   {segment.person !== null && !segment.person.isAvailable ? (
-                    <span className="block text-[11px] text-warning">{t("onCall.unavailable")}</span>
+                    <span className="block text-[11px] text-warning">
+                      {t("onCall.unavailable")}
+                    </span>
                   ) : null}
                 </li>
               );

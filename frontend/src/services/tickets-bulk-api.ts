@@ -41,18 +41,14 @@ export type TicketBulkResult = {
   readonly recipientCount?: number;
 };
 
-export function previewTicketBulk(
-  ticketIds: readonly string[],
-): Promise<TicketBulkPreview> {
+export function previewTicketBulk(ticketIds: readonly string[]): Promise<TicketBulkPreview> {
   return apiRequest("/tickets/bulk/preview", {
     method: "POST",
     body: JSON.stringify({ ticketIds }),
   });
 }
 
-export function executeTicketBulk(
-  input: ExecuteTicketBulkInput,
-): Promise<TicketBulkResult> {
+export function executeTicketBulk(input: ExecuteTicketBulkInput): Promise<TicketBulkResult> {
   return apiRequest("/tickets/bulk", {
     method: "POST",
     body: JSON.stringify(input),

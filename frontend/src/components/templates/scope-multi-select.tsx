@@ -21,7 +21,14 @@ interface ScopeMultiSelectProperties {
  * scope (services, categories, groups). Selected items float to the top so a
  * long catalog never hides what is already chosen.
  */
-export function ScopeMultiSelect({ label, options, value, onChange, disabled = false, testId }: ScopeMultiSelectProperties) {
+export function ScopeMultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+  disabled = false,
+  testId,
+}: ScopeMultiSelectProperties) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const labelId = useId();
@@ -29,10 +36,13 @@ export function ScopeMultiSelect({ label, options, value, onChange, disabled = f
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("bs");
     return options
-      .filter((option) => needle.length === 0 || option.name.toLocaleLowerCase("bs").includes(needle))
+      .filter(
+        (option) => needle.length === 0 || option.name.toLocaleLowerCase("bs").includes(needle),
+      )
       .sort(
         (a, b) =>
-          Number(selected.has(b.id)) - Number(selected.has(a.id)) || a.name.localeCompare(b.name, "bs"),
+          Number(selected.has(b.id)) - Number(selected.has(a.id)) ||
+          a.name.localeCompare(b.name, "bs"),
       );
   }, [options, query, selected]);
 
@@ -52,7 +62,10 @@ export function ScopeMultiSelect({ label, options, value, onChange, disabled = f
       </div>
       <div className="rounded-md border border-border bg-surface">
         <div className="relative border-b border-border/70 p-1.5">
-          <Search size={13} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={13}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             type="search"
             value={query}
@@ -64,7 +77,9 @@ export function ScopeMultiSelect({ label, options, value, onChange, disabled = f
         </div>
         <ul className="max-h-40 space-y-1 overflow-y-auto p-2">
           {visible.length === 0 ? (
-            <li className="text-[12px] text-muted-foreground">{t("templates.editor.filterNone")}</li>
+            <li className="text-[12px] text-muted-foreground">
+              {t("templates.editor.filterNone")}
+            </li>
           ) : (
             visible.map((option) => (
               <li key={option.id}>
@@ -76,7 +91,9 @@ export function ScopeMultiSelect({ label, options, value, onChange, disabled = f
                     <span className="text-[12.5px] text-foreground">
                       {option.name}
                       {option.hint ? (
-                        <span className="ml-1.5 text-[11px] text-muted-foreground">{option.hint}</span>
+                        <span className="ml-1.5 text-[11px] text-muted-foreground">
+                          {option.hint}
+                        </span>
                       ) : null}
                     </span>
                   }

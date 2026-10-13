@@ -1,8 +1,4 @@
-import type {
-  NavigationLabelKey,
-  NavigationSection,
-  NavigationSectionKey,
-} from "@/lib/navigation";
+import type { NavigationLabelKey, NavigationSection, NavigationSectionKey } from "@/lib/navigation";
 
 /**
  * Command palette — pure model.

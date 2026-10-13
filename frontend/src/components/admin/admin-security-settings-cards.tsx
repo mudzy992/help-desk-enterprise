@@ -90,7 +90,8 @@ export function AdminSecurityPolicyCards({
   const [openRow, setOpenRow] = useState<"session" | "hibp" | "captcha" | "webhook" | null>(null);
   const auditWebhookEnabled = readBooleanSetting(entries, auditWebhookEnabledKey, false);
   const hibpEnabled = readBooleanSetting(entries, hibpEnabledKey, true);
-  const captchaEnabled = readStringSetting(entries, captchaProviderKey, "none") === captchaEnabledValue;
+  const captchaEnabled =
+    readStringSetting(entries, captchaProviderKey, "none") === captchaEnabledValue;
   const rows = useMemo(
     () => [
       {

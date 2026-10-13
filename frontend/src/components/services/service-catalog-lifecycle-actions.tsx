@@ -66,7 +66,11 @@ export function ServiceCatalogLifecycleActions({
           onChange={(event) => setReason(event.target.value)}
         />
       </Field>
-      {errorKey ? <p role="alert" className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
       <div className="flex flex-wrap justify-end gap-2 border-t border-border/70 pt-3">
         <Button
           type="button"
@@ -103,9 +107,7 @@ export function ServiceCatalogLifecycleActions({
               void run("delete", () => deleteService(service.id));
             }}
           >
-            {pendingAction === "delete"
-              ? t("services.deleting")
-              : t("services.deleteDraft")}
+            {pendingAction === "delete" ? t("services.deleting") : t("services.deleteDraft")}
           </Button>
         ) : null}
       </div>

@@ -20,11 +20,7 @@ import {
   type InstallSmtpRecord,
 } from "@/services/install-smtp-api";
 
-export function InstallSmtpStep({
-  onSaved,
-}: {
-  readonly onSaved?: () => void;
-}) {
+export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallSmtpRecord | null>(null);
   const [enabled, setEnabled] = useState(false);
@@ -131,14 +127,9 @@ export function InstallSmtpStep({
           onFromAddressChange={setFromAddress}
         />
       ) : null}
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
-        <Button
-          type="submit"
-          disabled={isSubmitting || !isInstallSmtpFormReady(formValues)}
-        >
+        <Button type="submit" disabled={isSubmitting || !isInstallSmtpFormReady(formValues)}>
           {isSubmitting ? t("install.smtp.saving") : t("install.smtp.submit")}
         </Button>
       </div>

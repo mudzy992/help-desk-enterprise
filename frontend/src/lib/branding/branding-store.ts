@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { setProductName } from "@/lib/a11y/document-title";
-import { getSettingsGeneration, subscribeSettingsGeneration } from "@/lib/settings/settings-realtime-store";
+import {
+  getSettingsGeneration,
+  subscribeSettingsGeneration,
+} from "@/lib/settings/settings-realtime-store";
 import { getBranding, type Branding } from "@/services/branding-api";
 
 /**
@@ -28,7 +31,11 @@ function emit(): void {
 }
 
 export function applyBranding(next: Branding): void {
-  current = { ...defaultBranding, ...next, appName: next.appName.trim() || defaultBranding.appName };
+  current = {
+    ...defaultBranding,
+    ...next,
+    appName: next.appName.trim() || defaultBranding.appName,
+  };
   setProductName(current.appName);
   applyFavicon(current.logoDataUrl);
   emit();

@@ -57,11 +57,7 @@ export function InstallSmtpFields({
         />
       </label>
       <label className="flex items-center gap-2 text-[13px] font-medium text-foreground">
-        <Switch
-          checked={tls}
-          onCheckedChange={onTlsChange}
-          aria-label={t("install.smtp.tls")}
-        />
+        <Switch checked={tls} onCheckedChange={onTlsChange} aria-label={t("install.smtp.tls")} />
         {t("install.smtp.tls")}
       </label>
       <label className={labelClassName}>
@@ -84,11 +80,7 @@ export function InstallSmtpFields({
           autoComplete="new-password"
         />
       </label>
-      {passwordConfigured ? (
-        <p className={hintClassName}>
-          {t("install.smtp.configured")}
-        </p>
-      ) : null}
+      {passwordConfigured ? <p className={hintClassName}>{t("install.smtp.configured")}</p> : null}
       <label className={labelClassName}>
         {t("install.smtp.fromAddress")}
         <input

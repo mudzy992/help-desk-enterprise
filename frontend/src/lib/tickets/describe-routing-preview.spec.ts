@@ -35,9 +35,7 @@ describe("describeRoutingPreview (val 5, M7 B2)", () => {
   });
 
   it("keeps the fallback detail line when the outcome is exact but the walk went up", () => {
-    expect(
-      describeRoutingPreview({ ...base, fallbackDepth: 1 }),
-    ).toEqual([
+    expect(describeRoutingPreview({ ...base, fallbackDepth: 1 })).toEqual([
       { key: "tickets.routingPreviewRouted", params: { group: "Service desk" } },
       { key: "tickets.routingPreviewFallbackDepth", params: { depth: 1 } },
     ]);
@@ -60,9 +58,7 @@ describe("describeRoutingPreview (val 5, M7 B2)", () => {
   });
 
   it("adds the SLA profile when the service has an active one", () => {
-    expect(
-      describeRoutingPreview({ ...base, slaProfileName: "Standard 8/5" }),
-    ).toEqual([
+    expect(describeRoutingPreview({ ...base, slaProfileName: "Standard 8/5" })).toEqual([
       { key: "tickets.routingPreviewRouted", params: { group: "Service desk" } },
       {
         key: "tickets.routingPreviewSlaProfile",

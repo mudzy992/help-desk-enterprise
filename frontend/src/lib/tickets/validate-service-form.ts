@@ -9,10 +9,7 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function validateField(
-  field: ServiceFormField,
-  value: unknown,
-): FormFieldError | null {
+function validateField(field: ServiceFormField, value: unknown): FormFieldError | null {
   if (field.type === "boolean") {
     if (field.required && value !== true && value !== false) {
       return { fieldId: field.id, messageKey: "tickets.form.required" };
@@ -36,9 +33,7 @@ function validateField(
   }
   if (field.type === "number") {
     if (value === "" || value === undefined || value === null) {
-      return field.required
-        ? { fieldId: field.id, messageKey: "tickets.form.required" }
-        : null;
+      return field.required ? { fieldId: field.id, messageKey: "tickets.form.required" } : null;
     }
     const numeric = typeof value === "number" ? value : Number(value);
     if (!Number.isFinite(numeric)) {

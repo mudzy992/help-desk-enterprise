@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { flattenPickerGroups, groupPickerItems, matchesPickerQuery, pickerSectionOf } from "@/lib/templates/group-picker-items";
+import {
+  flattenPickerGroups,
+  groupPickerItems,
+  matchesPickerQuery,
+  pickerSectionOf,
+} from "@/lib/templates/group-picker-items";
 import { insertAtCursor, isSlashTrigger } from "@/lib/templates/insert-at-cursor";
 import { moveItem } from "@/lib/templates/reorder-steps";
 import { parseTagsInput, unknownTemplateVariables } from "@/lib/templates/template-variables";
@@ -52,27 +57,52 @@ describe("picker grouping", () => {
   ];
 
   it("assigns sections", () => {
-    expect(items.map(pickerSectionOf)).toEqual(["global", "matching", "matching", "personal", "other", "global"]);
+    expect(items.map(pickerSectionOf)).toEqual([
+      "global",
+      "matching",
+      "matching",
+      "personal",
+      "other",
+      "global",
+    ]);
   });
 
   it("orders sections and items inside them", () => {
     const groups = groupPickerItems(items, "");
-    expect(groups.map((group) => group.section)).toEqual(["matching", "global", "personal", "other"]);
-    expect(flattenPickerGroups(groups).map((entry) => entry.id)).toEqual(["s", "c", "g2", "g1", "p", "o"]);
+    expect(groups.map((group) => group.section)).toEqual([
+      "matching",
+      "global",
+      "personal",
+      "other",
+    ]);
+    expect(flattenPickerGroups(groups).map((entry) => entry.id)).toEqual([
+      "s",
+      "c",
+      "g2",
+      "g1",
+      "p",
+      "o",
+    ]);
   });
 
   it("filters by every word, ignoring case and diacritics", () => {
     expect(matchesPickerQuery(item({ name: "Čestitka" }), "cest")).toBe(true);
     expect(matchesPickerQuery(item({ name: "A", tags: ["vpn"] }), "VPN")).toBe(true);
-    expect(matchesPickerQuery(item({ name: "A", preview: "reset lozinke" }), "lozinke reset")).toBe(true);
+    expect(matchesPickerQuery(item({ name: "A", preview: "reset lozinke" }), "lozinke reset")).toBe(
+      true,
+    );
     expect(matchesPickerQuery(item({ name: "A" }), "b")).toBe(false);
-    expect(groupPickerItems(items, "vpn").flatMap((group) => group.items.map((entry) => entry.id))).toEqual(["s"]);
+    expect(
+      groupPickerItems(items, "vpn").flatMap((group) => group.items.map((entry) => entry.id)),
+    ).toEqual(["s"]);
   });
 });
 
 describe("template variables", () => {
   it("flags unknown placeholders like the backend", () => {
-    expect(unknownTemplateVariables("{{ticketNumber}} {{ nope }} {{requesterName}}")).toEqual(["nope"]);
+    expect(unknownTemplateVariables("{{ticketNumber}} {{ nope }} {{requesterName}}")).toEqual([
+      "nope",
+    ]);
   });
 
   it("parses comma separated tags", () => {

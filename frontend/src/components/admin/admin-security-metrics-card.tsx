@@ -9,7 +9,11 @@ import { hintClassName, sectionTitleClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { alignMinuteSeries } from "@/lib/charts/minute-series";
 import { mapApiError } from "@/lib/map-api-error";
-import { getAuditWebhookStatus, getLoginSecurityMetrics, type SecurityAuditWebhookStatus } from "@/services/security-api";
+import {
+  getAuditWebhookStatus,
+  getLoginSecurityMetrics,
+  type SecurityAuditWebhookStatus,
+} from "@/services/security-api";
 
 /**
  * Paket 5.4.0-e (M2) + 5.4.0-e.2 (UI polish): „Nadzor → Promašene prijave / 429".
@@ -70,10 +74,26 @@ export function AdminSecurityMetricsCard() {
   const tiles = [
     { key: "blocks", label: t("admin.ops.securityMetrics.tileBlocks"), value: blocked?.total ?? 0 },
     { key: "peak", label: t("admin.ops.securityMetrics.peak"), value: blocked?.peakPerMinute ?? 0 },
-    { key: "mfa", label: t("admin.ops.securityMetrics.mfaFailures"), value: mfaFailures?.total ?? 0 },
-    { key: "hibp", label: t("admin.ops.securityMetrics.hibpSkipped"), value: hibpSkipped?.total ?? 0 },
-    { key: "captcha-failed", label: t("admin.ops.securityMetrics.captchaFailed"), value: captchaFailed?.total ?? 0 },
-    { key: "captcha-skipped", label: t("admin.ops.securityMetrics.captchaSkipped"), value: captchaSkipped?.total ?? 0 },
+    {
+      key: "mfa",
+      label: t("admin.ops.securityMetrics.mfaFailures"),
+      value: mfaFailures?.total ?? 0,
+    },
+    {
+      key: "hibp",
+      label: t("admin.ops.securityMetrics.hibpSkipped"),
+      value: hibpSkipped?.total ?? 0,
+    },
+    {
+      key: "captcha-failed",
+      label: t("admin.ops.securityMetrics.captchaFailed"),
+      value: captchaFailed?.total ?? 0,
+    },
+    {
+      key: "captcha-skipped",
+      label: t("admin.ops.securityMetrics.captchaSkipped"),
+      value: captchaSkipped?.total ?? 0,
+    },
   ] as const;
 
   return (
@@ -87,7 +107,9 @@ export function AdminSecurityMetricsCard() {
             size="xs"
             variant="outline"
             disabled={query.isFetching}
-            onClick={() => void queryClient.invalidateQueries({ queryKey: ["admin", "security", "metrics"] })}
+            onClick={() =>
+              void queryClient.invalidateQueries({ queryKey: ["admin", "security", "metrics"] })
+            }
           >
             <RefreshCw size={12} />
             {t("admin.ops.securityMetrics.refresh")}
@@ -118,7 +140,12 @@ export function AdminSecurityMetricsCard() {
             <AuditWebhookTile
               status={webhookQuery.data}
               isError={webhookQuery.isError}
-              formatTime={(at) => new Date(at).toLocaleString(i18n.language, { dateStyle: "short", timeStyle: "short" })}
+              formatTime={(at) =>
+                new Date(at).toLocaleString(i18n.language, {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })
+              }
             />
             {hasEvents ? (
               <section className="grid min-w-0 gap-2">
@@ -165,8 +192,13 @@ function AuditWebhookTile({
   const { t } = useTranslation();
   if (isError) {
     return (
-      <div data-testid="admin-security-metric-webhook" className="min-w-0 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2">
-        <p className="text-[11px] text-muted-foreground">{t("admin.ops.securityMetrics.webhook.title")}</p>
+      <div
+        data-testid="admin-security-metric-webhook"
+        className="min-w-0 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2"
+      >
+        <p className="text-[11px] text-muted-foreground">
+          {t("admin.ops.securityMetrics.webhook.title")}
+        </p>
         <p className={hintClassName}>{t("admin.ops.securityMetrics.webhook.unavailable")}</p>
       </div>
     );
@@ -180,7 +212,11 @@ function AuditWebhookTile({
         ? t("admin.ops.securityMetrics.webhook.stateFailing")
         : t("admin.ops.securityMetrics.webhook.stateOk");
   const stateClass =
-    status.state === "failing" ? "text-danger" : status.state === "ok" ? "text-success" : "text-muted-foreground";
+    status.state === "failing"
+      ? "text-danger"
+      : status.state === "ok"
+        ? "text-success"
+        : "text-muted-foreground";
 
   return (
     <div
@@ -189,7 +225,10 @@ function AuditWebhookTile({
       className="min-w-0 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2"
     >
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 truncate text-[11px] text-muted-foreground" title={t("admin.ops.securityMetrics.webhook.title")}>
+        <p
+          className="min-w-0 truncate text-[11px] text-muted-foreground"
+          title={t("admin.ops.securityMetrics.webhook.title")}
+        >
           {t("admin.ops.securityMetrics.webhook.title")}
         </p>
         <p className={`text-[13px] font-semibold ${stateClass}`}>{stateLabel}</p>
@@ -215,7 +254,9 @@ function AuditWebhookTile({
         <p className="mt-1 text-[12px] text-muted-foreground">
           {status.lastSuccessAt === null
             ? t("admin.ops.securityMetrics.webhook.noSuccess")
-            : t("admin.ops.securityMetrics.webhook.lastSuccess", { time: formatTime(status.lastSuccessAt) })}
+            : t("admin.ops.securityMetrics.webhook.lastSuccess", {
+                time: formatTime(status.lastSuccessAt),
+              })}
         </p>
       )}
     </div>

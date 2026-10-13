@@ -47,22 +47,37 @@ const AdminPage = lazyPage(() => import("@/pages/admin-page"), "AdminPage");
 const TeamsAdminPage = lazyPage(() => import("@/pages/teams-admin-page"), "TeamsAdminPage");
 const ReportsPage = lazyPage(() => import("@/pages/reports-page"), "ReportsPage");
 const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage");
-const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
+const ConfigVersionsPage = lazyPage(
+  () => import("@/pages/config-versions-page"),
+  "ConfigVersionsPage",
+);
 const WorkflowPage = lazyPage(() => import("@/pages/workflow-page"), "WorkflowPage");
-const EmailTemplatesPage = lazyPage(() => import("@/pages/email-templates-page"), "EmailTemplatesPage");
+const EmailTemplatesPage = lazyPage(
+  () => import("@/pages/email-templates-page"),
+  "EmailTemplatesPage",
+);
 const TemplatesPage = lazyPage(() => import("@/pages/templates-page"), "TemplatesPage");
 const ResponseTemplateEditorPage = lazyPage(
   () => import("@/pages/response-template-editor-page"),
   "ResponseTemplateEditorPage",
 );
-const PlaybookEditorPage = lazyPage(() => import("@/pages/playbook-editor-page"), "PlaybookEditorPage");
-const AccountSecurityPage = lazyPage(() => import("@/pages/account-security-page"), "AccountSecurityPage");
+const PlaybookEditorPage = lazyPage(
+  () => import("@/pages/playbook-editor-page"),
+  "PlaybookEditorPage",
+);
+const AccountSecurityPage = lazyPage(
+  () => import("@/pages/account-security-page"),
+  "AccountSecurityPage",
+);
 const AccountNotificationsPage = lazyPage(
   () => import("@/pages/account-notifications-page"),
   "AccountNotificationsPage",
 );
 const PrivacyPage = lazyPage(() => import("@/pages/privacy-page"), "PrivacyPage");
-const PrivacyNoticePage = lazyPage(() => import("@/pages/privacy-notice-page"), "PrivacyNoticePage");
+const PrivacyNoticePage = lazyPage(
+  () => import("@/pages/privacy-notice-page"),
+  "PrivacyNoticePage",
+);
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const DocsPage = lazyPage(() => import("@/pages/docs-page"), "DocsPage");
 const StatusPage = lazyPage(() => import("@/pages/status-page"), "StatusPage");
@@ -72,7 +87,10 @@ const AssetsPage = lazyPage(() => import("@/pages/assets-page"), "AssetsPage");
 const AssetDetailPage = lazyPage(() => import("@/pages/asset-detail-page"), "AssetDetailPage");
 const MyAssetsPage = lazyPage(() => import("@/pages/my-assets-page"), "MyAssetsPage");
 const ProblemsPage = lazyPage(() => import("@/pages/problems-page"), "ProblemsPage");
-const ProblemDetailPage = lazyPage(() => import("@/pages/problem-detail-page"), "ProblemDetailPage");
+const ProblemDetailPage = lazyPage(
+  () => import("@/pages/problem-detail-page"),
+  "ProblemDetailPage",
+);
 const ChangesPage = lazyPage(() => import("@/pages/changes-page"), "ChangesPage");
 const ChangeDetailPage = lazyPage(() => import("@/pages/change-detail-page"), "ChangeDetailPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
@@ -167,14 +185,8 @@ export function AppRouter() {
             <Route path="appearance" element={<AppearancePage />} />
             <Route path="account/security" element={<AccountSecurityPage />} />
             <Route path="account/notifications" element={<AccountNotificationsPage />} />
-            <Route
-              path="users"
-              element={<LegacyAdminRedirect tab="users" />}
-            />
-            <Route
-              path="organizational-units"
-              element={<LegacyAdminRedirect tab="org" />}
-            />
+            <Route path="users" element={<LegacyAdminRedirect tab="users" />} />
+            <Route path="organizational-units" element={<LegacyAdminRedirect tab="org" />} />
             <Route
               path="routing"
               element={
@@ -201,10 +213,7 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
-            <Route
-              path="settings"
-              element={<LegacyAdminRedirect tab="settings" />}
-            />
+            <Route path="settings" element={<LegacyAdminRedirect tab="settings" />} />
             <Route
               path="admin"
               element={
@@ -218,10 +227,7 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
-            <Route
-              path="admin/queue"
-              element={<LegacyAdminRedirect tab="ops" />}
-            />
+            <Route path="admin/queue" element={<LegacyAdminRedirect tab="ops" />} />
             <Route
               path="admin/config-versions"
               element={

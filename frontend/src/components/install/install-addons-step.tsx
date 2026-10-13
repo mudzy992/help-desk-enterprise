@@ -16,11 +16,7 @@ import {
   type InstallAddonItem,
 } from "@/services/install-addons-api";
 
-export function InstallAddonsStep({
-  onSaved,
-}: {
-  readonly onSaved?: () => void;
-}) {
+export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
   const [items, setItems] = useState<InstallAddonItem[]>([]);
   const [errorKey, setErrorKey] = useState<InstallAddonsErrorKey | null>(null);
@@ -75,17 +71,13 @@ export function InstallAddonsStep({
           onEnabledChange={(enabled) =>
             setItems((current) =>
               current.map((entry) =>
-                entry.key === item.key && entry.canEnable
-                  ? { ...entry, enabled }
-                  : entry,
+                entry.key === item.key && entry.canEnable ? { ...entry, enabled } : entry,
               ),
             )
           }
         />
       ))}
-      {errorKey ? (
-        <p className={errorTextClassName}>{t(errorKey)}</p>
-      ) : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting || items.length === 0}>
           {isSubmitting ? t("install.addons.saving") : t("install.addons.submit")}

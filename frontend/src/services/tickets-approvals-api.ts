@@ -15,9 +15,7 @@ export type TicketApprovalResponse = {
   readonly canDecide: boolean;
 };
 
-export function listTicketApprovals(
-  ticketId: string,
-): Promise<readonly TicketApprovalResponse[]> {
+export function listTicketApprovals(ticketId: string): Promise<readonly TicketApprovalResponse[]> {
   return apiRequest(`/tickets/${ticketId}/approvals`);
 }
 

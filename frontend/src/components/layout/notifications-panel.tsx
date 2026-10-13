@@ -73,11 +73,7 @@ export function NotificationsPanel({
       </div>
       <NotificationsList
         items={visible}
-        emptyLabel={
-          filter === "unread"
-            ? t("notifications.emptyUnread")
-            : t("notifications.empty")
-        }
+        emptyLabel={filter === "unread" ? t("notifications.emptyUnread") : t("notifications.empty")}
         locale={locale}
         onSelect={(notification) => {
           onSelect(notification);
