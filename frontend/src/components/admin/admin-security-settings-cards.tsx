@@ -1,4 +1,4 @@
-import { Fingerprint, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { Fingerprint, Send, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
@@ -62,11 +62,17 @@ const hibpEnabledKey = "private.security.hibp.enabled";
 const captchaPrefix = "private.security.captcha.";
 const captchaProviderKey = "private.security.captcha.provider";
 const captchaEnabledValue = "turnstile";
+// 5.4.2 (stavka 3): the signed audit export. Same dialog as the other rows: the
+// secret, the dependency gate (switch on only with an address and a secret) and
+// the reason all come from the registry, not from this card.
+const auditWebhookPrefix = "private.security.auditWebhook.";
+const auditWebhookEnabledKey = "private.security.auditWebhook.enabled";
 
 const rowDescriptionKeys = {
   session: "admin.security.sessionBody",
   hibp: "admin.security.hibpBody",
   captcha: "admin.security.captchaBody",
+  webhook: "admin.security.auditWebhookBody",
 } as const;
 
 export function AdminSecurityPolicyCards({
@@ -81,7 +87,8 @@ export function AdminSecurityPolicyCards({
   readonly onSave: SettingsSaver;
 }) {
   const { t } = useTranslation();
-  const [openRow, setOpenRow] = useState<"session" | "hibp" | "captcha" | null>(null);
+  const [openRow, setOpenRow] = useState<"session" | "hibp" | "captcha" | "webhook" | null>(null);
+  const auditWebhookEnabled = readBooleanSetting(entries, auditWebhookEnabledKey, false);
   const hibpEnabled = readBooleanSetting(entries, hibpEnabledKey, true);
   const captchaEnabled = readStringSetting(entries, captchaProviderKey, "none") === captchaEnabledValue;
   const rows = useMemo(
@@ -110,8 +117,16 @@ export function AdminSecurityPolicyCards({
         enabled: captchaEnabled,
         prefixes: [captchaPrefix],
       },
+      {
+        id: "webhook" as const,
+        icon: Send,
+        label: t("admin.security.auditWebhookRow"),
+        hint: t("admin.security.auditWebhookHint"),
+        enabled: auditWebhookEnabled,
+        prefixes: [auditWebhookPrefix],
+      },
     ],
-    [captchaEnabled, entries, hibpEnabled, t],
+    [auditWebhookEnabled, captchaEnabled, entries, hibpEnabled, t],
   );
   const activeRow = rows.find((row) => row.id === openRow) ?? null;
   const drawerEntries = useMemo(

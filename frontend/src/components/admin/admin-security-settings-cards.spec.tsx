@@ -85,6 +85,9 @@ describe("AdminSecurityPolicyCards", () => {
     expect(html).toContain('data-testid="admin-security-policy-row-hibp"');
     // 5.4.1 (M3): the human check is a policy surface too.
     expect(html).toContain('data-testid="admin-security-policy-row-captcha"');
+    // 5.4.2 (stavka 3): the audit webhook export is a fourth row, same dialog.
+    expect(html).toContain('data-testid="admin-security-policy-row-webhook"');
+    expect(html).toContain("admin.security.auditWebhookRow");
     expect(html).toContain("admin.security.captchaRow");
     // 5.4.0-e.3: the card holds two groups, so its title covers both rows.
     expect(html).toContain("admin.security.policyTitle");

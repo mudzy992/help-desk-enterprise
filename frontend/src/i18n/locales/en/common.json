@@ -771,7 +771,10 @@
       "rateLimitsReasonHint": "A reason is required (at least {{count}} characters) and is visible in the journal.",
       "hibpHint": "breached-password check (fail-open)",
       "policyTitle": "Security settings",
-      "policyBody": "Session lifetime and cut-off, the breached-password check and the human check. A row opens a dialog and the change is recorded in the journal below."
+      "policyBody": "Session lifetime and cut-off, the breached-password check and the human check. A row opens a dialog and the change is recorded in the journal below.",
+      "auditWebhookRow": "Audit export to a webhook",
+      "auditWebhookHint": "Signed auth and security events to your endpoint",
+      "auditWebhookBody": "When on, auth and security audit events written from now on are posted to the address below, signed with the signing secret (HMAC-SHA256). The export is off by default; turning it off skips events written meanwhile. Internal addresses are allowed. Enter the address and the secret first, then switch the export on."
     },
     "forbiddenTitle": "No access to administration",
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",

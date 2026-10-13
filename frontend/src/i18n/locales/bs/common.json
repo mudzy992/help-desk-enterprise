@@ -773,7 +773,10 @@
       "rateLimitsReasonHint": "Razlog je obavezan (najmanje {{count}} znakova) i vidljiv je u dnevniku.",
       "hibpHint": "provjera procurjelih lozinki (fail-open)",
       "policyTitle": "Sigurnosne postavke",
-      "policyBody": "Trajanje i prekid sesija, provjera procurjelih lozinki i provjera da niste robot. Red otvara dijalog, a izmjena se upisuje u sigurnosni dnevnik ispod."
+      "policyBody": "Trajanje i prekid sesija, provjera procurjelih lozinki i provjera da niste robot. Red otvara dijalog, a izmjena se upisuje u sigurnosni dnevnik ispod.",
+      "auditWebhookRow": "Izvoz revizijskog dnevnika na webhook",
+      "auditWebhookHint": "Potpisani događaji prijava i sigurnosti na vašu adresu",
+      "auditWebhookBody": "Kada je uključeno, događaji autentikacije i sigurnosti zapisani od sada šalju se na adresu ispod, potpisani tajnom (HMAC-SHA256). Izvoz je podrazumijevano isključen; isključivanje preskače događaje zapisane u međuvremenu. Interne adrese su dozvoljene. Prvo unesite adresu i tajnu, pa uključite izvoz."
     },
     "forbiddenTitle": "Nema pristupa administraciji",
     "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
