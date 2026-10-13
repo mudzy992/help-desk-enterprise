@@ -212,6 +212,7 @@ Refaktor se ne radi bez potvrde obima.
 | T22 | Niska | `pages/ticket-detail-page.tsx:316, 392, 521`; `ticket-list-page`/`use-ticket-list.ts:121` | `.finally` bez `.catch` (radi zbog `runAction`); `setPage` prije deklaracije. | Eksplicitan `catch`; premjestiti efekat poslije deklaracije. |
 | T23 | Za provjeru | `components/tickets/*`, `lib/tickets/use-ticket-presence.ts` | `React.memo` nije korišćen ni u jednom fajlu u `components/tickets/`. Broj ponovnih renderovanja nije mjeren. | Mjeriti React Profiler na listi sa 50 redova i na detalju. |
 | T24 | Za provjeru | `lib/tickets/use-ticket-list.ts:97-122` | Na prvom renderu `isStaff` je još `false` (dozvole stižu asinhrono), pa se deep-link filteri privremeno računaju kao prazni. Efekat na linijama 112–122 ih naknadno primjenjuje, ali to je zakrpa za problem iz modula 2 (A3). | Riješiti kroz `currentSession` iz modula 2. |
+| T26 | Srednja | `lib/tickets/use-ticket-list.ts:130-295` (`load(true)` iz realtime-a); `lib/realtime/use-ticket-collection-realtime.ts` | Tiho osvježavanje liste realtime događajem koristi `fetchQuery`, koji vraća keš mlađi od `staleTime` (30 s) bez zahtjeva. Potvrđeno testom van repozitorija (`/tmp/fetchquery-check.cjs`: dva poziva unutar 30 s daju jedan zahtjev). Posljedica: promjena tiketa u tom prozoru ne vidi se na listi dok ne istekne keš. Isti obrazac u dashboardu: D3 u modulu 4. | `invalidateQueries` za ključeve liste pri realtime događaju umjesto `fetchQuery`. Test sa dva događaja u razmaku manjem od 30 s. |
 
 ---
 
