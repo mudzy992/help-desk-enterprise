@@ -23,6 +23,8 @@ pravilo iz `DOCS_MODULE.md` §6 ostaje. Sadržaj za administratore ide kroz `doc
 
 **Dodato (stavka 4, pločica i alarm za webhook):** pločica *Izvoz na webhook* u kartici *Sigurnosne metrike* (`GET /security/metrics/audit-webhook`, samo SUPER_ADMIN) i alarm `security.auditWebhook.stalled` (slug `security_auditWebhook_stalled`, runbook `audit-webhook-stalled`). Stranice `webhook-izvoz-dnevnika` i `alarmi-i-zdravlje-sistema` (bs/en), `docs/ops/security-audit-webhook.md` i `ops/runbook/ALERTS.md` opisuju ih; tvrdnja da pločice i alarma nema je uklonjena. **Predloženo, čeka potvrdu vlasnika:** pragovi 15 / 60 minuta su fiksni (nisu postavke), a naziv ključa i mjesto pločice su predloženi.
 
+**Odluka vlasnika (2026-10-13): test alarma webhooka se preskače.** Izvoz na webhook je provjeren na stagingu (potpisane isporuke sa koda 200 prolaze). Alarm `security.auditWebhook.stalled` (UPOZORENJE / KRITIČNO) pokriven je jediničnim testovima i CI-jem, ali **nije dokazan na živom okruženju**. Posmatranje alarma u produkciji ostaje otvoreno. Kalibracija CAPTCHA pragova na živom saobraćaju takođe čeka podatke sa produkcije.
+
 **Ostaje otvoreno:** potvrda vlasnika da je brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e
 prihvatljivo (dijalog tako radi, opisano je na stranici `captcha-provjera`); passkey prijava trenutno nije u provjeri
 (obim stavke 1 je lozinka i kod drugog koraka). Treba potvrditi da li passkey prijava treba biti uključena; predložen je odgovor „nije uključena“ (passkey je vezan za uređaj). Takođe treba potvrditi pragove 15 / 60 minuta i naziv ključa alarma.
