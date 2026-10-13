@@ -27,6 +27,8 @@ pravilo iz `DOCS_MODULE.md` §6 ostaje. Sadržaj za administratore ide kroz `doc
 
 **Potvrđeno (vlasnik, 2026-10-13):** brisanje tajnog ključa i praznjenje site key-a pri isključivanju CAPTCHA-e je odobreno ponašanje (opisano na stranici `captcha-provjera`). Passkey prijava nije uključena u CAPTCHA provjeru (obim stavke 1 je lozinka i kod drugog koraka; passkey je vezan za uređaj).
 
+**Zatvoreno (vlasnik, 2026-10-13): val 5.4.2 (stavke 1–4) je zatvoren.** Stavka 1 (CAPTCHA na MFA koraku), stavka 2 (alarmi za CAPTCHA metrike), stavka 3 (webhook izvoz) i stavka 4 (pločica i alarm za webhook) su implementirane i u CI-ju (`eb88d787`, CI gate zelen). Pragovi webhook alarma i CAPTCHA metrika ostaju kako su u kodu (15 / 60 min; 50 / 200 po satu). Stavka 5 (SMTP, LDAPS, Entra živa provjera) ostaje na pauzi. Otvoreno i prihvaćeno kao posmatranje, a ne kao razvojni zadatak: (a) test alarma webhooka na stagingu je preskočen (rizik prihvaćen, vidi gore); (b) kalibracija CAPTCHA pragova na živom saobraćaju odložena, vidi ispod.
+
 **Ostaje otvoreno:** kalibracija CAPTCHA pragova (`captchaFailedWarnPerHour` / `…CriticalPerHour`, `captchaSkippedWarnPerHour` / `…CriticalPerHour`, trenutno 50 / 200). Metrike `captcha-failed` i `captcha-skipped` su u zadnjem satu na produkciji 0; treba provjeriti da li je provjera uključena, pa prikupiti 24–48 sati podataka prije promjene pragova.
 
 ## 2026-10-12 — CAPTCHA metrike: pločice i alarmi (5.4.2, stavka 2)

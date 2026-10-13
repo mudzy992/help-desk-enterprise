@@ -296,8 +296,10 @@ preko `GET /security/metrics/last-hour` (alarm na njih ne postoji).
   promjena lozinke i MFA potvrde iz sigurnosnih radnji (npr. uključivanje MFA-e dok je korisnik prijavljen)
   nemaju provjeru i ostaju pod „other" bucketom (§1).
 - **Metrike CAPTCHA-e imaju pločice i alarme** (5.4.2, §3.2): `captcha-failed` i `captcha-skipped` se broje
-  kao `login-429`, a pragovi su odvojeni. Podrazumijevano su 50/h i 200/h kao i kod 429; kalibracija
-  na živom saobraćaju još nije urađena.
+  kao `login-429`, a pragovi su odvojeni. Pragovi ostaju 50/h i 200/h kao i kod 429
+  (odluka vlasnika, 2026-10-13). Kalibracija na živom saobraćaju je odložena: metrike su na produkciji u zadnjem
+  satu bile 0, pa podaci još ne postoje. Ponovna procjena kad se CAPTCHA uključi ili kad se prikupi 24–48 sati
+  normalnog rada.
 - **„Other" bucket dijeli ključ po IP-u** za change-password i po računu za MFA potvrde; ako se
   pokaže potreba za odvojenim pragovima, to je nova stavka u settings registru.
 - Metrike traže Redis da bi bile dijeljene između replika; bez njega su per-proces (vrijednosti i
