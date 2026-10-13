@@ -81,7 +81,7 @@ Provjere izvršene u sandboxu:
 12. **Latentni bug u `toast()` (UI12).** `ToastProvider.toast` postavlja `resolvedId` unutar `setQueue` updatera, a `return resolvedId` se izvrši prije nego što React pozove updater (lazy). Vraćeni id je kandidat, ne spojeni id kad je poruka identična. Trenutno nijedan poziv ne koristi povratnu vrijednost (provjereno grep-om), pa nema vidljivog efekta, ali povratna vrijednost je netačna.
 13. **Nekorišteni exporti (UI13).** `ModalTrigger`, `ModalClose`, `SheetTrigger`, `SheetClose`, `SheetPortal`, `SheetOverlay`, `DropdownMenuGroup` su izvezeni, a nigdje se ne koriste. Ovo je shadcn šablon, pa nije kritično, ali povećava površinu API-ja.
 14. **Dupli API za varijante dugmeta (UI14).** `default`/`primary`, `destructive`/`danger`, `secondary`/`subtle` su aliasi sa istim stilom. Nije jasno koji treba koristiti.
-15. **Nedosljedni nazivi (UI15).** `ariaLabel` (Tabs, Segmented) i `label` (FilterBar, ScrollRegion, ConfirmDialog) za istu namjenu. Dvije i18n putanje za isti akcija: `ui.close` (modal) i `shell.close` (sheet).
+15. **Nedosljedni nazivi (UI15).** `ariaLabel` (Tabs, Segmented) i `label` (FilterBar, ScrollRegion, ConfirmDialog) za istu namjenu. Dva i18n ključa za istu akciju: `ui.close` (modal) i `shell.close` (sheet).
 
 **Što je dobro:**
 - Tokeni i komentari o kontrastu po temi, pa se stil mijenja na jednom mjestu.
