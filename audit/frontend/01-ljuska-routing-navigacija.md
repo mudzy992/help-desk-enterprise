@@ -278,10 +278,10 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
 | B16 gutanje greške jezika | Urađeno | `reportClientError("locale_sync_failed", …)`, sesija nije blokirana. |
 | B17 `console.error` | Urađeno | `lib/app/client-logger.ts` je jedini izvor ispisa; pravilo ESLint `no-console`. |
 | B18 hard-coded „N“ | Urađeno | Tekst prečice dolazi iz kataloga (`shortcutHint("newTicket")`). |
-| B19 interne oznake u komentarima | Urađeno | Uklonjene oznake „Paket / Review / Faza“ iz 31 fajla modula. |
+| B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
 | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
 | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
-| B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
+| B22 zaglavlje na 360 i 390 px | Urađeno | Provjera u headless Chromiumu (harness sa stvarnom `AppHeader` komponentom, prijavljena sesija, aktivan tajmer). Prije: sa aktivnim tajmerom indikator je bio 186 px, pretraga se svodila na 26 px, bez prelivanja samo zato što su se pretraga i tekst skupljali. Poslije: na 360 px pretraga 95 px, indikator 110 px (prikazani su ikona, vrijeme i dugme za zaustavljanje; broj tiketa samo od `sm`). Pretraga ima `min-w-9` (36 px). Desktop (1280 px) nepromijenjen. Snimci: `assets/01-header-360.png`, `assets/01-header-390.png`, `assets/01-header-360-s-tajmerom.png`, `assets/01-header-390-s-tajmerom.png`. Test: `active-timer-indicator.spec.tsx`. |
 | ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
 
 ### Zabilješke za druge module

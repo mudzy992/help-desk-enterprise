@@ -40,7 +40,7 @@ describe("header search projection", () => {
     });
   });
 
-  it("keeps the same hrefs the client built before phase 1.2", () => {
+  it("keeps the same hrefs the client built before the server search", () => {
     const groups = toHeaderSearchGroups("  vpn  ", response);
     expect(groups.articles[0]?.href).toBe("/knowledge-base?q=vpn");
   });

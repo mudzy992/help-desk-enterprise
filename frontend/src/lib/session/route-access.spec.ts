@@ -94,7 +94,7 @@ describe("route access", () => {
   });
 });
 
-describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
+describe("canOpenAssets / canOpenMyAssets", () => {
   it("needs the module switched on", () => {
     expect(canOpenAssets(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
     expect(canOpenMyAssets(buildCapabilities({ roleKeys: [roleKeys.user] }))).toBe(false);
@@ -111,7 +111,7 @@ describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
   });
 });
 
-describe("canOpenProblems (paket 3.3)", () => {
+describe("canOpenProblems", () => {
   it("needs the module and problem.read", () => {
     expect(canOpenProblems(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
     expect(
@@ -125,7 +125,7 @@ describe("canOpenProblems (paket 3.3)", () => {
   });
 });
 
-describe("canOpenChanges (paket 3.4)", () => {
+describe("canOpenChanges", () => {
   it("needs the module and change.read", () => {
     expect(canOpenChanges(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
     expect(
@@ -139,7 +139,7 @@ describe("canOpenChanges (paket 3.4)", () => {
   });
 });
 
-describe("canOpenTeamsAdminPage (paket 3.1)", () => {
+describe("canOpenTeamsAdminPage", () => {
   it("needs integrations.teams.manage or super admin", () => {
     expect(canOpenTeamsAdminPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(false);
     expect(

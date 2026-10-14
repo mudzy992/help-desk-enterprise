@@ -114,10 +114,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       setIsSearching(false);
       return;
     }
-    // Phase 1.2 (plan §1.2): the debounce stays at 300 ms and the in-flight
-    // request is aborted when the next keystroke arrives, so typing never
-    // leaves a queue of searches running behind it. An abort is not an error —
-    // the newer request owns the panel.
+    // Pauza prije pretrage ostaje 300 ms; novi unos prekida zahtjev u toku,
+    // pa se pretrage ne gomilaju. Prekid nije greška — prikazuje se rezultat
+    // najnovijeg upita.
     const controller = new AbortController();
     setIsSearching(true);
     const handle = window.setTimeout(() => {
