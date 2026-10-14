@@ -72,6 +72,8 @@ export class ApiClient {
     type LoginBody = {
       status?: string;
       mfaToken?: string;
+      /** Only from a stack that predates the httpOnly session cookie. */
+      accessToken?: string;
     };
     let body = await this.requestJson<LoginBody>('/auth/login', {
       method: 'POST',
@@ -96,10 +98,17 @@ export class ApiClient {
     } else if (body.status !== undefined) {
       throw new Error(`Login requires ${body.status}`);
     }
-    if (this.sessionCookie === null) {
-      throw new Error('Login response did not set the session cookie');
+    if (this.sessionCookie !== null) {
+      return this.sessionCookie;
     }
-    return this.sessionCookie;
+    // Prelazni režim: stack koji je trenutno deployovan iz master-a još vraća token u tijelu
+    // i ne šalje kolačić. PR gate testira taj stack, pa se koristi bearer do deploya grane.
+    // Ukloniti kad E2E stack izdaje kolačić (specovi 37 i 39 provjeravaju kolačić).
+    if (typeof body.accessToken === 'string' && body.accessToken.length > 0) {
+      this.setBearerToken(body.accessToken);
+      return body.accessToken;
+    }
+    throw new Error('Login response did not set the session cookie');
   }
 
   async requestJson<T>(
