@@ -41,10 +41,18 @@ export function Donut({
   const active = hover === null ? null : data.find((datum) => datum.label === hover);
   let offset = 0;
 
+  const description = data.map((datum) => `${datum.label}: ${datum.value}`).join(", ");
+
   return (
     <div className={cn("flex items-center gap-5", className)}>
       <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+        <svg
+          width={size}
+          height={size}
+          className="-rotate-90"
+          role="img"
+          aria-label={[centerLabel ?? "", description].filter(Boolean).join(" — ")}
+        >
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -92,25 +100,35 @@ export function Donut({
           ) : null}
         </div>
       </div>
-      <ul className="min-w-0 flex-1 space-y-1">
+      <ul className="min-w-0 flex-1 space-y-1" role="list">
         {data.map((datum) => (
-          <li
-            key={datum.label}
-            className={cn(
-              "flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 transition-colors",
-              hover === datum.label ? "bg-elevated" : "hover:bg-elevated/70",
-            )}
-            onMouseEnter={() => setHover(datum.label)}
-            onMouseLeave={() => setHover(null)}
-          >
-            <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: datum.color }} />
-            <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
-              {datum.label}
-            </span>
-            <span className="tnum text-[12.5px] font-semibold text-foreground">{datum.value}</span>
-            <span className="tnum w-9 text-right text-[11px] text-muted-foreground">
-              {total ? Math.round((datum.value / total) * 100) : 0}%
-            </span>
+          <li key={datum.label}>
+            <button
+              type="button"
+              className={cn(
+                "flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/70",
+                hover === datum.label ? "bg-elevated" : "hover:bg-elevated/70",
+              )}
+              onMouseEnter={() => setHover(datum.label)}
+              onMouseLeave={() => setHover(null)}
+              onFocus={() => setHover(datum.label)}
+              onBlur={() => setHover(null)}
+              aria-label={`${datum.label}: ${datum.value} (${total ? Math.round((datum.value / total) * 100) : 0}%)`}
+            >
+              <span
+                className="size-2.5 shrink-0 rounded-[3px]"
+                style={{ background: datum.color }}
+              />
+              <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
+                {datum.label}
+              </span>
+              <span className="tnum text-[12.5px] font-semibold text-foreground">
+                {datum.value}
+              </span>
+              <span className="tnum w-9 text-right text-[11px] text-muted-foreground">
+                {total ? Math.round((datum.value / total) * 100) : 0}%
+              </span>
+            </button>
           </li>
         ))}
       </ul>

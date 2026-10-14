@@ -1,13 +1,10 @@
-import { PieChart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Donut } from "@/components/charts/donut";
 import { DualAreaChart } from "@/components/charts/dual-area-chart";
 import { Card, CardHeader } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { TICKET_STATUS_META } from "@/lib/theme/semantic-meta";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 
 interface DashboardChartsProperties {
   readonly summary: DashboardSummary;
@@ -16,18 +13,12 @@ interface DashboardChartsProperties {
 export function DashboardCharts({ summary }: DashboardChartsProperties) {
   const { t } = useTranslation();
 
-  if (summary.total === 0) {
-    return (
-      <EmptyState
-        icon={<PieChart size={18} strokeWidth={1.8} />}
-        title={t("dashboard.chartsEmptyTitle")}
-        body={t("dashboard.chartsEmptyBody")}
-      />
-    );
-  }
-
+  // Val 6.1 / modul 4 (D15): the page-level EmptyState already renders for
+  // `summary.total === 0`, so the inner check was unreachable.
+  // Val 6.1 / modul 4 (D16): typed `t()` with explicit `TicketStatusLabelKey`
+  // union replaces the untyped `ticketText` escape hatch (T4).
   const donutData = summary.statusCounts.map((entry) => ({
-    label: ticketText(t, ticketStatusLabelKey[entry.status]),
+    label: t(ticketStatusLabelKey[entry.status]),
     value: entry.count,
     color: TICKET_STATUS_META[entry.status].dot,
   }));
