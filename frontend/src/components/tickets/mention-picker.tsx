@@ -53,9 +53,7 @@ export function MentionPicker({
       active = false;
       window.clearTimeout(handle);
     };
-    // onCandidates is a stable setter from the composer.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId, query]);
+  }, [onCandidates, query, ticketId]);
 
   return (
     <div

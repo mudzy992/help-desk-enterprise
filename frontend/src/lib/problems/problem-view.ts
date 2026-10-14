@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/ui/badge";
+import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import type {
   ProblemSeverity,
@@ -169,15 +170,29 @@ export const knownRootCauseCategories = [
   "unknown",
 ] as const;
 
-export function rootCauseLabel(t: (key: string) => string, key: string | null): string {
+export type ProblemRootCauseTranslationKey = Extract<
+  CommonTranslationKey,
+  `problems.rootCause.${(typeof knownRootCauseCategories)[number]}`
+>;
+
+export function rootCauseLabel(
+  t: (key: ProblemRootCauseTranslationKey) => string,
+  key: string | null,
+): string {
   if (key === null || key === "") return "—";
-  return (knownRootCauseCategories as readonly string[]).includes(key)
-    ? t(`problems.rootCause.${key}`)
-    : key;
+  const knownCategory = knownRootCauseCategories.find((category) => category === key);
+  return knownCategory === undefined ? key : t(`problems.rootCause.${knownCategory}`);
 }
 
+export type ProblemTransitionTranslationKey =
+  Extract<CommonTranslationKey, `problems.transition.${string}`> | "problems.status.NEW";
+
 /** Status transition button label: reopen is worded differently. */
-export function transitionLabelKey(from: ProblemStatus, to: ProblemStatus): string {
+export function transitionLabelKey(
+  from: ProblemStatus,
+  to: ProblemStatus,
+): ProblemTransitionTranslationKey {
+  if (to === "NEW") return "problems.status.NEW";
   if (to === "INVESTIGATING" && from === "NEW") return "problems.transition.start";
   if (to === "INVESTIGATING") return "problems.transition.reopen";
   return `problems.transition.${to}`;

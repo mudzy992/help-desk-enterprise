@@ -6,7 +6,6 @@ import { DetailSection } from "@/components/ui/detail-section";
 import { textareaClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketApprovalResponse } from "@/services/tickets-approvals-api";
 
@@ -79,7 +78,7 @@ export function TicketApprovalsPanel({
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
                 <p className="text-[12.5px] font-medium text-foreground/90">
-                  {ticketText(t, "tickets.detail.approvalStep", { step: item.stepOrder })}
+                  {t("tickets.detail.approvalStep", { step: item.stepOrder })}
                 </p>
                 <p className="text-[11.5px] text-muted-foreground">
                   {name ?? "—"} ·{" "}
@@ -88,8 +87,7 @@ export function TicketApprovalsPanel({
                   ) : item.status === "PENDING" ? (
                     t("tickets.detail.pendingDecision")
                   ) : (
-                    ticketText(
-                      t,
+                    t(
                       item.status === "APPROVED"
                         ? "tickets.approvalStatus.APPROVED"
                         : "tickets.approvalStatus.REJECTED",

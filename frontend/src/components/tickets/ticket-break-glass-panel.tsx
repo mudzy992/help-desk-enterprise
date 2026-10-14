@@ -9,7 +9,6 @@ import {
   errorTextClassName,
 } from "@/components/ui/control";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { requestTicketBreakGlass } from "@/services/tickets-confidential-api";
 
 interface TicketBreakGlassPanelProperties {
@@ -43,7 +42,7 @@ export function TicketBreakGlassPanel({ ticketId, onGranted }: TicketBreakGlassP
           required
         />
       </label>
-      {errorKey ? <p className={`mt-2 ${errorTextClassName}`}>{ticketText(t, errorKey)}</p> : null}
+      {errorKey ? <p className={`mt-2 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
       <Button
         type="button"
         className="mt-3"

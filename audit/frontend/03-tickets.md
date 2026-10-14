@@ -1,10 +1,10 @@
 # Modul 3: Tickets
 
 Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
+Grana: `arena/91f1c029-help-desk-enterprise`
+Status: zatvoren (val 6.1.3). Svih sedam Must-Have stavki i završne provjere su urađene — detalji su u „Statusu ispravki“ na kraju.
 
-Provjere izvršene u sandboxu:
+Početni pregled prije ispravki obuhvatio je:
 - Brojanje veličina fajlova (`wc -l`) za sve fajlove modula.
 - Pretraga po obrascima rizika u `components/tickets/`, `lib/tickets/`, `pages/ticket*`, `services/tickets*`: `as never`, `as unknown as`, `eslint-disable`, `localStorage`, `ErrorBoundary`, `React.memo`, `any`.
 - Provjera da li `frontend/` i koren repozitorija imaju ESLint ili Prettier konfiguraciju: nema nijedne.
@@ -63,7 +63,7 @@ Granica modula: `ticket-list-page.tsx`, `ticket-detail-page.tsx`, `ticket-create
 
 ---
 
-## Trenutna implementacija
+## Polazno stanje zatečeno tokom audita
 
 **Lista tiketa.** `ticket-list-page.tsx` prikazuje dva prikaza, „lista“ i „inbox“, u jednoj komponenti (grananje preko `isInbox`). Sve stanje je u `useTicketList()`: filteri, stranica, brojači, nerutirani tiketi, odabrani redovi, greška, učitavanje, klaim i deep-link parametri iz URL-a. Filteri se šalju serveru (`toTicketPageQuery`), a server vraća jednu stranicu od 25 redova. Brojači za tabove dolaze iz zasebnog zahtjeva `GET /tickets/counts` i pokrivaju sve tikete koje korisnik može da vidi. Nerutirani red za inbox ima stranicu od 50 redova. Realtime osvježava listu kroz `useTicketCollectionRealtime` sa debounce-om od 300 ms.
 
@@ -83,7 +83,7 @@ Granica modula: `ticket-list-page.tsx`, `ticket-detail-page.tsx`, `ticket-create
 
 ---
 
-## Realno/željeno stanje
+## Polazno i željeno stanje
 
 | Oblast | Željeno | Realno |
 |---|---|---|
@@ -231,3 +231,35 @@ Refaktor se ne radi bez potvrde obima.
 5. **T4:** ukloniti `ticketText()` i `as never` iz modula, uvesti tipizirane ključeve i skriptu za provjeru prijevoda.
 6. **T20:** dodati ESLint i Prettier u `frontend/`, pravilo `exhaustive-deps` aktivirati kao upozorenje, ukloniti nepotrebne `eslint-disable` komentare.
 7. **T2:** debounce za pretragu.
+
+---
+
+## Status ispravki (val 6.1.3)
+
+Modul je zatvoren u valu 6.1.3. Svih sedam Must-Have stavki (T1, T8, T10, T3, T4, T20 i T2) je urađeno; T26 je riješen zajedno s T1. Neobavezni nalazi iz audita ostaju evidentirani, ali ne blokiraju zatvaranje.
+
+| Stavka | Status | Napomena |
+|---|---|---|
+| T1 odgovori liste prepisuju novije (Must-Have 1) | Urađeno | `useTicketList` pamti redni broj posljednjeg pokrenutog upita (`lib/tickets/latest-request-gate.ts`) i odbacuje odgovor koji više nije za ekran — i podatke i grešku, pa sporiji odgovor za stari filter ne može prepisati noviji niti izbrisati njegovu grešku. Loader se gasi kad se završi posljednji vidljivi upit, a tihi reload ga nikad ne gasi. Test: `use-ticket-list.spec.tsx` (stari odgovor stiže posljednji), `latest-request-gate.spec.ts`. |
+| T26 tihi realtime reload čita keš (nije Must-Have) | Urađeno | Tihi reload sada označi ključeve koje će čitati (`groupInbox`, `ticketList(upit)`, `ticketCounts(upit)`) prije `fetchQuery`, jer unutar `staleTime` od 30 s keš i dalje važi za svjež i promjena se nije vidjela. Katalog usluga zadržava svoju dužu svježinu. Test: drugi poziv `load(true)` unutar 30 s daje novi mrežni zahtjev za listu i za brojače. |
+| T8 duplo slanje javnog odgovora (Must-Have 2) | Urađeno | Osvježavanje tiketa odvojeno od slanja: kad je poruka jednom sačuvana, pad `GET /tickets/:id` se bilježi kroz `reportClientError("ticket_refresh_after_send_failed", …)` i više ne izgleda kao neuspjelo slanje — composer ne dobija tekst nazad i ne prikazuje grešku, pa drugi klik ne šalje dupli javni odgovor. Zaglavlje ostaje kratko iza stanja na serveru; socket i sljedeće učitavanje ga ispravljaju. Test: slučaj „refresh pada nakon uspješnog slanja“ u `send-ticket-message-optimistic.spec.ts`. |
+| T10 baza znanja blokira kreiranje (Must-Have 3) | Urađeno | Poziv baze znanja izdvojen u `lib/tickets/fetch-knowledge-intercept-step.ts`, koji pad vraća kao ishod `unavailable` umjesto izuzetka: wizard ide na korak 3 bez prijedloga, uz objašnjenje zašto ih nema (ključevi `tickets.interceptUnavailable*` u oba jezika) i bez značke „obavezan korak“. Pad se bilježi kroz `reportClientError("knowledge_intercept_failed", …)`. Testovi: `fetch-knowledge-intercept-step.spec.ts` (bez ispravke pada) i `knowledge-intercept-panel.spec.tsx`. |
+| T3 lanac zahtjeva pri otvaranju detalja (Must-Have 4) | Urađeno | `listGroupInbox()` kao provjera prava je uklonjen — njegov rezultat (`inboxAccessible`) nije čitao nijedan dio aplikacije, pa je cijeli grupni inbox dohvaćan pri svakom otvaranju tiketa i bacan. Poruke, učesnici, vremenski zapisi i prilozi sada se čitaju u jednom krugu (`Promise.all`), a ne jedan za drugim. Paneli pored prepiske više ne odlučuju o otvaranju stranice: 403 i 404 sakrivaju panel tiho. Ostali padovi mapiraju se na postojeću grešku akcije koja se prikaže u detalju tiketa, a prijava ide kroz `reportClientError`; glavni sadržaj stranice ostaje dostupan. Stanje `inboxAccessible` uklonjeno iz `useTicketDetail`. Testovi: `load-ticket-detail.spec.ts` (paralelnost, 403 bez upozorenja, 500 sa vidljivom greškom) — svi padaju na staroj verziji. |
+| T4 tipizirani ključevi prijevoda (Must-Have 5) | Urađeno | `TicketTranslationKey` je izveden iz i18next `ParseKeys<"common">`; statusi, prioriteti, severiteti, routing preview i system-event ključevi su suženi na validne ključeve resursa. `ticketText()` i `useTicketText()` uklonjeni su iz cijelog `src`; 34 ticket fajla sada koriste tipizirani `t()`. Preostalih 11 zajedničkih fajlova prebačeno je na `lib/i18n/translate-text.ts`, čiji ključ je `CommonTranslationKey`, bez `as never`. U `ticket-bulk-bar.tsx` zamijenjeni su i preostali `as never` castovi za status/prioritet provjerom prema dopuštenim vrijednostima. Dodan je CI guard `scripts/check-ticket-translation-keys.mjs` i test: 569 ključeva i 5 dinamičkih prefiksa prolaze za bs/en. Nedostajući ključ za događaj `ticket_problem_takeover` dodan je u oba jezika; status `NEW` koristi postojeći tipizirani statusni prijevod. |
+| T20 ESLint i Prettier (Must-Have 6) | Urađeno | Konfiguracija je uvedena u modulu 1 (`eslint.config.js`, `.prettierrc.json`, skripte `lint` i `format:check`). Uklonjena su sva 4 `eslint-disable-next-line react-hooks/exhaustive-deps`: `mention-picker` sad uključuje `onCandidates`; composer efekti koriste nonce guard i `bodyReference` umjesto potiskivanja zavisnosti (ujedno se ne gubi tekst dok se šablon renderuje); `ticket-saved-views-menu` ima stabilan `reload` i refove za aktuelne callbacke. `eslint` za ove fajlove prolazi sa `--max-warnings=0`; ostale globalne hook-opomene su izvan ove stavke. |
+| T2 debounce pretrage (Must-Have 7) | Urađeno | Polje pretrage sada koristi lokalni draft: unos se odmah vidi, a `scheduleDebouncedCallback` primijeni samo posljednji upit nakon 300 ms pauze. Ostali filteri i dalje primjenjuju promjenu odmah. Vanjska promjena (npr. sačuvani pogled) ažurira polje i otkazuje čekajući upit. `useTicketList.setSearch` stabilno ažurira samo pretragu i vraća stranicu na 1. Test `ticket-list-filters-bar.spec.tsx`: neposredan prikaz, jedan poziv nakon pauze, zadnji pojam pobjeđuje i vanjska promjena otkazuje timer. |
+
+### Završne provjere (2026-10-14)
+
+- `npm ci` — uspješno; npm audit prijavio 15 ranjivosti (6 umjerenih, 7 visokih, 2 kritične). Paketima nisu rađene automatske nadogradnje.
+- `npx tsc -b` — prolazi.
+- `npx vitest run` — 226 test fajlova, 955/955 testova prolazi.
+- `npx eslint .` — 0 grešaka i 14 upozorenja `react-hooks/exhaustive-deps`; upozorenja nisu u tri fajla očišćena za T20.
+- Ciljani ESLint za `mention-picker.tsx`, `ticket-message-composer.tsx` i `ticket-saved-views-menu.tsx` prolazi sa `--max-warnings=0`; u kodu tiketa nema preostalih `eslint-disable-next-line react-hooks/exhaustive-deps`.
+- `npx prettier --check .` — prolazi.
+- `node --test scripts/*.test.mjs` — 35/35 prolazi; svih 11 produkcijskih `scripts/check-*.mjs` provjera prolazi, uključujući provjeru 569 ticket ključeva i 5 dinamičkih prefiksa u oba jezika.
+
+Uz ispravku T1 promijenjeno je i ovo, u istom kodu:
+
+- Brojači tabova (`GET /tickets/counts`) sada se čitaju u istom `Promise.all` kao i lista, umjesto nakon nje; ranije su bili serijski korak koji je čekao odgovor liste.
+- Upit za nerutirani red u inboxu sastavlja se jednom (`unroutedQuery`) umjesto dva puta istim poljima — jedan za ključ, drugi za poziv.

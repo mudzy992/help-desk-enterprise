@@ -6,7 +6,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, rootCauseLabel } from "@/lib/problems/problem-view";
 import { updateProblem, type ProblemDetail, type ProblemWhy } from "@/services/problems-api";
@@ -98,7 +98,7 @@ export function ProblemAnalysisPanel({
           <dl className="grid gap-3 px-4 py-3 text-[12.5px]">
             <ReadRow
               label={t("problems.fields.rootCauseCategory")}
-              value={rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)}
+              value={rootCauseLabel((key) => translateText(t, key), problem.rootCauseCategory)}
             />
             <ReadRow label={t("problems.fields.rootCause")} value={problem.rootCause} />
             <div>
@@ -160,7 +160,7 @@ export function ProblemAnalysisPanel({
                   <option value="">{t("problems.form.none")}</option>
                   {categoryOptions.map((key) => (
                     <option key={key} value={key}>
-                      {rootCauseLabel((key) => ticketText(t, key), key)}
+                      {rootCauseLabel((key) => translateText(t, key), key)}
                     </option>
                   ))}
                 </Select>

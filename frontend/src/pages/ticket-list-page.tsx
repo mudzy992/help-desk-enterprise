@@ -27,7 +27,6 @@ import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { clearedTicketListFilters, defaultInboxTab } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
 import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
@@ -54,10 +53,10 @@ export function TicketListPage() {
   const riskCount = list.counts?.overdue ?? 0;
   // Paket 5.3.1 (D10): the inbox is a tab of "All tickets"; the heading names
   // the section, the active tab names the view.
-  const pageTitle = isInbox ? t("tickets.views.all") : ticketText(t, ticketViewLabelKey[list.view]);
+  const pageTitle = isInbox ? t("tickets.views.all") : t(ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox
     ? t("tickets.inboxHint")
-    : ticketText(t, "tickets.listSubtitle", { open: openCount, risk: riskCount });
+    : t("tickets.listSubtitle", { open: openCount, risk: riskCount });
   const crumbs = isInbox
     ? [brandCrumb, t("tickets.title"), t("tickets.views.inbox")]
     : [brandCrumb, t("tickets.title")];
@@ -138,6 +137,7 @@ export function TicketListPage() {
               filters={list.filters}
               services={list.services}
               onChange={list.setFilters}
+              onSearchChange={list.setSearch}
               isStaff={list.isStaff}
               savedViewsSlot={
                 <TicketSavedViewsMenu
@@ -221,7 +221,7 @@ export function TicketListPage() {
                   {t("tickets.previous")}
                 </Button>
                 <span className="tnum">
-                  {ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", {
+                  {t(list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", {
                     page: list.page,
                     total: list.totalPages,
                   })}
@@ -238,11 +238,10 @@ export function TicketListPage() {
               </div>
             ) : (
               <p className="mt-3 text-[11.5px] text-muted-foreground">
-                {ticketText(
-                  t,
-                  list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown",
-                  { shown: list.pageItems.length, total: list.total },
-                )}
+                {t(list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", {
+                  shown: list.pageItems.length,
+                  total: list.total,
+                })}
               </p>
             )}
             {canExport ? (

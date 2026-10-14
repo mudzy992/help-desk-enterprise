@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { DetailSection } from "@/components/ui/detail-section";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { listForwardHistory, type ForwardHistoryItem } from "@/services/tickets-forwarding-api";
 
 interface TicketForwardHistoryPanelProperties {
@@ -50,7 +49,7 @@ export function TicketForwardHistoryPanel({
       id="forward"
       testId="forward-history"
       title={t("tickets.forward.historyTitle")}
-      subtitle={ticketText(t, "tickets.forward.historyCount", { count: items.length })}
+      subtitle={t("tickets.forward.historyCount", { count: items.length })}
     >
       <ol className="grid gap-3">
         {items.map((item) => (
@@ -74,7 +73,7 @@ export function TicketForwardHistoryPanel({
             ) : null}
             {item.toUserName ? (
               <div className="text-[11.5px] text-muted-foreground">
-                {ticketText(t, "tickets.forward.toAgent", { name: item.toUserName })}
+                {t("tickets.forward.toAgent", { name: item.toUserName })}
               </div>
             ) : null}
             {item.reason.length > 0 ? (

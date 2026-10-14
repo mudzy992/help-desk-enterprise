@@ -1,5 +1,6 @@
 import { Hourglass, Pause, Timer } from "lucide-react";
 import type { ReactNode } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Badge, MetaBadge, type BadgeTone } from "@/components/ui/badge";
 import { DetailSection } from "@/components/ui/detail-section";
@@ -12,7 +13,6 @@ import {
   type TicketSlaTimerView,
 } from "@/lib/tickets/map-ticket-sla-panel";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 import type { TicketSlaContextResponse } from "@/services/tickets-context-api";
@@ -31,16 +31,16 @@ interface TicketSlaPanelProperties {
 
 function slaSubtitle(
   context: TicketSlaContextResponse | null,
-  translate: Parameters<typeof ticketText>[0],
+  translate: TFunction<"common">,
 ): string | undefined {
   if (context === null || context.profileName === null) {
     return undefined;
   }
   return context.calendarName === null
-    ? ticketText(translate, "tickets.detail.sla.profileOnly", {
+    ? translate("tickets.detail.sla.profileOnly", {
         profile: context.profileName,
       })
-    : ticketText(translate, "tickets.detail.sla.profileAndCalendar", {
+    : translate("tickets.detail.sla.profileAndCalendar", {
         profile: context.profileName,
         calendar: context.calendarName,
       });
@@ -54,18 +54,17 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
       return null;
     }
     return (
-      <DetailSection id="sla" title={ticketText(t, "tickets.detail.sla.title")}>
+      <DetailSection id="sla" title={t("tickets.detail.sla.title")}>
         <div className="space-y-1.5 text-[12px] leading-5">
           <p className="flex items-center gap-1.5 font-medium text-foreground/90">
-            <Hourglass size={12} aria-hidden="true" />{" "}
-            {ticketText(t, "tickets.detail.sla.unavailableTitle")}
+            <Hourglass size={12} aria-hidden="true" /> {t("tickets.detail.sla.unavailableTitle")}
           </p>
           <p className="text-muted-foreground">
-            {ticketText(t, `tickets.detail.sla.unavailable.${context.unavailableReason}`)}
+            {t(`tickets.detail.sla.unavailable.${context.unavailableReason}`)}
           </p>
           {canConfigure ? (
             <p className="text-[11px] text-muted-foreground">
-              {ticketText(t, "tickets.detail.sla.unavailableAdminHint")}
+              {t("tickets.detail.sla.unavailableAdminHint")}
             </p>
           ) : null}
         </div>
@@ -75,23 +74,23 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
   return (
     <DetailSection
       id="sla"
-      title={ticketText(t, "tickets.detail.sla.title")}
+      title={t("tickets.detail.sla.title")}
       subtitle={slaSubtitle(context, t)}
     >
       <div className="space-y-4">
         <SlaTimerBlock
           icon={<Hourglass size={12} />}
-          label={ticketText(t, "tickets.detail.sla.firstResponse")}
+          label={t("tickets.detail.sla.firstResponse")}
           remaining={remainingText(view.response, t)}
           timer={view.response}
         />
         <SlaTimerBlock
           icon={<Timer size={12} />}
-          label={ticketText(t, "tickets.detail.sla.resolution")}
+          label={t("tickets.detail.sla.resolution")}
           remaining={remainingText(view.resolution, t)}
           timer={view.resolution}
-          pauseLabel={view.resolution.paused ? ticketText(t, "tickets.detail.sla.pause") : null}
-          hint={ticketText(t, "tickets.detail.sla.usedFrame", {
+          pauseLabel={view.resolution.paused ? t("tickets.detail.sla.pause") : null}
+          hint={t("tickets.detail.sla.usedFrame", {
             percent: Math.round(view.resolution.usedPercent),
             risk: SLA_RISK_PERCENT,
           })}
@@ -99,13 +98,13 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
         <div className="flex items-center justify-between border-t border-border/70 pt-3">
           <MetaBadge
             meta={{
-              label: ticketText(t, `tickets.detail.sla.state.${view.state}`),
+              label: t(`tickets.detail.sla.state.${view.state}`),
               tone: STATE_TONE[view.state],
             }}
           />
           {view.dueAt === null ? null : (
             <span className="text-[10.5px] text-muted-foreground">
-              {ticketText(t, "tickets.detail.sla.due")}{" "}
+              {t("tickets.detail.sla.due")}{" "}
               <span className="tnum">{formatTicketTimestamp(view.dueAt, i18n.language)}</span>
             </span>
           )}
@@ -151,22 +150,17 @@ function SlaTimerBlock({
   );
 }
 
-function remainingText(
-  timer: TicketSlaTimerView,
-  translate: Parameters<typeof ticketText>[0],
-): string {
+function remainingText(timer: TicketSlaTimerView, translate: TFunction<"common">): string {
   if (timer.satisfied) {
-    return ticketText(translate, "tickets.detail.sla.satisfied");
+    return translate("tickets.detail.sla.satisfied");
   }
   const part = formatSlaRemainingTime(timer.remainingMs);
-  const time = ticketText(translate, `tickets.detail.sla.${part.unit}`, {
+  const time = translate(`tickets.detail.sla.${part.unit}`, {
     count: part.count,
   });
-  return ticketText(
-    translate,
-    timer.overdue ? "tickets.detail.sla.overdue" : "tickets.detail.sla.remaining",
-    { time },
-  );
+  return translate(timer.overdue ? "tickets.detail.sla.overdue" : "tickets.detail.sla.remaining", {
+    time,
+  });
 }
 
 function remainingToneClass(timer: TicketSlaTimerView): string {

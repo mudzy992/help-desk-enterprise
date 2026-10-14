@@ -1,4 +1,7 @@
 import { useEffect, useRef } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { translateText } from "@/lib/i18n/translate-text";
 import { announce } from "@/lib/a11y/announcer";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useShortcut } from "@/lib/shortcuts/shortcuts-context";
@@ -24,7 +27,6 @@ import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indi
 import { TicketMergeIndicator } from "@/components/tickets/ticket-merge-indicator";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
-import { useTicketText } from "@/lib/tickets/use-ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -79,7 +81,7 @@ function assigneeDirectoryName(
 
 function assignmentCell(
   ticket: TicketResponse,
-  t: (key: string) => string,
+  t: TFunction<"common">,
   assigneeNames: ReadonlyMap<string, string>,
 ) {
   if (ticket.status === "UNROUTED" || ticket.assignedGroupId === null) {
@@ -138,7 +140,7 @@ function TicketListRow({
   rowIndex,
   measureRef,
 }: TicketListRowProperties) {
-  const { t, i18n } = useTicketText();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isSelected = selectedIds.has(ticket.id);
   return (
@@ -159,7 +161,7 @@ function TicketListRow({
         <Checkbox
           checked={isSelected}
           onChange={() => onToggleSelected(ticket.id)}
-          aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
+          aria-label={translateText(t, "tickets.bulk.selectRow", { number: ticket.ticketNumber })}
         />
       </td>
       <td className="px-2 py-2.5">
@@ -216,7 +218,7 @@ export function TicketListTable({
   onToggleSelected,
   onTogglePage,
 }: TicketListTableProperties) {
-  const { t } = useTicketText();
+  const { t } = useTranslation();
   const rowOriginNames = originNames ?? emptyAssigneeNames;
   const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id));
   const someSelected = !allSelected && tickets.some((ticket) => selectedIds.has(ticket.id));

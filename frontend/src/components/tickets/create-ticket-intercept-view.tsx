@@ -9,13 +9,13 @@ import { KnowledgeInterceptPanel } from "@/components/tickets/knowledge-intercep
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
 
 interface CreateTicketInterceptViewProperties {
   readonly displayedError: TicketErrorKey | "tickets.errorCatalog" | null;
   readonly isSubmitting: boolean;
+  readonly isInterceptUnavailable: boolean;
   readonly items: readonly KnowledgeInterceptSuggestion[];
   readonly helped: boolean;
   readonly helpedArticleId: string | null;
@@ -28,6 +28,7 @@ interface CreateTicketInterceptViewProperties {
 export function CreateTicketInterceptView({
   displayedError,
   isSubmitting,
+  isInterceptUnavailable,
   items,
   helped,
   helpedArticleId,
@@ -45,6 +46,7 @@ export function CreateTicketInterceptView({
           <div className="p-5">
             {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
             <KnowledgeInterceptPanel
+              isUnavailable={isInterceptUnavailable}
               items={items}
               helped={helped}
               helpedArticleId={helpedArticleId}
@@ -59,7 +61,7 @@ export function CreateTicketInterceptView({
               <ArrowLeft size={14} /> {t("tickets.stepBack")}
             </Button>
             <span className="text-[11px] text-muted-foreground tnum">
-              {ticketText(t, "tickets.stepCount", { current: 3, total: CREATE_TICKET_STEP_TOTAL })}
+              {t("tickets.stepCount", { current: 3, total: CREATE_TICKET_STEP_TOTAL })}
             </span>
           </div>
         </Card>

@@ -2,7 +2,7 @@
 
 Datum audita: 2026-10-13
 Grana: `arena/3cc0c561-help-desk-enterprise` (HEAD `e0659824`)
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
+Status: zatvoren (korisnička potvrda 2026-10-14). Must-Have 1–8 su urađeni; ranija provjera u ovom izvještaju bilježi da E2E 37/39 i provjera u pregledaču nisu bili pokrenuti.
 
 Provjere izvršene u sandboxu:
 - `@simplewebauthn/browser` verzija `14.0.0` (provjeren tip `platformAuthenticatorIsAvailable(): Promise<boolean>` u `node_modules`)
@@ -260,7 +260,7 @@ Refaktor se ne radi bez potvrde obima.
 
 ## Status ispravki (val 6.1.2)
 
-Stanje na dan 2026-10-14. Svaka stavka je označena kao urađena, djelimično urađena, prihvaćen rizik ili pregledana.
+Stanje na dan 2026-10-14. Zatvaranje modula potvrdio je korisnik; svaka stavka je označena kao urađena, djelimično urađena, prihvaćen rizik ili pregledana.
 
 | # | Status | Šta je urađeno |
 |---|---|---|
@@ -318,5 +318,5 @@ Access token više ne ide u `localStorage` niti u JS.
 | 7. A8 | Urađeno (httpOnly kolačić, odluka dokumentovana gore) |
 | 8. A25 | Urađeno |
 
-Ocjena pri auditu ostaje **5/10**. Ponovna ocjena se radi nakon provjere u pregledaču i e2e testova.
+Ocjena pri auditu ostaje **5/10**. Po potrebi se može ponovo ocijeniti nakon naknadne provjere u pregledaču i e2e testova.
 

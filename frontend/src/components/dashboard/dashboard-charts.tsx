@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { TICKET_STATUS_META } from "@/lib/theme/semantic-meta";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 
 interface DashboardChartsProperties {
   readonly summary: DashboardSummary;
@@ -27,7 +27,7 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
   }
 
   const donutData = summary.statusCounts.map((entry) => ({
-    label: ticketText(t, ticketStatusLabelKey[entry.status]),
+    label: translateText(t, ticketStatusLabelKey[entry.status]),
     value: entry.count,
     color: TICKET_STATUS_META[entry.status].dot,
   }));

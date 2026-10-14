@@ -18,7 +18,7 @@ import {
   nextDraftOriginUnitId,
   resolveCreateTicketOriginUnit,
 } from "@/lib/tickets/current-user-origin-unit";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { fetchKnowledgeInterceptStep } from "@/lib/tickets/fetch-knowledge-intercept-step";
 import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
 import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -30,7 +30,6 @@ import {
   type FormVersionResponse,
 } from "@/services/service-catalog-api";
 import {
-  interceptKnowledgeArticles,
   resolveKnowledgeIntercept,
   type KnowledgeInterceptSuggestion,
 } from "@/services/knowledge-base-api";
@@ -55,6 +54,8 @@ export function CreateTicketForm() {
   const [requireVersionOnTicket, setRequireVersionOnTicket] = useState(true);
   const [step, setStep] = useState(0);
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
+  /** Ako poziv bazi znanja ne uspije, korak prikazuje da je nedostupna. */
+  const [interceptUnavailable, setInterceptUnavailable] = useState(false);
   const [helped, setHelped] = useState(false);
   // Paket 5.2.4 (M14 B3): remember which article the user marked helpful so
   // that the "resolved by KB" resolution records the right article — we must
@@ -117,7 +118,7 @@ export function CreateTicketForm() {
         hasUnknownField = true;
         continue;
       }
-      nextFieldErrors.set(fieldError.fieldId, ticketText(t, fieldError.messageKey));
+      nextFieldErrors.set(fieldError.fieldId, t(fieldError.messageKey));
     }
     setFieldErrors(nextFieldErrors);
     setFailedSubmitCount((count) => count + 1);
@@ -189,25 +190,23 @@ export function CreateTicketForm() {
     }
     const schemaErrors = validateServiceFormData(activeForm?.schema ?? null, draft.formData);
     if (schemaErrors.length > 0) {
-      setFieldErrors(
-        new Map(schemaErrors.map((item) => [item.fieldId, ticketText(t, item.messageKey)])),
-      );
+      setFieldErrors(new Map(schemaErrors.map((item) => [item.fieldId, t(item.messageKey)])));
       setFailedSubmitCount((count) => count + 1);
       return;
     }
     setFieldErrors(new Map());
     setIsSubmitting(true);
     setErrorKey(null);
+    setInterceptUnavailable(false);
     try {
-      const result = await interceptKnowledgeArticles({
+      const interceptStep = await fetchKnowledgeInterceptStep({
         serviceId: draft.serviceId,
         query: knowledgeInterceptQuery(draft),
       });
-      setSuggestions(result.articles);
+      setSuggestions(interceptStep.kind === "suggestions" ? interceptStep.articles : []);
       setHelped(false);
+      setInterceptUnavailable(interceptStep.kind === "unavailable");
       setStep(2);
-    } catch (error) {
-      setErrorKey(mapTicketError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -239,6 +238,7 @@ export function CreateTicketForm() {
         matrixCells={matrixCells}
         displayedError={displayedError}
         isSubmitting={isSubmitting}
+        isInterceptUnavailable={interceptUnavailable}
         suggestions={suggestions}
         helped={helped}
         helpedArticleId={helpedArticleId}

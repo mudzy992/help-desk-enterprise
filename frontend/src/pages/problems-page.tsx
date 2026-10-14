@@ -31,7 +31,7 @@ import {
   rootCauseLabel,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   getProblemCapabilities,
   getProblemOptions,
@@ -263,7 +263,7 @@ export function ProblemsPage() {
               <option value="">{t("problems.list.allPriorities")}</option>
               {ticketPriorityValues.map((value) => (
                 <option key={value} value={value}>
-                  {ticketText(t, ticketPriorityLabelKey[value])}
+                  {translateText(t, ticketPriorityLabelKey[value])}
                 </option>
               ))}
             </select>
@@ -320,7 +320,7 @@ export function ProblemsPage() {
               <option value="none">{t("problems.list.noCategory")}</option>
               {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
                 <option key={value} value={value}>
-                  {rootCauseLabel((key) => ticketText(t, key), value)}
+                  {rootCauseLabel((key) => translateText(t, key), value)}
                 </option>
               ))}
             </select>
@@ -419,7 +419,7 @@ export function ProblemsPage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-2">
-                        {ticketText(t, ticketPriorityLabelKey[item.priority])}
+                        {translateText(t, ticketPriorityLabelKey[item.priority])}
                       </td>
                       <td className="px-3 py-2">
                         {item.owner?.displayName ?? (

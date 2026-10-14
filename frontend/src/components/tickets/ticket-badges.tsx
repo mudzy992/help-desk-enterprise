@@ -1,7 +1,6 @@
 import { Flame, Pause, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ticketPriorityLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { Badge } from "@/components/ui/badge";
 import {
   SLA_STATE_META,
@@ -52,7 +51,7 @@ export function TicketStatusBadge({ status }: TicketStatusBadgeProperties) {
   const { t } = useTranslation();
   return (
     <Badge tone={TICKET_STATUS_META[status].tone} dot>
-      {ticketText(t, ticketStatusLabelKey[status])}
+      {t(ticketStatusLabelKey[status])}
     </Badge>
   );
 }
@@ -73,7 +72,7 @@ export function TicketPriorityBadge({
       {showCriticalMark && priority === "CRITICAL" ? (
         <Flame size={11} strokeWidth={2} aria-hidden="true" />
       ) : null}
-      {ticketText(t, ticketPriorityLabelKey[priority])}
+      {t(ticketPriorityLabelKey[priority])}
     </Badge>
   );
 }

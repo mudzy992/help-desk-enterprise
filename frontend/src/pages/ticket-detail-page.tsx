@@ -23,7 +23,6 @@ import { resolveTicketActionView } from "@/lib/tickets/ticket-action-matrix";
 import { nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketRequesterName } from "@/lib/tickets/ticket-names";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketContext } from "@/lib/tickets/use-ticket-context";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
@@ -354,7 +353,7 @@ export function TicketDetailPage() {
       />
       {detail.actionError || approvals.errorKey ? (
         <p className="mt-3 text-[12.5px] text-danger">
-          {ticketText(t, detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric")}
+          {t(detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric")}
         </p>
       ) : ticket.redactionWarnings && ticket.redactionWarnings.length > 0 ? (
         <p className="mt-3 text-[12.5px] text-warning">{t("tickets.redactionWarning")}</p>
@@ -546,10 +545,10 @@ export function TicketDetailPage() {
           toast({
             tone: "success",
             title: isReassign
-              ? ticketText(t, "tickets.forward.reassignDone", {
+              ? t("tickets.forward.reassignDone", {
                   name: updated.assignedUserName ?? "",
                 })
-              : ticketText(t, "tickets.forward.done", {
+              : t("tickets.forward.done", {
                   name: updated.assignedGroupName ?? "",
                 }),
           });
@@ -575,7 +574,7 @@ export function TicketDetailPage() {
         onComplete={(updated) => {
           toast({
             tone: "success",
-            title: ticketText(t, "tickets.merge.done", {
+            title: t("tickets.merge.done", {
               number: updated.mergedIntoTicketNumber ?? "",
             }),
           });

@@ -1,3 +1,4 @@
+import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 import type { TicketRoutingPreview } from "@/services/tickets-routing-preview-api";
 
 /**
@@ -5,7 +6,7 @@ import type { TicketRoutingPreview } from "@/services/tickets-routing-preview-ap
  * review step stays a thin renderer and the wording is testable without React.
  */
 export type RoutingPreviewLine = {
-  readonly key: string;
+  readonly key: TicketTranslationKey;
   readonly params?: Readonly<Record<string, string | number>>;
 };
 
