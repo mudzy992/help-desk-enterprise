@@ -5,6 +5,7 @@ import {
   flattenOriginUnitOptions,
   formatByteSize,
   formatDurationMinutes,
+  formatTicketTimestamp,
 } from "@/lib/tickets/ticket-display";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
@@ -47,6 +48,12 @@ describe("ticket display formatting", () => {
     expect(formatDurationMinutes(90)).toBe("2m");
     expect(formatDurationMinutes(3660)).toBe("1h 1m");
     expect(formatDurationMinutes(null)).toBe("—");
+  });
+
+  it("formats timestamps with the active locale and safely returns malformed values", () => {
+    const value = "2026-10-14T15:05:00.000Z";
+    expect(formatTicketTimestamp(value, "en-GB")).not.toBe(formatTicketTimestamp(value, "en-US"));
+    expect(formatTicketTimestamp("not-a-date", "bs-BA")).toBe("not-a-date");
   });
 
   it("resolves directory names and falls back to a truncated id", () => {

@@ -47,6 +47,7 @@ export const queryKeys = {
     ["tickets", "routing-preview", serviceId, originUnitId] as const,
   ticketLists: ["tickets", "list"] as const,
   ticketList: (query: unknown) => ["tickets", "list", query] as const,
+  ticketCountsPrefix: ["tickets", "counts"] as const,
   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
   ticket: (ticketId: string) => ["tickets", "detail", ticketId] as const,
   /** Paket 2.4 */
@@ -54,6 +55,7 @@ export const queryKeys = {
   ticketFollow: (ticketId: string) => ["tickets", "follow", ticketId] as const,
   ticketLinks: (ticketId: string) => ["tickets", "links", ticketId] as const,
   groupInbox: ["tickets", "inbox"] as const,
+  groupInboxPage: (query: unknown) => ["tickets", "inbox", query] as const,
   offeredServices: ["catalog", "offered-services"] as const,
   createTicketCatalog: ["catalog", "create-ticket"] as const,
   slaSummary: ["sla", "summary"] as const,

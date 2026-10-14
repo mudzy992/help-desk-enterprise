@@ -7,7 +7,7 @@ export { unroutedInboxTabKey };
 export type InboxGroupTab = {
   readonly groupId: string;
   readonly name: string;
-  readonly count: number;
+  readonly count: number | null;
 };
 
 /**
@@ -20,6 +20,7 @@ export type InboxGroupTab = {
 export function inboxGroupTabsFromMembership(
   myGroups: readonly MyGroupResponse[],
   inboxTickets: readonly TicketResponse[],
+  serverCounts?: ReadonlyMap<string, number>,
 ): readonly InboxGroupTab[] {
   const counts = new Map<string, number>();
   for (const ticket of inboxTickets) {
@@ -32,7 +33,10 @@ export function inboxGroupTabsFromMembership(
     .map((group) => ({
       groupId: group.id,
       name: group.name,
-      count: counts.get(group.id) ?? 0,
+      count:
+        serverCounts === undefined
+          ? (counts.get(group.id) ?? 0)
+          : (serverCounts.get(group.id) ?? null),
     }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }

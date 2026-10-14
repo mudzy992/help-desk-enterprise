@@ -182,12 +182,6 @@ export type UpdateTicketInput = {
   readonly resolutionNote?: string;
 };
 
-export type ListTicketsQuery = {
-  readonly originUnitId?: string;
-  readonly serviceId?: string;
-  readonly status?: TicketStatus;
-};
-
 export function createTicket(input: CreateTicketInput): Promise<TicketResponse> {
   return apiRequest("/tickets", {
     method: "POST",
@@ -196,10 +190,9 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
 }
 
 export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
-  // The inbox endpoint answers the same page envelope as GET /tickets, so the
-  // array is unwrapped here rather than treating the response as the array.
-  const response = await apiRequest<TicketPage>("/tickets/inbox");
-  return response.items;
+  // Dashboard's existing aggregate consumer only needs the first page; the
+  // ticket workspace uses `listGroupInboxPage` and its page metadata directly.
+  return (await listGroupInboxPage()).items;
 }
 
 export type GroupInboxStatus = {
@@ -225,6 +218,12 @@ export type TicketPage = {
   readonly pageSize: number;
 };
 
+/** One page of the caller's group inbox, with server-calculated totals. */
+export function listGroupInboxPage(query: TicketPageQuery = {}): Promise<TicketPage> {
+  const search = toTicketListSearchParams(query).toString();
+  return apiRequest(`/tickets/inbox?${search}`);
+}
+
 /**
  * One page of the visible tickets (phase 1.1, plan §1.1).
  *
@@ -235,19 +234,6 @@ export type TicketPage = {
 export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
   const search = toTicketListSearchParams(query).toString();
   return apiRequest(`/tickets?${search}`);
-}
-
-/**
- * First page of the tickets narrowed by the three basic filters. Kept for the
- * screens that only need a small slice while their dedicated endpoints arrive
- * (dashboard/SLA aggregates in phase 2.4, `/search` in phase 1.2).
- */
-export function listTickets(query: ListTicketsQuery = {}): Promise<TicketPage> {
-  return listTicketsPage({
-    originUnitId: query.originUnitId,
-    serviceId: query.serviceId,
-    status: query.status,
-  });
 }
 
 export function getTicket(ticketId: string): Promise<TicketResponse> {

@@ -14,6 +14,7 @@ import {
   ticketRequesterName,
 } from "@/lib/tickets/ticket-names";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
+import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
 import type { ReactNode } from "react";
 
@@ -40,7 +41,7 @@ export function TicketDetailSidebar({
   onEditPriority,
   priorityOverrideTitle,
 }: TicketDetailSidebarProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hasPermission } = useSessionCapabilities();
   // Paket 1.7 (U3): fix the cause — a rule for this origin unit + service.
   const withoutRule = ticket.status === "UNROUTED" || ticket.routedByUnroutedFallback === true;
@@ -121,9 +122,7 @@ export function TicketDetailSidebar({
           <span className="text-muted-foreground">{t("tickets.dueAtNone")}</span>
         ) : (
           <span data-testid="ticket-due-at">
-            {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
-              new Date(ticket.dueAt),
-            )}
+            {formatTicketTimestamp(ticket.dueAt, i18n.language)}
           </span>
         ),
     },

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   clearedTicketListFilters,
   filterTickets,
+  hasActiveTicketFilters,
   type TicketListFilters,
 } from "@/lib/tickets/filter-tickets";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -116,9 +117,30 @@ describe("filterTickets", () => {
     const narrowed = filterTickets(rows, filters({ overdue: true, search: "vpn" }));
     expect(narrowed.map((item) => item.id)).toEqual(["a", "c"]);
     expect(
-      filterTickets(rows, clearedTicketListFilters(filters({ overdue: true, search: "vpn" }))).map(
-        (item) => item.id,
-      ),
+      filterTickets(
+        rows,
+        clearedTicketListFilters(filters({ overdue: true, search: "vpn" }), false),
+      ).map((item) => item.id),
     ).toEqual(["a", "b", "c"]);
+  });
+
+  it("distinguishes global empty results from narrowed empty results", () => {
+    expect(hasActiveTicketFilters(filters())).toBe(false);
+    expect(hasActiveTicketFilters(filters({ view: "assigned", hideMerged: true }))).toBe(false);
+    expect(hasActiveTicketFilters(filters({ search: "   " }))).toBe(false);
+    expect(hasActiveTicketFilters(filters({ search: "vpn" }))).toBe(true);
+    expect(hasActiveTicketFilters(filters({ unroutedOverdue: true }))).toBe(true);
+  });
+
+  it("clears every user-selectable narrowing filter", () => {
+    const narrowed = filters({
+      search: "vpn",
+      forwarded: "toMyGroups",
+      personal: "following",
+      unroutedOverdue: true,
+      hideMerged: false,
+    });
+    expect(hasActiveTicketFilters(narrowed)).toBe(true);
+    expect(hasActiveTicketFilters(clearedTicketListFilters(narrowed, true))).toBe(false);
   });
 });

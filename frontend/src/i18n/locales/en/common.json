@@ -4952,8 +4952,14 @@
     "listSubtitle": "{{open}} open · {{risk}} at SLA risk · sorted by last update",
     "listShown": "Showing {{shown}} of {{total}} tickets",
     "listShownCapped": "Showing {{shown}} of {{total}}+ tickets",
-    "emptyFilterTitle": "No tickets match this filter",
-    "emptyFilterHint": "Widen the search or clear the priority filter.",
+    "emptyListTitle": "No tickets yet",
+    "emptyListHint": "There are no tickets in this view right now.",
+    "panelError": {
+      "title": "This panel is unavailable.",
+      "body": "The rest of the ticket is still available. Try again."
+    },
+    "emptyFilterTitle": "No tickets match these conditions",
+    "emptyFilterHint": "Broaden the search or change the filters.",
     "clearFilters": "Clear filters",
     "stepNext": "Next",
     "stepBack": "Back",

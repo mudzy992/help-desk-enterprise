@@ -121,6 +121,8 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
         </p>
       ) : (
         <TicketMessageComposer
+          key={props.ticket.id}
+          ticketId={props.ticket.id}
           access={props.access}
           isSending={props.isSending}
           sendErrorKey={props.sendErrorKey}

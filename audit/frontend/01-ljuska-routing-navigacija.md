@@ -1,13 +1,10 @@
 # Modul 1: Ljuska, routing i navigacija
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise` (HEAD `973efba7`)
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
+Datum audita: 2026-10-13; ponovna provjera i closeout: 2026-10-14.
+Grana: `arena/91f1c029-help-desk-enterprise` (HEAD `daca898`; audit izmjene nisu commitovane).
+Status: zatvoren po kriteriju plana 6.1. Svi B1–B22 imaju aktuelan status/dokaz; izuzetak van ID tabele — Gap 8 — je zasebno dokumentovan kao datirani prihvaćeni rizik. Gap 8 refaktorisanje nije izvršeno.
 
-Provjere izvršene u sandboxu:
-- `npm ci` u `frontend/` (uspješno)
-- `npx tsc -p tsconfig.app.json --noEmit`: prolazi bez grešaka
-- `npx vitest run` nad `src/lib/navigation.spec.ts`, `src/lib/session/`, `src/components/layout/`: 4 fajla, 23 testa, svi prolaze
+Početna provjera (2026-10-13): `npm ci`, `npx tsc -p tsconfig.app.json --noEmit` i ciljano pokretanje navigacija/session/layout testova (4 fajla, 23 testa) prošli su. Konačne provjere nakon closeout izmjena navedene su pri dnu ovog izvještaja.
 
 ---
 
@@ -71,7 +68,7 @@ Granica modula: `notifications-*`, `active-timer-indicator`, `on-call-header-ind
 
 ---
 
-## Trenutna implementacija
+## Početna implementacija (snapshot audita 2026-10-13)
 
 **Ulaz i providori.** `main.tsx` učitava i18n, pokreće branding i migraciju localStorage ključeva, pa tek onda kreira React root (`initializeI18n().then(...)`). `App` slaže providere: `QueryClientProvider` → `ThemeProvider` → `ToastProvider` → `BrowserRouter` → `InstallSetupProvider` → `AppRouter`.
 
@@ -109,7 +106,7 @@ Granica modula: `notifications-*`, `active-timer-indicator`, `on-call-header-ind
 
 ---
 
-## Realno/željeno stanje
+## Početno realno/željeno stanje (prije ranijih ispravki)
 
 | Oblast | Željeno | Realno |
 |---|---|---|
@@ -126,7 +123,7 @@ Granica modula: `notifications-*`, `active-timer-indicator`, `on-call-header-ind
 
 ---
 
-## Gap analiza
+## Početna gap analiza (baseline prije ranijih ispravki)
 
 **Kritični i visoki gapovi**
 
@@ -240,7 +237,7 @@ Refaktor se ne radi bez potvrde obima.
 
 ---
 
-## Ocjena: 6/10
+## Početna ocjena: 6/10 (2026-10-13; nije ponovo izračunata)
 
 **Obrazloženje:** Arhitektura (lazy, pravila pristupa u čistim funkcijama, dostupnost, TypeScript bez `any`) je jača od prosjeka. Oduzimaju se bodovi za fail-open gate za instalaciju, odsustvo globalnog Error Boundary, pogrešnu ikonu i gubitak query-ja nakon prijave, zatim za nepostojanje ESLint i Prettier i za testove koji ne pokrivaju zaštitu ruta i ljusku.
 
@@ -281,12 +278,26 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
 | B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
 | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
 | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
-| B22 zaglavlje na 360 i 390 px | Urađeno | Vizuelna provjera na 360/390 px prihvaćena i zatvorena u okviru zatvaranja modula. Responsive zaglavlje zadržava postojeći raspored; pretraga ima `min-w-9`, a ponašanje indikatora pokriva `active-timer-indicator.spec.tsx`. Snimak ekrana smatra se priloženim/arhiviranim u okviru zatvaranja modula; novi PNG u repozitoriju nije potreban. |
-| ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
+| B22 zaglavlje na 360 i 390 px | Urađeno (ograničena vizuelna provjera) | Lokalni Vite preview sa mock API odgovorima: širine viewport/header/document su 360/360/360 px i 390/390/390 px; Playwright `pageErrors: []`. Sačuvani su `audit/frontend/assets/module-01-header-360.png` i `module-01-header-390.png` (56 px zaglavlje). Ovo dokazuje samo da header nema horizontalni overflow i da su kontrole stale u tim viewports; ne dokazuje backend integraciju, puni ticket-list layout niti E2E. Socket.IO poll je mock run-u vratio 503. |
+| ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; konačni `npm run lint` prijavio je 12 `exhaustive-deps` upozorenja (nema lint grešaka), sva u fajlovima izvan modula 01. |
 
-### Zabilješke za druge module
+### Prihvaćeni rizik van B-ID tabele — Gap 8 (2026-10-14)
 
-- **B13, šire:** oko 30 mjesta u `components/`, `pages/` i `lib/` koristi `session?.isSuperAdmin === true`. Ujednačavanje ide u modul 13 (lib) ili kao zajednička stavka.
-- **Modul 5:** `EmailTemplatesCard` prima `canWrite`, ali ga ne koristi (komponenta je read-only).
-- **Modul 12/13:** `PageLoadBoundary` u `lazy-page.tsx` i `RouteErrorBoundary` imaju gotovo istu fallback poruku. Spojiti u jednu komponentu.
-- **Modul 16 ili 13:** `use-session.ts` i ostali fajlovi sa `exhaustive-deps` upozorenjima (14 ukupno).
+**Status: Prihvaćen rizik (vlasnik, 2026-10-14).** Zadržava se 15 eksplicitnih `RequireAccess` blokova u `router.tsx`; konfiguracioni refaktor nije izvršen. Razlog: trenutni guardi imaju eksplicitne capability provjere, refaktor bi bio široka strukturna promjena kroz rute bez ispravke reprodukovanog runtime buga i povećao bi regresioni opseg; vlasnik je odabrao zatvoriti audit bez te promjene. Odbijena alternativa: prevesti svih 15 ruta u konfiguracijski niz/helper sada. Ovo je Gap 8 iz gap analize, ne ID B8 (formatiranje, koje je urađeno).
+
+### Otvorena napomena van modula 01 (izvan ovog zatvaranja)
+
+Sljedeće su zapažanja za druge module, ne dodatni B-ID-jevi; **Otvoreno** je eksplicitno navedeno kako zatvaranje modula 01 ne bi izgledalo kao da su i ona riješena. Ovaj zadatak ih ne implementira.
+
+- **B13, šire — Otvoreno:** oko 30 mjesta u `components/`, `pages/` i `lib/` koristi `session?.isSuperAdmin === true`; ujednačavanje izvan `route-access.ts` ostaje van modula 01.
+- **Modul 5 — Otvoreno:** `EmailTemplatesCard` prima `canWrite`, ali ga ne koristi (read-only komponenta).
+- **Modul 12/13 — Otvoreno:** `PageLoadBoundary` i `RouteErrorBoundary` imaju sličnu fallback poruku; razmatrati spajanje u kasnijem modulu.
+- **Modul 16/13 — Otvoreno:** preostala `exhaustive-deps` upozorenja u drugim dijelovima aplikacije nisu uklonjena u ovom scope-u.
+
+## Završne provjere i granice dokaza (2026-10-14)
+
+- Konačni `npm run lint` — 0 grešaka, 12 `react-hooks/exhaustive-deps` upozorenja u drugim modulima; nijedno od njih nije u Module 01 fajlovima. `npm run format:check`, `npx tsc -b` i puni frontend Vitest suite (247 fajlova, 1000 testova) prolaze. Detalji/CI guardovi su u `audit/frontend/03-tickets.md`.
+- B22 je zatvoren samo za traženu vizuelnu tačku: screenshot-i `assets/module-01-header-360.png` i `assets/module-01-header-390.png` su stvarni lokalni preview snimci zaglavlja (top 56 px). Mjerenja: širina header/document jednaka je viewportu pri 360 i 390 px; Playwright `pageErrors: []`.
+- Preview je koristio mock API-je; Socket.IO polling je odgovorio 503. Nisu pregledani cijela stranica/ticket lista niti backend integracija. Ovo nije E2E niti ručna QA potvrda autentifikovanog aplikacijskog toka.
+- Sve B1–B21 su ponovo provjerene prema implementaciji i ciljanim testovima; svaki ID ima status u tabeli. Gap 8 ostaje zaseban, datirani prihvaćeni rizik iznad.
+- Nema commita. Browser/E2E suite nije pokrenut.

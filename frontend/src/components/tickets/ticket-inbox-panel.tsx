@@ -17,6 +17,11 @@ interface TicketInboxPanelProperties {
   readonly activeTab: string;
   readonly onChangeTab: (tab: string) => void;
   readonly inboxTickets: readonly TicketResponse[];
+  readonly inboxGroupCounts: ReadonlyMap<string, number>;
+  readonly inboxPage: number;
+  readonly inboxTotalPages: number;
+  readonly inboxTotalIsCapped: boolean;
+  readonly onChangeInboxPage: (page: number) => void;
   readonly unroutedTickets: readonly TicketResponse[];
   readonly unroutedCount: number;
   readonly unroutedPage: number;
@@ -30,6 +35,9 @@ interface TicketInboxPanelProperties {
   readonly canManageGroups: boolean;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
+  readonly catalogErrorKey?: TicketErrorKey | null;
+  readonly unroutedErrorKey?: TicketErrorKey | null;
+  readonly membershipErrorKey?: TicketErrorKey | null;
   readonly onClaim: (ticketId: string) => void;
   readonly onRetry: () => void;
 }
@@ -38,6 +46,11 @@ export function TicketInboxPanel({
   activeTab,
   onChangeTab,
   inboxTickets,
+  inboxGroupCounts,
+  inboxPage,
+  inboxTotalPages,
+  inboxTotalIsCapped,
+  onChangeInboxPage,
   unroutedTickets,
   unroutedCount,
   unroutedPage,
@@ -51,26 +64,40 @@ export function TicketInboxPanel({
   canManageGroups,
   isLoading,
   errorKey,
+  catalogErrorKey = null,
+  unroutedErrorKey = null,
+  membershipErrorKey = null,
   onClaim,
   onRetry,
 }: TicketInboxPanelProperties) {
-  const { groups: myGroups } = useMyGroups();
+  const {
+    groups: myGroups,
+    isLoading: groupsLoading,
+    errorKey: groupsErrorKey,
+    retry: retryGroups,
+  } = useMyGroups();
   const groups = useMemo(
-    () => inboxGroupTabsFromMembership(myGroups, inboxTickets),
-    [myGroups, inboxTickets],
+    () => inboxGroupTabsFromMembership(myGroups, inboxTickets, inboxGroupCounts),
+    [myGroups, inboxGroupCounts, inboxTickets],
   );
   // Fall back to the unrouted tab when membership changes make the current
   // tab disappear (e.g. user was removed from the group). The effect runs
   // once membership is known so we don't flash the banner on first load.
   useEffect(() => {
-    if (activeTab === unroutedInboxTabKey) {
+    if (
+      activeTab === unroutedInboxTabKey ||
+      groupsLoading ||
+      groupsErrorKey !== null ||
+      hasGroupMembership === null
+    ) {
       return;
     }
     if (!groups.some((group) => group.groupId === activeTab)) {
       onChangeTab(unroutedInboxTabKey);
     }
-  }, [activeTab, groups, onChangeTab]);
+  }, [activeTab, groups, groupsErrorKey, groupsLoading, hasGroupMembership, onChangeTab]);
   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
+  const isUnroutedTab = activeTab === unroutedInboxTabKey;
   return (
     <div className="mt-4">
       <TicketInboxTabs
@@ -79,8 +106,24 @@ export function TicketInboxPanel({
         groups={groups}
         onChange={onChangeTab}
       />
+      {catalogErrorKey !== null ? (
+        <div className="mt-3">
+          <TicketErrorState errorKey={catalogErrorKey} onRetry={onRetry} />
+        </div>
+      ) : null}
+      {activeTab !== unroutedInboxTabKey &&
+      (groupsErrorKey !== null || membershipErrorKey !== null) ? (
+        <div className="mt-3">
+          <TicketErrorState
+            errorKey={groupsErrorKey ?? membershipErrorKey ?? "tickets.errorGeneric"}
+            onRetry={groupsErrorKey !== null ? retryGroups : onRetry}
+          />
+        </div>
+      ) : null}
       {activeTab !== unroutedInboxTabKey &&
       hasGroupMembership === false &&
+      groupsErrorKey === null &&
+      !groupsLoading &&
       !isLoading &&
       errorKey === null ? (
         <TicketInboxNoGroupNotice canManageGroups={canManageGroups} />
@@ -90,13 +133,16 @@ export function TicketInboxPanel({
         <TicketLoadingState />
       ) : errorKey ? (
         <TicketErrorState errorKey={errorKey} onRetry={onRetry} />
+      ) : activeTab === unroutedInboxTabKey && unroutedErrorKey !== null ? (
+        <TicketErrorState errorKey={unroutedErrorKey} onRetry={onRetry} />
       ) : (
         <TicketInboxList
           activeTab={activeTab}
           tickets={tabTickets}
-          page={unroutedPage}
-          totalPages={unroutedTotalPages}
-          onChangePage={onChangeUnroutedPage}
+          page={isUnroutedTab ? unroutedPage : inboxPage}
+          totalPages={isUnroutedTab ? unroutedTotalPages : inboxTotalPages}
+          totalIsCapped={isUnroutedTab ? false : inboxTotalIsCapped}
+          onChangePage={isUnroutedTab ? onChangeUnroutedPage : onChangeInboxPage}
           serviceNames={serviceNames}
           originNames={originNames}
           requesterNames={requesterNames}
