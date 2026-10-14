@@ -13,6 +13,7 @@ import { useSocketHealth } from "@/lib/realtime/use-socket-health";
 import { shouldPollUnreadCount, unreadCountFallbackIntervalMs } from "@/lib/realtime/socket-health";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   getNotificationUnreadCount,
   listNotifications,
@@ -35,6 +36,11 @@ export function useInboxNotifications() {
   const { session } = useSession();
   const [items, setItems] = useState<readonly InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  // Val 6.1 / modul 4 (D9): a failing load must NOT look like "no activity" —
+  // the feed keeps its previous items and exposes an error key/requestId so
+  // the UI can show a retry button instead of the empty state.
+  const [listErrorKey, setListErrorKey] = useState<ApiErrorKey | null>(null);
+  const [listRequestId, setListRequestId] = useState<string | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const socketHealth = useSocketHealth(socket);
 
@@ -42,14 +48,19 @@ export function useInboxNotifications() {
     if (session === null) {
       setItems([]);
       setUnreadCount(0);
+      setListErrorKey(null);
+      setListRequestId(null);
       return;
     }
     try {
       const response = await listNotifications();
       setItems(response.items);
       setUnreadCount(response.unreadCount);
-    } catch {
-      setItems([]);
+      setListErrorKey(null);
+      setListRequestId(null);
+    } catch (error) {
+      setListErrorKey(mapApiError(error));
+      setListRequestId(readApiRequestId(error));
     }
   }, [session]);
 
@@ -152,6 +163,8 @@ export function useInboxNotifications() {
   return {
     items,
     unreadCount,
+    listErrorKey,
+    listRequestId,
     refreshList,
     markOneRead,
     markAllRead,

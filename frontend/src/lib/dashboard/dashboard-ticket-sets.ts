@@ -23,11 +23,14 @@ export function isDashboardOpenTicket(ticket: Pick<TicketResponse, "status">): b
   return dashboardOpenStatuses.includes(ticket.status);
 }
 
+/**
+ * Val 6.1 / modul 4 (D2): the server now returns overdue tickets pre-sorted by
+ * `slaDueAt` ascending (most-breached first). We only filter and cap here —
+ * double-sorting by `updatedAt` previously pushed long-overdue, quiet tickets
+ * off the list.
+ */
 export function selectSlaWatchlist(tickets: readonly TicketResponse[]): readonly TicketResponse[] {
-  return tickets
-    .filter(isTicketOverdue)
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, dashboardSlaWatchlistLimit);
+  return tickets.filter(isTicketOverdue).slice(0, dashboardSlaWatchlistLimit);
 }
 
 function isTerminalTicket(ticket: Pick<TicketResponse, "status">): boolean {
