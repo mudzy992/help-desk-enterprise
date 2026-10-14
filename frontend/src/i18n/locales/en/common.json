@@ -2987,6 +2987,7 @@
     "activityTitle": "Activity",
     "activitySubtitle": "Latest events",
     "activityEmpty": "No recent events.",
+    "activityRetry": "Retry",
     "unroutedOverdueBanner_one": "{{count}} unrouted ticket waiting over {{hours}} h — handle it",
     "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them"
   },

@@ -2999,6 +2999,7 @@
     "activityTitle": "Aktivnost",
     "activitySubtitle": "Posljednji događaji",
     "activityEmpty": "Nema nedavnih događaja.",
+    "activityRetry": "Pokušaj ponovo",
     "unroutedOverdueBanner_one": "{{count}} nerutiran tiket čeka duže od {{hours}} h — riješite ga",
     "unroutedOverdueBanner_few": "{{count}} nerutirana tiketa čekaju duže od {{hours}} h — riješite ih",
     "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih"

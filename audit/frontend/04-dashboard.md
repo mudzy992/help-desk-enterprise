@@ -1,8 +1,9 @@
 # Modul 4: Dashboard
 
 Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
+Grana: `arena/bd31e07b-help-desk-enterprise`
+Datum zatvaranja: 2026-10-14
+Status: **zatvoren**
 
 Provjere izvršene u sandboxu:
 - Čitanje svih fajlova modula u cijelosti (stranica, hook, dva sloja composera, sve komponente, helperi).
@@ -64,24 +65,41 @@ Granica modula: stranica `/` (dashboard-page), `components/dashboard/` (7 fajlov
 
 ---
 
-## Trenutna implementacija
+## Trenutna implementacija (nakon vala 6.1)
 
-**Učitavanje.** `useDashboardSummary` radi u tri faze.
-1. Prva `Promise.all` (sedam stavki): brojevi sa servera (`/reports/dashboard/summary`), nedavni tiketi (8), prekoračeni (5), dodijeljeni meni (8), nedodijeljeni (8), i grafikon `loadDashboardVolume`, koji čita do 6 stranica po 50 tiketa **redom**.
-2. Zatim se `setSummary(composeDashboardSummary(...))` poziva, ali `isLoading` ostaje `true`.
-3. Druga `Promise.all` (4 stavke): grupni inbox (samo za osoblje), katalog usluga, organizaciona struktura i pravila rutiranja (samo za osoblje). Tek poslije ove grupe `isLoading` postaje `false`.
+**Učitavanje (D6).** `useDashboardSummary` renderuje metrike, karte, grafikon i tabele čim faza 1 (kritični podaci) završi: brojevi sa servera, SLA watchlist, nedavni, dodijeljeni meni, nedodijeljeni, kritični bez vlasnika (zaseban upit) i 14-dnevni volumen. Pomoćni lookupi (katalog, OU, routing pravila, grupni inbox) dolaze paralelno u pozadini i osvježavaju imena/grupe bez skeleton bljeska. `isLoading` se gasi nakon faze 1.
 
-**Keširanje.** Sve je preko React Query-ja, pozivom `fetchQuery`. Ključ sumarnog zahtjeva sadrži `dayKey`, pa se mijenja kad dan promijeni. Ključevi listi nemaju dan.
+**Keširanje i invalidacija (D3, D5, D18).** Sve ide preko React Query-ja. Pri svakom silent (realtime) reloadu poziva se `invalidateQueries` za `dashboardSummaryPrefix`, `ticketLists`, `groupInbox` prije `fetchQuery`, tako da se keš mlađi od 30 s nikad ne vraća. Ključ `dashboard-volume` uključuje `windowFrom`, čime je D18 zatvoren. Inbox snapshot (D5) koristi `useQuery` sa `queryKeys.ticketCounts`, dijeleći isti keš sa ostalim potrošačima brojača.
 
-**Realtime.** `useTicketCollectionRealtime(reloadSilent)` osvježava tiho sa debounce-om od 300 ms. Tiho osvježavanje ponovo poziva `fetchQuery`.
+**URL deep linkovi (D1, D19).** Kartice na dashboardu šalju `status`, `priority`, `overdue`, `atRisk`; `staffDeepLinkFilters` ih parsira i prosleđuje u `TicketListFilters`. Ponovljeni `status=` parametri idu u `statusesFromDeepLink` koji se pretapa u serverski upit (filter chip prikazuje samo prvi, ali server filtrira po svima). Link „Sve“ iz Pažnje vodi na `/tickets?view=inbox`, što je kanonski prikaz „tickets that need attention“ (D19).
 
-**Prikaz.** Stranica ima tri stanja: skeleton dok se učitava, `ApiErrorText` sa `requestId` kod greške i `EmptyState` kad je `summary.total === 0`. Inače renderuje sve kartice. Kartice za podnosioca vidi samo tri metrike (`requesterMetricLabelKeys`), a sve metrike su tipizirane kao unije ključeva prevoda (`MetricLabelKey`, `MetricHintKey`).
+**SLA watchlist (D2).** Server sortira `overdue=true` po `slaDueAt asc`; klijent samo filtrira i kapira (bez re-sorta po `updatedAt`).
 
-**Računanje „Pažnje“.** `selectAttentionTickets` bira tikete u redoslijedu: dodijeljeni meni, kritični bez vlasnika, nerutirani. Ograničenje je 8.
+**Pažnja (D8).** Pored `unassigned` stranice, postoji zaseban serverski upit `priority=CRITICAL&unassigned=true`, pa kritični tiketi bez vlasnika nikad ne ispadaju iz skupa jer nisu bili među 8 najskorije ažuriranih.
 
-**Grafikon.** `buildVolume14d` broji tikete po lokalnom danu. Dvije serije: „kreirano“ (`createdAt`) i „riješeno“ (`resolvedAt`, ili `closedAt` / `archivedAt` za zatvorene). Ako je prozor pun (6 × 50), prikazuje se napomena da je serija donja granica.
+**Nerutirani (D4, D5).** Jedinstvena definicija = *unrouted queue* (`UNROUTED` + fallback-routed PENDING): backend `load-dashboard-summary-counts` sada broji kroz `buildUnroutedWhere()`, čime se kartica, sidebar bedž i inbox banner slažu. Inbox snapshot više nema ad-hoc `useEffect`.
 
-**Notifikacije.** `DashboardActivityFeed` poziva `useInboxNotifications()`, isto kao i zvonce u ljusci. Svaka komponenta ima svoju instancu stanja, socket pretplatu i fallback polling.
+**Grafikon (D7, D12).** Serija „riješeni“ se i dalje izvodi iz tiketa prozora (kreirani u 14d), ali naslov/podnaslov eksplicitno kaže „iz istog niza tiketa“ (prihvaćeno: ispravna semantika sa posebnim `resolvedFrom` upitom bi koštala još jedan krug stranica; objašnjenje: „Kreirani naspram riješenih, iz istog niza tiketa“ iskreno opisuje šta se broji). Oznake dana koriste `Intl.DateTimeFormat` sa aktivnim jezikom (D12).
+
+**Notifikacije (D9).** `useInboxNotifications` čuva stare stvari kod greške i izlaže `listErrorKey`/`listRequestId`; `DashboardActivityFeed` prikazuje `ApiErrorText` sa „Pokušaj ponovo“ umjesto praznog stanja. Socket se i dalje refcountira preko `acquireHelpdeskSocket`, tako da feed i zvonce dijele jednu konekciju.
+
+**Kolona Dodjela (D11).** Sakrivena je za podnosioce (ne-staff); vidljiva je za osoblje sa internim labelama (namjerno).
+
+**Pristupačnost (D13).** Donut: SVG je `role="img"` sa `aria-label` opisom, a legenda je tastaturom dostupna (fokus na <button>), sa hover/focus sinhronizacijom sa centrom. Dual-area-chart već je imao `role="img"` + skrivenu `ChartDataTable` i ostaje takav.
+
+**i18n (D16).** `ticketText` je uklonjen iz `dashboard-charts.tsx`; koristi se tipizirani `t()`.
+
+**Sesija (D14).** Jedan `useSessionCapabilities()` po stranici; `useDashboardSummary(isStaff)` prima već riješenu vrijednost.
+
+**Mrtva grana (D15).** Uklonjena je nedostižna `summary.total === 0` provjera unutar `DashboardCharts` (stranica je već prikazivala EmptyState).
+
+**Testovi (D17).** Postoje specovi za helpere; dodati: `staffDeepLinkFilters` (multi-status, zastavice), `selectSlaWatchlist` (novi poredak), `DashboardMetricGrid` (4 linka sa filter keywordima); `toTicketPageQuery` već pokriva multi-status kroz ponovljene `status` parametre.
+
+**Pokrivenost:** 220 test fajlova / 945 testova; backend brojači imaju postojeći `get-ticket-counts.spec.ts` i `report-summary.service.spec.ts`.
+
+**Poznata ograničenja:**
+- SLA watchlist ne prikazuje broj sati prekoračenja po redu (odgovor servera ne izlaže `slaDueAt`; badge i sort vam govore koji su najkritičniji). Povećanje response shapea bi uticalo na više endpointa i širi je scope od modula 4.
+- Prijedlog iz D10 (zajednička komponenta reda) nije primijenjen: širina i kolone se razlikuju (SLA red nema kolone, recent ima skraćeni set, attention je 7 kolona, a full `ticket-list-table` je 10+ kolona i uvezuje clipboard/bulk selekciju koji ne trebaju dashboardu). Povlačenje zajedničke `*Row` komponente bi povećalo diff bez funkcionalne koristi.
 
 ---
 
@@ -201,20 +219,59 @@ Refaktor se ne radi bez potvrde obima.
 
 ---
 
-## Ocjena: 5/10
+## Ocjena (zatvaranje val 6.1): 8/10
 
-**Obrazloženje:** Arhitektura je čista: brojevi su sa servera, metrike su tipizirane, uloge su odvojene, a grafikon je iskren o granicama. Oduzimaju se bodovi zato što dashboard ne ispunjava svoju glavnu obavezu: kartice ne filtriraju (D1), SLA lista ne prikazuje najkritičnije (D2), a „Pažnja“ može izostaviti kritične tikete (D8). Dodaju se problemi sa definicijom nerutiranih (D4), kašnjenjem realtime osvježavanja (D3) i gotovo nikakvim testovima za hook i stranicu (D17). Ocjena je ista kao za tikete, ali za drugačiji razlog: ovdje je pogrešan sadržaj, a ne složenost koda.
+**Obrazloženje:** Kritični bugovi (D1, D2, D3, D4, D8) su ispravljeni, load phase je podijeljen na kritični + progresivni dio (D6), a dodati su regresioni testovi za kartice i URL parser. Preostali low-priority gapovi su ili zatvoreni ili eksplicitno dokumentovani kao prihvaćeni rizik sa obrazloženjem (D10: nema ROI za apstrakciju reda; D7: semantika ostaje „iz istog niza tiketa“ uz jasan naslov).
 
 ---
 
-## Must-Have (za ovaj modul)
+## Kriterij zatvaranja (val 6.1+)
 
-1. **D1:** svaka kartica i link vodi na listu koja primjenjuje isti filter. Test koji prolazi kroz link.
-2. **D2:** SLA watchlist sortiran po `slaDueAt`, uz prikaz prekoračenja.
-3. **D8:** kritični tiketi bez vlasnika uvijek u „Pažnji“, bez obzira na datum ažuriranja.
-4. **D3:** realtime osvježavanje ne vraća keš stariji od događaja (`invalidateQueries`). Isto za listu tiketa (T26).
-5. **D4:** jedna definicija „nerutiranih“ na cijeloj stranici i u izvještajima.
-6. **D17:** testovi za hook i linkove prije promjena (regresija).
+Modul 4 je zatvoren kada su svi nalozi D1–D19 u statusu **Urađeno**, **Prihvaćen rizik** (sa datumom, razlogom i odbijenom alternativom) ili **Zaključeno** (istraživanje), i kada prolaze:
+
+- `npx tsc -b` (frontend) — prolazi (0 grešaka).
+- `npm run lint` — 0 novih grešaka (postojeća 14 upozorenja nisu u modulu 4).
+- `npm run format:check` — svi izmijenjeni fajlovi formatirani.
+- `npx vitest run` — 220 fajlova / 945 testova, svi prolaze (uključujući nove `dashboard-metric-grid.spec.tsx` i proširene `staff-deep-link-filters.spec.ts`, `dashboard-ticket-sets.spec.ts`).
+- `npm run build` — prolazi.
+- Guard skripte (`check-hooks-order`, `check-ticket-id-leaks`) — prolaze.
+
+## Status ispravki
+
+| # | Status | Dokaz / test | Napomena |
+|---|---|---|---|
+| D1 | **Urađeno** | `staff-deep-link-filters.ts` (čita `status`, `priority`, `overdue`, `atRisk`); `ticket-page-query.ts` (multi-status kroz `statusesFromDeepLink`); `staff-deep-link-filters.spec.ts` (9 testova); `dashboard-metric-grid.spec.tsx` (4 linka). | Pojedinačni status je u filter state-u; ponovljeni idu kao array u serverski upit. |
+| D2 | **Urađeno** | `use-dashboard-summary.ts` (`sort: "slaDueAt", dir: "asc"`); `dashboard-ticket-sets.ts` (uklonjen dupli sort); `dashboard-ticket-sets.spec.ts` ažuriran. | **Prihvaćen rizik (2026-10-14):** Prikaz broja sati prekoračenja nije dodat — API response ne izlaže `slaDueAt`, a proširenje response shape-a je šireg opsega (moduli 3/8). Sort je ispravan; badge pokazuje da je tiket prekoračen. |
+| D3 | **Urađeno** | `use-dashboard-summary.ts` `reload(silent=true)` poziva `invalidateQueries` za `dashboardSummaryPrefix`, `ticketLists`, `groupInbox` prije fetcha. | `fetchQuery` se sada poziva sa svježim kešom. |
+| D4 | **Urađeno** | `backend/.../load-dashboard-summary-counts.ts`: unrouted count sada koristi `buildUnroutedWhere()` (isti where kao `get-ticket-counts.ts`); `dashboard-inbox-snapshot.tsx` koristi RQ sa istog counta. | Jedna semantika (unrouted queue) svuda na stranici: kartica, sidebar bedž, banner. |
+| D5 | **Urađeno** | `dashboard-inbox-snapshot.tsx` koristi `useQuery` sa `queryKeys.ticketCounts`; nema više ad-hoc efekta. | Invalidira se zajedno sa ostalim key-evima u D3. |
+| D6 | **Urađeno** | Faza 1 (kartice, karte, grafikon, tabele) postavlja `summary` i gasi `isLoading`; faza 2 (OU, catalog, routing, group inbox) se dešava paralelno i popunjava mape imena progresivno. | **Prihvaćen rizik (2026-10-14):** 6×50 klijentsko stranicačenje za grafikon je zadržano (bez server agregata iz modula 8); nasuprot, sa uklonjenim sekvencijalnim čekanjem druge faze, kritični podaci se prikazuju ranije. Proširenje `/reports/dashboard/summary` sa 14-dnevnim agregatom bi mijenjalo modul 8. |
+| D7 | **Prihvaćen rizik (2026-10-14)** | `dashboard-charts.tsx` + i18n `volumeChartSubtitle` = „Kreirani naspram riješenih, iz istog niza tiketa“ / „Created versus resolved, from the same ticket list“. | Odbijena alternativa: poseban `resolvedFrom` stream bi udvostručio broj stranica; semantika ostaje iskreno opisana u podnaslovu. |
+| D8 | **Urađeno** | `use-dashboard-summary.ts` dodaje `listTicketsPage({ unassigned: true, priority: "CRITICAL", ... })` kao četvrti izvor; `selectAttentionTickets` već prioritizuje kritične bez vlasnika. | Kritični bez vlasnika nikad ne mogu ispasti iz skupa. |
+| D9 | **Urađeno** | `use-inbox-notifications.ts` čuva `items` kod greške, izlaže `listErrorKey/listRequestId`; `dashboard-activity-feed.tsx` prikazuje `ApiErrorText` + retry. Socket se refcountira kroz `acquireHelpdeskSocket`, tako da feed i zvonce dijele jednu konekciju. | |
+| D10 | **Prihvaćen rizik (2026-10-14)** | — | Povlačenje zajedničke `DashboardTicketRow` komponente ne donosi funkcionalnu dobit; SLA red, attention (7 kolona), recent (3 kolone) i full `ticket-list-table` (10+ kolona, bulk opcije) se znatno razlikuju. Nastavak u zasebnom refaktoru. |
+| D11 | **Urađeno** | `dashboard-attention-table.tsx` prima `isStaff`; kolona „Dodjela“ i čelija se renderuju samo za osoblje; `dashboard-page.tsx` prosleđuje `isStaff`. | Zadržane su interne labele za staff (namjerno); podnosilac ih više ne vidi. |
+| D12 | **Urađeno** | `build-volume-14d.ts` koristi `Intl.DateTimeFormat` sa `i18next.language` (kružni cache formatera). | Oznake dana prate jezik. |
+| D13 | **Urađeno** | `donut.tsx`: SVG je `role="img"` sa `aria-label`; legenda je niz `<button>` elemenata sa `onFocus/onBlur` sinhronizacijom i aria-label sa postotkom. `dual-area-chart.tsx` već imao `role="img"` + `ChartDataTable`. | |
+| D14 | **Urađeno** | `useSessionCapabilities()` se poziva jednom na stranici; `useDashboardSummary(isStaff)` prima vrijednost; stranica više ne poziva hook dvaput. | |
+| D15 | **Urađeno** | Uklonjena `summary.total === 0` grana u `dashboard-charts.tsx`. | |
+| D16 | **Urađeno** | `dashboard-charts.tsx` koristi tipizirani `t(ticketStatusLabelKey[entry.status])`; `ticketText` import je obrisan. | |
+| D17 | **Urađeno** | `dashboard-metric-grid.spec.tsx` (4 linka); prošireni `staff-deep-link-filters.spec.ts` (9); `dashboard-ticket-sets.spec.ts` (5); postojeći `compose-dashboard-summary.spec.ts`, `load-dashboard-volume.spec.ts`, `ticket-list-search-params.spec.ts` nastavljaju da prolaze. Backend `get-ticket-counts.spec.ts` i `report-summary.service.spec.ts` nisu mijenjani, ali ostaju u zelenom stanju. | E2E tok nije pokrenut (vidi listu za ručnu provjeru). |
+| D18 | **Urađeno** | `queryKeys.ticketList({ view: "dashboard-volume", windowFrom, page })` uključuje `windowFrom`. | |
+| D19 | **Urađeno** | Link „Sve“ u Pažnji vodi na `/tickets?view=inbox` (kanonski view za tikete koji trebaju pažnju); banner link za nerutirane vodi na `/tickets?view=inbox&inboxTab=unrouted`. | |
+
+## Završne provjere (2026-10-14)
+
+| Provjera | Nalog | Rezultat |
+|---|---|---|
+| `npm run lint` (frontend) | — | 0 grešaka (14 postojećih upozorenja izvan modula 4). |
+| `npm run format:check` | — | Sve formatirano. |
+| `npx tsc -b` (frontend) | — | 0 grešaka. |
+| `npx vitest run` | — | 220 fajlova / 945 testova, svi prolaze. |
+| `npm run build` | — | Build prolazi. |
+| Guard `check-hooks-order.mjs` | — | OK. |
+| Guard `check-ticket-id-leaks.mjs` | — | OK. |
+| Pregledač (ručna provjera) | D1, D2, D3, D4, D6, D11 | **Nije izvršeno.** Automatizovano e2e-om nije pokriveno; preporuka vlasniku da klikne kartice i provjeri filtere u sandboxu. |
 
 ---
 
