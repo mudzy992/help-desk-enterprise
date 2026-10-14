@@ -54,7 +54,6 @@ export function staffDeepLinkFilters(
       unroutedOverdue: false,
       inboxTab: undefined,
       status: "",
-      statusesFromDeepLink: [],
       priority: "",
       overdue: false,
       atRisk: false,
@@ -79,7 +78,9 @@ export function staffDeepLinkFilters(
     // the server alongside it without changing the UI (multi-status deep
     // links are a share/link feature, not a UI control yet).
     status: parsedStatus.status,
-    statusesFromDeepLink: parsedStatus.additional,
+    ...(parsedStatus.additional.length > 0
+      ? { statusesFromDeepLink: parsedStatus.additional }
+      : {}),
     priority: parsePriorityFilter(searchParams.get("priority")),
     overdue: parseBooleanFlag(searchParams.get("overdue")),
     atRisk: parseBooleanFlag(searchParams.get("atRisk")),
