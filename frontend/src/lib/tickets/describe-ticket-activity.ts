@@ -1,9 +1,12 @@
 import { parseIncidentEventDetail } from "@/lib/status/status-view";
 import type { TFunction } from "i18next";
 import {
-  ticketPriorityLabelKey,
-  ticketSeverityLabelKey,
-  ticketStatusLabelKey,
+  ticketPriorityTranslationKey,
+  ticketSeverityTranslationKey,
+  ticketStatusTranslationKey,
+  type TicketPriorityTranslationKey,
+  type TicketSeverityTranslationKey,
+  type TicketStatusTranslationKey,
 } from "@/lib/tickets/ticket-constants";
 import {
   isActivityMessage,
@@ -13,7 +16,6 @@ import {
   systemEventTextKey,
   type TicketActivityKind,
 } from "@/lib/tickets/ticket-system-events";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 import type {
   TicketHistoryChange,
@@ -30,11 +32,16 @@ export type TicketActivityItem = {
   readonly note: string | null;
 };
 
-const historyValueKeys: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  status: ticketStatusLabelKey,
-  priority: ticketPriorityLabelKey,
-  impact: ticketSeverityLabelKey,
-  urgency: ticketSeverityLabelKey,
+type TicketHistoryLabelKey =
+  TicketPriorityTranslationKey | TicketSeverityTranslationKey | TicketStatusTranslationKey;
+
+const historyValueKeyByField: Partial<
+  Record<TicketHistoryChange["field"], (value: string) => TicketHistoryLabelKey | null>
+> = {
+  status: ticketStatusTranslationKey,
+  priority: ticketPriorityTranslationKey,
+  impact: ticketSeverityTranslationKey,
+  urgency: ticketSeverityTranslationKey,
 };
 
 /** The person behind an event, never a raw identifier. */
@@ -44,9 +51,9 @@ export function resolveActivityActor(
   t: TFunction,
 ): string {
   if (authorUserId === null) {
-    return ticketText(t, "tickets.activity.system");
+    return t("tickets.activity.system");
   }
-  return authorNames.get(authorUserId) ?? ticketText(t, "tickets.detail.unknownUser");
+  return authorNames.get(authorUserId) ?? t("tickets.detail.unknownUser");
 }
 
 export function describeMessageActivity(
@@ -61,7 +68,7 @@ export function describeMessageActivity(
       at: message.createdAt,
       kind: "approval",
       actor,
-      text: ticketText(t, "tickets.activity.approvalDecision"),
+      text: t("tickets.activity.approvalDecision"),
       note: message.body.trim().length > 0 ? message.body : null,
     };
   }
@@ -87,7 +94,7 @@ export function describeMessageActivity(
       // A forward event carries its TicketForwardEvent id, not a user id.
       detail === null || action === "ticket_forwarded"
         ? null
-        : (authorNames.get(detail) ?? ticketText(t, "tickets.detail.unknownUser")),
+        : (authorNames.get(detail) ?? t("tickets.detail.unknownUser")),
       t,
     ),
     note: null,
@@ -115,7 +122,7 @@ export function describeMergeOrPriorityEvent(
     const name = separator >= 0 ? detail.slice(0, separator) : detail;
     const reason = separator >= 0 ? detail.slice(separator + 1) : "";
     return {
-      text: ticketText(t, "tickets.activity.inboundAttachmentRejected", { name }),
+      text: t("tickets.activity.inboundAttachmentRejected", { name }),
       note: reason.length > 0 ? reason : null,
     };
   }
@@ -135,7 +142,7 @@ export function describeMergeOrPriorityEvent(
         : action === "ticket_incident_unlinked"
           ? "tickets.activity.incidentUnlinked"
           : "tickets.activity.incidentResolved";
-    return { text: ticketText(t, key, { title: parsed.title }), note: null };
+    return { text: t(key, { title: parsed.title }), note: null };
   }
   // Paket 3.3: `ticket_problem_*:<problemId>|<number> <title>` (staff only).
   if (action === "ticket_problem_linked" || action === "ticket_problem_unlinked") {
@@ -147,7 +154,7 @@ export function describeMergeOrPriorityEvent(
       action === "ticket_problem_linked"
         ? "tickets.activity.problemLinked"
         : "tickets.activity.problemUnlinked";
-    return { text: ticketText(t, key, { problem: parsed.title }), note: null };
+    return { text: t(key, { problem: parsed.title }), note: null };
   }
   // Paket 3.3: unstarted ticket taken over by the problem group resolution.
   if (action === "ticket_problem_takeover") {
@@ -156,7 +163,7 @@ export function describeMergeOrPriorityEvent(
       return null;
     }
     return {
-      text: ticketText(t, "tickets.activity.problemTakeover", { problem: parsed.title }),
+      text: t("tickets.activity.problemTakeover", { problem: parsed.title }),
       note: null,
     };
   }
@@ -167,22 +174,21 @@ export function describeMergeOrPriorityEvent(
       return null;
     }
     return {
-      text: ticketText(t, "tickets.activity.knowledgeDraftCreated", { title: parsed.title }),
+      text: t("tickets.activity.knowledgeDraftCreated", { title: parsed.title }),
       note: null,
     };
   }
   if (action === "ticket_priority_overridden") {
     const [from = "", to = "", mode = "", ...rest] = detail.split(":");
     const label = (value: string) => {
-      const key = (ticketPriorityLabelKey as Readonly<Record<string, string>>)[value];
-      return key === undefined ? value : ticketText(t, key);
+      const key = ticketPriorityTranslationKey(value);
+      return key === null ? value : t(key);
     };
     return {
-      text: ticketText(
-        t,
-        mode === "matrix" ? "tickets.priority.eventReset" : "tickets.priority.eventManual",
-        { from: label(from), to: label(to) },
-      ),
+      text: t(mode === "matrix" ? "tickets.priority.eventReset" : "tickets.priority.eventManual", {
+        from: label(from),
+        to: label(to),
+      }),
       note: rest.join(":").trim() || null,
     };
   }
@@ -191,19 +197,19 @@ export function describeMergeOrPriorityEvent(
   switch (action) {
     case "ticket_merged":
       return {
-        text: ticketText(t, "tickets.merge.eventParent", { numbers: head.split(",").join(", ") }),
+        text: t("tickets.merge.eventParent", { numbers: head.split(",").join(", ") }),
         note: tail,
       };
     case "ticket_merged_child":
-      return { text: ticketText(t, "tickets.merge.eventChild", { number: head }), note: tail };
+      return { text: t("tickets.merge.eventChild", { number: head }), note: tail };
     case "ticket_unmerged":
-      return { text: ticketText(t, "tickets.merge.eventUnmerged", { number: head }), note: tail };
+      return { text: t("tickets.merge.eventUnmerged", { number: head }), note: tail };
     case "ticket_merged_status_propagated": {
-      const key = (ticketStatusLabelKey as Readonly<Record<string, string>>)[tail ?? ""];
+      const key = ticketStatusTranslationKey(tail ?? "");
       return {
-        text: ticketText(t, "tickets.merge.eventPropagated", {
+        text: t("tickets.merge.eventPropagated", {
           number: head,
-          status: key === undefined ? (tail ?? "") : ticketText(t, key),
+          status: key === null ? (tail ?? "") : t(key),
         }),
         note: null,
       };
@@ -244,9 +250,9 @@ export function findLastPriorityOverride(messages: readonly TicketMessageRespons
 /** Event text; an assignment names who the ticket was assigned to. */
 function describeEventText(action: string, targetName: string | null, t: TFunction): string {
   if (action === "ticket_assigned" && targetName !== null) {
-    return ticketText(t, "tickets.activity.assignedTo", { name: targetName });
+    return t("tickets.activity.assignedTo", { name: targetName });
   }
-  return ticketText(t, systemEventTextKey(action));
+  return t(systemEventTextKey(action));
 }
 
 /** An entry from the requester-safe activity endpoint. */
@@ -258,22 +264,26 @@ export function describePublicActivity(
     id: entry.id,
     at: entry.createdAt,
     kind: systemEventKind(entry.action),
-    actor: entry.actorName ?? ticketText(t, "tickets.activity.system"),
+    actor: entry.actorName ?? t("tickets.activity.system"),
     text: describeEventText(entry.action, entry.targetName, t),
     note: null,
   };
 }
 
-function formatHistoryValue(field: string, value: string | null, t: TFunction): string {
+function formatHistoryValue(
+  field: TicketHistoryChange["field"],
+  value: string | null,
+  t: TFunction,
+): string {
   if (value === null) {
     return "—";
   }
-  const key = historyValueKeys[field]?.[value];
-  return key === undefined ? value : ticketText(t, key);
+  const key = historyValueKeyByField[field]?.(value);
+  return key === undefined || key === null ? value : t(key);
 }
 
 function describeHistoryChange(change: TicketHistoryChange, t: TFunction): string {
-  return ticketText(t, `tickets.activity.history.${change.field}`, {
+  return t(`tickets.activity.history.${change.field}`, {
     from: formatHistoryValue(change.field, change.from, t),
     to: formatHistoryValue(change.field, change.to, t),
   });
@@ -293,10 +303,7 @@ export function describeHistoryActivity(
       : "status",
     actor:
       entry.actorName ??
-      ticketText(
-        t,
-        entry.actorUserId === null ? "tickets.activity.system" : "tickets.detail.unknownUser",
-      ),
+      t(entry.actorUserId === null ? "tickets.activity.system" : "tickets.detail.unknownUser"),
     text: entry.changes.map((change) => describeHistoryChange(change, t)).join("; "),
     note: null,
   };

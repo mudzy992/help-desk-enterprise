@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   mapProblemError,
@@ -147,7 +147,7 @@ export function ProblemStatusSheet({
                 >
                   {targets.map((target) => (
                     <option key={target} value={target}>
-                      {ticketText(t, transitionLabelKey(problem.status, target))}
+                      {translateText(t, transitionLabelKey(problem.status, target))}
                     </option>
                   ))}
                 </Select>
@@ -155,7 +155,7 @@ export function ProblemStatusSheet({
             </Field>
             {status !== "" ? (
               <p className={hintClassName}>
-                {ticketText(t, `problems.statusSheet.hint.${status}`)}
+                {translateText(t, `problems.statusSheet.hint.${status}`)}
               </p>
             ) : null}
             {needsReason ? (

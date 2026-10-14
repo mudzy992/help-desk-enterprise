@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ import {
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
 import { toTicketCountsQuery, toTicketPageQuery } from "@/lib/tickets/ticket-page-query";
+import { createLatestRequestGate } from "@/lib/tickets/latest-request-gate";
 import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
 import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
 import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
@@ -31,6 +32,19 @@ import {
 
 /** A list answer never carries more than 50 rows; the unrouted tab asks for it. */
 const unroutedPageSize = 50;
+
+/**
+ * Označi navedene unose kao zastarjele kako bi ih naredno čitanje dohvatilo
+ * sa servera. Tihi reload znači da su se podaci promijenili, ali unutar
+ * `staleTime` keš ih i dalje smatra svježim i ne bi vidio promjenu. Diramo
+ * samo ključeve koje ovaj ekran ponovo čita, a katalog zadržava dužu svježinu.
+ */
+async function invalidateBeforeSilentReload(
+  queryClient: QueryClient,
+  keys: readonly (readonly unknown[])[],
+): Promise<void> {
+  await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+}
 
 function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView {
   const allowed = workspaceViewsFor(isStaff);
@@ -129,18 +143,35 @@ export function useTicketList() {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const queryFromUrl = searchParams.get("q") ?? "";
+  /** Samo najnoviji upit smije upisati rezultat na ekran. */
+  const requestGate = useMemo(createLatestRequestGate, []);
+  /** Vidljivo učitavanje traje dok se ne završi posljednji pokrenuti upit. */
+  const pendingVisibleLoads = useRef(0);
 
   const load = useCallback(
     async (silent = false) => {
+      const requestToken = requestGate.begin();
       if (!silent) {
+        pendingVisibleLoads.current += 1;
         setIsLoading(true);
         setErrorKey(null);
       }
       try {
         if (view === "inbox") {
-          // Faza 3.3: reads go through the query cache, so coming back to a screen
-          // inside `staleTime` costs no request — the socket invalidates the keys
-          // when something really changed.
+          const unroutedQuery = {
+            unroutedQueue: true,
+            hideMerged: filters.hideMerged === true ? true : undefined,
+            page: unroutedPage,
+            pageSize: unroutedPageSize,
+          } as const;
+          if (silent) {
+            // Realtime refresh znači da su se podaci promijenili na serveru.
+            // Zato se keširani odgovori moraju označiti zastarjelim prije čitanja.
+            await invalidateBeforeSilentReload(queryClient, [
+              queryKeys.groupInbox,
+              queryKeys.ticketList(unroutedQuery),
+            ]);
+          }
           const [catalog, inboxRows, unroutedPageResponse] = await Promise.all([
             queryClient
               .fetchQuery({
@@ -154,19 +185,8 @@ export function useTicketList() {
             }),
             queryClient
               .fetchQuery({
-                queryKey: queryKeys.ticketList({
-                  unroutedQueue: true,
-                  hideMerged: filters.hideMerged === true ? true : undefined,
-                  page: unroutedPage,
-                  pageSize: unroutedPageSize,
-                }),
-                queryFn: () =>
-                  listTicketsPage({
-                    unroutedQueue: true,
-                    hideMerged: filters.hideMerged === true ? true : undefined,
-                    page: unroutedPage,
-                    pageSize: unroutedPageSize,
-                  }),
+                queryKey: queryKeys.ticketList(unroutedQuery),
+                queryFn: () => listTicketsPage(unroutedQuery),
               })
               .catch(() => null),
           ]);
@@ -179,6 +199,9 @@ export function useTicketList() {
                   (status) => status.hasGroupMembership,
                   () => null,
                 );
+          if (!requestGate.isLatest(requestToken)) {
+            return;
+          }
           setServices(catalog);
           setPageItems(inboxRows);
           setPageInfo({
@@ -208,7 +231,17 @@ export function useTicketList() {
             currentUserId,
             page,
           });
-          const [catalog, response] = await Promise.all([
+          // Brojači su poseban i jeftiniji upit: obuhvataju sve odgovarajuće
+          // tikete, a ne samo ovu stranicu. Ako upit ne uspije, tabovi prikazuju
+          // nule, a lista ostaje upotrebljiva.
+          const countsQuery = toTicketCountsQuery(query);
+          if (silent) {
+            await invalidateBeforeSilentReload(queryClient, [
+              queryKeys.ticketList(query),
+              queryKeys.ticketCounts(countsQuery),
+            ]);
+          }
+          const [catalog, response, nextCounts] = await Promise.all([
             queryClient
               .fetchQuery({
                 queryKey: queryKeys.offeredServices,
@@ -219,7 +252,16 @@ export function useTicketList() {
               queryKey: queryKeys.ticketList(query),
               queryFn: () => listTicketsPage(query),
             }),
+            queryClient
+              .fetchQuery({
+                queryKey: queryKeys.ticketCounts(countsQuery),
+                queryFn: () => getTicketCounts(countsQuery),
+              })
+              .catch(() => null),
           ]);
+          if (!requestGate.isLatest(requestToken)) {
+            return;
+          }
           setServices(catalog);
           setPageItems(response.items);
           setPageInfo({
@@ -231,18 +273,7 @@ export function useTicketList() {
           setUnroutedTickets([]);
           setUnroutedTotal(0);
           setHasGroupMembership(null);
-          // Counters are a separate, cheaper read: they cover all matching
-          // tickets, not just the page, and they are allowed to fail (the tabs
-          // then show zeros instead of breaking the list).
-          const countsQuery = toTicketCountsQuery(query);
-          setCounts(
-            await queryClient
-              .fetchQuery({
-                queryKey: queryKeys.ticketCounts(countsQuery),
-                queryFn: () => getTicketCounts(countsQuery),
-              })
-              .catch(() => null),
-          );
+          setCounts(nextCounts);
           // A filter can move the requested page past the end; fall back to the
           // last page that does have rows.
           if (response.items.length === 0 && response.total > 0 && response.page > 1) {
@@ -251,6 +282,10 @@ export function useTicketList() {
         }
         setInboxHidden(false);
       } catch (error) {
+        // Greška starijeg upita ne smije zamijeniti ishod najnovijeg.
+        if (!requestGate.isLatest(requestToken)) {
+          return;
+        }
         const mapped = mapTicketError(error);
         if (
           view === "inbox" &&
@@ -269,11 +304,14 @@ export function useTicketList() {
         setErrorKey(mapped);
       } finally {
         if (!silent) {
-          setIsLoading(false);
+          pendingVisibleLoads.current -= 1;
+          if (pendingVisibleLoads.current === 0) {
+            setIsLoading(false);
+          }
         }
       }
     },
-    [view, filters, page, unroutedPage, currentUserId, queryClient, setSearchParams],
+    [view, filters, page, unroutedPage, currentUserId, queryClient, requestGate, setSearchParams],
   );
 
   useEffect(() => {
@@ -397,6 +435,12 @@ export function useTicketList() {
     [view, searchParams, setSearchParams],
   );
 
+  const setSearch = useCallback((search: string) => {
+    setFilters((current) => ({ ...current, search }));
+    setPage(1);
+    setSelectedIds(new Set());
+  }, []);
+
   return {
     view,
     isStaff,
@@ -409,6 +453,7 @@ export function useTicketList() {
       setSelectedIds(new Set());
     },
     setInboxTab,
+    setSearch,
     page,
     setPage,
     totalPages,

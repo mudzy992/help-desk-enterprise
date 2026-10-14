@@ -5071,6 +5071,8 @@
     "interceptRequired": "required step",
     "interceptEmptyTitle": "No relevant articles",
     "interceptEmpty": "No knowledge base articles matched this description. Continue to send the ticket.",
+    "interceptUnavailableTitle": "Knowledge base is unavailable right now",
+    "interceptUnavailable": "We could not check the knowledge base for you. Suggestions are optional — continue to send the ticket.",
     "helpedResolvedHint": "The ticket will not be created. Your confirmation counts toward KB intercept stats.",
     "continueSendHint": "The articles did not help — I want the team to handle this request.",
     "openArticle": "Open article",
@@ -5448,7 +5450,8 @@
         "ticket_asset_linked": "equipment linked to the ticket",
         "ticket_asset_unlinked": "equipment removed from the ticket",
         "ticket_problem_linked": "ticket linked to a problem",
-        "ticket_problem_unlinked": "problem link removed"
+        "ticket_problem_unlinked": "problem link removed",
+        "ticket_problem_takeover": "ticket moved to the team for group problem resolution"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",

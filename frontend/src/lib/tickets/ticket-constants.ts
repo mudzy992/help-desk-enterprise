@@ -1,4 +1,5 @@
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
+import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 
 export const ticketListPageSize = 25;
 
@@ -77,21 +78,30 @@ export const ticketStatusLabelKey = {
   RESOLVED: "tickets.status.RESOLVED",
   CLOSED: "tickets.status.CLOSED",
   ARCHIVED: "tickets.status.ARCHIVED",
-} as const;
+} as const satisfies Readonly<Record<TicketStatus, TicketTranslationKey>>;
+
+export type TicketStatusTranslationKey =
+  (typeof ticketStatusLabelKey)[keyof typeof ticketStatusLabelKey];
 
 export const ticketPriorityLabelKey = {
   LOW: "tickets.priority.LOW",
   MEDIUM: "tickets.priority.MEDIUM",
   HIGH: "tickets.priority.HIGH",
   CRITICAL: "tickets.priority.CRITICAL",
-} as const;
+} as const satisfies Readonly<Record<TicketPriority, TicketTranslationKey>>;
+
+export type TicketPriorityTranslationKey =
+  (typeof ticketPriorityLabelKey)[keyof typeof ticketPriorityLabelKey];
 
 export const ticketSeverityLabelKey = {
   LOW: "tickets.severity.LOW",
   MEDIUM: "tickets.severity.MEDIUM",
   HIGH: "tickets.severity.HIGH",
   CRITICAL: "tickets.severity.CRITICAL",
-} as const;
+} as const satisfies Readonly<Record<TicketPriority, TicketTranslationKey>>;
+
+export type TicketSeverityTranslationKey =
+  (typeof ticketSeverityLabelKey)[keyof typeof ticketSeverityLabelKey];
 
 export const ticketViewLabelKey = {
   inbox: "tickets.views.inbox",
@@ -99,4 +109,23 @@ export const ticketViewLabelKey = {
   unassigned: "tickets.views.unassigned",
   requested: "tickets.views.requested",
   all: "tickets.views.all",
-} as const;
+} as const satisfies Readonly<Record<TicketWorkspaceView, TicketTranslationKey>>;
+
+function hasOwnStringKey<T extends object>(
+  record: T,
+  key: string,
+): key is Extract<keyof T, string> {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+export function ticketStatusTranslationKey(value: string): TicketStatusTranslationKey | null {
+  return hasOwnStringKey(ticketStatusLabelKey, value) ? ticketStatusLabelKey[value] : null;
+}
+
+export function ticketPriorityTranslationKey(value: string): TicketPriorityTranslationKey | null {
+  return hasOwnStringKey(ticketPriorityLabelKey, value) ? ticketPriorityLabelKey[value] : null;
+}
+
+export function ticketSeverityTranslationKey(value: string): TicketSeverityTranslationKey | null {
+  return hasOwnStringKey(ticketSeverityLabelKey, value) ? ticketSeverityLabelKey[value] : null;
+}

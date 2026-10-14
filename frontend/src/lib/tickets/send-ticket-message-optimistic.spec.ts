@@ -99,4 +99,37 @@ describe("sendTicketMessageOptimistic", () => {
     expect(messages.value.map((item) => item.id)).toEqual(["msg-1"]);
     expect(messages.value.some((item) => isPendingMessageId(item.id))).toBe(false);
   });
+
+  it("keeps the stored reply when the refresh of the ticket fails afterwards", async () => {
+    const created: TicketMessageResponse = {
+      id: "msg-2",
+      ticketId: "ticket-a",
+      type: "AGENT_REPLY",
+      body: "hello",
+      authorUserId: "agent-1",
+      createdAt: "2026-09-13T09:00:00.000Z",
+    };
+    vi.mocked(createTicketMessage).mockResolvedValue(created);
+    vi.mocked(getTicket).mockRejectedValue(new ApiError(503, "SERVICE_UNAVAILABLE", ""));
+    const loggedErrors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const messages = { value: [] as readonly TicketMessageResponse[] };
+    const actionError = { value: null as TicketErrorKey | null };
+
+    await sendTicketMessageOptimistic({
+      ticketId: "ticket-a",
+      type: "AGENT_REPLY",
+      body: "hello",
+      authorUserId: "agent-1",
+      setMessages: applyState(messages),
+      setTicket: applyState({ value: ticket }),
+      setActionError: applyState(actionError),
+    });
+
+    // Odgovor je sačuvan na serveru, zato polje za pisanje ne smije vratiti tekst
+    // niti prikazati grešku: ponovni klik bi poslao duplikat.
+    expect(messages.value.map((item) => item.id)).toEqual(["msg-2"]);
+    expect(actionError.value).toBeNull();
+    expect(loggedErrors).toHaveBeenCalled();
+    loggedErrors.mockRestore();
+  });
 });

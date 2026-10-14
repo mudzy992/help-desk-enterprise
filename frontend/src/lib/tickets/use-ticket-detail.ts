@@ -35,7 +35,6 @@ export function useTicketDetail(ticketId: string | undefined) {
   const [participants, setParticipants] = useState<readonly TicketParticipantResponse[]>([]);
   const [timeLogs, setTimeLogs] = useState<readonly TicketTimeLogResponse[]>([]);
   const [attachments, setAttachments] = useState<readonly TicketAttachmentResponse[]>([]);
-  const [inboxAccessible, setInboxAccessible] = useState(false);
   const [attachmentsVisible, setAttachmentsVisible] = useState(false);
   const [timeVisible, setTimeVisible] = useState(false);
   const [canChangeStatus, setCanChangeStatus] = useState(true);
@@ -49,10 +48,10 @@ export function useTicketDetail(ticketId: string | undefined) {
     setParticipants,
     setTimeLogs,
     setAttachments,
-    setInboxAccessible,
     setAttachmentsVisible,
     setTimeVisible,
     setErrorKey,
+    setActionError,
     setIsLoading,
   };
 
@@ -120,7 +119,6 @@ export function useTicketDetail(ticketId: string | undefined) {
     participants,
     timeLogs,
     attachments,
-    inboxAccessible,
     attachmentsVisible,
     timeVisible,
     canChangeStatus,

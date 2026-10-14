@@ -17,7 +17,6 @@ import {
   type ServicePickerGroup,
 } from "@/lib/tickets/service-picker-model";
 import { cn } from "@/lib/utils";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
 const availabilityTone: Record<
@@ -332,7 +331,7 @@ function ServiceOption({
         ) : null}
         {service.requiresApproval ? (
           <span className="mt-0.5 block text-[11px] text-warning">
-            {ticketText(t, "tickets.approvalsNeeded", { count: 1 })}
+            {t("tickets.approvalsNeeded", { count: 1 })}
           </span>
         ) : null}
       </span>

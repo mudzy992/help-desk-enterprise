@@ -19,7 +19,6 @@ import {
 } from "@/lib/tickets/ticket-actions";
 import { isResolveOrCloseStatus } from "@/lib/tickets/is-resolve-or-close-status";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
 interface TicketDetailHeaderActionsProperties {
@@ -180,7 +179,7 @@ export function TicketDetailHeaderActions({
                   onStatusChange(status);
                 }}
               >
-                {ticketText(t, ticketStatusLabelKey[status])}
+                {t(ticketStatusLabelKey[status])}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

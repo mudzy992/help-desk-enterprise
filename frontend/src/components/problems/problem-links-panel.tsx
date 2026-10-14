@@ -11,8 +11,10 @@ import { Input, Select } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { incidentStatusTranslationKey } from "@/lib/status/status-view";
+import type { IncidentStatusTranslationKey } from "@/lib/status/status-view";
 import { mapProblemError } from "@/lib/problems/problem-view";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   getProblemLinks,
   linkProblemAssets,
@@ -33,6 +35,14 @@ import {
 interface ProblemLinksPanelProperties {
   readonly problem: ProblemDetail;
   readonly options: ProblemOptions | undefined;
+}
+
+function incidentStatusText(
+  status: string,
+  translate: (key: IncidentStatusTranslationKey) => string,
+): string {
+  const key = incidentStatusTranslationKey(status);
+  return key === null ? status : translate(key);
 }
 
 function useDebounced(value: string, delayMs = 250): string {
@@ -352,7 +362,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                       {incident.title}
                     </span>
                     <Badge tone={incident.status === "RESOLVED" ? "success" : "warning"}>
-                      {ticketText(t, `status.status.${incident.status}`)}
+                      {incidentStatusText(incident.status, (key) => translateText(t, key))}
                     </Badge>
                     <span className="hidden shrink-0 text-muted-foreground sm:inline">
                       {formatAssetDateTime(incident.startedAt, i18n.language)}

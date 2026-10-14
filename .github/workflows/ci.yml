@@ -171,6 +171,10 @@ jobs:
         run: node ../scripts/check-ticket-id-leaks.mjs
       - name: Test the raw-identifier guard itself
         run: node --test ../scripts/check-ticket-id-leaks.test.mjs
+      - name: Check ticket translation keys in both locales
+        run: node ../scripts/check-ticket-translation-keys.mjs
+      - name: Test the ticket translation guard itself
+        run: node --test ../scripts/check-ticket-translation-keys.test.mjs
       - name: Check the Pulse design system (tokens, colours, radius, i18n)
         run: node ../scripts/check-pulse-design-system.mjs
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)

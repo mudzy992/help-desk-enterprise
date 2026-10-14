@@ -5095,6 +5095,8 @@
     "interceptRequired": "obavezan korak",
     "interceptEmptyTitle": "Nema relevantnih članaka",
     "interceptEmpty": "Za ovaj opis nismo pronašli članke baze znanja. Nastavite sa slanjem tiketa.",
+    "interceptUnavailableTitle": "Baza znanja trenutno nije dostupna",
+    "interceptUnavailable": "Nismo mogli provjeriti članke baze znanja. Prijedlozi nisu obavezni — nastavite sa slanjem tiketa.",
     "helpedResolvedHint": "Tiket se neće kreirati. Vaša potvrda ulazi u statistiku KB intercepta.",
     "continueSendHint": "Članci nisu pomogli — želim da tim obradi moj zahtjev.",
     "openArticle": "Otvori članak",
@@ -5472,7 +5474,8 @@
         "ticket_asset_linked": "oprema vezana uz tiket",
         "ticket_asset_unlinked": "oprema uklonjena s tiketa",
         "ticket_problem_linked": "tiket povezan s problemom",
-        "ticket_problem_unlinked": "veza s problemom uklonjena"
+        "ticket_problem_unlinked": "veza s problemom uklonjena",
+        "ticket_problem_takeover": "tiket prebačen timu radi grupnog rješavanja problema"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",

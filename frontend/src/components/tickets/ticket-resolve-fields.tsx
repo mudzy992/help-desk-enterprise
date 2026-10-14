@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { labelClassName, selectClassName, textareaClassName } from "@/components/ui/control";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketClosePolicy, TicketStatus } from "@/services/tickets-api";
 
 interface TicketResolveFieldsProperties {
@@ -30,11 +29,11 @@ export function TicketResolveFields({
 }: TicketResolveFieldsProperties) {
   const { t } = useTranslation();
   const codes = closePolicy?.allowedCodes ?? [];
-  const pendingStatusLabel = ticketText(t, ticketStatusLabelKey[pendingStatus]);
+  const pendingStatusLabel = t(ticketStatusLabelKey[pendingStatus]);
   return (
     <div className="grid max-w-lg gap-3">
       <p className="text-[12.5px] text-muted-foreground">
-        {ticketText(t, "tickets.detail.resolveHint", { status: pendingStatusLabel })}
+        {t("tickets.detail.resolveHint", { status: pendingStatusLabel })}
       </p>
       {closePolicy?.enabled === true && codes.length > 0 ? (
         <label className={labelClassName}>

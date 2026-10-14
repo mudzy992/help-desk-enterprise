@@ -28,7 +28,6 @@ import {
   type ComposerAccess,
 } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { MessageType } from "@/services/tickets-collaboration-api";
 
 type ComposerMode = "reply" | "internal";
@@ -98,6 +97,8 @@ export function TicketMessageComposer({
   const canInternal = types.includes("INTERNAL_NOTE");
   const [internal, setInternal] = useState(false);
   const [body, setBody] = useState("");
+  const bodyReference = useRef(body);
+  bodyReference.current = body;
   const [isUploading, setIsUploading] = useState(false);
   const fileInputReference = useRef<HTMLInputElement>(null);
   const textareaReference = useRef<HTMLTextAreaElement>(null);
@@ -108,6 +109,8 @@ export function TicketMessageComposer({
     readonly name: string;
   } | null>(null);
   const selectionReference = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const processedTemplateNonce = useRef<number | null>(null);
+  const processedInsertTextNonce = useRef<number | null>(null);
   const publicType = defaultMessageType(access);
   const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
 
@@ -202,59 +205,9 @@ export function TicketMessageComposer({
     textareaReference.current?.focus();
   }, []);
 
-  const [insertErrorKey, setInsertErrorKey] = useState<ReturnType<typeof mapTemplatesError> | null>(
-    null,
-  );
-  const insertNonce = templates?.insertRequest?.nonce;
-  useEffect(() => {
-    const request = templates?.insertRequest;
-    if (templates === undefined || request === undefined || request === null) return;
-    let active = true;
-    const area = textareaReference.current;
-    selectionReference.current =
-      area === null
-        ? { start: body.length, end: body.length }
-        : { start: area.selectionStart, end: area.selectionEnd };
-    renderTicketTemplate(templates.ticketId, request.templateId)
-      .then((rendered) => {
-        if (!active) return;
-        setInsertErrorKey(null);
-        onTemplateInserted({ templateId: request.templateId, name: request.name, rendered });
-      })
-      .catch((error: unknown) => {
-        if (active) setInsertErrorKey(mapTemplatesError(error));
-      });
-    return () => {
-      active = false;
-    };
-    // Fires once per request (nonce), not on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [insertNonce]);
-
-  // Paket 3.3 (P4): "insert workaround" puts the text at the cursor of a public reply.
-  const insertTextNonce = insertText?.nonce;
-  useEffect(() => {
-    if (insertText === null) return;
-    const area = textareaReference.current;
-    const start = area === null ? body.length : area.selectionStart;
-    const end = area === null ? body.length : area.selectionEnd;
-    const next = insertAtCursor(body, start, end, insertText.text);
-    setBody(next.value);
-    setInternal(false);
-    window.requestAnimationFrame(() => {
-      const target = textareaReference.current;
-      if (target !== null) {
-        target.focus();
-        target.setSelectionRange(next.caret, next.caret);
-      }
-    });
-    // Fires once per request (nonce), not on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [insertTextNonce]);
-
-  const onTemplateInserted = (inserted: InsertedTemplate) => {
+  const onTemplateInserted = useCallback((inserted: InsertedTemplate) => {
     const { start, end } = selectionReference.current;
-    const next = insertAtCursor(body, start, end, inserted.rendered.text);
+    const next = insertAtCursor(bodyReference.current, start, end, inserted.rendered.text);
     setBody(next.value);
     setUsedTemplate({ id: inserted.templateId, name: inserted.name });
     setPickerOpen(false);
@@ -265,7 +218,67 @@ export function TicketMessageComposer({
         area.setSelectionRange(next.caret, next.caret);
       }
     });
-  };
+  }, []);
+
+  const [insertErrorKey, setInsertErrorKey] = useState<ReturnType<typeof mapTemplatesError> | null>(
+    null,
+  );
+  const templateTicketId = templates?.ticketId;
+  const templateRequest = templates?.insertRequest;
+  const templateId = templateRequest?.templateId;
+  const templateName = templateRequest?.name;
+  const templateNonce = templateRequest?.nonce;
+
+  useEffect(() => {
+    if (
+      templateTicketId === undefined ||
+      templateId === undefined ||
+      templateName === undefined ||
+      templateNonce === undefined ||
+      processedTemplateNonce.current === templateNonce
+    ) {
+      return;
+    }
+    processedTemplateNonce.current = templateNonce;
+    let active = true;
+    const area = textareaReference.current;
+    selectionReference.current =
+      area === null
+        ? { start: bodyReference.current.length, end: bodyReference.current.length }
+        : { start: area.selectionStart, end: area.selectionEnd };
+    renderTicketTemplate(templateTicketId, templateId)
+      .then((rendered) => {
+        if (!active) return;
+        setInsertErrorKey(null);
+        onTemplateInserted({ templateId, name: templateName, rendered });
+      })
+      .catch((error: unknown) => {
+        if (active) setInsertErrorKey(mapTemplatesError(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, [onTemplateInserted, templateId, templateName, templateNonce, templateTicketId]);
+
+  // Paket 3.3 (P4): "insert workaround" puts the text at the cursor of a public reply.
+  useEffect(() => {
+    if (insertText === null || processedInsertTextNonce.current === insertText.nonce) return;
+    processedInsertTextNonce.current = insertText.nonce;
+    const area = textareaReference.current;
+    const currentBody = bodyReference.current;
+    const start = area === null ? currentBody.length : area.selectionStart;
+    const end = area === null ? currentBody.length : area.selectionEnd;
+    const next = insertAtCursor(currentBody, start, end, insertText.text);
+    setBody(next.value);
+    setInternal(false);
+    window.requestAnimationFrame(() => {
+      const target = textareaReference.current;
+      if (target !== null) {
+        target.focus();
+        target.setSelectionRange(next.caret, next.caret);
+      }
+    });
+  }, [insertText]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -431,7 +444,7 @@ export function TicketMessageComposer({
           ) : null}
           {sendErrorKey ? (
             <p className={`mt-2 ${errorTextClassName}`} role="alert">
-              {ticketText(t, sendErrorKey)}
+              {t(sendErrorKey)}
             </p>
           ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">

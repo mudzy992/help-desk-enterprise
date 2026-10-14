@@ -14,7 +14,6 @@ import {
   ticketRequesterName,
 } from "@/lib/tickets/ticket-names";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse } from "@/services/tickets-api";
 import type { ReactNode } from "react";
 
@@ -130,7 +129,7 @@ export function TicketDetailSidebar({
     },
     {
       label: t("tickets.detail.impactUrgency"),
-      value: `${ticketText(t, ticketSeverityLabelKey[ticket.impact])} × ${ticketText(t, ticketSeverityLabelKey[ticket.urgency])}`,
+      value: `${t(ticketSeverityLabelKey[ticket.impact])} × ${t(ticketSeverityLabelKey[ticket.urgency])}`,
       hint: ticket.priorityOverridden ? undefined : t("tickets.detail.priorityFromMatrix"),
     },
     {

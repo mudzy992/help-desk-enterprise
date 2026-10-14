@@ -12,7 +12,6 @@ import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/m
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
 import { formatDurationMinutes } from "@/lib/tickets/ticket-display";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   fromLocalInputValue,
   summarizeTimeByUser,
@@ -68,7 +67,7 @@ export function TicketTimeTrackingPanel({
     <Card className="fade-in">
       <CardHeader
         title={t("tickets.detail.timeLogged")}
-        subtitle={ticketText(t, "tickets.detail.timeTotal", {
+        subtitle={t("tickets.detail.timeTotal", {
           total: formatDurationMinutes(totalSeconds),
         })}
         actions={

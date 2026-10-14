@@ -15,7 +15,6 @@ import {
 } from "@/services/knowledge-base-api";
 import { canContinueAfterKnowledgeIntercept } from "@/lib/tickets/can-continue-after-intercept";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketText } from "@/lib/tickets/ticket-text";
 
 interface KnowledgeInterceptPanelProperties {
   readonly items: readonly KnowledgeInterceptSuggestion[];
@@ -25,6 +24,8 @@ interface KnowledgeInterceptPanelProperties {
   readonly onResetHelped: () => void;
   readonly onContinue: () => void;
   readonly isSubmitting: boolean;
+  /** Poziv bazi znanja nije uspio, pa nema prijedloga za prikaz. */
+  readonly isUnavailable: boolean;
 }
 
 export function KnowledgeInterceptPanel({
@@ -35,6 +36,7 @@ export function KnowledgeInterceptPanel({
   onResetHelped,
   onContinue,
   isSubmitting,
+  isUnavailable,
 }: KnowledgeInterceptPanelProperties) {
   const { t } = useTranslation();
   const [article, setArticle] = useState<KnowledgeArticleResponse | null>(null);
@@ -80,6 +82,10 @@ export function KnowledgeInterceptPanel({
   };
 
   const showEmpty = canContinueAfterKnowledgeIntercept(items) && items.length === 0;
+  const emptyTitle = isUnavailable
+    ? t("tickets.interceptUnavailableTitle")
+    : t("tickets.interceptEmptyTitle");
+  const emptyBody = isUnavailable ? t("tickets.interceptUnavailable") : t("tickets.interceptEmpty");
 
   return (
     <div className="grid gap-3">
@@ -92,16 +98,15 @@ export function KnowledgeInterceptPanel({
             {t("tickets.interceptIntro")}
           </p>
         </div>
-        <Badge tone="neutral" dot={false}>
-          {t("tickets.interceptRequired")}
-        </Badge>
+        {/* Ako baza znanja nije dostupna, ovaj korak nije obavezan. */}
+        {isUnavailable ? null : (
+          <Badge tone="neutral" dot={false}>
+            {t("tickets.interceptRequired")}
+          </Badge>
+        )}
       </div>
       {showEmpty ? (
-        <EmptyState
-          icon={<BookOpen size={18} />}
-          title={t("tickets.interceptEmptyTitle")}
-          body={t("tickets.interceptEmpty")}
-        />
+        <EmptyState icon={<BookOpen size={18} />} title={emptyTitle} body={emptyBody} />
       ) : (
         <ul className="fade-in grid gap-3">
           {items.map((item) => (
@@ -166,7 +171,7 @@ export function KnowledgeInterceptPanel({
           ))}
         </ul>
       )}
-      {errorKey ? <p className={errorTextClassName}>{ticketText(t, errorKey)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div className="grid gap-2.5 md:grid-cols-2">
         <button
           type="button"

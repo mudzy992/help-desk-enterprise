@@ -17,7 +17,7 @@ import {
   suggestProblemDraft,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   createProblem,
   getProblemOptions,
@@ -266,7 +266,7 @@ export function ProblemLinkDialog({
                   >
                     {ticketPriorityValues.map((value) => (
                       <option key={value} value={value}>
-                        {ticketText(t, ticketPriorityLabelKey[value])}
+                        {translateText(t, ticketPriorityLabelKey[value])}
                       </option>
                     ))}
                   </Select>

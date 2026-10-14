@@ -40,7 +40,7 @@ import {
   transitionLabelKey,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   claimProblem,
   getProblem,
@@ -195,7 +195,7 @@ export function ProblemDetailPage() {
           onClick={() => setStatusTarget(nextStep)}
           data-testid="problem-next-step"
         >
-          {ticketText(t, transitionLabelKey(problem.status, nextStep))}
+          {translateText(t, transitionLabelKey(problem.status, nextStep))}
         </Button>
       ) : null}
     </div>
@@ -217,7 +217,7 @@ export function ProblemDetailPage() {
             </Badge>
             <span>
               {t("problems.detail.priorityLine", {
-                priority: ticketText(t, ticketPriorityLabelKey[problem.priority]),
+                priority: translateText(t, ticketPriorityLabelKey[problem.priority]),
               })}
             </span>
             <span aria-hidden="true">·</span>
@@ -382,16 +382,16 @@ function ProblemOverview({ problem }: { readonly problem: ProblemDetail }) {
         <CardHeader title={t("problems.detail.classification")} />
         <dl className="divide-y divide-border/60 px-4 py-2">
           <DefinitionRow label={t("problems.fields.impact")}>
-            {ticketText(t, ticketSeverityLabelKey[problem.impact])}
+            {translateText(t, ticketSeverityLabelKey[problem.impact])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.urgency")}>
-            {ticketText(t, ticketSeverityLabelKey[problem.urgency])}
+            {translateText(t, ticketSeverityLabelKey[problem.urgency])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.priority")}>
-            {ticketText(t, ticketPriorityLabelKey[problem.priority])}
+            {translateText(t, ticketPriorityLabelKey[problem.priority])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.rootCauseCategory")}>
-            {rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)}
+            {rootCauseLabel((key) => translateText(t, key), problem.rootCauseCategory)}
           </DefinitionRow>
           <DefinitionRow label={t("problems.detail.knowledgeArticle")}>
             {problem.knowledgeArticle ? (

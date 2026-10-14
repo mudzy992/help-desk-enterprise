@@ -19,7 +19,6 @@ import {
   ticketPriorityLabelKey,
   ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   executeTicketBulk,
   previewTicketBulk,
@@ -79,9 +78,7 @@ export function TicketBulkBar({
     <div className="pop-in mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/6 px-3 py-2 shadow-card">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-surface px-2 py-0.5 text-[11.5px] font-medium text-link">
         <CheckSquare size={12} aria-hidden="true" />
-        <span className="tnum">
-          {ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}
-        </span>
+        <span className="tnum">{t("tickets.bulk.selected", { count: selectedIds.size })}</span>
       </span>
       <div className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
       <select
@@ -107,7 +104,7 @@ export function TicketBulkBar({
             .filter((status) => !isBulkCloseStatus(status))
             .map((status) => (
               <option key={status} value={status}>
-                {ticketText(t, ticketStatusLabelKey[status])}
+                {t(ticketStatusLabelKey[status])}
               </option>
             ))}
         </select>
@@ -120,7 +117,7 @@ export function TicketBulkBar({
           <option value="">{t("tickets.filters.all")}</option>
           {ticketPriorityValues.map((priority) => (
             <option key={priority} value={priority}>
-              {ticketText(t, ticketPriorityLabelKey[priority])}
+              {t(ticketPriorityLabelKey[priority])}
             </option>
           ))}
         </select>
@@ -259,6 +256,16 @@ export function TicketBulkBar({
   );
 
   async function runBulk() {
+    const selectedStatus = ticketStatusValues.find((status) => status === value);
+    const selectedPriority = ticketPriorityValues.find((priority) => priority === value);
+    if (actionType === "set_status" && selectedStatus === undefined) {
+      onError("tickets.errorValidation");
+      return;
+    }
+    if (actionType === "set_priority" && selectedPriority === undefined) {
+      onError("tickets.errorValidation");
+      return;
+    }
     setBusy(true);
     try {
       if (actionType === "broadcast_message") {
@@ -283,8 +290,8 @@ export function TicketBulkBar({
           actionType,
           assignedGroupId: actionType === "assign_group" ? value : undefined,
           assignedUserId: actionType === "assign_user" ? value : undefined,
-          status: actionType === "set_status" ? (value as never) : undefined,
-          priority: actionType === "set_priority" ? (value as never) : undefined,
+          status: actionType === "set_status" ? selectedStatus : undefined,
+          priority: actionType === "set_priority" ? selectedPriority : undefined,
           parentTicketId: actionType === "merge_into_parent" ? value : undefined,
           reason,
         });

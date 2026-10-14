@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/ui/badge";
+import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import {
   incidentStatuses,
@@ -47,6 +48,16 @@ export function incidentStatusTone(status: IncidentStatus): BadgeTone {
     default:
       return "success";
   }
+}
+
+export type IncidentStatusTranslationKey = Extract<
+  CommonTranslationKey,
+  `status.status.${IncidentStatus}`
+>;
+
+export function incidentStatusTranslationKey(status: string): IncidentStatusTranslationKey | null {
+  const knownStatus = incidentStatuses.find((candidate) => candidate === status);
+  return knownStatus === undefined ? null : `status.status.${knownStatus}`;
 }
 
 export type OverallStatus = "operational" | "partial" | "major" | "maintenance";

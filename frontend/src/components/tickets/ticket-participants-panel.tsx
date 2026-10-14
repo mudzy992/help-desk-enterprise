@@ -4,7 +4,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DetailSection } from "@/components/ui/detail-section";
 import { hintClassName, selectClassName } from "@/components/ui/control";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type {
   ParticipantRole,
   TicketParticipantResponse,
@@ -62,7 +61,7 @@ export function TicketParticipantsPanel({
     <DetailSection
       id="participants"
       title={t("tickets.detail.participants")}
-      subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
+      subtitle={t("tickets.detail.watchers", { count: watchers.length })}
       actions={
         canManage ? (
           <Button type="button" variant="ghost" size="xs" onClick={() => setAdding(true)}>

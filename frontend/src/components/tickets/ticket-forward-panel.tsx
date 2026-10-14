@@ -17,7 +17,6 @@ import {
   forwardReasonError,
   orderForwardTargets,
 } from "@/lib/tickets/ticket-forwarding";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse } from "@/services/tickets-api";
 import {
   forwardTicket,
@@ -162,7 +161,7 @@ export function TicketForwardPanel({
         ) : null}
         {loadError !== null ? (
           <p className={`mt-4 ${errorTextClassName}`} role="alert">
-            {ticketText(t, loadError)}
+            {t(loadError)}
           </p>
         ) : targets === null ? (
           <p className={`mt-4 ${hintClassName}`}>{t("tickets.forward.loading")}</p>
@@ -177,7 +176,7 @@ export function TicketForwardPanel({
                 onClick={() => setGroupId(previous.id)}
               >
                 <Undo2 size={14} />
-                {ticketText(t, "tickets.forward.handBackTo", { name: previous.name })}
+                {t("tickets.forward.handBackTo", { name: previous.name })}
               </Button>
             ) : null}
             <label className={`mt-4 ${labelClassName}`}>
@@ -191,7 +190,7 @@ export function TicketForwardPanel({
                 <option value="">{t("tickets.forward.targetGroupPlaceholder")}</option>
                 {current !== null ? (
                   <option value={current.id}>
-                    {ticketText(t, "tickets.forward.currentGroupOption", { name: current.name })}
+                    {t("tickets.forward.currentGroupOption", { name: current.name })}
                   </option>
                 ) : null}
                 {sameOu.length > 0 ? (
@@ -228,7 +227,7 @@ export function TicketForwardPanel({
             ) : null}
             {selected?.isCrossOu ? (
               <p className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] text-foreground">
-                {ticketText(t, "tickets.forward.crossOuNotice", {
+                {t("tickets.forward.crossOuNotice", {
                   unit: selected.organizationalUnitName ?? "—",
                 })}
               </p>
@@ -272,7 +271,7 @@ export function TicketForwardPanel({
               />
               {targets.requireReason && !isReassign ? (
                 <span className={hintClassName}>
-                  {ticketText(t, "tickets.forward.reasonHint", {
+                  {t("tickets.forward.reasonHint", {
                     count: targets.minReasonLength,
                   })}
                 </span>
@@ -292,7 +291,7 @@ export function TicketForwardPanel({
         )}
         {submitError !== null ? (
           <p className={`mt-3 ${errorTextClassName}`} role="alert">
-            {ticketText(t, submitError)}
+            {t(submitError)}
           </p>
         ) : null}
         <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">
