@@ -366,6 +366,15 @@ export function useTicketList() {
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
   );
+  const inboxGroupCounts = useMemo(() => {
+    const next = new Map<string, number>();
+    for (const ticket of pageItems) {
+      if (ticket.assignedGroupId !== null && ticket.status !== "UNROUTED") {
+        next.set(ticket.assignedGroupId, (next.get(ticket.assignedGroupId) ?? 0) + 1);
+      }
+    }
+    return next;
+  }, [pageItems]);
 
   const onClaim = async (ticketId: string) => {
     setClaimingId(ticketId);
@@ -435,6 +444,11 @@ export function useTicketList() {
       setPage(1);
       setSelectedIds(new Set());
     },
+    setSearch: (search: string) => {
+      setFilters((current) => ({ ...current, search }));
+      setPage(1);
+      setSelectedIds(new Set());
+    },
     setInboxTab,
     page,
     setPage,
@@ -443,6 +457,7 @@ export function useTicketList() {
     total: pageInfo.total,
     totalIsCapped: pageInfo.totalIsCapped,
     counts,
+    inboxGroupCounts,
     unroutedTickets,
     unroutedCount,
     unroutedPage,
@@ -452,6 +467,12 @@ export function useTicketList() {
     services,
     isLoading,
     errorKey,
+    // Optional subrequests are currently best-effort in this hook. Expose their
+    // error channels for the split ticket-list views introduced on master; a
+    // future transport error can populate them without changing the contract.
+    catalogErrorKey: null as TicketErrorKey | null,
+    unroutedErrorKey: null as TicketErrorKey | null,
+    membershipErrorKey: null as TicketErrorKey | null,
     setErrorKey,
     claimingId,
     selectedIds,
