@@ -1,14 +1,14 @@
 # Modul 2: Auth i sesija
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise` (HEAD `e0659824`)
-Status: zatvoren (korisnička potvrda 2026-10-14). Must-Have 1–8 su urađeni; ranija provjera u ovom izvještaju bilježi da E2E 37/39 i provjera u pregledaču nisu bili pokrenuti.
+Datum prvobitnog audita: 2026-10-13; ponovna provjera: 2026-10-14.
+Grana: `arena/91f1c029-help-desk-enterprise` (HEAD `21345f8` tokom ovog zadatka; bez commita).
+Status: A6/A9 i audit closeout ažurirani. A2 browser QA nije izvršen; A15 login split je odgođen po odluci vlasnika; MSAL `sessionStorage` rizik je eksplicitno zadržan.
 
 Provjere izvršene u sandboxu:
-- `@simplewebauthn/browser` verzija `14.0.0` (provjeren tip `platformAuthenticatorIsAvailable(): Promise<boolean>` u `node_modules`)
+- `@simplewebauthn/browser` verzija `14.0.0` (provjeren tip `platformAuthenticatorIsAvailable(): Promise<boolean>` u `node_modules`).
 - Pretraga po obrascima rizika (`as unknown as`, `as never`, `eslint-disable`, `localStorage`, `console`, `dangerouslySetInnerHTML`) u cijelom modulu. `dangerouslySetInnerHTML` nije pronađen.
-- Brojanje poziva `useSessionCapabilities()` po komponentama ljuske.
-- Nije pokrenut pregledač. Nalazi A1 i A2 zasnovani su na čitanju koda i treba ih potvrditi ručno (vidi dolje).
+- Ponovna provjera React Query capabilities, keep-alive, cookie/session store i `storage` listenera.
+- Browser QA i E2E specovi 37/39 nisu pokrenuti u ovom okruženju (vidi status i ručne A2 korake ispod).
 
 ---
 
@@ -24,14 +24,16 @@ Provjere izvršene u sandboxu:
 
 Granica modula: `require-auth.tsx` i `require-access.tsx` su pregledani u modulu 1 i ovdje se pominju samo tamo gdje utiču na sesiju. `session-controls.tsx` je pregledan u modulu 1, ali je `SessionSignInControls` ovdje.
 
-**Nisu pročitani u punom obimu** (pregledani su grep-om i djelimično): `passkey-section.tsx` (linije 1–200 i 200–356 samo grep), `mfa-section.tsx`, `mfa-code-dialog.tsx`, `password-section.tsx`, `change-password-form.tsx` (dio), `aaguid.ts`, `passkey-errors.ts`, `map-mfa-step-error.ts`, `describe-user-agent.ts`. Nalazi iz tih fajlova su označeni kao „djelimično pregledano“.
+**Pregledano u punom obimu u ponovnoj provjeri (A23):** `frontend/src/components/account-security/passkey-section.tsx` i `frontend/src/components/account-security/mfa-section.tsx`; pregled bez izmjena koda.
+
+**Nisu pročitani u punom obimu** (pregledani su grep-om i djelimično u ranijem auditu): `mfa-code-dialog.tsx`, `password-section.tsx`, `change-password-form.tsx` (dio), `aaguid.ts`, `passkey-errors.ts`, `map-mfa-step-error.ts`, `describe-user-agent.ts`. Nalazi iz tih fajlova ostaju označeni kao „djelimično pregledano“.
 
 ---
 
 ## Povezani fajlovi i folderi
 
 **Stranice**
-- `frontend/src/pages/login-page.tsx` (600 linija)
+- `frontend/src/pages/login-page.tsx` (621 linija; A6 minimalne izmjene, A15 refaktor odgođen)
 - `frontend/src/pages/auth-callback-page.tsx` (63)
 - `frontend/src/pages/account-security-page.tsx` (182)
 
@@ -73,46 +75,46 @@ Granica modula: `require-auth.tsx` i `require-access.tsx` su pregledani u modulu
 
 ## Trenutna implementacija
 
-**Model sesije.** Sesija je jedan JSON objekat u `localStorage` pod ključem `service-desk.session`: `{ accessToken, principal }` (`session-store.ts`). Čita se preko `readStoredSession()` sa keširanjem po sirovom stringu. `useSession()` ga pretplaćuje preko `useSyncExternalStore` i jedne ručne liste slušalaca (`emitSessionChange`). Ne postoji listener za `storage` event.
+**Model sesije.** Backend nosi aplikacijsku sesiju u `helpdesk_session` HttpOnly kolačiću; frontend JavaScript ne čita taj token. `session-store.ts` čuva samo `{ principal, expiresAt }` u `localStorage` pod ključem `service-desk.session` i odbacuje stare zapise koji sadrže token. `useSession()` koristi `useSyncExternalStore`; njegov `storage` listener sluša samo promjene tog ključa i propagira prijavu/odjavu između tabova.
 
-**Prijava.** `login-page.tsx` je konačni automat sa koracima: `credentials` → `change` (prisilna promjena lozinke) → `mfa` (kod ili passkey) → `enroll` (prva MFA postavka) → `codes` (rezervni kodovi) → sesija. `signIn()` vraća `SignInOutcome` koji određuje korak. Ako je korisnik na `/login` sa `pendingSignIn` u router state-u (iz header forme), korak se nastavlja tu.
+**Prijava.** `login-page.tsx` zadržava tok `credentials` → `change` (prisilna promjena lozinke) → `mfa` (TOTP ili passkey) → `enroll` (prva MFA postavka) → `codes` (rezervni kodovi) → sesija. `signIn()` vraća `SignInOutcome` koji određuje sljedeći korak. A15 login-page split je odgođen po odluci vlasnika; fajl trenutno ima približno 621 liniju.
 
-**CAPTCHA.** Turnstile se prikazuje tek kad server vrati `CAPTCHA_REQUIRED` ili `CAPTCHA_FAILED`. Skripta se učitava na zahtjev (`captcha-challenge.tsx`). Token je jednokratan, pa se widget resetuje posle svakog odbijenog pokušaja.
+**CAPTCHA.** Turnstile se pojavljuje tek nakon `CAPTCHA_REQUIRED` ili `CAPTCHA_FAILED`, a skripta se učitava na zahtjev. Zajednički `CaptchaSlot` koriste credentials i MFA/TOTP. Nedostajuća ili nevažeća konfiguracija, kao i greška pri učitavanju widgeta, prikazuje `session.captchaUnavailable` i blokira submit; čekanje ili istek tokena prikazuje `session.captchaBlocked` i također blokira submit. Odbijeni token se uklanja/resetuje. Passkey MFA ostaje zaseban način prijave bez CAPTCHA polja.
 
-**Entra (Microsoft).** `entra-redirect.ts` učitava MSAL lijeno. `startEntraSignIn` čuva konfiguraciju u `sessionStorage`, zatim radi `loginRedirect` sa `state = safeReturnPath(returnPath)`. `auth-callback-page.tsx` završava redirect, šalje ID token na `/auth/entra` i nastavlja na povratnu putanju.
+**Entra (Microsoft).** `entra-redirect.ts` lijeno učitava MSAL, čuva konfiguraciju i MSAL cache u `sessionStorage`, a `loginRedirect` koristi `state = safeReturnPath(returnPath)`. `auth-callback-page.tsx` završava redirect, šalje ID token na `/auth/entra` i nastavlja na povratnu putanju. MSAL cache u `sessionStorage` je prihvaćen follow-up rizik; nije prebačen na `memoryStorage` niti je uključen deprecated `storeAuthStateInCookie`.
 
-**Obnavljanje sesije.** `startSessionKeepAlive` (`session-keep-alive.ts`) svake minute provjerava `exp` iz JWT-a. Ako je do isteka manje od 10 minuta i korisnik je aktivan (`pointerdown`, `keydown`, `scroll`, `visibilitychange`) u zadnjih 60 minuta, poziva `/auth/refresh` i upisuje novi token. Ako je token istekao, poziva `expireSession`.
+**Obnavljanje sesije.** `startSessionKeepAlive` (`session-keep-alive.ts`) provjerava sesiju svake minute. Ako do `expiresAt` ima manje od 10 minuta, a korisnik je bio aktivan u zadnjih 60 minuta, poziva `/auth/refresh`, upisuje novi `expiresAt` i emituje promjenu sesije. Istekla sesija se prosljeđuje `expireSession`. Capabilities su React Query upit `queryKeys.currentSession(subjectId)` sa `staleTime` od pet minuta; promjena roka sesije ne mijenja ključ i ne pokreće full-page skeleton.
 
-**401 obrada.** `api.ts` poziva `unauthorizedHandler` (postavlja ga `RequireAuth`) na 401 odgovor na zahtjev koji je poslao token. Putanje za potvrdu MFA koda, passkey i rate-limit izuzete su (`confirmationPaths`), jer tamo 401 znači pogrešan kod, a ne isteklu sesiju.
+**401 obrada.** `api.ts` poziva `unauthorizedHandler` (postavlja ga `RequireAuth`) samo za 401 odgovora na zahtjev koji je poslao aplikacijsku sesiju; potvrde MFA/passkey i druge izuzete putanje ostaju odvojene. Mrežna greška ili 5xx pri provjeri capabilities zadržava lokalnu sesiju i prikazuje `SessionCheckError` s retry.
 
-**Odjava.** `useSession().signOut()` poziva `/auth/logout` (opozivanje na serveru, bez čekanja), briše lokalnu sesiju i pokušava Entra single logout.
+**Odjava.** `useSession().signOut()` poziva `/auth/logout` bez čekanja na odgovor, briše lokalni principal/rok i pokušava Entra single logout.
 
-**Capabilities.** `useSessionCapabilities()` na svaki poziv radi `getCurrentSession()` (`/auth/session`) i čuva rezultat u `useState`. Poziva se u 38 fajlova.
+**Profil.** `account-security-page.tsx` učitava pregled preko React Query (`queryKeys.accountSecurity`) i prikazuje skeleton/retry. Lista sesija je lokalno stanje; pojedinačna odjava traži potvrdu. Banner isteka lozinke koristi isti keš.
 
-**Profil.** `account-security-page.tsx` čita `/auth/security` preko react-query (`queryKeys.accountSecurity`), a listu sesija preko `useState`/`useEffect`. Passkey sekcija, dijalozi za potvrdu identiteta i banner za istek lozinke dijele isti keš.
-
-**Passkey.** `passkey-ceremony.ts` omotava `@simplewebauthn/browser` (`startRegistration`, `startAuthentication`) i vraća rezultat `ok` / `cancelled` / `unsupported` / `failed`. Server odlučuje o svemu bitnom (challenge, origin, counter).
+**Passkey.** `passkey-ceremony.ts` omotava `@simplewebauthn/browser` (`startRegistration`, `startAuthentication`) i vraća `ok` / `cancelled` / `unsupported` / `failed`. Server odlučuje o challengeu, originu i counteru.
 
 ---
 
-## Realno/željeno stanje
+## Realno/željeno stanje (ponovo provjereno)
 
-| Oblast | Željeno | Realno |
+| Oblast | Željeno | Trenutno stanje u kodu |
 |---|---|---|
-| Greška pri učitavanju sesije | Mrežna greška ili 5xx ne odjavljuje korisnika | Svaka greška `/auth/session` postavlja `session = null`, pa `RequireAuth` poziva `signOut()`, a `signOut()` poziva `/auth/logout` (A1) |
-| Obnavljanje tokena | Korisnik na stranici ostaje na stranici | Svako obnavljanje mijenja `accessToken`, što pokreće ponovo učitavanje capabilities i prikaz skeletona (A2) |
-| Izvor istine za sesiju | Jedan zahtjev, jedan keš | 38 nezavisnih `useState` instanci, najmanje 7 zahtjeva pri svakom učitavanju osnovne ljuske (A3) |
-| Više tabova | Odjava u jednom tabu važi u svim | Ostali tabovi nastavljaju dok se ne desi sljedeći render ili 401 (A4) |
-| Passkey dostupnost | Passkey se nudi samo kad uređaj može da ga koristi | `browserCanUsePasskeys()` uvijek vraća tačno kad je WebAuthn podržan (A5) |
-| CAPTCHA | Greška je vidljiva korisniku | Ako server traži CAPTCHA, a widget se ne može prikazati, dugme radi i nema poruke (A6) |
-| Čuvanje tokena | Token nije dostupan JavaScriptu | Token je u `localStorage`, MSAL cache u `sessionStorage` (A8) |
-| Tipovi WebAuthn odgovora | Validirani ili bar tipizirani | Dvostruki `as unknown as` cast bez validacije (A10) |
-| Testovi kritičnih tokova | Testovi za sesiju, 401, prijavu i odjavu | Testovi za logiku pomoćnih funkcija postoje, ali ne za hookove ni stranice (A9) |
-| Loaderi i greške na profilu | Skeleton, poruka i „pokušaj ponovo“ | Nema skeletona dok se učitava pregled, greška nema dugme za ponovni pokušaj |
+| Greška pri učitavanju sesije | Mrežna greška ili 5xx ne odjavljuje korisnika | Samo 401 završava sesiju; druga greška zadržava je i prikazuje `SessionCheckError` s retry (A1). |
+| Obnavljanje sesije | Korisnik ostaje na stranici, a nesnimljeni unos se čuva | Capabilities su vezane za `subjectId`, ne za rok/token; refresh ne vraća pending skeleton (A2). Browser QA još nije izvršen. |
+| Izvor capabilities | Jedan upit/keš za trenutnog korisnika | React Query ključ `queryKeys.currentSession(subjectId)` i `staleTime` od pet minuta (A3). |
+| Više tabova | Promjena sesije se odmah propagira | `storage` listener filtrira `service-desk.session` (A4). |
+| Passkey dostupnost | Ponuditi samo kad platforma može izvršiti ceremoniju | Async hook čeka `platformAuthenticatorIsAvailable()` (A5). |
+| CAPTCHA | Razlikovati nedostupnu provjeru od čekanja tokena | `captchaUnavailable` prikazuje pogrešnu/nedostupnu konfiguraciju ili grešku widgeta; `captchaBlocked` znači čekanje tokena. Submit je blokiran u oba obavezna stanja (A6). |
+| Čuvanje tokena | Aplikacijski session token nije dostupan JavaScriptu | `helpdesk_session` je HttpOnly; localStorage sadrži samo `principal`/`expiresAt`. MSAL cache za Entra ostaje u `sessionStorage` (A8). |
+| Tipovi WebAuthn odgovora | Tipizirani odgovori bez casts u runtime putanjama | Auth/passkey kod koristi tipove `@simplewebauthn/browser`; preostali `as unknown as` u ovom području su samo testni DOM stubovi (A10). |
+| Kritični auth testovi | Callback, lokalna prijava, CAPTCHA i istek lozinke imaju regression testove | Ovaj zadatak dodaje LoginPage, Entra callback i password-expiry testove; ostali testovi ostaju raspoređeni po auth/session modulima (A9). |
+| Loaderi profila | Skeleton, greška i ponovni pokušaj | `AccountSecurityPage` prikazuje `PanelSkeleton` i retry dugme (A16). |
 
 ---
 
-## Gap analiza
+## Početna gap analiza (baseline prije ranijih ispravki)
+
+> Stavke u ovom odjeljku bilježe prvobitne nalaze, ne trenutno stanje. Za ponovnu provjeru koda koristiti „Trenutna implementacija“, „Realno/željeno stanje (ponovo provjereno)“ i status ovog zadatka.
 
 **Kritični i visoki gapovi**
 
@@ -207,7 +209,7 @@ Refaktor se ne radi bez potvrde obima.
 
 ---
 
-## Otkriveni bugovi i neusklađenosti
+## Početni registar bugova i neusklađenosti (baseline nalaza)
 
 | # | Ozbiljnost | Lokacija | Opis | Predložena popravka |
 |---|---|---|---|---|
@@ -225,7 +227,7 @@ Refaktor se ne radi bez potvrde obima.
 | A12 | Niska | `components/auth/mfa-enrollment.tsx:50` | `eslint-disable` za pravilo koje nije konfigurisano. StrictMode duplira `loadSecret()`. | Ukloniti komentar, dodati guard za duplo pokretanje efekta. |
 | A13 | Niska | `lib/auth/entra-redirect.ts:28-36`, `pages/login-page.tsx:154-160` | `safeReturnPath` ne odbija `/\evil.com`. `location.state.from` se koristi bez provjere. | Odbijati i backslash, koristiti isti validator u oba mjesta. |
 | A14 | Niska | `pages/login-page.tsx:140-141` | Ako `/auth/providers` padne, prikazuje se lokalna forma (fail-open). | Potvrditi namjeru vlasnika. |
-| A15 | Niska | `pages/login-page.tsx` (600), `passkey-section.tsx` (356), `mfa-code-form.tsx` | Velike komponente, ugnježdeni ternari, ponovljeni naslovi. | Tabela koraka i poruka grešaka (`Record<Code, key>`), razdvojiti dijaloge. |
+| A15 | Niska | `pages/login-page.tsx` (621), `passkey-section.tsx` (356), `mfa-code-form.tsx` | Velike komponente, ugnježdeni ternari, ponovljeni naslovi. | Login-page split je odgođen za poseban refaktor po odluci vlasnika. |
 | A16 | Niska | `pages/account-security-page.tsx` | Nema skeletona dok se učitava pregled. Greška nema dugme za ponovni pokušaj. | Skeleton i „pokušaj ponovo“. |
 | A17 | Niska | `lib/auth/mfa-method.ts:21-38` | Email u ključu localStorage. | Koristiti `userId` ili hash. |
 | A18 | Niska | `components/account-security/password-expiry-banner.tsx:10-14` | Komentar obećava podsjetnik za MFA koji nije implementiran. | Ispraviti komentar ili implementirati. |
@@ -233,8 +235,8 @@ Refaktor se ne radi bez potvrde obima.
 | A20 | Niska | `services/api.ts:26-44` | Ručno održavane liste putanja za 401. | Konstante na jednom mjestu, testirati. |
 | A21 | Niska | `components/account-security/sessions-list.tsx` | Pojedinačna odjava sesije bez potvrde. | Konzistentno sa „odjavi ostale“ ili eksplicitno obrazložiti. |
 | A22 | Niska | `components/auth/recovery-codes-panel.tsx:49-52` | Kopiranje tiho ne radi na HTTP-u. | Poruka o grešci i fallback (select + copy). |
-| A23 | Za provjeru | `passkey-section.tsx`, `mfa-section.tsx` | Nisu pročitani u punom obimu. | Pregled u sljedećem prolazu. |
-| A24 | Za provjeru | `index.html` / CSP | Da li CSP dozvoljava `challenges.cloudflare.com`. | Provjeriti u konfiguraciji servera. |
+| A23 | Pregledano 2026-10-14 | `passkey-section.tsx`, `mfa-section.tsx` | Oba fajla pročitana su u punom obimu; nije pronađen konkretan bug. | Bez izmjene koda. |
+| A24 | Napomena (van obima) | `frontend/nginx.conf` / CSP | Statički frontend nema CSP zaglavlje; API Helmet ne postavlja CSP za HTML frontend. | Samo zabilježiti; infra/CSP promjene nisu dio ovog zadatka. |
 | A25 | Srednja (backend, nalaz iz provjere MFA-a) | `backend/src/modules/authentication/authentication.service.ts:455-456`, `security/account-security-rules.ts:37-46`, `security/mfa.service.ts:221-233`, `account-security.controller.ts:253-258` | Za SUPER_ADMIN (MFA `required`) isključivanje TOTP-a dozvoljeno je kad postoji passkey (`otherFactorRemaining`). Ali pri sljedećoj prijavi `enrolled` se računa samo po TOTP-u, pa `flowFor` vraća `enroll`: korisnik se šalje na ponovno TOTP podešavanje, a passkey se ne nudi kao faktor. Enrollment ekran (`mfa-enrollment.tsx`) nema passkey opciju. Test pokriva samo slučaj „nema TOTP-a i nema passkey-a“ (`authentication.service.spec.ts`, „forces enrollment…“). Prijava passkey-em radi samo u fazi `verify` (kad je TOTP aktivan). | **Odluka vlasnika (potvrđeno):** opcija (a). TOTP ostaje obavezan faktor za SUPER_ADMIN (i za ostale uloge kojima je MFA `required`). Passkey je dodatni način za svakodnevnu prijavu uz TOTP. Rezervni kodovi su sigurnosna mreža za slučaj gubitka telefona. Isključivanje TOTP-a dok je MFA `required` treba biti zabranjeno na backendu. Izmjena koda se ne radi u ovom koraku; čeka se odobrenje obima. Dodati test za scenarij „passkey postoji, TOTP isključen“. |
 
 ---
@@ -248,75 +250,70 @@ Refaktor se ne radi bez potvrde obima.
 ## Must-Have (za ovaj modul)
 
 1. **A1:** mrežna greška ili 5xx na `/auth/session` ne smije odjaviti korisnika niti pozvati `/auth/logout`.
-2. **A2:** obnavljanje tokena ne smije demontirati stranicu. Prvo potvrditi u pregledaču.
-3. **A3:** jedan izvor za capabilities (react-query), jedan zahtjev po učitavanju.
-4. **A9:** testovi za A1 i A2 prije promjene (regresija).
-5. **A5:** ispraviti provjeru passkey dostupnosti (async).
-6. **A7:** ukloniti `SessionSignInControls`.
-7. **A8:** tim treba da donese odluku o čuvanju tokena (httpOnly cookie) i da je dokumentuje.
-8. **A25:** zabraniti isključivanje TOTP-a dok je MFA `required` (odluka vlasnika: TOTP ostaje obavezan, passkey je dodatni način prijave). Dodati test za scenarij „passkey postoji, TOTP isključen“. Izmjena koda čeka odobrenje obima.
+2. **A2:** obnavljanje sesije ne smije demontirati stranicu; kod je vezan za `subjectId`, a ručna browser provjera se prati odvojeno i ne označava se kao prošla bez izvršenja.
+3. **A3:** jedan izvor za capabilities (React Query), jedan keširani upit po korisniku.
+4. **A9:** testovi za A1/A2 i kritične auth tokove postoje; ovaj zadatak dodaje callback, lokalni login, CAPTCHA i banner regresije.
+5. **A5:** passkey dostupnost provjerava se asinhrono.
+6. **A7:** `SessionSignInControls` je uklonjen.
+7. **A8:** aplikacijska sesija koristi HttpOnly cookie; Entra/MSAL cache ostaje u `sessionStorage` kao eksplicitan follow-up rizik.
+8. **A25:** obavezni TOTP se ne može isključiti; backend zaštita i test već postoje, bez izmjene u ovom zadatku.
 
 ---
 
-## Status ispravki (val 6.1.2)
+## Status ispravki (ovaj zadatak — 2026-10-14)
 
-Stanje na dan 2026-10-14. Zatvaranje modula potvrdio je korisnik; svaka stavka je označena kao urađena, djelimično urađena, prihvaćen rizik ili pregledana.
+Tabela ispod bilježi samo rad urađen ili ponovo potvrđen u ovom zadatku; ranije zatvorene A-stavke nisu označene kao novi rad.
 
-| # | Status | Šta je urađeno |
+| # | Status u ovom zadatku | Rezultat |
 |---|---|---|
-| A1 | Urađeno | Mrežna greška ili 5xx na `/auth/session` ne odjavljuje korisnika. `session === null` prikazuje `SessionCheckError` sa „Pokušaj ponovo“. Testovi: `require-auth-session.spec.tsx`. |
-| A2 | Urađeno (bez provjere u pregledaču) | Capabilities su na `useQuery` (`staleTime` 5 min). Obnavljanje tokena više ne pokreće `isLoading`, pa se stranica ne demontira. |
-| A3 | Urađeno | Jedan izvor: `queryKeys.currentSession(subjectId)`. Test: `use-session-capabilities.spec.tsx`. |
-| A4 | Urađeno | `storage` listener u `use-session.ts` filtrira `sessionStorageKey`. Test: `use-session-sync.spec.tsx`. |
-| A5 | Urađeno | `platformPasskeyAvailable()` je async, hook `usePlatformPasskeyAvailable`. Odluka vlasnika: samo platform autentikator. |
-| A6 | Urađeno | `session.captchaBlocked` se prikazuje iznad dugmeta i u MFA koraku. `declare global var turnstile` umjesto `as unknown`. |
-| A7 | Urađeno | `session-sign-in-controls.tsx` obrisan (`git rm`). |
-| A8 | Urađeno (kod, bez provjere u pregledaču) | Vidi „Odluka o tokenu (A8)“ ispod. |
-| A9 | Urađeno | Novi testovi: sesija (sync, capabilities, require-auth), passkey, MFA kod, enrollment, redirect, recovery kodovi, API download. |
-| A10 | Urađeno | Opcije i odgovori WebAuthn-a su tipizirani (`@simplewebauthn/browser`). Uklonjeni `as unknown as`. |
-| A11 | Djelimično | `passkeyDeviceKindKey` je template literal; uklonjen `as never` u `passkey-section.tsx`. Ostali `as never` (drugi moduli) ostaju za module 10 i 13. |
-| A12 | Urađeno | Uklonjen `eslint-disable`. `pendingSecret` ref sprječava dupli `loadSecret` u StrictMode. QR u zasebnom efektu. |
-| A13 | Urađeno | `safeReturnPath` odbija obrnutu kosu crtu, kontrolne znakove i `/login`. Test: `entra-redirect.spec.ts`. |
-| A14 | Prihvaćen rizik | Login ostaje fail-open kad `/auth/providers` padne (odluka vlasnika). Lokalna forma se prikazuje; backend i dalje provjerava sve. |
-| A15 | Djelimično | `Record` mape za poruke grešaka (`mfa-code-form`, `mfa-enrollment`); dijalog za preimenovanje izdvojen u `passkey-rename-dialog.tsx`. `pages/login-page.tsx` (600 linija) nije razdvojen. |
-| A16 | Urađeno | `PanelSkeleton` dok se učitava; greška ima „Pokušaj ponovo“. |
-| A17 | Urađeno | Ključ u localStorage je FNV-1a hash e-maila. Stari ključevi ostaju (nema migracije). |
-| A18 | Urađeno | Komentar u `password-expiry-banner.tsx` ispravljen. |
-| A19 | Urađeno | Jedna `sendRequest` funkcija za JSON i preuzimanja. Test: `api-download.spec.ts`. |
-| A20 | Zatvoreno | Liste putanja su konstante u `api.ts`, pokrivene `api-unauthorized.spec.ts`. |
-| A21 | Urađeno | Pojedinačna odjava sesije ide kroz `ConfirmDialog`. |
-| A22 | Urađeno | `copy()` ima fallback (selekcija kodova, poruka `auth.mfa.copyFailed`). Test: `recovery-codes-panel.spec.tsx`. |
-| A23 | Pregledano | `mfa-section.tsx` bez problema. `passkey-section.tsx`: greška preimenovanja bila je iza `aria-hidden` dijaloga, sada je u dijalogu. |
-| A24 | Provjereno | Nema CSP-a u `nginx.conf` ni u repu. Turnstile nije blokiran. CSP je zaseban zadatak. |
-| A25 | Urađeno | `MFA_REQUIRED_CANNOT_DISABLE` se mapira na poruku (`map-mfa-step-error.ts`). Backend test: `mfa-disable.spec.ts`. |
+| A2 | QA koraci dodani; browser QA nije izvršen | U lokalnom okruženju nema Dockera ni `e2e/.env`; rezultat se ne označava kao prošao. Vidi „Ručna provjera A2“. |
+| A6 | Urađeno | Zajednički `CaptchaSlot` prikazuje `captchaUnavailable` kod pogrešne/nedostupne konfiguracije ili widgeta; `captchaBlocked` je samo čekanje tokena. Credentials i MFA/TOTP submit su blokirani u oba obavezna stanja. BS/EN tekstovi su usklađeni. |
+| A8 | Rizik eksplicitno dokumentovan; cache nije mijenjan | Aplikacijski token ostaje u HttpOnly cookieju; MSAL cache ostaje u `sessionStorage` po odluci vlasnika. `memoryStorage` se ne uvodi uz deprecated `storeAuthStateInCookie`. |
+| A9 | Testovi dodani i prošli | Novi testovi pokrivaju lokalni submit, A14 fail-open, CAPTCHA s tokenom i bez site keya (credentials/MFA), uspješan/neuspješan Entra callback i upozorenje isteka lozinke. Auth/session Vitest skup: 23 fajla, 100 testova, svi prošli. |
+| A14 | Prihvaćen rizik; bez izmjene ponašanja | Lokalna forma se i dalje prikazuje ako `/auth/providers` ne uspije; postojeće ponašanje je obuhvaćeno testom. |
+| A15 | Odgođeno po odluci vlasnika | Nema login-page refaktora u ovom zadatku. `login-page.tsx` je oko 621 liniju; split ostaje poseban follow-up. |
+| A23 | Pregledano, bez izmjena koda | `passkey-section.tsx` i `mfa-section.tsx` pročitani su u cijelosti; nije pronađen konkretan bug. |
+| A24 | Napomena; infra izmjena van obima | `frontend/nginx.conf` ne postavlja CSP za statički frontend. Backend Helmet zaglavlje važi za API, ne za frontend HTML; CSP ostaje zaseban infra zadatak. |
+| E2E cookie | Fallback zadržan | `api-client.ts` ima uslovni TODO s audit referencom. Ukloniti fallback tek kad puni E2E run na deploymentu koji postavlja cookie prođe specove 37 i 39. |
 
-### Odluka o tokenu (A8)
+### Odluka o tokenu i MSAL-u (A8)
 
-Access token više ne ide u `localStorage` niti u JS.
+- Aplikacijski session token **nije u `localStorage`**: backend ga šalje u `helpdesk_session` HttpOnly cookieju (`Secure; SameSite=Strict; Path=/`); frontend čuva samo `principal` i `expiresAt`. Stari browser zapisi s bearer tokenom brišu se pri čitanju.
+- MSAL Entra cache i redirect konfiguracija ostaju u `sessionStorage`. To je prihvaćen rizik/follow-up, ne vraćanje aplikacijskog tokena u JavaScript storage.
+- Provjera instaliranog `@azure/msal-browser` 4.30.0: `memoryStorage` redirect bez dodatne postavke se odbija; MSAL traži `storeAuthStateInCookie: true`. Ta postavka je deprecated i sprema privremeni auth state/nonce u cookies. Po odluci vlasnika se ne uključuje; ako tim želi smanjiti MSAL exposure, prvo treba izabrati podržan MSAL 4.x obrazac i zasebno provjeriti Entra redirect u browseru.
+- CI E2E koristi vanjski GitHub Actions `E2E_API_URL`, a ne stack pokrenut iz ovog checkouta. PR smoke lista je `01,02,03,15,22`; ne pokreće 37/39. Push na `master` također ne pokreće E2E. Stanje deploymenta iza `E2E_API_URL` nakon najnovijeg mergea nije potvrđeno ovim okruženjem, pa bearer fallback ostaje. Uklanjanje blokira potvrda da je upravo taj deployment prešao na cookie session i puni E2E run prošao 37/39.
 
-- Backend postavlja kolačić `helpdesk_session` (`HttpOnly; Secure; SameSite=Strict; Path=/`, `Max-Age` = trajanje sesije) na odgovorima prijave, Entra prijave, MFA verifikacije, passkey verifikacije, završetka enrollmenta, promjene lozinke i `refresh`. Tijelo odgovora više ne sadrži `accessToken`.
-- Guard prihvata kolačić ili `Authorization: Bearer`. Bearer ima prednost. Za kolačić na nesigurnim metodama (POST/PUT/PATCH/DELETE) `Origin` mora biti u `CORS_ORIGIN` listi (CSRF odbrana bez tokena).
-- CORS: `credentials: true`, lista origin-a ostaje eksplicitna (bez `*`). Socket.IO: `withCredentials` u frontendu, a kolačić se prihvata samo iz dozvoljenog `Origin`-a (zaštita od CSWSH).
-- Logout briše kolačić i opoziva sesiju.
-- Frontend čuva samo `principal` i `expiresAt` (`session-store.ts`). Stari zapisi sa tokenom se brišu pri čitanju.
-- Ekstenzija: zaseban endpoint `POST /auth/extension/login` vraća bearer token u tijelu i ne postavlja kolačić. Ekstenzija ga čuva u svom storage-u, a SPA ga ne vidi.
-- E2E klijent (`e2e/helpers/api-client.ts`) čita `Set-Cookie`, šalje `Cookie` i `Origin` kao preglednik.
-- Nije urađeno: MSAL (Entra) cache u `sessionStorage` je zasebna tema i ostaje za kasnije.
-- Provjera: backend `tsc` i jest (58 suite, 381 testova za auth, websocket i CORS) prolaze. Frontend `tsc`, vitest (219 fajlova, 937 testova), eslint (0 grešaka), build i guard-skripte prolaze. **E2E specovi 37 i 39 nisu pokrenuti** (zahtijevaju puni stack). **Provjera u pregledaču nije urađena.**
-- CI na PR-u #9: backend, frontend, k6 smoke i PR gate E2E (smoke 01, 02, 03, 15, 22) prolaze. E2E gađa deployovani stack iz `master`-a, koji još vraća token u tijelu i ne šalje kolačić, pa `e2e/helpers/api-client.ts` koristi privremeni bearer fallback. Uklanja se nakon deploya ove grane; specovi 37 i 39 (kolačić) se tada provjeravaju u punom noćnom runu.
+### Ručna provjera A2 (5–10 minuta)
+
+**Status 2026-10-14: nije izvršena.** Lokalni Docker nije instaliran, nema `e2e/.env`, a browser QA ne može se tvrditi iz testova ili read-only pregleda.
+
+1. Pokrenuti lokalni frontend **i** backend s podrškom za cookie sesiju; prijaviti se kao testni korisnik.
+2. Otvoriti nesačuvanu tiket/komentar ili drugu formu, unijeti jedinstveni tekst (npr. `A2-unsaved-<datum>`) i ne snimati.
+3. Simulirati keep-alive refresh. U DevTools konzoli postaviti istom lokalnom session zapisu `expiresAt` na `Date.now() + 3 * 60_000` (ključ `service-desk.session`), označiti tab kao aktivan i sačekati sljedeći keep-alive tick; provjeriti u Network tabu da `/auth/refresh` uspije. Primjer: `const k = "service-desk.session"; const s = JSON.parse(localStorage.getItem(k) ?? "null"); if (!s) throw new Error("Nema lokalne sesije"); s.expiresAt = Date.now() + 3 * 60_000; localStorage.setItem(k, JSON.stringify(s));`. Ne dirati niti zapisivati cookie/token.
+4. Ako se API refresh ne može simulirati, u Vite dev konzoli emitovati isti session-refresh događaj preko `import('/src/lib/session/use-session.ts').then(({ notifySessionRefreshed }) => notifySessionRefreshed())`; ovaj rezervni korak provjerava reakciju UI-a, ali nije zamjena za API/keep-alive provjeru.
+5. Potvrditi da je uneseni tekst i dalje u formi i da nije prikazan full-page skeleton niti došlo do redirecta. Ponoviti jednom nakon pravog `/auth/refresh` odgovora ako je dostupan.
+6. Zabilježiti datum, browser i **prošlo/nije prošlo** tek nakon stvarnog izvršenja.
 
 ### Must-Have status
 
 | # | Status |
 |---|---|
-| 1. A1 | Urađeno |
-| 2. A2 | Urađeno. Provjera u pregledaču **nije urađena** (vidjeti gore). |
-| 3. A3 | Urađeno |
-| 4. A9 | Urađeno |
-| 5. A5 | Urađeno |
-| 6. A7 | Urađeno |
-| 7. A8 | Urađeno (httpOnly kolačić, odluka dokumentovana gore) |
-| 8. A25 | Urađeno |
+| 1. A1 | Urađeno ranije; nije mijenjano u ovom zadatku. |
+| 2. A2 | Kod je vezan za `subjectId`; ručna browser QA **NIJE IZVRŠENA** 2026-10-14 u ovom okruženju (Docker nedostupan, `e2e/.env` odsutan). |
+| 3. A3 | Urađeno ranije; nije mijenjano u ovom zadatku. |
+| 4. A9 | Dodani ciljani testovi za tražene login/callback/CAPTCHA/banner tokove. |
+| 5. A5 | Urađeno ranije; nije mijenjano u ovom zadatku. |
+| 6. A7 | Urađeno ranije; nije mijenjano u ovom zadatku. |
+| 7. A8 | HttpOnly cookie za app session; MSAL `sessionStorage` rizik ostaje eksplicitno prihvaćen/follow-up. |
+| 8. A25 | Backend guard i test postoje; nije mijenjano u ovom zadatku. |
 
-Ocjena pri auditu ostaje **5/10**. Po potrebi se može ponovo ocijeniti nakon naknadne provjere u pregledaču i e2e testova.
+### Provjere u ovom zadatku
 
+- Frontend TypeScript: `corepack pnpm exec tsc -b` — prošao.
+- Auth/session Vitest: 23 fajla, 100 testova — svi prošli.
+- ESLint diranih frontend source/spec fajlova — prošao.
+- `node scripts/check-pulse-design-system.mjs` — prošao; BS/EN i18n paritet potvrđen.
+- `git diff --check` — prošao.
+- E2E 37/39 i backend provjere nisu pokrenuti: backend nije mijenjan; lokalni Docker nije dostupan, `e2e/.env` nedostaje, a CI koristi vanjski deployment.
+
+**Ocjena 5/10** je ocjena prvobitnog audita i nije ponovo izračunata u ovom zadatku.

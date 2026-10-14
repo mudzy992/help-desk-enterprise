@@ -101,9 +101,10 @@ export class ApiClient {
     if (this.sessionCookie !== null) {
       return this.sessionCookie;
     }
-    // Prelazni režim: stack koji je trenutno deployovan iz master-a još vraća token u tijelu
-    // i ne šalje kolačić. PR gate testira taj stack, pa se koristi bearer do deploya grane.
-    // Ukloniti kad E2E stack izdaje kolačić (specovi 37 i 39 provjeravaju kolačić).
+    // Privremeni fallback za CI koji koristi vanjski E2E_API_URL; iz ovog checkouta nije moguće
+    // potvrditi da li je taj deployment već prešao na HttpOnly kolačić.
+    // TODO(audit/frontend/02-auth-i-sesija.md#A8): ukloniti tek kad puni E2E run na deploymentu
+    // koji izdaje kolačić prođe specove 37 i 39. PR smoke podskup ih ne pokreće.
     if (typeof body.accessToken === 'string' && body.accessToken.length > 0) {
       this.setBearerToken(body.accessToken);
       return body.accessToken;
