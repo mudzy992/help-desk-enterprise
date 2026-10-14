@@ -11,11 +11,12 @@ import {
   ShieldCheck,
   CalendarClock,
 } from "lucide-react";
-import { Route, Routes } from "react-router-dom";
+import { createBrowserRouter, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
 import { lazyPage } from "@/app/lazy-page";
 import { RequireAccess } from "@/components/layout/require-access";
 import { RequireAuth } from "@/components/layout/require-auth";
+import { RouteErrorElement } from "@/components/layout/route-error-boundary";
 import { ApplicationShell } from "@/layouts/application-shell";
 import {
   canOpenAdminArea,
@@ -354,3 +355,12 @@ export function AppRouter() {
     </Routes>
   );
 }
+
+export const appRouter = createBrowserRouter([
+  {
+    id: "app-root",
+    path: "/*",
+    element: <AppRouter />,
+    errorElement: <RouteErrorElement />,
+  },
+]);
