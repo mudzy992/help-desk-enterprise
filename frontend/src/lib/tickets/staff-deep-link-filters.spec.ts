@@ -13,7 +13,6 @@ describe("staffDeepLinkFilters", () => {
       unroutedOverdue: true,
       inboxTab: undefined,
       status: "",
-      statusesFromDeepLink: [],
       priority: "",
       overdue: false,
       atRisk: false,
@@ -31,7 +30,6 @@ describe("staffDeepLinkFilters", () => {
       unroutedOverdue: false,
       inboxTab: undefined,
       status: "",
-      statusesFromDeepLink: [],
       priority: "",
       overdue: false,
       atRisk: false,
@@ -57,7 +55,7 @@ describe("staffDeepLinkFilters", () => {
     const url = new URLSearchParams("view=all&status=UNROUTED");
     const result = staffDeepLinkFilters(url, true);
     expect(result.status).toBe("UNROUTED");
-    expect(result.statusesFromDeepLink).toEqual([]);
+    expect(result.statusesFromDeepLink).toBeUndefined();
   });
 
   it("puts repeated status params into statusesFromDeepLink (server-side filter)", () => {
@@ -81,7 +79,7 @@ describe("staffDeepLinkFilters", () => {
     const url = new URLSearchParams("status=FAKE&priority=URGENT");
     const result = staffDeepLinkFilters(url, true);
     expect(result.status).toBe("");
-    expect(result.statusesFromDeepLink).toEqual([]);
+    expect(result.statusesFromDeepLink).toBeUndefined();
     expect(result.priority).toBe("");
   });
 });

@@ -1,3 +1,4 @@
+import type { Prisma } from '../../../generated/prisma/client';
 import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { withTicketWhereClause } from '../../tickets/list/build-ticket-list-where';

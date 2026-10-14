@@ -49,7 +49,6 @@ const emptyFilters = (
   view,
   search: "",
   status: "",
-  statusesFromDeepLink: [],
   priority: "",
   serviceId: "",
   assignedUserId: "",
