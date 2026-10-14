@@ -141,6 +141,7 @@
       "copyRequestId": "Copy request ID {{requestId}}",
       "copied": "Request ID copied"
     },
+    "retry": "Try again",
     "save": "Save"
   },
   "notifications": {
@@ -203,6 +204,7 @@
     "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
   },
   "admin": {
+    "readOnlyBanner": "This administration module is read-only. Changes are disabled for your role.",
     "title": "System administration",
     "subtitle": "Identity, organizational structure, settings, and operations. Every change goes through a change log with a reason; read-only mode is available by role.",
     "tabs": {
@@ -217,6 +219,7 @@
     "opsEmptyTitle": "Job queue and audit export come with Phase 7/8",
     "ops": {
       "organizationalUnit": "Organizational unit (audit scope)",
+      "organizationalUnitLoadError": "The organizational-unit tree could not be loaded.",
       "needOrganizationalUnit": "Select an organizational unit before exporting.",
       "auditLogTitle": "Audit log",
       "auditLogBody": "Audit records (newest first) within the selected organizational unit scope.",
@@ -2674,6 +2677,7 @@
       "smtpMissingWarning": "SMTP is off or incomplete — sending and tests are not possible.",
       "open": "Edit templates",
       "editorTitle": "E-mail templates",
+      "unsavedConfirm": "You have unsaved changes. Do you want to leave the editor?",
       "editorDescription": "Only texts change; the layout is shared and tested in Outlook. Only differences from the defaults are stored, with a change reason.",
       "event": "Event",
       "language": "Language",
@@ -4503,6 +4507,12 @@
     "validate": "Validate (dry-run)",
     "activate": "Activate",
     "activateReason": "Activation reason",
+    "confirmActivateTitle": "Confirm activation",
+    "confirmRollbackTitle": "Confirm rollback",
+    "confirmChangeDescription": "Version {{version}} will change system-wide configuration. Review the shadow summary and confirm your intent.",
+    "shadowSampleSize": "Sample",
+    "shadowRoutingMismatches": "Routing changes",
+    "shadowSlaMismatches": "SLA rule changes",
     "rollback": "Rollback",
     "rollbackReason": "Rollback reason",
     "validationOkTitle": "Validation passed",

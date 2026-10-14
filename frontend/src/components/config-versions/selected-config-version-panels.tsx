@@ -58,9 +58,11 @@ export function SelectedConfigVersionPanels({
         />
         <div className="grid gap-4 px-4 py-3.5">
           <ConfigVersionActions
+            key={selected.id}
             version={selected}
             canWrite={canWrite}
             isBusy={isBusy}
+            shadowResult={shadowResult}
             onValidate={onValidate}
             onActivate={onActivate}
             onRollback={onRollback}

@@ -1,7 +1,7 @@
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 /**
- * Paket 5.3.4 (D4/D5): inside a category, settings that belong together are
+ * inside a category, settings that belong together are
  * shown together — "Veza", "Autentikacija", "Pošiljalac" for SMTP. The group id
  * is declared on the definition and resolves to a title through
  * `settings.registry.groups.<categoryId>.<groupId>`; a definition without a

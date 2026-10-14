@@ -4,7 +4,7 @@ import { loadInstallAddons } from "@/services/install-addons-api";
 import { loadSettingsAddons } from "@/services/settings-api";
 
 /**
- * Paket 5.3.4 (ispravka 2026-10-08): the settings tab loads the addon state from
+ * the settings tab loads the addon state from
  * the authenticated `/settings/addons` route. The public `/install/addons` route
  * answers with the catalogue defaults once the installation is completed (5.2
  * finding M1 #5) — which is exactly why a switch went back to "off" after a save

@@ -1,6 +1,7 @@
 import { Palette, RotateCcw, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBeforeUnload, useBlocker } from "react-router-dom";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,19 +87,40 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
     return result;
   }, [content, overview.fields, overview.placeholders]);
   const hasUnknown = Object.keys(unknownByField).length > 0;
+  const blocker = useBlocker(dirty);
+  useBeforeUnload(
+    (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    },
+    { capture: true },
+  );
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    if (window.confirm(t("settings.emailTemplates.unsavedConfirm"))) blocker.proceed();
+    else blocker.reset();
+  }, [blocker, t]);
 
   // Live preview (debounced) through the server renderer — exactly what recipients get.
   useEffect(() => {
     if (content === undefined || hasUnknown) return undefined;
+    let cancelled = false;
     const handle = window.setTimeout(() => {
       previewEmailTemplate({ key, locale, content, confidential: isTicketKey && confidential })
         .then((rendered) => {
+          if (cancelled) return;
           setPreview(rendered);
           setPreviewError(null);
         })
-        .catch((error: unknown) => setPreviewError(describeError(error)));
+        .catch((error: unknown) => {
+          if (!cancelled) setPreviewError(describeError(error));
+        });
     }, 350);
-    return () => window.clearTimeout(handle);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
   }, [key, locale, content, confidential, isTicketKey, hasUnknown]);
 
   const update = (field: EmailTemplateField, value: string) => {

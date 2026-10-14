@@ -33,7 +33,7 @@ import {
 import { listUsersSummaryPage, type UserSummary } from "@/services/users-api";
 
 /**
- * Paket 5.4.0-d (M6): the security journal card. It reads the SuperAdmin-only
+ * the security journal card. It reads the SuperAdmin-only
  * `/security/audit-log` view, offers an exact `auth.*` action filter and a
  * person filter (the picker searches people and shows display names — the raw
  * user id is never the visible label), pages with `Učitaj još`, and renders
@@ -65,6 +65,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
   const [requestId, setRequestId] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const searchSequence = useRef(0);
+  const loadSequence = useRef(0);
 
   const authActions = useMemo(
     () => knownAuditActions.filter((known) => known.startsWith("auth.")),
@@ -79,6 +80,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
         setIsLoading(false);
         return;
       }
+      const sequence = cursor === null ? ++loadSequence.current : loadSequence.current;
       if (cursor === null) setIsLoading(true);
       setErrorKey(null);
       setRequestId(null);
@@ -89,16 +91,20 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
           take: securityAuditLogPageTake,
           cursor,
         });
+        if (sequence !== loadSequence.current) return;
         setRows((current) => (cursor === null ? result.items : [...current, ...result.items]));
         setNextCursor(result.nextCursor);
       } catch (error) {
+        if (sequence !== loadSequence.current) return;
         setRows((current) => (cursor === null ? [] : current));
         setNextCursor(null);
         setErrorKey(mapAdminOpsError(error));
         setRequestId(readApiRequestId(error));
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (sequence === loadSequence.current) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [action, canView, userId],

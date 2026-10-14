@@ -18,7 +18,7 @@ export function resolveRegistryDescription(
 }
 
 /**
- * Paket 5.3.4 (D4): the human line for a setting. The dictionary slot has
+ * the human line for a setting. The dictionary slot has
  * carried the Bosnian/English sentence since paket 4.1, so a definition only
  * moves it by declaring `titleKey`.
  */
@@ -38,7 +38,7 @@ export function resolveRegistryTitle(
 }
 
 /**
- * Paket 5.3.3: the extra note in the detail modal ("what it does, when to turn
+ * the extra note in the detail modal ("what it does, when to turn
  * it on, what happens next"). Only settings that need one carry it — a missing
  * help slot is not an error and returns `null`.
  */

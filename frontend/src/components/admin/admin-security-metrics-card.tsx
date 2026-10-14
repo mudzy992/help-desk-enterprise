@@ -16,7 +16,7 @@ import {
 } from "@/services/security-api";
 
 /**
- * Paket 5.4.0-e (M2) + 5.4.0-e.2 (UI polish): „Nadzor → Promašene prijave / 429".
+ * „Nadzor → Promašene prijave / 429".
  *
  * The counters are aggregate, per-minute buckets without any PII, so the card
  * can show the whole last hour as it is. Blocked sign-ins (429) and the
@@ -64,7 +64,7 @@ export function AdminSecurityMetricsCard() {
       (captchaSkipped?.total ?? 0) >
     0;
 
-  // Paket 5.4.2 (stavka 4): the audit webhook export has its own endpoint; a failure
+  // the audit webhook export has its own endpoint; a failure
   // there must not hide the counters above, so it has a separate query and error.
   const webhookQuery = useQuery({
     queryKey: ["admin", "security", "metrics", "audit-webhook"],
@@ -177,7 +177,7 @@ export function AdminSecurityMetricsCard() {
 }
 
 /**
- * Paket 5.4.2 (stavka 4): a full-width row under the tiles. The state word is the
+ * a full-width row under the tiles. The state word is the
  * part an operator needs first; the counters and the last error code follow it.
  */
 function AuditWebhookTile({

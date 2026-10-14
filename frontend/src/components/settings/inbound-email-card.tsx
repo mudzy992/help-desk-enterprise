@@ -2,7 +2,7 @@ import { Inbox, PlugZap, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Warning } from "@/components/settings/email-templates-card";
+import { Warning } from "@/components/ui/warning";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -25,7 +25,7 @@ const statusTones: Readonly<Record<InboundEmailLogEntry["status"], BadgeTone>> =
   FAILED: "warning",
 };
 
-/** Paket 2.3 (R13): inbound mailbox health, connection test and the recent log (no message bodies). */
+/** inbound mailbox health, connection test and the recent log (no message bodies). */
 export function InboundEmailCard() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<InboundEmailStatus | null>(null);

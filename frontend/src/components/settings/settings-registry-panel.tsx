@@ -25,7 +25,7 @@ interface SettingsRegistryPanelProperties {
 }
 
 /**
- * Paket 5.3.4 (D4): 451 settings are unusable as a flat list, so the panel is a
+ * 451 settings are unusable as a flat list, so the panel is a
  * searchable set of category cards. Search matches the human title, the raw key
  * and the backend description, and it never hides a key that exists — an empty
  * result says so instead (with the query still visible).

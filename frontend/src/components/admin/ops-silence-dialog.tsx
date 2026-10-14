@@ -17,7 +17,7 @@ import {
 } from "@/services/ops-health-api";
 
 /**
- * Paket 2.7 (§5.4): silence alarm messages for planned work. Checks and the
+ * silence alarm messages for planned work. Checks and the
  * history keep running; only notifications stop. Always audited with a reason.
  */
 export function OpsSilenceDialog({

@@ -35,7 +35,7 @@ interface BrandingSettingsCardProperties {
 }
 
 /**
- * Paket 4.1 (§3a): the client's product name, tagline, organisation, logo and
+ * the client's product name, tagline, organisation, logo and
  * support contacts, with a live preview. One reason covers all changed keys.
  */
 export function BrandingSettingsCard({

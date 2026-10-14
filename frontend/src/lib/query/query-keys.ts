@@ -57,6 +57,7 @@ export const queryKeys = {
   groupInbox: ["tickets", "inbox"] as const,
   groupInboxPage: (query: unknown) => ["tickets", "inbox", query] as const,
   offeredServices: ["catalog", "offered-services"] as const,
+  settingsRegistry: ["settings", "registry"] as const,
   createTicketCatalog: ["catalog", "create-ticket"] as const,
   slaSummary: ["sla", "summary"] as const,
   notifications: ["notifications"] as const,

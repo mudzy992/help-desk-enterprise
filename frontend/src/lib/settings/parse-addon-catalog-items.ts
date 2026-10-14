@@ -1,7 +1,7 @@
 import type { InstallAddonItem, InstallAddonsStatus } from "@/services/install-addons-api";
 
 /**
- * Paket 5.3.4 (ispravka 2026-10-08): true when the payload carries the addon
+ * true when the payload carries the addon
  * envelope (`{ addons: { items: […] } }`). The settings card uses this to tell
  * "the server answered nothing usable" from "the catalogue is genuinely empty",
  * so a contract mismatch shows an error instead of silently hiding the card.

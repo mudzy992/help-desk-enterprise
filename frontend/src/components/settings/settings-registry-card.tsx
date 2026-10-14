@@ -28,7 +28,7 @@ interface SettingsRegistryCardProperties {
 const previewRows = 4;
 
 /**
- * Paket 5.3.4 (D4/D5): a category card is a summary — the icon, the human
+ * a category card is a summary — the icon, the human
  * category title, the number of keys and the first few settings with their
  * values. "Prikaži sve" opens the whole category; every row opens one detail
  * dialog. The old drawer listed raw keys with a description in a small print,

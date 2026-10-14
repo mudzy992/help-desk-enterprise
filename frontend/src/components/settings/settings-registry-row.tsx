@@ -11,7 +11,7 @@ interface SettingsRegistryRowProperties {
 }
 
 /**
- * Paket 5.3.4 (D4/D5): the list shows the human sentence as the title with the
+ * the list shows the human sentence as the title with the
  * raw key underneath — an administrator scans "Uključi dostavu obavještenja…"
  * and only drops to the key when comparing with a log or a ticket. The row is a
  * button: the whole row opens the detail dialog, which keeps the touch target

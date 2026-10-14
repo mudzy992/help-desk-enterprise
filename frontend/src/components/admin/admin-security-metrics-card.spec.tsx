@@ -8,11 +8,11 @@ import type {
 } from "@/services/security-api";
 
 /*
-  Paket 5.4.0-e: the Nadzor security card renders the loading state first — the
+  the Nadzor security card renders the loading state first — the
   spec pins that the title and the refresh affordance exist before any data
   arrives, so an empty or slow Redis never leaves a blank surface.
 
-  Paket 5.4.0-e.2 (review of the live surface): the four counters used to be
+  the four counters used to be
   badges in a wrapping row, and a badge never breaks its line — a long label
   pushed the row out of the card. They are four tiles in a grid now, so this
   spec also guards against the badges ever coming back.
@@ -91,7 +91,7 @@ describe("AdminSecurityMetricsCard", () => {
 
   it("shows the counters, captcha included, as grid tiles with their numbers", () => {
     const html = renderWith(snapshotWithEvents);
-    // Paket 5.4.2 (stavka 2): the two captcha counters are tiles too, in three columns on wide screens.
+    // the two captcha counters are tiles too, in three columns on wide screens.
     expect(html).toContain('data-testid="admin-security-metric-captcha-failed"');
     expect(html).toContain('data-testid="admin-security-metric-captcha-skipped"');
     expect(html).toContain("admin.ops.securityMetrics.captchaFailed");
@@ -137,7 +137,7 @@ describe("AdminSecurityMetricsCard", () => {
     expect(html).toContain("truncate");
   });
 
-  // Paket 5.4.2 (stavka 4): the export tile is a full-width row with its own state word.
+  // the export tile is a full-width row with its own state word.
   it("shows the audit webhook export state as a full-width row under the tiles", () => {
     const ok: SecurityAuditWebhookStatus = {
       state: "ok",

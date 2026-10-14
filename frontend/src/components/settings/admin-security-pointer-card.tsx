@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 /**
- * Paket 5.4.0-e.2 (UI polish): Postavke no longer host a second copy of the
+ * Postavke no longer host a second copy of the
  * security administration cards. The SuperAdmin gets one row that says where
  * they are and takes them there (the same pattern the Nadzor tab uses for the
  * Teams administration), so „Postavke → Sigurnost" never looks half-empty.

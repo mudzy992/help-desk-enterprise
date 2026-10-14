@@ -17,7 +17,14 @@ const readOnlySettingKeys = {
   enabled: "private.readOnlyMode.enabled",
   modulesCsv: "private.readOnlyMode.modulesCsv",
   activeModulesCsv: "private.readOnlyMode.activeModulesCsv",
+  bypassRolesCsv: "private.readOnlyMode.bypassRolesCsv",
 } as const;
+
+export type AdminReadOnlyViewer = {
+  readonly isSuperAdmin: boolean;
+  readonly isLocalOnly: boolean;
+  readonly roleKeys: readonly string[];
+};
 
 function parseCsvTokens(value: string): readonly string[] {
   return value
@@ -29,8 +36,20 @@ function parseCsvTokens(value: string): readonly string[] {
 export function isAdminModuleReadOnly(
   entries: readonly SettingRegistryEntry[],
   moduleKey: AdminReadOnlyModuleKey,
+  viewer?: AdminReadOnlyViewer | null,
 ): boolean {
   if (!readBooleanSetting(entries, readOnlySettingKeys.enabled, true)) {
+    return false;
+  }
+  const bypassRoles = new Set(
+    parseCsvTokens(readStringSetting(entries, readOnlySettingKeys.bypassRolesCsv)),
+  );
+  const canBypass =
+    viewer !== undefined &&
+    viewer !== null &&
+    ((viewer.isSuperAdmin && viewer.isLocalOnly && bypassRoles.has("SUPER_ADMIN")) ||
+      viewer.roleKeys.some((role) => role !== "SUPER_ADMIN" && bypassRoles.has(role)));
+  if (canBypass) {
     return false;
   }
   const lockable = new Set(

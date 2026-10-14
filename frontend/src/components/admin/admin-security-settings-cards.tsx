@@ -2,6 +2,7 @@ import { Fingerprint, Send, ShieldAlert, ShieldCheck, Timer } from "lucide-react
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
+import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
 import { AdminSecurityRateLimitsCard } from "@/components/admin/security-rate-limits-card";
 import { SettingsCategoryDialog } from "@/components/settings/settings-category-dialog";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -15,6 +16,10 @@ import {
   readBooleanSetting,
   readStringSetting,
 } from "@/lib/settings/read-setting-entry";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
 import type { SettingsSaver } from "@/lib/settings/use-settings-registry";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
 import { ApiError } from "@/services/api";
@@ -22,7 +27,7 @@ import { bulkPasswordReset, identityStepUpPurpose } from "@/services/security-ap
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 /**
- * Paket 5.4.0-e (M2/M4) / 5.4.0-e.2 (UI polish): the administration block of the
+ * the administration block of the
  * „Sigurnost" tab — the place a SuperAdmin looks for security, right next to the
  * journal. It keeps the product's editing pattern:
  *
@@ -33,23 +38,25 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
  *   Postavke (reason, dependency gate, audit) — never inline in the card;
  * * „Prisilna promjena svih lokalnih lozinki" is a confirmed batch action.
  */
-export function AdminSecuritySettingsCards({ isSuperAdmin }: { readonly isSuperAdmin: boolean }) {
+export function AdminSecuritySettingsCards() {
   const registry = useSettingsRegistry();
-  const canWrite = isSuperAdmin;
+  const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.admin);
+  const canWrite = !readOnly.isLocked;
 
   return (
     <div className="flex flex-col gap-4">
+      <AdminModuleReadOnlyBanner visible={readOnly.isLocked} />
       {registry.errorKey !== null && registry.entries.length === 0 ? (
         <ApiErrorText messageKey={registry.errorKey} />
       ) : null}
-      {isSuperAdmin ? <AdminSecurityRateLimitsCard /> : null}
+      {canWrite ? <AdminSecurityRateLimitsCard /> : null}
       <AdminSecurityPolicyCards
         entries={registry.entries}
         canWrite={canWrite}
         pendingKey={registry.pendingKey}
         onSave={registry.save}
       />
-      {isSuperAdmin ? <AdminBulkPasswordResetCard /> : null}
+      {canWrite ? <AdminBulkPasswordResetCard /> : null}
     </div>
   );
 }

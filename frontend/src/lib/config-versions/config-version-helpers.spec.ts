@@ -52,6 +52,7 @@ describe("config version helpers", () => {
     expect(canRunConfigVersionShadow("SHADOW")).toBe(true);
     expect(canRunConfigVersionShadow("ACTIVE")).toBe(false);
     expect(canRunConfigVersionShadow("ROLLED_BACK")).toBe(false);
+    expect(canActivateConfigVersion("DRAFT")).toBe(false);
     expect(canActivateConfigVersion("VALIDATED")).toBe(true);
     expect(canActivateConfigVersion("ACTIVE")).toBe(false);
     expect(canRollbackConfigVersion("ACTIVE")).toBe(true);

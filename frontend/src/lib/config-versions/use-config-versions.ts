@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   mapConfigVersionError,
   type ConfigVersionErrorKey,
@@ -9,6 +9,8 @@ import { listConfigVersions, type ConfigVersion } from "@/services/config-versio
 export function useConfigVersions(enabled: boolean) {
   const [versions, setVersions] = useState<readonly ConfigVersion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasLoaded = useRef(false);
   const [errorKey, setErrorKey] = useState<ConfigVersionErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -20,7 +22,8 @@ export function useConfigVersions(enabled: boolean) {
       setRequestId(null);
       return;
     }
-    setIsLoading(true);
+    if (hasLoaded.current) setIsRefreshing(true);
+    else setIsLoading(true);
     setErrorKey(null);
     setRequestId(null);
     try {
@@ -30,7 +33,9 @@ export function useConfigVersions(enabled: boolean) {
       setErrorKey(mapConfigVersionError(error));
       setRequestId(readApiRequestId(error));
     } finally {
+      hasLoaded.current = true;
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [enabled]);
 
@@ -38,5 +43,14 @@ export function useConfigVersions(enabled: boolean) {
     void load();
   }, [load]);
 
-  return { versions, isLoading, errorKey, requestId, setErrorKey, setRequestId, load };
+  return {
+    versions,
+    isLoading,
+    isRefreshing,
+    errorKey,
+    requestId,
+    setErrorKey,
+    setRequestId,
+    load,
+  };
 }

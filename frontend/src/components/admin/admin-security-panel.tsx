@@ -7,7 +7,7 @@ import { AdminSecuritySettingsCards } from "@/components/admin/admin-security-se
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
 
 /**
- * Paket 5.4.0-d (M6) + 5.4.0-e (M2/M4) + 5.4.0-e.2 (UI polish): the „Sigurnost"
+ * the „Sigurnost"
  * admin view. It is a SuperAdmin surface: the tab is only offered to a
  * SuperAdmin, and a deep link by an ordinary ADMIN renders the safe forbidden
  * state — the card never issues a request for them.
@@ -48,7 +48,7 @@ export function AdminSecurityPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminSecuritySettingsCards isSuperAdmin />
+      <AdminSecuritySettingsCards />
       <AdminSecurityAuditCard canView />
     </div>
   );

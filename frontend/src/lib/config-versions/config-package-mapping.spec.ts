@@ -37,7 +37,7 @@ const report = (overrides: Partial<ConfigPackageImportReport> = {}): ConfigPacka
   ...overrides,
 });
 
-describe("config package mapping (Paket 2.9 K4)", () => {
+describe("config package mapping", () => {
   it("lists unresolved items with blocking ones first", () => {
     expect(unresolvedConfigPackageItems(report()).map((item) => item.key)).toEqual([
       "IT",

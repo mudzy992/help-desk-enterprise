@@ -4,7 +4,7 @@ import { AdminSecurityPanel } from "@/components/admin/admin-security-panel";
 import { AdminSecurityAuditCard } from "@/components/admin/admin-security-audit-card";
 
 /*
-  Paket 5.4.0-d (M6) + 5.4.0-e.2: the two render states that must never leak
+  the two render states that must never leak
   data, plus the ordering of the tab. Both components are rendered without a
   browser, with the translator stubbed to its key so the assertions stay about
   wiring, not wording. The settings block has its own spec; here it is stubbed so
