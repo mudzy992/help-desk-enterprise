@@ -303,7 +303,7 @@ Access token više ne ide u `localStorage` niti u JS.
 - E2E klijent (`e2e/helpers/api-client.ts`) čita `Set-Cookie`, šalje `Cookie` i `Origin` kao preglednik.
 - Nije urađeno: MSAL (Entra) cache u `sessionStorage` je zasebna tema i ostaje za kasnije.
 - Provjera: backend `tsc` i jest (58 suite, 381 testova za auth, websocket i CORS) prolaze. Frontend `tsc`, vitest (219 fajlova, 937 testova), eslint (0 grešaka), build i guard-skripte prolaze. **E2E specovi 37 i 39 nisu pokrenuti** (zahtijevaju puni stack). **Provjera u pregledaču nije urađena.**
-- CI na PR-u #9: backend, frontend i k6 smoke prolaze. PR gate E2E (smoke 01, 02, 03, 15, 22) pada dok deployovani stack iz `master`-a još vraća token u tijelu i ne šalje kolačić. Privremeni bearer fallback u `e2e/helpers/api-client.ts` to pokriva; uklanja se nakon deploya ove grane.
+- CI na PR-u #9: backend, frontend, k6 smoke i PR gate E2E (smoke 01, 02, 03, 15, 22) prolaze. E2E gađa deployovani stack iz `master`-a, koji još vraća token u tijelu i ne šalje kolačić, pa `e2e/helpers/api-client.ts` koristi privremeni bearer fallback. Uklanja se nakon deploya ove grane; specovi 37 i 39 (kolačić) se tada provjeravaju u punom noćnom runu.
 
 ### Must-Have status
 
