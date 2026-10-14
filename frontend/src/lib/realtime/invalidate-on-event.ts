@@ -27,20 +27,26 @@ export function queryKeysForTicketEvent(input: {
   switch (input.eventName) {
     case ticketSocketEvents.ticketUpdated:
       return ticketId === null
-        ? [queryKeys.ticketLists, QUERY_KEYS_DASHBOARD_SUMMARY, queryKeys.slaSummary]
+        ? [
+            queryKeys.ticketLists,
+            queryKeys.ticketCountsPrefix,
+            QUERY_KEYS_DASHBOARD_SUMMARY,
+            queryKeys.slaSummary,
+          ]
         : [
             queryKeys.ticketLists,
             queryKeys.ticket(ticketId),
+            queryKeys.ticketCountsPrefix,
             QUERY_KEYS_DASHBOARD_SUMMARY,
             queryKeys.slaSummary,
           ];
     case ticketSocketEvents.messageCreated:
       return ticketId === null
-        ? [queryKeys.ticketLists]
-        : [queryKeys.ticketLists, queryKeys.ticket(ticketId)];
+        ? [queryKeys.ticketLists, queryKeys.ticketCountsPrefix]
+        : [queryKeys.ticketLists, queryKeys.ticket(ticketId), queryKeys.ticketCountsPrefix];
     case ticketSocketEvents.groupFeedChanged:
-      // Only "something changed in your group" — pull the lists, not the detail.
-      return ticketId === null ? [] : [queryKeys.ticketLists];
+      // The group room signals ticket changes, so inbox counts are stale too.
+      return ticketId === null ? [] : [queryKeys.ticketLists, queryKeys.ticketCountsPrefix];
     case ticketSocketEvents.notificationCreated:
     case ticketSocketEvents.notificationRead:
       return [queryKeys.notifications];

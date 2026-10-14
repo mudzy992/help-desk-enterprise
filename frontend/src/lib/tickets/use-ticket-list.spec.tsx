@@ -24,13 +24,22 @@ vi.mock("@/lib/session/use-session", () => ({
   useSession: () => ({ session: null, currentUserId: "user-1" }),
 }));
 
+const capabilityState = vi.hoisted(() => ({ isLoading: false, isStaff: false }));
+
 vi.mock("@/lib/session/use-session-capabilities", () => ({
   useSessionCapabilities: () => ({
-    session: null,
-    isLoading: false,
+    session: capabilityState.isStaff
+      ? {
+          isSuperAdmin: false,
+          roleKeys: ["AGENT"],
+          permissionKeys: [],
+          principal: { subjectId: "agent-1" },
+        }
+      : null,
+    isLoading: capabilityState.isLoading,
     retry: () => undefined,
     hasPermission: () => false,
-    hasRole: () => false,
+    hasRole: (role: string) => capabilityState.isStaff && role === "AGENT",
   }),
 }));
 
@@ -105,13 +114,14 @@ type DeferredPage = { readonly resolve: (page: TicketPage) => void };
 
 describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
   let queryClient: ReturnType<typeof createHelpdeskQueryClient>;
+  let initialEntry = "/tickets?view=all";
   /** Zahtjevi liste ostaju otvoreni dok ih test ne razriješi, jedan po jedan. */
   let pendingPages: DeferredPage[];
 
   function wrapper({ children }: { readonly children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/tickets?view=all"]}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <ToastProvider>{children}</ToastProvider>
         </MemoryRouter>
       </QueryClientProvider>
@@ -120,6 +130,9 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
 
   beforeEach(() => {
     pendingPages = [];
+    initialEntry = "/tickets?view=all";
+    capabilityState.isLoading = false;
+    capabilityState.isStaff = false;
     queryClient = createHelpdeskQueryClient();
     vi.mocked(listOfferedServices).mockReset();
     vi.mocked(listOfferedServices).mockResolvedValue([]);
@@ -157,6 +170,28 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
 
     expect(result.current.pageItems.map((item) => item.id)).toEqual(["nova"]);
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it("waits for staff capabilities so the first request uses URL deep-link filters", async () => {
+    initialEntry = "/tickets?view=all&personal=mentionedMe&forwarded=toMyGroups";
+    capabilityState.isLoading = true;
+    const { rerender } = renderHook(() => useTicketList(), { wrapper });
+    expect(listTicketsPage).not.toHaveBeenCalled();
+
+    capabilityState.isStaff = true;
+    capabilityState.isLoading = false;
+    await act(async () => rerender());
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(1));
+    expect(listTicketsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forwarded: "toMyGroups",
+        mentionedMe: true,
+        hideMerged: true,
+      }),
+    );
+    await act(async () => {
+      pendingPages[0]?.resolve(ticketPage([]));
+    });
   });
 
   it("reads the server again on a silent reload instead of the fresh cache", async () => {

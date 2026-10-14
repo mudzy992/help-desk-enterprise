@@ -61,7 +61,7 @@ function InboxTabButton({
   readonly active: boolean;
   readonly onClick: () => void;
   readonly label: string;
-  readonly count: number;
+  readonly count: number | null;
   readonly tone: "neutral" | "danger";
   readonly icon: ReactNode;
 }) {
@@ -81,18 +81,20 @@ function InboxTabButton({
     >
       {icon}
       {label}
-      <span
-        className={cn(
-          "tnum rounded-full border px-1.5 text-[10.5px] leading-[15px]",
-          active && tone === "danger"
-            ? "border-danger/40 bg-danger/15"
-            : active
-              ? "border-primary/35 bg-primary/15"
-              : "border-border bg-elevated/70",
-        )}
-      >
-        {count}
-      </span>
+      {count === null ? null : (
+        <span
+          className={cn(
+            "tnum rounded-full border px-1.5 text-[10.5px] leading-[15px]",
+            active && tone === "danger"
+              ? "border-danger/40 bg-danger/15"
+              : active
+                ? "border-primary/35 bg-primary/15"
+                : "border-border bg-elevated/70",
+          )}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }

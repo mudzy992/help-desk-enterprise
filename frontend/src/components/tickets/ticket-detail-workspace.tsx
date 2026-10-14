@@ -11,6 +11,7 @@ import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-
 import { TicketDetailConversation } from "@/components/tickets/ticket-detail-conversation";
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
 import { UnderlineTabs } from "@/components/ui/tabs";
+import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type {
@@ -33,6 +34,9 @@ interface TicketDetailWorkspaceProperties {
   readonly requesterName: string;
   readonly history: readonly TicketHistoryEntry[];
   readonly publicActivity: readonly TicketPublicActivityEntry[];
+  readonly historyErrorKey?: TicketErrorKey | null;
+  readonly publicActivityErrorKey?: TicketErrorKey | null;
+  readonly onRetryContext?: () => void;
   readonly isStaff: boolean;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
@@ -99,55 +103,78 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
         items={tabItems}
       />
       {tab === "chat" ? (
-        <TicketDetailConversation
-          ticket={props.ticket}
-          messages={props.messages}
-          currentUserId={props.currentUserId}
-          authorNames={props.authorNames}
-          requesterName={props.requesterName}
-          access={props.access}
-          isSending={props.isSending}
-          sendErrorKey={props.sendErrorKey}
-          canWaitForUser={props.canWaitForUser}
-          onSend={props.onSend}
-          onWaitForUser={props.onWaitForUser}
-          onUpload={props.canUpload ? props.onUpload : undefined}
-          composerExtra={props.composerExtra}
-          composerTemplates={props.composerTemplates}
-          composerInsertText={props.composerInsertText}
-          composerCollaboration={props.composerCollaboration}
-          canWriteKnowledge={props.canWriteKnowledge}
-        />
+        <PanelErrorBoundary
+          panelName="ticket-conversation"
+          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+        >
+          <TicketDetailConversation
+            ticket={props.ticket}
+            messages={props.messages}
+            currentUserId={props.currentUserId}
+            authorNames={props.authorNames}
+            requesterName={props.requesterName}
+            access={props.access}
+            isSending={props.isSending}
+            sendErrorKey={props.sendErrorKey}
+            canWaitForUser={props.canWaitForUser}
+            onSend={props.onSend}
+            onWaitForUser={props.onWaitForUser}
+            onUpload={props.canUpload ? props.onUpload : undefined}
+            composerExtra={props.composerExtra}
+            composerTemplates={props.composerTemplates}
+            composerInsertText={props.composerInsertText}
+            composerCollaboration={props.composerCollaboration}
+            canWriteKnowledge={props.canWriteKnowledge}
+          />
+        </PanelErrorBoundary>
       ) : null}
       {tab === "activity" ? (
-        <TicketActivityList
-          messages={props.messages}
-          history={props.history}
-          publicEntries={props.publicActivity}
-          isStaff={props.isStaff}
-          authorNames={props.authorNames}
-        />
+        <PanelErrorBoundary
+          panelName="ticket-activity"
+          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+        >
+          <TicketActivityList
+            messages={props.messages}
+            history={props.history}
+            publicEntries={props.publicActivity}
+            isStaff={props.isStaff}
+            authorNames={props.authorNames}
+            errorKey={props.isStaff ? props.historyErrorKey : props.publicActivityErrorKey}
+            onRetry={props.onRetryContext}
+          />
+        </PanelErrorBoundary>
       ) : null}
       {tab === "time" ? (
-        <TicketTimeTrackingPanel
-          items={props.timeLogs}
-          visible={props.timeVisible}
-          currentUserId={props.currentUserId}
-          userNames={props.userNames}
-          canTrack={props.canTrackTime}
-          controls={props.timeTracking}
-        />
+        <PanelErrorBoundary
+          panelName="ticket-time"
+          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+        >
+          <TicketTimeTrackingPanel
+            items={props.timeLogs}
+            visible={props.timeVisible}
+            currentUserId={props.currentUserId}
+            ticketNumber={props.ticket.ticketNumber}
+            userNames={props.userNames}
+            canTrack={props.canTrackTime}
+            controls={props.timeTracking}
+          />
+        </PanelErrorBoundary>
       ) : null}
       {tab === "files" ? (
-        <TicketAttachmentsPanel
-          items={props.attachments}
-          visible={props.attachmentsVisible}
-          purgedAt={props.attachmentsPurgedAt ?? null}
-          canUpload={props.canUpload}
-          onUpload={props.onUpload}
-          onDownload={props.onDownload}
-          onDelete={props.onDelete}
-        />
+        <PanelErrorBoundary
+          panelName="ticket-attachments"
+          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+        >
+          <TicketAttachmentsPanel
+            items={props.attachments}
+            visible={props.attachmentsVisible}
+            purgedAt={props.attachmentsPurgedAt ?? null}
+            canUpload={props.canUpload}
+            onUpload={props.onUpload}
+            onDownload={props.onDownload}
+            onDelete={props.onDelete}
+          />
+        </PanelErrorBoundary>
       ) : null}
     </div>
   );

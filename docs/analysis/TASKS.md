@@ -121,9 +121,10 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 - [x] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup
 - [x] Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit
-- [~] IN PROGRESS E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
+- [x] Frontend audit closeout (6.1 policy + modules 03, 01, 02; zatvoren 2026-10-14)
+- [~] IN PROGRESS E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config; E2E specs 37/39 i cookie-enabled deployment su još otvoreni)
 - [ ] RBAC test suite u CI
 
 ---
 
-**Trenutni status:** Faza 9 — E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
+**Trenutni status:** Faza 9 — frontend audit closeout (plan 6.1 policy + modules 03, 01, 02) zatvoren 2026-10-14; aktivna je E2E kritična provjera. E2E cookie-enabled deployment/specs 37/39 i A2 browser QA nisu izvršeni/proglašeni prošlim. Nema commita; samo po izričitom zahtjevu vlasnika.

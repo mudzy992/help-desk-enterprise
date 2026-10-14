@@ -4976,8 +4976,14 @@
     "listSubtitle": "{{open}} otvorenih · {{risk}} pod SLA rizikom · sortirano po ažuriranju",
     "listShown": "Prikazano {{shown}} od {{total}} tiketa",
     "listShownCapped": "Prikazano {{shown}} od {{total}}+ tiketa",
-    "emptyFilterTitle": "Nema tiketa za zadati filter",
-    "emptyFilterHint": "Pokušajte proširiti uslove pretrage ili očistiti prioritetni filter.",
+    "emptyListTitle": "Trenutno nema tiketa",
+    "emptyListHint": "Ovaj prikaz trenutno nema tiketa.",
+    "panelError": {
+      "title": "Ovaj panel nije dostupan.",
+      "body": "Ostatak tiketa i dalje radi. Pokušajte ponovo."
+    },
+    "emptyFilterTitle": "Nema tiketa za zadate uslove",
+    "emptyFilterHint": "Proširite pretragu ili promijenite filtere.",
     "clearFilters": "Očisti filtere",
     "columns": {
       "ticket": "Tiket",

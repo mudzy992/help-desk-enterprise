@@ -16,6 +16,8 @@ export default defineConfig({
     assetsDir: "static",
   },
   server: {
+    host: "0.0.0.0",
     port: 5173,
+    allowedHosts: [".e2b.app"],
   },
 });

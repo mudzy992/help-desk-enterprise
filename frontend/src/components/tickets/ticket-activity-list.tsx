@@ -2,6 +2,8 @@ import { Check, Clock3, GitBranch, ShieldAlert, Timer } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader } from "@/components/ui/card";
+import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   buildActivityTimeline,
@@ -45,6 +47,8 @@ interface TicketActivityListProperties {
   readonly publicEntries: readonly TicketPublicActivityEntry[];
   readonly isStaff: boolean;
   readonly authorNames: ReadonlyMap<string, string>;
+  readonly errorKey?: TicketErrorKey | null;
+  readonly onRetry?: () => void;
 }
 
 export function TicketActivityList({
@@ -53,6 +57,8 @@ export function TicketActivityList({
   publicEntries,
   isStaff,
   authorNames,
+  errorKey = null,
+  onRetry,
 }: TicketActivityListProperties) {
   const { t, i18n } = useTranslation();
   const items = useMemo(
@@ -72,7 +78,11 @@ export function TicketActivityList({
         title={t("tickets.activity.title")}
         subtitle={t(isStaff ? "tickets.activity.subtitle" : "tickets.activity.subtitlePublic")}
       />
-      {items.length === 0 ? (
+      {errorKey !== null ? (
+        <div className="px-4 py-3">
+          <TicketErrorState errorKey={errorKey} onRetry={onRetry} />
+        </div>
+      ) : items.length === 0 ? (
         <div className="px-4 py-3">
           <EmptyState
             title={t("tickets.activity.emptyTitle")}

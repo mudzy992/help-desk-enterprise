@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import { markActiveTimerChanged, useActiveTimer } from "@/lib/time-tracking/active-timer-store";
+import { reportClientError } from "@/lib/app/client-logger";
 import {
   isActiveElsewhere,
   mapTimeTrackingError,
@@ -56,10 +57,16 @@ export function useTicketTimeTracking(input: {
 
   const reload = useCallback(async () => {
     if (ticketId === undefined) return;
-    const rows = await listTicketTimeLogs(ticketId, {
-      includeDeleted: canManage && showDeleted,
-    }).catch(() => null);
-    if (rows !== null) setTimeLogs(rows);
+    try {
+      const rows = await listTicketTimeLogs(ticketId, {
+        includeDeleted: canManage && showDeleted,
+      });
+      setTimeLogs(rows);
+      setErrorKey(null);
+    } catch (error) {
+      setErrorKey(mapTimeTrackingError(error));
+      reportClientError("ticket_time_logs_load_failed", error);
+    }
   }, [canManage, setTimeLogs, showDeleted, ticketId]);
 
   useEffect(() => {
@@ -92,6 +99,7 @@ export function useTicketTimeTracking(input: {
   return {
     policy,
     activeElsewhere: timer !== null && timer.ticketId !== ticketId ? timer : null,
+    reload,
     isSaving,
     errorKey,
     clearError: () => setErrorKey(null),
@@ -100,12 +108,14 @@ export function useTicketTimeTracking(input: {
     canManage,
     switchPrompt,
     closeSwitchPrompt: () => setSwitchPrompt(false),
-    start: async (switchFromActive = false) => {
+    start: async (options: { readonly switchFromActive?: boolean } = {}) => {
       if (ticketId === undefined) return;
       setIsSaving(true);
       setErrorKey(null);
       try {
-        await startTicketTimeLog(ticketId, { switchFromActive });
+        await startTicketTimeLog(ticketId, {
+          switchFromActive: options.switchFromActive ?? false,
+        });
         setSwitchPrompt(false);
         await reload();
         await markActiveTimerChanged();

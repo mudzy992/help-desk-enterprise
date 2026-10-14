@@ -92,6 +92,22 @@ export function defaultHideMerged(isStaff: boolean): boolean {
 // first so an empty handler-group inbox still shows the meaningful queue.
 export const defaultInboxTab = unroutedInboxTabKey;
 
+export function hasActiveTicketFilters(filters: TicketListFilters): boolean {
+  return (
+    filters.search.trim().length > 0 ||
+    filters.status !== "" ||
+    filters.priority !== "" ||
+    filters.serviceId !== "" ||
+    filters.assignedUserId !== "" ||
+    filters.createdFrom !== "" ||
+    filters.createdTo !== "" ||
+    filters.overdue ||
+    (filters.forwarded !== undefined && filters.forwarded !== "") ||
+    (filters.personal !== undefined && filters.personal !== "") ||
+    filters.unroutedOverdue === true
+  );
+}
+
 export function clearedTicketListFilters(
   filters: TicketListFilters,
   isStaff: boolean,
@@ -108,6 +124,7 @@ export function clearedTicketListFilters(
     overdue: false,
     forwarded: "",
     personal: "",
+    unroutedOverdue: false,
     hideMerged: defaultHideMerged(isStaff),
     // Inbox tab is reset on Clear only when we're looking at the inbox; on
     // other views it stays untouched (it's meaningless there but harmless to

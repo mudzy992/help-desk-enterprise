@@ -2,16 +2,27 @@ import { GitMerge } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DetailSection } from "@/components/ui/detail-section";
+import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";
 import type { MergedTicketItem } from "@/services/tickets-merge-api";
 
 interface TicketMergedCardProperties {
   readonly items: readonly MergedTicketItem[];
+  readonly errorKey?: TicketErrorKey | null;
+  readonly onRetry?: () => void;
 }
 
 /** Package 1.2 (M7): children merged into this ticket (staff only). */
-export function TicketMergedCard({ items }: TicketMergedCardProperties) {
+export function TicketMergedCard({ items, errorKey = null, onRetry }: TicketMergedCardProperties) {
   const { t, i18n } = useTranslation();
+  if (errorKey !== null) {
+    return (
+      <div data-testid="ticket-merged-error">
+        <TicketErrorState errorKey={errorKey} onRetry={onRetry} />
+      </div>
+    );
+  }
   if (items.length === 0) {
     return null;
   }

@@ -1,8 +1,8 @@
 # Modul 2: Auth i sesija
 
-Datum prvobitnog audita: 2026-10-13; ponovna provjera: 2026-10-14.
-Grana: `arena/91f1c029-help-desk-enterprise` (HEAD `21345f8` tokom ovog zadatka; bez commita).
-Status: A6/A9 i audit closeout ažurirani. A2 browser QA nije izvršen; A15 login split je odgođen po odluci vlasnika; MSAL `sessionStorage` rizik je eksplicitno zadržan.
+Datum prvobitnog audita: 2026-10-13; ponovna provjera i closeout: 2026-10-14.
+Grana: `arena/91f1c029-help-desk-enterprise` (HEAD `daca898`; izmjene nisu commitovane).
+Status: zatvoren po kriteriju plana 6.1; svaki A1–A25 ima konačan status u tabeli closeout-a. A2 ručna/browser QA je **nije izvršena** i zasebno prihvaćena kao ograničen rizik; A8 MSAL `sessionStorage`, A14 fail-open i A15 login split ostaju datirani, obrazloženi prihvaćeni rizici.
 
 Provjere izvršene u sandboxu:
 - `@simplewebauthn/browser` verzija `14.0.0` (provjeren tip `platformAuthenticatorIsAvailable(): Promise<boolean>` u `node_modules`).
@@ -22,11 +22,11 @@ Provjere izvršene u sandboxu:
 - CAPTCHA (Turnstile) na prijavi
 - WebAuthn (passkey) ceremonije u browseru
 
-Granica modula: `require-auth.tsx` i `require-access.tsx` su pregledani u modulu 1 i ovdje se pominju samo tamo gdje utiču na sesiju. `session-controls.tsx` je pregledan u modulu 1, ali je `SessionSignInControls` ovdje.
+Granica modula: `require-auth.tsx` i `require-access.tsx` su pregledani u modulu 1 i ovdje se pominju samo tamo gdje utiču na sesiju. `session-controls.tsx` je pregledan u modulu 1; raniji `SessionSignInControls` je uklonjen (A7).
 
 **Pregledano u punom obimu u ponovnoj provjeri (A23):** `frontend/src/components/account-security/passkey-section.tsx` i `frontend/src/components/account-security/mfa-section.tsx`; pregled bez izmjena koda.
 
-**Nisu pročitani u punom obimu** (pregledani su grep-om i djelimično u ranijem auditu): `mfa-code-dialog.tsx`, `password-section.tsx`, `change-password-form.tsx` (dio), `aaguid.ts`, `passkey-errors.ts`, `map-mfa-step-error.ts`, `describe-user-agent.ts`. Nalazi iz tih fajlova ostaju označeni kao „djelimično pregledano“.
+**Granica prvobitnog audita (2026-10-13):** sljedeći fajlovi tada nisu bili pročitani u punom obimu: `mfa-code-dialog.tsx`, `password-section.tsx`, `change-password-form.tsx` (dio), `aaguid.ts`, `passkey-errors.ts`, `map-mfa-step-error.ts`, `describe-user-agent.ts`. Za closeout 2026-10-14 relevantni A-ID putevi su provjereni ciljano kroz implementaciju i testove; ova historijska granica nije otvoren A-ID nalaz. Konačni status svakog ID-ja je u tabeli ispod.
 
 ---
 
@@ -62,7 +62,7 @@ Granica modula: `require-auth.tsx` i `require-access.tsx` su pregledani u modulu
 
 **Komponente za prijavu**
 - `frontend/src/components/auth/` (14 fajlova): `captcha-challenge.tsx` (150), `mfa-method-step.tsx` (141), `mfa-code-form.tsx` (119), `mfa-enrollment.tsx` (111), `change-password-form.tsx` (147), `identity-confirm-dialog.tsx` (124), `recovery-codes-panel.tsx` (73), `password-strength-meter.tsx` (67), `password-feedback.ts`
-- `frontend/src/components/layout/session-controls.tsx` (108) i `session-sign-in-controls.tsx` (83)
+- `frontend/src/components/layout/session-controls.tsx`
 
 **Komponente za profil**
 - `frontend/src/components/account-security/` (8 fajlova): `passkey-section.tsx` (356), `mfa-section.tsx` (153), `password-section.tsx` (112), `sessions-list.tsx` (60), `mfa-code-dialog.tsx` (41), `password-expiry-banner.tsx` (40)
@@ -317,3 +317,43 @@ Tabela ispod bilježi samo rad urađen ili ponovo potvrđen u ovom zadatku; rani
 - E2E 37/39 i backend provjere nisu pokrenuti: backend nije mijenjan; lokalni Docker nije dostupan, `e2e/.env` nedostaje, a CI koristi vanjski deployment.
 
 **Ocjena 5/10** je ocjena prvobitnog audita i nije ponovo izračunata u ovom zadatku.
+
+---
+
+## Konačni closeout status A1–A25 (2026-10-14)
+
+Ova tabela je konačni izvor istine za zatvaranje modula. Svaki ID ima implementacijski dokaz, datirani prihvaćeni rizik ili dokumentovan istraživački zaključak. „Nije izvršeno“ znači da se QA ne predstavlja kao prošla.
+
+| ID | Konačni status | Implementacija / razlog / dokaz |
+|---|---|---|
+| A1 | Urađeno | Samo 401 vodi u odjavu; network/5xx čuva lokalnu sesiju i prikazuje retry (`SessionCheckError`). Covered by session capabilities/auth specs. |
+| A2 | Urađeno (kod); Prihvaćen rizik (browser QA, 2026-10-14) | Query identitet vezan je za `subjectId`, refresh ne vraća full-page skeleton. **Browser QA nije izvršen**: Docker nije dostupan, `e2e/.env` nedostaje. Vlasnik je prihvatio neizvršenu QA kao ograničenje ovog closeout-a; ne tvrditi „prošlo“. Koraci ostaju u „Ručna provjera A2“. |
+| A3 | Urađeno | `useSessionCapabilities` dijeli React Query `currentSession(subjectId)` keš; stale/retry i komponentni potrošači provjereni. |
+| A4 | Urađeno | `session-store` sluša `storage` promjene za tačan session key i propagira login/logout; unit test postoji. |
+| A5 | Urađeno | Platform authenticator dostupnost provjerava se asinhrono kroz hook; unsupported/cancelled/failure stanja su razdvojena. |
+| A6 | Urađeno | `CaptchaSlot` razlikuje nedostupnu konfiguraciju od čekanja tokena i blokira submit kad je CAPTCHA obavezna; BS/EN tekstovi i regression tests postoje. |
+| A7 | Urađeno | `SessionSignInControls` i fajl za alternativnu login formu uklonjeni; nema preostalog dead login path-a u `frontend/src`. |
+| A8 | Urađeno (app token); Prihvaćen rizik (MSAL storage, 2026-10-14) | App session token je HttpOnly cookie; samo principal/expiry je u web storage. MSAL cache ostaje u `sessionStorage` po izričitoj odluci vlasnika: zadržati podržani postojeći Entra redirect obrazac, ne uvoditi `memoryStorage` uz nepodržan redirect i ne uključivati deprecated `storeAuthStateInCookie`. Preostali rizik (MSAL state je čitljiv JS-u u aktivnoj kartici) prihvaćen je radi kompatibilnosti/izbjegavanja deprecated alternative. |
+| A9 | Urađeno | Kritični lokalni login, CAPTCHA, A14 fail-open, Entra callback, istek lozinke i session/auth helper tokovi imaju regression testove; puni suite rezultat je u završnim provjerama. |
+| A10 | Urađeno | Produkcijske auth/WebAuthn putanje nemaju `as unknown as` casts; preostali casts su DOM/global stubs u test fajlovima. |
+| A11 | Urađeno | `as never` i `ticketText` stil zaobilaženja nisu prisutni u produkcijskim auth/session fajlovima; auth stringovi koriste tipizirane i18n ključeve. |
+| A12 | Urađeno | `mfa-enrollment` nema `eslint-disable`; `pendingSecret` ref čuva isti enrollment promise kroz StrictMode effect replay. |
+| A13 | Urađeno | `safeReturnPath` odbacuje protocol-relative URL, backslash i control chars, kao i login/callback loop; login i Entra redirect koriste validaciju. `entra-redirect.spec.ts` pokriva slučajeve. |
+| A14 | Prihvaćen rizik (vlasnik, 2026-10-14) | Fail-open ponašanje je zadržano i testirano. Razlog: lokalna/break-glass prijava treba ostati dostupna kada provider-discovery servis ne odgovara; vlasnik prihvata rizik da se lokalni login pokaže tokom providers API kvara, jer provider failure sam po sebi ne dokazuje da lokalni nalog ne smije ući. |
+| A15 | Prihvaćen rizik (vlasnik, 2026-10-14) | Login-page split ostaje odgođen; refaktor nije izvršen. Razlog: promjena je održivost/refactor, ne blokirajuća auth greška; široko mijenjanje multi-step/MFA toka u ovom closeout-u bi povećalo regresioni rizik i prevazišlo odobreni scope. |
+| A16 | Urađeno | Account security overview prikazuje skeleton/loading, grešku i retry. |
+| A17 | Urađeno | MFA preferencija je per-email razdvojena FNV-1a hash ključem; stvarna e-mail adresa se ne zapisuje kao localStorage key/value. Preference je samo UX, server i dalje odlučuje faktor. |
+| A18 | Urađeno | Password-expiry banner komentar i tekst više ne obećavaju MFA reminder koji se ne implementira. |
+| A19 | Urađeno | API download ide kroz zajednički `sendRequest`, pa dijeli authorization override, session i install-token headere sa JSON API-jem; centralni kod i tests su izvor ponašanja. |
+| A20 | Urađeno | Sessionless/confirmation path liste su centralizovane u `api.ts`; helper klasifikator ima testove za izuzetke. |
+| A21 | Urađeno | Pojedinačna revokacija vlastite sesije traži `ConfirmDialog`; `SessionsList` samo šalje odabranu sesiju u confirm flow. |
+| A22 | Urađeno | Clipboard odbijanje bira recovery kodove kao fallback i prikazuje BS/EN status da kopiranje nije automatski uspjelo; ručno Ctrl/Cmd+C ostaje moguće. |
+| A23 | Zaključeno (istraživanje, 2026-10-14) | `passkey-section.tsx` i `mfa-section.tsx` pročitani u punom obimu; nije pronađen konkretan dodatni bug niti promjena potrebna za ovaj ID. |
+| A24 | Zaključeno (dokumentacija-only, 2026-10-14) | CSP/infra nalaz je zabilježen kao van opsega. Nisu mijenjani `nginx.conf`, CSP ili infra i **nije potvrđeno** da je CSP prisutan/dovoljan; nema tvrdnje da je security-header QA prošao. |
+| A25 | Urađeno | Backend zabranjuje gašenje TOTP-a kad MFA za nalog mora biti obavezna; `mfa-disable.spec.ts` pokriva passkey-postavljen/TOTP-aktivan scenario. Backend nije mijenjan u ovom audit closeout-u jer guard i test već postoje. |
+
+### Završne provjere modula 02
+
+- Auth/session ciljani testovi: raniji prolaz je zabilježen gore; konačni puni frontend Vitest rezultat nakon svih closeout izmjena naveden je u Modul 03 i TASKS.
+- E2E 37/39 i A2 browser QA nisu izvršeni. Cookie fallback/TODO ostaje otvoren do cookie-enabled deployment-a i prolaza tih specova.
+- Bez backend izmjena i bez CSP/infra izmjena u ovom zadatku.

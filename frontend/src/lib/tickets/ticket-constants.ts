@@ -2,6 +2,7 @@ import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 
 export const ticketListPageSize = 25;
+export const unroutedTicketPageSize = 50;
 
 /**
  * Gornja granica koju server prihvata za `GET /tickets?pageSize=`. DTO je
