@@ -49,6 +49,7 @@ const emptyFilters = (
   view,
   search: "",
   status: "",
+  statusesFromDeepLink: [],
   priority: "",
   serviceId: "",
   assignedUserId: "",
@@ -56,6 +57,7 @@ const emptyFilters = (
   createdTo: "",
   currentUserId,
   overdue: false,
+  atRisk: false,
   forwarded: "",
   // M8 B4: staff lists hide merged children by default; toggled via checkbox.
   hideMerged: isStaff,

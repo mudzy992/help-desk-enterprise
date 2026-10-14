@@ -10,13 +10,21 @@ export const unroutedInboxTabKey = "unrouted";
 export type TicketListFilters = {
   readonly view: TicketWorkspaceView;
   readonly search: string;
+  // Val 6.1 / modul 4 (D1): the UI still edits a single status at a time,
+  // but deep-link URLs may carry repeated `status=` keys. We keep the public
+  // type a single status (so existing filter controls and saved views do not
+  // have to learn about arrays) and only flatten to an array when building
+  // the server query (`toTicketPageQuery`).
   readonly status: TicketStatus | "";
+  readonly statusesFromDeepLink?: readonly TicketStatus[];
   readonly priority: TicketPriority | "";
   readonly serviceId: string;
   readonly assignedUserId: string;
   readonly createdFrom: string;
   readonly createdTo: string;
   readonly overdue: boolean;
+  /** Val 6.1 / modul 4 (D1): at-risk (not yet breached) tickets deep-linked from a card. */
+  readonly atRisk?: boolean;
   /** Package 1.6, staff only. */
   readonly forwarded?: TicketForwardedFilter;
   /** Paket 2.4, staff only: tickets I follow / where I was mentioned. */
@@ -46,6 +54,42 @@ export function parsePersonalFilter(value: string | null): TicketPersonalFilter 
 
 export function parseForwardedFilter(value: string | null): TicketForwardedFilter {
   return value === "any" || value === "toMyGroups" ? value : "";
+}
+
+/**
+ * Val 6.1 / modul 4 (D1): a card or shareable link may send one or more
+ * `status=` params (repeated keys). Returns the single status to put into
+ * filter state (used by filter controls — a single-status chip stays visible),
+ * plus any additional statuses that should be forwarded to the server query
+ * only. When the URL has a single status we return it in `status`; when it
+ * repeats, the first one drives the chip and the rest travel alongside via
+ * `additional` so the server still filters by every status in the link.
+ */
+export function parseStatusFilter(
+  values: readonly string[] | null,
+  allowed: ReadonlySet<TicketStatus>,
+): { readonly status: TicketStatus | ""; readonly additional: readonly TicketStatus[] } {
+  if (values === null || values.length === 0) {
+    return { status: "", additional: [] };
+  }
+  const parsed = values.filter((value): value is TicketStatus =>
+    allowed.has(value as TicketStatus),
+  );
+  if (parsed.length === 0) {
+    return { status: "", additional: [] };
+  }
+  const [first, ...rest] = parsed;
+  return { status: first, additional: rest };
+}
+
+export function parsePriorityFilter(value: string | null): TicketPriority | "" {
+  return value === "LOW" || value === "MEDIUM" || value === "HIGH" || value === "CRITICAL"
+    ? value
+    : "";
+}
+
+export function parseBooleanFlag(value: string | null): boolean {
+  return value === "true";
 }
 
 export function isTicketOverdue(ticket: Pick<TicketResponse, "isOverdue">): boolean {
@@ -100,12 +144,14 @@ export function clearedTicketListFilters(
     ...filters,
     search: "",
     status: "",
+    statusesFromDeepLink: [],
     priority: "",
     serviceId: "",
     assignedUserId: "",
     createdFrom: "",
     createdTo: "",
     overdue: false,
+    atRisk: false,
     forwarded: "",
     personal: "",
     hideMerged: defaultHideMerged(isStaff),
@@ -120,14 +166,24 @@ export function filterTickets(
   tickets: readonly TicketResponse[],
   filters: TicketListFilters,
 ): readonly TicketResponse[] {
+  const statuses: readonly TicketStatus[] = [
+    ...(filters.status === "" ? [] : [filters.status]),
+    ...(filters.statusesFromDeepLink ?? []),
+  ];
   return tickets.filter((ticket) => {
     if (!matchesTicketSearch(ticket, filters.search)) {
       return false;
     }
-    if (filters.status !== "" && ticket.status !== filters.status) {
+    if (statuses.length > 0 && !statuses.includes(ticket.status)) {
       return false;
     }
     if (filters.priority !== "" && ticket.priority !== filters.priority) {
+      return false;
+    }
+    if (filters.overdue && !isTicketOverdue(ticket)) {
+      return false;
+    }
+    if (filters.atRisk === true && ticket.isAtRisk !== true) {
       return false;
     }
     if (filters.serviceId !== "" && ticket.serviceId !== filters.serviceId) {
@@ -140,9 +196,6 @@ export function filterTickets(
       return false;
     }
     if (filters.createdTo !== "" && ticket.createdAt > filters.createdTo) {
-      return false;
-    }
-    if (filters.overdue && !isTicketOverdue(ticket)) {
       return false;
     }
     return matchesTicketView(ticket, filters.view, filters.currentUserId);

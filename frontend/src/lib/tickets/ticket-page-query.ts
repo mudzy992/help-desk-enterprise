@@ -29,14 +29,23 @@ export function toTicketPageQuery(input: {
 }): TicketPageQuery {
   const { filters, view, currentUserId, page } = input;
   const term = filters.search.trim();
+  const statusValue: TicketPageQuery["status"] = (() => {
+    const base = filters.status === "" ? [] : [filters.status];
+    const extra = [...(filters.statusesFromDeepLink ?? [])];
+    const combined = [...base, ...extra];
+    if (combined.length === 0) return undefined;
+    if (combined.length === 1) return combined[0];
+    return combined;
+  })();
   return {
     ...toViewFilters({ view, currentUserId, filters }),
-    status: filters.status === "" ? undefined : filters.status,
+    status: statusValue,
     priority: filters.priority === "" ? undefined : filters.priority,
     serviceId: filters.serviceId === "" ? undefined : filters.serviceId,
     createdFrom: filters.createdFrom === "" ? undefined : filters.createdFrom,
     createdTo: filters.createdTo === "" ? undefined : filters.createdTo,
     overdue: filters.overdue ? true : undefined,
+    atRisk: filters.atRisk === true ? true : undefined,
     forwarded: filters.forwarded ? filters.forwarded : undefined,
     following: filters.personal === "following" ? true : undefined,
     mentionedMe: filters.personal === "mentionedMe" ? true : undefined,
