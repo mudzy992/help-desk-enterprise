@@ -17,6 +17,7 @@ import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collectio
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -84,11 +85,7 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
         // ticket created/resolved within the staleTime window did not show
         // up until the cache expired.
         if (silent) {
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummaryPrefix }),
-            queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists }),
-            queryClient.invalidateQueries({ queryKey: queryKeys.groupInbox }),
-          ]);
+          await invalidateDashboardQueries(queryClient);
         }
 
         // Phase 1 (critical path, D6): counters, card lists and the chart.
