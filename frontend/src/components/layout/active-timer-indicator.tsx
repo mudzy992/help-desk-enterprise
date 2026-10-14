@@ -7,7 +7,7 @@ import { markActiveTimerChanged, useActiveTimer } from "@/lib/time-tracking/acti
 import { formatElapsed } from "@/lib/time-tracking/idle-policy";
 import { stopTicketTimeLog } from "@/services/tickets-collaboration-api";
 
-/** Package 1.3 (T10): the running timer, visible on every screen. */
+/** The running timer, visible on every screen. */
 export function ActiveTimerIndicator() {
   const { t } = useTranslation();
   const { timer } = useActiveTimer();

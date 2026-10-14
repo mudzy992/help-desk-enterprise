@@ -23,7 +23,7 @@ export function NotificationsBell() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Paket 5.3.0 (D3): the desktop panel closes on an outside press or Escape
+  // The desktop panel closes on an outside press or Escape
   // and hands focus back to the bell; the compact Sheet does this natively.
   useDismissable({
     isOpen: isOpen && !isCompact,

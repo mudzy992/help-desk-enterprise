@@ -114,7 +114,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       setIsSearching(false);
       return;
     }
-    // Phase 1.2 (plan §1.2): the debounce stays at 300 ms and the in-flight
+    // The debounce stays at 300 ms and the in-flight
     // request is aborted when the next keystroke arrives, so typing never
     // leaves a queue of searches running behind it. An abort is not an error —
     // the newer request owns the panel.

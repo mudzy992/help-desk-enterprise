@@ -278,7 +278,7 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
 | B16 gutanje greške jezika | Urađeno | `reportClientError("locale_sync_failed", …)`, sesija nije blokirana. |
 | B17 `console.error` | Urađeno | `lib/app/client-logger.ts` je jedini izvor ispisa; pravilo ESLint `no-console`. |
 | B18 hard-coded „N“ | Urađeno | Tekst prečice dolazi iz kataloga (`shortcutHint("newTicket")`). |
-| B19 interne oznake u komentarima | Urađeno | Uklonjene oznake „Paket / Review / Faza“ iz 31 fajla modula. |
+| B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
 | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
 | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
 | B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
