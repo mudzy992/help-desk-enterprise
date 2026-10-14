@@ -13,6 +13,7 @@ import {
   requireConfigVersioningEnabled,
   requireConfigVersionRecord,
 } from './config-versioning-access';
+import { assertConfigVersionReadyForActivation } from './assert-config-version-ready-for-activation';
 import { ConfigVersioningConfigurationLoader } from './config-versioning-configuration.loader';
 import { ConfigVersioningError } from './config-versioning.error';
 import { ConfigVersioningRepository } from './config-versioning.repository';
@@ -121,6 +122,7 @@ export class ConfigVersioningService {
     );
     const normalizedReason = requireChangeReason(reason);
     const record = await requireConfigVersionRecord(this.repository, id);
+    assertConfigVersionReadyForActivation(record.status);
     const snapshot = parseConfigSnapshot(record.snapshot);
     assertConfigActivationAllowed(snapshot, this.registry, configuration);
     const previousActive = await this.repository.findActive();

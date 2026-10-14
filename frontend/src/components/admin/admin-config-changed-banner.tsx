@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { AdminConfigUpdatedEvent } from "@/lib/realtime/admin-config-events";
 
-/** Paket 1.7 (R3): shown instead of reloading while the admin is editing. */
+/** shown instead of reloading while the admin is editing. */
 export function AdminConfigChangedBanner({
   pending,
   onRefresh,

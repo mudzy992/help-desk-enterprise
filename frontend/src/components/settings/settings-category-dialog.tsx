@@ -36,7 +36,7 @@ interface SettingsCategoryDialogProperties {
 const searchFromEntries = 12;
 
 /**
- * Paket 5.3.4 (D5): everything in one category, grouped by the `group` the
+ * everything in one category, grouped by the `group` the
  * definition declares ("Veza", "Autentikacija", …). A row opens the detail
  * dialog; nothing is edited inline, so a mis-tap on a phone cannot save.
  */

@@ -143,6 +143,7 @@
       "copyRequestId": "Kopiraj ID zahtjeva {{requestId}}",
       "copied": "ID zahtjeva kopiran"
     },
+    "retry": "Pokušaj ponovo",
     "save": "Sačuvaj"
   },
   "notifications": {
@@ -205,6 +206,7 @@
     "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."
   },
   "admin": {
+    "readOnlyBanner": "Administrativni modul je u režimu samo za čitanje. Izmjene su onemogućene za Vašu ulogu.",
     "title": "Administracija sistema",
     "subtitle": "Identitet, organizaciona struktura, postavke i operacije. Sve izmjene prolaze kroz change log s razlogom; read-only mod je dostupan po ulozi.",
     "tabs": {
@@ -219,6 +221,7 @@
     "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8",
     "ops": {
       "organizationalUnit": "Organizaciona jedinica (audit opseg)",
+      "organizationalUnitLoadError": "Stablo organizacionih jedinica nije učitano.",
       "needOrganizationalUnit": "Odaberite organizacionu jedinicu prije exporta.",
       "auditLogTitle": "Audit log",
       "auditLogBody": "Revizijski dnevnik (noviji prvo) u opsegu odabrane organizacione jedinice.",
@@ -2686,6 +2689,7 @@
       "smtpMissingWarning": "SMTP je isključen ili nepotpun — slanje i test nisu mogući.",
       "open": "Uredi šablone",
       "editorTitle": "E-mail šabloni",
+      "unsavedConfirm": "Imate nesačuvane izmjene. Želite li napustiti editor?",
       "editorDescription": "Mijenjaju se samo tekstovi; izgled je zajednički i provjeren u Outlooku. Spremaju se samo razlike od zadanih tekstova, uz razlog izmjene.",
       "event": "Događaj",
       "language": "Jezik",
@@ -4522,6 +4526,12 @@
     "validate": "Validiraj (dry-run)",
     "activate": "Aktiviraj",
     "activateReason": "Razlog aktivacije",
+    "confirmActivateTitle": "Potvrdi aktivaciju",
+    "confirmRollbackTitle": "Potvrdi vraćanje verzije",
+    "confirmChangeDescription": "Verzija {{version}} će promijeniti konfiguraciju cijelog sistema. Pregledajte shadow sažetak i potvrdite namjeru.",
+    "shadowSampleSize": "Uzorak",
+    "shadowRoutingMismatches": "Promjene rutiranja",
+    "shadowSlaMismatches": "Promjene SLA pravila",
     "rollback": "Rollback",
     "rollbackReason": "Razlog rollback-a",
     "validationOkTitle": "Validacija je prošla",

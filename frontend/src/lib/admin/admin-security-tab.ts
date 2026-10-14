@@ -1,5 +1,5 @@
 /**
- * Paket 5.4.0-d (M6): the label key of one journal row. An `auth.*` action the
+ * the label key of one journal row. An `auth.*` action the
  * UI has no translation for — a historical event, or one shipped by a newer
  * backend — falls back to a generic label instead of printing a raw id.
  */
@@ -8,7 +8,7 @@ export function securityActionLabelKey(translatedKey: string | null): string {
 }
 
 /**
- * Paket 5.4.0-d (M6): the security tab is a SuperAdmin-only surface. Both the
+ * the security tab is a SuperAdmin-only surface. Both the
  * tab item and the page body read the same predicate, so a deep link can never
  * render the journal for an ADMIN — it ends in the forbidden state instead.
  */

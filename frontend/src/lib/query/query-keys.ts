@@ -56,6 +56,7 @@ export const queryKeys = {
   ticketLinks: (ticketId: string) => ["tickets", "links", ticketId] as const,
   groupInbox: ["tickets", "inbox"] as const,
   offeredServices: ["catalog", "offered-services"] as const,
+  settingsRegistry: ["settings", "registry"] as const,
   createTicketCatalog: ["catalog", "create-ticket"] as const,
   slaSummary: ["sla", "summary"] as const,
   notifications: ["notifications"] as const,

@@ -7,7 +7,7 @@ interface SettingsReasonConfirmProperties {
   readonly pending: boolean;
   readonly onConfirm: (reason: string) => Promise<void>;
   readonly onCancel: () => void;
-  /** Paket 5.3.4: a dependency the server would refuse blocks the save outright. */
+  /** a dependency the server would refuse blocks the save outright. */
   readonly disabled?: boolean;
 }
 

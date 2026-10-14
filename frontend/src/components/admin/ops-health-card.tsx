@@ -117,7 +117,7 @@ const refreshEveryMs = 30_000;
 type LoadError = { readonly key: ApiErrorKey; readonly requestId: string | null };
 
 /**
- * Paket 2.7 (§6): "System health" on Admin → Operations. Live probes of the
+ * "System health" on Admin → Operations. Live probes of the
  * API plus the worker's last snapshot; alarm actions are audited server-side.
  */
 export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
@@ -913,8 +913,12 @@ function AlertHistory({
     let cancelled = false;
     setError(null);
     listOpsAlertHistory(100)
-      .then((rows) => !cancelled && setItems(rows))
-      .catch((caught: unknown) => !cancelled && setError(mapApiError(caught)));
+      .then((rows) => {
+        if (!cancelled) setItems(rows);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(mapApiError(caught));
+      });
     return () => {
       cancelled = true;
     };

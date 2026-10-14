@@ -7,7 +7,7 @@ import {
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 /*
-  Paket 5.4.0-e.2: the SuperAdmin found the admin „Sigurnost" tab showing only
+  the SuperAdmin found the admin „Sigurnost" tab showing only
   the journal. Two guarantees follow from that review:
 
   * the policy surfaces are **rows**, grouped by what an administrator is

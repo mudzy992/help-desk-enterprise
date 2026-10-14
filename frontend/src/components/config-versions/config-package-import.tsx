@@ -49,7 +49,7 @@ interface ConfigPackageImportProperties {
 }
 
 /**
- * Paket 2.9 (K4): upload → preview (resolution report, manual mappings) →
+ * upload → preview (resolution report, manual mappings) →
  * import as DRAFT. Nothing is activated here.
  */
 export function ConfigPackageImport({

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollText, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorKey, setErrorKey] = useState<AdminOpsMessageKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
   const load = useCallback(async () => {
     if (!canView || organizationalUnitId.length === 0) {
@@ -42,6 +43,7 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
       setIsLoading(false);
       return;
     }
+    const sequence = ++requestSequence.current;
     setIsLoading(true);
     setErrorKey(null);
     setRequestId(null);
@@ -50,15 +52,17 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
         organizationalUnitId,
         take: auditLogPageTake,
       });
+      if (sequence !== requestSequence.current) return;
       setRows(result.items);
       setNextCursor(result.nextCursor);
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       setRows([]);
       setNextCursor(null);
       setErrorKey(mapAdminOpsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoading(false);
+      if (sequence === requestSequence.current) setIsLoading(false);
     }
   }, [canView, organizationalUnitId]);
 
@@ -66,6 +70,7 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
     if (nextCursor === null) {
       return;
     }
+    const sequence = requestSequence.current;
     setIsLoadingMore(true);
     setErrorKey(null);
     setRequestId(null);
@@ -75,13 +80,15 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
         take: auditLogPageTake,
         cursor: nextCursor,
       });
+      if (sequence !== requestSequence.current) return;
       setRows((current) => [...current, ...result.items]);
       setNextCursor(result.nextCursor);
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       setErrorKey(mapAdminOpsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoadingMore(false);
+      if (sequence === requestSequence.current) setIsLoadingMore(false);
     }
   }, [nextCursor, organizationalUnitId]);
 

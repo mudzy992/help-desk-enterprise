@@ -51,7 +51,7 @@ export function SmtpEmailSettingsCard({
   const [dependents, setDependents] = useState<readonly SettingDependentReset[] | null>(null);
   const effectiveEnabled = draftEnabled ?? smtpEnabled;
   const enabledEntry = entries.find((entry) => entry.key === smtpSettingKeys.enabled) ?? null;
-  // Paket 5.3.3: SMTP may only be switched on with a host configured. The
+  // SMTP may only be switched on with a host configured. The
   // server refuses the write either way; saying it here saves a round trip and
   // explains what to do first.
   const blockingParents =
@@ -64,7 +64,7 @@ export function SmtpEmailSettingsCard({
         });
   const provider = readStringSetting(entries, "private.smtp.provider", "o365");
   const typedHost = readStringSetting(entries, smtpSettingKeys.host, "");
-  // Paket 1.5 (E10): an empty host means the provider preset is used.
+  // an empty host means the provider preset is used.
   const host = typedHost.length > 0 ? typedHost : (providerPresetHosts[provider] ?? "—");
   const username = readStringSetting(entries, smtpSettingKeys.username, "—");
   const passwordSet =

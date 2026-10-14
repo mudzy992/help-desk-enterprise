@@ -2,32 +2,40 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Warning } from "@/components/settings/email-templates-card";
+import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
 import { EmailTemplatesEditor } from "@/components/settings/email-templates-editor";
+import { ApiErrorText } from "@/components/ui/api-error-text";
+import { Button } from "@/components/ui/button";
+import { Warning } from "@/components/ui/warning";
 import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { permissionKeys } from "@/lib/session/permission-keys";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
+import { canWriteSettings } from "@/lib/session/admin-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { getEmailTemplates, type EmailTemplatesOverview } from "@/services/email-templates-api";
 
-/**
- * Paket 1.5: full-width editor (fields + live preview side by side). The
- * settings card links here; access mirrors the settings page (admin roles),
- * saving additionally needs `settings.write`.
- */
+/** Full-width fields and server-rendered preview for notification templates. */
 export function EmailTemplatesPage() {
   const { t } = useTranslation();
-  const { session, hasPermission } = useSessionCapabilities();
-  const canWrite = session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
+  const capabilities = useSessionCapabilities();
+  const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.settings);
+  const canWrite = canWriteSettings(capabilities) && !readOnly.isLocked;
   const [overview, setOverview] = useState<EmailTemplatesOverview | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setOverview(await getEmailTemplates());
-      setError(null);
+      setErrorKey(null);
+      setRequestId(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : String(loadError));
+      setErrorKey(mapApiError(loadError));
+      setRequestId(readApiRequestId(loadError));
     }
   }, []);
 
@@ -49,8 +57,16 @@ export function EmailTemplatesPage() {
         <ArrowLeft size={13} />
         {t("settings.emailTemplates.backToSettings")}
       </Link>
-      {error !== null ? <p className="text-[12.5px] text-danger">{error}</p> : null}
-      {overview === null && error === null ? (
+      <AdminModuleReadOnlyBanner visible={readOnly.isLocked} />
+      {errorKey !== null ? (
+        <div className="space-y-2">
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      ) : null}
+      {overview === null && errorKey === null ? (
         <PanelSkeleton label={t("settings.emailTemplates.loading")} />
       ) : null}
       {overview !== null ? (

@@ -26,7 +26,7 @@ import {
 } from "@/services/security-api";
 
 /**
- * Paket 5.4.0-e (M2) / 5.4.0-e.2 (UI polish): the login rate limits, edited the
+ * the login rate limits, edited the
  * way every other administration surface in this product edits values — the
  * card **shows** the three groups with their current thresholds and a row opens
  * a dialog; nothing is editable inline in a card (the rule that Postavke i

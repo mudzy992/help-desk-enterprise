@@ -11,37 +11,33 @@ import { InboundEmailCard } from "@/components/settings/inbound-email-card";
 import { AdminSecurityPointerCard } from "@/components/settings/admin-security-pointer-card";
 import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
+import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
-import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { canWriteSettings } from "@/lib/session/admin-access";
+import { canOpenAdminArea } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
-interface SettingsPageProperties {
-  readonly embedded?: boolean;
-}
-
-export function SettingsPage({ embedded = false }: SettingsPageProperties) {
+export function SettingsPage() {
   const { t } = useTranslation();
-  const { session, isLoading, hasPermission, hasRole } = useSessionCapabilities();
+  const capabilities = useSessionCapabilities();
+  const { session, isLoading } = capabilities;
   const registry = useSettingsRegistry();
-  const canOpen =
-    session?.isSuperAdmin === true || hasRole(roleKeys.admin) || hasRole(roleKeys.superAdmin);
-  const canWrite = session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
+  const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.settings);
+  const canOpen = canOpenAdminArea(capabilities);
+  const canWrite = canWriteSettings(capabilities) && !readOnly.isLocked;
   const canOpenSecurityTab = canOpenAdminSecurityTab(session);
 
   return (
     <div className="space-y-4">
-      {embedded ? null : (
-        <PageHeader
-          crumbs={[brandCrumb, t("navigation.settings")]}
-          title={t("navigation.settings")}
-          subtitle={t("settings.intro")}
-        />
-      )}
+      <AdminModuleReadOnlyBanner visible={canOpen && readOnly.isLocked} />
       {isLoading || (canOpen && registry.isLoading && registry.entries.length === 0) ? (
         <PanelSkeleton label={t("settings.email.loading")} />
       ) : null}

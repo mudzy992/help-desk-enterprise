@@ -14,7 +14,7 @@ interface ConfigPackageExportProperties {
   readonly onError: (error: unknown) => void;
 }
 
-/** Paket 2.9 (K4): download an environment-neutral package of this version. */
+/** download an environment-neutral package of this version. */
 export function ConfigPackageExport({ version, isBusy, onError }: ConfigPackageExportProperties) {
   const { t } = useTranslation();
   const [includeEnvironmentBound, setIncludeEnvironmentBound] = useState(false);

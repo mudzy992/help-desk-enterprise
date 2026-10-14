@@ -7,7 +7,7 @@ import {
 import { auditActionTranslationKey } from "@/lib/audit/audit-log-i18n";
 
 /*
-  Paket 5.4.0-d (M6): the security tab is SuperAdmin-only, and the journal has
+  the security tab is SuperAdmin-only, and the journal has
   one distinct state per situation. Both predicates are pure so the access rule
   and every state are provable without a browser.
 */

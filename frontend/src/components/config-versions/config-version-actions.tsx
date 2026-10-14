@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { controlClassName, labelClassName } from "@/components/ui/control";
 import {
   canActivateConfigVersion,
@@ -8,12 +9,13 @@ import {
   canValidateConfigVersion,
 } from "@/lib/config-versions/config-version-actions";
 import { requireConfigChangeReason } from "@/lib/config-versions/require-config-change-reason";
-import type { ConfigVersion } from "@/services/config-versions-types";
+import type { ConfigShadowDiff, ConfigVersion } from "@/services/config-versions-types";
 
 interface ConfigVersionActionsProperties {
   readonly version: ConfigVersion;
   readonly canWrite: boolean;
   readonly isBusy: boolean;
+  readonly shadowResult: ConfigShadowDiff | null;
   readonly onValidate: () => void;
   readonly onActivate: (reason: string) => void;
   readonly onRollback: (reason: string) => void;
@@ -23,6 +25,7 @@ export function ConfigVersionActions({
   version,
   canWrite,
   isBusy,
+  shadowResult,
   onValidate,
   onActivate,
   onRollback,
@@ -30,6 +33,7 @@ export function ConfigVersionActions({
   const { t } = useTranslation();
   const [activateReason, setActivateReason] = useState("");
   const [rollbackReason, setRollbackReason] = useState("");
+  const [confirmation, setConfirmation] = useState<"activate" | "rollback" | null>(null);
   const activateReady = requireConfigChangeReason(activateReason) !== null;
   const rollbackReady = requireConfigChangeReason(rollbackReason) !== null;
 
@@ -60,12 +64,7 @@ export function ConfigVersionActions({
               type="button"
               size="sm"
               disabled={isBusy || !activateReady}
-              onClick={() => {
-                const reason = requireConfigChangeReason(activateReason);
-                if (reason !== null) {
-                  onActivate(reason);
-                }
-              }}
+              onClick={() => setConfirmation("activate")}
             >
               {t("configVersions.activate")}
             </Button>
@@ -89,17 +88,59 @@ export function ConfigVersionActions({
             size="sm"
             variant="destructive"
             disabled={isBusy || !rollbackReady}
-            onClick={() => {
-              const reason = requireConfigChangeReason(rollbackReason);
-              if (reason !== null) {
-                onRollback(reason);
-              }
-            }}
+            onClick={() => setConfirmation("rollback")}
           >
             {t("configVersions.rollback")}
           </Button>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirmation !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmation(null);
+        }}
+        title={t(
+          confirmation === "rollback"
+            ? "configVersions.confirmRollbackTitle"
+            : "configVersions.confirmActivateTitle",
+        )}
+        description={t("configVersions.confirmChangeDescription", {
+          version: version.version,
+        })}
+        confirmLabel={t(
+          confirmation === "rollback" ? "configVersions.rollback" : "configVersions.activate",
+        )}
+        intent={confirmation === "rollback" ? "danger" : "default"}
+        isPending={isBusy}
+        onConfirm={() => {
+          const reason = requireConfigChangeReason(
+            confirmation === "rollback" ? rollbackReason : activateReason,
+          );
+          if (reason === null) return;
+          if (confirmation === "rollback") onRollback(reason);
+          else onActivate(reason);
+          setConfirmation(null);
+        }}
+      >
+        {shadowResult ? (
+          <dl className="grid grid-cols-3 gap-2 rounded-lg border border-border bg-muted/30 p-3 text-[12px]">
+            <div>
+              <dt className="text-muted-foreground">{t("configVersions.shadowSampleSize")}</dt>
+              <dd className="font-semibold">{shadowResult.sampleSize}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">
+                {t("configVersions.shadowRoutingMismatches")}
+              </dt>
+              <dd className="font-semibold">{shadowResult.routingGroupMismatches}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("configVersions.shadowSlaMismatches")}</dt>
+              <dd className="font-semibold">{shadowResult.slaRuleMismatches}</dd>
+            </div>
+          </dl>
+        ) : null}
+      </ConfirmDialog>
     </div>
   );
 }
