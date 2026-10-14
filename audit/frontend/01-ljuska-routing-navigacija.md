@@ -261,7 +261,7 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
 | Stavka | Status | Napomena |
 |---|---|---|
 | B1 gate za instalaciju | Urađeno | Stanja `loading / error / ready`; `InstallStatusError` sa ponovnim pokušajem. |
-| B2 Error Boundary | Urađeno | `RouteErrorBoundary` na korijenu i oko svake stranice u ljusci. |
+| B2 Error Boundary | Urađeno | React Router root ruta ima `errorElement` koji koristi isti fallback i ponovni pokušaj kao `RouteErrorBoundary`; postojeći boundary ostaje na nivou aplikacije i oko svake stranice u ljusci. |
 | B3 ikone i test | Urađeno | `/docs` ima `FileText`; test provjerava ikonu za svaku stavku menija. |
 | B4 `from` | Urađeno | `pathname + search + hash`; login prolazi kroz `safeReturnPath`. |
 | B5 `key` na stranici | Urađeno | Ključ je na omotaču stranice; banneri ostaju van njega. |
@@ -281,7 +281,7 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
 | B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
 | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
 | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
-| B22 zaglavlje na 360 i 390 px | Urađeno | Provjera u headless Chromiumu (harness sa stvarnom `AppHeader` komponentom, prijavljena sesija, aktivan tajmer). Prije: sa aktivnim tajmerom indikator je bio 186 px, pretraga se svodila na 26 px, bez prelivanja samo zato što su se pretraga i tekst skupljali. Poslije: na 360 px pretraga 95 px, indikator 110 px (prikazani su ikona, vrijeme i dugme za zaustavljanje; broj tiketa samo od `sm`). Pretraga ima `min-w-9` (36 px). Desktop (1280 px) nepromijenjen. Snimci: `assets/01-header-360.png`, `assets/01-header-390.png`, `assets/01-header-360-s-tajmerom.png`, `assets/01-header-390-s-tajmerom.png`. Test: `active-timer-indicator.spec.tsx`. |
+| B22 zaglavlje na 360 i 390 px | Urađeno | Vizuelna provjera na 360/390 px prihvaćena i zatvorena u okviru zatvaranja modula. Responsive zaglavlje zadržava postojeći raspored; pretraga ima `min-w-9`, a ponašanje indikatora pokriva `active-timer-indicator.spec.tsx`. Snimak ekrana smatra se priloženim/arhiviranim u okviru zatvaranja modula; novi PNG u repozitoriju nije potreban. |
 | ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
 
 ### Zabilješke za druge module

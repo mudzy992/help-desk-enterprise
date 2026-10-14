@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
-import { AppRouter } from "@/app/router";
+import { RouterProvider } from "react-router-dom";
+import { appRouter } from "@/app/router";
 import { InstallSetupProvider } from "@/app/install-setup-provider";
 import { RouteErrorBoundary } from "@/components/layout/route-error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
@@ -13,11 +13,9 @@ export function App() {
       <QueryClientProvider client={helpdeskQueryClient}>
         <ThemeProvider>
           <ToastProvider>
-            <BrowserRouter>
-              <InstallSetupProvider>
-                <AppRouter />
-              </InstallSetupProvider>
-            </BrowserRouter>
+            <InstallSetupProvider>
+              <RouterProvider router={appRouter} />
+            </InstallSetupProvider>
           </ToastProvider>
         </ThemeProvider>
       </QueryClientProvider>
