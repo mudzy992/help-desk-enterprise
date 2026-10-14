@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { decideKeepAlive, readTokenExpiryMs, sessionKeepAlive } from "./session-keep-alive";
-
-const token = (exp: number) => `h.${btoa(JSON.stringify({ sub: "u", exp })).replace(/=+$/, "")}.s`;
+import { decideKeepAlive, sessionKeepAlive } from "./session-keep-alive";
 
 describe("session keep-alive (review 2026-09-25)", () => {
-  it("reads exp from the JWT", () => {
-    expect(readTokenExpiryMs(token(1000))).toBe(1_000_000);
-    expect(readTokenExpiryMs("garbage")).toBeNull();
-  });
   it("refreshes an active user's token inside the window", () => {
     const now = 10_000_000;
     expect(decideKeepAlive({ now, expiresAt: now + 5 * 60_000, lastActivityAt: now - 1000 })).toBe(

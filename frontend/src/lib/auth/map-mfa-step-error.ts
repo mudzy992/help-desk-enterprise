@@ -6,6 +6,7 @@ export type MfaCodeError =
   | "expired"
   | "signInExpired"
   | "recoveryCodesExhausted"
+  | "mfaRequired"
   | "captchaRequired"
   | "captchaFailed"
   | "failed";
@@ -22,6 +23,10 @@ export function mapMfaCodeError(error: unknown): MfaCodeError {
   if (error instanceof ApiError && error.code === "INVALID_CREDENTIALS") return "signInExpired";
   if (error instanceof ApiError && error.code === "MFA_RECOVERY_CODES_EXHAUSTED") {
     return "recoveryCodesExhausted";
+  }
+  // The account policy requires a second factor, so it cannot be switched off.
+  if (error instanceof ApiError && error.code === "MFA_REQUIRED_CANNOT_DISABLE") {
+    return "mfaRequired";
   }
   if (error instanceof ApiError && (error.status === 401 || error.status === 400)) return "invalid";
   return "failed";

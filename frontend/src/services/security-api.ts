@@ -1,3 +1,7 @@
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
 import { apiRequest } from "@/services/api";
 
 /**
@@ -122,7 +126,7 @@ export function bulkPasswordReset(input?: {
  */
 export function startIdentityStepUp(
   purpose: IdentityStepUpPurpose,
-): Promise<{ options: Record<string, unknown> }> {
+): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> {
   return apiRequest("/security/identity/passkey/start", {
     method: "POST",
     body: JSON.stringify({ purpose }),
@@ -131,7 +135,7 @@ export function startIdentityStepUp(
 
 export function completeIdentityStepUp(input: {
   readonly purpose: IdentityStepUpPurpose;
-  readonly assertion: Record<string, unknown>;
+  readonly assertion: AuthenticationResponseJSON;
 }): Promise<void> {
   return apiRequest("/security/identity/passkey/verify", {
     method: "POST",

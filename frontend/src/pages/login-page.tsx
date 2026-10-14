@@ -11,7 +11,12 @@ import { BrandMark } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import { useBranding } from "@/lib/branding/branding-store";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  errorTextClassName,
+  hintClassName,
+  labelClassName,
+} from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { safeReturnPath, startEntraSignIn } from "@/lib/auth/entra-redirect";
 import {
@@ -169,6 +174,9 @@ export function LoginPage() {
     }
     navigate(redirectPath, { replace: true });
   };
+
+  const isCaptchaBlocked =
+    isCaptchaRequired && providers?.captcha?.provider === "turnstile" && captchaToken === null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -354,11 +362,7 @@ export function LoginPage() {
                         />
                       ) : undefined
                     }
-                    isCaptchaBlocked={
-                      isCaptchaRequired &&
-                      providers?.captcha?.provider === "turnstile" &&
-                      captchaToken === null
-                    }
+                    isCaptchaBlocked={isCaptchaBlocked}
                     onCompletePasskey={(assertion) => completeMfaWithPasskey(step.token, assertion)}
                     onVerified={() => navigate(redirectPath, { replace: true })}
                     onCancel={() => setStep({ kind: "credentials" })}
@@ -533,15 +537,13 @@ export function LoginPage() {
                         {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
                       </p>
                     ) : null}
+                    {isCaptchaBlocked ? (
+                      <p className={hintClassName}>{t("session.captchaBlocked")}</p>
+                    ) : null}
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={
-                        isSubmitting ||
-                        (isCaptchaRequired &&
-                          providers?.captcha?.provider === "turnstile" &&
-                          captchaToken === null)
-                      }
+                      disabled={isSubmitting || isCaptchaBlocked}
                     >
                       {isSubmitting ? t("session.signingIn") : t("session.signIn")}
                     </Button>

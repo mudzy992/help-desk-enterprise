@@ -2,10 +2,11 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
+  Res,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
   Post,
   Req,
   UsePipes,
@@ -36,6 +37,12 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { EntraLoginDto } from './dto/entra-login.dto';
 import { LocalLoginDto } from './dto/local-login.dto';
 import { readBearerAccessTokenFromHeader } from './read-bearer-access-token';
+import { readSessionToken } from './read-session-token';
+import { SessionCookieInterceptor } from './session-cookie.interceptor';
+import {
+  buildClearedSessionCookie,
+  type CookieResponse,
+} from './session-cookie';
 import { MfaCodeDto, MfaTokenDto } from './dto/mfa.dto';
 import { PasskeyAuthenticationDto } from './dto/passkey.dto';
 import { readSignInContext } from './read-sign-in-context';
@@ -73,12 +80,12 @@ export class AuthenticationController {
    */
   @Post('refresh')
   @UseGuards(SessionAuthenticationGuard)
+  @UseInterceptors(SessionCookieInterceptor)
   async refresh(
-    @Headers('authorization') authorization: string | undefined,
     @Req() request: AuthenticatedHttpRequest & SignInRequest,
   ): Promise<AuthenticationSessionResponse> {
     const claims = await this.sessionTokenService.verify(
-      readBearerAccessTokenFromHeader(authorization) ?? '',
+      readSessionToken(request)?.token ?? '',
     );
     const principal = request[AUTHENTICATED_PRINCIPAL_REQUEST_KEY];
     if (principal === undefined) {
@@ -100,11 +107,13 @@ export class AuthenticationController {
   @Post('logout')
   @HttpCode(204)
   async logout(
-    @Headers('authorization') authorization: string | undefined,
+    @Req() request: AuthenticatedHttpRequest,
+    @Res({ passthrough: true }) response: CookieResponse,
   ): Promise<void> {
+    response.setHeader('Set-Cookie', buildClearedSessionCookie());
     try {
       const claims = await this.sessionTokenService.verify(
-        readBearerAccessTokenFromHeader(authorization) ?? '',
+        readSessionToken(request)?.token ?? '',
       );
       await this.authenticationService.logout(claims);
     } catch {
@@ -117,9 +126,31 @@ export class AuthenticationController {
   // pins this contract).
   @Post('login')
   @HttpCode(200)
+  @UseInterceptors(SessionCookieInterceptor)
   login(
     @Body() body: LocalLoginDto,
     @Req() request: SignInRequest,
+  ): Promise<AuthenticationLoginResponse> {
+    return this.signInWithPassword(body, request);
+  }
+
+  /**
+   * Browser extension sign-in. Same credentials and limits as `login`, but the
+   * token comes back in the body (the extension keeps it in its own storage) and
+   * no cookie is set. The web app never calls this route.
+   */
+  @Post('extension/login')
+  @HttpCode(200)
+  loginForExtension(
+    @Body() body: LocalLoginDto,
+    @Req() request: SignInRequest,
+  ): Promise<AuthenticationLoginResponse> {
+    return this.signInWithPassword(body, request);
+  }
+
+  private signInWithPassword(
+    body: LocalLoginDto,
+    request: SignInRequest,
   ): Promise<AuthenticationLoginResponse> {
     return this.loginAttemptLimiter.guardPasswordLogin(
       body.email,
@@ -141,6 +172,7 @@ export class AuthenticationController {
 
   @Post('entra')
   @HttpCode(200)
+  @UseInterceptors(SessionCookieInterceptor)
   loginWithEntra(
     @Body() body: EntraLoginDto,
     @Req() request?: SignInRequest,
@@ -154,13 +186,14 @@ export class AuthenticationController {
 
   /** Paket 2.1: may continue with MFA (verify or forced enrollment). */
   @Post('change-password')
+  @UseInterceptors(SessionCookieInterceptor)
   changePassword(
-    @Headers('authorization') authorization: string | undefined,
     @Body() body: ChangePasswordDto,
     @Req() request?: SignInRequest,
   ): Promise<AuthenticationLoginResponse> {
+    // The change-password token is a separate bearer credential, never the session cookie.
     const passwordChangeToken =
-      readBearerAccessTokenFromHeader(authorization) ?? '';
+      readBearerAccessTokenFromHeader(request?.headers?.authorization) ?? '';
     return this.loginAttemptLimiter.guard(
       changePasswordAttemptKey(request?.ip),
       () =>
@@ -174,6 +207,7 @@ export class AuthenticationController {
   /** Paket 2.1 (M3): second factor. Failures are limited per account (5 / 15 min). */
   @Post('mfa/verify')
   @HttpCode(200)
+  @UseInterceptors(SessionCookieInterceptor)
   verifyMfa(@Body() body: MfaCodeDto, @Req() request?: SignInRequest): Promise<AuthenticationSessionResponse> {
     return this.authenticationService.verifyMfa(body, readSignInContext(request));
   }
@@ -190,6 +224,7 @@ export class AuthenticationController {
 
   @Post('mfa/passkey/verify')
   @HttpCode(200)
+  @UseInterceptors(SessionCookieInterceptor)
   verifyMfaPasskey(
     @Body() body: PasskeyAuthenticationDto,
     @Req() request?: SignInRequest,
@@ -206,6 +241,7 @@ export class AuthenticationController {
 
   @Post('mfa/enroll/confirm')
   @HttpCode(200)
+  @UseInterceptors(SessionCookieInterceptor)
   confirmMfaEnrollment(
     @Body() body: MfaCodeDto,
     @Req() request?: SignInRequest,

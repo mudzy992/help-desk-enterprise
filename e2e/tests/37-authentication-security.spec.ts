@@ -10,7 +10,7 @@ type MfaPendingLogin = {
   readonly mfaToken: string;
 };
 
-type SessionResponse = { readonly accessToken: string };
+type SessionResponse = { readonly expiresInSeconds: number };
 
 /** Paket 5.2.1 M2: separate password buckets, keyed recovery codes, and revocation. */
 test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
@@ -52,7 +52,7 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
       method: 'POST',
       body: JSON.stringify({ mfaToken: firstPending.mfaToken, code: recoveryCode }),
     });
-    firstSignIn.setBearerToken(session.accessToken);
+    expect(session.expiresInSeconds).toBeGreaterThan(0);
     const security = await firstSignIn.requestJson<{ mfa: { recoveryCodesRemaining: number } }>('/auth/security');
     expect(security.mfa.recoveryCodesRemaining).toBe(9);
 
@@ -220,7 +220,6 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
  *    reports zero changed accounts.
  */
 type SessionTtl = {
-  readonly accessToken: string;
   readonly expiresInSeconds: number;
 };
 
@@ -244,12 +243,10 @@ async function signInWithRememberMe(
       method: 'POST',
       body: JSON.stringify({ mfaToken: body.mfaToken, code: await nextTotpCode(email) }),
     });
-    api.setBearerToken(verified.accessToken);
     return verified;
   }
   if (body.status !== undefined) throw new Error(`[e2e] login requires ${body.status}`);
-  if (body.accessToken === undefined) throw new Error('[e2e] login answer carried no access token');
-  api.setBearerToken(body.accessToken);
+  if (body.expiresInSeconds === undefined) throw new Error('[e2e] login answer carried no session lifetime');
   return body;
 }
 

@@ -3,14 +3,6 @@ import { readStoredSession } from "@/services/session-store";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-function authorizationHeaders(): HeadersInit {
-  const session = readStoredSession();
-  if (session === null) {
-    return {};
-  }
-  return { Authorization: `Bearer ${session.accessToken}` };
-}
-
 /**
  * Review 2026-09-25 (S10): an expired/revoked session used to surface as a
  * separate "not authorized" error on every screen. A 401 on an authenticated
@@ -55,8 +47,8 @@ export function isConfirmationUnauthorizedPath(path: string): boolean {
   return [...sessionlessPaths, ...confirmationPaths].some((prefix) => path.startsWith(prefix));
 }
 
-function notifyUnauthorized(path: string, sentBearer: boolean, status: number): void {
-  if (status !== 401 || !sentBearer || unauthorizedHandler === null) {
+function notifyUnauthorized(path: string, sentSession: boolean, status: number): void {
+  if (status !== 401 || !sentSession || unauthorizedHandler === null) {
     return;
   }
   if (isConfirmationUnauthorizedPath(path)) {
@@ -102,13 +94,20 @@ async function readApiError(response: Response): Promise<ApiError> {
   );
 }
 
-async function authenticatedApiResponse(path: string, init: RequestInit): Promise<Response> {
-  const authHeaders = authorizationHeaders();
+/*
+  One place for the rules every request follows: the session cookie travels with
+  every call (`credentials: "include"`), the install token goes on `/install/`
+  paths, a caller-supplied Authorization header is passed through unchanged, and
+  a 401 is judged by the same exemption lists. The browser never handles the
+  session token itself (A8).
+*/
+async function sendRequest(path: string, init: RequestInit, accept: string): Promise<Response> {
+  const sentSession = readStoredSession() !== null && !overridesAuthorization(init.headers);
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
-      Accept: "application/json",
-      ...authHeaders,
+      Accept: accept,
       ...installTokenHeaders(path),
       ...(init.body && !(init.body instanceof FormData)
         ? { "Content-Type": "application/json" }
@@ -117,14 +116,14 @@ async function authenticatedApiResponse(path: string, init: RequestInit): Promis
     },
   });
   if (!response.ok) {
-    notifyUnauthorized(
-      path,
-      "Authorization" in authHeaders && !overridesAuthorization(init.headers),
-      response.status,
-    );
+    notifyUnauthorized(path, sentSession, response.status);
     throw await readApiError(response);
   }
   return response;
+}
+
+async function authenticatedApiResponse(path: string, init: RequestInit): Promise<Response> {
+  return sendRequest(path, init, "application/json");
 }
 
 async function readApiResponse<T>(response: Response): Promise<T> {
@@ -168,19 +167,7 @@ export async function apiDownloadRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<ApiDownloadResult> {
-  const authHeaders = authorizationHeaders();
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: "*/*",
-      ...authHeaders,
-      ...init.headers,
-    },
-  });
-  if (!response.ok) {
-    notifyUnauthorized(path, "Authorization" in authHeaders, response.status);
-    throw await readApiError(response);
-  }
+  const response = await sendRequest(path, init, "*/*");
   return {
     blob: await response.blob(),
     fileName: readContentDispositionFileName(response.headers.get("Content-Disposition")),

@@ -1,49 +1,35 @@
-import { useCallback, useEffect, useState } from "react";
-import { useSession } from "@/lib/session/use-session";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { queryKeys } from "@/lib/query/query-keys";
 import type { PermissionKey, RoleKey } from "@/lib/session/permission-keys";
+import { useSession } from "@/lib/session/use-session";
 import { getCurrentSession, type CurrentSessionResponse } from "@/services/session-api";
+
+/** Permissions change rarely; a screen that mounts later reuses the answer. */
+export const currentSessionStaleTimeMs = 5 * 60_000;
 
 export type SessionCapabilities = {
   readonly session: CurrentSessionResponse | null;
+  /** True only before the first answer for this user; refreshes never set it. */
   readonly isLoading: boolean;
+  readonly retry: () => void;
   readonly hasPermission: (permission: PermissionKey) => boolean;
   readonly hasRole: (role: RoleKey) => boolean;
 };
 
 export function useSessionCapabilities(): SessionCapabilities {
   const { session: storedSession } = useSession();
-  const accessToken = storedSession?.accessToken ?? null;
-  const [session, setSession] = useState<CurrentSessionResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(accessToken !== null);
+  const subjectId = storedSession?.principal.subjectId ?? null;
 
-  useEffect(() => {
-    if (accessToken === null) {
-      setSession(null);
-      setIsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setIsLoading(true);
-    void getCurrentSession()
-      .then((loaded) => {
-        if (!cancelled) {
-          setSession(loaded);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSession(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
+  const query = useQuery({
+    queryKey: queryKeys.currentSession(subjectId ?? ""),
+    queryFn: getCurrentSession,
+    enabled: subjectId !== null,
+    staleTime: currentSessionStaleTimeMs,
+  });
+
+  const session = subjectId === null ? null : (query.data ?? null);
+  const { refetch } = query;
 
   const hasPermission = useCallback(
     (permission: PermissionKey) => session?.permissionKeys.includes(permission) ?? false,
@@ -55,5 +41,15 @@ export function useSessionCapabilities(): SessionCapabilities {
     [session],
   );
 
-  return { session, isLoading, hasPermission, hasRole };
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  return {
+    session,
+    isLoading: subjectId !== null && query.isPending,
+    retry,
+    hasPermission,
+    hasRole,
+  };
 }

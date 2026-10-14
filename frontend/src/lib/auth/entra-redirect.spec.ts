@@ -19,6 +19,17 @@ describe("safeReturnPath (paket 1.8)", () => {
     expect(safeReturnPath(null)).toBe("/");
     expect(safeReturnPath(undefined)).toBe("/");
   });
+
+  it("rejects targets that URL parsers turn into another host (A13)", () => {
+    expect(safeReturnPath("/\\evil.example")).toBe("/");
+    expect(safeReturnPath("/\\\\evil.example")).toBe("/");
+    expect(safeReturnPath("/\t/evil.example")).toBe("/");
+    expect(safeReturnPath("/tickets\nx")).toBe("/");
+  });
+
+  it("still allows a login-like path that is not the login page", () => {
+    expect(safeReturnPath("/login-help")).toBe("/login-help");
+  });
 });
 
 /*

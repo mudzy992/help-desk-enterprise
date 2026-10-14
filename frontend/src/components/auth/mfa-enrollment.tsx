@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MfaCodeForm } from "@/components/auth/mfa-code-form";
@@ -15,6 +15,15 @@ interface MfaEnrollmentProperties {
   readonly onCancel?: () => void;
 }
 
+type EnrollmentLoadErrorKey =
+  "auth.mfa.serverNotConfigured" | "auth.mfa.signInExpired" | "auth.mfa.failed";
+
+const enrollmentLoadErrorKeys: Readonly<Record<MfaEnrollmentLoadError, EnrollmentLoadErrorKey>> = {
+  unavailable: "auth.mfa.serverNotConfigured",
+  signInExpired: "auth.mfa.signInExpired",
+  failed: "auth.mfa.failed",
+};
+
 /** "ABCD EFGH …" — easier to type into an app by hand. */
 function groupSecret(secret: string): string {
   return secret.replace(/(.{4})/g, "$1 ").trim();
@@ -29,20 +38,16 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
   const [secret, setSecret] = useState<MfaEnrollmentSecret | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<MfaEnrollmentLoadError | null>(null);
+  // Creating a secret replaces the previous one on the server, so one mount
+  // asks once. A ref keeps the request across React StrictMode's second effect run.
+  const pendingSecret = useRef<Promise<MfaEnrollmentSecret> | null>(null);
 
   useEffect(() => {
     let active = true;
-    loadSecret()
-      .then(async (value) => {
-        if (!active) return;
-        setSecret(value);
-        const qrcode = await import("qrcode");
-        const url = await qrcode.toDataURL(value.otpauthUri, {
-          margin: 1,
-          width: 192,
-          errorCorrectionLevel: "M",
-        });
-        if (active) setQrDataUrl(url);
+    pendingSecret.current ??= loadSecret();
+    pendingSecret.current
+      .then((value) => {
+        if (active) setSecret(value);
       })
       .catch((error: unknown) => {
         if (active) setLoadError(mapMfaEnrollmentLoadError(error));
@@ -50,21 +55,31 @@ export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollment
     return () => {
       active = false;
     };
-    // The secret is created once per mount; a new mount starts a new set-up.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadSecret]);
+
+  useEffect(() => {
+    if (secret === null) return undefined;
+    let active = true;
+    import("qrcode")
+      .then((qrcode) =>
+        qrcode.toDataURL(secret.otpauthUri, { margin: 1, width: 192, errorCorrectionLevel: "M" }),
+      )
+      .then((url) => {
+        if (active) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (active) setLoadError("failed");
+      });
+    return () => {
+      active = false;
+    };
+  }, [secret]);
 
   if (loadError) {
     return (
       <div className="space-y-3">
         <p className={errorTextClassName} role="alert">
-          {t(
-            loadError === "unavailable"
-              ? "auth.mfa.serverNotConfigured"
-              : loadError === "signInExpired"
-                ? "auth.mfa.signInExpired"
-                : "auth.mfa.failed",
-          )}
+          {t(enrollmentLoadErrorKeys[loadError])}
         </p>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>

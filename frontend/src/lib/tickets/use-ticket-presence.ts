@@ -45,7 +45,7 @@ export function useTicketPresence(input: {
       emitRef.current = null;
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     const emit = () => {
       lastSentRef.current = Date.now();
       socket.emit(ticketSocketEvents.presence, {

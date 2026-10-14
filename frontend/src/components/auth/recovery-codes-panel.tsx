@@ -1,10 +1,11 @@
 import { Copy, Download } from "lucide-react";
 import { brandFileSlug } from "@/lib/branding/brand-file-slug";
 import { useBranding } from "@/lib/branding/branding-store";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { hintClassName } from "@/components/ui/control";
 
 interface RecoveryCodesPanelProperties {
   readonly codes: readonly string[];
@@ -17,8 +18,29 @@ export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPa
   const { t } = useTranslation();
   const { appName } = useBranding();
   const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const codeList = useRef<HTMLUListElement | null>(null);
   const text = codes.join("\n");
+
+  /*
+    Clipboard access is refused on plain HTTP and in some embedded browsers. The
+    codes are then selected so a single Ctrl+C / Cmd+C finishes the job.
+  */
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyState("copied");
+    } catch {
+      if (codeList.current !== null) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(codeList.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      setCopyState("failed");
+    }
+  };
 
   const download = () => {
     const blob = new Blob([`${appName} — ${t("auth.mfa.recoveryTitle")}\n\n${text}\n`], {
@@ -36,6 +58,7 @@ export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPa
     <div className="space-y-4">
       <p className="text-[12.5px] leading-5 text-muted-foreground">{t("auth.mfa.recoveryIntro")}</p>
       <ul
+        ref={codeList}
         className="tnum grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-border bg-elevated/60 p-3 text-[13px] font-medium text-foreground"
         data-testid="recovery-codes"
       >
@@ -46,23 +69,18 @@ export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPa
         ))}
       </ul>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            void navigator.clipboard
-              ?.writeText(text)
-              .then(() => setCopied(true))
-              .catch(() => undefined);
-          }}
-        >
-          <Copy /> {copied ? t("auth.mfa.copied") : t("auth.mfa.copy")}
+        <Button type="button" variant="secondary" size="sm" onClick={() => void copy()}>
+          <Copy /> {copyState === "copied" ? t("auth.mfa.copied") : t("auth.mfa.copy")}
         </Button>
         <Button type="button" variant="secondary" size="sm" onClick={download}>
           <Download /> {t("auth.mfa.download")}
         </Button>
       </div>
+      {copyState === "failed" ? (
+        <p className={hintClassName} role="status">
+          {t("auth.mfa.copyFailed")}
+        </p>
+      ) : null}
       <div className="pt-1">
         <Checkbox
           checked={saved}

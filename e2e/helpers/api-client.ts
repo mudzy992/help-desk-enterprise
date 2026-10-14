@@ -46,23 +46,30 @@ export class ApiRequestError extends Error {
   }
 }
 
+const SESSION_COOKIE_NAME = 'helpdesk_session';
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 export class ApiClient {
   private authorization: string | null = null;
+  /** The HttpOnly session cookie the API set on sign-in, replayed like a browser would. */
+  private sessionCookie: string | null = null;
 
-  constructor(private readonly apiUrl = readE2EEnvironment().apiUrl) {}
+  constructor(
+    private readonly apiUrl = readE2EEnvironment().apiUrl,
+    private readonly appOrigin = readE2EEnvironment().baseUrl,
+  ) {}
 
   setBearerToken(token: string | null): void {
     this.authorization = token;
   }
 
   /**
-   * Paket 2.1: password → (MFA verify | forced MFA enrollment) → token. The
-   * enrollment secret is stored for later sign-ins (helpers/mfa.ts).
+   * Paket 2.1: password → (MFA verify | forced MFA enrollment) → session cookie.
+   * The enrollment secret is stored for later sign-ins (helpers/mfa.ts). Returns
+   * the opaque session value so callers can assert that a session was issued.
    */
   async login(email: string, password: string): Promise<string> {
     type LoginBody = {
-      accessToken?: string;
-      token?: string;
       status?: string;
       mfaToken?: string;
     };
@@ -89,12 +96,10 @@ export class ApiClient {
     } else if (body.status !== undefined) {
       throw new Error(`Login requires ${body.status}`);
     }
-    const token = body.accessToken ?? body.token;
-    if (token === undefined || token.length === 0) {
-      throw new Error('Login response missing access token');
+    if (this.sessionCookie === null) {
+      throw new Error('Login response did not set the session cookie');
     }
-    this.setBearerToken(token);
-    return token;
+    return this.sessionCookie;
   }
 
   async requestJson<T>(
@@ -136,6 +141,12 @@ export class ApiClient {
     }
     if (this.authorization !== null) {
       headers.set('Authorization', `Bearer ${this.authorization}`);
+    } else if (this.sessionCookie !== null) {
+      headers.set('Cookie', `${SESSION_COOKIE_NAME}=${this.sessionCookie}`);
+      // Browsers send Origin on state-changing requests; the API trusts a cookie session only from an allowed origin.
+      if (UNSAFE_METHODS.has((init.method ?? 'GET').toUpperCase())) {
+        headers.set('Origin', this.appOrigin);
+      }
     }
     return this.send(path, init, headers, 0);
   }
@@ -157,6 +168,17 @@ export class ApiClient {
    *   a reset/timeout after sending (`UND_ERR_SOCKET`, `ECONNRESET`) is never
    *   repeated for a write.
    */
+  private captureSessionCookie(response: Response): void {
+    const cookie = response.headers
+      .getSetCookie()
+      .find((entry) => entry.startsWith(`${SESSION_COOKIE_NAME}=`));
+    if (cookie === undefined) {
+      return;
+    }
+    const value = cookie.slice(SESSION_COOKIE_NAME.length + 1).split(';')[0] ?? '';
+    this.sessionCookie = value.length > 0 ? value : null;
+  }
+
   private async send(
     path: string,
     init: RequestInit,
@@ -165,7 +187,9 @@ export class ApiClient {
   ): Promise<Response> {
     const method = (init.method ?? 'GET').toUpperCase();
     try {
-      return await fetch(`${this.apiUrl}${path}`, { ...init, headers });
+      const response = await fetch(`${this.apiUrl}${path}`, { ...init, headers });
+      this.captureSessionCookie(response);
+      return response;
     } catch (error) {
       const cause = (error as { readonly cause?: unknown }).cause;
       const causeCode =

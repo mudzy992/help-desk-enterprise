@@ -1,3 +1,7 @@
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
 import { apiRequest } from "@/services/api";
 import type { MfaEnrollmentSecret } from "@/services/auth-api";
 
@@ -67,11 +71,12 @@ export const getAccountSecurity = (): Promise<AccountSecurityOverview> =>
 /* Paket 5.4.0-e: passkey ceremonies on the caller's own account. The confirm
    call carries the (optional) TOTP code the server asks for when the account
    already has TOTP — a stolen session alone must not be able to add a factor. */
-export const startPasskeyRegistration = (): Promise<{ options: Record<string, unknown> }> =>
-  apiRequest("/auth/security/passkey/register/start", post());
+export const startPasskeyRegistration = (): Promise<{
+  options: PublicKeyCredentialCreationOptionsJSON;
+}> => apiRequest("/auth/security/passkey/register/start", post());
 
 export const confirmPasskeyRegistration = (input: {
-  readonly response: Record<string, unknown>;
+  readonly response: RegistrationResponseJSON;
   readonly code?: string;
 }): Promise<{ passkey: PasskeyView }> =>
   apiRequest("/auth/security/passkey/register/confirm", post(input));

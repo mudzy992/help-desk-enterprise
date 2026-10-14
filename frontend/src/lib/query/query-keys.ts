@@ -58,4 +58,7 @@ export const queryKeys = {
   createTicketCatalog: ["catalog", "create-ticket"] as const,
   slaSummary: ["sla", "summary"] as const,
   notifications: ["notifications"] as const,
+  /** The current session answer, keyed by user so a token refresh does not refetch it. */
+  platformPasskeyAvailable: ["webauthn", "platform-authenticator"] as const,
+  currentSession: (subjectId: string) => ["session", "current", subjectId] as const,
 } as const;

@@ -41,7 +41,7 @@ export function useTicketApprovals(ticketId: string | undefined) {
     if (session === null || ticketId === undefined) {
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     const stop = subscribeSocketEvent<TicketUpdatedRealtimePayload>(
       socket,
       ticketSocketEvents.ticketUpdated,

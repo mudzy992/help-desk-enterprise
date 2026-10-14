@@ -3,7 +3,6 @@ import { io, type ManagerOptions, type Socket, type SocketOptions } from "socket
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 let socket: Socket | null = null;
-let token: string | null = null;
 let referenceCount = 0;
 let releaseTimer: number | null = null;
 
@@ -18,11 +17,13 @@ export const helpdeskSocketReconnect = {
   randomizationFactor: 0.5,
 } as const;
 
-export function createHelpdeskSocketOptions(
-  accessToken: string,
-): Partial<ManagerOptions & SocketOptions> {
+/**
+ * The socket authenticates with the session cookie the browser already holds, so
+ * `withCredentials` is the only auth option. The API checks the handshake origin.
+ */
+export function createHelpdeskSocketOptions(): Partial<ManagerOptions & SocketOptions> {
   return {
-    auth: { token: accessToken },
+    withCredentials: true,
     autoConnect: true,
     reconnection: true,
     ...helpdeskSocketReconnect,
@@ -33,18 +34,16 @@ export function getHelpdeskSocket(): Socket | null {
   return socket;
 }
 
-export function acquireHelpdeskSocket(accessToken: string): Socket {
+export function acquireHelpdeskSocket(): Socket {
   if (releaseTimer !== null) {
     window.clearTimeout(releaseTimer);
     releaseTimer = null;
   }
   referenceCount += 1;
-  if (socket !== null && token === accessToken) {
+  if (socket !== null) {
     return socket;
   }
-  disconnectSocket();
-  token = accessToken;
-  socket = io(apiBaseUrl, createHelpdeskSocketOptions(accessToken));
+  socket = io(apiBaseUrl, createHelpdeskSocketOptions());
   return socket;
 }
 
@@ -65,5 +64,4 @@ function disconnectSocket(): void {
   socket?.removeAllListeners();
   socket?.disconnect();
   socket = null;
-  token = null;
 }

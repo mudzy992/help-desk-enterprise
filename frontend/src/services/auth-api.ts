@@ -1,9 +1,12 @@
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
 import { apiRequest } from "@/services/api";
 import type { SessionPrincipal } from "@/services/session-store";
 
+/** The session the API established. The token travels only in its HttpOnly cookie. */
 export type AuthenticationSessionResponse = {
-  readonly accessToken: string;
-  readonly tokenType: "Bearer";
   readonly expiresInSeconds: number;
   readonly principal: SessionPrincipal;
 };
@@ -81,7 +84,9 @@ export function verifyMfaCode(input: {
  * is not consumed until a factor verifies, so the person can switch between
  * "code" and "passkey" as long as it is valid.
  */
-export function startPasskeyLogin(mfaToken: string): Promise<{ options: Record<string, unknown> }> {
+export function startPasskeyLogin(
+  mfaToken: string,
+): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> {
   return apiRequest("/auth/mfa/passkey/start", {
     method: "POST",
     body: JSON.stringify({ mfaToken }),
@@ -90,7 +95,7 @@ export function startPasskeyLogin(mfaToken: string): Promise<{ options: Record<s
 
 export function completePasskeyLogin(input: {
   readonly mfaToken: string;
-  readonly assertion: Record<string, unknown>;
+  readonly assertion: AuthenticationResponseJSON;
 }): Promise<AuthenticationSessionResponse> {
   return apiRequest("/auth/mfa/passkey/verify", {
     method: "POST",

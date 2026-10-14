@@ -255,3 +255,67 @@ Refaktor se ne radi bez potvrde obima.
 6. **A7:** ukloniti `SessionSignInControls`.
 7. **A8:** tim treba da donese odluku o čuvanju tokena (httpOnly cookie) i da je dokumentuje.
 8. **A25:** zabraniti isključivanje TOTP-a dok je MFA `required` (odluka vlasnika: TOTP ostaje obavezan, passkey je dodatni način prijave). Dodati test za scenarij „passkey postoji, TOTP isključen“. Izmjena koda čeka odobrenje obima.
+
+---
+
+## Status ispravki (val 6.1.2)
+
+Stanje na dan 2026-10-14. Svaka stavka je označena kao urađena, djelimično urađena, prihvaćen rizik ili pregledana.
+
+| # | Status | Šta je urađeno |
+|---|---|---|
+| A1 | Urađeno | Mrežna greška ili 5xx na `/auth/session` ne odjavljuje korisnika. `session === null` prikazuje `SessionCheckError` sa „Pokušaj ponovo“. Testovi: `require-auth-session.spec.tsx`. |
+| A2 | Urađeno (bez provjere u pregledaču) | Capabilities su na `useQuery` (`staleTime` 5 min). Obnavljanje tokena više ne pokreće `isLoading`, pa se stranica ne demontira. |
+| A3 | Urađeno | Jedan izvor: `queryKeys.currentSession(subjectId)`. Test: `use-session-capabilities.spec.tsx`. |
+| A4 | Urađeno | `storage` listener u `use-session.ts` filtrira `sessionStorageKey`. Test: `use-session-sync.spec.tsx`. |
+| A5 | Urađeno | `platformPasskeyAvailable()` je async, hook `usePlatformPasskeyAvailable`. Odluka vlasnika: samo platform autentikator. |
+| A6 | Urađeno | `session.captchaBlocked` se prikazuje iznad dugmeta i u MFA koraku. `declare global var turnstile` umjesto `as unknown`. |
+| A7 | Urađeno | `session-sign-in-controls.tsx` obrisan (`git rm`). |
+| A8 | Urađeno (kod, bez provjere u pregledaču) | Vidi „Odluka o tokenu (A8)“ ispod. |
+| A9 | Urađeno | Novi testovi: sesija (sync, capabilities, require-auth), passkey, MFA kod, enrollment, redirect, recovery kodovi, API download. |
+| A10 | Urađeno | Opcije i odgovori WebAuthn-a su tipizirani (`@simplewebauthn/browser`). Uklonjeni `as unknown as`. |
+| A11 | Djelimično | `passkeyDeviceKindKey` je template literal; uklonjen `as never` u `passkey-section.tsx`. Ostali `as never` (drugi moduli) ostaju za module 10 i 13. |
+| A12 | Urađeno | Uklonjen `eslint-disable`. `pendingSecret` ref sprječava dupli `loadSecret` u StrictMode. QR u zasebnom efektu. |
+| A13 | Urađeno | `safeReturnPath` odbija obrnutu kosu crtu, kontrolne znakove i `/login`. Test: `entra-redirect.spec.ts`. |
+| A14 | Prihvaćen rizik | Login ostaje fail-open kad `/auth/providers` padne (odluka vlasnika). Lokalna forma se prikazuje; backend i dalje provjerava sve. |
+| A15 | Djelimično | `Record` mape za poruke grešaka (`mfa-code-form`, `mfa-enrollment`); dijalog za preimenovanje izdvojen u `passkey-rename-dialog.tsx`. `pages/login-page.tsx` (600 linija) nije razdvojen. |
+| A16 | Urađeno | `PanelSkeleton` dok se učitava; greška ima „Pokušaj ponovo“. |
+| A17 | Urađeno | Ključ u localStorage je FNV-1a hash e-maila. Stari ključevi ostaju (nema migracije). |
+| A18 | Urađeno | Komentar u `password-expiry-banner.tsx` ispravljen. |
+| A19 | Urađeno | Jedna `sendRequest` funkcija za JSON i preuzimanja. Test: `api-download.spec.ts`. |
+| A20 | Zatvoreno | Liste putanja su konstante u `api.ts`, pokrivene `api-unauthorized.spec.ts`. |
+| A21 | Urađeno | Pojedinačna odjava sesije ide kroz `ConfirmDialog`. |
+| A22 | Urađeno | `copy()` ima fallback (selekcija kodova, poruka `auth.mfa.copyFailed`). Test: `recovery-codes-panel.spec.tsx`. |
+| A23 | Pregledano | `mfa-section.tsx` bez problema. `passkey-section.tsx`: greška preimenovanja bila je iza `aria-hidden` dijaloga, sada je u dijalogu. |
+| A24 | Provjereno | Nema CSP-a u `nginx.conf` ni u repu. Turnstile nije blokiran. CSP je zaseban zadatak. |
+| A25 | Urađeno | `MFA_REQUIRED_CANNOT_DISABLE` se mapira na poruku (`map-mfa-step-error.ts`). Backend test: `mfa-disable.spec.ts`. |
+
+### Odluka o tokenu (A8)
+
+Access token više ne ide u `localStorage` niti u JS.
+
+- Backend postavlja kolačić `helpdesk_session` (`HttpOnly; Secure; SameSite=Strict; Path=/`, `Max-Age` = trajanje sesije) na odgovorima prijave, Entra prijave, MFA verifikacije, passkey verifikacije, završetka enrollmenta, promjene lozinke i `refresh`. Tijelo odgovora više ne sadrži `accessToken`.
+- Guard prihvata kolačić ili `Authorization: Bearer`. Bearer ima prednost. Za kolačić na nesigurnim metodama (POST/PUT/PATCH/DELETE) `Origin` mora biti u `CORS_ORIGIN` listi (CSRF odbrana bez tokena).
+- CORS: `credentials: true`, lista origin-a ostaje eksplicitna (bez `*`). Socket.IO: `withCredentials` u frontendu, a kolačić se prihvata samo iz dozvoljenog `Origin`-a (zaštita od CSWSH).
+- Logout briše kolačić i opoziva sesiju.
+- Frontend čuva samo `principal` i `expiresAt` (`session-store.ts`). Stari zapisi sa tokenom se brišu pri čitanju.
+- Ekstenzija: zaseban endpoint `POST /auth/extension/login` vraća bearer token u tijelu i ne postavlja kolačić. Ekstenzija ga čuva u svom storage-u, a SPA ga ne vidi.
+- E2E klijent (`e2e/helpers/api-client.ts`) čita `Set-Cookie`, šalje `Cookie` i `Origin` kao preglednik.
+- Nije urađeno: MSAL (Entra) cache u `sessionStorage` je zasebna tema i ostaje za kasnije.
+- Provjera: backend `tsc` i jest (58 suite, 381 testova za auth, websocket i CORS) prolaze. Frontend `tsc`, vitest (219 fajlova, 937 testova), eslint (0 grešaka), build i guard-skripte prolaze. **E2E specovi 37 i 39 nisu pokrenuti** (zahtijevaju puni stack). **Provjera u pregledaču nije urađena.**
+
+### Must-Have status
+
+| # | Status |
+|---|---|
+| 1. A1 | Urađeno |
+| 2. A2 | Urađeno. Provjera u pregledaču **nije urađena** (vidjeti gore). |
+| 3. A3 | Urađeno |
+| 4. A9 | Urađeno |
+| 5. A5 | Urađeno |
+| 6. A7 | Urađeno |
+| 7. A8 | Urađeno (httpOnly kolačić, odluka dokumentovana gore) |
+| 8. A25 | Urađeno |
+
+Ocjena pri auditu ostaje **5/10**. Ponovna ocjena se radi nakon provjere u pregledaču i e2e testova.
+

@@ -21,7 +21,7 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
     if (session === null) {
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     const debounced = scheduleDebouncedCallback(() => {
       void reload();
     }, collectionReloadDebounceMs);

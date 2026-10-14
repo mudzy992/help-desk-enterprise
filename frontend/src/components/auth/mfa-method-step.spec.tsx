@@ -15,8 +15,10 @@ vi.mock("react-i18next", () => ({
 }));
 
 const canUsePasskeys = vi.hoisted(() => ({ value: false }));
+vi.mock("@/lib/webauthn/use-passkey-availability", () => ({
+  usePlatformPasskeyAvailable: () => ({ available: canUsePasskeys.value, isLoading: false }),
+}));
 vi.mock("@/lib/webauthn/passkey-ceremony", () => ({
-  browserCanUsePasskeys: () => canUsePasskeys.value,
   getPasskeyAssertion: () => Promise.resolve({ kind: "cancelled" as const }),
 }));
 

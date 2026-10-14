@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
+import { SessionCheckError } from "@/components/auth/session-check-error";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
 import { RouteErrorBoundary } from "@/components/layout/route-error-boundary";
@@ -38,8 +39,12 @@ export function ApplicationShell() {
     setIsMobileNavigationOpen(false);
   }, [location.key]);
 
-  if (storedSession === null || isLoading || session === null) {
+  if (storedSession === null || isLoading) {
     return <InstallGateSkeleton />;
+  }
+
+  if (session === null) {
+    return <SessionCheckError onRetry={capabilities.retry} />;
   }
 
   const isStaff = isTicketStaff(capabilities);
@@ -55,7 +60,7 @@ export function ApplicationShell() {
         <AnnouncerRegions />
         <RouteFocusManager />
         <HelpdeskSocketHost />
-        {isStaff ? <ActiveTimerHost accessToken={storedSession.accessToken} /> : null}
+        {isStaff ? <ActiveTimerHost /> : null}
         <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block print:hidden">
           <AppSidebar />
         </aside>

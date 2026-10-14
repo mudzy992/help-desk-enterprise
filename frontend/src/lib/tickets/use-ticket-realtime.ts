@@ -34,7 +34,7 @@ export function useTicketRealtime({
     if (session === null) {
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     const next = nextJoinedTicketRoom(joinedRef.current, ticketId);
     if (next.leave !== null) {
       leaveTicketRoom(socket, next.leave);

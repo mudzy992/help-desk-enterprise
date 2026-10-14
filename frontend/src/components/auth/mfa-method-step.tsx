@@ -1,3 +1,4 @@
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { Fingerprint, KeyRound } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -5,7 +6,8 @@ import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { rememberPreferredMfaMethod, type MfaMethod } from "@/lib/auth/mfa-method";
-import { getPasskeyAssertion, browserCanUsePasskeys } from "@/lib/webauthn/passkey-ceremony";
+import { getPasskeyAssertion } from "@/lib/webauthn/passkey-ceremony";
+import { usePlatformPasskeyAvailable } from "@/lib/webauthn/use-passkey-availability";
 import { ceremonyMessageKey, passkeyMessageKey } from "@/lib/webauthn/passkey-errors";
 import { startPasskeyLogin } from "@/services/auth-api";
 
@@ -38,7 +40,7 @@ export function MfaMethodStep({
   readonly methods?: readonly MfaMethod[];
   readonly defaultMethod: MfaMethod;
   readonly onVerifyCode: (code: string) => Promise<void>;
-  readonly onCompletePasskey: (assertion: Record<string, unknown>) => Promise<void>;
+  readonly onCompletePasskey: (assertion: AuthenticationResponseJSON) => Promise<void>;
   readonly onVerified: () => void;
   readonly onCancel: () => void;
   /** Paket 5.4.1 closeout (M3): rendered above the code field, only for the code. */
@@ -47,7 +49,8 @@ export function MfaMethodStep({
 }) {
   const { t } = useTranslation();
   const offered = methods ?? (["totp"] as const);
-  const canUsePasskey = offered.includes("passkey") && browserCanUsePasskeys();
+  const platformPasskey = usePlatformPasskeyAvailable();
+  const canUsePasskey = offered.includes("passkey") && platformPasskey.available;
   const [method, setMethod] = useState<MfaMethod>(
     canUsePasskey && defaultMethod === "passkey" ? "passkey" : "totp",
   );
@@ -67,7 +70,7 @@ export function MfaMethodStep({
         setErrorKey(t(ceremonyMessageKey(ceremony)));
         return;
       }
-      await onCompletePasskey(ceremony.value as unknown as Record<string, unknown>);
+      await onCompletePasskey(ceremony.value);
       rememberPreferredMfaMethod(email, "passkey");
       onVerified();
     } catch (error) {

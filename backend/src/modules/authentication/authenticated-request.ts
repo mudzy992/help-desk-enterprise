@@ -10,7 +10,12 @@ export const SESSION_ID_REQUEST_KEY = 'authenticatedSessionId';
 export const SESSION_JTI_REQUEST_KEY = 'authenticatedSessionJti';
 
 export type AuthenticatedHttpRequest = {
-  headers?: { authorization?: string };
+  method?: string;
+  headers?: {
+    authorization?: string;
+    cookie?: string;
+    origin?: string;
+  };
   params?: Record<string, unknown>;
   body?: unknown;
   query?: Record<string, unknown>;

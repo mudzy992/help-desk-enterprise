@@ -6,7 +6,7 @@ import { mountIcon } from './popup-icons';
 import { qs, requireElement, setBusy, setHidden } from './popup-dom';
 
 /**
- * Login view — email/password → `POST /auth/login` → token ide u SW
+ * Login view — email/password → `POST /auth/extension/login` → token ide u SW
  * (memorija + chrome.storage.session). Nikad u storage.local.
  */
 export function setupLoginView(options: {
@@ -55,7 +55,7 @@ export function setupLoginView(options: {
     try {
       const session = await helpdeskRequest<{ readonly accessToken?: unknown }>({
         apiBaseUrl,
-        path: '/auth/login',
+        path: '/auth/extension/login',
         method: 'POST',
         body: { email, password },
       });

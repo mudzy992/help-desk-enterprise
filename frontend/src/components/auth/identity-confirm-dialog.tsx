@@ -64,7 +64,7 @@ export function IdentityConfirmDialog({
       }
       await completeIdentityStepUp({
         purpose: passkeyPurpose,
-        assertion: ceremony.value as unknown as Record<string, unknown>,
+        assertion: ceremony.value,
       });
       await onSubmit(undefined);
       onOpenChange(false);

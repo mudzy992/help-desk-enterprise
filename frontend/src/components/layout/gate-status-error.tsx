@@ -4,16 +4,18 @@ import { BrandLockup } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
-interface InstallStatusErrorProperties {
+interface GateStatusErrorProperties {
+  readonly title: string;
+  readonly body: string;
+  readonly retryLabel: string;
   readonly onRetry: () => void;
 }
 
 /*
-  Shown when the install status cannot be read. The gate never guesses the
-  setup state from a failed request, so the user retries instead of being sent
-  to the installation wizard.
+  Full-page state for a gate that could not decide where the user belongs. The
+  gate never guesses from a failed request: the user retries explicitly.
 */
-export function InstallStatusError({ onRetry }: InstallStatusErrorProperties) {
+export function GateStatusError({ title, body, retryLabel, onRetry }: GateStatusErrorProperties) {
   const { t } = useTranslation();
 
   return (
@@ -25,11 +27,11 @@ export function InstallStatusError({ onRetry }: InstallStatusErrorProperties) {
         <div className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8" role="alert">
           <EmptyState
             icon={<AlertTriangle size={18} strokeWidth={1.8} />}
-            title={t("install.statusError.title")}
-            body={t("install.statusError.body")}
+            title={title}
+            body={body}
             action={
               <Button type="button" variant="outline" onClick={onRetry}>
-                {t("install.statusError.retry")}
+                {retryLabel}
               </Button>
             }
           />

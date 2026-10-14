@@ -25,7 +25,7 @@ export function HelpdeskSocketHost() {
     if (session === null) {
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     const stopInvalidated = subscribeSocketEvent<SessionInvalidatedPayload>(
       socket,
       ticketSocketEvents.sessionInvalidated,

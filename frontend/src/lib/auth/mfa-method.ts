@@ -9,6 +9,21 @@ export type MfaMethod = "totp" | "passkey";
 
 const storagePrefix = "helpdesk.mfa-method:";
 
+/*
+  The address itself never reaches storage: a shared computer would otherwise
+  list every e-mail that signed in there. FNV-1a is enough to tell a few
+  accounts apart on one device; a collision only swaps a UI default, and the
+  server still validates the factor.
+*/
+function storageKeyFor(email: string): string {
+  let hash = 0x811c9dc5;
+  for (const character of email.trim().toLowerCase()) {
+    hash ^= character.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${storagePrefix}${hash.toString(16).padStart(8, "0")}`;
+}
+
 function storage(): Storage | null {
   try {
     return typeof window === "undefined" ? null : window.localStorage;
@@ -19,9 +34,8 @@ function storage(): Storage | null {
 }
 
 export function readPreferredMfaMethod(email: string): MfaMethod | null {
-  const key = `${storagePrefix}${email.trim().toLowerCase()}`;
   try {
-    const value = storage()?.getItem(key);
+    const value = storage()?.getItem(storageKeyFor(email));
     return value === "totp" || value === "passkey" ? value : null;
   } catch {
     return null;
@@ -29,9 +43,8 @@ export function readPreferredMfaMethod(email: string): MfaMethod | null {
 }
 
 export function rememberPreferredMfaMethod(email: string, method: MfaMethod): void {
-  const key = `${storagePrefix}${email.trim().toLowerCase()}`;
   try {
-    storage()?.setItem(key, method);
+    storage()?.setItem(storageKeyFor(email), method);
   } catch {
     // Remembering is best-effort; a failure never blocks sign-in.
   }

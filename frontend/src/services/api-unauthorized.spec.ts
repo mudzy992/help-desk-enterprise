@@ -28,7 +28,7 @@ describe("global 401 handling (review 2026-09-25, S10)", () => {
   const signIn = () => {
     stubWindow();
     writeStoredSession({
-      accessToken: "t",
+      expiresAt: Date.now() + 3_600_000,
       principal: { subjectId: "u", email: "e", displayName: "d", isLocalOnly: true },
     });
   };
@@ -89,7 +89,7 @@ describe("isConfirmationUnauthorizedPath (review 2026-10-12)", () => {
   it("does not end the session when the confirmation itself is rejected", async () => {
     stubWindow();
     writeStoredSession({
-      accessToken: "t",
+      expiresAt: Date.now() + 3_600_000,
       principal: { subjectId: "u", email: "e", displayName: "d", isLocalOnly: true },
     });
     vi.stubGlobal(

@@ -37,7 +37,9 @@ export function passkeyDeviceKind(aaguid: string | null): PasskeyDeviceKind {
 }
 
 /** i18n key of the human label for one kind (`admin.security.passkeyKinds.*`). */
-export function passkeyDeviceKindKey(kind: PasskeyDeviceKind): string {
+export type PasskeyDeviceKindKey = `account.passkeys.kinds.${PasskeyDeviceKind}`;
+
+export function passkeyDeviceKindKey(kind: PasskeyDeviceKind): PasskeyDeviceKindKey {
   return `account.passkeys.kinds.${kind}`;
 }
 

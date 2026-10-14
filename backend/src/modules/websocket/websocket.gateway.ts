@@ -40,6 +40,8 @@ import {
 @WebSocketGateway({
   cors: {
     origin: resolveSocketCorsOrigin(),
+    // The browser sends the HttpOnly session cookie with the socket handshake.
+    credentials: true,
   },
 })
 export class WebsocketGateway
@@ -210,6 +212,7 @@ export class WebsocketGateway
       try {
         const outcome = await this.socketAuthenticationService.authenticate(
           socket.handshake.auth,
+          socket.handshake.headers,
         );
         if (outcome.status !== 'authenticated') {
           this.logger.warn(

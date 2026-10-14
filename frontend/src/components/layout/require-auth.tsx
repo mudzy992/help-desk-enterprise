@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { SessionCheckError } from "@/components/auth/session-check-error";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { expireSession, notifySessionRefreshed, useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -13,8 +14,8 @@ import { getUserPreferences, updateUserPreferences } from "@/services/user-prefe
 
 export function RequireAuth() {
   const location = useLocation();
-  const { session: storedSession, signOut } = useSession();
-  const { session, isLoading } = useSessionCapabilities();
+  const { session: storedSession } = useSession();
+  const { session, isLoading, retry } = useSessionCapabilities();
 
   const hasSession = storedSession !== null;
 
@@ -58,12 +59,6 @@ export function RequireAuth() {
     };
   }, [hasSession]);
 
-  useEffect(() => {
-    if (!isLoading && storedSession !== null && session === null) {
-      signOut();
-    }
-  }, [isLoading, session, signOut, storedSession]);
-
   const returnPath = location.pathname + location.search + location.hash;
 
   if (storedSession === null) {
@@ -74,8 +69,9 @@ export function RequireAuth() {
     return <InstallGateSkeleton />;
   }
 
+  // A failed check keeps the session: only a 401 ends it (see api.ts).
   if (session === null) {
-    return <Navigate to="/login" replace state={{ from: returnPath }} />;
+    return <SessionCheckError onRetry={retry} />;
   }
 
   return <Outlet />;

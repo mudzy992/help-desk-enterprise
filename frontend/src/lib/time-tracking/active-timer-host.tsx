@@ -36,7 +36,7 @@ function readSharedActivity(): number {
  * Tracks activity, sends heartbeats, pauses an idle timer at the moment of the
  * last activity and — when the policy allows — resumes it on return.
  */
-export function ActiveTimerHost({ accessToken }: { readonly accessToken: string }) {
+export function ActiveTimerHost() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const toastRef = useRef(toast);
@@ -146,7 +146,7 @@ export function ActiveTimerHost({ accessToken }: { readonly accessToken: string 
       }
     };
 
-    const socket = acquireHelpdeskSocket(accessToken);
+    const socket = acquireHelpdeskSocket();
     const stopSocket = subscribeSocketEvent(socket, "time.timer.changed", () => {
       void markActiveTimerChanged();
     });
@@ -167,7 +167,7 @@ export function ActiveTimerHost({ accessToken }: { readonly accessToken: string 
       releaseHelpdeskSocket();
       resetActiveTimer();
     };
-  }, [accessToken]);
+  }, []);
 
   return null;
 }

@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -36,8 +35,9 @@ export function SessionControls() {
   const capabilities = useSessionCapabilities();
   const shortcuts = useShortcutsRegistry();
 
+  // Mounted only inside RequireAuth, so a session is always present here.
   if (session === null) {
-    return <SessionSignInControls />;
+    return null;
   }
 
   const displayName = session.principal.displayName;

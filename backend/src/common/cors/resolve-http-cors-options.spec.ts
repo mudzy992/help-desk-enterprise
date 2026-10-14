@@ -16,7 +16,7 @@ describe('resolveHttpCorsOptions', () => {
     const options = resolveHttpCorsOptions();
     expect(options.origin).toBe('https://app.example.test');
     expect(options.origin).not.toBe('*');
-    expect(options.credentials).toBe(false);
+    expect(options.credentials).toBe(true);
     expect(options.allowedHeaders).toEqual([
       'Accept',
       'Authorization',

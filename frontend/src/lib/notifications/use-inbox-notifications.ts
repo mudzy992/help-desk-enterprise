@@ -87,7 +87,7 @@ export function useInboxNotifications() {
     if (session === null) {
       return;
     }
-    const socket = acquireHelpdeskSocket(session.accessToken);
+    const socket = acquireHelpdeskSocket();
     // Published to the health hook above, which decides whether the fallback
     // poll has to run.
     setSocket(socket);

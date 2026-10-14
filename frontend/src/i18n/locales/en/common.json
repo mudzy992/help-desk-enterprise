@@ -4793,7 +4793,13 @@
     "captchaHint": "Solve the check, then sign in again.",
     "captchaUnavailable": "The check did not load. Check the connection and try again — if it repeats, tell an administrator (the server needs access to the Cloudflare Turnstile service).",
     "captchaRetry": "Try again",
-    "captchaFailed": "The check was not accepted. Try again."
+    "captchaFailed": "The check was not accepted. Try again.",
+    "checkError": {
+      "title": "The session could not be checked",
+      "body": "The server did not answer. You are still signed in. Check the connection and try again.",
+      "retry": "Try again"
+    },
+    "captchaBlocked": "Complete the human check to continue."
   },
   "login": {
     "title": "Sign in",
@@ -4871,7 +4877,9 @@
       "passkeyIntro": "Approve the sign-in on your device — Windows Hello, Touch ID, Face ID or a security key.",
       "usePasskey": "Confirm with a passkey",
       "confirmWithPasskey": "Confirm with a passkey",
-      "passkeyStepUpHint": "A passkey confirmation covers this action only and is consumed at once."
+      "passkeyStepUpHint": "A passkey confirmation covers this action only and is consumed at once.",
+      "mfaRequiredCannotDisable": "This account requires a second factor, so MFA cannot be turned off. Passkeys can be added as an extra way to confirm.",
+      "copyFailed": "Copying is not available here. The codes are selected: press Ctrl+C (⌘C) to copy them."
     },
     "passwordPolicy": {
       "TOO_SHORT": "The password is too short.",
@@ -6137,7 +6145,10 @@
       "expiryBanner_one": "Your password expires in {{count}} day.",
       "expiryBanner_other": "Your password expires in {{count}} days.",
       "expiryBannerLink": "Change it now",
-      "mfaPasskeyHint": "{{count}} passkey is registered: at sign-in you can confirm with the device instead of the authenticator code. The code stays as a fallback."
+      "mfaPasskeyHint": "{{count}} passkey is registered: at sign-in you can confirm with the device instead of the authenticator code. The code stays as a fallback.",
+      "loading": "Loading security settings…",
+      "retry": "Try again",
+      "revokeSessionHint": "This device is signed out immediately. The person has to sign in again to continue there."
     },
     "notifications": {
       "menu": "My notifications",

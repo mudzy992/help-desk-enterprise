@@ -31,19 +31,25 @@ export type PasskeyCeremonyResult<T> =
   | { readonly kind: "unsupported" }
   | { readonly kind: "failed"; readonly code: string | null };
 
-export function browserCanUsePasskeys(): boolean {
-  try {
-    return browserSupportsWebAuthn() && platformAuthenticatorIsAvailable() !== null;
-  } catch {
-    // A browser without WebAuthn throws on the helpers.
-    return false;
-  }
-}
-
 /** True when WebAuthn exists at all (a roaming security key is enough). */
 export function browserSupportsPasskeyCeremonies(): boolean {
   try {
     return browserSupportsWebAuthn();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a built-in authenticator (Windows Hello, Touch ID, Android) can answer.
+ * The platform call is asynchronous; a browser without WebAuthn reports no.
+ */
+export async function platformPasskeyAvailable(): Promise<boolean> {
+  if (!browserSupportsPasskeyCeremonies()) {
+    return false;
+  }
+  try {
+    return await platformAuthenticatorIsAvailable();
   } catch {
     return false;
   }
@@ -81,15 +87,13 @@ function toResult<T>(error: unknown): PasskeyCeremonyResult<T> {
 }
 
 export async function createPasskeyCredential(
-  options: Record<string, unknown>,
+  options: PublicKeyCredentialCreationOptionsJSON,
 ): Promise<PasskeyCeremonyResult<RegistrationResponseJSON>> {
   if (!browserSupportsPasskeyCeremonies()) {
     return { kind: "unsupported" };
   }
   try {
-    const value = await startRegistration({
-      optionsJSON: options as unknown as PublicKeyCredentialCreationOptionsJSON,
-    });
+    const value = await startRegistration({ optionsJSON: options });
     return { kind: "ok", value };
   } catch (error) {
     return toResult<RegistrationResponseJSON>(error);
@@ -97,15 +101,13 @@ export async function createPasskeyCredential(
 }
 
 export async function getPasskeyAssertion(
-  options: Record<string, unknown>,
+  options: PublicKeyCredentialRequestOptionsJSON,
 ): Promise<PasskeyCeremonyResult<AuthenticationResponseJSON>> {
   if (!browserSupportsPasskeyCeremonies()) {
     return { kind: "unsupported" };
   }
   try {
-    const value = await startAuthentication({
-      optionsJSON: options as unknown as PublicKeyCredentialRequestOptionsJSON,
-    });
+    const value = await startAuthentication({ optionsJSON: options });
     return { kind: "ok", value };
   } catch (error) {
     return toResult<AuthenticationResponseJSON>(error);

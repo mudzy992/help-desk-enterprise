@@ -46,6 +46,8 @@ import {
 @WebSocketGateway({
   cors: {
     origin: resolveSocketCorsOrigin(),
+    // The browser sends the HttpOnly session cookie with the socket handshake.
+    credentials: true,
   },
 })
 export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, OnModuleDestroy {

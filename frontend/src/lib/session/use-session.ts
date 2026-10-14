@@ -1,3 +1,4 @@
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { useCallback, useSyncExternalStore } from "react";
 import {
   changePasswordOnFirstLogin,
@@ -15,9 +16,12 @@ import {
   logoutSession,
 } from "@/services/auth-api";
 import { forgetEntraConfiguration, signOutOfEntra } from "@/lib/auth/entra-redirect";
+import { helpdeskQueryClient } from "@/lib/query/query-client";
 import {
   clearStoredSession,
   readStoredSession,
+  storedSessionFrom,
+  sessionStorageKey,
   writeStoredSession,
   type StoredSession,
 } from "@/services/session-store";
@@ -30,10 +34,16 @@ function emitSessionChange(): void {
   }
 }
 
+/** Cached answers belong to the user who fetched them; none may survive a session. */
+function clearUserScopedCache(): void {
+  helpdeskQueryClient.clear();
+}
+
 /** Session ended outside a user action (expired / revoked / 401). */
 export function expireSession(): void {
   if (readStoredSession() === null) return;
   clearStoredSession();
+  clearUserScopedCache();
   emitSessionChange();
 }
 
@@ -42,10 +52,28 @@ export function notifySessionRefreshed(): void {
   emitSessionChange();
 }
 
+/**
+ * Another tab signed in or out. Browsers fire `storage` only in the other tabs,
+ * so this tab must re-read the session and drop its cached answers itself.
+ */
+function handleStorageChange(event: StorageEvent): void {
+  if (event.key !== null && event.key !== sessionStorageKey) return;
+  if (readStoredSession() === null) {
+    clearUserScopedCache();
+  }
+  emitSessionChange();
+}
+
 function subscribe(listener: () => void): () => void {
+  if (listeners.size === 0) {
+    window.addEventListener("storage", handleStorageChange);
+  }
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0) {
+      window.removeEventListener("storage", handleStorageChange);
+    }
   };
 }
 
@@ -76,10 +104,7 @@ export type SignInOutcome =
   | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
 
 function storeSession(response: AuthenticationSessionResponse): void {
-  writeStoredSession({
-    accessToken: response.accessToken,
-    principal: response.principal,
-  });
+  writeStoredSession(storedSessionFrom(response));
   emitSessionChange();
 }
 
@@ -129,10 +154,7 @@ export function useSession() {
   /** Microsoft ID token → application session. */
   const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
     const response = await loginWithEntraIdToken(idToken);
-    writeStoredSession({
-      accessToken: response.accessToken,
-      principal: response.principal,
-    });
+    writeStoredSession(storedSessionFrom(response));
     emitSessionChange();
   }, []);
 
@@ -163,7 +185,7 @@ export function useSession() {
 
   /** A verified passkey assertion → the same session as a code. */
   const completeMfaWithPasskey = useCallback(
-    async (mfaToken: string, assertion: Record<string, unknown>): Promise<void> => {
+    async (mfaToken: string, assertion: AuthenticationResponseJSON): Promise<void> => {
       storeSession(await completePasskeyLogin({ mfaToken, assertion }));
     },
     [],
@@ -191,6 +213,7 @@ export function useSession() {
       void logoutSession().catch(() => undefined);
     }
     clearStoredSession();
+    clearUserScopedCache();
     emitSessionChange();
     // Optional Entra single logout; a no-op for local sessions.
     void signOutOfEntra().catch(() => undefined);

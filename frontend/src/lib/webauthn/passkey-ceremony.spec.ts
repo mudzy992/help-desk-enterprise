@@ -1,10 +1,14 @@
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
 import { describe, expect, it } from "vitest";
 import {
-  browserCanUsePasskeys,
   browserSupportsPasskeyCeremonies,
   createPasskeyCredential,
   getPasskeyAssertion,
   passkeyErrorCode,
+  platformPasskeyAvailable,
 } from "@/lib/webauthn/passkey-ceremony";
 
 /*
@@ -16,12 +20,19 @@ import {
 describe("browser capability probes", () => {
   it("reports no WebAuthn without a window (never throws)", () => {
     expect(browserSupportsPasskeyCeremonies()).toBe(false);
-    expect(browserCanUsePasskeys()).toBe(false);
+  });
+
+  it("reports no platform authenticator without WebAuthn", async () => {
+    await expect(platformPasskeyAvailable()).resolves.toBe(false);
   });
 
   it("returns unsupported from both ceremonies instead of throwing", async () => {
-    await expect(createPasskeyCredential({})).resolves.toEqual({ kind: "unsupported" });
-    await expect(getPasskeyAssertion({})).resolves.toEqual({ kind: "unsupported" });
+    const creationOptions = {} as PublicKeyCredentialCreationOptionsJSON;
+    const requestOptions = {} as PublicKeyCredentialRequestOptionsJSON;
+    await expect(createPasskeyCredential(creationOptions)).resolves.toEqual({
+      kind: "unsupported",
+    });
+    await expect(getPasskeyAssertion(requestOptions)).resolves.toEqual({ kind: "unsupported" });
   });
 });
 

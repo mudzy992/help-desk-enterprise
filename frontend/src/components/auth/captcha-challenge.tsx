@@ -41,12 +41,10 @@ export type TurnstileApi = {
   remove(widgetId?: string): void;
 };
 
-/**
- * `window.turnstile` is also `globalThis.turnstile` (the window *is* the global
- * object), and reading it through `globalThis` keeps the loader usable in the
- * node-based unit test without a full DOM.
- */
-const turnstileScope = globalThis as unknown as { turnstile?: TurnstileApi };
+declare global {
+  /** Installed by the Turnstile script once it has loaded. */
+  var turnstile: TurnstileApi | undefined;
+}
 
 /**
  * Loads the explicit-render API on demand. Exported for the unit test: the
@@ -54,7 +52,7 @@ const turnstileScope = globalThis as unknown as { turnstile?: TurnstileApi };
  * with a minimal stub here and for real in the E2E spec.
  */
 export function loadTurnstileScript(): Promise<TurnstileApi> {
-  const existing = turnstileScope.turnstile;
+  const existing = globalThis.turnstile;
   if (existing !== undefined) return Promise.resolve(existing);
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -63,7 +61,7 @@ export function loadTurnstileScript(): Promise<TurnstileApi> {
     script.defer = true;
     script.dataset.testid = "turnstile-script";
     script.onload = () => {
-      const api = turnstileScope.turnstile;
+      const api = globalThis.turnstile;
       if (api === undefined) {
         reject(new Error("turnstile api missing after load"));
         return;
@@ -114,7 +112,7 @@ export function CaptchaChallenge({
       });
     return () => {
       cancelled = true;
-      const api = turnstileScope.turnstile;
+      const api = globalThis.turnstile;
       if (api !== undefined && widgetId.current !== null) {
         api.remove(widgetId.current);
         widgetId.current = null;
@@ -124,7 +122,7 @@ export function CaptchaChallenge({
   }, [siteKey, attempt, onToken]);
 
   useEffect(() => {
-    const api = turnstileScope.turnstile;
+    const api = globalThis.turnstile;
     if (api === undefined || widgetId.current === null || resetSignal === 0) return;
     onToken(null);
     api.reset(widgetId.current);

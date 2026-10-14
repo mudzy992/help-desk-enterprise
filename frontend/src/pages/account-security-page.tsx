@@ -11,10 +11,11 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useLocale } from "@/i18n/use-locale";
 import { queryKeys } from "@/lib/query/query-keys";
-import { browserCanUsePasskeys } from "@/lib/webauthn/passkey-ceremony";
+import { usePlatformPasskeyAvailable } from "@/lib/webauthn/use-passkey-availability";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import {
   getAccountSecurity,
@@ -34,10 +35,12 @@ export function AccountSecurityPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const overview = useQuery({ queryKey: queryKeys.accountSecurity, queryFn: getAccountSecurity });
+  const platformPasskey = usePlatformPasskeyAvailable();
   const [sessions, setSessions] = useState<readonly UserSession[] | null>(null);
   const [sessionsError, setSessionsError] = useState(false);
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [confirmOthers, setConfirmOthers] = useState(false);
+  const [sessionToRevoke, setSessionToRevoke] = useState<UserSession | null>(null);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -67,10 +70,14 @@ export function AccountSecurityPage() {
         title={t("account.security.title")}
         subtitle={t("account.security.subtitle")}
       />
+      {overview.isPending ? <PanelSkeleton label={t("account.security.loading")} /> : null}
       {overview.isError ? (
-        <p className={errorTextClassName} role="alert">
-          {t("account.security.loadFailed")}
-        </p>
+        <div className="space-y-2" role="alert">
+          <p className={errorTextClassName}>{t("account.security.loadFailed")}</p>
+          <Button type="button" size="sm" variant="outline" onClick={() => void overview.refetch()}>
+            {t("account.security.retry")}
+          </Button>
+        </div>
       ) : null}
       {data ? (
         <div className="space-y-5">
@@ -90,12 +97,14 @@ export function AccountSecurityPage() {
               subtitle={t("account.passkeys.subtitle")}
             />
             <div className="p-4">
-              <PasskeySection
-                passkeys={data.passkeys}
-                hasTotp={data.hasTotp}
-                canUsePasskeys={browserCanUsePasskeys()}
-                onChanged={refresh}
-              />
+              {platformPasskey.isLoading ? null : (
+                <PasskeySection
+                  passkeys={data.passkeys}
+                  hasTotp={data.hasTotp}
+                  canUsePasskeys={platformPasskey.available}
+                  onChanged={refresh}
+                />
+              )}
             </div>
           </Card>
 
@@ -160,24 +169,36 @@ export function AccountSecurityPage() {
                 <SessionsList
                   sessions={sessions}
                   busySessionId={busySessionId}
-                  onRevoke={(session) => {
-                    setBusySessionId(session.id);
-                    void revokeOwnSession(session.id)
-                      .then(() => {
-                        toast({ tone: "success", title: t("account.security.sessionRevoked") });
-                        return loadSessions();
-                      })
-                      .catch(() =>
-                        toast({ tone: "danger", title: t("account.security.actionFailed") }),
-                      )
-                      .finally(() => setBusySessionId(null));
-                  }}
+                  onRevoke={setSessionToRevoke}
                 />
               ) : null}
             </div>
           </Card>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={sessionToRevoke !== null}
+        onOpenChange={(open) => {
+          if (!open) setSessionToRevoke(null);
+        }}
+        title={t("account.security.revokeSession")}
+        description={t("account.security.revokeSessionHint")}
+        confirmLabel={t("account.security.revoke")}
+        intent="danger"
+        onConfirm={() => {
+          const session = sessionToRevoke;
+          setSessionToRevoke(null);
+          if (session === null) return;
+          setBusySessionId(session.id);
+          void revokeOwnSession(session.id)
+            .then(() => {
+              toast({ tone: "success", title: t("account.security.sessionRevoked") });
+              return loadSessions();
+            })
+            .catch(() => toast({ tone: "danger", title: t("account.security.actionFailed") }))
+            .finally(() => setBusySessionId(null));
+        }}
+      />
       <ConfirmDialog
         open={confirmOthers}
         onOpenChange={setConfirmOthers}

@@ -33,12 +33,29 @@ describe("mfa-method preference", () => {
     vi.unstubAllGlobals();
   });
 
-  it("stores the choice under a per-address key and reads it back case-insensitively", () => {
+  it("reads the choice back case-insensitively under a per-address key", () => {
     const entries = installStorage();
     rememberPreferredMfaMethod("Ana@Example.ORG ", "passkey");
-    expect([...entries.keys()]).toEqual(["helpdesk.mfa-method:ana@example.org"]);
     expect(readPreferredMfaMethod("ana@example.org")).toBe("passkey");
     expect(readPreferredMfaMethod("ANA@EXAMPLE.ORG")).toBe("passkey");
+    expect(entries.size).toBe(1);
+  });
+
+  it("never writes the address itself into the storage key (A17)", () => {
+    const entries = installStorage();
+    rememberPreferredMfaMethod("ana@example.org", "totp");
+    const [key] = [...entries.keys()];
+    expect(key?.startsWith("helpdesk.mfa-method:")).toBe(true);
+    expect(key).not.toContain("ana");
+    expect(key).not.toContain("example");
+  });
+
+  it("keeps different addresses apart", () => {
+    installStorage();
+    rememberPreferredMfaMethod("ana@example.org", "passkey");
+    rememberPreferredMfaMethod("ben@example.org", "totp");
+    expect(readPreferredMfaMethod("ana@example.org")).toBe("passkey");
+    expect(readPreferredMfaMethod("ben@example.org")).toBe("totp");
   });
 
   it("treats an unknown or foreign value as no preference", () => {

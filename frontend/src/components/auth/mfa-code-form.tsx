@@ -1,7 +1,12 @@
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  errorTextClassName,
+  hintClassName,
+  labelClassName,
+} from "@/components/ui/control";
 import { mapMfaCodeError, type MfaCodeError } from "@/lib/auth/map-mfa-step-error";
 
 interface MfaCodeFormProperties {
@@ -16,6 +21,29 @@ interface MfaCodeFormProperties {
   /** Keeps the submit button off until the human check is solved. */
   readonly isSubmitBlocked?: boolean;
 }
+
+type MfaCodeErrorKey =
+  | "session.errorRateLimited"
+  | "auth.mfa.enrollmentExpired"
+  | "auth.mfa.signInExpired"
+  | "auth.mfa.recoveryCodesExhausted"
+  | "auth.mfa.mfaRequiredCannotDisable"
+  | "auth.mfa.captchaRequired"
+  | "auth.mfa.captchaFailed"
+  | "auth.mfa.invalidCode"
+  | "auth.mfa.failed";
+
+const mfaCodeErrorKeys: Readonly<Record<MfaCodeError, MfaCodeErrorKey>> = {
+  rateLimited: "session.errorRateLimited",
+  expired: "auth.mfa.enrollmentExpired",
+  signInExpired: "auth.mfa.signInExpired",
+  recoveryCodesExhausted: "auth.mfa.recoveryCodesExhausted",
+  mfaRequired: "auth.mfa.mfaRequiredCannotDisable",
+  captchaRequired: "auth.mfa.captchaRequired",
+  captchaFailed: "auth.mfa.captchaFailed",
+  invalid: "auth.mfa.invalidCode",
+  failed: "auth.mfa.failed",
+};
 
 /** Paket 2.1: one input for a 6-digit TOTP code or an "xxxxx-xxxxx" recovery code. */
 export function MfaCodeForm({
@@ -70,25 +98,10 @@ export function MfaCodeForm({
         />
       </label>
       {captcha ?? null}
+      {isSubmitBlocked ? <p className={hintClassName}>{t("session.captchaBlocked")}</p> : null}
       {error ? (
         <p id={`${inputId}-error`} className={errorTextClassName} role="alert">
-          {t(
-            error === "rateLimited"
-              ? "session.errorRateLimited"
-              : error === "expired"
-                ? "auth.mfa.enrollmentExpired"
-                : error === "signInExpired"
-                  ? "auth.mfa.signInExpired"
-                  : error === "recoveryCodesExhausted"
-                    ? "auth.mfa.recoveryCodesExhausted"
-                    : error === "captchaRequired"
-                      ? "auth.mfa.captchaRequired"
-                      : error === "captchaFailed"
-                        ? "auth.mfa.captchaFailed"
-                        : error === "invalid"
-                          ? "auth.mfa.invalidCode"
-                          : "auth.mfa.failed",
-          )}
+          {t(mfaCodeErrorKeys[error])}
         </p>
       ) : null}
       <div className="flex gap-2">

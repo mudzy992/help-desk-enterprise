@@ -1,11 +1,13 @@
-import { Fingerprint, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
+import type { RegistrationResponseJSON } from "@simplewebauthn/browser";
+import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PasskeyRenameDialog } from "@/components/account-security/passkey-rename-dialog";
 import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import { errorTextClassName } from "@/components/ui/control";
 import { Modal, ModalContent, ModalDescription, ModalTitle } from "@/components/ui/modal";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { useToast } from "@/components/ui/toast";
@@ -16,7 +18,6 @@ import { ceremonyMessageKey, passkeyMessageKey } from "@/lib/webauthn/passkey-er
 import {
   confirmPasskeyRegistration,
   removePasskey,
-  renamePasskey,
   startPasskeyRegistration,
   type PasskeyView,
 } from "@/services/account-security-api";
@@ -53,17 +54,16 @@ export function PasskeySection({
   const { toast } = useToast();
   const [step, setStep] = useState<"idle" | "code" | "ceremony">("idle");
   const [renaming, setRenaming] = useState<PasskeyView | null>(null);
-  const [renameValue, setRenameValue] = useState("");
   const [removing, setRemoving] = useState<PasskeyView | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   /** The attestation the device produced, waiting for the TOTP code. */
-  const [pendingAttestation, setPendingAttestation] = useState<Record<string, unknown> | null>(
+  const [pendingAttestation, setPendingAttestation] = useState<RegistrationResponseJSON | null>(
     null,
   );
 
   const confirmRegistration = useCallback(
-    async (attestation: Record<string, unknown>, code?: string) => {
+    async (attestation: RegistrationResponseJSON, code?: string) => {
       setErrorKey(null);
       try {
         await confirmPasskeyRegistration({
@@ -101,7 +101,7 @@ export function PasskeySection({
       setStep("idle");
       return;
     }
-    const attestation = ceremony.value as unknown as Record<string, unknown>;
+    const attestation = ceremony.value;
     if (hasTotp) {
       // Ask for the code only now: it stays valid while it is being typed.
       setPendingAttestation(attestation);
@@ -121,22 +121,6 @@ export function PasskeySection({
     setErrorKey(null);
     setPendingAttestation(null);
     void runRegistration();
-  };
-
-  const submitRename = async () => {
-    if (renaming === null) return;
-    setBusy(true);
-    setErrorKey(null);
-    try {
-      await renamePasskey(renaming.id, renameValue);
-      toast({ tone: "success", title: t("account.passkeys.renamed") });
-      setRenaming(null);
-      onChanged();
-    } catch (error) {
-      setErrorKey(t(passkeyMessageKey(error)));
-    } finally {
-      setBusy(false);
-    }
   };
 
   const submitRemove = async () => {
@@ -177,10 +161,10 @@ export function PasskeySection({
                 <KeyRound size={14} className="text-muted-foreground" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] text-foreground">
-                    {display.label ?? t(passkeyDeviceKindKey(display.kind) as never)}
+                    {display.label ?? t(passkeyDeviceKindKey(display.kind))}
                   </span>
                   <span className="block text-[11.5px] text-muted-foreground">
-                    {t(passkeyDeviceKindKey(display.kind) as never)}
+                    {t(passkeyDeviceKindKey(display.kind))}
                     {" · "}
                     {passkey.lastUsedAt === null ? (
                       t("account.passkeys.neverUsed")
@@ -210,7 +194,6 @@ export function PasskeySection({
                     title={t("account.passkeys.rename")}
                     onClick={() => {
                       setRenaming(passkey);
-                      setRenameValue(passkey.deviceName ?? "");
                       setErrorKey(null);
                     }}
                   >
@@ -290,47 +273,17 @@ export function PasskeySection({
         </ModalContent>
       </Modal>
 
-      <Modal
-        open={renaming !== null}
-        onOpenChange={(open) => {
-          if (!open) {
+      {renaming === null ? null : (
+        <PasskeyRenameDialog
+          key={renaming.id}
+          passkey={renaming}
+          onClose={() => setRenaming(null)}
+          onRenamed={() => {
             setRenaming(null);
-            setErrorKey(null);
-          }
-        }}
-      >
-        <ModalContent data-testid="passkey-rename-dialog">
-          <ModalTitle className="pr-6 text-[14px] font-semibold leading-5 text-foreground">
-            {t("account.passkeys.renameTitle")}
-          </ModalTitle>
-          <label className={labelClassName} htmlFor="passkey-rename-input">
-            <span>{t("account.passkeys.renameLabel")}</span>
-            <input
-              id="passkey-rename-input"
-              className={controlClassName}
-              maxLength={60}
-              value={renameValue}
-              onChange={(event) => setRenameValue(event.target.value)}
-            />
-          </label>
-          <p className="mt-1 text-[11.5px] text-muted-foreground">
-            {t("account.passkeys.renameHint")}
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={busy || renameValue.trim().length === 0}
-              onClick={() => void submitRename()}
-            >
-              {t("ui.save")}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setRenaming(null)}>
-              {t("ui.cancel")}
-            </Button>
-          </div>
-        </ModalContent>
-      </Modal>
+            onChanged();
+          }}
+        />
+      )}
 
       <ConfirmDialog
         open={removing !== null}
@@ -350,6 +303,3 @@ export function PasskeySection({
     </div>
   );
 }
-
-/** The card icon used on the profile page. */
-export const passkeySectionIcon = Fingerprint;

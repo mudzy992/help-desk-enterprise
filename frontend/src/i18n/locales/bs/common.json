@@ -4817,7 +4817,13 @@
     "captchaHint": "Riješite provjeru pa se prijavite ponovo.",
     "captchaUnavailable": "Provjera se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru (server mora imati pristup Cloudflare Turnstile servisu).",
     "captchaRetry": "Pokušaj ponovo",
-    "captchaFailed": "Provjera nije prihvaćena. Pokušajte ponovo."
+    "captchaFailed": "Provjera nije prihvaćena. Pokušajte ponovo.",
+    "checkError": {
+      "title": "Sesiju nije moguće provjeriti",
+      "body": "Server nije odgovorio. I dalje ste prijavljeni. Provjerite vezu i pokušajte ponovo.",
+      "retry": "Pokušaj ponovo"
+    },
+    "captchaBlocked": "Potvrdite provjeru da niste robot da biste nastavili."
   },
   "login": {
     "title": "Prijava",
@@ -4895,7 +4901,9 @@
       "passkeyIntro": "Odobrite prijavu na svom uređaju — Windows Hello, Touch ID, Face ID ili sigurnosni ključ.",
       "usePasskey": "Potvrdi passkeyjem",
       "confirmWithPasskey": "Potvrdi passkeyjem",
-      "passkeyStepUpHint": "Potvrda passkeyjem vrijedi samo za ovu radnju i troši se odmah."
+      "passkeyStepUpHint": "Potvrda passkeyjem vrijedi samo za ovu radnju i troši se odmah.",
+      "mfaRequiredCannotDisable": "Ovaj nalog zahtijeva drugi faktor, pa dvofaktorska provjera ne može biti isključena. Passkey možete dodati kao dodatni način potvrde.",
+      "copyFailed": "Kopiranje ovdje nije dostupno. Kodovi su označeni: pritisnite Ctrl+C (⌘C) da ih kopirate."
     },
     "passwordPolicy": {
       "TOO_SHORT": "Lozinka je prekratka.",
@@ -6173,7 +6181,10 @@
       "expiryBanner_few": "Vaša lozinka ističe za {{count}} dana.",
       "expiryBanner_other": "Vaša lozinka ističe za {{count}} dana.",
       "expiryBannerLink": "Promijenite je sada",
-      "mfaPasskeyHint": "Registrovan je {{count}} passkey: pri prijavi možete potvrditi uređajem umjesto kodom iz aplikacije. Kod ostaje kao rezerva."
+      "mfaPasskeyHint": "Registrovan je {{count}} passkey: pri prijavi možete potvrditi uređajem umjesto kodom iz aplikacije. Kod ostaje kao rezerva.",
+      "loading": "Učitavanje sigurnosnih postavki…",
+      "retry": "Pokušaj ponovo",
+      "revokeSessionHint": "Ovaj uređaj bit će odmah odjavljen. Osoba se mora ponovo prijaviti da bi nastavila."
     },
     "notifications": {
       "menu": "Moje notifikacije",

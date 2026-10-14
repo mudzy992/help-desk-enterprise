@@ -7,9 +7,10 @@ import { createHelpdeskSocketOptions, helpdeskSocketReconnect } from "@/services
  * deploy does not make every client reconnect on the same millisecond.
  */
 describe("createHelpdeskSocketOptions", () => {
-  it("keeps the auth handshake and auto-connect behaviour", () => {
-    const options = createHelpdeskSocketOptions("access-token-1");
-    expect(options.auth).toEqual({ token: "access-token-1" });
+  it("authenticates with the session cookie and keeps auto-connect behaviour", () => {
+    const options = createHelpdeskSocketOptions();
+    expect(options.withCredentials).toBe(true);
+    expect(options.auth).toBeUndefined();
     expect(options.autoConnect).toBe(true);
     expect(options.reconnection).toBe(true);
   });
@@ -19,7 +20,7 @@ describe("createHelpdeskSocketOptions", () => {
     expect(helpdeskSocketReconnect.reconnectionDelayMax).toBe(10_000);
     expect(helpdeskSocketReconnect.randomizationFactor).toBeGreaterThan(0);
     expect(helpdeskSocketReconnect.randomizationFactor).toBeLessThanOrEqual(1);
-    const options = createHelpdeskSocketOptions("access-token-1");
+    const options = createHelpdeskSocketOptions();
     expect(options.randomizationFactor).toBe(helpdeskSocketReconnect.randomizationFactor);
   });
 });

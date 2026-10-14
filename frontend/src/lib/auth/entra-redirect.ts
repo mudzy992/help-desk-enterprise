@@ -25,12 +25,27 @@ export function entraRedirectUri(): string {
   return `${window.location.origin}${ENTRA_CALLBACK_PATH}`;
 }
 
+/**
+ * Backslashes and control characters are dropped or rewritten by URL parsers
+ * (`/\\evil.example` becomes `//evil.example`), so they are never a safe path.
+ */
+function hasUnsafePathCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return character === "\\" || code < 0x20 || code === 0x7f;
+  });
+}
+const loginPath = /^\/login(?:[/?#]|$)/;
+
 /** Only in-app relative paths are accepted as the post-login target. */
 export function safeReturnPath(value: string | null | undefined): string {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
     return "/";
   }
-  if (value.startsWith(ENTRA_CALLBACK_PATH) || value.startsWith("/login")) {
+  if (hasUnsafePathCharacter(value)) {
+    return "/";
+  }
+  if (value.startsWith(ENTRA_CALLBACK_PATH) || loginPath.test(value)) {
     return "/";
   }
   return value;

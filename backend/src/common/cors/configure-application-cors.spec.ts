@@ -65,7 +65,8 @@ describe('configureApplicationCors', () => {
       allowedOrigin,
     );
     expect(response.headers.get('access-control-allow-origin')).not.toBe('*');
-    expect(response.headers.get('access-control-allow-credentials')).toBeNull();
+    // The session cookie is sent cross-origin, so credentials must be allowed for the exact origin.
+    expect(response.headers.get('access-control-allow-credentials')).toBe('true');
     const allowedMethods =
       response.headers.get('access-control-allow-methods') ?? '';
     expect(allowedMethods.toUpperCase()).toContain('POST');

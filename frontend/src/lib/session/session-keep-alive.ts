@@ -1,5 +1,5 @@
 import { refreshSession } from "@/services/auth-api";
-import { readStoredSession, writeStoredSession } from "@/services/session-store";
+import { readStoredSession, storedSessionFrom, writeStoredSession } from "@/services/session-store";
 
 /**
  * The API issues
@@ -12,19 +12,6 @@ export const sessionKeepAlive = {
   refreshWindowMs: 10 * 60_000,
   idleLimitMs: 60 * 60_000,
 } as const;
-
-/** `exp` of a JWT in ms, or null when the token cannot be read. */
-export function readTokenExpiryMs(token: string): number | null {
-  const part = token.split(".")[1];
-  if (part === undefined) return null;
-  try {
-    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
-    const exp = (JSON.parse(json) as { exp?: unknown }).exp;
-    return typeof exp === "number" ? exp * 1000 : null;
-  } catch {
-    return null;
-  }
-}
 
 export type KeepAliveDecision = "refresh" | "expire" | "wait";
 
@@ -60,7 +47,7 @@ export function startSessionKeepAlive(input: {
     if (session === null || refreshing) return;
     const decision = decideKeepAlive({
       now: Date.now(),
-      expiresAt: readTokenExpiryMs(session.accessToken),
+      expiresAt: session.expiresAt,
       lastActivityAt,
     });
     if (decision === "expire") {
@@ -71,7 +58,7 @@ export function startSessionKeepAlive(input: {
     refreshing = true;
     try {
       const response = await refreshSession();
-      writeStoredSession({ accessToken: response.accessToken, principal: response.principal });
+      writeStoredSession(storedSessionFrom(response));
       input.onSessionChanged();
     } catch {
       // A 401 is handled globally (sign-in); network errors retry next tick.
