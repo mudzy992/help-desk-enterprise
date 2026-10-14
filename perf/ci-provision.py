@@ -35,6 +35,7 @@ BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:10001").rstrip("/")
 LOG_PATH = os.environ.get("PERF_PROVISION_LOG", "/tmp/install-wizard.log")
 SEED_FILE = os.environ.get("PERF_SEED_FILE", "/tmp/install-install-seed.json")
 TOKEN_FILE = os.environ.get("PERF_ADMIN_TOKEN_FILE", "/tmp/perf-admin-token.txt")
+SESSION_COOKIE = "helpdesk_session"
 
 
 def note(message: str) -> None:
@@ -48,6 +49,18 @@ def fail(message: str) -> None:
     sys.exit(1)
 
 
+def session_token_from_headers(set_cookie_values: list[str]) -> str | None:
+    """The API no longer returns `accessToken` in the body: the session travels in the
+    httpOnly `helpdesk_session` cookie. Its value is the same JWT, so the provisioning
+    script reads it from `Set-Cookie` and sends it as a bearer token (no Origin needed)."""
+    for header in set_cookie_values:
+        name_value = header.split(";", 1)[0].strip()
+        name, _, value = name_value.partition("=")
+        if name == SESSION_COOKIE and value:
+            return value
+    return None
+
+
 def request(method: str, path: str, body: object | None = None, token: str | None = None):
     data = None if body is None else json.dumps(body).encode("utf-8")
     req = urllib.request.Request(f"{BASE_URL}{path}", data=data, method=method)
@@ -58,22 +71,30 @@ def request(method: str, path: str, body: object | None = None, token: str | Non
         with urllib.request.urlopen(req, timeout=30) as response:
             raw = response.read().decode("utf-8")
             status = response.status
+            set_cookies = response.headers.get_all("Set-Cookie") or []
     except urllib.error.HTTPError as error:
         raw = error.read().decode("utf-8", errors="replace")
         status = error.code
+        set_cookies = error.headers.get_all("Set-Cookie") or []
     try:
         parsed = json.loads(raw) if raw else None
     except json.JSONDecodeError:
         parsed = None
-    return status, parsed, raw
+    return status, parsed, raw, session_token_from_headers(set_cookies)
 
 
-def expect(method: str, path: str, body=None, token=None, ok=(200, 201, 204)):
-    status, parsed, raw = request(method, path, body, token)
+def expect_session(method: str, path: str, body=None, token=None, ok=(200, 201, 204)):
+    """Like `expect`, but also returns the session token the response set, if any."""
+    status, parsed, raw, session = request(method, path, body, token)
     note(f"{method} {path} -> HTTP {status}")
     if status not in ok:
         note(f"  {raw[:400]}")
         fail(f"{method} {path} returned HTTP {status}")
+    return parsed, session
+
+
+def expect(method: str, path: str, body=None, token=None, ok=(200, 201, 204)):
+    parsed, _ = expect_session(method, path, body, token, ok)
     return parsed
 
 
@@ -89,11 +110,11 @@ def totp(secret: str, step: int | None = None) -> str:
 
 
 def admin_session(email: str, password: str) -> str:
-    login = expect("POST", "/auth/login", {"email": email, "password": password})
+    login, session = expect_session("POST", "/auth/login", {"email": email, "password": password})
     status = (login or {}).get("status")
     note(f"  admin sign-in status: {status or 'session'}")
-    if (login or {}).get("accessToken"):
-        return login["accessToken"]
+    if session:
+        return session
     if status != "MFA_ENROLLMENT_REQUIRED":
         # MFA_REQUIRED would mean an enrolled factor whose secret this run does not know —
         # impossible on the throwaway CI database, so it is reported, not worked around.
@@ -103,12 +124,11 @@ def admin_session(email: str, password: str) -> str:
     secret = (started or {}).get("secret")
     if not secret:
         fail("MFA enrolment start returned no secret")
-    confirmed = expect(
+    _, token = expect_session(
         "POST", "/auth/mfa/enroll/confirm", {"mfaToken": mfa_token, "code": totp(secret)}
     )
-    token = (confirmed or {}).get("accessToken")
     if not token:
-        fail("MFA enrolment confirm returned no access token")
+        fail("MFA enrolment confirm did not set a session cookie")
     return token
 
 
@@ -155,10 +175,10 @@ def create_account(token: str, email: str, password: str, name: str, role: str, 
 
 
 def prove_login(email: str, password: str) -> None:
-    login = expect("POST", "/auth/login", {"email": email, "password": password})
-    if not (login or {}).get("accessToken"):
+    login, session = expect_session("POST", "/auth/login", {"email": email, "password": password})
+    if not session:
         note(f"  {json.dumps(login)[:400]}")
-        fail(f"{email}: a plain password login gives k6 no token (status={(login or {}).get('status')})")
+        fail(f"{email}: a plain password login gives k6 no session (status={(login or {}).get('status')})")
 
 
 def main() -> None:
@@ -195,6 +215,10 @@ if __name__ == "__main__":
         # RFC 6238 Appendix B vector (SHA-1, T=59 s -> step 1): 94287082 -> last 6 digits.
         rfc_secret = base64.b32encode(b"12345678901234567890").decode()
         assert totp(rfc_secret, 1) == "287082", totp(rfc_secret, 1)
+        cookie = "helpdesk_session=abc.def.ghi; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Strict"
+        assert session_token_from_headers([cookie]) == "abc.def.ghi"
+        assert session_token_from_headers(["other=1; Path=/"]) is None
+        assert session_token_from_headers([]) is None
         print("self-test ok")
     else:
         main()

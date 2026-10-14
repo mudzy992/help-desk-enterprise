@@ -1,6 +1,8 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
+const SESSION_COOKIE = 'helpdesk_session';
+
 /** JSON headers plus a bearer token when one is available. */
 export function authorizedHeaders(token) {
   return {
@@ -25,22 +27,20 @@ export function login(config, credentials) {
   if (response.status !== 200 && response.status !== 201) {
     return null;
   }
-  return readAccessToken(response);
+  return readSessionToken(response);
 }
 
-function readAccessToken(response) {
-  try {
-    const body = response.json();
-    if (body && typeof body.accessToken === 'string') {
-      return body.accessToken;
-    }
-    if (body && typeof body.token === 'string') {
-      return body.token;
-    }
-    return null;
-  } catch {
+/**
+ * The API keeps the session in the httpOnly `helpdesk_session` cookie and no longer
+ * returns `accessToken` in the body. The cookie value is the same JWT, which k6 sends
+ * back as a bearer token (bearer needs no Origin check).
+ */
+function readSessionToken(response) {
+  const cookies = response.cookies[SESSION_COOKIE];
+  if (!cookies || cookies.length === 0 || !cookies[0].value) {
     return null;
   }
+  return cookies[0].value;
 }
 
 /** Response size in kilobytes, used for the payload budgets. */
