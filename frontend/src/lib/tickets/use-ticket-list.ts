@@ -113,29 +113,42 @@ export function useTicketList() {
   // resolve to their empty values. Apply them once when staff status is
   // confirmed; later URL-independent edits by the user are left alone.
   const staffDeepLinkApplied = useRef(isStaff);
+  const [deepLinkFiltersReady, setDeepLinkFiltersReady] = useState(!capabilities.isLoading);
   useEffect(() => {
-    if (!isStaff || staffDeepLinkApplied.current) {
-      return;
+    if (capabilities.isLoading) return;
+    if (isStaff && !staffDeepLinkApplied.current) {
+      staffDeepLinkApplied.current = true;
+      setFilters((current) => ({
+        ...current,
+        ...staffDeepLinkFilters(searchParams, true),
+      }));
+      setPage(1);
     }
-    staffDeepLinkApplied.current = true;
-    setFilters((current) => ({
-      ...current,
-      ...staffDeepLinkFilters(searchParams, true),
-    }));
-    setPage(1);
-  }, [isStaff, searchParams]);
+    setDeepLinkFiltersReady(true);
+  }, [capabilities.isLoading, isStaff, searchParams]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const latestLoadId = useRef(0);
   const queryFromUrl = searchParams.get("q") ?? "";
 
   const load = useCallback(
     async (silent = false) => {
+      // Deep-link filters are permission-sensitive. Do not issue an unfiltered
+      // requester query while capabilities are still resolving (T1).
+      if (capabilities.isLoading || !deepLinkFiltersReady) return;
+      const loadId = ++latestLoadId.current;
       if (!silent) {
         setIsLoading(true);
         setErrorKey(null);
+      } else {
+        // A realtime reload must bypass React Query's 30 s staleTime (T26).
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists }),
+          queryClient.invalidateQueries({ queryKey: ["tickets", "counts"] }),
+        ]);
       }
       try {
         if (view === "inbox") {
@@ -180,6 +193,7 @@ export function useTicketList() {
                   (status) => status.hasGroupMembership,
                   () => null,
                 );
+          if (loadId !== latestLoadId.current) return;
           setServices(catalog);
           setPageItems(inboxRows);
           setPageInfo({
@@ -221,6 +235,7 @@ export function useTicketList() {
               queryFn: () => listTicketsPage(query),
             }),
           ]);
+          if (loadId !== latestLoadId.current) return;
           setServices(catalog);
           setPageItems(response.items);
           setPageInfo({
@@ -236,14 +251,14 @@ export function useTicketList() {
           // tickets, not just the page, and they are allowed to fail (the tabs
           // then show zeros instead of breaking the list).
           const countsQuery = toTicketCountsQuery(query);
-          setCounts(
-            await queryClient
-              .fetchQuery({
-                queryKey: queryKeys.ticketCounts(countsQuery),
-                queryFn: () => getTicketCounts(countsQuery),
-              })
-              .catch(() => null),
-          );
+          const nextCounts = await queryClient
+            .fetchQuery({
+              queryKey: queryKeys.ticketCounts(countsQuery),
+              queryFn: () => getTicketCounts(countsQuery),
+            })
+            .catch(() => null);
+          if (loadId !== latestLoadId.current) return;
+          setCounts(nextCounts);
           // A filter can move the requested page past the end; fall back to the
           // last page that does have rows.
           if (response.items.length === 0 && response.total > 0 && response.page > 1) {
@@ -252,6 +267,7 @@ export function useTicketList() {
         }
         setInboxHidden(false);
       } catch (error) {
+        if (loadId !== latestLoadId.current) return;
         const mapped = mapTicketError(error);
         if (
           view === "inbox" &&
@@ -269,12 +285,22 @@ export function useTicketList() {
         setUnroutedTotal(0);
         setErrorKey(mapped);
       } finally {
-        if (!silent) {
+        if (!silent && loadId === latestLoadId.current) {
           setIsLoading(false);
         }
       }
     },
-    [view, filters, page, unroutedPage, currentUserId, queryClient, setSearchParams],
+    [
+      capabilities.isLoading,
+      deepLinkFiltersReady,
+      view,
+      filters,
+      page,
+      unroutedPage,
+      currentUserId,
+      queryClient,
+      setSearchParams,
+    ],
   );
 
   useEffect(() => {

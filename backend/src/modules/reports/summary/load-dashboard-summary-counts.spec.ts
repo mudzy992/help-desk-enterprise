@@ -17,7 +17,7 @@ type GroupRow = {
 
 /**
  * Staging k6 (2026-09-24): the dashboard counters come from ONE
- * `GROUP BY status, priority, assignedUserId` plus three narrow `count`s
+ * `GROUP BY status, priority, assignedUserId` plus four narrow `count`s
  * (openedToday, requestedByMe, overdue) — never a page of rows.
  *
  * The "opened today" boundary is asserted as an absolute UTC instant in the
@@ -26,7 +26,7 @@ type GroupRow = {
 const installationTimeZone = 'Europe/Sarajevo';
 function createFakePrisma(input: {
   readonly rows: readonly GroupRow[];
-  /** In call order: openedToday, requestedByMe, overdue. */
+  /** In call order: openedToday, requestedByMe, overdue, unroutedQueue. */
   readonly counts: readonly number[];
 }) {
   const calls = { groupBy: [] as GroupByCall[], count: [] as CountCall[] };
@@ -63,7 +63,7 @@ describe('loadDashboardSummaryCounts', () => {
         { status: 'CLOSED', priority: 'CRITICAL', assignedUserId: null, count: 4 },
         { status: 'WAITING_FOR_USER', priority: 'LOW', assignedUserId: 'user-1', count: 1 },
       ],
-      counts: [2, 5, 6],
+      counts: [2, 5, 6, 7],
     });
 
     const counts = await loadDashboardSummaryCounts(prisma as never, {
@@ -74,13 +74,13 @@ describe('loadDashboardSummaryCounts', () => {
     });
 
     expect(calls.groupBy).toHaveLength(1);
-    expect(calls.count).toHaveLength(3);
+    expect(calls.count).toHaveLength(4);
     expect(counts.total).toBe(10);
     expect(counts.open).toBe(5);
     expect(counts.waitingForUser).toBe(1);
     expect(counts.closed).toBe(4);
     expect(counts.resolved).toBe(0);
-    expect(counts.unrouted).toBe(0);
+    expect(counts.unrouted).toBe(7);
     // CRITICAL only while open: the closed critical ones do not count.
     expect(counts.critical).toBe(1);
     // Unassigned and not terminal: PENDING only.
