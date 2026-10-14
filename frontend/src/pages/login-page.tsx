@@ -2,7 +2,8 @@ import { BookOpen, Eye, EyeOff, Lock, ShieldCheck, Ticket, TrendingUp } from "lu
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { CaptchaChallenge } from "@/components/auth/captcha-challenge";
+import { CaptchaSlot, hasTurnstileConfiguration } from "@/components/auth/captcha-slot";
+import { type CaptchaLoadState } from "@/components/auth/captcha-challenge";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
 import { MfaMethodStep } from "@/components/auth/mfa-method-step";
@@ -118,6 +119,7 @@ export function LoginPage() {
    */
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaLoadState, setCaptchaLoadState] = useState<CaptchaLoadState>("loading");
   const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
   // Reveal toggle + Caps Lock hint, the two
@@ -175,8 +177,10 @@ export function LoginPage() {
     navigate(redirectPath, { replace: true });
   };
 
-  const isCaptchaBlocked =
-    isCaptchaRequired && providers?.captcha?.provider === "turnstile" && captchaToken === null;
+  const isCaptchaUnavailable =
+    isCaptchaRequired &&
+    (!hasTurnstileConfiguration(providers?.captcha) || captchaLoadState === "unavailable");
+  const isCaptchaBlocked = isCaptchaRequired && !isCaptchaUnavailable && captchaToken === null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -193,6 +197,7 @@ export function LoginPage() {
       const code = error instanceof ApiError ? error.code : null;
       if (code === "CAPTCHA_REQUIRED") {
         // First time the server asks: show the widget and let the user solve it.
+        setCaptchaLoadState("loading");
         setIsCaptchaRequired(true);
         setHasError(false);
       } else if (code === "CAPTCHA_FAILED") {
@@ -224,6 +229,7 @@ export function LoginPage() {
     } catch (error) {
       const errorCode = error instanceof ApiError ? error.code : null;
       if (errorCode === "CAPTCHA_REQUIRED" || errorCode === "CAPTCHA_FAILED") {
+        if (errorCode === "CAPTCHA_REQUIRED") setCaptchaLoadState("loading");
         setIsCaptchaRequired(true);
         setCaptchaToken(null);
         setCaptchaResetSignal((value) => value + 1);
@@ -234,6 +240,15 @@ export function LoginPage() {
       throw error;
     }
   };
+
+  const captchaSlot = isCaptchaRequired ? (
+    <CaptchaSlot
+      configuration={providers?.captcha}
+      onToken={setCaptchaToken}
+      onLoadState={setCaptchaLoadState}
+      resetSignal={captchaResetSignal}
+    />
+  ) : null;
 
   const handleEntraSignIn = async () => {
     if (providers?.entra == null) return;
@@ -353,16 +368,9 @@ export function LoginPage() {
                       readPreferredMfaMethod(email),
                     )}
                     onVerifyCode={(code) => verifyMfaWithCaptcha(step.token, code)}
-                    captcha={
-                      isCaptchaRequired && providers?.captcha?.siteKey != null ? (
-                        <CaptchaChallenge
-                          siteKey={providers.captcha.siteKey}
-                          onToken={setCaptchaToken}
-                          resetSignal={captchaResetSignal}
-                        />
-                      ) : undefined
-                    }
+                    captcha={captchaSlot ?? undefined}
                     isCaptchaBlocked={isCaptchaBlocked}
+                    isCaptchaUnavailable={isCaptchaUnavailable}
                     onCompletePasskey={(assertion) => completeMfaWithPasskey(step.token, assertion)}
                     onVerified={() => navigate(redirectPath, { replace: true })}
                     onCancel={() => setStep({ kind: "credentials" })}
@@ -525,13 +533,7 @@ export function LoginPage() {
                       />
                       <span>{t("login.rememberMe")}</span>
                     </label>
-                    {isCaptchaRequired && providers?.captcha?.siteKey != null ? (
-                      <CaptchaChallenge
-                        siteKey={providers.captcha.siteKey}
-                        onToken={setCaptchaToken}
-                        resetSignal={captchaResetSignal}
-                      />
-                    ) : null}
+                    {captchaSlot}
                     {hasError ? (
                       <p id="login-error" className={errorTextClassName} role="alert">
                         {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
@@ -543,7 +545,7 @@ export function LoginPage() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting || isCaptchaBlocked}
+                      disabled={isSubmitting || isCaptchaBlocked || isCaptchaUnavailable}
                     >
                       {isSubmitting ? t("session.signingIn") : t("session.signIn")}
                     </Button>

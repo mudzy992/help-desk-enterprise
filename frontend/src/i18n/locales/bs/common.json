@@ -4815,7 +4815,7 @@
     "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo kasnije.",
     "captchaTitle": "Provjera da niste robot",
     "captchaHint": "Riješite provjeru pa se prijavite ponovo.",
-    "captchaUnavailable": "Provjera se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru (server mora imati pristup Cloudflare Turnstile servisu).",
+    "captchaUnavailable": "CAPTCHA provjera nije dostupna ili se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru da provjeri Turnstile konfiguraciju i pristup servisu.",
     "captchaRetry": "Pokušaj ponovo",
     "captchaFailed": "Provjera nije prihvaćena. Pokušajte ponovo.",
     "checkError": {

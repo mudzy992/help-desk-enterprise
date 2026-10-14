@@ -4791,7 +4791,7 @@
     "errorRateLimited": "Too many failed sign-in attempts. Try again later.",
     "captchaTitle": "Human verification",
     "captchaHint": "Solve the check, then sign in again.",
-    "captchaUnavailable": "The check did not load. Check the connection and try again — if it repeats, tell an administrator (the server needs access to the Cloudflare Turnstile service).",
+    "captchaUnavailable": "The CAPTCHA check is unavailable or did not load. Check the connection and try again — if it keeps happening, ask an administrator to check the Turnstile configuration and service access.",
     "captchaRetry": "Try again",
     "captchaFailed": "The check was not accepted. Try again.",
     "checkError": {

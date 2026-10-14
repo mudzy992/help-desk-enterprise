@@ -33,6 +33,7 @@ export function MfaMethodStep({
   onCancel,
   captcha,
   isCaptchaBlocked = false,
+  isCaptchaUnavailable = false,
 }: {
   readonly email: string;
   readonly token: string;
@@ -46,6 +47,7 @@ export function MfaMethodStep({
   /** Paket 5.4.1 closeout (M3): rendered above the code field, only for the code. */
   readonly captcha?: ReactNode;
   readonly isCaptchaBlocked?: boolean;
+  readonly isCaptchaUnavailable?: boolean;
 }) {
   const { t } = useTranslation();
   const offered = methods ?? (["totp"] as const);
@@ -143,7 +145,8 @@ export function MfaMethodStep({
           }}
           onCancel={onCancel}
           captcha={captcha}
-          isSubmitBlocked={isCaptchaBlocked}
+          isSubmitBlocked={isCaptchaBlocked || isCaptchaUnavailable}
+          isCaptchaUnavailable={isCaptchaUnavailable}
         />
       )}
     </div>
