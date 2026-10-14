@@ -35,10 +35,9 @@ export function ActiveTimerIndicator() {
       className="flex min-w-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/8 py-0.5 pl-2.5 pr-0.5 text-[12px] text-primary"
       data-testid="active-timer-indicator"
     >
-      <Timer size={13} strokeWidth={2} aria-hidden className="animate-pulse" />
       <Link
         to={`/tickets/${timer.ticketId}`}
-        className="max-w-[72px] truncate font-medium hover:underline sm:max-w-[180px]"
+        className="flex min-w-0 items-center gap-1 hover:underline"
         title={
           timer.ticketTitle.length > 0
             ? `${timer.ticketNumber} · ${timer.ticketTitle}`
@@ -46,11 +45,14 @@ export function ActiveTimerIndicator() {
         }
         aria-label={label}
       >
-        {timer.ticketNumber}
+        <Timer size={13} strokeWidth={2} aria-hidden className="animate-pulse" />
+        <span className="hidden max-w-[180px] truncate font-medium sm:inline">
+          {timer.ticketNumber}
+        </span>
+        <span className="tnum font-mono" aria-hidden>
+          {elapsed}
+        </span>
       </Link>
-      <span className="tnum font-mono" aria-hidden>
-        {elapsed}
-      </span>
       <Button
         type="button"
         size="icon"
