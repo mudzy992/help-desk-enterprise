@@ -50,8 +50,12 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
     ...options.settings,
   };
   const transaction = {
-    assetTransferSequence: { upsert: jest.fn().mockResolvedValue({ lastNumber: 7 }) },
-    assetTransfer: { create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })) },
+    $queryRaw: jest.fn().mockResolvedValue([{ lastNumber: 7 }]),
+    assetTransferSequence: { update: jest.fn().mockResolvedValue({}) },
+    assetTransfer: {
+      create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })),
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 0 } }),
+    },
     asset: { updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }) },
     assetEvent: { create: jest.fn().mockResolvedValue({}) },
   };
@@ -137,7 +141,7 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
     const result = await service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1', issueDocument: false }, viewer);
     expect(result.transferId).toBeNull();
     expect(transaction.assetTransfer.create).not.toHaveBeenCalled();
-    expect(transaction.assetTransferSequence.upsert).not.toHaveBeenCalled();
+    expect(transaction.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('a required record cannot be skipped', async () => {
