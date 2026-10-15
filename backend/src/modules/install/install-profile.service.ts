@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { changeLogEntityTypes } from '../change-log/change-log.constants';
 import type { ChangeLogPrismaClient } from '../change-log/change-log.types';
 import { recordChangeLog } from '../change-log/record-change-log';

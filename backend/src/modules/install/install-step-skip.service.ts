@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import type { SettingsMutationInput } from '../settings/settings.types';
 import { findInstallSuperAdmin } from './find-install-super-admin';
