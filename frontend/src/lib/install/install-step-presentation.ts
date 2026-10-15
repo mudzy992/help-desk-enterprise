@@ -13,6 +13,11 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import {
+  installSectionStepPresentations,
+  installSecurityRecommendationsPresentation,
+} from "@/lib/install/install-section-presentation";
+import { installSectionStepKeys } from "@/services/install-sections-api";
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
@@ -35,6 +40,10 @@ export const installWizardSteps: readonly InstallWizardStep[] = [
   "blueprint",
   "policyPack",
   "slaReview",
+  // F5: the sections of the Full package, in the order the registry declares
+  // them, then the recommendations panel Standard and Full share.
+  ...installSectionStepKeys,
+  "securityRecommendations",
   "addons",
   "complete",
 ];
@@ -53,6 +62,7 @@ export type InstallStepPresentation = {
 export const installStepPresentations: Readonly<
   Record<InstallWizardStep, InstallStepPresentation>
 > = {
+  ...installSectionStepPresentations,
   profile: {
     icon: Package,
     titleKey: "install.profile.heading",
@@ -153,6 +163,7 @@ export const installStepPresentations: Readonly<
       "install.whatYouGet.slaReview.3",
     ],
   },
+  securityRecommendations: installSecurityRecommendationsPresentation,
   addons: {
     icon: Blocks,
     titleKey: "install.addons.heading",
@@ -174,6 +185,7 @@ export const installStepPresentations: Readonly<
     ],
   },
 };
+
 
 export type InstallStepLabelKey = `install.steps.${InstallWizardStep}`;
 

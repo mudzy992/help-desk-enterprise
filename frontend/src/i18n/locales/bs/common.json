@@ -2183,7 +2183,31 @@
         "private.install.slaReview": "Kako je završen pregled SLA u čarobnjaku: confirmed (zadano potvrđeno) ili adjusted (izmijenjeno).",
         "private.install.steps.blueprint.skipped": "Oznaka da je korak izrade kataloga odgođen u čarobnjaku.",
         "private.install.steps.policyPack.skipped": "Oznaka da je korak paketa prava odgođen u čarobnjaku.",
-        "private.install.steps.slaReview.skipped": "Oznaka da je korak pregleda SLA odgođen u čarobnjaku."
+        "private.install.steps.slaReview.skipped": "Oznaka da je korak pregleda SLA odgođen u čarobnjaku.",
+        "private.install.steps.section.inboundEmail.skipped": "Oznaka da je sekcija „Dolazna e-pošta“ odgođena u čarobnjaku.",
+        "private.install.steps.section.inboundEmail.saved": "Oznaka da je sekcija „Dolazna e-pošta“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.directory.skipped": "Oznaka da je sekcija „Imenik (AD/LDAPS)“ odgođena u čarobnjaku.",
+        "private.install.steps.section.directory.saved": "Oznaka da je sekcija „Imenik (AD/LDAPS)“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.knowledgeBase.skipped": "Oznaka da je sekcija „Baza znanja“ odgođena u čarobnjaku.",
+        "private.install.steps.section.knowledgeBase.saved": "Oznaka da je sekcija „Baza znanja“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.statusPage.skipped": "Oznaka da je sekcija „Statusna stranica“ odgođena u čarobnjaku.",
+        "private.install.steps.section.statusPage.saved": "Oznaka da je sekcija „Statusna stranica“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.onCall.skipped": "Oznaka da je sekcija „Dežurstva“ odgođena u čarobnjaku.",
+        "private.install.steps.section.onCall.saved": "Oznaka da je sekcija „Dežurstva“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.announcements.skipped": "Oznaka da je sekcija „Obavještenja“ odgođena u čarobnjaku.",
+        "private.install.steps.section.announcements.saved": "Oznaka da je sekcija „Obavještenja“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.security.skipped": "Oznaka da je sekcija „Sigurnost“ odgođena u čarobnjaku.",
+        "private.install.steps.section.security.saved": "Oznaka da je sekcija „Sigurnost“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.privacy.skipped": "Oznaka da je sekcija „Privatnost i podaci“ odgođena u čarobnjaku.",
+        "private.install.steps.section.privacy.saved": "Oznaka da je sekcija „Privatnost i podaci“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.auditWebhook.skipped": "Oznaka da je sekcija „Audit webhook“ odgođena u čarobnjaku.",
+        "private.install.steps.section.auditWebhook.saved": "Oznaka da je sekcija „Audit webhook“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.itsm.skipped": "Oznaka da je sekcija „ITSM moduli“ odgođena u čarobnjaku.",
+        "private.install.steps.section.itsm.saved": "Oznaka da je sekcija „ITSM moduli“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.integrations.skipped": "Oznaka da je sekcija „Integracije“ odgođena u čarobnjaku.",
+        "private.install.steps.section.integrations.saved": "Oznaka da je sekcija „Integracije“ odgovorena u čarobnjaku.",
+        "private.install.steps.securityRecommendations.skipped": "Oznaka da je sekcija „Sigurnosne preporuke“ odgođena u čarobnjaku.",
+        "private.install.steps.securityRecommendations.saved": "Oznaka da je sekcija „Sigurnosne preporuke“ odgovorena u čarobnjaku."
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2673,7 +2697,31 @@
         "private.install.slaReview": "Zapis da je operater pregledao radno vrijeme i matricu prioriteta. Vrijednost confirmed znači da su zadane vrijednosti prihvaćene, adjusted da su izmijenjene, a prazno da korak još nije odgovoren.",
         "private.install.steps.blueprint.skipped": "Postavlja ga čarobnjak kad operater odgodi izradu kataloga iz predloška. Katalog tada ostaje samo sa servisom iz koraka početnih podataka, a izrada iz predloška je moguća kasnije.",
         "private.install.steps.policyPack.skipped": "Postavlja ga čarobnjak kad operater odgodi paket prava. Prava i uloge koje paket nosi tada treba dodijeliti ručno u Settings.",
-        "private.install.steps.slaReview.skipped": "Postavlja ga čarobnjak kad operater odgodi pregled SLA. Radno vrijeme i matrica prioriteta ostaju na zadanima dok ih neko ne promijeni u Settings."
+        "private.install.steps.slaReview.skipped": "Postavlja ga čarobnjak kad operater odgodi pregled SLA. Radno vrijeme i matrica prioriteta ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.inboundEmail.skipped": "Postavlja ga čarobnjak kad operater u koraku „Dolazna e-pošta“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.inboundEmail.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.directory.skipped": "Postavlja ga čarobnjak kad operater u koraku „Imenik (AD/LDAPS)“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.directory.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.knowledgeBase.skipped": "Postavlja ga čarobnjak kad operater u koraku „Baza znanja“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.knowledgeBase.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.statusPage.skipped": "Postavlja ga čarobnjak kad operater u koraku „Statusna stranica“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.statusPage.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.onCall.skipped": "Postavlja ga čarobnjak kad operater u koraku „Dežurstva“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.onCall.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.announcements.skipped": "Postavlja ga čarobnjak kad operater u koraku „Obavještenja“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.announcements.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.security.skipped": "Postavlja ga čarobnjak kad operater u koraku „Sigurnost“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.security.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.privacy.skipped": "Postavlja ga čarobnjak kad operater u koraku „Privatnost i podaci“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.privacy.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.auditWebhook.skipped": "Postavlja ga čarobnjak kad operater u koraku „Audit webhook“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.auditWebhook.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.itsm.skipped": "Postavlja ga čarobnjak kad operater u koraku „ITSM moduli“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.itsm.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.integrations.skipped": "Postavlja ga čarobnjak kad operater u koraku „Integracije“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.integrations.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.securityRecommendations.skipped": "Postavlja ga čarobnjak kad operater u koraku „Sigurnosne preporuke“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.securityRecommendations.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -4350,7 +4398,19 @@
       "complete": "Završetak",
       "blueprint": "Katalog iz predloška",
       "policyPack": "Paket prava",
-      "slaReview": "Pregled SLA"
+      "slaReview": "Pregled SLA",
+      "section.inboundEmail": "Dolazna e-pošta",
+      "section.directory": "Imenik (AD/LDAPS)",
+      "section.knowledgeBase": "Baza znanja",
+      "section.statusPage": "Statusna stranica",
+      "section.onCall": "Dežurstva",
+      "section.announcements": "Obavještenja",
+      "section.security": "Sigurnost prijave",
+      "section.privacy": "Privatnost i podaci",
+      "section.auditWebhook": "Audit webhook",
+      "section.itsm": "ITSM moduli",
+      "section.integrations": "Integracije",
+      "securityRecommendations": "Sigurnosne preporuke"
     },
     "tokenHeading": "Instalacijski token",
     "tokenBody": "Unesite vrijednost varijable okruženja INSTALL_TOKEN sa servera. Bez nje čarobnjak ostaje zaključan.",
@@ -4603,6 +4663,162 @@
     "content": {
       "errorSuperAdmin": "Za ovaj korak je potrebna prijava super admina.",
       "errorGeneric": "Čuvanje nije uspjelo. Pokušajte ponovo."
+    },
+    "section": {
+      "inboundEmail": {
+        "title": "Dolazna e-pošta",
+        "value": "Poruke koje dođu na sanduče postaju tiketi u servisu koji odaberete — bez ručnog prepisivanja.",
+        "whatYouGet": {
+          "1": "Svaki novi mejl postaje tiket ili odgovor na postojeći.",
+          "2": "Nepoznati pošiljaoci se odbijaju, a petlje zaustavljaju.",
+          "3": "Ako sanduče još ne postoji, preskočite korak — tiketi iz portala rade dalje."
+        }
+      },
+      "directory": {
+        "title": "Imenik (AD/LDAPS)",
+        "value": "Čitanje korisnika i grupa iz vašeg imenika: prijava ostaje vaša, a Help Desk preuzima imena, adrese i pripadnost timovima.",
+        "whatYouGet": {
+          "1": "Agentima se imena i e-pošta ne unose ručno.",
+          "2": "Članstvo u grupama može odlučivati ko je admin, a ko agent.",
+          "3": "Ako prijava ne ide preko Entra ID-a, preskočite korak."
+        }
+      },
+      "knowledgeBase": {
+        "title": "Baza znanja",
+        "value": "Povratne informacije čitalaca i redovni pregledi drže bazu znanja tačnom.",
+        "whatYouGet": {
+          "1": "Čitalac može reći je li mu članak pomogao.",
+          "2": "Članci koji stare vraćaju se vlasnicima na pregled.",
+          "3": "Broj pitanja na portalu određuje koliko je duga stranica."
+        }
+      },
+      "statusPage": {
+        "title": "Statusna stranica",
+        "value": "Stranica koja pokazuje stanje sistema i prekide, umjesto da svaki poziv počne pitanjem „radi li vama?“",
+        "whatYouGet": {
+          "1": "Korisnici vide prekide bez prijave.",
+          "2": "Dostupnost se prikazuje ako želite da je pokažete.",
+          "3": "Prekid koji objavite pojavi se na stranici odmah."
+        }
+      },
+      "onCall": {
+        "title": "Dežurstva",
+        "value": "Odgovornost van radnog vremena: ko je na vezi i kada ga podsjetiti.",
+        "whatYouGet": {
+          "1": "Raspored se veže na tim koji ste već upisali.",
+          "2": "Podsjetnik stigne prije nego dežurstvo počne.",
+          "3": "Bez tima korak ne može raditi, zato je tim prvi uslov."
+        }
+      },
+      "announcements": {
+        "title": "Obavještenja",
+        "value": "Jedno mjesto za najave svima — od novog pravilnika do planiranog prekida.",
+        "whatYouGet": {
+          "1": "Obavještenje vide svi korisnici na portalu.",
+          "2": "Možete odlučiti smiju li agenti objavljivati sami.",
+          "3": "Kada je isključeno, portal ne prikazuje sekciju obavještenja."
+        }
+      },
+      "security": {
+        "title": "Sigurnost prijave",
+        "value": "Drugi faktor, provjera procurjelih lozinki i zatvaranje neaktivne sesije — tri poluge koje u produkciji najviše znače.",
+        "whatYouGet": {
+          "1": "Admini mogu biti obavezani na drugi faktor.",
+          "2": "Lozinke koje su se pojavile u procurjelim bazama provjeravaju se pri prijavi.",
+          "3": "Neaktivna sesija se zatvara nakon vremena koje postavite."
+        }
+      },
+      "privacy": {
+        "title": "Privatnost i podaci",
+        "value": "Koliko dugo podaci žive i šta se arhivira — prije nego prvi zahtjev za brisanje dođe na stol.",
+        "whatYouGet": {
+          "1": "Zahtjevi korisnika za svoje podatke imaju svoje mjesto u sistemu.",
+          "2": "Zatvoreni tiketi se arhiviraju po pravilu, ne ručno.",
+          "3": "Rok arhiviranja određujete vi."
+        }
+      },
+      "auditWebhook": {
+        "title": "Audit webhook",
+        "value": "Svaki sigurnosno važan događaj odlazi i van sistema — u SIEM ili na vaš endpoint.",
+        "whatYouGet": {
+          "1": "Prijave, promjene uloga i promjene postavki putuju u vaš log.",
+          "2": "Tajna potpisuje svaku poruku, pa se falsifikat vidi.",
+          "3": "Webhook radi paralelno sa internim audit logom."
+        }
+      },
+      "itsm": {
+        "title": "ITSM moduli",
+        "value": "CMDB, problemi i promjene — moduli koji u Full paketu dolaze uključeni.",
+        "whatYouGet": {
+          "1": "Imovinu i zavisnosti vodite u CMDB-u.",
+          "2": "Problemi se vode odvojeno od tiketa, sa uzrocima.",
+          "3": "Promjena ima odobrenje i zapis, ne samo poruku u tiketu."
+        }
+      },
+      "integrations": {
+        "title": "Integracije",
+        "value": "Teams, Edge i kanali preko kojih Help Desk izlazi iz svog prozora.",
+        "whatYouGet": {
+          "1": "Tiketi i obavještenja mogu ići u Teams.",
+          "2": "Konektor u pilotu radi u simulatoru, a u produkciji u živom režimu.",
+          "3": "Kanali i tajne konektora ostaju na ekranu Integracije."
+        }
+      },
+      "required": "obavezno",
+      "secretHint": "Tajna se ne prikazuje. Ostavite polje prazno da zadržite postojeću vrijednost.",
+      "secretSet": "Tajna je postavljena — upišite novu vrijednost da je zamijenite",
+      "unset": "— nije postavljeno —",
+      "save": "Sačuvaj",
+      "saving": "Čuvam…",
+      "saved": "Sačuvano. Korak time dobija odgovor.",
+      "confirmDefaults": "Potvrdi zadane vrijednosti",
+      "requires": {
+        "service": "Prvo upišite barem jedan servis u koraku „Struktura“ — bez njega tiketi iz e-pošte ne bi imali gdje doći.",
+        "directoryLogin": "Ovo ima smisla samo ako prijava ide preko Entra ID-a (korak „Prijava“).",
+        "team": "Prvo upišite tim u koraku „Struktura“ — dežurstvo bez tima ne postoji."
+      },
+      "errorUnknown": "Ova sekcija ne postoji. Osvježite stranicu i pokušajte ponovo.",
+      "errorKeyNotAllowed": "To polje nije dio ove sekcije, pa nije upisano.",
+      "errorDependency": "Prvo dovršite uslov iznad (servis, tim ili prijava preko Entra ID-a).",
+      "errorRequires": "Postavka zavisi od druge koja još nije postavljena — provjerite uslove na ekranu Postavke.",
+      "errorValue": "Vrijednost nije prihvaćena. Provjerite tip, raspon ili dozvoljene vrijednosti."
+    },
+    "security": {
+      "recommendations": {
+        "title": "Preporuke za produkciju",
+        "value": "Postavke koje u produkciji treba uključiti — i jedna koju ovdje namjerno ne diramo.",
+        "whatYouGet": {
+          "1": "MFA je obavezan za admine, a ostalima dostupan.",
+          "2": "Provjera procurjelih lozinki je uključena.",
+          "3": "Turnstile čeka vaše ključeve; do tada ostaje isključen."
+        },
+        "applied": "Postavljeno",
+        "pending": "Čeka primjenu",
+        "manual": "Ručno",
+        "submit": "Primijeni preporuke za produkciju",
+        "saving": "Primjenjujem…",
+        "done": "Preporuke su primijenjene. Korak time dobija odgovor.",
+        "mfaAdmins": {
+          "title": "MFA za administratore",
+          "help": "Nalog sa najvećim ovlaštenjima treba i drugi faktor — aplikacija ili Entra ID."
+        },
+        "mfaOptional": {
+          "title": "MFA za ostale korisnike",
+          "help": "Dostupan, ali neobavezan: agent može uključiti drugi faktor kada želi."
+        },
+        "hibp": {
+          "title": "Provjera procurjelih lozinki",
+          "help": "Lozinka koja se pojavi u procurjelim bazama se odbija pri postavljanju i pri prijavi."
+        },
+        "idleTimeout": {
+          "title": "Zatvaranje neaktivne sesije",
+          "help": "Sesija se zatvara nakon 1800 sekundi (30 minuta) bez aktivnosti."
+        },
+        "captcha": {
+          "title": "Turnstile (captcha)",
+          "help": "Uključuje se ručno, kada unesete site i secret ključ — bez njih bi zaključao prijavu."
+        }
+      }
     }
   },
   "routing": {

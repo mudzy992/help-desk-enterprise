@@ -2172,7 +2172,31 @@
         "private.install.slaReview": "How the SLA review in the wizard ended: confirmed (defaults accepted) or adjusted (changed).",
         "private.install.steps.blueprint.skipped": "Flag that the catalog step was deferred in the wizard.",
         "private.install.steps.policyPack.skipped": "Flag that the policy pack step was deferred in the wizard.",
-        "private.install.steps.slaReview.skipped": "Flag that the SLA review step was deferred in the wizard."
+        "private.install.steps.slaReview.skipped": "Flag that the SLA review step was deferred in the wizard.",
+        "private.install.steps.section.inboundEmail.skipped": "Flag that the “Incoming email” section was deferred in the wizard.",
+        "private.install.steps.section.inboundEmail.saved": "Flag that the “Incoming email” section was answered in the wizard.",
+        "private.install.steps.section.directory.skipped": "Flag that the “Directory (AD/LDAPS)” section was deferred in the wizard.",
+        "private.install.steps.section.directory.saved": "Flag that the “Directory (AD/LDAPS)” section was answered in the wizard.",
+        "private.install.steps.section.knowledgeBase.skipped": "Flag that the “Knowledge base” section was deferred in the wizard.",
+        "private.install.steps.section.knowledgeBase.saved": "Flag that the “Knowledge base” section was answered in the wizard.",
+        "private.install.steps.section.statusPage.skipped": "Flag that the “Status page” section was deferred in the wizard.",
+        "private.install.steps.section.statusPage.saved": "Flag that the “Status page” section was answered in the wizard.",
+        "private.install.steps.section.onCall.skipped": "Flag that the “On-call” section was deferred in the wizard.",
+        "private.install.steps.section.onCall.saved": "Flag that the “On-call” section was answered in the wizard.",
+        "private.install.steps.section.announcements.skipped": "Flag that the “Announcements” section was deferred in the wizard.",
+        "private.install.steps.section.announcements.saved": "Flag that the “Announcements” section was answered in the wizard.",
+        "private.install.steps.section.security.skipped": "Flag that the “Security” section was deferred in the wizard.",
+        "private.install.steps.section.security.saved": "Flag that the “Security” section was answered in the wizard.",
+        "private.install.steps.section.privacy.skipped": "Flag that the “Privacy and data” section was deferred in the wizard.",
+        "private.install.steps.section.privacy.saved": "Flag that the “Privacy and data” section was answered in the wizard.",
+        "private.install.steps.section.auditWebhook.skipped": "Flag that the “Audit webhook” section was deferred in the wizard.",
+        "private.install.steps.section.auditWebhook.saved": "Flag that the “Audit webhook” section was answered in the wizard.",
+        "private.install.steps.section.itsm.skipped": "Flag that the “ITSM modules” section was deferred in the wizard.",
+        "private.install.steps.section.itsm.saved": "Flag that the “ITSM modules” section was answered in the wizard.",
+        "private.install.steps.section.integrations.skipped": "Flag that the “Integrations” section was deferred in the wizard.",
+        "private.install.steps.section.integrations.saved": "Flag that the “Integrations” section was answered in the wizard.",
+        "private.install.steps.securityRecommendations.skipped": "Flag that the “Security recommendations” section was deferred in the wizard.",
+        "private.install.steps.securityRecommendations.saved": "Flag that the “Security recommendations” section was answered in the wizard."
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2662,7 +2686,31 @@
         "private.install.slaReview": "The record that the operator reviewed the working hours and the priority matrix. `confirmed` means the defaults were accepted, `adjusted` that they were changed, empty that the step was not answered yet.",
         "private.install.steps.blueprint.skipped": "Set by the wizard when the operator defers building the catalog from a template. The catalog then keeps only the service from the initial data step, and the template can still be applied later.",
         "private.install.steps.policyPack.skipped": "Set by the wizard when the operator defers the policy pack. The roles and permissions the pack carries then have to be granted by hand in Settings.",
-        "private.install.steps.slaReview.skipped": "Set by the wizard when the operator defers the SLA review. The working hours and the priority matrix stay at their defaults until somebody changes them in Settings."
+        "private.install.steps.slaReview.skipped": "Set by the wizard when the operator defers the SLA review. The working hours and the priority matrix stay at their defaults until somebody changes them in Settings.",
+        "private.install.steps.section.inboundEmail.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Incoming email” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.inboundEmail.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.directory.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Directory (AD/LDAPS)” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.directory.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.knowledgeBase.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Knowledge base” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.knowledgeBase.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.statusPage.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Status page” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.statusPage.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.onCall.skipped": "Set by the wizard when the operator chooses “Configure later” in the “On-call” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.onCall.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.announcements.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Announcements” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.announcements.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.security.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Security” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.security.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.privacy.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Privacy and data” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.privacy.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.auditWebhook.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Audit webhook” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.auditWebhook.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.itsm.skipped": "Set by the wizard when the operator chooses “Configure later” in the “ITSM modules” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.itsm.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.integrations.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Integrations” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.integrations.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.securityRecommendations.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Security recommendations” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.securityRecommendations.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed."
       },
       "type": {
         "boolean": "on/off",
@@ -4331,7 +4379,19 @@
       "complete": "Finish",
       "blueprint": "Catalog from a template",
       "policyPack": "Policy pack",
-      "slaReview": "SLA review"
+      "slaReview": "SLA review",
+      "section.inboundEmail": "Incoming email",
+      "section.directory": "Directory (AD/LDAPS)",
+      "section.knowledgeBase": "Knowledge base",
+      "section.statusPage": "Status page",
+      "section.onCall": "On-call",
+      "section.announcements": "Announcements",
+      "section.security": "Sign-in security",
+      "section.privacy": "Privacy and data",
+      "section.auditWebhook": "Audit webhook",
+      "section.itsm": "ITSM modules",
+      "section.integrations": "Integrations",
+      "securityRecommendations": "Security recommendations"
     },
     "tokenHeading": "Install token",
     "tokenBody": "Enter the value of the INSTALL_TOKEN environment variable from the server. Without it the wizard stays locked.",
@@ -4584,6 +4644,162 @@
     "content": {
       "errorSuperAdmin": "This step needs the super admin account.",
       "errorGeneric": "Saving failed. Please try again."
+    },
+    "section": {
+      "inboundEmail": {
+        "title": "Incoming email",
+        "value": "Messages that arrive in the mailbox become tickets in the service you pick — with no manual retyping.",
+        "whatYouGet": {
+          "1": "Every new mail becomes a ticket or a reply on an existing one.",
+          "2": "Unknown senders are refused and mail loops are stopped.",
+          "3": "If the mailbox does not exist yet, skip the step — portal tickets keep working."
+        }
+      },
+      "directory": {
+        "title": "Directory (AD/LDAPS)",
+        "value": "Read users and groups from your directory: sign-in stays yours, and Help Desk takes names, addresses and team membership.",
+        "whatYouGet": {
+          "1": "Agents' names and addresses are not typed in by hand.",
+          "2": "Group membership can decide who is an admin and who is an agent.",
+          "3": "If sign-in does not go through Entra ID, skip the step."
+        }
+      },
+      "knowledgeBase": {
+        "title": "Knowledge base",
+        "value": "Reader feedback and regular reviews keep the knowledge base accurate.",
+        "whatYouGet": {
+          "1": "A reader can say whether the article helped.",
+          "2": "Articles that age come back to their owners for review.",
+          "3": "The number of portal questions decides how long the page gets."
+        }
+      },
+      "statusPage": {
+        "title": "Status page",
+        "value": "A page that shows system status and incidents instead of every call starting with “is it down for you too?”",
+        "whatYouGet": {
+          "1": "Users see incidents without signing in.",
+          "2": "Uptime is shown if you want to show it.",
+          "3": "An incident you publish appears on the page at once."
+        }
+      },
+      "onCall": {
+        "title": "On-call",
+        "value": "Responsibility outside business hours: who is on call and when to remind them.",
+        "whatYouGet": {
+          "1": "A schedule attaches to the team you already created.",
+          "2": "The reminder arrives before the shift starts.",
+          "3": "Without a team the step cannot work, which is why the team comes first."
+        }
+      },
+      "announcements": {
+        "title": "Announcements",
+        "value": "One place for messages to everybody — from a new policy to a planned outage.",
+        "whatYouGet": {
+          "1": "Every user sees the announcement on the portal.",
+          "2": "You decide whether agents may publish on their own.",
+          "3": "When it is off, the portal shows no announcements section."
+        }
+      },
+      "security": {
+        "title": "Sign-in security",
+        "value": "A second factor, breached-password checks and idle sign-out — the three levers that matter most in production.",
+        "whatYouGet": {
+          "1": "Admins can be required to use a second factor.",
+          "2": "Passwords that showed up in breached lists are checked at sign-in.",
+          "3": "An idle session closes after the time you set."
+        }
+      },
+      "privacy": {
+        "title": "Privacy and data",
+        "value": "How long data lives and what gets archived — before the first erasure request lands on the desk.",
+        "whatYouGet": {
+          "1": "Users' requests about their own data have a place in the system.",
+          "2": "Closed tickets are archived by rule, not by hand.",
+          "3": "You decide the archiving window."
+        }
+      },
+      "auditWebhook": {
+        "title": "Audit webhook",
+        "value": "Every security-relevant event also leaves the system — to a SIEM or to your endpoint.",
+        "whatYouGet": {
+          "1": "Sign-ins, role changes and settings changes travel to your log.",
+          "2": "A secret signs every message, so a forgery shows.",
+          "3": "The webhook runs alongside the internal audit log."
+        }
+      },
+      "itsm": {
+        "title": "ITSM modules",
+        "value": "CMDB, problems and changes — the modules the Full package switches on.",
+        "whatYouGet": {
+          "1": "Track assets and dependencies in the CMDB.",
+          "2": "Problems are tracked apart from tickets, with root causes.",
+          "3": "A change carries an approval and a record, not just a line in a ticket."
+        }
+      },
+      "integrations": {
+        "title": "Integrations",
+        "value": "Teams, Edge and the channels through which Help Desk leaves its own window.",
+        "whatYouGet": {
+          "1": "Tickets and notifications can go to Teams.",
+          "2": "In a pilot the connector runs in simulator mode, in production live.",
+          "3": "Connector channels and secrets stay on the Integrations screen."
+        }
+      },
+      "required": "required",
+      "secretHint": "The secret is never shown. Leave the field empty to keep the existing value.",
+      "secretSet": "A secret is set — type a new value to replace it",
+      "unset": "— not set —",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved. That answers the step.",
+      "confirmDefaults": "Confirm the defaults",
+      "requires": {
+        "service": "First create at least one service in the “Structure” step — without it, e-mail tickets would have nowhere to land.",
+        "directoryLogin": "This only makes sense when sign-in goes through Entra ID (the “Sign-in” step).",
+        "team": "First create a team in the “Structure” step — an on-call schedule without a team does not exist."
+      },
+      "errorUnknown": "This section does not exist. Reload the page and try again.",
+      "errorKeyNotAllowed": "That field is not part of this section, so nothing was written.",
+      "errorDependency": "Finish the condition above first (a service, a team or Entra ID sign-in).",
+      "errorRequires": "The setting depends on another one that is not set yet — check its conditions on the Settings screen.",
+      "errorValue": "The value was not accepted. Check its type, range or allowed values."
+    },
+    "security": {
+      "recommendations": {
+        "title": "Production recommendations",
+        "value": "The settings production should have on — and one we deliberately leave alone here.",
+        "whatYouGet": {
+          "1": "MFA is required for admins and available to everyone else.",
+          "2": "Breached-password checks are on.",
+          "3": "Turnstile waits for your keys; until then it stays off."
+        },
+        "applied": "Applied",
+        "pending": "Waiting",
+        "manual": "Manual",
+        "submit": "Apply the production recommendations",
+        "saving": "Applying…",
+        "done": "The recommendations are applied. That answers the step.",
+        "mfaAdmins": {
+          "title": "MFA for administrators",
+          "help": "The account with the widest powers needs a second factor too — an app or Entra ID."
+        },
+        "mfaOptional": {
+          "title": "MFA for everyone else",
+          "help": "Available but not required: an agent can turn on a second factor when they want to."
+        },
+        "hibp": {
+          "title": "Breached-password check",
+          "help": "A password that shows up in a breached list is refused when it is set and at sign-in."
+        },
+        "idleTimeout": {
+          "title": "Idle session sign-out",
+          "help": "The session closes after 1800 seconds (30 minutes) without activity."
+        },
+        "captcha": {
+          "title": "Turnstile (captcha)",
+          "help": "Switched on by hand, once you enter the site and secret keys — without them it would lock sign-in."
+        }
+      }
     }
   },
   "routing": {

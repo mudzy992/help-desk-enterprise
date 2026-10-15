@@ -1,22 +1,8 @@
 import { apiRequest } from "@/services/api";
 import type { InstallProfile } from "@/services/install-profile-api";
+import type { InstallStepKey, InstallWizardStep } from "@/services/install-step-key";
 
-export type InstallStepKey =
-  | "profile"
-  | "superAdmin"
-  | "identity"
-  | "loginProvider"
-  | "smtp"
-  | "seed"
-  | "team"
-  // F4: Standard/Full content — the catalog from a template, the policy pack and
-  // the SLA review.
-  | "blueprint"
-  | "policyPack"
-  | "slaReview"
-  | "addons";
-
-export type InstallWizardStep = InstallStepKey | "complete";
+export type { InstallStepKey, InstallWizardStep } from "@/services/install-step-key";
 
 export type InstallStepState = {
   readonly completed: boolean;
