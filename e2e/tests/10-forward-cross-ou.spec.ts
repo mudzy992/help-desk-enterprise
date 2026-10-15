@@ -3,7 +3,7 @@ import { ApiClient } from '../helpers/api-client';
 import { withSettings } from '../helpers/assets';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type UnitNode = {
   readonly id: string;
@@ -101,6 +101,7 @@ async function runForwardFlow(
 
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto(`/tickets/${created.id}`);
+    await dismissAnnouncementModal(page);
     await page.getByTestId('ticket-forward').click();
     const targetSelect = page.getByTestId('forward-target-group');
     await expect(targetSelect).toBeVisible();

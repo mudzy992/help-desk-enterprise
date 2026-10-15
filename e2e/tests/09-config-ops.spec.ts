@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { ApiClient } from "../helpers/api-client";
 import { readE2EEnvironment } from "../helpers/environment";
-import { signIn } from "../helpers/sign-in";
+import { dismissAnnouncementModal, signIn } from "../helpers/sign-in";
 
 test.describe("09 config ops", () => {
   test("validate → shadow → activate → rollback", async ({ page }) => {
@@ -21,6 +21,7 @@ test.describe("09 config ops", () => {
     });
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto("/admin/config-versions");
+    await dismissAnnouncementModal(page);
     await page
       .getByText(/E2E config/)
       .first()

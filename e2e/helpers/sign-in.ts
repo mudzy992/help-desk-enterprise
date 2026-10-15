@@ -78,6 +78,14 @@ async function attemptSignIn(
  * is real, the retry surfaces the same detailed error (status, API code and
  * the form's message) instead of masking it.
  */
+/** Close an active announcement modal that would otherwise intercept the next page action. */
+export async function dismissAnnouncementModal(page: Page): Promise<void> {
+  const later = page.getByRole('button', { name: /^(kasnije|later)$/i });
+  if (await later.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await later.click();
+  }
+}
+
 export async function signIn(
   page: Page,
   email: string,
@@ -90,4 +98,5 @@ export async function signIn(
     console.warn(`[e2e] sign-in attempt failed, retrying once with a fresh code — ${detail}`);
     await attemptSignIn(page, email, password);
   }
+  await dismissAnnouncementModal(page);
 }

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type OrganizationalUnitNode = {
   readonly id: string;
@@ -97,6 +97,7 @@ test.describe('07 SLA', () => {
 
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto('/sla');
+    await dismissAnnouncementModal(page);
     const profilesTab = page.getByTestId('tab-profiles');
     const complianceTab = page.getByTestId('tab-compliance');
     await expect(profilesTab).toHaveAttribute('aria-selected', 'true');

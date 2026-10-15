@@ -63,16 +63,13 @@ export async function loadSeedCatalog(api: ApiClient): Promise<{
   if (originUnitId === undefined) {
     throw new Error('Organizational unit tree empty');
   }
-  const forms = await api
-    .requestJson<Array<{ formVersionRef: string; isActive?: boolean }>>(
-      `/services/${service.id}/forms`,
-    )
-    .catch(() => []);
-  const active = forms.find((form) => form.isActive !== false) ?? forms[0];
+  const form = await api
+    .requestJson<{ activeFormVersionRef: string | null }>(`/services/${service.id}/form`)
+    .catch(() => null);
   return {
     serviceId: service.id,
     originUnitId,
-    formVersionRef: active?.formVersionRef,
+    formVersionRef: form?.activeFormVersionRef ?? undefined,
   };
 }
 
