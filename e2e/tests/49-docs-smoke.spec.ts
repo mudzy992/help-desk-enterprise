@@ -11,7 +11,7 @@ test.describe('49 docs smoke', () => {
     const search = page.getByRole('searchbox');
     await search.fill('ad');
     await expect(page).toHaveURL(/\?q=ad/);
-    await expect(page.locator('[aria-live="polite"]')).toBeVisible();
+    await expect(page.getByTestId('docs-search-status')).toBeVisible();
 
     const locale = page.getByLabel(/Jezik|Language/).first();
     if (await locale.isVisible()) {
