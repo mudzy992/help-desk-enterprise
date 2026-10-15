@@ -1,6 +1,7 @@
 import { settingCategoryIds } from '../setting-categories';
 import { installStepSkippedKeys, settingKeys } from '../setting-keys';
 import { definePrivateSetting } from '../registry/define-setting';
+import { installSectionStepSettings } from './install-wizard-step-settings';
 import type { SettingDefinition } from '../settings.types';
 
 /**
@@ -120,6 +121,7 @@ export const installWizardSettings: readonly SettingDefinition[] = [
     defaultValue: '',
     readOnly: true,
   }),
+  ...installSectionStepSettings,
   ...skippedStepSettings.map((entry) =>
     definePrivateSetting({
       key: entry.key,

@@ -12,6 +12,8 @@ export const installProfiles: readonly InstallProfile[] = [
   'full',
 ];
 
+import type { InstallSectionStepKey } from '../sections/install-settings-section.keys';
+
 /** Steps that own a saved state; `complete` is the final screen, not a step. */
 export type InstallStepKey =
   | 'profile'
@@ -26,6 +28,11 @@ export type InstallStepKey =
   | 'blueprint'
   | 'policyPack'
   | 'slaReview'
+  // F5: one step per settings section of the Full package (`section.<key>`), plus
+  // the security-recommendations panel Standard and Full share. All of them are
+  // offered, never required, and every one may be deferred.
+  | InstallSectionStepKey
+  | 'securityRecommendations'
   | 'addons';
 
 export type InstallWizardStepKey = InstallStepKey | 'complete';

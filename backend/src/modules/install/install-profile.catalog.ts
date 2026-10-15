@@ -1,4 +1,5 @@
 import type { InstallAddonKey } from '../settings/addon-catalog';
+import { installSectionStepKeys } from './sections/install-settings-section.keys';
 import type { InstallProfile, InstallStepKey } from './steps/install-step.types';
 
 export type InstallProfilePackageItem = {
@@ -73,7 +74,12 @@ export const installProfilePackages: readonly InstallProfilePackage[] = [
       'policyPack',
       'addons',
     ],
-    offeredSteps: ['slaReview'],
+    offeredSteps: [
+      'slaReview',
+      // F5: the security recommendations belong to Standard as well — the
+      // sections of the Full package are what Standard does not offer.
+      'securityRecommendations',
+    ],
     // F4.5: the add-ons Standard turns on when the operator saves the step
     // without changing anything (`email` follows SMTP through `requiresSmtp`).
     defaultEnabledAddons: [
@@ -115,7 +121,13 @@ export const installProfilePackages: readonly InstallProfilePackage[] = [
       'policyPack',
       'addons',
     ],
-    offeredSteps: ['slaReview'],
+    offeredSteps: [
+      // F5: the whole point of Full — every settings section, plus the
+      // recommendations panel it shares with Standard.
+      ...installSectionStepKeys,
+      'securityRecommendations',
+      'slaReview',
+    ],
     // Owner decision 4: the ITSM modules are on by default in Full.
     defaultEnabledAddons: ['cmdb', 'problems', 'changes'],
     items: [
@@ -132,9 +144,7 @@ export const installProfilePackages: readonly InstallProfilePackage[] = [
   },
 ];
 
-export function findInstallProfilePackage(
-  profile: InstallProfile,
-): InstallProfilePackage {
+export function findInstallProfilePackage(profile: InstallProfile): InstallProfilePackage {
   const found = installProfilePackages.find((entry) => entry.profile === profile);
   if (found === undefined) {
     throw new Error(`Unknown install package: ${profile}`);
@@ -149,8 +159,7 @@ export function listInstallProfileItems(
     .filter((entry) => rankOf(entry.profile) <= rankOf(profile))
     .flatMap((entry) => entry.items)
     .filter(
-      (entry, index, all) =>
-        all.findIndex((candidate) => candidate.key === entry.key) === index,
+      (entry, index, all) => all.findIndex((candidate) => candidate.key === entry.key) === index,
     );
 }
 

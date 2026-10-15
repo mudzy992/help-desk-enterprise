@@ -54,6 +54,9 @@ async function createStandardHarness(smtpDeferred: boolean) {
     { reason: 'install_wizard', actorUserId: harness.actorUserId },
   );
   await harness.skipService.skip('slaReview');
+  // F5: Standard offers the security-recommendations panel too; the harness
+  // answers it the way the wizard would, so the SMTP step is what is under test.
+  await harness.skipService.skip('securityRecommendations');
   await harness.skipService.skip('team');
   if (smtpDeferred) {
     await harness.skipService.skip('smtp');
@@ -148,8 +151,10 @@ describe('InstallReadinessService', () => {
       status: 'skipped',
       messageKey: 'install.readiness.profileSteps',
       // Standard also asks for the team, which the harness deferred; the SLA
-      // review (F4) is offered rather than required, and it is deferred too.
-      stepKeys: ['smtp', 'team', 'slaReview'],
+      // review (F4) and the security recommendations (F5) are offered rather
+      // than required, and both are deferred too. The sections of the Full
+      // package are not part of Standard, so they are not listed.
+      stepKeys: ['smtp', 'team', 'slaReview', 'securityRecommendations'],
     });
   });
 

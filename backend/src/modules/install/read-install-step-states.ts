@@ -12,8 +12,10 @@ import { readInstallSeedStatus } from './read-install-seed-status';
 import { readInstallTeamStatus } from './read-install-team-status';
 import { readInstallSmtpEnvPrefill } from './read-install-smtp-env-prefill';
 import { readInstallSmtpStatus } from './read-install-smtp-status';
+import { installStepSavedKeys } from '../settings/setting-keys';
 import {
   installStepDefinitionByKey,
+  resolveInstallStepSavedKey,
   resolveInstallStepSkippedKey,
 } from './steps/install-step.registry';
 import {
@@ -21,6 +23,7 @@ import {
   isInstallStepBlocking,
   type InstallProfile,
   type InstallStepKey,
+  type InstallStepProgress,
   type InstallStepProgressMap,
   type InstallStepStates,
 } from './steps/install-step.types';
@@ -52,6 +55,7 @@ export async function readInstallStepProgress(
     addonsSaved,
     profile,
     skipped,
+    savedSteps,
   ] = await Promise.all([
     findInstallSuperAdmin(prisma),
     readInstallIdentityStatus(settingsService),
@@ -65,41 +69,65 @@ export async function readInstallStepProgress(
     hasSavedInstallAddons(settingsService),
     readInstallProfile(settingsService),
     readInstallSkippedSteps(settingsService),
+    readInstallSavedSteps(settingsService),
   ]);
-  return {
-    profile,
-    progress: {
-      // The package step counts as done as soon as a package is stored; while
-      // none is stored it is offered, not blocking (`resolve-install-next-step`).
-      profile: { completed: profile !== null, skipped: skipped.profile },
-      superAdmin: { completed: superAdmin !== null, skipped: skipped.superAdmin },
-      // F2: the identity step is done once the organisation name is stored —
-      // the same value the sign-in page reads.
-      identity: { completed: identity.isConfigured, skipped: skipped.identity },
-      loginProvider: {
-        completed: isLoginProviderSaved(loginProvider),
-        skipped: skipped.loginProvider,
-      },
-      smtp: { completed: smtp.isConfigured, skipped: skipped.smtp },
-      seed: { completed: seed.isSeeded, skipped: skipped.seed },
-      // F2: the founder alone does not answer the team step; inviting somebody
-      // (or deferring the step) does.
-      team: { completed: team.isTeamInvited, skipped: skipped.team },
-      // F4: the three content steps record what the wizard did (the blueprint and
-      // the pack that were applied, the SLA review that was confirmed) — the same
-      // "stored marker means done" rule the add-ons step uses.
-      blueprint: {
-        completed: blueprintApplied,
-        skipped: skipped.blueprint,
-      },
-      policyPack: {
-        completed: policyPackApplied,
-        skipped: skipped.policyPack,
-      },
-      slaReview: { completed: slaReviewDone, skipped: skipped.slaReview },
-      addons: { completed: addonsSaved, skipped: skipped.addons },
+  const progress = {
+    // The package step counts as done as soon as a package is stored; while none
+    // is stored it is offered, not blocking (`resolve-install-next-step`).
+    profile: { completed: profile !== null, skipped: skipped.profile },
+    superAdmin: { completed: superAdmin !== null, skipped: skipped.superAdmin },
+    // F2: the identity step is done once the organisation name is stored —
+    // the same value the sign-in page reads.
+    identity: { completed: identity.isConfigured, skipped: skipped.identity },
+    loginProvider: {
+      completed: isLoginProviderSaved(loginProvider),
+      skipped: skipped.loginProvider,
     },
-  };
+    smtp: { completed: smtp.isConfigured, skipped: skipped.smtp },
+    seed: { completed: seed.isSeeded, skipped: skipped.seed },
+    // F2: the founder alone does not answer the team step; inviting somebody
+    // (or deferring the step) does.
+    team: { completed: team.isTeamInvited, skipped: skipped.team },
+    // F4: the three content steps record what the wizard did (the blueprint and
+    // the pack that were applied, the SLA review that was confirmed) — the same
+    // "stored marker means done" rule the add-ons step uses.
+    blueprint: {
+      completed: blueprintApplied,
+      skipped: skipped.blueprint,
+    },
+    policyPack: {
+      completed: policyPackApplied,
+      skipped: skipped.policyPack,
+    },
+    slaReview: { completed: slaReviewDone, skipped: skipped.slaReview },
+    addons: { completed: addonsSaved, skipped: skipped.addons },
+  } as Record<InstallStepKey, InstallStepProgress>;
+  // F5: a section — and the security-recommendations step — is answered when its
+  // own save wrote the marker. Nothing is derived from the section's settings: an
+  // operator may answer a section without changing a key, and a key may already
+  // carry a value from an earlier installation.
+  for (const [stepKey, completed] of Object.entries(savedSteps)) {
+    const key = stepKey as InstallStepKey;
+    progress[key] = { completed, skipped: skipped[key] === true };
+  }
+  return { profile, progress };
+}
+
+/** F5: which of the new steps the operator answered (`steps.<step>.saved`). */
+async function readInstallSavedSteps(
+  settingsService: SettingsService,
+): Promise<Readonly<Record<string, boolean>>> {
+  const stepKeys = Object.keys(installStepSavedKeys) as (keyof typeof installStepSavedKeys)[];
+  const entries = await Promise.all(
+    stepKeys.map(
+      async (stepKey) =>
+        [
+          stepKey,
+          (await settingsService.getSetting(resolveInstallStepSavedKey(stepKey))) === true,
+        ] as const,
+    ),
+  );
+  return Object.fromEntries(entries);
 }
 
 /**
@@ -130,8 +158,7 @@ export async function readInstallSkippedSteps(
       async (stepKey) =>
         [
           stepKey,
-          (await settingsService.getSetting(resolveInstallStepSkippedKey(stepKey))) ===
-            true,
+          (await settingsService.getSetting(resolveInstallStepSkippedKey(stepKey))) === true,
         ] as const,
     ),
   );
