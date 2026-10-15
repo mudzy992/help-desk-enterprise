@@ -1,6 +1,6 @@
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 import { test, expect } from '@playwright/test';
 
 test.describe('01 ticket create', () => {
@@ -10,6 +10,7 @@ test.describe('01 ticket create', () => {
     const env = readE2EEnvironment();
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto('/tickets/new');
+    await dismissAnnouncementModal(page);
     await page.getByText(/opšti zahtjev|general request/i).first().click();
     await page.getByRole('button', { name: /dalje|next|nastavi/i }).click();
     await page.locator('input, textarea').first().waitFor({ state: 'visible' });
