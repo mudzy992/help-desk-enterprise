@@ -64,6 +64,7 @@ export function InstallWizardShell({
               })}{" "}
               · {t(installStepLabelKey(step))}
             </p>
+            {/* a11y-focus: the step title only takes programmatic focus on a step change (`useInstallStepTransition`); it is not tabbable (tabIndex -1), so a ring would announce nothing. */}
             <h1
               ref={titleRef}
               tabIndex={-1}
