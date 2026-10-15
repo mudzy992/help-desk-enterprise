@@ -23,7 +23,7 @@ Status: **zatvoren**
 | RS3 | Prihvaćen rizik (2026-10-15) | CSAT ostaje sveukupan i sada je tako jasno označen u UI-ju. Odbijeno je backend proširenje period/OUID bez produkt odluke. |
 | RS4 | Urađeno | Trends, bottlenecks i compliance resetuju prethodne podatke pri promjeni scopea i prikazuju loading stanje. |
 | RS5 | Urađeno | Latest-request guard uveden je u reports overview, bottlenecks, SLA base/detail/compliance i escalation load; escalation catch je vidljiv. |
-| RS6 | Urađeno | Novi profil se bira prije reloada; hook mutation test potvrđuje redoslijed, a detail effect zatim učitava pravila. |
+| RS6 | Urađeno | Novi profil se bira prije reloada, a detail effect zatim učitava pravila; ponašanje ostaje za ručnu browser potvrdu. |
 | RS7 | Prihvaćen rizik (2026-10-15) | Period/preview koriste browser TZ, schedule koristi `settings.timeZone`; postojeće ponašanje je zadržano. Odbijena je promjena vremenske semantike bez produkt odluke. |
 | RS8 | Urađeno | Packs bez OU prikazuje lokalizovanu poruku za izbor jedinice. |
 | RS9 | Urađeno | Prazan razlog brisanja eskalacije daje alert, a poslani razlog je trimovan. |
@@ -34,7 +34,7 @@ Status: **zatvoren**
 | RS14 | Urađeno | Packs/list greške koriste alert komponentu i request ID; schedules/recipient greške su vidljive. |
 | RS15 | Zaključeno (istraživanje) | CSV i JSON su standardne oznake formata, ne lokalizovani korisnički copy. |
 | RS16 | Prihvaćen rizik (2026-10-15) | Frontend granice bucketa i dalje prate backend ugovor uz postojeće pure testove. Odbijen je novi metadata endpoint samo radi konstanti. |
-| RS17 | Urađeno | Dodani hook testovi za izbor profila i create redoslijed, packs RTL test i `50-sla-escalations.spec.ts`. E2E nije izvršen. |
+| RS17 | Prihvaćen rizik (2026-10-15) | Pure/lib SLA specovi pokrivaju pomoćnu logiku, ali puni hook integration/race paket i browser potvrda nisu završeni. U checkoutu postoje targeted hook/packs test izvori i `50-sla-escalations.spec.ts`, ali E2E nije izvršen; proširenje kompletne matrice ostaje backlog van ovog zadatka. |
 | RS18 | Prihvaćen rizik (2026-10-15) | Reset efekti ostaju namjerni za draft/preview lifecycle. Odbijeno je uklanjanje bez dokazane render regresije. |
 | RS19 | Prihvaćen rizik (2026-10-15) | Postojeći 30d fallback i normalizacija obrnutog raspona ostaju kompatibilni. Odbijena je breaking validacija bez produkt copy odluke. |
 | RS20 | Urađeno | Uklonjen jedini exhaustive-deps suppression; effect sada ima eksplicitne stabilne zavisnosti. |
@@ -50,8 +50,8 @@ Status: **zatvoren**
 - `npx vitest run`: **239 fajlova / 981 test**, sve prošlo.
 - `npm run build`: prošao; postoji prethodno Vite upozorenje za velike chunkove.
 - `check-hooks-order` i `check-ticket-id-leaks`: prošli.
-- E2E/browser: **nisu izvršeni**. Dispatch skup ostaje `07,12,17,18,19,42`, uz novi `50-sla-escalations.spec.ts`.
-- Ručne provjere RS2/RS8/RS4/RS1/RS6 nisu izvršene u browseru.
+- E2E/browser: **nisu izvršeni**. Potvrđeni postojeći dispatch skup je `07,12,17,18,19,42`; `50-sla-escalations.spec.ts` postoji kao neizvršen izvor i ne smatra se zatvorenom E2E potvrdom.
+- Compliance wiring je ispravljeno tako da se fetch aktivira samo na compliance sub-tabu unutar profiles prikaza; ručne provjere RS2/RS8/RS4/RS1/RS6 i compliance toka nisu izvršene u browseru.
 
 ## Polazno stanje (arhiva)
 
