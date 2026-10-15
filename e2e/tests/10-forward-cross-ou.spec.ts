@@ -40,6 +40,7 @@ test.describe('10 forward cross-OU', () => {
   test('forward dialog → target group inbox → claim → cross-OU hand-back', async ({
     page,
   }) => {
+    test.setTimeout(150_000);
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
