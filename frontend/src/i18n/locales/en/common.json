@@ -3968,7 +3968,8 @@
         "unknown": "The action failed. See the server log."
       }
     },
-    "ouPathMismatch": "The catalog entry points at \"{{catalogPath}}\" while the tree shows \"{{treePath}}\". Run a catalog read before editing."
+    "ouPathMismatch": "The catalog entry points at \"{{catalogPath}}\" while the tree shows \"{{treePath}}\". Run a catalog read before editing.",
+    "partialFailure": "Part of the directory could not be loaded. Some names may be unavailable."
   },
   "locale": {
     "label": "Language",

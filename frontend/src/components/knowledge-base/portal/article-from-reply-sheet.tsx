@@ -120,7 +120,7 @@ export function ArticleFromReplySheet({
       });
       // Val 2 (M14/B1): server ponovo zamjenjuje lične podatke pri upisu. Ako je
       // u tekstu bilo nečega što pregled nije vidio (izmijenjen editor, skripta),
-      // korisnik to mora saznati — članak je već objavljiv svakom prijavljenom.
+      // korisnik to mora saznati — članak se kreira kao nacrt i mora proći lifecycle objave.
       const extra = created.sanitized ? totalReplacements(created.replacements) : 0;
       toast(
         extra > 0

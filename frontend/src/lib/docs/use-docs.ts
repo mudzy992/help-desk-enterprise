@@ -71,6 +71,7 @@ export function useDocsPage(slug: string | null, locale: DocsLocale = "bs") {
       return;
     }
     let active = true;
+    setPage(null);
     setLoading(true);
     void getDocsPage(slug, locale)
       .then((loaded) => {

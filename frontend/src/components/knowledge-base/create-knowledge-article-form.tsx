@@ -13,7 +13,7 @@ import {
   mapKnowledgeArticleError,
   type KnowledgeArticleErrorKey,
 } from "@/lib/knowledge-base/map-knowledge-article-error";
-import { readApiRequestId } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { defaultOriginUnitId, type OriginUnitOption } from "@/lib/tickets/ticket-display";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { createKnowledgeArticle } from "@/services/knowledge-base-api";
@@ -53,6 +53,7 @@ export function CreateKnowledgeArticleForm({
   const [reviewerUserId, setReviewerUserId] = useState("");
   const [classification, setClassification] = useState<KnowledgeClassification>("INTERNAL");
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
+  const [groupsErrorKey, setGroupsErrorKey] = useState<ApiErrorKey | null>(null);
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -69,10 +70,8 @@ export function CreateKnowledgeArticleForm({
           setGroups(loaded);
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          setGroups([]);
-        }
+      .catch((error: unknown) => {
+        if (!cancelled) setGroupsErrorKey(mapApiError(error));
       });
     return () => {
       cancelled = true;
@@ -175,21 +174,24 @@ export function CreateKnowledgeArticleForm({
         </Select>
       </Field>
       {isSuperAdmin ? (
-        <KnowledgeArticleAdminFields
-          users={users}
-          groups={groups}
-          ownerMode={ownerMode}
-          ownerUserId={ownerUserId}
-          ownerGroupId={ownerGroupId}
-          reviewerUserId={reviewerUserId}
-          classification={classification}
-          onOwnerModeChange={setOwnerMode}
-          onOwnerUserIdChange={setOwnerUserId}
-          onOwnerGroupIdChange={setOwnerGroupId}
-          onReviewerUserIdChange={setReviewerUserId}
-          onClassificationChange={setClassification}
-          labels={adminLabels}
-        />
+        <>
+          {groupsErrorKey ? <ApiErrorText messageKey={groupsErrorKey} /> : null}
+          <KnowledgeArticleAdminFields
+            users={users}
+            groups={groups}
+            ownerMode={ownerMode}
+            ownerUserId={ownerUserId}
+            ownerGroupId={ownerGroupId}
+            reviewerUserId={reviewerUserId}
+            classification={classification}
+            onOwnerModeChange={setOwnerMode}
+            onOwnerUserIdChange={setOwnerUserId}
+            onOwnerGroupIdChange={setOwnerGroupId}
+            onReviewerUserIdChange={setReviewerUserId}
+            onClassificationChange={setClassification}
+            labels={adminLabels}
+          />
+        </>
       ) : (
         <Field label={t("knowledgeBase.ownerUserId")} required>
           <Select

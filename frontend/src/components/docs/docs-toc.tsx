@@ -12,6 +12,7 @@ export function DocsToc({ toc }: { readonly toc: readonly DocsHeading[] }) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
+    setActiveId(null);
     if (toc.length === 0) {
       setActiveId(null);
       return;

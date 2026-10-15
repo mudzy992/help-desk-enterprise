@@ -44,6 +44,7 @@ describe("loadDirectory", () => {
     expect(result.errorKey).toBeNull();
     expect(result.tree).toEqual([...tree]);
     expect(result.users).toEqual([]);
+    expect(result.partialFailure).toBe(true);
   });
 
   it("attaches organizational unit paths to directory users", async () => {
