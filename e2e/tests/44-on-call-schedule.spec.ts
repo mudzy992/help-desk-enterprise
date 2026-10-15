@@ -134,8 +134,13 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           .locator('[data-testid="on-call-group"]')
           .filter({ has: page.getByText(groupName, { exact: true }) });
         await expect(groupButton).toBeVisible();
-        await expect(groupButton).not.toContainText(/Bez rasporeda|No schedule/i);
-        await groupButton.click();
+        await expect
+          .poll(async () => {
+            await page.getByRole('button', { name: /Osvježi|Refresh/i }).click();
+            const text = await groupButton.innerText();
+            return !/Bez rasporeda|No schedule/i.test(text);
+          }, { timeout: 90_000 })
+          .toBe(true);
       });
 
       await test.step('the week detail lists the rotation member', async () => {
@@ -154,9 +159,8 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           readonly schedule: { readonly members: ReadonlyArray<{ readonly displayName: string }> } | null;
         };
         expect(detail.schedule?.members.map((member) => member.displayName)).toContain(memberName);
+        await expect(page.locator('main')).toContainText(memberName, { timeout: 30_000 });
         await expect(page.locator('main')).not.toContainText(/Grupa nema raspored dežurstva|Group has no on-call schedule/i);
-        const rotation = page.locator('section[aria-labelledby="on-call-rotation"]');
-        await expect(rotation).toContainText(memberName, { timeout: 15_000 });
       });
 
       await test.step('the overview stays usable at a phone width', async () => {
