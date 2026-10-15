@@ -67,6 +67,8 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
 | `E2E_AGENT_EMAIL`, `E2E_AGENT_PASSWORD` | secret | Disposable AGENT account of that stack; created and set up by the harness. |
 | `E2E_DATABASE_URL` | secret | Postgres of that stack (same database as the API), used only to clear the super admin's MFA. **The host must resolve from a GitHub runner** — see *Database reachability* below. The workflow also accepts a secret named `DATABASE_URL` as a fallback. |
 | `E2E_SUPERADMIN_TOTP_SECRET` | secret (optional) | Base32 TOTP secret of the test super admin. With it the run does not need database access at all (no MFA reset). |
+| `MFA_ENCRYPTION_KEY` | secret (optional) | Same base64 value as on the API backend. The CI job passes it to Playwright so `global-setup` can repair the super admin `UserMfa` row when a TOTP secret is already known. |
+| `E2E_FORCE_MFA_RESET` | variable (optional) | Set to `1` to delete super-admin MFA in the database on every run even when `E2E_SUPERADMIN_TOTP_SECRET` is set. |
 | `E2E_SSH_HOST`, `E2E_SSH_PORT`, `E2E_SSH_USER`, `E2E_SSH_PRIVATE_KEY`, `E2E_SSH_DB_PORT` | secrets (optional) | With all of them set, the runner opens an SSH tunnel `127.0.0.1:15432 → <host>:<db port>` before the specs, so Postgres never has to be public. Then `E2E_DATABASE_URL` must point at `127.0.0.1:15432`. |
 | `E2E_INSTALL_TOKEN` | secret | Only if the stack's install wizard is still open; must match the backend `INSTALL_TOKEN`. |
 

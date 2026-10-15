@@ -279,11 +279,16 @@ jobs:
           E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
+          MFA_ENCRYPTION_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
+          E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
         run: |
           set -u
           for name in E2E_BASE_URL E2E_API_URL E2E_SUPERADMIN_EMAIL E2E_SUPERADMIN_PASSWORD \
             E2E_USER_EMAIL E2E_USER_PASSWORD E2E_AGENT_EMAIL E2E_AGENT_PASSWORD DATABASE_URL E2E_INSTALL_TOKEN; do
             if [ -n "${!name:-}" ]; then echo "$name: set"; else echo "$name: empty"; fi
+          done
+          for name in MFA_ENCRYPTION_KEY E2E_SUPERADMIN_TOTP_SECRET; do
+            if [ -n "${!name:-}" ]; then echo "$name: set (optional)"; else echo "$name: empty (optional)"; fi
           done
 
           if [ -z "${E2E_API_URL:-}" ]; then
@@ -340,7 +345,9 @@ jobs:
           E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
           E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.DATABASE_URL }}
+          MFA_ENCRYPTION_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
           E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
+          E2E_FORCE_MFA_RESET: ${{ vars.E2E_FORCE_MFA_RESET }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '1' }}
           E2E_SPECS: ${{ inputs.specs }}
