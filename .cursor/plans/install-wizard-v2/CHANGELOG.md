@@ -1,5 +1,11 @@
 # Install Wizard v2 — changelog plana
 
+## 2026-10-15 (F4 — popravka builda nakon CI-ja)
+
+- **`nest build` je pao sa 3 greške TS2345** (samo u CI-ju, ne lokalno): `install-blueprint.service.ts:94`, `install-policy-pack.service.ts:107` i `install-sla-review.service.ts:87` prosljeđivali su `this.prisma` u `persistInstallMarker`, čiji je prvi parametar bio uski tip `InstallCompletionPrisma`. Pravi Prisma klijent ima **preopterećen** `$transaction` koji nije dodjeljiv tom jednom potpisu (callback prima `Omit<PrismaClient, …>`, ne `InstallSettingsWriteTransaction`); lokalni stub u sandboxu je labaviji, pa je greška prošla `tsc` i sve testove. Uzrok je isti oblik kao u `install-complete.service.ts`, koji zato i piše `this.prisma as unknown as InstallCompletionPrisma`.
+- **Ispravka:** `persistInstallMarker` sada prima `PrismaService` (stvarni klijent), pa nijedan poziv ne traži cast i nema šta da se ne poklopi. Uz to je `InstallCompletionPrisma` dobio marker `__narrowPrismaShape` s komentarom — time se **ista greška sada vidi lokalno**: proba s privremeno vraćenim uskim tipom daje tačno tri CI greške na istim linijama, a broj TS grešaka u sandboxu ostaje nepromijenjen (69, sve stub-specifične).
+- Provjere nakon ispravke: `npx tsc --noEmit` bez ijedne greške u `modules/install` i `modules/settings`, `jest modules/install modules/settings` → **71 suita / 341 test** zeleno, `install-complete.service.spec.ts` i `persist-install-completion.spec.ts` prolaze nepromijenjeni (svi njihovi pozivi već imaju cast).
+
 ## 2026-10-15 (F4 implementirano, čeka commit)
 
 - **F4.1–F4.5 završeno** u kodu i testovima; `CHECKLIST.md` označen, `HANDOFF.md` prebačen na F5. Commit još nije napravljen (radi se u jednom radnom stablu).

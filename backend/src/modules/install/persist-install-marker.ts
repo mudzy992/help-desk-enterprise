@@ -8,10 +8,8 @@ import {
   validateSettingValue,
 } from '../settings/settings-value';
 import type { SettingValue, SettingsRegistry } from '../settings/settings.types';
-import type {
-  InstallCompletionPrisma,
-  InstallSettingsWriteTransaction,
-} from './install-complete.types';
+import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { InstallSettingsWriteTransaction } from './install-complete.types';
 import { upsertInstallSetting } from './upsert-install-setting';
 
 /**
@@ -21,9 +19,16 @@ import { upsertInstallSetting } from './upsert-install-setting';
  * transaction, change-log entry and cache invalidation the completion timestamp
  * gets — so the wizard's status read can trust that a non-empty value means the
  * step really ran.
+ *
+ * The parameter is the real `PrismaService`, not the narrow `InstallCompletionPrisma`
+ * shape `persistInstallCompletion` uses: that shape exists so tests can pass an
+ * in-memory double, and the real client's overloaded `$transaction` is *not*
+ * assignable to it — every caller would have to cast (`nest build` caught exactly
+ * that after F4). Here the service itself is the only caller, so it takes the
+ * service and no cast is needed anywhere.
  */
 export async function persistInstallMarker(
-  prisma: InstallCompletionPrisma,
+  prisma: PrismaService,
   registry: SettingsRegistry,
   input: {
     readonly key: string;
