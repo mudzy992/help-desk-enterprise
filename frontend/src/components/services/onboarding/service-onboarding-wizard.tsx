@@ -233,7 +233,7 @@ export function ServiceOnboardingWizard({
                 </p>
               ) : null}
 
-              {!isLoadingOnboarding && errorKey === null ? (
+              {!isLoadingOnboarding ? (
                 <section className="rounded-lg border border-border/70 bg-surface p-4 sm:p-6">
                   <OnboardingWizardSteps
                     record={record}
@@ -246,7 +246,12 @@ export function ServiceOnboardingWizard({
                     canFinalize={record?.status === "READY_FOR_FINALIZATION" || completed === 5}
                     onActiveVersion={setActiveFormRef}
                     onService={(values: OnboardingServiceValues) =>
-                      void run(() => completeServiceOnboardingStep(record, values))
+                      void run(() =>
+                        completeServiceOnboardingStep(record, values, {
+                          initialReason: t("services.onboarding.initialRevisionReason"),
+                          onCreated: (created) => setRecord(created),
+                        }),
+                      )
                     }
                     onForm={(formVersionRef) => {
                       if (record) {

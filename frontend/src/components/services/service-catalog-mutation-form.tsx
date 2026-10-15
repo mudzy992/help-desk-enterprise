@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
@@ -87,25 +87,34 @@ export function ServiceCatalogMutationForm({
   );
   const [policyPackId, setPolicyPackId] = useState<string | null>(service?.policyPackId ?? null);
   const [slaProfiles, setSlaProfiles] = useState<readonly SlaProfile[]>([]);
+  const [slaProfilesError, setSlaProfilesError] = useState(false);
   const [slaProfileId, setSlaProfileId] = useState<string | null>(service?.slaProfileId ?? null);
   const [reason, setReason] = useState("");
   const canSubmit = requireCatalogChangeReason(reason) !== null && categoryId.length > 0;
 
+  const loadSlaProfiles = useCallback(async () => {
+    setSlaProfilesError(false);
+    try {
+      setSlaProfiles(await listSlaProfiles());
+    } catch {
+      setSlaProfilesError(true);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     void listSlaProfiles()
       .then((rows) => {
-        if (!cancelled) {
+        if (active) {
           setSlaProfiles(rows);
+          setSlaProfilesError(false);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setSlaProfiles([]);
-        }
+        if (active) setSlaProfilesError(true);
       });
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, []);
 
@@ -217,8 +226,11 @@ export function ServiceCatalogMutationForm({
           onChange={(event) => setPolicyPackId(event.target.value || null)}
         >
           <option value="">—</option>
+          {policyPackId !== null && !policyPacks.some((pack) => pack.id === policyPackId) ? (
+            <option value={policyPackId}>{t("services.savedValueUnavailable")}</option>
+          ) : null}
           {policyPacks
-            .filter((pack) => !pack.isDisabled)
+            .filter((pack) => !pack.isDisabled || pack.id === policyPackId)
             .map((pack) => (
               <option key={pack.id} value={pack.id}>
                 {pack.name}
@@ -232,12 +244,30 @@ export function ServiceCatalogMutationForm({
           onChange={(event) => setSlaProfileId(event.target.value || null)}
         >
           <option value="">—</option>
+          {slaProfileId !== null && !slaProfiles.some((profile) => profile.id === slaProfileId) ? (
+            <option value={slaProfileId}>{t("services.savedValueUnavailable")}</option>
+          ) : null}
           {slaProfiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
               {formatSlaProfileName(profile.key, profile.name, t as never)}
             </option>
           ))}
         </Select>
+        {slaProfilesError ? (
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <p role="alert" className={errorTextClassName}>
+              {t("services.slaProfilesLoadError")}
+            </p>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={() => void loadSlaProfiles()}
+            >
+              {t("services.retryLoad")}
+            </Button>
+          </div>
+        ) : null}
       </Field>
       <Field
         label={label(t, "services.changeReason")}

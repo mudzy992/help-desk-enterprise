@@ -6,11 +6,14 @@ import type { ServiceOnboardingResponse } from "@/services/service-onboarding-ap
 export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
   const [onboardings, setOnboardings] = useState<readonly ServiceOnboardingResponse[]>([]);
   const requestSequence = useRef(0);
+  const draftKey = rows
+    .filter((row) => row.service.lifecycle === "DRAFT")
+    .map((row) => row.service.id)
+    .sort()
+    .join("\u0000");
 
   useEffect(() => {
-    const draftIds = rows
-      .filter((row) => row.service.lifecycle === "DRAFT")
-      .map((row) => row.service.id);
+    const draftIds = draftKey.length === 0 ? [] : draftKey.split("\u0000");
     const draftIdSet = new Set(draftIds);
     const sequence = ++requestSequence.current;
     setOnboardings((current) =>
@@ -44,7 +47,7 @@ export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
     return () => {
       requestSequence.current += 1;
     };
-  }, [rows]);
+  }, [draftKey]);
 
   return onboardings;
 }
