@@ -1,21 +1,58 @@
 # Modul 6: Assets, problems i changes
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
-Oznake nalaza: **R** (resursi, problemi, promjene). Ovo je da se ne miješa sa A (modul 2), S (modul 5) i D (modul 4).
+Datum zatvaranja: 2026-10-15
+Val: **6.1.6**
+Status: **zatvoren**
 
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/assets-page.tsx` (536), `pages/problems-page.tsx` (358), `pages/my-assets-page.tsx` (152), `lib/problems/problem-view.ts` (dijelovi), `components/problems/problem-status-sheet.tsx` (30–75).
-- Čitanje dijelova: `pages/changes-page.tsx` (gating, filteri, lista, greške), `pages/change-detail-page.tsx` (ChangeConflictsCard, refresh), `pages/problem-detail-page.tsx` (query, refresh), `pages/asset-detail-page.tsx` (queries, ConfirmDialog), `components/changes/change-action-sheet.tsx`, `components/changes/change-approvals-panel.tsx` (vote), `components/changes/change-form-sheet.tsx` (state i konflikti), `components/assets/asset-overview-panel.tsx` (tabela).
-- Pregled ključeva keša: `services/assets-api.ts` (`assetQueryKeys`), `services/problems-api.ts` (`problemQueryKeys`, `problemDetailKeys`), `services/changes-api.ts` (`changeQueryKeys`).
-- Metrike (grep i brojanje): fajlovi, `useState`, `useMutation`, `window.confirm`, `ConfirmDialog`, `setTimeout`, `key={index}`, `eslint-disable`, `realtime`, `dangerouslySetInnerHTML`, komentari „Paket“.
-- E2E: pregled 10 fajlova (`e2e/tests/23`–`32`) i broja testova.
-- Ruta u `app/router.tsx` (146–162).
-- **Nije pročitano u punom obimu:** `services/assets-api.ts` (901 linija, pregledana samo struktura i ključevi), `services/problems-api.ts` i `services/changes-api.ts` (samo ključevi i tipovi), `components/assets/asset-catalog-manager.tsx` (693, samo brojanje stanja i funkcija), `asset-licenses-panel.tsx`, `asset-contracts-panel.tsx`, `asset-import-panel.tsx`, `asset-transfer-*`, `asset-directory-sync-card.tsx`, `change-calendar.tsx`, `change-templates-panel.tsx`, `change-history-panel.tsx`, `problem-analysis-panel.tsx`, `problem-links-panel.tsx`, `problem-tickets-panel.tsx`, `ticket-assets-panel.tsx`, `lib/assets/asset-view.ts` (samo `mapAssetError`).
-- **Nije pokrenut pregledač.** Nalazi R1, R2 i R3 potvrđeni su čitanjem koda. Reprodukovati ih u pregledaču prije ispravke (vidi listu na kraju).
+## Trenutna implementacija (nakon vala 6.1.6)
 
----
+- Assets, problems i changes koriste zajednički capability gate koji razlikuje loading, setup, disabled, forbidden, query error sa retry akcijom i ready stanje.
+- Zajednički resolver stanja liste garantuje da se API greška i prazno stanje ne prikazuju istovremeno.
+- Assets filteri su u URL-u i prolaze kroz tip-guard parsere; promjena filtera čisti bulk izbor.
+- Licence i ugovori koriste standardni `ConfirmDialog` sa `intent="danger"`; tri kritična delete toka koriste zajednički mutation lifecycle.
+- Tri registra koriste zajedničke debounce, capability, list-state i mutation helpere bez jedne monolitne stranice.
+- Problem query keys su objedinjeni, detalji se invalidiraju ciljano, starost se osvježava periodično i pri fokusu, a status sheet više ne zavisi od identiteta transition niza.
+- Realtime nije dodat: postojeći React Query refresh/focus i version-conflict model ostaju namjerna granica ovog vala.
+
+## Konačni status nalaza R1–R20
+
+| Nalaz | Status | Zaključak |
+|---|---|---|
+| R1 | Urađeno | Odvojeni disabled, forbidden, setup i capability error+retry tokovi za sva tri registra. |
+| R2 | Urađeno | Shared list-state resolver daje prioritet grešci nad empty stanjem; pokriven testom. |
+| R3 | Urađeno | Promjena bilo kojeg assets filtera čisti izbor; unit i E2E izvor testa dodani. |
+| R4 | Urađeno | Licence i contracts koriste danger `ConfirmDialog`; uklonjen `window.confirm`. |
+| R5 | Urađeno | `useEntityMutation` uveden i primijenjen na delete asset/licence/contract tokove. Preostale ručne mutacije nisu dio kritične migracije ovog vala. |
+| R6 | Urađeno | Shared capability gate i list-state infrastruktura koriste sva tri registra; zadržane su domenske tabele i filteri u manjim lokalnim sklopovima umjesto monolita. |
+| R7 | Urađeno | Assets search/type/status/unit/location/source/warranty/unassigned filteri su u URL-u, sa parser specovima. |
+| R8 | Urađeno | `useDebouncedValue` dijele sva tri registra; postojeća normalizacija i 300 ms ponašanje ostali su isti. |
+| R9 | Prihvaćen rizik (2026-10-15) | Velike katalog/form komponente nisu mehanički razlomljene jer bi val bez vlasničke odluke o form biblioteci povećao regresioni rizik. Odbijena alternativa: uvođenje `react-hook-form` ili široki split bez posebnog funkcionalnog testa. |
+| R10 | Urađeno | Reset status sheeta zavisi od stabilnog statusa/prvog transition ključa; eslint-disable je uklonjen. |
+| R11 | Urađeno | `nowMs` se osvježava svake minute i pri browser fokusu. |
+| R12 | Urađeno | Greške options/catalog queryja prikazuju se uz registre umjesto tihog trajno-disabled create dugmeta. |
+| R13 | Urađeno | Assets URL enum vrijednosti prolaze tip-guard parser; postojeći problem/change parseri ostaju domen-specifični. |
+| R14 | Prihvaćen rizik (2026-10-15) | Postojeći `AssetMoveSubject.assetIds` eksplicitno nosi bulk ID-eve, a fallback `id` ostaje radi single-asset kompatibilnosti. Odbijena alternativa: breaking discriminated-union migracija svih sheet call siteova bez funkcionalne koristi u ovom valu. |
+| R15 | Prihvaćen rizik (2026-10-15) | Preostali index ključevi predstavljaju statične/agregirane ili uređivačke redove bez stabilnog server ID-a. Odbijena alternativa: sadržajni ključevi koji mogu kolidirati i gubiti input stanje. |
+| R16 | Urađeno | `problemQueryKeys` je jedina grupa ključeva; svi call siteovi migrirani. |
+| R17 | Urađeno | Asset/problem detail refresh invalidira detalj, pogođene podresurse i list prefiks, ne cijeli modul. |
+| R18 | Prihvaćen rizik (2026-10-15) | Istorijski Paket/§ komentari ostaju bez runtime uticaja; masovno brisanje komentara je odbijeno kao review-noise bez korisničke vrijednosti. |
+| R19 | Urađeno | Dodani testovi capability matrice, error-vs-empty, URL parsera, selection reseta i danger ConfirmDialog toka. |
+| R20 | Prihvaćen rizik (2026-10-15) | E2E izvori prošireni za capability network error i skriveni bulk izbor, ali nisu izvršeni; licence delete je pokriven unit ConfirmDialog tokom. Odbijeno je lažno označavanje neizvršenog browser toka kao zelenog. |
+
+## Završne provjere
+
+- `npm run lint`: prošao, 0 grešaka; postojeća upozorenja su evidentirana (nakon R10 nema novog suppression komentara).
+- `npm run format:check`: prošao.
+- `npx tsc -b`: prošao kroz build.
+- `npm test`: **233 fajla / 974 testa**, sve prošlo.
+- `npm run build`: prošao; ostaje postojeće Vite upozorenje za velike chunkove.
+- Fokusirani testovi: capability gate, list-state, assets URL parser, selection reset i ConfirmDialog prošli.
+- E2E/browser: **nisu izvršeni** u ovom zatvaranju; `23` i `24` izvori su prošireni. Licence-delete browser scenario nije dodat zbog zavisnosti od seeded licence podataka; danger flow je unit-testiran.
+- Realtime: istraživanjem zaključeno da nije potreban u valu 6.1.6; verzionisanje, ciljane invalidacije i focus refresh pokrivaju prihvaćeni model konzistentnosti.
+
+## Polazno stanje (arhiva)
+
+Sljedeći sadržaj je originalni audit od 2026-10-13 i čuva se kao arhiva; formulacije „trenutno“ ispod odnose se na stanje prije vala 6.1.6.
 
 ## Modul
 
