@@ -186,7 +186,6 @@ export const installStepPresentations: Readonly<
   },
 };
 
-
 export type InstallStepLabelKey = `install.steps.${InstallWizardStep}`;
 
 export function installStepLabelKey(step: InstallWizardStep): InstallStepLabelKey {
