@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BellRing, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   announcementDateTimeFormatter,
   mapAnnouncementError,
 } from "@/lib/announcements/announcement-view";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -36,22 +37,29 @@ export function AnnouncementReportDialog({
   const [report, setReport] = useState<AnnouncementReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"csv" | "remind" | null>(null);
+  const loadGuard = useRef(createLatestRequestGuard());
 
   const load = useCallback(
     async (id: string) => {
+      const request = loadGuard.current.begin();
       setError(null);
       try {
-        setReport(await getAnnouncementReport(id));
+        const loaded = await getAnnouncementReport(id);
+        if (loadGuard.current.isCurrent(request)) setReport(loaded);
       } catch (caught) {
-        setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        if (loadGuard.current.isCurrent(request)) {
+          setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        }
       }
     },
     [t],
   );
 
   useEffect(() => {
+    const guard = loadGuard.current;
     setReport(null);
     if (announcementId !== null) void load(announcementId);
+    return () => guard.cancel();
   }, [announcementId, load]);
 
   const download = async () => {

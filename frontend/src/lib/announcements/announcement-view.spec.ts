@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acknowledgementPercent,
+  announcementDateTimeFormatter,
   fromLocalInputValue,
   modalShowsLeft,
   recordModalShown,
@@ -48,6 +49,11 @@ describe("announcement view helpers", () => {
     expect(fromLocalInputValue(local)).toBe(new Date(2026, 9, 1, 8, 30).toISOString());
     expect(fromLocalInputValue("")).toBeNull();
     expect(toLocalInputValue("not a date")).toBe("");
+  });
+
+  it("keeps regional English locales on the English formatter", () => {
+    expect(announcementDateTimeFormatter("en-GB").resolvedOptions().locale).toMatch(/^en-GB/i);
+    expect(announcementDateTimeFormatter("bs").resolvedOptions().locale).not.toMatch(/^en/i);
   });
 
   it("computes the acknowledgement percentage safely", () => {

@@ -266,7 +266,7 @@ export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): 
 }
 
 export function formatOnCallClock(iso: string, locale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "bs-BA", {
+  return new Intl.DateTimeFormat(locale.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
     ...(timeZone ? { timeZone } : {}),
     hour: "2-digit",
     minute: "2-digit",
