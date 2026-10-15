@@ -131,6 +131,7 @@ export function DocsPage() {
       <aside className="print:hidden lg:w-56 lg:shrink-0 lg:border-r lg:border-border lg:pr-4">
         <button
           aria-expanded={sidebarOpen}
+          aria-controls="docs-mobile-navigation"
           className="flex w-full items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-[12.5px] font-medium text-foreground lg:hidden"
           onClick={() => setSidebarOpen((open) => !open)}
           type="button"
@@ -141,7 +142,10 @@ export function DocsPage() {
           </span>
           {sidebarOpen ? <X size={15} strokeWidth={1.8} /> : null}
         </button>
-        <div className={cn("mt-3", sidebarOpen ? "block" : "hidden lg:block")}>
+        <div
+          id="docs-mobile-navigation"
+          className={cn("mt-3", sidebarOpen ? "block" : "hidden lg:block")}
+        >
           {navigation === null ? null : (
             <DocsSidebar
               activeSlug={slug ?? null}

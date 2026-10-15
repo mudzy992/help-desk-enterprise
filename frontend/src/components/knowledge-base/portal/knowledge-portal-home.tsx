@@ -36,6 +36,8 @@ export function KnowledgePortalHome() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [articles, setArticles] = useState<readonly KnowledgePortalArticle[] | null>(null);
+  const [articlesErrorKey, setArticlesErrorKey] = useState<ApiErrorKey | null>(null);
+  const [articlesReload, setArticlesReload] = useState(0);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -59,17 +61,18 @@ export function KnowledgePortalHome() {
     }
     let cancelled = false;
     setArticles(null);
+    setArticlesErrorKey(null);
     listKnowledgeCategoryArticles(selected)
       .then((loaded) => {
         if (!cancelled) setArticles(loaded);
       })
-      .catch(() => {
-        if (!cancelled) setArticles([]);
+      .catch((error: unknown) => {
+        if (!cancelled) setArticlesErrorKey(mapApiError(error));
       });
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, articlesReload]);
 
   const tree = useMemo(() => buildKnowledgeCategoryTree(home?.categories ?? []), [home]);
 
@@ -111,7 +114,18 @@ export function KnowledgePortalHome() {
             </Button>
             <h2 className="text-[14px] font-semibold text-foreground">{selectedName}</h2>
           </div>
-          {articles === null ? (
+          {articlesErrorKey ? (
+            <div className="mt-3 grid gap-2">
+              <ApiErrorText messageKey={articlesErrorKey} />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setArticlesReload((value) => value + 1)}
+              >
+                {t("ui.retry")}
+              </Button>
+            </div>
+          ) : articles === null ? (
             <PanelSkeleton className="mt-3" label={selectedName} />
           ) : articles.length === 0 ? (
             <EmptyState

@@ -16,6 +16,7 @@ export type DirectoryLoadResult = {
   readonly users: readonly DirectoryUser[];
   readonly errorKey: ApiErrorKey | null;
   readonly requestId: string | null;
+  readonly partialFailure: boolean;
 };
 
 export async function loadDirectory(): Promise<DirectoryLoadResult> {
@@ -33,22 +34,27 @@ export async function loadDirectory(): Promise<DirectoryLoadResult> {
       users: [],
       errorKey: mapApiError(treeResult.error),
       requestId: readApiRequestId(treeResult.error),
+      partialFailure: false,
     };
   }
   const units = flattenOriginUnitOptions(treeResult.tree);
-  const collected = await Promise.all(
+  const results = await Promise.allSettled(
     units.map(async (unit) =>
-      (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map((user) => ({
+      (await listOrganizationalUnitUsers(unit.id)).map((user) => ({
         ...user,
         organizationalUnitPath: unit.label,
       })),
     ),
   );
+  const collected = results.flatMap((result) =>
+    result.status === "fulfilled" ? result.value : [],
+  );
   return {
     tree: treeResult.tree,
-    users: dedupeDirectoryUsers(collected.flat()),
+    users: dedupeDirectoryUsers(collected),
     errorKey: null,
     requestId: null,
+    partialFailure: results.some((result) => result.status === "rejected"),
   };
 }
 

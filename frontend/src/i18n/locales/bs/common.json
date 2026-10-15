@@ -3987,7 +3987,8 @@
         "unknown": "Akcija nije uspjela. Pogledajte dnevnik servera."
       }
     },
-    "ouPathMismatch": "OU u katalogu vodi na „{{catalogPath}}“, a stablo je prikazuje kao „{{treePath}}“. Pokrenite očitavanje kataloga prije izmjene."
+    "ouPathMismatch": "OU u katalogu vodi na „{{catalogPath}}“, a stablo je prikazuje kao „{{treePath}}“. Pokrenite očitavanje kataloga prije izmjene.",
+    "partialFailure": "Dio imenika nije učitan. Neka imena možda neće biti prikazana."
   },
   "locale": {
     "label": "Jezik",
