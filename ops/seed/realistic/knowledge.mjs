@@ -29,7 +29,7 @@ export async function seedKnowledge(client, context, services) {
       title: 'VPN: prva provjera prije prijave kvara',
       category: 'pristup',
       service: 'vpn-pristup',
-      body: 'Provjerite da li ste na internetu, da li je klijent zadnje verzije i da li unosite domenu EPBiH. Ako poruka kaže da je lozinka istekla, prvo otvorite zahtjev za reset. Ako se spajate iz Visokog i veza puca poslije minute, to je poznat problem na lokalnoj liniji.',
+      body: 'Provjerite da li ste na internetu, da li je klijent zadnje verzije i da li unosite korisničko ime koje traži organizacija. Ako poruka kaže da je lozinka istekla, prvo otvorite zahtjev za reset. Ako veza puca poslije minute samo iz jedne poslovnice, to je poznat problem na lokalnoj liniji.',
     },
     {
       slug: 'outlook-pretraga',

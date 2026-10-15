@@ -14,15 +14,15 @@ export async function seedAssets(client, context) {
     code: 'MAG-IT',
     sortOrder: 2,
   });
-  const visoko = context.requesters.find((user) => user.email.startsWith('korisnik.visoko'));
-  const amar = context.user('amar.hodzic@test.epbih.lab');
+  const holder = context.requesters[0];
+  const branchUser = context.requesters[1];
   const rows = [
-    ['laptop', 'LAP-1001', 'Laptop Lenovo T14 — Amar Hodžić', 'IN_USE', amar.id, null, 'HARDWARE'],
+    ['laptop', 'LAP-1001', `Laptop Lenovo T14 — ${holder.displayName}`, 'IN_USE', holder.id, null, 'HARDWARE'],
     ['laptop', 'LAP-1002', 'Laptop Dell Latitude — magacin', 'IN_STOCK', null, 'loc_store', 'HARDWARE'],
     ['laptop', 'LAP-1003', 'Laptop HP — servis tastature', 'IN_REPAIR', null, 'loc_store', 'HARDWARE'],
     ['laptop', 'LAP-0990', 'Laptop iz 2018 — rashod', 'RETIRED', null, null, 'HARDWARE'],
-    ['computer', 'PC-2104', 'Radna stanica obračun, Visoko', 'IN_USE', visoko?.id ?? null, null, 'HARDWARE'],
-    ['monitor', 'MON-3301', 'Dell 24" uz LAP-1001', 'IN_USE', amar.id, null, 'HARDWARE'],
+    ['computer', 'PC-2104', `Radna stanica obračun — ${branchUser.displayName}`, 'IN_USE', branchUser.id, null, 'HARDWARE'],
+    ['monitor', 'MON-3301', 'Dell 24" uz LAP-1001', 'IN_USE', holder.id, null, 'HARDWARE'],
     ['printer', 'MFP-0402', 'Kyocera sprat 2, Direkcija', 'IN_USE', null, 'loc_hq', 'HARDWARE'],
     ['phone', 'TEL-5011', 'Službeni telefon service deska', 'IN_USE', context.agents.desk.id, null, 'HARDWARE'],
     ['peripheral', 'PER-0701', 'Docking stanica — magacin', 'IN_STOCK', null, 'loc_store', 'HARDWARE'],
@@ -81,9 +81,9 @@ export async function seedAssets(client, context) {
     notes: 'Godišnja pretplata direkcije.',
   });
   await insert(client, 'LicenseAssignment', {
-    id: seedId('lic_m365_amar'),
+    id: seedId('lic_m365_holder'),
     licenseId: seedId('lic_m365'),
-    userId: amar.id,
+    userId: holder.id,
   });
   await insert(client, 'SoftwareLicense', {
     id: seedId('lic_office'),
@@ -142,9 +142,9 @@ export async function seedAssets(client, context) {
     scenario: 'WAREHOUSE_TO_USER',
     status: 'SIGNED',
     fromLabel: 'IT magacin',
-    toUserId: amar.id,
+    toUserId: holder.id,
     issuedByUserId: context.agents.equipment.id,
-    snapshot: { assetTag: 'LAP-1001', to: amar.email },
+    snapshot: { assetTag: 'LAP-1001', to: holder.email },
     signedAt: new Date(),
   });
   await insert(client, 'AssetTransferItem', {

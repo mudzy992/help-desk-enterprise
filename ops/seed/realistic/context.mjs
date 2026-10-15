@@ -70,8 +70,13 @@ export async function loadContext(client) {
   const it = await client.query(
     `SELECT id FROM "OrganizationalUnit" WHERE name = 'IT' ORDER BY name LIMIT 1`,
   );
+  const staffEmails = new Set([
+    'test.agent@example.com',
+    'cab@example.com',
+    'problem.manager@example.com',
+  ]);
   const requesters = users.rows.filter(
-    (row) => row.email.endsWith('@test.epbih.lab') && row.organizationalUnitId,
+    (row) => row.organizationalUnitId && !staffEmails.has(row.email),
   );
   if (requesters.length < 4) throw new Error('Premalo korisnika iz laboratorijskog imenika');
   const rules = await client.query(
