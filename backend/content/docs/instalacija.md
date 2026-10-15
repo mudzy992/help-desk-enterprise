@@ -127,6 +127,12 @@ polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ogranič
   provjerava ponovo; ako nešto ne prođe, vraća `PASSWORD_POLICY_VIOLATIONS` uz spisak prekršenih pravila.
 - **„Ostavio sam `INSTALL_TOKEN` u okruženju.“** — Uklonite ga nakon završetka. Rute su zaključane
   (`INSTALL_LOCKED`), ali token nije potreban i ne treba stajati trajno.
+- **„Kako ponovo pokrenuti instalaciju?“** — Wizard se poslije **Završi** zaključava (`INSTALL_LOCKED`) i u
+  aplikaciji nema dugme za povratak: to je **ops akcija**. Na backendu se uključi `INSTALL_ALLOW_RERUN=true`
+  (i vrati `INSTALL_TOKEN`, jer se wizard bez njega ne može ni otvoriti ni zatvoriti), pa se pozove
+  `POST /install/restart` ili pokrene `npm run cli:install-rerun`. Dok je wizard otvoren, aplikacija je
+  nedostupna (`SETUP_REQUIRED`) osim instalacijskih ruta. Recept i opoziv prekidača:
+  `ops/runbook/ponovno-pokretanje-instalacije.md`.
 - **„Prekinuo sam instalaciju poslije koraka 2.“** — Osvježavanje vraća na korak **Način prijave**; već sačuvane
   vrijednosti ostaju (vidi *Poznata ograničenja*).
 
@@ -136,6 +142,7 @@ polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ogranič
 | Token je pogrešan | „Token nije ispravan.“ (`INSTALL_TOKEN_INVALID`) |
 | Aplikacija nije instalirana, a pristupa joj se van `/install` | „Instalacija još nije završena.“ (`SETUP_REQUIRED`, HTTP 503) |
 | Instalacija je završena, a poziva se instalacijski korak | `INSTALL_LOCKED` |
+| Ponovno pokretanje instalacije nije uključeno u okruženju | `INSTALL_RERUN_NOT_ALLOWED` (HTTP 403) |
 | Lozinka SuperAdmina ne prolazi politiku | `PASSWORD_POLICY_VIOLATIONS` uz spisak pravila (`TOO_SHORT`, `COMMON_PASSWORD`, …) |
 | Korak traži SuperAdmina prije njegovog kreiranja | „Prvo kreirajte SuperAdmin nalog.“ (`SUPER_ADMIN_REQUIRED`) |
 | Seed ne može razriješiti rutu | `SEED_ROUTING_UNRESOLVED` (instalacija se ne završava) |

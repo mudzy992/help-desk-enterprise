@@ -7,7 +7,7 @@ Jednokratni first-run setup. Aplikacija nije upotrebljiva dok wizard nije comple
 - `NOT_STARTED` — nema `private.install.completedAt`
 - `IN_PROGRESS` — draft koraka (server-side, da refresh ne gubi SuperAdmin kreiranje)
 - `COMPLETED` — gate ugašen; `/install` zabranjen
-- `RERUN_ALLOWED` — samo ako `INSTALL_ALLOW_RERUN=true` i SuperAdmin
+- `RERUN_ALLOWED` — implementirano (odluka 6): `INSTALL_ALLOW_RERUN=true` + install token, pa `POST /install/restart` ili `npm run cli:install-rerun`; redovni administratori nemaju ni rutu ni dugme
 
 ## Gate
 Izvor: postojeći Settings Registry ključ `private.install.completedAt` (private string, default `""`). Nema paralelnog config sistema. Gate ne čita `private.auth.mode` (`local` i `entra_ad` su isti).
@@ -65,13 +65,14 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 - Seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu.
 - Completed wizard piše change log (reason=`install_wizard`).
 - `POST /install/complete` atomično postavlja `private.install.completedAt` (i `private.install.completedByUserId`) i provisionira `private.auth.jwtSigningSecret` ako nedostaje ili je kraći od 32 znaka. Ponovni complete je idempotentan, ne prepisuje timestamp i ne rotira postojeći signing secret.
-- Nakon COMPLETED, wizard mutacije (`POST /install/*` osim `POST /install/complete`) vraćaju `409 INSTALL_LOCKED`. Dalje izmjene idu kroz Settings.
+- Nakon COMPLETED, wizard mutacije (`POST /install/*` osim `POST /install/complete` i `POST /install/restart`) vraćaju `409 INSTALL_LOCKED`. Dalje izmjene idu kroz Settings.
+- **Ponovno pokretanje (odluka 6, implementirano):** `POST /install/restart` traži `INSTALL_ALLOW_RERUN=true` (tačno ta vrijednost; inače `403 INSTALL_RERUN_NOT_ALLOWED`) i `x-install-token` — to je jedina instalacijska ruta iza tokena **i poslije** završetka (`isInstallTokenAlwaysRequired`), jer otvaranje ruši sistem u setup mod. `is-install-wizard-mutation-locked` propušta tačno `complete` i `restart`. Podrazumijevano briše `private.install.completedAt` i `private.install.completedByUserId`; `includeStepMarkers`/`--include-step-markers` dodaje markere čarobnjaka (`private.install.profile`, `blueprint`, `policyPack`, `slaReview`, `steps.<korak>.{saved,skipped}`). Upis kroz `SettingsService`, `reason = install_wizard_rerun`; plan dijele ruta i `npm run cli:install-rerun` (`plan-install-rerun.ts`). Idempotentno (`alreadyOpen: true` bez upisa); odgovor nosi `nextStep`. Recept: `ops/runbook/ponovno-pokretanje-instalacije.md`.
 
 ## Zabranjeno
 - Preskakanje SuperAdmin koraka.
 - Preskakanje validacije AD/Entra polja kad je `entra_ad` izabran.
 - Seed demo tiketa.
-- Ponovni javni wizard nakon COMPLETED.
+- Ponovni javni wizard nakon COMPLETED (izuzetak je ops-only rerun iz `ops/runbook/ponovno-pokretanje-instalacije.md`).
 - Čuvanje SuperAdmin lozinke u settings JSON.
 
 ## UI

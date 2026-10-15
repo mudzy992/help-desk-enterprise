@@ -13,9 +13,22 @@ Dok `private.install.completedAt` nije postavljen:
 - UI: sve rute → `/install`
 - API: sve osim `GET /health` i `/install/*` → `503 SETUP_REQUIRED`
 
-Nakon završetka wizard se **zaključava**. Izmjene idu kroz Settings (SuperAdmin). Ponovno otvaranje samo ako SuperAdmin + eksplicitni `INSTALL_ALLOW_RERUN=true` (ops, nije default).
+Nakon završetka wizard se **zaključava** (`POST /install/*` osim `complete` → `409 INSTALL_LOCKED`), a izmjene idu kroz Settings (SuperAdmin). Ponovno otvaranje je ops-only i sada **implementirano** (odluka vlasnika 6): `INSTALL_ALLOW_RERUN=true` + install token uz `POST /install/restart` ili `npm run cli:install-rerun`; upis ide u change log kao `install_wizard_rerun`. Recept: `ops/runbook/ponovno-pokretanje-instalacije.md`.
 
 Prvi ekran je **token gate** (`install-token-gate.tsx`): otključava se isključivo na uspješan `GET /install/super-admin`. Token se u `sessionStorage` upisuje **tek nakon** uspješne provjere; mrežna greška, 5xx i timeout ostavljaju gate zatvoren uz poruku `install.tokenUnavailable` i dugme „Pokušaj ponovo“. Sačuvani token se pri mountu provjerava tiho (stanje `checking`), a odbačeni token se briše.
+
+## Ponovno pokretanje (ops-only, odluka 6)
+
+- `POST /install/restart` (`install-rerun.controller.ts`) traži `INSTALL_ALLOW_RERUN=true` (inače `403 INSTALL_RERUN_NOT_ALLOWED`) i
+  `x-install-token`. To je jedina instalacijska ruta koja token traži **i nakon** završetka (`isInstallTokenAlwaysRequired`) —
+  otvaranje je istovremeno i rušenje sistema u setup mod, pa nikad nije anonimno.
+- `is-install-wizard-mutation-locked` propušta tačno dvije mutacije poslije završetka: ponovni `complete` (idempotentan) i `restart`.
+- Podrazumijevano briše samo `private.install.completedAt` i `private.install.completedByUserId`; `includeStepMarkers` dodaje markere
+  čarobnjaka (`private.install.profile`, `blueprint`, `policyPack`, `slaReview`, sve `steps.<korak>.saved|skipped`). Plan dijele ruta i CLI
+  (`plan-install-rerun.ts`), a upis ide kroz `SettingsService` sa `reason = install_wizard_rerun` (validacija + change log + invalidacija keša).
+- Idempotentno: `alreadyOpen: true` ne mijenja ništa. Odgovor nosi `nextStep`, pa operater zna na kojem koraku wizard staje.
+- CLI: `npm run cli:install-rerun -- --reason "<zašto>" [--include-step-markers] [--dry-run]`.
+- U UI-u nema ničega: nema dugmeta, nema i18n ključa i nema promjene ponašanja za redovne administratore.
 
 ## Readiness (F0.7, F1, F2)
 
