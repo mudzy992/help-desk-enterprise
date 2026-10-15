@@ -119,11 +119,12 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Install Wizard v2 (iz `.cursor/plans/install-wizard-v2`)
 
-F0–F4 su završeni i pushovani, F5 je implementiran u radnom stablu (detalji i dokazi u `.cursor/plans/install-wizard-v2/HANDOFF.md`). Otvoreno iz nalaza u `audit/frontend/11-install.md` i iz F5 odluke vlasnika 8:
+F0–F5 su završeni, commitovani i pushovani (`c5c62da` backend + `28559fc` frontend + `6efc6d4` CI format; vlasnik ih je spojio u `master`), a van faza je urađen ops-only rerun (IN21). Detalji i dokazi: `.cursor/plans/install-wizard-v2/HANDOFF.md`. Otvoreno iz nalaza u `audit/frontend/11-install.md` i iz F5 odluke vlasnika 8:
 
 - [x] IN19 (zatvoren): promjena paketa poništava odgodu koraka koje novi paket **traži** (plan prima `previousProfile` → `reopenedStepKeys`); `POST /install/profile` vraća `reopenedSteps`, a ljuska iznad tog koraka pokaže `install.shell.reopened`. Odgoda ostaje moguća — ali kao nova, svjesna odluka.
 - [x] IN18 (zatvoren): install ključevi nose `readOnly` metadata, registry lista ih označi „Čarobnjak“, a detalj prikazuje objašnjenje bez editora.
 - [x] IN11 (zatvoren): `aria-describedby` na polja s napomenom (lozinka foundera, SMTP, Entra, LDAPS, time zone, logo); povratak na prethodni korak završen u F3.
+- [x] IN21 (zatvoren): **Ponovno pokretanje instalacije (ops-only, odluka vlasnika 6)** — dvostruka kapija `INSTALL_ALLOW_RERUN=true` + install token (obavezan i poslije završetka) uz `POST /install/restart` (opciono `includeStepMarkers`) i `npm run cli:install-rerun -- --reason … [--dry-run]`; briše samo zaključavanje (`private.install.completedAt`/`completedByUserId`), a na zahtjev i markere čarobnjaka; upis ide kroz `SettingsService` kao `install_wizard_rerun`, odgovor nosi `clearedKeys` i `nextStep`. Recept: `ops/runbook/ponovno-pokretanje-instalacije.md`. UI nema ni rutu ni dugme — za redovne administratore se ne mijenja ništa.
 - [ ] IN14 (srednja): E2E prolaz kroz UI čarobnjaka + Lighthouse a11y za `/install` ≥ 95 (F6) — jedini otvoreni nalaz instalacije.
 - [ ] IN20 (niska): **Test konekcije na zahtjev u čarobnjaku** (inbound „Testiraj konekciju“, direktorij „Testiraj LDAPS“). Domenske funkcije već postoje — `InboundEmailAdminService.testConnection()` (bez aktera) i `DirectoryFullSyncService.testConnection(actorUserId)` — ali su iza sesijske prijave i rola (`POST /inbound-email/test-connection`, `POST /directory-sync/test-connection`), pa ih korak čarobnjaka prije instalacije ne može pozvati bez nove instalacijski-scoped rute ili guarda svjesnog install tokena. F5 zato **nije** dodao ni ruta ni dugme (odluka vlasnika 8); tiket pokriva rutu + dugme u sekcijama `inboundEmail` i `directory` uz isti rate limit kao SMTP test.
 

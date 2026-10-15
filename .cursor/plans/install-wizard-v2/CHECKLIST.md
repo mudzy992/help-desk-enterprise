@@ -54,6 +54,13 @@ Legenda: `[ ]` čeka · `[~]` u toku · `[x]` gotovo. Svaka stavka se zatvara te
 - [x] Sve sekcije iz tabele povezane — 11 sekcija kao koraci `section.*` (order 61–71, `offeredIn: ['full']`, `skippable`, `requiredIn: []`) + `securityRecommendations` (order 72, Standard i Full), markeri `private.install.steps.<step>.{saved,skipped}` (24 nova ključa), i18n bs + en (`install.section.*`, `install.security.recommendations.*`), registry guard 488 → 512
 - [x] Inbound/LDAPS test: **nije** rađen (odluka vlasnika 8) — domenske funkcije postoje, ali su iza sesijske prijave; zapisano kao **IN20** u `docs/analysis/TASKS.md`
 
+## Van faza — ops-only ponovno pokretanje (odluka 6)
+- [x] Dvostruka kapija — `read-install-rerun-allowed.ts` (samo `INSTALL_ALLOW_RERUN=true`; inače `403 INSTALL_RERUN_NOT_ALLOWED`), `isInstallTokenAlwaysRequired` u `install-token.ts` (token i **poslije** završetka), `is-install-wizard-mutation-locked.ts` propušta tačno `complete` i `restart`; spec 4 + 3 (prošireni lock/guard)
+- [x] `POST /install/restart` — `private.install.completedAt` + `completedByUserId` (i markeri uz `includeStepMarkers`) kroz `SettingsService` sa `reason = install_wizard_rerun`; odgovor nosi `clearedKeys`, `previousCompletedAt`, `nextStep`; idempotentno (`alreadyOpen`); servis 5 + kontroler 4 + plan 6 testova
+- [x] `npm run cli:install-rerun -- --reason "…" [--include-step-markers] [--dry-run]` (`src/cli/install-rerun.ts`); `.env.example` dobio `INSTALL_ALLOW_RERUN`, `check-env-example.mjs` u sinhronizaciji (64 varijable)
+- [x] Recept `ops/runbook/ponovno-pokretanje-instalacije.md` + `.cursor/docs/04-install-wizard.md`, MATRIX i CHANGELOG matrice
+- [x] UI netaknut — nema rute u klijentu, dugmeta ni i18n ključa (odluka 6: ništa se ne mijenja za redovne administratore)
+
 ## F6 — Završetak i testovi (`07_phase-f6-zavrsetak-testovi.md`)
 - [ ] Provisioning ekran
 - [ ] Završni ekran „Sistem je spreman“

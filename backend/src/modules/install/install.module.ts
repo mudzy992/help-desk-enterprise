@@ -17,6 +17,8 @@ import { InstallSlaReviewService } from './install-sla-review.service';
 import { InstallSmtpTestController } from './install-smtp-test.controller';
 import { InstallSmtpTestService } from './install-smtp-test.service';
 import { InstallCompleteService } from './install-complete.service';
+import { InstallRerunController } from './install-rerun.controller';
+import { InstallRerunService } from './install-rerun.service';
 import { InstallSectionsController } from './install-sections.controller';
 import { InstallSecurityRecommendationsService } from './sections/install-security-recommendations.service';
 import { InstallSettingsSectionService } from './sections/install-settings-section.service';
@@ -44,6 +46,7 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
     InstallContentController,
     InstallSectionsController,
     InstallSmtpTestController,
+    InstallRerunController,
   ],
   providers: [
     // Paket 5.1 (M1 #1): password policy for the founder account. The loader
@@ -75,6 +78,7 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
     InstallBlueprintService,
     InstallSettingsSectionService,
     InstallSecurityRecommendationsService,
+    InstallRerunService,
     InstallPolicyPackService,
     InstallSlaReviewService,
     InstallSmtpTestService,

@@ -12,6 +12,8 @@ import { InstallAddonsService } from "./install-addons.service";
 import { InstallBlueprintController } from "./install-blueprint.controller";
 import { InstallBlueprintService } from "./blueprints/install-blueprint.service";
 import { InstallContentController } from "./install-content.controller";
+import { InstallRerunController } from "./install-rerun.controller";
+import { InstallRerunService } from "./install-rerun.service";
 import { InstallSectionsController } from "./install-sections.controller";
 import { InstallController } from "./install.controller";
 import { InstallPolicyPackService } from "./install-policy-pack.service";
@@ -66,6 +68,7 @@ const providers: Readonly<Record<string, object>> = {
   InstallSmtpTestService,
   InstallSettingsSectionService,
   InstallSecurityRecommendationsService,
+  InstallRerunService,
   InstallSetupGuard,
   InstallWizardLockGuard,
   AccountSecurityPolicyLoader,
@@ -86,6 +89,7 @@ const factoryBuiltProviders: readonly string[] = ["InstallAddonsService"];
 const controllers: Readonly<Record<string, object>> = {
   InstallBlueprintController,
   InstallContentController,
+  InstallRerunController,
   InstallSectionsController,
   InstallSmtpTestController,
   InstallController,

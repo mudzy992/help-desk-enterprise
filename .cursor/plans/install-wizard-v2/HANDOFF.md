@@ -2,7 +2,7 @@
 
 ## Stanje (2026-10-15)
 
-- **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj), F3 (nova ljuska), F4 (Standard sadržaj) i F5 (Full sadržaj) su završeni u kodu.** `CHECKLIST.md` vodi F0–F5 kao `[x]`; **F5 još nije commitovan** (radi se u jednom radnom stablu).
+- **F0–F5 su završeni, commitovani i pushovani.** `CHECKLIST.md` vodi F0–F5 kao `[x]`; F5 je u `c5c62da` (backend) + `28559fc` (frontend) + `6efc6d4` (CI `format:check`), a vlasnik ih je spojio u `master` (zadnji CI prolaz zelen). Van faza je urađen i **ops-only rerun** (odluka 6) — u radnom stablu, vidi sekciju niže.
 - Testovi (F5): backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **49 suita / 250 testova** (`modules/install modules/settings` → **77 / 372**); puni backend prolaz → `550 passed / 74 failed / 4 skipped` od 628 suita, **2892** testa prolazi + 26 skipped, `0` padajućih testova, a skup padajućih suita je **identičan** pristine HEAD-u (`comm -3` prazan); frontend `cd frontend && npx vitest run` → **245 fajlova / 1044 testa**, 0 padajućih; `npx tsc -b` (0 grešaka), `npx eslint` (0 grešaka u `modules/install` + `modules/settings`, 0 u izmijenjenim frontend putanjama), `npx prettier`, `scripts/check-theme-contrast.mjs` i `npx vite build` čisti.
 - **Commitovano i pushovano** na `arena/72aa620f-help-desk-enterprise` (4 commita, jedan po fazi; poruke na kraju fajla):
   - `1e8ac2d` fix(install): fail-closed wizard gate, single status source and readiness guard (F0)
@@ -11,9 +11,12 @@
   - `40898db` feat(install-ui): split-screen wizard shell, package picker and review findings (F3 + IN11/IN18/IN19 + dijeljeni sloj)
   - `56e4958` feat(install): standard package content — SMTP test, blueprints, policy pack, SLA review (F4)
   - `4b47815` fix(install): take PrismaService in persistInstallMarker (F4 CI hotfix — tri mjesta gdje je `nest build` padao na uskim Prisma tipovima)
+  - `c5c62da` feat(install): allowlisted settings sections for the full profile (F5 backend)
+  - `28559fc` feat(install-ui): generic section step and security recommendations (F5 frontend)
+  - `6efc6d4` style(install): keep the step presentation formatted (CI `npm run format:check`)
   - Faze su rađene u jednom radnom stablu, pa commit po fazi nije po hunkovima: dijeljeni fajlovi (tipovi, i18n, docs, e2e helper) su u F3 commitu — stablo na `40898db` je provjereno stanje, međukomitovi nisu zasebno buildani.
 - **Sljedeća faza je F6** (`07_phase-f6-zavrsetak-testovi.md`): provisioning ekran, završni ekran „Sistem je spreman“, post-instalacijska checklista (`setup-checklist` + dashboard kartica), E2E projekat `install-wizard` (51 Minimum, 52 Standard, 53 Full) i zatvaranje audita 11 (`IN14` — E2E prolaz kroz UI + Lighthouse a11y ≥ 95; mjeri se u korisničkom okruženju/CI-ju, ne u ovom sandboxu).
-- **F5 u radnom stablu** (~20 novih + 20 izmijenjenih putanja): vidi „Šta je urađeno (F5)“ niže i `CHANGELOG.md` za taj dan.
+- **Ops-only rerun u radnom stablu** (13 novih + 9 izmijenjenih putanja): `POST /install/restart` + `npm run cli:install-rerun` pod `INSTALL_ALLOW_RERUN=true` i install tokenom — vidi „Šta je urađeno (odluka 6)“ niže, `CHANGELOG.md` i `ops/runbook/ponovno-pokretanje-instalacije.md`.
 
 ## Odluke vlasnika (obavezujuće, `00_overview.md` §9)
 
@@ -22,7 +25,7 @@
 3. Blueprinti: IT + HR + Finance uz postojeće `itStandard`, `hrRestricted`, `financeRestricted` (F4).
 4. Full uključuje CMDB/problemi/promjene po defaultu (`defaultEnabledAddons` u katalogu paketa; primjena je F4/F5).
 5. Promjena paketa dozvoljena na koraku paketa; reset stanja po registry planu, bez brisanja kredencijala/identiteta/seed podataka; nakon seeda samo nadogradnja.
-6. `INSTALL_ALLOW_RERUN` ostaje ops-only.
+6. `INSTALL_ALLOW_RERUN` ostaje ops-only — **implementirano** (dvostruka kapija: env prekidač + install token; nema UI-a).
 7. Sigurnosne preporuke za F5: MFA obavezno za admine (`private.auth.mfa.requiredForAdmins=true`), MFA opcion za ostale (`allowOptional=true`), HIBP on (`private.security.hibp.enabled=true`), idle sesija 1800 s ako validator podržava, captcha off u wizardu dok nema Turnstile ključeva.
 8. Inbound i LDAPS: tvrdnja operatera, bez automatskog testa; test na zahtjev je F5 (nema `/install/inbound` ni `/install/ldaps` ruta u F1).
 
@@ -94,6 +97,17 @@
 - **F5.7 i18n (bs + en)** — `install.section.<sectionKey>.{title,value,whatYouGet.1..3}` (11 × 5), `install.section.requires.{service,directoryLogin,team}`, `install.section.*` (potvrda, tajne, greške), `install.security.recommendations.*` (panel + 5 × `title|help`), `install.steps.section.*` + `install.steps.securityRecommendations`; `settings-registry-coverage.spec.ts` 488 → **512** (24 nova `private.install.steps.*` markera sa naslovom i pomoći u oba lokalata) uz novi `i18n/install-sections-coverage.spec.ts`.
 - **Specovi F5** — backend: `sections/install-settings-section.registry.spec.ts` (6 — allowlist ↔ stvarni registry, koraci/redoslijed, markeri, preporuke, captcha bez upisa, idle 1800 s prihvaćen), `sections/install-settings-section.service.spec.ts` (5) + `sections/install-settings-section.service-save.spec.ts` (6 — podijeljeno zbog granice od 200 linija: lista sekcija, polja iz definicija sa `dependencies[].satisfied`, ključ van allowlist-e → 400 bez upisa, nepoznata sekcija → 400, upis + marker + `changeLogReason`, tajna `[REDACTED]` ostaje netaknuta, `requires` definicije → 422, `team` zavisnost → 409 pa zeleno nakon pravog poziva, bez foundera → 409), `sections/install-security-recommendations.service.spec.ts` (4 — status, primjena, ručno podešena captcha se broji kao postavljena, bez foundera → 409), `sections/install-full-package.acceptance.spec.ts` (**2 — kriterij prihvatanja F5**: cijeli Full pređen sa „Podesi kasnije“ → `isReady`, prazna lista `missing` provjera, `profileSteps` kao `skipped` sa tačno odgođenim koracima i ni jedan korak nije `blocking`), `install-sections.controller.spec.ts` (6 — lock guard na kontroleru, `@IsIn` na parametru kroz pravi pipe, tijelo bez nepoznatih polja, lista, upis, preporuke). Frontend: `install-section-field.spec.tsx` (6 — switch/number/tekst/select/secret/`aria-describedby`/disabled), `install-section-step.spec.tsx` (5 — render iz metapodataka, samo izmijenjena polja, prazna tajna se ne šalje, `install.section.requires.team`, mapiranje 409), `i18n/install-sections-coverage.spec.ts` (9 — bs i en za sve nove slotove).
 - **Odluka vlasnika 8 (inbound/LDAPS test)** — F5 **nije** dodao ni dugme ni rutu: domenske funkcije postoje (`InboundEmailAdminService.testConnection()`, `DirectoryFullSyncService.testConnection(actorUserId)`), ali su iza sesijske prijave i rola, pa bi čarobnjak (prije instalacije, sa install tokenom) tražio novu instalacijski-scoped rutu. Zapisano kao **IN20** u `docs/analysis/TASKS.md`.
+
+## Šta je urađeno (odluka 6 — ops-only ponovno pokretanje, van faza)
+
+- **Ruta** `POST /install/restart` — `install-rerun.controller.ts`, `install-rerun.service.ts`, `install-rerun.types.ts`, `dto/restart-install-wizard.dto.ts`; traži `INSTALL_ALLOW_RERUN=true` (`read-install-rerun-allowed.ts` — samo ta vrijednost, inače `403 INSTALL_RERUN_NOT_ALLOWED`) i `x-install-token`. To je **jedina** instalacijska ruta iza tokena i poslije završetka (`isInstallTokenAlwaysRequired` u `install-token.ts`), jer otvaranje vraća sistem u setup mod (503 svuda osim `/install/*`, `/health`, `/health/ready`, `/branding`) — i jedina koja se ne može otvoriti bez tokena kojim se poslije zatvara.
+- **Lock** `is-install-wizard-mutation-locked.ts` propušta tačno dvije mutacije nakon završetka: ponovni `complete` i `restart`.
+- **Plan** `plan-install-rerun.ts` (dijele ruta i CLI): podrazumijevano `private.install.completedAt` + `private.install.completedByUserId`; `includeStepMarkers` dodaje `private.install.profile|blueprint|policyPack|slaReview` + sve `steps.<korak>.{saved,skipped}` (35 markera). Ključ koji je već na defaultu se **ne** piše, pa je drugi poziv no-op (`alreadyOpen: true`).
+- **Upis** kroz `settingsService.setSettingValues(...)` sa `reason = install_wizard_rerun` (validacija, change log po ključu, invalidacija keša; aktor je founder ako postoji). Odgovor nosi `restarted`, `alreadyOpen`, `clearedKeys`, `previousCompletedAt` i `nextStep` — pa operater zna gdje će wizard stati.
+- **CLI** `npm run cli:install-rerun -- --reason "<zašto>" [--include-step-markers] [--dry-run]` (`src/cli/install-rerun.ts`, `readInstallRerunCliInput` je čista funkcija) — isti plan, bez HTTP-a; `.env.example` dobio `INSTALL_ALLOW_RERUN` (guard `check-env-example.mjs`: 64 varijable, u sinhronizaciji).
+- **UI** nema ništa: nema rute u klijentu, nema dugmeta, nema i18n ključa — odluka 6 znači da se za redovne administratore ništa ne mijenja.
+- **Recept** `ops/runbook/ponovno-pokretanje-instalacije.md` (preduslovi, dry-run, CLI/API, `--include-step-markers`, šta se ne dira, tabela grešaka, SQL kao krajnja opcija).
+- **Specovi** `install-rerun.service.spec.ts` (5: prekidač isključen bez upisa, brisanje brave + `nextStep`, no-op, markeri samo na zahtjev, change log), `install-rerun.controller.spec.ts` (4: guard metadata, tijelo bez markera, `includeStepMarkers`, pipe odbija ne-boolean i nepoznato polje), `plan-install-rerun.spec.ts` (6), `read-install-rerun-allowed.spec.ts` (4), `cli/install-rerun.spec.ts` (3) + prošireni `is-install-wizard-mutation-locked.spec.ts` i `install-wizard-lock.guard.spec.ts`. Mjereno: `modules/install modules/settings` → **81 suita / 392 testa** zeleno (prije: 77 / 372).
 
 ## Odstupanja od plana i otvorene stvari
 
@@ -235,4 +249,24 @@ feat(install-ui): generic section step and security recommendations
   sentences, the refusals and the panel; new i18n coverage guard
 - RTL specs for the field types, the save payload, the missing prerequisite
   and the error mapping
+```
+
+**Ops-only rerun (odluka 6, van faza):**
+```
+feat(install): ops-only wizard rerun behind INSTALL_ALLOW_RERUN
+
+- POST /install/restart clears private.install.completedAt and
+  completedByUserId through the settings service (reason
+  install_wizard_rerun) and reports where the wizard opens next; the
+  optional includeStepMarkers also clears the wizard's own markers
+- the route needs INSTALL_ALLOW_RERUN=true and stays behind the install
+  token even after completion, because reopening takes the product down
+  until the wizard is finished again; the lock lets exactly this
+  mutation and the idempotent complete through
+- npm run cli:install-rerun does the same from the container with
+  --dry-run, --include-step-markers and --reason, sharing one plan with
+  the route (plan-install-rerun.ts)
+- nothing changes in the UI for regular administrators; the recipe lives
+  in ops/runbook/ponovno-pokretanje-instalacije.md, and the matrix,
+  docs and plan changelog record the RERUN_ALLOWED state as implemented
 ```

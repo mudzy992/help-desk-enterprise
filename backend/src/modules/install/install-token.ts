@@ -30,6 +30,26 @@ export function isInstallTokenProtectedRequest(input: {
   return !openPaths.has(path);
 }
 
+/**
+ * Owner decision 6: the rerun stays behind the token even on a finished system.
+ * Without this, anybody who can reach the API could reopen the wizard — and
+ * reopening takes the product down (everything but `/install`, `/health` and
+ * `/branding` answers `SETUP_REQUIRED`) until the wizard is finished again.
+ *
+ * It also means the installation cannot be reopened without the very token that
+ * is needed to close it again, which is the lockout the runbook warns about.
+ */
+export function isInstallTokenAlwaysRequired(input: {
+  readonly method: unknown;
+  readonly path: unknown;
+}): boolean {
+  const path = normalizeInstallHttpPath(input.path);
+  if (normalizeInstallHttpMethod(input.method) === 'OPTIONS') {
+    return false;
+  }
+  return path === installSetupAllowlist.restartPath;
+}
+
 function digest(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest();
 }

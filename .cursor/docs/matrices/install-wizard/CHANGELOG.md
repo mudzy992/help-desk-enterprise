@@ -1,5 +1,14 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-15 (ops-only ponovno pokretanje — odluka 6)
+
+- **RERUN_ALLOWED je sada stvarno stanje:** `POST /install/restart` (`install-rerun.controller.ts`, `install-rerun.service.ts`, `dto/restart-install-wizard.dto.ts`) traži `INSTALL_ALLOW_RERUN=true` (`read-install-rerun-allowed.ts`; samo ta vrijednost, inače `403 INSTALL_RERUN_NOT_ALLOWED`) i `x-install-token`. Ruta je jedina instalacijska koja token traži i **poslije** završetka (`isInstallTokenAlwaysRequired` u `install-token.ts`), jer otvaranje vraća sistem u setup mod.
+- **Lock:** `is-install-wizard-mutation-locked.ts` propušta tačno dvije mutacije nakon COMPLETED — ponovni `POST /install/complete` i `POST /install/restart`; sve ostalo ostaje `409 INSTALL_LOCKED`.
+- **Šta se briše:** `plan-install-rerun.ts` (dijele ga ruta i CLI): podrazumijevano `private.install.completedAt` + `private.install.completedByUserId`, uz `includeStepMarkers` i `private.install.profile|blueprint|policyPack|slaReview` + sve `steps.<korak>.{saved,skipped}`. Upis kroz `SettingsService` sa `reason = install_wizard_rerun`; ključ koji je već na defaultu se ne piše, pa je ponovni poziv no-op (`alreadyOpen: true`). Odgovor nosi `clearedKeys` i `nextStep`.
+- **CLI:** `npm run cli:install-rerun -- --reason "<zašto>" [--include-step-markers] [--dry-run]` (`src/cli/install-rerun.ts`) — isti plan, bez HTTP-a.
+- **UI:** ništa se ne mijenja — nema rute u klijentu, nema dugmeta, nema i18n ključa; recept je u `ops/runbook/ponovno-pokretanje-instalacije.md`.
+- Testovi: `install-rerun.service.spec` (5), `install-rerun.controller.spec` (4), `plan-install-rerun.spec` (6), `read-install-rerun-allowed.spec` (4), `cli/install-rerun.spec` (3) + prošireni `is-install-wizard-mutation-locked.spec` i `install-wizard-lock.guard.spec`; `modules/install modules/settings` **81 suita / 392 testa** zeleno, `check-env-example.mjs` u sinhronizaciji (64 varijable).
+
 ## 2026-10-15 (F4 Standard sadržaj)
 
 - **SMTP test (F4.1):** `POST /install/smtp/test` šalje probnu poruku kroz postojeći `MAIL_TRANSPORT` i vraća `SMTP_TEST_*` kod po uzroku (auth/TLS/timeout/unreachable/send); rate limit je vlastita instanca `TestEmailRateLimiter`-a (bez Redis-a). UI `install-smtp-test-panel.tsx` je ugašen dok forma ima nesačuvane izmjene.
