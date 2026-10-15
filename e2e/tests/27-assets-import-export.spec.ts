@@ -13,7 +13,7 @@ import {
   withSettings,
 } from '../helpers/assets';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type ImportTotals = { total: number; create: number; update: number; unchanged: number; skipped: number; errors: number; duplicateSkipped?: number };
 type ImportPreview = { id: string; status: 'PREVIEW'; totals: ImportTotals; errorCount: number; errors: ReadonlyArray<{ row: number; column: string | null; code: string }> };
@@ -165,14 +165,19 @@ test.describe('27 assets import, export and bulk', () => {
         const user = await findAssignableUser(admin, env.userEmail);
 
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        await dismissAnnouncementModal(page);
         await page.goto('/assets');
         await expect(page.getByRole('button', { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
-        await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(stamp);
-        for (const asset of [first, second]) {
-          await page.getByRole('checkbox', { name: new RegExp(asset.assetTag) }).check({ timeout: 15_000 });
-        }
+        const search = page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i);
+        await search.fill(stamp);
+        await expect(page.getByRole('link', { name: first.assetTag })).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByRole('link', { name: second.assetTag })).toBeVisible({ timeout: 15_000 });
         const bar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/ });
-        await expect(bar).toContainText(/2/);
+        for (const asset of [first, second]) {
+          const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: asset.assetTag }) });
+          await row.getByRole('checkbox').click();
+        }
+        await expect(bar).toContainText(/(^|[^\d])2([^\d]|$)|2 stavk|2 item/i);
         // Export buttons re-enable once the filtered list loads; axe must not catch them mid-fade.
         for (const button of await page.getByRole('button', { name: /Izvezi popis kao|Export the register as/ }).all()) await expect(button).toBeEnabled();
         await expectNoSeriousA11yViolations(page, 'assets-bulk-selection', testInfo);

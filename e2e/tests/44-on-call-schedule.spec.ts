@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type OverviewGroup = {
   readonly groupId: string;
@@ -29,8 +29,8 @@ type UnitNode = {
   readonly children?: readonly UnitNode[];
 };
 
-function tomorrowDate(): string {
-  const day = new Date(Date.now() + 24 * 60 * 60 * 1000);
+function civilDate(offsetDays: number): string {
+  const day = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
 }
 
@@ -102,7 +102,7 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           timezone: 'Europe/Sarajevo',
           handoffTime: '09:00',
           rotationLength: 'WEEK',
-          rotationStartDate: tomorrowDate(),
+          rotationStartDate: civilDate(0),
           isActive: true,
           autoAssignOutsideHours: false,
           ownerUserId: null,
@@ -110,23 +110,53 @@ test.describe('44 on-call schedules (5.3.7)', () => {
           reason: 'E2E 5.3.7 on-call setup',
         }),
       });
+      const detailQuery = new URLSearchParams({
+        from: new Date().toISOString(),
+        to: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
+      }).toString();
+      await expect
+        .poll(async () => {
+          const refreshed = await api.requestJson<{ readonly schedule: { readonly id: string } | null }>(
+            `/on-call/groups/${encodeURIComponent(groupId)}?${detailQuery}`,
+          );
+          return refreshed.schedule?.id ?? null;
+        }, { timeout: 30_000 })
+        .not.toBeNull();
     });
 
     try {
       await test.step('sign in and open the overview', async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
+        await dismissAnnouncementModal(page);
         await page.goto('/on-call');
-        const card = page.getByTestId('on-call-group').filter({ hasText: groupName }).first();
-        await expect(card).toBeVisible();
-        await expect(card).not.toContainText(/Bez rasporeda|No schedule/i);
+        await page.getByRole('button', { name: /Osvježi|Refresh/i }).click();
+        const groupButton = page
+          .locator('[data-testid="on-call-group"]')
+          .filter({ has: page.getByText(groupName, { exact: true }) });
+        await expect(groupButton).toBeVisible();
+        await expect(groupButton).not.toContainText(/Bez rasporeda|No schedule/i);
+        await groupButton.click();
       });
 
       await test.step('the week detail lists the rotation member', async () => {
-        await page.getByTestId('on-call-group').filter({ hasText: groupName }).first().click();
-        await expect(page.getByText(memberName)).toBeVisible({ timeout: 30_000 });
-        const members = page.locator('section[aria-labelledby="on-call-rotation"]');
-        await expect(members).toBeVisible({ timeout: 30_000 });
-        await expect(members).toContainText(memberName);
+        const groupButton = page
+          .locator('[data-testid="on-call-group"]')
+          .filter({ has: page.getByText(groupName, { exact: true }) });
+        const detailResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'GET' &&
+            response.url().includes(`/on-call/groups/${encodeURIComponent(groupId)}`) &&
+            response.ok(),
+          { timeout: 60_000 },
+        );
+        await groupButton.click();
+        const detail = (await (await detailResponse).json()) as {
+          readonly schedule: { readonly members: ReadonlyArray<{ readonly displayName: string }> } | null;
+        };
+        expect(detail.schedule?.members.map((member) => member.displayName)).toContain(memberName);
+        await expect(page.locator('main')).not.toContainText(/Grupa nema raspored dežurstva|Group has no on-call schedule/i);
+        const rotation = page.locator('section[aria-labelledby="on-call-rotation"]');
+        await expect(rotation).toContainText(memberName, { timeout: 15_000 });
       });
 
       await test.step('the overview stays usable at a phone width', async () => {

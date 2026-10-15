@@ -111,15 +111,20 @@ test.describe('23 assets (CMDB)', () => {
       phase('axe: pregled imovine');
       await expectNoSeriousA11yViolations(page, 'assets-overview', testInfo);
       await page.goto('/assets');
+      await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(String(stamp));
       await expect(page.getByRole('link', { name: `E2E-${stamp}` })).toBeVisible({ timeout: 15_000 });
       // "New asset" stays disabled until the catalog and options load; wait for it before axe.
       await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
       const assetRow = page.getByRole('row').filter({ has: page.getByRole('link', { name: `E2E-${stamp}` }) });
+      const bulkBar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/i });
       await assetRow.getByRole('checkbox').check();
-      await expect(page.getByText(/Odabrano:\s*1|Selected:\s*1/i)).toBeVisible();
+      await expect(bulkBar).toBeVisible();
+      await expect(bulkBar).toContainText(/1/);
       await page.getByLabel(/Izvor|Source/).selectOption('IMPORT');
-      await expect(page.getByText(/Odabrano:\s*1|Selected:\s*1/i)).toHaveCount(0);
+      await expect(bulkBar).toHaveCount(0);
       phase('odabir očišćen nakon promjene filtera');
+      await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(String(stamp));
+      await expect(page.getByRole('link', { name: `E2E-${stamp}` })).toBeVisible({ timeout: 15_000 });
       phase('axe: registar imovine');
       await expectNoSeriousA11yViolations(page, 'assets-register', testInfo);
       await page.goto(`/assets/${created.id}`);
