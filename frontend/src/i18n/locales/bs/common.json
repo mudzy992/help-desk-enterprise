@@ -1655,7 +1655,7 @@
       "title": "Ostale registrovane postavke",
       "subtitle": "Preostale kategorije otvaraju se u draweru. Opisi dolaze iz i18n registra.",
       "loading": "Učitavanje settings registry-ja…",
-      "readOnly": "Imate pregled, ali ne i dozvolu za izmjenu postavki.",
+      "readOnly": "Čarobnjak",
       "reason": "Razlog izmjene",
       "save": "Sačuvaj",
       "saving": "Spremanje…",
@@ -1786,6 +1786,13 @@
         "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima, odvojeni zarezom (bs, en).",
         "private.install.completedAt": "Kad je završen instalacijski čarobnjak (prazno = setup još aktivan).",
         "private.install.completedByUserId": "Id SuperAdmin korisnika koji je završio instalacijski čarobnjak.",
+        "private.install.profile": "Paket instalacije koji čarobnjak koristi (minimum, standard ili full).",
+        "private.install.steps.profile.skipped": "Oznaka da je korak izbora paketa odgođen u čarobnjaku.",
+        "private.install.steps.superAdmin.skipped": "Oznaka da je korak SuperAdmin naloga odgođen u čarobnjaku.",
+        "private.install.steps.loginProvider.skipped": "Oznaka da je korak načina prijave odgođen u čarobnjaku.",
+        "private.install.steps.smtp.skipped": "Oznaka da je korak SMTP postavki odgođen u čarobnjaku.",
+        "private.install.steps.seed.skipped": "Oznaka da je korak početnih podataka odgođen u čarobnjaku.",
+        "private.install.steps.addons.skipped": "Oznaka da je korak dodataka odgođen u čarobnjaku.",
         "private.integrations.queue.adminUiEnabled": "Uključi admin API za pregled reda i ponovni pokušaj poslova.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj neuspješnih pokušaja nakon kojeg posao ide u dead-letter red.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana čuvati dead-letter poslove prije brisanja.",
@@ -2171,7 +2178,9 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — odbijene provjere po satu, upozorenje",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — odbijene provjere po satu, kritično",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — preskočene provjere po satu, upozorenje",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično"
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično",
+        "private.install.steps.identity.skipped": "Korak „Identitet“ je odgođen u wizardu.",
+        "private.install.steps.team.skipped": "Korak „Tim“ je odgođen u wizardu."
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2261,6 +2270,13 @@
         "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima (bs, en). Jezik koji nije na listi ne pojavljuje se u izborniku, a prevedeni tekstovi za njega ostaju u sistemu.",
         "private.install.completedAt": "ISO datum i vrijeme završetka instalacijskog čarobnjaka. Prazno polje znači da je početno postavljanje još aktivno i da sistem traži završetak pripreme.",
         "private.install.completedByUserId": "Korisnik (SuperAdmin) koji je zaključio instalacijski čarobnjak. Zapis ostaje kao trag ko je i kada pustio instalaciju u rad.",
+        "private.install.profile": "Paket koji je operater izabrao u prvom koraku čarobnjaka. Minimum pokriva jezgro za rad, Standard dodaje tim i email, a Full dodatne module. Prazno znači da paket još nije izabran i čarobnjak se ponaša kao Minimum.",
+        "private.install.steps.profile.skipped": "Postavlja ga čarobnjak kad operater odgodi izbor paketa. Odgođen korak ne blokira završetak, ali ga prikazuje post-instalacijska lista obaveza.",
+        "private.install.steps.superAdmin.skipped": "Postavlja ga čarobnjak kad operater odgodi korak. Korak se ne može odgoditi bez SuperAdmin naloga, pa je vrijednost u praksi uvijek false.",
+        "private.install.steps.loginProvider.skipped": "Postavlja ga čarobnjak kad operater odgodi korak načina prijave. Odgođen korak ne blokira završetak instalacije, ali ostaje na listi obaveza.",
+        "private.install.steps.smtp.skipped": "Postavlja ga čarobnjak kad operater odgodi SMTP, npr. u paketu Minimum gdje email nije obavezan. Odgođen korak ne blokira završetak, ali ga lista obaveza prikazuje.",
+        "private.install.steps.seed.skipped": "Postavlja ga čarobnjak kad operater odgodi kreiranje početnih podataka. Bez organizacijske jedinice, servisa i usmjeravanja instalacija ne može primati tikete, pa je vrijednost u praksi uvijek false.",
+        "private.install.steps.addons.skipped": "Postavlja ga čarobnjak kad operater odgodi potvrdu dodataka. Tad se koriste zadane vrijednosti iz kataloga, a uključivanje ostaje moguće kasnije u Settings.",
         "private.integrations.queue.adminUiEnabled": "Uključeno dozvoljava admin API za pregled reda i ručno ponavljanje poslova. Isključeno ostavlja red bez nadzora iz aplikacije, pa se problemi rješavaju samo u logovima.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj pokušaja nakon kojeg neuspjeli posao prelazi u red mrtvih slova (DLQ). Iz DLQ-a se posao može pregledati i ponoviti ručno.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana radnik čuva poslove u DLQ-u prije brisanja. Duži rok omogućava kasniju analizu, ali drži osjetljive podatke u sistemu duže.",
@@ -2646,7 +2662,9 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "Koliko odbijenih CAPTCHA rješenja na sat pokreće alarm upozorenja (auth.captchaFailed.high). Odbijanje znači da klijent šalje rješenje koje Cloudflare nije prihvatio.",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "Odbijene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "Koliko provjera na sat smije biti preskočeno jer Cloudflare nije odgovorio prije alarma upozorenja (auth.captchaSkipped.high).",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja."
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
+        "private.install.steps.identity.skipped": "Prikazuje da je korak identiteta preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije.",
+        "private.install.steps.team.skipped": "Prikazuje da je korak tima preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -2893,7 +2911,8 @@
       "discardBody": "Vrijednost nije sačuvana. Ako zatvorite sada, unos se gubi.",
       "discardAction": "Odbaci izmjene",
       "noticeEditorLink": "Otvorite editor obavještenja",
-      "noticeEditorHint": "Ovo obavještenje se uređuje u namjenskom editoru Privatnost modula, ne ovdje."
+      "noticeEditorHint": "Ovo obavještenje se uređuje u namjenskom editoru Privatnost modula, ne ovdje.",
+      "readOnlyHint": "Ovim ključem upravlja čarobnjak instalacije — vrijednost se mijenja kroz korake čarobnjaka, ne ručno. Ovdje je prikazana samo radi uvida."
     },
     "dependencies": {
       "requiresTitle": "Uslovi (mora biti ispunjeno prije uključivanja)",
@@ -4005,6 +4024,21 @@
     "title": "Početno podešavanje",
     "heading": "SuperAdmin nalog",
     "body": "Prvi korak kreira lokalni SuperAdmin nalog. Lozinka se čuva samo kao hash. Break-glass prijava ostaje i kad se kasnije izabere Entra AD.",
+    "shell": {
+      "stepsLabel": "Koraci podešavanja",
+      "stepOf": "Korak {{current}} od {{total}}",
+      "back": "Nazad",
+      "continue": "Nastavi",
+      "later": "Podesi kasnije",
+      "reopened": "Novi paket traži ovaj korak, pa je ranija odgoda „Podesi kasnije“ poništena. Ako ti korak i dalje ne treba, odgodi ga ponovo.",
+      "whatYouGet": "Šta dobijaš",
+      "whatYouGetHint": "Kratko: šta ovaj korak donosi tvojoj instalaciji.",
+      "organizationFallback": "Tvoja organizacija"
+    },
+    "feature": {
+      "locked": "Obavezno",
+      "included": "U paketu"
+    },
     "loading": "Provjera stanja podešavanja",
     "email": "Email",
     "displayName": "Ime i prezime",
@@ -4021,6 +4055,32 @@
     "passwordHintBlocklist": "Lozinka mora imati najmanje {{min}} znakova i ne smije biti među najčešće korištenim lozinkama.",
     "errorDuplicate": "Početni SuperAdmin već postoji ili je email zauzet.",
     "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati.",
+    "identity": {
+      "heading": "Identitet instalacije",
+      "body": "Naziv organizacije, naziv aplikacije, jezik i vremenska zona. Logo i kontakt podaci se mogu podesiti kasnije, a sve ostaje dostupno u Postavkama → Brending.",
+      "organizationName": "Naziv organizacije",
+      "appName": "Naziv aplikacije",
+      "locale": "Jezik sistema",
+      "localeBs": "Bosanski",
+      "localeEn": "Engleski",
+      "timeZone": "Vremenska zona",
+      "timeZoneHint": "IANA zona, npr. Europe/Sarajevo. Koristi se u izvještajima i rokovima.",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG ili WebP do 200 KB i 1024 × 1024 px. Možete ga dodati kasnije.",
+      "logoConfigured": "Logo je sačuvan. Odaberite novu datoteku samo ako ga mijenjate.",
+      "supportEmail": "Email podrške",
+      "supportUrl": "Link podrške",
+      "later": "Polja koja ostavite prazna ne mijenjaju postojeće vrijednosti — podesite ih kasnije u Postavkama.",
+      "preview": "Pregled brenda",
+      "previewEmpty": "nije uneseno",
+      "submit": "Sačuvaj identitet",
+      "saving": "Spremanje…",
+      "errorInvalid": "Naziv organizacije je obavezan. Provjerite dužine i format kontakt podataka.",
+      "errorLocale": "Izabrani jezik nije podržan. Dostupni su bosanski i engleski.",
+      "errorTimeZone": "Vremenska zona nije poznata. Koristite IANA naziv, npr. Europe/Sarajevo.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Identitet trenutno nije moguće sačuvati."
+    },
     "loginProvider": {
       "heading": "Način prijave",
       "body": "Izaberite tačno jedan način prijave. SuperAdmin ostaje lokalni break-glass nalog i kad je izabran Entra AD.",
@@ -4064,17 +4124,55 @@
       "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati."
     },
     "seed": {
-      "heading": "Početni podaci",
-      "body": "Kreira se minimum potreban za usmjeravanje: jedna organizacijska jedinica, fallback grupa, jedan servis i routing na tu grupu. Demo tiketi se ne kreiraju.",
-      "submit": "Dalje",
-      "saving": "Spremanje…",
-      "createdBody": "Minimalni podaci su spremni. Origin OU i servis se rješavaju na fallback grupu.",
-      "organizationalUnit": "Organizacijska jedinica",
-      "fallbackGroup": "Fallback grupa",
-      "service": "Servis",
-      "routing": "Rezolucija usmjeravanja",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Početne podatke trenutno nije moguće sačuvati."
+    },
+    "structure": {
+      "heading": "Struktura i prvi servis",
+      "body": "Unesite nazive koje klijent koristi: organizacijska jedinica, grupa koja prima tikete, kategorija i prvi servis. Servis dobija standardni SLA profil.",
+      "ouName": "Organizacijska jedinica",
+      "groupName": "Grupa koja prima tikete",
+      "categoryName": "Kategorija",
+      "serviceName": "Servis",
+      "preview": "Tiket za <service>{{service}}</service> ide grupi <group>{{group}}</group> u OU <organizationalUnit>{{organizationalUnit}}</organizationalUnit>.",
+      "previewEmpty": "nije uneseno",
+      "slaProfile": "SLA profil",
+      "slaProfileMissing": "nije dodijeljen",
+      "routing": "Rezolucija usmjeravanja",
+      "createdBody": "Struktura je spremna: origin OU i servis se rješavaju na grupu koja prima tikete. Ponovno spremanje ne mijenja postojeće nazive.",
+      "submit": "Kreiraj strukturu",
+      "saving": "Spremanje…",
+      "errorInvalid": "Naziv ne može biti duži od 120 znakova niti sadržavati zarez ili znak jednakosti.",
+      "warningNames": "Nazivi nisu promijenjeni jer zapisi već postoje. Sačuvano: {{stored}}."
+    },
+    "team": {
+      "heading": "Tim",
+      "body": "Dodajte kolege u grupu koja prima tikete. Svaka osoba dobija nalog i privremenu lozinku; bez SMTP-a lozinka se prikazuje ovdje samo jednom.",
+      "displayName": "Ime i prezime",
+      "email": "Email",
+      "role": "Uloga",
+      "roles": {
+        "AGENT": "Agent",
+        "ADMIN": "Administrator"
+      },
+      "addMember": "Dodaj člana",
+      "remove": "Ukloni",
+      "memberCount": "{{count}} od najviše {{max}} članova",
+      "superAdmin": "SuperAdmin",
+      "submit": "Kreiraj naloge",
+      "saving": "Kreiranje…",
+      "credentialsTitle": "Privremene lozinke",
+      "credentialsOnce": "Lozinke se prikazuju samo sada. Kopirajte ih i podijelite bezbedno — poslije se ne mogu vidjeti.",
+      "credentialsEmailed": "Lozinke su poslane na email adrese članova.",
+      "credentialsEmailSent": "Lozinka je poslana na email.",
+      "copyPassword": "Kopiraj",
+      "credentialsClose": "Zatvori",
+      "skipHint": "Ako tim dodajete kasnije, koristite „Podesi kasnije“ — SuperAdmin ostaje član grupe.",
+      "errorInvalid": "Provjerite ime i email svakog člana i izaberite ulogu Agent ili Administrator.",
+      "errorEmailTaken": "Nalog s tom email adresom već postoji.",
+      "errorStructure": "Prvo kreirajte strukturu i grupu koja prima tikete.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Članove tima trenutno nije moguće kreirati."
     },
     "addons": {
       "heading": "Dodaci",
@@ -4082,6 +4180,7 @@
       "submit": "Dalje",
       "saving": "Spremanje…",
       "emailDisabledHint": "Email ostaje ugašen dok SMTP nije uključen.",
+      "notSavedHint": "Dodaci još nisu potvrđeni. Ako ovaj korak preskočite, koriste se zadane vrijednosti iz kataloga.",
       "errorInvalid": "Konfiguracija dodataka nije ispravna.",
       "errorUnsupported": "Jedan ili više dodataka nije u katalogu.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
@@ -4151,14 +4250,18 @@
       "submit": "Završi",
       "saving": "Zaključavanje…",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "notReady": "Instalacija još nije spremna za prijem tiketa.",
       "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
     },
     "progress": "Korak {{current}} od {{total}}",
     "steps": {
+      "profile": "Paket",
       "superAdmin": "SuperAdmin",
+      "identity": "Identitet",
       "loginProvider": "Prijava",
       "smtp": "Email",
-      "seed": "Uloge i podaci",
+      "seed": "Struktura i servis",
+      "team": "Tim",
       "addons": "Dodaci",
       "complete": "Završetak"
     },
@@ -4168,10 +4271,146 @@
     "tokenSubmit": "Otključaj",
     "tokenInvalid": "Token nije ispravan.",
     "tokenNotConfigured": "INSTALL_TOKEN nije postavljen na serveru (najmanje 16 znakova). Postavite ga i ponovo pokrenite API.",
+    "tokenUnavailable": "Server trenutno ne odgovara, pa token nije moguće provjeriti. Ništa nije promijenjeno — provjerite vezu i pokušajte ponovo.",
+    "tokenChecking": "Provjera instalacijskog tokena",
+    "retry": "Pokušaj ponovo",
+    "stepLoadError": "Stanje ovog koraka nije moguće pročitati. Forma nije prikazana da ne prepiše konfiguraciju koja već postoji.",
+    "requestId": "ID zahtjeva: {{requestId}}",
+    "profile": {
+      "heading": "Paket instalacije",
+      "body": "Paket određuje koje korake i dodatke čarobnjak nudi. Kasnije ga možete proširiti; do prvog spremanja podataka možete ga i promijeniti.",
+      "minimum": {
+        "title": "Minimum",
+        "description": "Jezgro za rad: jedan SuperAdmin, organizacijska jedinica, servis i usmjeravanje. Bez tima, SMTP-a i dodatnih modula."
+      },
+      "standard": {
+        "title": "Standard",
+        "description": "Minimum plus tim, SMTP i email, pravila grupa i početni SLA. Preporučeno za većinu instalacija."
+      },
+      "full": {
+        "title": "Full",
+        "description": "Standard plus baza znanja, statusna stranica, dežurstva, najave i ITSM moduli (CMDB, problemi, promjene)."
+      },
+      "recommended": "Preporučeno",
+      "estimate": "Traje oko {{minutes}} min",
+      "select": "Izaberi",
+      "selected": "Izabrano",
+      "showAll": "Prikaži sve",
+      "showAllHint": "Sve stavke koje ovaj paket uključuje.",
+      "itemRequired": "Obavezno",
+      "itemOptional": "Opciono",
+      "customize": "Prilagodi paket",
+      "customizeHint": "Isključi korak koji sada ne želiš raditi — čarobnjak ga preskače, a dovršiš ga kasnije iz Postavki.",
+      "customizeFootNote": "Odgoditi se mogu samo koraci koje registry dozvoljava. Ostale stavke paketa podešavaš u toku instalacije ili kasnije u Postavkama.",
+      "lockedHint": "Bez ovog koraka instalacija ne može primati tikete.",
+      "current": "Trenutno sačuvano: {{profile}}",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "submit": "Nastavi s paketom",
+      "saving": "Spremanje…",
+      "errorLocked": "Paket se može samo proširiti nakon prvog spremanja podataka.",
+      "errorGeneric": "Paket trenutno nije moguće sačuvati.",
+      "item": {
+        "tokenGate": "Instalacijski token",
+        "superAdmin": "SuperAdmin nalog",
+        "organizationIdentity": "Identitet organizacije",
+        "branding": "Brending (logo, kontakti)",
+        "loginMode": "Način prijave",
+        "structure": "Organizacijska struktura",
+        "firstService": "Prvi servis s formom i usmjeravanjem",
+        "team": "Tim i uloge",
+        "smtp": "SMTP i testno slanje",
+        "emailNotifications": "Email notifikacije",
+        "catalogBlueprints": "Katalog servisa iz predloška",
+        "policyPackIt": "IT policy pack",
+        "addonsOverview": "Pregled dodataka",
+        "handlerLevels": "Grupe L1/L2",
+        "slaOverview": "SLA pregled (profili, kalendar, prioriteti)",
+        "securityRecommendations": "Sigurnosne preporuke",
+        "inboundEmail": "Dolazni email (mailbox postaje tiket)",
+        "directorySync": "Sinhronizacija direktorija (AD/LDAPS)",
+        "knowledgeBase": "Baza znanja",
+        "statusPage": "Statusna stranica",
+        "onCall": "Dežurstva",
+        "announcements": "Najave",
+        "itsmModules": "ITSM moduli (CMDB, problemi, promjene)",
+        "integrations": "Integracije (Teams, Edge)",
+        "privacyRetention": "Privatnost, retencija i audit webhook",
+        "provisioning": "Provjera spremnosti",
+        "readyScreen": "Završni ekran"
+      }
+    },
+    "step": {
+      "skip": "Podesi kasnije",
+      "skipped": "Odgođeno",
+      "undoSkip": "Vrati u tok",
+      "skipErrorLocked": "Instalacija je zaključana — dalje izmjene idu kroz Postavke.",
+      "skipErrorNotAllowed": "Ovaj korak se ne može odgoditi.",
+      "skipErrorUnknown": "Nepoznat korak.",
+      "skipErrorGeneric": "Korak trenutno nije moguće odgoditi."
+    },
+    "readiness": {
+      "title": "Spremnost za prijem tiketa",
+      "superAdmin": "SuperAdmin nalog postoji.",
+      "authMode": "Način prijave je sačuvan i ispravan.",
+      "organizationalUnit": "Postoji najmanje jedna organizacijska jedinica.",
+      "handlerGroup": "Fallback grupa ima najmanje jednog aktivnog člana.",
+      "service": "Postoji aktivan servis sa aktivnom formom.",
+      "routing": "Usmjeravanje se rješava tačno na grupu.",
+      "slaProfile": "Prvi servis ima aktivan SLA profil.",
+      "roles": "Sistemske uloge i njihove dozvole postoje.",
+      "profileSteps": "Svi koraci izabranog paketa su završeni ili odgođeni."
+    },
     "statusError": {
       "title": "Status instalacije nije moguće provjeriti",
       "body": "Server nije odgovorio na zahtjev za status instalacije. Ništa nije promijenjeno. Provjerite vezu i pokušajte ponovo.",
       "retry": "Pokušaj ponovo"
+    },
+    "whatYouGet": {
+      "profile": {
+        "1": "Tri gotova paketa bez tehničkih odluka",
+        "2": "Vidiš tačno šta koji paket uključuje",
+        "3": "Ono što ti sada ne treba možeš odgoditi"
+      },
+      "superAdmin": {
+        "1": "Nalog koji uvijek može ući, i kad druga prijava padne",
+        "2": "Ostaje lokalni i kod Entra AD prijave",
+        "3": "Lozinka se čuva kao hash, nikad u postavkama"
+      },
+      "identity": {
+        "1": "Tvoje ime i logo na prijavi i u aplikaciji",
+        "2": "Jezik i vremenska zona za izvještaje",
+        "3": "Email i link podrške za korisnike"
+      },
+      "loginProvider": {
+        "1": "Lokalna prijava ili tvoj Entra AD / LDAPS",
+        "2": "Break-glass pristup ostaje otvoren",
+        "3": "Mapiranje uloga kasnije u Postavkama"
+      },
+      "smtp": {
+        "1": "Odlazni email za tikete i obavještenja",
+        "2": "Lozinka se čuva kao tajna",
+        "3": "Bez SMTP-a email dodatak ostaje isključen"
+      },
+      "seed": {
+        "1": "Tiket odmah ide pravoj grupi",
+        "2": "Usmjeravanje je provjereno prije prvog tiketa",
+        "3": "Servis dobija SLA profil"
+      },
+      "team": {
+        "1": "Kolege dobijaju nalog i ulogu odmah",
+        "2": "Svi su članovi grupe koja prima tikete",
+        "3": "Bez SMTP-a lozinke podijeliš ručno"
+      },
+      "addons": {
+        "1": "Uključi samo ono što ti sada treba",
+        "2": "Jezgro (tiketi, usmjeravanje, audit) je uvijek uključeno",
+        "3": "Isključen dodatak ne briše podatke"
+      },
+      "complete": {
+        "1": "Spremnost se provjerava prije zaključavanja",
+        "2": "Odgođene korake dovršavaš iz Postavki",
+        "3": "Prijava ide na /login sa SuperAdmin nalogom"
+      }
     }
   },
   "routing": {

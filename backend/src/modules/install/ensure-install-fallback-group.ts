@@ -1,5 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { installSeedConstants } from './install-seed.constants';
+import { defaultInstallSeedNames, type InstallSeedNames } from './install-seed.names';
 
 export type InstallFallbackGroupRecord = {
   readonly id: string;
@@ -16,6 +16,7 @@ export type EnsuredInstallFallbackGroup = InstallFallbackGroupRecord & {
 export async function findInstallFallbackGroup(
   prisma: PrismaService,
   organizationalUnitId?: string,
+  names: InstallSeedNames = defaultInstallSeedNames,
 ): Promise<InstallFallbackGroupRecord | null> {
   const scope =
     organizationalUnitId === undefined
@@ -30,14 +31,14 @@ export async function findInstallFallbackGroup(
     return toFallbackGroup(fallback);
   }
   const keyed = await prisma.group.findFirst({
-    where: { key: installSeedConstants.fallbackGroupKey, ...scope },
+    where: { key: names.fallbackGroupKey, ...scope },
     orderBy: { createdAt: 'asc' },
   });
   if (keyed !== null) {
     return toFallbackGroup(keyed);
   }
   if (organizationalUnitId !== undefined) {
-    return findInstallFallbackGroup(prisma);
+    return findInstallFallbackGroup(prisma, undefined, names);
   }
   return null;
 }
@@ -47,11 +48,14 @@ export async function ensureInstallFallbackGroup(
   input: {
     readonly organizationalUnitId: string;
     readonly preferredGroupId: string | null;
+    readonly names?: InstallSeedNames;
   },
 ): Promise<EnsuredInstallFallbackGroup> {
+  const names = input.names ?? defaultInstallSeedNames;
   const existing = await findInstallFallbackGroup(
     prisma,
     input.organizationalUnitId,
+    names,
   );
   if (existing !== null) {
     if (existing.isFallback && existing.organizationalUnitId === input.organizationalUnitId) {
@@ -66,8 +70,8 @@ export async function ensureInstallFallbackGroup(
   }
   const created = await prisma.group.create({
     data: {
-      name: installSeedConstants.fallbackGroupName,
-      key: installSeedConstants.fallbackGroupKey,
+      name: names.fallbackGroupName,
+      key: names.fallbackGroupKey,
       organizationalUnitId: input.organizationalUnitId,
       isFallback: true,
     },

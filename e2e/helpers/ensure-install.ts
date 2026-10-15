@@ -11,6 +11,13 @@ export async function ensureInstall(api: ApiClient): Promise<void> {
   if (status.isCompleted) {
     return;
   }
+  // F3: the package step is the wizard's first question and it blocks, so the
+  // API-only path picks a package before anything else (the smallest one — the
+  // E2E suite turns on every add-on it needs explicitly).
+  await api.requestJson('/install/profile', {
+    method: 'POST',
+    body: JSON.stringify({ profile: 'minimum' }),
+  });
   await api.requestJson('/install/super-admin', {
     method: 'POST',
     body: JSON.stringify({

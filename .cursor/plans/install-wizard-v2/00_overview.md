@@ -137,11 +137,21 @@ flowchart LR
 | Full paket postaje predug | odustajanje | većina stavki „kasnije“, checklist na dashboardu |
 | Docs drift (04 i MATRIX) | pogrešne odluke | F0 ih usklađuje; svaka faza ažurira MATRIX i CHANGELOG matrice |
 
-## 9. Otvorena pitanja za vlasnika
+## 9. Odluke vlasnika (potvrđeno 2026-10-15)
 
-1. **Auto-prijava nakon `complete`:** da li super admin odmah dobija sesiju (bolji UX) ili ide na `/login` (strože)? Prijedlog: auto-prijava samo ako je lozinka unesena u istoj sesiji wizarda, uz kratkotrajan token.
-2. **Poziv agenata bez SMTP-a:** prikazati privremenu lozinku jednom na ekranu ili poziv odgoditi dok SMTP ne proradi? Postojeći tok (`backend/src/modules/users/create-user.ts`, `issue-temporary-password-for-user.ts`) već vraća `temporaryPassword` (ili `null`) i `temporaryPasswordDelivery`; wizard bi koristio isti ugovor.
-3. **Blueprinti po industriji:** samo „IT service desk“ u prvoj verziji, ili i HR / Facility / Finance (policy packovi `HR Restricted` i `Finance Restricted` već postoje)?
-4. **Full i ITSM moduli:** da li Full uključuje CMDB/problems/changes po defaultu ili ih samo nudi isključene (danas su `defaultEnabled: false`)?
-5. **Promjena paketa nakon izbora:** dozvoliti nadogradnju (Minimum na Standard) tokom wizarda? Prijedlog: da, prije provisioninga; nakon završetka kroz Settings.
-6. **Ponovno pokretanje:** ostaje li `INSTALL_ALLOW_RERUN` (iz `04-install-wizard.md`) ops-only, i treba li v2 nuditi „dodaj paket kasnije“ iz Settings?
+Ova sekcija zamjenjuje ranija „otvorena pitanja“; odgovori su obavezujući za F0–F6.
+
+1. **Auto-prijava nakon `complete`:** ne. Završetak vodi SuperAdmina na `/login` (bez automatske sesije). Jednostavnije je i sigurnije, a break-glass prijava ionako postoji.
+2. **Poziv tima bez SMTP-a:** pokazati privremenu lozinku **jednom** na ekranu, koristeći postojeći ugovor `temporaryPassword` / `temporaryPasswordDelivery` iz toka kreiranja korisnika (`create-user.ts`, `issue-temporary-password-for-user.ts`). Bez novog mehanizma za dostavu. (Korak Tim je F2 — u F0/F1 se samo dokumentuje.)
+3. **Blueprinti:** prva verzija IT + HR + Finance, uz postojeće policy packove `itStandard`, `hrRestricted`, `financeRestricted`. (Primjena blueprinta je F4; F1 priprema registry/profil da ih podrži.)
+4. **Full i ITSM moduli:** CMDB, problemi i promjene su u paketu Full **uključeni po defaultu** (`install-profile.catalog.ts` nosi `defaultEnabledAddons: ['cmdb','problems','changes']`). Stvarno uključivanje i prezentacija su F4/F5 — F1 samo pamti koje korake/dodatke paket nudi.
+5. **Promjena paketa tokom wizarda:** dozvoljena dok je operater na koraku paketa. Pri promjeni paketa briše/resetuje se stanje koraka koje novi paket **ne sadrži**, i to po eksplicitnom registry planu (`plan-install-profile-reset.ts` → `resettableSettingKeys`): u F1 su to flagovi dodataka i „Podesi kasnije“ oznake; kredencijali, identitet i seed podaci se nikad ne brišu. Koraci koje sadrže oba paketa zadržavaju stanje. Nakon prvog seeda dozvoljena je samo **nadogradnja** (`INSTALL_PROFILE_LOCKED_AFTER_SEED`).
+6. **`INSTALL_ALLOW_RERUN`:** ostaje ops-only; za redovne administratore nema promjene semantike. „Dodaj paket kasnije“ iz Settings je F5 tema, ne F1.
+7. **Sigurnosne preporuke** (preporuka agenta za F5, dokumentovane vrijednosti): MFA obavezan za administratore (`private.auth.mfa.requiredForAdmins = true`), MFA opcion za ostale (`private.auth.mfa.allowOptional = true`), HIBP uključen (`private.security.hibp.enabled = true`), idle sesija **1800 s** (30 min) ako je validator podržava, captcha **isključena u wizardu** dok se Turnstile ključevi ne unesu (ne forsirati captcha bez ključeva). UI preporuka je F5.
+8. **Inbound i LDAPS test:** postojanje dolazne pošte i LDAPS-a tvrdi sam operater; **nema automatskog testa** u wizardu i nema `/install/inbound` ni `/install/ldaps` test ruta u F1. Test na zahtjev (dugme „Testiraj sada“) je F5.
+
+### Stanje izvršenja
+
+- **F0:** završeno (F0.1–F0.8), vidi `CHECKLIST.md` i `CHANGELOG.md`.
+- **F1:** završeno (registry koraka, paket, odgađanje, readiness endpoint, kompatibilnost `status`-a).
+- **F2 je sljedeća faza.**

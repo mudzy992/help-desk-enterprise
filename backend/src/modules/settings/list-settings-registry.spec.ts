@@ -4,6 +4,7 @@ import { createSettingsRegistry } from './registry/create-settings-registry';
 import { settingKeys } from './setting-keys';
 import { redactedSecretPlaceholder } from './settings.redaction';
 
+import { installWizardSettings } from './definitions/install-wizard-settings';
 describe('listSettingsRegistry', () => {
   it('returns every registered key with scope and masked secrets', async () => {
     const registry = createSettingsRegistry(applicationSettings);
@@ -91,5 +92,18 @@ describe('listSettingsRegistry', () => {
       expect(keys.has(dependency.to)).toBe(true);
       expect(dependency.to).not.toBe(dependency.from);
     }
+  });
+
+  it('marks the keys the install wizard owns as read-only (IN18)', async () => {
+    const registry = createSettingsRegistry(applicationSettings);
+    const prisma = { appSetting: { findMany: jest.fn().mockResolvedValue([]) } } as never;
+    const entries = await listSettingsRegistry(prisma, registry);
+    const byKey = new Map(entries.map((entry) => [entry.key, entry]));
+
+    for (const definition of installWizardSettings) {
+      expect(byKey.get(definition.key)).toMatchObject({ readOnly: true });
+    }
+    // Every other key keeps the editor it had.
+    expect(byKey.get(settingKeys.publicMaintenanceEnabled)).toMatchObject({ readOnly: false });
   });
 });

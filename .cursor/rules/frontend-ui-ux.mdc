@@ -68,3 +68,5 @@ Provjera prije nego što tvrdiš da je UI gotov: `npx tsc -b`, `npx vitest run`,
 
 Prije novog UI elementa: `components/ui` → shared → tokeni → tek onda nova komponenta.
 Prije većeg ekrana: pročitaj odgovarajući paragraf u `.cursor/docs/theme.md` (ne nagađaj layout).
+
+- Install wizard (`/install`) ima ograničen izuzetak od ovih pravila (brend pano, motion s funkcijom do ~250 ms, ikone funkcija, završni ekran; floating blobs/bounce/glassmorphism i dekorativna animacija ostaju zabranjeni, `prefers-reduced-motion` je obavezan) — vidi „Izuzetak: install wizard“, sekcija 39 u `docs/design/Master UI-UX Design Constitution.md`.

@@ -1,9 +1,10 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InstallStepLoadError } from "@/components/install/install-step-load-error";
+import { InstallSuperAdminSummary } from "@/components/install/install-super-admin-summary";
 import { Button } from "@/components/ui/button";
 import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/services/api";
 import {
   createInstallSuperAdmin,
   loadInstallPasswordPolicy,
@@ -15,6 +16,11 @@ import {
   readPasswordFeedbackKeys,
   type PasswordFeedbackKey,
 } from "@/components/auth/password-feedback";
+import { useInstallStepResource } from "@/lib/install/use-install-step-resource";
+import {
+  mapInstallSuperAdminCreateError,
+  type InstallSuperAdminCreateErrorKey,
+} from "@/lib/map-install-super-admin-create-error";
 
 /** Paket 5.1 (M1 #1): shown only until the server policy arrives. */
 const fallbackPasswordPolicy: InstallPasswordPolicy = {
@@ -23,11 +29,7 @@ const fallbackPasswordPolicy: InstallPasswordPolicy = {
   blocklistEnabled: true,
 };
 
-type InstallSuperAdminErrorKey =
-  | "install.passwordMismatch"
-  | "install.errorInvalid"
-  | "install.errorDuplicate"
-  | "install.errorGeneric";
+type InstallSuperAdminErrorKey = InstallSuperAdminCreateErrorKey | "install.passwordMismatch";
 
 export function InstallSuperAdminStep({
   onCreated,
@@ -35,42 +37,37 @@ export function InstallSuperAdminStep({
   readonly onCreated?: (record: InstallSuperAdminRecord) => void;
 }) {
   const { t } = useTranslation();
-  const [superAdmin, setSuperAdmin] = useState<InstallSuperAdminRecord | null>(null);
+  const [created, setCreated] = useState<InstallSuperAdminRecord | null>(null);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorKey, setErrorKey] = useState<InstallSuperAdminErrorKey | null>(null);
   const [policyKeys, setPolicyKeys] = useState<PasswordFeedbackKey[] | null>(null);
-  const [passwordPolicy, setPasswordPolicy] =
-    useState<InstallPasswordPolicy>(fallbackPasswordPolicy);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-    void Promise.all([
+  // F0.2/IN3: the form only exists once the step state was read; a failed read
+  // shows the shared load error instead of an empty form.
+  const resource = useInstallStepResource(async () => {
+    const [status, policy] = await Promise.all([
       loadInstallSuperAdmin(),
       // Paket 5.1 (M1 #1): a failure here is not fatal — the shipped fallback
       // still lets the operator create the account, and the server decides.
       loadInstallPasswordPolicy().catch(() => fallbackPasswordPolicy),
-    ])
-      .then(([status, policy]) => {
-        if (!isCancelled) {
-          setSuperAdmin(status.superAdmin);
-          setPasswordPolicy(policy);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+    ]);
+    return { superAdmin: status.superAdmin, passwordPolicy: policy };
+  });
+
+  const superAdmin: InstallSuperAdminRecord | null =
+    created ?? (resource.status === "ready" ? resource.data.superAdmin : null);
+  // IN11: the length rule and the unmet policy rules describe both password
+  // boxes, so they are linked to them instead of floating below the form.
+  const passwordHintId = useId();
+  const policyHintId = useId();
+  // The policy list only exists after a failed attempt, so it is only named then.
+  const passwordDescriptionIds = `${passwordHintId} ${policyHintId}`;
+  const passwordPolicy: InstallPasswordPolicy =
+    resource.status === "ready" ? resource.data.passwordPolicy : fallbackPasswordPolicy;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,13 +79,13 @@ export function InstallSuperAdminStep({
     setErrorKey(null);
     setPolicyKeys(null);
     try {
-      const created = await createInstallSuperAdmin({
+      const record = await createInstallSuperAdmin({
         email,
         displayName,
         password,
       });
-      setSuperAdmin(created);
-      onCreated?.(created);
+      setCreated(record);
+      onCreated?.(record);
       setPassword("");
       setConfirmPassword("");
     } catch (error) {
@@ -99,37 +96,23 @@ export function InstallSuperAdminStep({
         setPolicyKeys(keys);
         setErrorKey(null);
       } else {
-        setErrorKey(mapCreateError(error));
+        setErrorKey(mapInstallSuperAdminCreateError(error));
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (resource.status === "loading") {
     return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
+  if (resource.status === "error") {
+    return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
+  }
+
   if (superAdmin !== null) {
-    return (
-      <section className="grid gap-4">
-        <h3 className="text-body font-medium text-foreground">{t("install.createdHeading")}</h3>
-        <p className="text-body leading-6 text-muted-foreground">{t("install.createdBody")}</p>
-        <dl className="grid gap-2 text-body">
-          <div>
-            <dt className="text-muted-foreground">{t("install.email")}</dt>
-            <dd className="text-foreground">{superAdmin.email}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("install.displayName")}</dt>
-            <dd className="text-foreground">{superAdmin.displayName}</dd>
-          </div>
-        </dl>
-        {superAdmin.isLocalOnly ? (
-          <p className="text-body text-muted-foreground">{t("install.localOnly")}</p>
-        ) : null}
-      </section>
-    );
+    return <InstallSuperAdminSummary superAdmin={superAdmin} />;
   }
 
   return (
@@ -164,6 +147,7 @@ export function InstallSuperAdminStep({
           autoComplete="new-password"
           minLength={passwordPolicy.minLength}
           maxLength={passwordPolicy.maxLength}
+          aria-describedby={passwordDescriptionIds}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -177,24 +161,33 @@ export function InstallSuperAdminStep({
           autoComplete="new-password"
           minLength={passwordPolicy.minLength}
           maxLength={passwordPolicy.maxLength}
+          aria-describedby={passwordDescriptionIds}
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           required
         />
       </label>
-      <p className="text-[12px] leading-5 text-muted-foreground">
+      <p id={passwordHintId} className="text-[12px] leading-5 text-muted-foreground">
         {passwordPolicy.blocklistEnabled
           ? t("install.passwordHintBlocklist", { min: passwordPolicy.minLength })
           : t("install.passwordHint", { min: passwordPolicy.minLength })}
       </p>
       {policyKeys ? (
-        <ul className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
+        <ul
+          id={policyHintId}
+          className={`${errorTextClassName} list-disc space-y-0.5 pl-4`}
+          role="alert"
+        >
           {policyKeys.map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
         </ul>
       ) : null}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t("install.saving") : t("install.submit")}
@@ -202,21 +195,4 @@ export function InstallSuperAdminStep({
       </div>
     </form>
   );
-}
-
-function mapCreateError(error: unknown): InstallSuperAdminErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "install.errorGeneric";
-  }
-  if (
-    error.status === 400 ||
-    error.code === "INVALID_SUPER_ADMIN_CREDENTIALS" ||
-    error.code === "PASSWORD_POLICY_VIOLATIONS"
-  ) {
-    return "install.errorInvalid";
-  }
-  if (error.code === "SUPER_ADMIN_ALREADY_EXISTS" || error.code === "SUPER_ADMIN_EMAIL_TAKEN") {
-    return "install.errorDuplicate";
-  }
-  return "install.errorGeneric";
 }

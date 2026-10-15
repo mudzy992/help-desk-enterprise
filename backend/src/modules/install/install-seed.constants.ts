@@ -30,4 +30,6 @@ export const installSeedFormSchema = {
 export const installSeedErrorCodes = {
   superAdminRequired: 'SUPER_ADMIN_REQUIRED',
   routingUnresolved: 'SEED_ROUTING_UNRESOLVED',
+  /** F2: a name that cannot be turned into a stable key (or a broken DN). */
+  invalidStructure: 'INSTALL_SEED_STRUCTURE_INVALID',
 } as const;

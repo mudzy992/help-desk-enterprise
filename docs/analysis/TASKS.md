@@ -117,6 +117,17 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 
 
+## Install Wizard v2 (iz `.cursor/plans/install-wizard-v2`)
+
+F0–F3 su završeni (detalji i dokazi u `.cursor/plans/install-wizard-v2/HANDOFF.md`). Otvoreno iz nalaza u `audit/frontend/11-install.md`:
+
+- [x] IN19 (zatvoren): promjena paketa poništava odgodu koraka koje novi paket **traži** (plan prima `previousProfile` → `reopenedStepKeys`); `POST /install/profile` vraća `reopenedSteps`, a ljuska iznad tog koraka pokaže `install.shell.reopened`. Odgoda ostaje moguća — ali kao nova, svjesna odluka.
+- [x] IN18 (zatvoren): install ključevi nose `readOnly` metadata, registry lista ih označi „Čarobnjak“, a detalj prikazuje objašnjenje bez editora.
+- [x] IN11 (zatvoren): `aria-describedby` na polja s napomenom (lozinka foundera, SMTP, Entra, LDAPS, time zone, logo); povratak na prethodni korak završen u F3.
+- [ ] IN14 (srednja): E2E prolaz kroz UI čarobnjaka + Lighthouse a11y za `/install` ≥ 95 (F6) — jedini otvoreni nalaz instalacije.
+
+---
+
 ## Faza 9 — Edge + quality (i dalje prva isporuka)
 
 - [x] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup

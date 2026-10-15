@@ -5,18 +5,19 @@ import { findInstallFallbackGroup } from './ensure-install-fallback-group';
 import { findInstallOrganizationalUnit } from './ensure-install-organizational-unit';
 import { findInstallRoutingRule } from './find-install-routing-rule';
 import { toSeedService } from './find-install-seed-service-candidate';
-import { installSeedConstants } from './install-seed.constants';
+import { defaultInstallSeedNames } from './install-seed.names';
 import type { InstallSeedPublicRecord } from './install-seed.types';
 import { toInstallSeedPublicRecord } from './to-install-seed-public-record';
 
 export async function readInstallSeedStatus(
   prisma: PrismaService,
 ): Promise<InstallSeedPublicRecord> {
-  const organizationalUnit = await findInstallOrganizationalUnit(prisma);
-  const fallbackGroup = await findInstallFallbackGroup(prisma);
+  const names = defaultInstallSeedNames;
+  const organizationalUnit = await findInstallOrganizationalUnit(prisma, names);
+  const fallbackGroup = await findInstallFallbackGroup(prisma, undefined, names);
   const serviceRecord =
     (await prisma.service.findUnique({
-      where: { slug: installSeedConstants.serviceSlug },
+      where: { slug: names.serviceSlug },
     })) ??
     (await prisma.service.findMany({ where: { lifecycle: 'ACTIVE' } }))[0] ??
     null;
@@ -29,6 +30,7 @@ export async function readInstallSeedStatus(
             prisma,
             serviceRecord.id,
           ),
+          slaProfileKey: await findSlaProfileKey(prisma, serviceRecord.slaProfileId),
         };
   const routingRule =
     organizationalUnit === null || service === null
@@ -46,12 +48,43 @@ export async function readInstallSeedStatus(
           defaultRoutingConfiguration,
         ).catch(() => null);
   return toInstallSeedPublicRecord({
+    categoryName:
+      serviceRecord === null
+        ? null
+        : await findCategoryName(prisma, serviceRecord.categoryId),
     organizationalUnit,
     fallbackGroup,
     service,
     routingRule,
     resolution,
   });
+}
+
+/** F2: the structure step shows (and re-sends) the stored category name. */
+async function findCategoryName(
+  prisma: PrismaService,
+  categoryId: string,
+): Promise<string | null> {
+  const category = await prisma.serviceCategory.findUnique({
+    where: { id: categoryId },
+    select: { name: true },
+  });
+  return category?.name ?? null;
+}
+
+/** F2: the wizard shows which SLA profile the seeded service runs under. */
+async function findSlaProfileKey(
+  prisma: PrismaService,
+  slaProfileId: string | null,
+): Promise<string | null> {
+  if (slaProfileId === null) {
+    return null;
+  }
+  const profile = await prisma.slaProfile.findUnique({
+    where: { id: slaProfileId },
+    select: { key: true },
+  });
+  return profile?.key ?? null;
 }
 
 async function findActiveFormVersionRef(

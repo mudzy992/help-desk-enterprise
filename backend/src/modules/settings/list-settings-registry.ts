@@ -42,6 +42,7 @@ function toRegistryEntry(
     helpKey: resolveSettingHelpKey(definition),
     group: definition.group ?? null,
     requires: definition.requires ? [...definition.requires] : [],
+    readOnly: definition.readOnly === true,
     ...(definition.inactiveValue === undefined
       ? {}
       : { inactiveValue: definition.inactiveValue }),

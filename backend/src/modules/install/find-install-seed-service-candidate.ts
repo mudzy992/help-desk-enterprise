@@ -1,16 +1,17 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { isServiceOfferedToRequesters } from '../service-catalog/assert-service-lifecycle-transition';
-import { installSeedConstants } from './install-seed.constants';
 import { findInstallRoutingRule } from './find-install-routing-rule';
+import { defaultInstallSeedNames, type InstallSeedNames } from './install-seed.names';
 import type { InstallSeedService } from './install-seed.types';
 
 export async function findInstallSeedServiceCandidate(
   prisma: PrismaService,
   originUnitId: string,
   seedHandlerGroupId: string | null,
+  names: InstallSeedNames = defaultInstallSeedNames,
 ): Promise<InstallSeedService | null> {
   const bySlug = await prisma.service.findUnique({
-    where: { slug: installSeedConstants.serviceSlug },
+    where: { slug: names.serviceSlug },
   });
   if (
     bySlug !== null &&
@@ -59,12 +60,14 @@ export function toSeedService(service: {
   readonly name: string;
   readonly slug: string;
   readonly lifecycle: InstallSeedService['lifecycle'];
+  readonly slaProfileId?: string | null;
 }): InstallSeedService {
   return {
     id: service.id,
     name: service.name,
     slug: service.slug,
     lifecycle: service.lifecycle,
+    slaProfileId: service.slaProfileId ?? null,
   };
 }
 

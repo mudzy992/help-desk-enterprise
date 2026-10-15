@@ -3,6 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { settingKeys } from '../settings/setting-keys';
 import { SETTINGS_REGISTRY } from '../settings/settings.registry-token';
 import type { SettingsRegistry } from '../settings/settings.types';
+import { SettingsService } from '../settings/settings.service';
 import {
   installCompleteConstants,
   installCompleteErrorCodes,
@@ -13,6 +14,10 @@ import { findInstallSuperAdmin } from './find-install-super-admin';
 import { isInstallSetupComplete } from './is-install-setup-complete';
 import { mapInstallCompleteError } from './map-install-complete-error';
 import { persistInstallCompletion } from './persist-install-completion';
+import { completedStatus } from './install-setup.service';
+import { InstallReadinessService } from './install-readiness.service';
+import { readInstallProfile } from './read-install-step-states';
+import { readMissingReadinessKeys } from './evaluate-install-readiness';
 import type { InstallSetupStatus } from './install-setup.types';
 
 @Injectable()
@@ -20,6 +25,8 @@ export class InstallCompleteService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(SETTINGS_REGISTRY) private readonly registry: SettingsRegistry,
+    private readonly settingsService: SettingsService,
+    private readonly readinessService: InstallReadinessService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -59,6 +66,9 @@ export class InstallCompleteService implements OnModuleInit {
           installCompleteErrorCodes.superAdminRequired,
         );
       }
+      if (!alreadyComplete) {
+        await this.assertReadyForTickets();
+      }
       await persistInstallCompletion(
         this.prisma as unknown as InstallCompletionPrisma,
         this.registry,
@@ -68,18 +78,25 @@ export class InstallCompleteService implements OnModuleInit {
           reason: installCompleteConstants.changeLogReason,
         },
       );
-      return {
-        isCompleted: true,
-        nextStep: 'complete',
-        steps: {
-          superAdmin: { completed: true },
-          loginProvider: { completed: true },
-          smtp: { completed: true },
-          seed: { completed: true },
-          addons: { completed: true },
-        },
-      };
+      return completedStatus(await readInstallProfile(this.settingsService));
     });
+  }
+
+  /**
+   * Install wizard v2 (F0.7): the installation may only be finished when the
+   * system can actually receive tickets — the same checks the wizard shows in
+   * `GET /install/readiness` (F1 adds `profileSteps`).
+   */
+  private async assertReadyForTickets(): Promise<void> {
+    const readiness = await this.readinessService.check();
+    if (readiness.isReady) {
+      return;
+    }
+    throw new InstallCompleteError(
+      installCompleteErrorCodes.notReady,
+      installCompleteErrorCodes.notReady,
+      readMissingReadinessKeys(readiness.checks),
+    );
   }
 
   private async readStoredCompletedAt(): Promise<unknown> {

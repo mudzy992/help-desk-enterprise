@@ -1,3 +1,5 @@
+import type { InstallSmtpRecord } from "@/services/install-smtp-api";
+
 export type InstallSmtpFormValues = {
   readonly enabled: boolean;
   readonly host: string;
@@ -21,6 +23,24 @@ export type InstallSmtpInput = {
 
 const fromAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const hostPattern = /^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,253}[A-Za-z0-9])?$/;
+
+/**
+ * F0.2/IN3: the form starts from the server's answer, never from defaults — the
+ * step used to render `enabled: false` when the load failed and would then save
+ * that over a working SMTP configuration.
+ */
+export function toInstallSmtpFormValues(record: InstallSmtpRecord): InstallSmtpFormValues {
+  return {
+    enabled: record.enabled,
+    host: record.host,
+    port: String(record.port),
+    tls: record.tls,
+    username: record.username,
+    password: "",
+    fromAddress: record.fromAddress,
+    passwordAlreadyConfigured: record.passwordConfigured,
+  };
+}
 
 export function isInstallSmtpFormReady(values: InstallSmtpFormValues): boolean {
   if (!values.enabled) {

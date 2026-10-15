@@ -32,6 +32,11 @@ export function SettingsRegistryRow({ entry, onOpen }: SettingsRegistryRowProper
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[12.5px] text-foreground/90">{title}</span>
+          {entry.readOnly === true ? (
+            <Badge tone="info" dot={false} data-testid={`setting-row-readonly-${entry.key}`}>
+              {t("settings.registry.readOnly")}
+            </Badge>
+          ) : null}
           {entry.requires.length > 0 ? (
             <Lock
               size={11}
