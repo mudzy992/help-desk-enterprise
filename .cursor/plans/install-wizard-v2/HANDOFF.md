@@ -4,7 +4,12 @@
 
 - **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj) i F3 (nova ljuska) su završeni.** `CHECKLIST.md` ih vodi kao `[x]`.
 - Testovi: backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **37 suite / 183 testa**; puni backend prolaz → `544 passed / 74 failed / 4 skipped` od 622 suita, **2855** testova prolazi, `0` padajućih (istih 74 compile-only suita kao na pristine HEAD-u); frontend `cd frontend && npx vitest run` → **233 fajla / 993 testa** (mrtvi `resolve-install-wizard-step.spec.ts` je obrisan u F3, pa je broj pao za njegovih 5); `npx tsc -b`, `npx eslint`, `npx prettier --check` i `npx vite build` čisti.
-- **Nijedan commit nije napravljen** (pravilo sesije: commit samo na eksplicitan zahtjev). Predložene poruke na kraju fajla.
+- **Commitovano i pushovano** na `arena/72aa620f-help-desk-enterprise` (4 commita, jedan po fazi; poruke na kraju fajla):
+  - `1e8ac2d` fix(install): fail-closed wizard gate, single status source and readiness guard (F0)
+  - `c4ddba1` feat(install): step registry, installation packages, step deferral and readiness (F1)
+  - `dafeb3d` feat(install): identity step, parametrized structure seed and team step (F2)
+  - `40898db` feat(install-ui): split-screen wizard shell, package picker and review findings (F3 + IN11/IN18/IN19 + dijeljeni sloj)
+  - Faze su rađene u jednom radnom stablu, pa commit po fazi nije po hunkovima: dijeljeni fajlovi (tipovi, i18n, docs, e2e helper) su u F3 commitu — stablo na `40898db` je provjereno stanje, međukomitovi nisu zasebno buildani.
 - **Sljedeća faza je F4** (`05_phase-f4-standard-sadrzaj.md`): SMTP s test-slanjem (`POST /install/smtp/test`), install blueprints (`GET/POST /install/blueprints*`), policy pack `itStandard`, SLA pregled, dodaci kao vrijednost — sve na F3 ljusci i `install-feature-card.tsx`. Prije F4 vrijedi zatvoriti **IN19** (skip flag preživi promjenu paketa).
 
 ## Odluke vlasnika (obavezujuće, `00_overview.md` §9)
