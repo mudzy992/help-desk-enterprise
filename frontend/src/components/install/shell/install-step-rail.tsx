@@ -101,14 +101,17 @@ export function InstallStepRail({
 function railTileSurfaceClassName(state: InstallRailState): string {
   if (state === "current") return "border-primary bg-primary text-primary-foreground";
   if (state === "done") return "border-success/40 bg-success/15 text-ok";
-  if (state === "locked") return "border-dashed border-border text-muted-foreground/60";
+  // Contrast gate (`scripts/check-theme-contrast.mjs`, check C): a muted token with
+  // alpha drops below 4.5:1 on the rail surface. "Locked" is told apart by the
+  // dashed tile and the muted label, not by a lighter grey.
+  if (state === "locked") return "border-dashed border-border text-muted-foreground";
   return "border-border text-muted-foreground";
 }
 
 function railLabelSurfaceClassName(state: InstallRailState): string {
   if (state === "current") return "text-foreground";
   if (state === "done" || state === "deferred") return "text-foreground/85";
-  return "text-muted-foreground/80";
+  return "text-muted-foreground";
 }
 
 function railTileBrandClassName(state: InstallRailState): string {

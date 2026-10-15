@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import type { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { GroupsError } from '../groups/groups.error';
 import { addGroupMember } from '../groups/add-group-member';
 import { MAIL_TRANSPORT, type MailTransport } from '../notifications/email/mail-transport';
@@ -10,7 +10,7 @@ import type {
   CreateUserInput,
   TemporaryPasswordDelivery,
 } from '../users/users.types';
-import type { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
+import { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { findInstallFallbackGroup } from './ensure-install-fallback-group';
 import { findInstallSuperAdmin } from './find-install-super-admin';
 import { installTeamErrorCodes } from './install-team.constants';
