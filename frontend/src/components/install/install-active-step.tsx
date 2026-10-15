@@ -5,11 +5,14 @@ import { InstallIdentityStep } from "@/components/install/install-identity-step"
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
 import { InstallPolicyPackStep } from "@/components/install/install-policy-pack-step";
 import { InstallProfileStep } from "@/components/install/install-profile-step";
+import { InstallSectionStep } from "@/components/install/install-section-step";
+import { InstallSecurityRecommendations } from "@/components/install/install-security-recommendations";
 import { InstallSlaReviewStep } from "@/components/install/install-sla-review-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
 import { InstallStructureStep } from "@/components/install/install-structure-step";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { InstallTeamStep } from "@/components/install/install-team-step";
+import { readInstallSectionKeyFromStep } from "@/services/install-sections-api";
 import type { InstallStepKey, InstallStepState, InstallWizardStep } from "@/services/install-api";
 import type { InstallProfileStatus } from "@/services/install-profile-api";
 
@@ -64,11 +67,25 @@ export function InstallActiveStep({
       return <InstallPolicyPackStep onSaved={onSaved} />;
     case "slaReview":
       return <InstallSlaReviewStep onSaved={onSaved} />;
+    case "securityRecommendations":
+      return <InstallSecurityRecommendations onSaved={() => onSaved()} />;
     case "addons":
       return <InstallAddonsStep onSaved={onSaved} isSaved={isAddonsSaved} />;
     case "complete":
       return <InstallCompleteStep />;
-    default:
-      return null;
+    default: {
+      // F5: every `section.<key>` step is the same screen with a different
+      // allowlist behind it — the registry decides what the step holds, so the
+      // wizard needs no eleven cases and no eleventh component.
+      const sectionKey = readInstallSectionKeyFromStep(step);
+      if (sectionKey === null) {
+        // A `section.*` key the registry does not know: the client is older than
+        // the server. The shell only renders the step the status endpoint reports,
+        // and it keeps „Nazad“ working, so a blank screen here beats inventing an
+        // error the operator cannot act on.
+        return null;
+      }
+      return <InstallSectionStep sectionKey={sectionKey} onSaved={() => onSaved()} />;
+    }
   }
 }

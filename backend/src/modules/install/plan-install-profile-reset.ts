@@ -51,9 +51,17 @@ export function planInstallProfileReset(input: {
   const reopenedStepKeys: InstallStepKey[] = [];
   for (const definition of definitions) {
     if (!isStepIncludedInProfile(definition, input.nextProfile)) {
-      droppedStepKeys.push(definition.key);
-      clearSkippedKeys.push(resolveInstallStepSkippedKey(definition.key));
-      resetSettingKeys.push(...definition.resettableSettingKeys);
+      // F5: only a step the **previous** package contained can be lost. Until
+      // every package had the same content the two questions were the same one;
+      // now that Full carries eleven steps Standard does not have, an upgrade
+      // would otherwise „drop“ steps that were never in the flow — and clear
+      // markers that do not exist. The state a package change may reset is the
+      // state of a step the operator actually had.
+      if (isStepIncludedInProfile(definition, previousProfile)) {
+        droppedStepKeys.push(definition.key);
+        clearSkippedKeys.push(resolveInstallStepSkippedKey(definition.key));
+        resetSettingKeys.push(...definition.resettableSettingKeys);
+      }
       continue;
     }
     if (

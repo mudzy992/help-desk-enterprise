@@ -9,10 +9,7 @@ import { SETTINGS_REGISTRY } from '../settings/settings.registry-token';
 import { SettingsService } from '../settings/settings.service';
 import type { SettingsRegistry } from '../settings/settings.types';
 import { installBlueprintConstants } from './blueprints/install-blueprint.constants';
-import {
-  getInstallBlueprint,
-  listInstallBlueprints,
-} from './blueprints/install-blueprint.registry';
+import { getInstallBlueprint } from './blueprints/install-blueprint.registry';
 import { findInstallSuperAdmin } from './find-install-super-admin';
 import {
   installPolicyPackErrorCodes,

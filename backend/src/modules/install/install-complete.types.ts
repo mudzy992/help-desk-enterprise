@@ -33,7 +33,22 @@ export type InstallSettingsWriteTransaction = {
   };
 };
 
+/**
+ * The minimum a caller needs to write install settings in one transaction.
+ *
+ * The `__narrowPrismaShape` marker is on purpose: this type exists so tests can
+ * pass an in-memory double, and a real client (or the sandbox's Prisma stub) is
+ * **not** assignable to it — its overloaded `$transaction` does not match the
+ * single callback signature. Without the marker the sandbox accepted
+ * `persistInstallMarker(this.prisma, …)` while `nest build` in CI rejected it
+ * (after F4), so the marker turns that CI-only failure into a local one: every
+ * caller has to say out loud what it is doing (`as unknown as
+ * InstallCompletionPrisma`, as `install-complete.service.ts` does) or take
+ * `PrismaService` instead.
+ */
 export type InstallCompletionPrisma = {
+  /** Never set at runtime; see the note above. */
+  readonly __narrowPrismaShape: 'install-settings-write';
   readonly $transaction: <T>(
     callback: (transaction: InstallSettingsWriteTransaction) => Promise<T>,
   ) => Promise<T>;

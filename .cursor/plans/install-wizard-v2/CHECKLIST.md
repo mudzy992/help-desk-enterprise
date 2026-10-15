@@ -47,10 +47,12 @@ Legenda: `[ ]` čeka · `[~]` u toku · `[x]` gotovo. Svaka stavka se zatvara te
 - [x] Dodaci sa prezentacijom — `lib/install/install-addon-presentation.ts` (14 ikona/naslova/rečenica + 5 kategorija), `install-addons-step.tsx` prešao na `install-feature-card.tsx`, `resolve-install-addon-defaults.ts` (Full uključuje CMDB/probleme/promjene — odluka 4) i `GET /install/addons` vraća te defaulte; `install-feature-card.tsx` dobio `isDisabled`; spec 4 + 3 testa
 
 ## F5 — Full sadržaj (`06_phase-f5-full-sadrzaj.md`)
-- [ ] Registry sekcija + allowlist servis + rute
-- [ ] Generički korak sekcije (frontend)
-- [ ] Sigurnosne preporuke
-- [ ] Sve sekcije iz tabele povezane
+- [x] Registry sekcija + allowlist servis + rute — `sections/install-settings-section.{registry,keys,service,types,error,constants}.ts`, `install-sections.controller.ts`, `dto/save-install-settings-section.dto.ts`; `GET /install/sections`, `GET|POST /install/sections/:sectionKey`; jedan generički servis nad `SettingsService` (allowlist, `requires`, tajne `[REDACTED]`); spec 6 + 11 + 6 testova
+- [x] Generički korak sekcije (frontend) — `install-section-step.tsx`, `install-section-field.tsx`, `lib/install/install-section-presentation.ts`, `services/install-sections-api.ts`, grana u `install-active-step.tsx`; polje po metapodacima (boolean/number/string/select/secret); spec 6 + 5 testova
+- [x] Sigurnosne preporuke — `GET|POST /install/security-recommendations` (odluka 7: MFA za admine obavezan, MFA opcion, HIBP on, idle 1800 s; captcha se **ne** upisuje), panel `install-security-recommendations.tsx`; spec 4 testa
+- [x] Kriterij prihvatanja provjeren testom — `sections/install-full-package.acceptance.spec.ts`: Full pređen sa „Podesi kasnije“ → `isReady`, nijedna sekcija `required`/`blocking`, odgođene na post-install checklisti
+- [x] Sve sekcije iz tabele povezane — 11 sekcija kao koraci `section.*` (order 61–71, `offeredIn: ['full']`, `skippable`, `requiredIn: []`) + `securityRecommendations` (order 72, Standard i Full), markeri `private.install.steps.<step>.{saved,skipped}` (24 nova ključa), i18n bs + en (`install.section.*`, `install.security.recommendations.*`), registry guard 488 → 512
+- [x] Inbound/LDAPS test: **nije** rađen (odluka vlasnika 8) — domenske funkcije postoje, ali su iza sesijske prijave; zapisano kao **IN20** u `docs/analysis/TASKS.md`
 
 ## F6 — Završetak i testovi (`07_phase-f6-zavrsetak-testovi.md`)
 - [ ] Provisioning ekran

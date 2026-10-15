@@ -7,6 +7,13 @@ import { ApiError } from "@/services/api";
  * the raw code never reaches the screen.
  */
 export type InstallContentErrorKey =
+  // F5: the sections and the recommendations panel reuse this mapper, so the
+  // wizard answers with one wording per situation everywhere.
+  | "install.section.errorUnknown"
+  | "install.section.errorKeyNotAllowed"
+  | "install.section.errorDependency"
+  | "install.section.errorRequires"
+  | "install.section.errorValue"
   | "install.blueprint.errorStructure"
   | "install.blueprint.errorRouting"
   | "install.policyPack.errorDisabled"
@@ -44,6 +51,18 @@ export function mapInstallContentSaveError(error: unknown): InstallContentErrorK
     case "CALENDAR_HAS_NO_BUSINESS_HOURS":
     case "CALENDAR_IN_USE":
       return "install.slaReview.errorHours";
+    // F5: the sections and the security recommendations speak through the same
+    // mapper, so an operator sees one wording per situation across the wizard.
+    case "INSTALL_SETTINGS_SECTION_UNKNOWN":
+      return "install.section.errorUnknown";
+    case "INSTALL_SETTINGS_SECTION_KEY_NOT_ALLOWED":
+      return "install.section.errorKeyNotAllowed";
+    case "INSTALL_SETTINGS_SECTION_DEPENDENCY_UNMET":
+      return "install.section.errorDependency";
+    case "SETTING_DEPENDENCY_UNMET":
+      return "install.section.errorRequires";
+    case "INSTALL_SETTINGS_SECTION_INVALID_VALUES":
+      return "install.section.errorValue";
     case "SUPER_ADMIN_REQUIRED":
       return "install.content.errorSuperAdmin";
     default:

@@ -1,5 +1,12 @@
 import { addonSettingKey, installAddonCatalog } from '../../settings/addon-catalog';
-import { installStepSkippedKeys, settingKeys } from '../../settings/setting-keys';
+import {
+  installStepSavedKeys,
+  installStepSkippedKeys,
+  settingKeys,
+  type InstallSavedStepKey,
+} from '../../settings/setting-keys';
+import { resolveInstallSectionStepKey } from '../sections/install-settings-section.keys';
+import { installSettingsSections } from '../sections/install-settings-section.registry';
 import {
   isStepIncludedInProfile,
   type InstallProfile,
@@ -120,24 +127,49 @@ export const installStepDefinitions: readonly InstallStepDefinition[] = [
     // marker that the review was answered is dropped.
     resettableSettingKeys: [settingKeys.privateInstallSlaReview],
   },
+  // F5: the Full package's content. `install-settings-section.keys.ts` owns the
+  // list; one step per section keeps „Podesi kasnije“ a per-section answer instead
+  // of an all-or-nothing one, and the step key is derived (`section.<sectionKey>`)
+  // so the registry, the markers and the i18n keys cannot drift.
+  ...installSettingsSections.map((section, index): InstallStepDefinition => ({
+    key: resolveInstallSectionStepKey(section.sectionKey),
+    order: 61 + index,
+    // Offered, not required: an installation that switches e-mail ingestion on
+    // later is not incomplete, it simply did not answer the section.
+    requiredIn: [],
+    offeredIn: ['full'],
+    skippable: true,
+    // Answering a section only writes the section's own keys plus the marker;
+    // dropping the step from the package drops the marker, never the settings.
+    resettableSettingKeys: [
+      resolveInstallStepSavedKey(resolveInstallSectionStepKey(section.sectionKey)),
+    ],
+  })),
+  {
+    key: 'securityRecommendations',
+    order: 72,
+    // Owner decision 7: „Primijeni preporuke za produkciju“ is part of Standard
+    // and Full — the values themselves live in the recommendations service.
+    requiredIn: [],
+    offeredIn: ['standard', 'full'],
+    skippable: true,
+    resettableSettingKeys: [resolveInstallStepSavedKey('securityRecommendations')],
+  },
   {
     key: 'addons',
-    order: 60,
+    order: 80,
     requiredIn: allProfiles,
     offeredIn: allProfiles,
     skippable: true,
     // Flags only: falling back to the catalog defaults is harmless.
-    resettableSettingKeys: installAddonCatalog.map((item) =>
-      addonSettingKey(item.key),
-    ),
+    resettableSettingKeys: installAddonCatalog.map((item) => addonSettingKey(item.key)),
   },
 ];
 
-export const installStepDefinitionByKey: Readonly<
-  Record<InstallStepKey, InstallStepDefinition>
-> = Object.fromEntries(
-  installStepDefinitions.map((definition) => [definition.key, definition]),
-) as Record<InstallStepKey, InstallStepDefinition>;
+export const installStepDefinitionByKey: Readonly<Record<InstallStepKey, InstallStepDefinition>> =
+  Object.fromEntries(
+    installStepDefinitions.map((definition) => [definition.key, definition]),
+  ) as Record<InstallStepKey, InstallStepDefinition>;
 
 export function listInstallStepDefinitions(): readonly InstallStepDefinition[] {
   return [...installStepDefinitions].sort((left, right) => left.order - right.order);
@@ -147,9 +179,19 @@ export function resolveInstallStepSkippedKey(stepKey: InstallStepKey): string {
   return installStepSkippedKeys[stepKey];
 }
 
-export function stepIsIncludedInProfile(
-  stepKey: InstallStepKey,
-  profile: InstallProfile,
-): boolean {
+/**
+ * F5: the „answered“ marker of a step. Only the steps that have one accept this
+ * call — the type is the list of markers, so a step without a saved flag cannot
+ * ask for one by accident.
+ */
+export function resolveInstallStepSavedKey(stepKey: InstallSavedStepKey): string {
+  return installStepSavedKeys[stepKey];
+}
+
+export function isInstallSavedStepKey(value: string): value is InstallSavedStepKey {
+  return Object.prototype.hasOwnProperty.call(installStepSavedKeys, value);
+}
+
+export function stepIsIncludedInProfile(stepKey: InstallStepKey, profile: InstallProfile): boolean {
   return isStepIncludedInProfile(installStepDefinitionByKey[stepKey], profile);
 }

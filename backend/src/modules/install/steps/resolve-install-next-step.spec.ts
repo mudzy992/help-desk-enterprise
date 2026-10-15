@@ -1,3 +1,4 @@
+import { installSectionStepKeys } from '../sections/install-settings-section.keys';
 import { listInstallStepDefinitions } from './install-step.registry';
 import { resolveInstallNextStep } from './resolve-install-next-step';
 import { toInstallStepStates } from '../read-install-step-states';
@@ -158,7 +159,7 @@ describe('resolveInstallNextStep', () => {
     ).toBe('smtp');
   });
 
-  it('walks the F4 content steps of Standard and Full in order', () => {
+  it('walks the content steps of Standard and Full in order', () => {
     const upToTeam: readonly InstallStepKey[] = [
       'profile',
       'superAdmin',
@@ -177,9 +178,49 @@ describe('resolveInstallNextStep', () => {
     );
     expect(
       resolve('standard', [...upToTeam, 'blueprint', 'policyPack'], ['slaReview']),
+    ).toBe('securityRecommendations');
+    expect(
+      resolve(
+        'standard',
+        [...upToTeam, 'blueprint', 'policyPack'],
+        ['slaReview', 'securityRecommendations'],
+      ),
     ).toBe('addons');
-    // Minimum has none of the three (overview §4).
+    // Minimum has none of them (overview §4).
     expect(resolve('minimum', upToTeam)).toBe('addons');
+  });
+
+  it('offers every section of the Full package before the recommendations', () => {
+    const upToSlaReview: readonly InstallStepKey[] = [
+      'profile',
+      'superAdmin',
+      'identity',
+      'loginProvider',
+      'smtp',
+      'seed',
+      'team',
+      'blueprint',
+      'policyPack',
+      'slaReview',
+    ];
+    // F5: the sections are offered, never required — the first one stands in the
+    // way until it is answered or deferred, and the last one hands over to the
+    // recommendations panel.
+    expect(resolve('full', upToSlaReview)).toBe('section.inboundEmail');
+    expect(
+      resolve('full', [...upToSlaReview, ...installSectionStepKeys]),
+    ).toBe('securityRecommendations');
+    expect(
+      resolve('full', [
+        ...upToSlaReview,
+        ...installSectionStepKeys,
+        'securityRecommendations',
+      ]),
+    ).toBe('addons');
+    // Standard has neither the sections nor a reason to ask for them.
+    expect(resolve('standard', upToSlaReview, ['slaReview'])).toBe(
+      'securityRecommendations',
+    );
   });
 
   it('falls through to the final screen when everything required is answered', () => {

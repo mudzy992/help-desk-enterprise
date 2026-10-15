@@ -17,6 +17,9 @@ import { InstallSlaReviewService } from './install-sla-review.service';
 import { InstallSmtpTestController } from './install-smtp-test.controller';
 import { InstallSmtpTestService } from './install-smtp-test.service';
 import { InstallCompleteService } from './install-complete.service';
+import { InstallSectionsController } from './install-sections.controller';
+import { InstallSecurityRecommendationsService } from './sections/install-security-recommendations.service';
+import { InstallSettingsSectionService } from './sections/install-settings-section.service';
 import { InstallController } from './install.controller';
 import { InstallStepsController } from './install-steps.controller';
 import { InstallIdentityService } from './install-identity.service';
@@ -39,6 +42,7 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
     InstallStepsController,
     InstallBlueprintController,
     InstallContentController,
+    InstallSectionsController,
     InstallSmtpTestController,
   ],
   providers: [
@@ -69,6 +73,8 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
       inject: [PrismaService, SettingsService, InstallSetupService],
     },
     InstallBlueprintService,
+    InstallSettingsSectionService,
+    InstallSecurityRecommendationsService,
     InstallPolicyPackService,
     InstallSlaReviewService,
     InstallSmtpTestService,

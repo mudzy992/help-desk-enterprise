@@ -12,6 +12,7 @@ import { InstallAddonsService } from "./install-addons.service";
 import { InstallBlueprintController } from "./install-blueprint.controller";
 import { InstallBlueprintService } from "./blueprints/install-blueprint.service";
 import { InstallContentController } from "./install-content.controller";
+import { InstallSectionsController } from "./install-sections.controller";
 import { InstallController } from "./install.controller";
 import { InstallPolicyPackService } from "./install-policy-pack.service";
 import { InstallSlaReviewService } from "./install-sla-review.service";
@@ -31,6 +32,8 @@ import { InstallStepSkipService } from "./install-step-skip.service";
 import { InstallSuperAdminService } from "./install-super-admin.service";
 import { InstallTeamService } from "./install-team.service";
 import { InstallWizardLockGuard } from "./install-wizard-lock.guard";
+import { InstallSecurityRecommendationsService } from "./sections/install-security-recommendations.service";
+import { InstallSettingsSectionService } from "./sections/install-settings-section.service";
 
 /*
   Review finding (CI on PR #10): `InstallSetupService` was imported as
@@ -61,6 +64,8 @@ const providers: Readonly<Record<string, object>> = {
   InstallPolicyPackService,
   InstallSlaReviewService,
   InstallSmtpTestService,
+  InstallSettingsSectionService,
+  InstallSecurityRecommendationsService,
   InstallSetupGuard,
   InstallWizardLockGuard,
   AccountSecurityPolicyLoader,
@@ -81,6 +86,7 @@ const factoryBuiltProviders: readonly string[] = ["InstallAddonsService"];
 const controllers: Readonly<Record<string, object>> = {
   InstallBlueprintController,
   InstallContentController,
+  InstallSectionsController,
   InstallSmtpTestController,
   InstallController,
   InstallStepsController,
@@ -181,16 +187,10 @@ describe("install module dependency injection metadata", () => {
 
   it("resolves a declared Object parameter through @Inject or @Optional", () => {
     for (const [name, provider] of injectorBound()) {
-      const injected = injectedIndexes(provider);
-      const optional = optionalIndexes(provider);
+      const injected = [...injectedIndexes(provider), ...optionalIndexes(provider)];
       const offenders = declaredTypes(provider)
         .map((type, index) => ({ index, type }))
-        .filter(
-          ({ index, type }) =>
-            type === Object &&
-            !injected.includes(index) &&
-            !optional.includes(index),
-        )
+        .filter(({ index, type }) => type === Object && !injected.includes(index))
         .map(({ index }) => index);
       expect({ name, offenders }).toEqual({ name, offenders: [] });
     }

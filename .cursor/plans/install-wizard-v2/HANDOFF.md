@@ -2,16 +2,18 @@
 
 ## Stanje (2026-10-15)
 
-- **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj), F3 (nova ljuska) i F4 (Standard sadržaj) su završeni u kodu.** `CHECKLIST.md` vodi F0–F4 kao `[x]`; **F4 još nije commitovan** (radi se u jednom radnom stablu).
-- Testovi: backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **43 suite / 219 testova** (`modules/install modules/settings` → 71 / 341); puni backend prolaz → `550 passed / 74 failed / 4 skipped` od 628 suita, **2892** testa prolazi + 26 skipped, `0` padajućih testova, a skup padajućih suita je **identičan** pristine HEAD-u (`comm -3` prazan); frontend `cd frontend && npx vitest run` → **242 fajla / 1024 testa**, 0 padajućih (`--reporter=json`); `npx tsc -b`, `npx eslint` (0 grešaka; 14 postojećih upozorenja van install/settings), `npx prettier --check src`, `scripts/check-theme-contrast.mjs` i `npx vite build` čisti.
+- **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj), F3 (nova ljuska), F4 (Standard sadržaj) i F5 (Full sadržaj) su završeni u kodu.** `CHECKLIST.md` vodi F0–F5 kao `[x]`; **F5 još nije commitovan** (radi se u jednom radnom stablu).
+- Testovi (F5): backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **49 suita / 250 testova** (`modules/install modules/settings` → **77 / 372**); puni backend prolaz → `550 passed / 74 failed / 4 skipped` od 628 suita, **2892** testa prolazi + 26 skipped, `0` padajućih testova, a skup padajućih suita je **identičan** pristine HEAD-u (`comm -3` prazan); frontend `cd frontend && npx vitest run` → **245 fajlova / 1044 testa**, 0 padajućih; `npx tsc -b` (0 grešaka), `npx eslint` (0 grešaka u `modules/install` + `modules/settings`, 0 u izmijenjenim frontend putanjama), `npx prettier`, `scripts/check-theme-contrast.mjs` i `npx vite build` čisti.
 - **Commitovano i pushovano** na `arena/72aa620f-help-desk-enterprise` (4 commita, jedan po fazi; poruke na kraju fajla):
   - `1e8ac2d` fix(install): fail-closed wizard gate, single status source and readiness guard (F0)
   - `c4ddba1` feat(install): step registry, installation packages, step deferral and readiness (F1)
   - `dafeb3d` feat(install): identity step, parametrized structure seed and team step (F2)
   - `40898db` feat(install-ui): split-screen wizard shell, package picker and review findings (F3 + IN11/IN18/IN19 + dijeljeni sloj)
+  - `56e4958` feat(install): standard package content — SMTP test, blueprints, policy pack, SLA review (F4)
+  - `4b47815` fix(install): take PrismaService in persistInstallMarker (F4 CI hotfix — tri mjesta gdje je `nest build` padao na uskim Prisma tipovima)
   - Faze su rađene u jednom radnom stablu, pa commit po fazi nije po hunkovima: dijeljeni fajlovi (tipovi, i18n, docs, e2e helper) su u F3 commitu — stablo na `40898db` je provjereno stanje, međukomitovi nisu zasebno buildani.
-- **Sljedeća faza je F5** (`06_phase-f5-full-sadrzaj.md`): Inbound/LDAPS kao tvrdnja operatera, sigurnosne preporuke (MFA obavezno za admine, HIBP, idle sesija; captcha off), znanje/status/dežurstva/najave/ITSM/integracije/privatnost po odluci vlasnika 7–8. F4 je ostavio otvoreno samo ono što plan i traži od F5.
-- **F4 u radnom stablu** (51+ izmijenjena/novа putanja): vidi „Šta je urađeno (F4)“ niže i `CHANGELOG.md` za taj dan.
+- **Sljedeća faza je F6** (`07_phase-f6-zavrsetak-testovi.md`): provisioning ekran, završni ekran „Sistem je spreman“, post-instalacijska checklista (`setup-checklist` + dashboard kartica), E2E projekat `install-wizard` (51 Minimum, 52 Standard, 53 Full) i zatvaranje audita 11 (`IN14` — E2E prolaz kroz UI + Lighthouse a11y ≥ 95; mjeri se u korisničkom okruženju/CI-ju, ne u ovom sandboxu).
+- **F5 u radnom stablu** (~20 novih + 20 izmijenjenih putanja): vidi „Šta je urađeno (F5)“ niže i `CHANGELOG.md` za taj dan.
 
 ## Odluke vlasnika (obavezujuće, `00_overview.md` §9)
 
@@ -81,6 +83,18 @@
 - **Specovi F4** — backend: `apply-install-blueprint.spec.ts` (7: kreiranje, idempotencija, `EXACT` ruting za svaki servis, tier grupe, podskup, nepoznat servis, lokalizovana imena), `install-smtp-test.service.spec.ts` (6: primaoc, neispravna adresa, nekonfigurisan SMTP, mapiranje grešaka, rate limit), `install-policy-pack.service.spec.ts` (5: ponuda iz blueprinta, marker, `POLICY_PACK_NOT_OFFERED`, `PACK_DISABLED`), `install-sla-review.service.spec.ts` (6: status, `confirmed` bez izmjena, `adjusted` kroz domenske funkcije, prazna izmjena, super admin, kalendar koji ne postoji), `resolve-install-addon-defaults.spec.ts` (3). Frontend: `install-blueprint-step.spec.tsx` (4), `install-policy-pack-step.spec.tsx` (3), `install-sla-review-step.spec.tsx` (3), `install-smtp-test-panel.spec.tsx` (4), `install-addons-step.spec.tsx` (4), `lib/install/install-weekly-hours.spec.ts` (4).
 - **Popravke otkrivene u F4** — (1) tri nova koraka su isti `useEffect` vezivala na `resource` objekat koji mijenja identitet svakog rendera, pa je efekat poništavao upravo snimljeno stanje (uhvatio `install-policy-pack-step.spec.tsx`); sada se draft puni jednom (`isSeeded`). (2) `install-di-metadata.spec.ts` dobio redove za tri nova kontrolera i nove provajdere. (3) `ci.yml` i `docs/plans/modules/5.2-…md` su referencirali nepostojeći `docs/plans/ci-e2e-kapija.md` — sada pokazuju na `docs/plans/CI-KVALITETNA-KAPIJA.md`. (4) i18n guard `settings-registry-coverage.spec.ts` 482 → 488 uz naslove/pomoć za tri markera i tri skip ključa.
 
+## Šta je urađeno (F5)
+
+- **F5.1 Registry sekcija** — `backend/src/modules/install/sections/install-settings-section.registry.ts`: 11 sekcija (`inboundEmail`, `directory`, `knowledgeBase`, `statusPage`, `onCall`, `announcements`, `security`, `privacy`, `auditWebhook`, `itsm`, `integrations`) sa allowlistom ključeva, `requires` (`service`, `directoryLogin`, `team`), `mainSwitchKey` i `packageDefaultKeys` (ITSM/integracije pokazuju default paketa, ne kataloga); `install-settings-section.keys.ts` drži tip i redoslijed (jedini izvor za tip koraka `section.<key>`).
+- **F5.2 Jedan generički servis (bez servisa po funkciji)** — `install-settings-section.service.ts` čita i piše **samo** allowlistovane ključeve kroz postojeći `SettingsService` (ista validacija, `requires`, `validateSettingValue`); tajne se vraćaju kao `{ visibility: 'secret', value: '[REDACTED]', isSet }` i `[REDACTED]` se nikad ne upisuje; `maxValuesPerSave = 24`, `changeLogReason = 'install_wizard'`; marker `private.install.steps.<step>.saved` je jedini dokaz da je sekcija odgovorena (može i bez ijedne izmjene).
+- **F5.3 Rute** — `install-sections.controller.ts` + `dto/save-install-settings-section.dto.ts`: `GET /install/sections`, `GET /install/sections/:sectionKey`, `POST /install/sections/:sectionKey`, `GET|POST /install/security-recommendations`. Parametar je `@IsIn(installSettingsSectionKeys)`, tijelo `ArrayMaxSize(24)`, cijeli kontroler nosi `InstallWizardLockGuard` (lock nakon završetka važi i za sekcije). Kodovi: `INSTALL_SETTINGS_SECTION_{UNKNOWN,KEY_NOT_ALLOWED,DEPENDENCY_UNMET,INVALID_VALUES}`, `SUPER_ADMIN_REQUIRED`; mapiranje u `map-install-settings-section-error.ts`.
+- **F5.4 Sigurnosne preporuke (odluka vlasnika 7)** — `install-security-recommendations.ts` + servis: MFA obavezan za admine (`true`), MFA opcion za ostale (`true`), HIBP uključen (`true`), idle sesija **1800 s** (unutar `SessionIdleTimeoutLoader` opsega), captcha `recommendedValue: null` — **nikad se ne upisuje** (bez Turnstile ključeva captcha bi zaključala prijavu); primjena traži postojećeg SuperAdmina (`409`).
+- **F5.5 Koraci i stanje** — 12 novih koraka: `section.<key>` (order 61–71, `offeredIn: ['full']`, `requiredIn: []`, `skippable: true`, `resettableSettingKeys = [saved marker]`) i `securityRecommendations` (order 72, Standard i Full); `addons` je pomjeren na 80 da ostane posljednji. `setting-keys.ts` dobio `installStepSavedKeys` (+ `InstallSavedStepKey`) i 12 novih skip ključeva (23 ukupno, uz `satisfies Readonly<Record<InstallStepKey, string>>`), definicije u `definitions/install-wizard-step-settings.ts` (read-only u registry ekranu, IN18), a `read-install-step-states.ts` čita `saved` markere kao „odgovoreno“.
+- **F5.6 Frontend** — `install-section-step.tsx` (jedan korak za sve sekcije; šalje **samo** izmijenjena polja, prazno polje znači „ostavi kako je“, mapira greške), `install-section-field.tsx` (polje po metapodacima: boolean = switch, number = broj, string = tekst ili select kad definicija ima `allowedValues`/opcije, secret = password koji nikad ne prikazuje postojeću vrijednost; `aria-describedby` sa naslovom/pomoći iz registryja kroz `resolveRegistryTitle`/`resolveRegistryHelp`), `install-security-recommendations.tsx` (panel sa statusom po stavci i jednim dugmetom), `lib/install/install-section-presentation.ts` (ikona + `install.section.<key>.{title,value,whatYouGet.*}` po sekciji), `services/install-sections-api.ts`, `services/install-step-key.ts` (**jedan** rječnik koraka — F5 je otkrio da su `install-api.ts` i `install-profile-api.ts` držali dvije kopije `InstallStepKey` i da nove korake vidi samo jedna), grana za `section.*` u `install-active-step.tsx`, F5 kodovi u `map-install-content-save-error.ts` i `definitionRequires` u tipu polja.
+- **F5.7 i18n (bs + en)** — `install.section.<sectionKey>.{title,value,whatYouGet.1..3}` (11 × 5), `install.section.requires.{service,directoryLogin,team}`, `install.section.*` (potvrda, tajne, greške), `install.security.recommendations.*` (panel + 5 × `title|help`), `install.steps.section.*` + `install.steps.securityRecommendations`; `settings-registry-coverage.spec.ts` 488 → **512** (24 nova `private.install.steps.*` markera sa naslovom i pomoći u oba lokalata) uz novi `i18n/install-sections-coverage.spec.ts`.
+- **Specovi F5** — backend: `sections/install-settings-section.registry.spec.ts` (6 — allowlist ↔ stvarni registry, koraci/redoslijed, markeri, preporuke, captcha bez upisa, idle 1800 s prihvaćen), `sections/install-settings-section.service.spec.ts` (5) + `sections/install-settings-section.service-save.spec.ts` (6 — podijeljeno zbog granice od 200 linija: lista sekcija, polja iz definicija sa `dependencies[].satisfied`, ključ van allowlist-e → 400 bez upisa, nepoznata sekcija → 400, upis + marker + `changeLogReason`, tajna `[REDACTED]` ostaje netaknuta, `requires` definicije → 422, `team` zavisnost → 409 pa zeleno nakon pravog poziva, bez foundera → 409), `sections/install-security-recommendations.service.spec.ts` (4 — status, primjena, ručno podešena captcha se broji kao postavljena, bez foundera → 409), `sections/install-full-package.acceptance.spec.ts` (**2 — kriterij prihvatanja F5**: cijeli Full pređen sa „Podesi kasnije“ → `isReady`, prazna lista `missing` provjera, `profileSteps` kao `skipped` sa tačno odgođenim koracima i ni jedan korak nije `blocking`), `install-sections.controller.spec.ts` (6 — lock guard na kontroleru, `@IsIn` na parametru kroz pravi pipe, tijelo bez nepoznatih polja, lista, upis, preporuke). Frontend: `install-section-field.spec.tsx` (6 — switch/number/tekst/select/secret/`aria-describedby`/disabled), `install-section-step.spec.tsx` (5 — render iz metapodataka, samo izmijenjena polja, prazna tajna se ne šalje, `install.section.requires.team`, mapiranje 409), `i18n/install-sections-coverage.spec.ts` (9 — bs i en za sve nove slotove).
+- **Odluka vlasnika 8 (inbound/LDAPS test)** — F5 **nije** dodao ni dugme ni rutu: domenske funkcije postoje (`InboundEmailAdminService.testConnection()`, `DirectoryFullSyncService.testConnection(actorUserId)`), ali su iza sesijske prijave i rola, pa bi čarobnjak (prije instalacije, sa install tokenom) tražio novu instalacijski-scoped rutu. Zapisano kao **IN20** u `docs/analysis/TASKS.md`.
+
 ## Odstupanja od plana i otvorene stvari
 
 - **„Prilagodi“ (odluka vlasnika F3/2):** prekidači odgađaju **korake** kroz F1 `private.install.steps.<key>.skipped`; stavke kataloga koje još ne pripadaju nijednom koraku (blueprints, policy pack, sigurnosne preporuke, inbound, LDAPS, KB, status, dežurstva, najave, ITSM, integracije, privatnost) prikazane su kao sadržaj paketa u karticama i „Prikaži sve“ sheetu — bez prekidača koji ništa ne radi. F4/F5 im daju stvarno značenje.
@@ -94,7 +108,8 @@
 - `install.profile.item.*` prijevodi su upisani uz ekran paketa (IN16 zatvoren); katalog i dalje vraća `labelKey`, prijevod se traži preko `t(key as never)`.
 - `GET /install/status` je otvoren i nakon complete-a (kao i prije) — `install/addons` je i dalje jedina dodatna otvorena GET ruta.
 - `fallbackPasswordPolicy` u super admin koraku je namjerno zadržan sa komentarom (IN10).
-- `docs/analysis/TASKS.md` nosi sekciju **Install Wizard v2**; od nalaza je otvoren samo **IN14** (komponentski testovi za svaki korak + E2E prolaz kroz UI), koji se zatvara u F6 — pravilo „nema TODO-a bez tiketa“ važi i za plan foldere.
+- `docs/analysis/TASKS.md` nosi sekciju **Install Wizard v2**; otvoreni su **IN14** (E2E prolaz kroz UI + Lighthouse a11y ≥ 95) i **IN20** (test konekcije na zahtjev u čarobnjaku — odluka vlasnika 8, vidi F5 iznad); pravilo „nema TODO-a bez tiketa“ važi i za plan foldere.
+- **Uski Prisma tipovi traže cast (naučeno na F4 CI-ju):** funkcije koje primaju „ručno skrojenu“ Prisma tipu (`InstallCompletionPrisma`) ne primaju `this.prisma` bez `as unknown as` — pravi klijent ima preopterećen `$transaction` koji se ne poklapa s jednim callback potpisom, a lokalni stub to ne vidi (`nest build` u CI-ju jeste). `InstallCompletionPrisma` sada nosi marker `__narrowPrismaShape`, pa se ta greška reprodukuje i lokalno; novi kod može birati: ili primi `PrismaService` (kao `persistInstallMarker`), ili cast na mestu poziva (kao `install-complete.service.ts`).
 - `backend/src/generated/prisma/` (git-ignored, `.gitignore:12`) je **lokalni stub** umjesto `prisma generate`: sandbox ne može da dohvati Prisma engine (`binaries.prisma.sh`). Stub se generiše skriptom `/tmp/gen-prisma-stub.mjs` (56 enuma iz `prisma/schema/*.prisma` + 137 model delegata; `PrismaClient` sa `$transaction`/`$queryRaw` overload-ima i `Prisma` namespace-om). U pravoj okolini ga zamjenjuje `npx prisma generate` na istom putu. **Stub nije dio isporuke** i ne pojavljuje se u `git status`-u; ako `/tmp` ispari, skripta se piše ponovo prije pokretanja testova.
 - **Puni backend prolaz (bez filtera) nakon F4:** `550 passed / 74 failed / 4 skipped` od 628 suita, `2892` testa prolazi / `26` preskočeno (`2918`), `0` padajućih testova. Svih 74 padajućih su **compile-only** (ts-jest prijavljuje TS greške prije izvršavanja) i **identični su na čistom HEAD-u**: kontrolni rad u `/tmp/pristine` (`git archive HEAD` + isti stub + `node_modules` preko symlinka) daje istih 74 suita i `2784` prolaznih testova (razlika je tačno F0–F4: +108 testova). Nijedan pad nije u `modules/install` ni `modules/settings`.
   - Uzrok je interakcija relaksiranog ts-jest config-a (bez `noImplicitAny`, bez `prisma generate`) sa lokalnim stubom: npr. `const children = []` unutar generičkog `executeTicketOperation(async () => …)` se prijavljuje kao `never[]` (`tickets/split/tickets-split.service.ts:74`), plus nekoliko `never`/`unknown` mjesta u tickets/reports/sla/privacy/assets. Pošto je set identičan na pristine HEAD-u, to nije regresija F0/F1 i ne treba ih popravljati u ovoj fazi; ne diraju instalaciju.
@@ -187,4 +202,37 @@ feat(install): step registry, installation packages, step deferral and readiness
   and steps.<key>.{skipped,required,offered,blocking} (backwards compatible)
 - settings: private.install.profile and private.install.steps.<key>.skipped
   with bs/en registry copy; frontend API for packages, skips and readiness
+```
+
+**F5:**
+```
+feat(install): allowlisted settings sections for the full profile
+
+- one section registry (11 sections) with an allowlist per section, requires
+  (service, directoryLogin, team), the main switch and the package defaults
+- one generic service over the settings registry: writes only allowlisted keys
+  through SettingsService, never returns a readable secret and marks the step
+  (steps.<step>.saved) because a section can be answered without a change
+- GET /install/sections, GET|POST /install/sections/:sectionKey behind the
+  wizard lock; the route parameter is @IsIn(installSettingsSectionKeys)
+- security recommendations endpoint: MFA required for admins, MFA optional,
+  HIBP on, idle session 1800 s; the captcha is reported and never written
+- twelve new steps (section.<key> orders 61-71, securityRecommendations 72,
+  addons 80) offered in full (recommendations also in standard), all skippable
+- 24 new private.install.steps.<step>.{saved,skipped} keys with read-only
+  metadata and bs/en registry copy (guard 488 -> 512)
+```
+```
+feat(install-ui): generic section step and security recommendations
+
+- install-section-step + install-section-field render any section from the
+  definition metadata (boolean switch, number, text, select, secret) with the
+  registry's own title and help text linked through aria-describedby
+- one step for all eleven sections, the active-step switch gained a section
+  branch, and both clients now share a single InstallStepKey vocabulary
+- security recommendations panel with per-item status and one apply action
+- bs/en copy for every section (title, value, what you get), the shared
+  sentences, the refusals and the panel; new i18n coverage guard
+- RTL specs for the field types, the save payload, the missing prerequisite
+  and the error mapping
 ```

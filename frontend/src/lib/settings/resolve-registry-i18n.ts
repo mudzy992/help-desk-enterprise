@@ -76,6 +76,15 @@ function readTranslation(translate: TFunction, key: string): string | null {
   return text;
 }
 
+/**
+ * Reads one translation slot whose name the **backend** chose (a definition's
+ * `titleKey`, a recommendation's copy). It answers `null` for a slot that is not
+ * translated, so the caller decides what to show instead of leaking the key.
+ */
+export function resolveTranslation(translate: TFunction, key: string): string | null {
+  return readTranslation(translate, key);
+}
+
 export function resolveRegistryCategoryTitle(translate: TFunction, categoryKey: string): string {
   const catalog = translate("settings.registry.categories", {
     returnObjects: true,
