@@ -132,12 +132,15 @@ test.describe('23 assets (CMDB)', () => {
       await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
       const assetRow = page.getByRole('row').filter({ has: page.getByRole('link', { name: `E2E-R-${stamp}` }) });
       const bulkBar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/i });
-      await assetRow.getByRole('checkbox').check();
+      await assetRow.getByRole('checkbox').click();
       await expect(bulkBar).toBeVisible();
       await expect(bulkBar).toContainText(/1/);
-      await page.getByLabel(/Izvor|Source/).selectOption('IMPORT');
+      phase('bulk odabir na registru');
+      await page.getByRole('button', { name: /Napredna pretraga|Advanced search/i }).click();
+      await page.getByLabel(/^Izvor$|^Source$/i).selectOption('IMPORT');
       await expect(bulkBar).toHaveCount(0);
       phase('odabir očišćen nakon promjene filtera');
+      await page.getByRole('button', { name: /Poništi filtere|Reset filters/i }).click();
       await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(`E2E-R-${stamp}`);
       await expect(page.getByRole('link', { name: `E2E-R-${stamp}` })).toBeVisible({ timeout: 15_000 });
       phase('registar imovine (bez axe — puni tenant previše usporava)');

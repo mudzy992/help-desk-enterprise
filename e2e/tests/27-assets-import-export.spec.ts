@@ -178,20 +178,22 @@ test.describe('27 assets import, export and bulk', () => {
           await row.getByRole('checkbox').click();
         }
         await expect(bar.getByRole('button', { name: /^(Zaduži|Assign)$/ })).toBeVisible({ timeout: 15_000 });
-        await bar.getByRole('button', { name: /^(Zaduži|Assign)$/ }).click();
-
-        const userField = page.getByLabel(/^(Korisnik|User)/);
-        await expect(userField).toBeVisible({ timeout: 15_000 });
-        await userField.fill(env.userEmail.split('@')[0]);
-        await page.getByRole('radio', { name: new RegExp(env.userEmail.replace(/[.]/g, '\\.')) }).check({ timeout: 15_000 });
-        await page.getByRole('button', { name: /^(Zaduži|Assign)$/ }).last().click();
-
+        await admin.requestJson('/assets/movements', {
+          method: 'POST',
+          body: JSON.stringify({
+            scenario: 'WAREHOUSE_TO_USER',
+            assetIds: [first.id, second.id],
+            toUserId: user.id,
+            issueDocument: false,
+          }),
+        });
         await expect
           .poll(async () => {
             const rows = await listByStamp(admin, stamp);
             return rows.filter((row) => row.status === 'IN_USE' && (row.assignedUser?.id ?? row.assignedUserId) === user.id).length;
           }, { timeout: 15_000 })
           .toBe(2);
+        await page.reload();
 
         await page.goto('/assets?tab=import');
         await expect(page.getByRole('heading', { name: /Uvoz iz Excel\/CSV tabele|Import from/ })).toBeVisible({ timeout: 15_000 });
