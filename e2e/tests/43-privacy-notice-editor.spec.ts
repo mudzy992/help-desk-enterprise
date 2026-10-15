@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
+import { loginWithRateLimitBackoff } from '../helpers/login-with-backoff';
 import { signIn } from '../helpers/sign-in';
 
 type NoticeStatus = {
@@ -26,18 +27,18 @@ function localeRadio(page: Page, locale: 'bs' | 'en') {
  */
 test.describe('43 privacy notice editor (5.3.7)', () => {
   test('notice editor generates, saves, publishes, flags the draft and restores', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     page.setDefaultTimeout(20_000);
     page.setDefaultNavigationTimeout(30_000);
     const env = readE2EEnvironment();
     const api = new ApiClient();
-    await api.login(env.superAdminEmail, env.superAdminPassword);
+    await loginWithRateLimitBackoff(api, env.superAdminEmail, env.superAdminPassword);
     const original = await api.requestJson<NoticeStatus>('/privacy/notice/status');
 
     try {
       await test.step('sign in and open the notice editor', async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
-        await page.goto('/privacy?tab=notice');
+        await page.goto('/privacy?tab=notice', { waitUntil: 'domcontentloaded' });
         await expect(page.getByTestId('privacy-notice-editor')).toBeVisible();
         // The settings row and the editor read the same two keys. BS is the
         // active language on open; EN must be checked after switching to it.
@@ -133,7 +134,7 @@ test.describe('43 privacy notice editor (5.3.7)', () => {
 
     await test.step('sign in and open the settings registry', async () => {
       await signIn(page, env.superAdminEmail, env.superAdminPassword);
-      await page.goto('/settings');
+      await page.goto('/settings', { waitUntil: 'domcontentloaded' });
     });
 
     await test.step('open the notice key and follow the editor link', async () => {

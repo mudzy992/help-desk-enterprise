@@ -325,12 +325,14 @@ export class AssetTransfersService {
 
     const result = await this.prisma.$transaction(async (transaction) => {
       let transfer: { id: string; number: string } | null = null;
-      if (issue && signatory) {
-        const rows = await transaction.$queryRaw<{ lastNumber: number }[]>`
-          INSERT INTO "AssetTransferSequence" ("year", "month", "lastNumber") VALUES (${date.year}, ${date.month}, 1)
-          ON CONFLICT ("year", "month") DO UPDATE SET "lastNumber" = "AssetTransferSequence"."lastNumber" + 1
-          RETURNING "lastNumber"`;
-        const sequence = Number(rows[0]?.lastNumber ?? 1);
+      if (issue && signatory !== null) {
+        const sequenceRow = await transaction.assetTransferSequence.upsert({
+          where: { year_month: { year: date.year, month: date.month } },
+          create: { year: date.year, month: date.month, lastNumber: 1 },
+          update: { lastNumber: { increment: 1 } },
+          select: { lastNumber: true },
+        });
+        const sequence = sequenceRow.lastNumber;
         const number = formatTransferNumber(configuration.numberFormat, { ...date, sequence });
         const items: TransferSnapshotItem[] = plans.map(({ asset }) => ({
           assetId: asset.id,

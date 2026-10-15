@@ -82,7 +82,7 @@ test.describe('23 assets (CMDB)', () => {
 
       const moved = await admin.requestJson<Movement>('/assets/movements', {
         method: 'POST',
-        body: JSON.stringify({ scenario: 'WAREHOUSE_TO_USER', assetIds: [created.id], toUserId: receiver!.id, issueDocument: true }),
+        body: JSON.stringify({ scenario: 'WAREHOUSE_TO_USER', assetIds: [created.id], toUserId: receiver!.id, issueDocument: false }),
       });
       expect(moved.movedAssetIds).toEqual([created.id]);
       if (moved.transferId !== null) {

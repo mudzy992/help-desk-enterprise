@@ -219,7 +219,11 @@ export class ApiClient {
   ): Promise<Response> {
     const method = (init.method ?? 'GET').toUpperCase();
     try {
-      const response = await fetch(`${this.apiUrl}${path}`, { ...init, headers });
+      const response = await fetch(`${this.apiUrl}${path}`, {
+        ...init,
+        headers,
+        signal: init.signal ?? AbortSignal.timeout(30_000),
+      });
       this.captureSessionCookie(response);
       return response;
     } catch (error) {

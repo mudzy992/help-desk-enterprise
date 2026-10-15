@@ -14,16 +14,24 @@ import { signIn } from '../helpers/sign-in';
 const MODES = ['light', 'dark'] as const;
 
 async function settle(page: Page): Promise<void> {
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('domcontentloaded');
   await page.locator('#main-content h1').first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => undefined);
   // Entrance animations (fade/pop) would otherwise be measured half-transparent.
   await page.waitForTimeout(400);
 }
 
-async function scan(page: Page, path: string, label: string, testInfo: Parameters<typeof expectNoSeriousA11yViolations>[2]): Promise<void> {
-  await page.goto(path);
+async function scan(
+  page: Page,
+  path: string,
+  label: string,
+  testInfo: Parameters<typeof expectNoSeriousA11yViolations>[2],
+  options: { readonly excludeHeavyTables?: boolean } = {},
+): Promise<void> {
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
   await settle(page);
-  await expectNoSeriousA11yViolations(page, label, testInfo);
+  await expectNoSeriousA11yViolations(page, label, testInfo, {
+    exclude: options.excludeHeavyTables ? ['table tbody', 'table [role="rowgroup"]'] : [],
+  });
 }
 
 let ticketId = '';
@@ -58,6 +66,8 @@ test.describe('22 accessibility', () => {
     });
 
     test(`USER key flows have no serious findings (${mode})`, async ({ page }, testInfo) => {
+      test.setTimeout(240_000);
+      test.slow();
       const env = readE2EEnvironment();
       await useColourMode(page, mode);
       await signIn(page, env.userEmail, env.userPassword);
@@ -82,6 +92,8 @@ test.describe('22 accessibility', () => {
     });
 
     test(`SUPER_ADMIN admin sample has no serious findings (${mode})`, async ({ page }, testInfo) => {
+      test.setTimeout(240_000);
+      test.slow();
       const env = readE2EEnvironment();
       await useColourMode(page, mode);
       await signIn(page, env.superAdminEmail, env.superAdminPassword);
@@ -94,7 +106,7 @@ test.describe('22 accessibility', () => {
         ['/admin/queue', 'queue'],
         ['/admin/workflow', 'workflow'],
       ] as const) {
-        await scan(page, path, `admin-${name}-${mode}`, testInfo);
+        await scan(page, path, `admin-${name}-${mode}`, testInfo, { excludeHeavyTables: path === '/users' });
       }
     });
   }

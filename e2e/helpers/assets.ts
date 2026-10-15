@@ -13,6 +13,7 @@ export const assetSettingKeys = {
   locationsEnabled: 'private.assets.locations.enabled',
   transferEnabled: 'private.assets.transfer.enabled',
   transferRequired: 'private.assets.transfer.required',
+  transferDefaultSignatoryUserId: 'private.assets.transfer.defaultSignatoryUserId',
   ticketPicker: 'private.assets.ticketPicker.enabled',
 } as const;
 
@@ -138,6 +139,21 @@ export async function createAsset(
   });
   // The create endpoint may answer with the id only; name and tag come from the input.
   return { ...created, id: created.id, name: created.name ?? input.name, assetTag: created.assetTag ?? input.assetTag };
+}
+
+/** Settings bundle for transfer-record specs (25–28): CMDB on, transfers on, optional default signatory. */
+export async function transferRecordSettings(
+  api: ApiClient,
+  extra: Readonly<Record<string, unknown>> = {},
+): Promise<Record<string, unknown>> {
+  const me = await api.requestJson<{ readonly id: string }>('/users/me');
+  return {
+    [assetSettingKeys.cmdb]: true,
+    [assetSettingKeys.transferEnabled]: true,
+    [assetSettingKeys.transferRequired]: false,
+    [assetSettingKeys.transferDefaultSignatoryUserId]: me.id,
+    ...extra,
+  };
 }
 
 export async function findAssignableUser(api: ApiClient, email: string): Promise<AssetUserHit> {
