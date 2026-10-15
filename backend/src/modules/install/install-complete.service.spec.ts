@@ -1,67 +1,15 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { hashLocalPassword } from '../authentication/hash-local-password';
-import { applicationSettings } from '../settings/definitions/application-settings';
-import { createInMemorySettingsPrisma } from '../settings/create-in-memory-settings-prisma';
-import { createSettingsRegistry } from '../settings/registry/create-settings-registry';
 import { settingKeys } from '../settings/setting-keys';
-import { SettingsService } from '../settings/settings.service';
-import type { PrismaService } from '../../common/prisma/prisma.service';
-import { createInMemoryInstallSuperAdminPrisma } from './create-in-memory-install-super-admin-prisma';
-import { createInstallSuperAdmin } from './create-install-super-admin';
+import { createInstallCompleteHarness, createReadinessResult } from './create-install-complete-harness';
 import { enforceInstallSetupGate } from './enforce-install-setup-gate';
 import { installSetupErrorCodes } from './install-setup.constants';
-import { InstallCompleteService } from './install-complete.service';
-import { InstallSetupService } from './install-setup.service';
-
-jest.mock('../../common/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
 
 const firstCompletedAt = '2026-09-11T10:00:00.000Z';
 const secondCompletedAt = '2026-09-11T12:00:00.000Z';
 
-async function createHarness(withSuperAdmin = true) {
-  const users = createInMemoryInstallSuperAdminPrisma();
-  const settingsMemory = createInMemorySettingsPrisma();
-  const prisma = {
-    user: users.prisma.user,
-    appSetting: settingsMemory.prisma.appSetting,
-    changeLog: settingsMemory.prisma.changeLog,
-    $transaction: settingsMemory.prisma.$transaction,
-  };
-  const registry = createSettingsRegistry(applicationSettings);
-  const settingsService = new SettingsService(
-    registry,
-    settingsMemory.prisma as unknown as PrismaService,
-  );
-  if (withSuperAdmin) {
-    await createInstallSuperAdmin(
-      users.prisma as unknown as PrismaService,
-      {
-        email: 'admin@example.com',
-        displayName: 'Super Admin',
-        password: 'correct-horse-battery',
-      },
-      (value) => hashLocalPassword(value, 4),
-    );
-  }
-  return {
-    settingsMemory,
-    settingsService,
-    setupService: new InstallSetupService(
-      settingsService,
-      prisma as unknown as PrismaService,
-    ),
-    completeService: new InstallCompleteService(
-      prisma as unknown as PrismaService,
-      registry,
-    ),
-  };
-}
-
 describe('InstallCompleteService', () => {
   it('keeps the setup gate active until completion', async () => {
-    const { setupService } = await createHarness();
+    const { setupService } = await createInstallCompleteHarness();
     await expect(setupService.isCompleted()).resolves.toBe(false);
     await expect(
       enforceInstallSetupGate({
@@ -76,13 +24,13 @@ describe('InstallCompleteService', () => {
       enforceInstallSetupGate({
         method: 'PUT',
         path: '/settings',
-        loadCompletedAt: () => setupService.readCompletedAt(),
+        loadCompletedAt: () => Promise.reject(new Error('db down')),
       }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('persists completedAt, restores API access, and is safe to repeat', async () => {
-    const harness = await createHarness();
+    const harness = await createInstallCompleteHarness();
     await expect(
       harness.completeService.completeAt(firstCompletedAt),
     ).resolves.toMatchObject({ isCompleted: true });
@@ -127,7 +75,9 @@ describe('InstallCompleteService', () => {
   });
 
   it('rejects completion before SuperAdmin exists', async () => {
-    const { completeService, settingsMemory } = await createHarness(false);
+    const { completeService, settingsMemory } = await createInstallCompleteHarness({
+      withSuperAdmin: false,
+    });
     await expect(
       completeService.completeAt(firstCompletedAt),
     ).rejects.toMatchObject({
@@ -138,8 +88,38 @@ describe('InstallCompleteService', () => {
     ).toBeUndefined();
   });
 
+  it('refuses to finish while a readiness check is red', async () => {
+    const harness = await createInstallCompleteHarness({
+      readiness: async () =>
+        createReadinessResult([
+          { key: 'service', status: 'ok', messageKey: 'install.readiness.service' },
+          {
+            key: 'routing',
+            status: 'missing',
+            messageKey: 'install.readiness.routing',
+          },
+          {
+            key: 'slaProfile',
+            status: 'skipped',
+            messageKey: 'install.readiness.slaProfile',
+          },
+        ]),
+    });
+    await expect(
+      harness.completeService.completeAt(firstCompletedAt),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'INSTALL_NOT_READY',
+        details: { missing: ['routing'] },
+      },
+    });
+    expect(
+      harness.settingsMemory.getStored(settingKeys.privateInstallCompletedAt),
+    ).toBeUndefined();
+  });
+
   it('provisions a missing JWT signing secret when install is already completed', async () => {
-    const harness = await createHarness();
+    const harness = await createInstallCompleteHarness();
     await harness.settingsMemory.prisma.appSetting.upsert({
       where: { key: settingKeys.privateInstallCompletedAt },
       create: {
