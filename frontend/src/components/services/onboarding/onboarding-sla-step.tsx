@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,16 @@ export function OnboardingSlaStep({
 }: OnboardingSlaStepProperties) {
   const { t } = useTranslation();
   const activeProfiles = profiles.filter((profile) => profile.isActive);
-  const [value, setValue] = useState(selectedId || activeProfiles[0]?.id || "");
+  const firstActiveProfileId = activeProfiles[0]?.id ?? "";
+  const [value, setValue] = useState(selectedId || firstActiveProfileId);
+
+  useEffect(() => {
+    if (selectedId.length > 0) {
+      setValue(selectedId);
+    } else if (value.length === 0 && firstActiveProfileId.length > 0) {
+      setValue(firstActiveProfileId);
+    }
+  }, [firstActiveProfileId, selectedId, value.length]);
 
   if (activeProfiles.length === 0) {
     return (

@@ -183,6 +183,15 @@ export function StatusPage() {
     <div className="page-in grid gap-4">
       {header}
 
+      {loadError === null ? null : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/25 bg-danger/5 px-4 py-3">
+          <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+          <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
+            {t("status.refresh")}
+          </Button>
+        </div>
+      )}
+
       {!overview.configuration.enabled ? (
         <div
           role="status"
@@ -193,6 +202,7 @@ export function StatusPage() {
       ) : null}
 
       <div
+        role="status"
         className={cn(
           "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3.5",
           overallSurface[state],
@@ -240,20 +250,20 @@ export function StatusPage() {
         <Card>
           <CardHeader title={t("status.planned")} subtitle={t("status.plannedHint")} />
           <ul className="grid gap-2.5 px-4 py-3.5">
-            {overview.planned.map((window) => (
+            {overview.planned.map((plannedWindow) => (
               <li
-                key={`${window.serviceId}-${window.startsAt}`}
+                key={`${plannedWindow.serviceId}-${plannedWindow.startsAt}`}
                 className="flex flex-wrap items-start gap-2 text-[12.5px]"
               >
                 <CalendarClock size={14} className="mt-0.5 text-info" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground">{window.serviceName}</p>
+                  <p className="font-medium text-foreground">{plannedWindow.serviceName}</p>
                   <p className={hintClassName}>
-                    {formatTicketTimestamp(window.startsAt, i18n.language)} –{" "}
-                    {formatTicketTimestamp(window.endsAt, i18n.language)}
+                    {formatTicketTimestamp(plannedWindow.startsAt, i18n.language)} –{" "}
+                    {formatTicketTimestamp(plannedWindow.endsAt, i18n.language)}
                   </p>
-                  {window.message ? (
-                    <p className="mt-0.5 text-foreground/85">{window.message}</p>
+                  {plannedWindow.message ? (
+                    <p className="mt-0.5 text-foreground/85">{plannedWindow.message}</p>
                   ) : null}
                 </div>
               </li>

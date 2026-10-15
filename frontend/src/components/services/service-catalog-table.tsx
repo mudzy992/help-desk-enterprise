@@ -332,7 +332,10 @@ function ServiceCatalogTableRow({
       <td className="px-4 text-right align-middle">
         <div className="flex min-w-[205px] items-center justify-end gap-1.5">
           <Button variant="ghost" size="xs" asChild>
-            <Link to="/tickets/new" data-testid={`service-create-ticket-${service.id}`}>
+            <Link
+              to={`/tickets/new?serviceId=${encodeURIComponent(service.id)}`}
+              data-testid={`service-create-ticket-${service.id}`}
+            >
               {t("services.createTicket")} <ArrowRight size={11.5} aria-hidden="true" />
             </Link>
           </Button>

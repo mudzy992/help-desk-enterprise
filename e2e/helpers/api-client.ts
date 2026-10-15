@@ -168,7 +168,7 @@ export class ApiClient {
    * Every network-level failure now names the request and carries the cause
    * (`ECONNREFUSED`, `ENOTFOUND`, `UND_ERR_SOCKET`, …).
    *
-   * Retry policy, both cases once with a 2 s pause:
+   * Retry policy, both cases up to twice with a short backoff:
    *
    * - a `GET` is always safe to repeat;
    * - **any method is repeated when the connection never opened** — the full run
@@ -209,8 +209,8 @@ export class ApiClient {
       const causeMessage = cause instanceof Error ? cause.message : String(cause ?? '');
       const detail = [causeCode, causeMessage].filter((part) => part.length > 0).join(' / ');
       const retryable = method === 'GET' || connectFailures.has(causeCode);
-      if (retryable && attempt === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
+      if (retryable && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 2_000 * (attempt + 1)));
         return this.send(path, init, headers, attempt + 1);
       }
       throw new Error(

@@ -118,7 +118,7 @@ test.describe('07 SLA', () => {
     );
     expect(availableUnitIds).toContain(selectedUnitId);
     await page.goto('/tickets?view=all');
-    await expect(page.getByText(created.title).first()).toBeVisible({
+    await expect(page.locator('a:visible', { hasText: created.title }).first()).toBeVisible({
       timeout: 20_000,
     });
   });

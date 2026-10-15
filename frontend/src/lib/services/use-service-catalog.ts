@@ -8,6 +8,8 @@ export type ServiceCatalogRow = {
   readonly service: ServiceResponse;
 };
 
+const emptyCatalogRows: readonly ServiceCatalogRow[] = [];
+
 export type ServiceCatalogState = {
   readonly rows: readonly ServiceCatalogRow[];
   readonly hasLoaded: boolean;
@@ -38,7 +40,7 @@ export function useServiceCatalog(): ServiceCatalogState {
   }, [query]);
 
   return {
-    rows: query.data ?? [],
+    rows: query.data ?? emptyCatalogRows,
     hasLoaded: query.data !== undefined,
     isLoading: query.isLoading,
     errorKey: query.error === null ? null : mapApiError(query.error),
