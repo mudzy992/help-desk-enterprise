@@ -127,7 +127,7 @@ export function acknowledgementPercent(acknowledged: number, audience: number): 
  * "2026 M09 29" in browsers without Bosnian CLDR data.
  */
 export function announcementDateTimeFormatter(language: string): Intl.DateTimeFormat {
-  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "bs-BA", {
+  return new Intl.DateTimeFormat(language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
