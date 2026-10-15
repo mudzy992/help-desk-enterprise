@@ -1641,7 +1641,7 @@
       "title": "Other registered settings",
       "subtitle": "Remaining categories open in a drawer. Descriptions come from the i18n registry.",
       "loading": "Loading settings registry…",
-      "readOnly": "You can view these settings but cannot change them.",
+      "readOnly": "Wizard",
       "reason": "Change reason",
       "save": "Save",
       "saving": "Saving…",
@@ -1772,6 +1772,13 @@
         "private.i18n.supportedLocalesCsv": "Languages offered to users, comma separated (bs, en).",
         "private.install.completedAt": "When the first-run install wizard finished (empty means setup is still open).",
         "private.install.completedByUserId": "User id of the SuperAdmin who completed the first-run install wizard.",
+        "private.install.profile": "Install package the wizard uses (minimum, standard or full).",
+        "private.install.steps.profile.skipped": "Marks that the package step was deferred in the wizard.",
+        "private.install.steps.superAdmin.skipped": "Marks that the SuperAdmin step was deferred in the wizard.",
+        "private.install.steps.loginProvider.skipped": "Marks that the sign-in mode step was deferred in the wizard.",
+        "private.install.steps.smtp.skipped": "Marks that the SMTP step was deferred in the wizard.",
+        "private.install.steps.seed.skipped": "Marks that the starting-data step was deferred in the wizard.",
+        "private.install.steps.addons.skipped": "Marks that the add-ons step was deferred in the wizard.",
         "private.integrations.queue.adminUiEnabled": "Enable the admin API to inspect the queue and retry jobs.",
         "private.integrations.queue.deadLetterAfterAttempts": "Failed attempts after which a job moves to the dead-letter queue.",
         "private.integrations.queue.deadLetterRetentionDays": "Days to keep dead-letter jobs before the worker deletes them.",
@@ -2157,7 +2164,9 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — refused challenges per hour, warning",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — refused challenges per hour, critical",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — skipped checks per hour, warning",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical"
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical",
+        "private.install.steps.identity.skipped": "The “Identity” wizard step was deferred.",
+        "private.install.steps.team.skipped": "The “Team” wizard step was deferred."
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2247,6 +2256,13 @@
         "private.i18n.supportedLocalesCsv": "Languages offered to users (bs, en). A language that is not listed is absent from the picker, while its translated texts stay in the system.",
         "private.install.completedAt": "ISO date and time when the install wizard completed. An empty value means first-run setup is still active and the system keeps asking for it.",
         "private.install.completedByUserId": "The user (SuperAdmin) who locked the install wizard. The record stays as evidence of who put the installation into service and when.",
+        "private.install.profile": "The package the operator chose in the wizard's first step. Minimum covers the ticketing core, Standard adds the team and email, Full adds the extra modules. Empty means no package was chosen yet and the wizard behaves as Minimum.",
+        "private.install.steps.profile.skipped": "Set by the wizard when the operator defers the package choice. A deferred step never blocks completion, but the post-install checklist keeps showing it.",
+        "private.install.steps.superAdmin.skipped": "Set by the wizard when the operator defers the step. It cannot be deferred before a SuperAdmin exists, so the value stays false in practice.",
+        "private.install.steps.loginProvider.skipped": "Set by the wizard when the operator defers the sign-in step. A deferred step does not block completion, but it stays on the checklist.",
+        "private.install.steps.smtp.skipped": "Set by the wizard when the operator defers SMTP, e.g. in the Minimum package where email is optional. A deferred step does not block completion; the checklist still lists it.",
+        "private.install.steps.seed.skipped": "Set by the wizard when the operator defers the starting data. Without an organizational unit, service and routing the installation cannot receive tickets, so the value stays false in practice.",
+        "private.install.steps.addons.skipped": "Set by the wizard when the operator defers the add-ons confirmation. The catalog defaults apply then, and the modules can still be enabled later in Settings.",
         "private.integrations.queue.adminUiEnabled": "When on, the admin API for queue inspection and manual retry is available. When off, the queue runs unwatched from the application and problems are solved in logs only.",
         "private.integrations.queue.deadLetterAfterAttempts": "Attempt count after which a failed job moves to the dead-letter queue. From there the job can be inspected and retried by hand.",
         "private.integrations.queue.deadLetterRetentionDays": "How many days the worker keeps DLQ jobs before deleting them. A longer period allows later analysis but stores sensitive payloads longer.",
@@ -2632,7 +2648,9 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "How many refused CAPTCHA challenges an hour raise the warning alarm (auth.captchaFailed.high). A refusal means the client sent a solution Cloudflare did not accept.",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "Refused challenges per hour that raise the critical alarm; keep it above the warning level.",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "How many checks an hour may be skipped because Cloudflare did not answer before the warning alarm (auth.captchaSkipped.high) arrives.",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level."
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level.",
+        "private.install.steps.identity.skipped": "Records that the identity step was skipped with “Configure later”. The post-install checklist reads it.",
+        "private.install.steps.team.skipped": "Records that the team step was skipped with “Configure later”. The post-install checklist reads it."
       },
       "type": {
         "boolean": "on/off",
@@ -2877,7 +2895,8 @@
       "discardBody": "The value was not saved. Closing now loses the input.",
       "discardAction": "Discard changes",
       "noticeEditorLink": "Open the notice editor",
-      "noticeEditorHint": "This notice is edited in the dedicated editor of the privacy module, not here."
+      "noticeEditorHint": "This notice is edited in the dedicated editor of the privacy module, not here.",
+      "readOnlyHint": "The install wizard owns this key — its value is changed by the wizard steps, not by hand. It is shown here for reference only."
     },
     "dependencies": {
       "requiresTitle": "Conditions (must hold before switching on)",
@@ -3974,6 +3993,21 @@
     "title": "Initial setup",
     "heading": "SuperAdmin account",
     "body": "The first step creates a local SuperAdmin account. The password is stored only as a hash. Break-glass sign-in remains available after Entra AD is selected later.",
+    "shell": {
+      "stepsLabel": "Setup steps",
+      "stepOf": "Step {{current}} of {{total}}",
+      "back": "Back",
+      "continue": "Continue",
+      "later": "Configure later",
+      "reopened": "The new package requires this step, so the earlier „Configure later“ deferral was cancelled. If you still do not need it, defer it again.",
+      "whatYouGet": "What you get",
+      "whatYouGetHint": "In short: what this step brings to your installation.",
+      "organizationFallback": "Your organisation"
+    },
+    "feature": {
+      "locked": "Required",
+      "included": "Included"
+    },
     "loading": "Checking setup status",
     "email": "Email",
     "displayName": "Display name",
@@ -3990,6 +4024,32 @@
     "passwordHintBlocklist": "The password must be at least {{min}} characters and must not be a commonly used one.",
     "errorDuplicate": "The initial SuperAdmin already exists or the email is already in use.",
     "errorGeneric": "The SuperAdmin account cannot be saved right now.",
+    "identity": {
+      "heading": "Installation identity",
+      "body": "Organisation name, application name, language and time zone. The logo and the support contacts can be configured later — everything stays editable in Settings → Branding.",
+      "organizationName": "Organisation name",
+      "appName": "Application name",
+      "locale": "System language",
+      "localeBs": "Bosnian",
+      "localeEn": "English",
+      "timeZone": "Time zone",
+      "timeZoneHint": "IANA zone, e.g. Europe/Sarajevo. Used by reports and due dates.",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG or WebP up to 200 KB and 1024 × 1024 px. You can add it later.",
+      "logoConfigured": "A logo is stored. Pick a file only when you want to replace it.",
+      "supportEmail": "Support e-mail",
+      "supportUrl": "Support link",
+      "later": "Fields you leave empty keep their stored values — configure them later in Settings.",
+      "preview": "Brand preview",
+      "previewEmpty": "not entered",
+      "submit": "Save identity",
+      "saving": "Saving…",
+      "errorInvalid": "The organisation name is required. Check the lengths and the contact formats.",
+      "errorLocale": "That language is not supported. Bosnian and English are available.",
+      "errorTimeZone": "Unknown time zone. Use an IANA name, e.g. Europe/Sarajevo.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The identity cannot be saved right now."
+    },
     "loginProvider": {
       "heading": "Sign-in method",
       "body": "Select exactly one authentication provider. SuperAdmin remains a local break-glass account when Entra AD is selected.",
@@ -4033,17 +4093,55 @@
       "errorGeneric": "The SMTP configuration cannot be saved right now."
     },
     "seed": {
-      "heading": "Initial data",
-      "body": "This creates the minimum needed for routing: one organizational unit, a fallback group, one service, and routing to that group. Demo tickets are not created.",
-      "submit": "Continue",
-      "saving": "Saving…",
-      "createdBody": "Minimum data is ready. The origin OU and service resolve to the fallback group.",
-      "organizationalUnit": "Organizational unit",
-      "fallbackGroup": "Fallback group",
-      "service": "Service",
-      "routing": "Routing resolution",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The initial data cannot be saved right now."
+    },
+    "structure": {
+      "heading": "Structure and the first service",
+      "body": "Enter the names the client uses: the organisational unit, the group that receives tickets, the category and the first service. The service gets the standard SLA profile.",
+      "ouName": "Organisational unit",
+      "groupName": "Group that receives tickets",
+      "categoryName": "Category",
+      "serviceName": "Service",
+      "preview": "A ticket for <service>{{service}}</service> goes to the group <group>{{group}}</group> in the OU <organizationalUnit>{{organizationalUnit}}</organizationalUnit>.",
+      "previewEmpty": "not entered",
+      "slaProfile": "SLA profile",
+      "slaProfileMissing": "not assigned",
+      "routing": "Routing resolution",
+      "createdBody": "The structure is ready: the origin OU and the service resolve to the group that receives tickets. Saving again never renames what exists.",
+      "submit": "Create the structure",
+      "saving": "Saving…",
+      "errorInvalid": "A name may not be longer than 120 characters and may not contain a comma or an equals sign.",
+      "warningNames": "The names were not changed because the records already exist. Stored: {{stored}}."
+    },
+    "team": {
+      "heading": "Team",
+      "body": "Add colleagues to the group that receives tickets. Each person gets an account and a temporary password; without SMTP the password is shown here exactly once.",
+      "displayName": "Full name",
+      "email": "E-mail",
+      "role": "Role",
+      "roles": {
+        "AGENT": "Agent",
+        "ADMIN": "Administrator"
+      },
+      "addMember": "Add member",
+      "remove": "Remove",
+      "memberCount": "{{count}} of at most {{max}} members",
+      "superAdmin": "SuperAdmin",
+      "submit": "Create the accounts",
+      "saving": "Creating…",
+      "credentialsTitle": "Temporary passwords",
+      "credentialsOnce": "The passwords are shown now only. Copy them and share them safely — they cannot be viewed again.",
+      "credentialsEmailed": "The passwords were sent to the members by e-mail.",
+      "credentialsEmailSent": "The password was sent by e-mail.",
+      "copyPassword": "Copy",
+      "credentialsClose": "Close",
+      "skipHint": "If you add the team later, use “Configure later” — the SuperAdmin stays a member of the group.",
+      "errorInvalid": "Check the name and e-mail of every member and pick the Agent or Administrator role.",
+      "errorEmailTaken": "An account with that e-mail address already exists.",
+      "errorStructure": "Create the structure and the group that receives tickets first.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The team members cannot be created right now."
     },
     "addons": {
       "heading": "Add-ons",
@@ -4051,6 +4149,7 @@
       "submit": "Continue",
       "saving": "Saving…",
       "emailDisabledHint": "Email stays off until SMTP is enabled.",
+      "notSavedHint": "The add-ons are not confirmed yet. If you skip this step, the catalog defaults apply.",
       "errorInvalid": "The add-on configuration is invalid.",
       "errorUnsupported": "One or more add-ons are not in the catalog.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
@@ -4120,14 +4219,18 @@
       "submit": "Finish",
       "saving": "Locking…",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "notReady": "The installation is not ready to receive tickets yet.",
       "errorGeneric": "Setup cannot be locked right now."
     },
     "progress": "Step {{current}} of {{total}}",
     "steps": {
+      "profile": "Package",
       "superAdmin": "SuperAdmin",
+      "identity": "Identity",
       "loginProvider": "Sign-in",
       "smtp": "Email",
-      "seed": "Roles and data",
+      "seed": "Structure and service",
+      "team": "Team",
       "addons": "Add-ons",
       "complete": "Finish"
     },
@@ -4137,10 +4240,146 @@
     "tokenSubmit": "Unlock",
     "tokenInvalid": "The token is not valid.",
     "tokenNotConfigured": "INSTALL_TOKEN is not set on the server (at least 16 characters). Set it and restart the API.",
+    "tokenUnavailable": "The server is not answering, so the token cannot be verified. Nothing was changed — check the connection and try again.",
+    "tokenChecking": "Checking the install token",
+    "retry": "Try again",
+    "stepLoadError": "This step could not be read. The form is hidden so it cannot overwrite a configuration that already exists.",
+    "requestId": "Request id: {{requestId}}",
+    "profile": {
+      "heading": "Installation package",
+      "body": "The package decides which steps and add-ons the wizard offers. You can extend it later; until the first data is saved you may also change it.",
+      "minimum": {
+        "title": "Minimum",
+        "description": "The core: one SuperAdmin, an organizational unit, a service and routing. No team, SMTP or extra modules."
+      },
+      "standard": {
+        "title": "Standard",
+        "description": "Minimum plus team, SMTP and email, group rules and starting SLA. Recommended for most installations."
+      },
+      "full": {
+        "title": "Full",
+        "description": "Standard plus knowledge base, status page, on-call, announcements and the ITSM modules (CMDB, problems, changes)."
+      },
+      "recommended": "Recommended",
+      "estimate": "Takes about {{minutes}} min",
+      "select": "Choose",
+      "selected": "Chosen",
+      "showAll": "Show all",
+      "showAllHint": "Everything this package includes.",
+      "itemRequired": "Required",
+      "itemOptional": "Optional",
+      "customize": "Fine-tune the package",
+      "customizeHint": "Turn off a step you do not want to do now — the wizard skips it and you finish it from Settings later.",
+      "customizeFootNote": "Only steps the registry allows may be deferred. The remaining package items are configured during the wizard or later in Settings.",
+      "lockedHint": "Without this step the installation cannot receive tickets.",
+      "current": "Currently stored: {{profile}}",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "submit": "Continue with this package",
+      "saving": "Saving…",
+      "errorLocked": "After the first data is saved the package can only be extended.",
+      "errorGeneric": "The package cannot be saved right now.",
+      "item": {
+        "tokenGate": "Install token",
+        "superAdmin": "SuperAdmin account",
+        "organizationIdentity": "Organisation identity",
+        "branding": "Branding (logo, contacts)",
+        "loginMode": "Sign-in mode",
+        "structure": "Organisational structure",
+        "firstService": "First service with a form and routing",
+        "team": "Team and roles",
+        "smtp": "SMTP and a test send",
+        "emailNotifications": "Email notifications",
+        "catalogBlueprints": "Service catalogue from a blueprint",
+        "policyPackIt": "IT policy pack",
+        "addonsOverview": "Add-on overview",
+        "handlerLevels": "L1/L2 groups",
+        "slaOverview": "SLA overview (profiles, calendar, priorities)",
+        "securityRecommendations": "Security recommendations",
+        "inboundEmail": "Inbound email (mailbox becomes a ticket)",
+        "directorySync": "Directory sync (AD/LDAPS)",
+        "knowledgeBase": "Knowledge base",
+        "statusPage": "Status page",
+        "onCall": "On-call rota",
+        "announcements": "Announcements",
+        "itsmModules": "ITSM modules (CMDB, problems, changes)",
+        "integrations": "Integrations (Teams, Edge)",
+        "privacyRetention": "Privacy, retention and audit webhook",
+        "provisioning": "Readiness check",
+        "readyScreen": "Final screen"
+      }
+    },
+    "step": {
+      "skip": "Configure later",
+      "skipped": "Deferred",
+      "undoSkip": "Return to the flow",
+      "skipErrorLocked": "The installation is locked — further changes go through Settings.",
+      "skipErrorNotAllowed": "This step cannot be deferred.",
+      "skipErrorUnknown": "Unknown step.",
+      "skipErrorGeneric": "The step cannot be deferred right now."
+    },
+    "readiness": {
+      "title": "Ready to receive tickets",
+      "superAdmin": "A SuperAdmin account exists.",
+      "authMode": "The sign-in mode is saved and valid.",
+      "organizationalUnit": "At least one organizational unit exists.",
+      "handlerGroup": "The fallback group has at least one active member.",
+      "service": "An active service with an active form exists.",
+      "routing": "Routing resolves exactly to a group.",
+      "slaProfile": "The first service has an active SLA profile.",
+      "roles": "The system roles and their permissions exist.",
+      "profileSteps": "Every step of the selected package is completed or deferred."
+    },
     "statusError": {
       "title": "The installation status could not be checked",
       "body": "The server did not answer the setup status request. Nothing was changed. Check the connection and try again.",
       "retry": "Try again"
+    },
+    "whatYouGet": {
+      "profile": {
+        "1": "Three ready-made packages, no technical decisions up front",
+        "2": "You see exactly what each package includes",
+        "3": "Anything you do not need now can be deferred"
+      },
+      "superAdmin": {
+        "1": "An account that can always sign in, even if the other sign-in method fails",
+        "2": "Stays local even with Entra AD sign-in",
+        "3": "The password is stored as a hash, never in settings"
+      },
+      "identity": {
+        "1": "Your name and logo on the sign-in page and in the app",
+        "2": "Language and time zone for reports",
+        "3": "Support email and link for your users"
+      },
+      "loginProvider": {
+        "1": "Local sign-in, or your Entra AD / LDAPS",
+        "2": "Break-glass access stays open",
+        "3": "Role mapping later in Settings"
+      },
+      "smtp": {
+        "1": "Outgoing email for tickets and notifications",
+        "2": "The password is stored as a secret",
+        "3": "Without SMTP the email add-on stays off"
+      },
+      "seed": {
+        "1": "Tickets go to the right group from the start",
+        "2": "Routing is proven before the first ticket",
+        "3": "The service gets an SLA profile"
+      },
+      "team": {
+        "1": "Colleagues get an account and a role right away",
+        "2": "Everyone joins the group that receives tickets",
+        "3": "Without SMTP you hand out the passwords yourself"
+      },
+      "addons": {
+        "1": "Switch on only what you need now",
+        "2": "The core (tickets, routing, audit) is always on",
+        "3": "Switching an add-on off never deletes data"
+      },
+      "complete": {
+        "1": "Readiness is checked before the wizard locks",
+        "2": "Deferred steps wait for you in Settings",
+        "3": "Sign-in goes to /login with the SuperAdmin account"
+      }
     }
   },
   "routing": {

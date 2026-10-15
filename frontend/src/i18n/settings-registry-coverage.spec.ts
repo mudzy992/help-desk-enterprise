@@ -107,12 +107,14 @@ function readDictionary(locale: (typeof locales)[number]): Dictionary {
 
 describe("settings registry translations (5.3.4)", () => {
   it("finds the key catalogue it guards", () => {
-    // The registry exposes 473 keys (5.4.1 adds the three CAPTCHA keys: the
+    // The registry exposes 482 keys (F2 adds the identity and team step flags;
+    // 5.4.1 added the three CAPTCHA keys: the
     // provider switch, the public site key and the secret key; 5.4.2 adds the
-    // three audit webhook keys: switch, URL and signing secret); a regression in
-    // the reader must fail loudly instead of silently passing because it found
-    // nothing to check.
-    expect(allKeys).toHaveLength(473);
+    // three audit webhook keys: switch, URL and signing secret; install wizard
+    // v2 (F1) adds the package choice and the six per-step "configure later"
+    // flags); a regression in the reader must fail loudly instead of silently
+    // passing because it found nothing to check.
+    expect(allKeys).toHaveLength(482);
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");
     // Nine pairs ship today: SMTP, Edge extension and Teams each have three.

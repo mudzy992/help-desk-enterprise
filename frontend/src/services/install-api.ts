@@ -1,23 +1,30 @@
 import { apiRequest } from "@/services/api";
+import type { InstallProfile } from "@/services/install-profile-api";
 
-export type InstallWizardStep =
-  "superAdmin" | "loginProvider" | "smtp" | "seed" | "addons" | "complete";
+export type InstallStepKey =
+  "profile" | "superAdmin" | "identity" | "loginProvider" | "smtp" | "seed" | "team" | "addons";
+
+export type InstallWizardStep = InstallStepKey | "complete";
 
 export type InstallStepState = {
   readonly completed: boolean;
   readonly skipped?: boolean;
+  /** F1: required by the package in effect (which defaults to `minimum`). */
+  readonly required?: boolean;
+  /** F1: present in the wizard of the package in effect. */
+  readonly offered?: boolean;
+  /** F1: still standing between the wizard and the final screen. */
+  readonly blocking?: boolean;
+  /** F3: the registry allows “Podesi kasnije” for this step. */
+  readonly skippable?: boolean;
 };
 
 export type InstallSetupStatus = {
   readonly isCompleted: boolean;
   readonly nextStep?: InstallWizardStep;
-  readonly steps?: {
-    readonly superAdmin: InstallStepState;
-    readonly loginProvider: InstallStepState;
-    readonly smtp: InstallStepState;
-    readonly seed: InstallStepState;
-    readonly addons: InstallStepState;
-  };
+  /** F1: the package chosen in the wizard; `null` while none is stored. */
+  readonly profile?: InstallProfile | null;
+  readonly steps?: Readonly<Record<InstallStepKey, InstallStepState>>;
 };
 
 export type InstallSuperAdminRecord = {
@@ -85,8 +92,15 @@ export function completeInstallSetup(): Promise<InstallSetupStatus> {
   });
 }
 
-export function loadInstallSuperAdmin(): Promise<InstallSuperAdminStatus> {
-  return apiRequest<InstallSuperAdminStatus>("/install/super-admin");
+/**
+ * F0.1: the token gate probes a candidate token before it is persisted, so the
+ * request may carry it explicitly. Every other caller reads the stored one.
+ */
+export function loadInstallSuperAdmin(token?: string): Promise<InstallSuperAdminStatus> {
+  return apiRequest<InstallSuperAdminStatus>(
+    "/install/super-admin",
+    token === undefined ? {} : { headers: { "X-Install-Token": token } },
+  );
 }
 
 export function loadInstallPasswordPolicy(): Promise<InstallPasswordPolicy> {

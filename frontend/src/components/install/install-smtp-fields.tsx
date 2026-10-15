@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
@@ -32,6 +33,9 @@ export function InstallSmtpFields({
   readonly onFromAddressChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
+  // IN11: the "already configured" note explains the empty password box, so it has
+  // to be announced with it — not left as a paragraph a screen reader skips.
+  const passwordHintId = useId();
   return (
     <>
       <label className={labelClassName}>
@@ -76,11 +80,16 @@ export function InstallSmtpFields({
           className={controlClassName}
           type="password"
           value={password}
+          aria-describedby={passwordConfigured ? passwordHintId : undefined}
           onChange={(event) => onPasswordChange(event.target.value)}
           autoComplete="new-password"
         />
       </label>
-      {passwordConfigured ? <p className={hintClassName}>{t("install.smtp.configured")}</p> : null}
+      {passwordConfigured ? (
+        <p id={passwordHintId} className={hintClassName}>
+          {t("install.smtp.configured")}
+        </p>
+      ) : null}
       <label className={labelClassName}>
         {t("install.smtp.fromAddress")}
         <input
