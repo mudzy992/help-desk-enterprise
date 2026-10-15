@@ -9,6 +9,7 @@ import type {
 } from './install-seed.types';
 
 export function toInstallSeedPublicRecord(input: {
+  readonly categoryName?: string | null;
   readonly organizationalUnit: InstallSeedOrganizationalUnit | null;
   readonly fallbackGroup: InstallSeedFallbackGroup | null;
   readonly service: InstallSeedService | null;
@@ -28,6 +29,7 @@ export function toInstallSeedPublicRecord(input: {
     input.resolution.groupId === input.fallbackGroup.id;
   return {
     isSeeded,
+    categoryName: input.categoryName ?? null,
     organizationalUnit:
       input.organizationalUnit === null
         ? null
@@ -55,6 +57,7 @@ export function toInstallSeedPublicRecord(input: {
             slug: input.service.slug,
             lifecycle: input.service.lifecycle,
             activeFormVersionRef: input.service.activeFormVersionRef ?? null,
+            slaProfileKey: input.service.slaProfileKey ?? null,
           },
     routingRule:
       input.routingRule === null

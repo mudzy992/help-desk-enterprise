@@ -256,6 +256,8 @@ export function createInMemoryInstallSuperAdminPrisma() {
       });
     },
     getUser: (userId: string) => users.get(userId),
+    readUser: (userId: string) => users.get(userId),
+    readUserIsActive: (userId: string) => users.get(userId)?.isActive,
     getUserByEmail: (email: string) =>
       [...users.values()].find((user) => user.email === email),
   };

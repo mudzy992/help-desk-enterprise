@@ -4,6 +4,9 @@ export type InMemoryInstallSeedGroup = {
   key: string;
   organizationalUnitId: string;
   isFallback: boolean;
+  /** Optional: only the groups module's richer reads need them (F0.6). */
+  isProblemGroup?: boolean;
+  isCabGroup?: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -43,11 +46,8 @@ export function createInMemoryInstallSeedGroupDelegate(
         const direction = (orderBy as Record<string, 'asc' | 'desc'>)[key ?? ''];
         const field = (key as keyof InMemoryInstallSeedGroup) ?? 'createdAt';
         matches.sort((left, right) => {
-          const leftValue = left[field];
-          const rightValue = right[field];
-          if (leftValue < rightValue) return direction === 'desc' ? 1 : -1;
-          if (leftValue > rightValue) return direction === 'desc' ? -1 : 1;
-          return 0;
+          const comparison = compareGroupValues(left[field], right[field]);
+          return direction === 'desc' ? -comparison : comparison;
         });
       }
       return matches[0] ?? null;
@@ -76,6 +76,8 @@ export function createInMemoryInstallSeedGroupDelegate(
         key: data.key,
         organizationalUnitId: data.organizationalUnitId,
         isFallback: data.isFallback,
+        isProblemGroup: data.isProblemGroup ?? false,
+        isCabGroup: data.isCabGroup ?? false,
         createdAt: now(),
         updatedAt: now(),
       };
@@ -152,4 +154,11 @@ function pickGroup(
     }
   }
   return picked;
+}
+
+function compareGroupValues(left: unknown, right: unknown): number {
+  if (left instanceof Date && right instanceof Date) {
+    return left.getTime() - right.getTime();
+  }
+  return String(left ?? '').localeCompare(String(right ?? ''));
 }
