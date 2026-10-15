@@ -81,9 +81,13 @@ async function attemptSignIn(
 /** Close an active announcement modal that would otherwise intercept the next page action. */
 export async function dismissAnnouncementModal(page: Page): Promise<void> {
   const later = page.getByRole('button', { name: /^(kasnije|later)$/i });
-  if (await later.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await later.click();
-  }
+  const appeared = await later
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!appeared) return;
+  await later.click();
+  await later.waitFor({ state: 'hidden', timeout: 5_000 });
 }
 
 export async function signIn(
