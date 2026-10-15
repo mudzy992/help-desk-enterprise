@@ -1,10 +1,12 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { buildInstallAddonsInput } from "@/lib/build-install-addons-input";
+import { useInstallStepResource } from "@/lib/install/use-install-step-resource";
 import { resolveInstallAddonCopy } from "@/lib/install-addon-copy";
 import {
   mapInstallAddonsSaveError,
@@ -16,31 +18,25 @@ import {
   type InstallAddonItem,
 } from "@/services/install-addons-api";
 
-export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }) {
+export function InstallAddonsStep({
+  onSaved,
+  isSaved = false,
+}: {
+  readonly onSaved?: () => void;
+  /**
+   * F0.5: `steps.addons.completed` from `/install/status` — true only once the
+   * catalog was saved at least once, so a refresh cannot skip the step (and the
+   * defaults are never silently accepted).
+   */
+  readonly isSaved?: boolean;
+}) {
   const { t } = useTranslation();
-  const [items, setItems] = useState<InstallAddonItem[]>([]);
+  const [draft, setDraft] = useState<readonly InstallAddonItem[] | null>(null);
   const [errorKey, setErrorKey] = useState<InstallAddonsErrorKey | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-    void loadInstallAddons()
-      .then((status) => {
-        if (!isCancelled) {
-          setItems([...status.addons.items]);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  // F0.2/IN3: no form until the stored catalog was read.
+  const resource = useInstallStepResource(loadInstallAddons);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,7 +44,7 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
     setErrorKey(null);
     try {
       const saved = await saveInstallAddons(buildInstallAddonsInput(items));
-      setItems([...saved.items]);
+      resource.setData({ addons: saved });
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallAddonsSaveError(error));
@@ -57,9 +53,15 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
     }
   };
 
-  if (isLoading) {
+  if (resource.status === "loading") {
     return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
+
+  if (resource.status === "error") {
+    return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
+  }
+
+  const items = draft ?? resource.data.addons.items;
 
   return (
     <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
@@ -69,15 +71,24 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
           item={item}
           disabled={isSubmitting}
           onEnabledChange={(enabled) =>
-            setItems((current) =>
-              current.map((entry) =>
+            setDraft(
+              items.map((entry) =>
                 entry.key === item.key && entry.canEnable ? { ...entry, enabled } : entry,
               ),
             )
           }
         />
       ))}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {isSaved ? null : (
+        <p className="text-[12px] leading-5 text-muted-foreground">
+          {t("install.addons.notSavedHint")}
+        </p>
+      )}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting || items.length === 0}>
           {isSubmitting ? t("install.addons.saving") : t("install.addons.submit")}

@@ -1,5 +1,21 @@
 import { addonSettingKey } from './addon-catalog';
 
+/**
+ * Install wizard v2 (F1): the "Podesi kasnije" flag of every wizard step. The
+ * set is closed on purpose — `<stepKey>` may only be a key from the step
+ * registry (`install/steps/install-step.registry.ts`), never a free string.
+ */
+export const installStepSkippedKeys = {
+  profile: 'private.install.steps.profile.skipped',
+  superAdmin: 'private.install.steps.superAdmin.skipped',
+  identity: 'private.install.steps.identity.skipped',
+  loginProvider: 'private.install.steps.loginProvider.skipped',
+  smtp: 'private.install.steps.smtp.skipped',
+  seed: 'private.install.steps.seed.skipped',
+  team: 'private.install.steps.team.skipped',
+  addons: 'private.install.steps.addons.skipped',
+} as const;
+
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
   publicBrandingTagline: 'public.branding.tagline',
@@ -17,6 +33,7 @@ export const settingKeys = {
   publicMaintenanceIsBlocking: 'public.maintenance.isBlocking',
   privateInstallCompletedAt: 'private.install.completedAt',
   privateInstallCompletedByUserId: 'private.install.completedByUserId',
+  privateInstallProfile: 'private.install.profile',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
   privateAuthAzureTenantId: 'private.auth.azureTenantId',

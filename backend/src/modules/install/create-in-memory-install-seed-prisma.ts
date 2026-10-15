@@ -8,13 +8,13 @@ import type {
   ServiceRecord,
 } from '../service-catalog/service-catalog.types';
 import type { FormVersionRecord } from '../service-catalog/service-forms.types';
-import {
-  matchesInMemoryRoutingRule,
-  type InMemoryRoutingRuleWhere,
-} from '../routing/in-memory-routing-store';
 import type { RoutingRuleRecord } from '../routing/routing.types';
+import { createInMemoryInstallGroupLookup } from './create-in-memory-install-group-lookup';
+import { createInMemoryInstallGroupMemberStore } from './create-in-memory-install-group-member-delegate';
 import { createInMemoryInstallSeedGroupDelegate } from './create-in-memory-install-seed-group-delegate';
 import type { InMemoryInstallSeedGroup } from './create-in-memory-install-seed-group-delegate';
+import { createInMemoryInstallSlaProfileDelegate } from './create-in-memory-install-sla-profile-delegate';
+import { createSeedRoutingRuleDelegate } from './create-in-memory-install-seed-routing-rule-delegate';
 import { createInMemoryInstallSeedUnitDelegate } from './create-in-memory-install-seed-unit-delegate';
 import { createInMemoryInstallSuperAdminPrisma } from './create-in-memory-install-super-admin-prisma';
 import {
@@ -40,13 +40,37 @@ export function createInMemoryInstallSeedPrisma() {
   const now = () => new Date('2026-09-11T10:00:00.000Z');
   const nextId = () => `seed-${nextIdentifier++}`;
 
+  const groupMembers = createInMemoryInstallGroupMemberStore({
+    readUserActive: (userId) => users.readUserIsActive(userId),
+    nextId,
+    now,
+  });
+  const slaProfiles = createInMemoryInstallSlaProfileDelegate({ nextId, now });
+  const baseGroupDelegate = createInMemoryInstallSeedGroupDelegate(
+    groups,
+    nextId,
+    now,
+  );
+  const readGroupLookup = createInMemoryInstallGroupLookup({
+    groups,
+    units,
+    readMembers: (groupId) =>
+      groupMembers.members.filter((member) => member.groupId === groupId),
+    readUser: (userId) => users.readUser(userId),
+    readGroup: (groupId) => groups.get(groupId),
+  });
   const prisma = {
     user: users.prisma.user,
     role: users.prisma.role,
     permission: users.prisma.permission,
     rolePermission: users.prisma.rolePermission,
     organizationalUnit: createInMemoryInstallSeedUnitDelegate(units, nextId, now),
-    group: createInMemoryInstallSeedGroupDelegate(groups, nextId, now),
+    group: {
+      ...baseGroupDelegate,
+      findUnique: readGroupLookup,
+    },
+    groupMember: groupMembers.prisma,
+    slaProfile: slaProfiles.prisma,
     serviceCategory: createInMemoryServiceCategoryDelegate(
       categories,
       nextId,
@@ -118,6 +142,11 @@ export function createInMemoryInstallSeedPrisma() {
   return {
     prisma,
     getRoleByKey: users.getRoleByKey,
+    seedGroupMember: (groupId: string, userId: string) =>
+      groupMembers.prisma.create({ data: { groupId, userId } }),
+    listGroupMembers: (groupId: string) =>
+      groupMembers.members.filter((member) => member.groupId === groupId),
+    seedSlaProfile: slaProfiles.seedProfile,
     listRolePermissionKeys: users.listRolePermissionKeys,
     seedUser: users.seedUser,
     seedUnit: (unit: InMemoryOrganizationalUnit) => units.set(unit.id, unit),
@@ -135,53 +164,5 @@ export function createInMemoryInstallSeedPrisma() {
     countServices: () => services.size,
     countFormVersions: () => formVersions.size,
     countRules: () => rules.size,
-  };
-}
-
-function createSeedRoutingRuleDelegate(
-  rules: Map<string, RoutingRuleRecord>,
-  nextId: () => string,
-  now: () => Date,
-  shouldFail: () => boolean,
-) {
-  return {
-    findMany: async ({
-      where,
-    }: {
-      where?: InMemoryRoutingRuleWhere;
-    } = {}) =>
-      [...rules.values()]
-        .filter((rule) => matchesInMemoryRoutingRule(rule, where))
-        .sort((left, right) => left.serviceId.localeCompare(right.serviceId)),
-    create: async ({
-      data,
-    }: {
-      data: { originUnitId: string; serviceId: string; groupId: string };
-    }) => {
-      if (shouldFail()) {
-        throw new Error('forced-routing-create-failure');
-      }
-      for (const existing of rules.values()) {
-        if (
-          existing.originUnitId === data.originUnitId &&
-          existing.serviceId === data.serviceId
-        ) {
-          throw {
-            code: 'P2002',
-            meta: { target: ['originUnitId', 'serviceId'] },
-          };
-        }
-      }
-      const created: RoutingRuleRecord = {
-        id: nextId(),
-        originUnitId: data.originUnitId,
-        serviceId: data.serviceId,
-        groupId: data.groupId,
-        createdAt: now(),
-        updatedAt: now(),
-      };
-      rules.set(created.id, created);
-      return created;
-    },
   };
 }

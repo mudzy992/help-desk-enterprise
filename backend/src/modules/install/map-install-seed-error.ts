@@ -14,6 +14,8 @@ import { InstallSeedError } from './install-seed.error';
 import type { InstallSeedErrorCode } from './install-seed.error';
 
 const messages: Record<InstallSeedErrorCode, string> = {
+  [installSeedErrorCodes.invalidStructure]:
+    'Organisational unit, group, category and service names must be 120 characters or fewer and must not contain a comma or an equals sign',
   SUPER_ADMIN_REQUIRED: 'Initial SuperAdmin must exist before seed',
   SEED_ROUTING_UNRESOLVED:
     'Seeded origin unit and service did not resolve to the fallback group',

@@ -38,9 +38,19 @@ export function createInMemorySettingsPrisma() {
             ...(select.value === true ? { value: row.value } : {}),
           };
         }),
-      deleteMany: async ({ where }: { where: { key: string } }) => {
-        const deleted = settings.delete(where.key);
-        return { count: deleted ? 1 : 0 };
+      /*
+        Prisma accepts both shapes (`key: 'x'` and `key: { in: [...] }`). The
+        install wizard's package reset deletes a whole list of keys in one call,
+        so a double that only understood the single-key form would silently
+        delete nothing and let a broken reset pass its tests.
+      */
+      deleteMany: async ({ where }: { where: { key: string | { in: readonly string[] } } }) => {
+        const keys = typeof where.key === 'string' ? [where.key] : where.key.in;
+        let count = 0;
+        for (const key of keys) {
+          if (settings.delete(key)) count += 1;
+        }
+        return { count };
       },
       upsert: async ({
         where,

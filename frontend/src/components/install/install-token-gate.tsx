@@ -1,7 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BrandLockup } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/services/api";
 import { loadInstallSuperAdmin } from "@/services/install-api";
 import {
@@ -10,44 +12,75 @@ import {
   writeInstallToken,
 } from "@/lib/install/install-token-store";
 
-type GateError = "invalid" | "notConfigured" | null;
+type GateError = "invalid" | "notConfigured" | "unavailable" | null;
 
 function toGateError(error: unknown): GateError {
-  if (error instanceof ApiError && error.code === "INSTALL_TOKEN_NOT_CONFIGURED")
-    return "notConfigured";
-  if (error instanceof ApiError && error.status === 403) return "invalid";
-  return null;
+  if (error instanceof ApiError) {
+    if (error.code === "INSTALL_TOKEN_NOT_CONFIGURED") return "notConfigured";
+    if (error.code === "INSTALL_TOKEN_INVALID" || error.status === 401 || error.status === 403) {
+      return "invalid";
+    }
+  }
+  // Network failure, timeout, 5xx — the token is neither proven good nor bad, so
+  // the wizard must stay shut (F0.1/IN2).
+  return "unavailable";
 }
 
-/** Review 2026-09-25 (S4): the wizard opens only after a valid INSTALL_TOKEN. */
+type GateMessageKey =
+  "install.tokenInvalid" | "install.tokenNotConfigured" | "install.tokenUnavailable";
+
+function errorMessageKey(error: GateError): GateMessageKey {
+  if (error === "invalid") return "install.tokenInvalid";
+  if (error === "notConfigured") return "install.tokenNotConfigured";
+  return "install.tokenUnavailable";
+}
+
+/**
+ * Review 2026-09-25 (S4): the wizard opens only after a valid INSTALL_TOKEN.
+ * F0.1 (IN2): it opens **only** on a successful `loadInstallSuperAdmin()` — the
+ * token is probed while still unsaved, so a network error, a 5xx or any unknown
+ * failure keeps the gate closed with a retry, and a rejected token is never
+ * written to the tab.
+ */
 export function InstallTokenGate({ children }: { readonly children: ReactNode }) {
   const { t } = useTranslation();
-  const [isUnlocked, setIsUnlocked] = useState(() => readInstallToken() !== null);
+  const [savedToken] = useState(() => readInstallToken());
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  // A stored token is verified silently on mount; until that answer arrives the
+  // wizard is neither shown nor replaced by the form.
+  const [isChecking, setIsChecking] = useState(savedToken !== null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<GateError>(null);
-  const [isChecking, setIsChecking] = useState(false);
 
-  if (isUnlocked) return <>{children}</>;
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const verify = useCallback(async (token: string, options: { readonly persist: boolean }) => {
     setIsChecking(true);
     setError(null);
-    writeInstallToken(value);
     try {
-      await loadInstallSuperAdmin();
+      await loadInstallSuperAdmin(token);
+      if (options.persist) writeInstallToken(token);
       setIsUnlocked(true);
     } catch (caught) {
       const gateError = toGateError(caught);
-      if (gateError === null) {
-        setIsUnlocked(true);
-        return;
+      if (gateError === "invalid" || gateError === "notConfigured") {
+        // The stored token is gone or wrong: drop it so a reload asks again.
+        clearInstallToken();
       }
-      clearInstallToken();
       setError(gateError);
     } finally {
       setIsChecking(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (savedToken === null) return;
+    void verify(savedToken, { persist: false });
+  }, [savedToken, verify]);
+
+  if (isUnlocked) return <>{children}</>;
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void verify(value, { persist: true });
   };
 
   return (
@@ -56,32 +89,56 @@ export function InstallTokenGate({ children }: { readonly children: ReactNode })
         <BrandLockup subtitle={t("install.title")} />
       </header>
       <main className="mx-auto w-full max-w-md px-4 py-10">
-        <form
-          className="space-y-3 rounded-lg border border-border bg-surface p-6 shadow-card"
-          onSubmit={(event) => void submit(event)}
-        >
-          <h2 className="text-[15px] font-semibold text-foreground">{t("install.tokenHeading")}</h2>
-          <p className="text-[12.5px] leading-5 text-muted-foreground">{t("install.tokenBody")}</p>
-          <label className="block text-[12px] font-medium text-foreground" htmlFor="install-token">
-            {t("install.tokenLabel")}
-          </label>
-          <input
-            id="install-token"
-            type="password"
-            autoComplete="off"
-            className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-          />
-          {error !== null ? (
-            <p role="alert" className="text-[12px] text-destructive">
-              {t(error === "invalid" ? "install.tokenInvalid" : "install.tokenNotConfigured")}
+        {isChecking ? (
+          <PanelSkeleton label={t("install.tokenChecking")} />
+        ) : (
+          <form
+            className="space-y-3 rounded-lg border border-border bg-surface p-6 shadow-card"
+            onSubmit={submit}
+          >
+            <h2 className="text-[15px] font-semibold text-foreground">
+              {t("install.tokenHeading")}
+            </h2>
+            <p className="text-[12.5px] leading-5 text-muted-foreground">
+              {t("install.tokenBody")}
             </p>
-          ) : null}
-          <Button type="submit" disabled={isChecking || value.trim().length === 0}>
-            {t("install.tokenSubmit")}
-          </Button>
-        </form>
+            <label
+              className="block text-[12px] font-medium text-foreground"
+              htmlFor="install-token"
+            >
+              {t("install.tokenLabel")}
+            </label>
+            <input
+              id="install-token"
+              type="password"
+              autoComplete="off"
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+            {error !== null ? (
+              <div className="grid gap-2" role="alert">
+                <p className={errorTextClassName}>{t(errorMessageKey(error))}</p>
+                {error === "unavailable" ? (
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={value.trim().length === 0}
+                      onClick={() => void verify(value, { persist: true })}
+                    >
+                      {t("install.retry")}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            <Button type="submit" disabled={value.trim().length === 0}>
+              {t("install.tokenSubmit")}
+            </Button>
+          </form>
+        )}
       </main>
     </div>
   );

@@ -1,3 +1,5 @@
+import type { InstallLoginProviderRecord } from "@/services/install-api";
+
 export type InstallLoginProviderMode = "local" | "entra_ad";
 
 export type InstallLoginProviderFormValues = {
@@ -19,6 +21,26 @@ export type InstallLoginProviderInput = {
   readonly adBindDn?: string;
   readonly adBindPassword?: string;
 };
+
+/**
+ * F0.2/IN3: the form mirrors what the server stored; `local` is only a starting
+ * value once the load succeeded (`isEntraConfigured` decides the rest).
+ */
+export function toInstallLoginProviderFormValues(
+  record: InstallLoginProviderRecord,
+): InstallLoginProviderFormValues {
+  return {
+    mode: record.mode,
+    azureTenantId: "",
+    azureClientId: "",
+    adLdapsUrlsCsv: record.directoryBind.urls,
+    adBindDn: "",
+    adBindPassword: "",
+    entraAlreadyConfigured: record.entra.tenantIdConfigured && record.entra.clientIdConfigured,
+    directoryBindAlreadyConfigured:
+      record.directoryBind.bindDnConfigured && record.directoryBind.bindPasswordConfigured,
+  };
+}
 
 export function isInstallLoginProviderFormReady(values: InstallLoginProviderFormValues): boolean {
   if (values.mode === "local") {

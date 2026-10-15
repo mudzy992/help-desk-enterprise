@@ -18,12 +18,15 @@ import {
 } from '../service-catalog/record-service-catalog-change';
 import { ServiceCatalogError } from '../service-catalog/service-catalog.error';
 import type { ServiceLifecycleConfiguration } from '../service-catalog/service-catalog.types';
-import { installSeedConstants } from './install-seed.constants';
 import { toSeedService } from './find-install-seed-service-candidate';
+import { defaultInstallSeedNames, type InstallSeedNames } from './install-seed.names';
+import type { InstallSeedSlaContext } from './install-seed.types';
 import type { InstallSeedService } from './install-seed.types';
 
 export type PersistedInstallSeedService = {
   readonly service: InstallSeedService;
+  /** F2: the category that was used — an existing one keeps its own name. */
+  readonly categoryName: string;
   readonly categoryCreated: boolean;
   readonly serviceCreated: boolean;
 };
@@ -32,8 +35,13 @@ export async function persistInstallSeedService(
   prisma: PrismaService,
   actorUserId: string,
   configuration: ServiceLifecycleConfiguration,
+  input: {
+    readonly names?: InstallSeedNames;
+    readonly slaProfile?: InstallSeedSlaContext;
+  } = {},
 ): Promise<PersistedInstallSeedService> {
-  const category = await ensureSeedCategory(prisma, actorUserId);
+  const names = input.names ?? defaultInstallSeedNames;
+  const category = await ensureSeedCategory(prisma, actorUserId, names);
   if (
     !isAllowedServiceLifecycleState(
       configuration.defaultStateOnCreate,
@@ -43,8 +51,8 @@ export async function persistInstallSeedService(
     throw new ServiceCatalogError('INVALID_LIFECYCLE_STATE');
   }
   await assertServiceCategoryExists(prisma, category.id);
-  const name = normalizeServiceName(installSeedConstants.serviceName);
-  const slug = normalizeServiceSlug(installSeedConstants.serviceSlug);
+  const name = normalizeServiceName(names.serviceName);
+  const slug = normalizeServiceSlug(names.serviceSlug);
   await assertServiceSlugIsAvailable(prisma, slug);
   const created = await prisma.service.create({
     data: {
@@ -57,6 +65,9 @@ export async function persistInstallSeedService(
       isConfidentialDefault: false,
       autoAssignStrategy: 'NONE',
       policyPackId: null,
+      // F2: a service without SLA has no response clock — the wizard attaches
+      // the standard profile (when the deployment seeded one).
+      slaProfileId: input.slaProfile?.id ?? null,
     },
   });
   await recordServiceCatalogChange(prisma, {
@@ -74,7 +85,11 @@ export async function persistInstallSeedService(
     actorUserId,
   });
   return {
-    service: toSeedService(created),
+    service: {
+      ...toSeedService(created),
+      slaProfileKey: input.slaProfile?.key ?? null,
+    },
+    categoryName: category.name,
     categoryCreated: category.created,
     serviceCreated: true,
   };
@@ -108,26 +123,29 @@ export async function activateInstallSeedService(
     },
     actorUserId,
   });
-  return toSeedService(updated);
+  // The activation reloads the row, which only carries `slaProfileId`; the key
+  // the seed already resolved is kept so the wizard can show it.
+  return { ...toSeedService(updated), slaProfileKey: service.slaProfileKey ?? null };
 }
 
 async function ensureSeedCategory(
   prisma: PrismaService,
   actorUserId: string,
-): Promise<{ id: string; created: boolean }> {
+  names: InstallSeedNames,
+): Promise<{ id: string; name: string; created: boolean }> {
   const bySlug = await prisma.serviceCategory.findUnique({
-    where: { slug: installSeedConstants.categorySlug },
-    select: { id: true },
+    where: { slug: names.categorySlug },
+    select: { id: true, name: true },
   });
   if (bySlug !== null) {
-    return { id: bySlug.id, created: false };
+    return { id: bySlug.id, name: bySlug.name, created: false };
   }
   const existing = await prisma.serviceCategory.findMany();
   if (existing[0] !== undefined) {
-    return { id: existing[0].id, created: false };
+    return { id: existing[0].id, name: existing[0].name, created: false };
   }
-  const name = normalizeServiceName(installSeedConstants.categoryName);
-  const slug = normalizeServiceSlug(installSeedConstants.categorySlug);
+  const name = normalizeServiceName(names.categoryName);
+  const slug = normalizeServiceSlug(names.categorySlug);
   await assertCategoryParentIsValid(prisma, { parentId: null });
   await assertServiceCategorySlugIsAvailable(prisma, slug);
   const created = await prisma.serviceCategory.create({
@@ -140,5 +158,5 @@ async function ensureSeedCategory(
     diff: { after: { name, slug, parentId: null } },
     actorUserId,
   });
-  return { id: created.id, created: true };
+  return { id: created.id, name: created.name, created: true };
 }

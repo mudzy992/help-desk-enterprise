@@ -162,3 +162,67 @@ Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rad
 
 - **IN1 (urađeno):** greška pri učitavanju statusa više ne postavlja `isCompleted: false`. Gate prikazuje `InstallStatusError` sa dugmetom za ponovni pokušaj (vidjeti `01-ljuska-routing-navigacija.md`, B1).
 - IN2, IN3, IN4, IN5, IN6, IN7, IN9, IN14: otvoreno, rade se u paketu 6.1.11.
+
+## Status ispravki (Install wizard v2 — F0 + F1, 2026-10-15)
+
+Obim ove sesije: samo **F0 (stabilizacija)** i **F1 (backend osnova)** iz `.cursor/plans/install-wizard-v2/`. F2–F6 (identitet, tim, nova ljuska, standard/full sadržaj, E2E 51/52, dashboard checklista) nisu rađeni.
+
+**Zatvoreno**
+
+- **IN2 (urađeno, F0.1):** `install-token-gate.tsx` otključava **samo** na uspješan `GET /install/super-admin`. Token se šalje kandidatom (`loadInstallSuperAdmin(token)`), a u `sessionStorage` upisuje tek nakon uspjeha; mrežna greška, 5xx i timeout ostavljaju gate zatvoren uz `install.tokenUnavailable` i „Pokušaj ponovo“; `INSTALL_TOKEN_INVALID`/403 i `INSTALL_TOKEN_NOT_CONFIGURED` imaju svoje poruke i brišu sačuvani token. Test: `install-token-gate.spec.tsx` (5 slučajeva).
+- **IN3 (urađeno, F0.2):** novi `lib/install/use-install-step-resource.ts` (`loading | error | ready`, retry, cancel na unmount, `setData` nakon snimanja) + `components/install/install-step-load-error.tsx` (poruka, request id, retry). Primijenjeno na super admin, prijava, SMTP, seed i dodatke: u `error` stanju forma se **ne** renderuje. Testovi: `use-install-step-resource.spec.tsx`, `install-step-load-error.spec.tsx`, `install-smtp-step.spec.tsx` (dokaz da nema polja ni dugmeta).
+- **IN4 (urađeno, F0.3):** `pages/install-page.tsx` nema više lokalni `setStep` ni `.catch(() => setStep("superAdmin"))`; korak se računa iz konteksta (`resolve-rendered-step.ts`), a fallback je prvi korak koji paket još blokira (`steps.<key>.blocking`), nikad slijepo prvi korak.
+- **IN5 (urađeno, F0.3):** status čita samo `InstallSetupProvider` (`nextStep`, `steps`, `profile`, `readiness`); korak nakon snimanja zove `reload()`, a osvježavanje zadržava prikazani ekran umjesto da vrati skeleton.
+- **IN1 (ostaje urađeno, potvrđeno):** provider i dalje na grešku ide u `error` stanje; dopunjen test u `install-setup-layout.spec.tsx` mock-om readiness poziva.
+- **Nalaz „complete bez readiness provjere“ (urađeno, F0.7):** `evaluate-install-readiness.ts` (čista funkcija, 8 provjera iz `00_overview.md` §3) + `read-install-readiness-source.ts`; `install-complete.service.ts` odbija nedovršenu instalaciju sa `409 INSTALL_NOT_READY` i `details.missing`; frontend `map-install-complete-error.ts` prevodi u `install.complete.notReady` i ispisuje listu kroz `install.readiness.<key>`. Testovi: `evaluate-install-readiness.spec.ts`, `install-complete.service.spec.ts` (novi slučaj), `map-install-complete-error.spec.ts`.
+- **Nalaz „korak Dodaci se preskače nakon osvježavanja“ (urađeno, F0.5):** `read-install-step-states.ts` računa `addons.completed` iz `has-saved-install-addons.ts` (bar jedan upisan `private.addons.*` ključ). Test: `install-setup.addons.spec.ts`. Frontend prikazuje `install.addons.notSavedHint` dok korak nije potvrđen.
+- **Nalaz „prazna fallback grupa“ (urađeno, F0.6):** `seed-install-minimum.ts` poziva `ensure-install-fallback-group-member.ts`, koji kroz istu domensku funkciju kao `POST /groups/:groupId/members/:userId` (`addGroupMember`) dodaje SuperAdmina u grupu; ponovljeni seed ne duplira članstvo (test u `install-seed.reuse.spec.ts` / gotovini wizarda).
+- **Greške bez `role="alert"` (urađeno, F0.4):** seed, SMTP, prijava i završetak sada imaju `role="alert"`; super admin je imao samo listu pravila lozinke, pa je dodat i na opštu grešku.
+- **IN13 (djelimično):** obrazac `useEffect` + `isCancelled` + skeleton zamijenjen jednim hookom u pet koraka; `InstallStepLoadError` je jedan zajednički prikaz.
+
+**Novi nalazi iz F0/F1**
+
+| ID | Ozbiljnost | Nalaz | Lokacija |
+|---|---|---|---|
+| IN15 | Srednja | `GET /install/status` sada nosi `profile` i `steps.<key>.{skipped,required,offered,blocking}`, ali ljuska ih još ne koristi (korak paketa nema UI) — do F3 stanje je vidljivo samo kroz API. | `frontend/src/pages/install-page.tsx`, `lib/install/resolve-rendered-step.ts` |
+| IN16 | Niska | Katalog paketa vraća `labelKey` oblika `install.profile.item.<key>`; prijevodi tih ključeva još nisu upisani (F3 ih dodaje uz ekran paketa). Do tada bi ekran paketa prikazao sirove ključeve. | `backend/src/modules/install/install-profile.catalog.ts`, `frontend/src/i18n/locales/{bs,en}/common.json` |
+| IN17 | Niska | Zatvoren u F3: „Podesi kasnije“ je u footeru ljuske za svaki `skippable` korak, ostatak je opisan u F3 bloku. | `frontend/src/components/install/`, `services/install-profile-api.ts` |
+| IN18 | Niska | Zatvoren nakon F3: install ključevi nose `readOnly` metadata, red u listi ima oznaku „Čarobnjak“, a dijalog prikazuje objašnjenje bez editora i bez dugmeta za snimanje. | `backend/src/modules/settings/definitions/install-wizard-settings.ts`, `frontend/src/components/settings/settings-registry-row.tsx` |
+
+**I dalje otvoreno**
+
+- **IN6:** `resolveInstallWizardStep` nije korišten u produkciji (samo `installWizardCopyKeys` iz istog fajla); `InstallWizardStep` tip postoji u `services/install-api.ts` i `lib/resolve-install-wizard-step.ts`. Uklanjanje je dio F3 ljuske.
+- **IN7:** token je i dalje u `sessionStorage` (ranije se nije provjeravao; sada se pri mountu tiho provjerava i briše ako padne). Prelazak na memoriju tab-a nije u obimu F0/F1.
+- **IN8, IN9, IN10:** zaglavlje/raster gate-a i ljuske i dalje su dva mjesta; `fallbackPasswordPolicy` i dalje postoji kao fallback dok serverska pravila ne stignu (namjerno, sa komentarom); oznake tipa „F0.1 (IN2)“ u komentarima su zadržane kao i ostatak repoa.
+- **IN11, IN12:** povratak na prethodni korak i `aria-describedby` za hint lozinke/Entra/LDAPS polja — F3.
+- **IN14:** dodati komponentski testovi (gate, hook, load error, SMTP korak, provider/ljuska), ali još nema testova za svaki korak niti E2E prolaska kroz UI čarobnjaka (F6, projekat `install-wizard`, scenariji 51/52).
+
+**Status nakon F2 (Minimum sadržaj)**
+
+- **IN16 (i dalje otvoreno):** prijevodi `install.profile.item.*` čekaju F3 ekran paketa.
+- **IN17 (djelimično urađeno, F2.3):** korak **Tim** sada ima dugme „Podesi kasnije“ (`install.step.skip` → `skipInstallStep("team")`) i time je Minimum završiv bez tima; SMTP i dodaci dobijaju isto dugme u F3, a povratak na odgođeni korak (`install.step.undoSkip`) tek sa ljuskom F3.
+- **IN18 (i dalje otvoreno, prošireno):** sada su vidljiva i dva nova ključa (`private.install.steps.{identity,team}.skipped`) — read-only oznaka u metadata-i je F3.
+- **Novi koraci nose isti F0 obrazac:** `install-identity-step.tsx`, `install-structure-step.tsx` (zamjenjuje `install-seed-step.tsx`) i `install-team-step.tsx` renderuju formu isključivo iz `useInstallStepResource` stanja `ready`, a grešku prikazuje `InstallStepLoadError` — IN3 je time pokriven i za F2 korake (testovi u `install-identity-step.spec.tsx`, `install-structure-step.spec.tsx`, `install-team-step.spec.tsx`).
+- **Privremene lozinke:** `install-team-credentials-dialog.tsx` prikazuje ih jednom (odluka vlasnika 2) i nikad ih ne čita ponovno; `temporaryPasswordDelivery = email` se prikazuje kao poruka bez lozinke.
+- **IN15 (i dalje otvoreno):** `steps.<key>` iz `GET /install/status` sada uključuje `identity`/`team` i ljuska ih renderuje, ali ekran izbora paketa i dalje čeka F3.
+- **IN14 (djelimično):** dodati komponentski testovi za tri F2 koraka + `install-identity-form.spec.ts`; E2E prolaz kroz UI (F6) ostaje otvoren.
+
+**Status nakon F3 (ljuska)**
+
+- **IN15 (zatvoren, F3):** ekran izbora paketa postoji i `GET /install/status` se koristi u cijelosti — `profile`, `steps.<key>.{completed,skipped,required,offered,skippable,blocking}`; rail crta stanja iz istog payloada, a korak paketa je **prvi i blokira**.
+- **IN16 (zatvoren, F3):** `install.profile.item.*` prijevodi (27 stavki) su u oba lokalata, uz `install.profile.{recommended,estimate,showAll,showAllHint,itemRequired,itemOptional,customize,customizeHint,customizeFootNote,lockedHint,current,errorSuperAdmin}` i `install.shell.*`/`install.whatYouGet.*`.
+- **IN17 (zatvoren, F3):** „Podesi kasnije“ je sada u footeru svakog koraka koji registry označi `skippable` (SMTP, tim, dodaci), a `install.step.undoSkip` („Vrati u tok“) radi iz pregleda odgođenog koraka. Odluka ide preko `steps.<key>.skippable` iz statusa — UI ne vodi svoju listu dozvoljenih koraka. Korak **Tim** je pri tome izgubio vlastito dugme (F2) da dozvola ostane na jednom mjestu.
+- **IN6 (zatvoren, F3):** obrisani `lib/resolve-install-wizard-step.ts` i njegov spec; redoslijed/ikone/naslovi/„Šta dobijaš“ žive u `lib/install/install-step-presentation.ts`, a `pages/install-page.tsx` je kompozicija (94 linije).
+- **IN11 (zatvoren, F3 + nalazi):** povratak na prethodni korak postoji i **namjerno je pregled, ne kursor** — `useInstallStepNavigation` otvara samo korak koji paket nudi i koji je već odgovoren (završen ili odgođen), nikad zaključan ili neodgovoren, i resetuje se čim server pomjeri korak. `aria-describedby` je dodan na polja s napomenom (lozinka foundera + pravila politike, SMTP lozinka, Entra tenant/client, LDAPS bind, time zone i logo) — napomena koja objašnjava polje sada putuje s poljem, a kod Entra/LDAPS je i izmještena iz `<label>` da ne ulazi u pristupačno ime kontrole.
+- **IN18 (zatvoren):** `SettingDefinitionCommon.readOnly` + `SettingRegistryEntry.readOnly`; svi ključevi čarobnjaka (`private.install.profile` + osam `steps.*.skipped`) su označeni, red u registry listi nosi oznaku „Čarobnjak“, a detalj prikazuje `settings.detail.readOnlyHint` uz onemogućen editor i bez snimanja. API namjerno **ne** odbija ručni `POST /settings/*` — ovo je metadata za UI, ne novo pravilo.
+- **IN14 (djelimično, F3):** dodati specovi za ljusku (rail stanja, fokus na naslov, reduced motion), feature karticu (zavisnost gasi switch) i ekran paketa (izbor, odgađanje vs zaključano, `errorLocked`) + `use-install-step-navigation.spec.tsx`; E2E prolaz kroz UI (F6) ostaje otvoren.
+- **IN19 (zatvoren):** `planInstallProfileReset` sada prima i `previousProfile` i vraća `reopenedStepKeys` — koraci koje novi paket **traži**, a stari ih je samo nudio. `InstallProfileService` briše odgodu samo ako je stvarno bila postavljena (`progress[key].skipped`), u istoj transakciji kao izbor paketa i s istim change-log zapisom, a odgovor `POST /install/profile` nosi `reopenedSteps`. Ljuska iznad vraćenog koraka pokaže `install.shell.reopened` („Novi paket traži ovaj korak…“), pa odgoda pod Minimumom nije tihi odgovor za Standard — operator je donosi ponovno, svjesno. F1 pravilo („koraci koji ostaju zadržavaju stanje“) i dalje važi za sadržaj koraka; mijenja se samo **odgoda**.
+- **Popravljeno u F3:** `/install` nije bio unutar `InstallSetupLayout`, pa je neuspješno čitanje statusa prikazivalo skeleton bez izlaza; sada `error` → `GateStatusError` sa „Pokušaj ponovo“.
+- **Otvoreno za F6 (kriterij prihvatanja F3):** Lighthouse a11y za `/install` ≥ 95 nije mjeren (nema browsera u sesiji) — urađeni su `vite build`, `tsc`, eslint, prettier i RTL testovi.
+- **Popravka testnog dvojnika (nađena uz IN19):** `createInMemorySettingsPrisma().appSetting.deleteMany` je razumio samo `key: string`, pa je F1 reset paketa (`key: { in: [...] }`) u testovima brisao **ništa** i prolazio. Dvojnik sada podržava i `{ in: [...] }` kao Prisma, a `install-profile.service.spec.ts` dokazuje da se odgođena zastavica stvarno briše.
+
+**Ocjena nakon F3 + nalaza: 9,0/10.** Prvi utisak je sada proizvod, a ne forma: brend pano nosi **stvarne** podatke instalacije, paket je prvi i obavezni korak, „Prilagodi“ mijenja tok kroz server (ne kroz UI trik), odgađanje i povratak su konzistentni u svakom koraku, a motion je ograničen i isključiv po sistemskoj postavci. Sva tri nalaza koja su držala ocjenu (IN19 u semantici paketa, IN18 read-only u registry ekranu, IN11 `aria-describedby`) su zatvorena, pa je jedina preostala stavka E2E prolaz kroz UI i mjerenje a11y u F6.
+
+**Ocjena nakon F2: 7,5/10.** Minimum je sada stvarno sadržajan (identitet, klijentski nazivi strukture, prvi servis sa SLA profilom, tim), svi novi koraci drže F0 obrazac (nema forme bez poznatog stanja), a „Podesi kasnije“ postoji u najmlađem koraku koji ga je u Minimumu i tražio. Ocjena ne ide više jer ekran paketa, opšte odgađanje iz UI-a i E2E pokrivenost još nisu tu (F3/F6).
+
+**Ocjena nakon F0/F1: 7/10.** Tok je sada konzervativan (nema forme bez poznatog stanja, nema otključavanja bez provjere, nema slijepog fallbacka, nema završetka bez readiness provjere), a server je jedini izvor stanja i paketa. Ocjena ne ide više jer su korisnički dijelovi paketa (izbor, odgađanje, povratak, checklista) još bez UI-a i bez E2E pokrivenosti, a dvije stvari iz IN6/IN7 ostaju tehnički dug.
