@@ -47,12 +47,13 @@ export function SlaPage() {
       unitOptions.find((option) => option.id === preferredId)?.id ?? unitOptions[0]?.id ?? null,
     );
   }, [isSessionLoading, organizationalUnitId, session?.organizationalUnitId, unitOptions]);
-  const data = useSlaPageData(organizationalUnitId);
+  const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
+  const [profilesPanel, setProfilesPanel] = useState<"profiles" | "compliance">("profiles");
+  const complianceActive = view === "profiles" && profilesPanel === "compliance";
+  const data = useSlaPageData(organizationalUnitId, complianceActive);
   const scopeLabel =
     unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? null;
   const mutations = useSlaPageMutations(data, canWrite);
-  const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
-  const [profilesPanel, setProfilesPanel] = useState<"profiles" | "compliance">("profiles");
   const returnToProfiles = () => {
     setView("profiles");
     setProfilesPanel("profiles");
