@@ -19,7 +19,7 @@ import {
   type ReportScheduleFormError,
 } from "@/lib/reports/report-schedule-form";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   reportErrorMessageKeys,
   type TrendsFilterOption,
@@ -111,6 +111,7 @@ export function ReportScheduleSheet({
   const [enabled, setEnabled] = useState(true);
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState<readonly ReportScheduleRecipient[]>([]);
+  const [candidateError, setCandidateError] = useState<ApiErrorKey | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -151,9 +152,12 @@ export function ReportScheduleSheet({
     if (!open || unitId === "") return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
+      setCandidateError(null);
       listReportRecipientCandidates(unitId, search)
         .then((loaded) => !cancelled && setCandidates(loaded.users))
-        .catch(() => !cancelled && setCandidates([]));
+        .catch((error: unknown) => {
+          if (!cancelled) setCandidateError(mapApiError(error));
+        });
     }, 250);
     return () => {
       cancelled = true;
@@ -439,7 +443,13 @@ export function ReportScheduleSheet({
               />
             </div>
             <ul className="mt-1.5 max-h-44 overflow-y-auto rounded-md border border-border/70">
-              {candidates.filter((candidate) => !selectedIds.has(candidate.id)).length === 0 ? (
+              {candidateError ? (
+                <p role="alert" className={errorTextClassName}>
+                  {t(candidateError)}
+                </p>
+              ) : null}
+              {candidateError === null &&
+              candidates.filter((candidate) => !selectedIds.has(candidate.id)).length === 0 ? (
                 <li className={`${hintClassName} px-3 py-2`}>
                   {t("reports.schedules.form.noCandidates")}
                 </li>

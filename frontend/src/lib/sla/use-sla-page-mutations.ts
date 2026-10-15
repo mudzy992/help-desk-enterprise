@@ -47,7 +47,7 @@ export function useSlaPageMutations(data: SlaPageData, canWrite: boolean) {
       } else {
         await updateSlaRule(editing.id, input);
       }
-      await data.load();
+      await data.reloadSelected();
     } catch (error) {
       data.setErrorKey(mapSlaError(error));
     } finally {
@@ -60,7 +60,7 @@ export function useSlaPageMutations(data: SlaPageData, canWrite: boolean) {
     setIsSubmitting(true);
     try {
       await deleteSlaRule(rule.id, reason.trim());
-      await data.load();
+      await data.reloadSelected();
     } catch (error) {
       data.setErrorKey(mapSlaError(error));
     } finally {

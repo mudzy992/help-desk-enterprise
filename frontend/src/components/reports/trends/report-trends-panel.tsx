@@ -41,6 +41,7 @@ import {
   reportTrendPriorities,
   type ReportTrendGranularity,
   type ReportTrendPriority,
+  type ReportTrendsQuery,
   type ReportTrendsResponse,
 } from "@/services/report-trends-api";
 
@@ -143,9 +144,12 @@ export function ReportTrendsPanel({
       return;
     }
     let cancelled = false;
+    const currentQuery = JSON.parse(queryKey ?? "{}") as ReportTrendsQuery;
+    setTrends(null);
+    onLoaded?.(null);
     setIsLoading(true);
     setError(null);
-    fetchReportTrends(query)
+    fetchReportTrends(currentQuery)
       .then((loaded) => {
         if (cancelled) return;
         setTrends(loaded);
@@ -165,8 +169,7 @@ export function ReportTrendsPanel({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the serialized query is the dependency
-  }, [queryKey]);
+  }, [onLoaded, query, queryKey]);
 
   const allowed = allowedTrendGranularities(state.from, state.to);
   const automatic = estimateTrendGranularity(state.from, state.to);

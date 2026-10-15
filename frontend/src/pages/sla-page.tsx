@@ -208,11 +208,18 @@ export function SlaPage() {
             />
           </div>
         ) : (
-          <SlaComplianceCard
-            compliance={data.compliance}
-            isLoading={data.isLoading}
-            scopeLabel={scopeLabel}
-          />
+          <>
+            {data.complianceErrorKey ? (
+              <p role="alert" className={errorTextClassName}>
+                {t(data.complianceErrorKey)}
+              </p>
+            ) : null}
+            <SlaComplianceCard
+              compliance={data.compliance}
+              isLoading={data.isComplianceLoading}
+              scopeLabel={scopeLabel}
+            />
+          </>
         )}
       </div>
     </section>

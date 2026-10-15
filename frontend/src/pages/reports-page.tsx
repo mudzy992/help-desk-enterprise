@@ -1,5 +1,5 @@
 import { BarChart3, Printer } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ReportPrintHeader, useLightPrintTheme } from "@/components/reports/print/report-print";
@@ -42,6 +42,7 @@ import {
   type ReportPreset,
 } from "@/lib/reports/report-window";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
@@ -74,6 +75,10 @@ export function ReportsPage() {
   const [preset, setPreset] = useState<ReportPreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [unitError, setUnitError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
+  const dashboardGuard = useRef(createLatestRequestGuard());
   const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
   const [serviceOptions, setServiceOptions] = useState<readonly TrendsFilterOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<readonly TrendsFilterOption[] | null>(null);
@@ -81,23 +86,31 @@ export function ReportsPage() {
   const [trends, setTrends] = useState<ReportTrendsResponse | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = readTab(searchParams.get("tab"), canSchedule);
+  const initialUnitId = useRef(searchParams.get("organizationalUnitId")).current;
   const needsFilters = tab === "trends" || tab === "schedules";
   useLightPrintTheme();
 
   const trendsState = useMemo(() => parseTrendsSearch(searchParams, new Date()), [searchParams]);
 
+  const loadUnits = useCallback(async () => {
+    setUnitError(null);
+    try {
+      const tree = await listOrganizationalUnitTree();
+      const options = flattenOriginUnitOptions(tree);
+      setUnitOptions(options);
+      const fromUrl = initialUnitId;
+      setOrganizationalUnitId(
+        options.find((option) => option.id === fromUrl)?.id ?? options[0]?.id ?? null,
+      );
+    } catch (error) {
+      setOrganizationalUnitId(null);
+      setUnitError({ key: mapApiError(error), requestId: readApiRequestId(error) });
+    }
+  }, [initialUnitId]);
+
   useEffect(() => {
-    void listOrganizationalUnitTree()
-      .then((tree) => {
-        const options = flattenOriginUnitOptions(tree);
-        setUnitOptions(options);
-        const fromUrl = new URLSearchParams(window.location.search).get("organizationalUnitId");
-        setOrganizationalUnitId(
-          options.find((option) => option.id === fromUrl)?.id ?? options[0]?.id ?? null,
-        );
-      })
-      .catch(() => setOrganizationalUnitId(null));
-  }, []);
+    void loadUnits();
+  }, [loadUnits]);
 
   // Service and group filters are loaded only for the tabs that use them.
   useEffect(() => {
@@ -134,6 +147,7 @@ export function ReportsPage() {
   const toIso = window_.to.toISOString();
 
   const reload = useCallback(async () => {
+    const request = dashboardGuard.current.begin();
     if (organizationalUnitId === null) {
       setDashboard(null);
       setIsLoading(false);
@@ -148,13 +162,14 @@ export function ReportsPage() {
         from: fromIso,
         to: toIso,
       });
-      setDashboard(loaded);
+      if (dashboardGuard.current.isCurrent(request)) setDashboard(loaded);
     } catch (error) {
+      if (!dashboardGuard.current.isCurrent(request)) return;
       setDashboard(null);
       setErrorKey(mapApiError(error));
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoading(false);
+      if (dashboardGuard.current.isCurrent(request)) setIsLoading(false);
     }
   }, [organizationalUnitId, fromIso, toIso]);
 
@@ -295,7 +310,14 @@ export function ReportsPage() {
         />
         <UnderlineTabs className="mb-4" items={tabs} active={tab} onChange={changeTab} />
       </div>
-      {tab === "csat" ? (
+      {unitError ? (
+        <div className="grid gap-2">
+          <ApiErrorText messageKey={unitError.key} requestId={unitError.requestId} />
+          <Button size="sm" variant="outline" onClick={() => void loadUnits()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      ) : tab === "csat" ? (
         <ReportsCsatPanel />
       ) : tab === "bottlenecks" ? (
         <ReportsBottlenecksPanel

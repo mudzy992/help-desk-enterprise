@@ -1,22 +1,61 @@
 # Modul 8: Izvještaji i SLA
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, grep, provjera backend zaštite). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **RS** (izvještaji i SLA). Ovo se ne miješa sa R (modul 6), S (modul 5) i KB (modul 7).
+Datum zatvaranja: 2026-10-15
+Val: **6.1.8**
+Status: **zatvoren**
 
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/reports-page.tsx` (414), `pages/sla-page.tsx` (215), `lib/sla/use-sla-page-data.ts` (125), `lib/sla/use-sla-page-mutations.ts` (90), `lib/reports/report-window.ts` (134), `lib/reports/report-schedule-form.ts` (54), `components/reports/print/report-print.tsx` (66), `components/reports/reports-date-filter.tsx` (87, dio), `components/reports/reports-csat-panel.tsx` (dio), `components/reports/reports-bottlenecks-panel.tsx` (50–100), `components/reports/report-packs-panel.tsx` (43–130), `components/sla/sla-compliance-card.tsx` (1–60), `components/sla/sla-profile-list.tsx`, `components/sla/sla-escalation-rules-panel.tsx` (36–100), `components/reports/schedules/report-schedules-panel.tsx` (69–180).
-- Čitanje dijelova: `components/reports/trends/report-trends-panel.tsx` (104–200, 296–372, 706–716), `components/reports/schedules/report-schedule-sheet.tsx` (145–160), `lib/reports/report-trends-view.ts` (1–130), `lib/reports/csat-view.ts` (25–49), `lib/reports/report-format.ts` (28–36).
-- Backend: zaštita kontrolera `reports/*.controller.ts` i `sla/*.controller.ts` (klasni dekoratori `@UseGuards`, `@RequireRoles`, `@RequirePermissions`), `authorize-http-execution.ts`, `tickets/csat/tickets-csat-summary.controller.ts` (37–41), `tickets/csat/aggregate-ticket-csat.ts` (40–62).
-- Frontend dozvole: `lib/session/route-access.ts` (`canOpenReports` 57–, `canOpenSla` 136–138).
-- Metrike (grep, 66 fajlova, oko 9.200 linija): `useState` 163, `useEffect` 42, `as never` 10, `eslint-disable` 1, tihi `catch` 7, `setTimeout` 1, komentari sa oznakama plana 36, `window.print` 1, `aria-live`/`role=status|alert` 9.
-- E2E: `12-reports-packs`, `17-reports-trends`, `18-reports-schedules`, `19-reports-print`, `07-sla`, `42-catalog-sla-routing-ux`, `22-accessibility` (dodiruje oba modula).
-- Unit testovi: 15 spec fajlova u `lib/reports/` i `lib/sla/` i `services/sla-api.spec.ts`. Backend: 26 testova za reports.
-- **Nije pokrenut pregledač.** Nalazi označeni „za provjeru“ treba potvrditi u pregledaču.
-- **Nije pročitano u punom obimu:** `components/reports/trends/report-trends-panel.tsx` (200–296, 372–706, 716–762), `components/reports/reports-charts.tsx` (158), `components/reports/reports-metric-grid.tsx` (132), `components/reports/schedules/report-schedules-panel.tsx` (180–491), `components/reports/schedules/report-schedule-sheet.tsx` (1–145, 160–454), `components/reports/reports-bottlenecks-panel.tsx` (100–211), `components/reports/report-packs-panel.tsx` (130–281), `components/sla/priority-matrix-panel.tsx` (206), `components/sla/sla-calendars-panel.tsx` (246), `components/sla/sla-calendar-form.tsx` (239), `components/sla/sla-rule-form.tsx` (178), `components/sla/sla-escalation-rule-form.tsx` (125), `components/sla/sla-profile-detail*.tsx`, `components/sla/sla-override-rules-card.tsx`, `lib/reports/map-report-dashboard-charts.ts` (120), `lib/reports/bottleneck-view.ts` (90), `lib/sla/sla-exposure-index.ts` (49), `services/sla-api.ts` (222), `services/sla-types.ts` (156), `services/reports-api.ts` (110), `services/report-trends-api.ts` (148), `services/report-schedules-api.ts` (138), `services/report-packs-api.ts` (100), `services/report-summary-api.ts` (80). Van ovog obima: `components/dashboard/dashboard-sla-watchlist.tsx`, `components/tickets/ticket-sla-panel.tsx` (pripadaju modulima 3 i 4).
+## Trenutna implementacija (nakon vala 6.1.8)
 
----
+- Reports OU katalog ima zasebno error+requestId+retry stanje; overview ne prikazuje prazne tikete kad scope zahtjev padne.
+- Report packs bez OU prikazuje uputu za izbor umjesto beskonačnog skeletona, a list greška čuva request ID.
+- Overview, bottlenecks, trends, SLA detail/compliance i eskalacije imaju stale-request zaštitu ili postojeći cancelled obrazac; promjena scopea resetuje stare podatke.
+- SLA bazni podaci odvojeni su od profile detaila i compliance upita. Izbor profila ne reloada listu, a compliance se učitava samo na aktivnom tabu.
+- Kreirani SLA profil se prvo bira pa bazni podaci ciljano osvježavaju; pravila osvježavaju samo izabrani profil.
+- CSAT je eksplicitno označen kao sveukupan, bez filtera perioda i OU. Backend nije proširen bez produkt odluke.
+- Eskalation delete validira i trimuje razlog; schedules load ima retry, a recipient search prikazuje grešku umjesto lažno prazne liste.
+
+## Status ispravki
+
+| ID | Status | Zaključak |
+|---|---|---|
+| RS1 | Urađeno | Bazni SLA load odvojen je od detail/compliance učitavanja; izbor profila ne zamjenjuje listu skeletonom. |
+| RS2 | Urađeno | OU tree greška na reports ima alert, request ID i retry; content grane su blokirane dok scope nije valjan. |
+| RS3 | Prihvaćen rizik (2026-10-15) | CSAT ostaje sveukupan i sada je tako jasno označen u UI-ju. Odbijeno je backend proširenje period/OUID bez produkt odluke. |
+| RS4 | Urađeno | Trends, bottlenecks i compliance resetuju prethodne podatke pri promjeni scopea i prikazuju loading stanje. |
+| RS5 | Urađeno | Latest-request guard uveden je u reports overview, bottlenecks, SLA base/detail/compliance i escalation load; escalation catch je vidljiv. |
+| RS6 | Urađeno | Novi profil se bira prije reloada; hook mutation test potvrđuje redoslijed, a detail effect zatim učitava pravila. |
+| RS7 | Prihvaćen rizik (2026-10-15) | Period/preview koriste browser TZ, schedule koristi `settings.timeZone`; postojeće ponašanje je zadržano. Odbijena je promjena vremenske semantike bez produkt odluke. |
+| RS8 | Urađeno | Packs bez OU prikazuje lokalizovanu poruku za izbor jedinice. |
+| RS9 | Urađeno | Prazan razlog brisanja eskalacije daje alert, a poslani razlog je trimovan. |
+| RS10 | Prihvaćen rizik (2026-10-15) | Schedule delete ostaje confirm-only, dok konfiguracione SLA entitete prati audit razlog. Odbijeno je izjednačavanje različitih backend politika samo u UI-ju. |
+| RS11 | Prihvaćen rizik (2026-10-15) | Preostali `as never` su ograničeni na postojeće i18n adaptere; runtime ponašanje je pokriveno testovima. Odbijen je široki i18n type refaktor van targeted vala. |
+| RS12 | Prihvaćen rizik (2026-10-15) | Header i empty-list CTA ostaju namjerno dostupni u različitim kontekstima. Odbijeno uklanjanje koje bi oslabilo empty-state akciju. |
+| RS13 | Prihvaćen rizik (2026-10-15) | Trends ostaje potpuno shareable; ostali podprikazi zadržavaju postojeće stanje radi malog rizika. Odbijen je široki URL-state refaktor stranica u ovom valu. |
+| RS14 | Urađeno | Packs/list greške koriste alert komponentu i request ID; schedules/recipient greške su vidljive. |
+| RS15 | Zaključeno (istraživanje) | CSV i JSON su standardne oznake formata, ne lokalizovani korisnički copy. |
+| RS16 | Prihvaćen rizik (2026-10-15) | Frontend granice bucketa i dalje prate backend ugovor uz postojeće pure testove. Odbijen je novi metadata endpoint samo radi konstanti. |
+| RS17 | Urađeno | Dodani hook testovi za izbor profila i create redoslijed, packs RTL test i `50-sla-escalations.spec.ts`. E2E nije izvršen. |
+| RS18 | Prihvaćen rizik (2026-10-15) | Reset efekti ostaju namjerni za draft/preview lifecycle. Odbijeno je uklanjanje bez dokazane render regresije. |
+| RS19 | Prihvaćen rizik (2026-10-15) | Postojeći 30d fallback i normalizacija obrnutog raspona ostaju kompatibilni. Odbijena je breaking validacija bez produkt copy odluke. |
+| RS20 | Urađeno | Uklonjen jedini exhaustive-deps suppression; effect sada ima eksplicitne stabilne zavisnosti. |
+| RS21 | Urađeno | Schedule list load greška ima retry akciju. |
+| RS22 | Urađeno | Recipient search greška više nije prazna lista nego alert stanje. |
+| RS23 | Prihvaćen rizik (2026-10-15) | Istorijski Paket/Phase komentari nemaju runtime uticaj. Odbijeno je masovno čišćenje koje bi povećalo review noise. |
+
+## Završne provjere
+
+- `npx tsc -b`: prošao.
+- `npm run lint`: prošao sa 0 grešaka; ostala su postojeća cross-module upozorenja.
+- `npm run format:check`: prošao.
+- `npx vitest run`: **239 fajlova / 981 test**, sve prošlo.
+- `npm run build`: prošao; postoji prethodno Vite upozorenje za velike chunkove.
+- `check-hooks-order` i `check-ticket-id-leaks`: prošli.
+- E2E/browser: **nisu izvršeni**. Dispatch skup ostaje `07,12,17,18,19,42`, uz novi `50-sla-escalations.spec.ts`.
+- Ručne provjere RS2/RS8/RS4/RS1/RS6 nisu izvršene u browseru.
+
+## Polazno stanje (arhiva)
+
+Sljedeći tekst je originalni audit od 2026-10-13; formulacije ispod odnose se na stanje prije vala 6.1.8.
 
 ## Modul
 
