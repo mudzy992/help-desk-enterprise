@@ -40,11 +40,11 @@ Legenda: `[ ]` čeka · `[~]` u toku · `[x]` gotovo. Svaka stavka se zatvara te
 - [x] IN6 zatvoren: obrisan mrtvi `lib/resolve-install-wizard-step.ts` (+ spec); naslovi/opisi koraka žive u `install-step-presentation.ts`
 
 ## F4 — Standard sadržaj (`05_phase-f4-standard-sadrzaj.md`)
-- [ ] SMTP test-slanje
-- [ ] Install blueprints (`itServiceDesk`) + routing provjera po servisu
-- [ ] Policy pack korak
-- [ ] SLA pregled (kalendar, matrica)
-- [ ] Dodaci sa prezentacijom
+- [x] SMTP test-slanje — `POST /install/smtp/test` (`install-smtp-test.service.ts` + `install-smtp-test.controller.ts` + `map-install-smtp-test-error.ts` + `dto/send-install-smtp-test.dto.ts`), klasifikacija grešaka (auth/TLS/timeout/unreachable/send) u `SMTP_TEST_*`, vlastita instanca `TestEmailRateLimiter`-a bez Redis-a, UI `install-smtp-test-panel.tsx` (ugašen dok ima nesačuvanih izmjena) + `lib/install/map-install-smtp-test-error.ts`; spec 6 testova
+- [x] Install blueprints (`itServiceDesk`) + routing provjera po servisu — `blueprints/*` (types, registry 5 kategorija/10 servisa/2 tier grupe, error+map, `apply-install-blueprint.ts`, `assert-install-blueprint-routing.ts`, servis, kontroler, DTO) + `GET /install/blueprints`, `POST /install/blueprints/apply`; idempotentno po slugu, jedna transakcija, `EXACT` ruting dokazan prije commita; UI `install-blueprint-step.tsx` + `install-blueprint-tree.tsx`; UI `install-content-api.ts`; spec 7 testova
+- [x] Policy pack korak — `GET|POST /install/policy-pack` (`install-policy-pack.*`, `map-install-policy-pack-error.ts`, DTO), paketi iz `policyPackKeys` blueprinta, `PACK_DISABLED` iz `private.policyPacks.disabledKeysCsv`, primjena kroz funkciju `applyPolicyPack` (bez `PolicyPacksService` zbog ciklusa), marker `private.install.policyPack`; UI `install-policy-pack-step.tsx`; spec 5 testova
+- [x] SLA pregled (kalendar, matrica) — `GET|POST /install/sla-review` (`install-sla-review.*`, `read-install-sla-review-status.ts`, `map-install-sla-review-error.ts`, DTO), `confirmed` = samo marker, `adjusted` kroz `updateBusinessHoursCalendar`/`patchPriorityMatrix` uz `reason: 'install_wizard'`; UI `install-sla-review-step.tsx` + `install-business-hours-editor.tsx` + `install-priority-matrix-preview.tsx` + `lib/install/install-weekly-hours.ts`; spec 6 + 3 testa
+- [x] Dodaci sa prezentacijom — `lib/install/install-addon-presentation.ts` (14 ikona/naslova/rečenica + 5 kategorija), `install-addons-step.tsx` prešao na `install-feature-card.tsx`, `resolve-install-addon-defaults.ts` (Full uključuje CMDB/probleme/promjene — odluka 4) i `GET /install/addons` vraća te defaulte; `install-feature-card.tsx` dobio `isDisabled`; spec 4 + 3 testa
 
 ## F5 — Full sadržaj (`06_phase-f5-full-sadrzaj.md`)
 - [ ] Registry sekcija + allowlist servis + rute

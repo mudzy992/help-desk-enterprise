@@ -22,6 +22,7 @@ import {
   readInstallAddonsCatalog,
   readInstallAddonsStatus,
 } from './read-install-addons-status';
+import { readInstallProfile } from './read-install-step-states';
 import { resolveInstallAddonsState } from './resolve-install-addons-state';
 import { validateInstallAddons } from './validate-install-addons';
 
@@ -40,7 +41,10 @@ export class InstallAddonsService {
         return { addons: await readInstallAddonsCatalog(this.settingsService) };
       }
       return {
-        addons: await readInstallAddonsStatus(this.settingsService),
+        addons: await readInstallAddonsStatus(
+          this.settingsService,
+          await readInstallProfile(this.settingsService),
+        ),
       };
     });
   }
@@ -63,7 +67,10 @@ export class InstallAddonsService {
         reason: installAddonsConstants.changeLogReason,
         actorUserId: superAdmin.id,
       });
-      return readInstallAddonsStatus(this.settingsService);
+      return readInstallAddonsStatus(
+        this.settingsService,
+        await readInstallProfile(this.settingsService),
+      );
     });
   }
 

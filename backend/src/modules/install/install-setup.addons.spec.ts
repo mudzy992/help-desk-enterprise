@@ -1,5 +1,6 @@
 import { settingKeys } from '../settings/setting-keys';
 import { createInstallWizardHarness } from './create-install-wizard-harness';
+import { listInstallStepDefinitions } from './steps/install-step.registry';
 
 /**
  * F0.5: the add-ons step used to report `completed: true` unconditionally, so a
@@ -42,16 +43,10 @@ describe('InstallSetupService add-ons step', () => {
 
     expect(status.profile).toBe('full');
     expect(status.isCompleted).toBe(false);
-    expect(Object.keys(status.steps)).toEqual([
-      'profile',
-      'superAdmin',
-      'identity',
-      'loginProvider',
-      'smtp',
-      'seed',
-      'team',
-      'addons',
-    ]);
+    // F4: derived from the registry — the wizard's step list is the registry's.
+    expect(Object.keys(status.steps)).toEqual(
+      listInstallStepDefinitions().map((definition) => definition.key),
+    );
     expect(status.steps.profile).toEqual({
       completed: true,
       skipped: false,

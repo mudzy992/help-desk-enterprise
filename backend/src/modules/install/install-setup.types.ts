@@ -1,13 +1,14 @@
-export type InstallWizardStep =
-  | 'profile'
-  | 'superAdmin'
-  | 'identity'
-  | 'loginProvider'
-  | 'smtp'
-  | 'seed'
-  | 'team'
-  | 'addons'
-  | 'complete';
+import type {
+  InstallStepKey,
+  InstallWizardStepKey,
+} from './steps/install-step.types';
+
+/**
+ * F1/F4: the public status contract follows the step registry instead of
+ * repeating its own list — adding a step used to compile here silently and only
+ * fail in the wizard (`F4`: `blueprint`, `policyPack`, `slaReview`).
+ */
+export type InstallWizardStep = InstallWizardStepKey;
 
 export type InstallStepState = {
   readonly completed: boolean;
@@ -24,16 +25,7 @@ export type InstallStepState = {
   readonly blocking?: boolean;
 };
 
-export type InstallStepStatesRecord = {
-  readonly profile: InstallStepState;
-  readonly superAdmin: InstallStepState;
-  readonly identity: InstallStepState;
-  readonly loginProvider: InstallStepState;
-  readonly smtp: InstallStepState;
-  readonly seed: InstallStepState;
-  readonly team: InstallStepState;
-  readonly addons: InstallStepState;
-};
+export type InstallStepStatesRecord = Readonly<Record<InstallStepKey, InstallStepState>>;
 
 export type InstallSetupStatus = {
   readonly isCompleted: boolean;

@@ -1,5 +1,5 @@
 import { addonSettingKey, installAddonCatalog } from '../../settings/addon-catalog';
-import { installStepSkippedKeys } from '../../settings/setting-keys';
+import { installStepSkippedKeys, settingKeys } from '../../settings/setting-keys';
 import {
   isStepIncludedInProfile,
   type InstallProfile,
@@ -84,6 +84,41 @@ export const installStepDefinitions: readonly InstallStepDefinition[] = [
     skippable: true,
     // People and their memberships survive a package change; only flags may be reset.
     resettableSettingKeys: [],
+  },
+  {
+    key: 'blueprint',
+    order: 56,
+    // F4.2 (overview §4): the catalog from a template is „O“ from Standard on —
+    // Minimum keeps the one service the seed step created.
+    requiredIn: ['standard', 'full'],
+    offeredIn: ['standard', 'full'],
+    skippable: true,
+    resettableSettingKeys: [settingKeys.privateInstallBlueprint],
+  },
+  {
+    key: 'policyPack',
+    order: 57,
+    // F4.3: the IT Standard pack grants the roles the package promises; a
+    // deferred pack would leave the installation without those permissions.
+    requiredIn: ['standard', 'full'],
+    offeredIn: ['standard', 'full'],
+    skippable: false,
+    // Grants, service policy and audit entries are real configuration — a package
+    // change never erases them; only the marker that says the wizard applied the
+    // pack is bookkeeping.
+    resettableSettingKeys: [settingKeys.privateInstallPolicyPack],
+  },
+  {
+    key: 'slaReview',
+    order: 58,
+    // F4.4: „K“ in overview §4 — the seeded default is confirmed or adjusted,
+    // and the step may be deferred like SMTP and the team step.
+    requiredIn: [],
+    offeredIn: ['standard', 'full'],
+    skippable: true,
+    // The business hours and the priority matrix stay as they are — only the
+    // marker that the review was answered is dropped.
+    resettableSettingKeys: [settingKeys.privateInstallSlaReview],
   },
   {
     key: 'addons',

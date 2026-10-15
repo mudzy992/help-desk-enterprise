@@ -1,3 +1,4 @@
+import { settingKeys } from '../settings/setting-keys';
 import { createInstallWizardHarness } from './create-install-wizard-harness';
 import { readMissingReadinessKeys } from './evaluate-install-readiness';
 
@@ -38,6 +39,21 @@ async function createStandardHarness(smtpDeferred: boolean) {
   await harness.seedMinimum();
   await harness.addonsService.save({ addons: { csat: true } });
   await harness.profileService.save({ profile: 'standard' });
+  // F4: Standard also asks for the catalog and the policy pack (required) and for
+  // the SLA review (offered, so deferrable). The two tests below are about the
+  // SMTP step, so the harness answers the F4 steps the way the wizard would —
+  // exactly the markers `readInstallStepProgress` reads back.
+  await harness.settingsService.setSettingValue(
+    settingKeys.privateInstallBlueprint,
+    'itServiceDesk',
+    { reason: 'install_wizard', actorUserId: harness.actorUserId },
+  );
+  await harness.settingsService.setSettingValue(
+    settingKeys.privateInstallPolicyPack,
+    'itStandard',
+    { reason: 'install_wizard', actorUserId: harness.actorUserId },
+  );
+  await harness.skipService.skip('slaReview');
   await harness.skipService.skip('team');
   if (smtpDeferred) {
     await harness.skipService.skip('smtp');
@@ -131,8 +147,9 @@ describe('InstallReadinessService', () => {
       key: 'profileSteps',
       status: 'skipped',
       messageKey: 'install.readiness.profileSteps',
-      // Standard also asks for the team, which the harness deferred.
-      stepKeys: ['smtp', 'team'],
+      // Standard also asks for the team, which the harness deferred; the SLA
+      // review (F4) is offered rather than required, and it is deferred too.
+      stepKeys: ['smtp', 'team', 'slaReview'],
     });
   });
 

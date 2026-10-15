@@ -1,6 +1,6 @@
 name: CI
 
-# Quality model (2026-10-06) — full reasoning in `docs/plans/ci-e2e-kapija.md`:
+# Quality model (2026-10-06) — full reasoning in `docs/plans/CI-KVALITETNA-KAPIJA.md`:
 #   * pull_request -> the gate. Backend + frontend (fast) and the E2E **smoke**
 #     subset (~10-15 min). All three are required status checks on `master`, and
 #     every one of them is created on every PR — a docs-only PR therefore also

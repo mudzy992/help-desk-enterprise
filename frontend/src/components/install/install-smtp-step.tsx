@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallSmtpFields } from "@/components/install/install-smtp-fields";
+import { InstallSmtpTestPanel } from "@/components/install/install-smtp-test-panel";
 import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
@@ -33,6 +34,9 @@ export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) 
   const [errorKey, setErrorKey] = useState<InstallSmtpErrorKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draft, setDraft] = useState<SmtpDraft | null>(null);
+  // F4.1: the test send only looks at stored settings, so it stays disabled while
+  // the operator has typed something the server has not seen yet.
+  const [hasEdits, setHasEdits] = useState(false);
 
   // F0.2/IN3: the form exists only once the stored state was read — rendering it
   // from defaults would let a failed load save `enabled=false` over a working
@@ -50,6 +54,7 @@ export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) 
   const { values, passwordConfigured } = draft ?? toDraft(resource.data.smtp);
 
   const patch = (partial: Partial<InstallSmtpFormValues>) => {
+    setHasEdits(true);
     setDraft({ values: { ...values, ...partial }, passwordConfigured });
   };
 
@@ -63,6 +68,7 @@ export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) 
     setErrorKey(null);
     try {
       setDraft(toDraft(await saveInstallSmtp(buildInstallSmtpInput(values))));
+      setHasEdits(false);
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallSmtpSaveError(error));
@@ -106,6 +112,10 @@ export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) 
           {t(errorKey)}
         </p>
       ) : null}
+      <InstallSmtpTestPanel
+        isConfigured={resource.data.smtp.isConfigured && !hasEdits}
+        hasUnsavedChanges={hasEdits}
+      />
       <div>
         <Button type="submit" disabled={isSubmitting || !isInstallSmtpFormReady(values)}>
           {isSubmitting ? t("install.smtp.saving") : t("install.smtp.submit")}

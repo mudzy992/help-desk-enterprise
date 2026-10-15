@@ -1,3 +1,4 @@
+import { listInstallStepDefinitions } from './install-step.registry';
 import { resolveInstallNextStep } from './resolve-install-next-step';
 import { toInstallStepStates } from '../read-install-step-states';
 import {
@@ -10,16 +11,14 @@ import {
   type InstallStepStates,
 } from './install-step.types';
 
-const stepKeys: readonly InstallStepKey[] = [
-  'profile',
-  'superAdmin',
-  'identity',
-  'loginProvider',
-  'smtp',
-  'seed',
-  'team',
-  'addons',
-];
+/**
+ * F4: derived from the registry. A hand-kept list silently stopped covering the
+ * wizard the moment a step was added, and the flow assertions below then tested a
+ * package that no longer existed.
+ */
+const stepKeys: readonly InstallStepKey[] = listInstallStepDefinitions().map(
+  (definition) => definition.key,
+);
 
 function progress(
   completed: readonly InstallStepKey[] = [],
@@ -159,8 +158,8 @@ describe('resolveInstallNextStep', () => {
     ).toBe('smtp');
   });
 
-  it('falls through to the final screen when everything required is answered', () => {
-    const all: readonly InstallStepKey[] = [
+  it('walks the F4 content steps of Standard and Full in order', () => {
+    const upToTeam: readonly InstallStepKey[] = [
       'profile',
       'superAdmin',
       'identity',
@@ -168,10 +167,26 @@ describe('resolveInstallNextStep', () => {
       'smtp',
       'seed',
       'team',
-      'addons',
     ];
-    expect(resolve('full', all)).toBe('complete');
-    expect(resolve('full', all.slice(0, -1), ['addons'])).toBe('complete');
+    expect(resolve('standard', upToTeam)).toBe('blueprint');
+    expect(resolve('standard', [...upToTeam, 'blueprint'])).toBe('policyPack');
+    // The SLA review is offered, not required: it stands in the way like the SMTP
+    // step does in Minimum, and "Podesi kasnije" is how it is passed.
+    expect(resolve('standard', [...upToTeam, 'blueprint', 'policyPack'])).toBe(
+      'slaReview',
+    );
+    expect(
+      resolve('standard', [...upToTeam, 'blueprint', 'policyPack'], ['slaReview']),
+    ).toBe('addons');
+    // Minimum has none of the three (overview §4).
+    expect(resolve('minimum', upToTeam)).toBe('addons');
+  });
+
+  it('falls through to the final screen when everything required is answered', () => {
+    expect(resolve('full', stepKeys)).toBe('complete');
+    // The last step of the registry is the add-ons step; deferring it is enough
+    // when everything before it is answered.
+    expect(resolve('full', stepKeys.slice(0, -1), ['addons'])).toBe('complete');
   });
 });
 

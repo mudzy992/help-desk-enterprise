@@ -9,6 +9,13 @@ import { ServiceCatalogModule } from '../service-catalog/service-catalog.module'
 import { SettingsModule } from '../settings/settings.module';
 import { SettingsService } from '../settings/settings.service';
 import { InstallAddonsService } from './install-addons.service';
+import { InstallBlueprintController } from './install-blueprint.controller';
+import { InstallBlueprintService } from './blueprints/install-blueprint.service';
+import { InstallContentController } from './install-content.controller';
+import { InstallPolicyPackService } from './install-policy-pack.service';
+import { InstallSlaReviewService } from './install-sla-review.service';
+import { InstallSmtpTestController } from './install-smtp-test.controller';
+import { InstallSmtpTestService } from './install-smtp-test.service';
 import { InstallCompleteService } from './install-complete.service';
 import { InstallController } from './install.controller';
 import { InstallStepsController } from './install-steps.controller';
@@ -27,7 +34,13 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
 
 @Module({
   imports: [SettingsModule, ServiceCatalogModule, RoutingModule],
-  controllers: [InstallController, InstallStepsController],
+  controllers: [
+    InstallController,
+    InstallStepsController,
+    InstallBlueprintController,
+    InstallContentController,
+    InstallSmtpTestController,
+  ],
   providers: [
     // Paket 5.1 (M1 #1): password policy for the founder account. The loader
     // only needs SettingsService, which SettingsModule already exports — an
@@ -55,6 +68,10 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
       ) => new InstallAddonsService(prisma, settingsService, installSetupService),
       inject: [PrismaService, SettingsService, InstallSetupService],
     },
+    InstallBlueprintService,
+    InstallPolicyPackService,
+    InstallSlaReviewService,
+    InstallSmtpTestService,
     InstallProfileService,
     InstallStepSkipService,
     InstallReadinessService,

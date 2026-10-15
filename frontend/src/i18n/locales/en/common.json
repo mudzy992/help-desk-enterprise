@@ -2166,7 +2166,13 @@
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — skipped checks per hour, warning",
         "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical",
         "private.install.steps.identity.skipped": "The “Identity” wizard step was deferred.",
-        "private.install.steps.team.skipped": "The “Team” wizard step was deferred."
+        "private.install.steps.team.skipped": "The “Team” wizard step was deferred.",
+        "private.install.blueprint": "Catalog template applied by the wizard (for example itServiceDesk).",
+        "private.install.policyPack": "Policy pack the wizard applied to the organizational unit (for example PACK_IT_STANDARD).",
+        "private.install.slaReview": "How the SLA review in the wizard ended: confirmed (defaults accepted) or adjusted (changed).",
+        "private.install.steps.blueprint.skipped": "Flag that the catalog step was deferred in the wizard.",
+        "private.install.steps.policyPack.skipped": "Flag that the policy pack step was deferred in the wizard.",
+        "private.install.steps.slaReview.skipped": "Flag that the SLA review step was deferred in the wizard."
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2650,7 +2656,13 @@
         "private.ops.thresholds.captchaSkippedWarnPerHour": "How many checks an hour may be skipped because Cloudflare did not answer before the warning alarm (auth.captchaSkipped.high) arrives.",
         "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level.",
         "private.install.steps.identity.skipped": "Records that the identity step was skipped with “Configure later”. The post-install checklist reads it.",
-        "private.install.steps.team.skipped": "Records that the team step was skipped with “Configure later”. The post-install checklist reads it."
+        "private.install.steps.team.skipped": "Records that the team step was skipped with “Configure later”. The post-install checklist reads it.",
+        "private.install.blueprint": "The template the catalog categories and services were built from. Empty means the catalog was not built from a template and only the service from the initial data step exists.",
+        "private.install.policyPack": "The policy pack the wizard applied to the organizational unit, together with its roles and permissions. Empty means no permissions were granted from the wizard.",
+        "private.install.slaReview": "The record that the operator reviewed the working hours and the priority matrix. `confirmed` means the defaults were accepted, `adjusted` that they were changed, empty that the step was not answered yet.",
+        "private.install.steps.blueprint.skipped": "Set by the wizard when the operator defers building the catalog from a template. The catalog then keeps only the service from the initial data step, and the template can still be applied later.",
+        "private.install.steps.policyPack.skipped": "Set by the wizard when the operator defers the policy pack. The roles and permissions the pack carries then have to be granted by hand in Settings.",
+        "private.install.steps.slaReview.skipped": "Set by the wizard when the operator defers the SLA review. The working hours and the priority matrix stay at their defaults until somebody changes them in Settings."
       },
       "type": {
         "boolean": "on/off",
@@ -4090,7 +4102,27 @@
       "errorIncomplete": "When SMTP is on, enter host, port, username, password, and a valid from address.",
       "errorInvalid": "The SMTP configuration is invalid or incomplete.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
-      "errorGeneric": "The SMTP configuration cannot be saved right now."
+      "errorGeneric": "The SMTP configuration cannot be saved right now.",
+      "test": {
+        "title": "Test e-mail",
+        "body": "Send a test message and check that SMTP really works.",
+        "address": "Address (empty = the super admin address)",
+        "send": "Send test",
+        "sending": "Sending…",
+        "sent": "Sent to {{toAddress}}.",
+        "errorNotConfigured": "SMTP is off or incomplete.",
+        "errorInvalidRecipient": "The address is not valid.",
+        "errorAuth": "The server refused the login — check the user name and password.",
+        "errorTls": "TLS failed — check the certificate and the encryption mode.",
+        "errorTimeout": "The server did not answer in time.",
+        "errorUnreachable": "The server is unreachable — check the host and port.",
+        "errorSend": "The server accepted the connection but refused the message.",
+        "errorRateLimited": "Too many attempts; wait a moment and try again.",
+        "errorSuperAdmin": "The test is sent by the super admin.",
+        "errorGeneric": "The send failed. Please try again.",
+        "savingFirst": "Save your changes before sending — the test uses the stored settings.",
+        "storedHint": "The test uses the stored settings. An empty field sends the message to the super admin."
+      }
     },
     "seed": {
       "errorSuperAdmin": "Create the SuperAdmin account first.",
@@ -4211,7 +4243,71 @@
           "label": "Microsoft Teams connector",
           "description": "Notifications and actions in Teams plus ticket creation from Teams. Runs in the simulator until the organisation registers its own Teams app."
         }
-      }
+      },
+      "csat": {
+        "title": "CSAT survey",
+        "value": "After a ticket is closed the requester gets a short satisfaction survey."
+      },
+      "reports": {
+        "title": "Reports",
+        "value": "Built-in reports on volume, response times and team load."
+      },
+      "approvals": {
+        "title": "Approvals",
+        "value": "Requests that need a sign-off get an approval flow with a record of who approved."
+      },
+      "confidential": {
+        "title": "Confidential tickets",
+        "value": "Sensitive tickets are visible only to authorized people."
+      },
+      "savedViews": {
+        "title": "Saved views",
+        "value": "Anyone can save the ticket list filters they need every day."
+      },
+      "bulkActions": {
+        "title": "Bulk actions",
+        "value": "Change status, priority or assignee on many tickets at once."
+      },
+      "ticketSplit": {
+        "title": "Ticket splitting",
+        "value": "One request becomes several tickets when the problem has more than one part."
+      },
+      "kbIntercept": {
+        "title": "Knowledge base while typing",
+        "value": "While the requester types, existing articles that solve the problem are suggested."
+      },
+      "cmdb": {
+        "title": "CMDB — assets",
+        "value": "A record of computers, equipment and licences, linked to tickets."
+      },
+      "problems": {
+        "title": "Problems",
+        "value": "Tickets with the same cause are linked into one problem that is solved once."
+      },
+      "changes": {
+        "title": "Changes",
+        "value": "Planned changes to systems go through announcement, approval and a record."
+      },
+      "email": {
+        "title": "Email channel",
+        "value": "Incoming email becomes tickets, and answers from a ticket reach the requester by email."
+      },
+      "edge": {
+        "title": "Edge extension",
+        "value": "Capture the screen and page data while a problem is reported."
+      },
+      "teams": {
+        "title": "Microsoft Teams",
+        "value": "Notifications and ticket work from Teams."
+      },
+      "category": {
+        "serviceQuality": "Service quality",
+        "control": "Control",
+        "productivity": "Productivity",
+        "itsm": "ITSM modules",
+        "integrations": "Integrations"
+      },
+      "other": "Other"
     },
     "complete": {
       "heading": "Finish setup",
@@ -4232,7 +4328,10 @@
       "seed": "Structure and service",
       "team": "Team",
       "addons": "Add-ons",
-      "complete": "Finish"
+      "complete": "Finish",
+      "blueprint": "Catalog from a template",
+      "policyPack": "Policy pack",
+      "slaReview": "SLA review"
     },
     "tokenHeading": "Install token",
     "tokenBody": "Enter the value of the INSTALL_TOKEN environment variable from the server. Without it the wizard stays locked.",
@@ -4379,7 +4478,112 @@
         "1": "Readiness is checked before the wizard locks",
         "2": "Deferred steps wait for you in Settings",
         "3": "Sign-in goes to /login with the SuperAdmin account"
+      },
+      "blueprint": {
+        "1": "A catalog of categories and services ready to receive tickets.",
+        "2": "Every service gets an SLA profile and a request form.",
+        "3": "Routing is checked before anything is written."
+      },
+      "policyPack": {
+        "1": "The roles and permissions the template expects.",
+        "2": "You can also grant permissions by hand later in Settings.",
+        "3": "What the pack does not cover stays untouched."
+      },
+      "slaReview": {
+        "1": "See the working hours and priority matrix the system uses.",
+        "2": "Accept the defaults or change them right here.",
+        "3": "Confirming changes no data — it only records that you looked."
       }
+    },
+    "blueprint": {
+      "heading": "Catalog from a template",
+      "body": "The template sets up catalog categories and services, the SLA profile and the policy pack. Everything it applies can be changed later in settings.",
+      "applied": "Applied template: {{key}}.",
+      "chooseTemplate": "Template",
+      "toggleService": "{{service}} — include in the catalog",
+      "tierGroups": "Create support tiers (level 1 and level 2)",
+      "tierGroupsHint": "Services sit on level 1, and requests level 1 cannot solve go to level 2.",
+      "submit": "Apply template",
+      "result": {
+        "title": "What was written",
+        "created": "New services: {{count}} in {{categories}} categories",
+        "existing": "Existing services kept as they were: {{count}}",
+        "tiers": "New support tiers: {{count}}",
+        "routing": "Routing was checked for every service — a request goes exactly to the handler group, never to a fallback."
+      },
+      "errorStructure": "Finish the “Organization structure” step first — the template needs the directorate and the handler group.",
+      "errorRouting": "Routing could not be set for one of the services, so nothing was written. Check the “Organization structure” step."
+    },
+    "policyPack": {
+      "heading": "Policy pack",
+      "body": "The policy pack sets the roles and permissions for the service from the template. You can also skip it and grant permissions by hand.",
+      "applied": "Applied pack: {{key}}.",
+      "choosePack": "Policy pack",
+      "submit": "Apply pack",
+      "grants": "Permissions in the pack: {{count}}",
+      "classification": "Classification: {{value}}",
+      "requiresApproval": "Requires approval",
+      "slaProfile": "SLA profile: {{key}}",
+      "errorDisabled": "This pack is switched off in settings and cannot be applied from the wizard.",
+      "errorNotOffered": "The chosen template does not offer this policy pack.",
+      "errorUnknown": "Unknown policy pack.",
+      "empty": "This template offers no policy pack to apply."
+    },
+    "slaReview": {
+      "heading": "Working hours and priorities",
+      "body": "Check the working hours and the priority matrix. Confirming only records that you reviewed the offered values; edits are written right away.",
+      "calendar": {
+        "title": "Working hours — {{name}}",
+        "timezone": "Time zone: {{timezone}}",
+        "hours": "{{from}}–{{to}}",
+        "closed": "Closed",
+        "holidays": "Holidays in the calendar: {{count}}",
+        "editorCaption": "Working hours by day",
+        "day": "Day",
+        "from": "From",
+        "to": "To",
+        "open": "Open",
+        "fromLabel": "Working hours start — {{day}}",
+        "toLabel": "Working hours end — {{day}}",
+        "toggleDay": "Is this day worked — {{day}}",
+        "multipleIntervals": "Some days have more than one interval; change those on the SLA page."
+      },
+      "matrix": {
+        "title": "Priority matrix",
+        "cell": "{{impact}} / {{urgency}} → {{priority}}",
+        "caption": "The priority the system assigns for a combination of impact and urgency.",
+        "impact": "Impact / urgency",
+        "hint": "The matrix is changed on the SLA page, where every change is confirmed with a reason.",
+        "unknown": "—"
+      },
+      "review": {
+        "confirmed": "Reviewed: the default values are confirmed.",
+        "adjusted": "Reviewed: the values were changed."
+      },
+      "confirm": "I confirm the defaults",
+      "errorEmpty": "You chose an adjustment, but nothing was changed.",
+      "errorCalendarMissing": "This installation has no working-hours calendar, so the change cannot be written.",
+      "submitAdjust": "Save changes",
+      "errorHours": "The working hours are not usable — check the times (at least one day has to be worked, and intervals may not overlap).",
+      "level": {
+        "LOW": "Low",
+        "MEDIUM": "Medium",
+        "HIGH": "High",
+        "CRITICAL": "Critical"
+      },
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      }
+    },
+    "content": {
+      "errorSuperAdmin": "This step needs the super admin account.",
+      "errorGeneric": "Saving failed. Please try again."
     }
   },
   "routing": {

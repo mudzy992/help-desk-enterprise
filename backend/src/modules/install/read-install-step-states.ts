@@ -46,6 +46,9 @@ export async function readInstallStepProgress(
     smtp,
     seed,
     team,
+    blueprintApplied,
+    policyPackApplied,
+    slaReviewDone,
     addonsSaved,
     profile,
     skipped,
@@ -56,6 +59,9 @@ export async function readInstallStepProgress(
     readInstallSmtpStatus(settingsService, readInstallSmtpEnvPrefill()),
     readInstallSeedStatus(prisma),
     readInstallTeamStatus(prisma),
+    hasStoredInstallMarker(settingsService, settingKeys.privateInstallBlueprint),
+    hasStoredInstallMarker(settingsService, settingKeys.privateInstallPolicyPack),
+    hasStoredInstallMarker(settingsService, settingKeys.privateInstallSlaReview),
     hasSavedInstallAddons(settingsService),
     readInstallProfile(settingsService),
     readInstallSkippedSteps(settingsService),
@@ -79,9 +85,33 @@ export async function readInstallStepProgress(
       // F2: the founder alone does not answer the team step; inviting somebody
       // (or deferring the step) does.
       team: { completed: team.isTeamInvited, skipped: skipped.team },
+      // F4: the three content steps record what the wizard did (the blueprint and
+      // the pack that were applied, the SLA review that was confirmed) — the same
+      // "stored marker means done" rule the add-ons step uses.
+      blueprint: {
+        completed: blueprintApplied,
+        skipped: skipped.blueprint,
+      },
+      policyPack: {
+        completed: policyPackApplied,
+        skipped: skipped.policyPack,
+      },
+      slaReview: { completed: slaReviewDone, skipped: skipped.slaReview },
       addons: { completed: addonsSaved, skipped: skipped.addons },
     },
   };
+}
+
+/**
+ * F4: „done“ for the content steps is a marker the step itself wrote. An empty
+ * value is not a marker — `private.install.*` keys exist with defaults.
+ */
+async function hasStoredInstallMarker(
+  settingsService: SettingsService,
+  key: string,
+): Promise<boolean> {
+  const stored = await settingsService.getSetting(key);
+  return typeof stored === 'string' && stored.trim().length > 0;
 }
 
 export async function readInstallProfile(

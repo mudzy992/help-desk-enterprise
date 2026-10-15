@@ -99,11 +99,23 @@ Promjena paketa (odluka vlasnika 5) dozvoljena je dok je operater na koraku pake
    Bez SMTP-a `temporaryPasswordDelivery` je `ui` i lozinke se prikazuju **jednom** (`install-team-credentials-dialog.tsx`, kopiranje); nikad se ne vraćaju ponovnim čitanjem. Korak je u Minimumu `skippable` („Podesi kasnije“), u Standardu/Fullu obavezan. Founder sam u grupi **ne** znači da je korak odgovoren.  \
    API: `GET/POST /install/team` (`install-team.service.ts`, `validate-install-team.ts`, `read-install-team-status.ts`).
 
-7. **Dodaci (feature flags)**  \
+7. **Katalog iz predloška (F4.2)**  \
+   `GET /install/blueprints` vraća predloške; prva verzija je `itServiceDesk` (Hardver, Softver, Pristup i nalozi, Mreža, Opšte; 10 servisa; opcione tier grupe `nivo-1`/`nivo-2`). `POST /install/blueprints/apply` prima `{ blueprintKey, includeServices[], createTierGroups, locale? }`, radi u **jednoj transakciji** (tier grupe pa servisi), upisuje kategorije/servise kroz iste `ensure-install-*` funkcije kao seed (slug + `ensureInstallSeedFormVersion` + `ensureInstallSeedRouting`), a prije commita **dokazuje** `resolveTicketRouting(...) === EXACT` za svaki servis (`assert-install-blueprint-routing.ts`) — fallback ruting se ne može provući. Ponovni apply ne duplira zapise (traži po slugu; `opsti-zahtjev` iz seeda se preuzima). Marker: `private.install.blueprint`.  \
+   UI: `install-blueprint-step.tsx` + `install-blueprint-tree.tsx` (stablo „Kategorija → Servisi“ s prekidačem po servisu i prekidačem za tier grupe).
+
+8. **Policy pack (F4.3)**  \
+   `GET /install/policy-pack` nudi pakete iz `policyPackKeys` primijenjenog predloška (bez predloška: svi iz registra), `POST` primjenjuje izabrani kroz funkciju `applyPolicyPack` na OU iz koraka 5 i na servis iz seeda. `private.policyPacks.disabledKeysCsv` isključuje paket → `409 PACK_DISABLED`; paket koji predložak ne nudi → `400 POLICY_PACK_NOT_OFFERED`. Marker: `private.install.policyPack`.  \
+   Korak **nije** `skippable` — paket nosi prava koja paket instalacije obećava. UI: `install-policy-pack-step.tsx`.
+
+9. **SLA pregled (F4.4)**  \
+   `GET /install/sla-review` vraća kalendar `BH_STANDARD` (inače prvi), matricu prioriteta i marker. „Potvrđujem podrazumijevano“ (`outcome: 'confirmed'`) upisuje **samo** marker `private.install.slaReview` — podaci se ne mijenjaju. `outcome: 'adjusted'` mijenja radno vrijeme (`updateBusinessHoursCalendar`) i/ili ćelije matrice (`patchPriorityMatrix`) uz `reason: 'install_wizard'`; prazna izmjena → `400 SLA_REVIEW_EMPTY_ADJUSTMENT`, kalendara bez `BH_STANDARD` → `409 SLA_REVIEW_CALENDAR_MISSING`.  \
+   UI: `install-sla-review-step.tsx` (jedno dugme: bez izmjena potvrđuje, s izmjenama snima), `install-business-hours-editor.tsx` (dan po dan; dan s više intervala zadržava ostale i to napiše) i `install-priority-matrix-preview.tsx` (**read-only** prikaz 4×4 — matrica se mijenja na SLA stranici, gdje izmjena traži razlog). Praznici se prikazuju (broj), ne uređuju.
+
+10. **Dodaci (feature flags)**  \
    Switch po dodatku (opis uz svaki). Core se ne gasi (ticketing, routing, group inbox, RBAC, audit, in-app notifikacije, attachments).  \
    F0.5: korak je `completed` **samo** ako je `POST /install/addons` bar jednom sačuvan (dokaz je bar jedan upisan `private.addons.*` ključ); osvježavanje stranice više ne preskače korak i defaulti se ne prihvataju tiho.
 
-**Odgađanje koraka (F1, D4).** Korak može biti `skippable` (danas SMTP, tim i dodaci). `POST /install/steps/:stepKey/skip` upisuje `private.install.steps.<stepKey>.skipped=true`, `DELETE` ga vraća na `false`; korak koji nije `skippable` (SuperAdmin, seed, paket, način prijave) vraća `400 INSTALL_STEP_NOT_SKIPPABLE`. Odgođen korak ne blokira `complete`, ali ulazi u `profileSteps` sa statusom `skipped`.
+**Odgađanje koraka (F1, D4).** Korak može biti `skippable` (SMTP, tim, katalog iz predloška, SLA pregled i dodaci); F4 koraci `policyPack` obavezan i ne može se odgoditi. `POST /install/steps/:stepKey/skip` upisuje `private.install.steps.<stepKey>.skipped=true`, `DELETE` ga vraća na `false`; korak koji nije `skippable` (SuperAdmin, seed, paket, način prijave) vraća `400 INSTALL_STEP_NOT_SKIPPABLE`. Odgođen korak ne blokira `complete`, ali ulazi u `profileSteps` sa statusom `skipped`.
 
 ## Dodaci (katalog)
 
@@ -141,9 +153,14 @@ Od val 5 kataloga nema `sla`, `autoAssign`, `timeTracking` ni `serviceDowntime` 
 | `GET/POST /install/team` | korak tima — kreiranje naloga i članstvo u grupi (F2) |
 | `GET/POST /install/super-admin`, `/install/login-provider`, `/install/smtp`, `/install/addons` | koraci |
 | `GET/POST /install/seed` | struktura i prvi servis; `POST` prima **opcioni** body sa nazivima (F2), `GET` vraća i trenutne nazive (`categoryName`, `service.slaProfileKey`) |
+| `POST /install/smtp/test` | probna poruka na adresu super admina ili unesenu (F4.1) — `{ isSent, toAddress }` ili `SMTP_TEST_*` |
+| `GET /install/blueprints` | katalog predložaka + primijenjeni (F4.2) |
+| `POST /install/blueprints/apply` | primjena predloška uz `EXACT` ruting (F4.2) |
+| `GET/POST /install/policy-pack` | ponuda i primjena paketa prava (F4.3) |
+| `GET/POST /install/sla-review` | pregled i odluka o radnom vremenu/matrici (F4.4) |
 | `POST /install/complete` | zaključavanje wizarda uz readiness provjeru (F0.7) |
 
-Kontroleri su razdvojeni po namjeni: `install.controller.ts` (koraci prvog pokretanja) i `install-steps.controller.ts` (paket, „Podesi kasnije“, readiness) — oba dijele `@Controller('install')`, `InstallWizardLockGuard` i isti `ValidationPipe` (`install-validation.pipe.ts`).
+Kontroleri su razdvojeni po namjeni: `install.controller.ts` (koraci prvog pokretanja), `install-steps.controller.ts` (paket, „Podesi kasnije“, readiness), `install-blueprint.controller.ts` (F4.2) i `install-content.controller.ts` (policy pack + SLA pregled, F4.3/F4.4) — svi dijele `InstallWizardLockGuard` i isti `ValidationPipe` (`install-validation.pipe.ts`). SMTP test ima svoj `install-smtp-test.controller.ts` (`POST /install/smtp/test`).
 
 Frontend ima **jedan** izvor statusa: `InstallSetupProvider` (`nextStep`, `steps`, `profile`, `readiness`). Korak koji snimi poziva `reload()` konteksta; ljuska ne pogodi korak i ne učitava status drugi put (F0.3). Greška učitavanja koraka prikazuje `InstallStepLoadError` (poruka + request id + retry) i **ne** prikazuje formu (F0.2) — prazna forma bi snimila zadanu vrijednost preko postojeće konfiguracije.
 
@@ -152,6 +169,9 @@ Frontend ima **jedan** izvor statusa: `InstallSetupProvider` (`nextStep`, `steps
 - `private.install.completedAt` (string ISO | empty)
 - `private.install.completedByUserId` (string)
 - `private.install.profile` (`minimum` | `standard` | `full` | empty; F1)
+- `private.install.blueprint` (string; F4.2 — primijenjeni predložak, npr. `itServiceDesk`)
+- `private.install.policyPack` (string; F4.3 — primijenjeni paket, npr. `PACK_IT_STANDARD`)
+- `private.install.slaReview` (`confirmed` | `adjusted` | empty; F4.4)
 - `private.install.steps.<stepKey>.skipped` (boolean, default false; F1 — `<stepKey>` je konačan skup iz registryja)
   Svi `private.install.*` ključevi čarobnjaka su `readOnly` u registry metadata-i (IN18): Settings ekran ih prikazuje bez editora, uz oznaku „Čarobnjak“ i objašnjenje; API ih i dalje ne zaključava (metadata za UI, ne novo pravilo).
 - `private.auth.mode` (`local` | `entra_ad`)
