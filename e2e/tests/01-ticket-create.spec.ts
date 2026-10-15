@@ -15,7 +15,11 @@ test.describe('01 ticket create', () => {
     await page.locator('input, textarea').first().waitFor({ state: 'visible' });
     const title = `E2E create ${Date.now()}`;
     await page.getByLabel(/naslov|title/i).fill(title);
-    await page.getByLabel(/opis|description/i).fill('E2E ticket description body');
+    const descriptions = page.getByLabel(/opis|description/i);
+    for (let index = 0; index < (await descriptions.count()); index += 1) {
+      const field = descriptions.nth(index);
+      if (await field.isVisible()) await field.fill('E2E ticket description body');
+    }
     const originUnit = page.getByLabel(/jedinica porijekla|origin organizational unit/i);
     if (await originUnit.isVisible().catch(() => false)) {
       await originUnit.selectOption({ index: 1 });

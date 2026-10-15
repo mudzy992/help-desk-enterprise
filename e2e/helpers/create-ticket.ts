@@ -33,7 +33,11 @@ export async function createTicketViaApi(
       isConfidential: input.isConfidential === true,
       impact: input.impact ?? 'MEDIUM',
       urgency: input.urgency ?? 'MEDIUM',
-      formData: input.formData ?? {},
+      formData:
+        input.formData ??
+        (input.formVersionRef === undefined
+          ? {}
+          : { opis: input.description ?? 'E2E ticket body' }),
     }),
   });
 }
