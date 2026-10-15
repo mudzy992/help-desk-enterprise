@@ -52,6 +52,21 @@ const skippedStepSettings: readonly {
       'Team step was deferred with "configure later"; the founder remains the only member of the handler group',
   },
   {
+    key: installStepSkippedKeys.blueprint,
+    description:
+      'Catalog-from-template step was deferred with "configure later"; the catalog keeps only the service from the seed step',
+  },
+  {
+    key: installStepSkippedKeys.policyPack,
+    description:
+      'Policy pack step is not offered for deferral: the pack carries the role permissions the package promises',
+  },
+  {
+    key: installStepSkippedKeys.slaReview,
+    description:
+      'SLA review step was deferred with "configure later"; the seeded business hours and priority matrix stay as they are',
+  },
+  {
     key: installStepSkippedKeys.addons,
     description:
       'Add-ons step was deferred with "configure later"; the catalog defaults stay in place',
@@ -70,6 +85,39 @@ export const installWizardSettings: readonly SettingDefinition[] = [
     defaultValue: '',
     // IN18: the package is chosen in the wizard; a hand edit here would fight
     // the step registry the wizard derives its flow from.
+    readOnly: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateInstallBlueprint,
+    categoryId: settingCategoryIds.privateInstall,
+    valueType: 'string',
+    description:
+      'Blueprint applied by the catalog step (for example itServiceDesk); empty means the catalog was not built from a template',
+    isRequired: false,
+    defaultValue: '',
+    // IN18: the catalog step writes it; a hand edit would only misdescribe the
+    // services that already exist.
+    readOnly: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateInstallPolicyPack,
+    categoryId: settingCategoryIds.privateInstall,
+    valueType: 'string',
+    description:
+      'Policy pack applied by the wizard to the organizational unit (for example itStandard); empty means no pack was applied from the wizard',
+    isRequired: false,
+    defaultValue: '',
+    readOnly: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateInstallSlaReview,
+    categoryId: settingCategoryIds.privateInstall,
+    valueType: 'string',
+    description:
+      'How the SLA review step ended: confirmed (defaults accepted) or adjusted (business hours or the priority matrix were changed); empty means the step was not answered yet',
+    isRequired: false,
+    allowedValues: ['', 'confirmed', 'adjusted'],
+    defaultValue: '',
     readOnly: true,
   }),
   ...skippedStepSettings.map((entry) =>

@@ -25,7 +25,10 @@ export type InstallFeatureCardProperties = {
   readonly badges?: readonly string[];
   readonly control?: "switch" | "locked" | "included";
   readonly checked?: boolean;
+  /** Shown next to a disabled switch; the switch is dead as soon as it is set. */
   readonly disabledReason?: string;
+  /** Freezes the switch while the step is saving (`disabledReason` unexplained). */
+  readonly isDisabled?: boolean;
   readonly onCheckedChange?: (checked: boolean) => void;
   readonly footer?: ReactNode;
   readonly isRecommended?: boolean;
@@ -40,13 +43,14 @@ export function InstallFeatureCard({
   control = "included",
   checked = false,
   disabledReason,
+  isDisabled = false,
   onCheckedChange,
   footer,
   isRecommended = false,
   className,
 }: InstallFeatureCardProperties) {
   const { t } = useTranslation();
-  const isSwitchDisabled = control === "switch" && disabledReason !== undefined;
+  const isSwitchDisabled = control === "switch" && (disabledReason !== undefined || isDisabled);
   return (
     <div
       className={cn(

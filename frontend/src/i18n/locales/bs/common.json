@@ -2180,7 +2180,13 @@
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — preskočene provjere po satu, upozorenje",
         "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično",
         "private.install.steps.identity.skipped": "Korak „Identitet“ je odgođen u wizardu.",
-        "private.install.steps.team.skipped": "Korak „Tim“ je odgođen u wizardu."
+        "private.install.steps.team.skipped": "Korak „Tim“ je odgođen u wizardu.",
+        "private.install.blueprint": "Predložak kataloga koji je primijenio čarobnjak (npr. itServiceDesk).",
+        "private.install.policyPack": "Paket prava koji je čarobnjak primijenio na organizacijsku jedinicu (npr. PACK_IT_STANDARD).",
+        "private.install.slaReview": "Kako je završen pregled SLA u čarobnjaku: confirmed (zadano potvrđeno) ili adjusted (izmijenjeno).",
+        "private.install.steps.blueprint.skipped": "Oznaka da je korak izrade kataloga odgođen u čarobnjaku.",
+        "private.install.steps.policyPack.skipped": "Oznaka da je korak paketa prava odgođen u čarobnjaku.",
+        "private.install.steps.slaReview.skipped": "Oznaka da je korak pregleda SLA odgođen u čarobnjaku."
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2664,7 +2670,13 @@
         "private.ops.thresholds.captchaSkippedWarnPerHour": "Koliko provjera na sat smije biti preskočeno jer Cloudflare nije odgovorio prije alarma upozorenja (auth.captchaSkipped.high).",
         "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
         "private.install.steps.identity.skipped": "Prikazuje da je korak identiteta preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije.",
-        "private.install.steps.team.skipped": "Prikazuje da je korak tima preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije."
+        "private.install.steps.team.skipped": "Prikazuje da je korak tima preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije.",
+        "private.install.blueprint": "Predložak iz kojeg su napravljene kategorije i servisi kataloga. Prazno znači da katalog nije rađen iz predloška i da postoji samo servis iz koraka početnih podataka.",
+        "private.install.policyPack": "Paket prava koji je čarobnjak primijenio na organizacijsku jedinicu, zajedno s ulogama i dozvolama. Prazno znači da prava nisu dodijeljena iz čarobnjaka.",
+        "private.install.slaReview": "Zapis da je operater pregledao radno vrijeme i matricu prioriteta. Vrijednost confirmed znači da su zadane vrijednosti prihvaćene, adjusted da su izmijenjene, a prazno da korak još nije odgovoren.",
+        "private.install.steps.blueprint.skipped": "Postavlja ga čarobnjak kad operater odgodi izradu kataloga iz predloška. Katalog tada ostaje samo sa servisom iz koraka početnih podataka, a izrada iz predloška je moguća kasnije.",
+        "private.install.steps.policyPack.skipped": "Postavlja ga čarobnjak kad operater odgodi paket prava. Prava i uloge koje paket nosi tada treba dodijeliti ručno u Settings.",
+        "private.install.steps.slaReview.skipped": "Postavlja ga čarobnjak kad operater odgodi pregled SLA. Radno vrijeme i matrica prioriteta ostaju na zadanima dok ih neko ne promijeni u Settings."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -4121,7 +4133,27 @@
       "errorIncomplete": "Za uključen SMTP unesite host, port, korisnika, lozinku i validnu from adresu.",
       "errorInvalid": "SMTP konfiguracija nije ispravna ili nije potpuna.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
-      "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati."
+      "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati.",
+      "test": {
+        "title": "Test e-mail",
+        "body": "Pošaljite probnu poruku i provjerite da SMTP zaista radi.",
+        "address": "Adresa (prazno = adresa super admina)",
+        "send": "Pošalji test",
+        "sending": "Šaljem…",
+        "sent": "Poslano na {{toAddress}}.",
+        "errorNotConfigured": "SMTP nije uključen ili nije potpun.",
+        "errorInvalidRecipient": "Adresa nije ispravna.",
+        "errorAuth": "Server je odbio prijavu — provjerite korisnika i lozinku.",
+        "errorTls": "TLS nije prošao — provjerite certifikat i način šifrovanja.",
+        "errorTimeout": "Server nije odgovorio na vrijeme.",
+        "errorUnreachable": "Server nije dostupan — provjerite host i port.",
+        "errorSend": "Server je prihvatio vezu, ali poruku je odbio.",
+        "errorRateLimited": "Previše pokušaja; sačekajte pa pokušajte ponovo.",
+        "errorSuperAdmin": "Test šalje super admin.",
+        "errorGeneric": "Slanje nije uspjelo. Pokušajte ponovo.",
+        "savingFirst": "Sačuvajte izmjene pa pošaljite test — test koristi sačuvane postavke.",
+        "storedHint": "Test koristi sačuvane postavke. Prazno polje šalje poruku super adminu."
+      }
     },
     "seed": {
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
@@ -4242,7 +4274,71 @@
           "label": "Microsoft Teams konektor",
           "description": "Obavijesti i akcije u Teamsu te kreiranje tiketa iz Teamsa. Radi u simulatoru dok organizacija ne registruje vlastitu Teams aplikaciju."
         }
-      }
+      },
+      "csat": {
+        "title": "CSAT anketa",
+        "value": "Poslije zatvaranja tiketa korisnik dobija kratku anketu o zadovoljstvu."
+      },
+      "reports": {
+        "title": "Izvještaji",
+        "value": "Ugrađeni izvještaji o obimu, brzini odgovora i opterećenju tima."
+      },
+      "approvals": {
+        "title": "Odobrenja",
+        "value": "Zahtjevi koji traže odobrenje dobijaju tok odobravanja uz trag ko je odobrio."
+      },
+      "confidential": {
+        "title": "Povjerljivi tiketi",
+        "value": "Osjetljivi tiketi vidljivi su samo ovlaštenim osobama."
+      },
+      "savedViews": {
+        "title": "Sačuvani pregledi",
+        "value": "Svako može sačuvati filter liste tiketa koji mu treba svaki dan."
+      },
+      "bulkActions": {
+        "title": "Grupne akcije",
+        "value": "Promjena statusa, prioriteta ili zaduženja na više tiketa odjednom."
+      },
+      "ticketSplit": {
+        "title": "Dijeljenje tiketa",
+        "value": "Iz jednog zahtjeva nastaje više tiketa kad se problem sastoji od više dijelova."
+      },
+      "kbIntercept": {
+        "title": "Baza znanja dok se piše",
+        "value": "Dok korisnik piše zahtjev, predlažu se postojeći članci koji rješavaju problem."
+      },
+      "cmdb": {
+        "title": "CMDB — imovina",
+        "value": "Evidencija računara, opreme i licenci, povezana s tiketima."
+      },
+      "problems": {
+        "title": "Problemi",
+        "value": "Tiketi istog uzroka povezuju se u problem koji se rješava jednom."
+      },
+      "changes": {
+        "title": "Promjene",
+        "value": "Planirane promjene na sistemima prolaze kroz najavu, odobrenje i evidenciju."
+      },
+      "email": {
+        "title": "E-mail kanal",
+        "value": "Dolazni e-mailovi postaju tiketi, a odgovori iz tiketa idu korisniku kao e-mail."
+      },
+      "edge": {
+        "title": "Edge ekstenzija",
+        "value": "Snimanje ekrana i podataka iz pregleda prilikom prijave problema."
+      },
+      "teams": {
+        "title": "Microsoft Teams",
+        "value": "Obavještenja i rad na tiketima iz Teamsa."
+      },
+      "category": {
+        "serviceQuality": "Kvalitet usluge",
+        "control": "Kontrola",
+        "productivity": "Produktivnost",
+        "itsm": "ITSM moduli",
+        "integrations": "Integracije"
+      },
+      "other": "Ostalo"
     },
     "complete": {
       "heading": "Završi podešavanje",
@@ -4263,7 +4359,10 @@
       "seed": "Struktura i servis",
       "team": "Tim",
       "addons": "Dodaci",
-      "complete": "Završetak"
+      "complete": "Završetak",
+      "blueprint": "Katalog iz predloška",
+      "policyPack": "Paket prava",
+      "slaReview": "Pregled SLA"
     },
     "tokenHeading": "Instalacijski token",
     "tokenBody": "Unesite vrijednost varijable okruženja INSTALL_TOKEN sa servera. Bez nje čarobnjak ostaje zaključan.",
@@ -4410,7 +4509,112 @@
         "1": "Spremnost se provjerava prije zaključavanja",
         "2": "Odgođene korake dovršavaš iz Postavki",
         "3": "Prijava ide na /login sa SuperAdmin nalogom"
+      },
+      "blueprint": {
+        "1": "Katalog kategorija i servisa spreman za prijem tiketa.",
+        "2": "Svaki servis dobija SLA profil i obrazac zahtjeva.",
+        "3": "Ruting se provjerava prije nego što se bilo šta upiše."
+      },
+      "policyPack": {
+        "1": "Uloge i dozvole za servis iz predloška.",
+        "2": "Prava možete dodijeliti i ručno, kasnije u Settings.",
+        "3": "Ono što paket ne pokriva ostaje nepromijenjeno."
+      },
+      "slaReview": {
+        "1": "Vidite radno vrijeme i matricu prioriteta koje sistem koristi.",
+        "2": "Zadane vrijednosti možete potvrditi ili odmah izmijeniti.",
+        "3": "Potvrda ne mijenja podatke — samo bilježi da ste pregledali."
       }
+    },
+    "blueprint": {
+      "heading": "Katalog iz predloška",
+      "body": "Predložak postavlja kategorije i servise kataloga, SLA profil i paket prava. Sve što primijenite možete kasnije mijenjati u podešavanjima.",
+      "applied": "Primijenjen predložak: {{key}}.",
+      "chooseTemplate": "Predložak",
+      "toggleService": "{{service}} — uključi u katalog",
+      "tierGroups": "Napravi nivoe podrške (1. i 2. nivo)",
+      "tierGroupsHint": "Servisi se vode na 1. nivou, a zahtjevi koje 1. nivo ne riješi idu na 2. nivo.",
+      "submit": "Primijeni predložak",
+      "result": {
+        "title": "Šta je upisano",
+        "created": "Novih servisa: {{count}} u {{categories}} kategorija",
+        "existing": "Postojećih servisa koje smo zadržali: {{count}}",
+        "tiers": "Novih nivoa podrške: {{count}}",
+        "routing": "Ruting je provjeren za svaki servis — zahtjev ide tačno na grupu rješavalaca, bez rezervne grupe."
+      },
+      "errorStructure": "Prvo dovršite korak „Struktura organizacije“ — predložak traži direkciju i grupu rješavalaca.",
+      "errorRouting": "Ruting za neki od servisa nije mogao biti postavljen, pa ništa nije upisano. Provjerite korak „Struktura organizacije“."
+    },
+    "policyPack": {
+      "heading": "Paket prava",
+      "body": "Paket prava postavlja uloge i dozvole za servis iz predloška. Možete ga i preskočiti i dodijeliti prava ručno.",
+      "applied": "Primijenjen paket: {{key}}.",
+      "choosePack": "Paket prava",
+      "submit": "Primijeni paket",
+      "grants": "Dozvola u paketu: {{count}}",
+      "classification": "Klasifikacija: {{value}}",
+      "requiresApproval": "Zahtijeva odobrenje",
+      "slaProfile": "SLA profil: {{key}}",
+      "errorDisabled": "Ovaj paket je isključen u podešavanjima i ne može se primijeniti iz čarobnjaka.",
+      "errorNotOffered": "Odabrani predložak ne nudi ovaj paket prava.",
+      "errorUnknown": "Nepoznat paket prava.",
+      "empty": "Za ovaj predložak nema paketa prava koji se mogu primijeniti."
+    },
+    "slaReview": {
+      "heading": "Radno vrijeme i prioriteti",
+      "body": "Provjerite radno vrijeme i matricu prioriteta. Potvrda upisuje samo to da ste pregledali ponuđene vrijednosti; izmjene se upisuju odmah.",
+      "calendar": {
+        "title": "Radno vrijeme — {{name}}",
+        "timezone": "Vremenska zona: {{timezone}}",
+        "hours": "{{from}}–{{to}}",
+        "closed": "Ne radi",
+        "holidays": "Praznika u kalendaru: {{count}}",
+        "editorCaption": "Radno vrijeme po danima",
+        "day": "Dan",
+        "from": "Od",
+        "to": "Do",
+        "open": "Radi",
+        "fromLabel": "Početak radnog vremena — {{day}}",
+        "toLabel": "Kraj radnog vremena — {{day}}",
+        "toggleDay": "Radi li se — {{day}}",
+        "multipleIntervals": "Neki dani imaju više intervala; ostale intervale mijenjate na SLA stranici."
+      },
+      "matrix": {
+        "title": "Matrica prioriteta",
+        "cell": "{{impact}} / {{urgency}} → {{priority}}",
+        "caption": "Prioritet koji sistem dodjeljuje za kombinaciju uticaja i hitnosti.",
+        "impact": "Uticaj / hitnost",
+        "hint": "Matrica se mijenja na SLA stranici, gdje se svaka izmjena potvrđuje razlogom.",
+        "unknown": "—"
+      },
+      "review": {
+        "confirmed": "Pregledano: potvrđene su zadane vrijednosti.",
+        "adjusted": "Pregledano: vrijednosti su izmijenjene."
+      },
+      "confirm": "Potvrđujem podrazumijevano",
+      "errorEmpty": "Odabrali ste izmjenu, ali ništa nije promijenjeno.",
+      "errorCalendarMissing": "U ovoj instalaciji nema kalendara radnog vremena, pa se izmjena ne može upisati.",
+      "submitAdjust": "Sačuvaj izmjene",
+      "errorHours": "Radno vrijeme nije ispravno — provjerite sate (jedan dan mora biti radni i intervali se ne smiju preklapati).",
+      "level": {
+        "LOW": "Nizak",
+        "MEDIUM": "Srednji",
+        "HIGH": "Visok",
+        "CRITICAL": "Kritičan"
+      },
+      "weekday": {
+        "1": "Ponedjeljak",
+        "2": "Utorak",
+        "3": "Srijeda",
+        "4": "Četvrtak",
+        "5": "Petak",
+        "6": "Subota",
+        "7": "Nedjelja"
+      }
+    },
+    "content": {
+      "errorSuperAdmin": "Za ovaj korak je potrebna prijava super admina.",
+      "errorGeneric": "Čuvanje nije uspjelo. Pokušajte ponovo."
     }
   },
   "routing": {

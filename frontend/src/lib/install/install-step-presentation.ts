@@ -3,10 +3,13 @@ import {
   Building2,
   Flag,
   KeyRound,
+  ListTree,
   Mail,
   Network,
   Package,
+  ScrollText,
   ShieldCheck,
+  Timer,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -28,6 +31,10 @@ export const installWizardSteps: readonly InstallWizardStep[] = [
   "smtp",
   "seed",
   "team",
+  // F4: Standard/Full content, in the order the registry declares it.
+  "blueprint",
+  "policyPack",
+  "slaReview",
   "addons",
   "complete",
 ];
@@ -114,6 +121,36 @@ export const installStepPresentations: Readonly<
       "install.whatYouGet.team.1",
       "install.whatYouGet.team.2",
       "install.whatYouGet.team.3",
+    ],
+  },
+  blueprint: {
+    icon: ListTree,
+    titleKey: "install.blueprint.heading",
+    bodyKey: "install.blueprint.body",
+    whatYouGetKeys: [
+      "install.whatYouGet.blueprint.1",
+      "install.whatYouGet.blueprint.2",
+      "install.whatYouGet.blueprint.3",
+    ],
+  },
+  policyPack: {
+    icon: ScrollText,
+    titleKey: "install.policyPack.heading",
+    bodyKey: "install.policyPack.body",
+    whatYouGetKeys: [
+      "install.whatYouGet.policyPack.1",
+      "install.whatYouGet.policyPack.2",
+      "install.whatYouGet.policyPack.3",
+    ],
+  },
+  slaReview: {
+    icon: Timer,
+    titleKey: "install.slaReview.heading",
+    bodyKey: "install.slaReview.body",
+    whatYouGetKeys: [
+      "install.whatYouGet.slaReview.1",
+      "install.whatYouGet.slaReview.2",
+      "install.whatYouGet.slaReview.3",
     ],
   },
   addons: {

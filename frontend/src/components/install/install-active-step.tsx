@@ -1,8 +1,11 @@
 import { InstallAddonsStep } from "@/components/install/install-addons-step";
+import { InstallBlueprintStep } from "@/components/install/install-blueprint-step";
 import { InstallCompleteStep } from "@/components/install/install-complete-step";
 import { InstallIdentityStep } from "@/components/install/install-identity-step";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
+import { InstallPolicyPackStep } from "@/components/install/install-policy-pack-step";
 import { InstallProfileStep } from "@/components/install/install-profile-step";
+import { InstallSlaReviewStep } from "@/components/install/install-sla-review-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
 import { InstallStructureStep } from "@/components/install/install-structure-step";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
@@ -55,6 +58,12 @@ export function InstallActiveStep({
       return <InstallStructureStep onSaved={onSaved} />;
     case "team":
       return <InstallTeamStep onSaved={onSaved} />;
+    case "blueprint":
+      return <InstallBlueprintStep onSaved={onSaved} />;
+    case "policyPack":
+      return <InstallPolicyPackStep onSaved={onSaved} />;
+    case "slaReview":
+      return <InstallSlaReviewStep onSaved={onSaved} />;
     case "addons":
       return <InstallAddonsStep onSaved={onSaved} isSaved={isAddonsSaved} />;
     case "complete":

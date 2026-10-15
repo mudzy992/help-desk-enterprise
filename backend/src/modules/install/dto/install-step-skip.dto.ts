@@ -10,6 +10,12 @@ export const installStepParamKeys = [
   'smtp',
   'seed',
   'team',
+  // F4: the three content steps of Standard/Full. `policyPack` is not offered for
+  // deferral (`skippable: false`), and the service answers 409 rather than 400 —
+  // the key is known, the action is not allowed.
+  'blueprint',
+  'policyPack',
+  'slaReview',
   'addons',
 ] as const satisfies readonly InstallStepKey[];
 

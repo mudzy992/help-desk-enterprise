@@ -21,6 +21,11 @@ export type InstallStepKey =
   | 'smtp'
   | 'seed'
   | 'team'
+  // F4: Standard/Full content — catalog from a blueprint, the IT policy pack and
+  // the SLA review. Minimum keeps the single service the seed step created.
+  | 'blueprint'
+  | 'policyPack'
+  | 'slaReview'
   | 'addons';
 
 export type InstallWizardStepKey = InstallStepKey | 'complete';

@@ -63,10 +63,14 @@ export function planInstallProfileReset(input: {
       reopenedStepKeys.push(definition.key);
     }
   }
+  // One step key appears at most once in every list. The registry cannot declare
+  // a step twice, but a caller that passes its own `definitions` (the specs, and
+  // the F4 consistency guard) must get the same deterministic answer either way —
+  // the old comment claimed this and the code only did it for the settings.
   return {
-    clearSkippedKeys,
+    clearSkippedKeys: [...new Set(clearSkippedKeys)],
     resetSettingKeys: [...new Set(resetSettingKeys)],
-    droppedStepKeys,
-    reopenedStepKeys,
+    droppedStepKeys: [...new Set(droppedStepKeys)],
+    reopenedStepKeys: [...new Set(reopenedStepKeys)],
   };
 }

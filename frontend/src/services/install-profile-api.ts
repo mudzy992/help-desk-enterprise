@@ -9,7 +9,17 @@ import { apiRequest } from "@/services/api";
 export type InstallProfile = "minimum" | "standard" | "full";
 
 export type InstallStepKey =
-  "profile" | "superAdmin" | "identity" | "loginProvider" | "smtp" | "seed" | "team" | "addons";
+  | "profile"
+  | "superAdmin"
+  | "identity"
+  | "loginProvider"
+  | "smtp"
+  | "seed"
+  | "team"
+  | "blueprint"
+  | "policyPack"
+  | "slaReview"
+  | "addons";
 
 export type InstallProfileItem = {
   readonly key: string;

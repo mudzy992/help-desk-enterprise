@@ -9,6 +9,7 @@ import { isInstallDatabaseUnavailableError } from './is-install-database-unavail
 import { isInstallSetupComplete } from './is-install-setup-complete';
 import { settingKeys } from '../settings/setting-keys';
 import { readInstallProfile, readInstallStepProgress, toInstallStepStates } from './read-install-step-states';
+import { listInstallStepDefinitions } from './steps/install-step.registry';
 import { resolveInstallNextStep } from './steps/resolve-install-next-step';
 import type { InstallProfile } from './steps/install-step.types';
 import type {
@@ -92,17 +93,19 @@ export function completedStatus(
   };
 }
 
+/**
+ * F4: derived from the step registry instead of listing the steps again — a
+ * finished installation reports every step of the registry as done, and a new
+ * step cannot be forgotten here (it was, when `blueprint`, `policyPack` and
+ * `slaReview` arrived).
+ */
 export function completedStepStates(): InstallStepStatesRecord {
-  return {
-    profile: { completed: true },
-    superAdmin: { completed: true },
-    identity: { completed: true },
-    loginProvider: { completed: true },
-    smtp: { completed: true },
-    seed: { completed: true },
-    team: { completed: true },
-    addons: { completed: true },
-  };
+  return Object.fromEntries(
+    listInstallStepDefinitions().map((definition) => [
+      definition.key,
+      { completed: true },
+    ]),
+  ) as InstallStepStatesRecord;
 }
 
 function propagateDatabaseFailure(error: unknown): void {

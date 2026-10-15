@@ -13,6 +13,9 @@ export const installStepSkippedKeys = {
   smtp: 'private.install.steps.smtp.skipped',
   seed: 'private.install.steps.seed.skipped',
   team: 'private.install.steps.team.skipped',
+  blueprint: 'private.install.steps.blueprint.skipped',
+  policyPack: 'private.install.steps.policyPack.skipped',
+  slaReview: 'private.install.steps.slaReview.skipped',
   addons: 'private.install.steps.addons.skipped',
 } as const;
 
@@ -34,6 +37,12 @@ export const settingKeys = {
   privateInstallCompletedAt: 'private.install.completedAt',
   privateInstallCompletedByUserId: 'private.install.completedByUserId',
   privateInstallProfile: 'private.install.profile',
+  /** F4.2: the blueprint that produced the Standard/Full catalog. */
+  privateInstallBlueprint: 'private.install.blueprint',
+  /** F4.3: the policy pack the wizard applied to the organizational unit. */
+  privateInstallPolicyPack: 'private.install.policyPack',
+  /** F4.4: 'confirmed' or 'adjusted' once the SLA review step was answered. */
+  privateInstallSlaReview: 'private.install.slaReview',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
   privateAuthAzureTenantId: 'private.auth.azureTenantId',

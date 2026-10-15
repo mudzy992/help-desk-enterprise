@@ -9,7 +9,14 @@ import { SmtpMailTransport } from "../notifications/email/smtp-mail-transport";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { InstallAddonsService } from "./install-addons.service";
+import { InstallBlueprintController } from "./install-blueprint.controller";
+import { InstallBlueprintService } from "./blueprints/install-blueprint.service";
+import { InstallContentController } from "./install-content.controller";
 import { InstallController } from "./install.controller";
+import { InstallPolicyPackService } from "./install-policy-pack.service";
+import { InstallSlaReviewService } from "./install-sla-review.service";
+import { InstallSmtpTestController } from "./install-smtp-test.controller";
+import { InstallSmtpTestService } from "./install-smtp-test.service";
 import { InstallStepsController } from "./install-steps.controller";
 import { InstallCompleteService } from "./install-complete.service";
 import { InstallIdentityService } from "./install-identity.service";
@@ -50,6 +57,10 @@ const providers: Readonly<Record<string, object>> = {
   InstallStepSkipService,
   InstallReadinessService,
   InstallCompleteService,
+  InstallBlueprintService,
+  InstallPolicyPackService,
+  InstallSlaReviewService,
+  InstallSmtpTestService,
   InstallSetupGuard,
   InstallWizardLockGuard,
   AccountSecurityPolicyLoader,
@@ -68,6 +79,9 @@ const factoryBuiltProviders: readonly string[] = ["InstallAddonsService"];
 
 /** Controllers are instantiated by the injector as well, so they obey both rules. */
 const controllers: Readonly<Record<string, object>> = {
+  InstallBlueprintController,
+  InstallContentController,
+  InstallSmtpTestController,
   InstallController,
   InstallStepsController,
 };

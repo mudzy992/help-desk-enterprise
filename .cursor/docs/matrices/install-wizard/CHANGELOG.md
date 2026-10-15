@@ -1,5 +1,15 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-15 (F4 Standard sadržaj)
+
+- **SMTP test (F4.1):** `POST /install/smtp/test` šalje probnu poruku kroz postojeći `MAIL_TRANSPORT` i vraća `SMTP_TEST_*` kod po uzroku (auth/TLS/timeout/unreachable/send); rate limit je vlastita instanca `TestEmailRateLimiter`-a (bez Redis-a). UI `install-smtp-test-panel.tsx` je ugašen dok forma ima nesačuvane izmjene.
+- **Blueprints (F4.2):** `GET /install/blueprints` + `POST /install/blueprints/apply` — `itServiceDesk` (5 kategorija, 10 servisa, opcione tier grupe); idempotentno po slugu, jedna transakcija, `resolveTicketRouting === EXACT` dokazan za svaki servis prije commita; marker `private.install.blueprint`.
+- **Policy pack (F4.3):** `GET/POST /install/policy-pack` — ponuda iz `policyPackKeys` predloška, `PACK_DISABLED` iz `private.policyPacks.disabledKeysCsv`, primjena kroz funkciju `applyPolicyPack` (bez `PolicyPacksService` zbog ciklusa preko Authentication modula); marker `private.install.policyPack`; korak nije `skippable`.
+- **SLA pregled (F4.4):** `GET/POST /install/sla-review` — `confirmed` upisuje samo marker `private.install.slaReview`, `adjusted` mijenja kalendar/ćelije matrice kroz domenske funkcije uz `reason: 'install_wizard'`; matrica se prikazuje (read-only), praznici se prikazuju ali ne uređuju.
+- **Dodaci (F4.5):** `lib/install/install-addon-presentation.ts` (14 ikona/naslova/rečenica, 5 kategorija) + `install-addons-step.tsx` na `install-feature-card.tsx`; `resolve-install-addon-defaults.ts` čini paketne defaulte stvarnima (Full: `cmdb`/`problems`/`changes`), a `GET /install/addons` ih vraća i kao `enabled`/`defaultEnabled`.
+- **API dodatak:** `POST /install/smtp/test`, `GET /install/blueprints`, `POST /install/blueprints/apply`, `GET|POST /install/policy-pack`, `GET|POST /install/sla-review`; skip DTO prima `blueprint|policyPack|slaReview`; settings-registry coverage guard 482 → 488.
+- Testovi: backend `modules/install` **43 suite / 219 testova** (novi: blueprint 7, SMTP test 6, policy pack 5, SLA pregled 6, defaulti dodataka 3); `modules/install modules/settings` 71 / 341; frontend **242 fajla / 1024 testa** uz `tsc -b`, eslint, prettier i `check-theme-contrast.mjs` čiste.
+
 ## 2026-10-15 (nalazi IN11/IN18/IN19 zatvoreni)
 - **IN19 — odgoda ne preživi promjenu paketa:** `planInstallProfileReset({ nextProfile, previousProfile })` vraća `reopenedStepKeys` (koraci koje novi paket traži, a stari ih je samo nudio). Servis briše zastavicu samo ako je bila postavljena, u istoj transakciji i istom change-log zapisu, a `POST /install/profile` vraća `reopenedSteps: InstallStepKey[]` (na `GET` prazan). Ljuska iznad vraćenog koraka prikaže `install.shell.reopened`.
 - **Nađeno uz IN19:** `createInMemorySettingsPrisma().appSetting.deleteMany` nije podržavao Prisma oblik `{ key: { in: [...] } }`, pa je F1 reset paketa u testovima brisao ništa; dvojnik je popravljen i `install-profile.service.spec.ts` sada dokazuje brisanje zastavice.

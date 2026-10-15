@@ -2,15 +2,16 @@
 
 ## Stanje (2026-10-15)
 
-- **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj) i F3 (nova ljuska) su završeni.** `CHECKLIST.md` ih vodi kao `[x]`.
-- Testovi: backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **37 suite / 183 testa**; puni backend prolaz → `544 passed / 74 failed / 4 skipped` od 622 suita, **2855** testova prolazi, `0` padajućih (istih 74 compile-only suita kao na pristine HEAD-u); frontend `cd frontend && npx vitest run` → **233 fajla / 993 testa** (mrtvi `resolve-install-wizard-step.spec.ts` je obrisan u F3, pa je broj pao za njegovih 5); `npx tsc -b`, `npx eslint`, `npx prettier --check` i `npx vite build` čisti.
+- **F0 (stabilizacija), F1 (backend osnova), F2 (Minimum sadržaj), F3 (nova ljuska) i F4 (Standard sadržaj) su završeni u kodu.** `CHECKLIST.md` vodi F0–F4 kao `[x]`; **F4 još nije commitovan** (radi se u jednom radnom stablu).
+- Testovi: backend `cd backend && npx jest -c /tmp/jest.local.cjs modules/install` → **43 suite / 219 testova** (`modules/install modules/settings` → 71 / 341); puni backend prolaz → `550 passed / 74 failed / 4 skipped` od 628 suita, **2892** testa prolazi + 26 skipped, `0` padajućih testova, a skup padajućih suita je **identičan** pristine HEAD-u (`comm -3` prazan); frontend `cd frontend && npx vitest run` → **242 fajla / 1024 testa**, 0 padajućih (`--reporter=json`); `npx tsc -b`, `npx eslint` (0 grešaka; 14 postojećih upozorenja van install/settings), `npx prettier --check src`, `scripts/check-theme-contrast.mjs` i `npx vite build` čisti.
 - **Commitovano i pushovano** na `arena/72aa620f-help-desk-enterprise` (4 commita, jedan po fazi; poruke na kraju fajla):
   - `1e8ac2d` fix(install): fail-closed wizard gate, single status source and readiness guard (F0)
   - `c4ddba1` feat(install): step registry, installation packages, step deferral and readiness (F1)
   - `dafeb3d` feat(install): identity step, parametrized structure seed and team step (F2)
   - `40898db` feat(install-ui): split-screen wizard shell, package picker and review findings (F3 + IN11/IN18/IN19 + dijeljeni sloj)
   - Faze su rađene u jednom radnom stablu, pa commit po fazi nije po hunkovima: dijeljeni fajlovi (tipovi, i18n, docs, e2e helper) su u F3 commitu — stablo na `40898db` je provjereno stanje, međukomitovi nisu zasebno buildani.
-- **Sljedeća faza je F4** (`05_phase-f4-standard-sadrzaj.md`): SMTP s test-slanjem (`POST /install/smtp/test`), install blueprints (`GET/POST /install/blueprints*`), policy pack `itStandard`, SLA pregled, dodaci kao vrijednost — sve na F3 ljusci i `install-feature-card.tsx`. Prije F4 vrijedi zatvoriti **IN19** (skip flag preživi promjenu paketa).
+- **Sljedeća faza je F5** (`06_phase-f5-full-sadrzaj.md`): Inbound/LDAPS kao tvrdnja operatera, sigurnosne preporuke (MFA obavezno za admine, HIBP, idle sesija; captcha off), znanje/status/dežurstva/najave/ITSM/integracije/privatnost po odluci vlasnika 7–8. F4 je ostavio otvoreno samo ono što plan i traži od F5.
+- **F4 u radnom stablu** (51+ izmijenjena/novа putanja): vidi „Šta je urađeno (F4)“ niže i `CHANGELOG.md` za taj dan.
 
 ## Odluke vlasnika (obavezujuće, `00_overview.md` §9)
 
@@ -69,10 +70,21 @@
 - **Specovi** — `shell/install-step-rail.spec.tsx` (3), `shell/install-wizard-shell.spec.tsx` (4: sadržaj/živi identitet, fokus na naslov, `page-in`, reduced motion), `install-feature-card.spec.tsx` (4), `install-profile-step.spec.tsx` (4: kartice, snimanje, odgađanje vs zaključano, `errorLocked`), `lib/install/use-install-step-navigation.spec.tsx` (4) i `pages/install-page.spec.tsx` (4, integracija: korak iz statusa, odgađanje samo za `skippable`, „Nazad“ bez pomjeranja toka), izmijenjen `resolve-rendered-step.spec.ts` (paket je renderabilan, fallback je `profile`) i `install-team-step.spec.tsx` (dugme odgađanja preseljeno u footer).
 - **Visual QA** — `components/visual-qa/visual-qa-install-board.tsx` + red u `pages/visual-qa-primitives-page.tsx` (rail u oba tona, feature kartica u sva tri stanja, aktivna tema/mode/akcent na ekranu).
 
+## Šta je urađeno (F4)
+
+- **F4.1 SMTP test** — `POST /install/smtp/test` (`install-smtp-test.service.ts`, `install-smtp-test.controller.ts`, `install-smtp-test.{types,constants,error}.ts`, `map-install-smtp-test-error.ts`, `dto/send-install-smtp-test.dto.ts`). Prima `{ toAddress? }` (prazno = adresa super admina), šalje kroz postojeći `MAIL_TRANSPORT` sa `Auto-Submitted` + `X-Auto-Response-Suppress`, vraća `{ isSent, toAddress }`. Bira **razumljiv** kod: `SMTP_TEST_{AUTH_FAILED,TLS_FAILED,UNREACHABLE,TIMEOUT,SEND_FAILED}` (klaifikacija iz `EAUTH`/`ETLS`/`ETIMEDOUT`/`ECONNECTION`/`ENOTFOUND`); bez SMTP-a `SMTP_TEST_NOT_CONFIGURED`, bez super admina `SUPER_ADMIN_REQUIRED`, rate limit preko `TestEmailRateLimiter`-a (vlastita instanca — instalacijski modul ne uvozi Redis). UI: `install-smtp-test-panel.tsx` u SMTP koraku + `lib/install/map-install-smtp-test-error.ts`; panel je ugašen dok forma ima nesačuvane izmjene i tako ne obećava test za host koji još nije sačuvan.
+- **F4.2 Blueprints** — `blueprints/` (`install-blueprint.types.ts`, `install-blueprint.registry.ts` sa `itServiceDesk`: 5 kategorija, 10 servisa, `nivo-1`/`nivo-2`, `install-blueprint.constants.ts`, `install-blueprint.error.ts`, `map-install-blueprint-error.ts`, `apply-install-blueprint.ts` (jedna transakcija; tier grupe pa servisi), `assert-install-blueprint-routing.ts` (`resolveTicketRouting === EXACT` za svaki servis), `install-blueprint.service.ts`, `install-blueprint.controller.ts`, `dto/apply-install-blueprint.dto.ts`) + `GET /install/blueprints` i `POST /install/blueprints/apply`. Idempotentno po slugu; imena `{bs,en}` u registryju; postojeći `opsti-zahtjev` iz F2 seeda se preuzima. Rezultat nosi `createdCategoryCount`, `createdServiceCount`, `existingServiceCount`, `createdTierGroupCount`, `tierGroupKeys` i po servisu `{key, categoryKey, serviceId, name, slug, created, routed}`. UI: `install-blueprint-step.tsx` + `install-blueprint-tree.tsx`.
+- **F4.3 Policy pack** — `GET|POST /install/policy-pack` (`install-policy-pack.*`, `map-install-policy-pack-error.ts`, `dto/apply-install-policy-pack.dto.ts`): nudi pakete iz `policyPackKeys` primijenjenog blueprinta, provjerava `private.policyPacks.disabledKeysCsv` (`PACK_DISABLED`), primjenjuje kroz funkciju `applyPolicyPack` (svjesno bez `PolicyPacksService` — ciklus preko Authentication modula) i upisuje marker `private.install.policyPack`. UI: `install-policy-pack-step.tsx`.
+- **F4.4 SLA pregled** — `GET|POST /install/sla-review` (`install-sla-review.*`, `read-install-sla-review-status.ts`, `map-install-sla-review-error.ts`, `dto/save-install-sla-review.dto.ts`): čita `BH_STANDARD` kalendar + matricu; `confirmed` upisuje samo `private.install.slaReview`, `adjusted` mijenja kalendar (`updateBusinessHoursCalendar`) i/ili ćelije matrice (`patchPriorityMatrix`) uz `reason: 'install_wizard'`. UI: `install-sla-review-step.tsx`, `install-business-hours-editor.tsx`, `install-priority-matrix-preview.tsx`, `lib/install/install-weekly-hours.ts`.
+- **F4.5 Dodaci** — `lib/install/install-addon-presentation.ts` (14 × ikona/naslov/rečenica vrijednosti; kategorije Kvalitet usluge, Kontrola, Produktivnost, ITSM moduli, Integracije), `install-addons-step.tsx` prešao na `install-feature-card.tsx`, `resolve-install-addon-defaults.ts` (unija `defaultEnabledAddons` do izabranog paketa → Full uključuje CMDB/probleme/promjene, odluka vlasnika 4) i `GET /install/addons` koji te defaulte vraća i kao `enabled` i kao `defaultEnabled`. `install-feature-card.tsx` dobio `isDisabled`.
+- **Zajednički dijelovi F4** — `install-content.controller.ts` (policy-pack + sla-review rute, `install.controller.ts` ostaje ispod 200 linija), `install-content-api.ts` (jedan tipiziran klijent za sve F4 rute), `lib/install/resolve-install-locale.ts` (bs/en iz `i18n.language`), `lib/install/map-install-content-save-error.ts`, novi koraci u `lib/install/install-step-presentation.ts` (+ `install.steps.*`, `install.whatYouGet.*`), skip DTO prima tri nova ključa.
+- **Specovi F4** — backend: `apply-install-blueprint.spec.ts` (7: kreiranje, idempotencija, `EXACT` ruting za svaki servis, tier grupe, podskup, nepoznat servis, lokalizovana imena), `install-smtp-test.service.spec.ts` (6: primaoc, neispravna adresa, nekonfigurisan SMTP, mapiranje grešaka, rate limit), `install-policy-pack.service.spec.ts` (5: ponuda iz blueprinta, marker, `POLICY_PACK_NOT_OFFERED`, `PACK_DISABLED`), `install-sla-review.service.spec.ts` (6: status, `confirmed` bez izmjena, `adjusted` kroz domenske funkcije, prazna izmjena, super admin, kalendar koji ne postoji), `resolve-install-addon-defaults.spec.ts` (3). Frontend: `install-blueprint-step.spec.tsx` (4), `install-policy-pack-step.spec.tsx` (3), `install-sla-review-step.spec.tsx` (3), `install-smtp-test-panel.spec.tsx` (4), `install-addons-step.spec.tsx` (4), `lib/install/install-weekly-hours.spec.ts` (4).
+- **Popravke otkrivene u F4** — (1) tri nova koraka su isti `useEffect` vezivala na `resource` objekat koji mijenja identitet svakog rendera, pa je efekat poništavao upravo snimljeno stanje (uhvatio `install-policy-pack-step.spec.tsx`); sada se draft puni jednom (`isSeeded`). (2) `install-di-metadata.spec.ts` dobio redove za tri nova kontrolera i nove provajdere. (3) `ci.yml` i `docs/plans/modules/5.2-…md` su referencirali nepostojeći `docs/plans/ci-e2e-kapija.md` — sada pokazuju na `docs/plans/CI-KVALITETNA-KAPIJA.md`. (4) i18n guard `settings-registry-coverage.spec.ts` 482 → 488 uz naslove/pomoć za tri markera i tri skip ključa.
+
 ## Odstupanja od plana i otvorene stvari
 
 - **„Prilagodi“ (odluka vlasnika F3/2):** prekidači odgađaju **korake** kroz F1 `private.install.steps.<key>.skipped`; stavke kataloga koje još ne pripadaju nijednom koraku (blueprints, policy pack, sigurnosne preporuke, inbound, LDAPS, KB, status, dežurstva, najave, ITSM, integracije, privatnost) prikazane su kao sadržaj paketa u karticama i „Prikaži sve“ sheetu — bez prekidača koji ništa ne radi. F4/F5 im daju stvarno značenje.
-- **IN19 (nov, otvoren):** skip flag preživi promjenu paketa (F1: „koraci koji ostaju zadržavaju stanje“), pa npr. odgođen SMTP pod Minimumom znači da Standard može završiti bez njega. Odluka vlasnika 5 nije mijenjana; nalaz je u `audit/frontend/11-install.md` i `docs/analysis/TASKS.md`.
+- **IN19, IN18, IN11 (zatvoreni):** odgoda više ne preživi promjenu paketa (`reopenedSteps`), install ključevi nose `readOnly` metadata, a polja s napomenom imaju `aria-describedby` — sve troje je u commitima `40898db` / `9b63f1d` / `450198f`.
 - **Lighthouse a11y ≥ 95 (kriterij prihvatanja F3)** nije mjeren u ovoj sesiji — nema browsera; provjereno je `npx vite build`, `tsc`, eslint, prettier i RTL testovi (uključujući fokus i `role="progressbar"`/`aria-live`). Mjerenje treba ponoviti u F6 uz E2E prolaz kroz UI.
 - `logoDataUrl` se **ne može obrisati** iz wizarda: settings registry odbija prazan logo, a wizard ne nudi „ukloni“ — brisanje ostaje u Settings → Brending. (Plan je predviđao samo upload.)
 - `LOGO`: iz istog razloga `SaveInstallIdentityInput.logoDataUrl` prima samo `string` (nema `null`).
@@ -82,9 +94,9 @@
 - `install.profile.item.*` prijevodi su upisani uz ekran paketa (IN16 zatvoren); katalog i dalje vraća `labelKey`, prijevod se traži preko `t(key as never)`.
 - `GET /install/status` je otvoren i nakon complete-a (kao i prije) — `install/addons` je i dalje jedina dodatna otvorena GET ruta.
 - `fallbackPasswordPolicy` u super admin koraku je namjerno zadržan sa komentarom (IN10).
-- `docs/analysis/TASKS.md` sada nosi sekciju **Install Wizard v2** sa otvorenim nalazima (IN19, IN18, IN11, IN14) — pravilo „nema TODO-a bez tiketa“ važi i za plan foldere.
+- `docs/analysis/TASKS.md` nosi sekciju **Install Wizard v2**; od nalaza je otvoren samo **IN14** (komponentski testovi za svaki korak + E2E prolaz kroz UI), koji se zatvara u F6 — pravilo „nema TODO-a bez tiketa“ važi i za plan foldere.
 - `backend/src/generated/prisma/` (git-ignored, `.gitignore:12`) je **lokalni stub** umjesto `prisma generate`: sandbox ne može da dohvati Prisma engine (`binaries.prisma.sh`). Stub se generiše skriptom `/tmp/gen-prisma-stub.mjs` (56 enuma iz `prisma/schema/*.prisma` + 137 model delegata; `PrismaClient` sa `$transaction`/`$queryRaw` overload-ima i `Prisma` namespace-om). U pravoj okolini ga zamjenjuje `npx prisma generate` na istom putu. **Stub nije dio isporuke** i ne pojavljuje se u `git status`-u; ako `/tmp` ispari, skripta se piše ponovo prije pokretanja testova.
-- **Puni backend prolaz (bez filtera) nakon F3:** `544 passed / 74 failed / 4 skipped` od 622 suita, `2855` testova prolazi / `26` preskočeno (`2881`), `0` padajućih. Svih 74 padajućih su **compile-only** (ts-jest prijavljuje TS greške prije izvršavanja) i **identični su na čistom HEAD-u**: kontrolni rad u `/tmp/pristine` (`git archive HEAD` + isti stub + `node_modules` preko symlinka) daje istih 74 suita i `2784` prolaznih testova (razlika je tačno F0–F3: +71 test). Nijedan pad nije u `modules/install` ni `modules/settings`.
+- **Puni backend prolaz (bez filtera) nakon F4:** `550 passed / 74 failed / 4 skipped` od 628 suita, `2892` testa prolazi / `26` preskočeno (`2918`), `0` padajućih testova. Svih 74 padajućih su **compile-only** (ts-jest prijavljuje TS greške prije izvršavanja) i **identični su na čistom HEAD-u**: kontrolni rad u `/tmp/pristine` (`git archive HEAD` + isti stub + `node_modules` preko symlinka) daje istih 74 suita i `2784` prolaznih testova (razlika je tačno F0–F4: +108 testova). Nijedan pad nije u `modules/install` ni `modules/settings`.
   - Uzrok je interakcija relaksiranog ts-jest config-a (bez `noImplicitAny`, bez `prisma generate`) sa lokalnim stubom: npr. `const children = []` unutar generičkog `executeTicketOperation(async () => …)` se prijavljuje kao `never[]` (`tickets/split/tickets-split.service.ts:74`), plus nekoliko `never`/`unknown` mjesta u tickets/reports/sla/privacy/assets. Pošto je set identičan na pristine HEAD-u, to nije regresija F0/F1 i ne treba ih popravljati u ovoj fazi; ne diraju instalaciju.
   - Kada se pojavi stvarni `prisma generate` u CI-ju, ovih 74 suita treba ponovo provjeriti.
 
@@ -105,6 +117,29 @@ fix(install): fail-closed wizard gate, single status source and readiness guard
 - POST /install/complete refuses an unfinished install with INSTALL_NOT_READY
   and the unmet keys; role="alert" on step errors
 - docs: 04-install-wizard, MATRIX + changelog, audit 11, Constitution §39
+```
+
+**F4:**
+```
+feat(install): standard content — SMTP test, blueprints, policy pack, SLA review
+
+- POST /install/smtp/test sends through the existing mail transport and answers
+  with a code per cause (auth, TLS, timeout, unreachable, send); the panel stays
+  disabled while the SMTP form has unsaved edits, because the endpoint only
+  knows what is stored
+- GET /install/blueprints + POST /install/blueprints/apply: the IT service desk
+  catalog (5 categories, 10 request types, optional tiers) applied in one
+  transaction, idempotent by slug, with EXACT routing proven for every service
+  before anything is committed
+- GET/POST /install/policy-pack applies the blueprint's pack through the domain
+  function (no PolicyPacksService — it would close a cycle), honouring
+  private.policyPacks.disabledKeysCsv
+- GET/POST /install/sla-review records "I confirm the defaults" or writes the
+  edited week through updateBusinessHoursCalendar with reason install_wizard;
+  the priority matrix is shown, not edited
+- the add-ons step speaks the operator's language (14 cards, five categories) and
+  the package defaults are real: Full switches CMDB, problems and changes on
+- i18n bs+en for every new key; settings registry guard 482 -> 488
 ```
 
 **F3:**
