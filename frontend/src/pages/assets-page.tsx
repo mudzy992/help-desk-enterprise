@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Download, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
+import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
 import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
 import { AssetAssignSheet, AssetUnassignSheet } from "@/components/assets/asset-action-sheets";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
@@ -43,6 +44,7 @@ import {
   warrantyState,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   assetQueryKeys,
@@ -81,6 +83,7 @@ export function AssetsPage() {
     data: capabilities,
     isLoading,
     error,
+    refetch: retryCapabilities,
   } = useQuery({
     queryKey: assetQueryKeys.capabilities,
     queryFn: getAssetCapabilities,
@@ -100,36 +103,28 @@ export function AssetsPage() {
     />
   );
 
-  if (isLoading) {
+  const gateState = resolveModuleCapabilityGate({
+    isLoading,
+    hasError: error !== null,
+    hasData: capabilities !== undefined,
+    enabled: capabilities?.enabled,
+    canRead: capabilities?.canRead,
+  });
+  if (gateState !== "ready" || capabilities === undefined) {
     return (
-      <section>
-        {header}
-        <PanelSkeleton label={t("ui.loading")} />
-      </section>
-    );
-  }
-  if (error || capabilities === undefined || !capabilities.enabled) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Boxes size={18} />}
-          title={t("assets.disabledTitle")}
-          body={t("assets.disabledBody")}
-        />
-      </section>
-    );
-  }
-  if (!capabilities.canRead) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Boxes size={18} />}
-          title={t("assets.forbiddenTitle")}
-          body={t("assets.forbiddenBody")}
-        />
-      </section>
+      <ModuleCapabilityGate
+        state={gateState}
+        header={header}
+        icon={<Boxes size={18} />}
+        disabledTitle={t("assets.disabledTitle")}
+        disabledBody={t("assets.disabledBody")}
+        forbiddenTitle={t("assets.forbiddenTitle")}
+        forbiddenBody={t("assets.forbiddenBody")}
+        errorKey={mapApiError(error)}
+        onRetry={() => void retryCapabilities()}
+      >
+        {null}
+      </ModuleCapabilityGate>
     );
   }
   return (
