@@ -33,6 +33,7 @@ test.describe('07 SLA', () => {
       serviceId: catalog.serviceId,
       originUnitId: ticketOriginUnitId,
       formVersionRef: catalog.formVersionRef,
+      formData: { opis: 'E2E SLA compliance sample' },
     });
     const detail = await api.requestJson<{
       sla?: {
