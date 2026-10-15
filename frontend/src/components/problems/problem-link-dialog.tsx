@@ -21,11 +21,10 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   createProblem,
   getProblemOptions,
-  problemDetailKeys,
+  problemQueryKeys,
   linkProblemTickets,
   listProblems,
   problemLinkableStatuses,
-  problemQueryKeys,
   type ProblemSeverity,
   type ProblemTicketLinkResult,
 } from "@/services/problems-api";
@@ -105,7 +104,7 @@ export function ProblemLinkDialog({
 
   // Decision 2026-10-01: a new problem is handed to a problem group.
   const groupOptions = useQuery({
-    queryKey: problemDetailKeys.options,
+    queryKey: problemQueryKeys.options,
     queryFn: getProblemOptions,
     enabled: open && mode === "create",
     retry: false,

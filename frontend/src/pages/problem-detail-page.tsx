@@ -45,7 +45,6 @@ import {
   claimProblem,
   getProblem,
   getProblemOptions,
-  problemDetailKeys,
   problemQueryKeys,
   type ProblemDetail,
   type ProblemStatus,
@@ -66,7 +65,7 @@ export function ProblemDetailPage() {
   const [statusTarget, setStatusTarget] = useState<ProblemStatus | null | "pick">(null);
 
   const problemQuery = useQuery({
-    queryKey: problemDetailKeys.detail(problemId),
+    queryKey: problemQueryKeys.detail(problemId),
     queryFn: () => getProblem(problemId),
     retry: false,
     enabled: problemId !== "",
@@ -74,17 +73,24 @@ export function ProblemDetailPage() {
   const canManage = problemQuery.data?.permissions.canManage === true;
   const changeAccess = useChangeModuleAccess();
   const optionsQuery = useQuery({
-    queryKey: problemDetailKeys.options,
+    queryKey: problemQueryKeys.options,
     queryFn: getProblemOptions,
     retry: false,
     enabled: problemQuery.data !== undefined,
   });
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
+  const refresh = () => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.detail(problemId) }),
+      queryClient.invalidateQueries({ queryKey: ["problems", "list"] }),
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.events(problemId) }),
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.tickets(problemId) }),
+    ]);
+  };
   const claimMutation = useMutation({
     mutationFn: () => claimProblem(problemId),
     onSuccess: (next) => {
-      queryClient.setQueryData(problemDetailKeys.detail(problemId), next);
+      queryClient.setQueryData(problemQueryKeys.detail(problemId), next);
       toast({ tone: "success", title: t("problems.detail.claimed") });
       refresh();
     },
@@ -258,7 +264,7 @@ export function ProblemDetailPage() {
             problem={problem}
             categories={optionsQuery.data?.rootCauseCategories ?? []}
             onSaved={(next) => {
-              queryClient.setQueryData(problemDetailKeys.detail(problem.id), next);
+              queryClient.setQueryData(problemQueryKeys.detail(problem.id), next);
               refresh();
             }}
           />

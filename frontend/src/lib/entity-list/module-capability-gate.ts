@@ -1,10 +1,5 @@
 export type ModuleCapabilityGateState =
-  | "loading"
-  | "error"
-  | "setup"
-  | "disabled"
-  | "forbidden"
-  | "ready";
+  "loading" | "error" | "setup" | "disabled" | "forbidden" | "ready";
 
 export function resolveModuleCapabilityGate(input: {
   readonly isLoading: boolean;

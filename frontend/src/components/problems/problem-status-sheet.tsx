@@ -23,7 +23,7 @@ import {
 import {
   changeProblemStatus,
   getProblemResolvePreview,
-  problemDetailKeys,
+  problemQueryKeys,
   type ProblemDetail,
   type ProblemStatus,
   type ProblemTicketResolveOutcome,
@@ -50,6 +50,7 @@ export function ProblemStatusSheet({
 }: ProblemStatusSheetProperties) {
   const { t } = useTranslation();
   const targets = problem.allowedTransitions;
+  const firstTarget = targets[0];
   const [status, setStatus] = useState<ProblemStatus | "">("");
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
@@ -64,20 +65,18 @@ export function ProblemStatusSheet({
 
   useEffect(() => {
     if (!open) return;
-    setStatus(initialStatus ?? targets[0] ?? "");
+    setStatus(initialStatus ?? firstTarget ?? "");
     setReason("");
     setError(null);
     setOutcome(null);
     setResolveTickets({ enabled: false, message: defaultMessage, closeCode: "" });
-    // The default message only matters when the sheet opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialStatus, targets]);
+  }, [open, initialStatus, problem.status, firstTarget, defaultMessage]);
 
   const offersGroupResolve = status === "RESOLVED" && problem.permissions.canClose;
   const groupResolve = offersGroupResolve && resolveTickets.enabled;
   // Same key as the section below, so the preview is fetched once.
   const preview = useQuery({
-    queryKey: problemDetailKeys.resolvePreview(problem.id),
+    queryKey: problemQueryKeys.resolvePreview(problem.id),
     queryFn: () => getProblemResolvePreview(problem.id),
     retry: false,
     enabled: open && offersGroupResolve,

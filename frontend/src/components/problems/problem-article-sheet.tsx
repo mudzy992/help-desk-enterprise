@@ -12,7 +12,7 @@ import { mapProblemError } from "@/lib/problems/problem-view";
 import {
   createProblemArticle,
   getProblemArticleDraft,
-  problemDetailKeys,
+  problemQueryKeys,
   type ProblemOptions,
 } from "@/services/problems-api";
 
@@ -39,7 +39,7 @@ export function ProblemArticleSheet({
 }: ProblemArticleSheetProperties) {
   const { t } = useTranslation();
   const draft = useQuery({
-    queryKey: problemDetailKeys.articleDraft(problemId),
+    queryKey: problemQueryKeys.articleDraft(problemId),
     queryFn: () => getProblemArticleDraft(problemId),
     retry: false,
     enabled: open,

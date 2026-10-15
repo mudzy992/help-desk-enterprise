@@ -23,6 +23,16 @@ import { signIn } from '../helpers/sign-in';
  * only sees equipment in their unit scope, and only SUPER_ADMIN deletes.
  */
 test.describe('24 assets access', () => {
+  test('capability network error is distinct and retryable', async ({ page }) => {
+    const env = readE2EEnvironment();
+    await signIn(page, env.superAdminEmail, env.superAdminPassword);
+    await page.route('**/assets/capabilities', (route) => route.abort('failed'));
+    await page.goto('/assets');
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /Pokušaj ponovo|Retry/ })).toBeVisible();
+    await expect(page.getByText(/Modul imovine je isključen|The assets module is off/)).toHaveCount(0);
+  });
+
   test('module off: API 404 ASSETS_DISABLED and the pages say so', async ({ page }) => {
     const env = readE2EEnvironment();
     const admin = new ApiClient();

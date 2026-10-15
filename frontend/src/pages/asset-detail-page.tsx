@@ -52,6 +52,7 @@ import {
   warrantyState,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   assetQueryKeys,
@@ -86,7 +87,6 @@ export function AssetDetailPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [sheet, setSheet] = useState<Sheet>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const capabilitiesQuery = useQuery({
@@ -117,8 +117,23 @@ export function AssetDetailPage() {
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: assetQueryKeys.detail(assetId) }),
+      queryClient.invalidateQueries({ queryKey: ["assets", "list"] }),
+      queryClient.invalidateQueries({ queryKey: assetQueryKeys.history(assetId) }),
+      queryClient.invalidateQueries({ queryKey: assetQueryKeys.impact(assetId) }),
+    ]);
   };
+
+  const deleteMutation = useEntityMutation<string>({
+    mutationFn: deleteAsset,
+    invalidate: () => [["assets", "list"]],
+    onSuccess: () => {
+      toast({ tone: "success", title: t("assets.detail.deleted") });
+      navigate("/assets");
+    },
+    onError: (caught) => setDeleteError(t(mapAssetError(caught) ?? mapApiError(caught))),
+  });
 
   const crumbs = [t("navigation.sections.services"), t("assets.title")];
   const back = (
@@ -157,21 +172,6 @@ export function AssetDetailPage() {
   const canDelete = capabilitiesQuery.data?.canDelete === true;
   const canAssign = canManage && assetAssignableStatuses.includes(asset.status);
   const formReady = catalogQuery.data !== undefined && optionsQuery.data !== undefined;
-
-  async function confirmDelete() {
-    setDeletePending(true);
-    setDeleteError(null);
-    try {
-      await deleteAsset(asset.id);
-      toast({ tone: "success", title: t("assets.detail.deleted") });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
-      navigate("/assets");
-    } catch (caught) {
-      setDeleteError(t(mapAssetError(caught) ?? mapApiError(caught)));
-    } finally {
-      setDeletePending(false);
-    }
-  }
 
   const actions = (
     <div className="flex flex-wrap gap-2">
@@ -375,8 +375,11 @@ export function AssetDetailPage() {
           description={t("assets.detail.deleteBody", { name: `${asset.assetTag} · ${asset.name}` })}
           intent="danger"
           confirmLabel={t("assets.actions.delete")}
-          isPending={deletePending}
-          onConfirm={() => void confirmDelete()}
+          isPending={deleteMutation.isPending}
+          onConfirm={() => {
+            setDeleteError(null);
+            deleteMutation.mutate(asset.id);
+          }}
         >
           {deleteError ? (
             <p role="alert" className={errorTextClassName}>

@@ -9,7 +9,7 @@ import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemResolveSkipKeys } from "@/lib/problems/problem-view";
 import {
   getProblemResolvePreview,
-  problemDetailKeys,
+  problemQueryKeys,
   type ProblemResolvePreview,
 } from "@/services/problems-api";
 
@@ -54,7 +54,7 @@ export function ProblemResolveTicketsSection({
 }: ProblemResolveTicketsSectionProperties) {
   const { t } = useTranslation();
   const preview = useQuery({
-    queryKey: problemDetailKeys.resolvePreview(problemId),
+    queryKey: problemQueryKeys.resolvePreview(problemId),
     queryFn: () => getProblemResolvePreview(problemId),
     retry: false,
   });

@@ -45,7 +45,14 @@ import {
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
+import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
+import {
+  parseAssetBoolean,
+  parseAssetSource,
+  parseAssetStatus,
+} from "@/lib/assets/parse-asset-register-query";
+import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
 import {
   assetQueryKeys,
   assetStatuses,
@@ -55,8 +62,6 @@ import {
   listAssets,
   type AssetListFilters,
   type AssetListItem,
-  type AssetSource,
-  type AssetStatus,
   exportAssets,
 } from "@/services/assets-api";
 
@@ -185,15 +190,19 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const locationsEnabled = useAssetLocationsEnabled();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchText, setSearchText] = useState("");
-  const [search, setSearch] = useState("");
-  const [typeId, setTypeId] = useState("");
-  const [status, setStatus] = useState<AssetStatus | "">("");
-  const [organizationalUnitId, setOrganizationalUnitId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [source, setSource] = useState<AssetSource | "">("");
-  const [warrantyExpiring, setWarrantyExpiring] = useState(false);
-  const [unassigned, setUnassigned] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [searchText, setSearchText] = useState(params.get("search") ?? "");
+  const search = useDebouncedValue(
+    searchText.trim().length >= 2 ? searchText.trim() : "",
+    searchDelayMs,
+  );
+  const typeId = params.get("type") ?? "";
+  const status = parseAssetStatus(params.get("status"));
+  const organizationalUnitId = params.get("unit") ?? "";
+  const locationId = params.get("location") ?? "";
+  const source = parseAssetSource(params.get("source"));
+  const warrantyExpiring = parseAssetBoolean(params.get("warranty"));
+  const unassigned = parseAssetBoolean(params.get("unassigned"));
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState<"xlsx" | "csv" | null>(null);
   // C9b: register selection for one transfer record over several items.
@@ -201,13 +210,17 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const [bulkSheet, setBulkSheet] = useState<"assign" | "unassign" | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const handle = window.setTimeout(
-      () => setSearch(searchText.trim().length >= 2 ? searchText.trim() : ""),
-      searchDelayMs,
+  function setFilterParam(key: string, value: string) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (value === "") next.delete(key);
+        else next.set(key, value);
+        return next;
+      },
+      { replace: true },
     );
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
+  }
 
   const catalogQuery = useQuery({
     queryKey: assetQueryKeys.catalog(false),
@@ -244,6 +257,19 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     ],
   );
 
+  useEffect(() => {
+    setSelected(new Map());
+  }, [
+    search,
+    typeId,
+    status,
+    organizationalUnitId,
+    locationId,
+    source,
+    warrantyExpiring,
+    unassigned,
+  ]);
+
   const listQuery = useInfiniteQuery({
     queryKey: assetQueryKeys.list(filters),
     queryFn: ({ pageParam }) => listAssets({ ...filters, cursor: pageParam ?? undefined }),
@@ -254,6 +280,11 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const listState = resolveEntityListState({
+    isLoading: listQuery.isLoading,
+    hasError: listQuery.error !== null,
+    itemCount: items.length,
+  });
   const locationRows = flattenLocationTree(catalogQuery.data?.locations ?? []).filter(
     (row) => row.location.archivedAt === null,
   );
@@ -296,14 +327,24 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   function resetFilters() {
     setSearchText("");
-    setSearch("");
-    setTypeId("");
-    setStatus("");
-    setOrganizationalUnitId("");
-    setLocationId("");
-    setSource("");
-    setWarrantyExpiring(false);
-    setUnassigned(false);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const key of [
+          "search",
+          "type",
+          "status",
+          "unit",
+          "location",
+          "source",
+          "warranty",
+          "unassigned",
+        ])
+          next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   async function runExport(format: "xlsx" | "csv") {
@@ -329,7 +370,10 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         searchLabel={t("assets.list.searchLabel")}
         searchPlaceholder={t("assets.list.searchPlaceholder")}
         searchValue={searchText}
-        onSearchChange={setSearchText}
+        onSearchChange={(value) => {
+          setSearchText(value);
+          setFilterParam("search", value.trim());
+        }}
         activeCount={advancedCount}
         resetLabel={t("assets.list.resetFilters")}
         onReset={resetFilters}
@@ -367,7 +411,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             className={`${selectCompactClassName} w-full`}
             aria-label={t("assets.fields.type")}
             value={typeId}
-            onChange={(event) => setTypeId(event.target.value)}
+            onChange={(event) => setFilterParam("type", event.target.value)}
           >
             <option value="">{t("assets.list.allTypes")}</option>
             {(catalogQuery.data?.types ?? []).map((type) => (
@@ -382,7 +426,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             className={`${selectCompactClassName} w-full`}
             aria-label={t("assets.fields.status")}
             value={status}
-            onChange={(event) => setStatus(event.target.value as AssetStatus | "")}
+            onChange={(event) => setFilterParam("status", event.target.value)}
           >
             <option value="">{t("assets.list.allStatuses")}</option>
             {assetStatuses.map((value) => (
@@ -397,7 +441,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             className={`${selectCompactClassName} w-full`}
             aria-label={t("assets.fields.organizationalUnit")}
             value={organizationalUnitId}
-            onChange={(event) => setOrganizationalUnitId(event.target.value)}
+            onChange={(event) => setFilterParam("unit", event.target.value)}
           >
             <option value="">{t("assets.list.allUnits")}</option>
             {(optionsQuery.data?.units ?? []).map((unit) => (
@@ -413,7 +457,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
               className={`${selectCompactClassName} w-full`}
               aria-label={t("assets.fields.location")}
               value={locationId}
-              onChange={(event) => setLocationId(event.target.value)}
+              onChange={(event) => setFilterParam("location", event.target.value)}
             >
               <option value="">{t("assets.list.allLocations")}</option>
               {locationRows.map((row) => (
@@ -429,7 +473,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             className={`${selectCompactClassName} w-full`}
             aria-label={t("assets.fields.source")}
             value={source}
-            onChange={(event) => setSource(event.target.value as AssetSource | "")}
+            onChange={(event) => setFilterParam("source", event.target.value)}
           >
             <option value="">{t("assets.list.allSources")}</option>
             <option value="MANUAL">{t("assets.source.MANUAL")}</option>
@@ -441,15 +485,24 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
           <Checkbox
             label={t("assets.list.warrantyExpiring")}
             checked={warrantyExpiring}
-            onChange={(event) => setWarrantyExpiring(event.target.checked)}
+            onChange={(event) => setFilterParam("warranty", event.target.checked ? "true" : "")}
           />
           <Checkbox
             label={t("assets.list.unassigned")}
             checked={unassigned}
-            onChange={(event) => setUnassigned(event.target.checked)}
+            onChange={(event) => setFilterParam("unassigned", event.target.checked ? "true" : "")}
           />
         </FilterToggles>
       </FilterBar>
+
+      {(() => {
+        const setupError = catalogQuery.error ?? optionsQuery.error;
+        return setupError ? (
+          <p role="alert" className={errorTextClassName}>
+            {t(mapAssetError(setupError) ?? mapApiError(setupError))}
+          </p>
+        ) : null;
+      })()}
 
       <p className={hintClassName} aria-live="polite">
         {listQuery.isLoading
@@ -506,9 +559,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         </div>
       ) : null}
 
-      {listQuery.isLoading ? (
+      {listState === "loading" ? (
         <PanelSkeleton label={t("ui.loading")} />
-      ) : items.length === 0 ? (
+      ) : listState === "error" ? null : listState === "empty" ? (
         <EmptyState
           icon={<Boxes size={18} />}
           title={hasFilters ? t("assets.list.noMatchesTitle") : t("assets.list.emptyTitle")}
