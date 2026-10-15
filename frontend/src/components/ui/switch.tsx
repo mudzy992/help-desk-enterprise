@@ -14,7 +14,7 @@ export const Switch = forwardRef<
   <SwitchPrimitive.Root
     className={cn(
       "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150",
-      "data-[state=checked]:border-primary data-[state=checked]:bg-primary",
+      "data-[state=checked]:border-transparent data-[state=checked]:bg-primary",
       "data-[state=unchecked]:border-border data-[state=unchecked]:bg-border",
       "disabled:cursor-not-allowed disabled:opacity-45",
       className,

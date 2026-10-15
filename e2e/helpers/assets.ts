@@ -146,12 +146,14 @@ export async function transferRecordSettings(
   api: ApiClient,
   extra: Readonly<Record<string, unknown>> = {},
 ): Promise<Record<string, unknown>> {
-  const me = await api.requestJson<{ readonly id: string }>('/users/me');
+  const session = await api.requestJson<{ readonly principal: { readonly subjectId: string } }>(
+    '/auth/session',
+  );
   return {
     [assetSettingKeys.cmdb]: true,
     [assetSettingKeys.transferEnabled]: true,
     [assetSettingKeys.transferRequired]: false,
-    [assetSettingKeys.transferDefaultSignatoryUserId]: me.id,
+    [assetSettingKeys.transferDefaultSignatoryUserId]: session.principal.subjectId,
     ...extra,
   };
 }

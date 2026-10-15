@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { expectNoSeriousA11yViolations } from '../helpers/a11y';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -13,6 +13,13 @@ type Movement = { readonly transferId: string | null; readonly number: string | 
 type Packs = { readonly packs: ReadonlyArray<{ readonly key: string }> };
 
 const cmdbKey = 'private.addons.cmdb';
+
+/** Debounced register search (300 ms); URL `search` still waits for the list query. */
+async function openRegisterAssetByTag(page: Page, assetTag: string): Promise<void> {
+  await page.goto(`/assets?search=${encodeURIComponent(assetTag)}`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('button', { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 20_000 });
+  await expect(page.getByRole('link', { name: assetTag })).toBeVisible({ timeout: 20_000 });
+}
 
 async function readSetting(api: ApiClient, key: string): Promise<unknown> {
   const entries = await api.requestJson<RegistryEntry[]>('/settings');
@@ -124,13 +131,12 @@ test.describe('23 assets (CMDB)', () => {
       // Heading, not text: the table repeats the title as its (sr-only) caption.
       await expect(page.getByRole("heading", { name: /Oprema po statusu|Equipment by status/ })).toBeVisible();
       phase('pregled imovine (axe preskočen — puni tenant)');
-      await page.goto('/assets', { waitUntil: 'domcontentloaded' });
       phase('registar učitan');
-      await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(`E2E-R-${stamp}`);
-      await expect(page.getByRole('link', { name: `E2E-R-${stamp}` })).toBeVisible({ timeout: 15_000 });
+      const registerTag = `E2E-R-${stamp}`;
+      await openRegisterAssetByTag(page, registerTag);
       // "New asset" stays disabled until the catalog and options load; wait for it before axe.
       await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
-      const assetRow = page.getByRole('row').filter({ has: page.getByRole('link', { name: `E2E-R-${stamp}` }) });
+      const assetRow = page.getByRole('row').filter({ has: page.getByRole('link', { name: registerTag }) });
       const bulkBar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/i });
       await assetRow.getByRole('checkbox').click();
       await expect(bulkBar).toBeVisible();
@@ -141,8 +147,7 @@ test.describe('23 assets (CMDB)', () => {
       await expect(bulkBar).toHaveCount(0);
       phase('odabir očišćen nakon promjene filtera');
       await page.getByRole('button', { name: /Poništi filtere|Reset filters/i }).click();
-      await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(`E2E-R-${stamp}`);
-      await expect(page.getByRole('link', { name: `E2E-R-${stamp}` })).toBeVisible({ timeout: 15_000 });
+      await openRegisterAssetByTag(page, registerTag);
       phase('registar imovine (bez axe — puni tenant previše usporava)');
       await page.goto(`/assets/${created.id}`, { waitUntil: 'domcontentloaded' });
       await expect(page.getByText(`E2E laptop ${stamp}`).first()).toBeVisible();

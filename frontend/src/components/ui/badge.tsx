@@ -12,7 +12,7 @@ export type BadgeTone =
 */
 const BADGE_TONES: Record<BadgeTone, string> = {
   neutral: "border-border bg-elevated/70 text-muted-foreground",
-  primary: "border-primary/25 bg-primary/10 text-link",
+  primary: "border-primary/35 bg-primary/12 text-foreground",
   accent: "border-accent/25 bg-accent/10 text-accent",
   success: "border-success/30 bg-success/10 text-ok",
   warning: "border-warning/30 bg-warning/10 text-warning",
