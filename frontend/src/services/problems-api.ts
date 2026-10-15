@@ -126,7 +126,7 @@ export type CreateProblemInput = {
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 
-export const problemQueryKeys = {
+const problemBaseQueryKeys = {
   all: ["problems"] as const,
   ticketPanel: (ticketId: string) => ["problems", "ticket", ticketId] as const,
   search: (search: string) => ["problems", "search", search] as const,
@@ -281,7 +281,8 @@ export type CreateProblemFullInput = CreateProblemInput & {
   readonly serviceId?: string | null;
 };
 
-export const problemDetailKeys = {
+export const problemQueryKeys = {
+  ...problemBaseQueryKeys,
   capabilities: ["problems", "capabilities"] as const,
   options: ["problems", "options"] as const,
   list: (filters: ProblemListFilters) => ["problems", "list", filters] as const,

@@ -8,7 +8,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemHistoryText } from "@/lib/problems/problem-view";
-import { getProblemEvents, problemDetailKeys } from "@/services/problems-api";
+import { getProblemEvents, problemQueryKeys } from "@/services/problems-api";
 
 /** Paket 3.3 (§16): newest first, the last 200 entries. */
 export function ProblemHistoryPanel({
@@ -20,7 +20,7 @@ export function ProblemHistoryPanel({
 }) {
   const { t, i18n } = useTranslation();
   const query = useQuery({
-    queryKey: [...problemDetailKeys.events(problemId), versionKey],
+    queryKey: [...problemQueryKeys.events(problemId), versionKey],
     queryFn: () => getProblemEvents(problemId),
     retry: false,
   });

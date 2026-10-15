@@ -12,7 +12,7 @@ import { ticketPriorityValues, ticketSeverityLabelKey } from "@/lib/tickets/tick
 import { translateText } from "@/lib/i18n/translate-text";
 import {
   createProblemFull,
-  problemDetailKeys,
+  problemQueryKeys,
   searchProblemOwners,
   updateProblem,
   type ProblemDetail,
@@ -86,7 +86,7 @@ export function ProblemFormSheet({
   }, [ownerSearch]);
 
   const owners = useQuery({
-    queryKey: problemDetailKeys.owners(ownerDebounced, groupId),
+    queryKey: problemQueryKeys.owners(ownerDebounced, groupId),
     queryFn: () => searchProblemOwners(ownerDebounced, groupId),
     // Owners are the problem managers of the chosen group (decision 2026-10-01).
     enabled: open && canAssignOwner && groupId !== "",

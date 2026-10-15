@@ -19,10 +19,7 @@ describe("resolveModuleCapabilityGate", () => {
       { isLoading: false, hasError: false, hasData: true, enabled: true, canRead: false },
       "forbidden",
     ],
-    [
-      { isLoading: false, hasError: false, hasData: true, enabled: true, canRead: true },
-      "ready",
-    ],
+    [{ isLoading: false, hasError: false, hasData: true, enabled: true, canRead: true }, "ready"],
   ] as const)("maps %o to %s", (input, expected) => {
     expect(resolveModuleCapabilityGate(input)).toBe(expected);
   });

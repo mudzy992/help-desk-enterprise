@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { GitPullRequestArrow, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
 import { ChangeCalendar } from "@/components/changes/change-calendar";
 import { ChangeFormSheet } from "@/components/changes/change-form-sheet";
 import { ChangeTemplatesPanel } from "@/components/changes/change-templates-panel";
@@ -34,6 +35,9 @@ import {
   formatChangeWindow,
   mapChangeError,
 } from "@/lib/changes/change-view";
+import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
+import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
+import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   changeOpenStatuses,
@@ -79,7 +83,7 @@ export function ChangesPage() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
   const [searchText, setSearchText] = useState(params.get("search") ?? "");
-  const [search, setSearch] = useState(searchText.trim());
+  const search = useDebouncedValue(searchText.trim(), 300);
   const status = parseStatusFilter(params.get("status"));
   const type = parseOne<ChangeType>(params.get("type"), changeTypes);
   const risk = parseOne<ChangeRisk>(params.get("risk"), changeRisks);
@@ -90,11 +94,6 @@ export function ChangesPage() {
   const awaitingMyVote = params.get("vote") === "true";
   const [createOpen, setCreateOpen] = useState(false);
   const tabParam = params.get("tab");
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
 
   const setParam = (key: string, value: string) => {
     setParams(
@@ -146,6 +145,11 @@ export function ChangesPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const listState = resolveEntityListState({
+    isLoading: listQuery.isLoading,
+    hasError: listQuery.error !== null,
+    itemCount: items.length,
+  });
   const advancedCount = [
     status !== "open",
     type !== "",
@@ -180,48 +184,31 @@ export function ChangesPage() {
     />
   );
 
-  if (capabilitiesQuery.isLoading) {
+  const gateState = resolveModuleCapabilityGate({
+    isLoading: capabilitiesQuery.isLoading,
+    hasError: capabilitiesQuery.error !== null,
+    hasData: capabilities !== undefined,
+    enabled: capabilities?.enabled,
+    setupRequired: capabilities?.setupRequired,
+    canRead: capabilities?.canRead,
+  });
+  if (gateState !== "ready" || capabilities === undefined) {
     return (
-      <section>
-        {header}
-        <PanelSkeleton label={t("ui.loading")} />
-      </section>
-    );
-  }
-  if (capabilities?.setupRequired === true) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.setupTitle")}
-          body={t("changes.setupBody")}
-        />
-      </section>
-    );
-  }
-  if (capabilitiesQuery.error || capabilities === undefined || !capabilities.enabled) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.disabledTitle")}
-          body={t("changes.disabledBody")}
-        />
-      </section>
-    );
-  }
-  if (!capabilities.canRead) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.forbiddenTitle")}
-          body={t("changes.forbiddenBody")}
-        />
-      </section>
+      <ModuleCapabilityGate
+        state={gateState}
+        header={header}
+        icon={<GitPullRequestArrow size={18} />}
+        setupTitle={t("changes.setupTitle")}
+        setupBody={t("changes.setupBody")}
+        disabledTitle={t("changes.disabledTitle")}
+        disabledBody={t("changes.disabledBody")}
+        forbiddenTitle={t("changes.forbiddenTitle")}
+        forbiddenBody={t("changes.forbiddenBody")}
+        errorKey={mapApiError(capabilitiesQuery.error)}
+        onRetry={() => void capabilitiesQuery.refetch()}
+      >
+        {null}
+      </ModuleCapabilityGate>
     );
   }
 
@@ -237,8 +224,6 @@ export function ChangesPage() {
       </select>
     </FilterField>
   );
-
-  // §17: calendar for everyone who reads changes; templates only for change managers.
   const tab: PageTab =
     tabParam === "calendar"
       ? "calendar"
@@ -377,6 +362,15 @@ export function ChangesPage() {
               </FilterToggles>
             </FilterBar>
 
+            {(() => {
+              const setupError = optionsQuery.error;
+              return setupError ? (
+                <p role="alert" className={errorTextClassName}>
+                  {t(mapChangeError(setupError) ?? mapApiError(setupError))}
+                </p>
+              ) : null;
+            })()}
+
             <p className={hintClassName} aria-live="polite">
               {listQuery.isLoading
                 ? t("ui.loading")
@@ -389,9 +383,9 @@ export function ChangesPage() {
               </p>
             ) : null}
 
-            {listQuery.isLoading ? (
+            {listState === "loading" ? (
               <PanelSkeleton label={t("ui.loading")} />
-            ) : items.length === 0 ? (
+            ) : listState === "error" ? null : listState === "empty" ? (
               <EmptyState
                 icon={<GitPullRequestArrow size={18} />}
                 title={hasFilters ? t("changes.list.noMatchesTitle") : t("changes.list.emptyTitle")}

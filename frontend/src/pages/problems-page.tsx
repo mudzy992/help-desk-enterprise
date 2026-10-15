@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Plus, Puzzle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDate } from "@/lib/assets/asset-view";
+import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
+import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
+import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   mapProblemError,
@@ -36,7 +40,7 @@ import {
   getProblemCapabilities,
   getProblemOptions,
   listProblemsPage,
-  problemDetailKeys,
+  problemQueryKeys,
   problemOpenStatuses,
   problemStatuses,
   type ProblemListFilters,
@@ -67,7 +71,7 @@ export function ProblemsPage() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
   const [searchText, setSearchText] = useState(params.get("search") ?? "");
-  const [search, setSearch] = useState(searchText.trim());
+  const search = useDebouncedValue(searchText.trim(), 300);
   const status = parseStatusFilter(params.get("status"));
   const priority = (ticketPriorityValues as readonly string[]).includes(
     params.get("priority") ?? "",
@@ -79,13 +83,17 @@ export function ProblemsPage() {
   const serviceId = params.get("service") ?? "";
   const overdue = params.get("overdue") === "true";
   const category = params.get("category") ?? "";
-  const [nowMs] = useState(() => Date.now());
-  const [createOpen, setCreateOpen] = useState(false);
-
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
+    const updateNow = () => setNowMs(Date.now());
+    window.addEventListener("focus", updateNow);
+    const handle = window.setInterval(updateNow, 60_000);
+    return () => {
+      window.removeEventListener("focus", updateNow);
+      window.clearInterval(handle);
+    };
+  }, []);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const setParam = (key: string, value: string) => {
     setParams(
@@ -100,14 +108,14 @@ export function ProblemsPage() {
   };
 
   const capabilitiesQuery = useQuery({
-    queryKey: problemDetailKeys.capabilities,
+    queryKey: problemQueryKeys.capabilities,
     queryFn: getProblemCapabilities,
     retry: false,
   });
   const capabilities = capabilitiesQuery.data;
   const canRead = capabilities?.enabled === true && capabilities.canRead;
   const optionsQuery = useQuery({
-    queryKey: problemDetailKeys.options,
+    queryKey: problemQueryKeys.options,
     queryFn: getProblemOptions,
     enabled: canRead,
     retry: false,
@@ -127,7 +135,7 @@ export function ProblemsPage() {
     [search, status, priority, owner, groupId, serviceId, overdue, category],
   );
   const listQuery = useInfiniteQuery({
-    queryKey: problemDetailKeys.list(filters),
+    queryKey: problemQueryKeys.list(filters),
     queryFn: ({ pageParam }) => listProblemsPage(filters, pageParam ?? undefined),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
@@ -136,6 +144,11 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const listState = resolveEntityListState({
+    isLoading: listQuery.isLoading,
+    hasError: listQuery.error !== null,
+    itemCount: items.length,
+  });
   const advancedCount = [
     status !== "open",
     priority !== "",
@@ -170,48 +183,31 @@ export function ProblemsPage() {
     />
   );
 
-  if (capabilitiesQuery.isLoading) {
+  const gateState = resolveModuleCapabilityGate({
+    isLoading: capabilitiesQuery.isLoading,
+    hasError: capabilitiesQuery.error !== null,
+    hasData: capabilities !== undefined,
+    enabled: capabilities?.enabled,
+    setupRequired: capabilities?.setupRequired,
+    canRead: capabilities?.canRead,
+  });
+  if (gateState !== "ready" || capabilities === undefined) {
     return (
-      <section>
-        {header}
-        <PanelSkeleton label={t("ui.loading")} />
-      </section>
-    );
-  }
-  if (capabilities?.setupRequired === true) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.setupTitle")}
-          body={t("problems.setupBody")}
-        />
-      </section>
-    );
-  }
-  if (capabilitiesQuery.error || capabilities === undefined || !capabilities.enabled) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.disabledTitle")}
-          body={t("problems.disabledBody")}
-        />
-      </section>
-    );
-  }
-  if (!capabilities.canRead) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.forbiddenTitle")}
-          body={t("problems.forbiddenBody")}
-        />
-      </section>
+      <ModuleCapabilityGate
+        state={gateState}
+        header={header}
+        icon={<Puzzle size={18} />}
+        setupTitle={t("problems.setupTitle")}
+        setupBody={t("problems.setupBody")}
+        disabledTitle={t("problems.disabledTitle")}
+        disabledBody={t("problems.disabledBody")}
+        forbiddenTitle={t("problems.forbiddenTitle")}
+        forbiddenBody={t("problems.forbiddenBody")}
+        errorKey={mapApiError(capabilitiesQuery.error)}
+        onRetry={() => void capabilitiesQuery.refetch()}
+      >
+        {null}
+      </ModuleCapabilityGate>
     );
   }
 
@@ -336,6 +332,15 @@ export function ProblemsPage() {
           ) : null}
         </FilterBar>
 
+        {(() => {
+          const setupError = optionsQuery.error;
+          return setupError ? (
+            <p role="alert" className={errorTextClassName}>
+              {t(mapProblemError(setupError) ?? mapApiError(setupError))}
+            </p>
+          ) : null;
+        })()}
+
         <p className={hintClassName} aria-live="polite">
           {listQuery.isLoading
             ? t("ui.loading")
@@ -348,9 +353,9 @@ export function ProblemsPage() {
           </p>
         ) : null}
 
-        {listQuery.isLoading ? (
+        {listState === "loading" ? (
           <PanelSkeleton label={t("ui.loading")} />
-        ) : items.length === 0 ? (
+        ) : listState === "error" ? null : listState === "empty" ? (
           <EmptyState
             icon={<Puzzle size={18} />}
             title={hasFilters ? t("problems.list.noMatchesTitle") : t("problems.list.emptyTitle")}
