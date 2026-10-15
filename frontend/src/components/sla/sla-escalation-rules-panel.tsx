@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SlaEscalationRuleForm } from "@/components/sla/sla-escalation-rule-form";
 import { SlaEscalationRulesTable } from "@/components/sla/sla-escalation-rules-table";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
 import { useSlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import {
@@ -34,19 +35,30 @@ export function SlaEscalationRulesPanel({
   const [deleteReason, setDeleteReason] = useState("");
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reasonRequired, setReasonRequired] = useState(false);
+  const loadGuard = useRef(createLatestRequestGuard());
+
+  const reload = useCallback(async () => {
+    const request = loadGuard.current.begin();
+    setErrorKey(null);
+    try {
+      const items = await listSlaEscalationRules(slaProfileId);
+      if (loadGuard.current.isCurrent(request)) setRules([...items]);
+    } catch (error) {
+      if (loadGuard.current.isCurrent(request)) setErrorKey(mapSlaError(error));
+    }
+  }, [slaProfileId]);
 
   useEffect(() => {
+    const guard = loadGuard.current;
     setEditing(undefined);
     if (slaProfileId.length === 0) {
       setRules([]);
       return;
     }
-    void listSlaEscalationRules(slaProfileId).then((items) => setRules([...items]));
-  }, [slaProfileId]);
-
-  const reload = async () => {
-    setRules([...(await listSlaEscalationRules(slaProfileId))]);
-  };
+    void reload();
+    return () => guard.cancel();
+  }, [reload, slaProfileId]);
 
   const handleSave = async (input: EscalationRuleWriteInput) => {
     if (!canWrite || slaProfileId.length === 0) return;
@@ -68,11 +80,16 @@ export function SlaEscalationRulesPanel({
   };
 
   const handleDelete = async (rule: SlaEscalationRule) => {
-    if (!canWrite || deleteReason.trim().length === 0) return;
+    if (!canWrite) return;
+    if (deleteReason.trim().length === 0) {
+      setReasonRequired(true);
+      return;
+    }
+    setReasonRequired(false);
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      await deleteSlaEscalationRule(rule.id, deleteReason);
+      await deleteSlaEscalationRule(rule.id, deleteReason.trim());
       setDeleteReason("");
       await reload();
     } catch (error) {
@@ -112,6 +129,11 @@ export function SlaEscalationRulesPanel({
           placeholder={t("sla.deleteReasonPlaceholder")}
         />
       </label>
+      {reasonRequired ? (
+        <p role="alert" className="text-[12px] text-danger">
+          {t("sla.deleteReasonRequired")}
+        </p>
+      ) : null}
     </div>
   ) : null;
 

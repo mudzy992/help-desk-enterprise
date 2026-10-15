@@ -5,6 +5,7 @@ import {
   Pencil,
   Play,
   Plus,
+  RefreshCw,
   Send,
   Trash2,
 } from "lucide-react";
@@ -212,7 +213,14 @@ export function ReportSchedulesPanel({
   };
 
   if (loadError !== null) {
-    return <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />;
+    return (
+      <div className="grid gap-2">
+        <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+        <Button size="sm" variant="outline" onClick={() => void reload()}>
+          <RefreshCw size={14} /> {t("ui.retry")}
+        </Button>
+      </div>
+    );
   }
   if (list === null) return <PanelSkeleton className="mt-0" label={t("reports.schedules.title")} />;
 

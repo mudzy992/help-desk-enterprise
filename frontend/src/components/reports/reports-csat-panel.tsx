@@ -45,6 +45,12 @@ export function ReportsCsatPanel() {
     void load();
   }, [load]);
 
+  const scopeNote = (
+    <p role="note" className="mb-3 text-[12px] text-muted-foreground">
+      {t("reports.csat.allTimeScope")}
+    </p>
+  );
+
   if (isLoading && summary === null) {
     return <PanelSkeleton className="mt-0" label={t("reports.csat.title")} />;
   }
@@ -89,6 +95,7 @@ export function ReportsCsatPanel() {
 
   return (
     <div className="mt-2 space-y-3">
+      {scopeNote}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
           emphasis

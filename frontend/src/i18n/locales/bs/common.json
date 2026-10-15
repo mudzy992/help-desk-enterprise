@@ -3086,7 +3086,8 @@
       "columnKey": "Naziv",
       "columnSample": "Uzorak",
       "columnAverage": "Prosjek (od {{max}})",
-      "belowTarget": "ispod praga"
+      "belowTarget": "ispod praga",
+      "allTimeScope": "Sveukupno — bez filtera perioda i organizacione jedinice."
     },
     "bottlenecks": {
       "title": "Uska grla",
@@ -3263,7 +3264,9 @@
         "agent_service": "Agent × servis",
         "agent_total": "Zbir agenta",
         "total": "Ukupno"
-      }
+      },
+      "selectUnitTitle": "Izaberite organizacionu jedinicu",
+      "selectUnitBody": "Paketi će se učitati nakon izbora jedinice."
     },
     "errors": {
       "REPORT_WINDOW_INVALID": "Raspon nije dozvoljen za izabranu granularnost (dnevno do 92 dana, sedmično do 104 sedmice, mjesečno do postavljenog maksimuma).",
@@ -4457,7 +4460,8 @@
     "errorGeneric": "SLA konfiguracija trenutno nije dostupna.",
     "escalationTargetOnCall": "Dežurni grupe",
     "escalationTargetOnCallHint": "Eskalacija ide samo osobi koja je dežurna u trenutku eskalacije (tihi sati ne vrijede). Ako niko nije dežuran, ide cijeloj grupi.",
-    "escalationTargetOnCallValue": "Dežurni u grupi: {{group}}"
+    "escalationTargetOnCallValue": "Dežurni u grupi: {{group}}",
+    "deleteReasonRequired": "Unesite razlog brisanja."
   },
   "integrationQueue": {
     "heading": "Trajni integracioni red",

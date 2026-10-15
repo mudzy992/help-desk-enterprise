@@ -3073,7 +3073,8 @@
       "columnKey": "Name",
       "columnSample": "Sample",
       "columnAverage": "Average (of {{max}})",
-      "belowTarget": "below target"
+      "belowTarget": "below target",
+      "allTimeScope": "All time — not filtered by period or organizational unit."
     },
     "bottlenecks": {
       "title": "Bottlenecks",
@@ -3249,7 +3250,9 @@
         "agent_service": "Agent × service",
         "agent_total": "Agent total",
         "total": "Total"
-      }
+      },
+      "selectUnitTitle": "Select an organizational unit",
+      "selectUnitBody": "Report packs load after a unit is selected."
     },
     "errors": {
       "REPORT_WINDOW_INVALID": "The range is not allowed for the selected granularity (daily up to 92 days, weekly up to 104 weeks, monthly up to the configured maximum).",
@@ -4438,7 +4441,8 @@
     "errorGeneric": "SLA configuration is currently unavailable.",
     "escalationTargetOnCall": "Group on-call agent",
     "escalationTargetOnCallHint": "The escalation goes only to whoever is on call at that moment (quiet hours do not apply). If nobody is on call, it goes to the whole group.",
-    "escalationTargetOnCallValue": "On-call in {{group}}"
+    "escalationTargetOnCallValue": "On-call in {{group}}",
+    "deleteReasonRequired": "Enter a deletion reason."
   },
   "integrationQueue": {
     "heading": "Durable integration queue",

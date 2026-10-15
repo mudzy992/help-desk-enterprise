@@ -44,7 +44,9 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [list, setList] = useState<ReportPackList | null>(null);
-  const [listError, setListError] = useState<ApiErrorKey | null>(null);
+  const [listError, setListError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
+    null,
+  );
   const [selected, setSelected] = useState<ReportPackDescriptor | null>(null);
   const [preview, setPreview] = useState<ReportPackPreview | null>(null);
   const [previewError, setPreviewError] = useState<{
@@ -58,13 +60,18 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   useEffect(() => {
     if (organizationalUnitId === null) return;
     let cancelled = false;
+    setListError(null);
     listReportPacks(organizationalUnitId)
       .then((loaded) => {
         if (cancelled) return;
         setList(loaded);
         setSelected((current) => current ?? loaded.packs[0] ?? null);
       })
-      .catch((error: unknown) => !cancelled && setListError(mapApiError(error)));
+      .catch(
+        (error: unknown) =>
+          !cancelled &&
+          setListError({ key: mapApiError(error), requestId: readApiRequestId(error) }),
+      );
     return () => {
       cancelled = true;
     };
@@ -112,8 +119,17 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
     }
   };
 
+  if (organizationalUnitId === null) {
+    return (
+      <EmptyState
+        icon={<FileSpreadsheet size={18} strokeWidth={1.8} />}
+        title={t("reports.packs.selectUnitTitle")}
+        body={t("reports.packs.selectUnitBody")}
+      />
+    );
+  }
   if (listError !== null) {
-    return <ApiErrorText messageKey={listError} requestId={null} />;
+    return <ApiErrorText messageKey={listError.key} requestId={listError.requestId} />;
   }
   if (list === null) {
     return <PanelSkeleton className="mt-0" label={t("reports.packs.title")} />;
