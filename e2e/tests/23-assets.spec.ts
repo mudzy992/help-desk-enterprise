@@ -116,9 +116,9 @@ test.describe('23 assets (CMDB)', () => {
       await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
       const assetRow = page.getByRole('row').filter({ has: page.getByRole('link', { name: `E2E-${stamp}` }) });
       await assetRow.getByRole('checkbox').check();
-      await expect(page.getByText(/1 odabrano|1 selected/)).toBeVisible();
+      await expect(page.getByText(/Odabrano:\s*1|Selected:\s*1/i)).toBeVisible();
       await page.getByLabel(/Izvor|Source/).selectOption('IMPORT');
-      await expect(page.getByText(/1 odabrano|1 selected/)).toHaveCount(0);
+      await expect(page.getByText(/Odabrano:\s*1|Selected:\s*1/i)).toHaveCount(0);
       phase('odabir očišćen nakon promjene filtera');
       phase('axe: registar imovine');
       await expectNoSeriousA11yViolations(page, 'assets-register', testInfo);

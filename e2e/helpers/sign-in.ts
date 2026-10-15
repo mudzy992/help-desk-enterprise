@@ -1,5 +1,8 @@
 import type { Page } from '@playwright/test';
+import { dismissAnnouncementModal } from './dismiss-announcements';
 import { nextTotpCode } from './mfa';
+
+export { dismissAnnouncementModal, gotoAndDismissAnnouncements } from './dismiss-announcements';
 
 /**
  * Sign in through whichever credentials form the app currently exposes.
@@ -78,18 +81,6 @@ async function attemptSignIn(
  * is real, the retry surfaces the same detailed error (status, API code and
  * the form's message) instead of masking it.
  */
-/** Close an active announcement modal that would otherwise intercept the next page action. */
-export async function dismissAnnouncementModal(page: Page): Promise<void> {
-  const later = page.getByRole('button', { name: /^(kasnije|later)$/i });
-  const appeared = await later
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!appeared) return;
-  await later.click();
-  await later.waitFor({ state: 'hidden', timeout: 5_000 });
-}
-
 export async function signIn(
   page: Page,
   email: string,

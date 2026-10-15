@@ -89,7 +89,14 @@ test.describe('26 assets on tickets', () => {
         await expect(page).toHaveURL(new RegExp(`/tickets/new\\?assetId=${mine.id}`));
 
         const catalog = await loadSeedCatalog(requester);
-        const base = { description: 'E2E ticket about equipment', serviceId: catalog.serviceId, formVersionRef: catalog.formVersionRef, impact: 'MEDIUM', urgency: 'MEDIUM', formData: {} };
+        const base = {
+          description: 'E2E ticket about equipment',
+          serviceId: catalog.serviceId,
+          formVersionRef: catalog.formVersionRef,
+          impact: 'MEDIUM',
+          urgency: 'MEDIUM',
+          formData: { opis: 'E2E ticket about equipment' },
+        };
         // Someone else's equipment cannot be picked.
         const refused = await requester.request('/tickets', { method: 'POST', body: JSON.stringify({ ...base, title: `E2E foreign ${stamp}`, assetId: foreign.id }) });
         expect(refused.status).toBeGreaterThanOrEqual(400);
@@ -178,7 +185,7 @@ test.describe('26 assets on tickets', () => {
             formVersionRef: catalog.formVersionRef,
             impact: 'MEDIUM',
             urgency: 'MEDIUM',
-            formData: {},
+            formData: { opis: 'E2E picker off' },
             assetId: asset.id,
           }),
         });

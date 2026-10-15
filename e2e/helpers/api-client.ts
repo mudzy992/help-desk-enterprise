@@ -1,3 +1,4 @@
+import { readApiSessionCookie, saveApiSessionCookie } from './api-session-store';
 import { readE2EEnvironment } from './environment';
 import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from './mfa';
 
@@ -63,12 +64,32 @@ export class ApiClient {
     this.authorization = token;
   }
 
+  hasSession(): boolean {
+    return this.sessionCookie !== null || this.authorization !== null;
+  }
+
   /**
    * Paket 2.1: password → (MFA verify | forced MFA enrollment) → session cookie.
    * The enrollment secret is stored for later sign-ins (helpers/mfa.ts). Returns
    * the opaque session value so callers can assert that a session was issued.
    */
-  async login(email: string, password: string): Promise<string> {
+  async login(
+    email: string,
+    password: string,
+    options?: { readonly newSession?: boolean },
+  ): Promise<string> {
+    if (options?.newSession !== true) {
+      const cached = readApiSessionCookie(email);
+      if (cached !== null) {
+        this.sessionCookie = cached;
+        try {
+          await this.requestJson('/auth/security');
+          return cached;
+        } catch {
+          this.sessionCookie = null;
+        }
+      }
+    }
     type LoginBody = {
       status?: string;
       mfaToken?: string;
@@ -99,6 +120,7 @@ export class ApiClient {
       throw new Error(`Login requires ${body.status}`);
     }
     if (this.sessionCookie !== null) {
+      saveApiSessionCookie(email, this.sessionCookie);
       return this.sessionCookie;
     }
     // Privremeni fallback za CI koji koristi vanjski E2E_API_URL; iz ovog checkouta nije moguće

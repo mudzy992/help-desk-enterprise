@@ -74,8 +74,8 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     const env = readE2EEnvironment();
     const current = new ApiClient();
     const other = new ApiClient();
-    await current.login(env.userEmail, env.userPassword);
-    await other.login(env.userEmail, env.userPassword);
+    await current.login(env.userEmail, env.userPassword, { newSession: true });
+    await other.login(env.userEmail, env.userPassword, { newSession: true });
 
     const result = await current.requestJson<{ readonly revoked: number }>('/auth/sessions/revoke-others', {
       method: 'POST',

@@ -148,6 +148,16 @@ export class AuthenticationController {
     return this.signInWithPassword(body, request);
   }
 
+  /** Extension MFA step: bearer token stays in the JSON body (no session cookie). */
+  @Post('extension/mfa/verify')
+  @HttpCode(200)
+  verifyMfaForExtension(
+    @Body() body: MfaCodeDto,
+    @Req() request?: SignInRequest,
+  ): Promise<AuthenticationSessionResponse> {
+    return this.authenticationService.verifyMfa(body, readSignInContext(request));
+  }
+
   private signInWithPassword(
     body: LocalLoginDto,
     request: SignInRequest,

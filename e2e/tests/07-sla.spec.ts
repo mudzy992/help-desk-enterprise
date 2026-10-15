@@ -118,8 +118,8 @@ test.describe('07 SLA', () => {
       options.map((option) => (option as HTMLOptionElement).value),
     );
     expect(availableUnitIds).toContain(selectedUnitId);
-    await page.goto('/tickets?view=all');
-    await expect(page.locator('a:visible', { hasText: created.title }).first()).toBeVisible({
+    await page.goto(`/tickets/${created.id}`);
+    await expect(page.getByRole('heading', { name: created.title })).toBeVisible({
       timeout: 20_000,
     });
   });

@@ -7,7 +7,7 @@ import {
   loadSeedCatalog,
 } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 test.describe('02 routing / fallback', () => {
   test('seed service routes to a group; fresh service follows routing or fallback consistently', async ({
@@ -46,7 +46,10 @@ test.describe('02 routing / fallback', () => {
     // The inbox shows only the viewer's own groups; the SuperAdmin need not be a
     // member of the group the ticket was routed to. The full list shows it (as in 07).
     await page.goto('/tickets?view=all');
-    await expect(page.getByText(routed.title).first()).toBeVisible({
+    await dismissAnnouncementModal(page);
+    await expect(
+      page.locator('tbody').getByText(routed.title, { exact: true }).first(),
+    ).toBeVisible({
       timeout: 20_000,
     });
   });

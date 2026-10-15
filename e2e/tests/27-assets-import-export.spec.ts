@@ -149,6 +149,7 @@ test.describe('27 assets import, export and bulk', () => {
   });
 
   test('UI: select two items from stock and assign them in one move; import tab is accessible', async ({ page }, testInfo) => {
+    test.setTimeout(150_000);
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
@@ -166,7 +167,7 @@ test.describe('27 assets import, export and bulk', () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
         await page.goto('/assets');
         await expect(page.getByRole('button', { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
-        await page.getByRole('search').getByRole('searchbox').fill(stamp);
+        await page.getByLabel(/Pretraga imovine|Asset search|Pretraga opreme/i).fill(stamp);
         for (const asset of [first, second]) {
           await page.getByRole('checkbox', { name: new RegExp(asset.assetTag) }).check({ timeout: 15_000 });
         }

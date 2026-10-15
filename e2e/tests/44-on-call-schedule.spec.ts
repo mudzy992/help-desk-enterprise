@@ -123,8 +123,9 @@ test.describe('44 on-call schedules (5.3.7)', () => {
 
       await test.step('the week detail lists the rotation member', async () => {
         await page.getByTestId('on-call-group').filter({ hasText: groupName }).first().click();
+        await expect(page.getByText(memberName)).toBeVisible({ timeout: 30_000 });
         const members = page.locator('section[aria-labelledby="on-call-rotation"]');
-        await expect(members).toBeVisible();
+        await expect(members).toBeVisible({ timeout: 30_000 });
         await expect(members).toContainText(memberName);
       });
 

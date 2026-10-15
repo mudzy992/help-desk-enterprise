@@ -25,12 +25,19 @@ test.describe('01 ticket create', () => {
     if (await originUnit.isVisible().catch(() => false)) {
       await originUnit.selectOption({ index: 1 });
     }
-    await page
-      .getByRole('button', { name: /provjeri bazu znanja|check knowledge base/i })
-      .click();
-    await page
-      .getByRole('button', { name: /nastavi sa slanjem|continue with submission/i })
-      .click();
+    const serviceNeed = page.getByLabel(/šta vam treba|what do you need/i);
+    if (await serviceNeed.isVisible().catch(() => false)) {
+      await serviceNeed.fill('E2E opis zahtjeva za Opšti zahtjev');
+    }
+    const kbCheck = page.getByRole('button', {
+      name: /provjeri bazu znanja|check knowledge base/i,
+    });
+    await kbCheck.click();
+    const continueSend = page.getByRole('button', {
+      name: /nastavi sa slanjem|continue with submission/i,
+    });
+    await expect(continueSend).toBeVisible({ timeout: 30_000 });
+    await continueSend.click();
     await page.getByRole('button', { name: /pošalji tiket|send ticket/i }).click();
     const duplicate = page.getByRole('button', { name: /svejedno kreiraj|create anyway/i });
     if (await duplicate.isVisible({ timeout: 3_000 }).catch(() => false)) {

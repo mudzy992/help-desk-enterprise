@@ -8,9 +8,10 @@ test.describe("09 config ops", () => {
     const env = readE2EEnvironment();
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
+    const releaseNotes = `E2E config ${Date.now()}`;
     const created = await api.requestJson<{ id: string }>("/config-versions", {
       method: "POST",
-      body: JSON.stringify({ releaseNotes: `E2E config ${Date.now()}` }),
+      body: JSON.stringify({ releaseNotes }),
     });
     await api.requestJson(`/config-versions/${created.id}/validate`, {
       method: "POST",
@@ -22,10 +23,7 @@ test.describe("09 config ops", () => {
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto("/admin/config-versions");
     await dismissAnnouncementModal(page);
-    await page
-      .getByText(/E2E config/)
-      .first()
-      .click();
+    await page.getByRole("row").filter({ hasText: releaseNotes }).click();
     await page
       .getByLabel(/Activation reason|Razlog aktivacije/i)
       .fill("E2E activate through UI");
@@ -36,6 +34,14 @@ test.describe("09 config ops", () => {
       .getByRole("button", { name: /Activate|Aktiviraj/i })
       .click();
     await expect(confirmation).toBeHidden();
+    await expect
+      .poll(async () => {
+        const version = await api.requestJson<{ status: string }>(
+          `/config-versions/${created.id}`,
+        );
+        return version.status;
+      }, { timeout: 20_000 })
+      .toBe("ACTIVE");
 
     const rolled = await api.requestJson<{ id: string }>(
       `/config-versions/${created.id}/rollback`,
