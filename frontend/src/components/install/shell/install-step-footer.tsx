@@ -3,12 +3,16 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 /*
-  Install wizard v2 (F3): one footer for every step — „Nazad“, „Podesi kasnije“
-  and „Nastavi“. The step itself owns its primary action (each form has its own
-  „Sačuvaj“ button), so this footer never saves anything: it moves through the
-  wizard and it defers, and „Podesi kasnije“ only appears for a step the registry
-  marks `skippable` (`skippable` comes from the status endpoint, not from a list
-  copied into the UI).
+  Install wizard v2 — „Aurora“: one footer for every step — „Nazad“, „Podesi
+  kasnije“ and „Nastavi“.
+
+  The step itself owns its primary action (each form has its own „Sačuvaj“
+  button), so this footer never saves anything: it moves through the wizard and
+  it defers, and „Podesi kasnije“ only appears for a step the registry marks
+  `skippable` (`skippable` comes from the status endpoint, not from a list
+  copied into the UI). Every control here is `type="button"` — the step's own
+  submit button has to stay the first `form button[type="submit"]` on the page
+  (the E2E harness clicks exactly that).
 */
 
 export function InstallStepFooter({
@@ -34,7 +38,7 @@ export function InstallStepFooter({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border/70 pt-4">
+    <div className="mt-7 flex flex-wrap items-center gap-2 border-t border-border pt-4">
       {canGoBack ? (
         <Button type="button" variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft size={14} strokeWidth={2.2} />
@@ -56,7 +60,7 @@ export function InstallStepFooter({
           </Button>
         ) : null}
         {isContinueVisible ? (
-          <Button type="button" variant="secondary" size="sm" onClick={onContinue}>
+          <Button type="button" size="sm" onClick={onContinue}>
             {t("install.shell.continue")}
             <ArrowRight size={14} strokeWidth={2.2} />
           </Button>

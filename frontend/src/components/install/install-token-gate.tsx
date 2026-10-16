@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { KeyRound } from "lucide-react";
 import { BrandLockup } from "@/components/layout/brand-mark";
+import { InstallAuroraBackdrop } from "@/components/install/shell/install-aurora-backdrop";
 import { Button } from "@/components/ui/button";
-import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/services/api";
 import { loadInstallSuperAdmin } from "@/services/install-api";
+import { useInstallTheme } from "@/lib/install/use-install-theme";
 import {
   clearInstallToken,
   readInstallToken,
@@ -41,6 +43,10 @@ function errorMessageKey(error: GateError): GateMessageKey {
  * token is probed while still unsaved, so a network error, a 5xx or any unknown
  * failure keeps the gate closed with a retry, and a rejected token is never
  * written to the tab.
+ *
+ * „Aurora“: the gate is the airlock of the whole story — the aurora canvas with
+ * one key card on it, and the token field keeps its `#install-token` id and its
+ * own `<form>` submit, which is what the E2E harness drives.
  */
 export function InstallTokenGate({ children }: { readonly children: ReactNode }) {
   const { t } = useTranslation();
@@ -51,6 +57,7 @@ export function InstallTokenGate({ children }: { readonly children: ReactNode })
   const [isChecking, setIsChecking] = useState(savedToken !== null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<GateError>(null);
+  useInstallTheme();
 
   const verify = useCallback(async (token: string, options: { readonly persist: boolean }) => {
     setIsChecking(true);
@@ -84,60 +91,72 @@ export function InstallTokenGate({ children }: { readonly children: ReactNode })
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex h-14 items-center border-b border-border/70 bg-surface px-4 md:px-6">
+    <div className="iw-canvas">
+      <InstallAuroraBackdrop />
+      {/* The gate's own header is a HUD strip: `BrandLockup`'s second line is muted
+          text and muted text never sits on the raw canvas (see install-theme.css). */}
+      <header className="iw-hud flex h-16 items-center px-5 md:px-8">
         <BrandLockup subtitle={t("install.title")} />
       </header>
-      <main className="mx-auto w-full max-w-md px-4 py-10">
+
+      <main className="grid min-h-[calc(100dvh-4rem)] place-items-center px-4 pb-16">
         {isChecking ? (
-          <PanelSkeleton label={t("install.tokenChecking")} />
+          <div className="w-full max-w-md">
+            <PanelSkeleton label={t("install.tokenChecking")} />
+          </div>
         ) : (
-          <form
-            className="space-y-3 rounded-lg border border-border bg-surface p-6 shadow-card"
-            onSubmit={submit}
-          >
-            <h2 className="text-[15px] font-semibold text-foreground">
-              {t("install.tokenHeading")}
-            </h2>
-            <p className="text-[12.5px] leading-5 text-muted-foreground">
-              {t("install.tokenBody")}
-            </p>
-            <label
-              className="block text-[12px] font-medium text-foreground"
-              htmlFor="install-token"
-            >
-              {t("install.tokenLabel")}
-            </label>
-            <input
-              id="install-token"
-              type="password"
-              autoComplete="off"
-              className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-            />
-            {error !== null ? (
-              <div className="grid gap-2" role="alert">
-                <p className={errorTextClassName}>{t(errorMessageKey(error))}</p>
-                {error === "unavailable" ? (
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={value.trim().length === 0}
-                      onClick={() => void verify(value, { persist: true })}
-                    >
-                      {t("install.retry")}
-                    </Button>
-                  </div>
-                ) : null}
+          <div className="iw-airlock iw-rise">
+            <form className="grid gap-4 p-7" onSubmit={submit}>
+              <span
+                className="iw-tile grid size-11 place-items-center text-link"
+                aria-hidden="true"
+              >
+                <KeyRound size={19} strokeWidth={2.1} />
+              </span>
+              <h1 className="iw-display text-[26px] leading-tight text-foreground">
+                {t("install.tokenHeading")}
+              </h1>
+              <p className="text-[13px] leading-6 text-muted-foreground">
+                {t("install.tokenBody")}
+              </p>
+
+              <label className="grid gap-2" htmlFor="install-token">
+                {t("install.tokenLabel")}
+                <input
+                  id="install-token"
+                  type="password"
+                  autoComplete="off"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                />
+              </label>
+
+              {error !== null ? (
+                <div className="grid gap-2" role="alert">
+                  <p className="text-[12.5px] text-danger">{t(errorMessageKey(error))}</p>
+                  {error === "unavailable" ? (
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={value.trim().length === 0}
+                        onClick={() => void verify(value, { persist: true })}
+                      >
+                        {t("install.retry")}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div>
+                <Button type="submit" disabled={value.trim().length === 0}>
+                  {t("install.tokenSubmit")}
+                </Button>
               </div>
-            ) : null}
-            <Button type="submit" disabled={value.trim().length === 0}>
-              {t("install.tokenSubmit")}
-            </Button>
-          </form>
+            </form>
+          </div>
         )}
       </main>
     </div>

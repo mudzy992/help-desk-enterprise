@@ -95,10 +95,20 @@ const ChangeDetailPage = lazyPage(() => import("@/pages/change-detail-page"), "C
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
+// The install wizard's own design, without a backend: `/install` reads the setup
+// status before it renders anything, so a dev preview is the only way to look at
+// the airelock, a step and the liftoff side by side. Dev builds only.
+const InstallPreviewPage = import.meta.env.DEV
+  ? lazyPage(() => import("@/pages/install-preview-page"), "InstallPreviewPage")
+  : null;
 
 export function AppRouter() {
   return (
     <Routes>
+      {/* Dev-only, public: the design preview has no API and no session. */}
+      {InstallPreviewPage !== null ? (
+        <Route path="install-preview" element={<InstallPreviewPage />} />
+      ) : null}
       <Route element={<InstallSetupLayout />}>
         <Route path="install" element={<InstallPage />} />
         <Route path="login" element={<LoginPage />} />

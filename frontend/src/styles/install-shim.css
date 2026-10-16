@@ -1,0 +1,326 @@
+/*
+  Install wizard v2 — „Aurora“: the shim layer.
+  ============================================
+
+  Every install step is built from the app's semantic utility classes
+  (`text-muted-foreground`, `bg-surface`, `border-border`, `text-link`, …). The
+  wizard keeps that markup — so the steps stay readable and no behaviour moves —
+  and this file re-points those utilities at the Aurora palette, with the
+  attribute prefix buying exactly one specificity step over the utility
+  (0,2,0 > 0,1,0) and the pseudo-classed rules over `hover:`/`disabled:`
+  variants (0,3,0 > 0,2,0). No `!important` anywhere.
+
+  It is imported after `index.css`, which settles the ties.
+*/
+
+[data-install-theme="aurora"] .text-foreground,
+[data-install-theme="aurora"] .text-foreground\/85,
+[data-install-theme="aurora"] .text-foreground\/90 {
+  color: rgb(var(--iw-ink));
+}
+
+[data-install-theme="aurora"] .text-muted-foreground {
+  color: rgb(var(--iw-ink-soft));
+}
+
+[data-install-theme="aurora"] .text-link {
+  color: rgb(var(--iw-cyan));
+}
+
+[data-install-theme="aurora"] .text-ok {
+  color: rgb(var(--iw-mint));
+}
+
+[data-install-theme="aurora"] .text-danger {
+  color: rgb(var(--iw-danger));
+}
+
+[data-install-theme="aurora"] .text-warning {
+  color: rgb(var(--iw-amber));
+}
+
+[data-install-theme="aurora"] .text-info {
+  color: rgb(var(--iw-cyan));
+}
+
+[data-install-theme="aurora"] .text-primary-foreground,
+[data-install-theme="aurora"] .text-primary-foreground\/80 {
+  color: rgb(var(--iw-ink-on-accent));
+}
+
+[data-install-theme="aurora"] .border-border,
+[data-install-theme="aurora"] .border-border\/70,
+[data-install-theme="aurora"] .border-border\/60 {
+  border-color: rgb(var(--iw-glass) / 0.12);
+}
+
+[data-install-theme="aurora"] .border-primary,
+[data-install-theme="aurora"] .border-primary\/20,
+[data-install-theme="aurora"] .border-primary\/25,
+[data-install-theme="aurora"] .border-primary\/40 {
+  border-color: rgb(var(--iw-cyan) / 0.55);
+}
+
+[data-install-theme="aurora"] .border-danger\/40 {
+  border-color: rgb(var(--iw-danger) / 0.45);
+}
+
+[data-install-theme="aurora"] .ring-primary\/25 {
+  --tw-ring-color: rgb(var(--iw-cyan) / 0.35);
+}
+
+[data-install-theme="aurora"] .bg-background {
+  background-color: rgb(var(--iw-void) / 0.94);
+}
+
+[data-install-theme="aurora"] .bg-surface {
+  background-color: rgb(var(--iw-glass) / 0.05);
+}
+
+[data-install-theme="aurora"] .bg-surface\/95 {
+  background-color: rgb(var(--iw-void) / 0.86);
+}
+
+[data-install-theme="aurora"] .bg-surface-hover,
+[data-install-theme="aurora"] .hover\:bg-surface-hover:hover {
+  background-color: rgb(var(--iw-glass) / 0.09);
+}
+
+[data-install-theme="aurora"] .bg-elevated {
+  background-color: rgb(var(--iw-glass) / 0.07);
+}
+
+[data-install-theme="aurora"] .bg-muted,
+[data-install-theme="aurora"] .bg-muted\/30,
+[data-install-theme="aurora"] .bg-muted\/40,
+[data-install-theme="aurora"] .bg-muted\/50 {
+  background-color: rgb(var(--iw-glass) / 0.06);
+}
+
+[data-install-theme="aurora"] .bg-primary\/10 {
+  background-color: rgb(var(--iw-cyan) / 0.12);
+}
+
+[data-install-theme="aurora"] .bg-danger\/5 {
+  background-color: rgb(var(--iw-danger) / 0.09);
+}
+
+[data-install-theme="aurora"] .shadow-card,
+[data-install-theme="aurora"] .shadow-pop {
+  box-shadow: 0 28px 60px -34px rgb(var(--iw-void) / 0.95);
+}
+
+[data-install-theme="aurora"] .shadow-sm {
+  box-shadow: 0 2px 10px -6px rgb(var(--iw-void) / 0.9);
+}
+
+/* ── portals: a sheet or a dialog opened from the wizard is part of it ──── */
+
+/* The sheet's content, the credentials dialog and every future overlay: one
+   rule for `role="dialog"`, so a portal can never end up as Pulse glass on the
+   aurora and unmetered text on it. Radix portals land on `document.body`, which
+   is why the theme attribute sits on `<html>`. */
+[data-install-theme="aurora"] [role="dialog"],
+[data-install-theme="aurora"] .bg-popover {
+  background-color: rgb(var(--iw-panel) / 0.96);
+}
+
+[data-install-theme="aurora"] .text-popover-foreground {
+  color: rgb(var(--iw-ink));
+}
+
+[data-install-theme="aurora"] .bg-scrim\/60,
+[data-install-theme="aurora"] .bg-background\/80 {
+  background-color: rgb(var(--iw-void) / 0.76);
+}
+
+/* ── the rest of the scale, so no variant falls back to a Pulse token ───── */
+
+[data-install-theme="aurora"] .bg-elevated\/40 {
+  background-color: rgb(var(--iw-glass) / 0.06);
+}
+
+/* Skeleton bars: `border` is a light colour in Pulse light and a dark one in
+   Pulse dark, so it can never read on the wizard's dark stage either way. */
+[data-install-theme="aurora"] .bg-border\/40 {
+  background-color: rgb(var(--iw-glass) / 0.06);
+}
+
+[data-install-theme="aurora"] .bg-border\/50 {
+  background-color: rgb(var(--iw-glass) / 0.07);
+}
+
+[data-install-theme="aurora"] .bg-border\/60 {
+  background-color: rgb(var(--iw-glass) / 0.08);
+}
+
+[data-install-theme="aurora"] .bg-border\/70 {
+  background-color: rgb(var(--iw-glass) / 0.09);
+}
+
+[data-install-theme="aurora"] .hover\:border-primary\/40:hover,
+[data-install-theme="aurora"] .hover\:border-primary\/60:hover {
+  border-color: rgb(var(--iw-cyan) / 0.6);
+}
+
+[data-install-theme="aurora"] .border-line-strong,
+[data-install-theme="aurora"] .hover\:border-line-strong:hover {
+  border-color: rgb(var(--iw-glass) / 0.28);
+}
+
+[data-install-theme="aurora"] .hover\:text-foreground:hover {
+  color: rgb(var(--iw-ink));
+}
+
+/* Same specificity as the utility, but written later: the ring stays cyan even
+   where a primitive brings its own `outline-primary/70`. */
+[data-install-theme="aurora"] .focus-visible\:outline-primary\/70:focus-visible {
+  outline-color: rgb(var(--iw-cyan) / 0.9);
+}
+
+/* ── primary actions ────────────────────────────────────────────────────── */
+
+[data-install-theme="aurora"] .bg-primary {
+  border-color: transparent;
+  background-color: rgb(var(--iw-cyan));
+  background-image: linear-gradient(120deg, rgb(var(--iw-cyan)), rgb(var(--iw-mint)));
+  color: rgb(var(--iw-ink-on-accent));
+  box-shadow: 0 14px 34px -18px rgb(var(--iw-cyan) / 0.9);
+}
+
+[data-install-theme="aurora"] .bg-primary:hover,
+[data-install-theme="aurora"] .bg-primary:active {
+  background-image: linear-gradient(120deg, rgb(var(--iw-mint)), rgb(var(--iw-cyan)));
+  filter: brightness(1.05);
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+
+[data-install-theme="aurora"] button {
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+[data-install-theme="aurora"] button:disabled {
+  border-color: rgb(var(--iw-glass) / 0.1);
+  background-color: rgb(var(--iw-glass) / 0.05);
+  background-image: none;
+  color: rgb(var(--iw-ink-dim));
+  box-shadow: none;
+}
+
+[data-install-theme="aurora"] :focus-visible {
+  outline: 2px solid rgb(var(--iw-cyan) / 0.85);
+  outline-offset: 2px;
+}
+
+/* ── fields ─────────────────────────────────────────────────────────────── */
+
+[data-install-theme="aurora"]
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgb(var(--iw-glass) / 0.14);
+  border-radius: var(--iw-r-md);
+  background-color: rgb(var(--iw-glass) / 0.045);
+  box-shadow: inset 0 1px 0 rgb(var(--iw-glass) / 0.05);
+  color: rgb(var(--iw-ink));
+  font-size: 13.5px;
+  padding: 0 14px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+[data-install-theme="aurora"]
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):hover {
+  border-color: rgb(var(--iw-glass) / 0.26);
+}
+
+[data-install-theme="aurora"]
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: rgb(var(--iw-cyan) / 0.85);
+  background-color: rgb(var(--iw-glass) / 0.07);
+  box-shadow:
+    0 0 0 4px rgb(var(--iw-cyan) / 0.16),
+    inset 0 1px 0 rgb(var(--iw-glass) / 0.06);
+}
+
+[data-install-theme="aurora"] ::placeholder {
+  color: rgb(var(--iw-ink-dim));
+}
+
+[data-install-theme="aurora"] :is(input, select, textarea):disabled {
+  opacity: 0.45;
+}
+
+[data-install-theme="aurora"] label {
+  color: rgb(var(--iw-ink-soft));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+[data-install-theme="aurora"] :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: rgb(var(--iw-cyan));
+  width: 17px;
+  height: 17px;
+}
+
+/* A radio inside a label is a card: the whole step becomes a choice, not a list. */
+[data-install-theme="aurora"] label:has(> input[type="radio"]) {
+  border: 1px solid rgb(var(--iw-glass) / 0.12);
+  border-radius: var(--iw-r-md);
+  background-color: rgb(var(--iw-glass) / 0.035);
+  padding: 12px 14px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+[data-install-theme="aurora"] label:has(> input[type="radio"]):hover {
+  border-color: rgb(var(--iw-glass) / 0.3);
+  background-color: rgb(var(--iw-glass) / 0.07);
+}
+
+[data-install-theme="aurora"] label:has(> input[type="radio"]:checked) {
+  border-color: rgb(var(--iw-cyan) / 0.75);
+  background-color: rgb(var(--iw-cyan) / 0.1);
+  box-shadow: 0 0 0 4px rgb(var(--iw-cyan) / 0.1);
+}
+
+/* ── switch ─────────────────────────────────────────────────────────────── */
+
+[data-install-theme="aurora"] [role="switch"] {
+  border-color: rgb(var(--iw-glass) / 0.18);
+  background-color: rgb(var(--iw-glass) / 0.12);
+}
+
+[data-install-theme="aurora"] [role="switch"][data-state="checked"] {
+  border-color: transparent;
+  background-image: linear-gradient(120deg, rgb(var(--iw-cyan)), rgb(var(--iw-mint)));
+}
+
+/* ── the last three, so nothing in the wizard can reach a Pulse token ───── */
+
+/* `components/ui/checkbox.tsx`. Its box is `checked:bg-primary`, a *different*
+   class token than `.bg-primary` above — Tailwind's variant classes never match
+   the plain rules — so the checked state needs its own selector. The tick keeps
+   `.text-primary-foreground`, already re-pointed, so this is the only rule. */
+[data-install-theme="aurora"] .peer:checked {
+  border-color: transparent;
+  background-color: rgb(var(--iw-cyan));
+}
+
+/* `components/ui/warning.tsx` and `components/ui/panel-error-boundary.tsx`:
+   amber, not the app's warning token, and one tint for both scales. */
+[data-install-theme="aurora"] .bg-warning\/5,
+[data-install-theme="aurora"] .bg-warning\/10 {
+  background-color: rgb(var(--iw-amber) / 0.1);
+}
+
+[data-install-theme="aurora"] .border-warning\/30 {
+  border-color: rgb(var(--iw-amber) / 0.34);
+}

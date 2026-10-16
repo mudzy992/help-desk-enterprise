@@ -10,6 +10,12 @@ import { reportClientError } from "@/lib/app/client-logger";
 import { startBranding } from "@/lib/branding/branding-store";
 import { migrateLegacyStorageKeys } from "@/lib/storage/legacy-storage-keys";
 import "@/index.css";
+// The install wizard's own story („Aurora“). Imported after `index.css` on
+// purpose: the theme deliberately re-points the app's semantic utilities at its
+// own palette at equal specificity, so the later sheet has to win the ties.
+import "@/styles/install-theme.css";
+import "@/styles/install-shim.css";
+import "@/styles/install-scenes.css";
 
 // Vite reports a failed modulepreload (stale build after a redeploy) here.
 window.addEventListener("vite:preloadError", (event) => {

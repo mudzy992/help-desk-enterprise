@@ -4408,7 +4408,8 @@
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "notReady": "The installation is not ready to receive tickets yet.",
       "errorGeneric": "Setup cannot be locked right now.",
-      "hint": "The wizard is locked and every later change goes through Settings. Sign in with the SuperAdmin account this wizard created."
+      "hint": "The wizard is locked and every later change goes through Settings. Sign in with the SuperAdmin account this wizard created.",
+      "eyebrow": "Installation complete"
     },
     "progress": "Step {{current}} of {{total}}",
     "steps": {

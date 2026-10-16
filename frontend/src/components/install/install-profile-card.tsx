@@ -31,10 +31,11 @@ export function InstallProfileCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border bg-surface p-4 shadow-card transition-colors duration-150",
-        isSelected
-          ? "border-primary ring-1 ring-primary/25"
-          : "border-border hover:border-line-strong",
+        // „rounded-lg border“ is part of the E2E contract (the harness finds a
+        // package card as `div.rounded-lg.border`); `.iw-panel` restyles them and
+        // `iw-card` adds the wizard's own lift and the selected glow.
+        "iw-panel iw-card flex flex-col rounded-lg border p-5",
+        isSelected ? "iw-panel--lit border-primary" : "border-border",
       )}
     >
       <div className="flex items-center gap-2">

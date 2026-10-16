@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { InstallStepFooter } from "@/components/install/shell/install-step-footer";
 import { InstallWizardShell } from "@/components/install/shell/install-wizard-shell";
 import type { InstallRailItem } from "@/components/install/shell/install-step-rail";
 
@@ -54,10 +55,18 @@ afterEach(() => {
 beforeEach(() => stubReducedMotion(false));
 
 /*
-  F3: the shell is layout and motion only. These tests pin the two promises the
-  plan makes about it — the headline (not the button) takes focus when the step
-  changes, and nothing animates when the system asks for reduced motion.
+  F3: the shell is layout and motion only. These tests pin the promises the plan
+  makes about it — the headline (not the button) takes focus when the step
+  changes, nothing animates when the system asks for reduced motion, and the
+  shell's own furniture never gets in the way of the E2E harness: the step's
+  form comes first, and every footer control is `type="button"` so a second
+  submit button cannot steal `form button[type="submit"]`
+  (`e2e/install-wizard/install-wizard-submit.ts` clicks exactly that).
 */
+
+/** The pattern `e2e/install-wizard/install-wizard-submit.ts` clicks with. */
+const submitPattern =
+  /dalje|nastavi|continue|next|sačuvaj|save|kreiraj|create|primijeni|apply|potvrdi|confirm/i;
 describe("InstallWizardShell", () => {
   it("shows the step, the step counter, the live organisation and what the step brings", () => {
     render(
@@ -120,5 +129,47 @@ describe("InstallWizardShell", () => {
     expect(screen.getByRole("heading", { level: 1 }).closest("section")?.className).not.toContain(
       "page-in",
     );
+  });
+  it("puts the step's own form before the footer and keeps every footer control a plain button", () => {
+    const { container } = render(
+      <InstallWizardShell
+        step="identity"
+        railItems={railItems}
+        footer={
+          <InstallStepFooter
+            canGoBack
+            onBack={() => undefined}
+            isDeferred={false}
+            canDefer
+            isDeferring={false}
+            onDefer={() => undefined}
+            onUndoDefer={() => undefined}
+            onContinue={() => undefined}
+            isContinueVisible
+          />
+        }
+      >
+        <form>
+          <button type="submit">sačuvaj identitet</button>
+        </form>
+      </InstallWizardShell>,
+    );
+
+    // Both selectors the harness uses have to land on the step's own control.
+    const submits = Array.from(container.querySelectorAll('button[type="submit"]'));
+    expect(submits).toHaveLength(1);
+    expect(submits[0]?.textContent).toBe("sačuvaj identitet");
+    const labelled = Array.from(container.querySelectorAll("button")).filter((button) =>
+      submitPattern.test(button.textContent ?? ""),
+    );
+    expect(labelled[0]?.textContent).toBe("sačuvaj identitet");
+
+    for (const name of ["install.shell.back", "install.shell.later", "install.shell.continue"]) {
+      const footerButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.trim() === name,
+      );
+      expect(footerButton, name).toBeTruthy();
+      expect(footerButton?.getAttribute("type"), name).toBe("button");
+    }
   });
 });

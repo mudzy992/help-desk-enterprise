@@ -4427,7 +4427,8 @@
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "notReady": "Instalacija još nije spremna za prijem tiketa.",
       "errorGeneric": "Podešavanje trenutno nije moguće zaključati.",
-      "hint": "Čarobnjak je zaključan i dalje podešavanje ide kroz Settings. Prijavite se SuperAdmin nalogom koji ste kreirali u ovom čarobnjaku."
+      "hint": "Čarobnjak je zaključan i dalje podešavanje ide kroz Settings. Prijavite se SuperAdmin nalogom koji ste kreirali u ovom čarobnjaku.",
+      "eyebrow": "Instalacija je završena"
     },
     "progress": "Korak {{current}} od {{total}}",
     "steps": {

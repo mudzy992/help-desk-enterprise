@@ -145,6 +145,12 @@ async function renderPage() {
   await screen.findByText("install.steps.profile");
 }
 
+/*
+  The flight plan lists every step by name, so that label proves the gate opened
+  and nothing more — the step's body arrives one loader later. A test that needs
+  the body waits for the body itself (`findBy…`), never for the plan.
+*/
+
 describe("InstallPage (F3 shell)", () => {
   it("renders the step the server asks for, inside the shell", async () => {
     vi.mocked(loadInstallSetupStatus).mockResolvedValue(
@@ -154,9 +160,9 @@ describe("InstallPage (F3 shell)", () => {
     await renderPage();
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("install.profile.heading");
-    // The counter lives in the mobile header and above the step; both say 1 of 9.
+    // The counter lives in the HUD and above the step; both say 1 of 9.
     expect(screen.getAllByText(/install\.shell\.stepOf/).length).toBeGreaterThan(0);
-    expect(screen.getByText("install.profile.submit")).toBeTruthy();
+    expect(await screen.findByText("install.profile.submit")).toBeTruthy();
     // No step before the package, so there is nothing to review.
     expect(screen.queryByRole("button", { name: "install.shell.back" })).toBeNull();
   });
@@ -222,7 +228,7 @@ describe("InstallPage (F3 shell)", () => {
     });
 
     await renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "install.profile.select" }));
+    fireEvent.click(await screen.findByRole("button", { name: "install.profile.select" }));
     fireEvent.click(screen.getByRole("button", { name: "install.profile.submit" }));
 
     expect(await screen.findByText("install.shell.reopened")).toBeTruthy();

@@ -1,25 +1,23 @@
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { LocaleSelect } from "@/components/layout/locale-select";
-import { InstallBrandPanel } from "@/components/install/shell/install-brand-panel";
-import { InstallMobileHeader } from "@/components/install/shell/install-mobile-header";
-import {
-  installStepIndex,
-  installStepLabelKey,
-  installStepPresentations,
-  installWizardSteps,
-} from "@/lib/install/install-step-presentation";
+import { InstallAuroraBackdrop } from "@/components/install/shell/install-aurora-backdrop";
+import { InstallFlightPlan } from "@/components/install/shell/install-flight-plan";
+import { InstallStepHeader } from "@/components/install/shell/install-step-header";
+import { InstallTopBar } from "@/components/install/shell/install-top-bar";
 import { useInstallStepTransition } from "@/lib/install/use-install-step-transition";
+import { useInstallTheme } from "@/lib/install/use-install-theme";
 import type { InstallRailItem } from "@/components/install/shell/install-step-rail";
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): the split-screen shell. Desktop is 5/7 — brand panel
-  with the live organisation, the rail and „Šta dobijaš“ on the left, the step
-  itself on the right; below `lg` the panel becomes a compact header. The shell
-  owns layout and motion only: the step comes from the server (`nextStep` through
-  `InstallSetupProvider`), the rail states from `steps`, and nothing here decides
-  what the wizard asks next.
+  Install wizard v2 — „Aurora“ (owner decision, 2026-10-16): the wizard is its
+  own visual story. The shell owns layout and motion only: the step comes from
+  the server (`nextStep` through `InstallSetupProvider`), the rail states from
+  `steps`, and nothing here decides what the wizard asks next.
+
+  Layout: the aurora canvas, one HUD at the top, the flight plan on the left
+  (`lg` and up) and the step on a lit glass panel in the middle of the rest.
+  `useInstallTheme` pins the palette on `<html>` so sheets and dialogs — which
+  portal out of this subtree — are part of the same screen.
 */
 
 export type InstallWizardShellProperties = {
@@ -35,48 +33,21 @@ export function InstallWizardShell({
   children,
   footer,
 }: InstallWizardShellProperties) {
-  const { t } = useTranslation();
-  const presentation = installStepPresentations[step];
-  const index = installStepIndex(step);
+  useInstallTheme();
   const { titleRef, stepClassName } = useInstallStepTransition(step);
 
   return (
-    <div className="grid min-h-dvh bg-background lg:grid-cols-[5fr_7fr]">
-      <InstallBrandPanel step={step} railItems={railItems} />
+    <div className="iw-canvas">
+      <InstallAuroraBackdrop />
+      <InstallTopBar step={step} railItems={railItems} />
 
-      <div className="flex min-w-0 flex-col">
-        <InstallMobileHeader
-          step={step}
-          currentIndex={index}
-          totalSteps={installWizardSteps.length}
-        />
+      <div className="mx-auto grid w-full max-w-[86rem] gap-6 px-4 py-7 lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-8 lg:px-8 lg:py-9">
+        <InstallFlightPlan step={step} railItems={railItems} />
 
-        <div className="hidden justify-end px-6 pt-5 lg:flex">
-          <LocaleSelect />
-        </div>
-
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-          <section key={step} className={`mx-auto w-full max-w-[46rem] ${stepClassName}`}>
-            <p className="text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-              {t("install.shell.stepOf", {
-                current: index + 1,
-                total: installWizardSteps.length,
-              })}{" "}
-              · {t(installStepLabelKey(step))}
-            </p>
-            {/* a11y-focus: the step title only takes programmatic focus on a step change (`useInstallStepTransition`); it is not tabbable (tabIndex -1), so a ring would announce nothing. */}
-            <h1
-              ref={titleRef}
-              tabIndex={-1}
-              className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-foreground outline-none"
-            >
-              {t(presentation.titleKey as never)}
-            </h1>
-            <p className="mt-2 max-w-2xl text-[12.5px] leading-5 text-muted-foreground">
-              {t(presentation.bodyKey as never)}
-            </p>
-
-            <div className="mt-6">{children}</div>
+        <main className="min-w-0">
+          <section key={step} className={`iw-panel iw-panel--lit p-5 sm:p-7 ${stepClassName}`}>
+            <InstallStepHeader step={step} titleRef={titleRef} />
+            <div className="mt-7">{children}</div>
             {footer}
           </section>
         </main>

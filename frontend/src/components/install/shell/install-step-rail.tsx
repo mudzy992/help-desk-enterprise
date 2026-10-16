@@ -6,15 +6,22 @@ import {
   installStepPresentations,
 } from "@/lib/install/install-step-presentation";
 import type { InstallWizardStep } from "@/services/install-api";
+import type { CSSProperties } from "react";
 
 /*
-  Install wizard v2 (F3 polish): vertical progress timeline. States come from
-  the status endpoint; the rail never decides the flow. `tone="brand"` paints
-  translucent primary-foreground over `.pulse-gradient` (Constitution §39).
+  Install wizard v2 — „Aurora“: the rail is a vertical flight timeline.
+
+  Five states come from `GET /install/status` and nothing here decides the flow:
+  `done` (answered), `current` (where the operator stands), `deferred` (they said
+  „kasnije“), `locked` (the package does not offer it) and `upcoming`.
+
+  The line behind the nodes is one element filling from the top
+  (`--iw-rail-progress`), so „how far are we“ is one CSS transition and not a
+  list of conditional borders. Motion is decoration: `install-scenes.css` turns
+  it off under `prefers-reduced-motion`.
 */
 
 export type InstallRailState = "done" | "current" | "deferred" | "locked" | "upcoming";
-export type InstallRailTone = "brand" | "surface";
 
 export type InstallRailItem = {
   readonly key: InstallWizardStep;
@@ -35,125 +42,60 @@ export function resolveInstallRailState(input: {
   return "upcoming";
 }
 
-export function InstallStepRail({
-  items,
-  tone = "surface",
-}: {
-  readonly items: readonly InstallRailItem[];
-  readonly tone?: InstallRailTone;
-}) {
+/** How full the timeline is: the index of the last step that is not ahead. */
+function railProgress(items: readonly InstallRailItem[]): number {
+  if (items.length < 2) return 0;
+  const lastReached = items.reduce(
+    (found, item, index) => (item.state === "upcoming" || item.state === "locked" ? found : index),
+    0,
+  );
+  return Math.round((lastReached / (items.length - 1)) * 100);
+}
+
+/** A custom property is not part of `CSSProperties`, so it is asserted once, here. */
+function railStyle(percent: number): CSSProperties {
+  return { "--iw-rail-progress": `${percent}%` } as CSSProperties;
+}
+
+export function InstallStepRail({ items }: { readonly items: readonly InstallRailItem[] }) {
   const { t } = useTranslation();
-  const isBrand = tone === "brand";
 
   return (
-    <ol className="relative m-0 grid list-none gap-0 p-0">
-      {items.map((item, index) => {
+    <ol className="iw-rail" style={railStyle(railProgress(items))}>
+      {items.map((item) => {
         const Icon = installStepPresentations[item.key].icon;
-        const isLast = index === items.length - 1;
+        const isAhead = item.state === "upcoming" || item.state === "locked";
         return (
-          <li key={item.key} className="relative flex gap-3 pb-3 last:pb-0">
-            {!isLast ? (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "absolute left-[13px] top-7 bottom-0 w-px",
-                  isBrand ? "bg-primary-foreground/25" : "bg-border",
-                  item.state === "done" && (isBrand ? "bg-primary-foreground/45" : "bg-success/35"),
-                )}
-              />
-            ) : null}
-
-            <span
-              aria-hidden="true"
-              className={cn(
-                "relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full border",
-                isBrand ? railTileBrandClassName(item.state) : railTileSurfaceClassName(item.state),
-              )}
-            >
-              {item.state === "done" ? (
-                <Check size={13} strokeWidth={2.6} />
-              ) : (
-                <Icon size={13} strokeWidth={2.2} />
-              )}
+          <li key={item.key} className="iw-rail-item" data-state={item.state}>
+            <span className="iw-node" data-state={item.state} aria-hidden="true">
+              {item.state === "done" ? <Check size={15} strokeWidth={2.7} /> : <Icon size={15} />}
             </span>
-
-            <div
-              className={cn(
-                "min-w-0 flex-1 rounded-md px-2.5 py-1.5",
-                item.state === "current" &&
-                  (isBrand ? "bg-primary-foreground/15" : "border border-primary/20 bg-primary/10"),
-              )}
-            >
-              <div className="flex min-w-0 items-baseline gap-2">
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
                 <span
                   className={cn(
-                    "truncate text-[12.5px] leading-5",
-                    item.state === "current" ? "font-semibold" : "font-medium",
-                    isBrand
-                      ? railLabelBrandClassName(item.state)
-                      : railLabelSurfaceClassName(item.state),
+                    "iw-rail-label",
+                    item.state === "current" && "font-semibold text-foreground",
+                    !isAhead && item.state !== "current" && "text-foreground/85",
+                    isAhead && "text-muted-foreground",
+                    item.state === "deferred" && "text-warning",
                   )}
                 >
                   {t(installStepLabelKey(item.key))}
                 </span>
                 {item.state === "deferred" ? (
-                  <span
-                    className={cn(
-                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]",
-                      isBrand
-                        ? "bg-primary-foreground/15 text-primary-foreground/80"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
+                  <span className="iw-badge shrink-0 px-1.5 py-px text-[10px] font-semibold tracking-[0.04em] uppercase">
                     {t("install.step.skipped")}
                   </span>
                 ) : null}
-              </div>
+              </span>
               {item.state === "current" ? (
-                <p
-                  className={cn(
-                    "mt-0.5 text-[11px] leading-4",
-                    isBrand ? "text-primary-foreground/75" : "text-muted-foreground",
-                  )}
-                >
-                  {t("install.shell.currentStep")}
-                </p>
+                <span className="iw-rail-note">{t("install.shell.currentStep")}</span>
               ) : null}
-            </div>
+            </span>
           </li>
         );
       })}
     </ol>
   );
-}
-
-function railTileSurfaceClassName(state: InstallRailState): string {
-  if (state === "current") return "border-primary bg-primary text-primary-foreground shadow-sm";
-  if (state === "done") return "border-success/40 bg-success/15 text-ok";
-  // Contrast gate: muted-on-alpha fails check C; dashed border carries "locked".
-  if (state === "locked") return "border-dashed border-border bg-surface text-muted-foreground";
-  if (state === "deferred") return "border-border bg-muted text-muted-foreground";
-  return "border-border bg-surface text-muted-foreground";
-}
-
-function railLabelSurfaceClassName(state: InstallRailState): string {
-  if (state === "current") return "text-foreground";
-  if (state === "done" || state === "deferred") return "text-foreground/85";
-  return "text-muted-foreground";
-}
-
-function railTileBrandClassName(state: InstallRailState): string {
-  if (state === "current") {
-    return "border-primary-foreground bg-primary-foreground text-primary shadow-sm";
-  }
-  if (state === "done") return "border-primary-foreground/55 bg-primary-foreground/25";
-  if (state === "locked") return "border-dashed border-primary-foreground/40 bg-transparent";
-  if (state === "deferred") return "border-primary-foreground/40 bg-primary-foreground/10";
-  return "border-primary-foreground/45 bg-transparent";
-}
-
-function railLabelBrandClassName(state: InstallRailState): string {
-  if (state === "current") return "text-primary-foreground";
-  if (state === "done" || state === "deferred") return "text-primary-foreground/90";
-  return "text-primary-foreground/70";
 }
