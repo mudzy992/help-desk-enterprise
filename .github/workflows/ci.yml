@@ -521,9 +521,20 @@ jobs:
             52) ;;
             *) echo "::error title=Unknown wizard spec::install_spec=$spec (expected 51 or 52)."; exit 1 ;;
           esac
+          # The spec is resolved by the shell, not by Playwright's test filter: that
+          # argument is a regular expression, so a glob-looking `51-*.spec.ts` means
+          # "5, 1, any number of hyphens, any character, spec, ..." and matches nothing
+          # (the CI run failed with "Error: No tests found."). A bash glob names the
+          # file, and a rename fails loudly instead of silently running nothing.
+          matches=(install-wizard/"$spec"-*.spec.ts)
+          if [ ! -e "${matches[0]}" ]; then
+            echo "::error title=Missing wizard spec::No e2e/install-wizard/$spec-*.spec.ts — check the dispatch input and the file name."
+            exit 1
+          fi
+          echo "Running wizard spec: ${matches[*]}"
           # The config's own reporters (list + html) stay in place: the list keeps the
           # log readable and the html report is uploaded as an artifact.
-          npx playwright test -c install-wizard/playwright.install.config.ts "install-wizard/${spec}-*.spec.ts"
+          npx playwright test -c install-wizard/playwright.install.config.ts "${matches[@]}"
       - name: Upload the Playwright report and traces
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

@@ -1,5 +1,12 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (CI wizard posao: spec se razrješava imenom, ne regexom)
+
+- **`Error: No tests found.` na dispatchu sa `install_spec=51`:** korak je Playwrightu predavao `"install-wizard/${spec}-*.spec.ts"`, a taj argument Playwright čita kao **regularni izraz** — `-*` znači „nula ili više crtica“, pa ime `51-install-wizard-minimum.spec.ts` ne može da se poklopi (specovi su postojali i bili tipski provjereni; filter ih nije našao). Isti obrazac u zajedničkom `e2e` poslu je ispravan jer tamo bash glob razriješi fajlove prije poziva.
+- **Ispravka:** posao sada radi isto što i zajednički — `matches=(install-wizard/"$spec"-*.spec.ts)`; ako fajl ne postoji, korak pada sa `::error title=Missing wizard spec::`, a Playwright dobija stvarna imena fajlova. Nepoznat broj i dalje pada na whitelistu `51|52`.
+- **Provjereno lokalno (isti bash blok, `--list` umjesto pokretanja):** `51` → *1 test in 1 file* (`51-install-wizard-minimum.spec.ts`), `52` → *1 test in 1 file* (`52-install-wizard-standard.spec.ts`), bez filtera → *2 tests in 2 files*, `99` → glasna greška whitelista.
+- `e2e/README.md` sada pokazuje i kako pokrenuti **jedan** spec (imenom fajla) i zašto glob-oblik ne radi.
+
 ## 2026-10-16 (koraci: podrazumijevane vrijednosti se izvode, ne "seju" efektom)
 
 - **Flaky pad u CI-ju (`install-policy-pack-step.spec.tsx`, `num of calls: 0`):** korak je podrazumijevani paket upisivao u stanje kroz `useEffect`, pa je jedan commit renderovao formu sa `selectedKey === null`. Klik koji stigne u tom prozoru pogodi handler **committovanog** rendera — onaj koji izlazi odmah — i čarobnjak tiho ne uradi ništa. RTL-ov `act` omotač taj prozor lokalno skriva (ispere pasivne efekte prije tvrdnje), zato je lokalno uvijek bilo zeleno a CI crven.

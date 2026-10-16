@@ -184,6 +184,15 @@ E2E_INSTALL_TOKEN=<the deployment's INSTALL_TOKEN> \
   npx playwright test -c install-wizard/playwright.install.config.ts
 ```
 
+Just one of them — pass a **file name** (the filter is a regular expression, so a glob-looking
+`51-*.spec.ts` means „5, 1, any number of hyphens, any character, spec…“ and matches nothing; a run with it ends
+in `Error: No tests found`):
+
+```bash
+npx playwright test -c install-wizard/playwright.install.config.ts install-wizard/51-install-wizard-minimum.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts install-wizard/52-install-wizard-standard.spec.ts
+```
+
 - **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
   ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
   deferred on purpose, which is also what the post-install checklist must then list.

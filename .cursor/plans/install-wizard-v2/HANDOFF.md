@@ -295,6 +295,7 @@ b19d937 docs(install): v2 user guide and matrix
 b4f0111 fix(install-ui): link tones on neutral surfaces
 02007f8 fix(setup-checklist): import the guard chain's modules
 ```
+- **Četvrta ispravka (CI wizard posao, commitovano):** korak je predavao Playwrightu `"install-wizard/${spec}-*.spec.ts"`, a to je **regex** (`-*` = nula ili više crtica) → `Error: No tests found.` iako specovi postoje. Sada bash glob razrješi fajl (`matches=(install-wizard/"$spec"-*.spec.ts)`) i korak pada glasno ako fajla nema; `e2e/README.md` dokumentuje i pojedinačno pokretanje imenom.
 - **Treća ispravka iz iste recenzije (traži commit):**
 ```
 fix(ci): keep the wizard dispatch pinned in the workflow guard test
