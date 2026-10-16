@@ -506,8 +506,8 @@ jobs:
             if (status.isCompleted === true) {
               console.error(
                 "::error title=The wizard is closed::This stack has a finished installation. " +
-                  "Reset the database (drop schema public cascade; create schema public, then " +
-                  "cd backend && npm run db:init), or reopen the wizard with INSTALL_ALLOW_RERUN=true: " +
+                  "Reset the database (cd backend && npx prisma migrate reset --force, then restart " +
+                  "the backend), or reopen the wizard with INSTALL_ALLOW_RERUN=true: " +
                   "`docker exec -i <backend> node dist/src/cli/install-rerun.js --reason \"...\" " +
                   "--include-step-markers`. " +
                   "Runbook: ops/runbook/ponovno-pokretanje-instalacije.md.",
@@ -521,8 +521,8 @@ jobs:
             if (status.nextStep !== "profile") {
               console.error(
                 `::error title=The wizard is not at its first step::nextStep=${status.nextStep ?? "unknown"}. ` +
-                  "This stack already has its answers. Reset the database (drop schema public cascade; " +
-                  "create schema public, then cd backend && npm run db:init) — the only fully clean " +
+                  "This stack already has its answers. Reset the database (cd backend && npx prisma " +
+                  "migrate reset --force, then restart the backend) — the only fully clean " +
                   "option, because the specs assert the checklist names exactly the deferred steps — " +
                   "or reopen the wizard with INSTALL_ALLOW_RERUN=true: `docker exec -i <backend> node " +
                   "dist/src/cli/install-rerun.js --reason \"...\" --include-step-markers` (a plain " +

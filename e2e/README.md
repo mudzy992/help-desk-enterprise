@@ -220,6 +220,20 @@ Preflight rejects the same state before the browser starts. A database reset is 
 (reopening keeps the existing users, and spec 51 asserts the post-install checklist names *exactly* the two
 deferred steps).
 
+The reset itself needs nothing but the repo — and note that Prisma 7 no longer seeds from `migrate reset`
+(the `--skip-seed` / `--skip-generate` flags were removed with it), so this cannot trip over the seed:
+
+```bash
+cd backend && npx prisma migrate reset --force   # drops schema public, applies all migrations
+# then restart the backend: it re-creates the starting SLA profiles and the priority matrix on boot
+```
+
+(`psql "$DATABASE_URL" -c 'drop schema public cascade; create schema public'` does the same where the
+`postgresql-client` package is installed. The standalone seed also runs from the compiled output only —
+`npm run build && npm run db:seed` — because Prisma 7's generated client is TypeScript whose imports carry
+`.js` specifiers, which ts-node cannot resolve. The wizard does not need it: the backend seeds the starting
+SLA profiles on boot and the wizard's own `seed` step creates everything else.)
+
 To run them against a finished installation, reopen the wizard first (ops only):
 
 ```bash

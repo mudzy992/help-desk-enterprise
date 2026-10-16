@@ -23,11 +23,17 @@
 
 ## Seed / Migrate Commands (declared scripts)
 
-Declared in `backend/package.json` (may fail until Prisma schema and Nest app exist):
+Declared in `backend/package.json`:
 - `npm run db:generate` → `prisma generate`
 - `npm run db:migrate` → `prisma migrate deploy`
-- `npm run db:seed` → `prisma db seed`
-- `npm run db:init` → `prisma migrate deploy && prisma db seed`
+- `npm run db:seed` → `node dist/src/seed-database.js` (compiled; run `npm run build` first)
+- `npm run db:init` → `prisma migrate deploy && prisma generate && npm run build && node dist/src/seed-database.js`
+
+The seed does **not** run through `ts-node`: the Prisma 7 `prisma-client` generator writes `.ts` files whose
+imports carry `.js` specifiers, and ts-node cannot resolve those (`Cannot find module './internal/class.js'`).
+Everything the wizard needs is seeded elsewhere anyway — SLA profiles and the priority matrix on backend boot
+(`StartingSlaSeedService`), the rest in the wizard's own `seed` step — so a fresh install never depends on this
+command. `prisma migrate reset` (Prisma 7) no longer runs seeds at all; `--skip-seed`/`--skip-generate` are gone.
 
 ## Data Model / Key Models
 

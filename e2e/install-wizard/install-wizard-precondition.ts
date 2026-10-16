@@ -23,11 +23,17 @@ export type InstallStatusSnapshot = {
   readonly nextStep?: string | null;
 };
 
-/** The reopen recipe, spelled the same way `ops/runbook/ponovno-pokretanje-instalacije.md` does. */
+/** The reset recipe that needs nothing but the repo (no `psql`, no seed — see the note below). */
 export const wizardResetHint =
   'Reset the installation (Postgres is an external service, not a compose volume):\n' +
-  '  psql "$DATABASE_URL" -c \'drop schema public cascade; create schema public\'\n' +
-  '  cd backend && npm run db:init   # prisma migrate deploy && prisma db seed';
+  '  cd backend && npx prisma migrate reset --force   # drops schema public, then applies all migrations\n' +
+  '  restart the backend afterwards: the boot seeder re-creates the starting SLA profiles and the\n' +
+  '  priority matrix, which the reset dropped.\n' +
+  '  Prisma 7 no longer seeds from `migrate reset` (the `--skip-seed` flag is gone), and the standalone\n' +
+  '  seed needs the compiled output (`npm run build && npm run db:seed`) — the wizard does not need it:\n' +
+  '  boot seeds the SLA profiles, the wizard seeds the rest.\n' +
+  '  `psql "$DATABASE_URL" -c \'drop schema public cascade; create schema public\'` works too, but\n' +
+  '  only where the postgresql-client package is installed.';
 
 /** The reopen recipe, spelled the same way `ops/runbook/ponovno-pokretanje-instalacije.md` does. */
 export const wizardReopenHint =
