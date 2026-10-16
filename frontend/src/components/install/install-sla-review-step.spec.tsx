@@ -71,6 +71,10 @@ describe("InstallSlaReviewStep", () => {
     // the interpolation the real dictionary provides.
     expect(await screen.findByText("install.slaReview.calendar.title")).toBeTruthy();
     expect(screen.getByText("CRITICAL")).toBeTruthy();
+    // „Potvrdi“ confirms the *displayed* week, so the editor has to be there in
+    // the same commit — seeding the rows in an effect let a fast click confirm
+    // hours the operator had never seen.
+    expect(screen.getByText("install.slaReview.calendar.editorCaption")).toBeTruthy();
     fireEvent.click(screen.getByText("install.slaReview.confirm"));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));

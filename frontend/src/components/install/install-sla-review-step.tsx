@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallBusinessHoursEditor } from "@/components/install/install-business-hours-editor";
 import { InstallPriorityMatrixPreview } from "@/components/install/install-priority-matrix-preview";
@@ -34,28 +34,24 @@ import {
 */
 export function InstallSlaReviewStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<readonly InstallWeekdayRow[] | null>(null);
-  const [calendar, setCalendar] = useState<InstallSlaReviewCalendar | null>(null);
-  const [review, setReview] = useState<InstallSlaReviewOutcome | null>(null);
+  /**
+   * The loaded week is the baseline the operator edits, and it is **derived** from
+   * the load (only an edit or a save writes state). Seeding it in an effect used to
+   * leave the screen for one commit without the week — and the button sitting on
+   * „potvrdi“ would then confirm hours nobody had seen yet.
+   */
+  const [editedRows, setEditedRows] = useState<readonly InstallWeekdayRow[] | null>(null);
+  const [savedCalendar, setSavedCalendar] = useState<InstallSlaReviewCalendar | null>(null);
+  const [savedReview, setSavedReview] = useState<InstallSlaReviewOutcome | null>(null);
   const [errorKey, setErrorKey] = useState<InstallContentErrorKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // The loaded status seeds the week once; after a save the response is the truth.
-  const [isSeeded, setIsSeeded] = useState(false);
   const resource = useInstallStepResource(loadInstallSlaReview);
 
-  useEffect(() => {
-    if (resource.status !== "ready" || isSeeded) {
-      return;
-    }
-    setCalendar(resource.data.calendar);
-    setReview(resource.data.review);
-    setRows(
-      resource.data.calendar === null
-        ? null
-        : toInstallWeekdayRows(resource.data.calendar.weeklyHours),
-    );
-    setIsSeeded(true);
-  }, [isSeeded, resource]);
+  const loadedCalendar = resource.status === "ready" ? resource.data.calendar : null;
+  const calendar = savedCalendar ?? loadedCalendar;
+  const review = savedReview ?? (resource.status === "ready" ? resource.data.review : null);
+  const loadedRows = calendar === null ? null : toInstallWeekdayRows(calendar.weeklyHours);
+  const rows = editedRows ?? loadedRows;
 
   if (resource.status === "loading") {
     return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
@@ -80,9 +76,11 @@ export function InstallSlaReviewStep({ onSaved }: { readonly onSaved?: () => voi
           ? { outcome: "adjusted", weeklyHours: toInstallWeeklyHours(rows) }
           : { outcome: "confirmed" },
       );
-      setReview(result.review);
-      setCalendar(result.calendar);
-      setRows(result.calendar === null ? null : toInstallWeekdayRows(result.calendar.weeklyHours));
+      setSavedReview(result.review);
+      setSavedCalendar(result.calendar);
+      setEditedRows(
+        result.calendar === null ? null : toInstallWeekdayRows(result.calendar.weeklyHours),
+      );
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallContentSaveError(error));
@@ -112,7 +110,11 @@ export function InstallSlaReviewStep({ onSaved }: { readonly onSaved?: () => voi
             {t("install.slaReview.calendar.holidays", { count: calendar.holidays.length })}
           </p>
           {rows === null ? null : (
-            <InstallBusinessHoursEditor rows={rows} isDisabled={isSubmitting} onChange={setRows} />
+            <InstallBusinessHoursEditor
+              rows={rows}
+              isDisabled={isSubmitting}
+              onChange={setEditedRows}
+            />
           )}
           {rows !== null && !hasWorkingDay(rows) ? (
             <p className={errorTextClassName}>{t("install.slaReview.errorHours")}</p>

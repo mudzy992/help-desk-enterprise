@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
@@ -27,30 +27,32 @@ export function InstallPolicyPackStep({ onSaved }: { readonly onSaved?: () => vo
   const [applied, setApplied] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<InstallContentErrorKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // The loaded status seeds the draft exactly once: re-running on every render
-  // would overwrite the pack the operator just applied.
-  const [isSeeded, setIsSeeded] = useState(false);
   const resource = useInstallStepResource(loadInstallPolicyPack);
 
-  useEffect(() => {
-    if (resource.status !== "ready" || isSeeded) {
-      return;
-    }
-    setApplied(resource.data.applied);
-    setSelectedKey(resource.data.packs[0]?.key ?? null);
-    setIsSeeded(true);
-  }, [isSeeded, resource]);
+  /**
+   * The first offered pack is the default, and the loaded answer is the baseline.
+   * Both are **derived from the loaded data**, not seeded into state by an effect:
+   * the form has to be submittable in the same commit it appears. With the effect
+   * a click that arrived before the effect flushed found `selectedKey === null`,
+   * did nothing at all, and the radio sat unchecked until the next render — which
+   * is exactly how a CI run failed with "expected spy to be called with
+   * `PACK_IT_STANDARD`, number of calls: 0". The operator's own choice still wins
+   * over the default, and a pack applied here wins over what the load reported.
+   */
+  const packs = resource.status === "ready" ? resource.data.packs : [];
+  const selected = selectedKey ?? packs[0]?.key ?? null;
+  const appliedPack = applied ?? (resource.status === "ready" ? resource.data.applied : null);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (selectedKey === null) {
+    if (selected === null) {
       return;
     }
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      await applyInstallPolicyPack(selectedKey);
-      setApplied(selectedKey);
+      await applyInstallPolicyPack(selected);
+      setApplied(selected);
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallContentSaveError(error));
@@ -67,7 +69,6 @@ export function InstallPolicyPackStep({ onSaved }: { readonly onSaved?: () => vo
     return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
   }
 
-  const packs = resource.data.packs;
   if (packs.length === 0) {
     return <p className={hintClassName}>{t("install.policyPack.empty")}</p>;
   }
@@ -75,9 +76,9 @@ export function InstallPolicyPackStep({ onSaved }: { readonly onSaved?: () => vo
   return (
     <form className="grid gap-3" onSubmit={onSubmit}>
       <p className="text-sm text-muted-foreground">{t("install.policyPack.body")}</p>
-      {applied !== null ? (
+      {appliedPack !== null ? (
         <p className="text-sm text-muted-foreground">
-          {t("install.policyPack.applied", { key: packName(packs, applied) })}
+          {t("install.policyPack.applied", { key: packName(packs, appliedPack) })}
         </p>
       ) : null}
       <fieldset className="grid gap-2" disabled={isSubmitting}>
@@ -93,7 +94,7 @@ export function InstallPolicyPackStep({ onSaved }: { readonly onSaved?: () => vo
               type="radio"
               name="install-policy-pack"
               value={pack.key}
-              checked={pack.key === selectedKey}
+              checked={pack.key === selected}
               onChange={() => {
                 setSelectedKey(pack.key);
                 setErrorKey(null);

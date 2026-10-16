@@ -50,6 +50,10 @@ describe("InstallPolicyPackStep", () => {
 
     expect(await screen.findByText("IT Standard")).toBeTruthy();
     expect(screen.getByText("Uloge i dozvole za IT service desk")).toBeTruthy();
+    // The default pack is selected in the very commit that renders the form — a
+    // click that arrives before an effect would otherwise submit nothing at all
+    // (the CI failure this spec was extended for: the spy saw zero calls).
+    expect((screen.getAllByRole("radio")[0] as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByText("install.policyPack.submit"));
 
     await waitFor(() => {

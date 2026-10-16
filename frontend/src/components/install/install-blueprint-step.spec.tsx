@@ -99,7 +99,13 @@ describe("InstallBlueprintStep", () => {
 
     render(<InstallBlueprintStep onSaved={onSaved} />);
 
-    fireEvent.click(await screen.findByText("install.blueprint.submit"));
+    const submit = await screen.findByText("install.blueprint.submit");
+    // Preselected in the same commit the form appears, and therefore submittable
+    // straight away: seeding the default in an effect left the radios unchecked
+    // and the button disabled for one commit.
+    expect((screen.getAllByRole("radio")[0] as HTMLInputElement).checked).toBe(true);
+    expect((submit as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(submit);
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(applyInstallBlueprint).toHaveBeenCalledWith({

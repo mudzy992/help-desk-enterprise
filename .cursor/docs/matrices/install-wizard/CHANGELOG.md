@@ -1,5 +1,13 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (koraci: podrazumijevane vrijednosti se izvode, ne "seju" efektom)
+
+- **Flaky pad u CI-ju (`install-policy-pack-step.spec.tsx`, `num of calls: 0`):** korak je podrazumijevani paket upisivao u stanje kroz `useEffect`, pa je jedan commit renderovao formu sa `selectedKey === null`. Klik koji stigne u tom prozoru pogodi handler **committovanog** rendera — onaj koji izlazi odmah — i čarobnjak tiho ne uradi ništa. RTL-ov `act` omotač taj prozor lokalno skriva (ispere pasivne efekte prije tvrdnje), zato je lokalno uvijek bilo zeleno a CI crven.
+- **Ispravka:** podrazumijevane vrijednosti se sada **izvode** iz učitanog odgovora (`selected = selectedKey ?? packs[0]?.key`, `blueprintKey`/`selectedServiceKeys` iz izabranog predloška, sedmica iz `calendar`), pa je prvi commit forme već ispravan i poslušan. Operatorov izbor i dalje ima prednost nad podrazumijevanim, a uspješan upis nad učitanim stanjem. Isti obrazac je uklonjen i iz `install-blueprint-step.tsx` (dugme je bilo `disabled` jedan commit) i iz `install-sla-review-step.tsx` (klik je mogao potvrditi sedmicu koju operator nije vidio).
+- **Regresijski spec** `install-policy-pack-step.early-click.spec.tsx`: namjerno **bez** `act` omotača — čeka DOM mutaciju (mikro-task) i klikne odmah, tačno u poretku koji je CI pogodio. Sa starim kodom pada istom porukom kao CI (`expected spy to be called with [ 'PACK_IT_STANDARD' ], number of calls: 0`), sa novim prolazi; 12 uzastopnih pokretanja stabilno.
+- Dodatno, tri speca sada tvrde invarijantu „forma je upotrebljiva u commitu u kojem se pojavi“: radio je označen odmah (`policy-pack`, `blueprint`), dugme nije `disabled` (`blueprint`), a editor sedmice je na ekranu prije „Potvrdi“ (`sla-review`).
+- Izmjereno: frontend `vitest run` **299 fajlova / 1171 test**, `tsc -b`, `eslint` (0 grešaka), `format:check`, `vite build` i svih 11 guard skripti + 6 `node --test` suita zeleno.
+
 ## 2026-10-16 (F6 — ispravke poslije recenzije CI-ja)
 
 - **Kontrast (§22.1):** dva `text-primary` na **neutralnoj** površini prebačena su na `text-link` — link „Idi na…“ u `setup-checklist-item.tsx` i vodeća ikona kartice u `install-first-steps.tsx`; `text-primary` tako ostaje samo na primary ispuni (indigo na tamnoj površini daje 4.00:1, `text-link` 8.58:1). `scripts/check-theme-contrast.mjs` zelen: 12 paleta × 23 para, 0 prozirnih kombinacija.
