@@ -6,6 +6,7 @@ import {
   readinessRows,
   type WizardStep,
 } from './install-wizard-step-reader';
+import { isPlainSmtpCatcher } from './smtp-catcher';
 
 /*
   F6 — the install wizard, answered through its own UI. Every helper waits for the
@@ -95,9 +96,13 @@ export async function fillSmtp(
   }
   await page.getByLabel(/smtp host/i).fill(smtp.host);
   await page.getByLabel(/smtp port/i).fill(smtp.port);
-  // Local catchers (Mailpit / GreenMail) speak plain SMTP on 3025 — TLS must be off.
+  // Mailpit/GreenMail on loopback/plain ports need TLS off; Gmail (587/465) needs it on.
   const tls = page.getByRole('switch', { name: /tls|starttls/i });
-  if ((await tls.getAttribute('aria-checked')) === 'true') {
+  const tlsOn = (await tls.getAttribute('aria-checked')) === 'true';
+  const plainCatcher = isPlainSmtpCatcher(smtp.host, smtp.port);
+  if (plainCatcher && tlsOn) {
+    await tls.click();
+  } else if (!plainCatcher && !tlsOn) {
     await tls.click();
   }
   await page.getByLabel(/smtp korisnik|smtp username/i).fill(smtp.username);
