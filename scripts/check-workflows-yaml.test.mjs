@@ -93,7 +93,8 @@ test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch",
 
   assert.equal(
     readJobCondition(workflow, "e2e"),
-    "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
+    "!cancelled() && " +
+      "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
       "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
       "( inputs.skip_gates == true || " +
@@ -128,6 +129,18 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
     assert.ok(
       readJob(workflow, gated).includes("inputs.skip_gates != true"),
       `${gated} se mora preskočiti kad je skip_gates uključen`,
+    );
+  }
+  // Stvarna regresija (2026-10-16): dispatch je preskočio backend i frontend, a GitHub je
+  // onda preskočio i oba E2E posla — njihov sopstveni `if` je bio tačan, ali bez status
+  // funkcije zavisnost koja je `skipped` vuče i zavisni posao u `skipped`.
+  for (const [name, condition] of [
+    ["e2e", e2e],
+    ["e2e-install-wizard", wizard],
+  ]) {
+    assert.ok(
+      condition.startsWith("!cancelled() &&"),
+      `${name} mora početi sa !cancelled(): ${condition}`,
     );
   }
   const inputs = workflow.slice(workflow.indexOf("  workflow_dispatch:"), workflow.indexOf("concurrency:"));

@@ -1,5 +1,12 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (`skip_gates` je preskakao i sama E2E posla — `!cancelled()`)
+
+- **Stvarni ishod prvog dispatcha sa `skip_gates`:** `backend` i `frontend` su preskočeni (kako je i zamišljeno), ali su **zajedno s njima preskočeni i oba E2E posla**, pa je run završio sa samo `Docs guard` i zelenim gateom — dispatch sa `install_spec=51` nije pokrenuo nijedan spec. Prethodni zapis („dispatch pokrene E2E odmah“) zato nije bio tačan dok ova ispravka ne prođe.
+- **Uzrok:** posao koji ima `needs:` i čija je zavisnost **preskočena** sam je preskočen, iako mu je sopstveni `if` tačan — GitHub traži status funkciju u uslovu (`always()` ili `!cancelled()`) da bi odustao od implicitnog zahtjeva „svi `needs` su uspjeli“. Uslovi su bili `inputs.skip_gates == true || (needs… == 'success' && …)`, bez ijedne status funkcije.
+- **Ispravka:** oba E2E uslova počinju sa `!cancelled()` (ne `always()`, jer `always()` gasi i otkazivanje runa). Ostalo je nepromijenjeno: `skip_gates=false` i dalje zahtijeva zelene `backend`/`frontend`, a PR/push/schedule ne poznaju `inputs`.
+- **Čuvar:** `check-workflows-yaml.test.mjs` traži da **oba** E2E uslova počinju sa `!cancelled() &&` — uz postojeći par (oba traže `inputs.skip_gates == true`, `backend`/`frontend` se preskaču, input ima `default: true`). **36/36** zeleno.
+
 ## 2026-10-16 (prvi živi prolaz speca 51: dugme „Dalje“ i čuvar kopije)
 
 - **Pad na prvom živom prolazu (CI, `install_spec=51`):** poslije odabranog paketa i popunjenih polja SuperAdmina spec je stajao 180 s na `fillSuperAdmin` — `getByRole('button', { name: … })` nije našao dugme. Uzrok nije proizvod: dugme tog koraka nosi `install.submit` = **„Dalje“**, a pattern je znao `nastavi|continue|sačuvaj|save|kreiraj|create|primijeni|apply|potvrdi|confirm` — bosanski oblik je falio, kompletan prolaz je izgubljen na dugmetu koje je cijelo vrijeme bilo na ekranu. Isto je pogađalo i korake `loginProvider` i `smtp` (`install.<korak>.submit` = „Dalje“).

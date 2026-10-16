@@ -259,7 +259,11 @@ jobs:
     # `needs.*.result == 'success'` keeps a red unit job from being followed by a
     # 15-minute browser run — except on a manual dispatch with `skip_gates` (the
     # default), where the two jobs are skipped on purpose so E2E starts right away.
+    # `!cancelled()` is what makes that work at all: without a status function a job
+    # whose dependency was *skipped* is skipped too, even when its own `if` is true
+    # (the dispatch ran, skipped backend/frontend — and both E2E jobs with them).
     if: >-
+      !cancelled() &&
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
@@ -484,8 +488,10 @@ jobs:
     runs-on: ubuntu-latest
     # The wizard job only ever runs on a human dispatch, so it is the one place where
     # `skip_gates` matters most: the whole point is to walk the wizard now, not after
-    # the two code jobs. Their results still land in the gate summary.
+    # the two code jobs. Their results still land in the gate summary. `!cancelled()`
+    # keeps GitHub from skipping this job just because those two were skipped.
     if: >-
+      !cancelled() &&
       github.event_name == 'workflow_dispatch' &&
       inputs.install_spec != '' &&
       (

@@ -40,7 +40,9 @@ runners (Coolify contract) — and runs in three modes:
 
 A manual dispatch also takes `skip_gates` (**on by default**): the backend and frontend jobs are skipped and
 both E2E jobs start immediately, so a run against a known-good stack does not wait ~15 minutes for the code
-checks. Set `skip_gates=false` when a dispatch should be gated by them — on PRs and the nightly run the gates
+checks. Both E2E conditions begin with `!cancelled()` — a job whose `needs` were *skipped* is skipped too, no
+matter what its own `if` says, unless the condition carries a status function (the first `skip_gates` dispatch
+skipped the wizard job along with the two gates). Set `skip_gates=false` when a dispatch should be gated by them — on PRs and the nightly run the gates
 always apply. The skipped jobs show up as `skipped` in the `CI gate` summary, which still fails on a real
 failure anywhere.
 
