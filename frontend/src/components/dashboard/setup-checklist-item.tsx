@@ -40,7 +40,7 @@ export function SetupChecklistItemRow({ item }: { readonly item: SetupChecklistI
       </div>
       <Link
         to={setupChecklistTarget(item)}
-        className="mt-0.5 flex shrink-0 items-center gap-1 text-[11.5px] font-medium text-primary hover:underline"
+        className="mt-0.5 flex shrink-0 items-center gap-1 text-[11.5px] font-medium text-link hover:underline"
       >
         {t("dashboard.setupChecklist.goTo")}
         <ArrowRight aria-hidden="true" size={12} />
