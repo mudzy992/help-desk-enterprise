@@ -48,7 +48,9 @@ on:
         required: false
         default: ""
       install_spec:
-        description: "Install wizard only: 51 (Minimum) or 52 (Standard); empty = do not run it"
+        description: >-
+          Install wizard only: 51 (Minimum) or 52 (Standard); empty = do not run it. 51 finishes the
+          installation, so reset the database (or reopen the wizard with --include-step-markers) before 52.
         required: false
         default: ""
 
@@ -504,12 +506,32 @@ jobs:
             if (status.isCompleted === true) {
               console.error(
                 "::error title=The wizard is closed::This stack has a finished installation. " +
-                  "Reset the database, or reopen the wizard with INSTALL_ALLOW_RERUN=true and " +
-                  "`npm run cli:install-rerun -- --reason \"...\" --include-step-markers`.",
+                  "Reset the database (drop schema public cascade; create schema public, then " +
+                  "cd backend && npm run db:init), or reopen the wizard with INSTALL_ALLOW_RERUN=true: " +
+                  "`docker exec -i <backend> node dist/src/cli/install-rerun.js --reason \"...\" " +
+                  "--include-step-markers`. " +
+                  "Runbook: ops/runbook/ponovno-pokretanje-instalacije.md.",
               );
               process.exit(1);
             }
-            console.log(`Wizard is open. nextStep=${status.nextStep ?? "?"} profile=${status.profile ?? "null"}`);
+            // Open is not the same as fresh. A reopened installation keeps its
+            // answers (its steps carry markers), so the wizard sits on the
+            // readiness screen and the specs cannot walk it from the package step
+            // — spec 51/52 say the same thing and fail with the same recipe.
+            if (status.nextStep !== "profile") {
+              console.error(
+                `::error title=The wizard is not at its first step::nextStep=${status.nextStep ?? "unknown"}. ` +
+                  "This stack already has its answers. Reset the database (drop schema public cascade; " +
+                  "create schema public, then cd backend && npm run db:init) — the only fully clean " +
+                  "option, because the specs assert the checklist names exactly the deferred steps — " +
+                  "or reopen the wizard with INSTALL_ALLOW_RERUN=true: `docker exec -i <backend> node " +
+                  "dist/src/cli/install-rerun.js --reason \"...\" --include-step-markers` (a plain " +
+                  "reopen leaves the wizard on the readiness screen). Runbook: " +
+                  "ops/runbook/ponovno-pokretanje-instalacije.md.",
+              );
+              process.exit(1);
+            }
+            console.log(`Wizard is open and at its first step. nextStep=${status.nextStep} profile=${status.profile ?? "null"}`);
           ' "$status"
       - run: npx playwright install --with-deps chromium
       - name: Run the wizard spec
@@ -527,7 +549,10 @@ jobs:
         run: |
           spec="${{ inputs.install_spec }}"
           case "$spec" in
-            51) ;;
+            51) echo \
+              "::notice title=Spec 51 finishes the installation::Reset the database (or reopen" \
+              "the wizard with --include-step-markers) before dispatching spec 52; the" \
+              "Preflight rejects a stack whose wizard is not at its first step." ;;
             52) ;;
             *) echo "::error title=Unknown wizard spec::install_spec=$spec (expected 51 or 52)."; exit 1 ;;
           esac

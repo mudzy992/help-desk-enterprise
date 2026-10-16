@@ -18,6 +18,7 @@ import {
   saveAddons,
   saveIdentity,
 } from '../install-wizard/install-wizard-actions';
+import { wizardStartFailure } from '../install-wizard/install-wizard-precondition';
 
 /*
   F6 — the **Standard** package: everything Minimum does, plus SMTP that really
@@ -48,13 +49,18 @@ test.describe('52 install wizard — Standard package', () => {
     );
 
     const api = new ApiClient();
-    const status = await api.requestJson<{ readonly isCompleted: boolean }>('/install/status');
+    const status = await api.requestJson<{ readonly isCompleted: boolean; readonly nextStep?: string | null }>(
+      '/install/status',
+    );
     test.skip(
       status.isCompleted,
       'The stack already has a finished installation. Reset the database, or reopen the ' +
         'wizard with INSTALL_ALLOW_RERUN=true and `npm run cli:install-rerun -- --reason ... ' +
         '--include-step-markers` (ops/runbook/ponovno-pokretanje-instalacije.md).',
     );
+    // See spec 51: an open wizard is not necessarily a fresh one.
+    const startFailure = wizardStartFailure(status);
+    if (startFailure !== null) throw new Error(startFailure);
 
     await openWizard(page, token);
     await choosePackage(page, /standard/i);

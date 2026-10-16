@@ -15,6 +15,7 @@ import {
   saveAddons,
   saveIdentity,
 } from '../install-wizard/install-wizard-actions';
+import { wizardStartFailure } from '../install-wizard/install-wizard-precondition';
 
 /*
   F6 — the **Minimum** package, from the token gate to a real ticket.
@@ -50,6 +51,7 @@ test.describe('51 install wizard — Minimum package', () => {
     const status = await api.requestJson<{
       readonly isCompleted: boolean;
       readonly profile?: string | null;
+      readonly nextStep?: string | null;
     }>('/install/status');
     test.skip(
       status.isCompleted,
@@ -57,6 +59,11 @@ test.describe('51 install wizard — Minimum package', () => {
         'wizard with INSTALL_ALLOW_RERUN=true and `npm run cli:install-rerun -- --reason ... ' +
         '--include-step-markers` (ops/runbook/ponovno-pokretanje-instalacije.md).',
     );
+    // Open is not the same as fresh: a reopened installation keeps its answers, so
+    // the wizard sits on the readiness screen. Failing with the command to fix it
+    // beats the heading mismatch this used to produce (`expectStep(page, 'profile')`).
+    const startFailure = wizardStartFailure(status);
+    if (startFailure !== null) throw new Error(startFailure);
 
     await openWizard(page, token);
     // The cards render in package order (`minimum`, `standard`, `full`), so the

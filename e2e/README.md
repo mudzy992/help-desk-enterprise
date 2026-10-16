@@ -211,8 +211,16 @@ API. That is exactly what these specs prove through the UI, so reusing it would 
 The wizard project's own `globalSetup` only waits for `/health`.
 
 **A clean stack is the precondition.** The specs skip themselves (with the reason) when
-`GET /install/status` reports `isCompleted: true`; to run them against a finished installation, reopen the wizard
-first (ops only):
+`GET /install/status` reports `isCompleted: true`; and *open is not the same as fresh*: `nextStep` has to be
+`profile`, the wizard's first step. A stack whose answers are still stored (a reopen without
+`--include-step-markers`) reports `nextStep: provisioning` — the readiness screen — and cannot be walked from the
+package step, because the answered steps are stored rows. `install-wizard/install-wizard-precondition.ts`
+therefore stops the spec with the recipe below instead of failing 20 s later on a heading mismatch, and the CI
+Preflight rejects the same state before the browser starts. A database reset is the only fully clean option
+(reopening keeps the existing users, and spec 51 asserts the post-install checklist names *exactly* the two
+deferred steps).
+
+To run them against a finished installation, reopen the wizard first (ops only):
 
 ```bash
 docker exec -i <backend> node dist/src/cli/install-rerun.js --reason "E2E install wizard" --include-step-markers
@@ -226,8 +234,10 @@ spec 51 and spec 52 the wizard has to be reopened the same way, because 51 finis
 **In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51` or `52`
 after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e job
 **steps aside** for that dispatch — its global setup would complete the installation the wizard job is about to
-walk — and the wizard job's Preflight fails loudly when `/install/status` reports a finished installation,
-instead of letting the specs skip their way to a green checkmark.
+walk — and the wizard job's Preflight fails loudly when `/install/status` reports a finished installation or a
+`nextStep` other than `profile`, instead of letting the specs skip their way to a green checkmark. Spec 51
+finishes the installation, so a `52` dispatch needs a reset (or a marker-clearing reopen) first; the job prints
+that as a notice.
 
 > The CI side of F6 (a separate job vs. a dispatch input) is still an **owner decision** in
 > `.cursor/plans/install-wizard-v2/07_phase-f6-zavrsetak-testovi.md`; the job above is the „dispatch input“
