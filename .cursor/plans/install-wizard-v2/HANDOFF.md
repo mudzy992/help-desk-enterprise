@@ -290,17 +290,23 @@ a2a42b9 feat(setup-checklist): post-install checklist on the dashboard
 f2f919a test(e2e): install wizard minimum and standard flows
 b19d937 docs(install): v2 user guide and matrix
 ```
-- **Ispravka poslije recenzije (u radnom stablu, čeka commit):**
+- **Ispravke poslije recenzije** (commitovano i pushovano, `b19d937..02007f8`):
 ```
-fix(install): link tones on neutral surfaces and the checklist module's guard imports
+b4f0111 fix(install-ui): link tones on neutral surfaces
+02007f8 fix(setup-checklist): import the guard chain's modules
+```
+- **Treća ispravka iz iste recenzije (traži commit):**
+```
+fix(ci): keep the wizard dispatch pinned in the workflow guard test
 ```
 
 ## Ispravke poslije recenzije (CI, 2026-10-16)
 
-Recenzija je pustila F6 commitove kroz CI i našla dvije stvari; obje su popravljene i **ponovo izmjerene u ovom sandboxu**.
+Recenzija je pustila F6 commitove kroz CI i našla **tri** stvari; sve tri su popravljene, a dvije koje se ovdje daju izmjeriti su **ponovo izmjerene u ovom sandboxu**.
 
 - **Frontend — kontrast (§22.1, `scripts/check-theme-contrast.mjs`):** dva `text-primary` na **neutralnoj** površini (`setup-checklist-item.tsx` link „Idi na…“ i vodeća ikona kartice u `install-first-steps.tsx`) prebačena su na `text-link`. `text-primary` ostaje samo na primary ispuni (2 upotrebe); u tamnom indigo modu `text-primary` na površini daje 4.00:1, a `text-link` 8.58:1. Provjera je sada **zelena**: `12 paleta × 23 para, 0 prozirnih kombinacija — sve unutar praga`.
 - **Backend — DI modula (pad `app.module.spec.ts`):** `SetupChecklistModule` je uvozio samo `SettingsModule`, pa `SessionAuthenticationGuard` nije bio razrješiv (`Nest can't resolve dependencies of the SessionAuthenticationGuard (?, PrincipalContextLoader)`); gardovi iz `@UseGuards(...)` instanciraju se u injektoru modula koji deklariše kontroler. Modul sada uvozi `AuthenticationModule` + `AuthorizationModule`, a komentar u modulu objašnjava zašto (jedinični testovi koji kontroler grade rukom to ne vide — vidi `setup-checklist.controller.spec.ts`, slučaj „imports the modules its guard chain resolves from“).
 - **Novi `setup-checklist.controller.spec.ts` (6 slučajeva, zatvara stavku plana „Kontroler: bez sesije 401, bez `settingsWrite` 403“):** gardovi i metapodaci (`SessionAuthenticationGuard` + `RoleGuard`, `admin`, `settingsWrite`, `matchMode: any`), `@AdminReadOperation()` samo na GET-u, uvezeni moduli, čitanje stavki kroz kontroler, odbijena odjava bez aktera (`403 FORBIDDEN`) i odjava prijavljenog administratora koja **ne** briše stavke.
-- **Izmjereno poslije ispravke (puni prolazi, ovaj sandbox):** backend `npx jest -c /tmp/jest.local.cjs` → **637 prošlo / 5 preskočeno (642 suita), 3320 testova prošlo, 31 preskočen, 0 padajućih** — uključujući `app.module.spec.ts` (2/2) i `modules/setup-checklist` (2 suite / 9 testova); frontend `npx vitest run` → **248 / 1062** zeleno, `npx tsc -b` 0 grešaka, `npm run lint` 0 grešaka (14 postojećih `react-hooks` upozorenja), `format:check` čist; **svih 10 guard skripti** iz frontend CI posla (`check-client-neutral`, `check-env-example`, `check-ticket-id-leaks`, `check-pulse-design-system`, `check-theme-contrast`, `check-a11y-static`, `check-hooks-order`, `check-docs-content`, `check-ticket-list-page-size`, `check-workflows-yaml`) → OK. Backend `npx eslint src/modules/setup-checklist src/app.module.ts` → 0 nalaza.
+- **Test guarda workflowa — uslov običnog E2E-a je bio fiksiran kao string (`scripts/check-workflows-yaml.test.mjs`):** F6 je dodao `(github.event_name == 'workflow_dispatch' && inputs.install_spec == '')` u `if:` E2E posla (da wizard dispatch povuče obični E2E, jer njegov `globalSetup` poziva `ensureInstall` i završi instalaciju koju spec 51/52 hoda), a test je očekivao stari izraz bez tog izuzetka — pa je frontend posao pao na `node --test ../scripts/check-workflows-yaml.test.mjs`. Očekivanje je ažurirano, a isti test sada **pinuje i par**: uslov wizard posla traži `inputs.install_spec != ''`, a obični E2E `inputs.install_spec == ''` — pa promjena jedne strane bez druge pada glasno. Novi test 5/5 → **6/6** (`node --test scripts/check-workflows-yaml.test.mjs`).
+- **Izmjereno poslije ispravke (puni prolazi, ovaj sandbox):** backend `npx jest -c /tmp/jest.local.cjs` → **637 prošlo / 5 preskočeno (642 suita), 3320 testova prošlo, 31 preskočen, 0 padajućih** — uključujući `app.module.spec.ts` (2/2) i `modules/setup-checklist` (2 suite / 9 testova); frontend `npx vitest run` → **248 / 1062** zeleno, `npx tsc -b` 0 grešaka, `npm run lint` 0 grešaka (14 postojećih `react-hooks` upozorenja), `format:check` čist; **svih 10 guard skripti + svih 5 `node --test` testova** iz frontend CI posla (`check-client-neutral`, `check-env-example`, `check-ticket-id-leaks`, `check-pulse-design-system`, `check-theme-contrast`, `check-a11y-static`, `check-hooks-order`, `check-docs-content`, `check-ticket-list-page-size`, `check-workflows-yaml`) → OK, uz njihovi testovi (`check-workflows-yaml` 6/6). Backend `npx eslint src/modules/setup-checklist src/app.module.ts` → 0 nalaza.
 - **Napomena o okruženju:** backend je ovog puta mogao biti izmjeren jer su `node_modules` vraćeni kroz `npm ci`, a `src/generated/prisma` je **lokalni stub** (`enums.ts` parsiran iz `prisma/schema/*.prisma`, `client.ts` samo `PrismaClient` + `Prisma` vrijednosti). `prisma generate` ovdje ne prolazi (nema mreže prema `binaries.prisma.sh`), a `backend/src/generated` je u `.gitignore` — u CI-ju se klijent generiše pravi.
