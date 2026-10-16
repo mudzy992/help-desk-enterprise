@@ -33,7 +33,11 @@ export type InstallStepKey =
   // offered, never required, and every one may be deferred.
   | InstallSectionStepKey
   | 'securityRecommendations'
-  | 'addons';
+  | 'addons'
+  // F6.1: the last screen before the end of the wizard. It owns no marker — the
+  // step is done exactly while the readiness checks are green, so a stale flag
+  // cannot declare an installation ready that is not.
+  | 'provisioning';
 
 export type InstallWizardStepKey = InstallStepKey | 'complete';
 

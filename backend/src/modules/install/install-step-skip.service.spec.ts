@@ -58,7 +58,9 @@ describe('InstallStepSkipService', () => {
     await harness.skipService.skip('addons');
 
     const status = await harness.setupService.getStatus();
-    expect(status.nextStep).toBe('complete');
+    // F6.1: deferred steps are out of the way, so what is left is the readiness
+    // screen before the end of the wizard.
+    expect(status.nextStep).toBe('provisioning');
     expect(status.steps.addons).toEqual({
       completed: false,
       skipped: true,

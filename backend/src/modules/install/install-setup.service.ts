@@ -9,6 +9,7 @@ import { isInstallDatabaseUnavailableError } from './is-install-database-unavail
 import { isInstallSetupComplete } from './is-install-setup-complete';
 import { settingKeys } from '../settings/setting-keys';
 import { readInstallProfile, readInstallStepProgress, toInstallStepStates } from './read-install-step-states';
+import { readInstallSetupSummary } from './read-install-summary';
 import { listInstallStepDefinitions } from './steps/install-step.registry';
 import { resolveInstallNextStep } from './steps/resolve-install-next-step';
 import type { InstallProfile } from './steps/install-step.types';
@@ -41,6 +42,14 @@ export class InstallSetupService {
       nextStep: resolveInstallNextStep({ profile, states }),
       profile,
       steps: states,
+      // F6.2: the final screen reads the summary from the same payload the step
+      // machine comes in — one request per wizard screen, as before.
+      summary: await readInstallSetupSummary({
+        prisma: this.prisma,
+        settingsService: this.settingsService,
+        profile,
+        deferredSteps: listDeferredSteps(states),
+      }),
     };
   }
 
@@ -106,6 +115,13 @@ export function completedStepStates(): InstallStepStatesRecord {
       { completed: true },
     ]),
   ) as InstallStepStatesRecord;
+}
+
+/** F6.2: the steps the operator deferred, in registry order. */
+function listDeferredSteps(states: InstallStepStatesRecord): readonly string[] {
+  return listInstallStepDefinitions()
+    .filter((definition) => states[definition.key]?.skipped === true)
+    .map((definition) => definition.key);
 }
 
 function propagateDatabaseFailure(error: unknown): void {

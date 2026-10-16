@@ -31,7 +31,9 @@ describe('InstallSetupService add-ons step', () => {
     await harness.addonsService.save({ addons: { csat: true } });
 
     const status = await harness.setupService.getStatus();
-    expect(status.nextStep).toBe('complete');
+    // F6.1: the add-ons step no longer hands over to the end of the wizard — the
+    // readiness screen is the last stop, and it is never deferrable.
+    expect(status.nextStep).toBe('provisioning');
     expect(status.steps.addons.completed).toBe(true);
     expect(harness.readStored('private.addons.csat')?.value).toBe(true);
   });

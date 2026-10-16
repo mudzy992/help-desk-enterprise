@@ -101,6 +101,12 @@ export async function readInstallStepProgress(
     },
     slaReview: { completed: slaReviewDone, skipped: skipped.slaReview },
     addons: { completed: addonsSaved, skipped: skipped.addons },
+    // F6.1: the readiness screen owns no marker and is never reported as done
+    // here — it is the wizard's last stop, and the installation being finished is
+    // what ends it (`completedStatus` reports every registry step as done then).
+    // Deriving it from the readiness checks would let the wizard walk straight
+    // past the screen that is supposed to show them.
+    provisioning: { completed: false, skipped: skipped.provisioning },
   } as Record<InstallStepKey, InstallStepProgress>;
   // F5: a section — and the security-recommendations step — is answered when its
   // own save wrote the marker. Nothing is derived from the section's settings: an

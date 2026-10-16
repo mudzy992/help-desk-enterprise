@@ -80,6 +80,19 @@ describe('resolveInstallNextStep', () => {
         'team',
         'addons',
       ]),
+    ).toBe('provisioning');
+    expect(
+      resolve(null, [
+        'profile',
+        'superAdmin',
+        'identity',
+        'loginProvider',
+        'smtp',
+        'seed',
+        'team',
+        'addons',
+        'provisioning',
+      ]),
     ).toBe('complete');
   });
 
@@ -225,9 +238,10 @@ describe('resolveInstallNextStep', () => {
 
   it('falls through to the final screen when everything required is answered', () => {
     expect(resolve('full', stepKeys)).toBe('complete');
-    // The last step of the registry is the add-ons step; deferring it is enough
-    // when everything before it is answered.
-    expect(resolve('full', stepKeys.slice(0, -1), ['addons'])).toBe('complete');
+    // The last step of the registry is the readiness screen (F6.1); it is not
+    // deferrable, so deferring the add-ons step is no longer enough to finish.
+    expect(resolve('full', stepKeys.slice(0, -1), ['addons'])).toBe('provisioning');
+    expect(resolve('full', stepKeys, ['addons'])).toBe('complete');
   });
 });
 

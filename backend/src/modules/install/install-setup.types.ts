@@ -1,3 +1,4 @@
+import type { InstallSetupSummary } from './read-install-summary';
 import type {
   InstallStepKey,
   InstallWizardStepKey,
@@ -36,4 +37,10 @@ export type InstallSetupStatus = {
    */
   readonly profile?: 'minimum' | 'standard' | 'full' | null;
   readonly steps: InstallStepStatesRecord;
+  /**
+   * F6.2: counts and add-ons for the „Sistem je spreman“ screen. Read with the
+   * status, so the final screen needs no second round of requests; a finished
+   * installation does not report one (the gate then answers from a cached read).
+   */
+  readonly summary?: InstallSetupSummary;
 };

@@ -1,3 +1,5 @@
+import type { InstallStepKey } from './steps/install-step.types';
+
 /**
  * Install wizard v2 (F0.7): "ready for tickets" is a definition, not a feeling.
  * Every check from `00_overview.md` §3 (minus `profileSteps`, which needs the
@@ -17,6 +19,27 @@ export const installReadinessCheckKeys = [
   'slaProfile',
   'roles',
 ] as const;
+
+/**
+ * F6.1: which wizard step answers a red check. The provisioning screen offers
+ * „Idi na korak“ from here — the mapping lives next to the checks, so a new check
+ * cannot be added without deciding where its operator goes.
+ *
+ * `roles` has no step on purpose: the system roles are created by the product
+ * itself, so a red `roles` is not something the wizard asks for.
+ */
+export const installReadinessStepKeys: Readonly<
+  Record<InstallReadinessBaseCheckKey, InstallStepKey | null>
+> = {
+  superAdmin: 'superAdmin',
+  authMode: 'loginProvider',
+  organizationalUnit: 'seed',
+  handlerGroup: 'team',
+  service: 'seed',
+  routing: 'seed',
+  slaProfile: 'slaReview',
+  roles: null,
+};
 
 /**
  * F1 adds `profileSteps`, which needs the step registry — the pure function here
@@ -40,6 +63,12 @@ export type InstallReadinessCheck = {
   readonly messageKey: string;
   /** `profileSteps` (F1) lists the steps behind a non-green status. */
   readonly stepKeys?: readonly string[];
+  /**
+   * F6.1: the wizard step where the operator fixes a red check. The provisioning
+   * screen offers „Idi na korak“ only when there is one; `roles` failing is an
+   * installation problem no step can answer, so it stays without a link.
+   */
+  readonly stepKey?: InstallStepKey | null;
 };
 
 export type InstallReadinessResult = {
@@ -137,5 +166,6 @@ function check(
     key,
     status: isSatisfied ? 'ok' : 'missing',
     messageKey: installReadinessMessageKey(key),
+    stepKey: installReadinessStepKeys[key],
   };
 }
