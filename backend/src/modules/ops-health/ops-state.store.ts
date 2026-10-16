@@ -4,6 +4,11 @@ import {
   minuteBucketOf,
   type LoginSecurityMetricEvent,
 } from '../authentication/security/login-security-metrics.service';
+import {
+  mailProviderBlockRedisKey,
+  parseMailProviderBlockState,
+  type MailProviderBlockState,
+} from '../notifications/email/mail-provider-limit-breaker';
 import type { AlertStreak } from './alert-state-machine';
 import type { DlqBaseline } from './evaluate-ops-signals';
 
@@ -18,6 +23,13 @@ export const opsRedisKeys = {
   dlqBaseline: 'ops:baseline:dlq',
   snapshot: 'ops:snapshot',
   watchdogLock: 'ops:watchdog:lock',
+  /**
+   * Canary of the API watchdog: written and read back in the same tick. When the
+   * read-back misses, Redis is dropping keys (eviction policy, a proxy, a wrong
+   * prefix) and *absence* of the worker heartbeat proves nothing — the watchdog
+   * then keeps quiet instead of paging CRITICAL "Worker ne radi".
+   */
+  watchdogCanary: 'ops:watchdog:canary',
   http5xx: (minute: number) => `ops:http:5xx:${minute}`,
   httpTotal: (minute: number) => `ops:http:total:${minute}`,
   eventLoop: (instanceId: string) => `ops:eventloop:${instanceId}`,
@@ -30,6 +42,8 @@ export const opsRedisKeys = {
 } as const;
 
 export const opsSnapshotTtlSeconds = 300;
+/** Long enough to survive a few ticks, short enough to not linger. */
+export const watchdogCanaryTtlSeconds = 900;
 /** 60 min of the 5xx mini-graph plus a margin. */
 export const httpCounterTtlSeconds = 70 * 60;
 /** 60 min of per-minute WebSocket emit counters plus a margin. */
@@ -106,6 +120,25 @@ export class OpsStateStore {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Write-then-read of a key the watchdog owns. `true` = Redis holds what we
+   * just wrote, so a missing heartbeat key really means "no heartbeat".
+   */
+  async verifyKeyRetention(nonce: string): Promise<boolean> {
+    try {
+      await this.redis.set(opsRedisKeys.watchdogCanary, nonce, 'EX', watchdogCanaryTtlSeconds);
+      return (await this.redis.get(opsRedisKeys.watchdogCanary)) === nonce;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Outbound mail paused by the provider breaker; `null` when nothing is set. */
+  async readMailProviderBlock(): Promise<MailProviderBlockState | null> {
+    const raw = await this.redis.get(mailProviderBlockRedisKey);
+    return raw === null ? null : parseMailProviderBlockState(raw);
   }
 
   /** One API instance per minute runs the watchdog. */

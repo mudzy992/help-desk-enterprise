@@ -64,6 +64,8 @@ export class OpsSignalCollector implements OnModuleDestroy {
     ]);
     // Paket 5.4.2 (stavka 4): read apart from the tuples above, for the same reason.
     const auditWebhookPendingSinceMs = database === 'ok' ? await this.auditWebhookPendingSince() : null;
+    // Incident 2026-10-16: outbound mail paused by the provider (daily quota).
+    const mailProviderBlock = redis === 'ok' ? await this.mailProviderBlock() : null;
     return {
       nowMs,
       database,
@@ -81,7 +83,32 @@ export class OpsSignalCollector implements OnModuleDestroy {
       captchaFailedLastHour,
       captchaSkippedLastHour,
       auditWebhookPendingSinceMs,
+      mailProviderBlock,
     };
+  }
+
+  /**
+   * State of `MailProviderLimitBreaker`, written by whichever process hit the
+   * provider limit (API or worker) and read here by the health round. `null`
+   * both when mail flows and when Redis cannot be read — an unknown value never
+   * opens the alarm (`redis.unavailable` covers that case).
+   */
+  private async mailProviderBlock(): Promise<OpsSignals['mailProviderBlock']> {
+    try {
+      const block = await withTimeout(
+        () => this.store.readMailProviderBlock(),
+        opsProbeTimeouts.redisMs,
+      );
+      if (block === null) return null;
+      return {
+        reason: block.reason,
+        openedAtMs: block.openedAtMs,
+        blockedUntilMs: block.blockedUntilMs,
+        suppressedTotal: block.suppressedTotal,
+      };
+    } catch {
+      return null;
+    }
   }
 
   private async websocket(nowMs: number): Promise<Record<string, number> | null> {

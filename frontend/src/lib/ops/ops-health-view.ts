@@ -9,6 +9,9 @@ import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 /** Alarm keys known to this client, as i18n slugs (i18next splits on dots). */
 export const opsAlertSlugs = [
   "worker_down",
+  // Incident 2026-10-16: the provider (Gmail) refused sending, so outbound mail
+  // is paused by the breaker. Without the slug the card printed the raw key.
+  "email_providerBlocked",
   "sla_scan_late",
   "scheduler_late",
   "disk_usage",
@@ -193,6 +196,12 @@ export const alertDetailFieldSlugs = [
   "daysLeft",
   "heartbeatAgeSeconds",
   "snapshotAgeSeconds",
+  // Incident 2026-10-16: absence of a key is reported as its own fact, and the
+  // mail breaker says how long sending is paused and what it held back.
+  "heartbeatMissing",
+  "snapshotMissing",
+  "blockedMinutesLeft",
+  "suppressedTotal",
   "newFailures",
   "integrationDlq",
   "jobs",

@@ -12,6 +12,7 @@ import {
   HardDrive,
   KeyRound,
   Layers,
+  MailWarning,
   RefreshCw,
   Send,
   ServerCrash,
@@ -92,6 +93,7 @@ function knownTestReason(reason: string): KnownTestReason | null {
  */
 const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   worker_down: ServerCrash,
+  email_providerBlocked: MailWarning,
   sla_scan_late: Timer,
   scheduler_late: Clock,
   disk_usage: HardDrive,

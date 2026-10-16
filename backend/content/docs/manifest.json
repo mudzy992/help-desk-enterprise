@@ -2770,6 +2770,11 @@
         },
         {
           "level": 3,
+          "text": "Kad izlazni e-mail stane (limit provajdera)",
+          "id": "kad-izlazni-e-mail-stane-limit-provajdera"
+        },
+        {
+          "level": 3,
           "text": "Gdje se mijenjaju pragovi",
           "id": "gdje-se-mijenjaju-pragovi"
         },
@@ -2794,7 +2799,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1127,
+      "wordCount": 1313,
       "source": "docs/user-guide/alarmi-i-zdravlje-sistema.md",
       "englishTitle": "Alarms and system health"
     },

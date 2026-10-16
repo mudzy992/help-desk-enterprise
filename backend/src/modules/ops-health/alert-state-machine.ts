@@ -16,6 +16,14 @@ export type OpenAlertState = {
 
 export type AlertNotificationKind = 'opened' | 'escalated' | 'reminder' | 'resolved';
 
+/**
+ * Kad nijedan kanal nije isporučio poruku, engine oslobodi brojač i pokušava
+ * ponovo. Bez donje granice to je bio pokušaj **svake minute** (dok provajder
+ * odbija slanje ili dok nema primalaca) — stotine uzaludnih e-mailova dnevno.
+ * Podsjetnik (4 h) je za alarme koji su isporučeni; ovo je za one koji nisu.
+ */
+export const alertNotifyRetryMs = 15 * 60_000;
+
 export type AlertDecision = {
   readonly streak: AlertStreak;
   readonly action: 'none' | 'open' | 'touch' | 'escalate' | 'deescalate' | 'resolve';
@@ -30,6 +38,8 @@ export function decideAlertTransition(input: {
   readonly streak: AlertStreak;
   readonly now: Date;
   readonly reminderMs: number;
+  /** Donja granica ponavljanja prve (neisporučene) poruke. */
+  readonly notifyRetryMs?: number;
 }): AlertDecision {
   const { observation, open, now } = input;
   const definition = opsAlertCatalog[observation.key];
@@ -45,8 +55,15 @@ export function decideAlertTransition(input: {
     if (rise > 0) return { streak, action: 'escalate', notify: 'escalated' };
     const action = rise < 0 ? 'deescalate' : 'touch';
     // Opened while notifications were silenced (or every channel failed): the
-    // first message after that is still the "opened" one.
-    if (open.notifyCount === 0) return { streak, action, notify: 'opened' };
+    // first message after that is still the "opened" one — but not sooner than
+    // `notifyRetryMs` after the last failed attempt.
+    if (open.notifyCount === 0) {
+      const retryMs = input.notifyRetryMs ?? alertNotifyRetryMs;
+      const retryDue =
+        open.lastNotifiedAt === null ||
+        now.getTime() - open.lastNotifiedAt.getTime() >= retryMs;
+      return { streak, action, notify: retryDue ? 'opened' : null };
+    }
     const reminderDue =
       open.status === 'FIRING' &&
       (open.lastNotifiedAt === null || now.getTime() - open.lastNotifiedAt.getTime() >= input.reminderMs);

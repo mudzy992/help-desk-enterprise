@@ -4,6 +4,7 @@ import { SettingsService } from '../../settings/settings.service';
 import { composeDigestEmail, type DigestTicketFacts } from '../email/compose-digest-email';
 import { resolveEmailLocale } from '../email/compose-ticket-email';
 import { deliverNotificationEmail } from '../email/deliver-notification-email';
+import { getMailProviderLimitBreaker } from '../email/mail-provider-limit-breaker';
 import { isAllowedNotificationEmailAddress } from '../email/is-allowed-notification-email-address';
 import {
   loadEmailChannelConfiguration,
@@ -44,6 +45,9 @@ type Recipient = {
   readonly isActive: boolean;
 };
 
+/** Jedna log linija po satu dok je prekidač otvoren (prolaz je svakih 5 minuta). */
+const providerBlockLogIntervalMs = 60 * 60_000;
+
 /**
  * Paket 2.2 (§5): sends due digests and quiet-hours summaries. BullMQ hands a
  * scheduled job to one worker; the `NotificationEmailDelivery` claim keyed by
@@ -52,6 +56,7 @@ type Recipient = {
 @Injectable()
 export class NotificationDigestService {
   private readonly logger = new Logger(NotificationDigestService.name);
+  private lastProviderBlockLogAt = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -63,6 +68,16 @@ export class NotificationDigestService {
     const configuration = await loadEmailChannelConfiguration(this.settingsService);
     if (!configuration.deliveryEnabled || configuration.smtp === null) {
       // Items stay; the daily retention drops them after 7 days.
+      return emptyResult;
+    }
+    // Provajder je odbio slanje (npr. Gmail dnevni limit): stavke ostaju na
+    // čekanju, ali se prolaz preskače. Bez toga bi se svakih 5 minuta pokušavalo
+    // isto slanje — stotine uzaludnih pokušaja dnevno po korisniku.
+    const block = await getMailProviderLimitBreaker()
+      .active()
+      .catch(() => null);
+    if (block !== null) {
+      this.logProviderBlock(block.reason, block.blockedUntilMs);
       return emptyResult;
     }
     const policy = await loadNotificationPreferencePolicy(this.settingsService);
@@ -109,6 +124,15 @@ export class NotificationDigestService {
       }
     }
     return { usersWithItems: userIds.length, emailsSent, itemsDelivered, itemsDropped, failures };
+  }
+
+  private logProviderBlock(reason: string, blockedUntilMs: number): void {
+    const nowMs = Date.now();
+    if (nowMs - this.lastProviderBlockLogAt < providerBlockLogIntervalMs) return;
+    this.lastProviderBlockLogAt = nowMs;
+    this.logger.warn(
+      `notification_digest_skipped reason=mail_provider_${reason} until=${new Date(blockedUntilMs).toISOString()}`,
+    );
   }
 
   /** One grouped query: oldest held item per user and reason. */

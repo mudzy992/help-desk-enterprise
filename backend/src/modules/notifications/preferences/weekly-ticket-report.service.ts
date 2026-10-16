@@ -10,6 +10,7 @@ import { resolveEmailLocale } from '../email/compose-ticket-email';
 import { composeWeeklyTicketReportEmail } from '../email/compose-weekly-ticket-report-email';
 import { deliverNotificationEmail } from '../email/deliver-notification-email';
 import { isAllowedNotificationEmailAddress } from '../email/is-allowed-notification-email-address';
+import { getMailProviderLimitBreaker } from '../email/mail-provider-limit-breaker';
 import {
   loadEmailChannelConfiguration,
   type EmailChannelConfiguration,
@@ -116,6 +117,9 @@ export class WeeklyTicketReportService {
     if (!configuration.enabled) return empty;
     const channel = await loadEmailChannelConfiguration(this.settingsService);
     if (!channel.deliveryEnabled || channel.smtp === null) return empty;
+    // Dok je provajder odbio slanje (dnevni limit), izvještaj čeka: bez ove
+    // provjere svaki prolaz (5 min) pokušava isto slanje do isteka prozora.
+    if ((await getMailProviderLimitBreaker().active().catch(() => null)) !== null) return empty;
     const slot = weeklyReportSlot(now, configuration.timeZone, configuration.dayOfWeek, configuration.minute);
     if (now.getTime() - slot.getTime() > lateSendWindowMs) return empty;
     const policy = await loadNotificationPreferencePolicy(this.settingsService);

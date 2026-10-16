@@ -7,6 +7,42 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-16 — Lažni alarm „Worker ne radi" i zaustavljen izlazni e-mail (incident)
+
+**Razlog (incident 2026-10-16):** na svježoj instalaciji administrator je dobio KRITIČNO *„Worker ne radi"*
+(aktivno 10 s, 1 obavještenje, prag 120 s) dok je worker bio zdrav, a izlazna pošta je padala s
+`Data command failed: 550-5.4.5 Daily user sending limit exceeded`. Tri uzroka u kodu: (a) TTL heartbeat
+ključa bio je **90 s**, kraći od praga alarma **120 s**, pa je mrtav worker ostavljao *prazan* Redis, a
+„nema ključa" je isto što i hladan start, evikcija ili neuspjelo čitanje — watchdog je to tretirao kao
+smrt workera; (b) engine je svake minute ponovo najavljivao otvoreni alarm kad isporuka nije uspjela
+(stotine mailova dnevno dok je kvota trajala); (c) izlazni e-mail je bez prestanka pokušavao ponovo iako
+je provajder jasno odbio kvotu.
+
+**Dodato:** alarm `email.providerBlocked` (slug `email_providerBlocked`, runbook sidro
+`email-provider-blocked`, UPOZORENJE → KRITIČNO nakon 4 h) sa sekcijom u `ops/runbook/ALERTS.md` i redom u
+tabeli alarma. Pododjeljak „Kad izlazni e-mail stane (limit provajdera)" u
+`docs/user-guide/alarmi-i-zdravlje-sistema.md` (bs/en) — šta pauza znači za korisnika, da se poruke ne gube
+i da ručno ponavljanje produžava pauzu. Novi detalji alarma (`heartbeatMissing`, `snapshotMissing`,
+`blockedMinutesLeft`, `suppressedTotal`) imaju oznake u bs/en (`ops-alert-presentation.ts` i
+`frontend/src/i18n/locales/*/common.json`). Ogledalo `backend/content/docs/` regenerisano.
+
+**Izmijenjeno:** `ops/runbook/ALERTS.md#worker-down` — umjesto savjeta za „lažni alarm" sad pišu pravila koja
+stvarno važe: izostanak ključa je dokaz samo uz kanarinac (`ops:watchdog:canary`), 5 min grejs perioda i
+nedostatak svježeg snapshota; TTL heartbeat-a je 1 h (duži od praga) da bi pravi pad izgledao kao *star*
+zapis. Uklonjen zahtjev `maxmemory-policy noeviction` — protivrječio je istom dokumentu
+(`redis-unavailable`: „ne mijenjati, volatile-lru") i `ops/uputstvo-verifikacije.md`; politika ostaje
+`volatile-lru`, a evikciju prepoznaje kanarinac. Dopunjeni `#redis-unavailable` i `#ops-monitor-stale`.
+`ops/runbook/redis-down.md` — ispravljena tvrdnja da izostanak heartbeat-a daje status „stale (ne „down")":
+kad se ključ ne može pročitati, kartica prikazuje **„unknown"**, ukupno stanje je „down" zbog Redis
+komponente, a `worker.down` se ne otvara. `docs/user-guide/alarmi-i-zdravlje-sistema.md` (bs/en), korak 2 —
+nije tačno da *Worker ne radi* otvara nakon jedne provjere (`openAfter` je 2); navedeni su alarmi koji
+zaista otvaraju nakon jedne provjere (*SLA provjera kasni*, *Neuspjeli poslovi u redu (DLQ)*, *Izlazni
+e-mail je zaustavljen*).
+
+**Ostaje otvoreno:** posmatranje `email.providerBlocked` na živom okruženju (prag od 4 h do KRITIČNO nije
+kalibriran mjerenjem). Broj `suppressedTotal` u detaljima je približan — broji se po procesu i spaja se
+`max`-om, što je i zapisano u „Poznata ograničenja" korisničke stranice.
+
 ## 2026-10-13 — Korisničke stranice za administratore: alarmi, CAPTCHA i webhook izvoz (5.4.2)
 
 **Dodato:** tri stranice u `docs/user-guide/` (dio `administrator`, bs) sa engleskim prijevodima u

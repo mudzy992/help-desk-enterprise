@@ -985,6 +985,10 @@
           "title": "Worker is down",
           "action": "Check the worker container (logs, restart). While it is down SLA, e-mail and scheduled jobs stop."
         },
+        "email_providerBlocked": {
+          "title": "Outbound e-mail is paused (provider limit)",
+          "action": "The provider (e.g. Gmail) refuses sending because its quota is used up. The application stops retrying until the quota passes and queued mail waits. Check the account daily limit, the recipient count and whether a second SMTP account is needed."
+        },
         "sla_scan_late": {
           "title": "SLA scan is late",
           "action": "SLA warnings and escalations are not sent. Check the worker and the sla-scan queue."
@@ -1065,6 +1069,10 @@
         "daysLeft": "Days until expiry",
         "heartbeatAgeSeconds": "Seconds since last heartbeat",
         "snapshotAgeSeconds": "Seconds since last check",
+        "heartbeatMissing": "Heartbeat key could not be read",
+        "snapshotMissing": "Health snapshot key could not be read",
+        "blockedMinutesLeft": "Minutes until sending resumes",
+        "suppressedTotal": "Suppressed sends",
         "newFailures": "New failed jobs",
         "integrationDlq": "Integrations in DLQ",
         "jobs": "Late jobs",

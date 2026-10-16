@@ -994,6 +994,10 @@
           "title": "Worker ne radi",
           "action": "Provjerite kontejner workera (logovi, restart). Dok ne radi, SLA, e-mail i zakazani poslovi stoje."
         },
+        "email_providerBlocked": {
+          "title": "Izlazni e-mail je zaustavljen (limit provajdera)",
+          "action": "Provajder (npr. Gmail) odbija slanje jer je kvota potrošena. Aplikacija ne pokušava ponovo dok kvota ne prođe, a poruke čekaju u redu. Provjerite dnevni limit naloga, broj primalaca i da li treba drugi SMTP nalog."
+        },
         "sla_scan_late": {
           "title": "SLA provjera kasni",
           "action": "SLA upozorenja i eskalacije se ne šalju. Provjerite worker i red sla-scan."
@@ -1074,6 +1078,10 @@
         "daysLeft": "Dana do isteka",
         "heartbeatAgeSeconds": "Sekundi od zadnjeg signala",
         "snapshotAgeSeconds": "Sekundi od zadnje provjere",
+        "heartbeatMissing": "Ključ heartbeat nije pročitan",
+        "snapshotMissing": "Ključ provjere zdravlja nije pročitan",
+        "blockedMinutesLeft": "Minuta do nastavka slanja",
+        "suppressedTotal": "Zaustavljenih slanja",
         "newFailures": "Novih neuspjelih poslova",
         "integrationDlq": "Integracije u DLQ",
         "jobs": "Zakasnjeli poslovi",

@@ -3,6 +3,7 @@ import { deliverNotificationEmail } from '../email/deliver-notification-email';
 import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
 import { loadNotificationPreferencePolicy } from './notification-preference-policy';
 import { NotificationDigestService } from './notification-digest.service';
+import { setMailProviderLimitBreaker } from '../email/mail-provider-limit-breaker';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -206,6 +207,52 @@ describe('NotificationDigestService (M13)', () => {
     });
     expect(deliverNotificationEmail).not.toHaveBeenCalled();
     expect(composeDigestEmail).not.toHaveBeenCalled();
+  });
+
+  /*
+    Incident 2026-10-16: dok provajder odbija slanje (Gmail dnevni limit), svaki
+    prolaz od 5 minuta pokušavao je isto slanje — stotine uzaludnih pokušaja
+    dnevno po korisniku, a svaki je produžavao blokadu naloga. Stavke moraju
+    ostati na čekanju i čekati kraj blokade.
+  */
+  it('preskače prolaz dok je izlazni e-mail zaustavljen, a stavke ostaju', async () => {
+    setMailProviderLimitBreaker({
+      active: async () => ({
+        reason: 'dailyLimit',
+        openedAtMs: Date.parse('2026-10-05T07:00:00.000Z'),
+        blockedUntilMs: Date.parse('2026-10-05T09:00:00.000Z'),
+        suppressedTotal: 3,
+        consecutiveBlocks: 1,
+      }),
+    } as never);
+    try {
+      const { service } = createService({
+        items: [
+          {
+            id: 'item-1',
+            userId: 'user-1',
+            reason: 'DIGEST',
+            ticketId: 'ticket-1',
+            category: 'ticket.created',
+            createdAt: new Date('2026-10-05T05:00:00.000Z'),
+          },
+        ],
+      });
+
+      await expect(
+        service.runDue(new Date('2026-10-05T08:00:00.000Z')),
+      ).resolves.toEqual({
+        usersWithItems: 0,
+        emailsSent: 0,
+        itemsDelivered: 0,
+        itemsDropped: 0,
+        failures: 0,
+      });
+      expect(deliverNotificationEmail).not.toHaveBeenCalled();
+      expect(composeDigestEmail).not.toHaveBeenCalled();
+    } finally {
+      setMailProviderLimitBreaker(null);
+    }
   });
 
   it('sends a due digest and consumes the items', async () => {

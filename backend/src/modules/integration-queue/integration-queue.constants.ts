@@ -14,8 +14,17 @@ export const workerHeartbeatRedisKey = 'integration-queue:worker-heartbeat';
 export const workerHeartbeatIntervalMilliseconds = 10_000;
 export const workerHeartbeatStaleThresholdMilliseconds =
   workerHeartbeatIntervalMilliseconds * 2;
-/** Must exceed stale threshold gaps if BullMQ ticks slip; avoids transient missing keys. */
-export const workerHeartbeatTimeToLiveSeconds = 90;
+/**
+ * The key MUST outlive the staleness threshold (120 s), otherwise a dead worker
+ * leaves *no* value instead of an *old* one — and "no value" is exactly what an
+ * evicted key, a cold start and a failed read also look like.
+ *
+ * Incident 2026-10-16: the TTL was 90 s, so `worker.down` could only ever fire
+ * on a missing key. A freshly installed stack therefore paged CRITICAL
+ * "Worker ne radi" while the worker was healthy. With an hour of TTL the
+ * watchdog sees the last timestamp and can tell the two cases apart.
+ */
+export const workerHeartbeatTimeToLiveSeconds = 3_600;
 
 export const integrationQueueTypeTokens = {
   email: 'email',

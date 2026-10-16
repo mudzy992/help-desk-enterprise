@@ -11,6 +11,16 @@ import { WatchdogRedisProbe } from './watchdog-redis-probe';
 export const watchdogIntervalMs = 60_000;
 /** Snapshot older than this (worker alive) means the health loop is stuck. */
 export const monitorStaleSeconds = 180;
+/**
+ * Cold-start grace. Right after the API boots the worker may still be starting
+ * (image pull, `prisma migrate deploy`, a rolling deploy), so *nothing in Redis
+ * yet* is not proof that it is down. A heartbeat that exists and is old is not
+ * affected by this: that pages immediately, as before.
+ *
+ * Incident 2026-10-16: a freshly installed stack paged CRITICAL "Worker ne radi"
+ * two minutes after boot, with `heartbeatAgeSeconds: null` — absence, not age.
+ */
+export const workerAbsenceGraceMs = 5 * 60_000;
 
 /**
  * Paket 2.7 (§5.2): a dead worker cannot report itself, so the API checks its
@@ -23,6 +33,7 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
   private readonly logger = new Logger('OpsWatchdog');
   private readonly probe: WatchdogRedisProbe;
   private readonly instanceId = randomUUID();
+  private readonly startedAtMs = Date.now();
   private timer: NodeJS.Timeout | null = null;
   private running = false;
 
@@ -73,23 +84,42 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       const configuration = databaseAvailable
         ? await this.configurationLoader.load().catch(() => fallbackOpsConfiguration)
         : fallbackOpsConfiguration;
-      const [heartbeat, snapshot] = await Promise.all([
+      const [heartbeat, snapshot, redisHoldsKeys] = await Promise.all([
         this.probe.readHeartbeat(),
         this.probe.readSnapshot(),
+        this.probe.verifyKeyRetention(randomUUID()),
       ]);
+      // Absence of a key is proof only when Redis demonstrably keeps what we
+      // write and the worker had time to start. Otherwise the watchdog stays
+      // quiet and says why — a false CRITICAL costs more than a late one.
+      const pastGrace = now.getTime() >= this.startedAtMs + workerAbsenceGraceMs;
+      const absenceIsEvidence = redisHoldsKeys && pastGrace;
+      if (!redisHoldsKeys) {
+        this.logger.error(
+          'ops_watchdog_redis_unreliable reason=canary_read_back_missed — absence of the worker heartbeat is not treated as proof',
+        );
+      }
       if (heartbeat === null) {
-        this.logger.warn('ops_watchdog_heartbeat_missing after dedicated redis retries');
+        const snapshotAgeSeconds = snapshotAge(snapshot?.generatedAt ?? null, now.getTime());
+        this.logger.warn(
+          `ops_watchdog_heartbeat_missing redis_holds_keys=${redisHoldsKeys} past_grace=${pastGrace} ` +
+            `snapshot_age_s=${snapshotAgeSeconds ?? 'none'} absence_is_evidence=${absenceIsEvidence}`,
+        );
       }
       const workerObservation = observeWorkerHeartbeat({
         lastHeartbeatAt: heartbeat,
         nowMs: now.getTime(),
         staleSeconds: configuration.thresholds.workerHeartbeatStaleSeconds,
+        snapshotGeneratedAt: snapshot?.generatedAt ?? null,
+        snapshotStaleSeconds: monitorStaleSeconds,
+        absenceIsEvidence,
       });
       const monitorObservation = observeMonitorFreshness({
         workerAlive: !workerObservation.active,
         snapshotGeneratedAt: snapshot?.generatedAt ?? null,
         nowMs: now.getTime(),
         staleSeconds: monitorStaleSeconds,
+        absenceIsEvidence,
       });
       await this.engine.apply([workerObservation, monitorObservation], {
         configuration,
@@ -108,4 +138,10 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       this.running = false;
     }
   }
+}
+
+function snapshotAge(generatedAt: string | null, nowMs: number): number | null {
+  if (generatedAt === null) return null;
+  const at = Date.parse(generatedAt);
+  return Number.isNaN(at) ? null : Math.max(0, Math.round((nowMs - at) / 1000));
 }

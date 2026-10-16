@@ -29,6 +29,7 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | Ključ | Težina | Otvara / zatvara | Sidro |
 | --- | --- | --- | --- |
 | `worker.down` | KRITIČNO | 2 / 2 | [worker-down](#worker-down) |
+| `email.providerBlocked` | UPOZORENJE / KRITIČNO | 1 / 1 | [email-provider-blocked](#email-provider-blocked) |
 | `sla.scan.late` | KRITIČNO | 1 / 2 | [sla-scan-late](#sla-scan-late) |
 | `scheduler.late` | UPOZORENJE | 2 / 2 | [scheduler-late](#scheduler-late) |
 | `disk.usage` | UPOZORENJE / KRITIČNO | 2 / 2 | [disk-usage](#disk-usage) |
@@ -50,26 +51,86 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 
 ## worker-down
 
-**Uslov:** heartbeat workera u Redisu (`integration-queue:worker-heartbeat`, osvježava se svakih 10 s)
-stariji je od `private.ops.thresholds.workerHeartbeatStaleSeconds` (zadano 120 s).
+**Uslov:** heartbeat workera u Redisu (`integration-queue:worker-heartbeat`, osvježava se svakih 10 s,
+TTL 1 h) stariji je od `private.ops.thresholds.workerHeartbeatStaleSeconds` (zadano 120 s).
 Pošto worker tada ne može sam javiti da ne radi, ovaj alarm otvara **watchdog u backendu (API)**
 (odvojena Redis konekcija, da dijeljeni Nest klijent ne daje lažni `null`).
 
 **Posljedica:** SLA provjere, e-mail (ulaz i izlaz), zakazani izvještaji i retencija stoje.
 
-**Lažni alarm (heartbeatAgeSeconds: null, a `worker-health.js` je ok):**
-1. U detaljima alarma `null` znači „kluč nije pročitan“, ne „star >120 s“.
-2. Provjeri: `docker exec "$WORKER" node dist/src/cli/worker-health.js` → `exit=0`.
-3. Redis: `maxmemory-policy` mora biti **`noeviction`** (ne `volatile-lru`).
-4. Hitno: Coolify backend env `OPS_WATCHDOG_DISABLED=true` + restart (gasi samo worker.down watchdog).
-5. **Utišaj** na kartici zaustavlja obavještenja samo ako API može pročitati `ops:silence`;
-   ako i dalje stižu mailovi uz utišavanje, redeploy backend s fixom silence fail-closed.
+**Detalji alarma:** `heartbeatAgeSeconds` = koliko je zapis star (pravi pad workera);
+`heartbeatMissing: true` = ključa uopšte nema u Redisu (slučaj ispod).
+
+**Kad ključa nema (`heartbeatMissing: true`):** izostanak ključa nije dokaz da worker ne radi —
+isto izgleda i hladan start, evikcija ključeva i neuspjelo čitanje. Watchdog zato otvara alarm samo
+ako je ispunjeno **sve** od:
+
+1. Redis vraća ono što je watchdog upravo upisao (kanarinac `ops:watchdog:canary`, TTL 15 min);
+2. API proces radi duže od 5 min (`workerAbsenceGraceMs` — hladan start, pull slike, rolling deploy);
+3. worker nije nedavno upisao snapshot provjere zdravlja (`ops:snapshot`, prag 3 min) — svjež
+   snapshot znači da je worker živ, a da je palo samo čitanje heartbeat-a.
+
+Ako bilo šta od toga ne stoji, alarm se **ne otvara**, a backend logira zašto:
+`ops_watchdog_heartbeat_missing redis_holds_keys=… past_grace=… snapshot_age_s=…`, odnosno
+`ops_watchdog_redis_unreliable reason=canary_read_back_missed` kad kanarinac ne prođe.
+
+> TTL heartbeat ključa (1 h) namjerno je **duži** od praga alarma (120 s): mrtav worker tada ostavlja
+> *star* zapis, a ne prazan Redis. Ranije je TTL bio 90 s, pa je `worker.down` mogao da se otvori samo
+> na izostanak ključa — a tako izgleda i svježa instalacija.
 
 **Postupak (stvarni pad workera):**
 1. `docker ps -a | grep worker-` provjeri status (restarting, exited, unhealthy).
 2. `docker logs --tail 200 "$WORKER"` pokaže zadnju grešku (najčešće Redis ACL/lozinka, migracija, OOM).
 3. Coolify → servis → **Restart**. Ako su mijenjane env varijable: **Redeploy**.
 4. Nakon starta, `worker-health.js` treba vratiti `exit=0` u roku od 30 s.
+
+**Provjera za 30 s (kad sumnjaš da je alarm lažan):**
+
+```bash
+docker exec "$WORKER" node dist/src/cli/worker-health.js; echo "exit=$?"  # exit=0 → worker je živ
+docker logs --since 15m "$BACKEND" 2>&1 | grep ops_watchdog | tail -20    # zašto watchdog (ne) otvara
+```
+
+Evikciju ključeva **ne** rješavaj promjenom `maxmemory-policy` (ostaje `volatile-lru`, vidi
+[redis-unavailable](#redis-unavailable)) — kanarinac je tu da je prepozna i da tada ne diže uzbunu.
+
+**Hitno:** Coolify backend env `OPS_WATCHDOG_DISABLED=true` + restart (gasi watchdog provjere
+`worker.down` i `ops.monitor.stale`, ostali alarmi rade i dalje). **Utišaj** na kartici zaustavlja
+obavještenja samo ako API može pročitati `ops:silence`; ako i dalje stižu mailovi uz utišavanje,
+redeploy backend s fixom silence fail-closed.
+
+## email-provider-blocked
+
+**Uslov:** SMTP provajder je odbio slanje zbog svoje kvote — najčešće Gmail
+`550-5.4.5 Daily user sending limit exceeded` ili Office 365 throttling
+(`421 4.7.0 … too many connections`). `MailProviderLimitBreaker` tada **zaustavi izlazni e-mail**
+u cijelom procesu: dnevni limit 60 min (svako novo odbijanje duplira, do 6 h), throttling 5 min
+(do 60 min). Alarm otvara watchdog u API-ju iz Redis ključa `mail:provider:block`;
+zatvara se čim provajder prihvati prvu poruku.
+
+**Težina:** UPOZORENJE dok čeka; **KRITIČNO** nakon 4 h bez prihvaćene poruke
+(`mailProviderBlockCriticalAfterMinutes`) — tad je jasno da kvota nije samo dnevni šiljak.
+
+**Detalji alarma:** `blockedMinutesLeft` = minuta do sljedećeg pokušaja, `suppressedTotal` = koliko
+slanja je zaustavljeno od otvaranja (približno, broji se po procesu).
+
+**Posljedica:** notifikacije, digesti i sedmični izvještaji **ne idu** dok blokada traje, ali se ne
+gube: poslovi ostaju u redu i čekaju, a prijemnik koji stvarno ne postoji (`550 5.1.1`) odmah ide u
+DLQ umjesto da troši pokušaje. Zato **nemoj** ručno gurati iste poruke — svaki pokušaj resetuje
+brojač i produžava blokadu.
+
+**Postupak:**
+1. Provjeri šta je provajder rekao: `docker logs --since 1h "$WORKER" 2>&1 | grep -E 'mail_provider|EPROVIDERBLOCKED' | tail -30`.
+2. Gmail: dnevni limit je po **SMTP nalogu** (Workspace ~2 000 primalaca/dan, `@gmail.com` ~500).
+   Ako je instalacija veća od toga, potreban je drugi nalog ili pravi mail servis (SES/Postmark/SMTP
+   provajdera) u `MAIL_*` postavkama.
+3. Smanji ventilatore: broj primalaca po događaju (`ops/sql/measure-notification-fan-out.sql` pokazuje
+   najveće), digest umjesto pojedinačnih mailova, isključi kanale koji nisu potrebni.
+4. Kad kvota prođe (ili se pređe na drugi nalog), blok se čisti sam; ručno:
+   `redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" DEL servicedesk:mail:provider:block`
+   (prefiks je `REDIS_KEY_PREFIX`). Sljedeće uspješno slanje zatvara i alarm.
+5. Ako blokada traje duže od očekivanog, provjeri da li i **rezervni kanal** za alarme
+   (`OPS_ALERT_SMTP_URL`) pokazuje na isti nalog — tada ni obavještenja o alarmima ne izlaze.
 
 ## sla-scan-late
 
@@ -141,7 +202,10 @@ jer redovni kanal čita primaoce iz baze. Stanje se bilježi u historiju kad baz
 
 **Uslov:** Redis ne odgovara na dvije uzastopne provjere. Obavještenje ide preko rezervnog kanala.
 
-**Postupak:** [redis-down.md](redis-down.md). Ne mijenjati `maxmemory-policy` (volatile-lru).
+**Postupak:** [redis-down.md](redis-down.md). `maxmemory-policy` se **ne mijenja** (ostaje
+`volatile-lru`): ključevi s TTL-om (heartbeat, snapshot, kanarinac) smiju biti izbačeni pod pritiskom
+memorije. To nije razlog za `worker.down` — watchdog kanarincem provjerava da li Redis vraća upisano
+i bez toga ne tretira izostanak ključa kao dokaz (vidi [worker-down](#worker-down)).
 
 ## api-eventloop-lag
 
@@ -279,6 +343,9 @@ briše i alarm se zatvara.
 
 **Uslov:** worker je živ, ali posljednji snapshot provjere zdravlja je stariji od 3 minute.
 Alarm otvara watchdog u API-ju, jer se bez snapshota nijedan drugi alarm ne može otvoriti.
+Kad snapshot ključa **nema** (`snapshotMissing: true` u detaljima), važe isti uslovi kao za
+[worker-down](#worker-down): kanarinac, 5 min grejs perioda i dokaz da worker nije živ. Bez toga se
+alarm ne otvara, jer izostanak ključa može biti i hladan start ili evikcija.
 
 **Postupak:** red `ops-health` u kartici (failed/active), zatim logovi workera `grep ops_health`.
 Restart workera ponovo registruje ponavljajući posao.

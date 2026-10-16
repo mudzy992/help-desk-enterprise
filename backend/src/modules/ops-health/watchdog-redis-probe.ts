@@ -51,6 +51,15 @@ export class WatchdogRedisProbe {
     });
   }
 
+  /**
+   * Can Redis be trusted about *absence*? Writes a key and reads it back in the
+   * same tick; a miss means eviction/prefix/proxy trouble, not a dead worker.
+   */
+  async verifyKeyRetention(nonce: string): Promise<boolean> {
+    if (this.store === null) return false;
+    return this.store.verifyKeyRetention(nonce);
+  }
+
   async readSnapshot(): Promise<Pick<OpsSnapshot, 'generatedAt'> | null> {
     return (await this.store?.readSnapshot<Pick<OpsSnapshot, 'generatedAt'>>()) ?? null;
   }
