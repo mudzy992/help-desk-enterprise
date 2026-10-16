@@ -2,5 +2,8 @@ node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
+# F6: the install-wizard project writes its traces and report next to its config.
+/install-wizard/test-results/
+/install-wizard/playwright-report/
 .env
 /.auth/
