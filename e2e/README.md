@@ -205,6 +205,9 @@ npx playwright test -c install-wizard/playwright.install.config.ts tests/51-inst
 npx playwright test -c install-wizard/playwright.install.config.ts tests/52-install-wizard-standard.spec.ts
 ```
 
+- Button labels are copy, not a contract: `install-wizard-submit.ts` matches the step's submit by name and, when the
+  name does not resolve, clicks the step form's own `button[type="submit"]` (15 s budget). `install-wizard-e2e-copy.spec.ts`
+  in the frontend suite pins that the bs/en copy still matches those patterns.
 - **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
   ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
   deferred on purpose, which is also what the post-install checklist must then list.
@@ -250,6 +253,10 @@ docker exec -i <backend> node dist/src/cli/install-rerun.js --reason "E2E instal
 state lives in real rows stay answered and the specs walk past them (that is what `reachStep` handles). Between
 spec 51 and spec 52 the wizard has to be reopened the same way, because 51 finishes the installation. Runbook:
 `ops/runbook/ponovno-pokretanje-instalacije.md`.
+
+Every attempt that answers at least one step leaves that answer behind — choosing a package is enough — so the
+next attempt against the same stack needs the reset again: the marker-clearing reopen cannot bring back the
+rows a step already created.
 
 **In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51` or `52`
 after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e job

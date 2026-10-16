@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { clickStepSubmit } from './install-wizard-submit';
 import {
   expectStep,
   reachStep,
@@ -12,9 +13,6 @@ import {
   (`reachStep`), so one spec runs against an empty database and a reopened
   installation alike — pressing only buttons an operator presses.
 */
-
-const submitPattern =
-  /nastavi|continue|sačuvaj|save|kreiraj|create|primijeni|apply|potvrdi|confirm/i;
 
 /** Opens `/install` and answers the token gate. */
 export async function openWizard(page: Page, token: string): Promise<void> {
@@ -48,7 +46,7 @@ export async function fillSuperAdmin(
   await page.getByLabel(/ime i prezime|full name|display name/i).fill(input.displayName);
   await page.getByLabel(/^lozinka$|^password$/i).fill(input.password);
   await page.getByLabel(/potvrda lozinke|confirm password/i).fill(input.password);
-  await page.getByRole('button', { name: submitPattern }).click();
+  await clickStepSubmit(page);
 }
 
 /** „Identitet“ (F2): the name the installation will show on the sign-in page. */
@@ -57,16 +55,16 @@ export async function saveIdentity(
   input: { readonly organizationName: string; readonly timeZone: string },
 ): Promise<void> {
   if (!(await reachStep(page, 'identity'))) return;
-  await page.getByLabel(/naziv organizacije|organization name/i).fill(input.organizationName);
+  await page.getByLabel(/naziv organizacije|organi[sz]ation name/i).fill(input.organizationName);
   await page.getByLabel(/vremenska zona|time zone/i).fill(input.timeZone);
-  await page.getByRole('button', { name: /sačuvaj identitet|save identity/i }).click();
+  await clickStepSubmit(page, /sačuvaj identitet|save identity/i);
 }
 
 /** „Način prijave“: local accounts — the SuperAdmin stays the break-glass one. */
 export async function chooseLocalSignIn(page: Page): Promise<void> {
   if (!(await reachStep(page, 'loginProvider'))) return;
   await page.getByRole('radio', { name: /lokalni nalozi|local accounts/i }).check();
-  await page.getByRole('button', { name: submitPattern }).click();
+  await clickStepSubmit(page);
 }
 
 /**
@@ -101,7 +99,7 @@ export async function fillSmtp(
     .waitFor({ state: 'visible', timeout: 30_000 })
     .then(() => true)
     .catch(() => false);
-  await page.getByRole('button', { name: submitPattern }).click();
+  await clickStepSubmit(page);
   return passed;
 }
 
@@ -123,8 +121,8 @@ export async function addTeamMember(
 ): Promise<void> {
   if (!(await reachStep(page, 'team'))) return;
   await page.getByLabel(/ime i prezime|full name|display name/i).first().fill(member.displayName);
-  await page.getByLabel(/^email$/i).first().fill(member.email);
-  await page.getByRole('button', { name: /kreiraj naloge|create the accounts/i }).click();
+  await page.getByLabel(/^e-?mail$/i).first().fill(member.email);
+  await clickStepSubmit(page, /kreiraj naloge|create the accounts/i);
 }
 
 /** „Podesi kasnije“ on the step on screen (the footer offers it when `skippable`). */
@@ -137,36 +135,32 @@ export async function deferStep(page: Page, step: WizardStep): Promise<void> {
 export async function applyBlueprint(page: Page, templateTitle: RegExp): Promise<void> {
   if (!(await reachStep(page, 'blueprint'))) return;
   await page.getByRole('radio', { name: templateTitle }).first().check();
-  await page.getByRole('button', { name: /primijeni predložak|apply the template/i }).click();
+  await clickStepSubmit(page, /primijeni predložak|apply (the )?template/i);
 }
 
 /** „Paket prava“: the IT pack, then apply (this step cannot be deferred). */
 export async function applyPolicyPack(page: Page, packTitle: RegExp): Promise<void> {
   if (!(await reachStep(page, 'policyPack'))) return;
   await page.getByRole('radio', { name: packTitle }).first().check();
-  await page.getByRole('button', { name: /primijeni paket|apply the pack/i }).click();
+  await clickStepSubmit(page, /primijeni paket|apply (the )?pack/i);
 }
 
 /** „Radno vrijeme i prioriteti“: keep the seeded defaults. */
 export async function confirmSlaDefaults(page: Page): Promise<void> {
   if (!(await reachStep(page, 'slaReview'))) return;
-  await page
-    .getByRole('button', { name: /potvrđujem podrazumijevano|i confirm the defaults/i })
-    .click();
+  await clickStepSubmit(page, /potvrđujem podrazumijevano|i confirm the defaults/i);
 }
 
 /** „Primijeni preporuke za produkciju“ (F5, owner decision 7). */
 export async function applySecurityRecommendations(page: Page): Promise<void> {
   if (!(await reachStep(page, 'securityRecommendations'))) return;
-  await page
-    .getByRole('button', { name: /primijeni preporuke|apply the recommendations/i })
-    .click();
+  await clickStepSubmit(page, /primijeni preporuke|apply (the )?(production )?recommendations/i);
 }
 
 /** „Dodaci“: save what the package preselects. */
 export async function saveAddons(page: Page): Promise<void> {
   if (!(await reachStep(page, 'addons'))) return;
-  await page.getByRole('button', { name: /^dalje$|^next$|^continue$/i }).click();
+  await clickStepSubmit(page);
 }
 
 /**
@@ -176,7 +170,7 @@ export async function saveAddons(page: Page): Promise<void> {
 export async function finishInstallation(page: Page): Promise<readonly string[]> {
   await expectStep(page, 'provisioning');
   const finish = page.getByRole('button', {
-    name: /završi instalaciju|finish the installation/i,
+    name: /završi instalaciju|finish (the )?installation/i,
   });
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (await finish.isVisible().catch(() => false)) {
