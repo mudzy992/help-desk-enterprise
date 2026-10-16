@@ -48,8 +48,10 @@ export function readE2EEnvironment(): E2EEnvironment {
       readRecordedActorPassword(agentEmail) ??
       process.env.E2E_AGENT_PASSWORD ??
       'Kamen-Opseg-2026-A1!',
-    smtpHost: process.env.E2E_SMTP_HOST ?? '127.0.0.1',
-    smtpPort: process.env.E2E_SMTP_PORT ?? '25',
+    // Blank strings from CI (`vars.X` unset → "") must not win over defaults —
+    // see `readInstallSmtpAnswers` / install-wizard specs 52–53.
+    smtpHost: process.env.E2E_SMTP_HOST?.trim() || '127.0.0.1',
+    smtpPort: process.env.E2E_SMTP_PORT?.trim() || '25',
     databaseUrl: process.env.DATABASE_URL ?? null,
   };
 }

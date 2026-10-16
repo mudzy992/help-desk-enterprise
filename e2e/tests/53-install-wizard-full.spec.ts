@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
+import { readInstallSmtpAnswers } from '../helpers/smtp-answers';
 import {
   applyBlueprint,
   applyPolicyPack,
@@ -68,13 +69,7 @@ test.describe('53 install wizard — Full package', () => {
     await saveIdentity(page, { organizationName: 'E2E Full', timeZone: 'Europe/Sarajevo' });
     await chooseLocalSignIn(page);
 
-    const smtpWorks = await fillSmtp(page, {
-      host: env.smtpHost,
-      port: env.smtpPort,
-      username: process.env.E2E_SMTP_USERNAME ?? 'e2e',
-      password: process.env.E2E_SMTP_PASSWORD ?? 'e2e-test-password',
-      from: process.env.E2E_SMTP_FROM ?? 'helpdesk@example.com',
-    });
+    const smtpWorks = await fillSmtp(page, readInstallSmtpAnswers());
     if (!smtpWorks) {
       test
         .info()

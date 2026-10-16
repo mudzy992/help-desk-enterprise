@@ -6,6 +6,7 @@ import {
   readinessRows,
   type WizardStep,
 } from './install-wizard-step-reader';
+import { assertSmtpSubmitReady } from './assert-smtp-submit-ready';
 import { isPlainSmtpCatcher } from './smtp-catcher';
 
 /*
@@ -108,6 +109,7 @@ export async function fillSmtp(
   await page.getByLabel(/smtp korisnik|smtp username/i).fill(smtp.username);
   await page.getByLabel(/smtp lozinka|smtp password/i).fill(smtp.password);
   await page.getByLabel(/from adresa|from address/i).fill(smtp.from);
+  await assertSmtpSubmitReady(page);
 
   // F4.1: the test send reads *stored* settings, so the form must be saved
   // first (that advances the wizard). Review the step, send the test, then

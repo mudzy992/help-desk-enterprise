@@ -518,6 +518,15 @@ jobs:
         env:
           E2E_API_URL: ${{ vars.E2E_API_URL }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
+          # Specs 52/53: each key accepts a Repository Variable OR Secret
+          # (`vars || secrets`). Environment-scoped values are invisible here —
+          # the job does not set `environment:`.
+          E2E_SMTP_HOST: ${{ vars.E2E_SMTP_HOST || secrets.E2E_SMTP_HOST }}
+          E2E_SMTP_PORT: ${{ vars.E2E_SMTP_PORT || secrets.E2E_SMTP_PORT }}
+          E2E_SMTP_USERNAME: ${{ vars.E2E_SMTP_USERNAME || secrets.E2E_SMTP_USERNAME }}
+          E2E_SMTP_PASSWORD: ${{ vars.E2E_SMTP_PASSWORD || secrets.E2E_SMTP_PASSWORD }}
+          E2E_SMTP_FROM: ${{ vars.E2E_SMTP_FROM || secrets.E2E_SMTP_FROM }}
+          INSTALL_SPEC: ${{ inputs.install_spec }}
         run: |
           set -u
           for name in E2E_API_URL E2E_INSTALL_TOKEN; do
@@ -531,6 +540,28 @@ jobs:
             echo "::error title=Install wizard E2E did not run::E2E_INSTALL_TOKEN is empty. The wizard answers 403 INSTALL_TOKEN_NOT_CONFIGURED without it."
             exit 1
           fi
+          case "${INSTALL_SPEC}" in
+            52|53)
+              # Empty values become "" and defeat ?? defaults (host/port stay blank,
+              # Dalje stays disabled). Fail before Playwright install.
+              for name in E2E_SMTP_HOST E2E_SMTP_PORT E2E_SMTP_USERNAME E2E_SMTP_PASSWORD E2E_SMTP_FROM; do
+                if [ -n "${!name:-}" ]; then
+                  echo "$name: set"
+                else
+                  echo "$name: empty"
+                  echo "::error title=Missing SMTP for wizard spec ${INSTALL_SPEC}::$name is empty under Repository Settings → Secrets and variables → Actions (Variables or Secrets tab — not an Environment). Need E2E_SMTP_HOST=smtp.gmail.com, E2E_SMTP_PORT=587, E2E_SMTP_USERNAME, E2E_SMTP_PASSWORD (app password), E2E_SMTP_FROM."
+                  exit 1
+                fi
+              done
+              ;;
+            51)
+              echo "Spec 51 (Minimum): SMTP credentials not required."
+              ;;
+            *)
+              echo "::error title=Unknown wizard spec::install_spec=${INSTALL_SPEC} (expected 51, 52 or 53)."
+              exit 1
+              ;;
+          esac
           status=$(curl -sS -m 20 "$E2E_API_URL/install/status" || echo '{}')
           echo "GET /install/status -> $status"
           node -e '
@@ -574,8 +605,11 @@ jobs:
           E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
           E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
           E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
-          E2E_SMTP_HOST: ${{ vars.E2E_SMTP_HOST }}
-          E2E_SMTP_PORT: ${{ vars.E2E_SMTP_PORT }}
+          E2E_SMTP_HOST: ${{ vars.E2E_SMTP_HOST || secrets.E2E_SMTP_HOST }}
+          E2E_SMTP_PORT: ${{ vars.E2E_SMTP_PORT || secrets.E2E_SMTP_PORT }}
+          E2E_SMTP_USERNAME: ${{ vars.E2E_SMTP_USERNAME || secrets.E2E_SMTP_USERNAME }}
+          E2E_SMTP_PASSWORD: ${{ vars.E2E_SMTP_PASSWORD || secrets.E2E_SMTP_PASSWORD }}
+          E2E_SMTP_FROM: ${{ vars.E2E_SMTP_FROM || secrets.E2E_SMTP_FROM }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '0' }}
         run: |
@@ -585,7 +619,7 @@ jobs:
               "::notice title=Spec 51 finishes the installation::Reset the database (or reopen" \
               "the wizard with --include-step-markers) before dispatching 52/53; the" \
               "Preflight rejects a stack whose wizard is not at its first step." ;;
-            52|53) ;;
+            52|53) echo "SMTP preflight already passed for spec $spec." ;;
             *) echo "::error title=Unknown wizard spec::install_spec=$spec (expected 51, 52 or 53)."; exit 1 ;;
           esac
           # The spec is resolved by the shell, not by Playwright's test filter: that
