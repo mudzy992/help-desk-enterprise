@@ -2,13 +2,11 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
 import {
-  addTeamMember,
   applyBlueprint,
   applyPolicyPack,
   chooseLocalSignIn,
   choosePackage,
   confirmSlaDefaults,
-  createStructure,
   deferStep,
   expectReadyScreen,
   fillSmtp,
@@ -18,6 +16,10 @@ import {
   saveAddons,
   saveIdentity,
 } from '../install-wizard/install-wizard-actions';
+import {
+  addTeamMember,
+  createStructure,
+} from '../install-wizard/install-wizard-forms';
 import { wizardStartFailure } from '../install-wizard/install-wizard-precondition';
 
 /*

@@ -1,5 +1,14 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (treći živi prolaz speca 51: korak se nije predao jer se forma još nije renderovala)
+
+- **Simptom je bio identičan prethodnom** (isti `reachStep`/`deferStep`, isti naslov „Struktura i prvi servis“), a `deferStep` je u tragu bio na liniji **153** — to je linija koju je imala verzija sa popunjenim imenima, pa je jasno da je prethodna ispravka **bila u runu** i da nije bila dovoljna.
+- **Pravi uzrok (prethodna dijagnoza je bila pogrešna):** shell iscrta `h1` koraka **prije** nego što korak učita svoje stanje — tijelo je `PanelSkeleton` dok `loadInstallSeed` ne odgovori. `reachStep` se vrati čim naslov odgovara, a `createStructure` je tada pitao `submit.isVisible()`, što je **trenutna** provjera: na svježem runu odgovor je „nema“, helper se tiho vrati, a forma se pojavi 200-500 ms kasnije. Zato se klik **nije desio** — popunjavanje `required` polja iz prethodne ispravke nije ni stiglo na red (i dalje je potrebno).
+- **Ispravka:** `createStructure` sada čeka **tijelo koraka** — vlastitu formu koraka (`form button[type="submit"]`, 20 s) ili rečenicu koju korak pokaže kad zapisi postoje (`install.structure.createdBody`) — pa tek onda puni imena i predaje. Ako nijedno ne dođe, baca grešku umjesto da se tiho vrati.
+- **Novi čuvar iste klase:** `clickStepSubmit` poslije predaje zahtijeva da se **naslov promijeni** i, ako se ne promijeni za 20 s, prijavljuje tekst sa stranice (`role="alert"`). „Klik koji ništa nije uradio“ se više ne može pojaviti kao promašen naslov u sljedećem koraku.
+- **Refaktor:** dva koraka u koja se **kuca** (`Struktura i prvi servis`, `Tim`) preseljena su u `e2e/install-wizard/install-wizard-forms.ts` — `install-wizard-actions.ts` je narastao na 236 linija, preko pravila od 200; sada su 172 + 70.
+- **Čuvar kopije:** `install-wizard-e2e-copy.spec.ts` pinuje i `install.structure.createdBody` (frontend, **92** testa).
+
 ## 2026-10-16 (drugi živi prolaz speca 51: korak „Struktura i prvi servis“ nije se predao)
 
 - **Simptom:** spec je prošao paket, SuperAdmina, identitet, način prijave i odgodu SMTP-a, pa je 20 s čekao korak „Tim“ gledajući naslov „Struktura i prvi servis“ — `expected the step /^tim$|^team$/i, saw "Struktura i prvi servis"`. Naslov je bio ključ: čarobnjak nikad nije napustio korak strukture.

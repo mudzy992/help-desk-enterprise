@@ -79,6 +79,9 @@ const labels: ReadonlyArray<readonly [string, RegExp]> = [
   ["install.structure.ouName", /organizacijska jedinica|organisational unit/i],
   ["install.structure.groupName", /grupa koja prima tikete|group that receives tickets/i],
   ["install.structure.serviceName", /^servis$|^service$/i],
+  // The structure step says so in a sentence once its records exist — `createStructure`
+  // waits for the form and reads this instead when there is nothing left to create.
+  ["install.structure.createdBody", /struktura je spremna|the structure is ready/i],
   ["install.team.displayName", /ime i prezime|full name|display name/i],
   ["install.team.email", /e-?mail/i],
   ["install.smtp.host", /smtp host/i],

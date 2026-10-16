@@ -6,7 +6,6 @@ import { signIn } from '../helpers/sign-in';
 import {
   choosePackage,
   chooseLocalSignIn,
-  createStructure,
   deferStep,
   expectReadyScreen,
   fillSuperAdmin,
@@ -15,6 +14,7 @@ import {
   saveAddons,
   saveIdentity,
 } from '../install-wizard/install-wizard-actions';
+import { createStructure } from '../install-wizard/install-wizard-forms';
 import { wizardStartFailure } from '../install-wizard/install-wizard-precondition';
 
 /*
