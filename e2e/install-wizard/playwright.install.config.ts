@@ -14,8 +14,13 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
     spec runs — the exact thing these two specs exist to prove through the UI;
   * the specs need an installation that is **not** finished (an empty database,
     or one whose wizard was reopened with `INSTALL_ALLOW_RERUN`/
-    `npm run cli:install-rerun`), which is why they live in their own directory
-    and never run with the shared suite.
+    `npm run cli:install-rerun`).
+
+  The spec **files** live in `e2e/tests/` (they continue the shared sequence:
+  …, 50, 51, 52), so nobody has to guess where they are; the shared config keeps
+  them out with a `testIgnore` glob and this config picks exactly those two. The
+  helpers, this config and the wait-for-stack setup stay here, next to the
+  artifacts they produce.
 
   Run it against a clean stack:
 
@@ -32,7 +37,11 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({
-  testDir: __dirname,
+  // The specs live in the shared `tests/` directory; the helpers and the setup
+  // stay here, so the specs import from `../install-wizard/…` and the artifacts
+  // stay out of the shared `test-results/`.
+  testDir: path.join(__dirname, '..', 'tests'),
+  testMatch: ['5[12]-install-wizard-*.spec.ts'],
   // Playwright resolves both paths against the config's own directory, so the
   // wizard run never mixes its traces into the shared suite's `test-results/`.
   outputDir: path.join(__dirname, 'test-results'),

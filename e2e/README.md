@@ -175,8 +175,14 @@ SKIPPED 1 test(s) — a skip is not a pass:
 
 ## The install wizard (F6) — a project of its own
 
-`install-wizard/playwright.install.config.ts` runs the two wizard specs through the **UI**, on a stack whose
-wizard is still open:
+The two wizard specs are `tests/51-install-wizard-minimum.spec.ts` and `tests/52-install-wizard-standard.spec.ts`
+— they continue the shared numbering (…, 50, 51, 52). Their helpers, their config
+(`install-wizard/playwright.install.config.ts`) and their wait-for-stack global setup live in `e2e/install-wizard/`,
+because they must not run with the shared suite: its `globalSetup` calls `ensureInstall`, which finishes the
+installation these specs exist to prove. The shared config keeps them out with `testIgnore`, and the shared CI job
+refuses `E2E_SPECS=51|52` with a pointer to `install_spec`.
+
+`install-wizard/playwright.install.config.ts` runs them through the **UI**, on a stack whose wizard is still open:
 
 ```bash
 cd e2e
@@ -189,8 +195,8 @@ Just one of them — pass a **file name** (the filter is a regular expression, s
 in `Error: No tests found`):
 
 ```bash
-npx playwright test -c install-wizard/playwright.install.config.ts install-wizard/51-install-wizard-minimum.spec.ts
-npx playwright test -c install-wizard/playwright.install.config.ts install-wizard/52-install-wizard-standard.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts tests/51-install-wizard-minimum.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts tests/52-install-wizard-standard.spec.ts
 ```
 
 - **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →

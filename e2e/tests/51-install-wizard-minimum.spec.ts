@@ -14,7 +14,7 @@ import {
   openWizard,
   saveAddons,
   saveIdentity,
-} from './install-wizard-actions';
+} from '../install-wizard/install-wizard-actions';
 
 /*
   F6 — the **Minimum** package, from the token gate to a real ticket.

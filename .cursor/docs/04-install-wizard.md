@@ -153,7 +153,7 @@ Ono što je čarobnjak obećao „Podesi kasnije“ ne smije se izgubiti u tiši
 
 ## E2E (F6)
 
-`e2e/install-wizard/playwright.install.config.ts` je **odvojen** projekat: njegov `globalSetup` samo čeka `/health`, jer `ensureInstall` iz zajedničkog setupa završava instalaciju kroz API — upravo ono što ova dva speca dokazuju kroz UI.
+`e2e/tests/51-install-wizard-minimum.spec.ts` i `e2e/tests/52-install-wizard-standard.spec.ts` nastavljaju zajedničku numeraciju (…, 50, 51, 52), a helperi, config (`e2e/install-wizard/playwright.install.config.ts`) i globalSetup žive u `e2e/install-wizard/`. Config je **odvojen** projekat: njegov `globalSetup` samo čeka `/health`, jer `ensureInstall` iz zajedničkog setupa završava instalaciju kroz API — upravo ono što ova dva speca dokazuju kroz UI. Zajednički config ih drži van svog skupa (`testIgnore`), a zajednički `e2e` posao odbija `E2E_SPECS=51|52` uz uputu na `install_spec`.
 
 - **51 (Minimum):** token gate → paket → SuperAdmin → identitet → lokalna prijava → struktura → odgođeni SMTP i tim → dodaci → provisioning → „Sistem je spreman“, pa prijava na `/login`, checklist sa tačno odgođenim stavkama i **stvarni rutirani tiket** na seedovanom servisu.
 - **52 (Standard):** isto + pravi SMTP test, pozvan član tima, blueprint „IT service desk“ i IT policy pack; bez mail catchera SMTP test pada, korak se **odgodi** i to se zabilježi kao anotacija (preskočena provjera nikad nije zelena). Sigurnosne preporuke se svjesno odgađaju: primjena čini MFA obaveznim za admine, a spec se onda prijavljuje tim istim adminom.

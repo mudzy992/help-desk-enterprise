@@ -400,6 +400,16 @@ jobs:
             for part in "${parts[@]}"; do
               number="$(echo "$part" | tr -d '[:space:]')"
               [ -z "$number" ] && continue
+              # 51/52 are the install-wizard specs. They sit in `tests/` with the
+              # rest, but this job must not run them: the global setup above
+              # finishes the installation they are supposed to walk. They have
+              # their own dispatch input (`install_spec`) and their own job.
+              case "$number" in
+                51|52)
+                  echo "::error title=Wizard spec in the shared job::Spec $number belongs to the install-wizard job — dispatch the workflow with install_spec=$number instead of E2E_SPECS."
+                  exit 1
+                  ;;
+              esac
               matches=(tests/"$number"-*.spec.ts)
               if [ ! -e "${matches[0]}" ]; then
                 echo "::error title=Unknown spec::No tests/$number-*.spec.ts in e2e/ — check the dispatch input."
@@ -526,9 +536,9 @@ jobs:
           # "5, 1, any number of hyphens, any character, spec, ..." and matches nothing
           # (the CI run failed with "Error: No tests found."). A bash glob names the
           # file, and a rename fails loudly instead of silently running nothing.
-          matches=(install-wizard/"$spec"-*.spec.ts)
+          matches=(tests/"$spec"-*.spec.ts)
           if [ ! -e "${matches[0]}" ]; then
-            echo "::error title=Missing wizard spec::No e2e/install-wizard/$spec-*.spec.ts — check the dispatch input and the file name."
+            echo "::error title=Missing wizard spec::No e2e/tests/$spec-*.spec.ts — check the dispatch input and the file name."
             exit 1
           fi
           echo "Running wizard spec: ${matches[*]}"

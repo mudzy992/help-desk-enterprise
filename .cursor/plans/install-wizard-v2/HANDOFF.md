@@ -295,6 +295,7 @@ b19d937 docs(install): v2 user guide and matrix
 b4f0111 fix(install-ui): link tones on neutral surfaces
 02007f8 fix(setup-checklist): import the guard chain's modules
 ```
+- **Peta ispravka — specovi 51/52 su sada u `e2e/tests/` (traži commit):** vlasnik ih je tražio u `e2e/tests/` jer tamo živi niz `01…50`; helperi, config i global setup ostaju u `e2e/install-wizard/`. Čuvari: `testIgnore` u zajedničkom configu, `testDir`/`testMatch` u wizard configu, i zajednički CI posao odbija `E2E_SPECS=51|52` uz uputu na `install_spec`. **Napomena:** plan faza (`07_phase-f6-zavrsetak-testovi.md`) još pominje `e2e/install-wizard/51-…`; fajl se ne prepisuje, novo stanje živi u `e2e/README.md` i `04-install-wizard.md`.
 - **Četvrta ispravka (CI wizard posao, commitovano):** korak je predavao Playwrightu `"install-wizard/${spec}-*.spec.ts"`, a to je **regex** (`-*` = nula ili više crtica) → `Error: No tests found.` iako specovi postoje. Sada bash glob razrješi fajl (`matches=(install-wizard/"$spec"-*.spec.ts)`) i korak pada glasno ako fajla nema; `e2e/README.md` dokumentuje i pojedinačno pokretanje imenom.
 - **Treća ispravka iz iste recenzije (traži commit):**
 ```

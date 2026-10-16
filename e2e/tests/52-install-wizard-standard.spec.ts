@@ -17,7 +17,7 @@ import {
   openWizard,
   saveAddons,
   saveIdentity,
-} from './install-wizard-actions';
+} from '../install-wizard/install-wizard-actions';
 
 /*
   F6 — the **Standard** package: everything Minimum does, plus SMTP that really

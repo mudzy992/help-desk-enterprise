@@ -1,5 +1,12 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (specovi 51/52 u `e2e/tests/`, uz čuvare)
+
+- **Zašto premješteni:** `e2e/tests/` drži niz `01…50`, a 51/52 su bili u `e2e/install-wizard/` — vlasnik ih je tražio tamo gdje numeracija živi (i nije ih našao). Sada su `e2e/tests/51-install-wizard-minimum.spec.ts` i `e2e/tests/52-install-wizard-standard.spec.ts`, a helperi, `playwright.install.config.ts` i `playwright.install-global-setup.ts` ostaju u `e2e/install-wizard/` (uz artefakte koje proizvode).
+- **Čuvari da ih pogrešan setup ne pokupi:** zajednički `playwright.config.ts` dobio je `testIgnore: ['5[12]-install-wizard-*.spec.ts']` (njegov `globalSetup` poziva `ensureInstall` i završio bi instalaciju koju spec hoda), wizard config `testDir` na `../tests` + `testMatch: ['5[12]-install-wizard-*.spec.ts']`, a zajednički **CI posao odbija `E2E_SPECS=51|52`** sa uputom na `install_spec` (prije bi to završilo kao zbunjujući „No tests found“).
+- **Provjereno `--list`:** zajednički config → **107 testova u 50 fajlova** (bez 51/52), i sa **eksplicitno** zadatim `tests/51-…` → 0 (dakle `testIgnore` filtrira i taj put); wizard config bez filtera → **2 testa** (51+52), a wizard CI korak sa `tests/51-…`/`tests/52-…` → **1 test / 1 fajl**. `tsc --noEmit` u `e2e/` čist, YAML parsira (7 poslova), guard skripta + test 6/6.
+- Plan faza (`07_phase-f6-zavrsetak-testovi.md`) pominje stare putanje; ne prepisuje se (istorijski dokument) — živa dokumentacija (`e2e/README.md`, `04-install-wizard.md`) nosi novo stanje.
+
 ## 2026-10-16 (CI wizard posao: spec se razrješava imenom, ne regexom)
 
 - **`Error: No tests found.` na dispatchu sa `install_spec=51`:** korak je Playwrightu predavao `"install-wizard/${spec}-*.spec.ts"`, a taj argument Playwright čita kao **regularni izraz** — `-*` znači „nula ili više crtica“, pa ime `51-install-wizard-minimum.spec.ts` ne može da se poklopi (specovi su postojali i bili tipski provjereni; filter ih nije našao). Isti obrazac u zajedničkom `e2e` poslu je ispravan jer tamo bash glob razriješi fajlove prije poziva.
