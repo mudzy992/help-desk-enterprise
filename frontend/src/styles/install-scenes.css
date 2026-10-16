@@ -210,7 +210,7 @@
   .iw-rise,
   .iw-node[data-state="current"],
   .iw-seg[data-state="current"],
-  .iw-rail::after {
+  .iw-rail-item::after {
     animation: none;
     transition: none;
   }

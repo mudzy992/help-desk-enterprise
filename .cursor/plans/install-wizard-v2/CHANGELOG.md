@@ -1,5 +1,17 @@
 # Install Wizard v2 — changelog plana
 
+## 2026-10-16 (rail kao prozor: fade, praćenje aktivnog koraka, linija bez presijecanja ikonica)
+
+- **Zahtjev vlasnika:** „vertikalni box … ima previše koraka … Ili dodati u njemu fixnu visinu na veličinu ekrana, sa fade in-out sjenom i fokusom aktivnog koraka, ili ukinuti, a postaviti ikonice u horizontali indikator. Te usput linija koja ide od ikone do ikone … izgleda kao da je precrtala ikonicu, jer je pozadina transparentna."
+- **Izabrana je vertikalna varijanta** (prva koju je vlasnik ponudio): horizontalni indikator već postoji — to su **HUD segmenti** gore, koji se vide na svakoj širini — pa bi ga druga varijanta samo duplirala, a imena koraka bi se izgubila.
+- **Prozor, ne zid:** `.iw-plan` je kolona ograničena na `calc(100dvh - 7.5rem)`; mapa se skroluje unutar sebe (`.iw-rail-window`, `overflow-y: auto`), a **fade** na oba kraja postoji **samo dok ima viška** (`data-scrollable` se mjeri preko `isScrollable`). Padding prozora i bend fade-a su isti (22 px), pa na krajevima nijedna vidljiva stavka nije zagasita — fade nikad ne „reže“ ono što operator gleda. Native scrollbar je sklonjen: mask bi zagasio i njegov thumb na krajevima, a prozor se sam centrira, pa nema šta da se povlači.
+- **Fokus aktivnog koraka:** na svaku promjenu koraka prozor se sam centrira na aktivnu stavku — `scrollTop` matematikom preko `getBoundingClientRect` (ne `offsetTop`, jer padding prozora i porijeklo liste nisu isto), tiho bez animacije uz `prefers-reduced-motion`. Prozor dobija `role="region"`, ime i `tabIndex=0` **samo** dok stvarno preliva i ne drži ništa fokusabilno — isto pravilo kao `components/ui/scroll-region.tsx` (Paket 2.8), kroz iste čiste helpere.
+- **Linija više ne presijeca ikonice:** jedan `.iw-rail::before` track iza svih čvorova je zamijenjen **segmentom po stavci** (`::before` track, `::after` pređeni dio) — od ispod svog čvora do pred sljedeći. `--iw-rail-progress` i `railStyle()` su uklonjeni; „dokle smo stigli“ je sada boja segmenta koji izlazi iz pređenog koraka (`done` i `deferred` svijetle), sa `opacity` tranzicijom umjesto `height` tranzicije.
+- **Niski ekran:** `< 780 px` visine (uz `lg`) panel „Šta dobijaš“ se sklanja, da mapa zadrži prostor; inače panel ostaje pod mapom i ne skroluje se s njom.
+- **Testovi:** tri nova u `shell/install-step-rail.spec.tsx` — prozor ostaje obična lista dok sve stane (bez fada i bez tab stopa), postaje imenovani region kad preliva, i **centrira aktivni korak** (stub layouta: red 52 px, prozor 300 px; red 9 → `top: 344`). Fixture koristi **stvarni** `installWizardSteps`, ne izmišljene ključeve.
+- **Izmjereno:** `npx vitest run` → **302 fajla / 1274 testa** zeleno; `tsc -b` 0; `eslint` 0 grešaka; `prettier` čist; `vite build` ✓ 13,4 s (u bundle-u: `max-height: calc(100dvh - 7.5rem)`, `data-scrollable` mask, segmenti po stavci, `scrollbar-width: none`, i dalje nema `.iw-rail::before`); 12 guard skripti i 7/7 `scripts/*.test.mjs` zeleno.
+- **Nije izmjereno:** pogled u browseru (sandbox nema Chromium) — mjeri vlasnik na `/install-preview`.
+
 ## 2026-10-16 (E2E rizik redizajna: prsten, sweep, sticky HUD — u radnom stablu)
 
 - **Pitanje vlasnika:** „s ovim izmjenama, da li bi mogao imati problema sa e2e testovima?" Prođen je svaki lokator iz `e2e/install-wizard/*` i specova 51/52/53 protiv novog DOM-a.
