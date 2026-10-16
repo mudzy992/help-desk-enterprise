@@ -14,6 +14,7 @@ function steps(
     "seed",
     "team",
     "addons",
+    "provisioning",
   ];
   return Object.fromEntries(
     keys.map((key) => [key, { completed: false, blocking: blocking.includes(key) }]),
@@ -62,6 +63,27 @@ describe("resolveRenderedStep", () => {
     expect(
       resolveRenderedStep({ nextStep: unknown, isCompleted: false, steps: steps(["identity"]) }),
     ).toBe("identity");
+  });
+
+  it("renders the readiness screen and the final screen (F6)", () => {
+    // F6.1/F6.2: the readiness screen is a step of the wizard, and the final
+    // screen is what the shell shows once the installation is completed.
+    expect(
+      resolveRenderedStep({ nextStep: "provisioning", isCompleted: false, steps: steps() }),
+    ).toBe("provisioning");
+    expect(
+      resolveRenderedStep({ nextStep: "provisioning", isCompleted: true, steps: steps() }),
+    ).toBe("complete");
+    // A server that reports something this shell cannot draw still falls back to
+    // the readiness screen when it is the step that blocks.
+    const unknown = "notAStep" as unknown as InstallWizardStep;
+    expect(
+      resolveRenderedStep({
+        nextStep: unknown,
+        isCompleted: false,
+        steps: steps(["provisioning"]),
+      }),
+    ).toBe("provisioning");
   });
 
   it("never invents a step it was not told about", () => {

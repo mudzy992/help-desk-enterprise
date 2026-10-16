@@ -53,6 +53,11 @@ export type InstallReadinessCheck = {
   readonly messageKey: string;
   /** F1: the steps behind a `profileSteps` answer that is not green. */
   readonly stepKeys?: readonly string[];
+  /**
+   * F6.1: the step that answers a red check, when there is one. `roles` is a
+   * product-side problem, so the provisioning screen shows it without a link.
+   */
+  readonly stepKey?: string | null;
 };
 
 export type InstallReadiness = {

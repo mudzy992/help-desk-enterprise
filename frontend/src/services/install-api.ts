@@ -17,12 +17,28 @@ export type InstallStepState = {
   readonly skippable?: boolean;
 };
 
+/**
+ * F6.2: what „Sistem je spreman“ reports about the installation that was built.
+ * The counts come with the status, so the final screen needs no extra request.
+ */
+export type InstallSetupSummary = {
+  readonly organizationName: string;
+  readonly profile: InstallProfile | null;
+  readonly organizationalUnitCount: number;
+  readonly serviceCount: number;
+  readonly groupCount: number;
+  readonly teamMemberCount: number;
+  readonly enabledAddonKeys: readonly string[];
+  readonly deferredSteps: readonly string[];
+};
+
 export type InstallSetupStatus = {
   readonly isCompleted: boolean;
   readonly nextStep?: InstallWizardStep;
   /** F1: the package chosen in the wizard; `null` while none is stored. */
   readonly profile?: InstallProfile | null;
   readonly steps?: Readonly<Record<InstallStepKey, InstallStepState>>;
+  readonly summary?: InstallSetupSummary;
 };
 
 export type InstallSuperAdminRecord = {

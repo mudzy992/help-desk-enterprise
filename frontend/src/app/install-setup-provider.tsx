@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   loadInstallSetupStatus,
+  type InstallSetupSummary,
   type InstallStepKey,
   type InstallStepState,
 } from "@/services/install-api";
@@ -32,6 +33,8 @@ type InstallSetupStatusState =
       readonly profile: InstallProfile | null;
       /** F1: readiness as last read; `null` when it could not be read. */
       readonly readiness: InstallReadiness | null;
+      /** F6.2: counts for the „Sistem je spreman“ screen, `null` until it exists. */
+      readonly summary: InstallSetupSummary | null;
     };
 
 type InstallSetupState = InstallSetupStatusState & {
@@ -74,6 +77,7 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
           steps: status.steps,
           profile: status.profile ?? null,
           readiness,
+          summary: status.summary ?? null,
         });
       })
       .catch(() => {

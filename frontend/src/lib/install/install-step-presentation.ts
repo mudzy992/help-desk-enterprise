@@ -7,6 +7,7 @@ import {
   Mail,
   Network,
   Package,
+  Rocket,
   ScrollText,
   ShieldCheck,
   Timer,
@@ -17,36 +18,15 @@ import {
   installSectionStepPresentations,
   installSecurityRecommendationsPresentation,
 } from "@/lib/install/install-section-presentation";
-import { installSectionStepKeys } from "@/services/install-sections-api";
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): one declaration per step for the shell — order, icon,
-  headline and the „Šta dobijaš“ lines. The registry on the server owns which
-  steps the package asks for; this file only says how a step is presented, so the
-  page, the rail, the footer and the mobile header cannot drift apart.
+  Install wizard v2 (F3): one declaration per step for the shell — icon, headline
+  and the „Šta dobijaš“ lines. The registry on the server owns which steps the
+  package asks for, the order lives in `install-wizard-order.ts`; this file only
+  says how a step is presented, so the page, the rail, the footer and the mobile
+  header cannot drift apart.
 */
-
-/** The wizard's order; the step counter, the rail and „Nazad“ all read this. */
-export const installWizardSteps: readonly InstallWizardStep[] = [
-  "profile",
-  "superAdmin",
-  "identity",
-  "loginProvider",
-  "smtp",
-  "seed",
-  "team",
-  // F4: Standard/Full content, in the order the registry declares it.
-  "blueprint",
-  "policyPack",
-  "slaReview",
-  // F5: the sections of the Full package, in the order the registry declares
-  // them, then the recommendations panel Standard and Full share.
-  ...installSectionStepKeys,
-  "securityRecommendations",
-  "addons",
-  "complete",
-];
 
 export type InstallStepPresentation = {
   readonly icon: LucideIcon;
@@ -174,6 +154,17 @@ export const installStepPresentations: Readonly<
       "install.whatYouGet.addons.3",
     ],
   },
+  // F6.1: the screen where the operator watches the installation come up.
+  provisioning: {
+    icon: Rocket,
+    titleKey: "install.provisioning.heading",
+    bodyKey: "install.provisioning.body",
+    whatYouGetKeys: [
+      "install.whatYouGet.provisioning.1",
+      "install.whatYouGet.provisioning.2",
+      "install.whatYouGet.provisioning.3",
+    ],
+  },
   complete: {
     icon: Flag,
     titleKey: "install.complete.heading",
@@ -186,12 +177,4 @@ export const installStepPresentations: Readonly<
   },
 };
 
-export type InstallStepLabelKey = `install.steps.${InstallWizardStep}`;
-
-export function installStepLabelKey(step: InstallWizardStep): InstallStepLabelKey {
-  return `install.steps.${step}`;
-}
-
-export function installStepIndex(step: InstallWizardStep): number {
-  return installWizardSteps.indexOf(step);
-}
+export { installStepIndex, installStepLabelKey, installWizardSteps } from "./install-wizard-order";

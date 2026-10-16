@@ -115,9 +115,12 @@ describe("settings registry translations (5.3.4)", () => {
     // flags; F4 adds the blueprint, policy pack and SLA review markers with
     // their three deferral flags; F5 adds the eleven Full-package sections and
     // the security-recommendations step, each with a `skipped` and a `saved`
-    // marker); a regression in the reader must fail loudly instead of silently
-    // passing because it found nothing to check.
-    expect(allKeys).toHaveLength(512);
+    // marker; F6 adds the provisioning step's deferral flag — the step is never
+    // deferred, but every registry step owns a marker — and the
+    // `private.install.checklistDismissedAt` flag of the post-install
+    // checklist); a regression in the reader must fail loudly instead of
+    // silently passing because it found nothing to check.
+    expect(allKeys).toHaveLength(514);
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");
     // Nine pairs ship today: SMTP, Edge extension and Teams each have three.

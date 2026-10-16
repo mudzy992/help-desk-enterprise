@@ -1779,6 +1779,8 @@
         "private.install.steps.smtp.skipped": "Marks that the SMTP step was deferred in the wizard.",
         "private.install.steps.seed.skipped": "Marks that the starting-data step was deferred in the wizard.",
         "private.install.steps.addons.skipped": "Marks that the add-ons step was deferred in the wizard.",
+        "private.install.steps.provisioning.skipped": "Marks that the readiness step was deferred in the wizard (it is not offered for deferral).",
+        "private.install.checklistDismissedAt": "When an administrator hid the post-install setup checklist on the dashboard.",
         "private.integrations.queue.adminUiEnabled": "Enable the admin API to inspect the queue and retry jobs.",
         "private.integrations.queue.deadLetterAfterAttempts": "Failed attempts after which a job moves to the dead-letter queue.",
         "private.integrations.queue.deadLetterRetentionDays": "Days to keep dead-letter jobs before the worker deletes them.",
@@ -2293,6 +2295,8 @@
         "private.install.steps.smtp.skipped": "Set by the wizard when the operator defers SMTP, e.g. in the Minimum package where email is optional. A deferred step does not block completion; the checklist still lists it.",
         "private.install.steps.seed.skipped": "Set by the wizard when the operator defers the starting data. Without an organizational unit, service and routing the installation cannot receive tickets, so the value stays false in practice.",
         "private.install.steps.addons.skipped": "Set by the wizard when the operator defers the add-ons confirmation. The catalog defaults apply then, and the modules can still be enabled later in Settings.",
+        "private.install.steps.provisioning.skipped": "The step cannot be deferred — the installation finishes only once every check is green. The key exists because every registry step owns one.",
+        "private.install.checklistDismissedAt": "Written by the “Hide” button on the dashboard. It hides the widget only; the items stay visible in Settings and disappear by themselves once they are done.",
         "private.integrations.queue.adminUiEnabled": "When on, the admin API for queue inspection and manual retry is available. When off, the queue runs unwatched from the application and problems are solved in logs only.",
         "private.integrations.queue.deadLetterAfterAttempts": "Attempt count after which a failed job moves to the dead-letter queue. From there the job can be inspected and retried by hand.",
         "private.integrations.queue.deadLetterRetentionDays": "How many days the worker keeps DLQ jobs before deleting them. A longer period allows later analysis but stores sensitive payloads longer.",
@@ -3067,7 +3071,35 @@
     "activitySubtitle": "Latest events",
     "activityEmpty": "No recent events.",
     "unroutedOverdueBanner_one": "{{count}} unrouted ticket waiting over {{hours}} h — handle it",
-    "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them"
+    "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them",
+    "setupChecklist": {
+      "title": "Finish the setup",
+      "subtitle": "Left for later: {{count}}",
+      "dismiss": "Hide",
+      "goTo": "Open",
+      "itemHint": "Not configured during the installation.",
+      "item": {
+        "smtp": "E-mail notifications are off — configure SMTP.",
+        "team": "The team is only the SuperAdmin — invite colleagues into the group.",
+        "blueprint": "The catalog has no services from a template.",
+        "slaReview": "Working hours and the priority matrix were not reviewed.",
+        "securityRecommendations": "The production recommendations are not applied.",
+        "addons": "Add-ons were not confirmed — the default values are in use.",
+        "section": {
+          "inboundEmail": "Inbound e-mail is not configured.",
+          "directory": "The directory (LDAPS) is not connected.",
+          "knowledgeBase": "The knowledge base is not configured.",
+          "statusPage": "The status page is not enabled.",
+          "onCall": "On-call rotations are not set up.",
+          "announcements": "Announcements are not configured.",
+          "security": "The security rules were not reviewed.",
+          "privacy": "The privacy policy was not reviewed.",
+          "auditWebhook": "The audit webhook is not configured.",
+          "itsm": "ITSM processes (problems and changes) are not configured.",
+          "integrations": "Integrations are not connected."
+        }
+      }
+    }
   },
   "reports": {
     "title": "Reports and bottlenecks",
@@ -4358,13 +4390,12 @@
       "other": "Other"
     },
     "complete": {
-      "heading": "Finish setup",
-      "body": "The wizard will lock. Further changes go through Settings.",
-      "submit": "Finish",
-      "saving": "Locking…",
+      "heading": "The system is ready",
+      "body": "The installation is ready to use. Review the summary and finish the setup; every later change goes through Settings.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "notReady": "The installation is not ready to receive tickets yet.",
-      "errorGeneric": "Setup cannot be locked right now."
+      "errorGeneric": "Setup cannot be locked right now.",
+      "hint": "The wizard is locked and every later change goes through Settings. Sign in with the SuperAdmin account this wizard created."
     },
     "progress": "Step {{current}} of {{total}}",
     "steps": {
@@ -4376,6 +4407,7 @@
       "seed": "Structure and service",
       "team": "Team",
       "addons": "Add-ons",
+      "provisioning": "Readiness",
       "complete": "Finish",
       "blueprint": "Catalog from a template",
       "policyPack": "Policy pack",
@@ -4488,6 +4520,43 @@
       "roles": "The system roles and their permissions exist.",
       "profileSteps": "Every step of the selected package is completed or deferred."
     },
+    "provisioning": {
+      "heading": "Readiness checks",
+      "body": "See what is ready and what is still missing. The installation cannot finish while any check is red.",
+      "checking": "Checking whether the system is ready to receive tickets.",
+      "allGreen": "Every check is green — you can finish the installation.",
+      "goToStep": "Go to the step",
+      "recheck": "Check again",
+      "finish": "Finish installation",
+      "finishing": "Locking the wizard…",
+      "ok": "Ready",
+      "missing": "Missing",
+      "deferred": "Deferred"
+    },
+    "ready": {
+      "profile": "Package",
+      "organization": "Organization",
+      "units": "Organizational units",
+      "services": "Services",
+      "groups": "Groups",
+      "team": "Team members",
+      "addons": "Add-ons on",
+      "later": "Configured later",
+      "firstSteps": "First steps",
+      "firstTicket": {
+        "title": "Create the first ticket",
+        "body": "Open the portal and file a test request."
+      },
+      "inviteTeam": {
+        "title": "Invite the team",
+        "body": "The team step was deferred — add colleagues to the group."
+      },
+      "openSettings": {
+        "title": "Open settings",
+        "body": "Fine-tune modules, e-mail and security."
+      },
+      "signIn": "Sign in"
+    },
     "statusError": {
       "title": "The installation status could not be checked",
       "body": "The server did not answer the setup status request. Nothing was changed. Check the connection and try again.",
@@ -4553,6 +4622,11 @@
         "1": "See the working hours and priority matrix the system uses.",
         "2": "Accept the defaults or change them right here.",
         "3": "Confirming changes no data — it only records that you looked."
+      },
+      "provisioning": {
+        "1": "A check before the wizard locks: service, group and routing",
+        "2": "It says exactly what is missing and which step fixes it",
+        "3": "No hidden breakage after the installation is finished"
       }
     },
     "blueprint": {
