@@ -30,7 +30,13 @@ export async function openWizard(page: Page, token: string): Promise<void> {
  */
 export async function choosePackage(page: Page, title: RegExp): Promise<void> {
   await expectStep(page, 'profile');
-  const card = page.locator('div.rounded-lg.border').filter({ hasText: title }).first();
+  // Match the package title node (not the whole card text): Full sits below the
+  // fold, and a loose `hasText` on the card used to miss it while Minimum/Standard
+  // still resolved.
+  const titleNode = page.getByText(title).first();
+  await titleNode.scrollIntoViewIfNeeded();
+  await expect(titleNode).toBeVisible();
+  const card = page.locator('div.rounded-lg.border').filter({ has: titleNode }).first();
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: /izaberi|select/i }).click();
   await page.getByRole('button', { name: /nastavi s paketom|continue with this package/i }).click();

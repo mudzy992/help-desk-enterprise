@@ -50,6 +50,7 @@ describe('InstallStepSkipService', () => {
   it('lets the wizard move past a deferred step', async () => {
     const harness = await createInstallWizardHarness();
     await harness.profileService.save({ profile: 'minimum' });
+    await harness.saveAuthMode('local');
     await harness.saveSmtp();
     await harness.saveIdentity();
     await harness.seedMinimum();

@@ -1,9 +1,5 @@
 import { useTranslation } from "react-i18next";
-import {
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { readInstallProfileItemPresentation } from "@/lib/install/install-profile-items";
 import type {
   InstallProfile,
@@ -31,10 +27,7 @@ export function InstallProfilePackageSheet({
   const includesKey = packageIncludesMessageKey(pack.profile);
 
   return (
-    <SheetContent
-      side="right"
-      className="flex w-full max-w-md flex-col overflow-y-auto p-6 sm:p-7"
-    >
+    <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-6 sm:p-7">
       <header className="pr-8">
         <SheetTitle className="text-[17px] font-semibold tracking-[-0.02em]">
           {t(pack.titleKey as never)}

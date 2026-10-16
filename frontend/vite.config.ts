@@ -13,7 +13,9 @@ function spaDocumentBypass(request: { headers: { accept?: string } }): string | 
 }
 
 /** Same-origin Nest proxy; strip HSTS so http://localhost is not pinned to HTTPS. */
-function nestProxy(options: { readonly bypass?: typeof spaDocumentBypass; readonly ws?: boolean } = {}): ProxyOptions {
+function nestProxy(
+  options: { readonly bypass?: typeof spaDocumentBypass; readonly ws?: boolean } = {},
+): ProxyOptions {
   return {
     target: nestTarget,
     changeOrigin: true,

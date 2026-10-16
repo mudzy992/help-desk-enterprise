@@ -11,7 +11,7 @@ name: CI
 #   * schedule (nightly) -> the full 71-test E2E run on a quiet stack.
 #   * workflow_dispatch -> triage: `specs=10,18,22`, `retries: 0`,
 #     `max_failures: 8` turn a red run into minutes instead of ~35.
-#   * workflow_dispatch + `install_spec=51|52` -> only the F6 install-wizard job on
+#   * workflow_dispatch + `install_spec=51|52|53` -> only the F6 install-wizard job on
 #     a stack whose wizard is still open. The normal e2e job steps aside, because
 #     its global setup completes the installation the wizard specs are about to
 #     walk (`install_spec` in the dispatch inputs).
@@ -49,8 +49,9 @@ on:
         default: ""
       install_spec:
         description: >-
-          Install wizard only: 51 (Minimum) or 52 (Standard); empty = do not run it. 51 finishes the
-          installation, so reset the database (or reopen the wizard with --include-step-markers) before 52.
+          Install wizard only: 51 (Minimum), 52 (Standard) or 53 (Full); empty = do not run it.
+          Each finishes the installation, so reset the database (or reopen the wizard with
+          --include-step-markers) before the next.
         required: false
         default: ""
       skip_gates:
@@ -430,7 +431,7 @@ jobs:
               # finishes the installation they are supposed to walk. They have
               # their own dispatch input (`install_spec`) and their own job.
               case "$number" in
-                51|52)
+                51|52|53)
                   echo "::error title=Wizard spec in the shared job::Spec $number belongs to the install-wizard job — dispatch the workflow with install_spec=$number instead of E2E_SPECS."
                   exit 1
                   ;;
@@ -582,10 +583,10 @@ jobs:
           case "$spec" in
             51) echo \
               "::notice title=Spec 51 finishes the installation::Reset the database (or reopen" \
-              "the wizard with --include-step-markers) before dispatching spec 52; the" \
+              "the wizard with --include-step-markers) before dispatching 52/53; the" \
               "Preflight rejects a stack whose wizard is not at its first step." ;;
-            52) ;;
-            *) echo "::error title=Unknown wizard spec::install_spec=$spec (expected 51 or 52)."; exit 1 ;;
+            52|53) ;;
+            *) echo "::error title=Unknown wizard spec::install_spec=$spec (expected 51, 52 or 53)."; exit 1 ;;
           esac
           # The spec is resolved by the shell, not by Playwright's test filter: that
           # argument is a regular expression, so a glob-looking `51-*.spec.ts` means

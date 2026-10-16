@@ -50,15 +50,15 @@ describe("resolveRenderedStep", () => {
   it("renders Standard/Full content steps instead of falling through to provisioning", () => {
     // A short renderable list used to treat blueprint (and later F4/F5 steps) as
     // unknown and bounce the shell onto provisioning while those steps still blocked.
-    expect(
-      resolveRenderedStep({ nextStep: "blueprint", isCompleted: false, steps: steps() }),
-    ).toBe("blueprint");
+    expect(resolveRenderedStep({ nextStep: "blueprint", isCompleted: false, steps: steps() })).toBe(
+      "blueprint",
+    );
     expect(
       resolveRenderedStep({ nextStep: "policyPack", isCompleted: false, steps: steps() }),
     ).toBe("policyPack");
-    expect(
-      resolveRenderedStep({ nextStep: "slaReview", isCompleted: false, steps: steps() }),
-    ).toBe("slaReview");
+    expect(resolveRenderedStep({ nextStep: "slaReview", isCompleted: false, steps: steps() })).toBe(
+      "slaReview",
+    );
     expect(
       resolveRenderedStep({
         nextStep: "securityRecommendations",

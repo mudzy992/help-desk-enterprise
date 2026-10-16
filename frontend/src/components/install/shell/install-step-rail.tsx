@@ -81,9 +81,7 @@ export function InstallStepRail({
               className={cn(
                 "min-w-0 flex-1 rounded-md px-2.5 py-1.5",
                 item.state === "current" &&
-                  (isBrand
-                    ? "bg-primary-foreground/15"
-                    : "border border-primary/20 bg-primary/10"),
+                  (isBrand ? "bg-primary-foreground/15" : "border border-primary/20 bg-primary/10"),
               )}
             >
               <div className="flex min-w-0 items-baseline gap-2">

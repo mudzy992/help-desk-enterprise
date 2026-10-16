@@ -11,6 +11,23 @@ import { expect, type Locator, type Page } from '@playwright/test';
   switch the locale before the wizard runs.
 */
 
+/** Full-only settings sections, in registry order (between SLA and recommendations). */
+export const fullSectionSteps = [
+  'section.inboundEmail',
+  'section.directory',
+  'section.knowledgeBase',
+  'section.statusPage',
+  'section.onCall',
+  'section.announcements',
+  'section.security',
+  'section.privacy',
+  'section.auditWebhook',
+  'section.itsm',
+  'section.integrations',
+] as const;
+
+export type FullSectionStep = (typeof fullSectionSteps)[number];
+
 /** The step headlines of the wizard, in the order the registry declares them. */
 const wizardOrder = [
   'profile',
@@ -23,6 +40,7 @@ const wizardOrder = [
   'blueprint',
   'policyPack',
   'slaReview',
+  ...fullSectionSteps,
   'securityRecommendations',
   'addons',
   'provisioning',
@@ -42,6 +60,17 @@ const stepHeadings: Readonly<Record<WizardStep, RegExp>> = {
   blueprint: /katalog iz predloška|catalog from a template/i,
   policyPack: /paket prava|policy pack|permission pack/i,
   slaReview: /radno vrijeme i prioriteti|working hours and priorities|business hours and priorities/i,
+  'section.inboundEmail': /dolazna e-pošta|incoming email/i,
+  'section.directory': /imenik \(ad\/ldaps\)|directory \(ad\/ldaps\)/i,
+  'section.knowledgeBase': /baza znanja|knowledge base/i,
+  'section.statusPage': /statusna stranica|status page/i,
+  'section.onCall': /dežurstva|on-call/i,
+  'section.announcements': /obavještenja|announcements/i,
+  'section.security': /sigurnost prijave|sign-in security/i,
+  'section.privacy': /privatnost i podaci|privacy and data/i,
+  'section.auditWebhook': /audit webhook/i,
+  'section.itsm': /itsm moduli|itsm modules/i,
+  'section.integrations': /integracije|integrations/i,
   securityRecommendations: /preporuke za produkciju|production recommendations/i,
   addons: /dodaci|add-ons/i,
   provisioning: /provjera spremnosti|readiness checks/i,

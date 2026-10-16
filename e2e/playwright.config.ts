@@ -11,10 +11,10 @@ export default defineConfig({
   // The install-wizard specs live in this very directory (they continue the
   // 01…50 sequence), but they must never run with the shared suite: the
   // `globalSetup` below calls `ensureInstall`, which finishes the installation
-  // through the API — the exact thing specs 51/52 prove through the UI. They have
+  // through the API — the exact thing specs 51–53 prove through the UI. They have
   // their own config and their own (wait-for-stack only) setup in
   // `install-wizard/`; the glob keeps this list honest even if one is renamed.
-  testIgnore: ['5[12]-install-wizard-*.spec.ts'],
+  testIgnore: ['5[1-3]-install-wizard-*.spec.ts'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   // CI triage (2026-10-05): `E2E_RETRIES=0` skips the retry of a failing test,

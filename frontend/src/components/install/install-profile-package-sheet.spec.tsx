@@ -56,10 +56,7 @@ describe("groupItemsByIntroducingPackage", () => {
       },
       {
         profile: "standard",
-        items: [
-          expect.objectContaining({ key: "team" }),
-          expect.objectContaining({ key: "smtp" }),
-        ],
+        items: [expect.objectContaining({ key: "team" }), expect.objectContaining({ key: "smtp" })],
       },
       {
         profile: "full",

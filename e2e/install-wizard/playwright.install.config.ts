@@ -17,8 +17,8 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
     `npm run cli:install-rerun`).
 
   The spec **files** live in `e2e/tests/` (they continue the shared sequence:
-  …, 50, 51, 52), so nobody has to guess where they are; the shared config keeps
-  them out with a `testIgnore` glob and this config picks exactly those two. The
+  …, 50, 51, 52, 53), so nobody has to guess where they are; the shared config keeps
+  them out with a `testIgnore` glob and this config picks exactly those three. The
   helpers, this config and the wait-for-stack setup stay here, next to the
   artifacts they produce.
 
@@ -41,16 +41,16 @@ export default defineConfig({
   // stay here, so the specs import from `../install-wizard/…` and the artifacts
   // stay out of the shared `test-results/`.
   testDir: path.join(__dirname, '..', 'tests'),
-  testMatch: ['5[12]-install-wizard-*.spec.ts'],
+  testMatch: ['5[1-3]-install-wizard-*.spec.ts'],
   // Playwright resolves both paths against the config's own directory, so the
   // wizard run never mixes its traces into the shared suite's `test-results/`.
   outputDir: path.join(__dirname, 'test-results'),
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.E2E_RETRIES !== undefined ? Number(process.env.E2E_RETRIES) : 0,
-  // One worker: both specs walk the same wizard and finish the same installation.
+  // One worker: the specs walk the same wizard and finish the same installation.
   workers: 1,
-  timeout: 180_000,
+  timeout: 240_000,
   expect: { timeout: 20_000 },
   reporter: [['list'], ['html', { open: 'never', outputFolder: path.join(__dirname, 'playwright-report') }]],
   globalSetup: path.join(__dirname, 'playwright.install-global-setup.ts'),

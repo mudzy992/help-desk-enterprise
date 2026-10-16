@@ -11,6 +11,9 @@ describe('InstallSetupService add-ons step', () => {
   it('keeps asking for the add-ons step after the seed until it is saved', async () => {
     const harness = await createInstallWizardHarness();
     await harness.profileService.save({ profile: 'minimum' });
+    // Auth mode must be *stored* (not just the settings default) before the
+    // login-provider step counts as done — same rule as readiness `authMode`.
+    await harness.saveAuthMode('local');
     await harness.saveSmtp();
     await harness.saveIdentity();
     await harness.seedMinimum();
@@ -24,6 +27,7 @@ describe('InstallSetupService add-ons step', () => {
   it('moves to the final screen once the catalog was saved', async () => {
     const harness = await createInstallWizardHarness();
     await harness.profileService.save({ profile: 'minimum' });
+    await harness.saveAuthMode('local');
     await harness.saveSmtp();
     await harness.saveIdentity();
     await harness.seedMinimum();
