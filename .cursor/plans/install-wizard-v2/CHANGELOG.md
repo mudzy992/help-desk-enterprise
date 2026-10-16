@@ -1,5 +1,17 @@
 # Install Wizard v2 — changelog plana
 
+## 2026-10-16 (E2E rizik redizajna: prsten, sweep, sticky HUD — u radnom stablu)
+
+- **Pitanje vlasnika:** „s ovim izmjenama, da li bi mogao imati problema sa e2e testovima?" Prođen je svaki lokator iz `e2e/install-wizard/*` i specova 51/52/53 protiv novog DOM-a.
+- **Ugovor o selektorima drži:** jedini `h1` (naslov koraka), tijelo prije footera, `div.rounded-lg.border`, `ul[aria-live="polite"] li`, `#install-token` u vlastitoj formi, `/login` link — sve pinovano čuvarima; rail lista imena koraka ali nije naslov, pa `getByRole('heading', { level: 1 })` ostaje jedinstven. `reducedMotion` nije postavljen u config-u, pa su animacije u toku E2E-a **aktivne**.
+- **Nađen mrtvi kod koji je bio i mina:** `.iw-airlock` je imao `animation: iw-spin`, ali `.iw-rise` (kasniji u istom fajlu, ista specifičnost) prepisuje `animation` shorthand — pa se prsten **nikad nije ni okretao**. Da je neko sklonio `iw-rise` s gate-a, kartica bi se vrtjela zauvijek i Playwright-ova actionability provjera („isto bounding box u dva uzastopna frame-a") nikad ne bi prošla: klik na submit token gate-a bi pao nakon 30 s i sva tri speca bi pukla na prvoj interakciji.
+- **Ispravka:** prsten je na `.iw-airlock::before` (paint-only, ne dira bounding box kontrole) s eksplicitnim `z-index: 0`, kartica `z-index: 1`; `isolation: isolate` je izbjegnut da se ne mijenja kako staklo propušta auroru (neprovjerljivo bez browsera).
+- **Još dva sloja:** `.iw-check::after` (sweep preko redova spremnosti, a redovi nose dugme „Idi na korak") i `.iw-rail::after` sada imaju `pointer-events: none` — animirani ukras ne smije biti element koji klik pogodi; `scroll-padding-top: 5.5rem` na atributu drži fokus/skrolovano **ispod** sticky HUD-a.
+- **Čuvar je dobio check B** (`scripts/check-install-aurora.mjs`): svako golo `.iw-*` pravilo s beskonačnom **geometrijskom** animacijom mora imati `pointer-events: none`. Dokazano trima probama — spin na kontejneru pada s tačnom porukom, `opacity`-only animacija ostaje zelena, čisto stanje zeleno. **Prva verzija check-a B bila je lažno zelena** (selector-chunk nosi i prethodni komentar, pa se goli `.iw-X` nikad nije prepoznao) — popravljeno i tek onda dokazano probom.
+- **Vlasnik je u međuvremenu pokrenuo 51/52/53 i prošli su** — time je i dio IN14 koji je čekao stvarno okruženje („E2E prolaz kroz UI čarobnjaka") **izmjeren zelen**. Bitno: Playwright config ne postavlja `reducedMotion`, pa su specovi prošli **sa aktivnim aurora animacijama** — što potvrđuje i da su ispravke iz ovog unosa (prsten na pseudo-element, `pointer-events: none` na ukrasu) tačno na mjestu, jer mrtvi `iw-spin` iz `6c4a4ad` nije mogao ni pokvariti ni dokazati ništa. Ostaje **Lighthouse a11y ≥ 95**.
+- **Izmjereno poslije ispravke:** `vitest` 302 fajla / **1271 test** zeleno; `tsc -b` 0; `eslint` 0 grešaka; `prettier --check` čist; `vite build` ✓ 14,3 s (`.iw-airlock` bez animacije, `:before` nosi `iw-spin`, `z-index` 0/1, `pointer-events: none` na sweep-u); 12 guard skripti zeleno.
+- **Nije izmjereno:** stvarni prolaz 51/52/53 (nema browsera u sandboxu) — komanda je u `e2e/README.md`.
+
 ## 2026-10-16 (redizajn čarobnjaka — „Aurora“, u radnom stablu)
 
 - **Zašto:** vlasnik je potvrdio specove 51/52/53 (lokalno i u produkciji) i tražio vizualni redizajn čarobnjaka — „taj dizajn može da bude totalno odvojen od dizajna kompletne aplikacije - posebna priča“, uz uslov da E2E ugovor ostane nepromijenjen.

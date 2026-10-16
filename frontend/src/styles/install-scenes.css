@@ -9,11 +9,32 @@
   requirement for the wizard (Constitution §39).
 */
 
+/*
+  The airlock holds the token form, so it must never animate its own geometry.
+  `.iw-rise` and a rotation both write the `animation` shorthand, the later rule
+  wins and the loser silently disappears — which is exactly what happened here:
+  the ring never spun. The ring therefore lives on a pseudo-element, which keeps
+  every control inside the card at a constant bounding box for Playwright's
+  actionability check (see `scripts/check-install-aurora.mjs`, check B) and keeps
+  a moving layer out of the element holding the token field.
+
+  The ring sits at `z-index: 0` and the card at `1`, so the ordering is explicit
+  rather than a side effect of paint order — a rotating layer may never be the
+  element a click lands on.
+*/
 .iw-airlock {
   position: relative;
   width: min(100%, 30rem);
   padding: 2px;
   border-radius: calc(var(--iw-r-lg) + 2px);
+}
+
+.iw-airlock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
   background-image: conic-gradient(
     from 140deg,
     rgb(var(--iw-cyan) / 0.55),
@@ -25,6 +46,8 @@
 }
 
 .iw-airlock > * {
+  position: relative;
+  z-index: 1;
   border-radius: var(--iw-r-lg);
   background-color: rgb(var(--iw-void) / 0.88);
   backdrop-filter: blur(18px) saturate(130%);
@@ -74,6 +97,9 @@
 .iw-check::after {
   content: "";
   position: absolute;
+  /* The row carries „Idi na korak“; a sweeping band over it must never be the
+     element a click lands on. */
+  pointer-events: none;
   top: 0;
   bottom: 0;
   left: -30%;
@@ -178,7 +204,7 @@
 @media (prefers-reduced-motion: reduce) {
   .iw-card,
   .iw-backdrop,
-  .iw-airlock,
+  .iw-airlock::before,
   .iw-orbit span,
   .iw-check::after,
   .iw-rise,

@@ -218,6 +218,12 @@ npx playwright test -c install-wizard/playwright.install.config.ts tests/52-inst
 - So are the fields: a `required` input a helper leaves empty does not throw — the browser blocks the submit. The
   structure step asks for three names that start empty on a fresh installation; the spec types the server's own
   defaults.
+- **Motion must never move a control.** Playwright clicks only an element whose bounding box held still for two
+  consecutive frames, so an ancestor that animates geometry (spin, drift, scale) turns every click inside it into a
+  30 s timeout. The wizard's decoration therefore animates pseudo-elements and `pointer-events: none` layers only, and
+  `scripts/check-install-aurora.mjs` (check B, run in CI's frontend job) fails the build when a `.iw-*` container
+  gains an infinite geometric animation. The airlock is the case that mattered: its rotating ring used to sit on the
+  element holding `#install-token`.
 - **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
   ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
   deferred on purpose, which is also what the post-install checklist must then list.

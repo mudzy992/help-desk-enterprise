@@ -72,6 +72,10 @@
   --iw-r-lg: 22px;
   --iw-r-md: 14px;
   --iw-r-sm: 10px;
+  /* The HUD is sticky (`.iw-hud`): whatever the browser scrolls into view — the
+     step title on focus, a row reached from the checklist — must stop below it,
+     not underneath. */
+  scroll-padding-top: 5.5rem;
   --iw-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   background-color: rgb(var(--iw-void));
 }
@@ -225,6 +229,7 @@
 .iw-rail::after {
   content: "";
   position: absolute;
+  pointer-events: none;
   top: 17px;
   left: 16px;
   width: 2px;

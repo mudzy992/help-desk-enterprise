@@ -14,7 +14,15 @@
  *      It also recomputes the table written in the CSS comment: a number nobody
  *      re-derives is how the first version shipped muted text at 2.9:1.
  *
- *   B. SHIM COVERAGE of `install-shim.css`. Every install step is built from the
+ *   B. STABILITY — no aurora rule may give an element that holds controls an
+ *      infinite *geometric* animation (transform/translate/scale, or a layout
+ *      property). Playwright clicks only an element whose bounding box held
+ *      still for two consecutive frames, so a spinning container turns every
+ *      click inside it into a 30 s timeout — and a rotating card looks wrong
+ *      anyway. Decoration may still move: pseudo-elements, `pointer-events:
+ *      none` layers and paint-only animation (opacity, colour, shadow) are fine.
+ *
+ *   C. SHIM COVERAGE of `install-shim.css`. Every install step is built from the
  *      app's semantic utility classes (`text-muted-foreground`, `bg-popover`,
  *      `border-line-strong`, …). The shim re-points them at the Aurora palette;
  *      a class the shim does not know silently paints with the *product's*
@@ -183,7 +191,53 @@ if (canvas !== null && panelBody !== undefined) {
   );
 }
 
-/* ── B. shim coverage ──────────────────────────────────────────────────────── */
+/* ── B. stability ──────────────────────────────────────────────────────────── */
+
+const geometry =
+  /transform|translate|rotate|scale|\b(?:top|left|right|bottom|width|height|inset)\s*:|margin|padding/;
+const keyframes = new Map();
+for (const source of [theme, scenes]) {
+  for (const [, name, body] of source.matchAll(/@keyframes\s+([a-z0-9-]+)\s*\{([\s\S]*?)\n\}/g)) {
+    keyframes.set(name, geometry.test(body));
+  }
+}
+
+/**
+ * Comments sit inside the text a selector is read from, so they have to go
+ * first: a chunk that begins with a comment never matches a plain class, and a
+ * guard whose pattern silently matches nothing is worse than no guard (this one
+ * was green on a deliberately broken build until the probe above was run).
+ */
+const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, " ");
+const unstable = [];
+for (const [file, source] of [
+  ["install-theme.css", theme],
+  ["install-scenes.css", scenes],
+]) {
+  for (const [, selector, body] of source.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    // `.iw-x` alone — the only shape that can be an ancestor of real controls.
+    const name = withoutComments(selector).trim().match(/^\.(iw-[a-z0-9-]+)$/)?.[1];
+    if (name === undefined) continue;
+    const rule = withoutComments(body);
+    const animation = rule.match(/(?:^|\n)\s*animation:\s*([^;]+);/)?.[1] ?? "";
+    if (!animation.includes("infinite")) continue;
+    const moving = [...keyframes]
+      .filter(([keyframe, moves]) => moves && new RegExp(`(^|\\s)${keyframe}(\\s|$)`).test(animation))
+      .map(([keyframe]) => keyframe);
+    if (moving.length === 0) continue;
+    if (!rule.includes("pointer-events: none")) unstable.push({ file, name, moving });
+  }
+}
+for (const { file, name, moving } of unstable) {
+  failures.push(
+    `B. .${name} in ${file} runs ${moving.join(", ")} forever and moves geometry — ` +
+      `every control inside it becomes unclickable for Playwright's actionability check. ` +
+      `Move the animation to a pseudo-element or a pointer-events: none layer.`,
+  );
+}
+console.log(`B. ${unstable.length} container(s) with an infinite geometric animation`);
+
+/* ── C. shim coverage ──────────────────────────────────────────────────────── */
 
 /** Classes that carry a product token: a shim gap changes the *brand*, silently. */
 const tokenClass =
@@ -225,10 +279,10 @@ if (used.size < 15) {
 }
 for (const [name, file] of gaps) {
   failures.push(
-    `B. .${name} (used in ${file}) has no aurora rule in install-shim.css — it paints with the product's tokens`,
+    `C. .${name} (used in ${file}) has no aurora rule in install-shim.css — it paints with the product's tokens`,
   );
 }
-console.log(`B. ${used.size} token classes in the install flow, ${gaps.length} without a shim rule`);
+console.log(`C. ${used.size} token classes in the install flow, ${gaps.length} without a shim rule`);
 
 if (failures.length > 0) {
   console.error(`\nInstall Aurora: ${failures.length} problem(s)`);
