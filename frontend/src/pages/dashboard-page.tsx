@@ -106,6 +106,11 @@ export function DashboardPage() {
             items={summary.attention}
             serviceNames={serviceNames}
             originNames={originNames}
+            // Val 6.1 / modul 4 (D11): requesters must not see the assignment
+            // column — the routing terms behind it are internal. The merge that
+            // brought the install wizard in dropped this prop, so the column was
+            // about to come back for requesters; the table requires it.
+            isStaff={isStaff}
           />
           {recentExclusive.length > 0 ? (
             <Card>
