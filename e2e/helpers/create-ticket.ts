@@ -33,11 +33,13 @@ export async function createTicketViaApi(
       isConfidential: input.isConfidential === true,
       impact: input.impact ?? 'MEDIUM',
       urgency: input.urgency ?? 'MEDIUM',
+      // Install seed form (`installSeedFormSchema`) uses `dodatne_informacije`,
+      // not a legacy `opis` key — unknown keys are rejected as FORM_DATA_INVALID.
       formData:
         input.formData ??
         (input.formVersionRef === undefined
           ? {}
-          : { opis: input.description ?? 'E2E ticket body' }),
+          : { dodatne_informacije: input.description ?? 'E2E ticket body' }),
     }),
   });
 }

@@ -89,17 +89,31 @@ export async function fillSmtp(
   }
   await page.getByLabel(/smtp host/i).fill(smtp.host);
   await page.getByLabel(/smtp port/i).fill(smtp.port);
+  // Local catchers (Mailpit / GreenMail) speak plain SMTP on 3025 — TLS must be off.
+  const tls = page.getByRole('switch', { name: /tls|starttls/i });
+  if ((await tls.getAttribute('aria-checked')) === 'true') {
+    await tls.click();
+  }
   await page.getByLabel(/smtp korisnik|smtp username/i).fill(smtp.username);
   await page.getByLabel(/smtp lozinka|smtp password/i).fill(smtp.password);
   await page.getByLabel(/from adresa|from address/i).fill(smtp.from);
 
-  await page.getByRole('button', { name: /pošalji test|send test/i }).click();
+  // F4.1: the test send reads *stored* settings, so the form must be saved
+  // first (that advances the wizard). Review the step, send the test, then
+  // leave the review with the shell's „Nastavi“.
+  await clickStepSubmit(page);
+  await page.getByRole('button', { name: /nazad|back/i }).click();
+  await expectStep(page, 'smtp');
+  const sendTest = page.getByRole('button', { name: /pošalji test|send test/i });
+  await sendTest.waitFor({ state: 'visible', timeout: 20_000 });
+  await expect(sendTest).toBeEnabled({ timeout: 20_000 });
+  await sendTest.click();
   const passed = await page
     .getByText(/poslano na|sent to/i)
     .waitFor({ state: 'visible', timeout: 30_000 })
     .then(() => true)
     .catch(() => false);
-  await clickStepSubmit(page);
+  await page.getByRole('button', { name: /nastavi|continue/i }).click();
   return passed;
 }
 

@@ -1,29 +1,17 @@
+import { installWizardSteps } from "@/lib/install/install-wizard-order";
 import type { InstallStepKey, InstallStepState, InstallWizardStep } from "@/services/install-api";
 
 /**
- * The steps the shell can render. F3 added the package picker, so this list is
- * now the whole registry; the shell keeps the check anyway because the server may
- * grow a step before the UI learns how to draw it (`InstallWizardStep` is a
- * union the API owns).
+ * Every step the shell can draw. Sourced from the wizard order so Standard/Full
+ * steps (blueprint, policy pack, sections, …) are never treated as foreign and
+ * bounced to a later blocker like provisioning.
  */
-export const renderableInstallSteps = [
-  "profile",
-  "superAdmin",
-  "identity",
-  "loginProvider",
-  "smtp",
-  "seed",
-  "team",
-  "addons",
-  // F6.1/F6.2: the provisioning screen and the „Sistem je spreman“ screen.
-  "provisioning",
-  "complete",
-] as const;
+export const renderableInstallSteps = installWizardSteps;
 
-export type RenderedInstallStep = (typeof renderableInstallSteps)[number];
+export type RenderedInstallStep = InstallWizardStep;
 
-function isRenderable(step: InstallWizardStep | undefined): step is RenderedInstallStep {
-  return step !== undefined && (renderableInstallSteps as readonly string[]).includes(step);
+function isRenderable(step: InstallWizardStep | undefined): step is InstallWizardStep {
+  return step !== undefined && (installWizardSteps as readonly string[]).includes(step);
 }
 
 /**
@@ -44,11 +32,11 @@ export function resolveRenderedStep(input: {
 
 function firstBlockingStep(
   steps: Readonly<Record<InstallStepKey, InstallStepState>> | undefined,
-): RenderedInstallStep | null {
+): InstallWizardStep | null {
   if (steps === undefined) return null;
-  for (const step of renderableInstallSteps) {
+  for (const step of installWizardSteps) {
     if (step === "complete") continue;
-    if (steps[step]?.blocking === true) return step;
+    if (steps[step as InstallStepKey]?.blocking === true) return step;
   }
   return null;
 }

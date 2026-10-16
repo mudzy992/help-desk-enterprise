@@ -19,8 +19,10 @@ export function resolveInstallGateNavigation(input: {
   if (isVisualQaRoute(input.pathname)) {
     return null;
   }
+  // F6.2: after finish, „Sistem je spreman“ still lives on /install (link to
+  // /login). Bouncing completed installs off /install hid that screen.
   if (input.isSetupComplete) {
-    return isInstallRoute(input.pathname) ? applicationHomePath : null;
+    return null;
   }
   if (isInstallRoute(input.pathname)) {
     return null;

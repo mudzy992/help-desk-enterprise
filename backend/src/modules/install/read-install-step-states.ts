@@ -46,6 +46,7 @@ export async function readInstallStepProgress(
     superAdmin,
     identity,
     loginProvider,
+    authModeStored,
     smtp,
     seed,
     team,
@@ -60,6 +61,9 @@ export async function readInstallStepProgress(
     findInstallSuperAdmin(prisma),
     readInstallIdentityStatus(settingsService),
     readInstallLoginProviderStatus(settingsService),
+    // Readiness `authMode` needs a *stored* value; the settings default is
+    // `local`, and that must not mark the step done before the operator saves.
+    settingsService.hasStoredValue(settingKeys.privateAuthMode),
     readInstallSmtpStatus(settingsService, readInstallSmtpEnvPrefill()),
     readInstallSeedStatus(prisma),
     readInstallTeamStatus(prisma),
@@ -80,7 +84,7 @@ export async function readInstallStepProgress(
     // the same value the sign-in page reads.
     identity: { completed: identity.isConfigured, skipped: skipped.identity },
     loginProvider: {
-      completed: isLoginProviderSaved(loginProvider),
+      completed: authModeStored && isLoginProviderSaved(loginProvider),
       skipped: skipped.loginProvider,
     },
     smtp: { completed: smtp.isConfigured, skipped: skipped.smtp },

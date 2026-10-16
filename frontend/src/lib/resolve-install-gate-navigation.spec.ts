@@ -59,19 +59,19 @@ describe("resolveInstallGateNavigation", () => {
     ).toBeNull();
   });
 
-  it("sends /install to the application after setup is completed", () => {
+  it("keeps /install after setup is completed so the ready screen can show", () => {
     expect(
       resolveInstallGateNavigation({
         pathname: "/install",
         isSetupComplete: true,
       }),
-    ).toBe("/");
+    ).toBeNull();
     expect(
       resolveInstallGateNavigation({
         pathname: "/install/status",
         isSetupComplete: true,
       }),
-    ).toBe("/");
+    ).toBeNull();
   });
 
   it("does not block /install with its own gate", () => {
