@@ -22,6 +22,23 @@ export const readinessTimeouts = { databaseMs: 2_000, redisMs: 1_000 } as const;
 export const readinessCacheMs = 5_000;
 /** Paket 2.7 §10 `ops.thresholds.workerHeartbeatStaleSeconds` default. */
 export const defaultWorkerHeartbeatStaleSeconds = 120;
+/** Ops watchdog / health card: absorb brief Redis misses (eviction blip, reconnect). */
+export const workerHeartbeatReadAttempts = 3;
+export const workerHeartbeatReadDelayMs = 150;
+
+export async function readWorkerHeartbeatValue(
+  read: () => Promise<string | null>,
+  options: { readonly attempts?: number; readonly delayMs?: number } = {},
+): Promise<string | null> {
+  const attempts = options.attempts ?? workerHeartbeatReadAttempts;
+  const delayMs = options.delayMs ?? workerHeartbeatReadDelayMs;
+  for (let index = 0; index < attempts; index += 1) {
+    const value = await read();
+    if (value !== null) return value;
+    if (index < attempts - 1) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
+}
 
 export async function withTimeout<T>(work: () => Promise<T>, timeoutMs: number): Promise<T> {
   let timer: NodeJS.Timeout | undefined;

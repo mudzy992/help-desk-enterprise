@@ -59,7 +59,7 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
       en: 'Check the worker container (logs, restart). While it is down SLA, e-mail and scheduled jobs stop.',
     },
     runbook: runbook('worker-down'),
-    openAfter: 1,
+    openAfter: 2,
     resolveAfter: 2,
   },
   [opsAlertKeys.slaScanLate]: {

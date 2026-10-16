@@ -28,7 +28,7 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 
 | Ključ | Težina | Otvara / zatvara | Sidro |
 | --- | --- | --- | --- |
-| `worker.down` | KRITIČNO | 1 / 2 | [worker-down](#worker-down) |
+| `worker.down` | KRITIČNO | 2 / 2 | [worker-down](#worker-down) |
 | `sla.scan.late` | KRITIČNO | 1 / 2 | [sla-scan-late](#sla-scan-late) |
 | `scheduler.late` | UPOZORENJE | 2 / 2 | [scheduler-late](#scheduler-late) |
 | `disk.usage` | UPOZORENJE / KRITIČNO | 2 / 2 | [disk-usage](#disk-usage) |

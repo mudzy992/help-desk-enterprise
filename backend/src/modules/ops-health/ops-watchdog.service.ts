@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { withTimeout } from '../health/health-probes';
+import { readWorkerHeartbeatValue, withTimeout } from '../health/health-probes';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { observeMonitorFreshness, observeWorkerHeartbeat } from './evaluate-ops-signals';
 import { OpsAlertEngine } from './ops-alert.engine';
@@ -61,8 +61,9 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       const configuration = databaseAvailable
         ? await this.configurationLoader.load().catch(() => fallbackOpsConfiguration)
         : fallbackOpsConfiguration;
+      const client = this.redis.getClient();
       const [heartbeat, snapshot] = await Promise.all([
-        this.redis.getClient().get(workerHeartbeatRedisKey),
+        readWorkerHeartbeatValue(() => client.get(workerHeartbeatRedisKey)),
         this.store.readSnapshot<Pick<OpsSnapshot, 'generatedAt'>>(),
       ]);
       const workerObservation = observeWorkerHeartbeat({

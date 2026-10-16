@@ -14,7 +14,8 @@ export const workerHeartbeatRedisKey = 'integration-queue:worker-heartbeat';
 export const workerHeartbeatIntervalMilliseconds = 10_000;
 export const workerHeartbeatStaleThresholdMilliseconds =
   workerHeartbeatIntervalMilliseconds * 2;
-export const workerHeartbeatTimeToLiveSeconds = 30;
+/** Must exceed stale threshold gaps if BullMQ ticks slip; avoids transient missing keys. */
+export const workerHeartbeatTimeToLiveSeconds = 90;
 
 export const integrationQueueTypeTokens = {
   email: 'email',
