@@ -20,6 +20,7 @@ import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.
 import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
 import { SlaModule } from './modules/sla/sla.module';
 import { SettingsHttpModule } from './modules/settings/settings-http.module';
+import { SetupChecklistModule } from './modules/setup-checklist/setup-checklist.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TemplatesModule } from './modules/templates/templates.module';
@@ -58,6 +59,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     SettingsHttpModule,
     HealthModule,
     InstallModule,
+    SetupChecklistModule,
     AuthenticationModule,
     SecurityModule,
     AuthorizationModule,
