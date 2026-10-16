@@ -15,6 +15,8 @@ export const renderableInstallSteps = [
   "seed",
   "team",
   "addons",
+  // F6.1/F6.2: the provisioning screen and the „Sistem je spreman“ screen.
+  "provisioning",
   "complete",
 ] as const;
 

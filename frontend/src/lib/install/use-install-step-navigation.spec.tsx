@@ -18,7 +18,9 @@ const keys: readonly InstallStepKey[] = [
   "smtp",
   "seed",
   "team",
+  "slaReview",
   "addons",
+  "provisioning",
 ];
 
 function states(overrides: Partial<Record<InstallStepKey, InstallStepState>> = {}) {
@@ -96,6 +98,37 @@ describe("useInstallStepNavigation", () => {
 
     act(() => result.current.goBack());
     expect(result.current.step).toBe("superAdmin");
+  });
+
+  it("opens the step a red readiness check names, even before it was answered", () => {
+    // F6.1: „Idi na korak“ is for a check that is red because something was never
+    // answered — the opposite of „Nazad“, which only reviews answers.
+    const { result } = renderHook(() =>
+      useInstallStepNavigation({ serverStep: "provisioning", states: states() }),
+    );
+
+    act(() => result.current.openStep("slaReview"));
+    expect(result.current.step).toBe("slaReview");
+
+    // The step the server asks for is not a target: the operator is already there.
+    act(() => result.current.openStep("provisioning"));
+    expect(result.current.step).toBe("slaReview");
+    // The end of the wizard is never openable, and neither is a step of another
+    // package.
+    act(() => result.current.openStep("complete"));
+    expect(result.current.step).toBe("slaReview");
+  });
+
+  it("refuses to open a step the package does not offer", () => {
+    const { result } = renderHook(() =>
+      useInstallStepNavigation({
+        serverStep: "provisioning",
+        states: states({ smtp: { completed: false, offered: false, blocking: false } }),
+      }),
+    );
+
+    act(() => result.current.openStep("smtp"));
+    expect(result.current.step).toBe("provisioning");
   });
 
   it("drops the review when the server moves the wizard on", () => {

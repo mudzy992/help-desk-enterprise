@@ -72,6 +72,11 @@ const skippedStepSettings: readonly {
     description:
       'Add-ons step was deferred with "configure later"; the catalog defaults stay in place',
   },
+  {
+    key: installStepSkippedKeys.provisioning,
+    description:
+      'Provisioning step is not offered for deferral: the installation is finished on this screen, once the readiness checks are green',
+  },
 ];
 
 export const installWizardSettings: readonly SettingDefinition[] = [
@@ -119,6 +124,18 @@ export const installWizardSettings: readonly SettingDefinition[] = [
     isRequired: false,
     allowedValues: ['', 'confirmed', 'adjusted'],
     defaultValue: '',
+    readOnly: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateInstallChecklistDismissedAt,
+    categoryId: settingCategoryIds.privateInstall,
+    valueType: 'string',
+    description:
+      'ISO datetime when an administrator dismissed the post-install checklist on the dashboard; it only hides the widget, the deferred steps stay visible in Settings (F6.3)',
+    isRequired: false,
+    defaultValue: '',
+    // IN18: the dashboard writes it; the wizard's bookkeeping is not a value an
+    // administrator edits by hand.
     readOnly: true,
   }),
   ...installSectionStepSettings,

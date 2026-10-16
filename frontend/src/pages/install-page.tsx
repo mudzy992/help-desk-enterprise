@@ -101,6 +101,20 @@ function InstallWizardStep({
     onReload();
   };
 
+  /**
+   * F6.1: „Idi na korak“ from the provisioning screen. A step the checks are
+   * waiting for and the operator deferred goes back into the flow — the server
+   * then asks for it, so the wizard stays the only thing that decides where the
+   * operator is. An answered step opens as the usual review.
+   */
+  const handleFixStep = (stepKey: InstallStepKey) => {
+    if (states?.[stepKey]?.skipped === true) {
+      deferral.undo(stepKey);
+      return;
+    }
+    navigation.openStep(stepKey);
+  };
+
   return (
     <InstallWizardShell
       step={step}
@@ -137,6 +151,7 @@ function InstallWizardStep({
           states={states}
           onSaved={handleSaved}
           isAddonsSaved={states?.addons.completed === true}
+          onFixStep={handleFixStep}
           onDeferStep={(stepKey, shouldDefer) =>
             shouldDefer ? deferral.defer(stepKey) : deferral.undo(stepKey)
           }

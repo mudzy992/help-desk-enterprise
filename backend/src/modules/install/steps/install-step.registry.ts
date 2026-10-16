@@ -164,6 +164,18 @@ export const installStepDefinitions: readonly InstallStepDefinition[] = [
     // Flags only: falling back to the catalog defaults is harmless.
     resettableSettingKeys: installAddonCatalog.map((item) => addonSettingKey(item.key)),
   },
+  {
+    key: 'provisioning',
+    order: 90,
+    requiredIn: allProfiles,
+    offeredIn: allProfiles,
+    // F6.1: the screen where the operator watches the installation come up. It is
+    // never deferrable — a finished installation has to be ready — but it needs no
+    // marker either: `readInstallStepProgress` reports it as done exactly while the
+    // readiness checks are green, so it cannot outlive the state it describes.
+    skippable: false,
+    resettableSettingKeys: [],
+  },
 ];
 
 export const installStepDefinitionByKey: Readonly<Record<InstallStepKey, InstallStepDefinition>> =

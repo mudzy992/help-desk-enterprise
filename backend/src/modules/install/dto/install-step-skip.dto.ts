@@ -24,6 +24,10 @@ export const installStepParamKeys = [
   ...installSectionStepKeys,
   'securityRecommendations',
   'addons',
+  // F6.1: known to the endpoint like every other registry key, and answered with
+  // 409 rather than 400 — the readiness screen is what finishes the wizard, so a
+  // request to defer it is understood and refused (`skippable: false`).
+  'provisioning',
 ] as const satisfies readonly InstallStepKey[];
 
 export class InstallStepKeyParamDto {

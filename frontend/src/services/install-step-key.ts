@@ -21,6 +21,9 @@ export type InstallStepKey =
   | "slaReview"
   | InstallSectionStepKey
   | "securityRecommendations"
-  | "addons";
+  | "addons"
+  // F6.1: the screen where the operator watches the installation come up; it is
+  // the last step before the final screen.
+  | "provisioning";
 
 export type InstallWizardStep = InstallStepKey | "complete";

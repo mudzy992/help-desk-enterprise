@@ -47,6 +47,9 @@ export const installStepSkippedKeys = {
   policyPack: 'private.install.steps.policyPack.skipped',
   slaReview: 'private.install.steps.slaReview.skipped',
   addons: 'private.install.steps.addons.skipped',
+  // F6.1: the provisioning step is not offered for deferral either; the key
+  // exists because every registry step owns one (`readInstallSkippedSteps`).
+  provisioning: 'private.install.steps.provisioning.skipped',
   // F5: the Full package's sections and the security-recommendations step.
   securityRecommendations: 'private.install.steps.securityRecommendations.skipped',
   'section.inboundEmail': 'private.install.steps.section.inboundEmail.skipped',
@@ -86,6 +89,8 @@ export const settingKeys = {
   privateInstallPolicyPack: 'private.install.policyPack',
   /** F4.4: 'confirmed' or 'adjusted' once the SLA review step was answered. */
   privateInstallSlaReview: 'private.install.slaReview',
+  /** F6.3: when an administrator hid the post-install checklist on the dashboard. */
+  privateInstallChecklistDismissedAt: 'private.install.checklistDismissedAt',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
   privateAuthAzureTenantId: 'private.auth.azureTenantId',

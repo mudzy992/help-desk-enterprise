@@ -7,6 +7,11 @@ import type { InstallStepDefinition, InstallStepKey, InstallStepStates } from '.
  * Install wizard v2 (F1): `profileSteps` from overview §3 — nothing the selected
  * package still asks for is left unanswered.
  *
+ * F6.1: the readiness screen is left out. It is not a step the package asks for
+ * but the gate this check feeds: it reports itself as unfinished until the
+ * installation is finished, so counting it here would make readiness impossible
+ * to reach.
+ *
  * Whether a step is in the way is decided once, in `isInstallStepBlocking`,
  * which the next-step resolver reads too; this check only groups the result.
  *
@@ -17,11 +22,16 @@ import type { InstallStepDefinition, InstallStepKey, InstallStepStates } from '.
  * `missing` — a step of the package is neither done nor deferred; blocks
  *             completion (`POST /install/complete` → `INSTALL_NOT_READY`).
  */
+/** F6.1: steps that gate readiness instead of being checked by it. */
+const readinessGateStepKeys: readonly InstallStepKey[] = ['provisioning'];
+
 export function evaluateInstallProfileSteps(input: {
   readonly states: InstallStepStates;
   readonly definitions?: readonly InstallStepDefinition[];
 }): InstallReadinessCheck {
-  const definitions = input.definitions ?? listInstallStepDefinitions();
+  const definitions = (input.definitions ?? listInstallStepDefinitions()).filter(
+    (definition) => !readinessGateStepKeys.includes(definition.key),
+  );
   const missingSteps: InstallStepKey[] = [];
   const skippedSteps: InstallStepKey[] = [];
   for (const definition of definitions) {

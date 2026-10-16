@@ -1,10 +1,11 @@
 import { InstallAddonsStep } from "@/components/install/install-addons-step";
 import { InstallBlueprintStep } from "@/components/install/install-blueprint-step";
-import { InstallCompleteStep } from "@/components/install/install-complete-step";
 import { InstallIdentityStep } from "@/components/install/install-identity-step";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
 import { InstallPolicyPackStep } from "@/components/install/install-policy-pack-step";
 import { InstallProfileStep } from "@/components/install/install-profile-step";
+import { InstallProvisioningStep } from "@/components/install/install-provisioning-step";
+import { InstallReadyScreen } from "@/components/install/install-ready-screen";
 import { InstallSectionStep } from "@/components/install/install-section-step";
 import { InstallSecurityRecommendations } from "@/components/install/install-security-recommendations";
 import { InstallSlaReviewStep } from "@/components/install/install-sla-review-step";
@@ -29,6 +30,7 @@ export function InstallActiveStep({
   onSaved,
   isAddonsSaved,
   onDeferStep,
+  onFixStep,
   isDeferPending,
 }: {
   readonly step: InstallWizardStep;
@@ -37,6 +39,8 @@ export function InstallActiveStep({
   readonly onSaved: (next?: InstallProfileStatus) => void;
   readonly isAddonsSaved: boolean;
   readonly onDeferStep: (stepKey: InstallStepKey, shouldDefer: boolean) => void;
+  /** F6.1: „Idi na korak“ from the provisioning screen. */
+  readonly onFixStep: (stepKey: InstallStepKey) => void;
   readonly isDeferPending: boolean;
 }) {
   switch (step) {
@@ -71,8 +75,10 @@ export function InstallActiveStep({
       return <InstallSecurityRecommendations onSaved={() => onSaved()} />;
     case "addons":
       return <InstallAddonsStep onSaved={onSaved} isSaved={isAddonsSaved} />;
+    case "provisioning":
+      return <InstallProvisioningStep onFixStep={onFixStep} />;
     case "complete":
-      return <InstallCompleteStep />;
+      return <InstallReadyScreen />;
     default: {
       // F5: every `section.<key>` step is the same screen with a different
       // allowlist behind it — the registry decides what the step holds, so the

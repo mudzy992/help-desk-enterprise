@@ -1793,6 +1793,8 @@
         "private.install.steps.smtp.skipped": "Oznaka da je korak SMTP postavki odgođen u čarobnjaku.",
         "private.install.steps.seed.skipped": "Oznaka da je korak početnih podataka odgođen u čarobnjaku.",
         "private.install.steps.addons.skipped": "Oznaka da je korak dodataka odgođen u čarobnjaku.",
+        "private.install.steps.provisioning.skipped": "Oznaka da je korak provjere spremnosti odgođen u čarobnjaku (nije ponuđen za odgodu).",
+        "private.install.checklistDismissedAt": "Kada je administrator sakrio checklistu nakon instalacije na dashboardu.",
         "private.integrations.queue.adminUiEnabled": "Uključi admin API za pregled reda i ponovni pokušaj poslova.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj neuspješnih pokušaja nakon kojeg posao ide u dead-letter red.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana čuvati dead-letter poslove prije brisanja.",
@@ -2307,6 +2309,8 @@
         "private.install.steps.smtp.skipped": "Postavlja ga čarobnjak kad operater odgodi SMTP, npr. u paketu Minimum gdje email nije obavezan. Odgođen korak ne blokira završetak, ali ga lista obaveza prikazuje.",
         "private.install.steps.seed.skipped": "Postavlja ga čarobnjak kad operater odgodi kreiranje početnih podataka. Bez organizacijske jedinice, servisa i usmjeravanja instalacija ne može primati tikete, pa je vrijednost u praksi uvijek false.",
         "private.install.steps.addons.skipped": "Postavlja ga čarobnjak kad operater odgodi potvrdu dodataka. Tad se koriste zadane vrijednosti iz kataloga, a uključivanje ostaje moguće kasnije u Settings.",
+        "private.install.steps.provisioning.skipped": "Korak se ne može odgoditi — instalacija se završava tek kad su sve provjere zelene. Ključ postoji jer svaki korak iz registryja ima svoju oznaku.",
+        "private.install.checklistDismissedAt": "Upisuje ga dugme „Sakrij“ na dashboardu. Sakriva samo widget; stavke ostaju vidljive u Settings-u i nestaju same kad se ispune.",
         "private.integrations.queue.adminUiEnabled": "Uključeno dozvoljava admin API za pregled reda i ručno ponavljanje poslova. Isključeno ostavlja red bez nadzora iz aplikacije, pa se problemi rješavaju samo u logovima.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj pokušaja nakon kojeg neuspjeli posao prelazi u red mrtvih slova (DLQ). Iz DLQ-a se posao može pregledati i ponoviti ručno.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana radnik čuva poslove u DLQ-u prije brisanja. Duži rok omogućava kasniju analizu, ali drži osjetljive podatke u sistemu duže.",
@@ -3085,7 +3089,35 @@
     "activityRetry": "Pokušaj ponovo",
     "unroutedOverdueBanner_one": "{{count}} nerutiran tiket čeka duže od {{hours}} h — riješite ga",
     "unroutedOverdueBanner_few": "{{count}} nerutirana tiketa čekaju duže od {{hours}} h — riješite ih",
-    "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih"
+    "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih",
+    "setupChecklist": {
+      "title": "Završite podešavanje",
+      "subtitle": "Ostavljeno za kasnije: {{count}}",
+      "dismiss": "Sakrij",
+      "goTo": "Otvori",
+      "itemHint": "Nije konfigurisano tokom instalacije.",
+      "item": {
+        "smtp": "E-mail obavještenja su isključena — podesite SMTP.",
+        "team": "Tim je samo SuperAdmin — pozovite kolege u grupu.",
+        "blueprint": "Katalog je bez servisa iz šablona.",
+        "slaReview": "Radno vrijeme i matrica prioriteta nisu pregledani.",
+        "securityRecommendations": "Preporuke za produkciju nisu primijenjene.",
+        "addons": "Dodaci nisu potvrđeni — koriste se zadane vrijednosti.",
+        "section": {
+          "inboundEmail": "Dolazni e-mail nije podešen.",
+          "directory": "Direktorij (LDAPS) nije povezan.",
+          "knowledgeBase": "Baza znanja nije podešena.",
+          "statusPage": "Status stranica nije uključena.",
+          "onCall": "Dežurstva nisu podešena.",
+          "announcements": "Obavještenja nisu podešena.",
+          "security": "Sigurnosna pravila nisu pregledana.",
+          "privacy": "Politika privatnosti nije pregledana.",
+          "auditWebhook": "Audit webhook nije podešen.",
+          "itsm": "ITSM procesi (problemi i izmjene) nisu podešeni.",
+          "integrations": "Integracije nisu povezane."
+        }
+      }
+    }
   },
   "reports": {
     "title": "Izvještaji i uska grla",
@@ -4389,13 +4421,12 @@
       "other": "Ostalo"
     },
     "complete": {
-      "heading": "Završi podešavanje",
-      "body": "Wizard se zaključava. Dalje izmjene idu kroz Settings.",
-      "submit": "Završi",
-      "saving": "Zaključavanje…",
+      "heading": "Sistem je spreman",
+      "body": "Instalacija je spremna za rad. Pogledajte sažetak i završite podešavanje; svaka kasnija izmjena ide kroz Settings.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "notReady": "Instalacija još nije spremna za prijem tiketa.",
-      "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
+      "errorGeneric": "Podešavanje trenutno nije moguće zaključati.",
+      "hint": "Čarobnjak je zaključan i dalje podešavanje ide kroz Settings. Prijavite se SuperAdmin nalogom koji ste kreirali u ovom čarobnjaku."
     },
     "progress": "Korak {{current}} od {{total}}",
     "steps": {
@@ -4407,6 +4438,7 @@
       "seed": "Struktura i servis",
       "team": "Tim",
       "addons": "Dodaci",
+      "provisioning": "Provjera spremnosti",
       "complete": "Završetak",
       "blueprint": "Katalog iz predloška",
       "policyPack": "Paket prava",
@@ -4519,6 +4551,43 @@
       "roles": "Sistemske uloge i njihove dozvole postoje.",
       "profileSteps": "Svi koraci izabranog paketa su završeni ili odgođeni."
     },
+    "provisioning": {
+      "heading": "Provjera spremnosti",
+      "body": "Vidite šta je spremno, a šta još nedostaje. Instalacija se ne može završiti dok je ijedna provjera crvena.",
+      "checking": "Provjeravamo da li je sistem spreman za prijem tiketa.",
+      "allGreen": "Sve provjere su zelene — možete završiti instalaciju.",
+      "goToStep": "Idi na korak",
+      "recheck": "Provjeri ponovo",
+      "finish": "Završi instalaciju",
+      "finishing": "Zaključavanje…",
+      "ok": "U redu",
+      "missing": "Nedostaje",
+      "deferred": "Odgođeno"
+    },
+    "ready": {
+      "profile": "Paket",
+      "organization": "Organizacija",
+      "units": "Organizacijske jedinice",
+      "services": "Servisi",
+      "groups": "Grupe",
+      "team": "Članovi tima",
+      "addons": "Uključeni dodaci",
+      "later": "Za kasnije",
+      "firstSteps": "Prvi koraci",
+      "firstTicket": {
+        "title": "Kreiraj prvi tiket",
+        "body": "Otvorite portal i prijavite probni zahtjev."
+      },
+      "inviteTeam": {
+        "title": "Pozovi tim",
+        "body": "Korak tima je odgođen — dodajte kolege u grupu."
+      },
+      "openSettings": {
+        "title": "Otvori podešavanja",
+        "body": "Fino podesite module, email i bezbjednost."
+      },
+      "signIn": "Prijavite se"
+    },
     "statusError": {
       "title": "Status instalacije nije moguće provjeriti",
       "body": "Server nije odgovorio na zahtjev za status instalacije. Ništa nije promijenjeno. Provjerite vezu i pokušajte ponovo.",
@@ -4584,6 +4653,11 @@
         "1": "Vidite radno vrijeme i matricu prioriteta koje sistem koristi.",
         "2": "Zadane vrijednosti možete potvrditi ili odmah izmijeniti.",
         "3": "Potvrda ne mijenja podatke — samo bilježi da ste pregledali."
+      },
+      "provisioning": {
+        "1": "Provjera prije zaključavanja: servis, grupa i usmjeravanje",
+        "2": "Jasno se vidi šta nedostaje i na kojem koraku se popravlja",
+        "3": "Nema skrivenih grešaka nakon završetka"
       }
     },
     "blueprint": {

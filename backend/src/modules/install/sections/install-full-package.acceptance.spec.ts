@@ -83,7 +83,13 @@ describe('the Full package walked with „Podesi kasnije“', () => {
         skippable: true,
       })),
     );
-    // Nothing else is in the way either, so the wizard reaches the final screen.
-    expect(Object.values(states).filter((state) => state.blocking)).toEqual([]);
+    // Nothing else is in the way either: the only step left is the readiness
+    // screen (F6.1), which is where the wizard ends and cannot be deferred.
+    expect(
+      Object.entries(states)
+        .filter(([stepKey]) => stepKey !== 'provisioning')
+        .filter(([, state]) => state.blocking),
+    ).toEqual([]);
+    expect(states.provisioning).toMatchObject({ blocking: true, skippable: false });
   });
 });

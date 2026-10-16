@@ -173,6 +173,51 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
   way, so a list like `10, 11, 12` maps straight onto files.
 
+## The install wizard (F6) — a project of its own
+
+`install-wizard/playwright.install.config.ts` runs the two wizard specs through the **UI**, on a stack whose
+wizard is still open:
+
+```bash
+cd e2e
+E2E_INSTALL_TOKEN=<the deployment's INSTALL_TOKEN> \
+  npx playwright test -c install-wizard/playwright.install.config.ts
+```
+
+- **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
+  ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
+  deferred on purpose, which is also what the post-install checklist must then list.
+- **52 — Standard:** the same flow plus a real SMTP test mail, one invited team member, the „IT service desk“
+  blueprint and the IT policy pack. Without a mail catcher (or any SMTP) the SMTP test fails, the step is
+  **deferred** instead and the run reports it as an annotation — a skipped check is never a green one.
+
+Why it is separate: the shared `global-setup` calls `ensureInstall`, which finishes the installation through the
+API. That is exactly what these specs prove through the UI, so reusing it would make them pass by construction.
+The wizard project's own `globalSetup` only waits for `/health`.
+
+**A clean stack is the precondition.** The specs skip themselves (with the reason) when
+`GET /install/status` reports `isCompleted: true`; to run them against a finished installation, reopen the wizard
+first (ops only):
+
+```bash
+docker exec -i <backend> node dist/src/cli/install-rerun.js --reason "E2E install wizard" --include-step-markers
+```
+
+`install-rerun` needs `INSTALL_ALLOW_RERUN=true` and returns the *markers* to their defaults, so the steps whose
+state lives in real rows stay answered and the specs walk past them (that is what `reachStep` handles). Between
+spec 51 and spec 52 the wizard has to be reopened the same way, because 51 finishes the installation. Runbook:
+`ops/runbook/ponovno-pokretanje-instalacije.md`.
+
+**In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51` or `52`
+after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e job
+**steps aside** for that dispatch — its global setup would complete the installation the wizard job is about to
+walk — and the wizard job's Preflight fails loudly when `/install/status` reports a finished installation,
+instead of letting the specs skip their way to a green checkmark.
+
+> The CI side of F6 (a separate job vs. a dispatch input) is still an **owner decision** in
+> `.cursor/plans/install-wizard-v2/07_phase-f6-zavrsetak-testovi.md`; the job above is the „dispatch input“
+> variant, and it is inert until it is dispatched.
+
 ## State the suite owns and must reset
 
 A run is executed against a **live** stack that people also use, so tests must not inherit what an earlier run (or a

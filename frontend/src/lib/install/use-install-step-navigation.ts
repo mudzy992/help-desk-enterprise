@@ -16,6 +16,13 @@ export type InstallStepNavigation = {
   readonly step: InstallWizardStep;
   readonly canGoBack: boolean;
   readonly goBack: () => void;
+  /**
+   * F6.1: opens one specific step — the provisioning screen uses it for „Idi na
+   * korak“. The step that answers a red check is usually still unanswered, so
+   * this is wider than „Nazad“: any step the package offers and that comes before
+   * the one the server asks for opens. Anything else leaves the screen where it is.
+   */
+  readonly openStep: (step: InstallWizardStep) => void;
   /** „Nastavi“ — leave the review and follow the server again. */
   readonly continueForward: () => void;
 };
@@ -39,6 +46,15 @@ export function useInstallStepNavigation(input: {
     setReviewedStep((current) => findPreviousReviewable(current ?? serverStep, states) ?? current);
   }, [serverStep, states]);
 
+  const openStep = useCallback(
+    (next: InstallWizardStep) => {
+      if (isOpenable(next, states, serverStep)) {
+        setReviewedStep(next);
+      }
+    },
+    [serverStep, states],
+  );
+
   const continueForward = useCallback(() => setReviewedStep(null), []);
 
   return useMemo(
@@ -46,9 +62,10 @@ export function useInstallStepNavigation(input: {
       step,
       canGoBack: findPreviousReviewable(step, states) !== null,
       goBack,
+      openStep,
       continueForward,
     }),
-    [step, states, goBack, continueForward],
+    [step, states, goBack, openStep, continueForward],
   );
 }
 
@@ -70,6 +87,21 @@ function findPreviousReviewable(
     }
   }
   return null;
+}
+
+/**
+ * F6.1: the steps „Idi na korak“ may open. They have to be part of the package and
+ * sit before the step the server asks for — opening something the wizard has not
+ * reached yet would be a second way to walk it, which the shell never offers.
+ */
+function isOpenable(
+  step: InstallWizardStep,
+  states: Readonly<Record<string, InstallStepState>> | undefined,
+  serverStep: InstallWizardStep,
+): boolean {
+  if (step === "complete") return false;
+  if (states?.[step]?.offered === false) return false;
+  return installWizardSteps.indexOf(step) < installWizardSteps.indexOf(serverStep);
 }
 
 function isReviewable(

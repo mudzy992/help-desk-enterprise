@@ -47,6 +47,7 @@ Prvi ekran je **token gate** (`install-token-gate.tsx`): otključava se isključ
 | `profileSteps` | Svaki korak izabranog paketa je završen ili eksplicitno odgođen |
 
 Statusi: `ok` · `missing` (blokira) · `skipped` (D4: „Podesi kasnije“ — **ne** blokira).
+F6.1: `profileSteps` **preskače** korak `provisioning` (`readinessGateStepKeys`) — korak `provisioning` je sam ekran koji ove provjere prikazuje i nikad nije `completed` (`read-install-step-states.ts`), pa bi njegovo brojanje učinilo spremnost nedostižnom. `installReadinessStepKeys` uz svaku provjeru nosi i **korak koji je rješava** (`roles` → `null`: sistemske uloge nijedan korak ne pita), pa ekran nudi „Idi na korak“.
 `POST /install/complete` poziva istu provjeru prije upisa; ako nije zeleno → `409 INSTALL_NOT_READY` sa `details.missing` (lista ključeva). Frontend mapira u `install.complete.notReady` i prikazuje listu kroz `install.readiness.<key>`.
 
 ## Paketi (F1)
@@ -128,7 +129,37 @@ Promjena paketa (odluka vlasnika 5) dozvoljena je dok je operater na koraku pake
    Switch po dodatku (opis uz svaki). Core se ne gasi (ticketing, routing, group inbox, RBAC, audit, in-app notifikacije, attachments).  \
    F0.5: korak je `completed` **samo** ako je `POST /install/addons` bar jednom sačuvan (dokaz je bar jedan upisan `private.addons.*` ključ); osvježavanje stranice više ne preskače korak i defaulti se ne prihvataju tiho.
 
-**Odgađanje koraka (F1, D4).** Korak može biti `skippable` (SMTP, tim, katalog iz predloška, SLA pregled i dodaci); F4 koraci `policyPack` obavezan i ne može se odgoditi. `POST /install/steps/:stepKey/skip` upisuje `private.install.steps.<stepKey>.skipped=true`, `DELETE` ga vraća na `false`; korak koji nije `skippable` (SuperAdmin, seed, paket, način prijave) vraća `400 INSTALL_STEP_NOT_SKIPPABLE`. Odgođen korak ne blokira `complete`, ali ulazi u `profileSteps` sa statusom `skipped`.
+11. **Provjera spremnosti (F6.1)**  \
+   Posljednji korak prije kraja i **jedino mjesto** s kojeg se instalacija završava. `GET /install/readiness` se prikazuje kao lista (`install-readiness-checks.tsx`): ikona po statusu + `aria-live="polite"`, sr-only riječ statusa (`install.provisioning.ok|missing|deferred`), a crvena stavka nosi poruku i — kad je korak poznat — dugme **„Idi na korak“** (`installReadinessStepKeys`). Lista je statična (nema `draw-ring` animacije): smanjeni pokret ne mijenja ništa osim što je i dalje obična lista.  \
+   Dok je ijedna provjera `missing`, dugme **„Završi instalaciju“** ne postoji. Kad su sve zelene: `POST /install/complete`, pa `setup.markCompleted()` (bez `reload()` — status je već prešao na `complete`). Odbijen `complete` (`409 INSTALL_NOT_READY`) ispisuje `install.complete.notReady` + `details.missing` kroz `install.readiness.<key>` i sam ponavlja `GET /install/readiness` **i** `reload()` statusa, pa operater sleti na korak koji stvarno nedostaje.  \
+   „Provjeri ponovo“ je samo ponovno čitanje readinessa; korak se ne može odgoditi (`409 INSTALL_STEP_NOT_SKIPPABLE`, ključ je u `installStepParamKeys` da odgovor bude 409, a ne 400).
+
+12. **„Sistem je spreman“ (F6.2, završni ekran)**  \
+   Ne korak nego kraj: `resolve-rendered-step.ts` vraća `complete` kad `isCompleted` stoji. `install-ready-screen.tsx` prikazuje sažetak (`install-ready-summary.tsx`: paket, naziv organizacije, broj OU/servisa/grupa/članova tima, uključeni dodaci kao read-only kartice, odgođeni koraci iz `summary.deferredSteps`) i tri prva koraka (`install-first-steps.tsx`): „Kreiraj prvi tiket“ (portal), „Pozovi tim“ (**samo** kad je `deferredSteps` sadrži `team`) i „Otvori podešavanja“. Sažetak dolazi uz `GET /install/status` samo dok instalacija **nije** završena (F6: `readInstallSummary`, `InstallSetupSummary`); završena instalacija ga ne nosi, pa ekran prikaže samo prve korake.  \
+   Prijave **nema** (odluka vlasnika 1): ekran nudi link na `/login` (`install.ready.signIn`) i ništa ne šalje sâmo. Staru komponentu `install-complete-step.tsx` zamjenjuju `install-ready-screen.tsx` + `install-ready-summary.tsx` + `install-first-steps.tsx`.
+
+**Odgađanje koraka (F1, D4).** Korak može biti `skippable` (SMTP, tim, katalog iz predloška, SLA pregled, sigurnosne preporuke, sekcije Full paketa i dodaci); `policyPack` i `provisioning` (F6.1) su obavezni i ne mogu se odgoditi. `POST /install/steps/:stepKey/skip` upisuje `private.install.steps.<stepKey>.skipped=true`, `DELETE` ga vraća na `false`; korak koji nije `skippable` (SuperAdmin, seed, paket, način prijave) vraća `400 INSTALL_STEP_NOT_SKIPPABLE`. Odgođen korak ne blokira `complete`, ali ulazi u `profileSteps` sa statusom `skipped`.
+
+## Checklist poslije instalacije (F6.3)
+
+Ono što je čarobnjak obećao „Podesi kasnije“ ne smije se izgubiti u tišini. Novi modul `backend/src/modules/setup-checklist/` nudi `GET /setup-checklist`:
+
+- **Predmeti** su koraci sa `private.install.steps.<key>.skipped = true` **i** nezadovoljene preporuke (npr. SMTP isključen). `provisioning` i `complete` su izuzeti.
+- Predmet je **završen** kad njegov `readState` iz registryja vrati `completed` — nema ručnog označavanja niti „preskoči“ stavke. Stavka nestaje jer stvar iza nje postoji.
+- Svaki predmet nosi `{ key, kind: 'step' | 'recommendation', targetKey, titleKey, helpKey? }`: naslov je `dashboard.setupChecklist.item.<stepKey>` (sekcije: `item.section.<sectionKey>`), a „Otvori“ vodi na ekran koji to rješava (`setup-checklist-target.ts`: preporuke → `/admin?tab=security`, tim → `/admin?tab=users`, seed/blueprint → `/services`, `slaReview` → `/sla`, `policyPack` → `/admin?tab=permissions`, ostalo → `/admin?tab=settings`).
+- `POST /setup-checklist/dismiss` upisuje `private.install.checklistDismissedAt` (ISO) i sakrije **samo karticu**; stavke ostaju dostupne iz Settingsa i vraćaju se brisanjem ključa.
+- Pristup: sesija + `permissionKeys.settingsWrite` (`403` bez aktera), `@AdminReadOperation()` na GET-u. Modul **nije** pod `InstallWizardLockGuard`-om — instalacija je završena, ovo je poslije nje.
+- UI: `components/dashboard/setup-checklist-card.tsx` (+ `setup-checklist-item.tsx`), samo za admine, iznad skeletona na dashboardu, osvježava se pri ulasku na stranicu (bez realtime-a). Neuspješno čitanje **sakrije** karticu; checklist je ponuda, ne kapija.
+
+## E2E (F6)
+
+`e2e/install-wizard/playwright.install.config.ts` je **odvojen** projekat: njegov `globalSetup` samo čeka `/health`, jer `ensureInstall` iz zajedničkog setupa završava instalaciju kroz API — upravo ono što ova dva speca dokazuju kroz UI.
+
+- **51 (Minimum):** token gate → paket → SuperAdmin → identitet → lokalna prijava → struktura → odgođeni SMTP i tim → dodaci → provisioning → „Sistem je spreman“, pa prijava na `/login`, checklist sa tačno odgođenim stavkama i **stvarni rutirani tiket** na seedovanom servisu.
+- **52 (Standard):** isto + pravi SMTP test, pozvan član tima, blueprint „IT service desk“ i IT policy pack; bez mail catchera SMTP test pada, korak se **odgodi** i to se zabilježi kao anotacija (preskočena provjera nikad nije zelena). Sigurnosne preporuke se svjesno odgađaju: primjena čini MFA obaveznim za admine, a spec se onda prijavljuje tim istim adminom.
+- Preduslov je **svježa** baza (ili ponovno otvoren čarobnjak: `INSTALL_ALLOW_RERUN=true` + `npm run cli:install-rerun -- --reason ... --include-step-markers`). Specovi se sami preskaču kad `GET /install/status` kaže `isCompleted: true`; između 51 i 52 čarobnjak se mora ponovno otvoriti, jer 51 instalaciju završava.
+- `reachStep` u `install-wizard-step-reader.ts` preskače korake koji su već odgovoreni (njihovo stanje živi u stvarnim redovima), pa isti tok radi i na svježoj bazi i na ponovno otvorenoj instalaciji.
+- **CI:** posao `e2e-install-wizard` postoji, ali je **inertan** dok ga neko ne pokrene dispatchom sa `install_spec=51|52`; tada se normalni `e2e` posao povlači (njegov `globalSetup` bi završio instalaciju koju wizard upravo hoda), a Preflight pada glasno ako je instalacija već završena. Ovaj dio plan (`.cursor/plans/install-wizard-v2/07_phase-f6-zavrsetak-testovi.md`) traži kao **odluku vlasnika** — zato je izveden kao dispatch input i čeka potvrdu.
 
 ## Dodaci (katalog)
 
@@ -171,7 +202,9 @@ Od val 5 kataloga nema `sla`, `autoAssign`, `timeTracking` ni `serviceDowntime` 
 | `POST /install/blueprints/apply` | primjena predloška uz `EXACT` ruting (F4.2) |
 | `GET/POST /install/policy-pack` | ponuda i primjena paketa prava (F4.3) |
 | `GET/POST /install/sla-review` | pregled i odluka o radnom vremenu/matrici (F4.4) |
-| `POST /install/complete` | zaključavanje wizarda uz readiness provjeru (F0.7) |
+| `POST /install/complete` | zaključavanje wizarda uz readiness provjeru (F0.7); poziva ga **samo** ekran `provisioning` (F6.1) |
+| `GET /setup-checklist` | šta je ostalo odgođeno + nezadovoljene preporuke (F6.3; sesija + `settingsWrite`) |
+| `POST /setup-checklist/dismiss` | sakrij karticu (`private.install.checklistDismissedAt`; stavke ostaju) |
 
 Kontroleri su razdvojeni po namjeni: `install.controller.ts` (koraci prvog pokretanja), `install-steps.controller.ts` (paket, „Podesi kasnije“, readiness), `install-blueprint.controller.ts` (F4.2) i `install-content.controller.ts` (policy pack + SLA pregled, F4.3/F4.4) — svi dijele `InstallWizardLockGuard` i isti `ValidationPipe` (`install-validation.pipe.ts`). SMTP test ima svoj `install-smtp-test.controller.ts` (`POST /install/smtp/test`).
 
@@ -185,6 +218,7 @@ Frontend ima **jedan** izvor statusa: `InstallSetupProvider` (`nextStep`, `steps
 - `private.install.blueprint` (string; F4.2 — primijenjeni predložak, npr. `itServiceDesk`)
 - `private.install.policyPack` (string; F4.3 — primijenjeni paket, npr. `PACK_IT_STANDARD`)
 - `private.install.slaReview` (`confirmed` | `adjusted` | empty; F4.4)
+- `private.install.checklistDismissedAt` (string ISO | empty; F6.3 — kad je upisan, dashboard ne prikazuje karticu checkliste)
 - `private.install.steps.<stepKey>.skipped` (boolean, default false; F1 — `<stepKey>` je konačan skup iz registryja)
   Svi `private.install.*` ključevi čarobnjaka su `readOnly` u registry metadata-i (IN18): Settings ekran ih prikazuje bez editora, uz oznaku „Čarobnjak“ i objašnjenje; API ih i dalje ne zaključava (metadata za UI, ne novo pravilo).
 - `private.auth.mode` (`local` | `entra_ad`)

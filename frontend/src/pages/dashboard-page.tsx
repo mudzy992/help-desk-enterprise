@@ -8,6 +8,7 @@ import { DashboardInboxSnapshot } from "@/components/dashboard/dashboard-inbox-s
 import { DashboardMetricGrid } from "@/components/dashboard/dashboard-metric-grid";
 import { DashboardRecentTickets } from "@/components/dashboard/dashboard-recent-tickets";
 import { DashboardSlaWatchlist } from "@/components/dashboard/dashboard-sla-watchlist";
+import { SetupChecklistCard } from "@/components/dashboard/setup-checklist-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -16,19 +17,20 @@ import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
-import { canOpenReports, isTicketStaff } from "@/lib/session/route-access";
+import { canOpenAdminArea, canOpenReports } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  // Val 6.1 / modul 4 (D14): one useSessionCapabilities() per dashboard page,
-  // shared between the header action and the hook — no duplicate GET /auth/session.
   const capabilities = useSessionCapabilities();
-  const isStaff = isTicketStaff(capabilities);
   // Val 1 (M15/B5): dugme je bilo trajno onemogućeno uz poruku da ruta ne
   // postoji, iako `/reports` postoji; sada je link, uz isto pravilo pristupa.
   const reportsVisible = canOpenReports(capabilities);
+  // F6.3: the post-install checklist is administration content (it names what
+  // the installation is still missing) — read and dismiss both need settings.write.
+  const setupChecklistVisible = canOpenAdminArea(capabilities);
   const {
+    isStaff,
     summary,
     inboxCount,
     inboxTickets,
@@ -38,7 +40,7 @@ export function DashboardPage() {
     isLoading,
     errorKey,
     requestId,
-  } = useDashboardSummary(isStaff);
+  } = useDashboardSummary();
   const recentExclusive =
     summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
 
@@ -65,6 +67,7 @@ export function DashboardPage() {
           </>
         }
       />
+      {setupChecklistVisible ? <SetupChecklistCard /> : null}
       {isLoading ? (
         <PanelSkeleton className="mt-0" label={t("navigation.dashboard")} />
       ) : errorKey ? (
@@ -103,7 +106,6 @@ export function DashboardPage() {
             items={summary.attention}
             serviceNames={serviceNames}
             originNames={originNames}
-            isStaff={isStaff}
           />
           {recentExclusive.length > 0 ? (
             <Card>
