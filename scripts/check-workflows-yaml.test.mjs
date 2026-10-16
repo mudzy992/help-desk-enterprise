@@ -3,6 +3,43 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { findWorkflowProblems } from "./check-workflows-yaml.mjs";
 
+const workflowPath = new URL("../.github/workflows/ci.yml", import.meta.url);
+
+/** Blok jednog joba: od `  ime:` do sljedećeg ključa na istom uvlačenju. */
+function readJob(workflow, name) {
+  const lines = workflow.split("\n");
+  const start = lines.findIndex((line) => line === `  ${name}:`);
+  assert.notEqual(start, -1, `${name} job postoji`);
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^ {2}[a-z][a-z0-9-]*:$/.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join("\n");
+}
+
+/**
+ * `if: >-` je blok skalar; GitHub ga vidi kao jedan red. Bez `>` bi dvotočka u
+ * uslovu razbila YAML, pa se uslov drži na više redova — a ovdje se sklapa
+ * nazad, jer se upravo taj sklopljeni izraz provjerava.
+ */
+function readJobCondition(workflow, name) {
+  const job = readJob(workflow, name);
+  const conditionStart = job.indexOf("    if: >-");
+  const conditionEnd = job.indexOf("    needs:", conditionStart);
+  assert.notEqual(conditionStart, -1, `${name} job ima uslov`);
+  assert.notEqual(conditionEnd, -1, `${name} uslov završava prije needs`);
+  return job
+    .slice(conditionStart, conditionEnd)
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim())
+    .join(" ")
+    .trim();
+}
+
 // The real failure this guard exists for: GitHub refused the whole file with
 // ".github/workflows/ci.yml#L73 — You have an error in your yaml syntax".
 test("hvata dvotočku u neukotvljenoj vrijednosti koraka", () => {
@@ -49,30 +86,44 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
 });
 
 // E2E na pushu u `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
+// Izuzetak je dispatch sa `install_spec` (F6): tada se obični E2E **povlači**, jer njegov
+// `globalSetup` poziva `ensureInstall` i završi instalaciju koju wizard spec upravo hoda.
 test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch", () => {
-  const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-  const start = workflow.indexOf("  e2e:");
-  const end = workflow.indexOf("  gate:", start);
-  assert.notEqual(start, -1, "e2e job postoji");
-  assert.notEqual(end, -1, "gate job slijedi e2e job");
-  const e2eJob = workflow.slice(start, end);
-  const conditionStart = e2eJob.indexOf("    if: >-");
-  const conditionEnd = e2eJob.indexOf("    needs:", conditionStart);
-  assert.notEqual(conditionStart, -1, "e2e job ima uslov");
-  assert.notEqual(conditionEnd, -1, "e2e uslov završava prije needs");
-  const condition = e2eJob.slice(conditionStart, conditionEnd);
-  const expression = condition
-    .split("\n")
-    .slice(1)
-    .map((line) => line.trim())
-    .join(" ")
-    .trim();
+  const workflow = readFileSync(workflowPath, "utf8");
 
   assert.equal(
-    expression,
+    readJobCondition(workflow, "e2e"),
     "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
-      "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ) && " +
+      "github.event_name == 'schedule' || " +
+      "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
       "needs.backend.result == 'success' && needs.frontend.result == 'success'",
+  );
+});
+
+// Zajedno se ne smiju pokrenuti: obični E2E bi kroz API završio instalaciju koju
+// wizard spec (51/52) prolazi kroz UI, pa bi oba speca pala na `isCompleted`.
+test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const wizard = readJobCondition(workflow, "e2e-install-wizard");
+  const e2e = readJobCondition(workflow, "e2e");
+
+  // Wizard posao se ne pokreće bez izabranog speca i bez zelenih buildova.
+  assert.ok(
+    wizard.includes("github.event_name == 'workflow_dispatch'") &&
+      wizard.includes("inputs.install_spec != ''") &&
+      wizard.includes("needs.backend.result == 'success'") &&
+      wizard.includes("needs.frontend.result == 'success'"),
+    `neočekivan uslov wizard posla: ${wizard}`,
+  );
+  // I obrnuto: čim je spec izabran, obični E2E staje.
+  assert.ok(
+    e2e.includes("inputs.install_spec == ''"),
+    `obični E2E nema izuzetak za wizard dispatch: ${e2e}`,
+  );
+  assert.notEqual(
+    workflow.indexOf("  e2e-install-wizard:"),
+    -1,
+    "wizard posao je i dalje u workflowu",
   );
 });
 
