@@ -96,7 +96,8 @@ test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch",
     "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
       "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
-      "needs.backend.result == 'success' && needs.frontend.result == 'success'",
+      "( inputs.skip_gates == true || " +
+      "(needs.backend.result == 'success' && needs.frontend.result == 'success') )",
   );
 });
 
@@ -114,6 +115,25 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
       wizard.includes("needs.backend.result == 'success'") &&
       wizard.includes("needs.frontend.result == 'success'"),
     `neočekivan uslov wizard posla: ${wizard}`,
+  );
+  // `skip_gates` (default uključen za ručni dispatch) preskače backend i frontend —
+  // i tada oba E2E posla moraju prihvatiti preskočene gateove, inače se wizard
+  // posao nikad ne pokrene iako su mu zavisnosti „skipped“.
+  assert.ok(
+    readJobCondition(workflow, "e2e-install-wizard").includes("inputs.skip_gates == true") &&
+      e2e.includes("inputs.skip_gates == true"),
+    "oba E2E posla moraju imati `skip_gates` izlaz",
+  );
+  for (const gated of ["backend", "frontend"]) {
+    assert.ok(
+      readJob(workflow, gated).includes("inputs.skip_gates != true"),
+      `${gated} se mora preskočiti kad je skip_gates uključen`,
+    );
+  }
+  const inputs = workflow.slice(workflow.indexOf("  workflow_dispatch:"), workflow.indexOf("concurrency:"));
+  assert.ok(
+    inputs.includes("skip_gates:") && inputs.includes("default: true"),
+    "skip_gates je dispatch input sa zadanim `true`",
   );
   // I obrnuto: čim je spec izabran, obični E2E staje.
   assert.ok(

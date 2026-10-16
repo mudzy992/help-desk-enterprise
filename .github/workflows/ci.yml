@@ -53,6 +53,13 @@ on:
           installation, so reset the database (or reopen the wizard with --include-step-markers) before 52.
         required: false
         default: ""
+      skip_gates:
+        description: >-
+          E2E only: skip the backend and frontend jobs and start E2E immediately (default: on). Turn it
+          off when a manual run should wait for the code checks before touching the stack.
+        required: false
+        type: boolean
+        default: true
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -125,7 +132,11 @@ jobs:
     needs: [changes]
     # On a PR only what the change can break runs. On push/schedule/dispatch the
     # list is empty (no `changes` diff for a schedule), so everything runs.
-    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
+    # `skip_gates` (dispatch only) lets a manual E2E run start now instead of waiting
+    # for these two jobs; the guard tests pin that pair with the E2E jobs below.
+    if: >-
+      inputs.skip_gates != true &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
     timeout-minutes: 25
     env:
       # Prisma 7 resolves `env("DATABASE_URL")` while loading its config, so
@@ -152,7 +163,11 @@ jobs:
     name: Frontend build + test
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
+    # `skip_gates` (dispatch only) lets a manual E2E run start now instead of waiting
+    # for these two jobs; the guard tests pin that pair with the E2E jobs below.
+    if: >-
+      inputs.skip_gates != true &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
     timeout-minutes: 25
     defaults:
       run:
@@ -242,14 +257,18 @@ jobs:
     # Runs when the product itself changed (a PR) or on schedule/dispatch; never
     # on a plain push, where Coolify is rebuilding the very stack it would test.
     # `needs.*.result == 'success'` keeps a red unit job from being followed by a
-    # 15-minute browser run.
+    # 15-minute browser run — except on a manual dispatch with `skip_gates` (the
+    # default), where the two jobs are skipped on purpose so E2E starts right away.
     if: >-
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
         (github.event_name == 'workflow_dispatch' && inputs.install_spec == '')
       ) &&
-      needs.backend.result == 'success' && needs.frontend.result == 'success'
+      (
+        inputs.skip_gates == true ||
+        (needs.backend.result == 'success' && needs.frontend.result == 'success')
+      )
     needs: [changes, backend, frontend]
     # The full run is ~35-60 min; the ceiling only stops a hang.
     timeout-minutes: 90
@@ -463,10 +482,16 @@ jobs:
   e2e-install-wizard:
     name: E2E install wizard
     runs-on: ubuntu-latest
+    # The wizard job only ever runs on a human dispatch, so it is the one place where
+    # `skip_gates` matters most: the whole point is to walk the wizard now, not after
+    # the two code jobs. Their results still land in the gate summary.
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.install_spec != '' &&
-      needs.backend.result == 'success' && needs.frontend.result == 'success'
+      (
+        inputs.skip_gates == true ||
+        (needs.backend.result == 'success' && needs.frontend.result == 'success')
+      )
     needs: [changes, backend, frontend]
     timeout-minutes: 45
     defaults:

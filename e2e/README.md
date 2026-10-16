@@ -38,6 +38,12 @@ runners (Coolify contract) — and runs in three modes:
 | `schedule` (nightly, 01:00 UTC) | **full** | all 36 files, `retries=1` |
 | `workflow_dispatch` | triage or full | `specs=10,18,22`, `retries: 0`, `max_failures: 8`, or nothing for all files |
 
+A manual dispatch also takes `skip_gates` (**on by default**): the backend and frontend jobs are skipped and
+both E2E jobs start immediately, so a run against a known-good stack does not wait ~15 minutes for the code
+checks. Set `skip_gates=false` when a dispatch should be gated by them — on PRs and the nightly run the gates
+always apply. The skipped jobs show up as `skipped` in the `CI gate` summary, which still fails on a real
+failure anywhere.
+
 A push to `master` does **not** run e2e: Coolify is rebuilding that very stack from the same commit at that
 moment, so the result would describe a half-deployed environment. The nightly full run covers the deployed
 revision once the stack is quiet.

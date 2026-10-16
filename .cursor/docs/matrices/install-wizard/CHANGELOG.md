@@ -1,5 +1,13 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (ručni dispatch: `skip_gates` da E2E ne čeka backend i frontend)
+
+- **Zašto:** ručni `workflow_dispatch` je do sada uvijek čekao dva posla od ~15 min (backend build+test, frontend build+test) prije nego što wizard E2E uopšte krene — a wizard posao testira **deployment**, ne artefakte tih poslova (specovi se izvršavaju na GitHub runneru protiv živog stacka, a `npm ci` + `tsc` u njemu već provjere sam e2e kod).
+- **Ispravka:** novi dispatch input `skip_gates` (`type: boolean`, **zadano `true`**). Kada je uključen, `backend` i `frontend` posao se preskaču (`if: inputs.skip_gates != true && …`), a oba E2E posla primaju preskočene zavisnosti (`inputs.skip_gates == true || (needs.backend.result == 'success' && needs.frontend.result == 'success')`). Rezultat: dispatch pokrene E2E odmah. `skip_gates=false` vraća staro ponašanje (dispatch čeka i zahtijeva zelene kod-provjere); na PR-u, pushu i noćnom `schedule` runu gateovi važe uvijek jer tamo `inputs` ne postoje.
+- **Gate posao ostaje iskren:** preskočeni poslovi se u `CI gate` tabeli vide kao `skipped` i ne obaraju gate, ali svaki stvarni `failure`/`cancelled` i dalje pada.
+- **Čuvari:** `check-workflows-yaml.test.mjs` pinuje novi par — uslov oba E2E posla mora sadržavati `inputs.skip_gates == true`, a `backend`/`frontend` moraju imati `inputs.skip_gates != true`; test traži i da je `skip_gates` dispatch input sa zadanim `true`. Skripta + testovi: **36/36** zeleno.
+- **Docs:** `e2e/README.md` (tabela režima + pasus o `skip_gates`).
+
 ## 2026-10-16 (specovi 51/52 u `e2e/tests/`, uz čuvare)
 
 - **Zašto premješteni:** `e2e/tests/` drži niz `01…50`, a 51/52 su bili u `e2e/install-wizard/` — vlasnik ih je tražio tamo gdje numeracija živi (i nije ih našao). Sada su `e2e/tests/51-install-wizard-minimum.spec.ts` i `e2e/tests/52-install-wizard-standard.spec.ts`, a helperi, `playwright.install.config.ts` i `playwright.install-global-setup.ts` ostaju u `e2e/install-wizard/` (uz artefakte koje proizvode).
