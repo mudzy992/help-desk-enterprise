@@ -104,14 +104,36 @@ export async function fillSmtp(
 }
 
 /**
- * „Struktura i prvi servis“: the step becomes a summary once the records exist.
+ * The names the structure step creates the first service from. They are the server's
+ * own defaults (`install-seed.names.ts`), so the slugs the rest of the suite resolves
+ * the service by (`opsti-zahtjev`) stay the ones `ensure-install.ts` used before v2.
+ */
+const structureNames = {
+  organizationalUnitName: 'Direkcija',
+  handlerGroupName: 'Fallback',
+  serviceName: 'Opšti zahtjev',
+} as const;
+
+/**
+ * „Struktura i prvi servis“: the step becomes a summary once the records exist, so
+ * there is nothing to fill on a reopened installation. Three of its four names are
+ * `required` and start empty on a fresh one — a fresh record has no unit, group or
+ * service to prefill them from — so the spec types what an operator types. Without
+ * them the browser's own validation swallows the click and the wizard never leaves
+ * the step (the first live run of spec 51 spent its whole step wait on that).
  */
 export async function createStructure(page: Page): Promise<void> {
   if (!(await reachStep(page, 'seed'))) return;
   const submit = page.getByRole('button', { name: /kreiraj strukturu|create the structure/i });
-  if (await submit.isVisible().catch(() => false)) {
-    await submit.click();
-  }
+  if (!(await submit.isVisible().catch(() => false))) return;
+  await page
+    .getByLabel(/organizacijska jedinica|organisational unit/i)
+    .fill(structureNames.organizationalUnitName);
+  await page
+    .getByLabel(/grupa koja prima tikete|group that receives tickets/i)
+    .fill(structureNames.handlerGroupName);
+  await page.getByLabel(/^servis$|^service$/i).fill(structureNames.serviceName);
+  await clickStepSubmit(page, /kreiraj strukturu|create the structure/i);
 }
 
 /** „Tim“: one AGENT, created through the step's own form. */
@@ -121,7 +143,8 @@ export async function addTeamMember(
 ): Promise<void> {
   if (!(await reachStep(page, 'team'))) return;
   await page.getByLabel(/ime i prezime|full name|display name/i).first().fill(member.displayName);
-  await page.getByLabel(/^e-?mail$/i).first().fill(member.email);
+  // The row labels its fields „Email 1“ / „E-mail 1“, so the pattern cannot be anchored.
+  await page.getByLabel(/e-?mail/i).first().fill(member.email);
   await clickStepSubmit(page, /kreiraj naloge|create the accounts/i);
 }
 

@@ -67,6 +67,25 @@ const labels: ReadonlyArray<readonly [string, RegExp]> = [
   ["install.step.skip", /podesi kasnije|configure later/i],
   ["install.profile.select", /izaberi|choose|select/i],
   ["install.profile.submit", /nastavi s paketom|continue with this package/i],
+  // Fields: the specs type into the step forms by the label the operator reads
+  // (`getByLabel`). The team rows number their labels („Email 1“, „E-mail 1“), so
+  // the two patterns for them stay unanchored.
+  ["install.email", /^email$/i],
+  ["install.displayName", /ime i prezime|full name|display name/i],
+  ["install.password", /^lozinka$|^password$/i],
+  ["install.confirmPassword", /potvrda lozinke|confirm password/i],
+  ["install.identity.organizationName", /naziv organizacije|organi[sz]ation name/i],
+  ["install.identity.timeZone", /vremenska zona|time zone/i],
+  ["install.structure.ouName", /organizacijska jedinica|organisational unit/i],
+  ["install.structure.groupName", /grupa koja prima tikete|group that receives tickets/i],
+  ["install.structure.serviceName", /^servis$|^service$/i],
+  ["install.team.displayName", /ime i prezime|full name|display name/i],
+  ["install.team.email", /e-?mail/i],
+  ["install.smtp.host", /smtp host/i],
+  ["install.smtp.port", /smtp port/i],
+  ["install.smtp.username", /smtp korisnik|smtp username/i],
+  ["install.smtp.password", /smtp lozinka|smtp password/i],
+  ["install.smtp.fromAddress", /from adresa|from address/i],
 ];
 
 describe("install wizard E2E copy", () => {

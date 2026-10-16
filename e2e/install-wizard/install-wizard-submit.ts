@@ -22,15 +22,38 @@ const submitTimeoutMs = 15_000;
 export async function clickStepSubmit(page: Page, name: RegExp = submitPattern): Promise<void> {
   try {
     await page.getByRole('button', { name }).first().click({ timeout: submitTimeoutMs });
-    return;
   } catch (error) {
     try {
       // The step's form renders before the shell's footer, so `first()` is the step's own.
       await page.locator('form button[type="submit"]').first().click({ timeout: submitTimeoutMs });
-      return;
     } catch {
       // The labelled failure is the meaningful one: it names what was looked for.
       throw error;
     }
   }
+  await assertStepFormSubmitted(page);
+}
+
+/**
+ * A `required` field a helper forgot to fill does not throw: the browser blocks the
+ * submit, React never runs, and the wizard stays on the step until the wait expires
+ * (that is how the first live run of spec 51 lost its wait on „Struktura i prvi
+ * servis“). `:invalid` right after the click therefore means the request was never
+ * sent — name the field instead of leaving a silent screen behind.
+ */
+async function assertStepFormSubmitted(page: Page): Promise<void> {
+  const blocked = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('form :invalid'))
+      .slice(0, 4)
+      .map((control) => {
+        const field = control as HTMLInputElement;
+        const label = field.labels?.[0]?.textContent ?? field.getAttribute('name');
+        return (label ?? field.tagName).trim().replace(/\s+/g, ' ').slice(0, 60);
+      }),
+  );
+  if (blocked.length === 0) return;
+  throw new Error(
+    `[install-wizard] the step form blocked the submit: ${blocked.join('; ')} — ` +
+      'those fields are `required` and the helper has to fill them.',
+  );
 }

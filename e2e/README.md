@@ -210,6 +210,10 @@ npx playwright test -c install-wizard/playwright.install.config.ts tests/52-inst
 - Button labels are copy, not a contract: `install-wizard-submit.ts` matches the step's submit by name and, when the
   name does not resolve, clicks the step form's own `button[type="submit"]` (15 s budget). `install-wizard-e2e-copy.spec.ts`
   in the frontend suite pins that the bs/en copy still matches those patterns.
+- So are the fields: a `required` input a helper leaves empty does not throw — the browser blocks the submit, React
+  never runs and the wizard simply stays on the step (spec 51's first live run lost its wait on „Struktura i prvi
+  servis“ because the three names it asks for are empty on a fresh installation). `clickStepSubmit` therefore checks
+  `form :invalid` right after the click and fails with the field labels instead of leaving a silent screen behind.
 - **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
   ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
   deferred on purpose, which is also what the post-install checklist must then list.

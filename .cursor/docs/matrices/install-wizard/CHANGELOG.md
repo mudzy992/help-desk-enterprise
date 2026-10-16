@@ -1,5 +1,13 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (drugi živi prolaz speca 51: korak „Struktura i prvi servis“ nije se predao)
+
+- **Simptom:** spec je prošao paket, SuperAdmina, identitet, način prijave i odgodu SMTP-a, pa je 20 s čekao korak „Tim“ gledajući naslov „Struktura i prvi servis“ — `expected the step /^tim$|^team$/i, saw "Struktura i prvi servis"`. Naslov je bio ključ: čarobnjak nikad nije napustio korak strukture.
+- **Uzrok:** taj korak traži tri imena („Organizacijska jedinica“, „Grupa koja prima tikete“, „Servis“) i sva tri su `required`, a na svježoj instalaciji **prazna** — record nema iz čega da ih popuni. Helper `createStructure` je samo kliknuo „Kreiraj strukturu“, pa je browser zaustavio submit na vlastitoj validaciji: React nije ni pokrenut, nijedan zahtjev nije otišao, korak je ostao na ekranu. Klik **nije** pukao, zato je kvar izgledao kao promašen naslov, a ne kao nepopunjeno polje.
+- **Ispravka:** `createStructure` popuni ta tri imena serverovim zadanim vrijednostima (`Direkcija`, `Fallback`, `Opšti zahtjev`) i preda ih kroz `clickStepSubmit`. Vrijednosti nisu proizvoljne: to su iste riječi koje `install-seed.names.ts` koristi kad tijelo ne stigne, pa slug ostaje `opsti-zahtjev` i `loadSeedCatalog`/tvrdnje speca rade nepromijenjeno.
+- **Čuvar (nova klasa kvara):** `clickStepSubmit` poslije klika čita `form :invalid` i, ako polja nisu validna, baca grešku s njihovim labelama — nepopunjeno `required` polje sada pada za ~2 s umjesto da tiho pojede cijelo čekanje. Guard spec `install-wizard-e2e-copy.spec.ts` (frontend) sada pinuje i **labele polja** koje specovi pune: bio 58, sada **90** testova.
+- **Isti razred, nađen statički:** `addTeamMember` je e-mail polje tražio patternom `/^e-?mail$/i`, a red tima labelu numeriše („Email 1“ / „E-mail 1“) — anchoreni pattern ne može pogoditi takvo ime. Sada `/e-?mail/i`; spec 52 (prvi koji dodaje člana tima) time ne pada na lokatoru.
+
 ## 2026-10-16 (`skip_gates` je preskakao i sama E2E posla — `!cancelled()`)
 
 - **Stvarni ishod prvog dispatcha sa `skip_gates`:** `backend` i `frontend` su preskočeni (kako je i zamišljeno), ali su **zajedno s njima preskočeni i oba E2E posla**, pa je run završio sa samo `Docs guard` i zelenim gateom — dispatch sa `install_spec=51` nije pokrenuo nijedan spec. Prethodni zapis („dispatch pokrene E2E odmah“) zato nije bio tačan dok ova ispravka ne prođe.
