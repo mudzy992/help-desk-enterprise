@@ -70,6 +70,7 @@ export function InstallProfileForm({
           <InstallProfileCard
             key={pack.profile}
             pack={pack}
+            packages={data.packages}
             isSelected={selected === pack.profile}
             onSelect={() => setSelected(pack.profile)}
           />

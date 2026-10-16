@@ -2,30 +2,25 @@ import { Check, ListChecks, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetTrigger } from "@/components/ui/sheet";
+import { InstallProfilePackageSheet } from "@/components/install/install-profile-package-sheet";
 import { readInstallProfileItemPresentation } from "@/lib/install/install-profile-items";
 import type { InstallProfilePackage } from "@/services/install-profile-api";
 
 /*
   Install wizard v2 (F3): one package as a card — icon, name, honest time
   estimate, the first few catalogue lines and „Prikaži sve“ for the whole list.
-  The card is a radio in behaviour: `aria-pressed` tells a screen reader which
-  package is chosen, and the „Preporučeno“ marker pops in with the 160 ms
-  `pop-in` (no motion under `prefers-reduced-motion`).
+  The details sheet shows the cumulative package contents (D1).
 */
 
 export function InstallProfileCard({
   pack,
+  packages,
   isSelected,
   onSelect,
 }: {
   readonly pack: InstallProfilePackage;
+  readonly packages: readonly InstallProfilePackage[];
   readonly isSelected: boolean;
   readonly onSelect: () => void;
 }) {
@@ -105,36 +100,7 @@ export function InstallProfileCard({
               {t("install.profile.showAll")}
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="overflow-y-auto">
-            <SheetTitle>{t(pack.titleKey as never)}</SheetTitle>
-            <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-              {t("install.profile.showAllHint")}
-            </SheetDescription>
-            <ul className="mt-2 grid gap-2">
-              {pack.items.map((item) => {
-                const ItemIcon = readInstallProfileItemPresentation(item.key).icon;
-                return (
-                  <li
-                    key={item.key}
-                    className="flex items-center gap-2.5 text-[12.5px] text-foreground/90"
-                  >
-                    <ItemIcon
-                      size={14}
-                      strokeWidth={2.1}
-                      className="shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0 flex-1">{t(item.labelKey as never)}</span>
-                    <span className="shrink-0 text-[10.5px] font-medium text-muted-foreground">
-                      {item.required
-                        ? t("install.profile.itemRequired")
-                        : t("install.profile.itemOptional")}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </SheetContent>
+          <InstallProfilePackageSheet pack={pack} packages={packages} />
         </Sheet>
       </div>
     </div>

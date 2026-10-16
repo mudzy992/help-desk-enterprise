@@ -4125,7 +4125,8 @@
       "reopened": "Novi paket traži ovaj korak, pa je ranija odgoda „Podesi kasnije“ poništena. Ako ti korak i dalje ne treba, odgodi ga ponovo.",
       "whatYouGet": "Šta dobijaš",
       "whatYouGetHint": "Kratko: šta ovaj korak donosi tvojoj instalaciji.",
-      "organizationFallback": "Tvoja organizacija"
+      "organizationFallback": "Tvoja organizacija",
+      "currentStep": "Trenutni korak"
     },
     "feature": {
       "locked": "Obavezno",
@@ -4488,6 +4489,11 @@
       "selected": "Izabrano",
       "showAll": "Prikaži sve",
       "showAllHint": "Sve stavke koje ovaj paket uključuje.",
+      "includesBase": "Osnovni paket — sve što treba da sistem odmah prima tikete.",
+      "includesMinimum": "Uključuje sve što sadrži paket Minimum, plus stavke navedene ispod.",
+      "includesMinimumAndStandard": "Uključuje sve što sadrže paketi Minimum i Standard, plus stavke navedene ispod.",
+      "groupFrom": "Iz paketa {{package}}",
+      "groupNewIn": "Dodatno u paketu {{package}}",
       "itemRequired": "Obavezno",
       "itemOptional": "Opciono",
       "customize": "Prilagodi paket",

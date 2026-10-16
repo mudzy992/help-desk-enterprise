@@ -8,16 +8,9 @@ import {
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): the vertical rail. It replaces the old horizontal
-  stepper for the installer and shows four states read from the server
-  (`InstallStepState`): done (completed), deferred („Podesi kasnije“), locked
-  (the package does not offer the step) and still to come. Nothing here decides
-  the flow — states come from the status endpoint, the order from
-  `installWizardSteps`.
-
-  `tone="brand"` is for the gradient brand panel (F3, Constitution §39): there
-  every colour is a translucent `primary-foreground`, the way the sign-in panel
-  paints its points, so the rail stays readable in both light and dark mode.
+  Install wizard v2 (F3 polish): vertical progress timeline. States come from
+  the status endpoint; the rail never decides the flow. `tone="brand"` paints
+  translucent primary-foreground over `.pulse-gradient` (Constitution §39).
 */
 
 export type InstallRailState = "done" | "current" | "deferred" | "locked" | "upcoming";
@@ -51,46 +44,84 @@ export function InstallStepRail({
 }) {
   const { t } = useTranslation();
   const isBrand = tone === "brand";
+
   return (
-    <ol className="grid gap-1.5">
-      {items.map((item) => {
+    <ol className="relative m-0 grid list-none gap-0 p-0">
+      {items.map((item, index) => {
         const Icon = installStepPresentations[item.key].icon;
+        const isLast = index === items.length - 1;
         return (
-          <li key={item.key} className="flex items-center gap-2.5">
+          <li key={item.key} className="relative flex gap-3 pb-3 last:pb-0">
+            {!isLast ? (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute left-[13px] top-7 bottom-0 w-px",
+                  isBrand ? "bg-primary-foreground/25" : "bg-border",
+                  item.state === "done" && (isBrand ? "bg-primary-foreground/45" : "bg-success/35"),
+                )}
+              />
+            ) : null}
+
             <span
               aria-hidden="true"
               className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full border",
+                "relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full border",
                 isBrand ? railTileBrandClassName(item.state) : railTileSurfaceClassName(item.state),
               )}
             >
               {item.state === "done" ? (
-                <Check size={12} strokeWidth={2.6} />
+                <Check size={13} strokeWidth={2.6} />
               ) : (
-                <Icon size={12} strokeWidth={2.2} />
+                <Icon size={13} strokeWidth={2.2} />
               )}
             </span>
-            <span
+
+            <div
               className={cn(
-                "truncate text-[12.5px]",
-                item.state === "current" ? "font-semibold" : "font-medium",
-                isBrand
-                  ? railLabelBrandClassName(item.state)
-                  : railLabelSurfaceClassName(item.state),
+                "min-w-0 flex-1 rounded-md px-2.5 py-1.5",
+                item.state === "current" &&
+                  (isBrand
+                    ? "bg-primary-foreground/15"
+                    : "border border-primary/20 bg-primary/10"),
               )}
             >
-              {t(installStepLabelKey(item.key))}
-            </span>
-            {item.state === "deferred" ? (
-              <span
-                className={cn(
-                  "shrink-0 text-[10.5px]",
-                  isBrand ? "text-primary-foreground/70" : "text-muted-foreground",
-                )}
-              >
-                {t("install.step.skipped")}
-              </span>
-            ) : null}
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span
+                  className={cn(
+                    "truncate text-[12.5px] leading-5",
+                    item.state === "current" ? "font-semibold" : "font-medium",
+                    isBrand
+                      ? railLabelBrandClassName(item.state)
+                      : railLabelSurfaceClassName(item.state),
+                  )}
+                >
+                  {t(installStepLabelKey(item.key))}
+                </span>
+                {item.state === "deferred" ? (
+                  <span
+                    className={cn(
+                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]",
+                      isBrand
+                        ? "bg-primary-foreground/15 text-primary-foreground/80"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {t("install.step.skipped")}
+                  </span>
+                ) : null}
+              </div>
+              {item.state === "current" ? (
+                <p
+                  className={cn(
+                    "mt-0.5 text-[11px] leading-4",
+                    isBrand ? "text-primary-foreground/75" : "text-muted-foreground",
+                  )}
+                >
+                  {t("install.shell.currentStep")}
+                </p>
+              ) : null}
+            </div>
           </li>
         );
       })}
@@ -99,13 +130,12 @@ export function InstallStepRail({
 }
 
 function railTileSurfaceClassName(state: InstallRailState): string {
-  if (state === "current") return "border-primary bg-primary text-primary-foreground";
+  if (state === "current") return "border-primary bg-primary text-primary-foreground shadow-sm";
   if (state === "done") return "border-success/40 bg-success/15 text-ok";
-  // Contrast gate (`scripts/check-theme-contrast.mjs`, check C): a muted token with
-  // alpha drops below 4.5:1 on the rail surface. "Locked" is told apart by the
-  // dashed tile and the muted label, not by a lighter grey.
-  if (state === "locked") return "border-dashed border-border text-muted-foreground";
-  return "border-border text-muted-foreground";
+  // Contrast gate: muted-on-alpha fails check C; dashed border carries "locked".
+  if (state === "locked") return "border-dashed border-border bg-surface text-muted-foreground";
+  if (state === "deferred") return "border-border bg-muted text-muted-foreground";
+  return "border-border bg-surface text-muted-foreground";
 }
 
 function railLabelSurfaceClassName(state: InstallRailState): string {
@@ -115,10 +145,13 @@ function railLabelSurfaceClassName(state: InstallRailState): string {
 }
 
 function railTileBrandClassName(state: InstallRailState): string {
-  if (state === "current") return "border-primary-foreground bg-primary-foreground/30";
-  if (state === "done") return "border-primary-foreground/50 bg-primary-foreground/20";
-  if (state === "locked") return "border-dashed border-primary-foreground/40";
-  return "border-primary-foreground/50";
+  if (state === "current") {
+    return "border-primary-foreground bg-primary-foreground text-primary shadow-sm";
+  }
+  if (state === "done") return "border-primary-foreground/55 bg-primary-foreground/25";
+  if (state === "locked") return "border-dashed border-primary-foreground/40 bg-transparent";
+  if (state === "deferred") return "border-primary-foreground/40 bg-primary-foreground/10";
+  return "border-primary-foreground/45 bg-transparent";
 }
 
 function railLabelBrandClassName(state: InstallRailState): string {

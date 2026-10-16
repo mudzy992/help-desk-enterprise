@@ -4106,7 +4106,8 @@
       "reopened": "The new package requires this step, so the earlier „Configure later“ deferral was cancelled. If you still do not need it, defer it again.",
       "whatYouGet": "What you get",
       "whatYouGetHint": "In short: what this step brings to your installation.",
-      "organizationFallback": "Your organisation"
+      "organizationFallback": "Your organisation",
+      "currentStep": "Current step"
     },
     "feature": {
       "locked": "Required",
@@ -4469,6 +4470,11 @@
       "selected": "Chosen",
       "showAll": "Show all",
       "showAllHint": "Everything this package includes.",
+      "includesBase": "Base package — everything needed so the system can take tickets right away.",
+      "includesMinimum": "Includes everything in the Minimum package, plus the items listed below.",
+      "includesMinimumAndStandard": "Includes everything in the Minimum and Standard packages, plus the items listed below.",
+      "groupFrom": "From the {{package}} package",
+      "groupNewIn": "Added in {{package}}",
       "itemRequired": "Required",
       "itemOptional": "Optional",
       "customize": "Fine-tune the package",

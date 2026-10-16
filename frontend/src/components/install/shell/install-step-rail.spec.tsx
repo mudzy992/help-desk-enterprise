@@ -79,20 +79,20 @@ describe("InstallStepRail", () => {
   it("lists every step with its own label", () => {
     render(<InstallStepRail items={items} />);
 
-    expect(screen.getAllByRole("listitem").map((entry) => entry.textContent)).toEqual([
-      "install.steps.profile",
-      "install.steps.superAdmin",
-      "install.steps.identityinstall.step.skipped",
-      "install.steps.smtp",
-      "install.steps.seed",
-    ]);
+    expect(screen.getByText("install.steps.profile")).toBeTruthy();
+    expect(screen.getByText("install.steps.superAdmin")).toBeTruthy();
+    expect(screen.getByText("install.steps.identity")).toBeTruthy();
+    expect(screen.getByText("install.steps.smtp")).toBeTruthy();
+    expect(screen.getByText("install.steps.seed")).toBeTruthy();
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 
   it("marks the deferred step as deferred instead of counting it as done", () => {
     render(<InstallStepRail items={items} />);
 
     const deferred = screen.getByText("install.steps.identity");
-    expect(deferred.parentElement?.textContent).toContain("install.step.skipped");
+    expect(deferred.closest("li")?.textContent).toContain("install.step.skipped");
+    expect(screen.getByText("install.shell.currentStep")).toBeTruthy();
     expect(screen.queryByText("install.steps.smtp")?.className).toContain("muted");
   });
 });
