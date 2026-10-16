@@ -75,7 +75,10 @@ export function InstallFirstSteps({ summary }: { readonly summary: InstallSetupS
               className="group grid gap-1.5 rounded-lg border border-border bg-surface px-3.5 py-3 shadow-card transition-colors hover:border-primary/40"
             >
               <span className="flex items-center gap-2 text-[12.5px] font-semibold text-foreground">
-                <Icon aria-hidden="true" size={14} className="text-primary" />
+                {/* §22.1: the card is a neutral surface, so the accent comes from
+                    `text-link` — `text-primary` is for a primary fill (indigo on
+                    the dark surface is 4.00:1). */}
+                <Icon aria-hidden="true" size={14} className="text-link" />
                 {t(step.titleKey)}
                 <ArrowRight
                   aria-hidden="true"
