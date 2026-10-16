@@ -28,11 +28,16 @@ const redisClientLogger = new Logger('RedisClient');
       // event" for every failed reconnect (seen live during the 2026-10-04
       // WRONGPASS incident). The listener does not swallow the failure — it turns
       // it into one log line an operator can read, and keeps the client alive.
-      useFactory: (configuration: RedisConfiguration) => {
+      useFactory: async (configuration: RedisConfiguration) => {
         const client = createRedisClient(configuration);
         client.on('error', (error: Error) => {
           redisClientLogger.warn(`redis_client_error reason=${error.message}`);
         });
+        // lazyConnect leaves status "wait" until the first command; connect here
+        // so watchdog/health GETs never race an unfinished handshake.
+        if (client.status === 'wait') {
+          await client.connect();
+        }
         return client;
       },
       inject: [redisTokens.configuration],

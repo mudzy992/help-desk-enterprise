@@ -52,11 +52,20 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 
 **Uslov:** heartbeat workera u Redisu (`integration-queue:worker-heartbeat`, osvježava se svakih 10 s)
 stariji je od `private.ops.thresholds.workerHeartbeatStaleSeconds` (zadano 120 s).
-Pošto worker tada ne može sam javiti da ne radi, ovaj alarm otvara **watchdog u backendu (API)**.
+Pošto worker tada ne može sam javiti da ne radi, ovaj alarm otvara **watchdog u backendu (API)**
+(odvojena Redis konekcija, da dijeljeni Nest klijent ne daje lažni `null`).
 
 **Posljedica:** SLA provjere, e-mail (ulaz i izlaz), zakazani izvještaji i retencija stoje.
 
-**Postupak:**
+**Lažni alarm (heartbeatAgeSeconds: null, a `worker-health.js` je ok):**
+1. U detaljima alarma `null` znači „kluč nije pročitan“, ne „star >120 s“.
+2. Provjeri: `docker exec "$WORKER" node dist/src/cli/worker-health.js` → `exit=0`.
+3. Redis: `maxmemory-policy` mora biti **`noeviction`** (ne `volatile-lru`).
+4. Hitno: Coolify backend env `OPS_WATCHDOG_DISABLED=true` + restart (gasi samo worker.down watchdog).
+5. **Utišaj** na kartici zaustavlja obavještenja samo ako API može pročitati `ops:silence`;
+   ako i dalje stižu mailovi uz utišavanje, redeploy backend s fixom silence fail-closed.
+
+**Postupak (stvarni pad workera):**
 1. `docker ps -a | grep worker-` provjeri status (restarting, exited, unhealthy).
 2. `docker logs --tail 200 "$WORKER"` pokaže zadnju grešku (najčešće Redis ACL/lozinka, migracija, OOM).
 3. Coolify → servis → **Restart**. Ako su mijenjane env varijable: **Redeploy**.

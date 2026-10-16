@@ -2,13 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { readWorkerHeartbeatValue, withTimeout } from '../health/health-probes';
-import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
+import { withTimeout } from '../health/health-probes';
 import { observeMonitorFreshness, observeWorkerHeartbeat } from './evaluate-ops-signals';
 import { OpsAlertEngine } from './ops-alert.engine';
 import { fallbackOpsConfiguration, OpsConfigurationLoader } from './ops-configuration.loader';
-import type { OpsSnapshot } from './ops-health.runner';
-import { OpsStateStore } from './ops-state.store';
+import { WatchdogRedisProbe } from './watchdog-redis-probe';
 
 export const watchdogIntervalMs = 60_000;
 /** Snapshot older than this (worker alive) means the health loop is stuck. */
@@ -23,18 +21,28 @@ export const monitorStaleSeconds = 180;
 @Injectable()
 export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger('OpsWatchdog');
-  private readonly store: OpsStateStore;
+  private readonly probe: WatchdogRedisProbe;
   private readonly instanceId = randomUUID();
   private timer: NodeJS.Timeout | null = null;
   private running = false;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    redis: RedisService,
     private readonly configurationLoader: OpsConfigurationLoader,
     private readonly engine: OpsAlertEngine,
   ) {
-    this.store = new OpsStateStore(redis.getClient());
+    // Prefer duplicate() of the shared client (same ACL/prefix); fall back to a
+    // brand-new connection if the mock/test client has no duplicate().
+    this.probe = new WatchdogRedisProbe(() => {
+      const shared = redis.getClient() as ReturnType<RedisService['getClient']> & {
+        duplicate?: () => ReturnType<RedisService['getClient']>;
+      };
+      if (typeof shared.duplicate === 'function') {
+        return { client: shared.duplicate(), ownsConnection: true };
+      }
+      return { client: shared, ownsConnection: false };
+    });
   }
 
   onApplicationBootstrap(): void {
@@ -43,17 +51,21 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
     this.timer.unref();
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
+    await this.probe.dispose();
   }
 
   async tick(now: Date = new Date()): Promise<boolean> {
     if (this.running) return false;
     this.running = true;
     try {
-      // Slightly shorter than the interval so the next tick can take over.
-      const leader = await withTimeout(() => this.store.acquireWatchdogLock(this.instanceId, watchdogIntervalMs - 5_000), 1_000).catch(() => false);
+      const store = await withTimeout(() => this.probe.ensureConnected(), 3_000);
+      const leader = await withTimeout(
+        () => store.acquireWatchdogLock(this.instanceId, watchdogIntervalMs - 5_000),
+        1_000,
+      ).catch(() => false);
       if (!leader) return false;
       const databaseAvailable = await withTimeout(() => this.prisma.$queryRaw`SELECT 1`, 2_000)
         .then(() => true)
@@ -61,11 +73,13 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       const configuration = databaseAvailable
         ? await this.configurationLoader.load().catch(() => fallbackOpsConfiguration)
         : fallbackOpsConfiguration;
-      const client = this.redis.getClient();
       const [heartbeat, snapshot] = await Promise.all([
-        readWorkerHeartbeatValue(() => client.get(workerHeartbeatRedisKey)),
-        this.store.readSnapshot<Pick<OpsSnapshot, 'generatedAt'>>(),
+        this.probe.readHeartbeat(),
+        this.probe.readSnapshot(),
       ]);
+      if (heartbeat === null) {
+        this.logger.warn('ops_watchdog_heartbeat_missing after dedicated redis retries');
+      }
       const workerObservation = observeWorkerHeartbeat({
         lastHeartbeatAt: heartbeat,
         nowMs: now.getTime(),
@@ -85,7 +99,10 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       });
       return true;
     } catch (error) {
-      this.logger.warn(`ops_watchdog_failed reason=${(error instanceof Error ? error.message : String(error)).slice(0, 200)}`);
+      this.logger.warn(
+        `ops_watchdog_failed reason=${(error instanceof Error ? error.message : String(error)).slice(0, 200)}`,
+      );
+      await this.probe.dispose().catch(() => undefined);
       return false;
     } finally {
       this.running = false;

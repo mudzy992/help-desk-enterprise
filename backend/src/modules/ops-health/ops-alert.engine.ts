@@ -79,8 +79,17 @@ export class OpsAlertEngine {
     const { now } = context;
     const keys = observations.map((observation) => observation.key);
     const streaks = await this.readStreaks(keys, context.redisAvailable);
-    const silence = context.redisAvailable ? await this.store.readSilence(now).catch(() => null) : null;
-    const mayNotify = context.configuration.alertsEnabled && silence === null;
+    // Fail closed: a Redis blip must not deliver alarms while silence is set.
+    // (Live incident 2026-10-16: shared client GET returned null for silence and heartbeat.)
+    const silenceRead = context.redisAvailable
+      ? await this.store
+          .readSilence(now)
+          .then((silence) => ({ silence, readFailed: false as const }))
+          .catch(() => ({ silence: null, readFailed: true as const }))
+      : { silence: null, readFailed: true as const };
+    const silence = silenceRead.silence;
+    const mayNotify =
+      context.configuration.alertsEnabled && silence === null && !silenceRead.readFailed;
 
     if (!context.databaseAvailable) {
       const nextStreaks = new Map<string, AlertStreak>();
