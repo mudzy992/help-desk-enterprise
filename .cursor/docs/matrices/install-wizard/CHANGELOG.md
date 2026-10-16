@@ -1,5 +1,12 @@
 # CHANGELOG — install-wizard
 
+## 2026-10-16 (F6 — ispravke poslije recenzije CI-ja)
+
+- **Kontrast (§22.1):** dva `text-primary` na **neutralnoj** površini prebačena su na `text-link` — link „Idi na…“ u `setup-checklist-item.tsx` i vodeća ikona kartice u `install-first-steps.tsx`; `text-primary` tako ostaje samo na primary ispuni (indigo na tamnoj površini daje 4.00:1, `text-link` 8.58:1). `scripts/check-theme-contrast.mjs` zelen: 12 paleta × 23 para, 0 prozirnih kombinacija.
+- **DI modula:** `SetupChecklistModule` uvozi `AuthenticationModule` + `AuthorizationModule` (gardovi iz `@UseGuards(...)` razrješavaju se u injektoru modula koji deklariše kontroler — sa samo `SettingsModule` padao je `app.module.spec.ts`: „Nest can't resolve dependencies of the SessionAuthenticationGuard“).
+- **`setup-checklist.controller.spec.ts` (6):** gardovi i metapodaci (`SessionAuthenticationGuard` + `RoleGuard`, `admin`, `settingsWrite`, `any`), `@AdminReadOperation()` samo na GET-u, uvezeni moduli, čitanje stavki kroz kontroler, `403 FORBIDDEN` bez aktera, odjava koja ne briše stavke. Time je zatvorena i stavka plana F6 „Kontroler: bez sesije 401, bez `settingsWrite` 403“.
+- Izmjereno: backend **637 prošlo / 5 preskočeno (642 suita), 3320 testova prošlo, 0 padajućih** (uključujući `app.module.spec.ts` 2/2), frontend **248 / 1062**, `tsc -b`, `eslint`, `format:check` i svih 10 guard skripti zeleno.
+
 ## 2026-10-16 (F6 — završetak: provisioning, gotov ekran, checklist)
 
 - **F6.1 novi korak `provisioning`:** posljednji korak registryja prije `complete`, obavezan u sva tri paketa i **ne može se odgoditi** (`409 INSTALL_STEP_NOT_SKIPPABLE`; ključ je u `installStepParamKeys`, pa odgovor nije 400). Korak **nikad nije `completed`** (`read-install-step-states.ts` — `{ completed: false }`, kao i ranije `profile` dok nema paketa): da se „završeno“ izvodilo iz readinessa, ekran bi nestao upravo kad su sve provjere zelene i `complete` bi bio nedostižan. `evaluateInstallProfileSteps` zato **izbacuje** `provisioning` (`readinessGateStepKeys`) — korak je kapija koju `profileSteps` hrani, ne predmet koji se broji.
