@@ -149,8 +149,8 @@
         "instalacija",
         "install-token",
         "superadmin",
-        "smtp",
-        "dodaci"
+        "paketi",
+        "checklist"
       ],
       "updatedAt": "2026-10-06",
       "headings": [
@@ -186,33 +186,83 @@
         },
         {
           "level": 3,
-          "text": "1. SuperAdmin nalog",
-          "id": "1-superadmin-nalog"
+          "text": "1. Paket instalacije (uvijek prvo)",
+          "id": "1-paket-instalacije-uvijek-prvo"
         },
         {
           "level": 3,
-          "text": "2. Način prijave",
-          "id": "2-nacin-prijave"
+          "text": "2. SuperAdmin nalog",
+          "id": "2-superadmin-nalog"
         },
         {
           "level": 3,
-          "text": "3. SMTP",
-          "id": "3-smtp"
+          "text": "3. Identitet instalacije",
+          "id": "3-identitet-instalacije"
         },
         {
           "level": 3,
-          "text": "4. Početni podaci",
-          "id": "4-pocetni-podaci"
+          "text": "4. Način prijave",
+          "id": "4-nacin-prijave"
         },
         {
           "level": 3,
-          "text": "5. Dodaci",
-          "id": "5-dodaci"
+          "text": "5. SMTP",
+          "id": "5-smtp"
         },
         {
           "level": 3,
-          "text": "6. Završi podešavanje",
-          "id": "6-zavrsi-podesavanje"
+          "text": "6. Struktura i prvi servis",
+          "id": "6-struktura-i-prvi-servis"
+        },
+        {
+          "level": 3,
+          "text": "7. Tim",
+          "id": "7-tim"
+        },
+        {
+          "level": 3,
+          "text": "8. Katalog iz predloška (Standard i Full)",
+          "id": "8-katalog-iz-predloska-standard-i-full"
+        },
+        {
+          "level": 3,
+          "text": "9. Paket prava (Standard i Full)",
+          "id": "9-paket-prava-standard-i-full"
+        },
+        {
+          "level": 3,
+          "text": "10. Radno vrijeme i prioriteti (Standard i Full)",
+          "id": "10-radno-vrijeme-i-prioriteti-standard-i-full"
+        },
+        {
+          "level": 3,
+          "text": "11. Sekcije paketa Full",
+          "id": "11-sekcije-paketa-full"
+        },
+        {
+          "level": 3,
+          "text": "12. Preporuke za produkciju (Standard i Full)",
+          "id": "12-preporuke-za-produkciju-standard-i-full"
+        },
+        {
+          "level": 3,
+          "text": "13. Dodaci",
+          "id": "13-dodaci"
+        },
+        {
+          "level": 3,
+          "text": "14. Provjera spremnosti",
+          "id": "14-provjera-spremnosti"
+        },
+        {
+          "level": 3,
+          "text": "15. „Sistem je spreman“",
+          "id": "15-sistem-je-spreman"
+        },
+        {
+          "level": 2,
+          "text": "Poslije instalacije",
+          "id": "poslije-instalacije"
         },
         {
           "level": 2,
@@ -235,7 +285,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1500,
+      "wordCount": 2509,
       "source": "docs/user-guide/instalacija.md",
       "englishTitle": null
     },
