@@ -531,9 +531,10 @@ async function applyMfaPolicy(
   context: ActorContext,
   notes: string[],
 ): Promise<void> {
-  const enrolled: { id: string } | null = await prisma.userMfa.findFirst({
+  // UserMfa PK is userId (no separate id column).
+  const enrolled = await prisma.userMfa.findFirst({
     where: { userId },
-    select: { id: true },
+    select: { userId: true },
   });
   if (enrolled === null) {
     return;
