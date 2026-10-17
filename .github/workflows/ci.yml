@@ -369,6 +369,62 @@ jobs:
               echo "E2E_DATABASE_URL points at the tunnel (127.0.0.1:15432)."
             fi
           fi
+      # Opt-in (repository variable E2E_ENSURE_ACTORS=true): creates the three
+      # actors on the stack when the install wizard was completed by hand. The
+      # harness cannot do this itself - `provisionTestActors` needs a super-admin
+      # session, and on such a stack the only super admin is the founder account,
+      # which is not `E2E_SUPERADMIN_EMAIL`. Needs the E2E_SSH_* secrets (the
+      # command runs inside the backend container) and the actor secrets.
+      - name: Ensure the E2E actors exist on the stack (opt-in)
+        if: ${{ vars.E2E_ENSURE_ACTORS == 'true' && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
+        env:
+          E2E_SUPERADMIN_EMAIL: ${{ secrets.E2E_SUPERADMIN_EMAIL }}
+          E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
+          E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
+          E2E_BACKEND_CONTAINER: ${{ vars.E2E_BACKEND_CONTAINER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$E2E_SSH_PRIVATE_KEY" > ~/.ssh/e2e-actors
+          chmod 600 ~/.ssh/e2e-actors
+          ssh_target="${E2E_SSH_USER:-root}@${E2E_SSH_HOST}"
+          ssh_port="${E2E_SSH_PORT:-22}"
+          # The actors travel as JSON on stdin - never in argv, where `ps`, the
+          # shell history and the step log would keep a password.
+          actors=$(node -e '
+            const wanted = [
+              ["E2E_SUPERADMIN_EMAIL", "E2E_SUPERADMIN_PASSWORD", "SUPER_ADMIN", "E2E SuperAdmin", "e2e.superadmin@example.com"],
+              ["E2E_USER_EMAIL", "E2E_USER_PASSWORD", "USER", "E2E User", "e2e.user@example.com"],
+              ["E2E_AGENT_EMAIL", "E2E_AGENT_PASSWORD", "AGENT", "E2E Agent", "e2e.agent@example.com"],
+            ];
+            const actors = [];
+            for (const [emailKey, passwordKey, roleKey, displayName, fallback] of wanted) {
+              const password = process.env[passwordKey] ?? "";
+              if (password.length === 0) continue;
+              const email = (process.env[emailKey] ?? "").trim() || fallback;
+              actors.push({ email, password, roleKey, displayName });
+            }
+            process.stdout.write(JSON.stringify({ actors }));
+          ')
+          if [ "$actors" = '{"actors":[]}' ]; then
+            echo "::warning title=E2E actors not ensured::No E2E_*_PASSWORD secret is set, so there is nothing to create."
+            exit 0
+          fi
+          container="${E2E_BACKEND_CONTAINER:-}"
+          if [ -z "$container" ]; then
+            container=$(ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" -o StrictHostKeyChecking=accept-new \
+              "$ssh_target" "docker ps --format '{{.Names}}' | grep -i backend | head -1" || true)
+          fi
+          if [ -z "$container" ]; then
+            echo "::error title=E2E actors not ensured::No backend container found on ${E2E_SSH_HOST}. Set the repository variable E2E_BACKEND_CONTAINER to its exact name (see: docker ps)."
+            exit 1
+          fi
+          echo "Ensuring the actors in container: $container"
+          printf '%s' "$actors" | ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" "$ssh_target" \
+            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin"
       - run: npx playwright install --with-deps chromium
       - name: Run E2E (smoke on a pull request, full on schedule / dispatch)
         env:

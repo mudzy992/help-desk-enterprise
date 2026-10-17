@@ -17,6 +17,7 @@
     "db:seed": "node dist/src/seed-database.js",
     "db:init": "prisma migrate deploy && prisma generate && npm run build && node dist/src/seed-database.js",
     "cli:reset-mfa": "node dist/src/cli/reset-mfa.js",
+    "cli:ensure-e2e-actors": "node dist/src/cli/ensure-e2e-actors.js",
     "cli:apply-settings": "node dist/src/cli/apply-settings.js",
     "cli:install-rerun": "node dist/src/cli/install-rerun.js",
     "cli:rekey-asset-licenses": "node dist/src/cli/rekey-asset-licenses.js",

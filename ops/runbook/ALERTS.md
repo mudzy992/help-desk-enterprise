@@ -78,6 +78,16 @@ Ako bilo šta od toga ne stoji, alarm se **ne otvara**, a backend logira zašto:
 > *star* zapis, a ne prazan Redis. Ranije je TTL bio 90 s, pa je `worker.down` mogao da se otvori samo
 > na izostanak ključa — a tako izgleda i svježa instalacija.
 
+> **Ko upisuje ključ (od 2026-10-17):** upisuje ga **sam worker proces**, svojim tajmerom svakih 10 s
+> (`IntegrationQueueWorkerHeartbeatService`), a ne samo BullMQ raspored `integration-worker-heartbeat`.
+> Raspored se ranije registrovao **jednom pri startu** i `registerRepeatableJob` je grešku samo logovao
+> (`integration_worker_heartbeat_schedule_failed`), pa su Redis blip pri startu, restart/flesh Redis-a ili
+> zaglavljen DLQ sweep (isti procesor, `concurrency: 1`) zaustavljali periodični upis dok je worker bio živ —
+> ključ bi istekao i alarm se otvorio kao `heartbeatMissing: true`. Rasporedi se sada ponovo potvrđuju svakih
+> 5 min (`upsertJobScheduler` je idempotentan po ID-u), a procesni tajmer piše nezavisno od reda.
+> Zato `heartbeatMissing: true` danas znači: **nijedan worker proces nije mogao pisati u Redis bar 2 min**
+> (uz kanarinca, 5 min grace i bez svježeg `ops:snapshot`) — dakle stvarno pad ili nedostupan Redis.
+
 **Postupak (stvarni pad workera):**
 1. `docker ps -a | grep worker-` provjeri status (restarting, exited, unhealthy).
 2. `docker logs --tail 200 "$WORKER"` pokaže zadnju grešku (najčešće Redis ACL/lozinka, migracija, OOM).
@@ -89,7 +99,13 @@ Ako bilo šta od toga ne stoji, alarm se **ne otvara**, a backend logira zašto:
 ```bash
 docker exec "$WORKER" node dist/src/cli/worker-health.js; echo "exit=$?"  # exit=0 → worker je živ
 docker logs --since 15m "$BACKEND" 2>&1 | grep ops_watchdog | tail -20    # zašto watchdog (ne) otvara
+docker logs --since 15m "$WORKER" 2>&1 | grep -E "schedule_failed|heartbeat" | tail -20
+redis-cli --user <acl> TTL servicedesk:integration-queue:worker-heartbeat  # ~3600 → piše se
 ```
+
+Ako worker kontejner **restartuje u petlji** (`docker ps -a` → `Restarting`), heartbeat se nikad ne upiše:
+pogledaj zadnju grešku u `docker logs` — najčešće je to Redis (ACL/lozinka/host) ili migracija.
+
 
 Evikciju ključeva **ne** rješavaj promjenom `maxmemory-policy` (ostaje `volatile-lru`, vidi
 [redis-unavailable](#redis-unavailable)) — kanarinac je tu da je prepozna i da tada ne diže uzbunu.

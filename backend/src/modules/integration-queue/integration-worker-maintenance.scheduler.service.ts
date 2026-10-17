@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
@@ -26,6 +31,16 @@ import { loadIntegrationQueueSettings } from './load-integration-queue-settings'
 const fallbackPollSeconds = 15;
 
 /**
+ * How often the two schedules are re-asserted in Redis. `upsertJobScheduler` is
+ * idempotent by scheduler id, so this costs two Redis calls per interval and buys
+ * self-healing: a registration that failed at boot (Redis blip — `registerRepeatableJob`
+ * logs and moves on) or that disappeared with a Redis restart/flush comes back
+ * without a worker redeploy. Incident 2026-10-17: without it the heartbeat
+ * schedule was write-once-at-boot, and losing it looked like a dead worker.
+ */
+export const integrationWorkerMaintenanceReconcileIntervalMilliseconds = 5 * 60_000;
+
+/**
  * Phase 4.1 (plan §4.1): registers the worker's two maintenance schedules in Redis.
  *
  * Both are idempotent by scheduler id, so starting a second worker (or restarting
@@ -34,10 +49,13 @@ const fallbackPollSeconds = 15;
  * its own 10 s constant.
  */
 @Injectable()
-export class IntegrationWorkerMaintenanceSchedulerService implements OnModuleInit {
+export class IntegrationWorkerMaintenanceSchedulerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(
     IntegrationWorkerMaintenanceSchedulerService.name,
   );
+  private reconcileTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectQueue(integrationWorkerMaintenanceQueueName)
@@ -46,6 +64,21 @@ export class IntegrationWorkerMaintenanceSchedulerService implements OnModuleIni
   ) {}
 
   async onModuleInit(): Promise<void> {
+    await this.registerSchedules();
+    if (this.reconcileTimer === null) {
+      this.reconcileTimer = setInterval(() => {
+        void this.registerSchedules();
+      }, integrationWorkerMaintenanceReconcileIntervalMilliseconds);
+      this.reconcileTimer.unref?.();
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.reconcileTimer !== null) clearInterval(this.reconcileTimer);
+    this.reconcileTimer = null;
+  }
+
+  private async registerSchedules(): Promise<void> {
     await registerRepeatableJob({
       queue: this.queue,
       schedulerId: integrationWorkerHeartbeatSchedulerId,

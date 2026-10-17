@@ -78,6 +78,8 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
 | `MFA_ENCRYPTION_KEY` | secret (optional) | Same base64 value as on the API backend. The CI job passes it to Playwright so `global-setup` can repair the super admin `UserMfa` row when a TOTP secret is already known. |
 | `E2E_FORCE_MFA_RESET` | variable (optional) | Set to `1` to delete super-admin MFA in the database on every run even when `E2E_SUPERADMIN_TOTP_SECRET` is set. |
 | `E2E_SSH_HOST`, `E2E_SSH_PORT`, `E2E_SSH_USER`, `E2E_SSH_PRIVATE_KEY`, `E2E_SSH_DB_PORT` | secrets (optional) | With all of them set, the runner opens an SSH tunnel `127.0.0.1:15432 → <host>:<db port>` before the specs, so Postgres never has to be public. Then `E2E_DATABASE_URL` must point at `127.0.0.1:15432`. |
+| `E2E_ENSURE_ACTORS` | variable (optional) | Set to `true` to create the three actors on the stack before the run (see *Actors that do not exist yet*). Needs the `E2E_SSH_*` secrets and the actor secrets. Off by default. |
+| `E2E_BACKEND_CONTAINER` | variable (optional) | Exact backend container name for that step (`docker ps` on the host). Without it the step picks the first running container whose name contains `backend`. |
 | `E2E_INSTALL_TOKEN` | secret | Only if the stack's install wizard is still open; must match the backend `INSTALL_TOKEN`. |
 
 Steps (repository admin):
@@ -374,8 +376,39 @@ So these must be disposable test accounts. The harness refuses any address whose
 with `e2e.` (for example `e2e.superadmin@example.com`), unless that address is listed on purpose in
 `E2E_ALLOW_REAL_ACCOUNTS` (comma-separated).
 
-On an already installed environment, create the super admin once in the UI: *Korisnici → Novi*, role
-SUPER_ADMIN, local password = `E2E_SUPERADMIN_PASSWORD`. USER and AGENT are created by the harness.
+### Actors that do not exist yet
+
+On an already installed environment the harness only *signs in*: `provisionTestActors` needs a super-admin
+session to create USER and AGENT, so when `E2E_SUPERADMIN_EMAIL` is not an account of that stack, nothing can
+be provisioned and the run dies in `global-setup` — which reads like a product failure and is not one. This is
+the normal state of a stack whose install wizard was completed by hand: the founder account is the super admin,
+and it is not the test one.
+
+Either create the super admin once in the UI (*Korisnici → Novi*, role SUPER_ADMIN, local password =
+`E2E_SUPERADMIN_PASSWORD`) and let the harness do the rest, or run the backend command that ensures all three
+from the environment:
+
+```bash
+# inside the backend container (shell access is the trust boundary, as with cli/reset-mfa.js)
+docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js
+# or with the actors as JSON on stdin — passwords never appear in argv
+docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js --stdin <<'JSON'
+{ "actors": [ { "email": "e2e.superadmin@example.com", "password": "…", "roleKey": "SUPER_ADMIN" } ] }
+JSON
+```
+
+It reads `E2E_SUPERADMIN_*`, `E2E_USER_*` and `E2E_AGENT_*` (same defaults as the harness), creates a missing
+actor as an ordinary local account — system role, home unit = the first node of the unit tree, no forced
+password change — and aligns an existing one (password, unit, role, `mustChangePassword`, `isActive`), through
+the same primitives the API uses, including the SuperAdmin local-only invariant and the authorization-cache
+invalidation. One line per actor plus a summary; exit `0`, or `3` when an actor was refused.
+
+Refused, on purpose: an address that is not disposable (`e2e.*` / `E2E_ALLOW_REAL_ACCOUNTS`), a
+directory-managed account (`entraObjectId` / `directoryObjectGuid` — its password belongs to Entra/AD), an
+anonymized account, and a password the offline policy rejects (`--allow-policy-violation` overrides, and the
+deployment's own policy is stricter still: organisation words plus the Pwned Passwords check). An enrolled
+second factor is *reported*, not removed — `--reset-mfa` removes it. Setting `E2E_ENSURE_ACTORS=true` runs the
+command from the CI job over the existing SSH access before the specs.
 
 The founder account obeys the same policy as every other local password (paket 5.1, `M1 #1`): at least
 `private.auth.password.minLength` characters (12 by default), not on the common-password list, without the
