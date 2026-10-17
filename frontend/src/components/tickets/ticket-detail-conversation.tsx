@@ -143,7 +143,9 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
         />
       </div>
       {footer ? (
-        <div className="shrink-0 border-t border-border/60 bg-background pt-2 xl:pt-3">{footer}</div>
+        <div className="shrink-0 border-t border-border/60 bg-background pt-2 xl:pt-3">
+          {footer}
+        </div>
       ) : null}
     </div>
   );
