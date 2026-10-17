@@ -33,11 +33,15 @@ const redisClientLogger = new Logger('RedisClient');
         client.on('error', (error: Error) => {
           redisClientLogger.warn(`redis_client_error reason=${error.message}`);
         });
-        // lazyConnect leaves status "wait" until the first command; connect here
-        // so watchdog/health GETs never race an unfinished handshake.
-        if (client.status === 'wait') {
-          await client.connect();
-        }
+        // `lazyConnect` ostaje namjerno. Prva komanda sama otvori vezu, a ioredis
+        // drži komande u offline redu dok handshake ne završi, pa GET nikad ne
+        // vraća `null` zato što „veza još nije gotova". Spajanje ovdje (await
+        // connect) bi značilo da se API i worker **ne mogu podići** dok Redis ne
+        // radi — a cijeli sistem je projektovan fail-open
+        // (`ops/runbook/redis-down.md`: „API odgovara, keševi promašuju"), i
+        // `redis.module.spec.ts` to pinuje („without opening a TCP session").
+        // Watchdog, kojem stvarno treba spreman klijent, ima svoju vezu i spaja
+        // je eksplicitno (`WatchdogRedisProbe.ensureConnected`).
         return client;
       },
       inject: [redisTokens.configuration],
