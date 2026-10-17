@@ -99,6 +99,11 @@ Evikciju ključeva **ne** rješavaj promjenom `maxmemory-policy` (ostaje `volati
 obavještenja samo ako API može pročitati `ops:silence`; ako i dalje stižu mailovi uz utišavanje,
 redeploy backend s fixom silence fail-closed.
 
+**Lažni flap (ista baza, drugi Redis):** watchdog radi samo uz `NODE_ENV=production` (ili
+`OPS_WATCHDOG_ENABLED=true`). Lokalni `nest start` na dijeljenoj DB s lokalnim Redisom bez
+workera inače otvara `worker.down` svake minute dok Coolify API zatvara — ugasi lokalni API
+ili nemoj dijeliti produkcijsku/staging bazu.
+
 ## email-provider-blocked
 
 **Uslov:** SMTP provajder je odbio slanje zbog svoje kvote — najčešće Gmail

@@ -57,7 +57,10 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
   }
 
   onApplicationBootstrap(): void {
-    if (process.env.NODE_ENV === 'test' || process.env.OPS_WATCHDOG_DISABLED === 'true') return;
+    // Production only: a local/dev API on a shared DB with a different Redis
+    // (Incident 2026-10-17) opened worker.down every minute while Coolify
+    // resolved it — false CRITICAL flap. Opt in with OPS_WATCHDOG_ENABLED=true.
+    if (!isOpsWatchdogEnabled()) return;
     this.timer = setInterval(() => void this.tick(), watchdogIntervalMs);
     this.timer.unref();
   }
@@ -138,6 +141,19 @@ export class OpsWatchdogService implements OnApplicationBootstrap, OnModuleDestr
       this.running = false;
     }
   }
+}
+
+/**
+ * Watchdog pages into the shared Postgres alarm table. Only the deployed API
+ * (`NODE_ENV=production`) should run it; local/dev must opt in explicitly so a
+ * laptop Redis without a worker cannot open CRITICAL on a shared database.
+ */
+export function isOpsWatchdogEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (env.OPS_WATCHDOG_DISABLED === 'true') return false;
+  if (env.OPS_WATCHDOG_ENABLED === 'true') return true;
+  return env.NODE_ENV === 'production';
 }
 
 function snapshotAge(generatedAt: string | null, nowMs: number): number | null {

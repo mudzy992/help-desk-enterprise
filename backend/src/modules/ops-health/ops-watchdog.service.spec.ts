@@ -3,6 +3,7 @@ import { opsRedisKeys } from './ops-state.store';
 import { fallbackOpsConfiguration } from './ops-configuration.loader';
 import {
   OpsWatchdogService,
+  isOpsWatchdogEnabled,
   monitorStaleSeconds,
   watchdogIntervalMs,
   workerAbsenceGraceMs,
@@ -218,5 +219,14 @@ describe('OpsWatchdogService (worker liveness)', () => {
       if (previous === undefined) delete process.env.OPS_WATCHDOG_DISABLED;
       else process.env.OPS_WATCHDOG_DISABLED = previous;
     }
+  });
+});
+
+describe('isOpsWatchdogEnabled', () => {
+  it('runs in production, stays off in development unless explicitly enabled', () => {
+    expect(isOpsWatchdogEnabled({ NODE_ENV: 'production' })).toBe(true);
+    expect(isOpsWatchdogEnabled({ NODE_ENV: 'development' })).toBe(false);
+    expect(isOpsWatchdogEnabled({ NODE_ENV: 'development', OPS_WATCHDOG_ENABLED: 'true' })).toBe(true);
+    expect(isOpsWatchdogEnabled({ NODE_ENV: 'production', OPS_WATCHDOG_DISABLED: 'true' })).toBe(false);
   });
 });
