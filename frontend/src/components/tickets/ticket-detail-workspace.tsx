@@ -95,86 +95,94 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
     });
   }
   return (
-    <div className="page-in min-w-0">
+    <div className="page-in flex min-h-0 min-w-0 flex-1 flex-col">
       <UnderlineTabs
-        className="mb-3"
+        className="mb-3 shrink-0"
         active={tab}
         onChange={(key) => setTab(key as DetailTab)}
         items={tabItems}
       />
       {tab === "chat" ? (
-        <PanelErrorBoundary
-          panelName="ticket-conversation"
-          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
-        >
-          <TicketDetailConversation
-            ticket={props.ticket}
-            messages={props.messages}
-            currentUserId={props.currentUserId}
-            authorNames={props.authorNames}
-            requesterName={props.requesterName}
-            access={props.access}
-            isSending={props.isSending}
-            sendErrorKey={props.sendErrorKey}
-            canWaitForUser={props.canWaitForUser}
-            onSend={props.onSend}
-            onWaitForUser={props.onWaitForUser}
-            onUpload={props.canUpload ? props.onUpload : undefined}
-            composerExtra={props.composerExtra}
-            composerTemplates={props.composerTemplates}
-            composerInsertText={props.composerInsertText}
-            composerCollaboration={props.composerCollaboration}
-            canWriteKnowledge={props.canWriteKnowledge}
-          />
-        </PanelErrorBoundary>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <PanelErrorBoundary
+            panelName="ticket-conversation"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketDetailConversation
+              ticket={props.ticket}
+              messages={props.messages}
+              currentUserId={props.currentUserId}
+              authorNames={props.authorNames}
+              requesterName={props.requesterName}
+              access={props.access}
+              isSending={props.isSending}
+              sendErrorKey={props.sendErrorKey}
+              canWaitForUser={props.canWaitForUser}
+              onSend={props.onSend}
+              onWaitForUser={props.onWaitForUser}
+              onUpload={props.canUpload ? props.onUpload : undefined}
+              composerExtra={props.composerExtra}
+              composerTemplates={props.composerTemplates}
+              composerInsertText={props.composerInsertText}
+              composerCollaboration={props.composerCollaboration}
+              canWriteKnowledge={props.canWriteKnowledge}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "activity" ? (
-        <PanelErrorBoundary
-          panelName="ticket-activity"
-          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
-        >
-          <TicketActivityList
-            messages={props.messages}
-            history={props.history}
-            publicEntries={props.publicActivity}
-            isStaff={props.isStaff}
-            authorNames={props.authorNames}
-            errorKey={props.isStaff ? props.historyErrorKey : props.publicActivityErrorKey}
-            onRetry={props.onRetryContext}
-          />
-        </PanelErrorBoundary>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-activity"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketActivityList
+              messages={props.messages}
+              history={props.history}
+              publicEntries={props.publicActivity}
+              isStaff={props.isStaff}
+              authorNames={props.authorNames}
+              errorKey={props.isStaff ? props.historyErrorKey : props.publicActivityErrorKey}
+              onRetry={props.onRetryContext}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "time" ? (
-        <PanelErrorBoundary
-          panelName="ticket-time"
-          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
-        >
-          <TicketTimeTrackingPanel
-            items={props.timeLogs}
-            visible={props.timeVisible}
-            currentUserId={props.currentUserId}
-            ticketNumber={props.ticket.ticketNumber}
-            userNames={props.userNames}
-            canTrack={props.canTrackTime}
-            controls={props.timeTracking}
-          />
-        </PanelErrorBoundary>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-time"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketTimeTrackingPanel
+              items={props.timeLogs}
+              visible={props.timeVisible}
+              currentUserId={props.currentUserId}
+              ticketNumber={props.ticket.ticketNumber}
+              userNames={props.userNames}
+              canTrack={props.canTrackTime}
+              controls={props.timeTracking}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "files" ? (
-        <PanelErrorBoundary
-          panelName="ticket-attachments"
-          resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
-        >
-          <TicketAttachmentsPanel
-            items={props.attachments}
-            visible={props.attachmentsVisible}
-            purgedAt={props.attachmentsPurgedAt ?? null}
-            canUpload={props.canUpload}
-            onUpload={props.onUpload}
-            onDownload={props.onDownload}
-            onDelete={props.onDelete}
-          />
-        </PanelErrorBoundary>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-attachments"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketAttachmentsPanel
+              items={props.attachments}
+              visible={props.attachmentsVisible}
+              purgedAt={props.attachmentsPurgedAt ?? null}
+              canUpload={props.canUpload}
+              onUpload={props.onUpload}
+              onDownload={props.onDownload}
+              onDelete={props.onDelete}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
     </div>
   );

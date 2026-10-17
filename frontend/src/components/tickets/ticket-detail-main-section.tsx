@@ -9,59 +9,72 @@ import { TicketPlaybookPanel } from "@/components/templates/ticket-playbook-pane
 import { permissionKeys } from "@/lib/session/permission-keys";
 import type { TicketDetailPageReadyModel } from "@/components/tickets/ticket-detail-page-types";
 
+const DETAIL_COLUMN_HEIGHT = "xl:h-[calc(100dvh-5.5rem)]";
+
 export function TicketDetailMainSection({ model }: { readonly model: TicketDetailPageReadyModel }) {
   const { ticket, actions, detail, context, approvals } = model;
   return (
-    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
-      <TicketDetailWorkspace
-        ticket={ticket}
-        messages={model.visibleMessages}
-        currentUserId={model.currentUserId}
-        authorNames={model.authorNames}
-        requesterName={model.requesterName}
-        history={context.history}
-        publicActivity={context.publicActivity}
-        historyErrorKey={context.errors.history}
-        publicActivityErrorKey={context.errors.publicActivity}
-        onRetryContext={context.retry}
-        isStaff={actions.viewActivity}
-        access={model.access}
-        isSending={model.detailActions.isSending}
-        sendErrorKey={detail.actionError}
-        canWaitForUser={model.canWaitForUser}
-        onSend={model.detailActions.sendMessage}
-        onWaitForUser={model.detailActions.waitForUser}
-        timeLogs={detail.timeLogs}
-        timeVisible={detail.timeVisible && actions.viewActivity}
-        userNames={model.authorNames}
-        canTrackTime={actions.trackTime}
-        timeTracking={model.timeTracking}
-        attachments={detail.attachments}
-        attachmentsVisible={detail.attachmentsVisible}
-        attachmentsPurgedAt={ticket.privacy?.attachmentsPurgedAt ?? null}
-        canUpload={detail.attachmentsVisible && actions.uploadAttachments}
-        onUpload={detail.upload}
-        onDownload={detail.download}
-        onDelete={detail.removeAttachment}
-        composerExtra={model.composerExtra}
-        canWriteKnowledge={
-          actions.viewActivity && model.hasPermission(permissionKeys.knowledgeArticleWrite)
-        }
-        composerCollaboration={model.composerCollaboration}
-        composerInsertText={model.workaroundInsert}
-        composerTemplates={
-          actions.viewActivity && model.canUseTemplates
-            ? {
-                ticketId: ticket.id,
-                insertRequest: model.templateInsert,
-                canSavePersonal:
-                  model.session?.isSuperAdmin === true ||
-                  model.hasPermission(permissionKeys.ticketTemplatesPersonal),
-              }
-            : undefined
-        }
-      />
-      <div className="space-y-4">
+    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px] xl:items-start">
+      {/*
+        xl+: sticky chat column fills the viewport under the topbar so the
+        composer stays put while the thread scrolls; the side rail scrolls
+        independently in its own sticky column.
+      */}
+      <div
+        className={`min-w-0 xl:sticky xl:top-4 xl:flex xl:min-h-0 xl:flex-col xl:overflow-hidden ${DETAIL_COLUMN_HEIGHT}`}
+      >
+        <TicketDetailWorkspace
+          ticket={ticket}
+          messages={model.visibleMessages}
+          currentUserId={model.currentUserId}
+          authorNames={model.authorNames}
+          requesterName={model.requesterName}
+          history={context.history}
+          publicActivity={context.publicActivity}
+          historyErrorKey={context.errors.history}
+          publicActivityErrorKey={context.errors.publicActivity}
+          onRetryContext={context.retry}
+          isStaff={actions.viewActivity}
+          access={model.access}
+          isSending={model.detailActions.isSending}
+          sendErrorKey={detail.actionError}
+          canWaitForUser={model.canWaitForUser}
+          onSend={model.detailActions.sendMessage}
+          onWaitForUser={model.detailActions.waitForUser}
+          timeLogs={detail.timeLogs}
+          timeVisible={detail.timeVisible && actions.viewActivity}
+          userNames={model.authorNames}
+          canTrackTime={actions.trackTime}
+          timeTracking={model.timeTracking}
+          attachments={detail.attachments}
+          attachmentsVisible={detail.attachmentsVisible}
+          attachmentsPurgedAt={ticket.privacy?.attachmentsPurgedAt ?? null}
+          canUpload={detail.attachmentsVisible && actions.uploadAttachments}
+          onUpload={detail.upload}
+          onDownload={detail.download}
+          onDelete={detail.removeAttachment}
+          composerExtra={model.composerExtra}
+          canWriteKnowledge={
+            actions.viewActivity && model.hasPermission(permissionKeys.knowledgeArticleWrite)
+          }
+          composerCollaboration={model.composerCollaboration}
+          composerInsertText={model.workaroundInsert}
+          composerTemplates={
+            actions.viewActivity && model.canUseTemplates
+              ? {
+                  ticketId: ticket.id,
+                  insertRequest: model.templateInsert,
+                  canSavePersonal:
+                    model.session?.isSuperAdmin === true ||
+                    model.hasPermission(permissionKeys.ticketTemplatesPersonal),
+                }
+              : undefined
+          }
+        />
+      </div>
+      <div
+        className={`min-w-0 space-y-4 xl:sticky xl:top-4 xl:overflow-y-auto xl:pr-1 ${DETAIL_COLUMN_HEIGHT}`}
+      >
         <TicketDetailSideStack
           sections={model.detailSections}
           actionsVisible={model.actionsCardVisible}
