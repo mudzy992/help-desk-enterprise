@@ -23,7 +23,7 @@ interface TicketMessageComposerActionsProperties {
 export function TicketMessageComposerActions(props: TicketMessageComposerActionsProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
+    <div className="mt-2 flex flex-wrap items-center gap-2 px-3 pb-3">
       {props.onUpload ? (
         <>
           <input
