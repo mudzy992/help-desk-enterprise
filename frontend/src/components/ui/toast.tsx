@@ -75,15 +75,19 @@ function readRequestId(input: ToastInput): string | undefined {
  */
 export function ToastProvider({ children }: { readonly children: ReactNode }) {
   const [queue, setQueue] = useState<readonly ToastRecord[]>([]);
+  // The ref is the synchronous source for imperative toast() return values and
+  // for multiple calls made before React commits the next render.
+  const queueRef = useRef<readonly ToastRecord[]>([]);
 
   const dismiss = useCallback((id: number) => {
-    setQueue((previous) => removeToast(previous, id));
+    const next = removeToast(queueRef.current, id);
+    queueRef.current = next;
+    setQueue(next);
   }, []);
 
   const toast = useCallback((input: ToastInput) => {
     toastSequence += 1;
     const tone = input.tone ?? "info";
-    let resolvedId = toastSequence;
     const candidate = {
       id: toastSequence,
       tone,
@@ -93,12 +97,10 @@ export function ToastProvider({ children }: { readonly children: ReactNode }) {
       action: input.action,
       duration: resolveToastDuration(tone, input.duration),
     };
-    setQueue((previous) => {
-      const next = enqueueToast(previous, candidate);
-      resolvedId = next.id;
-      return next.queue;
-    });
-    return resolvedId;
+    const next = enqueueToast(queueRef.current, candidate);
+    queueRef.current = next.queue;
+    setQueue(next.queue);
+    return next.id;
   }, []);
 
   const value = useMemo<ToastContextValue>(() => ({ toast, dismiss }), [toast, dismiss]);

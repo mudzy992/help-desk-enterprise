@@ -38,17 +38,17 @@ Most je `frontend/src/styles/install-shim.css`: install koraci nastavljaju koris
 
 ## Povezani fajlovi
 
-| Grupa | Fajlovi / dokaz | Uloga |
-|---|---|---|
-| Kontrole i forme | `button.tsx`, `control.ts`, `field.tsx`, `checkbox.tsx`, `switch.tsx`, `segmented.tsx`, `chip.tsx` | Unos, izbor, akcije i stanje greške |
-| Dijalozi i površine | `modal.tsx`, `confirm-dialog.tsx`, `sheet.tsx`, `responsive-surface.tsx`, `dropdown-menu.tsx` | Radix fokus, portal, Escape i modalnost |
-| Navigacija i struktura | `tabs.tsx`, `wizard-stepper.tsx`, `page-header.tsx`, `detail-section.tsx`, `filter-bar.tsx`, `scroll-region.tsx`, `separator.tsx` | Navigacija, sekcije i raspored |
-| Prikaz podataka | `card.tsx`, `stat-card.tsx`, `badge.tsx`, `progress.tsx`, `avatar.tsx`, `kbd.tsx`, `relative-time.tsx` | Kartice, statusi, progres i identitet |
-| Feedback | `toast.tsx`, `skeleton.tsx`, `empty-state.tsx`, `api-error-text.tsx`, `warning.tsx`, `panel-error-boundary.tsx` | Učitavanje, upozorenje, greška i oporavak |
-| Testovi | `badge.spec.tsx`, `field.spec.ts`, `confirm-dialog.spec.tsx`, `panel-error-boundary.spec.tsx` | 4 fajla / 7 testova |
-| Pulse tokeni | `frontend/src/index.css`, `.cursor/docs/theme.md`, `Master UI-UX Design Constitution.md` | Palete i pravila dizajn sistema |
-| Pulse guardovi | `check-pulse-design-system.mjs`, `check-theme-contrast.mjs`, `check-a11y-static.mjs` | Tokeni, kontrast i statički a11y |
-| Install most | `styles/install-shim.css`, `scripts/check-install-aurora.mjs`, `audit/frontend/11-install.md` | Scoped Aurora mapiranje i leak zaštita |
+| Grupa                  | Fajlovi / dokaz                                                                                                                   | Uloga                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Kontrole i forme       | `button.tsx`, `control.ts`, `field.tsx`, `checkbox.tsx`, `switch.tsx`, `segmented.tsx`, `chip.tsx`                                | Unos, izbor, akcije i stanje greške       |
+| Dijalozi i površine    | `modal.tsx`, `confirm-dialog.tsx`, `sheet.tsx`, `responsive-surface.tsx`, `dropdown-menu.tsx`                                     | Radix fokus, portal, Escape i modalnost   |
+| Navigacija i struktura | `tabs.tsx`, `wizard-stepper.tsx`, `page-header.tsx`, `detail-section.tsx`, `filter-bar.tsx`, `scroll-region.tsx`, `separator.tsx` | Navigacija, sekcije i raspored            |
+| Prikaz podataka        | `card.tsx`, `stat-card.tsx`, `badge.tsx`, `progress.tsx`, `avatar.tsx`, `kbd.tsx`, `relative-time.tsx`                            | Kartice, statusi, progres i identitet     |
+| Feedback               | `toast.tsx`, `skeleton.tsx`, `empty-state.tsx`, `api-error-text.tsx`, `warning.tsx`, `panel-error-boundary.tsx`                   | Učitavanje, upozorenje, greška i oporavak |
+| Testovi                | `badge.spec.tsx`, `field.spec.ts`, `confirm-dialog.spec.tsx`, `panel-error-boundary.spec.tsx`                                     | 4 fajla / 7 testova                       |
+| Pulse tokeni           | `frontend/src/index.css`, `.cursor/docs/theme.md`, `Master UI-UX Design Constitution.md`                                          | Palete i pravila dizajn sistema           |
+| Pulse guardovi         | `check-pulse-design-system.mjs`, `check-theme-contrast.mjs`, `check-a11y-static.mjs`                                              | Tokeni, kontrast i statički a11y          |
+| Install most           | `styles/install-shim.css`, `scripts/check-install-aurora.mjs`, `audit/frontend/11-install.md`                                     | Scoped Aurora mapiranje i leak zaštita    |
 
 ---
 
@@ -68,7 +68,7 @@ Međutim, zajednički `ModalHeader` i dalje renderuje obične `<h2>` i `<p>`. Ra
 
 ### Toast, feedback i loaderi
 
-`ToastProvider` ima queue, deduplikaciju, limit od tri prikaza, pauzu na hover/fokus, trajanje po tonu, `alert/status` i request ID kopiranje. I dalje nema vlastiti test. Povratna vrijednost `toast()` zavisi od `resolvedId` koji se mijenja unutar React state updatera; kod deduplikacije može vratiti kandidat umjesto stvarnog spojenog ID-a.
+`ToastProvider` ima queue, deduplikaciju, limit od tri prikaza, pauzu na hover/fokus, trajanje po tonu, `alert/status` i request ID kopiranje. Provider behavior test potvrđuje dedup/count, limit i promociju queuea, pauzu timera, Escape te action/dismissal. Sinhroni `queueRef` je autoritativan za imperativne operacije prije React commita, pa `toast()` vraća ID stvarno kreiranog ili spojenog zapisa.
 
 `PanelSkeleton` je dominantan loader (108 importera) i ima `role="status"`, ali istovremeno nosi `aria-label` i isti `sr-only` tekst. `Warning` je tokenizovan prikaz upozorenja sa skrivenom dekorativnom ikonom. Novi `PanelErrorBoundary` izoluje render grešku, prijavljuje je loggeru i nudi retry; ima test oporavka i `role="alert"`, ali je naziv/log event/fallback copy vezan za ticket domen i zato pojačava UI5.
 
@@ -80,23 +80,23 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 ## Realno / željeno — samo otvoreno
 
-| UI | Realno stanje | Željeno stanje |
-|---|---|---|
-| **UI2** | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok. | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
-| **UI3** | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor. | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze. |
-| **UI4** | Render-prop Field je ispravan i testiran; legacy oblik ne prenosi a11y stanje na kontrolu. | Migrirati legacy upotrebe ili uvesti API koji uvijek povezuje label/hint/error. |
-| **UI5** | `ui/` i dalje zna za error domene, ticket format, docs/branding i ticket panel logging/copy. | Presentational `ui/`; domenska adaptacija izvan foldera + lint granica. |
-| **UI6** | Badge/Stat/Progress imaju odvojene mape istih tonova; Chip duplira remove JSX. | Zajednički tone ugovor i jedan remove primitive. |
-| **UI7** | 4 spec fajla / 7 testova za 31 produkcijsku komponentu. | Modal, ConfirmDialog fokus/Escape/name, Toast, Field oba API-ja, Tabs, Segmented i FilterBar. |
-| **UI8** | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku. | Eksplicitna semantika i runtime/axe potvrda. |
-| **UI9** | `PageHeader` koristi `"\u0000brand"` sentinel. | Tipizovan crumb model. |
-| **UI10** | Switch/Chip/Avatar koriste `bg-white`, `bg-black/*` ili `ring-black/white`; trenutni guard ih ne odbija. | Tokeni za thumb, hover i avatar ring ili dokumentovan, guardovan izuzetak. |
-| **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`. | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije. |
-| **UI12** | `toast()` može vratiti kandidat umjesto ID-a dedupliciranog toasta. | Sinhron, tačan ugovor ili uklonjena/dokumentovana povratna vrijednost. |
-| **UI13** | Više javnih Radix exporta nema potrošača. | Smanjiti API ili eksplicitno dokumentovati namjerni passthrough. |
-| **UI14** | Button zadržava alias parove varijanti. | Jedan kanonski naziv po namjeri uz migraciju. |
-| **UI15** | `ariaLabel`/`label` i `ui.close`/`shell.close` ostaju neujednačeni. | Konzistentan prop i i18n ugovor. |
-| **UI17** | Warning je jednostavan i nema test; PanelErrorBoundary je testiran, ali je ticket-specifičan unutar `ui/`. | Testirati Warning semantiku; boundary učiniti generičkim ili premjestiti u ticket sloj. |
+| UI       | Realno stanje                                                                                                    | Željeno stanje                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **UI2**  | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok.          | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok.                      |
+| **UI3**  | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor.    | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze.                                       |
+| **UI4**  | Render-prop Field je ispravan i testiran; legacy oblik ne prenosi a11y stanje na kontrolu.                       | Migrirati legacy upotrebe ili uvesti API koji uvijek povezuje label/hint/error.               |
+| **UI5**  | `ui/` i dalje zna za error domene, ticket format, docs/branding i ticket panel logging/copy.                     | Presentational `ui/`; domenska adaptacija izvan foldera + lint granica.                       |
+| **UI6**  | Badge/Stat/Progress imaju odvojene mape istih tonova; Chip duplira remove JSX.                                   | Zajednički tone ugovor i jedan remove primitive.                                              |
+| **UI7**  | Toast behavior ugovor je pokriven sa 4 provider testa; širi cilj još nema FilterBar i potpuni Modal test.        | Modal, ConfirmDialog fokus/Escape/name, Toast, Field oba API-ja, Tabs, Segmented i FilterBar. |
+| **UI8**  | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku.                | Eksplicitna semantika i runtime/axe potvrda.                                                  |
+| **UI9**  | `PageHeader` koristi `"\u0000brand"` sentinel.                                                                   | Tipizovan crumb model.                                                                        |
+| **UI10** | Switch/Chip/Avatar koriste `bg-white`, `bg-black/*` ili `ring-black/white`; trenutni guard ih ne odbija.         | Tokeni za thumb, hover i avatar ring ili dokumentovan, guardovan izuzetak.                    |
+| **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`.                                  | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije.                          |
+| **UI12** | `toast()` sinhrono vraća ID stvarno kreiranog ili dedupliciranog zapisa, uključujući pozive prije React commita. | Održavati tačan ugovor behavior testom.                                                       |
+| **UI13** | Više javnih Radix exporta nema potrošača.                                                                        | Smanjiti API ili eksplicitno dokumentovati namjerni passthrough.                              |
+| **UI14** | Button zadržava alias parove varijanti.                                                                          | Jedan kanonski naziv po namjeri uz migraciju.                                                 |
+| **UI15** | `ariaLabel`/`label` i `ui.close`/`shell.close` ostaju neujednačeni.                                              | Konzistentan prop i i18n ugovor.                                                              |
+| **UI17** | Warning je jednostavan i nema test; PanelErrorBoundary je testiran, ali je ticket-specifičan unutar `ui/`.       | Testirati Warning semantiku; boundary učiniti generičkim ili premjestiti u ticket sloj.       |
 
 ---
 
@@ -124,11 +124,11 @@ Field render-prop je dobar cilj, ali legacy grana ne može čarobno mutirati pro
 
 ### UI6, UI9–UI15 — održavanje API-ja
 
-Ovi nalazi nisu pojedinačno kritični, ali zajedno šire javnu površinu i dopuštaju divergenciju: četiri tone mape, alias varijante, sentinel, neujednačeni propovi i mrtvi passthrough exporti. UI12 treba riješiti prije nego potrošač počne koristiti povratni toast ID.
+Ovi nalazi nisu pojedinačno kritični, ali zajedno šire javnu površinu i dopuštaju divergenciju: četiri tone mape, alias varijante, sentinel, neujednačeni propovi i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
 
 ### UI7 i UI8 — dokaz ponašanja
 
-Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne testove. Ipak, najveći behavior rizici ostaju netestirani. Zeleni `check-a11y-static` ne zatvara UI1/UI3/UI8: guard nema pravila za DialogTitle, roving fokus, progressbar ni `aria-current`.
+Behavior pokrivenost sada uključuje ConfirmDialog, selection kontrole, display semantiku i Toast. Toast testira queue/dedup/pauzu/Escape/ID/action ugovore; UI7 ipak ostaje djelimičan dok FilterBar i potpuni Modal behavior nemaju vlastiti dokaz. Statički guard nije zamjena za ove runtime testove.
 
 ### UI16 — shim/regresija
 
@@ -146,26 +146,26 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 
 ## Master tabela UI1–UI18
 
-| UI | Status | Dokaz |
-|---|---|---|
-| **UI1** | Zatvoren | `ModalHeader` montira Radix Title/Description; ConfirmDialog test pokriva name, opis, početni fokus i Escape. |
-| **UI2** | **Zatvoren** | Svih pet tokova koristi `ConfirmDialog`; produkcijski grep za `window.confirm` vraća 0. |
-| **UI3** | **Zatvoren** | Roving fokus, Arrow/Home/End, wrap-around i opcionalni panel link pokriveni behavior testom. |
-| **UI4** | Djelimično | Render-prop + 3 testa su ispravni; legacy grana ostaje. |
-| **UI5** | Otvoren | Error domeni, ticket formatter, docs/branding i ticket boundary ostaju u `ui/`. |
-| **UI6** | Otvoren | Tone mape i Chip remove markup su duplicirani. |
-| **UI7** | Djelimično | 4 spec fajla / 7 prolaznih testova; ključne komponente bez testa. |
-| **UI8** | **Zatvoren** | Progress value ugovor, wizard current step, Avatar identity/decorative režim, jedan skeleton naziv i imenovani detail region pokriveni testovima. |
-| **UI9** | Otvoren | NUL sentinel je i dalje u `page-header.tsx`. |
-| **UI10** | Otvoren | Default black/white utilityji ostaju; guard je zelen, ali ih ne klasifikuje kao zabranjenu paletu. |
-| **UI11** | Otvoren | Fazni komentari i zastario broj potrošača ostaju. |
-| **UI12** | Otvoren | Lazy updater i `resolvedId` ugovor nisu promijenjeni. |
-| **UI13** | Otvoren | Modal/Sheet/Dropdown passthrough exporti uglavnom nemaju vanjske potrošače. |
-| **UI14** | Prihvaćen rizik | Aliasi čuvaju kompatibilnost; migracija nije funkcionalni prioritet. |
-| **UI15** | Otvoren | Prop i close i18n ugovor ostaju neujednačeni. |
-| **UI16** | Zatvoren | `check-install-aurora`: 27 klasa, 0 shim praznina; check B takođe zelen. |
-| **UI17** | Djelimično | Warning uveden; PanelErrorBoundary ima test, ali nosi ticket domen. |
-| **UI18** | Djelimično | Tri guarda su korisna i zelena, ali ne pokrivaju UI1/UI3/UI8 semantiku. |
+| UI       | Status          | Dokaz                                                                                                                                             |
+| -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI1**  | Zatvoren        | `ModalHeader` montira Radix Title/Description; ConfirmDialog test pokriva name, opis, početni fokus i Escape.                                     |
+| **UI2**  | **Zatvoren**    | Svih pet tokova koristi `ConfirmDialog`; produkcijski grep za `window.confirm` vraća 0.                                                           |
+| **UI3**  | **Zatvoren**    | Roving fokus, Arrow/Home/End, wrap-around i opcionalni panel link pokriveni behavior testom.                                                      |
+| **UI4**  | Djelimično      | Render-prop + 3 testa su ispravni; legacy grana ostaje.                                                                                           |
+| **UI5**  | Otvoren         | Error domeni, ticket formatter, docs/branding i ticket boundary ostaju u `ui/`.                                                                   |
+| **UI6**  | Otvoren         | Tone mape i Chip remove markup su duplicirani.                                                                                                    |
+| **UI7**  | Djelimično      | Toast ima 4 provider behavior testa za queue/dedup/pauzu/Escape/ID/action; FilterBar i potpuni Modal behavior ostaju.                             |
+| **UI8**  | **Zatvoren**    | Progress value ugovor, wizard current step, Avatar identity/decorative režim, jedan skeleton naziv i imenovani detail region pokriveni testovima. |
+| **UI9**  | Otvoren         | NUL sentinel je i dalje u `page-header.tsx`.                                                                                                      |
+| **UI10** | Otvoren         | Default black/white utilityji ostaju; guard je zelen, ali ih ne klasifikuje kao zabranjenu paletu.                                                |
+| **UI11** | Otvoren         | Fazni komentari i zastario broj potrošača ostaju.                                                                                                 |
+| **UI12** | **Zatvoren**    | Sinhroni `queueRef` osigurava stvarni create/dedup ID i spaja uzastopne pre-commit pozive; behavior test potvrđuje isti ID i `×2`.                |
+| **UI13** | Otvoren         | Modal/Sheet/Dropdown passthrough exporti uglavnom nemaju vanjske potrošače.                                                                       |
+| **UI14** | Prihvaćen rizik | Aliasi čuvaju kompatibilnost; migracija nije funkcionalni prioritet.                                                                              |
+| **UI15** | Otvoren         | Prop i close i18n ugovor ostaju neujednačeni.                                                                                                     |
+| **UI16** | Zatvoren        | `check-install-aurora`: 27 klasa, 0 shim praznina; check B takođe zelen.                                                                          |
+| **UI17** | Djelimično      | Warning uveden; PanelErrorBoundary ima test, ali nosi ticket domen.                                                                               |
+| **UI18** | Djelimično      | Tri guarda su korisna i zelena, ali ne pokrivaju UI1/UI3/UI8 semantiku.                                                                           |
 
 ---
 
@@ -180,7 +180,7 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 ### P1 — konzistentnost i pouzdanost
 
 4. Održavati zatvoreni UI2: nove potvrde koriste `ConfirmDialog`, bez native browser prompta.
-5. **UI7/UI12:** testirati Toast queue/dedup/pauzu/Escape/ID i FilterBar; popraviti ili redefinisati toast ID.
+5. **UI7:** održavati zatvoreni Toast/UI12 ugovor i dodati preostale FilterBar te potpune Modal behavior testove.
 6. **UI5/UI17:** izvući domenske adaptere i ticket boundary iz `ui/`; uvesti `no-restricted-imports` sa infrastrukturnom allowlistom.
 
 ### P2 — Pulse ugovor i čišćenje
@@ -218,6 +218,7 @@ Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-
 
 - **UI3 i UI8 zatvoreni:** selection kontrole imaju testiranu tastaturu; Progress/WizardStepper izlažu value/current semantiku; Avatar ima identity/decorative ugovor, Skeleton jedan naziv, a DetailSection imenovani region.
 - **UI2 zatvoren:** svih pet native potvrda migrirano je na `ConfirmDialog`; produkcijski `window.confirm` grep je 0.
+- **UI12 zatvoren / UI7 Toast scope završen:** `toast()` vraća tačan create/dedup ID i prije React commita; 4 provider behavior testa pokrivaju dedup/count, queue promociju, timer pause, Escape i action dismissal. Puni frontend rezultat je 311/311 fajlova i 1294/1294 testova; build, format i lint bez grešaka su zeleni (12 postojećih lint upozorenja).
 - **UI1 zatvoren:** `ModalHeader` koristi Radix `ModalTitle`/`ModalDescription` uz nepromijenjen javni API i vizuelne klase. `confirm-dialog.spec.tsx` potvrđuje programsko ime, opis, početni fokus i Escape. Browser/axe nije pokrenut; komponentni Radix ugovor je potvrđen u jsdom testu.
 
 ## Status re-audita (2026-10-18)
