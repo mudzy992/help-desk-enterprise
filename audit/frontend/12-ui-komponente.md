@@ -83,12 +83,12 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 | UI | Realno stanje | Željeno stanje |
 |---|---|---|
 | **UI2** | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok. | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
-| **UI3** | Tabs i Segmented imaju role, ali nemaju roving fokus ni Arrow/Home/End. | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze. |
+| **UI3** | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor. | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze. |
 | **UI4** | Render-prop Field je ispravan i testiran; legacy oblik ne prenosi a11y stanje na kontrolu. | Migrirati legacy upotrebe ili uvesti API koji uvijek povezuje label/hint/error. |
 | **UI5** | `ui/` i dalje zna za error domene, ticket format, docs/branding i ticket panel logging/copy. | Presentational `ui/`; domenska adaptacija izvan foldera + lint granica. |
 | **UI6** | Badge/Stat/Progress imaju odvojene mape istih tonova; Chip duplira remove JSX. | Zajednički tone ugovor i jedan remove primitive. |
 | **UI7** | 4 spec fajla / 7 testova za 31 produkcijsku komponentu. | Modal, ConfirmDialog fokus/Escape/name, Toast, Field oba API-ja, Tabs, Segmented i FilterBar. |
-| **UI8** | Progress nema progressbar ARIA; WizardStepper nema `aria-current`; Avatar se oslanja na title/inicijale; skeleton duplira naziv. | Eksplicitna semantika i runtime/axe potvrda. |
+| **UI8** | Progress i WizardStepper sada imaju eksplicitnu, testiranu semantiku; Avatar i skeleton ugovor ostaju za zaseban završetak. | Eksplicitna semantika i runtime/axe potvrda. |
 | **UI9** | `PageHeader` koristi `"\u0000brand"` sentinel. | Tipizovan crumb model. |
 | **UI10** | Switch/Chip/Avatar koriste `bg-white`, `bg-black/*` ili `ring-black/white`; trenutni guard ih ne odbija. | Tokeni za thumb, hover i avatar ring ili dokumentovan, guardovan izuzetak. |
 | **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`. | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije. |
@@ -110,9 +110,13 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 Ticket participants, ticket attachments, unlink/delete user i email-template unsaved navigation sada koriste zajednički `ConfirmDialog`. Destruktivne akcije nose danger intent, async user akcije pending stanje, a blocker se pravilno nastavlja ili resetuje bez browser prompta. Produkcijski `src/` nema `window.confirm` poziva.
 
-### UI3 i UI4 — custom interakcija i forma
+### UI3 — keyboard selection ugovor (zatvoren)
 
-ARIA role bez očekivane tastature stvaraju semantičko obećanje koje komponenta ne ispunjava. Tabs i radio grupa trebaju aktivni jedini tab stop i smjer strelica. Field render-prop je dobar cilj, ali legacy grana ne može čarobno mutirati proizvoljno dijete; roadmap treba migraciju potrošača, mjeren codemod i privremeni lint/deprecation, ne novu heuristiku sa `cloneElement` bez tipne granice.
+`UnderlineTabs` i `Segmented` sada koriste roving `tabIndex`, jedan aktivni tab stop, horizontalnu orijentaciju te Arrow/Home/End navigaciju sa wrap-around ponašanjem. Keyboard izbor mijenja kontrolisanu vrijednost i premješta fokus, a tab item može eksplicitno navesti `panelId` za `aria-controls`. Behavior test pokriva oba obrasca.
+
+### UI4 — forma
+
+Field render-prop je dobar cilj, ali legacy grana ne može čarobno mutirati proizvoljno dijete; roadmap treba migraciju potrošača, mjeren codemod i privremeni lint/deprecation, ne novu heuristiku sa `cloneElement` bez tipne granice.
 
 ### UI5 — domenske zavisnosti
 
@@ -146,12 +150,12 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 |---|---|---|
 | **UI1** | Zatvoren | `ModalHeader` montira Radix Title/Description; ConfirmDialog test pokriva name, opis, početni fokus i Escape. |
 | **UI2** | **Zatvoren** | Svih pet tokova koristi `ConfirmDialog`; produkcijski grep za `window.confirm` vraća 0. |
-| **UI3** | Otvoren | Role postoje; roving fokus i Arrow/Home/End ne postoje. |
+| **UI3** | **Zatvoren** | Roving fokus, Arrow/Home/End, wrap-around i opcionalni panel link pokriveni behavior testom. |
 | **UI4** | Djelimično | Render-prop + 3 testa su ispravni; legacy grana ostaje. |
 | **UI5** | Otvoren | Error domeni, ticket formatter, docs/branding i ticket boundary ostaju u `ui/`. |
 | **UI6** | Otvoren | Tone mape i Chip remove markup su duplicirani. |
 | **UI7** | Djelimično | 4 spec fajla / 7 prolaznih testova; ključne komponente bez testa. |
-| **UI8** | Otvoren | Progress, Avatar, DetailSection, WizardStepper i Skeleton imaju preostale semantičke gapove. |
+| **UI8** | Djelimično | Progress ima potpuni value ugovor, WizardStepper `aria-current`; Avatar/Skeleton završetak ostaje otvoren. |
 | **UI9** | Otvoren | NUL sentinel je i dalje u `page-header.tsx`. |
 | **UI10** | Otvoren | Default black/white utilityji ostaju; guard je zelen, ali ih ne klasifikuje kao zabranjenu paletu. |
 | **UI11** | Otvoren | Fazni komentari i zastario broj potrošača ostaju. |
@@ -170,8 +174,8 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 ### P0 — a11y i široki API uticaj
 
 1. **UI1:** prebaciti `ModalHeader` na Radix Title/Description i dodati Modal/ConfirmDialog testove za name, description, focus i Escape.
-2. **UI4/UI3:** izmjeriti i migrirati legacy Field; implementirati roving fokus i WAI-ARIA tastaturu za Tabs/Segmented, sa testovima.
-3. **UI8:** dodati Progress ARIA, `aria-current="step"`, Avatar accessible-name/dekorativni ugovor i ukloniti dupli skeleton naziv; potvrditi axe/browserom.
+2. **UI4:** izmjeriti i migrirati legacy Field; održavati zatvoreni UI3 behavior testom.
+3. **UI8:** završiti Avatar accessible-name/dekorativni ugovor i ukloniti dupli skeleton naziv; Progress i WizardStepper semantika su zatvorene testom.
 
 ### P1 — konzistentnost i pouzdanost
 
@@ -189,7 +193,7 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 
 ## Ocjena
 
-**8,0/10**
+**8,6/10**
 
 Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-prop je testiran, ConfirmDialog i PanelErrorBoundary imaju osnovne specove, Pulse token/kontrast/a11y guardovi su zeleni, a Aurora shim trenutno nema praznina. Ocjena ipak ne ide više jer UI1 ostaje širok accessible-name propust, UI2 je zatvoren jedinstvenim ConfirmDialog obrascem, ali UI3/UI4 nisu završeni, arhitektonska granica UI5 je i dalje otvorena, a samo 7 testova ne pokriva Modal/Toast/Tabs behavior. Browser/axe dokaz u ovom re-auditu nije izvršen.
 
@@ -212,6 +216,7 @@ Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-
 
 ## Status implementacije (2026-10-18)
 
+- **UI3 zatvoren / UI8 napredak:** Tabs i Segmented imaju testiranu WAI-ARIA tastaturu i roving fokus; Progress ima value semantiku, a WizardStepper označava trenutni korak. Avatar/Skeleton dio UI8 ostaje otvoren.
 - **UI2 zatvoren:** svih pet native potvrda migrirano je na `ConfirmDialog`; produkcijski `window.confirm` grep je 0.
 - **UI1 zatvoren:** `ModalHeader` koristi Radix `ModalTitle`/`ModalDescription` uz nepromijenjen javni API i vizuelne klase. `confirm-dialog.spec.tsx` potvrđuje programsko ime, opis, početni fokus i Escape. Browser/axe nije pokrenut; komponentni Radix ugovor je potvrđen u jsdom testu.
 
