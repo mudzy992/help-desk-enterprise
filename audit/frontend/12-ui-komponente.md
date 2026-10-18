@@ -82,7 +82,6 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 | UI | Realno stanje | Željeno stanje |
 |---|---|---|
-| **UI1** | `ModalHeader` je obični `h2/p`; `ConfirmDialog` i potrošači nemaju Radix accessible name/description. | `ModalHeader` montira `ModalTitle` i `ModalDescription`; behavior test traži imenovani dialog/alertdialog. |
 | **UI2** | Pet stvarnih `window.confirm` poziva ostaje u tickets/users/email templates. | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
 | **UI3** | Tabs i Segmented imaju role, ali nemaju roving fokus ni Arrow/Home/End. | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze. |
 | **UI4** | Render-prop Field je ispravan i testiran; legacy oblik ne prenosi a11y stanje na kontrolu. | Migrirati legacy upotrebe ili uvesti API koji uvijek povezuje label/hint/error. |
@@ -103,9 +102,9 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 ## Gap analiza
 
-### UI1 — dijalozi bez programskog imena
+### UI1 — dijalozi imaju programsko ime (zatvoren)
 
-Ovo ostaje najvažniji nalaz. `ModalHeader` treba interno koristiti već izvezene `ModalTitle` i `ModalDescription`. Time se popravlja `ConfirmDialog` i svi potrošači bez pojedinačne migracije markup-a. Test mora dokazati `getByRole("alertdialog", { name })`, opis, početni fokus i Escape; sadašnji ConfirmDialog spec pokriva samo danger klik.
+`ModalHeader` sada interno koristi već izvezene `ModalTitle` i `ModalDescription`, bez promjene API-ja potrošača. `ConfirmDialog` test dokazuje imenovani `alertdialog`, povezani opis, početni fokus na sigurnoj akciji i zatvaranje Escape tipkom.
 
 ### UI2 — dvije konvencije potvrde
 
@@ -145,7 +144,7 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 
 | UI | Status | Dokaz |
 |---|---|---|
-| **UI1** | Otvoren | `ModalHeader` i dalje koristi `h2/p`; Radix 1.1.23 traži montiran Title. |
+| **UI1** | Zatvoren | `ModalHeader` montira Radix Title/Description; ConfirmDialog test pokriva name, opis, početni fokus i Escape. |
 | **UI2** | Djelimično | Assets potvrde su migrirane; ostaje 5 `window.confirm` poziva. |
 | **UI3** | Otvoren | Role postoje; roving fokus i Arrow/Home/End ne postoje. |
 | **UI4** | Djelimično | Render-prop + 3 testa su ispravni; legacy grana ostaje. |
@@ -210,6 +209,10 @@ Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-
 - [x] `node scripts/check-install-aurora.mjs` — prošao; 27 klasa, 0 shim praznina, 0 nestabilnih kontejnera.
 - [x] `npx vitest run src/components/ui` — **4/4 fajla, 7/7 testova prošlo**.
 - [ ] Browser, axe i Lighthouse nisu pokrenuti; runtime nalazi nisu zatvoreni bez dokaza.
+
+## Status implementacije (2026-10-18)
+
+- **UI1 zatvoren:** `ModalHeader` koristi Radix `ModalTitle`/`ModalDescription` uz nepromijenjen javni API i vizuelne klase. `confirm-dialog.spec.tsx` potvrđuje programsko ime, opis, početni fokus i Escape. Browser/axe nije pokrenut; komponentni Radix ugovor je potvrđen u jsdom testu.
 
 ## Status re-audita (2026-10-18)
 
