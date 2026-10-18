@@ -298,48 +298,60 @@ export function ResponseTemplateEditorPage() {
             ) : null}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <Field label={t("templates.editor.name")} required>
-                <Input
-                  value={form.name}
-                  onChange={(event) => update("name", event.target.value)}
-                  maxLength={120}
-                  disabled={disabled}
-                  data-testid="template-name"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={form.name}
+                    onChange={(event) => update("name", event.target.value)}
+                    maxLength={120}
+                    disabled={disabled}
+                    data-testid="template-name"
+                  />
+                )}
               </Field>
               <Field label={t("templates.editor.kind")} hint={t("templates.editor.kindHint")}>
-                <Select
-                  value={form.kind}
-                  onChange={(event) => update("kind", event.target.value as ResponseTemplateKind)}
-                  disabled={disabled}
-                >
-                  <option value="REPLY">{t("templates.kind.REPLY")}</option>
-                  <option value="INTERNAL">{t("templates.kind.INTERNAL")}</option>
-                  <option value="ANY">{t("templates.kind.ANY")}</option>
-                </Select>
+                {(control) => (
+                  <Select
+                    {...control}
+                    value={form.kind}
+                    onChange={(event) => update("kind", event.target.value as ResponseTemplateKind)}
+                    disabled={disabled}
+                  >
+                    <option value="REPLY">{t("templates.kind.REPLY")}</option>
+                    <option value="INTERNAL">{t("templates.kind.INTERNAL")}</option>
+                    <option value="ANY">{t("templates.kind.ANY")}</option>
+                  </Select>
+                )}
               </Field>
             </div>
             <Field label={t("templates.editor.bodyBs")} required>
-              <textarea
-                ref={bodyReferences.bodyBs}
-                value={form.bodyBs}
-                onChange={(event) => update("bodyBs", event.target.value)}
-                onFocus={() => setActiveBody("bodyBs")}
-                rows={9}
-                className={cn(textareaClassName, "font-mono text-[12.5px]")}
-                disabled={disabled}
-                data-testid="template-body-bs"
-              />
+              {(control) => (
+                <textarea
+                  {...control}
+                  ref={bodyReferences.bodyBs}
+                  value={form.bodyBs}
+                  onChange={(event) => update("bodyBs", event.target.value)}
+                  onFocus={() => setActiveBody("bodyBs")}
+                  rows={9}
+                  className={cn(textareaClassName, "font-mono text-[12.5px]")}
+                  disabled={disabled}
+                  data-testid="template-body-bs"
+                />
+              )}
             </Field>
             <Field label={t("templates.editor.bodyEn")} hint={t("templates.editor.bodyEnHint")}>
-              <textarea
-                ref={bodyReferences.bodyEn}
-                value={form.bodyEn}
-                onChange={(event) => update("bodyEn", event.target.value)}
-                onFocus={() => setActiveBody("bodyEn")}
-                rows={5}
-                className={cn(textareaClassName, "font-mono text-[12.5px]")}
-                disabled={disabled}
-              />
+              {(control) => (
+                <textarea
+                  {...control}
+                  ref={bodyReferences.bodyEn}
+                  value={form.bodyEn}
+                  onChange={(event) => update("bodyEn", event.target.value)}
+                  onFocus={() => setActiveBody("bodyEn")}
+                  rows={5}
+                  className={cn(textareaClassName, "font-mono text-[12.5px]")}
+                  disabled={disabled}
+                />
+              )}
             </Field>
             {unknown.length > 0 ? (
               <p role="alert" className="flex items-center gap-1.5 text-[12px] text-danger">
@@ -350,11 +362,14 @@ export function ResponseTemplateEditorPage() {
             <VariablePalette onInsert={insertVariable} disabled={disabled} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("templates.editor.tags")} hint={t("templates.editor.tagsHint")}>
-                <Input
-                  value={form.tags}
-                  onChange={(event) => update("tags", event.target.value)}
-                  disabled={disabled}
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={form.tags}
+                    onChange={(event) => update("tags", event.target.value)}
+                    disabled={disabled}
+                  />
+                )}
               </Field>
               <div className="flex items-end pb-2">
                 <Checkbox
@@ -402,13 +417,16 @@ export function ResponseTemplateEditorPage() {
                   required
                   hint={t("templates.editor.reasonHint")}
                 >
-                  <Input
-                    value={form.reason}
-                    onChange={(event) => update("reason", event.target.value)}
-                    maxLength={500}
-                    disabled={disabled}
-                    data-testid="template-reason"
-                  />
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={form.reason}
+                      onChange={(event) => update("reason", event.target.value)}
+                      maxLength={500}
+                      disabled={disabled}
+                      data-testid="template-reason"
+                    />
+                  )}
                 </Field>
               </div>
             ) : null}
@@ -457,12 +475,15 @@ export function ResponseTemplateEditorPage() {
                 label={t("templates.editor.previewTicket")}
                 hint={t("templates.editor.previewTicketHint")}
               >
-                <Input
-                  value={previewTicketId}
-                  onChange={(event) => setPreviewTicketId(event.target.value)}
-                  maxLength={64}
-                  placeholder="cm…"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={previewTicketId}
+                    onChange={(event) => setPreviewTicketId(event.target.value)}
+                    maxLength={64}
+                    placeholder="cm…"
+                  />
+                )}
               </Field>
               {previewErrorKey !== null ? (
                 <p role="alert" className="text-[12.5px] text-danger">

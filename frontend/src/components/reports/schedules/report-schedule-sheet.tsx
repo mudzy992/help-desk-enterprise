@@ -238,38 +238,47 @@ export function ReportScheduleSheet({
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           <Field label={t("reports.schedules.form.name")} required>
-            <input
-              className={controlClassName}
-              value={name}
-              maxLength={reportScheduleNameMaxLength}
-              onChange={(event) => setName(event.target.value)}
-              data-testid="schedule-name"
-            />
+            {(control) => (
+              <input
+                {...control}
+                className={controlClassName}
+                value={name}
+                maxLength={reportScheduleNameMaxLength}
+                onChange={(event) => setName(event.target.value)}
+                data-testid="schedule-name"
+              />
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("reports.schedules.form.frequency")} required>
-              <select
-                className={selectClassName}
-                value={frequency}
-                onChange={(event) => setFrequency(event.target.value as ReportScheduleFrequency)}
-                data-testid="schedule-frequency"
-              >
-                {reportScheduleFrequencies.map((option) => (
-                  <option key={option} value={option}>
-                    {t(frequencyKeys[option])}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={frequency}
+                  onChange={(event) => setFrequency(event.target.value as ReportScheduleFrequency)}
+                  data-testid="schedule-frequency"
+                >
+                  {reportScheduleFrequencies.map((option) => (
+                    <option key={option} value={option}>
+                      {t(frequencyKeys[option])}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
             <Field label={t("reports.schedules.form.sendTime")} required>
-              <input
-                type="time"
-                step={300}
-                className={controlClassName}
-                value={sendTime}
-                onChange={(event) => setSendTime(event.target.value)}
-                data-testid="schedule-time"
-              />
+              {(control) => (
+                <input
+                  {...control}
+                  type="time"
+                  step={300}
+                  className={controlClassName}
+                  value={sendTime}
+                  onChange={(event) => setSendTime(event.target.value)}
+                  data-testid="schedule-time"
+                />
+              )}
             </Field>
           </div>
           <p className={hintClassName} data-testid="schedule-next-preview">
@@ -288,66 +297,78 @@ export function ReportScheduleSheet({
           </p>
 
           <Field label={t("reports.packs.unit")} required>
-            <select
-              className={selectClassName}
-              value={unitId}
-              onChange={(event) => {
-                setUnitId(event.target.value);
-                setRecipients([]);
-              }}
-              data-testid="schedule-unit"
-            >
-              {units.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("reports.trends.filters.service")}>
+            {(control) => (
               <select
+                {...control}
                 className={selectClassName}
-                value={serviceId}
-                onChange={(event) => setServiceId(event.target.value)}
+                value={unitId}
+                onChange={(event) => {
+                  setUnitId(event.target.value);
+                  setRecipients([]);
+                }}
+                data-testid="schedule-unit"
               >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {services.map((option) => (
+                {units.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
               </select>
+            )}
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("reports.trends.filters.service")}>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={serviceId}
+                  onChange={(event) => setServiceId(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {services.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
             <Field label={t("reports.trends.filters.priority")}>
-              <select
-                className={selectClassName}
-                value={priority}
-                onChange={(event) => setPriority(event.target.value)}
-              >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {reportTrendPriorities.map((option) => (
-                  <option key={option} value={option}>
-                    {t(priorityKeys[option])}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {reportTrendPriorities.map((option) => (
+                    <option key={option} value={option}>
+                      {t(priorityKeys[option])}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
           </div>
           {groups !== null ? (
             <Field label={t("reports.trends.filters.group")}>
-              <select
-                className={selectClassName}
-                value={groupId}
-                onChange={(event) => setGroupId(event.target.value)}
-              >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {groups.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={groupId}
+                  onChange={(event) => setGroupId(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {groups.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
           ) : null}
 

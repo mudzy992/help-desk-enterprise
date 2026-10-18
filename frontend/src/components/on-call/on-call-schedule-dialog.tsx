@@ -142,64 +142,87 @@ export function OnCallScheduleDialog({
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("onCall.schedule.rotationLength")} required>
-              <Select
-                value={rotationLength}
-                onChange={(event) => setRotationLength(event.target.value as OnCallRotationLength)}
-              >
-                <option value="WEEK">{t("onCall.schedule.week")}</option>
-                <option value="DAY">{t("onCall.schedule.day")}</option>
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={rotationLength}
+                  onChange={(event) =>
+                    setRotationLength(event.target.value as OnCallRotationLength)
+                  }
+                >
+                  <option value="WEEK">{t("onCall.schedule.week")}</option>
+                  <option value="DAY">{t("onCall.schedule.day")}</option>
+                </Select>
+              )}
             </Field>
             <Field
               label={t("onCall.schedule.handoffTime")}
               required
               hint={t("onCall.schedule.handoffHint")}
             >
-              <Select value={handoffTime} onChange={(event) => setHandoffTime(event.target.value)}>
-                {handoffOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={handoffTime}
+                  onChange={(event) => setHandoffTime(event.target.value)}
+                >
+                  {handoffOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field
               label={t("onCall.schedule.startDate")}
               required
               hint={t("onCall.schedule.startDateHint")}
             >
-              <Input
-                type="date"
-                value={rotationStartDate}
-                onChange={(event) => setRotationStartDate(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={rotationStartDate}
+                  onChange={(event) => setRotationStartDate(event.target.value)}
+                  required
+                />
+              )}
             </Field>
             <Field
               label={t("onCall.schedule.timezone")}
               required
               hint={t("onCall.schedule.timezoneHint")}
             >
-              <Input
-                value={timezone}
-                maxLength={64}
-                onChange={(event) => setTimezone(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  value={timezone}
+                  maxLength={64}
+                  onChange={(event) => setTimezone(event.target.value)}
+                  required
+                />
+              )}
             </Field>
             <Field
               label={t("onCall.schedule.owner")}
               hint={t("onCall.schedule.ownerHint")}
               className="sm:col-span-2"
             >
-              <Select value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}>
-                <option value="">{t("onCall.schedule.ownerMe")}</option>
-                {ownerOptions.map((candidate) => (
-                  <option key={candidate.userId} value={candidate.userId}>
-                    {candidate.displayName}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={ownerUserId}
+                  onChange={(event) => setOwnerUserId(event.target.value)}
+                >
+                  <option value="">{t("onCall.schedule.ownerMe")}</option>
+                  {ownerOptions.map((candidate) => (
+                    <option key={candidate.userId} value={candidate.userId}>
+                      {candidate.displayName}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
           </div>
 
@@ -267,22 +290,25 @@ export function OnCallScheduleDialog({
             )}
             <div className="flex flex-wrap items-end gap-2">
               <Field label={t("onCall.schedule.addMember")} className="min-w-[220px] flex-1">
-                <Select
-                  value={addUserId}
-                  onChange={(event) => setAddUserId(event.target.value)}
-                  disabled={addable.length === 0}
-                >
-                  <option value="">
-                    {addable.length === 0
-                      ? t("onCall.schedule.noCandidates")
-                      : t("onCall.schedule.pick")}
-                  </option>
-                  {addable.map((candidate) => (
-                    <option key={candidate.userId} value={candidate.userId}>
-                      {candidate.displayName}
+                {(control) => (
+                  <Select
+                    {...control}
+                    value={addUserId}
+                    onChange={(event) => setAddUserId(event.target.value)}
+                    disabled={addable.length === 0}
+                  >
+                    <option value="">
+                      {addable.length === 0
+                        ? t("onCall.schedule.noCandidates")
+                        : t("onCall.schedule.pick")}
                     </option>
-                  ))}
-                </Select>
+                    {addable.map((candidate) => (
+                      <option key={candidate.userId} value={candidate.userId}>
+                        {candidate.displayName}
+                      </option>
+                    ))}
+                  </Select>
+                )}
               </Field>
               <Button
                 type="button"
@@ -322,12 +348,15 @@ export function OnCallScheduleDialog({
           </div>
 
           <Field label={t("onCall.reason")} required hint={t("onCall.reasonHint")}>
-            <Textarea
-              rows={2}
-              value={reason}
-              maxLength={500}
-              onChange={(event) => setReason(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                value={reason}
+                maxLength={500}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>

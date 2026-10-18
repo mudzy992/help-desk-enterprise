@@ -133,45 +133,61 @@ export function CreateKnowledgeArticleForm({
   return (
     <form className="fade-in mt-4 grid gap-3" onSubmit={onSubmit}>
       <Field label={t("knowledgeBase.titleField")} required>
-        <Input
-          value={title}
-          required
-          maxLength={200}
-          onChange={(event) => setTitle(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={title}
+            required
+            maxLength={200}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        )}
       </Field>
       <Field label={t("knowledgeBase.bodyField")} required>
-        <Textarea
-          value={body}
-          required
-          maxLength={20000}
-          className="min-h-32"
-          onChange={(event) => setBody(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={body}
+            required
+            maxLength={20000}
+            className="min-h-32"
+            onChange={(event) => setBody(event.target.value)}
+          />
+        )}
       </Field>
       <Field label={t("knowledgeBase.serviceId")} required>
-        <Select value={serviceId} required onChange={(event) => setServiceId(event.target.value)}>
-          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={serviceId}
+            required
+            onChange={(event) => setServiceId(event.target.value)}
+          >
+            <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+            {services.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.name}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       <Field label={t("knowledgeBase.organizationalUnitId")} required>
-        <Select
-          value={organizationalUnitId}
-          required
-          onChange={(event) => setOrganizationalUnitId(event.target.value)}
-        >
-          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-          {originUnits.map((unit) => (
-            <option key={unit.id} value={unit.id}>
-              {unit.label}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={organizationalUnitId}
+            required
+            onChange={(event) => setOrganizationalUnitId(event.target.value)}
+          >
+            <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+            {originUnits.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.label}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       {isSuperAdmin ? (
         <>
@@ -194,27 +210,33 @@ export function CreateKnowledgeArticleForm({
         </>
       ) : (
         <Field label={t("knowledgeBase.ownerUserId")} required>
-          <Select
-            value={ownerUserId}
-            required
-            onChange={(event) => setOwnerUserId(event.target.value)}
-          >
-            <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName}
-              </option>
-            ))}
-          </Select>
+          {(control) => (
+            <Select
+              {...control}
+              value={ownerUserId}
+              required
+              onChange={(event) => setOwnerUserId(event.target.value)}
+            >
+              <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+            </Select>
+          )}
         </Field>
       )}
       <Field label={t("knowledgeBase.reason")} required>
-        <Input
-          value={reason}
-          required
-          maxLength={512}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            required
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div>

@@ -205,7 +205,9 @@ function AppearancePreview() {
             <Progress value={62} />
           </div>
           <Field label={t("appearance.previewFieldLabel")}>
-            <Input defaultValue={t("appearance.previewFieldValue")} readOnly />
+            {(control) => (
+              <Input {...control} defaultValue={t("appearance.previewFieldValue")} readOnly />
+            )}
           </Field>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="sm">

@@ -265,24 +265,26 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
                   key={field}
                   label={t(`settings.emailTemplates.fields.${field}`)}
                   hint={t(`settings.emailTemplates.hints.${field}`, literalPlaceholders)}
+                  error={
+                    unknown === undefined
+                      ? undefined
+                      : t("settings.emailTemplates.unknownPlaceholder", {
+                          names: unknown.map((name) => `{{${name}}}`).join(", "),
+                        })
+                  }
                 >
-                  <Control
-                    value={content[field]}
-                    disabled={!canWrite}
-                    data-testid={`email-template-field-${field}`}
-                    onFocus={(event) => {
-                      focused.current = { field, element: event.currentTarget };
-                    }}
-                    onChange={(event) => update(field, event.target.value)}
-                    aria-invalid={unknown !== undefined}
-                  />
-                  {unknown !== undefined ? (
-                    <span className="mt-1 block text-[11.5px] text-danger" role="alert">
-                      {t("settings.emailTemplates.unknownPlaceholder", {
-                        names: unknown.map((name) => `{{${name}}}`).join(", "),
-                      })}
-                    </span>
-                  ) : null}
+                  {(control) => (
+                    <Control
+                      {...control}
+                      value={content[field]}
+                      disabled={!canWrite}
+                      data-testid={`email-template-field-${field}`}
+                      onFocus={(event) => {
+                        focused.current = { field, element: event.currentTarget };
+                      }}
+                      onChange={(event) => update(field, event.target.value)}
+                    />
+                  )}
                 </Field>
               );
             })}
@@ -419,48 +421,46 @@ function AccentColorField({
     <Field
       label={t("settings.emailTemplates.fields.accentColor")}
       hint={t("settings.emailTemplates.hints.accentColor")}
+      error={valid ? undefined : t("settings.emailTemplates.accentInvalid")}
     >
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          aria-label={t("settings.emailTemplates.fields.accentColor")}
-          className="h-9 w-12 cursor-pointer rounded-md border border-border bg-surface p-1 disabled:opacity-45"
-          // design-system-allow-hex: e-mail accent is template data, not a UI token.
-          value={colourPattern.test(value) ? value : "#4f46e5"}
-          disabled={disabled}
-          data-testid="email-template-field-accentColor-picker"
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <Input
-          className="w-32 font-mono"
-          value={text}
-          placeholder={t("settings.emailTemplates.accentInherit")}
-          disabled={disabled}
-          aria-invalid={!valid}
-          data-testid="email-template-field-accentColor"
-          onChange={(event) => {
-            setText(event.target.value);
-            if (event.target.value === "" || colourPattern.test(event.target.value)) {
-              onChange(event.target.value);
-            }
-          }}
-        />
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          disabled={disabled || value === ""}
-          onClick={() => onChange("")}
-        >
-          <Palette size={13} />
-          {t("settings.emailTemplates.accentUseGlobal")}
-        </Button>
-      </div>
-      {!valid ? (
-        <span className="mt-1 block text-[11.5px] text-danger" role="alert">
-          {t("settings.emailTemplates.accentInvalid")}
-        </span>
-      ) : null}
+      {(control) => (
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            aria-label={t("settings.emailTemplates.fields.accentColor")}
+            className="h-9 w-12 cursor-pointer rounded-md border border-border bg-surface p-1 disabled:opacity-45"
+            // design-system-allow-hex: e-mail accent is template data, not a UI token.
+            value={colourPattern.test(value) ? value : "#4f46e5"}
+            disabled={disabled}
+            data-testid="email-template-field-accentColor-picker"
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <Input
+            {...control}
+            className="w-32 font-mono"
+            value={text}
+            placeholder={t("settings.emailTemplates.accentInherit")}
+            disabled={disabled}
+            data-testid="email-template-field-accentColor"
+            onChange={(event) => {
+              setText(event.target.value);
+              if (event.target.value === "" || colourPattern.test(event.target.value)) {
+                onChange(event.target.value);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            disabled={disabled || value === ""}
+            onClick={() => onChange("")}
+          >
+            <Palette size={13} />
+            {t("settings.emailTemplates.accentUseGlobal")}
+          </Button>
+        </div>
+      )}
     </Field>
   );
 }

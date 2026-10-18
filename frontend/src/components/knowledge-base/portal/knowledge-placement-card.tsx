@@ -119,14 +119,20 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
       </h3>
       {categoriesErrorKey ? <ApiErrorText messageKey={categoriesErrorKey} /> : null}
       <Field label={t("knowledgeBase.portal.placement.category")}>
-        <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-          <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
+            {options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       <label className="flex items-center gap-2 text-[12.5px] text-foreground">
         <Switch
@@ -142,17 +148,27 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
           hint={t("knowledgeBase.portal.placement.faqOrderHint")}
           error={orderValid ? undefined : t("knowledgeBase.portal.placement.faqOrderInvalid")}
         >
-          <Input
-            type="number"
-            min={0}
-            max={999}
-            value={faqOrder}
-            onChange={(event) => setFaqOrder(event.target.value)}
-          />
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              min={0}
+              max={999}
+              value={faqOrder}
+              onChange={(event) => setFaqOrder(event.target.value)}
+            />
+          )}
         </Field>
       ) : null}
       <Field label={t("knowledgeBase.reason")} required>
-        <Input value={reason} maxLength={512} onChange={(event) => setReason(event.target.value)} />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} /> : null}
       <div>

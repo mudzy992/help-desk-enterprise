@@ -624,13 +624,16 @@ function AssessmentSheet({
                     hint={t("privacy.anonymization.confirmEmailHint")}
                     required
                   >
-                    <Input
-                      value={confirmEmail}
-                      autoComplete="off"
-                      onChange={(event) => setConfirmEmail(event.target.value)}
-                      onPaste={(event) => event.preventDefault()}
-                      data-testid="privacy-confirm-email"
-                    />
+                    {(control) => (
+                      <Input
+                        {...control}
+                        value={confirmEmail}
+                        autoComplete="off"
+                        onChange={(event) => setConfirmEmail(event.target.value)}
+                        onPaste={(event) => event.preventDefault()}
+                        data-testid="privacy-confirm-email"
+                      />
+                    )}
                   </Field>
                   <p className="text-[12px] text-danger">
                     {t("privacy.anonymization.irreversible")}

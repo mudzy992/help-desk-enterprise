@@ -25,12 +25,15 @@ export function CreateConfigVersionForm({ isBusy, onCreate }: CreateConfigVersio
       }}
     >
       <Field label={t("configVersions.releaseNotes")}>
-        <Textarea
-          value={releaseNotes}
-          disabled={isBusy}
-          maxLength={4000}
-          onChange={(event) => setReleaseNotes(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={releaseNotes}
+            disabled={isBusy}
+            maxLength={4000}
+            onChange={(event) => setReleaseNotes(event.target.value)}
+          />
+        )}
       </Field>
       <div>
         <Button type="submit" size="sm" disabled={isBusy}>

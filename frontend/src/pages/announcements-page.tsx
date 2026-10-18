@@ -507,12 +507,15 @@ function ManageAnnouncements() {
               required
               hint={t("announcements.manage.reasonHint")}
             >
-              <Textarea
-                rows={2}
-                value={reason}
-                maxLength={500}
-                onChange={(event) => setReason(event.target.value)}
-              />
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={2}
+                  value={reason}
+                  maxLength={500}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              )}
             </Field>
           ) : null}
           {actionError ? (

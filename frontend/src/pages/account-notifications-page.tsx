@@ -388,26 +388,29 @@ export function AccountNotificationsPage() {
               />
               <div className="grid gap-4 p-4 sm:grid-cols-2">
                 <Field label={t("account.notifications.digestTime")}>
-                  <Select
-                    value={draft.schedule.digestTime ?? ""}
-                    disabled={!editable}
-                    onChange={(event) =>
-                      updateSchedule({
-                        digestTime: event.target.value === "" ? null : event.target.value,
-                      })
-                    }
-                  >
-                    <option value="">
-                      {t("account.notifications.digestTimeDefault", {
-                        time: policy.digestDefaultTime,
-                      })}
-                    </option>
-                    {quarterHourOptions.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
+                  {(control) => (
+                    <Select
+                      {...control}
+                      value={draft.schedule.digestTime ?? ""}
+                      disabled={!editable}
+                      onChange={(event) =>
+                        updateSchedule({
+                          digestTime: event.target.value === "" ? null : event.target.value,
+                        })
+                      }
+                    >
+                      <option value="">
+                        {t("account.notifications.digestTimeDefault", {
+                          time: policy.digestDefaultTime,
+                        })}
                       </option>
-                    ))}
-                  </Select>
+                      {quarterHourOptions.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
                 <div className="flex items-end pb-1.5">
                   <Checkbox
@@ -460,30 +463,36 @@ export function AccountNotificationsPage() {
               />
               <div className="grid gap-4 p-4 sm:grid-cols-3">
                 <Field label={t("account.notifications.quietStart")}>
-                  <Select
-                    value={draft.schedule.quietStart}
-                    disabled={!editable || !draft.schedule.quietHoursEnabled}
-                    onChange={(event) => updateSchedule({ quietStart: event.target.value })}
-                  >
-                    {quarterHourOptions.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  {(control) => (
+                    <Select
+                      {...control}
+                      value={draft.schedule.quietStart}
+                      disabled={!editable || !draft.schedule.quietHoursEnabled}
+                      onChange={(event) => updateSchedule({ quietStart: event.target.value })}
+                    >
+                      {quarterHourOptions.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
                 <Field label={t("account.notifications.quietEnd")}>
-                  <Select
-                    value={draft.schedule.quietEnd}
-                    disabled={!editable || !draft.schedule.quietHoursEnabled}
-                    onChange={(event) => updateSchedule({ quietEnd: event.target.value })}
-                  >
-                    {quarterHourOptions.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  {(control) => (
+                    <Select
+                      {...control}
+                      value={draft.schedule.quietEnd}
+                      disabled={!editable || !draft.schedule.quietHoursEnabled}
+                      onChange={(event) => updateSchedule({ quietEnd: event.target.value })}
+                    >
+                      {quarterHourOptions.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
                 <div className="flex items-end pb-1.5">
                   <Checkbox

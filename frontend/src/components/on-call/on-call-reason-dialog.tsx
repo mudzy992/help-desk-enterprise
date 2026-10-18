@@ -45,12 +45,15 @@ export function OnCallReasonDialog({
     >
       <div className="grid gap-2">
         <Field label={t("onCall.reason")} required hint={t("onCall.reasonHint")}>
-          <Textarea
-            rows={2}
-            value={reason}
-            maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              rows={2}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          )}
         </Field>
         {error ? (
           <p role="alert" className={errorTextClassName}>

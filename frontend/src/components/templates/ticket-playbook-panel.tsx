@@ -253,12 +253,15 @@ export function TicketPlaybookPanel({
         }}
       >
         <Field label={t("templates.checklist.detachReason")} required>
-          <Textarea
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            rows={3}
-            maxLength={500}
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              rows={3}
+              maxLength={500}
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </DetailSection>

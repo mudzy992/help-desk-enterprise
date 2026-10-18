@@ -57,13 +57,20 @@ export function OnboardingSlaStep({
   return (
     <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.onboarding.slaProfile")} required>
-        <Select value={value} required onChange={(event) => setValue(event.target.value)}>
-          {activeProfiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {formatSlaProfileName(profile.key, profile.name, t as never)}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={value}
+            required
+            onChange={(event) => setValue(event.target.value)}
+          >
+            {activeProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {formatSlaProfileName(profile.key, profile.name, t as never)}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       <Button
         type="submit"

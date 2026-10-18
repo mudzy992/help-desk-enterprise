@@ -221,65 +221,80 @@ export function ProblemLinkDialog({
             {mode === "create" ? (
               <>
                 <Field label={t("problems.fields.title")} required>
-                  <Input
-                    value={title}
-                    maxLength={titleMax}
-                    onChange={(event) => setTitle(event.target.value)}
-                    autoFocus
-                  />
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={title}
+                      maxLength={titleMax}
+                      onChange={(event) => setTitle(event.target.value)}
+                      autoFocus
+                    />
+                  )}
                 </Field>
                 <Field label={t("problems.fields.description")} required>
-                  <Textarea
-                    rows={5}
-                    value={description}
-                    maxLength={descriptionMax}
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
+                  {(control) => (
+                    <Textarea
+                      {...control}
+                      rows={5}
+                      value={description}
+                      maxLength={descriptionMax}
+                      onChange={(event) => setDescription(event.target.value)}
+                    />
+                  )}
                 </Field>
                 <Field
                   label={t("problems.fields.group")}
                   hint={t("problems.form.groupHint")}
                   required
                 >
-                  <Select
-                    value={groupId}
-                    onChange={(event) => setGroupId(event.target.value)}
-                    data-testid="problem-link-group"
-                  >
-                    <option value="">
-                      {groupOptions.data === undefined
-                        ? t("ui.loading")
-                        : t("problems.form.groupPlaceholder")}
-                    </option>
-                    {(groupOptions.data?.groups ?? []).map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
+                  {(control) => (
+                    <Select
+                      {...control}
+                      value={groupId}
+                      onChange={(event) => setGroupId(event.target.value)}
+                      data-testid="problem-link-group"
+                    >
+                      <option value="">
+                        {groupOptions.data === undefined
+                          ? t("ui.loading")
+                          : t("problems.form.groupPlaceholder")}
                       </option>
-                    ))}
-                  </Select>
+                      {(groupOptions.data?.groups ?? []).map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
                 <Field label={t("problems.fields.priority")} hint={t("problems.link.priorityHint")}>
-                  <Select
-                    value={severity}
-                    onChange={(event) => setSeverity(event.target.value as ProblemSeverity)}
-                  >
-                    {ticketPriorityValues.map((value) => (
-                      <option key={value} value={value}>
-                        {translateText(t, ticketPriorityLabelKey[value])}
-                      </option>
-                    ))}
-                  </Select>
+                  {(control) => (
+                    <Select
+                      {...control}
+                      value={severity}
+                      onChange={(event) => setSeverity(event.target.value as ProblemSeverity)}
+                    >
+                      {ticketPriorityValues.map((value) => (
+                        <option key={value} value={value}>
+                          {translateText(t, ticketPriorityLabelKey[value])}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
               </>
             ) : (
               <div className="grid gap-2">
                 <Field label={t("problems.link.searchLabel")} hint={t("problems.link.searchHint")}>
-                  <Input
-                    value={search}
-                    maxLength={120}
-                    onChange={(event) => setSearch(event.target.value)}
-                    autoFocus
-                  />
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={search}
+                      maxLength={120}
+                      onChange={(event) => setSearch(event.target.value)}
+                      autoFocus
+                    />
+                  )}
                 </Field>
                 <div
                   className="grid max-h-60 gap-1 overflow-y-auto rounded-md border border-border p-1.5"

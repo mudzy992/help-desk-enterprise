@@ -228,11 +228,14 @@ export function SlaCalendarsPanel() {
       >
         <div className="grid gap-2">
           <Field label={t("sla.reason")} required>
-            <Input
-              value={deleteReason}
-              maxLength={512}
-              onChange={(event) => setDeleteReason(event.target.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={deleteReason}
+                maxLength={512}
+                onChange={(event) => setDeleteReason(event.target.value)}
+              />
+            )}
           </Field>
           {errorKey && isDeleteOpen ? (
             <p role="alert" className={errorTextClassName}>

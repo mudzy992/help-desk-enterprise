@@ -41,36 +41,48 @@ export function TicketTimeTrackingCorrectionDialog(props: {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("tickets.timeTracking.startedAt")} required>
-              <Input
-                type="datetime-local"
-                value={startedAt}
-                onChange={(event) => setStartedAt(event.currentTarget.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={startedAt}
+                  onChange={(event) => setStartedAt(event.currentTarget.value)}
+                />
+              )}
             </Field>
             <Field label={t("tickets.timeTracking.endedAt")} required>
-              <Input
-                type="datetime-local"
-                value={endedAt}
-                data-testid="time-edit-end"
-                onChange={(event) => setEndedAt(event.currentTarget.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={endedAt}
+                  data-testid="time-edit-end"
+                  onChange={(event) => setEndedAt(event.currentTarget.value)}
+                />
+              )}
             </Field>
           </div>
           <Field label={t("tickets.timeTracking.note")}>
-            <Textarea
-              rows={2}
-              maxLength={500}
-              value={note}
-              onChange={(event) => setNote(event.currentTarget.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                maxLength={500}
+                value={note}
+                onChange={(event) => setNote(event.currentTarget.value)}
+              />
+            )}
           </Field>
           <Field label={t("tickets.timeTracking.reason")} required>
-            <Input
-              data-testid="time-edit-reason"
-              maxLength={500}
-              value={reason}
-              onChange={(event) => setReason(event.currentTarget.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                data-testid="time-edit-reason"
+                maxLength={500}
+                value={reason}
+                onChange={(event) => setReason(event.currentTarget.value)}
+              />
+            )}
           </Field>
         </div>
         <ModalFooter>
@@ -122,11 +134,14 @@ export function TicketTimeTrackingDeleteDialog(props: {
       onConfirm={() => void props.onSubmit(reason.trim())}
     >
       <Field label={t("tickets.timeTracking.reason")} required>
-        <Input
-          maxLength={500}
-          value={reason}
-          onChange={(event) => setReason(event.currentTarget.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.currentTarget.value)}
+          />
+        )}
       </Field>
     </ConfirmDialog>
   );

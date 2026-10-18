@@ -287,12 +287,15 @@ export function TemplatesPage() {
             required
             hint={t("templates.editor.reasonHint")}
           >
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              rows={3}
-              maxLength={500}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+            )}
           </Field>
         ) : null}
       </ConfirmDialog>

@@ -124,11 +124,14 @@ export function ServiceDowntimeWindowsPanel({
         required
         hint={t("services.downtime.deleteReasonHint")}
       >
-        <Input
-          value={deleteReason}
-          maxLength={512}
-          onChange={(event) => setDeleteReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={deleteReason}
+            maxLength={512}
+            onChange={(event) => setDeleteReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
     </div>

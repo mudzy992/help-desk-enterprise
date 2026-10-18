@@ -38,11 +38,12 @@ describe("Field (2.8 §3.2)", () => {
     expect(html).not.toContain("aria-describedby");
   });
 
-  it("keeps the legacy wrapping label and speaks 'required' instead of the asterisk", () => {
+  it("generates one id shared by the label and control", () => {
     const html = renderToStaticMarkup(
-      createElement(Field, { label: "Naslov", required: true, children: createElement(Input) }),
+      createElement(Field, { label: "Naslov", children: renderInput }),
     );
-    expect(html.startsWith("<label")).toBe(true);
-    expect(html).toContain('<span class="sr-only">a11y.requiredField</span>');
+    const controlId = html.match(/<label for="([^"]+)"/)?.[1];
+    expect(controlId).toBeTruthy();
+    expect(html).toContain(`id="${controlId}"`);
   });
 });

@@ -201,48 +201,60 @@ export function IncidentFormDialog({
           onSubmit={(event) => void submit(event)}
         >
           <Field label={t("status.form.title")} required>
-            <Input
-              value={title}
-              maxLength={titleMax}
-              onChange={(event) => setTitle(event.target.value)}
-              autoFocus
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={title}
+                maxLength={titleMax}
+                onChange={(event) => setTitle(event.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label={t("status.form.titleEn")} hint={t("status.form.titleEnHint")}>
-            <Input
-              value={titleEn}
-              maxLength={titleMax}
-              onChange={(event) => setTitleEn(event.target.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={titleEn}
+                maxLength={titleMax}
+                onChange={(event) => setTitleEn(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("status.form.impact")} required>
-              <Select
-                value={impact}
-                onChange={(event) => setImpact(event.target.value as IncidentImpact)}
-              >
-                {incidentImpacts.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`status.impact.${value}`)}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={impact}
+                  onChange={(event) => setImpact(event.target.value as IncidentImpact)}
+                >
+                  {incidentImpacts.map((value) => (
+                    <option key={value} value={value}>
+                      {t(`status.impact.${value}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field
               label={t("status.form.visibility")}
               required
               hint={t(`status.visibilityHint.${visibility}`)}
             >
-              <Select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}
-              >
-                {incidentVisibilities.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`status.visibility.${value}`)}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={visibility}
+                  onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}
+                >
+                  {incidentVisibilities.map((value) => (
+                    <option key={value} value={value}>
+                      {t(`status.visibility.${value}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
           </div>
           <div>
@@ -281,20 +293,26 @@ export function IncidentFormDialog({
           {editing === null ? (
             <>
               <Field label={t("status.form.message")} required hint={t("status.form.messageHint")}>
-                <Textarea
-                  rows={4}
-                  value={message}
-                  maxLength={messageMax}
-                  onChange={(event) => setMessage(event.target.value)}
-                />
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={4}
+                    value={message}
+                    maxLength={messageMax}
+                    onChange={(event) => setMessage(event.target.value)}
+                  />
+                )}
               </Field>
               <Field label={t("status.form.startedAt")} hint={t("status.form.startedAtHint")}>
-                <Input
-                  type="datetime-local"
-                  value={startedAt}
-                  max={toLocalInput(new Date())}
-                  onChange={(event) => setStartedAt(event.target.value)}
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="datetime-local"
+                    value={startedAt}
+                    max={toLocalInput(new Date())}
+                    onChange={(event) => setStartedAt(event.target.value)}
+                  />
+                )}
               </Field>
               {visibility === "ALL_USERS" ? (
                 <div className="grid gap-1">

@@ -328,37 +328,46 @@ function CreateRequestSheet({
         </div>
         <form className="flex flex-col gap-4 px-5 py-4" onSubmit={(event) => void submit(event)}>
           <Field label={t("privacy.requests.columns.type")} required>
-            <Select
-              value={type}
-              onChange={(event) => setType(event.target.value as DataSubjectRequestType)}
-            >
-              {dataSubjectRequestTypes.map((value) => (
-                <option key={value} value={value}>
-                  {t(requestTypeKey(value))}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("privacy.requests.form.channel")} required>
+            {(control) => (
               <Select
-                value={channel}
-                onChange={(event) => setChannel(event.target.value as DataSubjectRequestChannel)}
+                {...control}
+                value={type}
+                onChange={(event) => setType(event.target.value as DataSubjectRequestType)}
               >
-                {dataSubjectRequestChannels.map((value) => (
+                {dataSubjectRequestTypes.map((value) => (
                   <option key={value} value={value}>
-                    {t(channelKey(value))}
+                    {t(requestTypeKey(value))}
                   </option>
                 ))}
               </Select>
+            )}
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("privacy.requests.form.channel")} required>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={channel}
+                  onChange={(event) => setChannel(event.target.value as DataSubjectRequestChannel)}
+                >
+                  {dataSubjectRequestChannels.map((value) => (
+                    <option key={value} value={value}>
+                      {t(channelKey(value))}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field label={t("privacy.requests.form.receivedAt")} required>
-              <Input
-                type="date"
-                value={receivedAt}
-                max={todayInputValue()}
-                onChange={(event) => setReceivedAt(event.target.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="date"
+                  value={receivedAt}
+                  max={todayInputValue()}
+                  onChange={(event) => setReceivedAt(event.target.value)}
+                />
+              )}
             </Field>
           </div>
           <Field
@@ -366,12 +375,15 @@ function CreateRequestSheet({
             hint={t("privacy.requests.form.subjectLabelHint")}
             required
           >
-            <Input
-              value={subjectLabel}
-              maxLength={200}
-              onChange={(event) => setSubjectLabel(event.target.value)}
-              data-testid="privacy-request-subject-label"
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={subjectLabel}
+                maxLength={200}
+                onChange={(event) => setSubjectLabel(event.target.value)}
+                data-testid="privacy-request-subject-label"
+              />
+            )}
           </Field>
           <div>
             <p className="mb-1.5 text-[12.5px] font-medium text-foreground">
@@ -405,11 +417,14 @@ function CreateRequestSheet({
             label={t("privacy.requests.form.notes")}
             hint={t("privacy.requests.form.notesHint")}
           >
-            <Textarea
-              value={notes}
-              maxLength={4000}
-              onChange={(event) => setNotes(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                value={notes}
+                maxLength={4000}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            )}
           </Field>
           <p className={hintClassName}>{t("privacy.requests.form.deadlineHint")}</p>
           <div className="flex justify-end gap-2">
@@ -621,11 +636,14 @@ function RequestDetailSheet({
                 hint={t("privacy.common.minChars", { count: 10 })}
                 required
               >
-                <Textarea
-                  value={reason}
-                  maxLength={1000}
-                  onChange={(event) => setReason(event.target.value)}
-                />
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    value={reason}
+                    maxLength={1000}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                )}
               </Field>
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setMode("view")}>
@@ -665,22 +683,28 @@ function RequestDetailSheet({
                   hint={t("privacy.requests.detail.rejectionHint")}
                   required
                 >
-                  <Textarea
-                    value={reason}
-                    maxLength={1000}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
+                  {(control) => (
+                    <Textarea
+                      {...control}
+                      value={reason}
+                      maxLength={1000}
+                      onChange={(event) => setReason(event.target.value)}
+                    />
+                  )}
                 </Field>
               ) : null}
               <Field
                 label={t("privacy.requests.detail.resultRef")}
                 hint={t("privacy.requests.detail.resultRefHint")}
               >
-                <Input
-                  value={resultRef}
-                  maxLength={300}
-                  onChange={(event) => setResultRef(event.target.value)}
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={resultRef}
+                    maxLength={300}
+                    onChange={(event) => setResultRef(event.target.value)}
+                  />
+                )}
               </Field>
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => setMode("view")}>

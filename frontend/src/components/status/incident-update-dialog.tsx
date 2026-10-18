@@ -113,16 +113,19 @@ export function IncidentUpdateDialog({
         />
         <form className="grid gap-3" onSubmit={(event) => void submit(event)}>
           <Field label={t("status.update.status")} required>
-            <Select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as IncidentStatus)}
-            >
-              {options.map((value) => (
-                <option key={value} value={value}>
-                  {t(`status.status.${value}`)}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={status}
+                onChange={(event) => setStatus(event.target.value as IncidentStatus)}
+              >
+                {options.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`status.status.${value}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <Field
             label={t("status.update.message")}
@@ -131,13 +134,16 @@ export function IncidentUpdateDialog({
               resolving ? t("status.update.resolveMessageHint") : t("status.update.messageHint")
             }
           >
-            <Textarea
-              rows={5}
-              value={message}
-              maxLength={4000}
-              onChange={(event) => setMessage(event.target.value)}
-              autoFocus
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={5}
+                value={message}
+                maxLength={4000}
+                onChange={(event) => setMessage(event.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           {resolving ? (
             <div className="grid gap-1.5 rounded-md border border-border bg-elevated/40 p-3">

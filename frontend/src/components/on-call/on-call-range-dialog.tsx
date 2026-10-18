@@ -120,14 +120,20 @@ export function OnCallRangeDialog({
             label={mode === "override" ? t("onCall.override.person") : t("onCall.swap.colleague")}
             required
           >
-            <Select value={userId} onChange={(event) => setUserId(event.target.value)}>
-              <option value="">{t("onCall.schedule.pick")}</option>
-              {people.map((person) => (
-                <option key={person.userId} value={person.userId}>
-                  {person.displayName}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+              >
+                <option value="">{t("onCall.schedule.pick")}</option>
+                {people.map((person) => (
+                  <option key={person.userId} value={person.userId}>
+                    {person.displayName}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
@@ -135,12 +141,15 @@ export function OnCallRangeDialog({
               required
               error={startsAt !== "" && startIso === null ? t("onCall.errors.time") : null}
             >
-              <Input
-                type="datetime-local"
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                  required
+                />
+              )}
             </Field>
             <Field
               label={t("onCall.to")}
@@ -153,12 +162,15 @@ export function OnCallRangeDialog({
                     : null
               }
             >
-              <Input
-                type="datetime-local"
-                value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={endsAt}
+                  onChange={(event) => setEndsAt(event.target.value)}
+                  required
+                />
+              )}
             </Field>
           </div>
           <p className={hintClassName}>{t("onCall.zoneHint", { zone: timeZone })}</p>
@@ -167,12 +179,15 @@ export function OnCallRangeDialog({
             required
             hint={mode === "swap" ? t("onCall.swap.reasonHint") : t("onCall.reasonHint")}
           >
-            <Textarea
-              rows={2}
-              value={reason}
-              maxLength={500}
-              onChange={(event) => setReason(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                value={reason}
+                maxLength={500}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>

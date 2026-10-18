@@ -66,13 +66,16 @@ export function DeleteRoutingRuleDialog({
         </p>
       ) : null}
       <Field label={t("routing.reason")} required hint={t("routing.reasonHint")}>
-        <Textarea
-          value={reason}
-          required
-          maxLength={maximumChangeReasonLength}
-          className="min-h-14"
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={reason}
+            required
+            maxLength={maximumChangeReasonLength}
+            className="min-h-14"
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div className="flex flex-wrap gap-2">

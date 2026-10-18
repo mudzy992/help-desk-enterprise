@@ -41,32 +41,41 @@ export function ManualEntryDialog(props: ManualEntryDialogProperties) {
         />
         <div className="space-y-3">
           <Field label={t("tickets.timeTracking.startedAt")} required>
-            <Input
-              type="datetime-local"
-              data-testid="time-manual-start"
-              value={startedAt}
-              max={toLocalInputValue(new Date().toISOString())}
-              onChange={(event) => setStartedAt(event.currentTarget.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                type="datetime-local"
+                data-testid="time-manual-start"
+                value={startedAt}
+                max={toLocalInputValue(new Date().toISOString())}
+                onChange={(event) => setStartedAt(event.currentTarget.value)}
+              />
+            )}
           </Field>
           <Field label={t("tickets.timeTracking.durationMinutes")} required>
-            <Input
-              type="number"
-              min={1}
-              max={props.maxMinutes}
-              data-testid="time-manual-minutes"
-              value={minutes}
-              onChange={(event) => setMinutes(event.currentTarget.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                type="number"
+                min={1}
+                max={props.maxMinutes}
+                data-testid="time-manual-minutes"
+                value={minutes}
+                onChange={(event) => setMinutes(event.currentTarget.value)}
+              />
+            )}
           </Field>
           <Field label={t("tickets.timeTracking.note")} required>
-            <Textarea
-              rows={3}
-              data-testid="time-manual-note"
-              maxLength={500}
-              value={note}
-              onChange={(event) => setNote(event.currentTarget.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                data-testid="time-manual-note"
+                maxLength={500}
+                value={note}
+                onChange={(event) => setNote(event.currentTarget.value)}
+              />
+            )}
           </Field>
         </div>
         <ModalFooter>

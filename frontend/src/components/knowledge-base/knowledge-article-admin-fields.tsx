@@ -51,21 +51,61 @@ export function KnowledgeArticleAdminFields({
   return (
     <>
       <Field label={labels.ownerMode} required>
-        <Select
-          value={ownerMode}
-          required
-          onChange={(event) => onOwnerModeChange(event.target.value as KnowledgeOwnerMode)}
-        >
-          <option value="user">{labels.ownerModeUser}</option>
-          <option value="group">{labels.ownerModeGroup}</option>
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={ownerMode}
+            required
+            onChange={(event) => onOwnerModeChange(event.target.value as KnowledgeOwnerMode)}
+          >
+            <option value="user">{labels.ownerModeUser}</option>
+            <option value="group">{labels.ownerModeGroup}</option>
+          </Select>
+        )}
       </Field>
       {ownerMode === "user" ? (
         <Field label={labels.ownerUser} required>
+          {(control) => (
+            <Select
+              {...control}
+              value={ownerUserId}
+              required
+              onChange={(event) => onOwnerUserIdChange(event.target.value)}
+            >
+              <option value="">{labels.selectPlaceholder}</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      ) : (
+        <Field label={labels.ownerGroup} required>
+          {(control) => (
+            <Select
+              {...control}
+              value={ownerGroupId}
+              required
+              onChange={(event) => onOwnerGroupIdChange(event.target.value)}
+            >
+              <option value="">{labels.selectPlaceholder}</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      )}
+      <Field label={labels.reviewer}>
+        {(control) => (
           <Select
-            value={ownerUserId}
-            required
-            onChange={(event) => onOwnerUserIdChange(event.target.value)}
+            {...control}
+            value={reviewerUserId}
+            onChange={(event) => onReviewerUserIdChange(event.target.value)}
           >
             <option value="">{labels.selectPlaceholder}</option>
             {users.map((user) => (
@@ -74,50 +114,25 @@ export function KnowledgeArticleAdminFields({
               </option>
             ))}
           </Select>
-        </Field>
-      ) : (
-        <Field label={labels.ownerGroup} required>
+        )}
+      </Field>
+      <Field label={labels.classification} required>
+        {(control) => (
           <Select
-            value={ownerGroupId}
+            {...control}
+            value={classification}
             required
-            onChange={(event) => onOwnerGroupIdChange(event.target.value)}
+            onChange={(event) =>
+              onClassificationChange(event.target.value as KnowledgeClassification)
+            }
           >
-            <option value="">{labels.selectPlaceholder}</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
+            {knowledgeClassificationValues.map((value) => (
+              <option key={value} value={value}>
+                {value}
               </option>
             ))}
           </Select>
-        </Field>
-      )}
-      <Field label={labels.reviewer}>
-        <Select
-          value={reviewerUserId}
-          onChange={(event) => onReviewerUserIdChange(event.target.value)}
-        >
-          <option value="">{labels.selectPlaceholder}</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.displayName}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={labels.classification} required>
-        <Select
-          value={classification}
-          required
-          onChange={(event) =>
-            onClassificationChange(event.target.value as KnowledgeClassification)
-          }
-        >
-          {knowledgeClassificationValues.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </Select>
+        )}
       </Field>
     </>
   );

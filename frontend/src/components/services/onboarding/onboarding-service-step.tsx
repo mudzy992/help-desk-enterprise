@@ -47,43 +47,54 @@ export function OnboardingServiceStep({
   return (
     <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.name")} required>
-        <Input
-          value={name}
-          maxLength={128}
-          required
-          onChange={(event) => setName(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={name}
+            maxLength={128}
+            required
+            onChange={(event) => setName(event.target.value)}
+          />
+        )}
       </Field>
       {isCreate ? (
         <Field label={t("services.slug")} required>
-          <Input
-            value={slug}
-            maxLength={64}
-            required
-            onChange={(event) => setSlug(event.target.value)}
-          />
+          {(control) => (
+            <Input
+              {...control}
+              value={slug}
+              maxLength={64}
+              required
+              onChange={(event) => setSlug(event.target.value)}
+            />
+          )}
         </Field>
       ) : null}
       <Field label={t("services.category")} required>
-        <Select
-          value={categoryId}
-          required
-          disabled={categories.length === 0}
-          onChange={(event) => setCategoryId(event.target.value)}
-        >
-          {categories.length === 0 ? (
-            <option value="">{t("services.categoryEmpty")}</option>
-          ) : (
-            categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))
-          )}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={categoryId}
+            required
+            disabled={categories.length === 0}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            {categories.length === 0 ? (
+              <option value="">{t("services.categoryEmpty")}</option>
+            ) : (
+              categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))
+            )}
+          </Select>
+        )}
       </Field>
       <Field label={t("services.requiresApproval")}>
-        <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
+        {(control) => (
+          <Switch {...control} checked={requiresApproval} onCheckedChange={setRequiresApproval} />
+        )}
       </Field>
       <Button
         type="submit"

@@ -59,12 +59,15 @@ export function ServiceCatalogLifecycleActions({
   return (
     <div className="grid gap-4">
       <Field label={t("services.changeReason")} required>
-        <Input
-          value={reason}
-          maxLength={512}
-          disabled={pendingAction !== null}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            maxLength={512}
+            disabled={pendingAction !== null}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? (
         <p role="alert" className={errorTextClassName}>

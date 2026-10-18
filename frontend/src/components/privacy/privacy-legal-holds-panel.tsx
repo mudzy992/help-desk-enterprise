@@ -106,12 +106,15 @@ export function LegalHoldDialog({
           hint={t("privacy.common.minChars", { count: 10 })}
           required
         >
-          <Textarea
-            value={reason}
-            maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
-            data-testid="privacy-hold-reason"
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+              data-testid="privacy-hold-reason"
+            />
+          )}
         </Field>
         <ModalFooter>
           <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
@@ -187,25 +190,31 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
           <h2 className={sectionTitleClassName}>{t("privacy.holds.newTitle")}</h2>
           <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
             <Field label={t("privacy.holds.target")}>
-              <Select
-                value={target}
-                onChange={(event) => setTarget(event.target.value as LegalHoldTarget)}
-              >
-                <option value="ticket">{t("privacy.holds.targetTicket")}</option>
-                <option value="user">{t("privacy.holds.targetUser")}</option>
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={target}
+                  onChange={(event) => setTarget(event.target.value as LegalHoldTarget)}
+                >
+                  <option value="ticket">{t("privacy.holds.targetTicket")}</option>
+                  <option value="user">{t("privacy.holds.targetUser")}</option>
+                </Select>
+              )}
             </Field>
             {target === "ticket" ? (
               <Field
                 label={t("privacy.holds.ticketNumber")}
                 hint={t("privacy.holds.ticketNumberHint")}
               >
-                <Input
-                  value={ticketNumber}
-                  maxLength={40}
-                  onChange={(event) => setTicketNumber(event.target.value)}
-                  data-testid="privacy-hold-ticket"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={ticketNumber}
+                    maxLength={40}
+                    onChange={(event) => setTicketNumber(event.target.value)}
+                    data-testid="privacy-hold-ticket"
+                  />
+                )}
               </Field>
             ) : (
               <div>

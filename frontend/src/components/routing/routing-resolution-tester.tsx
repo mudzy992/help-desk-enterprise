@@ -87,22 +87,34 @@ export function RoutingResolutionTester() {
         />
         <div className="fade-in space-y-4 px-4 py-4">
           <Field label={t("routing.originUnitId")} hint={t("routing.testerOriginHint")} required>
-            <Select value={originUnitId} onChange={(event) => setOriginUnitId(event.target.value)}>
-              {catalog.originUnits.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.label}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={originUnitId}
+                onChange={(event) => setOriginUnitId(event.target.value)}
+              >
+                {catalog.originUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.label}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <Field label={t("routing.serviceId")} required>
-            <Select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-              {catalog.services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={serviceId}
+                onChange={(event) => setServiceId(event.target.value)}
+              >
+                {catalog.services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <div className="rounded-lg border border-border bg-elevated/50 px-3 py-2.5 text-[11px] leading-[15px] text-muted-foreground">
             <code className="tnum text-foreground/80">

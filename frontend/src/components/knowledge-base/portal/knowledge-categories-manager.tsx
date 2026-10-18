@@ -229,80 +229,98 @@ export function KnowledgeCategoriesManager({
               : t("knowledgeBase.portal.categories.editHeading")}
           </h3>
           <Field label={t("knowledgeBase.portal.categories.nameBs")} required>
-            <Input
-              value={draft.nameBs}
-              maxLength={80}
-              required
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  nameBs: event.target.value,
-                  key: draft.keyTouched ? draft.key : suggestCategoryKey(event.target.value),
-                })
-              }
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={draft.nameBs}
+                maxLength={80}
+                required
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    nameBs: event.target.value,
+                    key: draft.keyTouched ? draft.key : suggestCategoryKey(event.target.value),
+                  })
+                }
+              />
+            )}
           </Field>
           <Field label={t("knowledgeBase.portal.categories.nameEn")} required>
-            <Input
-              value={draft.nameEn}
-              maxLength={80}
-              required
-              onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={draft.nameEn}
+                maxLength={80}
+                required
+                onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })}
+              />
+            )}
           </Field>
           <Field
             label={t("knowledgeBase.portal.categories.key")}
             hint={t("knowledgeBase.portal.categories.keyHint")}
             required
           >
-            <Input
-              value={draft.key}
-              maxLength={64}
-              required
-              onChange={(event) =>
-                setDraft({ ...draft, key: event.target.value.toLowerCase(), keyTouched: true })
-              }
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={draft.key}
+                maxLength={64}
+                required
+                onChange={(event) =>
+                  setDraft({ ...draft, key: event.target.value.toLowerCase(), keyTouched: true })
+                }
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("knowledgeBase.portal.categories.icon")}>
-              <Select
-                value={draft.icon}
-                onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
-              >
-                {knowledgeCategoryIconNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={draft.icon}
+                  onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
+                >
+                  {knowledgeCategoryIconNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field label={t("knowledgeBase.portal.categories.sortOrder")}>
-              <Input
-                type="number"
-                min={0}
-                max={9999}
-                value={draft.sortOrder}
-                onChange={(event) => setDraft({ ...draft, sortOrder: event.target.value })}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="number"
+                  min={0}
+                  max={9999}
+                  value={draft.sortOrder}
+                  onChange={(event) => setDraft({ ...draft, sortOrder: event.target.value })}
+                />
+              )}
             </Field>
           </div>
           <Field
             label={t("knowledgeBase.portal.categories.parent")}
             hint={draftHasChildren ? t("knowledgeBase.portal.categories.parentLocked") : undefined}
           >
-            <Select
-              value={draft.parentId}
-              disabled={draftHasChildren}
-              onChange={(event) => setDraft({ ...draft, parentId: event.target.value })}
-            >
-              <option value="">{t("knowledgeBase.portal.categories.noParent")}</option>
-              {parentOptions.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {knowledgeCategoryName(category, i18n.language)}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={draft.parentId}
+                disabled={draftHasChildren}
+                onChange={(event) => setDraft({ ...draft, parentId: event.target.value })}
+              >
+                <option value="">{t("knowledgeBase.portal.categories.noParent")}</option>
+                {parentOptions.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {knowledgeCategoryName(category, i18n.language)}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           {errorKey ? <ApiErrorText messageKey={errorKey} /> : null}
           <div className="flex gap-2">

@@ -229,22 +229,28 @@ export function PlaybookEditorPage() {
                 </p>
               ) : null}
               <Field label={t("templates.playbook.name")} required>
-                <Input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={120}
-                  disabled={disabled}
-                  data-testid="playbook-name"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    maxLength={120}
+                    disabled={disabled}
+                    data-testid="playbook-name"
+                  />
+                )}
               </Field>
               <Field label={t("templates.playbook.description")}>
-                <Textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  rows={2}
-                  maxLength={2000}
-                  disabled={disabled}
-                />
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    rows={2}
+                    maxLength={2000}
+                    disabled={disabled}
+                  />
+                )}
               </Field>
               <Checkbox
                 checked={isActive}
@@ -383,13 +389,16 @@ export function PlaybookEditorPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                         <Field label={t("templates.playbook.stepTitle")} required>
-                          <Input
-                            value={step.title}
-                            onChange={(event) => updateStep(index, { title: event.target.value })}
-                            maxLength={200}
-                            disabled={disabled}
-                            data-testid={`playbook-step-title-${index + 1}`}
-                          />
+                          {(control) => (
+                            <Input
+                              {...control}
+                              value={step.title}
+                              onChange={(event) => updateStep(index, { title: event.target.value })}
+                              maxLength={200}
+                              disabled={disabled}
+                              data-testid={`playbook-step-title-${index + 1}`}
+                            />
+                          )}
                         </Field>
                         <div className="pb-2">
                           <Checkbox
@@ -408,48 +417,57 @@ export function PlaybookEditorPage() {
                         </div>
                       </div>
                       <Field label={t("templates.playbook.stepInstructions")}>
-                        <Textarea
-                          value={step.instructions}
-                          onChange={(event) =>
-                            updateStep(index, { instructions: event.target.value })
-                          }
-                          rows={2}
-                          maxLength={4000}
-                          disabled={disabled}
-                        />
+                        {(control) => (
+                          <Textarea
+                            {...control}
+                            value={step.instructions}
+                            onChange={(event) =>
+                              updateStep(index, { instructions: event.target.value })
+                            }
+                            rows={2}
+                            maxLength={4000}
+                            disabled={disabled}
+                          />
+                        )}
                       </Field>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Field label={t("templates.playbook.stepArticle")}>
-                          <Select
-                            value={step.knowledgeArticleId}
-                            onChange={(event) =>
-                              updateStep(index, { knowledgeArticleId: event.target.value })
-                            }
-                            disabled={disabled}
-                          >
-                            <option value="">{t("templates.playbook.stepArticleNone")}</option>
-                            {withCurrent(articles, step.knowledgeArticleId).map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {option.name}
-                              </option>
-                            ))}
-                          </Select>
+                          {(control) => (
+                            <Select
+                              {...control}
+                              value={step.knowledgeArticleId}
+                              onChange={(event) =>
+                                updateStep(index, { knowledgeArticleId: event.target.value })
+                              }
+                              disabled={disabled}
+                            >
+                              <option value="">{t("templates.playbook.stepArticleNone")}</option>
+                              {withCurrent(articles, step.knowledgeArticleId).map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.name}
+                                </option>
+                              ))}
+                            </Select>
+                          )}
                         </Field>
                         <Field label={t("templates.playbook.stepTemplate")}>
-                          <Select
-                            value={step.responseTemplateId}
-                            onChange={(event) =>
-                              updateStep(index, { responseTemplateId: event.target.value })
-                            }
-                            disabled={disabled}
-                          >
-                            <option value="">{t("templates.playbook.stepTemplateNone")}</option>
-                            {withCurrent(templates, step.responseTemplateId).map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {option.name}
-                              </option>
-                            ))}
-                          </Select>
+                          {(control) => (
+                            <Select
+                              {...control}
+                              value={step.responseTemplateId}
+                              onChange={(event) =>
+                                updateStep(index, { responseTemplateId: event.target.value })
+                              }
+                              disabled={disabled}
+                            >
+                              <option value="">{t("templates.playbook.stepTemplateNone")}</option>
+                              {withCurrent(templates, step.responseTemplateId).map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.name}
+                                </option>
+                              ))}
+                            </Select>
+                          )}
                         </Field>
                       </div>
                     </div>
@@ -464,13 +482,16 @@ export function PlaybookEditorPage() {
                   required
                   hint={t("templates.editor.reasonHint")}
                 >
-                  <Input
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    maxLength={500}
-                    disabled={disabled}
-                    data-testid="playbook-reason"
-                  />
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={reason}
+                      onChange={(event) => setReason(event.target.value)}
+                      maxLength={500}
+                      disabled={disabled}
+                      data-testid="playbook-reason"
+                    />
+                  )}
                 </Field>
                 {errorKey !== null ? (
                   <p role="alert" className="text-[12.5px] text-danger">

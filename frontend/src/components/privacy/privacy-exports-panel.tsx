@@ -193,11 +193,14 @@ export function PrivacyExportsPanel({
             hint={t("privacy.exports.internalNotesReasonHint")}
             required
           >
-            <Textarea
-              value={notesReason}
-              maxLength={1000}
-              onChange={(event) => setNotesReason(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                value={notesReason}
+                maxLength={1000}
+                onChange={(event) => setNotesReason(event.target.value)}
+              />
+            )}
           </Field>
         ) : null}
         <p className={hintClassName}>{t("privacy.exports.handoverHint")}</p>

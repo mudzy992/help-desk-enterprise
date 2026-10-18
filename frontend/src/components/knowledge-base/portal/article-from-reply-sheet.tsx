@@ -194,39 +194,54 @@ export function ArticleFromReplySheet({
               </Link>
             </p>
             <Field label={t("knowledgeBase.titleField")} required>
-              <Input
-                value={title}
-                maxLength={200}
-                required
-                onChange={(event) => setTitle(event.target.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  value={title}
+                  maxLength={200}
+                  required
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("knowledgeBase.bodyField")} required>
-              <Textarea
-                value={body}
-                maxLength={20000}
-                required
-                className="min-h-48"
-                onChange={(event) => setBody(event.target.value)}
-              />
+              {(control) => (
+                <Textarea
+                  {...control}
+                  value={body}
+                  maxLength={20000}
+                  required
+                  className="min-h-48"
+                  onChange={(event) => setBody(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("knowledgeBase.portal.placement.category")}>
-              <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-                <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={categoryId}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                >
+                  <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field label={t("knowledgeBase.reason")} required>
-              <Input
-                value={reason}
-                maxLength={512}
-                required
-                onChange={(event) => setReason(event.target.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  value={reason}
+                  maxLength={512}
+                  required
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              )}
             </Field>
             {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
             <div className="flex gap-2">

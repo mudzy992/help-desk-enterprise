@@ -8,16 +8,18 @@ export function VisualQaFormsBoard() {
       <VisualQaSection title="Field / Input / Select / Textarea">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Naziv" required hint="Label 12.5px, hint 11.5px">
-            <Input defaultValue="Primjer unosa" />
+            {(control) => <Input {...control} defaultValue="Primjer unosa" />}
           </Field>
           <Field label="Izbor">
-            <Select defaultValue="a">
-              <option value="a">Opcija A</option>
-              <option value="b">Opcija B</option>
-            </Select>
+            {(control) => (
+              <Select {...control} defaultValue="a">
+                <option value="a">Opcija A</option>
+                <option value="b">Opcija B</option>
+              </Select>
+            )}
           </Field>
           <Field label="Opis" className="md:col-span-2">
-            <Textarea defaultValue="Višelinijski unos" rows={3} />
+            {(control) => <Textarea {...control} defaultValue="Višelinijski unos" rows={3} />}
           </Field>
         </div>
       </VisualQaSection>
