@@ -37,11 +37,24 @@ interface AvatarProperties {
   readonly name: string;
   readonly size?: "xs" | "sm" | "md";
   readonly className?: string;
+  /** Override the accessible identity when `name` is not the desired spoken label. */
+  readonly ariaLabel?: string;
+  /** Use when adjacent visible text already identifies the same person. */
+  readonly decorative?: boolean;
 }
 
-export function Avatar({ name, size = "md", className }: AvatarProperties) {
+export function Avatar({
+  name,
+  size = "md",
+  className,
+  ariaLabel,
+  decorative = false,
+}: AvatarProperties) {
   return (
     <span
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : (ariaLabel ?? name)}
+      aria-hidden={decorative ? "true" : undefined}
       className={cn(
         "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-black/5 dark:ring-white/5",
         AVATAR_HUES[hashCode(name) % AVATAR_HUES.length],
@@ -50,7 +63,7 @@ export function Avatar({ name, size = "md", className }: AvatarProperties) {
         size === "md" && "size-8 text-[12px]",
         className,
       )}
-      title={name}
+      title={decorative ? undefined : name}
     >
       {initials(name) || "?"}
     </span>

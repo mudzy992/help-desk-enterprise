@@ -87,6 +87,7 @@ export function DetailSection({
 }: DetailSectionProperties) {
   const { open, collapsible, toggle } = useDetailSection(id);
   const bodyId = useId();
+  const headingId = useId();
   const label = (
     <>
       <span className="truncate text-[12.5px] font-semibold text-foreground">{title}</span>
@@ -107,6 +108,7 @@ export function DetailSection({
       <div className="flex items-center gap-2 px-4 pb-1.5 pt-3">
         {collapsible ? (
           <button
+            id={headingId}
             type="button"
             aria-expanded={open}
             aria-controls={bodyId}
@@ -124,13 +126,21 @@ export function DetailSection({
             {label}
           </button>
         ) : (
-          <div className="flex min-w-0 flex-1 items-baseline gap-2">{label}</div>
+          <h3 id={headingId} className="flex min-w-0 flex-1 items-baseline gap-2">
+            {label}
+          </h3>
         )}
         {actions === undefined ? null : (
           <div className="flex shrink-0 items-center gap-1.5">{actions}</div>
         )}
       </div>
-      <div id={bodyId} hidden={collapsible && !open} className="px-4 pb-4 pt-1.5">
+      <div
+        id={bodyId}
+        role="region"
+        aria-labelledby={headingId}
+        hidden={collapsible && !open}
+        className="px-4 pb-4 pt-1.5"
+      >
         {children}
       </div>
     </section>
