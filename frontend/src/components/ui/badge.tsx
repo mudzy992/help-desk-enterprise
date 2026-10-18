@@ -1,8 +1,9 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
+
+export type { BadgeTone } from "@/lib/ui/presentation-types";
 import { cn } from "@/lib/utils";
 
-export type BadgeTone =
-  "neutral" | "primary" | "accent" | "success" | "warning" | "danger" | "info" | "hold";
 
 /*
   One badge shape for the whole application: a pill with a tinted background,

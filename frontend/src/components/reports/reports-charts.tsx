@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { GroupedBarDatum } from "@/components/charts/grouped-bars";
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import type { ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsChartsProperties {

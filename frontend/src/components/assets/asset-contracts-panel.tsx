@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { FileText, Plus, Trash2 } from "lucide-react";
+import { queryKeys } from "@/lib/query/query-keys";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -482,7 +483,7 @@ function ContractDetailSheet({
     onError: (caught) => setError(t(mapAssetError(caught) ?? mapApiError(caught))),
   });
   const candidatesQuery = useQuery({
-    queryKey: ["assets", "contract-candidates", search],
+    queryKey: queryKeys.assetContractCandidates(search),
     queryFn: () => lookupAssets(search),
     enabled: open && canManage && search.length >= 2,
     retry: false,

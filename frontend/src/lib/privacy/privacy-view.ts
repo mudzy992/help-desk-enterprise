@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { ApiError } from "@/services/api";
 
 /** Paket 2.6 (§11): pure helpers of the privacy screens. */

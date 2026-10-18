@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Network, Plus, Trash2 } from "lucide-react";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -278,7 +279,7 @@ function AddRelationSheet({
   }, [searchText]);
 
   const lookupQuery = useQuery({
-    queryKey: ["assets", "lookup", search, asset.id],
+    queryKey: queryKeys.assetLookup(search, asset.id),
     queryFn: () => lookupAssets(search, asset.id),
     enabled: open && search.length >= 2,
     retry: false,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 

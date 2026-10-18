@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 
 /**

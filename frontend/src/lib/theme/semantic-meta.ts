@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { RoutingOutcome } from "@/services/routing-api";
 import type { ServiceAvailability, ServiceLifecycle } from "@/services/service-catalog-api";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";

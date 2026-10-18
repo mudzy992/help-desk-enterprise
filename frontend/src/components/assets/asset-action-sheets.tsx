@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -199,7 +200,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveShee
   }, [searchText]);
 
   const usersQuery = useQuery({
-    queryKey: ["assets", "users", search],
+    queryKey: queryKeys.assetUsers(search),
     queryFn: () => searchAssetUsers(search),
     enabled: open && search.length >= 2,
     retry: false,

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 
 const PROGRESS_TONES: Record<BadgeTone, string> = {
   neutral: "bg-muted",

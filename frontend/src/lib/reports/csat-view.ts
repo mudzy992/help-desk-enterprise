@@ -1,4 +1,4 @@
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { TicketCsatBucket } from "@/services/tickets-csat-api";
 

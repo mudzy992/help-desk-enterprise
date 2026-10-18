@@ -147,7 +147,7 @@ export function useTicketList() {
         // A realtime reload must bypass React Query's 30 s staleTime (T26).
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists }),
-          queryClient.invalidateQueries({ queryKey: ["tickets", "counts"] }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.ticketCountsPrefix }),
         ]);
       }
       try {

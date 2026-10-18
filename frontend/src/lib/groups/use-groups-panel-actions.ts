@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GroupDrawerTab } from "@/components/groups/group-detail-drawer";
+import type { GroupDrawerTab } from "@/lib/ui/presentation-types";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {

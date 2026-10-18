@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { queryKeys } from "@/lib/query/query-keys";
 import { AssetCoveragePanel } from "@/components/assets/asset-coverage-panel";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -119,7 +120,7 @@ export function AssetDetailPage() {
   const refresh = () => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: assetQueryKeys.detail(assetId) }),
-      queryClient.invalidateQueries({ queryKey: ["assets", "list"] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.assetLists }),
       queryClient.invalidateQueries({ queryKey: assetQueryKeys.history(assetId) }),
       queryClient.invalidateQueries({ queryKey: assetQueryKeys.impact(assetId) }),
     ]);
@@ -127,7 +128,7 @@ export function AssetDetailPage() {
 
   const deleteMutation = useEntityMutation<string>({
     mutationFn: deleteAsset,
-    invalidate: () => [["assets", "list"]],
+    invalidate: () => [queryKeys.assetLists],
     onSuccess: () => {
       toast({ tone: "success", title: t("assets.detail.deleted") });
       navigate("/assets");

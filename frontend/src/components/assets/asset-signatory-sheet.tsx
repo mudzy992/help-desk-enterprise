@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input } from "@/components/ui/field";
@@ -53,7 +54,7 @@ export function AssetSignatorySheet({
   }, [searchText]);
 
   const usersQuery = useQuery({
-    queryKey: ["assets", "users", search],
+    queryKey: queryKeys.assetUsers(search),
     queryFn: () => searchAssetUsers(search),
     enabled: unit !== null && search.length >= 2,
     retry: false,

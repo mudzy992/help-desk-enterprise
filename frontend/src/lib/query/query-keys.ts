@@ -64,4 +64,18 @@ export const queryKeys = {
   /** The current session answer, keyed by user so a token refresh does not refetch it. */
   platformPasskeyAvailable: ["webauthn", "platform-authenticator"] as const,
   currentSession: (subjectId: string) => ["session", "current", subjectId] as const,
+  problemLists: ["problems", "list"] as const,
+  assetLists: ["assets", "list"] as const,
+  assetLookup: (search: string, contextId?: string) =>
+    contextId === undefined
+      ? (["assets", "lookup", search] as const)
+      : (["assets", "lookup", search, contextId] as const),
+  assetUsers: (search: string) => ["assets", "users", search] as const,
+  assetLicenseCandidates: (target: string, search: string) =>
+    ["assets", "license-candidates", target, search] as const,
+  assetContractCandidates: (search: string) => ["assets", "contract-candidates", search] as const,
+  adminSecurityRateLimits: ["admin", "security", "rate-limits"] as const,
+  adminSecurityMetricsPrefix: ["admin", "security", "metrics"] as const,
+  adminSecurityMetricsLastHour: ["admin", "security", "metrics", "last-hour"] as const,
+  adminSecurityMetricsAuditWebhook: ["admin", "security", "metrics", "audit-webhook"] as const,
 } as const;

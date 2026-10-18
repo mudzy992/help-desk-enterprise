@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Star, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetailSection } from "@/components/ui/detail-section";
@@ -58,7 +59,7 @@ export function TicketAssetsPanel({
 
   const query = useQuery({ queryKey: key, queryFn: () => getTicketAssets(ticketId), retry: false });
   const lookup = useQuery({
-    queryKey: ["assets", "lookup", debounced],
+    queryKey: queryKeys.assetLookup(debounced),
     queryFn: () => lookupAssets(debounced),
     enabled: adding && debounced.length >= 2,
     retry: false,

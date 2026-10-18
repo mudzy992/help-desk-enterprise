@@ -1,6 +1,7 @@
 import { Activity, RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/query/query-keys";
 import { MinuteBarsChart } from "@/components/charts/minute-bars-chart";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function AdminSecurityMetricsCard() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["admin", "security", "metrics", "last-hour"],
+    queryKey: queryKeys.adminSecurityMetricsLastHour,
     queryFn: getLoginSecurityMetrics,
   });
 
@@ -67,7 +68,7 @@ export function AdminSecurityMetricsCard() {
   // the audit webhook export has its own endpoint; a failure
   // there must not hide the counters above, so it has a separate query and error.
   const webhookQuery = useQuery({
-    queryKey: ["admin", "security", "metrics", "audit-webhook"],
+    queryKey: queryKeys.adminSecurityMetricsAuditWebhook,
     queryFn: getAuditWebhookStatus,
   });
 
@@ -108,7 +109,7 @@ export function AdminSecurityMetricsCard() {
             variant="outline"
             disabled={query.isFetching}
             onClick={() =>
-              void queryClient.invalidateQueries({ queryKey: ["admin", "security", "metrics"] })
+              void queryClient.invalidateQueries({ queryKey: queryKeys.adminSecurityMetricsPrefix })
             }
           >
             <RefreshCw size={12} />

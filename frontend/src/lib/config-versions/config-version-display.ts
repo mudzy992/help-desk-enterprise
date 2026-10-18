@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import {
   configVersionStatuses,
   type ConfigVersion,

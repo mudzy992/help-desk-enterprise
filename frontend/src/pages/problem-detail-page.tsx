@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { queryKeys } from "@/lib/query/query-keys";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
 import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
@@ -82,7 +83,7 @@ export function ProblemDetailPage() {
   const refresh = () => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: problemQueryKeys.detail(problemId) }),
-      queryClient.invalidateQueries({ queryKey: ["problems", "list"] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.problemLists }),
       queryClient.invalidateQueries({ queryKey: problemQueryKeys.events(problemId) }),
       queryClient.invalidateQueries({ queryKey: problemQueryKeys.tickets(problemId) }),
     ]);

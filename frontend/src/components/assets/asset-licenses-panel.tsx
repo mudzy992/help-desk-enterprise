@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Eye, KeyRound, Plus, Trash2 } from "lucide-react";
+import { queryKeys } from "@/lib/query/query-keys";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -545,7 +546,7 @@ function LicenseDetailSheet({
         ? "asset"
         : target;
   const candidatesQuery = useQuery({
-    queryKey: ["assets", "license-candidates", effectiveTarget, search],
+    queryKey: queryKeys.assetLicenseCandidates(effectiveTarget, search),
     queryFn: async () =>
       effectiveTarget === "asset"
         ? (await lookupAssets(search)).items.map((item) => ({

@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import type {

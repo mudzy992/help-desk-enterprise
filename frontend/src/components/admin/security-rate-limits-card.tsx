@@ -2,6 +2,7 @@ import { ChevronRight, Gauge, RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/query/query-keys";
 import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -136,7 +137,7 @@ export function AdminSecurityRateLimitsCard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const snapshot = useQuery({
-    queryKey: ["admin", "security", "rate-limits"],
+    queryKey: queryKeys.adminSecurityRateLimits,
     queryFn: getSecurityRateLimits,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -173,7 +174,7 @@ export function AdminSecurityRateLimitsCard() {
       setReason("");
       setIsEditing(false);
       toast({ tone: "success", title: t("admin.security.rateLimitsSaved") });
-      void queryClient.invalidateQueries({ queryKey: ["admin", "security", "rate-limits"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminSecurityRateLimits });
     },
   });
 
