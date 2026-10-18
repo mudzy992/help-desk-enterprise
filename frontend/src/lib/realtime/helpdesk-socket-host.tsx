@@ -36,10 +36,10 @@ export function HelpdeskSocketHost() {
     const stopSettings = subscribeSocketEvent(socket, ticketSocketEvents.settingsUpdated, () => {
       bumpSettingsGeneration();
     });
-    // Faza 3.3: the socket is the only place that marks cached queries stale —
+    // the socket is the only place that marks cached queries stale —
     // screens then refetch on their own schedule, and a screen that is not
     // visible pulls nothing at all.
-    // Paket 1.7 (R3): admin configuration changes (admins only receive them).
+    // admin configuration changes (admins only receive them).
     const stopAdminConfig = subscribeSocketEvent<unknown>(
       socket,
       adminConfigSocketEvents.configUpdated,

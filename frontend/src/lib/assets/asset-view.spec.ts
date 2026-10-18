@@ -7,7 +7,7 @@ import {
   warrantyState,
 } from "@/lib/assets/asset-view";
 
-describe("asset view helpers (paket 3.2)", () => {
+describe("asset view helpers ()", () => {
   const now = new Date("2026-09-29T10:00:00Z");
 
   it("computes days and warranty state from date-only values", () => {
@@ -47,7 +47,7 @@ describe("asset view helpers (paket 3.2)", () => {
 
 import { flattenLocationTree, locationHeight, locationSubtree } from "@/lib/assets/asset-view";
 
-describe("location tree (paket 3.2 §7)", () => {
+describe("location tree (§7)", () => {
   const locations = [
     { id: "hq", name: "Direkcija", parentId: null },
     { id: "vi", name: "Visoko", parentId: "ze" },

@@ -13,7 +13,7 @@ export type CsatBucketRow = {
 };
 
 /**
- * Val 1 (M9/B3): razrez CSAT-a (OU/servis/grupa) je do sada bio „mrtva“ površina
+ * Val 1 razrez CSAT-a (OU/servis/grupa) je do sada bio „mrtva“ površina
  * API-ja. Redovi se sortiraju po broju ocjena (najveći uzorak prvi) — mali uzorci
  * ne smiju izgledati jednako uvjerljivo kao veliki.
  */
@@ -24,7 +24,7 @@ export function csatBucketRows(
   return [...buckets]
     .map((bucket) => ({
       key: bucket.key,
-      // Val 1 (M9/B3): server šalje i naziv; ID je samo rezerva za obrisane zapise.
+      // Val 1 server šalje i naziv; ID je samo rezerva za obrisane zapise.
       label: bucket.label.length > 0 ? bucket.label : bucket.key,
       count: bucket.count,
       average: bucket.average,

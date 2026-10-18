@@ -1,7 +1,7 @@
 import { ApiError } from "@/services/api";
 
 /**
- * Install wizard v2 (F4): the three content steps answer with the codes their
+ * Install wizard v2 the three content steps answer with the codes their
  * services map (`BLUEPRINT_*`, `PACK_*`, `SLA_REVIEW_*`). The wizard shows one
  * sentence per situation the operator can act on and the generic one otherwise —
  * the raw code never reaches the screen.

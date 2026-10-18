@@ -1,5 +1,5 @@
 /**
- * Faza 3 (d): podaci koji ostaju na uređaju — nedavno posjećene stranice i
+ * podaci koji ostaju na uređaju — nedavno posjećene stranice i
  * odgovor na „je li stranica pomogla?“. Bez servera i bez ličnih podataka:
  * localStorage čuva samo slugove i `da`/`ne`, nikad sadržaj ni identitet.
  */

@@ -1,7 +1,7 @@
 import type { DirectorySyncPlan } from "@/services/directory-sync-api";
 
 /*
-  Paket 1.8 (A4): the dry-run plan exported as one CSV for the change record.
+  the dry-run plan exported as one CSV for the change record.
   Columns: section, action, email, name, organizational unit / role, detail.
   Values are quoted and formula-leading characters are neutralised so the file
   is safe to open in Excel (CSV injection).

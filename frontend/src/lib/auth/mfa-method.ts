@@ -1,5 +1,5 @@
 /**
- * Paket 5.4.0-e: the MFA step remembers which factor the person used last, so
+ * e: the MFA step remembers which factor the person used last, so
  * the next sign-in opens on the same choice. It is a device-local comfort
  * setting only — the server validates every factor regardless, and nothing
  * about the credential (id, aaguid) is stored here.

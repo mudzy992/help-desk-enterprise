@@ -1,5 +1,5 @@
 /**
- * Paket 5.4.0-e: a passkey list entry says what it is. The authenticator model
+ * e: a passkey list entry says what it is. The authenticator model
  * is named by its AAGUID; the UI never prints the raw identifier or a raw
  * credential id — an unknown AAGUID falls back to a generic, translated label.
  *

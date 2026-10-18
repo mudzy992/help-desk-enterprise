@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { ApiError } from "@/services/api";
 import type {
@@ -9,7 +10,7 @@ import type {
   ChangeType,
 } from "@/services/changes-api";
 
-/** Paket 3.4: labels, tones, rules mirrored from the backend and error keys. */
+/** labels, tones, rules mirrored from the backend and error keys. */
 
 export const changeStatusKeys: Readonly<Record<ChangeStatus, `changes.status.${ChangeStatus}`>> = {
   DRAFT: "changes.status.DRAFT",
@@ -234,7 +235,7 @@ export function formatChangeWindow(
   const startDate = new Date(start);
   const endDate = new Date(end);
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return "—";
-  const full = new Intl.DateTimeFormat(locale, {
+  const full = dateTimeFormatter(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -242,7 +243,7 @@ export function formatChangeWindow(
     minute: "2-digit",
     hourCycle: "h23",
   });
-  const time = new Intl.DateTimeFormat(locale, {
+  const time = dateTimeFormatter(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",

@@ -6,7 +6,7 @@ import {
 } from "@/services/tickets-collaboration-api";
 
 /**
- * Package 1.3 (T10): the signed-in agent's running timer, shared by the header
+ * Package 1.3 the signed-in agent's running timer, shared by the header
  * indicator, the ticket time panel and the idle host. `generation` increases
  * on every change so screens know when to re-read their time entries.
  */

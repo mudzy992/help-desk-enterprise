@@ -1,5 +1,5 @@
 /**
- * Paket 5.3.0 (D2): pure toast queue rules, kept free of React so they are
+ * pure toast queue rules, kept free of React so they are
  * unit tested exhaustively (`toast-queue.spec.ts`).
  *
  * - The same message (tone + title + description) shown again does not stack a

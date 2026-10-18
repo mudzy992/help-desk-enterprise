@@ -1,5 +1,5 @@
 /**
- * Faza 3 (c): isti algoritam kao generator ogledala
+ * isti algoritam kao generator ogledala
  * (`scripts/generate-docs-content.mjs`) — dijakritika u ASCII, sve što nije
  * slovo/cifra u `-`, bez vodećih/završnih crtica. Anchori iz `manifest.json`
  * moraju se poklopiti sa `id` atributima u rendereru.

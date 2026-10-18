@@ -1,5 +1,5 @@
 /**
- * Review 2026-09-25 (S4): the install wizard needs the operator's INSTALL_TOKEN.
+ * 09-25 (S4): the install wizard needs the operator's INSTALL_TOKEN.
  * It is kept only for the browser tab (sessionStorage) and sent as
  * `X-Install-Token` on every `/install/` request.
  */

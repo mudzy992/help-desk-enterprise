@@ -1,7 +1,7 @@
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
 /**
- * Paket 5.3.1 (D9): pure model of the create-ticket "Service" step —
+ * pure model of the create-ticket "Service" step —
  * search (diacritic-insensitive), category chips with counts, groups ordered
  * like the catalog, and a "recently used" group on top. Kept free of React so
  * the rules are unit tested (`service-picker-model.spec.ts`).

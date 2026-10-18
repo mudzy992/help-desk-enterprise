@@ -42,11 +42,11 @@ export function useCreateTicketFormModel() {
   const [searchParams] = useSearchParams();
   const hasDeepLinkPrefill =
     searchParams.get("assetId") !== null || searchParams.get("serviceId") !== null;
-  // Paket 3.2 (§8): "Report a problem" on My equipment opens the form with the asset.
+  // "Report a problem" on My equipment opens the form with the asset.
   const [draft, setDraft] = useState<CreateTicketDraft>(() => ({
     ...emptyCreateTicketDraft,
     assetId: (searchParams.get("assetId") ?? "").slice(0, 64),
-    // Paket 3.1 (§10): Teams links services with a required form here, preselected.
+    // Teams links services with a required form here, preselected.
     serviceId: (searchParams.get("serviceId") ?? "").slice(0, 64),
   }));
   const [step, setStep] = useState(0);
@@ -54,7 +54,7 @@ export function useCreateTicketFormModel() {
   /** Ako poziv bazi znanja ne uspije, korak prikazuje da je nedostupna. */
   const [interceptUnavailable, setInterceptUnavailable] = useState(false);
   const [helped, setHelped] = useState(false);
-  // Paket 5.2.4 (M14 B3): remember which article the user marked helpful so
+  // remember which article the user marked helpful so
   // that the "resolved by KB" resolution records the right article — we must
   // not silently pick suggestions[0] when the user voted a different one.
   const [helpedArticleId, setHelpedArticleId] = useState<string | null>(null);

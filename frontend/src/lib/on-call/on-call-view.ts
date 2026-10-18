@@ -1,8 +1,9 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { TFunction } from "i18next";
 import { ApiError } from "@/services/api";
 import type { OnCallSegmentView } from "@/services/on-call-api";
 
-/** Paket 2.9 (K3): pure helpers for the on-call page. */
+/** pure helpers for the on-call page. */
 
 export const onCallErrorKeys = {
   ON_CALL_DISABLED: "onCall.errors.disabled",
@@ -34,7 +35,7 @@ const dayMs = 86_400_000;
 
 function civilDateKey(date: Date, timeZone: string): string {
   // en-CA gives YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", {
+  return dateTimeFormatter("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
@@ -97,7 +98,7 @@ export function groupSegmentsByDay(
 }
 
 function offsetMs(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateTimeFormatter("en-US", {
     timeZone,
     hourCycle: "h23",
     year: "numeric",
@@ -167,7 +168,7 @@ export function fromDateTimeLocalValue(value: string): string | null {
 export function toZoneInputValue(iso: string | Date, timeZone: string): string {
   const date = typeof iso === "string" ? new Date(iso) : iso;
   if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateTimeFormatter("en-US", {
     timeZone,
     hourCycle: "h23",
     year: "numeric",
@@ -266,7 +267,7 @@ export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): 
 }
 
 export function formatOnCallClock(iso: string, locale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(locale.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
+  return dateTimeFormatter(locale.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
     ...(timeZone ? { timeZone } : {}),
     hour: "2-digit",
     minute: "2-digit",

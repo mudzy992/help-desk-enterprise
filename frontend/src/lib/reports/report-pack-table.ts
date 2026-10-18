@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { ReportCell } from "@/services/report-packs-api";
 
 export type ReportSort = { readonly column: string; readonly direction: "asc" | "desc" };
@@ -61,7 +62,7 @@ export function formatReportCell(
   if (isoInstant.test(value)) {
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
+      return dateTimeFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(
         date,
       );
     }

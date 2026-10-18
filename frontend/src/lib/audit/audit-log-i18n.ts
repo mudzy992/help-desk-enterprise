@@ -55,7 +55,7 @@ export const knownAuditActions = [
   "notification.preferences.reset",
   "auth.password_changed",
   "auth.password_expired",
-  // Paket 5.4.0-d (M6): the security journal events.
+  // d the security journal events.
   "auth.login_failed",
   "auth.password_reset_must_change",
   "auth.admin_bulk_password_reset",
@@ -382,7 +382,7 @@ export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]
   directoryKind: ["entra", "ldaps"],
   provider: ["local", "entra", "legacy"],
   channel: ["email", "teams", "EMAIL", "PAPER", "PORTAL", "IN_PERSON"],
-  // Paket 5.4.1 closeout: codes the backend writes into these fields today.
+  // closeout: codes the backend writes into these fields today.
   // Incident statuses travel in `from` / `to` of `status.incident.*` events.
   from: ["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"],
   to: ["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"],

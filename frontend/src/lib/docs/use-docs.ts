@@ -12,7 +12,7 @@ import {
 } from "@/services/docs-api";
 
 /**
- * Faza 3 (c): hookovi za Dokumentaciju. Bez novog state menadžera — običan
+ * hookovi za Dokumentaciju. Bez novog state menadžera — običan
  * `useState`/`useEffect`, kao na stranici Statusa; server vraća `no-store`.
  */
 

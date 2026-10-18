@@ -25,7 +25,7 @@ const seg = (startsAt: string, endsAt: string, name: string | null): OnCallSegme
   person: name === null ? null : { userId: name, displayName: name, isAvailable: true },
 });
 
-describe("on-call view helpers (Paket 2.9 K3)", () => {
+describe("on-call view helpers ", () => {
   it("maps known error codes only", () => {
     expect(mapOnCallError(new ApiError(409, "ON_CALL_OVERRIDE_OVERLAP", "x"))).toBe(
       "onCall.errors.overlap",

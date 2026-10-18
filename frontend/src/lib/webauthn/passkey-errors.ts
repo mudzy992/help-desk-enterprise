@@ -1,7 +1,7 @@
 import { ApiError } from "@/services/api";
 
 /**
- * Paket 5.4.0-e: one place where a passkey failure becomes a message. The
+ * e: one place where a passkey failure becomes a message. The
  * server answers with domain codes (`MFA_NOT_AVAILABLE`, `PASSKEY_NOT_FOUND`,
  * `MFA_REQUIRED_CANNOT_DISABLE`, …) and the platform adds its own WebAuthn
  * error codes; both are mapped here so every passkey screen says the same
@@ -31,7 +31,7 @@ const codes: Readonly<Record<string, PasskeyMessageKey>> = {
   MFA_REQUIRED_CANNOT_DISABLE: "account.passkeys.errorLastFactor",
   PASSKEY_NOT_FOUND: "account.passkeys.errorNotFound",
   PASSKEY_INVALID_NAME: "account.passkeys.errorInvalidName",
-  // Review 2026-10-12: a refused attestation is its own answer (400), not a
+  // 10-12: a refused attestation is its own answer (400), not a
   // mistyped code — the message tells the person what to check.
   PASSKEY_VERIFICATION_FAILED: "account.passkeys.errorRejected",
   PASSKEY_CLONED: "account.passkeys.errorDevice",

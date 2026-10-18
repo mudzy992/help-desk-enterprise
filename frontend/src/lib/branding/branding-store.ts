@@ -7,7 +7,7 @@ import {
 import { getBranding, type Branding } from "@/services/branding-api";
 
 /**
- * Paket 4.1 (§3a): the client's branding, loaded once from the public
+ * the client's branding, loaded once from the public
  * `GET /branding` and reloaded whenever settings are saved (the generation is
  * appended to the URL so the browser cache never serves a stale logo).
  * Until it loads, the neutral product name is used.

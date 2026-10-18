@@ -2,7 +2,7 @@ import type { TicketStatus } from "@/services/tickets-api";
 import type { WorkflowActor, WorkflowPhase, WorkflowTransition } from "@/services/workflow-api";
 
 /**
- * Paket 1.7 (W3): deterministic layout of the status flow — phases are
+ * deterministic layout of the status flow — phases are
  * columns, statuses keep a fixed order inside each column, and every edge is
  * a quadratic curve bent to one side so A→B and B→A never overlap.
  */

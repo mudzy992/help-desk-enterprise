@@ -27,14 +27,14 @@ export type TicketListFilters = {
   readonly atRisk?: boolean;
   /** Package 1.6, staff only. */
   readonly forwarded?: TicketForwardedFilter;
-  /** Paket 2.4, staff only: tickets I follow / where I was mentioned. */
+  /** , staff only: tickets I follow / where I was mentioned. */
   readonly personal?: TicketPersonalFilter;
-  /** Package 1.2 (M7): hide merged children (staff default: on). */
+  /** Package 1.2 hide merged children (staff default: on). */
   readonly hideMerged?: boolean;
-  /** Paket 1.7 (U3), staff only: unrouted past the cleanup deadline. */
+  /** , staff only: unrouted past the cleanup deadline. */
   readonly unroutedOverdue?: boolean;
   /**
-   * Package 5.2.3 (M8 B6): active inbox sub-tab. `unrouted` is the unrouted
+   * Package 5.2.3 active inbox sub-tab. `unrouted` is the unrouted
    * queue; any other value is a group id. One field, serialized to the URL,
    * drives what the inbox displays, what page the unrouted pager is on and
    * what count pills show — no separate local useState that drifts from the

@@ -1,9 +1,9 @@
 import { maxRecentServices, pushRecentService } from "@/lib/tickets/service-picker-model";
 
 /**
- * Paket 5.3.1 (D9): recently used services, per user, in this browser only.
+ * recently used services, per user, in this browser only.
  * Holds service ids — nothing personal — under the neutral `service-desk.*`
- * prefix (Paket 4.1). Storage failures (private mode, quota) are ignored: the
+ * prefix (). Storage failures (private mode, quota) are ignored: the
  * picker simply has no "recent" group then.
  */
 function storageKey(userId: string): string {

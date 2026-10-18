@@ -1,12 +1,12 @@
 /**
- * Paket 2.6 (§8): a deliberately small Markdown parser for the privacy notice.
+ * a deliberately small Markdown parser for the privacy notice.
  * It produces a plain tree that React renders as elements, never HTML, so an
  * admin-entered notice cannot inject markup or scripts. Supported: `#`–`###`
  * headings, paragraphs, `-`/`*` and `1.` lists, `>` quotes, `**bold**`,
  * `*italic*`/`_italic_`, `` `code` ``, `[text](url)` (http, https, mailto
  * only) and backslash escapes. Anything else is shown as text.
  *
- * Faza 3 (c): extended for the Docs module with tables, fenced code blocks
+ * extended for the Docs module with tables, fenced code blocks
  * (` ```json ` …), images (`![alt](putanja)`) and callouts (`> **Napomena:**`).
  * The extensions are additive — the privacy notice renders exactly as before.
  */
@@ -47,7 +47,7 @@ export type BlockNode =
 
 const escapable = "\\`*_[]()<>#|+-.!~";
 
-/** Callout labels recognised at the start of a quote (Faza 3 §7.1). */
+/** Callout labels recognised at the start of a quote (§7.1). */
 const calloutLabels: ReadonlyArray<{ readonly pattern: RegExp; readonly tone: CalloutTone }> = [
   { pattern: /^\*\*(Upozorenje|Važno|Pazi):\*\*/i, tone: "warning" },
   { pattern: /^\*\*(Savjet|Preporuka):\*\*/i, tone: "success" },
@@ -57,7 +57,7 @@ const calloutLabels: ReadonlyArray<{ readonly pattern: RegExp; readonly tone: Ca
 export function safeHref(url: string): string | null {
   const trimmed = url.trim();
   if (/^(https?:\/\/|mailto:)/i.test(trimmed)) return trimmed;
-  // Faza 3 (dopuna): internoj ruti dokumentacije vjerujemo — `MarkdownView` je
+  // internoj ruti dokumentacije vjerujemo — `MarkdownView` je
   // prikazuje kroz router, pa vodič može uputiti na drugu stranicu vodiča.
   return /^\/docs\/[a-z0-9-]+(#[a-z0-9-]+)?$/.test(trimmed) ? trimmed : null;
 }

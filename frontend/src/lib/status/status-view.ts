@@ -8,7 +8,7 @@ import {
   type ServiceAvailabilityValue,
 } from "@/services/status-api";
 
-/** Paket 2.7 (§8): pure presentation rules of the status page. */
+/** pure presentation rules of the status page. */
 
 export function availabilityTone(value: ServiceAvailabilityValue): BadgeTone {
   switch (value) {

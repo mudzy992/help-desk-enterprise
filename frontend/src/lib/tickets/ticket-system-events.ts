@@ -60,14 +60,14 @@ export const ticketSystemEventKinds = {
   ticket_sla_resolution_escalated: "sla",
   ticket_remote_requested: "edit",
   ticket_remote_acknowledged: "edit",
-  // Paket 2.7: `action:<incidentId>|<title>` (staff only).
+  // `action:<incidentId>|<title>` (staff only).
   ticket_incident_linked: "routing",
   ticket_incident_unlinked: "routing",
   ticket_incident_resolved: "status",
-  // Paket 3.2: `action:<assetId>|<tag name>` (staff only).
+  // `action:<assetId>|<tag name>` (staff only).
   ticket_asset_linked: "routing",
   ticket_asset_unlinked: "routing",
-  // Paket 3.3: `action:<problemId>|<number> <title>` (staff only).
+  // `action:<problemId>|<number> <title>` (staff only).
   ticket_problem_linked: "routing",
   ticket_problem_unlinked: "routing",
   ticket_problem_takeover: "assign",

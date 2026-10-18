@@ -5,7 +5,7 @@ import type { TicketCountsQuery, TicketPageQuery } from "@/lib/tickets/ticket-li
 
 /**
  * Turns the screen state of the ticket list into the server query of one page
- * (phase 1.1, plan §1.1).
+ * (, plan §1.1).
  *
  * Before this the list was fetched whole and filtered in the browser; every
  * filter the screen offers has an equivalent in `GET /tickets`, so the same
@@ -52,7 +52,7 @@ export function toTicketPageQuery(input: {
     hideMerged: filters.hideMerged === true ? true : undefined,
     unroutedOverdue: filters.unroutedOverdue === true ? true : undefined,
     q: term === "" ? undefined : term,
-    // The list search box matched the description before phase 1.1 moved the
+    // The list search box matched the description before moved the
     // filtering to the server, so it keeps that reach here.
     searchDescription: term === "" ? undefined : true,
     page,

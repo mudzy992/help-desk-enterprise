@@ -1,5 +1,5 @@
 /**
- * Paket 2.8 (axe `scrollable-region-focusable`, WCAG 2.1.1): a region that
+ * a region that
  * scrolls must be reachable from the keyboard. It already is when it contains
  * a focusable element (Tab moves into it and the browser scrolls); otherwise
  * the region itself needs `tabIndex=0`. Pure, so it is unit-tested without a DOM.

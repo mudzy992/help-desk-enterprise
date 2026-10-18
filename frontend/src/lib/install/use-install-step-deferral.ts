@@ -7,7 +7,7 @@ import {
 import type { InstallStepKey } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): „Podesi kasnije“ is a server-side fact (F1), and the
+  Install wizard v2 „Podesi kasnije“ is a server-side fact , and the
   footer may offer it for any step the registry marks `skippable` — SMTP, the team
   and the add-ons today. The server's answer decides where the wizard goes, so the
   hook asks the provider to reload instead of moving a local cursor, and a refusal

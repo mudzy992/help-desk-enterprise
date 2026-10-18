@@ -63,13 +63,13 @@ export function staffDeepLinkFilters(
   return {
     // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
     forwarded: parseForwardedFilter(searchParams.get("forwarded")),
-    // Paket 2.4: `/tickets?personal=mentionedMe` (notification deep link).
+    // `/tickets?personal=mentionedMe` (notification deep link).
     personal: parsePersonalFilter(searchParams.get("personal")),
-    // Package 1.2 (M7): staff lists hide merged children unless asked.
+    // Package 1.2 staff lists hide merged children unless asked.
     hideMerged: searchParams.get("hideMerged") !== "false",
-    // Paket 1.7 (U3): deep link from the dashboard and the weekly digest.
+    // deep link from the dashboard and the weekly digest.
     unroutedOverdue: parseBooleanFlag(searchParams.get("unroutedOverdue")),
-    // Package 5.2.3 (M8 B6): preserve the inbox sub-tab across reloads when
+    // Package 5.2.3 preserve the inbox sub-tab across reloads when
     // explicitly set in the URL. Defaulting is handled by use-ticket-list so
     // non-inbox views are not polluted with an "unrouted" tab value.
     inboxTab: rawTab !== null && rawTab.trim().length > 0 ? rawTab.trim() : undefined,

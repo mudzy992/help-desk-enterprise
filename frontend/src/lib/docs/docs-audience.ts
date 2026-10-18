@@ -1,5 +1,5 @@
 /**
- * Faza 3 (c): filter po publici u Dokumentaciji.
+ * filter po publici u Dokumentaciji.
  *
  * Server već šalje samo stranice koje korisnik smije otvoriti; ovaj filter je
  * **prikaz** („pokaži mi samo korisničke stranice“), ne sigurnosna mjera.

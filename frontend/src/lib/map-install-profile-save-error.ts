@@ -6,7 +6,7 @@ export type InstallProfileSaveErrorKey =
   | "install.profile.errorGeneric";
 
 /*
-  Install wizard v2 (F3): the package may be changed while the operator is on the
+  Install wizard v2 the package may be changed while the operator is on the
   step, but once the initial data exists only an upgrade is accepted (owner
   decision 5, F1). The server owns that rule; the UI only names it.
 */

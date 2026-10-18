@@ -10,7 +10,7 @@ export type GuardDescription = {
 };
 
 /**
- * Paket 1.7 (W2/W3): a guard, as this installation actually applies it —
+ * a guard, as this installation actually applies it —
  * the numbers come from the live settings, not from a generic description.
  */
 export function describeWorkflowGuard(
@@ -62,7 +62,7 @@ export function describeWorkflowGuard(
     case "group_required":
       return { key: "workflow.guards.group_required", values: {}, inactive: false };
     case "playbook_steps":
-      // Paket 1.4 (P5): only `block` refuses the change; `warn` just asks.
+      // only `block` refuses the change; `warn` just asks.
       return {
         key: "workflow.guards.playbook_steps",
         values: {},

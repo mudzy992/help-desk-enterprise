@@ -1,10 +1,11 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import { ApiError } from "@/services/api";
 import type {
   AnnouncementEffectiveStatus,
   AnnouncementSeverity,
 } from "@/services/announcements-api";
 
-/** Paket 2.9 (K2): pure helpers for the announcement banner and pages. */
+/** pure helpers for the announcement banner and pages. */
 
 export const announcementErrorKeys = {
   ANNOUNCEMENTS_DISABLED: "announcements.errors.disabled",
@@ -127,7 +128,7 @@ export function acknowledgementPercent(acknowledged: number, audience: number): 
  * "2026 M09 29" in browsers without Bosnian CLDR data.
  */
 export function announcementDateTimeFormatter(language: string): Intl.DateTimeFormat {
-  return new Intl.DateTimeFormat(language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
+  return dateTimeFormatter(language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

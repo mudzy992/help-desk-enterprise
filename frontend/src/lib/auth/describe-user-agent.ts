@@ -1,4 +1,4 @@
-/** Paket 2.1: "Chrome · Windows" from a User-Agent — enough to recognise a device. */
+/** "Chrome · Windows" from a User-Agent — enough to recognise a device. */
 export type DeviceDescription = {
   readonly browser: string;
   readonly os: string | null;

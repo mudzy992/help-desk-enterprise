@@ -124,7 +124,7 @@ function createState() {
   };
 }
 
-describe("loadTicketDetail (T3)", () => {
+describe("loadTicketDetail ", () => {
   beforeEach(() => {
     vi.mocked(getTicket).mockReset();
     vi.mocked(getTicket).mockResolvedValue(ticket);

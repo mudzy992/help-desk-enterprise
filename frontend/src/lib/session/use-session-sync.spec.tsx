@@ -22,7 +22,7 @@ const principal = {
   isLocalOnly: true,
 };
 
-describe("session changes made in another tab (A4)", () => {
+describe("session changes made in another tab ", () => {
   beforeEach(() => {
     window.localStorage.clear();
     helpdeskQueryClient.clear();

@@ -5,7 +5,7 @@ import {
   splitMentionSegments,
 } from "@/lib/tickets/mention-tokens";
 
-describe("mention tokens (Paket 2.4)", () => {
+describe("mention tokens ()", () => {
   it("splits a note into text and mention chips", () => {
     expect(splitMentionSegments("Hej @[Amra H](cm1user0001), pogledaj @ivan")).toEqual([
       { kind: "text", text: "Hej " },

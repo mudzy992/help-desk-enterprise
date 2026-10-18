@@ -6,7 +6,7 @@ import {
   primaryActor,
 } from "./layout-workflow-diagram";
 
-describe("layout-workflow-diagram (paket 1.7 W3)", () => {
+describe("layout-workflow-diagram (W3)", () => {
   const nodes = layoutWorkflowNodes([
     { status: "PENDING", phase: "intake" },
     { status: "ASSIGNED", phase: "work" },

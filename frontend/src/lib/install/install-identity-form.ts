@@ -9,7 +9,7 @@ import type {
 } from "@/services/install-identity-api";
 
 /**
- * Install wizard v2 (F2): the identity step's form values. The server validates
+ * Install wizard v2 the identity step's form values. The server validates
  * the same things and the settings registry checks them once more; this module
  * only keeps an obviously incomplete form from being posted.
  */

@@ -2,7 +2,7 @@ import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 
 /**
- * Paket 2.7 (§6): pure view helpers of the "System health" card. No I/O and
+ * pure view helpers of the "System health" card. No I/O and
  * no clock of their own - `nowMs` is passed in, so everything is testable.
  */
 
@@ -29,10 +29,10 @@ export const opsAlertSlugs = [
   // alert title instead of the translated one.
   "websocket_emits_high",
   "auth_login429_high",
-  // Paket 5.4.2 (stavka 2): the captcha alarms (refused challenges, skipped checks).
+  // the captcha alarms (refused challenges, skipped checks).
   "auth_captchaFailed_high",
   "auth_captchaSkipped_high",
-  // Paket 5.4.2 (stavka 4): the audit webhook export has not delivered for a streak.
+  // the audit webhook export has not delivered for a streak.
   "security_auditWebhook_stalled",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
@@ -186,7 +186,7 @@ export const alertDetailFieldSlugs = [
   "login429LastHour",
   "captchaFailedLastHour",
   "captchaSkippedLastHour",
-  // Paket 5.4.2 (stavka 4): the audit webhook streak and its fixed thresholds.
+  // the audit webhook streak and its fixed thresholds.
   "auditWebhookPendingMinutes",
   "warnAfterMinutes",
   "criticalAfterMinutes",

@@ -9,7 +9,7 @@ export const emptySlaExposure: SlaExposureCounts = {
 };
 
 /**
- * Phase 2.4 (plan §2.4): the SLA screen looks its exposure numbers up in the
+ * the SLA screen looks its exposure numbers up in the
  * server aggregate (`GET /reports/sla/summary`) instead of counting a page of
  * tickets in the browser.
  *

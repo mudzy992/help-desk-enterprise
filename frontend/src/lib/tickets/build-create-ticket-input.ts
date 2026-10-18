@@ -9,7 +9,7 @@ export type CreateTicketDraft = {
   readonly originUnitId: string;
   readonly formVersionRef: string | null;
   readonly formData: Record<string, unknown>;
-  /** Paket 3.2 (§8): own equipment, "" = none. */
+  /** own equipment, "" = none. */
   readonly assetId: string;
   /** M8 #3: what the request is about, and the wished deadline ("" = none). */
   readonly requestType: string;
