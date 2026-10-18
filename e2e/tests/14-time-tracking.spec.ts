@@ -91,7 +91,9 @@ test.describe('14 time tracking guard', () => {
     //      earlier run is closed by `globalSetup` at *run start*, which can cover
     //      a window two hours back. Three days back is inside the documented
     //      `maxBackdateDays` default (7) and outside anything a run leaves today.
-    const manualStart = new Date(Date.now() - 2 * 3600 * 1000);
+    // Three days back (see comment above): two hours still collides with timers
+    // closed by globalSetup / earlier specs for the same SUPER_ADMIN today.
+    const manualStart = new Date(Date.now() - 3 * 24 * 3600 * 1000);
     manualStart.setSeconds(0, 0);
     await page.goto(`/tickets/${first.id}`);
     await page.getByTestId('tab-time').click();

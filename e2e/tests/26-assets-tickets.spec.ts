@@ -95,7 +95,7 @@ test.describe('26 assets on tickets', () => {
           formVersionRef: catalog.formVersionRef,
           impact: 'MEDIUM',
           urgency: 'MEDIUM',
-          formData: { opis: 'E2E ticket about equipment' },
+          formData: { dodatne_informacije: 'E2E ticket about equipment' },
         };
         // Someone else's equipment cannot be picked.
         const refused = await requester.request('/tickets', { method: 'POST', body: JSON.stringify({ ...base, title: `E2E foreign ${stamp}`, assetId: foreign.id }) });
@@ -185,7 +185,7 @@ test.describe('26 assets on tickets', () => {
             formVersionRef: catalog.formVersionRef,
             impact: 'MEDIUM',
             urgency: 'MEDIUM',
-            formData: { opis: 'E2E picker off' },
+            formData: { dodatne_informacije: 'E2E picker off' },
             assetId: asset.id,
           }),
         });
