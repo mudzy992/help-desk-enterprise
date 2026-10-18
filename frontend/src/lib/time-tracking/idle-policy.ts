@@ -1,5 +1,5 @@
 /**
- * Package 1.3 (T3): pure idle rules, shared by the timer host and its tests.
+ * Package 1.3 pure idle rules, shared by the timer host and its tests.
  * "Inactive" = every tab hidden OR no keyboard/pointer input for the idle window.
  * Activity is shared across tabs through localStorage, so a hidden tab never
  * pauses a timer while another tab of the same user is in use.

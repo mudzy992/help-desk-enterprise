@@ -23,7 +23,7 @@ describe("MFA intermediate-step error mapping (5.2.1 M2 #5)", () => {
     );
   });
 
-  it("explains that a required second factor cannot be switched off (A25)", () => {
+  it("explains that a required second factor cannot be switched off ", () => {
     expect(mapMfaCodeError(new ApiError(403, "MFA_REQUIRED_CANNOT_DISABLE", "required"))).toBe(
       "mfaRequired",
     );

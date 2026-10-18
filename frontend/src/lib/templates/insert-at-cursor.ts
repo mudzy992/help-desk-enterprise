@@ -1,5 +1,5 @@
 /**
- * Paket 1.4 (T4): puts a rendered template where the caret is (or over the
+ * puts a rendered template where the caret is (or over the
  * selection). Adds a line break before/after when the snippet would otherwise
  * glue onto surrounding text, so the agent never has to fix spacing by hand.
  */

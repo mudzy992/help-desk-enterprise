@@ -8,7 +8,7 @@ import {
 import { useSession } from "@/lib/session/use-session";
 
 /**
- * Paket 1.7 (R3). Another admin changed a domain this screen shows:
+ * . Another admin changed a domain this screen shows:
  * - screen visible and nobody editing → silent reload;
  * - admin is editing → keep the screen, expose `pending` for the banner;
  * - screen hidden → reload once when it becomes visible again.

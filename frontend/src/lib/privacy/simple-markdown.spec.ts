@@ -79,7 +79,7 @@ describe("parseMarkdown", () => {
   });
 });
 
-describe("Faza 3 (c): tabele, kod, callouti i slike", () => {
+describe("tabele, kod, callouti i slike", () => {
   it("parses a markdown table with a separator row", () => {
     const blocks = parseMarkdown("| Polje | Obavezno |\n|---|---|\n| Naslov | da |\n| Opis | ne |");
     expect(blocks).toHaveLength(1);

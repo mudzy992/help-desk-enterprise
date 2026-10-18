@@ -62,7 +62,7 @@ function mapCatalogSaveError(
 }
 
 /**
- * Paket 5.3.2 (§4.3): an OU error belongs to the row that raised it, not to the
+ * an OU error belongs to the row that raised it, not to the
  * bottom of the card. The state keeps the unit id next to the message so the
  * tree can render it as `role="alert"` under that very row.
  */

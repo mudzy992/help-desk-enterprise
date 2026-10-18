@@ -27,7 +27,7 @@ const statusKeys: Partial<Record<number, ApiErrorKey>> = {
 const codeKeys: Partial<Record<string, ApiErrorKey>> = {
   SETUP_REQUIRED: "errors.setupRequired",
   READ_ONLY_MODE: "errors.readOnly",
-  // Paket 5.3.3: a setting cannot be switched on while its parents are off —
+  // a setting cannot be switched on while its parents are off —
   // saying "check the input" (the generic 400 text) would hide the real reason.
   SETTING_DEPENDENCY_UNMET: "errors.settingDependency",
 };

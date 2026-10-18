@@ -8,7 +8,7 @@ import type {
   ProblemTicketSkipReason,
 } from "@/services/problems-api";
 
-/** Paket 3.3: labels, tones and error keys shared by the problem screens. */
+/** labels, tones and error keys shared by the problem screens. */
 
 export const problemStatusKeys: Readonly<
   Record<ProblemStatus, `problems.status.${ProblemStatus}`>

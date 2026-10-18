@@ -86,7 +86,7 @@ describe("resolveRenderedStep", () => {
     ).toBe("identity");
   });
 
-  it("renders the readiness screen and the final screen (F6)", () => {
+  it("renders the readiness screen and the final screen ", () => {
     // F6.1/F6.2: the readiness screen is a step of the wizard, and the final
     // screen is what the shell shows once the installation is completed.
     expect(
@@ -108,7 +108,7 @@ describe("resolveRenderedStep", () => {
   });
 
   it("never invents a step it was not told about", () => {
-    // The package picker is the wizard's first step (F3), so it is the honest
+    // The package picker is the wizard's first step , so it is the honest
     // last resort — never a blind `superAdmin` past an unanswered package.
     expect(resolveRenderedStep({ nextStep: undefined, isCompleted: false, steps: steps() })).toBe(
       "profile",

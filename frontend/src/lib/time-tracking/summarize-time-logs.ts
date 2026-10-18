@@ -1,6 +1,6 @@
 import type { TicketTimeLogResponse } from "@/services/tickets-collaboration-api";
 
-/** Package 1.3 (T9): per-person totals for the ticket, largest first; deleted rows excluded. */
+/** Package 1.3 per-person totals for the ticket, largest first; deleted rows excluded. */
 export function summarizeTimeByUser(
   items: readonly TicketTimeLogResponse[],
 ): readonly { readonly userId: string; readonly seconds: number }[] {

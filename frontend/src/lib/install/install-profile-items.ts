@@ -30,7 +30,7 @@ import type {
 } from "@/services/install-profile-api";
 
 /*
-  Install wizard v2 (F3): how one catalogue line from `install-profile.catalog.ts`
+  Install wizard v2 how one catalogue line from `install-profile.catalog.ts`
   is presented. `stepKey` is the wizard step that owns the item — the customize
   pane may only offer a switch where a step exists and the registry allows it to
   be deferred; items whose behaviour arrives with F4/F5 have `null` and are shown

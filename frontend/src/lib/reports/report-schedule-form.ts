@@ -3,7 +3,7 @@ import type {
   ReportScheduleSection,
 } from "@/services/report-schedules-api";
 
-/** Paket 2.5 (design §7.3): client-side checks and the „next send” preview. */
+/** client-side checks and the „next send” preview. */
 export type ReportScheduleFormValues = {
   readonly name: string;
   readonly frequency: ReportScheduleFrequency;

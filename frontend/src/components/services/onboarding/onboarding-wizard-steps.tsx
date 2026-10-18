@@ -3,8 +3,8 @@ import { OnboardingFormStep } from "@/components/services/onboarding/onboarding-
 import { OnboardingRoutingStep } from "@/components/services/onboarding/onboarding-routing-step";
 import {
   OnboardingServiceStep,
-  type OnboardingServiceValues,
 } from "@/components/services/onboarding/onboarding-service-step";
+import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 import { OnboardingSlaStep } from "@/components/services/onboarding/onboarding-sla-step";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";

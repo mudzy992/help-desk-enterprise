@@ -7,7 +7,7 @@ export type TeamsErrorKey =
   | "teamsAdmin.errors.forbidden"
   | "teamsAdmin.errors.generic";
 
-/** Paket 3.1: Teams admin API errors → one translated sentence. */
+/** Teams admin API errors → one translated sentence. */
 export function mapTeamsError(error: unknown): TeamsErrorKey {
   if (!(error instanceof ApiError)) return "teamsAdmin.errors.generic";
   if (error.code === "TEAMS_APP_ID_REQUIRED") return "teamsAdmin.errors.appIdRequired";

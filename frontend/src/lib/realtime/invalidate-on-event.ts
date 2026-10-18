@@ -7,11 +7,11 @@ import type { Socket } from "socket.io-client";
 export type QueryKey = readonly unknown[];
 
 /**
- * Faza 3.3 (plan §3.3, item 3): the single place that maps a socket event to the
+ * the single place that maps a socket event to the
  * queries it invalidates. Kept pure so the mapping itself is testable — the
  * subscription below is the only part that touches the socket.
  *
- * `group.feed-changed` (Faza 3.2) intentionally invalidates only the list
+ * `group.feed-changed` () intentionally invalidates only the list
  * queries: the group room never carried the ticket content, so there is nothing
  * to update in a ticket detail cache.
  *

@@ -34,6 +34,22 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/lib/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/components", "@/components/**"],
+              message: "lib must not depend on the components presentation layer",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["**/*.{js,mjs,cjs}"],
     languageOptions: {
       globals: globals.node,

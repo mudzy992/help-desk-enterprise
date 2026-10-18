@@ -6,7 +6,7 @@ import {
   safeReturnPath,
 } from "./entra-redirect";
 
-describe("safeReturnPath (paket 1.8)", () => {
+describe("safeReturnPath ()", () => {
   it("keeps in-app relative paths", () => {
     expect(safeReturnPath("/tickets/abc?view=all")).toBe("/tickets/abc?view=all");
   });
@@ -20,7 +20,7 @@ describe("safeReturnPath (paket 1.8)", () => {
     expect(safeReturnPath(undefined)).toBe("/");
   });
 
-  it("rejects targets that URL parsers turn into another host (A13)", () => {
+  it("rejects targets that URL parsers turn into another host ", () => {
     expect(safeReturnPath("/\\evil.example")).toBe("/");
     expect(safeReturnPath("/\\\\evil.example")).toBe("/");
     expect(safeReturnPath("/\t/evil.example")).toBe("/");
@@ -33,11 +33,11 @@ describe("safeReturnPath (paket 1.8)", () => {
 });
 
 /*
-  Paket 4.1a (E2): the hand-off between the sign-in start and the callback page
+  a (E2): the hand-off between the sign-in start and the callback page
   lives in sessionStorage under the neutral `service-desk.*` key. The callback
   page falls back to `GET /auth/providers`, so there is no migration table.
 */
-describe("entra configuration hand-off (paket 4.1a E2)", () => {
+describe("entra configuration hand-off (a E2)", () => {
   const configuration = {
     tenantId: "tenant-id",
     clientId: "client-id",

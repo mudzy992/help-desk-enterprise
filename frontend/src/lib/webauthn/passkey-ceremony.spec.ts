@@ -12,7 +12,7 @@ import {
 } from "@/lib/webauthn/passkey-ceremony";
 
 /*
-  Paket 5.4.0-e: the browser half of the WebAuthn ceremonies. In a browserless
+  e: the browser half of the WebAuthn ceremonies. In a browserless
   context (this spec, and any SSR pass) every probe must answer "no" instead of
   throwing, and a ceremony call must come back as `unsupported` — a surface that
   tries to run it shows "this browser cannot do passkeys", never an exception.

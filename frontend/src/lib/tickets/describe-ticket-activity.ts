@@ -116,7 +116,7 @@ export function describeMergeOrPriorityEvent(
   if (detail === null) {
     return null;
   }
-  // Paket 2.3 (R10): `inbound_attachment_rejected:<file name>|<reason code>`.
+  // `inbound_attachment_rejected:<file name>|<reason code>`.
   if (action === "inbound_attachment_rejected") {
     const separator = detail.lastIndexOf("|");
     const name = separator >= 0 ? detail.slice(0, separator) : detail;
@@ -126,7 +126,7 @@ export function describeMergeOrPriorityEvent(
       note: reason.length > 0 ? reason : null,
     };
   }
-  // Paket 2.7: `ticket_incident_*:<incidentId>|<title>`.
+  // `ticket_incident_*:<incidentId>|<title>`.
   if (
     action === "ticket_incident_linked" ||
     action === "ticket_incident_unlinked" ||
@@ -144,7 +144,7 @@ export function describeMergeOrPriorityEvent(
           : "tickets.activity.incidentResolved";
     return { text: t(key, { title: parsed.title }), note: null };
   }
-  // Paket 3.3: `ticket_problem_*:<problemId>|<number> <title>` (staff only).
+  // `ticket_problem_*:<problemId>|<number> <title>` (staff only).
   if (action === "ticket_problem_linked" || action === "ticket_problem_unlinked") {
     const parsed = parseIncidentEventDetail(detail);
     if (parsed === null) {
@@ -156,7 +156,7 @@ export function describeMergeOrPriorityEvent(
         : "tickets.activity.problemUnlinked";
     return { text: t(key, { problem: parsed.title }), note: null };
   }
-  // Paket 3.3: unstarted ticket taken over by the problem group resolution.
+  // unstarted ticket taken over by the problem group resolution.
   if (action === "ticket_problem_takeover") {
     const parsed = parseIncidentEventDetail(detail);
     if (parsed === null) {
@@ -167,7 +167,7 @@ export function describeMergeOrPriorityEvent(
       note: null,
     };
   }
-  // Paket 2.9 (K1c): `ticket_knowledge_draft_created:<articleId>|<title>` (staff only).
+  // `ticket_knowledge_draft_created:<articleId>|<title>` (staff only).
   if (action === "ticket_knowledge_draft_created") {
     const parsed = parseIncidentEventDetail(detail);
     if (parsed === null) {

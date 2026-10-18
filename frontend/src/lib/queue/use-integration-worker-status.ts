@@ -13,7 +13,7 @@ export interface IntegrationWorkerStatusState {
 /**
  * Worker health for the integration queue card.
  *
- * Phase 4.1 (plan §4.1): this used to poll `/integration-jobs/worker-status` every
+ * this used to poll `/integration-jobs/worker-status` every
  * 15 seconds for as long as the card was open. The heartbeat is now written by a
  * worker job (one write per interval, not one per worker), and the card pulls the
  * status on mount and when the user asks for it — no interval, no traffic for a

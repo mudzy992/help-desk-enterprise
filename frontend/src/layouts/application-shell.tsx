@@ -13,7 +13,7 @@ import { PasswordExpiryBanner } from "@/components/account-security/password-exp
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
-import { ActiveTimerHost } from "@/lib/time-tracking/active-timer-host";
+import { ActiveTimerHost } from "@/components/time-tracking/active-timer-host";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { AnnouncerRegions } from "@/components/a11y/announcer-regions";

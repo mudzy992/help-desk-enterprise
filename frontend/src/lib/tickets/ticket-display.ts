@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 export type OriginUnitOption = {
@@ -46,7 +47,7 @@ export function formatTicketTimestamp(value: string, locale: string): string {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return new Intl.DateTimeFormat(locale, {
+  return dateTimeFormatter(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);

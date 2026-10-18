@@ -24,7 +24,7 @@ describe("normalizeDirectoryPath", () => {
   });
 });
 
-describe("matchCatalogEntry (paket 5.3.2)", () => {
+describe("matchCatalogEntry ()", () => {
   it("matches by path even when the casing differs", () => {
     const result = matchCatalogEntry([entry()], {
       ouPath: "/direkcija",

@@ -25,59 +25,59 @@ export function notificationTicketPath(
   type?: string,
   payload?: { readonly problemId?: string; readonly changeId?: string } | null,
 ): string | null {
-  // Paket 3.4 (§14): change notifications open the change (or the register).
+  // change notifications open the change (or the register).
   if (type?.startsWith("change.")) {
     const changeId = payload?.changeId;
     return changeId ? `/changes/${encodeURIComponent(changeId)}` : "/changes";
   }
-  // Paket 3.3 (P5): problem notifications open the problem (or the register).
+  // problem notifications open the problem (or the register).
   if (type?.startsWith("problem.")) {
     const problemId = payload?.problemId;
     return problemId ? `/problems/${encodeURIComponent(problemId)}` : "/problems";
   }
-  // Paket 1.7 (U2): the weekly digest points at the overdue list, not a ticket.
+  // the weekly digest points at the overdue list, not a ticket.
   if (type === "ticket.unroutedDigest") {
     return "/tickets?view=all&unroutedOverdue=true";
   }
-  // Paket 3.2 (§10): expiry reminders open the asset register.
+  // expiry reminders open the asset register.
   if (type === "asset.expiring") {
     return "/assets";
   }
-  // Paket 1.8 (A3): the aborted directory sync points at the sync panel.
+  // the aborted directory sync points at the sync panel.
   if (type === "directory.syncAborted") {
     return "/organizational-units";
   }
-  // Paket 2.3: a failing inbound mailbox opens its status panel.
+  // a failing inbound mailbox opens its status panel.
   if (type === "inbound.mailboxFailing") {
     return "/settings";
   }
-  // Paket 2.6: a data subject request deadline opens the privacy register.
+  // a data subject request deadline opens the privacy register.
   if (type === "privacy.requestDue") {
     return "/privacy";
   }
-  // Paket 2.7: an operational alarm opens System health; incidents the status page.
+  // an operational alarm opens System health; incidents the status page.
   if (type === "ops.alert") {
     return "/admin?tab=ops";
   }
   if (type === "status.incidentStarted" || type === "status.incidentResolved") {
     return "/status";
   }
-  // Paket 2.9 (K2): announcement notifications open the announcement archive.
+  // announcement notifications open the announcement archive.
   if (type?.startsWith("announcement.")) {
     return "/announcements";
   }
-  // Paket 2.9 (K3): every on-call notification opens the on-call page.
+  // every on-call notification opens the on-call page.
   if (type?.startsWith("oncall.")) {
     return "/on-call";
   }
-  // Paket 5.2.4 (M14 B2): KB review-due opens the stale-article admin page.
+  // KB review-due opens the stale-article admin page.
   if (type === "knowledge.reviewDue") {
     const articleId = (payload as { readonly articleId?: string } | null)?.articleId;
     return articleId
       ? `/admin/knowledge/articles/${encodeURIComponent(articleId)}`
       : "/admin/knowledge/articles?staleOnly=true";
   }
-  // Paket 2.1: account security events open the own security page.
+  // account security events open the own security page.
   if (type?.startsWith("account.")) {
     return "/account/security";
   }

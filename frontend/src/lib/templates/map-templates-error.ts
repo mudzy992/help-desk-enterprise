@@ -32,7 +32,7 @@ export type TemplatesErrorKey = `templates.errors.${TemplatesErrorCode | "generi
 
 const codes = new Set<string>(templatesErrorCodes);
 
-/** Paket 1.4: backend `TemplatesError` codes → i18n keys. */
+/** backend `TemplatesError` codes → i18n keys. */
 export function mapTemplatesError(error: unknown): TemplatesErrorKey {
   if (!(error instanceof ApiError)) return "templates.errors.network";
   if (codes.has(error.code)) return `templates.errors.${error.code as TemplatesErrorCode}`;

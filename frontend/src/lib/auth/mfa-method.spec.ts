@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/mfa-method";
 
 /*
-  Paket 5.4.0-e: the remembered factor is a device-local comfort setting. The
+  e: the remembered factor is a device-local comfort setting. The
   spec pins both the storage key (a changed prefix would silently forget every
   preference) and the rule that a preference the account cannot present is
   ignored — the server's `methods` list always wins.
@@ -41,7 +41,7 @@ describe("mfa-method preference", () => {
     expect(entries.size).toBe(1);
   });
 
-  it("never writes the address itself into the storage key (A17)", () => {
+  it("never writes the address itself into the storage key ", () => {
     const entries = installStorage();
     rememberPreferredMfaMethod("ana@example.org", "totp");
     const [key] = [...entries.keys()];

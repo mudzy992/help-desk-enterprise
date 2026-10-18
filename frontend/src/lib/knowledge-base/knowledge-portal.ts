@@ -3,7 +3,7 @@ import type {
   KnowledgeReplyReplacements,
 } from "@/services/knowledge-portal-api";
 
-/** Paket 2.9 (K1): pure helpers of the knowledge portal. */
+/** pure helpers of the knowledge portal. */
 
 export const knowledgeCategoryIconNames = [
   "book-open",

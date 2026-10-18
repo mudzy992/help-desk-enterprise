@@ -1,4 +1,4 @@
-/* Paket 2.4 (A3/A4/A6): shaping the presence payloads for the UI. */
+/* shaping the presence payloads for the UI. */
 
 export type PresencePerson = {
   readonly userId: string;

@@ -19,7 +19,7 @@ export type BulkMovePlan =
 const stockStatuses = new Set<AssetStatus>(["ORDERED", "IN_STOCK", "IN_REPAIR"]);
 
 /**
- * Paket 3.2 C9b: which move the register selection allows. One transfer
+ * C9b: which move the register selection allows. One transfer
  * record covers equipment from the warehouse, or equipment of one holder;
  * anything else would be refused by the server (`different_holders`,
  * `already_assigned`, `not_in_stock`), so the UI says so up front.

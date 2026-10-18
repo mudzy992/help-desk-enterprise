@@ -21,7 +21,7 @@ import {
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): one declaration per step for the shell — icon, headline
+  Install wizard v2 one declaration per step for the shell — icon, headline
   and the „Šta dobijaš“ lines. The registry on the server owns which steps the
   package asks for, the order lives in `install-wizard-order.ts`; this file only
   says how a step is presented, so the page, the rail, the footer and the mobile

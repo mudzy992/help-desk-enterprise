@@ -88,11 +88,11 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
           await invalidateDashboardQueries(queryClient);
         }
 
-        // Phase 1 (critical path, D6): counters, card lists and the chart.
+        // counters, card lists and the chart.
         // As soon as this Promise.all resolves the page can paint metrics,
         // charts, attention and recent tickets — `isLoading` is turned off
         // immediately after. Lookups (catalog, OU tree, routing rules) land
-        // progressively in phase 2 so they never block first paint.
+        // progressively in so they never block first paint.
         //
         // Val 6.1 / modul 4:
         //  - D2: SLA watchlist sorted by `slaDueAt` ascending (most breached
@@ -215,7 +215,7 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
           setIsLoading(false);
         }
 
-        // Phase 2 (progressive): auxiliary lookups that do not block first
+        // auxiliary lookups that do not block first
         // paint. Each catches independently so one failing lookup cannot blank
         // the whole dashboard.
         const [inbox, catalog, tree, rules] = await Promise.all([

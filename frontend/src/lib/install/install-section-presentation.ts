@@ -21,7 +21,7 @@ import {
 } from "@/services/install-sections-api";
 
 /*
-  Install wizard v2 (F5): how a section step presents itself — icon and the i18n
+  Install wizard v2 how a section step presents itself — icon and the i18n
   slots of its copy. The keys are derived from the section key
   (`install.section.<sectionKey>.title|value|whatYouGet.<n>`), the same convention
   the backend uses for `titleKey`, so a new section only has to be added to

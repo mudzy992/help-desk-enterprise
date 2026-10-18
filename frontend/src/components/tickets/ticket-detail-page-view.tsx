@@ -3,7 +3,7 @@ import { TicketDetailActionPanels } from "@/components/tickets/ticket-detail-act
 import { TicketDetailHeaderSection } from "@/components/tickets/ticket-detail-header-section";
 import { TicketDetailMainSection } from "@/components/tickets/ticket-detail-main-section";
 import type { TicketDetailPageReadyModel } from "@/components/tickets/ticket-detail-page-types";
-import { useTicketDetailPageModel } from "@/lib/tickets/use-ticket-detail-page-model";
+import { useTicketDetailPageModel } from "@/components/tickets/hooks/use-ticket-detail-page-model";
 
 export function TicketDetailPageView() {
   const model = useTicketDetailPageModel();

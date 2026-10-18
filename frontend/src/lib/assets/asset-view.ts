@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { LucideIcon } from "lucide-react";
 import {
   AppWindow,
@@ -20,7 +21,7 @@ import {
 import { ApiError } from "@/services/api";
 import type { AssetRelationKind, AssetStatus } from "@/services/assets-api";
 
-/** Paket 3.2: pure helpers shared by the CMDB pages. */
+/** pure helpers shared by the CMDB pages. */
 
 export const assetErrorKeys = {
   ASSETS_DISABLED: "assets.errors.disabled",
@@ -239,7 +240,7 @@ export function formatAssetDate(date: string | null, language: string): string {
   if (Number.isNaN(parsed.getTime())) return date;
   // Explicit fields, not `dateStyle`: without Bosnian CLDR data a browser
   // renders "bs-BA" medium as "2026 M10 5" (same fix as announcements).
-  return new Intl.DateTimeFormat(language.startsWith("bs") ? "bs-BA" : "en-GB", {
+  return dateTimeFormatter(language.startsWith("bs") ? "bs-BA" : "en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -248,7 +249,7 @@ export function formatAssetDate(date: string | null, language: string): string {
 }
 
 export function formatAssetDateTime(value: string, language: string): string {
-  return new Intl.DateTimeFormat(language.startsWith("bs") ? "bs-BA" : "en-GB", {
+  return dateTimeFormatter(language.startsWith("bs") ? "bs-BA" : "en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

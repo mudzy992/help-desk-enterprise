@@ -20,7 +20,7 @@ export type ServiceCatalogState = {
 };
 
 /**
- * Faza 3.3 (plan §3.3, grupa (a) — katalozi): servisi i sažetak aktivne forme
+ * katalozi): servisi i sažetak aktivne forme
  * stižu u jednom batch pozivu (`listServices` već uključuje `activeForm`
  * sažetak koji je backend skupio kroz `loadActiveFormSummaries`). Nema N+1
  * round-tripova po servisu; ekran zadržava isti `rows` ugovor, a oblik se

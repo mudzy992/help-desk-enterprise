@@ -3,7 +3,7 @@ import type { InstallWizardStep } from "@/services/install-api";
 import { usePrefersReducedMotion } from "@/lib/install/use-prefers-reduced-motion";
 
 /*
-  Install wizard v2 (F3): a step change is a small, functional movement — fade
+  Install wizard v2 a step change is a small, functional movement — fade
   plus an 8 px shift (`page-in`, ~240 ms) — and the headline takes focus so a
   keyboard or screen-reader user lands on the new question instead of staying on
   the button they pressed. Both are switched off by `prefers-reduced-motion`

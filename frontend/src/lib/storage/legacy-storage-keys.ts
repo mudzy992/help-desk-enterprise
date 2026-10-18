@@ -1,5 +1,5 @@
 /**
- * Paket 4.1 (§7): localStorage keys were renamed to the neutral
+ * localStorage keys were renamed to the neutral
  * `service-desk.*`. Old values move to the new key once (theme, language,
  * session and idle marker survive), then the old key is removed. The same
  * table is mirrored by the pre-paint script in `index.html`, which runs first.

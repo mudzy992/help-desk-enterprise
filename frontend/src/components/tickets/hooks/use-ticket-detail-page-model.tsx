@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
-import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions } from "@/lib/tickets/message-composer-contracts";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useSession } from "@/lib/session/use-session";
 import { permissionKeys } from "@/lib/session/permission-keys";

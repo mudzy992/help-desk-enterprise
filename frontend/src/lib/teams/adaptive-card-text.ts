@@ -1,5 +1,5 @@
 /**
- * Paket 3.1 (§16): the simulator renders the subset of Adaptive Card text the
+ * the simulator renders the subset of Adaptive Card text the
  * connector produces — `**bold**` and backslash escapes. Everything else is
  * shown literally (React escapes it), so no HTML from a card is ever injected.
  */

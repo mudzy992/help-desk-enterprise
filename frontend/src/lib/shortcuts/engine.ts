@@ -1,7 +1,7 @@
 import { isSingleKeyShortcut, type ShortcutDefinition, type ShortcutId } from "./catalog";
 
 /**
- * Paket 2.8 §4.2: pure key handling, unit-tested without a DOM.
+ * §4.2: pure key handling, unit-tested without a DOM.
  *
  * - `normaliseKey` turns a keyboard event into the catalogue notation.
  * - `createSequenceMatcher` tracks multi-key sequences ("g" then "t") with a

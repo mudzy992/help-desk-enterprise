@@ -54,7 +54,7 @@ function plan(): DirectorySyncPlan {
   };
 }
 
-describe("buildDirectoryPlanCsv (paket 1.8)", () => {
+describe("buildDirectoryPlanCsv ()", () => {
   const csv = buildDirectoryPlanCsv(plan());
   const lines = csv.replace("\uFEFF", "").trim().split("\r\n");
 

@@ -8,7 +8,7 @@ import {
   installStepLabelKey,
   installStepPresentations,
 } from "@/lib/install/install-step-presentation";
-import type { InstallWizardStep } from "@/services/install-api";
+import type { InstallRailItem } from "@/lib/install/install-rail-state";
 
 /*
   Install wizard v2 — „Aurora“: the rail is a vertical flight timeline.
@@ -37,26 +37,7 @@ import type { InstallWizardStep } from "@/services/install-api";
   window takes focus only while it really overflows and holds nothing focusable.
 */
 
-export type InstallRailState = "done" | "current" | "deferred" | "locked" | "upcoming";
-
-export type InstallRailItem = {
-  readonly key: InstallWizardStep;
-  readonly state: InstallRailState;
-};
-
-/** The state of one step, in the order the rail and the tests read it. */
-export function resolveInstallRailState(input: {
-  readonly isActive: boolean;
-  readonly isCompleted: boolean;
-  readonly isDeferred: boolean;
-  readonly isOffered: boolean;
-}): InstallRailState {
-  if (!input.isOffered) return "locked";
-  if (input.isActive) return "current";
-  if (input.isCompleted) return "done";
-  if (input.isDeferred) return "deferred";
-  return "upcoming";
-}
+export { resolveInstallRailState, type InstallRailItem, type InstallRailState } from "@/lib/install/install-rail-state";
 
 export function InstallStepRail({ items }: { readonly items: readonly InstallRailItem[] }) {
   const { t } = useTranslation();

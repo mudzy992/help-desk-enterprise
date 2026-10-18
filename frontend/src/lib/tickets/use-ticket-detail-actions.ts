@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
-import type { ComposerSendOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerSendOptions } from "@/lib/tickets/message-composer-contracts";
 import { isPlaybookGuardedTransition } from "@/lib/templates/use-ticket-playbook";
 import { mapClaimError, mapTicketError } from "@/lib/tickets/map-ticket-error";
 import type { useTicketPlaybook } from "@/lib/templates/use-ticket-playbook";

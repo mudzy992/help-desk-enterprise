@@ -1,10 +1,11 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import i18next from "i18next";
 import type { TicketResponse } from "@/services/tickets-api";
 
 export const dashboardVolumeDayCount = 14;
 
 /**
- * Val 1 (M15/B6): grafik se broji iz tiketa kreiranih u periodu. Stranice,
+ * Val 1 grafik se broji iz tiketa kreiranih u periodu. Stranice,
  * njihov broj i granica „donja granica“ žive u `load-dashboard-volume.ts` —
  * veličina stranice tamo prati ono što API stvarno prihvata.
  *
@@ -87,7 +88,7 @@ function dayFormatterFor(language: string): Intl.DateTimeFormat {
   if (existing !== undefined) {
     return existing;
   }
-  const formatter = new Intl.DateTimeFormat(language, {
+  const formatter = dateTimeFormatter(language, {
     day: "2-digit",
     month: "2-digit",
   });

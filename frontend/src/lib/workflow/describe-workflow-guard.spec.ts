@@ -19,7 +19,7 @@ const parameters: TicketWorkflowResponse["parameters"] = {
   },
 };
 
-describe("describeWorkflowGuard (paket 1.7)", () => {
+describe("describeWorkflowGuard ()", () => {
   it("uses the live numbers", () => {
     expect(describeWorkflowGuard("reopen_window", parameters)).toMatchObject({
       values: { days: 7 },

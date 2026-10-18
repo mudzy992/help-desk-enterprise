@@ -57,7 +57,7 @@ function counts(overrides: Partial<DashboardSummaryCounts> = {}): DashboardSumma
   };
 }
 
-/** Val 1 (M15/B6): every list now has its own server-filtered input. */
+/** Val 1 every list now has its own server-filtered input. */
 function summaryInput(
   overrides: {
     readonly recentTickets?: readonly TicketResponse[];

@@ -2,7 +2,7 @@ import { BookmarkPlus, FileText, Paperclip, Send } from "lucide-react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import type { ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer-types";
+import type { ComposerTemplatesOptions } from "@/lib/tickets/message-composer-contracts";
 
 interface TicketMessageComposerActionsProperties {
   readonly body: string;

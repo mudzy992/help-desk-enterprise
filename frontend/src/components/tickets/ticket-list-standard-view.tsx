@@ -17,7 +17,7 @@ import { TicketSavedViewsMenu } from "@/components/tickets/ticket-saved-views-me
 import { Button } from "@/components/ui/button";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { clearedTicketListFilters, hasActiveTicketFilters } from "@/lib/tickets/filter-tickets";
-import { useTicketList } from "@/lib/tickets/use-ticket-list";
+import { useTicketList } from "@/components/tickets/hooks/use-ticket-list";
 
 interface TicketListStandardViewProperties {
   readonly list: ReturnType<typeof useTicketList>;

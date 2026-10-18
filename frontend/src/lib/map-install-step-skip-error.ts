@@ -7,7 +7,7 @@ export type InstallStepSkipErrorKey =
   | "install.step.skipErrorGeneric";
 
 /*
-  Install wizard v2 (F3): „Podesi kasnije“ goes through the F1 endpoints, and the
+  Install wizard v2 „Podesi kasnije“ goes through the F1 endpoints, and the
   server is the one that knows whether a step may be deferred at all. The mapping
   keeps that answer — the UI never decides that a step is skippable on its own.
 */

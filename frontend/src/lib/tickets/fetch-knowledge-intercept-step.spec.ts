@@ -18,7 +18,7 @@ const suggestion = {
   viewerFeedback: null,
 };
 
-describe("fetchKnowledgeInterceptStep (T10)", () => {
+describe("fetchKnowledgeInterceptStep ", () => {
   afterEach(() => {
     vi.mocked(interceptKnowledgeArticles).mockReset();
   });

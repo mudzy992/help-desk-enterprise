@@ -19,7 +19,7 @@ export function resolveRegistryDescription(
 
 /**
  * the human line for a setting. The dictionary slot has
- * carried the Bosnian/English sentence since paket 4.1, so a definition only
+ * carried the Bosnian/English sentence since , so a definition only
  * moves it by declaring `titleKey`.
  */
 export function resolveRegistryTitle(

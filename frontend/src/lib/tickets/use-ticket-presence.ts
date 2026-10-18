@@ -9,7 +9,7 @@ import {
   type PresenceView,
 } from "@/lib/tickets/presence-view";
 
-/* Paket 2.4 (A1): heartbeat every 20 s, state changes at most every 2 s,
+/* heartbeat every 20 s, state changes at most every 2 s,
    typing falls back to viewing after 6 s without a keystroke. */
 const heartbeatMs = 20_000;
 const minimumGapMs = 2_000;

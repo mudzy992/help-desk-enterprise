@@ -207,7 +207,7 @@ describe("ops health view", () => {
 });
 
 /*
-  Live review 2026-10-12 (429 alarm): the card rendered `auth.login429.high` as
+  Live 10-12 (429 alarm): the card rendered `auth.login429.high` as
   the alert title and `warnThreshold: 50` as a detail label, because neither the
   slug list nor the detail labels knew about the new alarm family. The guards
   below make that impossible again: every slug the client knows has a title and

@@ -5,7 +5,7 @@ import type { ReportDashboardAging, ReportDashboardNamedBar } from "@/services/r
 export const reportHoursSuffix = "h";
 
 /**
- * Val 1 (M15/B1): koje sekcije pregleda izvještaja ima smisla crtati.
+ * Val 1 koje sekcije pregleda izvještaja ima smisla crtati.
  * Postavka `private.dashboard.bottlenecks.enabled` mora važiti i za prikaz —
  * server tada vraća prazan razrez, a ovdje se kartica uopšte ne renderuje
  * (umjesto praznog stanja koje izgleda kao „nema podataka“).

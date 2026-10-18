@@ -1,5 +1,5 @@
 /**
- * Paket 5.3.1: "created between" filter of the ticket list.
+ * "created between" filter of the ticket list.
  *
  * The API takes two ISO instants (`createdFrom` ≤ `createdAt` ≤ `createdTo`,
  * both inclusive). The user picks calendar days in THEIR time zone, so the

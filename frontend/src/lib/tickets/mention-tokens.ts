@@ -1,5 +1,5 @@
 /*
-  Paket 2.4 (B2): an internal note stores a mention as `@[Display Name](userId)`;
+  an internal note stores a mention as `@[Display Name](userId)`;
   the conversation renders it as a chip. The same pattern as the backend parser.
 */
 const mentionTokenPattern = /@\[([^\]\n\r]{1,120})\]\(([A-Za-z0-9_-]{8,64})\)/g;

@@ -1,12 +1,12 @@
 import {
   resolveInstallRailState,
   type InstallRailItem,
-} from "@/components/install/shell/install-step-rail";
+} from "@/lib/install/install-rail-state";
 import { installWizardSteps } from "@/lib/install/install-step-presentation";
 import type { InstallStepState, InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F3): the rail of the wizard, derived from the one status
+  Install wizard v2 the rail of the wizard, derived from the one status
   payload the shell already has. `steps.<key>` carries `completed`, `skipped` and
   `offered` straight from the server registry, so the rail cannot invent a state —
   a step the chosen package does not contain is locked, a deferred step says so.

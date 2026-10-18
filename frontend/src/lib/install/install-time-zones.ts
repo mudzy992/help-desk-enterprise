@@ -1,5 +1,6 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 /**
- * Install wizard v2 (F2): the time zone the installation reports in. The list
+ * Install wizard v2 the time zone the installation reports in. The list
  * comes from the runtime (`Intl.supportedValuesOf`) so it matches the tzdata the
  * server and the browser share; the short fallback keeps older engines usable —
  * the backend validates the value again (`is-supported-install-time-zone.ts`).
@@ -51,7 +52,7 @@ export function isInstallTimeZoneSupported(value: string): boolean {
   // A zone that is valid for the runtime but missing from the list (e.g. a
   // hand-typed alias) is accepted as long as the runtime can format with it.
   try {
-    new Intl.DateTimeFormat("en-US", { timeZone: normalized });
+    dateTimeFormatter("en-US", { timeZone: normalized });
     return true;
   } catch {
     return false;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 /**
- * Paket 5.3.0 (D3): one rule for every hand-rolled floating panel (popover,
+ * one rule for every hand-rolled floating panel (popover,
  * dropdown, picker) that is not a Radix primitive.
  *
  * - A pointer press outside the panel AND outside its trigger closes it. The

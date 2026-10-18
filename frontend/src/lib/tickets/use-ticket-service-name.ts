@@ -4,7 +4,7 @@ import { listOfferedServices } from "@/services/service-catalog-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
 /**
- * Faza 3.3: the detail header reads the service name from the shared catalog
+ * the detail header reads the service name from the shared catalog
  * cache instead of asking for the whole catalog on every ticket open.
  */
 export function useTicketServiceName(ticket: TicketResponse | null): string {

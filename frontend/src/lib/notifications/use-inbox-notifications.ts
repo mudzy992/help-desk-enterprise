@@ -25,7 +25,7 @@ import {
 /**
  * Inbox notifications.
  *
- * Phase 1.3 (plan §1.3): the badge is push-driven through the helpdesk socket,
+ * the badge is push-driven through the helpdesk socket,
  * so the 30-second poll now only runs as a *fallback* — while the socket is not
  * connected. A healthy connection means zero calls to
  * `GET /notifications/unread-count`; a dropped one means the badge keeps

@@ -6,7 +6,7 @@ export type KnowledgeArticleErrorKey =
   | "knowledgeBase.errorNotFound"
   | "knowledgeBase.errorValidation"
   | "knowledgeBase.errorGeneric"
-  // Paket 2.9 (K1).
+  // .
   | "knowledgeBase.errorCategory"
   | "knowledgeBase.errorSourceMessage"
   | "knowledgeBase.errorRating";

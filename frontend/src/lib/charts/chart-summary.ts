@@ -38,12 +38,7 @@ export function seriesExtremes(values: readonly (number | null)[]): SeriesExtrem
   return result;
 }
 
-/** Accepts i18next's TFunction; keys are built at runtime, so the typed overloads are bypassed. */
 type Translate = TFunction;
-
-function tr(t: Translate, key: string, options?: Record<string, string | number>): string {
-  return t(key as never, (options ?? {}) as never) as unknown as string;
-}
 
 export function describeSeries(
   t: Translate,
@@ -52,11 +47,11 @@ export function describeSeries(
 ): string {
   const extremes = seriesExtremes(series.values);
   if (extremes === null) {
-    return tr(t, "a11y.chart.seriesEmpty", { series: series.label });
+    return t("a11y.chart.seriesEmpty", { series: series.label });
   }
   const format = series.format ?? ((value: number) => String(value));
   const at = (index: number) => bucketLabels[index] ?? String(index + 1);
-  return tr(t, "a11y.chart.series", {
+  return t("a11y.chart.series", {
     series: series.label,
     max: format(extremes.max.value),
     maxAt: at(extremes.max.index),
@@ -73,9 +68,9 @@ export function describeChart(
   bucketLabels: readonly string[],
 ): string {
   if (bucketLabels.length === 0) {
-    return tr(t, "a11y.chart.empty");
+    return t("a11y.chart.empty");
   }
-  const range = tr(t, "a11y.chart.range", {
+  const range = t("a11y.chart.range", {
     from: bucketLabels[0] ?? "",
     to: bucketLabels[bucketLabels.length - 1] ?? "",
   });

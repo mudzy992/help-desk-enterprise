@@ -26,7 +26,7 @@ export function resolveRenderedStep(input: {
 }): RenderedInstallStep {
   if (input.isCompleted) return "complete";
   if (isRenderable(input.nextStep)) return input.nextStep;
-  // `profile` is the wizard's first step (F3), so it is the honest last resort.
+  // `profile` is the wizard's first step , so it is the honest last resort.
   return firstBlockingStep(input.steps) ?? "profile";
 }
 

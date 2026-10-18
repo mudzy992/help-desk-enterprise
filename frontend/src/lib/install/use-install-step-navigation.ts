@@ -3,7 +3,7 @@ import type { InstallStepState, InstallWizardStep } from "@/services/install-api
 import { installWizardSteps } from "@/lib/install/install-step-presentation";
 
 /*
-  Install wizard v2 (F3): „Nazad“ lets the operator review a step they already
+  Install wizard v2 „Nazad“ lets the operator review a step they already
   answered, without moving the wizard. The reviewed step is **local to the
   shell** — the server's `nextStep` stays the source of truth, and „Nastavi“
   simply drops the review. A refresh therefore always lands on the real step, and

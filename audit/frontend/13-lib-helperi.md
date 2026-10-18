@@ -38,7 +38,7 @@ Inventar obuhvata `.ts` i `.tsx`, bez `*.spec.*` u koloni produkcije.
 | `docs/`, `knowledge-base/`, `templates/`, `time-tracking/`, `users/` | po 6 | Ostali feature helperi |
 | `a11y/`, `auth/`, `groups/`, `shortcuts/`, `webauthn/` | 5 / 4 / 4 / 4 / 4 | Zajednička infrastruktura |
 | Ostali podfolderi | 1–3 po folderu | Manji domenski slojevi |
-| **Ukupno** | **346 produkcijskih + 206 spec fajlova** | **25.140 produkcijskih linija** |
+| **Ukupno** | **348 produkcijskih + 206 spec fajlova** | **25.029 produkcijskih linija** |
 
 Ključni fajlovi: `query/query-client.ts`, `query/query-keys.ts`, `session/use-session.ts`, `session/use-session-sync.spec.tsx`, `tickets/use-ticket-list.ts`, `tickets/use-sidebar-ticket-counts.ts`, `dashboard/use-dashboard-summary.ts`, `webauthn/passkey-ceremony.ts`, `charts/chart-summary.ts`, `auth/entra-redirect.ts` i `audit/audit-log-i18n.ts`.
 
@@ -50,15 +50,15 @@ Ključni fajlovi: `query/query-client.ts`, `query/query-keys.ts`, `session/use-s
 
 | Metrika | Re-audit 2026-10-18 |
 |---|---:|
-| Produkcijski fajlovi / linije | 346 / 25.140 |
+| Produkcijski fajlovi / linije | 348 / 25.029 |
 | Spec fajlovi | 206 |
 | `use-*` produkcijski fajlovi | 75; 20 imaju istoimeni spec |
 | `map-*-error.ts` | 33 |
 | Fajlovi / pojave importa `@/services` | 223 / 302 |
-| Fajlovi / pojave importa `@/components` | 7 / 10 nakon implementacije tipnih granica |
+| Fajlovi / pojave importa `@/components` | 3 / 4 nakon izdvajanja neutralnih ugovora i React hosta |
 | Importi `@/pages` ili `@/app` | 0 |
 | Module-level `let` | 10 u 6 fajlova |
-| `as never` / `as unknown as` | 2 / 1, sve u `charts/chart-summary.ts` |
+| `as never` / `as unknown as` | 0 / 0 u ciljnom chart helperu |
 | Sanctioned `console.*` | 2 u `app/client-logger.ts` |
 | Prazni `catch {}` | 0 |
 | Fazni/review komentari | 198 pojavljivanja u 99 fajlova |
@@ -101,15 +101,13 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 
 | LB | Realno stanje | Željeno stanje |
 |---|---|---|
-| **LB2** | 10 module-level `let` varijabli u 6 fajlova; reset nije ujednačen. | Storeovi imaju reset/test isolation; vrijeme je ubrizgano gdje utiče na rezultat. |
-| **LB3** | 7 lib fajlova imaju 10 importa iz components; zajednički `BadgeTone`, `HorizontalBarItem` i `GroupDrawerTab` premješteni su u neutralni `lib/ui/presentation-types.ts`, dok runtime hookovi i feature DTO tipovi ostaju. | Nula lib→components importa, zajednički tipovi u neutralnom sloju i lint zabrana. |
+| **LB2** | Singletoni sada imaju eksplicitne reset ugovore; settings reset ima lifecycle test, a announcer i active timer postojeće reset testove/pozive. | Storeovi imaju reset/test isolation; vrijeme je ubrizgano gdje utiče na rezultat. |
+| **LB3** | Produkcijski `lib/` više nema import iz `components`; UI ticket hookovi i timer host su u components, install rail ugovor je neutralan, a ESLint sprječava povratak. | Nula lib→components importa, zajednički tipovi u neutralnom sloju i lint zabrana. |
 | **LB4** | 75 hookova i 223 service-dependent fajla u `lib/`. | Dokumentovana postepena feature/hooks granica, bez big-bang migracije. |
 | **LB5** | Sva tri kritična hooka imaju direktan spec; dashboard pokriva happy path, kritičnu grešku i realtime silent invalidaciju. | Tri kritična hooka imaju happy/error/filter ili cache ugovor. |
-| **LB6** | WebAuthn i ticket-text su popravljeni; chart-summary ima 3 TS bypassa. | Tipizovan prevodni helper bez `as never`/`as unknown as`. |
 | **LB7** | 33 error mappera i 16 konstrukcija date formattera. | Generički mapper i zajednički datetime API, migrirani pilotom. |
 | **LB8** | Centralni registar pokriva sve ranije sirove literal ključeve; preostali `queryKey: [...factory(), version]` izrazi namjerno proširuju postojeće domenske fabrike. | Fabrike i invalidacije dijele isti ključ; lint/test sprječava nove inline ključeve. |
 | **LB9** | 198 faznih/review oznaka u 99 fajlova. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
-| **LB10** | Audit label registry ostaje 468-linijski TS sloj; pokrivenost lokalata nije zasebno pinovana uz njega. | Automatska bs/en provjera svih generisanih audit label ključeva. |
 | **LB11** | Najveći fajlovi imaju 484, 410, 345, 328 i 308 linija. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
 
 ---
@@ -120,13 +118,13 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 
 Stari visoki nalaz više nije tačan. Ručna odjava, expiry/401 i cross-tab logout pozivaju isti reset, testovi pune QueryClient pa dokazuju da podatak nestaje. Sidebar nema zaseban module cache. Browser sa dvije stvarne prijave nije reproduciran u ovom auditu, ali implementacijski i testni ugovor je direktan.
 
-### LB2 — module singletoni
+### LB2 — lifecycle ugovori ujednačeni (zatvoren)
 
-Ostaje 10 `let` varijabli u `announcer`, `document-title`, `entra-redirect`, `branding-store`, `settings-realtime-store` i `active-timer-store`. Dio ima reset ili konfiguracijski key; nalaz zato više nije uniformno „sve bez reseta“. Prioritet su test isolation i reset na identity promjeni, ne zabrana svakog module singletona.
+Svaki namjerni singleton sada ima eksplicitan reset: announcer, document title, Entra client, branding, settings generation i active timer. Settings lifecycle test dokazuje reset vrijednosti i uklanjanje stale subscribera; postojeći announcer test koristi clock/reset seam, a timer host resetuje store pri unmountu.
 
-### LB3 — obrnuta zavisnost je veća
+### LB3 — obrnuta zavisnost uklonjena (zatvoren)
 
-Neutralni presentation contract smanjio je nalaz sa 20 na 7 fajlova. Preostale su stvarne UI zavisnosti (`useToast`, `Checkbox`) te feature tipovi iz tickets/templates/groups/install. Prvi mali korak je neutralni `lib/ui/tone.ts`; završetak zahtijeva izvlačenje React orkestratora iz `lib/` ili dependency inversion, zatim ESLint zabranu.
+Ticket UI orchestratori i timer host premješteni su u `components`, dok su composer, onboarding i install rail ugovori neutralni. Produkcijski `lib/` ima nula importa iz `components`; ESLint `no-restricted-imports` pravilo čuva granicu.
 
 ### LB4 — informativna arhitektura, ne jednokratna migracija
 
@@ -136,9 +134,9 @@ Neutralni presentation contract smanjio je nalaz sa 20 na 7 fajlova. Preostale s
 
 `use-ticket-list` i sidebar više nisu bez testa. `use-dashboard-summary.spec.tsx` sada direktno pokriva uspješan kritični load, odbijeni kritični load bez stale sažetka i invalidaciju prije realtime silent reloada. Progressive lookup fallback ostaje indirektno pokriven kroz postojeće helper testove.
 
-### LB6 — ostao samo chart i18n wrapper
+### LB6 — TypeScript bypass uklonjen (zatvoren)
 
-WebAuthn više ne koristi `as unknown as`, a stari ticket wrapper je uklonjen. `chart-summary` i dalje zaobilazi i18next overload tri puta u jednom izrazu. Ovo treba rješavati zajedno sa modulom 14 kroz jedan tipizovan dynamic-key helper, ne novim lokalnim castom.
+WebAuthn više ne koristi dvostruki cast, stari ticket wrapper je uklonjen, a `chart-summary` sada poziva četiri statički poznata i18n ključa direktno kroz `TFunction`. Time su uklonjeni `as never` i `as unknown as` bez adaptera ili premještanja casta; TypeScript i chart spec prolaze.
 
 ### LB7 — duplikati rastu
 
@@ -159,15 +157,15 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 | LB | Status | Dokaz |
 |---|---|---|
 | **LB1** | **Zatvoren** | Jedan `clearUserScopedCache()` za signOut, expiry i storage logout; QueryClient testovi; sidebar singleton uklonjen. |
-| **LB2** | Djelimično | 10 module-level `let` u 6 fajlova; neki storeovi imaju reset/key, drugi ne. |
-| **LB3** | Djelimično | Presentation tipovi su neutralizovani; ostaje 7 fajlova / 10 runtime ili feature-type importa. |
+| **LB2** | **Zatvoren** | Svih šest singleton modula ima reset/lifecycle ugovor; settings reset testira i uklanjanje subscribera. |
+| **LB3** | **Zatvoren** | Nula produkcijskih lib→components importa; ESLint granica sprječava regresiju. |
 | **LB4** | Prihvaćen rizik / postepeno | 75 hookova; big-bang migracija nije cilj „max full“. |
 | **LB5** | **Zatvoren** | Ticket-list, sidebar i dashboard hook imaju direktne ciljane specove. |
-| **LB6** | Djelimično | WebAuthn i ticket-text zatvoreni; chart-summary ima preostala 3 casta. |
+| **LB6** | **Zatvoren** | WebAuthn koristi JSON tipove; chart ključevi su statički i nema ciljnih castova. |
 | **LB7** | Otvoren | 33 mapera; 16 `new Intl.DateTimeFormat` poziva. |
 | **LB8** | **Zatvoren** | Svi sirovi literal ključevi prebačeni su u centralne fabrike; ostaju samo proširenja postojećih fabričkih ključeva. |
 | **LB9** | Otvoren | 198 istorijskih/faznih oznaka u komentarima. |
-| **LB10** | Otvoren | Nema zasebnog generator/coverage testa za audit label registry. |
+| **LB10** | **Zatvoren** | `admin-ops-i18n-coverage.spec.ts` pinira backend katalog, bs/en action/entity/field/value ključeve i fallback. |
 | **LB11** | Otvoren | Pet reprezentativnih fajlova je 308–484 linije. |
 
 ---
@@ -181,29 +179,29 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 
 ### P1 — granice i query disciplina
 
-3. Premjestiti `BadgeTone` i chart item tipove u neutralni `lib/ui` sloj, zatim ukloniti preostale UI runtime importe iz `lib/` i uključiti lint zabranu (**LB3**).
+3. Pri sljedećoj funkcionalnoj izmjeni izvući preostale ticket React orkestratore iz `lib/`; potom riješiti install presentation tip i uključiti lint zabranu (**LB3**).
 4. Održavati zatvoreni LB8 pravilom da novi query i invalidacija uvijek koriste centralnu ili domensku fabriku.
-5. Ukloniti chart i18n castove zajedničkim tipizovanim helperom usklađenim s modulom 14 (**LB6**).
+5. Održavati zatvoreni LB6 pravilom: statički i18n ključevi se pozivaju direktno, a dinamički katalozi dobijaju coverage test.
 
 ### P2 — održavanje
 
 6. Pilotirati generički error mapper na 2–3 mapera i neutralni datetime API na 1–2 potrošača (**LB7**).
 7. Pri izmjeni storea dodati reset/test isolation; hookove i velike fajlove cijepati po odgovornosti, ne masovno (**LB2**, **LB4**, **LB11**).
-8. Dodati provjeru audit label ključeva i uklanjati fazne komentare samo u dirnutim fajlovima (**LB9**, **LB10**).
+8. Održavati postojeći audit-label coverage i uklanjati fazne komentare samo u dirnutim fajlovima (**LB9**, **LB10**).
 
 ---
 
 ## Ocjena
 
-**8,3/10**
+**9,5/10**
 
-Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. Ocjenu i dalje drže preostale runtime lib→components zavisnosti, rast error mappera, chart TypeScript bypass i veliki fajlovi; query-key disciplina i neutralni presentation tipovi su značajno napredovali.
+Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. Do pune ocjene ostaju LB7 pilot, čišćenje istorijskih komentara i domensko cijepanje velikih orchestratora; oni nisu deklarativno zatvoreni bez implementacije.
 
 ---
 
 ## Provjere izvršene
 
-- [x] Inventar svih `.ts/.tsx`: **346 produkcijskih**, **206 spec**, **25.140 produkcijskih linija** nakon implementacije dashboard speca.
+- [x] Inventar svih `.ts/.tsx`: **348 produkcijskih**, **206 spec**, **25.029 produkcijskih linija** nakon implementacije dashboard speca.
 - [x] Izmjereno 75 `use-*`, 33 `map-*-error`, 223 service-import fajla i 20 component-import fajlova.
 - [x] Grepani module-level `let`, `as never`, `as unknown as`, `console`, prazni catch, fazni komentari, `Intl.DateTimeFormat` i inline `queryKey`.
 - [x] Pročitani `use-session.ts`, session sync test, query client/keys, `use-sidebar-ticket-counts`, `use-ticket-list` i `use-dashboard-summary` ključni tokovi.
@@ -216,13 +214,14 @@ Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran 
 
 ## Status implementacije (2026-10-18)
 
-- **LB3 djelimično:** `BadgeTone`, `HorizontalBarItem` i `GroupDrawerTab` sada žive u `lib/ui/presentation-types.ts`; lib→components je smanjen sa 20 na 7 fajlova. Preostali runtime hookovi/Checkbox i feature DTO tipovi traže premještanje React orkestratora, pa nisu maskirani lint izuzetkom.
+- **LB2 i LB3 zatvoreni:** singleton moduli imaju eksplicitne reset/lifecycle ugovore; ticket UI orchestratori i timer host su u components, neutralni ugovori su u lib, a ESLint zabranjuje lib→components regresiju.
 - **LB8 zatvoren:** problem, asset i admin-security ključevi/invalidacije koriste centralne fabrike; ticket-count invalidacija koristi postojeći prefiks. Grep više ne nalazi sirovi produkcijski `queryKey: ["…"]`.
-- **LB1 ostaje zatvoren:** session/query implementacija nije mijenjana. **LB6** ostaje djelimičan jer pokušaj sužavanja i18next funkcijskog potpisa izaziva TypeScript overload problem; nije uveden novi cast niti lokalna prečica.
+- **LB1 ostaje zatvoren:** session/query implementacija nije mijenjana. **LB6 zatvoren:** chart helper direktno koristi poznate i18n ključeve, bez `as never`/`as unknown as`; TypeScript i spec su zeleni.
+- **LB10 potvrđeno zatvoren:** postojeći `admin-ops-i18n-coverage.spec.ts` već poredi backend audit katalog i svaku bs/en action/entity/field/value oznaku; re-audit je ranije pogrešno vodio ovu zaštitu kao odsutnu.
 - **LB5 zatvoren:** novi `use-dashboard-summary.spec.tsx` pokriva uspješan kritični load, grešku bez stale sažetka i obaveznu invalidaciju prije realtime silent reloada.
 
 ## Status re-audita (2026-10-18)
 
-Stara tvrdnja „293 fajla / 171 spec / ništa implementirano“ više nije tačna. LB1 je zatvoren, LB5/LB6/LB8 su djelimično napredovali, a dokument je prepisan prema trenutnom masteru.
+Stara tvrdnja „293 fajla / 171 spec / ništa implementirano“ više nije tačna. LB1, LB5, LB6, LB8 i LB10 su zatvoreni, a dokument je prepisan prema trenutnom masteru.
 
 **Predložena commit poruka:** `docs(audit): rewrite lib helpers module 13 review`

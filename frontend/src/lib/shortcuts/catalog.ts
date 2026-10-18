@@ -1,5 +1,5 @@
 /**
- * Paket 2.8 §4.1: the single catalogue of keyboard shortcuts. The engine,
+ * §4.1: the single catalogue of keyboard shortcuts. The engine,
  * the help dialog and aria-keyshortcuts all read it, so a shortcut cannot be
  * documented in one place and bound differently in another.
  */

@@ -22,6 +22,9 @@ import { flattenPickerGroups, groupPickerItems } from "@/lib/templates/group-pic
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
 import { useDismissable } from "@/lib/a11y/use-dismissable";
 import { cn } from "@/lib/utils";
+import type { InsertedTemplate } from "@/lib/tickets/message-composer-contracts";
+
+export type { InsertedTemplate } from "@/lib/tickets/message-composer-contracts";
 import {
   listPickerTemplates,
   renderTicketTemplate,
@@ -31,12 +34,6 @@ import {
 } from "@/services/templates-api";
 
 type LocaleChoice = "auto" | TemplateLocale;
-
-export type InsertedTemplate = {
-  readonly templateId: string;
-  readonly name: string;
-  readonly rendered: RenderedTemplate;
-};
 
 interface TemplatePickerProperties {
   readonly ticketId: string;

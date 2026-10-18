@@ -5,13 +5,9 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
+import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 
-export type OnboardingServiceValues = {
-  readonly name: string;
-  readonly slug: string;
-  readonly categoryId: string;
-  readonly requiresApproval: boolean;
-};
+export type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 
 interface OnboardingServiceStepProperties {
   readonly service: ServiceResponse | null;

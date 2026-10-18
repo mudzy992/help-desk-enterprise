@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /*
-  Install wizard v2 (F3): every animation in the shell is decoration, so the
+  Install wizard v2 every animation in the shell is decoration, so the
   operator's system setting decides whether it runs at all. The CSS block in
   `index.css` already disables the keyframes; this hook is what component code
   needs when it has to choose between „animated“ and „static“ markup (the final

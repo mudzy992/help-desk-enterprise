@@ -3,7 +3,7 @@ import type {
   ComposerSendOptions,
   ComposerInsertText,
   ComposerTemplatesOptions,
-} from "@/components/tickets/ticket-message-composer";
+} from "@/lib/tickets/message-composer-contracts";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";

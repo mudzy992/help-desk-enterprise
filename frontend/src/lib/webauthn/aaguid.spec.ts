@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { passkeyDeviceKind, passkeyDeviceKindKey, passkeyDisplayName } from "@/lib/webauthn/aaguid";
 
 /*
-  Paket 5.4.0-e: the list identifies a passkey by its owner's label, else by the
+  e: the list identifies a passkey by its owner's label, else by the
   authenticator kind resolved from the AAGUID. Raw identifiers never reach the
   UI, and an unknown or missing AAGUID gets a translated generic label instead
   of a dumped GUID.

@@ -1,5 +1,5 @@
 /**
- * Faza 3.2 (plan §3.2): the payload of the light group-room event. Ids and a
+ * the payload of the light group-room event. Ids and a
  * kind only — the group room never carries a title, a body or a status, so this
  * type deliberately has no room for them.
  */

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Paket 5.3.4 (D5): a detail surface is a centred modal on desktop and a bottom
+ * a detail surface is a centred modal on desktop and a bottom
  * sheet on a phone. The breakpoint matches the shell (`md`): below it the
  * topbar collapses and the sidebar becomes a drawer, so a modal would cover the
  * whole screen anyway.

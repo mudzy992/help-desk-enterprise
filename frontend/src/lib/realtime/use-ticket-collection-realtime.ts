@@ -45,7 +45,7 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
         debounced.trigger();
       },
     );
-    // Faza 3.2: group rooms only carry the light event, and a screen that is not
+    // group rooms only carry the light event, and a screen that is not
     // on screen pulls nothing at all (plan §3.2).
     const stopGroupFeed = subscribeSocketEvent<GroupFeedChangedPayload>(
       socket,

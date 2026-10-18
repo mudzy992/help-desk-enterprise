@@ -1,7 +1,7 @@
 import type { ChangeFreezePeriod } from "@/services/changes-api";
 
 /**
- * Paket 3.4 (§17): month grid for the change calendar. Weeks start on Monday;
+ * month grid for the change calendar. Weeks start on Monday;
  * days are local calendar days; the query covers the whole visible grid
  * (at most 42 days, below the 62-day limit of the API).
  */

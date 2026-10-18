@@ -1,5 +1,5 @@
 /**
- * Faza 3.3 (plan §3.3): one place that owns query keys, so an invalidacija can
+ * one place that owns query keys, so an invalidacija can
  * never miss a cache entry because two call sites spelled the key differently.
  */
 
@@ -12,10 +12,10 @@ export function localDayKey(now: Date = new Date()): string {
 }
 
 export const queryKeys = {
-  /** Paket 2.1: own account security (profile page and the expiry banner). */
+  /** own account security (profile page and the expiry banner). */
   accountSecurity: ["account", "security"] as const,
   accountNotifications: ["account", "notifications"] as const,
-  /** Paket 2.8: own preferences (keyboard shortcuts; the language is synced separately). */
+  /** own preferences (keyboard shortcuts; the language is synced separately). */
   userPreferences: ["account", "preferences"] as const,
   routingCatalog: ["catalog", "routing"] as const,
   routingRules: ["catalog", "routing-rules"] as const,
@@ -50,7 +50,7 @@ export const queryKeys = {
   ticketCountsPrefix: ["tickets", "counts"] as const,
   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
   ticket: (ticketId: string) => ["tickets", "detail", ticketId] as const,
-  /** Paket 2.4 */
+  /** */
   agentCollaborationConfiguration: ["tickets", "collaboration", "configuration"] as const,
   ticketFollow: (ticketId: string) => ["tickets", "follow", ticketId] as const,
   ticketLinks: (ticketId: string) => ["tickets", "links", ticketId] as const,
