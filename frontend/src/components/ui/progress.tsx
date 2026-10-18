@@ -1,16 +1,6 @@
-import { cn } from "@/lib/utils";
+import { pulseToneStyles } from "@/components/ui/tone-styles";
 import type { BadgeTone } from "@/lib/ui/presentation-types";
-
-const PROGRESS_TONES: Record<BadgeTone, string> = {
-  neutral: "bg-muted",
-  primary: "bg-primary",
-  accent: "bg-accent",
-  success: "bg-success",
-  warning: "bg-warning",
-  danger: "bg-danger",
-  info: "bg-info",
-  hold: "bg-hold",
-};
+import { cn } from "@/lib/utils";
 
 interface ProgressProperties {
   readonly value: number;
@@ -33,7 +23,10 @@ export function Progress({ value, tone = "primary", className, ariaLabel }: Prog
     >
       <div
         aria-hidden="true"
-        className={cn("h-full rounded-full transition-[width] duration-500", PROGRESS_TONES[tone])}
+        className={cn(
+          "h-full rounded-full transition-[width] duration-500",
+          pulseToneStyles[tone].fill,
+        )}
         style={{ width: `${clamped}%` }}
       />
     </div>

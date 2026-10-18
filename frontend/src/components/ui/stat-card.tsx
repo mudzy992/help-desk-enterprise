@@ -1,18 +1,8 @@
 import type { ReactNode } from "react";
-import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { Card } from "@/components/ui/card";
+import { pulseToneStyles } from "@/components/ui/tone-styles";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { cn } from "@/lib/utils";
-
-const STAT_DELTA_TONES: Record<BadgeTone, string> = {
-  neutral: "text-muted-foreground",
-  primary: "text-link",
-  accent: "text-accent",
-  success: "text-ok",
-  warning: "text-warning",
-  danger: "text-danger",
-  info: "text-info",
-  hold: "text-hold",
-};
 
 interface StatCardProperties {
   readonly label: string;
@@ -51,7 +41,7 @@ export function StatCard({
           {value}
         </span>
         {delta ? (
-          <span className={cn("tnum text-[11.5px] font-medium", STAT_DELTA_TONES[deltaTone])}>
+          <span className={cn("tnum text-[11.5px] font-medium", pulseToneStyles[deltaTone].text)}>
             {delta}
           </span>
         ) : null}

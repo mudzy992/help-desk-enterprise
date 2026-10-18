@@ -21,6 +21,25 @@ interface ChipProperties {
   readonly className?: string;
 }
 
+function ChipRemoveButton({
+  label,
+  onRemove,
+}: {
+  readonly label?: string;
+  readonly onRemove: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onRemove}
+      className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+    >
+      <X size={11} strokeWidth={2.4} aria-hidden="true" />
+    </button>
+  );
+}
+
 /**
  * Filter / token chip. Shares its classes with `filterChip*` in `control.ts`,
  * so chips written by hand and chips written as components stay identical.
@@ -48,16 +67,7 @@ export function Chip({
       <span className={cn(filterChipClassName, toneClassName, className)}>
         {icon}
         {children}
-        {onRemove ? (
-          <button
-            type="button"
-            aria-label={removeLabel}
-            onClick={onRemove}
-            className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
-          >
-            <X size={11} strokeWidth={2.4} />
-          </button>
-        ) : null}
+        {onRemove ? <ChipRemoveButton label={removeLabel} onRemove={onRemove} /> : null}
       </span>
     );
   }
@@ -73,16 +83,7 @@ export function Chip({
         {icon}
         {children}
       </button>
-      {onRemove ? (
-        <button
-          type="button"
-          aria-label={removeLabel}
-          onClick={onRemove}
-          className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
-        >
-          <X size={11} strokeWidth={2.4} />
-        </button>
-      ) : null}
+      {onRemove ? <ChipRemoveButton label={removeLabel} onRemove={onRemove} /> : null}
     </span>
   );
 }
