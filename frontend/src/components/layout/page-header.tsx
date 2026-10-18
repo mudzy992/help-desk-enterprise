@@ -5,11 +5,20 @@ import { PageHeader as PageHeaderLayout } from "@/components/ui/page-header";
 import { useBranding } from "@/lib/branding/branding-store";
 import { docsTargetForPath } from "@/lib/docs/docs-slug";
 
-/** Placeholder crumb resolved by the application adapter to the configured product name. */
-export const brandCrumb = "\u0000brand";
+export type PageHeaderCrumb = string | { readonly kind: "brand" };
+
+/** Explicit application-brand crumb; unlike the old string sentinel it cannot collide with content. */
+export const brandCrumb = { kind: "brand" } as const satisfies PageHeaderCrumb;
+
+export function resolvePageHeaderCrumbs(
+  crumbs: readonly PageHeaderCrumb[],
+  appName: string,
+): readonly string[] {
+  return crumbs.map((crumb) => (typeof crumb === "string" ? crumb : appName));
+}
 
 interface PageHeaderProperties {
-  readonly crumbs: readonly string[];
+  readonly crumbs: readonly PageHeaderCrumb[];
   readonly title: ReactNode;
   readonly subtitle?: ReactNode;
   readonly actions?: ReactNode;
@@ -23,7 +32,7 @@ export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderPrope
 
   return (
     <PageHeaderLayout
-      crumbs={crumbs.map((crumb) => (crumb === brandCrumb ? appName : crumb))}
+      crumbs={resolvePageHeaderCrumbs(crumbs, appName)}
       title={title}
       subtitle={subtitle}
       actions={actions}
