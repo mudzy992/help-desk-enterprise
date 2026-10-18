@@ -207,6 +207,7 @@ in `Error: No tests found`):
 ```bash
 npx playwright test -c install-wizard/playwright.install.config.ts tests/51-install-wizard-minimum.spec.ts
 npx playwright test -c install-wizard/playwright.install.config.ts tests/52-install-wizard-standard.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts tests/53-install-wizard-full.spec.ts
 ```
 
 - Button labels are copy, not a contract: `install-wizard-submit.ts` matches the step's submit by name and, when the
@@ -232,6 +233,9 @@ npx playwright test -c install-wizard/playwright.install.config.ts tests/52-inst
 - **52 — Standard:** the same flow plus a real SMTP test mail, one invited team member, the „IT service desk“
   blueprint and the IT policy pack. Without a mail catcher (or any SMTP) the SMTP test fails, the step is
   **deferred** instead and the run reports it as an annotation — a skipped check is never a green one.
+- **53 — Full:** walks the Full package, deliberately defers every allowlisted settings section, finishes with
+  green readiness, and verifies that the post-install checklist contains deferred `section.*` items. It also
+  proves the Standard baseline (SMTP, team, blueprint and policy pack) remains present in Full.
 
 Why it is separate: the shared `global-setup` calls `ensureInstall`, which finishes the installation through the
 API. That is exactly what these specs prove through the UI, so reusing it would make them pass by construction.
@@ -276,17 +280,32 @@ Every attempt that answers at least one step leaves that answer behind — choos
 next attempt against the same stack needs the reset again: the marker-clearing reopen cannot bring back the
 rows a step already created.
 
-**In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51` or `52`
-after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e job
-**steps aside** for that dispatch — its global setup would complete the installation the wizard job is about to
-walk — and the wizard job's Preflight fails loudly when `/install/status` reports a finished installation or a
-`nextStep` other than `profile`, instead of letting the specs skip their way to a green checkmark. Spec 51
-finishes the installation, so a `52` dispatch needs a reset (or a marker-clearing reopen) first; the job prints
-that as a notice.
+**In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51`, `52`
+or `53` after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e
+job **steps aside** for that dispatch — its global setup would complete the installation the wizard job is about
+to walk. Preflight requires `GET /install/status` to report an open wizard at `nextStep=profile`; a finished or
+partially answered stack fails before Chromium starts. Specs 52 and 53 additionally require every SMTP value
+below. Each spec finishes the installation, so reset or marker-clearing reopen is required before the next run.
 
-> The CI side of F6 (a separate job vs. a dispatch input) is still an **owner decision** in
-> `.cursor/plans/install-wizard-v2/07_phase-f6-zavrsetak-testovi.md`; the job above is the „dispatch input“
-> variant, and it is inert until it is dispatched.
+Dispatch-only is the implemented model. Whether it remains an accepted operational runbook or becomes an
+isolated clean-stack CI job is tracked as **IN24**; until that decision, this job is not an automatic PR gate.
+
+#### Install wizard CI variables and secrets
+
+The workflow resolves every `E2E_SMTP_*` value as `${{ vars.NAME || secrets.NAME }}`. Use repository-level
+Actions values, not Environment-scoped values (the job has no `environment:`).
+
+| Name | Store | Wizard use |
+|---|---|---|
+| `E2E_SMTP_HOST` | Repository Variable or Secret | SMTP host; Gmail: `smtp.gmail.com`. |
+| `E2E_SMTP_PORT` | Repository Variable or Secret | Submission port; Gmail TLS: `587`. |
+| `E2E_SMTP_USERNAME` | Repository Secret (Variable also accepted by CI) | SMTP account username. |
+| `E2E_SMTP_PASSWORD` | Repository Secret | SMTP password; for Gmail use an app password, never the account password. |
+| `E2E_SMTP_FROM` | Repository Secret (Variable also accepted by CI) | Sender address accepted by the SMTP account. |
+
+Empty GitHub values arrive as `""`, bypass local nullish defaults and leave **Dalje** disabled. Preflight therefore
+fails 52/53 immediately when any SMTP value is empty; spec 51 does not require SMTP. For Gmail use
+`smtp.gmail.com:587`, TLS, the full account address as username and an app password.
 
 ## State the suite owns and must reset
 

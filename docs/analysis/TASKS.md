@@ -119,15 +119,18 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Install Wizard v2 (iz `.cursor/plans/install-wizard-v2`)
 
-F0–F5 su završeni, commitovani i pushovani (`c5c62da` backend + `28559fc` frontend + `6efc6d4` CI format; vlasnik ih je spojio u `master`), van faza je urađen ops-only rerun (IN21), a **F6 je implementiran** (provisioning ekran, gotov ekran, checklist poslije instalacije, E2E projekat `e2e/install-wizard`) — još **nije commitovan**; detalji i dokazi: `.cursor/plans/install-wizard-v2/HANDOFF.md`. Otvoreno iz nalaza u `audit/frontend/11-install.md`, iz F5 odluke vlasnika 8 i iz F6:
+F0–F6 su završeni, commitovani i spojeni u `master`: registry i paketi, Minimum/Standard/Full sadržaj, Aurora shell, provisioning, ready ekran, post-install checklist i zaseban E2E projekat. Detalji i dokazi: `.cursor/plans/install-wizard-v2/HANDOFF.md` i `audit/frontend/11-install.md`.
 
-- [x] IN19 (zatvoren): promjena paketa poništava odgodu koraka koje novi paket **traži** (plan prima `previousProfile` → `reopenedStepKeys`); `POST /install/profile` vraća `reopenedSteps`, a ljuska iznad tog koraka pokaže `install.shell.reopened`. Odgoda ostaje moguća — ali kao nova, svjesna odluka.
-- [x] IN18 (zatvoren): install ključevi nose `readOnly` metadata, registry lista ih označi „Čarobnjak“, a detalj prikazuje objašnjenje bez editora.
-- [x] IN11 (zatvoren): `aria-describedby` na polja s napomenom (lozinka foundera, SMTP, Entra, LDAPS, time zone, logo); povratak na prethodni korak završen u F3.
-- [x] IN21 (zatvoren): **Ponovno pokretanje instalacije (ops-only, odluka vlasnika 6)** — dvostruka kapija `INSTALL_ALLOW_RERUN=true` + install token (obavezan i poslije završetka) uz `POST /install/restart` (opciono `includeStepMarkers`) i `npm run cli:install-rerun -- --reason … [--dry-run]`; briše samo zaključavanje (`private.install.completedAt`/`completedByUserId`), a na zahtjev i markere čarobnjaka; upis ide kroz `SettingsService` kao `install_wizard_rerun`, odgovor nosi `clearedKeys` i `nextStep`. Recept: `ops/runbook/ponovno-pokretanje-instalacije.md`. UI nema ni rutu ni dugme — za redovne administratore se ne mijenja ništa.
-- [x] IN14 (zatvoren u kodu, mjerenje ostaje): E2E prolaz kroz UI čarobnjaka **je napisan** — `e2e/install-wizard/` (51 Minimum, 52 Standard, vlastiti `globalSetup`, `reachStep` za ponovno otvorenu instalaciju) + CI posao `e2e-install-wizard` (inertan do dispatcha `install_spec=51|52`, normalni `e2e` se tada povlači) —, ali **Lighthouse a11y za `/install` ≥ 95 i sam prolaz 51/52 nisu izmjereni**: sandbox nema Docker, bazu, browser ni živu instalaciju. Mjeri se u okruženju vlasnika/CI (runbook u `e2e/README.md`).
-- [ ] **CI za F6 čeka potvrdu vlasnika:** posao je izveden kao `workflow_dispatch` input (`install_spec`), a plan faze traži odluku između toga i zasebnog posla koji diže svjež stack (reset baze). Dok se ne potvrdi, posao ostaje neobavezan i ne dira `CI gate` kao izvor istine o pokrivenosti.
-- [ ] IN20 (niska, **potvrđeno otvoreno u F6**): **Test konekcije na zahtjev u čarobnjaku** (inbound „Testiraj konekciju“, direktorij „Testiraj LDAPS“). Domenske funkcije već postoje — `InboundEmailAdminService.testConnection()` (bez aktera) i `DirectoryFullSyncService.testConnection(actorUserId)` — ali su iza sesijske prijave i rola (`POST /inbound-email/test-connection`, `POST /directory-sync/test-connection`), pa ih korak čarobnjaka prije instalacije ne može pozvati bez nove instalacijski-scoped rute ili guarda svjesnog install tokena. F5 zato **nije** dodao ni ruta ni dugme (odluka vlasnika 8); tiket pokriva rutu + dugme u sekcijama `inboundEmail` i `directory` uz isti rate limit kao SMTP test.
+- [x] IN11: relevantna polja imaju `aria-describedby`; fokus pri promjeni ide na naslov koraka.
+- [x] IN18: install ključevi nose `readOnly` **UI metadata**; registry ih označava „Čarobnjak“ i ne crta editor. Ručni `POST /settings/*` i dalje može prihvatiti te ključeve — to nije backend zabrana.
+- [x] IN19: promjena paketa poništava odgodu koraka koje novi paket traži i UI objašnjava ponovno otvaranje.
+- [x] IN21: ops-only rerun je iza `INSTALL_ALLOW_RERUN=true` + install tokena; ruta, CLI i runbook postoje, bez administratorskog UI-a.
+- [x] IN22 (2026-10-18): TASKS i E2E README usklađeni su sa F6 implementacijom, specovima 51/52/53 i CI/SMTP ugovorom.
+- [ ] IN13 (niska komponentna podstavka): širok frontend/backend inventar postoji, ali nema zasebnih `install-login-provider-step.spec.tsx` i `install-security-recommendations.spec.tsx`.
+- [ ] IN14 (mjerenje): UI E2E **51 Minimum, 52 Standard i 53 Full** su napisani i ranije evidentirani kao zeleni. Lighthouse accessibility za stvarni `/install` (gate + Full korak + portal) i dalje nema sačuvan rezultat ≥ 95.
+- [ ] IN20 (niska): inbound e-mail i LDAPS nemaju install-scoped „Testiraj konekciju“ akcije; postojeće domenske funkcije su iza sesijske prijave i rola.
+- [ ] IN23: pozitivni 51/52/53 postoje; mali negativni browser paket za token/status/save/completion greške još nedostaje.
+- [ ] IN24 (vlasnička odluka): CI podržava ručni `workflow_dispatch` sa `install_spec=51|52|53`, ali ne podiže vlastiti clean stack. Dispatch-only nasuprot izolovanom reset-stack poslu ostaje otvoreno; posao zato nije obavezna PR regresijska kapija.
 
 ---
 
