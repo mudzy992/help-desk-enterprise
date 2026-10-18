@@ -108,7 +108,7 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 | **LB7** | Domenski mapperi ostaju odvojeni, ali zajednički code/status algoritam i svi datetime konstruktori su centralizovani. | Generički mapper i zajednički datetime API, migrirani uz direktne testove. |
 | **LB8** | Centralni registar pokriva sve ranije sirove literal ključeve; preostali `queryKey: [...factory(), version]` izrazi namjerno proširuju postojeće domenske fabrike. | Fabrike i invalidacije dijele isti ključ; lint/test sprječava nove inline ključeve. |
 | **LB9** | Istorijske fazne/review oznake uklonjene su iz produkcijskog `lib/`; guard test sprječava povratak. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
-| **LB11** | Cijepanje je započeto po odgovornosti: audit katalozi, Markdown parser/highlighter, ops detalji, asset greške/stablo i change historija su odvojeni; preostaju ticket activity i dashboard orchestrator. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
+| **LB11** | Svi identificirani moduli od 308–484 linije razdvojeni su po domenskoj odgovornosti; najveći preostali produkcijski modul ima 304 linije, a guard postavlja ceiling 320. | Kritični hookovi/orchestratori imaju jasne podmodule i regresijsku granicu veličine. |
 
 ---
 
@@ -150,9 +150,9 @@ WebAuthn više ne koristi dvostruki cast, stari ticket wrapper je uklonjen, a `c
 
 Svih 198 ranije izmjerenih faznih/review oznaka očišćeno je tako da komentari opisuju trenutni invariant ili razlog. Ciljani grep sada vraća nula produkcijskih nalaza, a `comment-hygiene.spec.ts` rekurzivno čuva tu granicu.
 
-### LB11 — veliki orchestratori
+### LB11 — veliki orchestratori razdvojeni (zatvoren)
 
-Veliki orchestratori i dalje zahtijevaju domensko cijepanje. Cijepanje treba pratiti odgovornost, ne proizvoljan broj linija.
+Svi auditom identificirani moduli od 308–484 linije razdvojeni su po odgovornosti: audit katalozi, Markdown inline/block/highlight parseri, ops detalji, asset errors/location tree, change labels/history, ticket event details te dashboard primary load. `use-dashboard-summary` je smanjen na 183, a ticket activity na 184 linije. Najveći preostali modul ima 304 linije i predstavlja kohezivni pure-view skup; `module-size.spec.ts` bez izuzetaka postavlja provjerljivi ceiling od 320 linija da se veliki orchestratori ne vrate.
 
 ---
 
@@ -170,7 +170,7 @@ Veliki orchestratori i dalje zahtijevaju domensko cijepanje. Cijepanje treba pra
 | **LB8** | **Zatvoren** | Svi sirovi literal ključevi prebačeni su u centralne fabrike; ostaju samo proširenja postojećih fabričkih ključeva. |
 | **LB9** | **Zatvoren** | Nula produkcijskih istorijskih/faznih oznaka; rekurzivni guard test sprječava regresiju. |
 | **LB10** | **Zatvoren** | `admin-ops-i18n-coverage.spec.ts` pinira backend katalog, bs/en action/entity/field/value ključeve i fallback. |
-| **LB11** | U toku | Pet velikih modula je domenski razdvojeno u manje javno kompatibilne cjeline; preostaju ticket activity i dashboard orchestrator. |
+| **LB11** | **Zatvoren** | Identificirani moduli razdvojeni po odgovornosti; dashboard hook 183 i ticket activity 184 linije; guard bez izuzetaka drži ceiling 320. |
 
 ---
 
@@ -190,16 +190,16 @@ Veliki orchestratori i dalje zahtijevaju domensko cijepanje. Cijepanje treba pra
 ### P2 — održavanje
 
 6. Održavati zatvoreni LB7: novi standardni code/status mapperi koriste `mapDomainApiError`, a datetime formatiranje `dateTimeFormatter`.
-7. Pri izmjeni storea dodati reset/test isolation; hookove i velike fajlove cijepati po odgovornosti, ne masovno (**LB2**, **LB4**, **LB11**).
+7. Održavati zatvoreni LB11: novi produkcijski `lib` modul ne prelazi guard ceiling, a cijepanje prati domensku odgovornost.
 8. Održavati zatvorene LB9/LB10 guard testove za comment hygiene i audit-label coverage.
 
 ---
 
 ## Ocjena
 
-**9,5/10**
+**10,0/10**
 
-Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. LB7 je zatvoren zajedničkim mapper/formatter primitivama i migracijskim dokazom. LB9 je zatvoren potpunim čišćenjem i regresijskim guardom. Do pune ocjene ostaje domensko cijepanje velikih orchestratora (LB11).
+Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. LB7 je zatvoren zajedničkim mapper/formatter primitivama i migracijskim dokazom. LB9 je zatvoren potpunim čišćenjem i regresijskim guardom. LB11 je zatvoren domenskim cijepanjem svih identificiranih velikih modula i automatskim ceiling guardom. Svi LB nalazi sada imaju implementacijski ili testni dokaz.
 
 ---
 
@@ -218,6 +218,7 @@ Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran 
 
 ## Status implementacije (2026-10-18)
 
+- **LB11 zatvoren:** svi ranije identificirani moduli od 308–484 linije razdvojeni su po odgovornosti; dashboard hook i ticket activity su ispod 200 linija, a `module-size.spec.ts` čuva ceiling 320 bez izuzetaka.
 - **LB9 zatvoren:** produkcijski `lib/` nema istorijske fazne/review oznake; `comment-hygiene.spec.ts` rekurzivno sprječava povratak.
 - **LB2 i LB3 zatvoreni:** singleton moduli imaju eksplicitne reset/lifecycle ugovore; ticket UI orchestratori i timer host su u components, neutralni ugovori su u lib, a ESLint zabranjuje lib→components regresiju.
 - **LB8 zatvoren:** problem, asset i admin-security ključevi/invalidacije koriste centralne fabrike; ticket-count invalidacija koristi postojeći prefiks. Grep više ne nalazi sirovi produkcijski `queryKey: ["…"]`.
