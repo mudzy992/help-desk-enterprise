@@ -70,7 +70,7 @@ Međutim, zajednički `ModalHeader` i dalje renderuje obične `<h2>` i `<p>`. Ra
 
 `ToastProvider` ima queue, deduplikaciju, limit od tri prikaza, pauzu na hover/fokus, trajanje po tonu, `alert/status` i request ID kopiranje. Provider behavior test potvrđuje dedup/count, limit i promociju queuea, pauzu timera, Escape te action/dismissal. Sinhroni `queueRef` je autoritativan za imperativne operacije prije React commita, pa `toast()` vraća ID stvarno kreiranog ili spojenog zapisa.
 
-`PanelSkeleton` je dominantan loader (108 importera) i ima `role="status"`, ali istovremeno nosi `aria-label` i isti `sr-only` tekst. `Warning` je tokenizovan prikaz upozorenja sa skrivenom dekorativnom ikonom. Novi `PanelErrorBoundary` izoluje render grešku, prijavljuje je loggeru i nudi retry; ima test oporavka i `role="alert"`, ali je naziv/log event/fallback copy vezan za ticket domen i zato pojačava UI5.
+`PanelSkeleton` je dominantan loader (108 importera) i izlaže jedan status naziv. `Warning` je tokenizovan `role="alert"` prikaz upozorenja sa skrivenom dekorativnom ikonom i vlastitim semantičkim testom. Ticket-specifični `PanelErrorBoundary` izoluje render grešku, prijavljuje je loggeru i nudi testirani retry izvan neutralnog `ui/` sloja.
 
 ### Tokeni i guardovi
 
@@ -96,7 +96,7 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 | **UI13** | Više javnih Radix exporta nema potrošača.                                                                                                        | Smanjiti API ili eksplicitno dokumentovati namjerni passthrough.                |
 | **UI14** | Button zadržava alias parove varijanti.                                                                                                          | Jedan kanonski naziv po namjeri uz migraciju.                                   |
 | **UI15** | `ariaLabel`/`label` i `ui.close`/`shell.close` ostaju neujednačeni.                                                                              | Konzistentan prop i i18n ugovor.                                                |
-| **UI17** | Warning je jednostavan i nema vlastiti test; ticket `PanelErrorBoundary` je premješten u ticket sloj.                                            | Testirati Warning semantiku.                                                    |
+| **UI17** | Warning ima eksplicitni alert ugovor i semantički test; ticket `PanelErrorBoundary` i njegov test su u ticket sloju.                             | Održavati oba feedback ugovora testovima.                                       |
 
 ---
 
@@ -136,9 +136,9 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 **Zatvoren na auditiranom SHA.** Aurora guard nalazi 27 semantičkih token klasa i 0 nepokrivenih utilityja u install toku. Nalaz se mora ponovo otvoriti pri svakoj promjeni `ui/` klase koja se koristi u installu ako guard prijavi prazninu.
 
-### UI17 — novi feedback elementi
+### UI17 — novi feedback elementi (zatvoren)
 
-`Warning` je mali Pulse primitive (`p`, dekorativna ikona, warning tokeni) i u installu je shimovan. `PanelErrorBoundary` ima dobar retry/izolacijski test i `role="alert"`, ali nije stvarno generički: event je `ticket_panel_failed`, test id `ticket-panel-error`, a prevodi su `tickets.*`. Arhitektonski pripada ticket sloju ili treba neutralne props.
+`Warning` je neutralni Pulse primitive sa warning tokenima i eksplicitnim `role="alert"`; test potvrđuje izgovoreni tekst, proslijeđeni test ID i dekorativnu, skrivenu ikonu. `PanelErrorBoundary` je premješten u ticket sloj gdje pripadaju njegov `ticket_panel_failed` event, `ticket-panel-error` identitet i `tickets.*` copy. Njegov test potvrđuje izolaciju, logging i retry bez uklanjanja okolnog ticket shella.
 
 ### UI18 — stvarna pokrivenost guardova
 
@@ -166,7 +166,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 | **UI14** | Prihvaćen rizik | Aliasi čuvaju kompatibilnost; migracija nije funkcionalni prioritet.                                                                              |
 | **UI15** | Otvoren         | Prop i close i18n ugovor ostaju neujednačeni.                                                                                                     |
 | **UI16** | Zatvoren        | `check-install-aurora`: 27 klasa, 0 shim praznina; check B takođe zelen.                                                                          |
-| **UI17** | Djelimično      | Ticket boundary i njegov test su u ticket sloju; Warning još nema vlastiti test.                                                                  |
+| **UI17** | **Zatvoren**    | Warning ima testirani alert/dekorativnu ikonu ugovor; ticket boundary je u ticket sloju sa testom izolacije, logginga i retryja.                  |
 | **UI18** | Djelimično      | Tri guarda su korisna i zelena, ali ne pokrivaju UI1/UI3/UI8 semantiku.                                                                           |
 
 ---
@@ -183,7 +183,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 4. Održavati zatvoreni UI2: nove potvrde koriste `ConfirmDialog`, bez native browser prompta.
 5. Održavati zatvorene **UI7/UI12** behavior ugovore za Modal, ConfirmDialog, Toast, Field, Tabs, Segmented i FilterBar.
-6. Održavati zatvoreni **UI5** lint ugovor; za **UI17** dodati zaseban Warning test.
+6. Održavati zatvorene **UI5/UI17** granice i feedback testove.
 
 ### P2 — Pulse ugovor i čišćenje
 
@@ -222,6 +222,7 @@ Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-
 - **UI2 zatvoren:** svih pet native potvrda migrirano je na `ConfirmDialog`; produkcijski `window.confirm` grep je 0.
 - **UI7 i UI12 zatvoreni:** `toast()` vraća tačan create/dedup ID i prije React commita; Modal i FilterBar sada imaju kompletne behavior testove, uz postojeće ConfirmDialog, Toast, Field, Tabs i Segmented dokaze. UI paket prolazi 9/9 fajlova i 24/24 testa; puni frontend rezultat je 313/313 fajlova i 1299/1299 testova. Build, format i lint bez grešaka su zeleni (12 postojećih lint upozorenja).
 - **UI5 zatvoren:** PageHeader aplikacijski adapter je u layout sloju; DetailSection i PanelErrorBoundary su u ticket sloju; ApiErrorText, RelativeTime i Toast više nemaju domenske importe. `no-restricted-imports` čuva `ui/` granicu. Puni frontend ostaje zelen na 313/313 fajlova i 1299/1299 testova; lint ima 0 grešaka i 12 postojećih upozorenja.
+- **UI17 zatvoren:** Warning sada ima `role="alert"` i test za tekst, test ID i skrivenu dekorativnu ikonu; ticket boundary ostaje testiran u ticket sloju. Puni frontend prolazi 314/314 fajlova i 1300/1300 testova.
 - **UI1 zatvoren:** `ModalHeader` koristi Radix `ModalTitle`/`ModalDescription` uz nepromijenjen javni API i vizuelne klase. `confirm-dialog.spec.tsx` potvrđuje programsko ime, opis, početni fokus i Escape. Browser/axe nije pokrenut; komponentni Radix ugovor je potvrđen u jsdom testu.
 
 ## Status re-audita (2026-10-18)
