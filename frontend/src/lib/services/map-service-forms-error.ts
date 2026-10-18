@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/api";
+import { mapDomainApiError } from "@/lib/map-domain-api-error";
 
 export type ServiceFormsErrorKey =
   | "services.forms.errorUnauthorized"
@@ -36,27 +36,16 @@ const codeKeys: Partial<Record<string, ServiceFormsErrorKey>> = {
 };
 
 export function mapServiceFormsError(error: unknown): ServiceFormsErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "services.forms.errorGeneric";
-  }
-  const byCode = codeKeys[error.code];
-  if (byCode !== undefined) {
-    return byCode;
-  }
-  if (error.status === 401) {
-    return "services.forms.errorUnauthorized";
-  }
-  if (error.status === 403) {
-    return "services.forms.errorForbidden";
-  }
-  if (error.status === 404) {
-    return "services.forms.errorNotFound";
-  }
-  if (error.status === 409) {
-    return "services.forms.errorAlreadyExists";
-  }
-  if (error.status === 400 || error.status === 422) {
-    return "services.forms.errorSchema";
-  }
-  return "services.forms.errorGeneric";
+  return mapDomainApiError<ServiceFormsErrorKey>(error, {
+    fallback: "services.forms.errorGeneric",
+    codes: codeKeys,
+    statuses: {
+      401: "services.forms.errorUnauthorized",
+      403: "services.forms.errorForbidden",
+      404: "services.forms.errorNotFound",
+      409: "services.forms.errorAlreadyExists",
+      400: "services.forms.errorSchema",
+      422: "services.forms.errorSchema",
+    },
+  });
 }
