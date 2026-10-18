@@ -24,7 +24,9 @@ describe("ConfirmDialog danger flow", () => {
     const descriptionId = dialog.getAttribute("aria-describedby");
     expect(descriptionId).not.toBeNull();
     expect(document.getElementById(descriptionId ?? "")?.textContent).toBe("This cannot be undone");
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" })));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" })),
+    );
   });
 
   it("requires the explicit danger action before invoking deletion", () => {

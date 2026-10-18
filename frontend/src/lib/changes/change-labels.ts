@@ -1,4 +1,11 @@
-import type { ChangeAction, ChangeLevel, ChangeOutcome, ChangeRisk, ChangeStatus, ChangeType } from "@/services/changes-api";
+import type {
+  ChangeAction,
+  ChangeLevel,
+  ChangeOutcome,
+  ChangeRisk,
+  ChangeStatus,
+  ChangeType,
+} from "@/services/changes-api";
 
 export const changeStatusKeys: Readonly<Record<ChangeStatus, `changes.status.${ChangeStatus}`>> = {
   DRAFT: "changes.status.DRAFT",
@@ -51,4 +58,3 @@ export const changeActionKeys: Readonly<Record<ChangeAction, `changes.action.${C
   close: "changes.action.close",
   cancel: "changes.action.cancel",
 };
-

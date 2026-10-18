@@ -37,7 +37,11 @@ import type { InstallRailItem } from "@/lib/install/install-rail-state";
   window takes focus only while it really overflows and holds nothing focusable.
 */
 
-export { resolveInstallRailState, type InstallRailItem, type InstallRailState } from "@/lib/install/install-rail-state";
+export {
+  resolveInstallRailState,
+  type InstallRailItem,
+  type InstallRailState,
+} from "@/lib/install/install-rail-state";
 
 export function InstallStepRail({ items }: { readonly items: readonly InstallRailItem[] }) {
   const { t } = useTranslation();

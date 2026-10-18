@@ -206,9 +206,7 @@ const bsMonthsLong = [
 ];
 
 function monthName(date: Date, locale: string, style: "short" | "long"): string {
-  const formatted = dateTimeFormatter(locale, { month: style })
-    .format(date)
-    .replace(/\.$/, "");
+  const formatted = dateTimeFormatter(locale, { month: style }).format(date).replace(/\.$/, "");
   if (locale.startsWith("bs") && /^M?\d+$/.test(formatted)) {
     return (style === "short" ? bsMonthsShort : bsMonthsLong)[date.getMonth()] ?? formatted;
   }

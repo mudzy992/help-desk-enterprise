@@ -1,6 +1,9 @@
 import { parseIncidentEventDetail } from "@/lib/status/status-view";
 import type { TFunction } from "i18next";
-import { ticketPriorityTranslationKey, ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";
+import {
+  ticketPriorityTranslationKey,
+  ticketStatusTranslationKey,
+} from "@/lib/tickets/ticket-constants";
 import { parseSystemEventBody } from "@/lib/tickets/ticket-system-events";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
@@ -149,4 +152,3 @@ export function findLastPriorityOverride(messages: readonly TicketMessageRespons
   }
   return null;
 }
-

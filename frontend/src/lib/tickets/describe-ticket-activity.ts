@@ -100,7 +100,10 @@ export function describeMessageActivity(
   };
 }
 
-export { describeMergeOrPriorityEvent, findLastPriorityOverride } from "@/lib/tickets/describe-ticket-event-details";
+export {
+  describeMergeOrPriorityEvent,
+  findLastPriorityOverride,
+} from "@/lib/tickets/describe-ticket-event-details";
 import { describeMergeOrPriorityEvent } from "@/lib/tickets/describe-ticket-event-details";
 
 /** Event text; an assignment names who the ticket was assigned to. */

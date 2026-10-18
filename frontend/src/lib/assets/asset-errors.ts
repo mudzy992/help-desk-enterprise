@@ -80,4 +80,3 @@ export function assetErrorDetail(error: unknown): string | null {
   }
   return error.message && error.message !== error.code ? error.message : null;
 }
-

@@ -21,7 +21,6 @@ export const ENTRA_CALLBACK_PATH = "/auth/callback";
 let cached: { readonly key: string; readonly instance: Promise<IPublicClientApplication> } | null =
   null;
 
-
 /** Drops the lazily cached client between isolated sessions/tests. */
 export function resetEntraClient(): void {
   cached = null;

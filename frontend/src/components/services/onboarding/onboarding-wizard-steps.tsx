@@ -1,9 +1,7 @@
 import { OnboardingApprovalsStep } from "@/components/services/onboarding/onboarding-approvals-step";
 import { OnboardingFormStep } from "@/components/services/onboarding/onboarding-form-step";
 import { OnboardingRoutingStep } from "@/components/services/onboarding/onboarding-routing-step";
-import {
-  OnboardingServiceStep,
-} from "@/components/services/onboarding/onboarding-service-step";
+import { OnboardingServiceStep } from "@/components/services/onboarding/onboarding-service-step";
 import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 import { OnboardingSlaStep } from "@/components/services/onboarding/onboarding-sla-step";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";

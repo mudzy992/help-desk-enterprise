@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
 
+type EscalationRule = { readonly id: string; readonly slaProfileId: string };
+
 test.describe('50 SLA escalations', () => {
   test('deletion requires an audit reason', async () => {
     const env = readE2EEnvironment();
@@ -10,6 +12,20 @@ test.describe('50 SLA escalations', () => {
     const profiles = await api.requestJson<readonly { id: string }[]>('/sla/profiles');
     const profile = profiles[0];
     expect(profile, 'a seeded SLA profile').toBeDefined();
+
+    // Earlier runs can fill the profile up to maxEscalationLevels; make room.
+    const existing = await api.requestJson<readonly EscalationRule[]>(
+      `/sla/escalation-rules?slaProfileId=${encodeURIComponent(profile!.id)}`,
+    );
+    for (const rule of existing) {
+      await api
+        .request(`/sla/escalation-rules/${rule.id}`, {
+          method: 'DELETE',
+          body: JSON.stringify({ reason: 'E2E make room before escalation create' }),
+        })
+        .catch(() => undefined);
+    }
+
     const rule = await api.requestJson<{ id: string }>('/sla/escalation-rules', {
       method: 'POST',
       body: JSON.stringify({
@@ -31,10 +47,12 @@ test.describe('50 SLA escalations', () => {
       });
       expect(removed.ok).toBe(true);
     } finally {
-      await api.request(`/sla/escalation-rules/${rule.id}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ reason: 'E2E fallback cleanup' }),
-      }).catch(() => undefined);
+      await api
+        .request(`/sla/escalation-rules/${rule.id}`, {
+          method: 'DELETE',
+          body: JSON.stringify({ reason: 'E2E fallback cleanup' }),
+        })
+        .catch(() => undefined);
     }
   });
 });

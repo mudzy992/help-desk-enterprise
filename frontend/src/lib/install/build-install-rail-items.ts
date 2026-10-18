@@ -1,7 +1,4 @@
-import {
-  resolveInstallRailState,
-  type InstallRailItem,
-} from "@/lib/install/install-rail-state";
+import { resolveInstallRailState, type InstallRailItem } from "@/lib/install/install-rail-state";
 import { installWizardSteps } from "@/lib/install/install-step-presentation";
 import type { InstallStepState, InstallWizardStep } from "@/services/install-api";
 

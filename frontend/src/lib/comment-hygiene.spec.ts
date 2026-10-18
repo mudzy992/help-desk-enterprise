@@ -14,10 +14,7 @@ function productionSourceFiles(root: string): readonly string[] {
 describe("lib comment hygiene", () => {
   it("does not reintroduce project-phase labels into production comments", () => {
     const phaseWords = ["paket", "phase", "faza", "review"].join("|");
-    const historicalLabel = new RegExp(
-      `\\b(?:${phaseWords})\\s+\\d|\\((?:T|M|B|F|K|A)\\d`,
-      "i",
-    );
+    const historicalLabel = new RegExp(`\\b(?:${phaseWords})\\s+\\d|\\((?:T|M|B|F|K|A)\\d`, "i");
     const root = join(process.cwd(), "src", "lib");
     const violations = productionSourceFiles(root).flatMap((path) =>
       readFileSync(path, "utf8")

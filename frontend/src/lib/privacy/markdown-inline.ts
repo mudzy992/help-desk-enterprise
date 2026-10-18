@@ -48,7 +48,10 @@ export type BlockNode =
 const escapable = "\\`*_[]()<>#|+-.!~";
 
 /** Callout labels recognised at the start of a quote (§7.1). */
-export const calloutLabels: ReadonlyArray<{ readonly pattern: RegExp; readonly tone: CalloutTone }> = [
+export const calloutLabels: ReadonlyArray<{
+  readonly pattern: RegExp;
+  readonly tone: CalloutTone;
+}> = [
   { pattern: /^\*\*(Upozorenje|Važno|Pazi):\*\*/i, tone: "warning" },
   { pattern: /^\*\*(Savjet|Preporuka):\*\*/i, tone: "success" },
   { pattern: /^\*\*(Namjena|Napomena|Info|Bilješka):\*\*/i, tone: "info" },
@@ -179,4 +182,3 @@ export function isTableSeparator(line: string): boolean {
     cells.every((cell) => /^:?-{2,}:?$/.test(cell))
   );
 }
-

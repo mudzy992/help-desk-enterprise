@@ -15,7 +15,11 @@ export {
   type CalloutTone,
   type InlineNode,
 } from "@/lib/privacy/markdown-inline";
-export { highlightCode, type CodeToken, type CodeTokenKind } from "@/lib/privacy/markdown-code-highlighter";
+export {
+  highlightCode,
+  type CodeToken,
+  type CodeTokenKind,
+} from "@/lib/privacy/markdown-code-highlighter";
 
 export function parseMarkdown(source: string): BlockNode[] {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");

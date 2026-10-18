@@ -64,8 +64,12 @@ describe("useDashboardSummary", () => {
   beforeEach(() => {
     client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
     realtime.reload = null;
-    vi.mocked(fetchDashboardSummary).mockReset().mockResolvedValue({} as never);
-    vi.mocked(listTicketsPage).mockReset().mockResolvedValue(emptyPage as never);
+    vi.mocked(fetchDashboardSummary)
+      .mockReset()
+      .mockResolvedValue({} as never);
+    vi.mocked(listTicketsPage)
+      .mockReset()
+      .mockResolvedValue(emptyPage as never);
     vi.mocked(invalidateDashboardQueries).mockClear();
   });
 
