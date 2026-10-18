@@ -2,7 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Avatar } from "@/components/ui/avatar";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 
 describe("display primitive semantics", () => {

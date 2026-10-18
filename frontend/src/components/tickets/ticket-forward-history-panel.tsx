@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { listForwardHistory, type ForwardHistoryItem } from "@/services/tickets-forwarding-api";
 

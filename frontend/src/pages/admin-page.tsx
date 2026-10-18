@@ -19,7 +19,7 @@ import { GroupsPage } from "@/pages/groups-page";
 import { PermissionsPage } from "@/pages/permissions-page";
 import { UsersPage } from "@/pages/users-page";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";

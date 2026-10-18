@@ -3,14 +3,14 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { DetailSectionsProvider } from "@/components/ui/detail-section";
+import { DetailSectionsProvider } from "@/components/tickets/detail-section";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
 import { TicketForwardHistoryPanel } from "@/components/tickets/ticket-forward-history-panel";
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
 import { TicketSlaPanel } from "@/components/tickets/ticket-sla-panel";
 import { TicketIncidentsPanel } from "@/components/status/ticket-incidents-panel";
-import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
+import { PanelErrorBoundary } from "@/components/tickets/panel-error-boundary";
 import type { useTicketDetailSections } from "@/lib/tickets/use-detail-sections";
 import type {
   ParticipantRole,

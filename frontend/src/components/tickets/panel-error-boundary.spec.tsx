@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
+import { PanelErrorBoundary } from "@/components/tickets/panel-error-boundary";
 import { reportClientError } from "@/lib/app/client-logger";
 
 vi.mock("react-i18next", () => ({

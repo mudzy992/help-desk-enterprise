@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { hintClassName, selectClassName } from "@/components/ui/control";
 import type {
   ParticipantRole,

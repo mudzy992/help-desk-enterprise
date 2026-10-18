@@ -7,7 +7,7 @@ import { RoutingCoveragePanel } from "@/components/routing/routing-coverage-pane
 import { RoutingResolutionTester } from "@/components/routing/routing-resolution-tester";
 import { RoutingRulesPanel } from "@/components/routing/routing-rules-panel";
 import { Button } from "@/components/ui/button";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 
 export function RoutingPage() {

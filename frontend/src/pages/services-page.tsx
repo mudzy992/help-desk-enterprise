@@ -13,7 +13,7 @@ import { ServiceCategoryMutationSheet } from "@/components/services/categories/s
 import { ServiceCatalogList } from "@/components/services/service-catalog-list";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { serviceCatalogLoadState } from "@/lib/services/service-catalog-load-state";
 import { useCatalogRoutingCoverage } from "@/lib/services/use-catalog-routing-coverage";

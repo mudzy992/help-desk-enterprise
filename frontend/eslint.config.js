@@ -50,6 +50,33 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/components/ui/**/*.{ts,tsx}"],
+    ignores: ["src/components/ui/**/*.spec.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^@/components/(?!ui(?:/|$))",
+              message: "ui primitives may only depend on other ui primitives",
+            },
+            {
+              regex:
+                "^@/lib/(?!a11y(?:/|$)|feedback(?:/|$)|ui(?:/|$)|date-time-formatter$|format-relative-time$|utils$)",
+              message:
+                "ui primitives may only depend on explicitly allowlisted neutral infrastructure",
+            },
+            {
+              group: ["@/services", "@/services/**", "@/pages", "@/pages/**"],
+              message: "ui primitives must not depend on application services or pages",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["**/*.{js,mjs,cjs}"],
     languageOptions: {
       globals: globals.node,

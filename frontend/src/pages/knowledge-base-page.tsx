@@ -10,7 +10,7 @@ import { KnowledgePortalHome } from "@/components/knowledge-base/portal/knowledg
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";

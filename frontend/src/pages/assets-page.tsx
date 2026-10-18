@@ -30,7 +30,7 @@ import { AssetImportPanel } from "@/components/assets/asset-import-panel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import {

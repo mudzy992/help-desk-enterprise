@@ -11,7 +11,7 @@ import { SlaProfileList } from "@/components/sla/sla-profile-list";
 import { Button } from "@/components/ui/button";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { useSlaPageData } from "@/lib/sla/use-sla-page-data";
 import { useSlaPageMutations } from "@/lib/sla/use-sla-page-mutations";
 import { permissionKeys } from "@/lib/session/permission-keys";

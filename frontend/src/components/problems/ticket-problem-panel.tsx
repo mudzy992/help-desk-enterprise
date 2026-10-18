@@ -9,7 +9,7 @@ import {
 } from "@/components/problems/problem-link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { mapApiError } from "@/lib/map-api-error";

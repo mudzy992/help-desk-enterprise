@@ -8,7 +8,7 @@ import { PrivacyRecordPanel } from "@/components/privacy/privacy-record-panel";
 import { PrivacyNoticeEditor } from "@/components/privacy/privacy-notice-editor";
 import { PrivacyRequestsPanel } from "@/components/privacy/privacy-requests-panel";
 import { PrivacyRetentionPanel } from "@/components/privacy/privacy-retention-panel";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { readPrivacyTab, visiblePrivacyTabs, type PrivacyTab } from "@/lib/privacy/privacy-view";
 import { canOpenAdminArea } from "@/lib/session/route-access";

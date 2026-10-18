@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { hintClassName } from "@/components/ui/control";
 import { Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Badge, MetaBadge, type BadgeTone } from "@/components/ui/badge";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { Progress } from "@/components/ui/progress";
 import {
   formatSlaRemainingTime,

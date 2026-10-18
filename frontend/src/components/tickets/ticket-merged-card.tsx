@@ -1,7 +1,7 @@
 import { GitMerge } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";

@@ -22,7 +22,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Segmented } from "@/components/ui/segmented";
 import { PanelSkeleton } from "@/components/ui/skeleton";

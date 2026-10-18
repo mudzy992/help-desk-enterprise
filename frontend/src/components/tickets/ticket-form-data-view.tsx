@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { formatTicketFormData } from "@/lib/tickets/format-ticket-form-data";
 import type { ServiceFormSchema } from "@/services/service-catalog-api";
 

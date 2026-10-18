@@ -21,7 +21,6 @@ import {
   type ToastTone,
 } from "@/lib/feedback/toast-queue";
 import { cn } from "@/lib/utils";
-import { ApiError } from "@/services/api";
 
 export type { ToastTone } from "@/lib/feedback/toast-queue";
 
@@ -33,7 +32,7 @@ export interface ToastInput {
   readonly duration?: number;
   /** One follow-up action ("Undo", "Open"); the toast closes after it runs. */
   readonly action?: ToastAction;
-  /** The caught error: an `ApiError` contributes its request ID (copyable). */
+  /** A caught error with an optional string request ID contributes that ID. */
   readonly error?: unknown;
   /** Explicit request ID when there is no error object at hand. */
   readonly requestId?: string | null;
@@ -58,8 +57,11 @@ const TOAST_TONES: Record<ToastTone, { readonly icon: ReactNode; readonly accent
 
 function readRequestId(input: ToastInput): string | undefined {
   if (input.requestId) return input.requestId;
-  if (input.error instanceof ApiError && input.error.requestId) return input.error.requestId;
-  return undefined;
+  if (typeof input.error !== "object" || input.error === null || !("requestId" in input.error)) {
+    return undefined;
+  }
+  const requestId = input.error.requestId;
+  return typeof requestId === "string" && requestId.length > 0 ? requestId : undefined;
 }
 
 /**

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import {
   ticketAssigneeName,
   ticketGroupName,

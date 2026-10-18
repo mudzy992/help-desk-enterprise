@@ -2,7 +2,7 @@ import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfigVersionsWorkspace } from "@/components/config-versions/config-versions-workspace";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   canImportConfigPackage,

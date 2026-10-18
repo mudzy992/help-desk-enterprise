@@ -11,7 +11,7 @@ import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-
 import { TicketDetailConversation } from "@/components/tickets/ticket-detail-conversation";
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
 import { UnderlineTabs } from "@/components/ui/tabs";
-import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
+import { PanelErrorBoundary } from "@/components/tickets/panel-error-boundary";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type {

@@ -8,7 +8,7 @@ import { TicketListStandardView } from "@/components/tickets/ticket-list-standar
 import { directoryAssigneeNames } from "@/components/tickets/ticket-list-table";
 import { TicketWorkspaceNav } from "@/components/tickets/ticket-workspace-nav";
 import { Button } from "@/components/ui/button";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
 import { permissionKeys } from "@/lib/session/permission-keys";

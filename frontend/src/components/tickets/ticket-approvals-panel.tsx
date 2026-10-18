@@ -2,7 +2,7 @@ import { Check, CheckCheck, Clock3, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { textareaClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
