@@ -107,7 +107,7 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 | **LB5** | Sva tri kritična hooka imaju direktan spec; dashboard pokriva happy path, kritičnu grešku i realtime silent invalidaciju. | Tri kritična hooka imaju happy/error/filter ili cache ugovor. |
 | **LB7** | Domenski mapperi ostaju odvojeni, ali zajednički code/status algoritam i svi datetime konstruktori su centralizovani. | Generički mapper i zajednički datetime API, migrirani uz direktne testove. |
 | **LB8** | Centralni registar pokriva sve ranije sirove literal ključeve; preostali `queryKey: [...factory(), version]` izrazi namjerno proširuju postojeće domenske fabrike. | Fabrike i invalidacije dijele isti ključ; lint/test sprječava nove inline ključeve. |
-| **LB9** | 198 faznih/review oznaka u 99 fajlova. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
+| **LB9** | Istorijske fazne/review oznake uklonjene su iz produkcijskog `lib/`; guard test sprječava povratak. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
 | **LB11** | Najveći fajlovi imaju 484, 410, 345, 328 i 308 linija. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
 
 ---
@@ -146,9 +146,13 @@ WebAuthn više ne koristi dvostruki cast, stari ticket wrapper je uklonjen, a `c
 
 `queryKeys` sada nosi problem, asset lookup/users/candidate i admin-security fabrike/prefikse, a ticket count invalidacija koristi postojeći prefiks. U produkcijskom `src/` nema sirovog `queryKey: ["…"]`; preostali array spreadovi dodaju version/search segment već postojećoj fabrici i nisu paralelni izvor ključa.
 
-### LB9–LB11 — dug održavanja
+### LB9 — istorijske oznake uklonjene (zatvoren)
 
-Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18n.ts` je i dalje 468 linija; najveći su `use-ticket-list` 484, `simple-markdown` 410, `asset-view` 345, `describe-ticket-activity` 328 i `use-dashboard-summary` 308. Cijepanje treba pratiti domensku odgovornost, ne proizvoljan broj linija.
+Svih 198 ranije izmjerenih faznih/review oznaka očišćeno je tako da komentari opisuju trenutni invariant ili razlog. Ciljani grep sada vraća nula produkcijskih nalaza, a `comment-hygiene.spec.ts` rekurzivno čuva tu granicu.
+
+### LB11 — veliki orchestratori
+
+Veliki orchestratori i dalje zahtijevaju domensko cijepanje. Cijepanje treba pratiti odgovornost, ne proizvoljan broj linija.
 
 ---
 
@@ -164,7 +168,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 | **LB6** | **Zatvoren** | WebAuthn koristi JSON tipove; chart ključevi su statički i nema ciljnih castova. |
 | **LB7** | **Zatvoren** | Zajednički tipizirani mapper migriran na 5 reprezentativnih domena; svih 16 formatter poziva ide kroz testiranu fabriku. |
 | **LB8** | **Zatvoren** | Svi sirovi literal ključevi prebačeni su u centralne fabrike; ostaju samo proširenja postojećih fabričkih ključeva. |
-| **LB9** | Otvoren | 198 istorijskih/faznih oznaka u komentarima. |
+| **LB9** | **Zatvoren** | Nula produkcijskih istorijskih/faznih oznaka; rekurzivni guard test sprječava regresiju. |
 | **LB10** | **Zatvoren** | `admin-ops-i18n-coverage.spec.ts` pinira backend katalog, bs/en action/entity/field/value ključeve i fallback. |
 | **LB11** | Otvoren | Pet reprezentativnih fajlova je 308–484 linije. |
 
@@ -187,7 +191,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 
 6. Održavati zatvoreni LB7: novi standardni code/status mapperi koriste `mapDomainApiError`, a datetime formatiranje `dateTimeFormatter`.
 7. Pri izmjeni storea dodati reset/test isolation; hookove i velike fajlove cijepati po odgovornosti, ne masovno (**LB2**, **LB4**, **LB11**).
-8. Održavati postojeći audit-label coverage i uklanjati fazne komentare samo u dirnutim fajlovima (**LB9**, **LB10**).
+8. Održavati zatvorene LB9/LB10 guard testove za comment hygiene i audit-label coverage.
 
 ---
 
@@ -195,7 +199,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 
 **9,5/10**
 
-Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. LB7 je zatvoren zajedničkim mapper/formatter primitivama i migracijskim dokazom. Do pune ocjene ostaju čišćenje posljednjih istorijskih komentara i domensko cijepanje velikih orchestratora; oni nisu deklarativno zatvoreni bez implementacije.
+Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. LB7 je zatvoren zajedničkim mapper/formatter primitivama i migracijskim dokazom. LB9 je zatvoren potpunim čišćenjem i regresijskim guardom. Do pune ocjene ostaje domensko cijepanje velikih orchestratora (LB11).
 
 ---
 
@@ -214,6 +218,7 @@ Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran 
 
 ## Status implementacije (2026-10-18)
 
+- **LB9 zatvoren:** produkcijski `lib/` nema istorijske fazne/review oznake; `comment-hygiene.spec.ts` rekurzivno sprječava povratak.
 - **LB2 i LB3 zatvoreni:** singleton moduli imaju eksplicitne reset/lifecycle ugovore; ticket UI orchestratori i timer host su u components, neutralni ugovori su u lib, a ESLint zabranjuje lib→components regresiju.
 - **LB8 zatvoren:** problem, asset i admin-security ključevi/invalidacije koriste centralne fabrike; ticket-count invalidacija koristi postojeći prefiks. Grep više ne nalazi sirovi produkcijski `queryKey: ["…"]`.
 - **LB1 ostaje zatvoren:** session/query implementacija nije mijenjana. **LB6 zatvoren:** chart helper direktno koristi poznate i18n ključeve, bez `as never`/`as unknown as`; TypeScript i spec su zeleni.

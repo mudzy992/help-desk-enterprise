@@ -59,7 +59,7 @@ export function mapServiceVolumeBars(
 }
 
 /**
- * Val 1 (M15 gap): brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
+ * Brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
  * vrijednost je broj tiketa, a ne sati.
  */
 export function mapCountBars(

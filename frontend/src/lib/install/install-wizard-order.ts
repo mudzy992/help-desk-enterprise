@@ -2,7 +2,7 @@ import { installSectionStepKeys } from "@/services/install-sections-api";
 import type { InstallWizardStep } from "@/services/install-api";
 
 /*
-  Install wizard v2 (F6.1): the wizard's order and its label helpers. They sit
+  The wizard's order and label helpers sit
   next to the presentations rather than inside them because the shell, the rail
   and „Nazad“ read the order while nothing on those screens knows what a step
   looks like.
