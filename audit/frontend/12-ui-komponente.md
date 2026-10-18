@@ -1,7 +1,7 @@
 # Modul 12: `ui/` komponente — Pulse dizajn sistem
 
 **Datum audita:** 2026-10-18
-**Auditirani Git SHA:** `45e4d49` (`arena/bd31e07b-help-desk-enterprise`)
+**Auditirani Git SHA:** `3fa3dbb` (`arena/bd31e07b-help-desk-enterprise`)
 **Status:** v3 re-audit osvježen prema implementiranom stanju
 **Oznake nalaza:** samo **UI**
 
@@ -91,7 +91,7 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 | **UI6**  | Badge, StatCard i Progress koriste jedan iscrpan `pulseToneStyles` ugovor; oba Chip režima koriste isti remove primitive.                        | Održavati zajedničke ugovore i Chip behavior test.                         |
 | **UI7**  | Modal, ConfirmDialog, Toast, oba Field API-ja, Tabs, Segmented i FilterBar imaju behavior/semantičke testove.                                    | Održavati kompletan behavior ugovor regresijskim testovima.                |
 | **UI8**  | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku.                                                | Eksplicitna semantika i runtime/axe potvrda.                               |
-| **UI9**  | `PageHeader` koristi `"\u0000brand"` sentinel.                                                                                                   | Tipizovan crumb model.                                                     |
+| **UI9**  | PageHeader koristi `PageHeaderCrumb` model sa eksplicitnom `{ kind: "brand" }` varijantom; string sentinel je uklonjen.                          | Održavati tipizovani model i collision test.                               |
 | **UI10** | Switch/Chip/Avatar koriste `bg-white`, `bg-black/*` ili `ring-black/white`; trenutni guard ih ne odbija.                                         | Tokeni za thumb, hover i avatar ring ili dokumentovan, guardovan izuzetak. |
 | **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`.                                                                  | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije.       |
 | **UI12** | `toast()` sinhrono vraća ID stvarno kreiranog ili dedupliciranog zapisa, uključujući pozive prije React commita.                                 | Održavati tačan ugovor behavior testom.                                    |
@@ -130,9 +130,13 @@ ESLint override za produkcijski `components/ui` zabranjuje zavisnosti prema drug
 
 `pulseToneStyles` je jedan iscrpan `Record<BadgeTone, ...>` sa badge, text i fill prezentacijama za svih osam semantičkih tonova. Badge, StatCard delta i Progress više nemaju zasebne tone mape, a dodavanje novog tona zahtijeva kompletan zajednički zapis na TypeScript nivou. Interni `ChipRemoveButton` uklanja duplicirani JSX iz statičkog i interaktivnog režima; behavior test potvrđuje označenu remove akciju, dekorativnu ikonu i nezavisnost selection/remove callbackova.
 
-### UI9–UI15 — održavanje API-ja
+### UI9 — tipizovani PageHeader crumb model (zatvoren)
 
-Preostali nalazi nisu pojedinačno kritični, ali šire javnu površinu i dopuštaju divergenciju: sentinel, alias varijante, neujednačeni propovi, istorijski komentari i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
+Aplikacijski PageHeader sada prima `PageHeaderCrumb`: običan tekst ili eksplicitnu `{ kind: "brand" }` varijantu. `brandCrumb` je tipizovani objekt, a `resolvePageHeaderCrumbs` jedino tu varijantu mapira na konfigurirano ime aplikacije. Test potvrđuje brand razrješenje i da čak ni tekst jednak starom `"\u0000brand"` sentinelu više ne može kolidirati sa sistemskim značenjem.
+
+### UI10–UI15 — održavanje API-ja
+
+Preostali nalazi nisu pojedinačno kritični, ali šire javnu površinu i dopuštaju divergenciju: alias varijante, neujednačeni propovi, istorijski komentari i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
 
 ### UI7 i UI8 — dokaz ponašanja
 
@@ -164,7 +168,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 | **UI6**  | **Zatvoren**    | Jedan iscrpan tone-style zapis koriste Badge/StatCard/Progress; jedan ChipRemoveButton koriste oba režima uz 2 behavior testa.                    |
 | **UI7**  | **Zatvoren**    | 9 UI spec fajlova / 24 testa; Modal, ConfirmDialog, Toast, Field, Tabs, Segmented i FilterBar ugovori su pokriveni.                               |
 | **UI8**  | **Zatvoren**    | Progress value ugovor, wizard current step, Avatar identity/decorative režim, jedan skeleton naziv i imenovani detail region pokriveni testovima. |
-| **UI9**  | Otvoren         | NUL sentinel je i dalje u `page-header.tsx`.                                                                                                      |
+| **UI9**  | **Zatvoren**    | Diskriminirani brand crumb zamjenjuje NUL sentinel; resolver test potvrđuje brand mapiranje i odsustvo string kolizije.                           |
 | **UI10** | Otvoren         | Default black/white utilityji ostaju; guard je zelen, ali ih ne klasifikuje kao zabranjenu paletu.                                                |
 | **UI11** | Otvoren         | Fazni komentari i zastario broj potrošača ostaju.                                                                                                 |
 | **UI12** | **Zatvoren**    | Sinhroni `queueRef` osigurava stvarni create/dedup ID i spaja uzastopne pre-commit pozive; behavior test potvrđuje isti ID i `×2`.                |
@@ -191,7 +195,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 ### P2 — Pulse ugovor i čišćenje
 
-5. Održavati zatvoreni UI6 zajednički tone/Chip ugovor; za **UI9/UI11/UI13–UI15** ukloniti sentinel/mrtve exporte, kanonizovati props/varijante/i18n i očistiti istorijske komentare.
+5. Održavati zatvoreni UI6 zajednički tone/Chip ugovor; za **UI11/UI13–UI15** ukloniti mrtve exporte, kanonizovati props/varijante/i18n i očistiti istorijske komentare.
 6. **UI10:** zamijeniti black/white utilityje tokenima ili dokumentovati i automatizovati precizan izuzetak.
 7. Za svaki PR pokrenuti sva tri Pulse guarda, UI Vitest paket i `check-install-aurora.mjs`.
 
@@ -199,11 +203,11 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 ## Ocjena
 
-**9,6/10**
+**9,7/10**
 
-Ocjena je ponovo izračunata prema SHA `45e4d49`: UI4 je zatvoren mjerljivim ugovorom od 280/280 Field upotreba, a UI6 jednim iscrpnim tone zapisom i jednim testiranim Chip remove primitivom. Zatvoreni su široki a11y, behavior i arhitektonski rizici UI1–UI8, UI12, UI16 i UI17. UI paket sada ima 11 spec fajlova i 27 testova, cijeli frontend 316/316 fajlova i 1303/1303 testa, a build, lint bez grešaka i svi guardovi su zeleni.
+Ocjena je ponovo izračunata prema SHA `3fa3dbb`: UI9 je zatvoren tipizovanim brand crumbom bez string kolizije, uz ranije zatvorene široke a11y, behavior i arhitektonske rizike UI1–UI8, UI12, UI16 i UI17. UI paket ostaje na 11 spec fajlova i 27 testova, a cijeli frontend sada prolazi 317/317 fajlova i 1305/1305 testova; build, lint bez grešaka i svi guardovi su zeleni.
 
-Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), API i naming čišćenje UI9/UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i preostalih održavačkih ugovora ocjena ostaje realnih 9,6.
+Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), API i naming čišćenje UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i preostalih održavačkih ugovora ocjena ostaje realnih 9,7.
 ---
 
 ## Provjere izvršene
@@ -211,7 +215,7 @@ Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), AP
 - [x] Inventarisano **42 fajla** u `components/ui`: 28 produkcijskih TSX, tri produkcijska TS helpera i 11 spec fajlova.
 - [x] Potvrđena neutralna `ui/` import granica i aktivni `no-restricted-imports` ugovor.
 - [x] Produkcijski grep za `window.confirm` vraća 0.
-- [x] `npm test -- --run` — **316/316 testnih fajlova, 1303/1303 testa**.
+- [x] `npm test -- --run` — **317/317 testnih fajlova, 1305/1305 testova**.
 - [x] `npx vitest run src/components/ui` — **11/11 fajlova, 27/27 testova**.
 - [x] `npm run build` — TypeScript i Vite build prošli; ostaje postojeće upozorenje za veliki bundle chunk.
 - [x] `npm run lint` — 0 grešaka, 12 postojećih hook upozorenja.
@@ -224,4 +228,4 @@ Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), AP
 
 ## Zaključak re-audita (2026-10-18)
 
-Dokument je osvježen prema feature SHA `45e4d49`. Zatvoreno je 11 nalaza (UI1, UI2, UI3, UI4, UI5, UI6, UI7, UI8, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI9/UI10/UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI10/UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
+Dokument je osvježen prema feature SHA `3fa3dbb`. Zatvoreno je 12 nalaza (UI1, UI2, UI3, UI4, UI5, UI6, UI7, UI8, UI9, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI10/UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI10/UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
