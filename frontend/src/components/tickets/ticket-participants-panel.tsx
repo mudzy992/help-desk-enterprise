@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DetailSection } from "@/components/ui/detail-section";
 import { hintClassName, selectClassName } from "@/components/ui/control";
 import type {
@@ -37,6 +38,7 @@ export function TicketParticipantsPanel({
   const [userId, setUserId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [removeId, setRemoveId] = useState<string | null>(null);
   const assignable = directoryUsers.filter(
     (user) => !items.some((item) => item.userId === user.id),
   );
@@ -88,11 +90,7 @@ export function TicketParticipantsPanel({
                 <button
                   type="button"
                   className="text-[10px] text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
-                  onClick={() => {
-                    if (window.confirm(t("tickets.detail.confirmRemove"))) {
-                      void onRemove(item.id);
-                    }
-                  }}
+                  onClick={() => setRemoveId(item.id)}
                 >
                   ×
                 </button>
@@ -101,6 +99,18 @@ export function TicketParticipantsPanel({
           );
         })}
       </div>
+      <ConfirmDialog
+        open={removeId !== null}
+        onOpenChange={(open) => !open && setRemoveId(null)}
+        title={t("tickets.detail.confirmRemove")}
+        intent="danger"
+        onConfirm={() => {
+          if (removeId === null) return;
+          const id = removeId;
+          setRemoveId(null);
+          void onRemove(id);
+        }}
+      />
       {canManage && adding ? (
         <form
           className="grid gap-2 border-t border-border/70 px-4 py-3"

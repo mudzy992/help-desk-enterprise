@@ -82,7 +82,7 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 | UI | Realno stanje | Željeno stanje |
 |---|---|---|
-| **UI2** | Pet stvarnih `window.confirm` poziva ostaje u tickets/users/email templates. | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
+| **UI2** | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok. | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
 | **UI3** | Tabs i Segmented imaju role, ali nemaju roving fokus ni Arrow/Home/End. | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze. |
 | **UI4** | Render-prop Field je ispravan i testiran; legacy oblik ne prenosi a11y stanje na kontrolu. | Migrirati legacy upotrebe ili uvesti API koji uvijek povezuje label/hint/error. |
 | **UI5** | `ui/` i dalje zna za error domene, ticket format, docs/branding i ticket panel logging/copy. | Presentational `ui/`; domenska adaptacija izvan foldera + lint granica. |
@@ -106,9 +106,9 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 `ModalHeader` sada interno koristi već izvezene `ModalTitle` i `ModalDescription`, bez promjene API-ja potrošača. `ConfirmDialog` test dokazuje imenovani `alertdialog`, povezani opis, početni fokus na sigurnoj akciji i zatvaranje Escape tipkom.
 
-### UI2 — dvije konvencije potvrde
+### UI2 — jedinstvena potvrda (zatvoren)
 
-Ostalo je pet native potvrda: ticket participants, ticket attachments, unlink i delete user te email-template unsaved navigation. Ranija assets mjesta su migrirana, pa je nalaz djelimično smanjen. Native prompt nema Pulse/Aurora temu, intent, pending stanje ni pouzdan testni API.
+Ticket participants, ticket attachments, unlink/delete user i email-template unsaved navigation sada koriste zajednički `ConfirmDialog`. Destruktivne akcije nose danger intent, async user akcije pending stanje, a blocker se pravilno nastavlja ili resetuje bez browser prompta. Produkcijski `src/` nema `window.confirm` poziva.
 
 ### UI3 i UI4 — custom interakcija i forma
 
@@ -145,7 +145,7 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 | UI | Status | Dokaz |
 |---|---|---|
 | **UI1** | Zatvoren | `ModalHeader` montira Radix Title/Description; ConfirmDialog test pokriva name, opis, početni fokus i Escape. |
-| **UI2** | Djelimično | Assets potvrde su migrirane; ostaje 5 `window.confirm` poziva. |
+| **UI2** | **Zatvoren** | Svih pet tokova koristi `ConfirmDialog`; produkcijski grep za `window.confirm` vraća 0. |
 | **UI3** | Otvoren | Role postoje; roving fokus i Arrow/Home/End ne postoje. |
 | **UI4** | Djelimično | Render-prop + 3 testa su ispravni; legacy grana ostaje. |
 | **UI5** | Otvoren | Error domeni, ticket formatter, docs/branding i ticket boundary ostaju u `ui/`. |
@@ -175,7 +175,7 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 
 ### P1 — konzistentnost i pouzdanost
 
-4. **UI2:** zamijeniti svih pet `window.confirm` tokova `ConfirmDialog` obrascem.
+4. Održavati zatvoreni UI2: nove potvrde koriste `ConfirmDialog`, bez native browser prompta.
 5. **UI7/UI12:** testirati Toast queue/dedup/pauzu/Escape/ID i FilterBar; popraviti ili redefinisati toast ID.
 6. **UI5/UI17:** izvući domenske adaptere i ticket boundary iz `ui/`; uvesti `no-restricted-imports` sa infrastrukturnom allowlistom.
 
@@ -189,9 +189,9 @@ Broj specova je porastao sa 2 na 4, a Field i PanelErrorBoundary imaju korisne t
 
 ## Ocjena
 
-**7,5/10**
+**8,0/10**
 
-Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-prop je testiran, ConfirmDialog i PanelErrorBoundary imaju osnovne specove, Pulse token/kontrast/a11y guardovi su zeleni, a Aurora shim trenutno nema praznina. Ocjena ipak ne ide više jer UI1 ostaje širok accessible-name propust, UI2 još ima pet native potvrda, UI3/UI4 nisu završeni, arhitektonska granica UI5 je i dalje otvorena, a samo 7 testova ne pokriva Modal/Toast/Tabs behavior. Browser/axe dokaz u ovom re-auditu nije izvršen.
+Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-prop je testiran, ConfirmDialog i PanelErrorBoundary imaju osnovne specove, Pulse token/kontrast/a11y guardovi su zeleni, a Aurora shim trenutno nema praznina. Ocjena ipak ne ide više jer UI1 ostaje širok accessible-name propust, UI2 je zatvoren jedinstvenim ConfirmDialog obrascem, ali UI3/UI4 nisu završeni, arhitektonska granica UI5 je i dalje otvorena, a samo 7 testova ne pokriva Modal/Toast/Tabs behavior. Browser/axe dokaz u ovom re-auditu nije izvršen.
 
 ---
 
@@ -212,6 +212,7 @@ Modul je širi i pouzdaniji nego 2026-10-13: inventar je porastao, Field render-
 
 ## Status implementacije (2026-10-18)
 
+- **UI2 zatvoren:** svih pet native potvrda migrirano je na `ConfirmDialog`; produkcijski `window.confirm` grep je 0.
 - **UI1 zatvoren:** `ModalHeader` koristi Radix `ModalTitle`/`ModalDescription` uz nepromijenjen javni API i vizuelne klase. `confirm-dialog.spec.tsx` potvrđuje programsko ime, opis, početni fokus i Escape. Browser/axe nije pokrenut; komponentni Radix ugovor je potvrđen u jsdom testu.
 
 ## Status re-audita (2026-10-18)

@@ -6,6 +6,7 @@ import { SettingsReasonConfirm } from "@/components/settings/settings-reason-con
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { hintClassName, selectCompactClassName } from "@/components/ui/control";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -96,11 +97,6 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
     },
     { capture: true },
   );
-  useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    if (window.confirm(t("settings.emailTemplates.unsavedConfirm"))) blocker.proceed();
-    else blocker.reset();
-  }, [blocker, t]);
 
   // Live preview (debounced) through the server renderer — exactly what recipients get.
   useEffect(() => {
@@ -198,6 +194,16 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
       className="fade-in flex flex-col overflow-hidden p-0"
       data-testid="email-templates-editor"
     >
+      <ConfirmDialog
+        open={blocker.state === "blocked"}
+        onOpenChange={(open) => {
+          if (!open && blocker.state === "blocked") blocker.reset();
+        }}
+        title={t("settings.emailTemplates.unsavedConfirm")}
+        onConfirm={() => {
+          if (blocker.state === "blocked") blocker.proceed();
+        }}
+      />
       <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-3">
         <select
           className={cn(selectCompactClassName, "w-72")}
