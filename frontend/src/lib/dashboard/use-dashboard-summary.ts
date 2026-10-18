@@ -1,39 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { localDayKey, queryKeys } from "@/lib/query/query-keys";
-import {
-  composeDashboardSummary,
-  dashboardRecentTicketLimit,
-  type DashboardSummary,
-} from "@/lib/dashboard/compose-dashboard-summary";
-import {
-  dashboardAttentionTicketLimit,
-  dashboardOpenStatuses,
-  dashboardSlaWatchlistLimit,
-} from "@/lib/dashboard/dashboard-ticket-sets";
-import { dashboardVolumeDayCount } from "@/lib/dashboard/build-volume-14d";
-import { loadDashboardVolume } from "@/lib/dashboard/load-dashboard-volume";
+import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
+import { loadDashboardPrimary } from "@/lib/dashboard/load-dashboard-primary";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
 import { listOfferedServices, listServices } from "@/services/service-catalog-api";
-import { fetchDashboardSummary } from "@/services/report-summary-api";
-import { listGroupInbox, listTicketsPage, type TicketResponse } from "@/services/tickets-api";
+import { listGroupInbox, type TicketResponse } from "@/services/tickets-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { RoutingRuleResponse } from "@/services/routing-api";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
-
-/** Početak lokalne civilne noći 13 dana prije `now` (prvi dan grafikona). */
-function dashboardVolumeWindowStart(now: Date): Date {
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dashboardVolumeDayCount - 1));
-}
 
 export type DashboardSummaryState = {
   readonly isStaff: boolean;
@@ -100,116 +84,7 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
         //  - D8: dedicated `critical-unassigned` query instead of relying on
         //    the top-8 by `updatedAt` from the generic unassigned page, so a
         //    critical ticket without an owner can never fall out of view.
-        const volumeStart = dashboardVolumeWindowStart(new Date());
-        const volumeLoadPromise = loadDashboardVolume({
-          fetchPage: (page, pageSize) =>
-            queryClient.fetchQuery({
-              // Val 6.1 / modul 4 (D18): include the window start in the query
-              // key so results from different windows never collide; the old
-              // key relied on staleTime expiring fast enough.
-              queryKey: queryKeys.ticketList({
-                view: "dashboard-volume",
-                windowFrom: volumeStart.toISOString(),
-                page,
-              }),
-              queryFn: () =>
-                listTicketsPage({
-                  createdFrom: volumeStart.toISOString(),
-                  sort: "createdAt",
-                  dir: "desc",
-                  page,
-                  pageSize,
-                }),
-            }),
-        });
-        const [
-          counts,
-          recentPage,
-          overduePage,
-          minePage,
-          unassignedPage,
-          criticalUnassignedPage,
-          volumeLoad,
-        ] = await Promise.all([
-          queryClient.fetchQuery({
-            queryKey: queryKeys.dashboardSummary(dayKey),
-            queryFn: () => fetchDashboardSummary(),
-          }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),
-            queryFn: () =>
-              listTicketsPage({
-                sort: "createdAt",
-                dir: "desc",
-                pageSize: dashboardRecentTicketLimit,
-              }),
-          }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-overdue" }),
-            queryFn: () =>
-              listTicketsPage({
-                overdue: true,
-                sort: "slaDueAt",
-                dir: "asc",
-                pageSize: dashboardSlaWatchlistLimit,
-              }),
-          }),
-          currentUserId === null
-            ? Promise.resolve(null)
-            : queryClient.fetchQuery({
-                queryKey: queryKeys.ticketList({
-                  view: "dashboard-assigned",
-                  userId: currentUserId,
-                }),
-                queryFn: () =>
-                  listTicketsPage({
-                    assignedUserId: currentUserId,
-                    status: [...dashboardOpenStatuses],
-                    sort: "updatedAt",
-                    dir: "desc",
-                    pageSize: dashboardAttentionTicketLimit,
-                  }),
-              }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-unassigned" }),
-            queryFn: () =>
-              listTicketsPage({
-                unassigned: true,
-                status: [...dashboardOpenStatuses],
-                sort: "updatedAt",
-                dir: "desc",
-                pageSize: dashboardAttentionTicketLimit,
-              }),
-          }),
-          isStaff
-            ? queryClient.fetchQuery({
-                queryKey: queryKeys.ticketList({ view: "dashboard-critical-unassigned" }),
-                queryFn: () =>
-                  listTicketsPage({
-                    unassigned: true,
-                    priority: "CRITICAL",
-                    status: [...dashboardOpenStatuses],
-                    sort: "slaDueAt",
-                    dir: "asc",
-                    pageSize: dashboardAttentionTicketLimit,
-                  }),
-              })
-            : Promise.resolve({ items: [] as readonly TicketResponse[] }),
-          volumeLoadPromise,
-        ]);
-
-        setSummary(
-          composeDashboardSummary({
-            counts,
-            recentTickets: recentPage.items,
-            overdueTickets: overduePage.items,
-            assignedToMeTickets: minePage?.items ?? [],
-            unassignedTickets: [...unassignedPage.items, ...criticalUnassignedPage.items],
-            volumeTickets: volumeLoad.tickets,
-            volumeTruncated: volumeLoad.truncated,
-            currentUserId,
-          }),
-        );
+        setSummary(await loadDashboardPrimary({ queryClient, dayKey, currentUserId, isStaff }));
 
         if (!silent) {
           setIsLoading(false);
