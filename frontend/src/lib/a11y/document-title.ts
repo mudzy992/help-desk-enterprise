@@ -48,3 +48,8 @@ export function formatDocumentTitle(
 export function setDocumentTitle(...parts: (string | null | undefined)[]): void {
   document.title = formatDocumentTitle(parts, getProductName());
 }
+
+/** Restores module state so tests and identity changes cannot leak a product name. */
+export function resetDocumentTitle(): void {
+  productName = null;
+}

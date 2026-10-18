@@ -16,7 +16,7 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
 import { defaultInboxTab } from "@/lib/tickets/filter-tickets";
-import { useTicketList } from "@/lib/tickets/use-ticket-list";
+import { useTicketList } from "@/components/tickets/hooks/use-ticket-list";
 import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
 
 export function TicketListPage() {

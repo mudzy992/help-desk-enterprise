@@ -1,4 +1,4 @@
-import type { OnboardingServiceValues } from "@/components/services/onboarding/onboarding-service-step";
+import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 import {
   completeOnboardingStep,
   createServiceOnboarding,

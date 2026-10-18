@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHelpdeskQueryClient } from "@/lib/query/query-client";
 import { ToastProvider } from "@/components/ui/toast";
-import { useTicketList } from "@/lib/tickets/use-ticket-list";
+import { useTicketList } from "@/components/tickets/hooks/use-ticket-list";
 import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
 import { listOfferedServices } from "@/services/service-catalog-api";
 import {

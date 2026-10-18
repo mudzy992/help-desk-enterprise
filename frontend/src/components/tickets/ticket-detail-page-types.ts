@@ -1,6 +1,6 @@
-import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions } from "@/lib/tickets/message-composer-contracts";
 import type { TicketActionView } from "@/lib/tickets/ticket-action-matrix";
-import type { useTicketDetailPageModel } from "@/lib/tickets/use-ticket-detail-page-model";
+import type { useTicketDetailPageModel } from "@/components/tickets/hooks/use-ticket-detail-page-model";
 import type { TicketResponse } from "@/services/tickets-api";
 
 export type TicketDetailPageModel = ReturnType<typeof useTicketDetailPageModel>;

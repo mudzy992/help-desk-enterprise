@@ -3,13 +3,14 @@ import { FileText, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MentionPicker } from "@/components/tickets/mention-picker";
 import { TICKET_CONVERSATION_ID } from "@/components/tickets/ticket-conversation";
-import { TemplatePicker, type InsertedTemplate } from "@/components/templates/template-picker";
+import { TemplatePicker } from "@/components/templates/template-picker";
+import type { InsertedTemplate } from "@/lib/tickets/message-composer-contracts";
 import { errorTextClassName, textareaClassName } from "@/components/ui/control";
 import type { TemplatesErrorKey } from "@/lib/templates/map-templates-error";
 import type {
   ComposerCollaborationOptions,
   ComposerTemplatesOptions,
-} from "@/components/tickets/ticket-message-composer-types";
+} from "@/lib/tickets/message-composer-contracts";
 import type { MentionQuery } from "@/lib/tickets/mention-tokens";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { isSlashTrigger } from "@/lib/templates/insert-at-cursor";
