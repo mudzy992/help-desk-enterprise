@@ -108,7 +108,7 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 | **LB7** | Domenski mapperi ostaju odvojeni, ali zajednički code/status algoritam i svi datetime konstruktori su centralizovani. | Generički mapper i zajednički datetime API, migrirani uz direktne testove. |
 | **LB8** | Centralni registar pokriva sve ranije sirove literal ključeve; preostali `queryKey: [...factory(), version]` izrazi namjerno proširuju postojeće domenske fabrike. | Fabrike i invalidacije dijele isti ključ; lint/test sprječava nove inline ključeve. |
 | **LB9** | Istorijske fazne/review oznake uklonjene su iz produkcijskog `lib/`; guard test sprječava povratak. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
-| **LB11** | Najveći fajlovi imaju 484, 410, 345, 328 i 308 linija. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
+| **LB11** | Cijepanje je započeto po odgovornosti: audit katalozi, Markdown parser/highlighter, ops detalji, asset greške/stablo i change historija su odvojeni; preostaju ticket activity i dashboard orchestrator. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
 
 ---
 
@@ -170,7 +170,7 @@ Veliki orchestratori i dalje zahtijevaju domensko cijepanje. Cijepanje treba pra
 | **LB8** | **Zatvoren** | Svi sirovi literal ključevi prebačeni su u centralne fabrike; ostaju samo proširenja postojećih fabričkih ključeva. |
 | **LB9** | **Zatvoren** | Nula produkcijskih istorijskih/faznih oznaka; rekurzivni guard test sprječava regresiju. |
 | **LB10** | **Zatvoren** | `admin-ops-i18n-coverage.spec.ts` pinira backend katalog, bs/en action/entity/field/value ključeve i fallback. |
-| **LB11** | Otvoren | Pet reprezentativnih fajlova je 308–484 linije. |
+| **LB11** | U toku | Pet velikih modula je domenski razdvojeno u manje javno kompatibilne cjeline; preostaju ticket activity i dashboard orchestrator. |
 
 ---
 
