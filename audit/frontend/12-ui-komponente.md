@@ -1,7 +1,7 @@
 # Modul 12: `ui/` komponente — Pulse dizajn sistem
 
 **Datum audita:** 2026-10-18
-**Auditirani Git SHA:** `4bb0d28` (`arena/bd31e07b-help-desk-enterprise`)
+**Auditirani Git SHA:** `45e4d49` (`arena/bd31e07b-help-desk-enterprise`)
 **Status:** v3 re-audit osvježen prema implementiranom stanju
 **Oznake nalaza:** samo **UI**
 
@@ -9,7 +9,7 @@
 
 ## Modul
 
-`frontend/src/components/ui/` je zajednički, domenski neutralan Pulse sloj za dashboard, tickets, settings, admin i ostale prijavljene tokove. Na auditiranom SHA ima **40 fajlova**: **28 produkcijskih `.tsx` fajlova**, `control.ts`, `selection-keyboard.ts` i **10 spec fajlova**. Javni obuhvat ide od osnovnih kontrola (`Button`, `Field`, `Checkbox`, `Switch`) preko Radix površina (`Modal`, `Sheet`, `DropdownMenu`) do složenijih neutralnih obrazaca (`ToastProvider`, `ResponsiveSurface`, `FilterBar`). Ticket-specifični `DetailSection` i `PanelErrorBoundary` više nisu dio ovog foldera.
+`frontend/src/components/ui/` je zajednički, domenski neutralan Pulse sloj za dashboard, tickets, settings, admin i ostale prijavljene tokove. Na auditiranom SHA ima **42 fajla**: **28 produkcijskih `.tsx` fajlova**, tri produkcijska `.ts` fajla (`control`, `selection-keyboard`, `tone-styles`) i **11 spec fajlova**. Javni obuhvat ide od osnovnih kontrola (`Button`, `Field`, `Checkbox`, `Switch`) preko Radix površina (`Modal`, `Sheet`, `DropdownMenu`) do složenijih neutralnih obrazaca (`ToastProvider`, `ResponsiveSurface`, `FilterBar`). Ticket-specifični `DetailSection` i `PanelErrorBoundary` više nisu dio ovog foldera.
 
 Potrošnja je velika: grep nalazi oko 290 fajlova koji uvoze `button`, 137 `badge`, 127 `card`, 108 `skeleton`, 80 `field`, 80 `toast`, 51 `api-error-text`, 44 `sheet` i 33 `confirm-dialog`. Zbog toga mali API ili a11y propust u `ui/` ima širok horizontalni uticaj.
 
@@ -88,7 +88,7 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 | **UI3**  | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor.                                    | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze.                    |
 | **UI4**  | Svih 280 produkcijskih Field poziva koristi obavezni render-function API i prosljeđuje kompletno a11y stanje kontroli.                           | Održavati 0 legacy upotreba tipnim i AST contract guardom.                 |
 | **UI5**  | `ui/` produkcijski kod zavisi samo od drugih UI primitiva i neutralne infrastrukture; domenski adapteri su izvan foldera, a ESLint čuva granicu. | Održavati neutralnu granicu lint zaštitom.                                 |
-| **UI6**  | Badge/Stat/Progress imaju odvojene mape istih tonova; Chip duplira remove JSX.                                                                   | Zajednički tone ugovor i jedan remove primitive.                           |
+| **UI6**  | Badge, StatCard i Progress koriste jedan iscrpan `pulseToneStyles` ugovor; oba Chip režima koriste isti remove primitive.                        | Održavati zajedničke ugovore i Chip behavior test.                         |
 | **UI7**  | Modal, ConfirmDialog, Toast, oba Field API-ja, Tabs, Segmented i FilterBar imaju behavior/semantičke testove.                                    | Održavati kompletan behavior ugovor regresijskim testovima.                |
 | **UI8**  | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku.                                                | Eksplicitna semantika i runtime/axe potvrda.                               |
 | **UI9**  | `PageHeader` koristi `"\u0000brand"` sentinel.                                                                                                   | Tipizovan crumb model.                                                     |
@@ -126,9 +126,13 @@ Legacy children grana je uklonjena iz `Field` tipa i implementacije. Svih 153 za
 
 ESLint override za produkcijski `components/ui` zabranjuje zavisnosti prema drugim component domenima, domenskim `lib` direktorijima, servisima i stranicama. Dozvoljeni ostaju drugi UI primitivi i eksplicitno neutralni `a11y`, `feedback`, `ui`, formatting i `utils` helperi. Puni lint prolazi sa 0 grešaka.
 
-### UI6, UI9–UI15 — održavanje API-ja
+### UI6 — tone i Chip remove ugovor (zatvoren)
 
-Ovi nalazi nisu pojedinačno kritični, ali zajedno šire javnu površinu i dopuštaju divergenciju: četiri tone mape, alias varijante, sentinel, neujednačeni propovi i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
+`pulseToneStyles` je jedan iscrpan `Record<BadgeTone, ...>` sa badge, text i fill prezentacijama za svih osam semantičkih tonova. Badge, StatCard delta i Progress više nemaju zasebne tone mape, a dodavanje novog tona zahtijeva kompletan zajednički zapis na TypeScript nivou. Interni `ChipRemoveButton` uklanja duplicirani JSX iz statičkog i interaktivnog režima; behavior test potvrđuje označenu remove akciju, dekorativnu ikonu i nezavisnost selection/remove callbackova.
+
+### UI9–UI15 — održavanje API-ja
+
+Preostali nalazi nisu pojedinačno kritični, ali šire javnu površinu i dopuštaju divergenciju: sentinel, alias varijante, neujednačeni propovi, istorijski komentari i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
 
 ### UI7 i UI8 — dokaz ponašanja
 
@@ -157,7 +161,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 | **UI3**  | **Zatvoren**    | Roving fokus, Arrow/Home/End, wrap-around i opcionalni panel link pokriveni behavior testom.                                                      |
 | **UI4**  | **Zatvoren**    | 280/280 Field poziva koristi i prosljeđuje typed control props; legacy API je uklonjen, a AST contract test čuva ugovor.                          |
 | **UI5**  | **Zatvoren**    | Domenski adapteri su izvan `ui/`; ESLint zabranjuje component-domain, domain-lib, service i page importe u UI produkcijskom kodu.                 |
-| **UI6**  | Otvoren         | Tone mape i Chip remove markup su duplicirani.                                                                                                    |
+| **UI6**  | **Zatvoren**    | Jedan iscrpan tone-style zapis koriste Badge/StatCard/Progress; jedan ChipRemoveButton koriste oba režima uz 2 behavior testa.                    |
 | **UI7**  | **Zatvoren**    | 9 UI spec fajlova / 24 testa; Modal, ConfirmDialog, Toast, Field, Tabs, Segmented i FilterBar ugovori su pokriveni.                               |
 | **UI8**  | **Zatvoren**    | Progress value ugovor, wizard current step, Avatar identity/decorative režim, jedan skeleton naziv i imenovani detail region pokriveni testovima. |
 | **UI9**  | Otvoren         | NUL sentinel je i dalje u `page-header.tsx`.                                                                                                      |
@@ -187,7 +191,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 ### P2 — Pulse ugovor i čišćenje
 
-5. **UI6/UI9/UI11/UI13–UI15:** objediniti tonove, ukloniti sentinel/mrtve exporte, kanonizovati props/varijante/i18n i očistiti istorijske komentare.
+5. Održavati zatvoreni UI6 zajednički tone/Chip ugovor; za **UI9/UI11/UI13–UI15** ukloniti sentinel/mrtve exporte, kanonizovati props/varijante/i18n i očistiti istorijske komentare.
 6. **UI10:** zamijeniti black/white utilityje tokenima ili dokumentovati i automatizovati precizan izuzetak.
 7. Za svaki PR pokrenuti sva tri Pulse guarda, UI Vitest paket i `check-install-aurora.mjs`.
 
@@ -195,20 +199,20 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 ## Ocjena
 
-**9,5/10**
+**9,6/10**
 
-Ocjena je ponovo izračunata prema SHA `4bb0d28`: UI4 je zatvoren uklanjanjem legacy API-ja, migracijom svih 153 preostalih poziva i mjerljivim ugovorom od 280/280 ispravnih produkcijskih upotreba. Time su zatvoreni svi široki a11y i behavior rizici UI1–UI5, UI7/UI8/UI12, arhitektonska granica UI5, Aurora ugovor UI16 i feedback nalaz UI17. UI paket sada ima 10 spec fajlova i 25 testova, cijeli frontend 315/315 fajlova i 1301/1301 test, a build, lint bez grešaka i svi guardovi su zeleni.
+Ocjena je ponovo izračunata prema SHA `45e4d49`: UI4 je zatvoren mjerljivim ugovorom od 280/280 Field upotreba, a UI6 jednim iscrpnim tone zapisom i jednim testiranim Chip remove primitivom. Zatvoreni su široki a11y, behavior i arhitektonski rizici UI1–UI8, UI12, UI16 i UI17. UI paket sada ima 11 spec fajlova i 27 testova, cijeli frontend 316/316 fajlova i 1303/1303 testa, a build, lint bez grešaka i svi guardovi su zeleni.
 
-Do 10/10 još nedostaju konsolidacija tone/remove ugovora (UI6), tokenizacija preostalih black/white utilityja (UI10), API i naming čišćenje UI9/UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i više otvorenih održavačkih ugovora ocjena ostaje realnih 9,5.
+Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), API i naming čišćenje UI9/UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i preostalih održavačkih ugovora ocjena ostaje realnih 9,6.
 ---
 
 ## Provjere izvršene
 
-- [x] Inventarisano **40 fajlova** u `components/ui`: 28 produkcijskih TSX, `control.ts`, `selection-keyboard.ts` i 10 spec fajlova.
+- [x] Inventarisano **42 fajla** u `components/ui`: 28 produkcijskih TSX, tri produkcijska TS helpera i 11 spec fajlova.
 - [x] Potvrđena neutralna `ui/` import granica i aktivni `no-restricted-imports` ugovor.
 - [x] Produkcijski grep za `window.confirm` vraća 0.
-- [x] `npm test -- --run` — **315/315 testnih fajlova, 1301/1301 test**.
-- [x] `npx vitest run src/components/ui` — **10/10 fajlova, 25/25 testova**.
+- [x] `npm test -- --run` — **316/316 testnih fajlova, 1303/1303 testa**.
+- [x] `npx vitest run src/components/ui` — **11/11 fajlova, 27/27 testova**.
 - [x] `npm run build` — TypeScript i Vite build prošli; ostaje postojeće upozorenje za veliki bundle chunk.
 - [x] `npm run lint` — 0 grešaka, 12 postojećih hook upozorenja.
 - [x] `npm run format:check` — prošao.
@@ -220,4 +224,4 @@ Do 10/10 još nedostaju konsolidacija tone/remove ugovora (UI6), tokenizacija pr
 
 ## Zaključak re-audita (2026-10-18)
 
-Dokument je osvježen prema feature SHA `4bb0d28`. Zatvoreno je 10 nalaza (UI1, UI2, UI3, UI4, UI5, UI7, UI8, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI6/UI9/UI10/UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI10/UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
+Dokument je osvježen prema feature SHA `45e4d49`. Zatvoreno je 11 nalaza (UI1, UI2, UI3, UI4, UI5, UI6, UI7, UI8, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI9/UI10/UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI10/UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
