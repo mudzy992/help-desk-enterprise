@@ -95,21 +95,29 @@ Playwright 51/52/53 pokriva tri pozitivna end-to-end profila. Testovi imaju prec
 
 Wizard CI posao je ručni `workflow_dispatch` (`install_spec=51|52|53`), traži token, a za 52/53 i SMTP varijable. Ne podiže niti resetuje vlastiti čisti stack. To je funkcionalna, ali ne i obavezna PR zaštita.
 
+### CI / SMTP env
+
+Preflight prihvata samo `install_spec=51|52|53`, provjerava da je wizard otvoren na `nextStep=profile` i za 52/53 zahtijeva svih pet `E2E_SMTP_*` vrijednosti prije instalacije Chromiuma. Workflow svaku SMTP vrijednost čita kao `vars.NAME || secrets.NAME`; posao nema `environment:`, pa vrijednosti moraju biti repository-level. Prazan GitHub env stiže kao `""`, zaobilazi nullish default i ostavlja **Dalje** onemogućenim. Operativna tabela, Gmail TLS primjer (`smtp.gmail.com:587`) i app-password napomena sada su u `e2e/README.md`.
+
 ---
 
 ## Realno / željeno — samo otvoreno
 
 | IN | Realno stanje | Željeno stanje |
 |---|---|---|
+| **IN13** | Testni inventar je širok, ali nema zasebnih komponentnih specova za login-provider i security-recommendations. | Dodati minimalne render/save/error specove za oba koraka ili eksplicitno zadržati nizak komponentni rizik. |
 | **IN14** | UI E2E 51/52/53 je implementiran i ranije evidentiran kao zelen, ali za auditirani SHA nema priloženog Lighthouse rezultata za `/install`. | Lighthouse accessibility rezultat **≥ 95**, sa datumom, URL-om/buildom i artefaktom. |
 | **IN20** | SMTP ima install-scoped test, ali inbound email i LDAPS nemaju test konekcije iz wizarda. | Rate-limitovane install-scoped rute i UI akcije koje ne izlažu tajne i ne traže završenu sesiju. |
-| **IN22** | `TASKS.md` još kaže da F6 „nije commitovan“, da su samo 51/52 napisana i da nisu izmjerena; `e2e/README.md` opisuje 51/52 i navodi pending owner odluku iako CI i spec 53 postoje. | Uskladiti oba dokumenta sa master implementacijom, 51/52/53 inventarom, izmjerenim statusom i svjesno odabranim CI modelom. |
 | **IN23** | 51/52/53 su veliki pozitivni tokovi; nema zasebnog browser E2E scenarija za pogrešan token, status 5xx/retry, neuspješan save ili readiness odbijanje. RTL/backend testovi pokrivaju dio tih grana, ali ne browser integraciju. | Dodati mali negativni wizard E2E paket za gate fail-closed, load/save retry i blokiran completion. |
 | **IN24** | Wizard E2E se pokreće samo ručnim dispatchom i zavisi od unaprijed pripremljenog svježeg stacka. CI komentar i plan i dalje traže potvrdu modela. | Vlasnički potvrditi dispatch model ili uvesti izolovan reset-stack posao; tek tada ga smatrati obaveznom regresijskom kapijom. |
 
 ---
 
 ## Gap analiza
+
+### IN13 — dva koraka nemaju vlastiti komponentni spec
+
+Registry, API, aktivni korak i povezani builderi jesu testirani, ali ne postoje `install-login-provider-step.spec.tsx` ni `install-security-recommendations.spec.tsx`. To nije dokaz funkcionalnog kvara i rizik je nizak, ali IN13 se ne vodi kao potpuno zatvoren dok oba složena koraka nemaju minimalan render/save/error ugovor.
 
 ### IN14 — Lighthouse dokaz nije dostupan
 
@@ -119,9 +127,9 @@ Statički a11y, RTL, kontrastni guard i E2E prolaz daju snažnu osnovu, ali ne z
 
 Full profil može sačuvati inbound i directory postavke, ali operator ne može potvrditi mrežu, TLS i kredencijale u istom toku. Postojeće domenske funkcije (`InboundEmailAdminService.testConnection()` i `DirectoryFullSyncService.testConnection(actorUserId)`) nisu direktno dostupne install-token kontekstu. Rješenje treba biti tanak install-scoped adapter, ne dupliranje protokola u frontendu.
 
-### IN22 — dokumentacija proturječi repozitoriju
+### IN22 — dokumentacija usklađena
 
-Ovo nije kozmetički problem: operater iz README-a neće vidjeti Full spec kao podržan, a planer iz `TASKS.md` može zaključiti da F6 nije commitovan i da E2E nije izmjeren. Handoff i audit već nose novije stanje; task lista i runbook moraju postati konzistentni izvori.
+Zatvoreno 2026-10-18 commitom `21146ad`: `TASKS.md` više ne tvrdi da F6 nije commitovan, a README dokumentuje 51/52/53, profile i SMTP preflight, `vars || secrets`, prazne env vrijednosti, Gmail TLS primjer i IN24 status.
 
 ### IN23 — nedostaje negativna browser regresija
 
@@ -149,16 +157,16 @@ Trenutni preflight je dobar: ne dozvoljava „zeleno preskakanjem“. Međutim, 
 | **IN10** | Prihvaćen rizik | Fallback password policy je namjeran bootstrap fallback i dokumentovan je. |
 | **IN11** | Zatvoren | Relevantna polja imaju `aria-describedby`; fokus se vodi na naslov koraka. |
 | **IN12** | Zatvoren | Readiness i completion provjeravaju funkcionalan put za tiket, ne samo markere forme. |
-| **IN13** | Zatvoren | Frontend/backend testni inventar značajno pokriva korake, registry i završetak. |
+| **IN13** | Otvoren djelimično (niska) | Inventar značajno pokriva tok, ali nema zasebnih komponentnih specova za login-provider i security-recommendations. |
 | **IN14** | Otvoren djelimično | 51/52/53 postoje i zabilježeni su kao zeleni; nedostaje Lighthouse ≥ 95 artefakt. |
 | **IN15** | Zatvoren | Paket i puna `steps.*` stanja koriste se u UI-u i railu. |
 | **IN16** | Zatvoren | Paket, shell i „šta dobijaš“ copy postoje u bs/en lokalatima. |
 | **IN17** | Zatvoren | Defer/undo je centralizovan u footeru i vođen serverovim `skippable`. |
-| **IN18** | Zatvoren | Install settings metadata je read-only u registry UI-u; nema lažnog editora. |
+| **IN18** | Zatvoren | `readOnly` je UI metadata: registry nema editor, ali ručni `POST /settings/*` i dalje može prihvatiti install ključeve; operativni rizik je dokumentovan. |
 | **IN19** | Zatvoren | Promjena paketa vraća odgodu zahtijevanog koraka i objašnjava ponovno otvaranje. |
 | **IN20** | Otvoren | Inbound email i LDAPS nemaju test konekcije u wizardu. |
 | **IN21** | Zatvoren | Ops-only rerun ima env kapiju, token, CLI/rutu i runbook. |
-| **IN22** | Otvoren | `TASKS.md` i `e2e/README.md` su zastarjeli u odnosu na 51/52/53 i F6 status. |
+| **IN22** | Zatvoren 2026-10-18 | `TASKS.md` i `e2e/README.md` usklađeni commitom `21146ad` sa F6, 51/52/53 i CI/SMTP ugovorom. |
 | **IN23** | Otvoren | Nema namjenskog negativnog browser E2E paketa. |
 | **IN24** | Otvoren | Wizard E2E je ručni dispatch, ne obavezna samostalna clean-stack kapija. |
 
@@ -168,7 +176,7 @@ Trenutni preflight je dobar: ne dozvoljava „zeleno preskakanjem“. Međutim, 
 
 1. **Dokazati pristupačnost:** pokrenuti Lighthouse na stvarnoj `/install` instanci za gate, reprezentativni Full korak i portal; sačuvati izvještaj i zatvoriti **IN14** samo uz rezultat ≥ 95.
 2. **Učiniti provjeru pouzdanom:** dodati mali negativni E2E paket i vlasnički zaključiti CI model sa izolovanim stanjem ili formalno prihvaćenim dispatch runbookom (**IN23**, **IN24**).
-3. **Zatvoriti operativne rupe:** dodati install-scoped inbound/LDAPS testove i uskladiti `TASKS.md`/`e2e/README.md` sa stvarnim F6 i 51/52/53 stanjem (**IN20**, **IN22**).
+3. **Zatvoriti operativne rupe:** dodati install-scoped inbound/LDAPS testove i minimalne komponentne specove za login-provider/security-recommendations (**IN20**, **IN13**).
 
 ---
 
@@ -176,7 +184,7 @@ Trenutni preflight je dobar: ne dozvoljava „zeleno preskakanjem“. Međutim, 
 
 **9,4/10**
 
-v2 je arhitektonski i vizuelno zaokružen: server vodi tok, status je jedan i fail-closed, readiness štiti završetak, sva tri paketa imaju UI E2E, a Aurora ima zasebne tokene, scoped portale, kontrastni proračun, motion guard i Pulse-leak skener u CI-u. Ocjenu ne spušta činjenica da se razlikuje od Pulse shella — to je namjerna odluka. Do 10 nedostaju renderovani Lighthouse dokaz, inbound/LDAPS test konekcije, negativni browser tokovi, konačna CI odluka i usklađena dokumentacija.
+v2 je arhitektonski i vizuelno zaokružen: server vodi tok, status je jedan i fail-closed, readiness štiti završetak, sva tri paketa imaju UI E2E, a Aurora ima zasebne tokene, scoped portale, kontrastni proračun, motion guard i Pulse-leak skener u CI-u. Ocjenu ne spušta činjenica da se razlikuje od Pulse shella — to je namjerna odluka. Do 10 nedostaju renderovani Lighthouse dokaz, inbound/LDAPS test konekcije, negativni browser tokovi, konačna CI odluka i dva uska komponentna testa.
 
 ---
 
@@ -189,7 +197,7 @@ v2 je arhitektonski i vizuelno zaokružen: server vodi tok, status je jedan i fa
 - Pregledani E2E 51/52/53, poseban Playwright setup, precondition, helperi, SMTP catcher i CI preflight/dispatch.
 - Pregledani E2E markup/copy guardovi i Aurora kontrast/motion/shim guard.
 - Grepom provjeren scope `data-install-theme="aurora"`, `--iw-*` sloj, Pulse utility shim i uključivanje `check-install-aurora.mjs` u `.github/workflows/ci.yml`.
-- Upoređeni `e2e/README.md` i `docs/analysis/TASKS.md` sa stvarnim inventarom; potvrđen **IN22**.
+- `docs/analysis/TASKS.md` i `e2e/README.md` ponovo su usklađeni sa F6, specovima 51/52/53 i CI/SMTP ugovorom; **IN22** je zatvoren commitom `21146ad` (2026-10-18).
 - Browser i Lighthouse nisu pokrenuti u ovom re-auditu; zbog toga **IN14** ostaje otvoren.
 - Nisu pokretani testovi iz lokalnog worktreeja jer ono ne sadrži auditirani v2 SHA; raniji rezultati zapisani u handoffu nisu predstavljeni kao novo mjerenje.
 
