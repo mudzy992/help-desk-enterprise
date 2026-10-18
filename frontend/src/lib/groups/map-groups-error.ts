@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/api";
+import { mapDomainApiError } from "@/lib/map-domain-api-error";
 
 export type GroupsErrorKey =
   | "groups.errorUnauthorized"
@@ -25,27 +25,16 @@ const codeKeys: Partial<Record<string, GroupsErrorKey>> = {
 };
 
 export function mapGroupsError(error: unknown): GroupsErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "groups.errorGeneric";
-  }
-  const byCode = codeKeys[error.code];
-  if (byCode !== undefined) {
-    return byCode;
-  }
-  if (error.status === 401) {
-    return "groups.errorUnauthorized";
-  }
-  if (error.status === 403) {
-    return "groups.errorForbidden";
-  }
-  if (error.status === 404) {
-    return "groups.errorNotFound";
-  }
-  if (error.status === 409) {
-    return "groups.errorSoleFallback";
-  }
-  if (error.status === 400 || error.status === 422) {
-    return "groups.errorValidation";
-  }
-  return "groups.errorGeneric";
+  return mapDomainApiError<GroupsErrorKey>(error, {
+    fallback: "groups.errorGeneric",
+    codes: codeKeys,
+    statuses: {
+      401: "groups.errorUnauthorized",
+      403: "groups.errorForbidden",
+      404: "groups.errorNotFound",
+      409: "groups.errorSoleFallback",
+      400: "groups.errorValidation",
+      422: "groups.errorValidation",
+    },
+  });
 }

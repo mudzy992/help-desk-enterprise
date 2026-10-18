@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/api";
+import { mapDomainApiError } from "@/lib/map-domain-api-error";
 
 export type ServiceCategoryErrorKey =
   | "services.categories.errorUnauthorized"
@@ -31,27 +31,16 @@ const codeKeys: Partial<Record<string, ServiceCategoryErrorKey>> = {
 };
 
 export function mapServiceCategoryError(error: unknown): ServiceCategoryErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "services.categories.errorGeneric";
-  }
-  const byCode = codeKeys[error.code];
-  if (byCode !== undefined) {
-    return byCode;
-  }
-  if (error.status === 401) {
-    return "services.categories.errorUnauthorized";
-  }
-  if (error.status === 403) {
-    return "services.categories.errorForbidden";
-  }
-  if (error.status === 404) {
-    return "services.categories.errorNotFound";
-  }
-  if (error.status === 409) {
-    return "services.categories.errorDuplicateSlug";
-  }
-  if (error.status === 400 || error.status === 422) {
-    return "services.categories.errorValidation";
-  }
-  return "services.categories.errorGeneric";
+  return mapDomainApiError<ServiceCategoryErrorKey>(error, {
+    fallback: "services.categories.errorGeneric",
+    codes: codeKeys,
+    statuses: {
+      401: "services.categories.errorUnauthorized",
+      403: "services.categories.errorForbidden",
+      404: "services.categories.errorNotFound",
+      409: "services.categories.errorDuplicateSlug",
+      400: "services.categories.errorValidation",
+      422: "services.categories.errorValidation",
+    },
+  });
 }

@@ -105,7 +105,7 @@ Query client zadržava dokumentovane default vrijednosti (`staleTime` 30 s, `gcT
 | **LB3** | Produkcijski `lib/` više nema import iz `components`; UI ticket hookovi i timer host su u components, install rail ugovor je neutralan, a ESLint sprječava povratak. | Nula lib→components importa, zajednički tipovi u neutralnom sloju i lint zabrana. |
 | **LB4** | 75 hookova i 223 service-dependent fajla u `lib/`. | Dokumentovana postepena feature/hooks granica, bez big-bang migracije. |
 | **LB5** | Sva tri kritična hooka imaju direktan spec; dashboard pokriva happy path, kritičnu grešku i realtime silent invalidaciju. | Tri kritična hooka imaju happy/error/filter ili cache ugovor. |
-| **LB7** | 33 error mappera i 16 konstrukcija date formattera. | Generički mapper i zajednički datetime API, migrirani pilotom. |
+| **LB7** | Domenski mapperi ostaju odvojeni, ali zajednički code/status algoritam i svi datetime konstruktori su centralizovani. | Generički mapper i zajednički datetime API, migrirani uz direktne testove. |
 | **LB8** | Centralni registar pokriva sve ranije sirove literal ključeve; preostali `queryKey: [...factory(), version]` izrazi namjerno proširuju postojeće domenske fabrike. | Fabrike i invalidacije dijele isti ključ; lint/test sprječava nove inline ključeve. |
 | **LB9** | 198 faznih/review oznaka u 99 fajlova. | Komentari objašnjavaju invariant i razlog, ne istoriju projekta. |
 | **LB11** | Najveći fajlovi imaju 484, 410, 345, 328 i 308 linija. | Kritični hookovi/orchestratori razdvojeni oko projektne granice od 200 linija. |
@@ -138,9 +138,9 @@ Ticket UI orchestratori i timer host premješteni su u `components`, dok su comp
 
 WebAuthn više ne koristi dvostruki cast, stari ticket wrapper je uklonjen, a `chart-summary` sada poziva četiri statički poznata i18n ključa direktno kroz `TFunction`. Time su uklonjeni `as never` i `as unknown as` bez adaptera ili premještanja casta; TypeScript i chart spec prolaze.
 
-### LB7 — duplikati rastu
+### LB7 — zajedničke primitive uvedene (zatvoren)
 
-Broj `map-*-error` fajlova porastao je na 33; date formatter konstrukcije su i dalje rasute. Pilot treba obuhvatiti 2–3 mapera sa identičnim `ApiError.code` obrascem i jedan neutralni datetime modul. Masovna zamjena nije opravdana bez snapshot testova.
+`mapDomainApiError` centralizuje sigurni code → status → fallback algoritam, uz generički tip koji ne dopušta ključ izvan domenskog uniona. Migrirani su groups, knowledge-base i tri service mapera, a postojeći domenski testovi potvrđuju ugovore. Svih ranijih 16 direktnih `Intl.DateTimeFormat` konstrukcija koristi keširani `dateTimeFormatter`; jedina preostala konstrukcija je unutar te fabrike i pokrivena je testom identiteta keša. Specifični mapperi ostaju odvojeni jer predstavljaju različite domenske kataloge, ne duplikaciju algoritma.
 
 ### LB8 — sirovi ključevi centralizovani (zatvoren)
 
@@ -162,7 +162,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 | **LB4** | Prihvaćen rizik / postepeno | 75 hookova; big-bang migracija nije cilj „max full“. |
 | **LB5** | **Zatvoren** | Ticket-list, sidebar i dashboard hook imaju direktne ciljane specove. |
 | **LB6** | **Zatvoren** | WebAuthn koristi JSON tipove; chart ključevi su statički i nema ciljnih castova. |
-| **LB7** | Otvoren | 33 mapera; 16 `new Intl.DateTimeFormat` poziva. |
+| **LB7** | **Zatvoren** | Zajednički tipizirani mapper migriran na 5 reprezentativnih domena; svih 16 formatter poziva ide kroz testiranu fabriku. |
 | **LB8** | **Zatvoren** | Svi sirovi literal ključevi prebačeni su u centralne fabrike; ostaju samo proširenja postojećih fabričkih ključeva. |
 | **LB9** | Otvoren | 198 istorijskih/faznih oznaka u komentarima. |
 | **LB10** | **Zatvoren** | `admin-ops-i18n-coverage.spec.ts` pinira backend katalog, bs/en action/entity/field/value ključeve i fallback. |
@@ -185,7 +185,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 
 ### P2 — održavanje
 
-6. Pilotirati generički error mapper na 2–3 mapera i neutralni datetime API na 1–2 potrošača (**LB7**).
+6. Održavati zatvoreni LB7: novi standardni code/status mapperi koriste `mapDomainApiError`, a datetime formatiranje `dateTimeFormatter`.
 7. Pri izmjeni storea dodati reset/test isolation; hookove i velike fajlove cijepati po odgovornosti, ne masovno (**LB2**, **LB4**, **LB11**).
 8. Održavati postojeći audit-label coverage i uklanjati fazne komentare samo u dirnutim fajlovima (**LB9**, **LB10**).
 
@@ -195,7 +195,7 @@ Komentari su blago smanjeni, ali veliki orchestratori su narasli. `audit-log-i18
 
 **9,5/10**
 
-Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. Do pune ocjene ostaju LB7 pilot, čišćenje istorijskih komentara i domensko cijepanje velikih orchestratora; oni nisu deklarativno zatvoreni bez implementacije.
+Najozbiljniji stari rizik je zatvoren: session reset je centralizovan, testiran i sidebar više nema paralelni cache. Testni inventar je narastao na 206 fajlova / 853 testa, a sva tri kritična hooka sada imaju direktne specove. LB2 i LB3 sada su takođe zatvoreni lifecycle ugovorima i provjerljivom arhitektonskom granicom. LB7 je zatvoren zajedničkim mapper/formatter primitivama i migracijskim dokazom. Do pune ocjene ostaju čišćenje posljednjih istorijskih komentara i domensko cijepanje velikih orchestratora; oni nisu deklarativno zatvoreni bez implementacije.
 
 ---
 
