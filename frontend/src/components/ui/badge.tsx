@@ -4,7 +4,6 @@ import type { BadgeTone } from "@/lib/ui/presentation-types";
 export type { BadgeTone } from "@/lib/ui/presentation-types";
 import { cn } from "@/lib/utils";
 
-
 /*
   One badge shape for the whole application: a pill with a tinted background,
   a hairline border and a text colour that is contrast-checked per theme.
