@@ -36,7 +36,7 @@ export function Textarea({
   return <textarea className={cn(textareaClassName, className)} {...properties} />;
 }
 
-/** Props a Field hands to its control in the render-function form (2.8 §3.2). */
+/** Props that Field hands to its control through the required render function. */
 export interface FieldControlProps {
   readonly id: string;
   readonly "aria-describedby"?: string;

@@ -161,7 +161,7 @@ export function VisualQaThemeBoard() {
       <VisualQaSection title="Segmented / Chip / Switch">
         <div className="flex flex-wrap items-center gap-3">
           <Segmented
-            ariaLabel="Gustoća"
+            label="Gustoća"
             value={density}
             onChange={setDensity}
             items={[

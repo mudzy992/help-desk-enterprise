@@ -207,7 +207,7 @@ export function ProblemLinkDialog({
           >
             <Segmented<Mode>
               size="sm"
-              ariaLabel={t("problems.link.modeLabel")}
+              label={t("problems.link.modeLabel")}
               value={mode}
               onChange={(next) => {
                 setMode(next);

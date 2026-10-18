@@ -14,7 +14,7 @@ interface UnderlineTabsProperties {
   readonly active: string;
   readonly onChange: (key: string) => void;
   readonly className?: string;
-  readonly ariaLabel?: string;
+  readonly label?: string;
 }
 
 export function UnderlineTabs({
@@ -22,7 +22,7 @@ export function UnderlineTabs({
   active,
   onChange,
   className,
-  ariaLabel,
+  label,
 }: UnderlineTabsProperties) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
   const selectFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -38,7 +38,7 @@ export function UnderlineTabs({
   return (
     <div
       role="tablist"
-      aria-label={ariaLabel}
+      aria-label={label}
       aria-orientation="horizontal"
       className={cn("flex items-center gap-1 overflow-x-auto border-b border-border/70", className)}
     >

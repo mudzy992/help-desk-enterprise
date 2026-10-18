@@ -12,7 +12,7 @@ interface SegmentedProperties<T extends string> {
   readonly value: T;
   readonly onChange: (value: T) => void;
   readonly size?: "sm" | "md";
-  readonly ariaLabel?: string;
+  readonly label?: string;
   readonly className?: string;
 }
 
@@ -21,7 +21,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
   size = "md",
-  ariaLabel,
+  label,
   className,
 }: SegmentedProperties<T>) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
@@ -37,7 +37,7 @@ export function Segmented<T extends string>({
   return (
     <div
       role="radiogroup"
-      aria-label={ariaLabel}
+      aria-label={label}
       aria-orientation="horizontal"
       className={cn(
         "inline-flex items-center gap-0.5 rounded-md border border-border bg-surface-hover p-0.5",

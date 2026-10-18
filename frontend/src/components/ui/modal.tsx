@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 export const Modal = DialogPrimitive.Root;
 export const ModalTrigger = DialogPrimitive.Trigger;
-export const ModalClose = DialogPrimitive.Close;
 export const ModalTitle = DialogPrimitive.Title;
 export const ModalDescription = DialogPrimitive.Description;
 

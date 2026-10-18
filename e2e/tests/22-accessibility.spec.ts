@@ -132,13 +132,14 @@ test.describe('22 accessibility', () => {
     expect(await page.title()).not.toBe(dashboardTitle);
   });
 
-  test('shortcuts: on for AGENT (help, G then T), off by default for USER and switchable', async ({ page, browser }) => {
+  test('shortcuts: on for AGENT (help, G then T), off by default for USER and switchable', async ({ page, browser }, testInfo) => {
     const env = readE2EEnvironment();
     await signIn(page, env.agentEmail, env.agentPassword);
     await page.goto('/');
     await settle(page);
     await page.keyboard.press('Shift+Slash');
     await expect(page.getByTestId('shortcuts-help')).toBeVisible();
+    await expectNoSeriousA11yViolations(page, 'shortcuts-dialog-open', testInfo);
     await page.keyboard.press('Escape');
     await page.keyboard.press('g');
     await page.keyboard.press('t');

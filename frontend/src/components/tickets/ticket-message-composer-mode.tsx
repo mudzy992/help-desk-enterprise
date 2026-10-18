@@ -28,7 +28,7 @@ export function TicketMessageComposerMode({
   return (
     <Segmented<ComposerMode>
       size="sm"
-      ariaLabel={t("a11y.conversation.composerMode")}
+      label={t("a11y.conversation.composerMode")}
       value={internal && canInternal ? "internal" : "reply"}
       onChange={(next) => onChange(next === "internal")}
       items={items}

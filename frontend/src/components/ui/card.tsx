@@ -21,7 +21,7 @@ interface CardHeaderProperties {
   readonly subtitle?: ReactNode;
   readonly actions?: ReactNode;
   readonly className?: string;
-  /** Heading level (2.8 §3.1): h2 under the page h1, h3 for nested cards. */
+  /** Semantic heading level: use h2 under the page h1 and h3 for nested cards. */
   readonly as?: "h2" | "h3" | "h4";
 }
 

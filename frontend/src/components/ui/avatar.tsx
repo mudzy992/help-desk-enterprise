@@ -38,7 +38,7 @@ interface AvatarProperties {
   readonly size?: "xs" | "sm" | "md";
   readonly className?: string;
   /** Override the accessible identity when `name` is not the desired spoken label. */
-  readonly ariaLabel?: string;
+  readonly label?: string;
   /** Use when adjacent visible text already identifies the same person. */
   readonly decorative?: boolean;
 }
@@ -47,13 +47,13 @@ export function Avatar({
   name,
   size = "md",
   className,
-  ariaLabel,
+  label,
   decorative = false,
 }: AvatarProperties) {
   return (
     <span
       role={decorative ? undefined : "img"}
-      aria-label={decorative ? undefined : (ariaLabel ?? name)}
+      aria-label={decorative ? undefined : (label ?? name)}
       aria-hidden={decorative ? "true" : undefined}
       className={cn(
         "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-foreground/5",

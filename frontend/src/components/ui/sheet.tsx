@@ -8,12 +8,10 @@ import { cn } from "@/lib/utils";
 
 export const Sheet = SheetPrimitive.Root;
 export const SheetTrigger = SheetPrimitive.Trigger;
-export const SheetClose = SheetPrimitive.Close;
-export const SheetPortal = SheetPrimitive.Portal;
 export const SheetTitle = SheetPrimitive.Title;
 export const SheetDescription = SheetPrimitive.Description;
 
-export const SheetOverlay = forwardRef<
+const SheetOverlay = forwardRef<
   ElementRef<typeof SheetPrimitive.Overlay>,
   ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...properties }, reference) => (
@@ -58,7 +56,7 @@ export const SheetContent = forwardRef<
 >(({ side = "right", className, children, ...properties }, reference) => {
   const { t } = useTranslation();
   return (
-    <SheetPortal>
+    <SheetPrimitive.Portal>
       <SheetOverlay />
       <SheetPrimitive.Content
         ref={reference}
@@ -68,10 +66,10 @@ export const SheetContent = forwardRef<
         {children}
         <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
           <X className="h-4 w-4" />
-          <span className="sr-only">{t("shell.close")}</span>
+          <span className="sr-only">{t("ui.close")}</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
-    </SheetPortal>
+    </SheetPrimitive.Portal>
   );
 });
 SheetContent.displayName = SheetPrimitive.Content.displayName;

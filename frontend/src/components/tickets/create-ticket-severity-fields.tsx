@@ -35,7 +35,7 @@ export function CreateTicketSeverityFields({
           <Segmented<TicketImpact>
             size="sm"
             className="w-full [&>button]:flex-1"
-            ariaLabel={label}
+            label={label}
             value={value}
             onChange={onChange}
             items={levels.map<SegmentedItem<TicketImpact>>((level) => ({

@@ -317,7 +317,7 @@ export function AppearancePage() {
           <CardHeader title={t("appearance.modeHeading")} subtitle={t("appearance.modeHint")} />
           <div className="grid gap-3 px-4 py-3.5">
             <Segmented
-              ariaLabel={t("appearance.modeHeading")}
+              label={t("appearance.modeHeading")}
               value={mode}
               onChange={setMode}
               items={THEME_MODES.map((value) => {

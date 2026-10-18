@@ -227,7 +227,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         </select>
         <Segmented
           size="sm"
-          ariaLabel={t("settings.emailTemplates.language")}
+          label={t("settings.emailTemplates.language")}
           value={locale}
           onChange={setLocale}
           items={overview.locales.map((item) => ({
@@ -346,7 +346,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Segmented
                 size="sm"
-                ariaLabel={t("settings.emailTemplates.previewFormat")}
+                label={t("settings.emailTemplates.previewFormat")}
                 value={view}
                 onChange={setView}
                 items={[
@@ -357,7 +357,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
               {isTicketKey ? (
                 <Segmented
                   size="sm"
-                  ariaLabel={t("settings.emailTemplates.sensitivity")}
+                  label={t("settings.emailTemplates.sensitivity")}
                   value={confidential ? "confidential" : "normal"}
                   onChange={(value) => setConfidential(value === "confidential")}
                   items={[

@@ -11,7 +11,7 @@ function TabsFixture() {
   const [active, setActive] = useState("one");
   return (
     <UnderlineTabs
-      ariaLabel="Sections"
+      label="Sections"
       items={[
         { key: "one", label: "One", panelId: "panel-one" },
         { key: "two", label: "Two" },
@@ -27,7 +27,7 @@ function SegmentedFixture() {
   const [value, setValue] = useState("a");
   return (
     <Segmented
-      ariaLabel="View"
+      label="View"
       items={[
         { value: "a", label: "A" },
         { value: "b", label: "B" },
@@ -66,9 +66,9 @@ describe("selection and progress semantics", () => {
   it("exposes clamped progress and the current wizard step", () => {
     render(
       <>
-        <Progress value={140} ariaLabel="Upload" />
+        <Progress value={140} label="Upload" />
         <WizardStepper
-          ariaLabel="Setup"
+          label="Setup"
           activeIndex={1}
           steps={[
             { key: "first", label: "First" },

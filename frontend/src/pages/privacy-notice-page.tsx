@@ -66,7 +66,7 @@ export function PrivacyNoticePage() {
           <div className="flex items-center gap-2">
             <Segmented
               size="sm"
-              ariaLabel={t("privacy.record.language")}
+              label={t("privacy.record.language")}
               value={locale === "en" ? "en" : "bs"}
               onChange={(value) => void changeLocale(value)}
               items={[

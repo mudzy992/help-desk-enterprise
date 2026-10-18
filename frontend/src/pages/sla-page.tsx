@@ -173,7 +173,7 @@ export function SlaPage() {
       <div className="mt-2">
         <UnderlineTabs
           className="mb-4"
-          ariaLabel={t("sla.title")}
+          label={t("sla.title")}
           active={profilesPanel}
           onChange={(key) => setProfilesPanel(key as "profiles" | "compliance")}
           items={[

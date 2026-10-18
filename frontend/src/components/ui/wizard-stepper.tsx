@@ -12,17 +12,12 @@ interface WizardStepperProperties {
   readonly steps: readonly WizardStep[];
   readonly activeIndex: number;
   readonly className?: string;
-  readonly ariaLabel?: string;
+  readonly label?: string;
 }
 
-export function WizardStepper({
-  steps,
-  activeIndex,
-  className,
-  ariaLabel,
-}: WizardStepperProperties) {
+export function WizardStepper({ steps, activeIndex, className, label }: WizardStepperProperties) {
   return (
-    <ol aria-label={ariaLabel} className={cn("mb-6 flex items-center gap-0", className)}>
+    <ol aria-label={label} className={cn("mb-6 flex items-center gap-0", className)}>
       {steps.map((step, index) => {
         const isComplete = index < activeIndex;
         const isActive = index === activeIndex;

@@ -113,7 +113,7 @@ export function PrivacyRequestsPanel({
           <>
             <Segmented
               size="sm"
-              ariaLabel={t("privacy.requests.scopeLabel")}
+              label={t("privacy.requests.scopeLabel")}
               value={scope}
               onChange={setScope}
               items={[
@@ -669,7 +669,7 @@ function RequestDetailSheet({
             <div className="flex flex-col gap-3 border-t border-border/70 pt-4">
               <Segmented
                 size="sm"
-                ariaLabel={t("privacy.requests.detail.outcome")}
+                label={t("privacy.requests.detail.outcome")}
                 value={outcome}
                 onChange={setOutcome}
                 items={[

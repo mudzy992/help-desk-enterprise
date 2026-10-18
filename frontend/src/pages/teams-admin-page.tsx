@@ -579,7 +579,7 @@ function SimulatorTab() {
             </Select>
           </label>
           <Segmented<TeamsSimulatorScope>
-            ariaLabel={t("teamsAdmin.simulator.scope")}
+            label={t("teamsAdmin.simulator.scope")}
             value={scope}
             onChange={setScope}
             items={[
