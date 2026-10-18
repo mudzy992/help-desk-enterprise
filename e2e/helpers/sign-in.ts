@@ -1,11 +1,6 @@
 import type { Page } from '@playwright/test';
+import { completeMfaEnrollment, completeMfaVerify } from './complete-mfa-ui';
 import { dismissAnnouncementModal } from './dismiss-announcements';
-import {
-  currentStep,
-  nextTotpCode,
-  saveMfaSecret,
-  totpForStep,
-} from './mfa';
 
 export { dismissAnnouncementModal, gotoAndDismissAnnouncements } from './dismiss-announcements';
 
@@ -18,12 +13,18 @@ export { dismissAnnouncementModal, gotoAndDismissAnnouncements } from './dismiss
  *  - `#session-email` / `#session-password` in the compact form embedded in
  *    the application header, shown when the shell renders with no server session.
  *
- * SUPER_ADMIN always requires MFA. A brand-new install hits forced enrollment
- * (`#mfa-enroll-code` + `data-testid="mfa-secret"`); later sign-ins use verify
- * (`#mfa-code`). Both paths have to succeed before this helper returns.
+ * SUPER_ADMIN always requires MFA. USER/AGENT normally land in the app shell
+ * with no second factor. A forced password-change screen is a hard failure —
+ * actors must already hold the configured password before UI specs run.
  */
 const EMAIL_SELECTOR = '#session-email, #login-email';
 const PASSWORD_SELECTOR = '#session-password, #login-password';
+
+function appNavigation(page: Page) {
+  return page.getByRole('navigation', {
+    name: /Glavna navigacija|Main navigation/i,
+  });
+}
 
 async function attemptSignIn(
   page: Page,
@@ -31,6 +32,9 @@ async function attemptSignIn(
   password: string,
 ): Promise<void> {
   await page.goto('/');
+  if (await appNavigation(page).isVisible().catch(() => false)) {
+    return;
+  }
   const form = page
     .locator('form')
     .filter({ has: page.locator(EMAIL_SELECTOR) });
@@ -45,24 +49,32 @@ async function attemptSignIn(
   const enrollSecret = page.getByTestId('mfa-secret');
   const enrollInput = page.locator('#mfa-enroll-code');
   const verifyInput = page.locator('#mfa-code');
+  const changePassword = page.locator('#change-password-new');
 
-  // SUPER_ADMIN always lands on MFA. Enrollment shows the manual key a moment
-  // after the password form leaves (QR + secret load); verify shows `#mfa-code`.
-  // Returning here without one of those used to look like a green sign-in while
-  // the session was never issued (install wizard spec 51).
-  const mfaKind = await Promise.race([
+  const next = await Promise.race([
     enrollSecret.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'enroll' as const),
     enrollInput.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'enroll' as const),
     verifyInput.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'verify' as const),
+    appNavigation(page).waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'signed-in' as const),
+    changePassword.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'must-change' as const),
   ]).catch(() => null);
 
-  if (mfaKind === 'enroll') {
+  if (next === 'enroll') {
     await completeMfaEnrollment(page, email, enrollSecret, enrollInput);
     return;
   }
-  if (mfaKind === 'verify') {
+  if (next === 'verify') {
     await completeMfaVerify(page, email, verifyInput);
     return;
+  }
+  if (next === 'signed-in') {
+    return;
+  }
+  if (next === 'must-change') {
+    throw new Error(
+      `[e2e] ${email} must change password before UI sign-in — align actors ` +
+        '(ensure-e2e-actors / restoreTestActorPassword) to the configured E2E_*_PASSWORD',
+    );
   }
 
   const alertText = (await page.getByRole('alert').allTextContents())
@@ -70,106 +82,14 @@ async function attemptSignIn(
     .filter((text) => text.length > 0)
     .join(' / ');
   throw new Error(
-    `[e2e] password accepted but neither MFA enrollment nor MFA verify appeared` +
+    `[e2e] password accepted but neither MFA, app shell, nor change-password appeared` +
       (alertText ? ` — ${alertText}` : ''),
   );
 }
 
-async function completeMfaEnrollment(
-  page: Page,
-  email: string,
-  secretLocator: ReturnType<Page['getByTestId']>,
-  codeInput: ReturnType<Page['locator']>,
-): Promise<void> {
-  const grouped = ((await secretLocator.textContent()) ?? '').trim();
-  const secret = grouped.replace(/\s+/g, '');
-  if (secret.length < 16) {
-    throw new Error(`[e2e] MFA enrollment secret missing or too short (${secret.length} chars).`);
-  }
-  const step = currentStep();
-  saveMfaSecret(email, secret, step - 1);
-  await codeInput.waitFor({ state: 'visible', timeout: 10_000 });
-  await codeInput.fill(totpForStep(secret, step));
-  saveMfaSecret(email, secret, step);
-
-  const confirmResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname.endsWith('/auth/mfa/enroll/confirm'),
-    { timeout: 15_000 },
-  );
-  const [confirmResponse] = await Promise.all([
-    confirmResponsePromise,
-    page.locator('form').filter({ has: codeInput }).locator('button[type="submit"]').click(),
-  ]);
-  if (!confirmResponse.ok()) {
-    const formError = await page.locator('#mfa-enroll-code-error').textContent().catch(() => null);
-    throw new Error(
-      `[e2e] MFA enrollment rejected (HTTP_${confirmResponse.status()})${
-        formError ? `: ${formError.trim()}` : ''
-      }.`,
-    );
-  }
-  // Forced enrollment holds the session until recovery codes are acknowledged
-  // (`confirmMfaEnrollment` → `finish()`). Leaving here after the code field
-  // detaches used to look like a green sign-in with no cookie issued.
-  await acknowledgeRecoveryCodes(page);
-}
-
-/** Checkbox + continue on the one-time recovery-codes panel after MFA enroll. */
-async function acknowledgeRecoveryCodes(page: Page): Promise<void> {
-  const panel = page.getByTestId('recovery-codes');
-  await panel.waitFor({ state: 'visible', timeout: 20_000 });
-  const saved = page.getByRole('checkbox', {
-    name: /sačuvao\/la sam rezervne kodove|i (have )?saved (the )?recovery codes/i,
-  });
-  await saved.check();
-  await page.getByRole('button', { name: /nastavi|continue/i }).click();
-  await panel.waitFor({ state: 'detached', timeout: 20_000 });
-}
-
-async function completeMfaVerify(
-  page: Page,
-  email: string,
-  mfaInput: ReturnType<Page['locator']>,
-): Promise<void> {
-  await mfaInput.fill(await nextTotpCode(email));
-  const verifyResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname.endsWith('/auth/mfa/verify'),
-    { timeout: 15_000 },
-  );
-  const [verifyResponse] = await Promise.all([
-    verifyResponsePromise,
-    page.locator('form').filter({ has: mfaInput }).locator('button[type="submit"]').click(),
-  ]);
-  if (!verifyResponse.ok()) {
-    const responseBody = await verifyResponse.text();
-    let errorCode = `HTTP_${verifyResponse.status()}`;
-    try {
-      const payload = JSON.parse(responseBody) as { readonly code?: unknown };
-      if (typeof payload.code === 'string') {
-        errorCode = payload.code;
-      }
-    } catch {
-      // Keep the HTTP status when the server returned a non-JSON error body.
-    }
-    const formError = await page.locator('#mfa-code-error').textContent().catch(() => null);
-    throw new Error(
-      `[e2e] MFA verification rejected (${errorCode})${formError ? `: ${formError.trim()}` : ''}.`,
-    );
-  }
-  await mfaInput.waitFor({ state: 'detached', timeout: 20_000 });
-}
-
 /**
- * One clean retry around the whole flow. The MFA verify call has stalled
- * transiently more than once across runs (a dropped request or a TOTP step
- * boundary), while the identical flow passed on every following run. The
- * retry starts from a fresh page and a freshly computed code; if the problem
- * is real, the retry surfaces the same detailed error (status, API code and
- * the form's message) instead of masking it.
+ * One clean retry around the whole flow. MFA verify can stall on a TOTP step
+ * boundary; the retry starts from a fresh page and a freshly computed code.
  */
 export async function signIn(
   page: Page,

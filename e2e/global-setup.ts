@@ -11,12 +11,14 @@ import {
   withdrawPublishedE2eAnnouncements,
 } from './helpers/dismiss-announcements';
 import { stopRunningTimer } from './helpers/time-tracking';
+import { assertCaptchaOff } from './helpers/assert-captcha-off';
 import { waitForStack } from './helpers/wait-for-stack';
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default async function globalSetup(): Promise<void> {
   await waitForStack();
+  await assertCaptchaOff();
   const api = new ApiClient();
   await ensureInstall(api);
   const env = readE2EEnvironment();
