@@ -1,7 +1,7 @@
 import { ApiError } from "@/services/api";
 
 /**
- * Install wizard v2 (F4.1): a failed „Pošalji test“ is the only place the wizard
+ * A failed „Pošalji test“ is the only place the wizard
  * shows what the mail server actually answered. The backend maps the SMTP code to
  * one of these codes; here they become the sentence the operator can act on.
  */

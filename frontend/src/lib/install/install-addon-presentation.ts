@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 /*
-  Install wizard v2 (F4.5): the add-on step used to show the catalog's technical
+  The add-on step previously showed the catalog's technical
   descriptions („CSAT addon flag from the install wizard catalog"). This map is the
   operator's version of the same list: an icon, a name and one sentence about what
   the add-on brings, grouped by what it is good for. The catalog stays as it is —

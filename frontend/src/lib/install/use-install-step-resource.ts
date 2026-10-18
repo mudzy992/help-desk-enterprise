@@ -14,7 +14,7 @@ export type InstallStepResource<T> = InstallStepResourceState<T> & {
 };
 
 /**
- * Install wizard v2 (F0.2/IN3): every step loads its own state, and until now a
+ * Every install step loads its own state; previously a
  * failed load fell through to the empty form — which then posted defaults
  * (`local`, SMTP off, defaults catalog) over a configuration that did exist. A
  * step may therefore only render its form from `ready`; `error` shows the shared

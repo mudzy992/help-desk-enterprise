@@ -60,7 +60,7 @@ describe("map-report-dashboard-charts", () => {
     ]);
   });
 
-  it("val 1 (M15 gap): brojčani razrez nema suffix, a najopterećeniji nosi upozorenje", () => {
+  it("brojčani razrez nema suffix, a najopterećeniji nosi upozorenje", () => {
     const units = mapCountBars([
       { key: "ou-it", label: "IT", value: 12 },
       { key: "ou-hr", label: "HR", value: 4 },

@@ -1,7 +1,7 @@
 import type { SetupChecklistItem } from "@/services/setup-checklist-api";
 
 /*
-  Install wizard v2 (F6.3): where an item sends the operator. The backend owns
+  Resolves where a checklist item sends the operator. The backend owns
   *what* is still open (step keys and setting keys); which screen fixes it is a
   client question — the routes are the client's business and change with it.
 */

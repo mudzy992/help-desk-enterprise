@@ -1,5 +1,5 @@
 /**
- * Install wizard v2 (F4.4): the SLA review edits the seeded `BH_STANDARD` week.
+ * The SLA review edits the seeded `BH_STANDARD` week.
  * The calendar allows several intervals per day (a split shift), the wizard shows
  * one — so the editor keeps the extra intervals untouched and writes them back
  * instead of quietly dropping what somebody typed in Settings.
