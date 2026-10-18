@@ -1,7 +1,7 @@
 # Modul 12: `ui/` komponente — Pulse dizajn sistem
 
 **Datum audita:** 2026-10-18
-**Auditirani Git SHA:** `3fa3dbb` (`arena/bd31e07b-help-desk-enterprise`)
+**Auditirani Git SHA:** `6057650` (`arena/bd31e07b-help-desk-enterprise`)
 **Status:** v3 re-audit osvježen prema implementiranom stanju
 **Oznake nalaza:** samo **UI**
 
@@ -82,23 +82,23 @@ Komponente uglavnom koriste Pulse semantičke tokene. Pulse design-system i cont
 
 ## Realno / željeno — trenutno stanje
 
-| UI       | Realno stanje                                                                                                                                    | Željeno stanje                                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| **UI2**  | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok.                                          | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok.   |
-| **UI3**  | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor.                                    | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze.                    |
-| **UI4**  | Svih 280 produkcijskih Field poziva koristi obavezni render-function API i prosljeđuje kompletno a11y stanje kontroli.                           | Održavati 0 legacy upotreba tipnim i AST contract guardom.                 |
-| **UI5**  | `ui/` produkcijski kod zavisi samo od drugih UI primitiva i neutralne infrastrukture; domenski adapteri su izvan foldera, a ESLint čuva granicu. | Održavati neutralnu granicu lint zaštitom.                                 |
-| **UI6**  | Badge, StatCard i Progress koriste jedan iscrpan `pulseToneStyles` ugovor; oba Chip režima koriste isti remove primitive.                        | Održavati zajedničke ugovore i Chip behavior test.                         |
-| **UI7**  | Modal, ConfirmDialog, Toast, oba Field API-ja, Tabs, Segmented i FilterBar imaju behavior/semantičke testove.                                    | Održavati kompletan behavior ugovor regresijskim testovima.                |
-| **UI8**  | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku.                                                | Eksplicitna semantika i runtime/axe potvrda.                               |
-| **UI9**  | PageHeader koristi `PageHeaderCrumb` model sa eksplicitnom `{ kind: "brand" }` varijantom; string sentinel je uklonjen.                          | Održavati tipizovani model i collision test.                               |
-| **UI10** | Switch/Chip/Avatar koriste `bg-white`, `bg-black/*` ili `ring-black/white`; trenutni guard ih ne odbija.                                         | Tokeni za thumb, hover i avatar ring ili dokumentovan, guardovan izuzetak. |
-| **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`.                                                                  | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije.       |
-| **UI12** | `toast()` sinhrono vraća ID stvarno kreiranog ili dedupliciranog zapisa, uključujući pozive prije React commita.                                 | Održavati tačan ugovor behavior testom.                                    |
-| **UI13** | Više javnih Radix exporta nema potrošača.                                                                                                        | Smanjiti API ili eksplicitno dokumentovati namjerni passthrough.           |
-| **UI14** | Button zadržava alias parove varijanti.                                                                                                          | Jedan kanonski naziv po namjeri uz migraciju.                              |
-| **UI15** | `ariaLabel`/`label` i `ui.close`/`shell.close` ostaju neujednačeni.                                                                              | Konzistentan prop i i18n ugovor.                                           |
-| **UI17** | Warning ima eksplicitni alert ugovor i semantički test; ticket `PanelErrorBoundary` i njegov test su u ticket sloju.                             | Održavati oba feedback ugovora testovima.                                  |
+| UI       | Realno stanje                                                                                                                                    | Željeno stanje                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| **UI2**  | Svih pet native potvrda migrirano je na zajednički `ConfirmDialog`, uključujući unsaved-navigation tok.                                          | Sve potvrde koriste `ConfirmDialog`, uključujući unsaved-navigation tok. |
+| **UI3**  | Tabs i Segmented imaju roving fokus, jedan tab stop, Arrow/Home/End wrap-around i testirani selection ugovor.                                    | WAI-ARIA tabs/radiogroup tastatura, fokus i panel veze.                  |
+| **UI4**  | Svih 280 produkcijskih Field poziva koristi obavezni render-function API i prosljeđuje kompletno a11y stanje kontroli.                           | Održavati 0 legacy upotreba tipnim i AST contract guardom.               |
+| **UI5**  | `ui/` produkcijski kod zavisi samo od drugih UI primitiva i neutralne infrastrukture; domenski adapteri su izvan foldera, a ESLint čuva granicu. | Održavati neutralnu granicu lint zaštitom.                               |
+| **UI6**  | Badge, StatCard i Progress koriste jedan iscrpan `pulseToneStyles` ugovor; oba Chip režima koriste isti remove primitive.                        | Održavati zajedničke ugovore i Chip behavior test.                       |
+| **UI7**  | Modal, ConfirmDialog, Toast, oba Field API-ja, Tabs, Segmented i FilterBar imaju behavior/semantičke testove.                                    | Održavati kompletan behavior ugovor regresijskim testovima.              |
+| **UI8**  | Progress, WizardStepper, Avatar, Skeleton i DetailSection imaju eksplicitnu, testiranu semantiku.                                                | Eksplicitna semantika i runtime/axe potvrda.                             |
+| **UI9**  | PageHeader koristi `PageHeaderCrumb` model sa eksplicitnom `{ kind: "brand" }` varijantom; string sentinel je uklonjen.                          | Održavati tipizovani model i collision test.                             |
+| **UI10** | Switch koristi `control-thumb` token, a Chip hover i Avatar ring semantički `foreground` alpha token; UI guard odbija raw black/white utilityje. | Održavati tokenizaciju automatskim guardom.                              |
+| **UI11** | Ostali su fazni/audit komentari i zastario navod `~100` potrošača `control.ts`.                                                                  | Komentari objašnjavaju ugovor i razlog, bez istorije implementacije.     |
+| **UI12** | `toast()` sinhrono vraća ID stvarno kreiranog ili dedupliciranog zapisa, uključujući pozive prije React commita.                                 | Održavati tačan ugovor behavior testom.                                  |
+| **UI13** | Više javnih Radix exporta nema potrošača.                                                                                                        | Smanjiti API ili eksplicitno dokumentovati namjerni passthrough.         |
+| **UI14** | Button zadržava alias parove varijanti.                                                                                                          | Jedan kanonski naziv po namjeri uz migraciju.                            |
+| **UI15** | `ariaLabel`/`label` i `ui.close`/`shell.close` ostaju neujednačeni.                                                                              | Konzistentan prop i i18n ugovor.                                         |
+| **UI17** | Warning ima eksplicitni alert ugovor i semantički test; ticket `PanelErrorBoundary` i njegov test su u ticket sloju.                             | Održavati oba feedback ugovora testovima.                                |
 
 ---
 
@@ -134,7 +134,11 @@ ESLint override za produkcijski `components/ui` zabranjuje zavisnosti prema drug
 
 Aplikacijski PageHeader sada prima `PageHeaderCrumb`: običan tekst ili eksplicitnu `{ kind: "brand" }` varijantu. `brandCrumb` je tipizovani objekt, a `resolvePageHeaderCrumbs` jedino tu varijantu mapira na konfigurirano ime aplikacije. Test potvrđuje brand razrješenje i da čak ni tekst jednak starom `"\u0000brand"` sentinelu više ne može kolidirati sa sistemskim značenjem.
 
-### UI10–UI15 — održavanje API-ja
+### UI10 — tokenizovani neutralni detalji (zatvoren)
+
+Switch thumb koristi novi `--control-thumb` token definisan u sva tri bazna theme bloka i izložen kao `bg-control-thumb`. Chip remove hover koristi `bg-foreground/10`, a Avatar ring `ring-foreground/5`, čime svijetli/tamni izgled slijedi semantički foreground bez `dark:` grananja. Pulse design-system guard sada eksplicitno odbija `bg-black`, `bg-white`, `ring-black` i `ring-white` utilityje u produkcijskom `components/ui`; trenutni rezultat je 0 takvih upotreba i 50 usklađenih baznih tokena.
+
+### UI11–UI15 — održavanje API-ja
 
 Preostali nalazi nisu pojedinačno kritični, ali šire javnu površinu i dopuštaju divergenciju: alias varijante, neujednačeni propovi, istorijski komentari i mrtvi passthrough exporti. UI12 je zatvoren sinhronim queue izvorom i regresijskim testom povratnog ID-a.
 
@@ -169,7 +173,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 | **UI7**  | **Zatvoren**    | 9 UI spec fajlova / 24 testa; Modal, ConfirmDialog, Toast, Field, Tabs, Segmented i FilterBar ugovori su pokriveni.                               |
 | **UI8**  | **Zatvoren**    | Progress value ugovor, wizard current step, Avatar identity/decorative režim, jedan skeleton naziv i imenovani detail region pokriveni testovima. |
 | **UI9**  | **Zatvoren**    | Diskriminirani brand crumb zamjenjuje NUL sentinel; resolver test potvrđuje brand mapiranje i odsustvo string kolizije.                           |
-| **UI10** | Otvoren         | Default black/white utilityji ostaju; guard je zelen, ali ih ne klasifikuje kao zabranjenu paletu.                                                |
+| **UI10** | **Zatvoren**    | Switch/Chip/Avatar koriste semantičke tokene; Pulse guard zabranjuje raw black/white bg/ring utilityje u `ui/`.                                   |
 | **UI11** | Otvoren         | Fazni komentari i zastario broj potrošača ostaju.                                                                                                 |
 | **UI12** | **Zatvoren**    | Sinhroni `queueRef` osigurava stvarni create/dedup ID i spaja uzastopne pre-commit pozive; behavior test potvrđuje isti ID i `×2`.                |
 | **UI13** | Otvoren         | Modal/Sheet/Dropdown passthrough exporti uglavnom nemaju vanjske potrošače.                                                                       |
@@ -196,18 +200,18 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 ### P2 — Pulse ugovor i čišćenje
 
 5. Održavati zatvoreni UI6 zajednički tone/Chip ugovor; za **UI11/UI13–UI15** ukloniti mrtve exporte, kanonizovati props/varijante/i18n i očistiti istorijske komentare.
-6. **UI10:** zamijeniti black/white utilityje tokenima ili dokumentovati i automatizovati precizan izuzetak.
+6. Održavati zatvoreni UI10 token/guard ugovor.
 7. Za svaki PR pokrenuti sva tri Pulse guarda, UI Vitest paket i `check-install-aurora.mjs`.
 
 ---
 
 ## Ocjena
 
-**9,7/10**
+**9,8/10**
 
-Ocjena je ponovo izračunata prema SHA `3fa3dbb`: UI9 je zatvoren tipizovanim brand crumbom bez string kolizije, uz ranije zatvorene široke a11y, behavior i arhitektonske rizike UI1–UI8, UI12, UI16 i UI17. UI paket ostaje na 11 spec fajlova i 27 testova, a cijeli frontend sada prolazi 317/317 fajlova i 1305/1305 testova; build, lint bez grešaka i svi guardovi su zeleni.
+Ocjena je ponovo izračunata prema SHA `6057650`: UI10 je zatvoren semantičkim tokenima i proširenim automatskim guardom, uz ranije zatvorene široke a11y, behavior i arhitektonske rizike UI1–UI9, UI12, UI16 i UI17. UI paket ostaje na 11 spec fajlova i 27 testova, cijeli frontend prolazi 317/317 fajlova i 1305/1305 testova, a build, lint bez grešaka i svi guardovi su zeleni.
 
-Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), API i naming čišćenje UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i preostalih održavačkih ugovora ocjena ostaje realnih 9,7.
+Do 10/10 još nedostaju API i naming čišćenje UI11/UI13–UI15 te browser/axe dokaz iz UI18. Zbog izostanka runtime browser/axe dokaza i preostalih održavačkih ugovora ocjena ostaje realnih 9,8.
 ---
 
 ## Provjere izvršene
@@ -228,4 +232,4 @@ Do 10/10 još nedostaju tokenizacija preostalih black/white utilityja (UI10), AP
 
 ## Zaključak re-audita (2026-10-18)
 
-Dokument je osvježen prema feature SHA `3fa3dbb`. Zatvoreno je 12 nalaza (UI1, UI2, UI3, UI4, UI5, UI6, UI7, UI8, UI9, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI10/UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI10/UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
+Dokument je osvježen prema feature SHA `6057650`. Zatvoreno je 13 nalaza (UI1, UI2, UI3, UI4, UI5, UI6, UI7, UI8, UI9, UI10, UI12, UI16 i UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, UI18 je djelimičan, a UI11/UI13/UI15 ostaju otvoreni. Sljedeći rad treba prioritetno usmjeriti na UI18 i preostalo API održavanje; zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
