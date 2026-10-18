@@ -43,6 +43,7 @@
     --line-strong: 49 64 92;
     --foreground: 229 231 235;
     --muted: 156 163 175;
+    --control-thumb: 255 255 255;
 
     --primary: 96 165 250;
     --primary-hover: 147 197 253;
@@ -107,6 +108,7 @@
     --line-strong: 209 213 221;
     --foreground: 20 22 29;
     --muted: 94 101 116;
+    --control-thumb: 255 255 255;
 
     --primary: 91 91 214;
     --primary-hover: 74 74 196;
@@ -169,6 +171,7 @@
     --line-strong: 58 63 76;
     --foreground: 233 235 241;
     --muted: 142 150 166;
+    --control-thumb: 255 255 255;
 
     --primary: 139 132 240;
     --primary-hover: 165 160 245;

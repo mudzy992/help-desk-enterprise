@@ -33,7 +33,7 @@ function ChipRemoveButton({
       type="button"
       aria-label={label}
       onClick={onRemove}
-      className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+      className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
     >
       <X size={11} strokeWidth={2.4} aria-hidden="true" />
     </button>

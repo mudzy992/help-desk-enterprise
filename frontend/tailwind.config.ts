@@ -33,6 +33,7 @@ export default {
         "line-strong": channel("--line-strong"),
         foreground: channel("--foreground"),
         text: channel("--foreground"),
+        "control-thumb": channel("--control-thumb"),
         ring: channel("--ring"),
         input: channel("--border"),
         scrim: channel("--scrim"),

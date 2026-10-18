@@ -22,7 +22,7 @@ export const Switch = forwardRef<
     {...properties}
     ref={reference}
   >
-    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-white shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
+    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-control-thumb shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
   </SwitchPrimitive.Root>
 ));
 

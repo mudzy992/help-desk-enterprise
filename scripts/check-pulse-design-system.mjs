@@ -71,7 +71,10 @@ function checkDocs() {
   const section = "docs";
   const archived = ".cursor/docs/theme-source.md";
   if (!exists(archived)) {
-    fail(section, `${archived} is missing (it should exist as an archived stub)`);
+    fail(
+      section,
+      `${archived} is missing (it should exist as an archived stub)`,
+    );
   } else if (!read(archived).includes("[ARHIVIRANO]")) {
     fail(section, `${archived} must carry the "[ARHIVIRANO]" marker`);
   }
@@ -122,22 +125,37 @@ function checkColors() {
   const rawColorFunction = /\b(rgb|rgba|hsl|hsla)\(\s*(?!var\()/;
   const namedPalette =
     /\b(?:bg|text|border|ring|fill|stroke|from|to|via|divide|outline|decoration|placeholder|caret|accent|shadow)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
+  // Black/white surface utilities bypass theme semantics just like numbered palettes.
+  const rawNeutralUtility = /\b(?:bg|ring)-(?:black|white)(?:\/[0-9]{1,3})?\b/;
 
   for (const file of walk("frontend/src", /\.(tsx|ts)$/)) {
     if (/\.spec\.(tsx|ts)$/.test(file)) continue;
     const lines = read(file).split("\n");
     lines.forEach((line, index) => {
-        const where = `${file}:${index + 1}`;
-        // Colours that are *data* (e.g. an e-mail template accent sent to
-        // mail clients, which cannot read CSS tokens) are opted out explicitly
-        // with a marker comment on the preceding line.
-        const allowHex = index > 0 && lines[index - 1].includes("design-system-allow-hex:");
-        if (hex.test(line) && !allowHex) fail(section, `${where} hardcoded hex colour: ${line.trim()}`);
-        if (rawColorFunction.test(line))
-          fail(section, `${where} raw colour function without a token: ${line.trim()}`);
-        if (namedPalette.test(line))
-          fail(section, `${where} Tailwind default palette colour: ${line.trim()}`);
-      });
+      const where = `${file}:${index + 1}`;
+      // Colours that are *data* (e.g. an e-mail template accent sent to
+      // mail clients, which cannot read CSS tokens) are opted out explicitly
+      // with a marker comment on the preceding line.
+      const allowHex =
+        index > 0 && lines[index - 1].includes("design-system-allow-hex:");
+      if (hex.test(line) && !allowHex)
+        fail(section, `${where} hardcoded hex colour: ${line.trim()}`);
+      if (rawColorFunction.test(line))
+        fail(
+          section,
+          `${where} raw colour function without a token: ${line.trim()}`,
+        );
+      if (namedPalette.test(line))
+        fail(
+          section,
+          `${where} Tailwind default palette colour: ${line.trim()}`,
+        );
+      if (file.startsWith("frontend/src/components/ui/") && rawNeutralUtility.test(line))
+        fail(
+          section,
+          `${where} untokenized black/white UI utility: ${line.trim()}`,
+        );
+    });
   }
 }
 
@@ -153,7 +171,9 @@ function readBlock(css, selector) {
   const match = pattern.exec(css);
   if (match === null) return null;
   return new Set(
-    [...match[1].matchAll(/--[a-z0-9-]+\s*:/g)].map((token) => token[0].replace(/\s*:$/, "")),
+    [...match[1].matchAll(/--[a-z0-9-]+\s*:/g)].map((token) =>
+      token[0].replace(/\s*:$/, ""),
+    ),
   );
 }
 
@@ -183,27 +203,35 @@ function checkTokens() {
       const missingHere = difference(reference, set);
       const missingThere = difference(set, reference);
       if (missingHere.length > 0)
-        fail(section, `"${label}" is missing tokens defined in classic: ${missingHere.join(", ")}`);
+        fail(
+          section,
+          `"${label}" is missing tokens defined in classic: ${missingHere.join(", ")}`,
+        );
       if (missingThere.length > 0)
         fail(
           section,
           `"${label}" defines tokens missing from classic: ${missingThere.join(", ")}`,
         );
     }
-    notes.push(`tokens: ${reference.size} tokens consistent across the three base blocks`);
+    notes.push(
+      `tokens: ${reference.size} tokens consistent across the three base blocks`,
+    );
   }
 
   // Brand palettes: every non-default value needs a light and a dark block. The
   // default palette IS the base `:root[data-theme="pulse"]` block, so it has none.
   const storage = read("frontend/src/lib/theme/theme-storage.ts");
   const defaultAccent = /DEFAULT_THEME_ACCENT[^=]*=\s*"([a-z]+)"/.exec(storage);
-  if (defaultAccent === null) fail(section, "DEFAULT_THEME_ACCENT not found in theme-storage.ts");
+  if (defaultAccent === null)
+    fail(section, "DEFAULT_THEME_ACCENT not found in theme-storage.ts");
   const accents = /THEME_ACCENTS[^=]*=\s*\[([^\]]*)\]/.exec(storage);
   if (accents === null) {
     fail(section, "THEME_ACCENTS not found in theme-storage.ts");
     return;
   }
-  const values = [...accents[1].matchAll(/"([a-z]+)"/g)].map((match) => match[1]);
+  const values = [...accents[1].matchAll(/"([a-z]+)"/g)].map(
+    (match) => match[1],
+  );
   const paletteSets = [];
   for (const value of values) {
     const isDefault = defaultAccent !== null && value === defaultAccent[1];
@@ -213,7 +241,10 @@ function checkTokens() {
         const selector = `\\[data-theme="pulse"\\]\\[data-accent="${value}"\\]${dark ? "\\.dark" : ""}`;
         const set = readBlock(css, selector);
         if (set === null) {
-          fail(section, `palette "${value}"${dark ? " (dark)" : ""} has no CSS block`);
+          fail(
+            section,
+            `palette "${value}"${dark ? " (dark)" : ""} has no CSS block`,
+          );
         } else {
           paletteSets.push({ label: `${value}${dark ? ".dark" : ""}`, set });
         }
@@ -222,21 +253,37 @@ function checkTokens() {
     // The palette needs a label in both locales, otherwise the UI shows the key.
     for (const locale of ["bs", "en"]) {
       const cap = value[0].toUpperCase() + value.slice(1);
-      if (!read(`frontend/src/i18n/locales/${locale}/common.json`).includes(`"accent${cap}"`)) {
-        fail(section, `palette "${value}" has no theme.accent${cap} key in ${locale}`);
+      if (
+        !read(`frontend/src/i18n/locales/${locale}/common.json`).includes(
+          `"accent${cap}"`,
+        )
+      ) {
+        fail(
+          section,
+          `palette "${value}" has no theme.accent${cap} key in ${locale}`,
+        );
       }
     }
   }
   if (paletteSets.length > 0) {
     const first = paletteSets[0];
-    if (first.set.size === 0) fail(section, "palette blocks define no variables");
+    if (first.set.size === 0)
+      fail(section, "palette blocks define no variables");
 
     for (const { label, set } of paletteSets) {
-      if (difference(first.set, set).length > 0 || difference(set, first.set).length > 0) {
-        fail(section, `palette block "${label}" does not define the same variables as "${first.label}"`);
+      if (
+        difference(first.set, set).length > 0 ||
+        difference(set, first.set).length > 0
+      ) {
+        fail(
+          section,
+          `palette block "${label}" does not define the same variables as "${first.label}"`,
+        );
       }
     }
-    notes.push(`tokens: ${paletteSets.length} palette blocks, each with ${first.set.size} variables`);
+    notes.push(
+      `tokens: ${paletteSets.length} palette blocks, each with ${first.set.size} variables`,
+    );
   }
 }
 
@@ -249,7 +296,10 @@ function checkRadius() {
       .split("\n")
       .forEach((line, index) => {
         if (/rounded-xl/.test(line)) {
-          fail(section, `${file}:${index + 1} uses rounded-xl (not token-bound): ${line.trim()}`);
+          fail(
+            section,
+            `${file}:${index + 1} uses rounded-xl (not token-bound): ${line.trim()}`,
+          );
         }
       });
   }
@@ -273,13 +323,16 @@ const pluralSuffix = /_(zero|one|two|few|many|other)$/;
 
 function hasKey(dictionary, key) {
   if (hasExactKey(dictionary, key)) return true;
-  return ["one", "few", "other"].some((form) => hasExactKey(dictionary, `${key}_${form}`));
+  return ["one", "few", "other"].some((form) =>
+    hasExactKey(dictionary, `${key}_${form}`),
+  );
 }
 
 function hasExactKey(dictionary, key) {
   let current = dictionary;
   for (const part of key.split(".")) {
-    if (current === null || typeof current !== "object" || !(part in current)) return false;
+    if (current === null || typeof current !== "object" || !(part in current))
+      return false;
     current = current[part];
   }
   return true;
@@ -288,7 +341,8 @@ function hasExactKey(dictionary, key) {
 function hasPrefix(dictionary, prefix) {
   let current = dictionary;
   for (const part of prefix.split(".")) {
-    if (current === null || typeof current !== "object" || !(part in current)) return false;
+    if (current === null || typeof current !== "object" || !(part in current))
+      return false;
     current = current[part];
   }
   return current !== null && typeof current === "object";
@@ -298,24 +352,32 @@ function checkI18n() {
   const section = "i18n";
   const locales = {};
   for (const locale of ["bs", "en"]) {
-    locales[locale] = JSON.parse(read(`frontend/src/i18n/locales/${locale}/common.json`));
+    locales[locale] = JSON.parse(
+      read(`frontend/src/i18n/locales/${locale}/common.json`),
+    );
   }
   const keys = { bs: leaves(locales.bs), en: leaves(locales.en) };
   const pluralTolerant = (from, to) =>
     difference(from, to).filter((key) => {
       if (!pluralSuffix.test(key)) return true;
       const base = key.replace(pluralSuffix, "");
-      return ![...to].some((other) => other.replace(pluralSuffix, "") === base && pluralSuffix.test(other));
+      return ![...to].some(
+        (other) =>
+          other.replace(pluralSuffix, "") === base && pluralSuffix.test(other),
+      );
     });
   const onlyBs = pluralTolerant(keys.bs, keys.en);
   const onlyEn = pluralTolerant(keys.en, keys.bs);
-  if (onlyBs.length > 0) fail(section, `keys only in bs: ${onlyBs.slice(0, 10).join(", ")}`);
-  if (onlyEn.length > 0) fail(section, `keys only in en: ${onlyEn.slice(0, 10).join(", ")}`);
+  if (onlyBs.length > 0)
+    fail(section, `keys only in bs: ${onlyBs.slice(0, 10).join(", ")}`);
+  if (onlyEn.length > 0)
+    fail(section, `keys only in en: ${onlyEn.slice(0, 10).join(", ")}`);
   notes.push(`i18n: ${keys.bs.size} keys, bs/en parity ok`);
 
   // `(?<![\w.])` skips `search.set("q")` / `createElement("a")` and friends.
   const staticKey = /(?<![\w.])t\(\s*"([A-Za-z][A-Za-z0-9]*\.[A-Za-z0-9.]+)"/g;
-  const dynamicPrefix = /(?<![\w.])t\(\s*`([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*)\.\$\{/g;
+  const dynamicPrefix =
+    /(?<![\w.])t\(\s*`([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*)\.\$\{/g;
   const seenKeys = new Set();
   const seenPrefixes = new Set();
 
@@ -323,17 +385,22 @@ function checkI18n() {
     if (/\.spec\.(tsx|ts)$/.test(file)) continue;
     const text = read(file);
     for (const match of text.matchAll(staticKey)) seenKeys.add(match[1]);
-    for (const match of text.matchAll(dynamicPrefix)) seenPrefixes.add(match[1]);
+    for (const match of text.matchAll(dynamicPrefix))
+      seenPrefixes.add(match[1]);
   }
   for (const key of [...seenKeys].sort()) {
     for (const locale of ["bs", "en"]) {
-      if (!hasKey(locales[locale], key)) fail(section, `t("${key}") has no ${locale} translation`);
+      if (!hasKey(locales[locale], key))
+        fail(section, `t("${key}") has no ${locale} translation`);
     }
   }
   for (const prefix of [...seenPrefixes].sort()) {
     for (const locale of ["bs", "en"]) {
       if (!hasPrefix(locales[locale], prefix)) {
-        fail(section, `dynamic t(\`${prefix}.…\`) matches nothing in ${locale}`);
+        fail(
+          section,
+          `dynamic t(\`${prefix}.…\`) matches nothing in ${locale}`,
+        );
       }
     }
   }
@@ -348,20 +415,27 @@ function checkContract() {
   const storage = read("frontend/src/lib/theme/theme-storage.ts");
   const prePaint = read("frontend/index.html");
 
-  const storageKeys = [...storage.matchAll(/THEME_[A-Z]+_STORAGE_KEY\s*=\s*"([^"]+)"/g)].map(
-    (match) => match[1],
-  );
-  if (storageKeys.length === 0) fail(section, "no THEME_*_STORAGE_KEY constants found");
+  const storageKeys = [
+    ...storage.matchAll(/THEME_[A-Z]+_STORAGE_KEY\s*=\s*"([^"]+)"/g),
+  ].map((match) => match[1]);
+  if (storageKeys.length === 0)
+    fail(section, "no THEME_*_STORAGE_KEY constants found");
   for (const key of storageKeys) {
     if (!prePaint.includes(key)) {
-      fail(section, `storage key "${key}" is not mirrored by the pre-paint script in index.html`);
+      fail(
+        section,
+        `storage key "${key}" is not mirrored by the pre-paint script in index.html`,
+      );
     }
   }
-  notes.push(`contract: ${storageKeys.length} storage keys mirrored in the pre-paint script`);
+  notes.push(
+    `contract: ${storageKeys.length} storage keys mirrored in the pre-paint script`,
+  );
 
   const provider = read("frontend/src/lib/theme/theme-provider.tsx");
   for (const attribute of ["root.dataset.theme", "root.dataset.accent"]) {
-    if (!provider.includes(attribute)) fail(section, `${attribute} is not set by ThemeProvider`);
+    if (!provider.includes(attribute))
+      fail(section, `${attribute} is not set by ThemeProvider`);
   }
   if (!/classList\.toggle\("dark"/.test(provider)) {
     fail(section, 'ThemeProvider does not toggle the "dark" class');
@@ -374,7 +448,10 @@ function checkContract() {
     ["data-accent", "accent"],
   ]) {
     if (!prePaint.includes(`setAttribute("${attribute}", ${value})`)) {
-      fail(section, `pre-paint script does not apply the stored ${attribute} (${value})`);
+      fail(
+        section,
+        `pre-paint script does not apply the stored ${attribute} (${value})`,
+      );
     }
   }
   if (!prePaint.includes('classList.toggle("dark", isDark)')) {
@@ -396,4 +473,6 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(`  ✗ ${failure}`);
   process.exit(1);
 }
-console.log("check-pulse-design-system: docs, colours, tokens, radius, i18n and theme contract OK.");
+console.log(
+  "check-pulse-design-system: docs, colours, tokens, radius, i18n and theme contract OK.",
+);

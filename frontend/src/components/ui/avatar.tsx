@@ -56,7 +56,7 @@ export function Avatar({
       aria-label={decorative ? undefined : (ariaLabel ?? name)}
       aria-hidden={decorative ? "true" : undefined}
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-black/5 dark:ring-white/5",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-foreground/5",
         AVATAR_HUES[hashCode(name) % AVATAR_HUES.length],
         size === "xs" && "size-5 text-[9px]",
         size === "sm" && "size-[26px] text-[10.5px]",
