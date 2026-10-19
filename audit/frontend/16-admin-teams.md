@@ -224,10 +224,10 @@ Verifikacija implementacije:
 - `npx tsc -b` — prolazi;
 - ciljani ESLint Teams fajlova — prolazi;
 - `npm run i18n:check` — prolazi, bs/en parity potvrđen;
-- puni frontend Vitest — **329/329 fajlova i 1333/1333 testova prolazi**;
+- puni frontend Vitest — **330/330 fajlova i 1335/1335 testova prolazi**;
 - E2E 33 — **nije pokrenut**, samo je proširen channels axe korakom.
 
-Preostalo do punog 10/10: server-side skalabilan user search/paginacija za TM9 te direktni komponent testovi za TM7/TM8/TM11 i izvršenje E2E 33.
+Preostalo do punog 10/10: direktni komponent testovi za TM7/TM8/TM11 i izvršenje E2E 33.
 
 ## Ocjena
 

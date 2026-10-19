@@ -10062,7 +10062,11 @@
       "installed": "Aplikacija instalirana",
       "placeholder": "Poruka botu, npr. „moji tiketi“ ili „novi tiket“",
       "send": "Pošalji",
-      "userSearch": "Pretraži korisnike"
+      "userSearch": "Pretraži korisnike",
+      "usersLoading": "Učitavanje korisnika…",
+      "noUsers": "Nema aktivnih korisnika koji odgovaraju pretrazi.",
+      "loadMoreUsers": "Učitaj još korisnika",
+      "usersLoaded": "Učitano aktivnih korisnika: {{count}}"
     },
     "errors": {
       "appIdRequired": "Za paket je potreban Bot App ID (GUID).",

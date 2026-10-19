@@ -12,10 +12,9 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Input, Select } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { describeTeamsError, type TeamsErrorDetails } from "@/lib/teams/map-teams-error";
 import { useTeamsAsyncAction } from "@/lib/teams/use-teams-async-action";
 import { useTeamsSimulator } from "@/lib/teams/use-teams-simulator";
-import { listUsersSummary, type UserSummary } from "@/services/users-api";
+import { useTeamsUserSearch } from "@/lib/teams/use-teams-user-search";
 import {
   sendTeamsSimulatorActivity,
   type TeamsSimulatorMessage,
@@ -51,36 +50,32 @@ function inboundLabel(
 
 export function TeamsSimulatorTab() {
   const { t, i18n } = useTranslation();
-  const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [userId, setUserId] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [scope, setScope] = useState<TeamsSimulatorScope>("personal");
   const [text, setText] = useState("");
-  const [loadError, setLoadError] = useState<TeamsErrorDetails | null>(null);
   const { busy, error: actionError, run: runAction } = useTeamsAsyncAction();
-  const errorKey = actionError ?? loadError;
   const [lastStatus, setLastStatus] = useState<number | null>(null);
   const endReference = useRef<HTMLDivElement | null>(null);
 
+  const {
+    users,
+    hasMore,
+    loading: usersLoading,
+    loadingMore,
+    error: usersError,
+    loadMore,
+  } = useTeamsUserSearch(userSearch);
+  const errorKey = actionError ?? usersError;
+
   useEffect(() => {
-    void listUsersSummary()
-      .then((list) => {
-        const active = list.filter((user) => user.isActive);
-        setUsers(active);
-        setUserId((current) => current || active[0]?.id || "");
-      })
-      .catch((error: unknown) => setLoadError(describeTeamsError(error)));
-  }, []);
+    setUserId((current) => {
+      if (users.some((user) => user.id === current)) return current;
+      return users[0]?.id ?? "";
+    });
+  }, [users]);
 
   const { messages, refreshErrorKey, refresh } = useTeamsSimulator(userId, scope);
-  const normalizedUserSearch = userSearch.trim().toLocaleLowerCase(i18n.language);
-  const visibleUsers = normalizedUserSearch
-    ? users.filter((user) =>
-        `${user.displayName} ${user.email}`
-          .toLocaleLowerCase(i18n.language)
-          .includes(normalizedUserSearch),
-      )
-    : users;
 
   const lastCount = useRef(0);
   useEffect(() => {
@@ -122,14 +117,35 @@ export function TeamsSimulatorTab() {
           </label>
           <label className="grid min-w-[220px] gap-1 text-[12px] font-medium text-foreground">
             {t("teamsAdmin.simulator.user")}
-            <Select value={userId} onChange={(event) => setUserId(event.target.value)}>
-              {visibleUsers.map((user) => (
+            <Select
+              value={userId}
+              disabled={usersLoading || users.length === 0}
+              onChange={(event) => setUserId(event.target.value)}
+            >
+              {users.length === 0 ? (
+                <option value="">
+                  {usersLoading
+                    ? t("teamsAdmin.simulator.usersLoading")
+                    : t("teamsAdmin.simulator.noUsers")}
+                </option>
+              ) : null}
+              {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.displayName} ({user.email})
                 </option>
               ))}
             </Select>
           </label>
+          <div className="grid gap-1 text-[11.5px] text-muted-foreground">
+            <span>{t("teamsAdmin.simulator.usersLoaded", { count: users.length })}</span>
+            {hasMore ? (
+              <Button size="xs" variant="ghost" disabled={loadingMore} onClick={loadMore}>
+                {loadingMore
+                  ? t("teamsAdmin.simulator.usersLoading")
+                  : t("teamsAdmin.simulator.loadMoreUsers")}
+              </Button>
+            ) : null}
+          </div>
           <Segmented<TeamsSimulatorScope>
             label={t("teamsAdmin.simulator.scope")}
             value={scope}

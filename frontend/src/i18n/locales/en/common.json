@@ -9982,7 +9982,11 @@
       "installed": "App installed",
       "placeholder": "Message to the bot, e.g. “my tickets” or “new ticket”",
       "send": "Send",
-      "userSearch": "Search users"
+      "userSearch": "Search users",
+      "usersLoading": "Loading users…",
+      "noUsers": "No active users match the search.",
+      "loadMoreUsers": "Load more users",
+      "usersLoaded": "Active users loaded: {{count}}"
     },
     "errors": {
       "appIdRequired": "The package needs the Bot App ID (GUID).",
