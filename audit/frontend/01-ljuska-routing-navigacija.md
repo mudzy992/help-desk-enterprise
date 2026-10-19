@@ -175,6 +175,26 @@ Verifikacija Faze 3:
 - puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
 - `git diff --check` — prolazi.
 
+## Status implementacije — Faza 4 (2026-10-19)
+
+Faza 4 je kompletirana i **LR7 je zatvoren**:
+
+- uklonjene su interne oznake `F0.3`, `F1`, `F6.2`, `IN4/IN5` i naziv vizuelne faze iz produkcijskih i povezanih testnih komentara u scope-u;
+- zadržana su trajna objašnjenja server-selected wizard koraka, advisory readiness ponašanja, completion-screen izuzetka i CSS redoslijeda;
+- komentari su u izmijenjenom scope-u ujednačeni na engleski;
+- ciljani grep za fazne oznake sada vraća nula rezultata;
+- nije promijenjeno runtime ponašanje;
+- privremena ocjena nakon Faze 4 je **9.8/10**; otvoren ostaje samo LR8.
+
+Verifikacija Faze 4:
+
+- ciljani install gate testovi — 10/10 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
+- `git diff --check` — prolazi.
+
 ## Fazni roadmap
 
 ### Faza 1 — ugovor ruta

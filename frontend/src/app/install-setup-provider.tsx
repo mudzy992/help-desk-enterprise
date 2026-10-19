@@ -26,14 +26,14 @@ type InstallSetupStatusState =
   | {
       readonly status: "ready";
       readonly isCompleted: boolean;
-      /** F0.3/IN4: the step the wizard opens on — the server decides, the shell obeys. */
+      /** The server-selected step the wizard opens on. */
       readonly nextStep: InstallWizardStep | undefined;
       readonly steps: Readonly<Record<InstallStepKey, InstallStepState>> | undefined;
-      /** F1: the package chosen in the wizard, `null` while none is stored. */
+      /** The package chosen in the wizard, `null` while none is stored. */
       readonly profile: InstallProfile | null;
-      /** F1: readiness as last read; `null` when it could not be read. */
+      /** Readiness as last read; `null` when it could not be read. */
       readonly readiness: InstallReadiness | null;
-      /** F6.2: counts for the „Sistem je spreman“ screen, `null` until it exists. */
+      /** Counts for the completion screen, `null` until a summary exists. */
       readonly summary: InstallSetupSummary | null;
     };
 
@@ -47,8 +47,8 @@ const LOADING_STATE: InstallSetupStatusState = { status: "loading" };
 const InstallSetupContext = createContext<InstallSetupState | null>(null);
 
 /**
- * F0.3 (IN4/IN5): this provider is the **only** place that reads
- * `GET /install/status`. The wizard page used to fire a second request and, when
+ * This provider is the only place that reads `GET /install/status`. The wizard
+ * page used to fire a second request and, when
  * it failed, drop the operator onto the SuperAdmin step regardless of where the
  * installation actually was. Here a failure is an error screen with a retry, and
  * a step that saves calls `reload()` instead of moving a private step cursor.
@@ -64,8 +64,8 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
     setState((current) => (current.status === "ready" ? current : LOADING_STATE));
     void Promise.all([
       loadInstallSetupStatus(),
-      // F1: readiness is advisory on this screen — a failed read must not hide
-      // the wizard, so it degrades to `null` and the step screens still work.
+      // Readiness is advisory here: a failed read degrades to `null` so it
+      // cannot hide the wizard or prevent its step screens from working.
       loadInstallReadiness().catch(() => null),
     ])
       .then(([status, readiness]) => {

@@ -15,7 +15,7 @@ vi.mock("@/services/install-api", () => ({
   loadInstallSetupStatus: vi.fn(),
 }));
 
-// F1: the provider also reads readiness; here it is only a field on the context.
+// Readiness is only a context field in these layout tests.
 vi.mock("@/services/install-profile-api", () => ({
   loadInstallReadiness: vi.fn(),
 }));
@@ -44,7 +44,7 @@ function renderGate(initialPath: string) {
 
 describe("InstallSetupLayout", () => {
   beforeEach(() => {
-    // F1: the provider reads readiness alongside the status; here it only has to
+    // The provider reads readiness alongside status; this mock only needs to
     // answer so the gate can be exercised.
     vi.mocked(loadInstallReadiness).mockResolvedValue({ isReady: false, checks: [] });
   });
