@@ -37,46 +37,46 @@ Sadržaj pojedinačnih stranica, backend autorizacija, header indikatori i Insta
 
 ## Potvrđeno zatvoreno iz prethodnog audita
 
-| Prethodna oblast | Trenutni dokaz | Status |
-| --- | --- | --- |
-| Install status greška vodi na wizard | Provider ima `loading/error/ready`; error prikazuje retry | Zatvoreno |
-| Globalni bijeli ekran | Root `errorElement` i page `RouteErrorBoundary` | Zatvoreno uz LR4 |
-| `/docs` ikona | `/docs` mapiran na `FileText`; ikone imaju test | Zatvoreno |
-| Gubitak query/hash nakon login-a | `RequireAuth` sprema puni path; login koristi `safeReturnPath` | Zatvoreno |
-| Remount bannera | `key` je na page wrapperu; banneri su izvan njega | Zatvoreno uz LR4 |
-| Dupli mobile-close | Jedan effect prati `location.key` | Zatvoreno |
-| Dupli `isStaff` | Shell koristi `isTicketStaff` | Zatvoreno |
-| Tihi `console.error` | Centralni client logger i `no-console` guard | Zatvoreno |
-| Hard-coded sidebar shortcut | Koristi `shortcutHint("newTicket")` | Zatvoreno |
-| Tihi `*` redirect | Renderuje se `NotFoundPage` | Zatvoreno |
-| i18n init blank screen | Greška se prijavi, aplikacija se ipak renderuje | Zatvoreno |
-| Osnovni guard testovi | Direktni auth/access/install/error testovi postoje | Zatvoreno |
+| Prethodna oblast                     | Trenutni dokaz                                                 | Status           |
+| ------------------------------------ | -------------------------------------------------------------- | ---------------- |
+| Install status greška vodi na wizard | Provider ima `loading/error/ready`; error prikazuje retry      | Zatvoreno        |
+| Globalni bijeli ekran                | Root `errorElement` i page `RouteErrorBoundary`                | Zatvoreno uz LR4 |
+| `/docs` ikona                        | `/docs` mapiran na `FileText`; ikone imaju test                | Zatvoreno        |
+| Gubitak query/hash nakon login-a     | `RequireAuth` sprema puni path; login koristi `safeReturnPath` | Zatvoreno        |
+| Remount bannera                      | `key` je na page wrapperu; banneri su izvan njega              | Zatvoreno uz LR4 |
+| Dupli mobile-close                   | Jedan effect prati `location.key`                              | Zatvoreno        |
+| Dupli `isStaff`                      | Shell koristi `isTicketStaff`                                  | Zatvoreno        |
+| Tihi `console.error`                 | Centralni client logger i `no-console` guard                   | Zatvoreno        |
+| Hard-coded sidebar shortcut          | Koristi `shortcutHint("newTicket")`                            | Zatvoreno        |
+| Tihi `*` redirect                    | Renderuje se `NotFoundPage`                                    | Zatvoreno        |
+| i18n init blank screen               | Greška se prijavi, aplikacija se ipak renderuje                | Zatvoreno        |
+| Osnovni guard testovi                | Direktni auth/access/install/error testovi postoje             | Zatvoreno        |
 
 ## Realno / željeno — samo otvoreno
 
-| Oblast | Realno | Željeno |
-| --- | --- | --- |
-| Definicija ruta | 376 linija JSX-a i 15 ponovljenih guard blokova | Tipizovani route katalog/helper |
-| Paritet menija i ruta | Više ručno sinhronizovanih izvora | Test za path, access i ikonu svih destinacija |
-| Assets/Problems/Changes | Sidebar koristi capability pravila; route ne koristi isti guard | Jedna eksplicitna i testirana odluka |
-| Page error reset | Boundary se remountuje samo na pathname | Reset na relevantni search/hash ili navigation key |
-| Command palette | 409 linija, bez direktnog testa komponente | Async, keyboard, a11y i access testovi |
-| Guard poruke | Ručni key union i četiri propsa | Tipizovani descriptor |
-| Komentari | Ponovo postoje F0/F1/F6/IN/Aurora oznake | Trajni komentari bez faznih oznaka |
-| Header dokaz | Stari mock screenshot | Aktuelni ponovljivi responsive test |
+| Oblast                  | Realno                                                          | Željeno                                            |
+| ----------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| Definicija ruta         | 376 linija JSX-a i 15 ponovljenih guard blokova                 | Tipizovani route katalog/helper                    |
+| Paritet menija i ruta   | Više ručno sinhronizovanih izvora                               | Test za path, access i ikonu svih destinacija      |
+| Assets/Problems/Changes | Sidebar koristi capability pravila; route ne koristi isti guard | Jedna eksplicitna i testirana odluka               |
+| Page error reset        | Boundary se remountuje samo na pathname                         | Reset na relevantni search/hash ili navigation key |
+| Command palette         | 409 linija, bez direktnog testa komponente                      | Async, keyboard, a11y i access testovi             |
+| Guard poruke            | Ručni key union i četiri propsa                                 | Tipizovani descriptor                              |
+| Komentari               | Ponovo postoje F0/F1/F6/IN/Aurora oznake                        | Trajni komentari bez faznih oznaka                 |
+| Header dokaz            | Stari mock screenshot                                           | Aktuelni ponovljivi responsive test                |
 
 ## Gap analiza i master tabela
 
-| ID | Prioritet | Status | Nalaz / dokaz | Kriterij zatvaranja |
-| --- | --- | --- | --- | --- |
-| **LR1** | P1 / visoko | **Otvoren** | `router.tsx` ima 376 linija i 15 gotovo identičnih `RequireAccess` blokova. Raniji Gap 8 više nije opravdano držati trajno otvorenim. | Tipizovani route descriptor/helper centralizuje guard, poruke i ikonu; URL ugovor ostaje isti. |
-| **LR2** | P1 / srednje | **Otvoren** | Navigacija, route JSX, access switch i icon mapa održavaju se odvojeno. Nema sistemskog parity testa. | Test pokriva navigacijske stavke, route descriptor, access kind i ikonu; izuzeci su eksplicitni. |
-| **LR3** | P1 / srednje | **Djelimično** | Assets/Problems/Changes filtriraju se iz menija prema module + permission pravilima, ali njihove rute nisu u `RequireAccess`. Direct URL nema isti frontend rezultat kao meni. | Dokumentovati i testirati page-level odluku ili koristiti isti guard za list/detail rute. |
-| **LR4** | P1 / srednje | **Otvoren** | Page wrapper i boundary imaju `key={location.pathname}`. Query/hash navigacija ne montira svjež boundary i fallback može ostati sticky. | Route identity uključuje relevantni search/hash ili boundary resetuje error na navigation key; test reprodukuje query-only oporavak. |
-| **LR5** | P1 / srednje | **Otvoren** | `command-palette.tsx` ima 409 linija. Nema direktnog testa za debounce/abort, stale response, keyboard wrap, active descendant, access filter i navigaciju. Komentar kaže 300 ms, konstanta je 250 ms. | Izdvojiti search/row model ili hook; dodati direktne interakcijske testove i uskladiti komentar. |
-| **LR6** | P2 / nisko | **Otvoren** | `ForbiddenMessageKey` je ručni union, a svaki guard zasebno prima check, title, body i icon. | Descriptor tipom veže capability check, poruke i ikonu; nema ručnog union održavanja u komponenti. |
-| **LR7** | P2 / nisko | **Otvoren** | U scope-u su ponovo `F0.3`, `IN4/IN5`, `F1`, `F6.2` i „Aurora“. Prethodni closeout je tvrdio da su uklonjene. | Ostaviti trajno „zašto“ objašnjenje; grep scope-a nema interne fazne oznake. |
-| **LR8** | P2 / provjera | **Otvoren** | B22 se oslanja na mock screenshot iz 2026-10-14; nema aktuelnog responsive regression testa. | Playwright/component test na 360 i 390 px potvrđuje bez overflowa i dostupnost kontrola. |
+| ID      | Prioritet     | Status         | Nalaz / dokaz                                                                                                                                                                                          | Kriterij zatvaranja                                                                                                                  |
+| ------- | ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **LR1** | P1 / visoko   | **Otvoren**    | `router.tsx` ima 376 linija i 15 gotovo identičnih `RequireAccess` blokova. Raniji Gap 8 više nije opravdano držati trajno otvorenim.                                                                  | Tipizovani route descriptor/helper centralizuje guard, poruke i ikonu; URL ugovor ostaje isti.                                       |
+| **LR2** | P1 / srednje  | **Otvoren**    | Navigacija, route JSX, access switch i icon mapa održavaju se odvojeno. Nema sistemskog parity testa.                                                                                                  | Test pokriva navigacijske stavke, route descriptor, access kind i ikonu; izuzeci su eksplicitni.                                     |
+| **LR3** | P1 / srednje  | **Djelimično** | Assets/Problems/Changes filtriraju se iz menija prema module + permission pravilima, ali njihove rute nisu u `RequireAccess`. Direct URL nema isti frontend rezultat kao meni.                         | Dokumentovati i testirati page-level odluku ili koristiti isti guard za list/detail rute.                                            |
+| **LR4** | P1 / srednje  | **Otvoren**    | Page wrapper i boundary imaju `key={location.pathname}`. Query/hash navigacija ne montira svjež boundary i fallback može ostati sticky.                                                                | Route identity uključuje relevantni search/hash ili boundary resetuje error na navigation key; test reprodukuje query-only oporavak. |
+| **LR5** | P1 / srednje  | **Otvoren**    | `command-palette.tsx` ima 409 linija. Nema direktnog testa za debounce/abort, stale response, keyboard wrap, active descendant, access filter i navigaciju. Komentar kaže 300 ms, konstanta je 250 ms. | Izdvojiti search/row model ili hook; dodati direktne interakcijske testove i uskladiti komentar.                                     |
+| **LR6** | P2 / nisko    | **Otvoren**    | `ForbiddenMessageKey` je ručni union, a svaki guard zasebno prima check, title, body i icon.                                                                                                           | Descriptor tipom veže capability check, poruke i ikonu; nema ručnog union održavanja u komponenti.                                   |
+| **LR7** | P2 / nisko    | **Otvoren**    | U scope-u su ponovo `F0.3`, `IN4/IN5`, `F1`, `F6.2` i „Aurora“. Prethodni closeout je tvrdio da su uklonjene.                                                                                          | Ostaviti trajno „zašto“ objašnjenje; grep scope-a nema interne fazne oznake.                                                         |
+| **LR8** | P2 / provjera | **Otvoren**    | B22 se oslanja na mock screenshot iz 2026-10-14; nema aktuelnog responsive regression testa.                                                                                                           | Playwright/component test na 360 i 390 px potvrđuje bez overflowa i dostupnost kontrola.                                             |
 
 ## Dobro i vrijedno zadržavanja
 
@@ -104,6 +104,35 @@ Modul dobija 10/10 kada:
 8. aktuelni responsive test potvrdi header na 360/390 px (**LR8**);
 9. TypeScript, ESLint, format, ciljani testovi i puni frontend suite prolaze;
 10. browser test bude jasno označen kao pokrenut ili nepokrenut.
+
+## Status implementacije — Faza 1 (2026-10-19)
+
+Faza 1 je kompletirana na reaudit osnovi `ea0f546`:
+
+| Nalaz | Status nakon Faze 1 | Dokaz                                                                                                                                                                                            |
+| ----- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| LR1   | **Zatvoren**        | `router.tsx` je smanjen sa 376 na 109 linija. Jedini produkcijski `RequireAccess` nalazi se u zajedničkom `ProtectedRoute`; 21 zaštićena list/detail/editor ruta dolazi iz tipizovanog kataloga. |
+| LR2   | **Zatvoren**        | `protected-route-catalog.spec.ts` provjerava jedinstvene pathove, postojanje ikone te navigation/route access paritet za sve guardane navigacijske destinacije.                                  |
+| LR3   | **Zatvoren**        | Assets, Problems i Changes list/detail rute koriste isti `canOpen*` guard i isti access kind kao sidebar i komandna paleta.                                                                      |
+| LR6   | **Zatvoren**        | Guard descriptor veže page, check, access kind, title/body ključeve i icon path; `RequireAccess` više nema ručno pobrojavanje svakog title/body ključa.                                          |
+
+Implementacijski detalji:
+
+- uveden je `app/protected-route-catalog.tsx` kao tipizovani ugovor guardanih ruta;
+- uveden je mali `ProtectedRoute` renderer;
+- URL ugovor je sačuvan, uključujući template/playbook create/detail rute;
+- fallback ikone se dobijaju iz postojećeg `navigation-icons` izvora;
+- javne, authenticated-only, nested ticket/KB i legacy redirect rute ostale su eksplicitne u routeru;
+- privremena ocjena nakon Faze 1 je **9/10**; LR4, LR5, LR7 i LR8 ostaju za naredne faze.
+
+Verifikacija Faze 1:
+
+- TypeScript i produkcijski frontend build — prolaze;
+- ESLint — 0 grešaka, 12 postojećih upozorenja izvan izmijenjenog routing scope-a;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- ciljani routing testovi — 25/25 prolaze;
+- puni frontend Vitest — **334/334 fajlova i 1341/1341 test prolaze**;
+- `git diff --check` — prolazi.
 
 ## Fazni roadmap
 

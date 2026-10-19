@@ -5,30 +5,27 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
-type ForbiddenMessageKey =
-  | "admin.forbiddenTitle"
-  | "admin.forbiddenBody"
-  | "configVersions.forbiddenTitle"
-  | "configVersions.forbiddenBody"
-  | "reports.forbiddenTitle"
-  | "reports.forbiddenBody"
-  | "routing.forbiddenTitle"
-  | "routing.forbiddenBody"
-  | "sla.forbiddenTitle"
-  | "sla.forbiddenBody"
-  | "permissions.forbiddenTitle"
-  | "permissions.forbiddenBody"
-  | "policyPacks.forbiddenTitle"
-  | "policyPacks.forbiddenBody"
-  | "privacy.forbiddenTitle"
-  | "privacy.forbiddenBody"
-  | "onCall.forbiddenTitle"
-  | "onCall.forbiddenBody";
+export type ForbiddenMessageScope =
+  | "admin"
+  | "assets"
+  | "changes"
+  | "configVersions"
+  | "onCall"
+  | "permissions"
+  | "policyPacks"
+  | "privacy"
+  | "problems"
+  | "reports"
+  | "routing"
+  | "sla";
+
+export type ForbiddenMessageKey =
+  `${ForbiddenMessageScope}.forbiddenTitle` | `${ForbiddenMessageScope}.forbiddenBody`;
 
 interface RequireAccessProperties {
   readonly check: (capabilities: SessionCapabilities) => boolean;
-  readonly forbiddenTitleKey: ForbiddenMessageKey;
-  readonly forbiddenBodyKey: ForbiddenMessageKey;
+  readonly forbiddenTitleKey: `${ForbiddenMessageScope}.forbiddenTitle`;
+  readonly forbiddenBodyKey: `${ForbiddenMessageScope}.forbiddenBody`;
   readonly icon?: ReactNode;
   readonly children: ReactNode;
 }
