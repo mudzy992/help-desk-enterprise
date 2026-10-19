@@ -97,7 +97,7 @@ Izvršeno kroz reaudit i Faze 1–4:
 | DA10 | Srednja | **Zatvoreno — Faza 2** | **Setup checklist failure UX je tih.** Početni read kvar sakrije karticu, a dismiss kvar samo vrati dugme bez poruke/request ID-a. Administrator ne zna je li akcija uspjela niti može razlikovati „sve završeno“ od nedostupnog checklista. | Modelirati loading/error/dismiss error, retry i `ApiErrorText`/toast; zadržati dashboard funkcionalnim. |
 | DA11 | Srednja | **Zatvoreno — Faza 4** | **Pokriće ne zaključava glavne produkcijske grane.** Postojeći hook spec ima 3 testa i mockuje compose/volume; nema page testa, inbox snapshot testa, activity testa, race/account-switch testa, pagination-total testa, day rollovera ni cijelog metric contracta. | Dodati integration/component matricu po DA1–DA10; testirati stvarne query inpute i vidljiva stanja, ne samo helper mockove. |
 | DA12 | Niska | **Zatvoreno — Faza 4** | **Production comment hygiene nije završena.** Aktivni dashboard/report-summary fajlovi sadrže historijske `Val`, `Faza`, `Paket`, `Phase`, `M15/B*` oznake i komentar u `compose-dashboard-summary.ts` ima prazno `server counters ()`. | Zamijeniti historijske oznake trajnim domain/architecture objašnjenjima i dodati dashboard hygiene guard. |
-| DA13 | Validacija | Neizvršeno | **Browser/E2E i profiler dokaz nedostaju.** Postoje accessibility smoke scenariji, ali nema dokaz kartica → filtrirana lista, role varijanti, progressive/realtime recoveryja, inbox > page size ni React Profiler mjerenja. | Izvršiti dogovorenu browser matricu i profiler na realnom/authenticated stacku; ne računati čitanje speca kao prolaz. |
+| DA13 | Validacija | **Djelimično pripremljeno — infrastrukturno blokirano** | **Browser/E2E i profiler dokaz nedostaju.** Postoje accessibility smoke scenariji, ali nema dokaz kartica → filtrirana lista, role varijanti, progressive/realtime recoveryja, inbox > page size ni React Profiler mjerenja. | Izvršiti dogovorenu browser matricu i profiler na realnom/authenticated stacku; ne računati čitanje speca kao prolaz. |
 
 ## 6. Faza 1 — implementacijski closeout
 
@@ -214,7 +214,7 @@ Ciljani dashboard dokaz nakon implementacije: **13/13 fajlova, 41/41 test** i Ty
 
 **Gate:** svi DA1–DA12 zatvoreni dokazom; `git diff --check` čist; nijedan infrastrukturno blokiran test nije predstavljen kao prolaz.
 
-### Faza 5 — browser i profiler closeout
+### Faza 5 — browser i profiler closeout (infrastrukturno blokirana)
 
 **DA13**
 
@@ -240,7 +240,21 @@ Bilježiti commit duration, broj commitova i neočekivane rerendere za `Dashboar
 
 **Gate za 10/10:** svi funkcionalni nalazi zatvoreni, browser matrica stvarno prošla i profiler rezultat dokumentovan. Ako E2E bude eksplicitno izuzet u budućem zadatku, najviša dokaziva ocjena ostaje 9.8/10.
 
-## 8. Preporučeni commit redoslijed
+## 8. Faza 5 — izvršni closeout
+
+Dodan je `e2e/tests/54-dashboard.spec.ts` sa tri stvarna browser scenarija:
+
+- AGENT metric kartice → kanonski URL/query contract i vidljivi critical filter;
+- USER ne vidi staff-only unrouted, SLA watchlist i group inbox površine;
+- AGENT dashboard na 390×844 viewportu nema horizontalni overflow.
+
+Playwright discovery prolazi: **1 fajl, 3 testa su validno registrovana**. Stvarno izvršavanje je pokušano 2026-10-19, ali je global setup zaustavljen prije pokretanja browser testa jer API health endpoint `http://localhost:10001/health` nije dostupan (`E2E stack not ready ... TypeError: fetch failed`). Docker i lokalni Chromium nisu dostupni u ovom okruženju. Zato nijedan od tri testa nije označen kao prolaz.
+
+React/browser profiler mjerenje nije izvršeno: bez pokrenutog authenticated stacka i browsera nije moguće prikupiti vjerodostojne commit duration/rerender podatke. Vitest/jsdom trajanja nisu korištena kao zamjena.
+
+**Status ocjene ostaje 9.8/10.** Implementacijski nalazi DA1–DA12 su zatvoreni; DA13 ostaje jedina validacijska granica. Za 10/10 treba na raspoloživom E2E stacku izvršiti tri nova scenarija, postojeće dashboard accessibility scenarije iz testa 22 i profiler matricu navedenu iznad.
+
+## 9. Preporučeni commit redoslijed
 
 1. `fix(dashboard): align metric links and inbox totals`
 2. `fix(dashboard): make progressive reloads race safe`
@@ -251,7 +265,7 @@ Bilježiti commit duration, broj commitova i neočekivane rerendere za `Dashboar
 
 Svaku fazu treba zasebno verifikovati, commitovati i pushati. Ne spajati server agregat, race zaštitu i browser closeout u jedan teško pregledljiv diff.
 
-## 9. Mapa postojećih nalaza na novu iteraciju
+## 10. Mapa postojećih nalaza na novu iteraciju
 
 | Stari nalaz | Reaudit odluka |
 |---|---|
@@ -266,7 +280,7 @@ Svaku fazu treba zasebno verifikovati, commitovati i pushati. Ne spajati server 
 | D14 | Ponovo otvoren kao DA9. |
 | D17 | Ponovo otvoren i proširen kao DA11/DA13. |
 
-## 10. Zaključak
+## 11. Zaključak
 
 Dashboard nije kandidat za rušenje ili široki redizajn. Potrebna je precizna korekcija ugovora: **broj, kliknuta lista i panel moraju govoriti o istom skupu**, svaki async kanal mora razlikovati loading/error/empty, a reload mora biti siguran na konkurentnost i promjenu sesije. Nakon toga server-side 14-dnevni agregat uklanja posljednji veliki performance i semantički kompromis.
 
