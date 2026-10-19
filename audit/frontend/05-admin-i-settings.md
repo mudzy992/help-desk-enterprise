@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **9,0/10 nakon Faze 4**
+**Aktuelna ocjena:** **9,2/10 nakon Faze 5**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faze 1–4 završene 19. 10. 2026.; `AS1–AS5` i `AS10` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package i access dijelovi `AS8` sada imaju direktnu pokrivenost.
+**Implementacijski status:** Faze 1–5 završene 19. 10. 2026.; `AS1–AS6` i `AS10` su zatvoreni, a admin/config-package/access dijelovi `AS8` sada imaju direktnu pokrivenost.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -383,6 +383,18 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** deterministic race suite prolazi bez timer/promise flakinessa.
 
+#### Evidencija zatvaranja Faze 5 (19. 10. 2026.)
+
+- `AdminAuditLogCard` sada invalidira aktivni request pri promjeni OU scopea, gubitku pristupa i unmountu; root reload eksplicitno resetuje i load-more stanje.
+- `AdminSecurityAuditCard` sada invalidira journal request pri filter/access promjeni i unmountu, a search sequence se invalidira i kada se query skrati/obriše, pa stari debounce odgovor ne može vratiti rezultate.
+- Load-more odgovor oba journala ne može se dodati nakon promjene OU/filter scopea; zastarjeli `finally` ne može ostaviti novu površinu u pogrešnom loading stanju.
+- Security audit sada zadržava već učitane redove vidljivim uz non-destructive load-more grešku, koristeći postojeći `error.hasRows` model umjesto praznog error prikaza.
+- Direktni audit testovi pokrivaju latest OU/filter, access revocation, load-more scope race, request ID, unknown-action fallback, debounce clear race i load-more error retention.
+- `AdminOpsPanel` visibility/OU testovi iz Faze 1 ostaju dio istog regresijskog paketa.
+- `AS6` i admin audit/ops dio `AS8` su zatvoreni.
+
+**Izvršni dokaz:** 5 ciljanih admin/audit test fajlova sa 26/26 determinističkih testova i puni frontend Vitest prolaz 353/353 fajlova odnosno 1425/1425 testova; production build, scope ESLint, Prettier i `git diff --check` su prošli.
+
 ### Faza 6 — Ops Health dekompozicija
 
 **Nalazi:** `AS7`, ops-health dio `AS8`
@@ -463,13 +475,13 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 | Oblast                                  |   Trenutno |      Cilj |
 | --------------------------------------- | ---------: | --------: |
 | Access/RBAC/read-only sigurnosna osnova |       10,0 |        10 |
-| Async/race/error ugovori                |        8,4 |        10 |
+| Async/race/error ugovori                |        9,3 |        10 |
 | Settings registry konzistentnost        |       10,0 |        10 |
 | Config versions/import                  |        9,0 |        10 |
 | Email templates                         |        8,0 |        10 |
-| Testabilnost i održivost                |        6,8 |        10 |
+| Testabilnost i održivost                |        7,6 |        10 |
 | Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **9,0/10** | **10/10** |
+| **Ukupno**                              | **9,2/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 

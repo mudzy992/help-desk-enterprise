@@ -37,14 +37,16 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
   const requestSequence = useRef(0);
 
   const load = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     if (!canView || organizationalUnitId.length === 0) {
       setRows([]);
       setNextCursor(null);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
-    const sequence = ++requestSequence.current;
     setIsLoading(true);
+    setIsLoadingMore(false);
     setErrorKey(null);
     setRequestId(null);
     try {
@@ -94,6 +96,9 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
 
   useEffect(() => {
     void load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [load]);
 
   const actionLabel = (action: string) => {

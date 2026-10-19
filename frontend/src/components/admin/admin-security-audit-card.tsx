@@ -74,14 +74,18 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
 
   const load = useCallback(
     async (cursor: string | null) => {
+      const sequence = cursor === null ? ++loadSequence.current : loadSequence.current;
       if (!canView) {
         setRows([]);
         setNextCursor(null);
         setIsLoading(false);
+        setIsLoadingMore(false);
         return;
       }
-      const sequence = cursor === null ? ++loadSequence.current : loadSequence.current;
-      if (cursor === null) setIsLoading(true);
+      if (cursor === null) {
+        setIsLoading(true);
+        setIsLoadingMore(false);
+      }
       setErrorKey(null);
       setRequestId(null);
       try {
@@ -113,15 +117,18 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
   useEffect(() => {
     void load(null);
     // `reloadToken` re-runs the same query after „Osvježi” or a filter change.
+    return () => {
+      loadSequence.current += 1;
+    };
   }, [load, reloadToken]);
 
   useEffect(() => {
     const query = userQuery.trim();
+    const sequence = (searchSequence.current += 1);
     if (query.length < userSearchMinimumLength) {
       setUserMatches([]);
       return;
     }
-    const sequence = (searchSequence.current += 1);
     const timer = setTimeout(() => {
       void listUsersSummaryPage({ take: userSearchTake, skip: 0, query })
         .then((page) => {
@@ -131,7 +138,10 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
           if (sequence === searchSequence.current) setUserMatches([]);
         });
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (searchSequence.current === sequence) searchSequence.current += 1;
+    };
   }, [userQuery]);
 
   const viewState = resolveSecurityAuditViewState({
@@ -265,7 +275,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
             body={t("admin.security.auditEmptyBody")}
           />
         ) : null}
-        {viewState.kind === "ready" ? (
+        {viewState.kind === "ready" || (viewState.kind === "error" && viewState.hasRows) ? (
           <>
             <ScrollRegion className={tableWrapClassName}>
               <table className="w-full min-w-[720px] text-left text-[13px]">
