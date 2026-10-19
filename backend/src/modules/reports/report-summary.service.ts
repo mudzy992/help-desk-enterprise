@@ -17,12 +17,12 @@ import type {
 } from "./summary/report-summary.types";
 
 /**
- * Phase 2.4 (plan §2.4): the dashboard and SLA counters as server-side
+ * the dashboard and SLA counters as server-side
  * aggregates.
  *
  * Both endpoints reuse the ticket list's scope (`buildTicketListWhere`) — the
  * same RBAC and visibility clauses, not a copy of them — and cache the answer
- * for a minute per user. M15 B4 (val 5): the old `scope` parameter is gone; the
+ * for a minute per user. the old `scope` parameter is gone; the
  * personal counters are fields of the same payload. The dashboard's "opened today"
  * boundary comes from the installation's reporting zone
  * (`settingKeys.privateReportsTimeZone`), never from the process `TZ`. The full visibility rules stay in
@@ -84,7 +84,7 @@ export class ReportSummaryService {
   ): Promise<DashboardSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
-    // M15 B4 (val 5): no scope clause any more — the counters match the ticket
+    // no scope clause any more — the counters match the ticket
     // list with an empty query (visibility from `buildTicketListWhere`), and the
     // personal counters travel inside the same payload.
     const visibleWhere = where === null ? { id: { in: [] } } : where;

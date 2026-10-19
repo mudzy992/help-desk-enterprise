@@ -51,7 +51,7 @@ const overdueState: Prisma.TicketSlaStateWhereInput = {
 };
 
 /**
- * Phase 2.4 (plan §2.4): the dashboard counters as SQL aggregates over the
+ * the dashboard counters as SQL aggregates over the
  * visibility scope the lists use — no ticket rows ever leave the database.
  *
  * Staging k6 (2026-09-24, 100k tickets): the former eight parallel statements
@@ -94,7 +94,7 @@ export async function loadDashboardSummaryCounts(
     prisma.ticket.count({
       where: withTicketWhereClause(where, { slaState: { is: overdueState } }),
     }),
-    // Val 6.1 / modul 4 (D4): one canonical "unrouted" number across the card,
+    // one canonical "unrouted" number across the card,
     // sidebar badge and inbox banner — the unrouted queue (UNROUTED status +
     // fallback-routed PENDING tickets via `buildUnroutedWhere`), matching
     // `get-ticket-counts.ts` `unroutedQueue`.

@@ -4,7 +4,7 @@ import type {
 } from "../../../generated/prisma/enums";
 
 /**
- * Phase 2.4 (plan §2.4): the dashboard and the SLA screen stop deriving their
+ * the dashboard and the SLA screen stop deriving their
  * numbers from a page of raw tickets and read them from these aggregates.
  *
  * The shapes are deliberately the ones the client already renders

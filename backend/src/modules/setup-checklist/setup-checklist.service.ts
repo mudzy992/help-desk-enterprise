@@ -10,7 +10,7 @@ import { setupChecklistConstants } from './setup-checklist.constants';
 import type { SetupChecklistItem, SetupChecklistStatus } from './setup-checklist.types';
 
 /**
- * Install wizard v2 (F6.3): the checklist behind `GET /setup-checklist`. Every
+ * the checklist behind `GET /setup-checklist`. Every
  * item is derived, never stored: a deferred step stays on the list until its own
  * state reads `completed` (the operator configured SMTP, invited the team,
  * answered the section), a recommendation until the deployment matches it.

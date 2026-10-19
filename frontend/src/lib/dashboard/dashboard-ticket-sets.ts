@@ -24,7 +24,7 @@ export function isDashboardOpenTicket(ticket: Pick<TicketResponse, "status">): b
 }
 
 /**
- * Val 6.1 / modul 4 (D2): the server now returns overdue tickets pre-sorted by
+ * the server now returns overdue tickets pre-sorted by
  * `slaDueAt` ascending (most-breached first). We only filter and cap here —
  * double-sorting by `updatedAt` previously pushed long-overdue, quiet tickets
  * off the list.

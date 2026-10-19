@@ -4,7 +4,7 @@ import type { InstallStepStates } from '../install/steps/install-step.types';
 import type { SetupChecklistItem } from './setup-checklist.types';
 
 /**
- * Install wizard v2 (F6.3): what is still open after the installation. Two
+ * what is still open after the installation. Two
  * families, both read from state the product already keeps:
  *
  * - a step the operator deferred („Podesi kasnije“) — it stays on the list until

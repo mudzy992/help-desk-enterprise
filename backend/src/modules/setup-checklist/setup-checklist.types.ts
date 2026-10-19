@@ -1,5 +1,5 @@
 /**
- * Install wizard v2 (F6.3): the post-install checklist. It is not a to-do list
+ * the post-install checklist. It is not a to-do list
  * the operator maintains — every item is a promise the wizard made („Podesi
  * kasnije“) or a production recommendation that is not in place yet, and it
  * disappears by itself once the thing behind it exists.

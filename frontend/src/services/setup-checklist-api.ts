@@ -1,7 +1,7 @@
 import { apiRequest } from "@/services/api";
 
 /**
- * Install wizard v2 (F6.3): the post-install checklist. The backend derives every
+ * the post-install checklist. The backend derives every
  * item from state the product already keeps, so the client only reads the list
  * and can hide the widget once — nothing here toggles an item by hand.
  */

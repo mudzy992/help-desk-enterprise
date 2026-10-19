@@ -24,11 +24,11 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 export function DashboardPage() {
   const { t } = useTranslation();
   const capabilities = useSessionCapabilities();
-  // Val 1 (M15/B5): dugme je bilo trajno onemogućeno uz poruku da ruta ne
+  // dugme je bilo trajno onemogućeno uz poruku da ruta ne
   // postoji, iako `/reports` postoji; sada je link, uz isto pravilo pristupa.
   const reportsVisible = canOpenReports(capabilities);
   const isStaff = isTicketStaff(capabilities);
-  // F6.3: the post-install checklist is administration content (it names what
+  // the post-install checklist is administration content (it names what
   // the installation is still missing) — read and dismiss both need settings.write.
   const setupChecklistVisible = canOpenAdminArea(capabilities);
   const {
@@ -133,7 +133,7 @@ export function DashboardPage() {
             items={summary.attention}
             serviceNames={serviceNames}
             originNames={originNames}
-            // Val 6.1 / modul 4 (D11): requesters must not see the assignment
+            // requesters must not see the assignment
             // column — the routing terms behind it are internal. The merge that
             // brought the install wizard in dropped this prop, so the column was
             // about to come back for requesters; the table requires it.

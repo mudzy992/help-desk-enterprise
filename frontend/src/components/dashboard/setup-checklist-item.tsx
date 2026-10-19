@@ -7,7 +7,7 @@ import { setupChecklistTarget } from "@/lib/setup-checklist/setup-checklist-targ
 import type { SetupChecklistItem } from "@/services/setup-checklist-api";
 
 /*
-  Install wizard v2 (F6.3): one open item. The line is the wizard's own name for
+  one open item. The line is the wizard's own name for
   the thing (a step label or a recommendation title) — the checklist sends the
   operator back to the screen that owns it instead of inventing new wording for
   a decision that was already explained once.

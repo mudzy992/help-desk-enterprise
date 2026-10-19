@@ -19,9 +19,9 @@ Ponovni audit ipak ne potvrđuje raniji status „zatvoren“. Pronađeni su akt
 - granica dana se ne osvježava pouzdano ako dashboard ostane otvoren preko ponoći;
 - page-level, component-state i stvarni browser tokovi nisu dovoljno pokriveni.
 
-### Trenutna ocjena nakon Faze 3: **9.5/10**
+### Trenutna ocjena nakon Faze 4: **9.8/10**
 
-Faze 1–3 zatvorile su metric/inbox contract, deterministički recovery i egzaktan server-side 14-dnevni agregat. Ocjena ostaje ispod 10/10 zbog test-depth/comment-hygiene closeouta te stvarnih browser/profiler dokaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
+Faze 1–4 zatvorile su sve pronađene implementacijske, contract, concurrency, test-depth i održivost nalaze. Ocjena ostaje ispod 10/10 isključivo zbog stvarnih browser/E2E i profiler dokaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
 
 ## 2. Obim
 
@@ -51,15 +51,21 @@ Faze 1–3 zatvorile su metric/inbox contract, deterministički recovery i egzak
 
 Ponovo su pročitani aktivni import putevi, query ključevi, pagination contract, server brojači, staff/requester grane, pomoćni failure kanali, realtime reload, setup checklist, i18n/a11y markup i test katalog.
 
-Izvršeno nad `0726c19`:
+Izvršeno kroz reaudit i Faze 1–4:
 
-- ciljani Vitest za dashboard i setup-checklist scope: **7/7 fajlova, 30/30 testova**;
-- pregled svih 2.596 linija primarnog dashboard/setup scopea;
+- ciljani Dashboard Vitest: **13/13 fajlova, 41/41 test**;
+- puni frontend Vitest: **346/346 fajlova, 1390/1390 testova**;
+- frontend TypeScript i produkcijski build: prolaze; Vite zadržava postojeće upozorenje o chunkovima većim od 500 kB;
+- puni ESLint: **0 grešaka, 12 ranije poznatih upozorenja izvan Dashboard scopea**;
+- puni Prettier `format:check`: prolazi;
+- i18n/design-system guard: prolazi, uz bs/en paritet **8794 ključa**;
+- backend volume/cache Jest: **2/2 fajla, 13/13 testova**;
 - pregled backend summary i setup-checklist ugovora;
-- marker pregled je pronašao više historijskih `Val/Faza/Paket/Phase` komentara u produkcijskim fajlovima;
-- E2E/Playwright i browser profiler **nisu pokrenuti** u ovom reaudit koraku.
+- dashboard comment-hygiene guard: prolazi;
+- `git diff --check`: prolazi;
+- E2E/Playwright i browser profiler **nisu pokrenuti** u Fazama 1–4.
 
-Posljednji puni frontend gate na istom HEAD-u iz Tickets closeouta ostaje: **340/340 Vitest fajlova, 1379/1379 testova**, build/TypeScript/format/i18n prolaze, ESLint ima 0 grešaka i 12 upozorenja izvan ticket scopea. To je regresioni signal repozitorija, ali nije browser dokaz za Dashboard.
+Širi backend service integration test ostaje lokalno compile-blokiran zbog nedostajućeg `backend/generated/prisma`; ta provjera nije predstavljena kao prolaz. Puni frontend gate potvrđuje regresionu stabilnost repozitorija, ali nije zamjena za browser dokaz iz Faze 5.
 
 ## 4. Potvrđene jake strane
 
@@ -89,8 +95,8 @@ Posljednji puni frontend gate na istom HEAD-u iz Tickets closeouta ostaje: **340
 | DA8 | Srednja | **Zatvoreno — Faza 2** | **Dan se ne rotira pouzdano preko ponoći.** `localDayKey()` se računa tokom rendera, ali nema timer/subscription koji garantuje render na promjeni dana. Otvoren dashboard može nastaviti prikazivati jučerašnji `openedToday`. | Uvesti day-boundary invalidaciju/refetch prema dogovorenoj reporting timezone semantici i test sa fake timerom preko ponoći. |
 | DA9 | Srednja | **Zatvoreno — Faza 1** | **Capability izvor je i dalje dupliran.** Stranica čita capabilities, a `useDashboardSummary()` se poziva bez već izračunatog `isStaff`, pa hook ponovo poziva `useSessionCapabilities`. React Query vjerovatno deduplicira mrežu, ali tvrdnja starog audita da stranica prosljeđuje boolean nije tačna. | Izračunati `isStaff` jednom na page boundaryju i proslijediti ga hooku; testirati staff/requester request matricu. |
 | DA10 | Srednja | **Zatvoreno — Faza 2** | **Setup checklist failure UX je tih.** Početni read kvar sakrije karticu, a dismiss kvar samo vrati dugme bez poruke/request ID-a. Administrator ne zna je li akcija uspjela niti može razlikovati „sve završeno“ od nedostupnog checklista. | Modelirati loading/error/dismiss error, retry i `ApiErrorText`/toast; zadržati dashboard funkcionalnim. |
-| DA11 | Srednja | Otvoreno | **Pokriće ne zaključava glavne produkcijske grane.** Postojeći hook spec ima 3 testa i mockuje compose/volume; nema page testa, inbox snapshot testa, activity testa, race/account-switch testa, pagination-total testa, day rollovera ni cijelog metric contracta. | Dodati integration/component matricu po DA1–DA10; testirati stvarne query inpute i vidljiva stanja, ne samo helper mockove. |
-| DA12 | Niska | Otvoreno | **Production comment hygiene nije završena.** Aktivni dashboard/report-summary fajlovi sadrže historijske `Val`, `Faza`, `Paket`, `Phase`, `M15/B*` oznake i komentar u `compose-dashboard-summary.ts` ima prazno `server counters ()`. | Zamijeniti historijske oznake trajnim domain/architecture objašnjenjima i dodati dashboard hygiene guard. |
+| DA11 | Srednja | **Zatvoreno — Faza 4** | **Pokriće ne zaključava glavne produkcijske grane.** Postojeći hook spec ima 3 testa i mockuje compose/volume; nema page testa, inbox snapshot testa, activity testa, race/account-switch testa, pagination-total testa, day rollovera ni cijelog metric contracta. | Dodati integration/component matricu po DA1–DA10; testirati stvarne query inpute i vidljiva stanja, ne samo helper mockove. |
+| DA12 | Niska | **Zatvoreno — Faza 4** | **Production comment hygiene nije završena.** Aktivni dashboard/report-summary fajlovi sadrže historijske `Val`, `Faza`, `Paket`, `Phase`, `M15/B*` oznake i komentar u `compose-dashboard-summary.ts` ima prazno `server counters ()`. | Zamijeniti historijske oznake trajnim domain/architecture objašnjenjima i dodati dashboard hygiene guard. |
 | DA13 | Validacija | Neizvršeno | **Browser/E2E i profiler dokaz nedostaju.** Postoje accessibility smoke scenariji, ali nema dokaz kartica → filtrirana lista, role varijanti, progressive/realtime recoveryja, inbox > page size ni React Profiler mjerenja. | Izvršiti dogovorenu browser matricu i profiler na realnom/authenticated stacku; ne računati čitanje speca kao prolaz. |
 
 ## 6. Faza 1 — implementacijski closeout
@@ -135,6 +141,19 @@ Faza „Egzaktan server-side 14-dnevni agregat“ zatvorila je **DA7**:
 - grafikon lokalizuje server civil-date ključeve samo za prikaz, bez promjene bucket semantike.
 
 Izvršeni dokaz: frontend dashboard **9/9 fajlova, 33/33 testa**; backend window/cache suiteovi **2/2 fajla, 13/13 testova**. Backend service integration test je proširen scenarijem „kreiran prije prozora, riješen unutar prozora“, ali lokalno nije izvršen jer checkout nema `backend/generated/prisma`; pokušaj je zaustavljen pri TypeScript kompilaciji i ne predstavlja se kao prolaz.
+
+## 6. Faza 4 — implementacijski closeout
+
+Faza „Test dubina i održivost“ zatvorila je **DA11 i DA12**:
+
+- novi page-level test zaključava loading, hard error, legitimni empty, staff/requester i admin-checklist grane;
+- activity feed test razlikuje transportni kvar od uspješnog praznog feeda i dokazuje retry;
+- primary loader test zaključava requester/staff request matricu, bounded page size, SLA sort i critical-unassigned query;
+- postojeći inbox, metric contract, setup checklist, midnight, race i silent recovery testovi ostaju dio objedinjene matrice;
+- dashboard hygiene guard skenira frontend dashboard/page/service scope i povezane backend report-summary/setup-checklist produkcijske izvore;
+- historijske `Val`, `Faza`, `Paket`, `Phase`, `M…` i `F…` implementacijske oznake uklonjene su iz tog produkcijskog scopea, uz zadržavanje trajnih domain/architecture objašnjenja.
+
+Ciljani dashboard dokaz nakon implementacije: **13/13 fajlova, 41/41 test** i TypeScript prolaze. Završni puni frontend i cross-layer gate evidentiran je u sekciji završnih provjera.
 
 ## 6. Korekcije prethodnog audita
 
@@ -183,7 +202,7 @@ Izvršeni dokaz: frontend dashboard **9/9 fajlova, 33/33 testa**; backend window
 
 **Gate:** jedan bounded zahtjev, egzaktnih 14 bucket-a, cross-layer response contract i bez „lower bound“ stanja.
 
-### Faza 4 — test dubina i održivost
+### Faza 4 — test dubina i održivost (završena)
 
 **DA11, DA12**
 

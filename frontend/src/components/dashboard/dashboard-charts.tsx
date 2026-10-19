@@ -14,9 +14,9 @@ interface DashboardChartsProperties {
 export function DashboardCharts({ summary }: DashboardChartsProperties) {
   const { t, i18n } = useTranslation();
 
-  // Val 6.1 / modul 4 (D15): the page-level EmptyState already renders for
+  // the page-level EmptyState already renders for
   // `summary.total === 0`, so the inner check was unreachable.
-  // Val 6.1 / modul 4 (D16): typed `t()` with explicit `TicketStatusLabelKey`
+  // typed `t()` with explicit `TicketStatusLabelKey`
   // union replaces the untyped `ticketText` escape hatch (T4).
   const donutData = summary.statusCounts.map((entry) => ({
     label: t(ticketStatusLabelKey[entry.status]),

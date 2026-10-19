@@ -2,7 +2,7 @@ import { apiRequest } from "@/services/api";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
 /**
- * Phase 2.4 (plan §2.4): the dashboard and SLA counters as served by
+ * the dashboard and SLA counters as served by
  * `GET /reports/dashboard/summary` and `GET /reports/sla/summary`.
  *
  * Both endpoints count with the same RBAC/visibility `where` the ticket lists
@@ -70,7 +70,7 @@ export type SlaSummaryResponse = {
 };
 
 /**
- * Counters for the dashboard (phase 2.4). M15 B4 (val 5): the unused `?scope=`
+ * Counters for the dashboard (server-side aggregate). the unused `?scope=`
  * parameter is gone; the personal counters (`assignedToMe`, `requestedByMe`)
  * arrive in this same payload.
  */
@@ -78,7 +78,7 @@ export function fetchDashboardSummary(): Promise<DashboardSummaryCounts> {
   return apiRequest("/reports/dashboard/summary");
 }
 
-/** Exposure per SLA profile and priority (phase 2.4), for the SLA screen. */
+/** Exposure per SLA profile and priority (server-side aggregate), for the SLA screen. */
 export function fetchSlaSummary(): Promise<SlaSummaryResponse> {
   return apiRequest("/reports/sla/summary");
 }

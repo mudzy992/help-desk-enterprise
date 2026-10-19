@@ -22,7 +22,7 @@ interface DashboardAttentionTableProperties {
   readonly items: readonly TicketResponse[];
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
-  /** Val 6.1 / modul 4 (D11): internal routing terms (unrouted, group-only)
+  /** internal routing terms (unrouted, group-only)
    *  are hidden from requesters. */
   readonly isStaff: boolean;
 }

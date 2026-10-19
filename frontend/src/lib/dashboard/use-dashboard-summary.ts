@@ -108,7 +108,7 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         setRequestId(null);
       }
       try {
-        // Val 6.1 / modul 4 (D3): silent (realtime-driven) reloads always
+        // silent (realtime-driven) reloads always
         // invalidate the dashboard's React Query keys first so the next
         // fetchQuery does not return a <30s stale cache. Without this, a
         // ticket created/resolved within the staleTime window did not show
@@ -123,7 +123,6 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         // immediately after. Lookups (catalog, OU tree, routing rules) land
         // progressively in so they never block first paint.
         //
-        // Val 6.1 / modul 4:
         //  - D2: SLA watchlist sorted by `slaDueAt` ascending (most breached
         //    first); no client-side re-sort.
         //  - D8: dedicated `critical-unassigned` query instead of relying on

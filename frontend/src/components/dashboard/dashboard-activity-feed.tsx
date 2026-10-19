@@ -26,7 +26,7 @@ const KIND_DOT: Record<NotificationKind, string> = {
 export function DashboardActivityFeed() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  // Val 6.1 / modul 4 (D9): the hook now exposes error state instead of
+  // the hook now exposes error state instead of
   // wiping items to [] on failure. The bell (shell) and this feed share the
   // same socket-acquire/release pair via `useInboxNotifications` — each
   // instance still has its own React state because the hook mounts in two

@@ -14,7 +14,7 @@ import { SetupChecklistService } from './setup-checklist.service';
 import type { SetupChecklistStatus } from './setup-checklist.types';
 
 /**
- * Install wizard v2 (F6.3): the checklist is administration content — reading it
+ * the checklist is administration content — reading it
  * names what the installation is still missing, so it needs the same capability
  * that lets somebody change it (`settings.write`; a separate read permission does
  * not exist). It is deliberately **not** under `InstallWizardLockGuard`: the

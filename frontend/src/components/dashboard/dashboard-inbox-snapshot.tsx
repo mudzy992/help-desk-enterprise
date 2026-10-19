@@ -40,7 +40,7 @@ export function DashboardInboxSnapshot({
   onRetry,
 }: DashboardInboxSnapshotProperties) {
   const { t } = useTranslation();
-  // Val 6.1 / modul 4 (D5): counts through React Query instead of an ad-hoc
+  // counts through React Query instead of an ad-hoc
   // useEffect — same invalidation events as the sidebar/summary refresh the
   // value, and D4 makes the unrouted number match the card above.
   const { data: counts } = useQuery({
@@ -49,7 +49,7 @@ export function DashboardInboxSnapshot({
     staleTime: 30_000,
   });
 
-  // Val 6.1 / modul 4 (D4): canonical unrouted number is the queue value
+  // canonical unrouted number is the queue value
   // (UNROUTED + fallback-routed PENDING), matching the metric card and the
   // sidebar badge. The previous logic fell back to the summary `unroutedCount`
   // which is the same value now (same SQL predicate), so no desync.

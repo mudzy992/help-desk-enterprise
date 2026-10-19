@@ -9,7 +9,7 @@ export const dashboardRecentTicketLimit = 8;
  * What the dashboard renders: the server counters () plus the small
  * presentation slices.
  *
- * Val 1 the slices no longer come from „the first page of 50 tickets“
+ * the slices no longer come from „the first page of 50 tickets“
  * — that page was sorted by creation date, so an overdue or critical ticket
  * outside it silently disappeared from the watch/attention lists. Every list now
  * has its own **server-filtered, small query** (`recent`, `overdue`,
