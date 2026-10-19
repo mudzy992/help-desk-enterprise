@@ -56,8 +56,11 @@ describe("ops health presentation sections", () => {
         { queue: "zeta", waiting: 0, active: 0, delayed: 0, failed: 2 },
         { queue: "alpha", waiting: 1, active: 1, delayed: 0, failed: 3 },
       ],
-      dlq: { growth: { failedByQueue: { alpha: 2 } } },
-    } as unknown as OpsOverview;
+      dlq: {
+        integrationDlq: 0,
+        growth: { integrationDlq: 0, failedByQueue: { alpha: 2 } },
+      },
+    } satisfies Pick<OpsOverview, "queues" | "dlq">;
     const html = renderToStaticMarkup(<QueueTable overview={overview} />);
     expect(html.indexOf("alpha")).toBeLessThan(html.indexOf("zeta"));
     expect(html).toContain("(+2)");

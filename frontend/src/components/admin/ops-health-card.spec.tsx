@@ -41,6 +41,21 @@ vi.mock("@/components/admin/ops-health-alerts", () => ({
 vi.mock("@/components/admin/ops-silence-dialog", () => ({ OpsSilenceDialog: () => null }));
 vi.mock("@/components/ui/confirm-dialog", () => ({ ConfirmDialog: () => null }));
 
+const acknowledgedAlert = {
+  id: "alert-1",
+  key: "disk.usage",
+  severity: "WARNING",
+  status: "FIRING",
+  details: null,
+  firstSeenAt: "2026-10-19T00:00:00.000Z",
+  lastSeenAt: "2026-10-19T00:01:00.000Z",
+  resolvedAt: null,
+  acknowledgedAt: null,
+  acknowledgedBy: null,
+  notifyCount: 1,
+  runbook: null,
+} as const;
+
 const overview = {
   generatedAt: "2026-10-19T00:00:00.000Z",
   snapshot: { generatedAt: "2026-10-19T00:00:00.000Z", ageSeconds: 30 },
@@ -49,21 +64,44 @@ const overview = {
     database: "ok",
     redis: "ok",
     worker: { status: "active", heartbeatAgeSeconds: 4 },
+    clamav: { configured: true, ok: true, failOpen: false },
+    disk: { usedPercent: 40, freeBytes: 60, totalBytes: 100 },
+    eventLoopLagMs: 12,
+    ldapsCaExpiresAt: null,
+    email: { lastSentAt: null },
+    inbound: [],
   },
-  alerts: [{ id: "alert-1", severity: "WARNING" }],
+  alerts: [acknowledgedAlert],
   silence: null,
   queues: [],
   schedulers: [],
   http: { series: [] },
   dlq: { integrationDlq: 0, growth: null },
-  configuration: { alertsEnabled: true, historyDays: 90 },
-} as unknown as OpsOverview;
+  configuration: {
+    alertsEnabled: true,
+    reminderHours: 4,
+    historyDays: 90,
+    thresholds: {
+      diskWarnPercent: 80,
+      diskCriticalPercent: 90,
+      http5xxMinCount: 20,
+      http5xxMinPercent: 2,
+      slaScanLateMinutes: 5,
+      workerHeartbeatStaleSeconds: 120,
+      clamavFailuresBeforeAlert: 3,
+    },
+    extraRecipientCount: 0,
+    teamsConfigured: false,
+    fallbackConfigured: false,
+    uptimePushConfigured: true,
+  },
+} satisfies OpsOverview;
 
 describe("OpsHealthCard controller composition", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     state.load.mockResolvedValue(undefined);
-    vi.mocked(acknowledgeOpsAlert).mockResolvedValue(overview.alerts[0]);
+    vi.mocked(acknowledgeOpsAlert).mockResolvedValue(acknowledgedAlert);
   });
   afterEach(cleanup);
 

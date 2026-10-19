@@ -152,7 +152,11 @@ export function SchedulerTable({ overview }: { readonly overview: OpsOverview })
   );
 }
 
-export function QueueTable({ overview }: { readonly overview: OpsOverview }) {
+export function QueueTable({
+  overview,
+}: {
+  readonly overview: Pick<OpsOverview, "queues" | "dlq">;
+}) {
   const { t } = useTranslation();
   const growth = overview.dlq.growth?.failedByQueue ?? {};
   if (overview.queues.length === 0)
