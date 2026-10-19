@@ -46,7 +46,7 @@ export function ServicesPage() {
     hasCatalogWrite: hasPermission(permissionKeys.serviceCatalogWrite),
     hasAvailabilityWrite: hasPermission(permissionKeys.serviceAvailabilityWrite),
     hasFormsWrite: hasPermission(permissionKeys.serviceFormsWrite),
-    isModuleLocked: catalogReadOnly.isLocked,
+    isModuleLocked: !catalogReadOnly.canWrite,
     canBypass: canBypassAdminReadOnly(session),
   });
   const [wizardServiceId, setWizardServiceId] = useState<string | null | undefined>(undefined);

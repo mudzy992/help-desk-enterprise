@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   admin: true,
   canWrite: false,
   locked: false,
+  readOnlyStatus: "unlocked" as "loading" | "error" | "locked" | "unlocked",
   entries: [{ key: "x" }],
   errorKey: null as string | null,
   requestId: null as string | null,
@@ -45,7 +46,15 @@ vi.mock("@/lib/settings/use-settings-registry", () => ({
 }));
 vi.mock("@/lib/settings/use-admin-module-read-only", () => ({
   adminReadOnlyModuleKeys: { settings: "settings" },
-  useAdminModuleReadOnly: () => ({ isLocked: state.locked, isLoading: false }),
+  useAdminModuleReadOnly: () => ({
+    status: state.readOnlyStatus,
+    isLocked: state.readOnlyStatus === "locked",
+    canWrite: state.readOnlyStatus === "unlocked",
+    isLoading: state.readOnlyStatus === "loading",
+    errorKey: null,
+    requestId: null,
+    retry: vi.fn(),
+  }),
 }));
 vi.mock("@/components/settings/branding-settings-card", () => ({
   BrandingSettingsCard: ({ canWrite }: { canWrite: boolean }) => (
@@ -80,6 +89,7 @@ describe("SettingsPage access", () => {
     state.admin = true;
     state.canWrite = false;
     state.locked = false;
+    state.readOnlyStatus = "unlocked";
     state.entries = [{ key: "x" }];
     state.errorKey = null;
     state.requestId = null;
@@ -92,6 +102,7 @@ describe("SettingsPage access", () => {
     state.admin = true;
     state.canWrite = true;
     state.locked = true;
+    state.readOnlyStatus = "locked";
     render(<SettingsPage />);
     expect(screen.getByTestId("write-state").textContent).toBe("false");
     expect(screen.getByText("admin.readOnlyBanner")).toBeTruthy();
@@ -102,6 +113,16 @@ describe("SettingsPage access", () => {
     render(<SettingsPage />);
     expect(screen.getByText("settings.forbiddenTitle")).toBeTruthy();
   });
+
+  it.each(["loading", "error"] as const)(
+    "keeps write controls disabled while read-only policy is %s",
+    (status) => {
+      state.canWrite = true;
+      state.readOnlyStatus = status;
+      render(<SettingsPage />);
+      expect(screen.getByTestId("write-state").textContent).toBe("false");
+    },
+  );
 
   it("shows initial registry errors with request id and a retry action", () => {
     state.entries = [];

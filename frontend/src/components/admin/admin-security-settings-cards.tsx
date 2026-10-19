@@ -39,15 +39,21 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
  * * „Prisilna promjena svih lokalnih lozinki" is a confirmed batch action.
  */
 export function AdminSecuritySettingsCards() {
+  const { t } = useTranslation();
   const registry = useSettingsRegistry();
   const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.admin);
-  const canWrite = !readOnly.isLocked;
+  const canWrite = readOnly.canWrite;
 
   return (
     <div className="flex flex-col gap-4">
       <AdminModuleReadOnlyBanner visible={readOnly.isLocked} />
       {registry.errorKey !== null && registry.entries.length === 0 ? (
-        <ApiErrorText messageKey={registry.errorKey} />
+        <div className="space-y-2">
+          <ApiErrorText messageKey={registry.errorKey} requestId={registry.requestId} />
+          <Button type="button" size="sm" variant="outline" onClick={() => void registry.reload()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
       ) : null}
       {canWrite ? <AdminSecurityRateLimitsCard /> : null}
       <AdminSecurityPolicyCards

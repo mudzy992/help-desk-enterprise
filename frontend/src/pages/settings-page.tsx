@@ -33,7 +33,7 @@ export function SettingsPage() {
   const registry = useSettingsRegistry();
   const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.settings);
   const canOpen = canOpenAdminArea(capabilities);
-  const canWrite = canWriteSettings(capabilities) && !readOnly.isLocked;
+  const canWrite = canWriteSettings(capabilities) && readOnly.canWrite;
   const canOpenSecurityTab = canOpenAdminSecurityTab(session);
 
   return (

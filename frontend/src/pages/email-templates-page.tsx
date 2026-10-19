@@ -23,7 +23,7 @@ export function EmailTemplatesPage() {
   const { t } = useTranslation();
   const capabilities = useSessionCapabilities();
   const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.settings);
-  const canWrite = canWriteSettings(capabilities) && !readOnly.isLocked;
+  const canWrite = canWriteSettings(capabilities) && readOnly.canWrite;
   const [overview, setOverview] = useState<EmailTemplatesOverview | null>(null);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -58,6 +58,14 @@ export function EmailTemplatesPage() {
         {t("settings.emailTemplates.backToSettings")}
       </Link>
       <AdminModuleReadOnlyBanner visible={readOnly.isLocked} />
+      {readOnly.errorKey !== null ? (
+        <div className="space-y-2">
+          <ApiErrorText messageKey={readOnly.errorKey} requestId={readOnly.requestId} />
+          <Button type="button" size="sm" variant="outline" onClick={() => void readOnly.retry()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      ) : null}
       {errorKey !== null ? (
         <div className="space-y-2">
           <ApiErrorText messageKey={errorKey} requestId={requestId} />

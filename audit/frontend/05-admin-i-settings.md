@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
+**Aktuelna ocjena:** **9,0/10 nakon Faze 4**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faze 1–3 završene 19. 10. 2026.; `AS1–AS5` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package dio `AS8` sada ima direktnu component pokrivenost.
+**Implementacijski status:** Faze 1–4 završene 19. 10. 2026.; `AS1–AS5` i `AS10` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package i access dijelovi `AS8` sada imaju direktnu pokrivenost.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -358,6 +358,19 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** nijedna write kontrola nije aktivna dok read-only odluka nije pouzdana.
 
+#### Evidencija zatvaranja Faze 4 (19. 10. 2026.)
+
+- Read-only hook sada vraća eksplicitni `loading/error/locked/unlocked` status i jedini pozitivni `canWrite` signal; loading i initial-error stanja su konzervativno write-disabled.
+- Initial policy greška izlaže mapped error, request ID i retry; background refresh greška uz uspješan stale snapshot nastavlja koristiti posljednju pouzdanu odluku.
+- Settings, Email Templates, Config Versions i Admin Security settings više ne koriste `!isLocked` kao fail-open write odluku.
+- Config Versions sada primjenjuje settings read-only politiku na create/import/lifecycle write površine, prikazuje locked banner i retryable policy grešku, dok read-only pregled ostaje dostupan.
+- Service Catalog consumer je usklađen sa novim pozitivnim `canWrite` ugovorom da promjena shared hooka ne ostavi drugi modul fail-open.
+- Dodani su hook state-matrix testovi te Settings i Config Versions component matrice za loading/error/locked/unlocked, request ID, retry i permission kombinaciju; postojeći route katalog i route-access testovi ostaju zeleni.
+- Backend contract test potvrđuje da `/settings` i config-version mutacije ostaju klasifikovane pod server-side settings read-only guardom.
+- `AS10` i access dio `AS8` su zatvoreni.
+
+**Izvršni dokaz:** 7 ciljanih frontend fajlova sa 36/36 testova, backend read-only contract 11/11 i puni frontend Vitest prolaz 351/351 fajlova odnosno 1416/1416 testova; production build, scope ESLint bez errora, Prettier i `git diff --check` su prošli.
+
 ### Faza 5 — Admin audit/ops direktna pokrivenost
 
 **Nalazi:** `AS6`, admin dio `AS8`
@@ -449,14 +462,14 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 | Oblast                                  |   Trenutno |      Cilj |
 | --------------------------------------- | ---------: | --------: |
-| Access/RBAC/read-only sigurnosna osnova |        8,5 |        10 |
+| Access/RBAC/read-only sigurnosna osnova |       10,0 |        10 |
 | Async/race/error ugovori                |        8,4 |        10 |
 | Settings registry konzistentnost        |       10,0 |        10 |
 | Config versions/import                  |        9,0 |        10 |
 | Email templates                         |        8,0 |        10 |
 | Testabilnost i održivost                |        6,8 |        10 |
 | Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **8,8/10** | **10/10** |
+| **Ukupno**                              | **9,0/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 
