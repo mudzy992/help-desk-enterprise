@@ -153,6 +153,28 @@ Verifikacija Faze 2:
 - puni frontend Vitest — **334/334 fajlova i 1342/1342 testa prolaze**;
 - `git diff --check` — prolazi.
 
+## Status implementacije — Faza 3 (2026-10-19)
+
+Faza 3 je kompletirana i **LR5 je zatvoren**:
+
+- remote search lifecycle izdvojen je u `useCommandPaletteSearch`;
+- debounce i minimalna dužina upita imaju imenovane konstante, pa je uklonjena zastarjela 300 ms napomena;
+- hook prekida prethodni zahtjev i ne primjenjuje stale rezultat;
+- row tip i prezentacijski `PaletteRow` izdvojeni su iz glavne komponente;
+- `command-palette.tsx` je smanjen sa 409 na 266 linija;
+- direktni hook testovi pokrivaju minimalni upit, debounce od 250 ms, abort i stale-response zaštitu;
+- direktni komponent testovi pokrivaju capability filter, `aria-activedescendant`, ArrowUp wrap, Home, ArrowDown, Enter i pointer navigaciju te loading/no-results najavu;
+- privremena ocjena nakon Faze 3 je **9.6/10**; otvoreni ostaju LR7 i LR8.
+
+Verifikacija Faze 3:
+
+- ciljani palette testovi — 15/15 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
+- `git diff --check` — prolazi.
+
 ## Fazni roadmap
 
 ### Faza 1 — ugovor ruta

@@ -1,34 +1,22 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import {
-  BookOpen,
-  CornerDownLeft,
-  Plus,
-  Search,
-  Ticket,
-  User as UserIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { CornerDownLeft, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   flattenHeaderSearchHits,
-  searchHeaderSources,
-  type HeaderSearchGroups,
   type HeaderSearchHit,
-  emptyHeaderSearchGroups,
 } from "@/components/layout/header-search-match";
 import { Kbd } from "@/components/ui/kbd";
 import {
   buildNavigationCommands,
   filterNavigationCommands,
-  type NavigationCommand,
 } from "@/lib/command-palette/build-navigation-commands";
-import { navigationIconFor } from "@/lib/navigation-icons";
 import { navigationSections } from "@/lib/navigation";
 import { filterNavigationSections } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import { cn } from "@/lib/utils";
+import { useCommandPaletteSearch } from "@/components/layout/use-command-palette-search";
+import { PaletteRow, type CommandPaletteRow } from "@/components/layout/command-palette-row";
 
 /*
   Pulse command palette — one overlay for "jump to a page" and "find a record".
@@ -40,37 +28,10 @@ import { cn } from "@/lib/utils";
   arrow-key navigation over the result rows is ours.
 */
 
-const searchDebounceMilliseconds = 250;
-const minimumRemoteQueryLength = 2;
-
 interface CommandPaletteProperties {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
 }
-
-type Row =
-  | {
-      readonly kind: "action";
-      readonly id: string;
-      readonly label: string;
-      readonly hint: string;
-      readonly shortcut: string;
-      readonly path: string;
-      readonly icon: LucideIcon;
-    }
-  | {
-      readonly kind: "navigation";
-      readonly id: string;
-      readonly command: NavigationCommand;
-      readonly label: string;
-    }
-  | { readonly kind: "hit"; readonly id: string; readonly hit: HeaderSearchHit };
-
-const HIT_ICONS: Record<HeaderSearchHit["kind"], LucideIcon> = {
-  ticket: Ticket,
-  article: BookOpen,
-  user: UserIcon,
-};
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties) {
   const { t } = useTranslation();
@@ -79,8 +40,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
   const capabilities = useSessionCapabilities();
 
   const [query, setQuery] = useState("");
-  const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
-  const [isSearching, setIsSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const visibleSections = useMemo(
@@ -94,61 +53,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
   );
 
   const trimmedQuery = query.trim();
+  const { groups, isSearching } = useCommandPaletteSearch(open, query);
 
   useEffect(() => {
     if (!open) {
       return;
     }
     setQuery("");
-    setGroups(emptyHeaderSearchGroups);
     setActiveIndex(0);
-    setIsSearching(false);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    if (trimmedQuery.length < minimumRemoteQueryLength) {
-      setGroups(emptyHeaderSearchGroups);
-      setIsSearching(false);
-      return;
-    }
-    // Pauza prije pretrage ostaje 300 ms; novi unos prekida zahtjev u toku,
-    // pa se pretrage ne gomilaju. Prekid nije greška — prikazuje se rezultat
-    // najnovijeg upita.
-    const controller = new AbortController();
-    setIsSearching(true);
-    const handle = window.setTimeout(() => {
-      void searchHeaderSources(trimmedQuery, controller.signal).then(
-        (nextGroups) => {
-          if (!controller.signal.aborted) {
-            setGroups(nextGroups);
-            setIsSearching(false);
-          }
-        },
-        (error: unknown) => {
-          if (controller.signal.aborted) {
-            return;
-          }
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          setGroups(emptyHeaderSearchGroups);
-          setIsSearching(false);
-        },
-      );
-    }, searchDebounceMilliseconds);
-    return () => {
-      window.clearTimeout(handle);
-      controller.abort();
-    };
-  }, [open, trimmedQuery]);
-
-  const rows = useMemo<readonly Row[]>(() => {
+  const rows = useMemo<readonly CommandPaletteRow[]>(() => {
     const needle = trimmedQuery.toLowerCase();
 
-    const newTicketRow: Extract<Row, { kind: "action" }> = {
+    const newTicketRow: Extract<CommandPaletteRow, { kind: "action" }> = {
       kind: "action",
       id: "action:new-ticket",
       label: t("palette.createTicket"),
@@ -158,11 +76,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       icon: Plus,
     };
 
-    const actions: readonly Row[] = [newTicketRow].filter(
+    const actions: readonly CommandPaletteRow[] = [newTicketRow].filter(
       (row) => needle === "" || row.label.toLowerCase().includes(needle),
     );
 
-    const navigation: readonly Row[] = filterNavigationCommands(
+    const navigation: readonly CommandPaletteRow[] = filterNavigationCommands(
       navigationCommands,
       trimmedQuery,
       t,
@@ -174,7 +92,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       label: t(command.labelKey),
     }));
 
-    const hits: readonly Row[] = flattenHeaderSearchHits(groups).map((hit) => ({
+    const hits: readonly CommandPaletteRow[] = flattenHeaderSearchHits(groups).map((hit) => ({
       kind: "hit",
       id: `hit:${hit.kind}:${hit.id}`,
       hit,
@@ -187,7 +105,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
     setActiveIndex(0);
   }, [trimmedQuery]);
 
-  const goTo = (row: Row) => {
+  const goTo = (row: CommandPaletteRow) => {
     onOpenChange(false);
     if (row.kind === "hit") {
       navigate(row.hit.href);
@@ -222,10 +140,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
     }
   };
 
-  const isAction = (row: Row): row is Extract<Row, { kind: "action" }> => row.kind === "action";
-  const isNavigation = (row: Row): row is Extract<Row, { kind: "navigation" }> =>
-    row.kind === "navigation";
-  const isHit = (row: Row): row is Extract<Row, { kind: "hit" }> => row.kind === "hit";
+  const isAction = (
+    row: CommandPaletteRow,
+  ): row is Extract<CommandPaletteRow, { kind: "action" }> => row.kind === "action";
+  const isNavigation = (
+    row: CommandPaletteRow,
+  ): row is Extract<CommandPaletteRow, { kind: "navigation" }> => row.kind === "navigation";
+  const isHit = (row: CommandPaletteRow): row is Extract<CommandPaletteRow, { kind: "hit" }> =>
+    row.kind === "hit";
 
   const sections = useMemo(() => {
     const actionRows = rows.filter(isAction);
@@ -242,7 +164,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
     ].filter((section) => section.items.length > 0);
   }, [rows, t]);
 
-  const rowIndexOf = (row: Row) => rows.findIndex((candidate) => candidate.id === row.id);
+  const rowIndexOf = (row: CommandPaletteRow) =>
+    rows.findIndex((candidate) => candidate.id === row.id);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -339,71 +262,5 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
-  );
-}
-
-function PaletteRow({
-  row,
-  index,
-  isActive,
-  onHover,
-  onSelect,
-}: {
-  readonly row: Row;
-  readonly index: number;
-  readonly isActive: boolean;
-  readonly onHover: (index: number) => void;
-  readonly onSelect: (row: Row) => void;
-}) {
-  const Icon =
-    row.kind === "action"
-      ? row.icon
-      : row.kind === "hit"
-        ? HIT_ICONS[row.hit.kind]
-        : navigationIconFor(row.command.path);
-
-  const label =
-    row.kind === "navigation" ? row.label : row.kind === "hit" ? row.hit.title : row.label;
-  const hint = row.kind === "action" ? row.hint : row.kind === "hit" ? row.hit.subtitle : undefined;
-
-  return (
-    <button
-      type="button"
-      id={`palette-row-${index}`}
-      role="option"
-      /* Deliberately not a tab stop: the combobox owns focus and moves the
-         active option with ArrowUp/ArrowDown (`aria-activedescendant`); that
-         highlighted row is what makes keyboard focus visible here. */
-      tabIndex={-1}
-      aria-selected={isActive}
-      onMouseMove={() => onHover(index)}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={() => onSelect(row)}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-[9px] px-2.5 py-2 text-left transition-colors duration-150",
-        isActive ? "bg-primary/10" : "hover:bg-surface-hover",
-      )}
-    >
-      <Icon
-        size={15}
-        strokeWidth={1.9}
-        className={cn("shrink-0", isActive ? "text-link" : "text-muted-foreground")}
-        aria-hidden="true"
-      />
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "block truncate text-[13px] font-medium",
-            row.kind === "hit" && row.hit.kind === "ticket" ? "tnum text-link" : "text-foreground",
-          )}
-        >
-          {label}
-        </span>
-        {hint ? (
-          <span className="block truncate text-[11.5px] text-muted-foreground">{hint}</span>
-        ) : null}
-      </span>
-      {row.kind === "action" ? <Kbd>{row.shortcut}</Kbd> : null}
-    </button>
   );
 }
