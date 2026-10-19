@@ -3034,6 +3034,7 @@
     "recentHeading": "Nedavni tiketi",
     "recentHint": "Najnovije kreirani tiketi kojima imate pristup.",
     "viewAll": "Prikaži sve",
+    "refreshStale": "Automatsko osvježavanje nije uspjelo. Prikazani su posljednji dostupni podaci.",
     "recentEmptyTitle": "Nema nedavnih tiketa",
     "recentEmptyBody": "Tiketi će se pojaviti ovdje nakon kreiranja.",
     "columnTicket": "Tiket",
@@ -3102,6 +3103,7 @@
     "setupChecklist": {
       "title": "Završite podešavanje",
       "subtitle": "Ostavljeno za kasnije: {{count}}",
+      "unavailable": "Kontrolna lista trenutno nije dostupna.",
       "dismiss": "Sakrij",
       "goTo": "Otvori",
       "itemHint": "Nije konfigurisano tokom instalacije.",

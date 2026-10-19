@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { localDayKey, queryKeys } from "@/lib/query/query-keys";
+import { queryKeys } from "@/lib/query/query-keys";
+import { reportClientError } from "@/lib/app/client-logger";
+import { useLocalDayKey } from "@/lib/dashboard/use-local-day-key";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { useSession } from "@/lib/session/use-session";
@@ -31,6 +33,7 @@ export type DashboardSummaryState = {
   readonly originNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
   readonly isLoading: boolean;
+  readonly isStale: boolean;
   readonly errorKey: TicketErrorKey | null;
   readonly requestId: string | null;
   readonly reload: () => Promise<void>;
@@ -38,11 +41,11 @@ export type DashboardSummaryState = {
 
 export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
   const { currentUserId } = useSession();
-  // The counters carry a day ("opened today"), so the day is part of the key:
-  // when it changes the callback identity changes with it and the effect below
-  // fetches the new day instead of showing yesterday's payload.
-  const dayKey = localDayKey();
+  const dayKey = useLocalDayKey();
   const queryClient = useQueryClient();
+  const primaryGeneration = useRef(0);
+  const inboxGeneration = useRef(0);
+  const isMounted = useRef(true);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [inboxPage, setInboxPage] = useState<TicketPage | null>(null);
   const [isInboxLoading, setIsInboxLoading] = useState(isStaff);
@@ -52,10 +55,22 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
   const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [isStale, setIsStale] = useState(false);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      primaryGeneration.current += 1;
+      inboxGeneration.current += 1;
+    };
+  }, []);
+
   const reloadInbox = useCallback(async () => {
+    const generation = ++inboxGeneration.current;
+    const isCurrent = () => isMounted.current && generation === inboxGeneration.current;
     if (!isStaff) {
       setInboxPage(null);
       setIsInboxLoading(false);
@@ -71,18 +86,22 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         queryKey: queryKeys.groupInbox,
         queryFn: () => listGroupInboxPage(),
       });
-      setInboxPage(page);
+      if (isCurrent()) setInboxPage(page);
     } catch (error) {
-      setInboxPage(null);
-      setInboxErrorKey(mapTicketError(error));
-      setInboxRequestId(readApiRequestId(error));
+      if (isCurrent()) {
+        setInboxPage(null);
+        setInboxErrorKey(mapTicketError(error));
+        setInboxRequestId(readApiRequestId(error));
+      }
     } finally {
-      setIsInboxLoading(false);
+      if (isCurrent()) setIsInboxLoading(false);
     }
   }, [isStaff, queryClient]);
 
   const reload = useCallback(
     async (silent = false) => {
+      const generation = ++primaryGeneration.current;
+      const isCurrent = () => isMounted.current && generation === primaryGeneration.current;
       if (!silent) {
         setIsLoading(true);
         setErrorKey(null);
@@ -110,11 +129,17 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         //  - D8: dedicated `critical-unassigned` query instead of relying on
         //    the top-8 by `updatedAt` from the generic unassigned page, so a
         //    critical ticket without an owner can never fall out of view.
-        setSummary(await loadDashboardPrimary({ queryClient, dayKey, currentUserId, isStaff }));
+        const nextSummary = await loadDashboardPrimary({
+          queryClient,
+          dayKey,
+          currentUserId,
+          isStaff,
+        });
+        if (!isCurrent()) return;
+        setSummary(nextSummary);
+        setIsStale(false);
 
-        if (!silent) {
-          setIsLoading(false);
-        }
+        if (!silent) setIsLoading(false);
 
         // auxiliary lookups that do not block first
         // paint. Each catches independently so one failing lookup cannot blank
@@ -149,6 +174,7 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
                 .catch((): readonly RoutingRuleResponse[] => [])
             : Promise.resolve([] as readonly RoutingRuleResponse[]),
         ]);
+        if (!isCurrent()) return;
         setServiceNames(
           new Map(catalog.map((service: ServiceResponse) => [service.id, service.name])),
         );
@@ -157,7 +183,10 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
           new Map(rules.map((rule: RoutingRuleResponse) => [rule.groupId, rule.groupName])),
         );
       } catch (error) {
+        if (!isCurrent()) return;
         if (silent) {
+          setIsStale(true);
+          reportClientError("dashboard.silent_reload_failed", error, readApiRequestId(error));
           return;
         }
         setSummary(null);
@@ -167,9 +196,7 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         setErrorKey(mapTicketError(error));
         setRequestId(readApiRequestId(error));
       } finally {
-        if (!silent) {
-          setIsLoading(false);
-        }
+        if (!silent && isCurrent()) setIsLoading(false);
       }
     },
     [currentUserId, dayKey, isStaff, queryClient, reloadInbox],
@@ -198,6 +225,7 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
     originNames,
     groupNames,
     isLoading,
+    isStale,
     errorKey,
     requestId,
     reload,

@@ -19,9 +19,9 @@ Ponovni audit ipak ne potvrđuje raniji status „zatvoren“. Pronađeni su akt
 - granica dana se ne osvježava pouzdano ako dashboard ostane otvoren preko ponoći;
 - page-level, component-state i stvarni browser tokovi nisu dovoljno pokriveni.
 
-### Trenutna ocjena nakon Faze 1: **8.8/10**
+### Trenutna ocjena nakon Faze 2: **9.2/10**
 
-Faza 1 je uskladila metričke linkove sa brojačima, prebacila inbox metriku na server `total`, razdvojila inbox error od empty stanja i uklonila duplo capability čitanje. Ocjena ostaje ispod 10/10 zbog otvorenih concurrency, recovery, day-boundary, volume, setup-checklist, test-depth i browser/profiler nalaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
+Faze 1–2 zatvorile su metric/inbox contract, capability duplikaciju, konkurentne reloadove, silent recovery, day-boundary osvježavanje i setup-checklist failure UX. Ocjena ostaje ispod 10/10 zbog otvorenog egzaktnog volume agregata, test-depth/comment-hygiene closeouta te browser/profiler dokaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
 
 ## 2. Obim
 
@@ -83,12 +83,12 @@ Posljednji puni frontend gate na istom HEAD-u iz Tickets closeouta ostaje: **340
 | DA2 | Visoka | **Zatvoreno — Faza 1** | **Inbox metrika je page-size broj, ne total.** `listGroupInbox()` vraća `.items` prve stranice, a hook iz toga računa `inboxTickets.length`. Za inbox veći od default page sizea kartica prikazuje premali broj. | Koristiti `listGroupInboxPage()` i `total`; dokazati testom gdje je `total > items.length`. |
 | DA3 | Srednja | **Zatvoreno — Faza 1** | **Grupni inbox grafikon je nepotpun bez oznake.** `groupInboxCounts()` agregira samo prvu stranicu, ali UI vrijednosti predstavlja kao broj tiketa po grupi. | Dodati backend group agregat ili jasno modelirati/predstaviti „prikazani uzorak“; preferirano je egzaktno server-side grupisanje. |
 | DA4 | Visoka | **Zatvoreno — Faza 1** | **Pomoćni kvar može izgledati kao prazno stanje.** Group inbox greška se pretvara u `null`; kada je unrouted 0, `DashboardInboxSnapshot` sa `inboxTickets=null` renderuje `dashboard.inboxEmpty`. Korisniku se transportni/permission kvar predstavlja kao dokaz da nema tiketa. | Uvesti eksplicitno loading/error/unavailable stanje i retry; nikad ne renderovati empty bez uspješnog odgovora. |
-| DA5 | Visoka | Otvoreno | **Nema latest-request/account-switch zaštite.** `reload()` može biti aktivan tokom realtime reloada ili promjene `currentUserId`; stariji primary ili lookup odgovor može poslije novijeg upisati `summary`, inbox i mape iz prethodnog konteksta. Cleanup ne poništava asinhrone state upise. | Monotoni request token ili AbortSignal za primary i progressive fazu; test A→B promjene korisnika i out-of-order reloadova. |
-| DA6 | Srednja | Otvoreno | **Silent reload kvar je potpuno nevidljiv.** Catch za `silent=true` samo vraća kontrolu; nema telemetry signala, stale/unavailable indikatora ni testa oporavka nakon sljedećeg eventa. | Sačuvati stare podatke, ali evidentirati telemetry i izložiti nenametljiv stale/retry signal; test fail → recovery. |
+| DA5 | Visoka | **Zatvoreno — Faza 2** | **Nema latest-request/account-switch zaštite.** `reload()` može biti aktivan tokom realtime reloada ili promjene `currentUserId`; stariji primary ili lookup odgovor može poslije novijeg upisati `summary`, inbox i mape iz prethodnog konteksta. Cleanup ne poništava asinhrone state upise. | Monotoni request token ili AbortSignal za primary i progressive fazu; test A→B promjene korisnika i out-of-order reloadova. |
+| DA6 | Srednja | **Zatvoreno — Faza 2** | **Silent reload kvar je potpuno nevidljiv.** Catch za `silent=true` samo vraća kontrolu; nema telemetry signala, stale/unavailable indikatora ni testa oporavka nakon sljedećeg eventa. | Sačuvati stare podatke, ali evidentirati telemetry i izložiti nenametljiv stale/retry signal; test fail → recovery. |
 | DA7 | Visoka | Otvoreno | **Volume grafikon nije 10/10 contract.** „Resolved“ obuhvata samo tikete kreirane u istom 14-dnevnom prozoru; do 300 redova se učitava kroz najviše šest sekvencijalnih poziva, a iznad toga UI prikazuje donju granicu. Raniji „prihvaćen rizik“ ostavlja netačnu poslovnu metriku. | Server-side daily aggregate za created i resolved po njihovim vlastitim datumima i reporting timezoneu; jedan bounded zahtjev, egzaktan rezultat i backend/frontend contract test. |
-| DA8 | Srednja | Otvoreno | **Dan se ne rotira pouzdano preko ponoći.** `localDayKey()` se računa tokom rendera, ali nema timer/subscription koji garantuje render na promjeni dana. Otvoren dashboard može nastaviti prikazivati jučerašnji `openedToday`. | Uvesti day-boundary invalidaciju/refetch prema dogovorenoj reporting timezone semantici i test sa fake timerom preko ponoći. |
+| DA8 | Srednja | **Zatvoreno — Faza 2** | **Dan se ne rotira pouzdano preko ponoći.** `localDayKey()` se računa tokom rendera, ali nema timer/subscription koji garantuje render na promjeni dana. Otvoren dashboard može nastaviti prikazivati jučerašnji `openedToday`. | Uvesti day-boundary invalidaciju/refetch prema dogovorenoj reporting timezone semantici i test sa fake timerom preko ponoći. |
 | DA9 | Srednja | **Zatvoreno — Faza 1** | **Capability izvor je i dalje dupliran.** Stranica čita capabilities, a `useDashboardSummary()` se poziva bez već izračunatog `isStaff`, pa hook ponovo poziva `useSessionCapabilities`. React Query vjerovatno deduplicira mrežu, ali tvrdnja starog audita da stranica prosljeđuje boolean nije tačna. | Izračunati `isStaff` jednom na page boundaryju i proslijediti ga hooku; testirati staff/requester request matricu. |
-| DA10 | Srednja | Otvoreno | **Setup checklist failure UX je tih.** Početni read kvar sakrije karticu, a dismiss kvar samo vrati dugme bez poruke/request ID-a. Administrator ne zna je li akcija uspjela niti može razlikovati „sve završeno“ od nedostupnog checklista. | Modelirati loading/error/dismiss error, retry i `ApiErrorText`/toast; zadržati dashboard funkcionalnim. |
+| DA10 | Srednja | **Zatvoreno — Faza 2** | **Setup checklist failure UX je tih.** Početni read kvar sakrije karticu, a dismiss kvar samo vrati dugme bez poruke/request ID-a. Administrator ne zna je li akcija uspjela niti može razlikovati „sve završeno“ od nedostupnog checklista. | Modelirati loading/error/dismiss error, retry i `ApiErrorText`/toast; zadržati dashboard funkcionalnim. |
 | DA11 | Srednja | Otvoreno | **Pokriće ne zaključava glavne produkcijske grane.** Postojeći hook spec ima 3 testa i mockuje compose/volume; nema page testa, inbox snapshot testa, activity testa, race/account-switch testa, pagination-total testa, day rollovera ni cijelog metric contracta. | Dodati integration/component matricu po DA1–DA10; testirati stvarne query inpute i vidljiva stanja, ne samo helper mockove. |
 | DA12 | Niska | Otvoreno | **Production comment hygiene nije završena.** Aktivni dashboard/report-summary fajlovi sadrže historijske `Val`, `Faza`, `Paket`, `Phase`, `M15/B*` oznake i komentar u `compose-dashboard-summary.ts` ima prazno `server counters ()`. | Zamijeniti historijske oznake trajnim domain/architecture objašnjenjima i dodati dashboard hygiene guard. |
 | DA13 | Validacija | Neizvršeno | **Browser/E2E i profiler dokaz nedostaju.** Postoje accessibility smoke scenariji, ali nema dokaz kartica → filtrirana lista, role varijanti, progressive/realtime recoveryja, inbox > page size ni React Profiler mjerenja. | Izvršiti dogovorenu browser matricu i profiler na realnom/authenticated stacku; ne računati čitanje speca kao prolaz. |
@@ -106,6 +106,20 @@ Faza „Kanonske metrike i inbox contract“ zatvorila je **DA1, DA2, DA3, DA4 i
 - uklonjen je stari `listGroupInbox()` array wrapper koji je skrivao pagination metadata.
 
 Regresioni dokaz nakon implementacije: **8/8 dashboard test fajlova, 34/34 testa**, frontend TypeScript i ciljani ESLint prolaze. Dodani su testovi za kanonske metric URL-ove, `total > items.length`, error-vs-empty i oznaku djelimične grupne raspodjele.
+
+## 6. Faza 2 — implementacijski closeout
+
+Faza „Determinističko učitavanje i recovery“ zatvorila je **DA5, DA6, DA8 i DA10**:
+
+- primary i inbox tokovi imaju nezavisne monotone generation tokene; samo najnoviji zahtjev smije pisati state;
+- unmount poništava oba aktivna toka, a A→B promjena korisnika ne može vratiti A podatke nakon B odgovora;
+- neuspješan silent realtime reload čuva posljednje podatke, postavlja vidljivi stale signal, nudi retry i šalje dijagnostiku kroz centralni `reportClientError`;
+- sljedeći uspješan reload uklanja stale signal i zamjenjuje podatke;
+- `useLocalDayKey` zakazuje promjenu ključa na sljedeću lokalnu ponoć, pa otvoren tab ponovo učitava day-scoped brojače;
+- setup checklist ima loading, read error, request ID, retry i dismiss-error feedback, bez rušenja glavnog dashboarda;
+- setup-checklist load također ima generation/unmount zaštitu.
+
+Regresioni dokaz nakon implementacije: **9/9 dashboard test fajlova, 39/39 testova** i frontend TypeScript prolaze. Novi testovi pokrivaju A→B out-of-order odgovor, silent fail→recovery, telemetry poziv, prelazak ponoći, checklist read retry i dismiss failure.
 
 ## 6. Korekcije prethodnog audita
 
@@ -131,7 +145,7 @@ Regresioni dokaz nakon implementacije: **8/8 dashboard test fajlova, 34/34 testa
 
 **Gate:** za svaki metric postoje count/query parity testovi; inbox `total > items.length` je pokriven; greška se ne prikazuje kao empty.
 
-### Faza 2 — determinističko učitavanje i recovery
+### Faza 2 — determinističko učitavanje i recovery (završena)
 
 **DA5, DA6, DA8, DA10**
 

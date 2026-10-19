@@ -103,14 +103,29 @@ describe("SetupChecklistCard", () => {
     expect(screen.queryByText("dashboard.setupChecklist.title")).toBeNull();
   });
 
-  it("stays quiet when the read fails", async () => {
-    vi.mocked(loadSetupChecklist).mockRejectedValue(new Error("offline"));
+  it("shows a retryable error when the read fails", async () => {
+    vi.mocked(loadSetupChecklist)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(status());
 
     renderCard();
 
-    await waitFor(() => expect(vi.mocked(loadSetupChecklist)).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText("dashboard.setupChecklist.title")).toBeNull();
+    expect(await screen.findByText("dashboard.setupChecklist.unavailable")).toBeTruthy();
+    fireEvent.click(screen.getByText("ui.retry"));
+    expect(await screen.findByText("dashboard.setupChecklist.item.smtp")).toBeTruthy();
+    expect(vi.mocked(loadSetupChecklist)).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the items visible and reports an error when dismiss fails", async () => {
+    vi.mocked(loadSetupChecklist).mockResolvedValue(status());
+    vi.mocked(dismissSetupChecklist).mockRejectedValue(new Error("offline"));
+
+    renderCard();
+    fireEvent.click(await screen.findByText("dashboard.setupChecklist.dismiss"));
+
+    await waitFor(() => expect(vi.mocked(dismissSetupChecklist)).toHaveBeenCalledOnce());
+    expect(screen.getByText("dashboard.setupChecklist.item.smtp")).toBeTruthy();
+    expect(screen.getByText("tickets.errorGeneric")).toBeTruthy();
   });
 
   it("dismisses through the API and hides the widget", async () => {

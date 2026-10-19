@@ -5,14 +5,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
-import { fetchDashboardSummary } from "@/services/report-summary-api";
-import { listGroupInboxPage, listTicketsPage } from "@/services/tickets-api";
+import { reportClientError } from "@/lib/app/client-logger";
+import { loadDashboardPrimary } from "@/lib/dashboard/load-dashboard-primary";
+import { listGroupInboxPage } from "@/services/tickets-api";
 
 const realtime = vi.hoisted(() => ({ reload: null as null | (() => Promise<void>) }));
+const session = vi.hoisted(() => ({ currentUserId: "user-1" as string | null }));
 
 vi.mock("@/lib/session/use-session", () => ({
-  useSession: () => ({ currentUserId: "user-1" }),
+  useSession: () => ({ currentUserId: session.currentUserId }),
 }));
+vi.mock("@/lib/dashboard/use-local-day-key", () => ({ useLocalDayKey: () => "2026-10-19" }));
+vi.mock("@/lib/app/client-logger", () => ({ reportClientError: vi.fn() }));
+vi.mock("@/lib/dashboard/load-dashboard-primary", () => ({ loadDashboardPrimary: vi.fn() }));
 vi.mock("@/lib/session/use-session-capabilities", () => ({
   useSessionCapabilities: () => null,
 }));
@@ -24,19 +29,7 @@ vi.mock("@/lib/realtime/use-ticket-collection-realtime", () => ({
 vi.mock("@/lib/dashboard/invalidate-dashboard-queries", () => ({
   invalidateDashboardQueries: vi.fn(() => Promise.resolve()),
 }));
-vi.mock("@/lib/dashboard/load-dashboard-volume", () => ({
-  loadDashboardVolume: vi.fn(() => Promise.resolve({ tickets: [], truncated: false })),
-}));
-vi.mock("@/lib/dashboard/compose-dashboard-summary", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/dashboard/compose-dashboard-summary")>();
-  return {
-    ...actual,
-    composeDashboardSummary: vi.fn(() => ({ marker: "summary" })),
-  };
-});
-vi.mock("@/services/report-summary-api", () => ({ fetchDashboardSummary: vi.fn() }));
 vi.mock("@/services/tickets-api", () => ({
-  listTicketsPage: vi.fn(),
   listGroupInboxPage: vi.fn(() => Promise.resolve({ ...emptyPage, total: 0 })),
 }));
 vi.mock("@/services/service-catalog-api", () => ({
@@ -52,6 +45,14 @@ vi.mock("@/services/routing-api", () => ({
 
 const emptyPage = { items: [], total: 0, page: 1, pageSize: 25, totalsAsOf: 0 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
 function wrapperFor(client: QueryClient) {
   return function QueryProvider({ children }: { readonly children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -64,12 +65,10 @@ describe("useDashboardSummary", () => {
   beforeEach(() => {
     client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
     realtime.reload = null;
-    vi.mocked(fetchDashboardSummary)
+    session.currentUserId = "user-1";
+    vi.mocked(loadDashboardPrimary)
       .mockReset()
-      .mockResolvedValue({} as never);
-    vi.mocked(listTicketsPage)
-      .mockReset()
-      .mockResolvedValue(emptyPage as never);
+      .mockResolvedValue({ marker: "summary" } as never);
     vi.mocked(listGroupInboxPage)
       .mockReset()
       .mockResolvedValue({ ...emptyPage, total: 0 });
@@ -90,11 +89,11 @@ describe("useDashboardSummary", () => {
     expect(result.current.errorKey).toBeNull();
     expect(result.current.summary).toEqual({ marker: "summary" });
     expect(result.current.serviceNames.size).toBe(0);
-    expect(listTicketsPage).toHaveBeenCalled();
+    expect(loadDashboardPrimary).toHaveBeenCalled();
   });
 
   it("exposes a critical-load error without stale summary data", async () => {
-    vi.mocked(fetchDashboardSummary).mockRejectedValueOnce(new Error("offline"));
+    vi.mocked(loadDashboardPrimary).mockRejectedValueOnce(new Error("offline"));
     const { result } = renderHook(() => useDashboardSummary(false), {
       wrapper: wrapperFor(client),
     });
@@ -136,9 +135,47 @@ describe("useDashboardSummary", () => {
   it("invalidates dashboard keys before a realtime silent reload", async () => {
     renderHook(() => useDashboardSummary(false), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(realtime.reload).not.toBeNull());
-    await waitFor(() => expect(fetchDashboardSummary).toHaveBeenCalled());
+    await waitFor(() => expect(loadDashboardPrimary).toHaveBeenCalled());
 
     await act(async () => realtime.reload?.());
     expect(invalidateDashboardQueries).toHaveBeenCalledWith(client);
+  });
+
+  it("marks a failed silent reload stale, reports it, and clears the signal on recovery", async () => {
+    const { result } = renderHook(() => useDashboardSummary(false), {
+      wrapper: wrapperFor(client),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    vi.mocked(loadDashboardPrimary).mockRejectedValueOnce(new Error("offline"));
+
+    await act(async () => realtime.reload?.());
+    expect(result.current.isStale).toBe(true);
+    expect(reportClientError).toHaveBeenCalledWith(
+      "dashboard.silent_reload_failed",
+      expect.any(Error),
+      null,
+    );
+
+    vi.mocked(loadDashboardPrimary).mockResolvedValueOnce({ marker: "recovered" } as never);
+    await act(async () => realtime.reload?.());
+    expect(result.current.isStale).toBe(false);
+    expect(result.current.summary).toEqual({ marker: "recovered" });
+  });
+
+  it("ignores an older response after the session principal changes", async () => {
+    const oldLoad = deferred<never>();
+    vi.mocked(loadDashboardPrimary).mockReturnValueOnce(oldLoad.promise);
+    const { result, rerender } = renderHook(() => useDashboardSummary(false), {
+      wrapper: wrapperFor(client),
+    });
+    await waitFor(() => expect(loadDashboardPrimary).toHaveBeenCalledTimes(1));
+
+    session.currentUserId = "user-2";
+    vi.mocked(loadDashboardPrimary).mockResolvedValueOnce({ marker: "user-2" } as never);
+    rerender();
+    await waitFor(() => expect(result.current.summary).toEqual({ marker: "user-2" }));
+
+    await act(async () => oldLoad.resolve({ marker: "user-1" } as never));
+    expect(result.current.summary).toEqual({ marker: "user-2" });
   });
 });

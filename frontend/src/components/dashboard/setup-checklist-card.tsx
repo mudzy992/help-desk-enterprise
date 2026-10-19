@@ -1,54 +1,93 @@
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SetupChecklistItemRow } from "@/components/dashboard/setup-checklist-item";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { PanelSkeleton } from "@/components/ui/skeleton";
+import { readApiRequestId } from "@/lib/map-api-error";
+import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import {
   dismissSetupChecklist,
   loadSetupChecklist,
   type SetupChecklistStatus,
 } from "@/services/setup-checklist-api";
 
-/*
-  Install wizard v2 (F6.3): what the wizard promised to „configure later“, on the
-  screen the operator opens every day. Every item is derived by the backend, so
-  the card never keeps its own list: an item disappears because the thing behind
-  it exists (SMTP configured, team invited, recommendation applied).
-
-  A failed read hides the card instead of adding a second error to a dashboard
-  that already reports its own — the checklist is an offer, not a gate.
-*/
-
+/** Optional post-install guidance; failures stay isolated from the main dashboard. */
 export function SetupChecklistCard() {
   const { t } = useTranslation();
+  const mounted = useRef(true);
+  const requestGeneration = useRef(0);
   const [status, setStatus] = useState<SetupChecklistStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDismissing, setIsDismissing] = useState(false);
+  const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isActive = true;
-    loadSetupChecklist()
-      .then((next) => {
-        if (isActive) setStatus(next);
-      })
-      .catch(() => undefined);
-    return () => {
-      isActive = false;
-    };
+  const load = useCallback(async () => {
+    const generation = ++requestGeneration.current;
+    setIsLoading(true);
+    setErrorKey(null);
+    setRequestId(null);
+    try {
+      const next = await loadSetupChecklist();
+      if (mounted.current && generation === requestGeneration.current) setStatus(next);
+    } catch (error) {
+      if (mounted.current && generation === requestGeneration.current) {
+        setStatus(null);
+        setErrorKey(mapTicketError(error));
+        setRequestId(readApiRequestId(error));
+      }
+    } finally {
+      if (mounted.current && generation === requestGeneration.current) setIsLoading(false);
+    }
   }, []);
 
-  if (status === null || status.dismissedAt !== null || status.items.length === 0) {
-    return null;
+  useEffect(() => {
+    mounted.current = true;
+    void load();
+    return () => {
+      mounted.current = false;
+      requestGeneration.current += 1;
+    };
+  }, [load]);
+
+  if (isLoading) return <PanelSkeleton label={t("dashboard.setupChecklist.title")} />;
+
+  if (errorKey !== null && status === null) {
+    return (
+      <Card className="mb-4">
+        <CardHeader
+          title={t("dashboard.setupChecklist.title")}
+          subtitle={t("dashboard.setupChecklist.unavailable")}
+        />
+        <CardBody>
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          <Button className="mt-3" size="xs" variant="outline" onClick={() => void load()}>
+            {t("ui.retry")}
+          </Button>
+        </CardBody>
+      </Card>
+    );
   }
+
+  if (status === null || status.dismissedAt !== null || status.items.length === 0) return null;
 
   const onDismiss = async () => {
     setIsDismissing(true);
+    setErrorKey(null);
+    setRequestId(null);
     try {
-      setStatus(await dismissSetupChecklist());
-    } catch {
-      // Dismissing is reversible (Settings keeps the state): a failure simply
-      // leaves the card where it is.
-      setIsDismissing(false);
+      const next = await dismissSetupChecklist();
+      if (mounted.current) setStatus(next);
+    } catch (error) {
+      if (mounted.current) {
+        setErrorKey(mapTicketError(error));
+        setRequestId(readApiRequestId(error));
+      }
+    } finally {
+      if (mounted.current) setIsDismissing(false);
     }
   };
 
@@ -71,6 +110,11 @@ export function SetupChecklistCard() {
         }
       />
       <CardBody className="py-3">
+        {errorKey !== null ? (
+          <div className="mb-3">
+            <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          </div>
+        ) : null}
         <ul>
           {status.items.map((item) => (
             <SetupChecklistItemRow key={item.key} item={item} />

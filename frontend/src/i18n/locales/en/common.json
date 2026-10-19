@@ -3022,6 +3022,7 @@
     "recentHeading": "Recent tickets",
     "recentHint": "Most recently created tickets you can access.",
     "viewAll": "View all",
+    "refreshStale": "Automatic refresh failed. The last available data is still shown.",
     "recentEmptyTitle": "No recent tickets",
     "recentEmptyBody": "Tickets appear here after they are created.",
     "columnTicket": "Ticket",
@@ -3089,6 +3090,7 @@
     "setupChecklist": {
       "title": "Finish the setup",
       "subtitle": "Left for later: {{count}}",
+      "unavailable": "The setup checklist is temporarily unavailable.",
       "dismiss": "Hide",
       "goTo": "Open",
       "itemHint": "Not configured during the installation.",

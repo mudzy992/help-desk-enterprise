@@ -15,6 +15,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { Warning } from "@/components/ui/warning";
 import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 import { canOpenAdminArea, canOpenReports, isTicketStaff } from "@/lib/session/route-access";
@@ -43,8 +44,10 @@ export function DashboardPage() {
     originNames,
     groupNames,
     isLoading,
+    isStale,
     errorKey,
     requestId,
+    reload,
   } = useDashboardSummary(isStaff);
   const recentExclusive =
     summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
@@ -90,6 +93,14 @@ export function DashboardPage() {
         />
       ) : (
         <div className="grid gap-4">
+          {isStale ? (
+            <div className="flex items-center gap-2">
+              <Warning text={t("dashboard.refreshStale")} />
+              <Button size="xs" variant="outline" onClick={() => void reload()}>
+                {t("ui.retry")}
+              </Button>
+            </div>
+          ) : null}
           <DashboardMetricGrid
             summary={summary}
             inboxCount={inboxCount}
