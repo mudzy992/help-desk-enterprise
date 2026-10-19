@@ -3,7 +3,7 @@ import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input"
 import {
   canPersistCreateTicketDraft,
   clearSessionValue,
-  CREATE_TICKET_DRAFT_STORAGE_KEY,
+  createTicketDraftStorageKey,
   isPersistedCreateTicketDraft,
   readSessionValue,
   restorePersistedCreateTicketDraft,
@@ -11,6 +11,7 @@ import {
   writeSessionValue,
 } from "@/lib/tickets/ticket-draft-storage";
 import type { ServiceResponse } from "@/services/service-catalog-api";
+import { useSession } from "@/lib/session/use-session";
 
 interface UseCreateTicketDraftPersistenceProperties {
   readonly isCatalogLoading: boolean;
@@ -29,10 +30,18 @@ export function useCreateTicketDraftPersistence({
   draft,
   setDraft,
 }: UseCreateTicketDraftPersistenceProperties): boolean {
-  const [savedDraft] = useState(() =>
-    readSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY, isPersistedCreateTicketDraft),
-  );
+  const { currentUserId } = useSession();
+  const storageKey = currentUserId === null ? null : createTicketDraftStorageKey(currentUserId);
+  const readSavedDraft = () =>
+    storageKey === null ? null : readSessionValue(storageKey, isPersistedCreateTicketDraft);
+  const [loadedStorageKey, setLoadedStorageKey] = useState(storageKey);
+  const [savedDraft, setSavedDraft] = useState(readSavedDraft);
   const [draftStorageReady, setDraftStorageReady] = useState(false);
+  if (loadedStorageKey !== storageKey) {
+    setLoadedStorageKey(storageKey);
+    setSavedDraft(readSavedDraft());
+    setDraftStorageReady(false);
+  }
 
   useEffect(() => {
     if (isCatalogLoading || draftStorageReady) return;
@@ -46,14 +55,22 @@ export function useCreateTicketDraftPersistence({
         : null;
     if (restored !== null) {
       setDraft((current) => ({ ...current, ...restored }));
-    } else if (savedDraft !== null) {
-      clearSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY);
+    } else if (savedDraft !== null && storageKey !== null) {
+      clearSessionValue(storageKey);
     }
     setDraftStorageReady(true);
-  }, [draftStorageReady, hasDeepLinkPrefill, isCatalogLoading, savedDraft, services, setDraft]);
+  }, [
+    draftStorageReady,
+    hasDeepLinkPrefill,
+    isCatalogLoading,
+    savedDraft,
+    services,
+    setDraft,
+    storageKey,
+  ]);
 
   useEffect(() => {
-    if (!draftStorageReady) return;
+    if (!draftStorageReady || storageKey === null) return;
     const persisted = toPersistedCreateTicketDraft(
       {
         serviceId: draft.serviceId,
@@ -64,10 +81,10 @@ export function useCreateTicketDraftPersistence({
       selectedService,
     );
     if (persisted === null) {
-      clearSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY);
+      clearSessionValue(storageKey);
       return;
     }
-    writeSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY, persisted);
+    writeSessionValue(storageKey, persisted);
   }, [
     draft.impact,
     draft.originUnitId,
@@ -75,6 +92,7 @@ export function useCreateTicketDraftPersistence({
     draft.urgency,
     draftStorageReady,
     selectedService,
+    storageKey,
   ]);
 
   return draftStorageReady;

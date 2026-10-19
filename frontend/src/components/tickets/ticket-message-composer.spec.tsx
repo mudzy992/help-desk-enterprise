@@ -5,7 +5,11 @@ import { TicketMessageComposer } from "@/components/tickets/ticket-message-compo
 import { ticketComposerDraftStorageKey } from "@/lib/tickets/ticket-draft-storage";
 import { renderTicketTemplate, type RenderedTemplate } from "@/services/templates-api";
 
-const renderTicketTemplateMock = vi.hoisted(() => vi.fn());
+const { renderTicketTemplateMock, sessionMock } = vi.hoisted(() => ({
+  renderTicketTemplateMock: vi.fn(),
+  sessionMock: { currentUserId: "user-a" as string | null },
+}));
+vi.mock("@/lib/session/use-session", () => ({ useSession: () => sessionMock }));
 vi.mock("@/services/templates-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/templates-api")>();
   return { ...actual, renderTicketTemplate: renderTicketTemplateMock };
@@ -24,6 +28,7 @@ function renderComposer(ticketId: string, onSend = vi.fn().mockResolvedValue(und
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
+  sessionMock.currentUserId = "user-a";
 });
 
 describe("TicketMessageComposer session draft", () => {
@@ -33,9 +38,9 @@ describe("TicketMessageComposer session draft", () => {
       target: { value: "Ticket one draft" },
     });
     await waitFor(() =>
-      expect(window.sessionStorage.getItem(ticketComposerDraftStorageKey("ticket-1"))).toContain(
-        "Ticket one draft",
-      ),
+      expect(
+        window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "ticket-1")),
+      ).toContain("Ticket one draft"),
     );
     first.unmount();
 
@@ -45,6 +50,31 @@ describe("TicketMessageComposer session draft", () => {
 
     renderComposer("ticket-1");
     expect(screen.getByTestId("ticket-composer-body")).toHaveProperty("value", "Ticket one draft");
+  });
+
+  it("does not restore another account's draft for the same ticket", async () => {
+    const first = renderComposer("shared-ticket");
+    fireEvent.change(screen.getByTestId("ticket-composer-body"), {
+      target: { value: "User A private draft" },
+    });
+    await waitFor(() =>
+      expect(
+        window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "shared-ticket")),
+      ).toContain("User A private draft"),
+    );
+    sessionMock.currentUserId = "user-b";
+    first.rerender(
+      <TicketMessageComposer
+        ticketId="shared-ticket"
+        access="staff"
+        isSending={false}
+        onSend={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    expect(screen.getByTestId("ticket-composer-body")).toHaveProperty("value", "");
+    expect(
+      window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "shared-ticket")),
+    ).toContain("User A private draft");
   });
 
   it("keeps text typed while an asynchronous template is rendering", async () => {
@@ -96,9 +126,9 @@ describe("TicketMessageComposer session draft", () => {
       target: { value: "Ready to send" },
     });
     await waitFor(() =>
-      expect(window.sessionStorage.getItem(ticketComposerDraftStorageKey("ticket-send"))).not.toBe(
-        null,
-      ),
+      expect(
+        window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "ticket-send")),
+      ).not.toBe(null),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "tickets.detail.send" }));
@@ -106,7 +136,7 @@ describe("TicketMessageComposer session draft", () => {
     await waitFor(() => {
       expect(onSend).toHaveBeenCalledWith("AGENT_REPLY", "Ready to send", undefined);
       expect(
-        window.sessionStorage.getItem(ticketComposerDraftStorageKey("ticket-send")),
+        window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "ticket-send")),
       ).toBeNull();
       expect(screen.getByTestId("ticket-composer-body")).toHaveProperty("value", "");
     });
@@ -120,7 +150,9 @@ describe("TicketMessageComposer session draft", () => {
     });
     await waitFor(() =>
       expect(
-        window.sessionStorage.getItem(ticketComposerDraftStorageKey("ticket-failed-send")),
+        window.sessionStorage.getItem(
+          ticketComposerDraftStorageKey("user-a", "ticket-failed-send"),
+        ),
       ).not.toBeNull(),
     );
 
@@ -128,7 +160,7 @@ describe("TicketMessageComposer session draft", () => {
     await waitFor(() => expect(onSend).toHaveBeenCalledOnce());
     expect(screen.getByTestId("ticket-composer-body")).toHaveProperty("value", "Do not lose this");
     expect(
-      window.sessionStorage.getItem(ticketComposerDraftStorageKey("ticket-failed-send")),
+      window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "ticket-failed-send")),
     ).toContain("Do not lose this");
   });
 });

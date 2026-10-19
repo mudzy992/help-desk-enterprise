@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,10 +19,8 @@ import { fetchKnowledgeInterceptStep } from "@/lib/tickets/fetch-knowledge-inter
 import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
 import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
 import { useCreateTicketDraftPersistence } from "@/lib/tickets/use-create-ticket-draft-persistence";
-import {
-  clearSessionValue,
-  CREATE_TICKET_DRAFT_STORAGE_KEY,
-} from "@/lib/tickets/ticket-draft-storage";
+import { clearSessionValue, createTicketDraftStorageKey } from "@/lib/tickets/ticket-draft-storage";
+import { useSession } from "@/lib/session/use-session";
 import { useCreateTicketServiceForm } from "@/lib/tickets/use-create-ticket-service-form";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
@@ -37,6 +35,7 @@ export function useCreateTicketFormModel() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const catalog = useCreateTicketCatalog();
+  const { currentUserId } = useSession();
   const capabilities = useSessionCapabilities();
   const matrixCells = usePriorityMatrix();
   const [searchParams] = useSearchParams();
@@ -86,6 +85,24 @@ export function useCreateTicketFormModel() {
   const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChosenOriginUnit, setHasChosenOriginUnit] = useState(false);
+  const draftOwner = useRef(currentUserId);
+  useEffect(() => {
+    if (draftOwner.current === currentUserId) return;
+    draftOwner.current = currentUserId;
+    setDraft({
+      ...emptyCreateTicketDraft,
+      assetId: (searchParams.get("assetId") ?? "").slice(0, 64),
+      serviceId: (searchParams.get("serviceId") ?? "").slice(0, 64),
+    });
+    setStep(0);
+    setSuggestions([]);
+    setInterceptUnavailable(false);
+    setHelped(false);
+    setHelpedArticleId(null);
+    setFieldErrors(new Map());
+    setErrorKey(null);
+    setHasChosenOriginUnit(false);
+  }, [currentUserId, searchParams]);
   const { activeForm, formsEnabled, requireVersionOnTicket } = useCreateTicketServiceForm({
     serviceId: draft.serviceId,
     setDraft,
@@ -189,7 +206,9 @@ export function useCreateTicketFormModel() {
     setErrorKey(null);
     try {
       const created = await createTicket(buildCreateTicketInput(draft, { acknowledgeDuplicate }));
-      clearSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY);
+      if (currentUserId !== null) {
+        clearSessionValue(createTicketDraftStorageKey(currentUserId));
+      }
       void navigate(`/tickets/${created.id}`);
     } catch (error) {
       showSubmitError(error);

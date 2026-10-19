@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   canPersistCreateTicketDraft,
   clearSessionValue,
-  CREATE_TICKET_DRAFT_STORAGE_KEY,
+  createTicketDraftStorageKey,
   isPersistedCreateTicketDraft,
   isTicketComposerDraft,
   readSessionValue,
@@ -16,15 +16,19 @@ import {
 describe("ticket draft session storage", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  it("uses an isolated composer key for each ticket", () => {
-    expect(ticketComposerDraftStorageKey("ticket/one")).not.toBe(
-      ticketComposerDraftStorageKey("ticket-two"),
+  it("isolates composer and create keys by account and ticket", () => {
+    expect(ticketComposerDraftStorageKey("user-a", "ticket/one")).not.toBe(
+      ticketComposerDraftStorageKey("user-a", "ticket-two"),
     );
-    expect(ticketComposerDraftStorageKey("ticket/one")).toContain("ticket%2Fone");
+    expect(ticketComposerDraftStorageKey("user-a", "ticket/one")).not.toBe(
+      ticketComposerDraftStorageKey("user-b", "ticket/one"),
+    );
+    expect(createTicketDraftStorageKey("user-a")).not.toBe(createTicketDraftStorageKey("user-b"));
+    expect(ticketComposerDraftStorageKey("user-a", "ticket/one")).toContain("ticket%2Fone");
   });
 
   it("round-trips only a validated composer body and mode", () => {
-    const key = ticketComposerDraftStorageKey("ticket-1");
+    const key = ticketComposerDraftStorageKey("user-a", "ticket-1");
     writeSessionValue(key, { body: "Follow up tomorrow", mode: "reply" });
 
     expect(readSessionValue(key, isTicketComposerDraft)).toEqual({
@@ -105,10 +109,9 @@ describe("ticket draft session storage", () => {
     expect(restorePersistedCreateTicketDraft(saved, internalService)).toEqual(saved);
     expect(restorePersistedCreateTicketDraft(saved, confidentialService)).toBeNull();
 
-    writeSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY, saved);
-    clearSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY);
-    expect(
-      readSessionValue(CREATE_TICKET_DRAFT_STORAGE_KEY, isPersistedCreateTicketDraft),
-    ).toBeNull();
+    const storageKey = createTicketDraftStorageKey("user-a");
+    writeSessionValue(storageKey, saved);
+    clearSessionValue(storageKey);
+    expect(readSessionValue(storageKey, isPersistedCreateTicketDraft)).toBeNull();
   });
 });

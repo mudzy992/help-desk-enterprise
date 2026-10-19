@@ -12,14 +12,14 @@ Status: **implementacija je funkcionalno jaka, ali prethodni closeout nije više
 
 Tickets je najširi i operativno najvažniji frontend modul. Ima ozbiljno domensko pokriće: kreiranje, liste i inbox, detalj, poruke, interne bilješke, priloge, realtime, prisustvo, odobrenja, SLA, vrijeme rada, merge/split/forward, bulk akcije, CSV, saved views i mobilni prikaz. Postoje kvalitetne izolovane funkcije i veliki broj testova.
 
-Ponovni audit je, međutim, pronašao važnu razliku između dokumentovanog stanja i stvarnog produkcijskog puta:
+Ponovni audit je pronašao važnu razliku između dokumentovanog stanja i stvarnog produkcijskog puta. Faza 1 je zatvorila njen sigurnosni i arhitektonski korijen:
 
-- nova razložena list implementacija (`use-ticket-list-data`, `use-ticket-list-state`, `fetch-ticket-list-snapshot`) postoji i testirana je, ali **nije spojena na stranicu**;
-- aktivni `useTicketList` je ponovo narastao na 484 linije, koristi nepaginirani `listGroupInbox()`, guta pomoćne greške i vraća tri error kanala kao stalni `null`;
-- composer draft ključ nije vezan za korisnički identitet, pa nacrt javnog odgovora može preživjeti logout/account switch u istoj kartici;
-- raniji statusi T5, T12 i T19 zato više nisu potpuno istiniti, iako test suite prolazi.
+- razložena list implementacija (`use-ticket-list-data`, `use-ticket-list-state`, `fetch-ticket-list-snapshot`) sada je spojena na produkcijsku stranicu kroz tanki facade;
+- stari 484-linijski loader, nepaginirani inbox put i konstantni `null` pomoćni error kanali više nisu aktivni;
+- composer i create draft ključevi vezani su za korisnički identitet, uključujući in-place account switch u istoj kartici;
+- statusi TA1–TA4, TA7 i TA10 sada imaju implementacijski dokaz, dok TA5/TA6 i dublji page-level recovery testovi ostaju sljedeća faza.
 
-### Trenutna ocjena: **8.7/10**
+### Trenutna ocjena nakon Faze 1: **9.2/10**
 
 Ocjena nije niža zbog nedostupnog E2E stacka, nego zbog konkretnih produkcijskih gapova TA1–TA5. Nakon njihovog zatvaranja, statičkih i komponentnih gateova modul može biti **9.8/10**. Konačnih **10/10** zavisi samo od stvarnog browser/E2E prolaza i mjerljivog browser performance dokaza, u skladu sa dogovorom.
 
@@ -52,7 +52,7 @@ Ponovo su pregledani aktivni import putevi, veličine fajlova, storage granice, 
 
 Izvršeno 2026-10-19:
 
-- ciljani frontend Vitest za ticket/realtime scope: **71/71 fajl, 222/222 testa**;
+- ciljani frontend Vitest za ticket/realtime scope nakon Faze 1: **71/71 fajl, 223/223 testa**;
 - ranije u istoj sesiji puni frontend Vitest: **339/339 fajlova, 1371/1371 testova**;
 - ranije u istoj sesiji frontend build i TypeScript: prolaze;
 - broj pronađenih backend ticket spec fajlova: **106**;
@@ -82,20 +82,20 @@ Prethodni T1–T26 rad nije odbačen. Sljedeće je ponovnim čitanjem i testovim
 
 ## 5. Novi registar nalaza
 
-| ID | Prioritet | Status | Nalaz | Uslov zatvaranja |
-|---|---|---|---|---|
-| **TA1** | P1 / podatkovna izolacija | Otvoren | Composer draft ključ sadrži samo ticket ID (`helpdesk:ticket:<id>:composer-draft:v1`). Logout/account switch ne čisti ove ključeve. Drugi korisnik u istoj kartici koji može otvoriti isti tiket može dobiti nacrt javnog odgovora prethodnog korisnika. Internal draft se odbacuje kada novi korisnik nema pravo, ali javni draft nema subject granicu. | Ključ vezati za `subjectId` ili centralno očistiti sve ticket draftove pri promjeni identiteta; test A→B mora dokazati da B ne vidi A draft. |
-| **TA2** | P1 / aktivni produkcijski put | Otvoren | `TicketListPage` importuje stari `components/tickets/hooks/use-ticket-list.ts` od 484 linije. Noviji `use-ticket-list-data`, `use-ticket-list-state` i `fetch-ticket-list-snapshot` nisu povezani ni sa jednom produkcijskom stranicom. Prethodni T5 closeout zato nije stvarno aktivan. | Spojiti facade na izdvojene state/data hookove, ukloniti duplu implementaciju i zadržati javni page contract. |
-| **TA3** | P1 / skaliranje inboxa | Otvoren | Aktivni inbox koristi nepaginirani `listGroupInbox()` i računa total iz dužine vraćenog niza. Paginirani `listGroupInboxPage()` postoji u izdvojenom, neaktivnom snapshotu. Prethodni T19 status je regresirao. | Aktivni UI mora koristiti server page/pageSize/total, uz page-boundary test i bez preuzimanja cijelog inboxa. |
-| **TA4** | P1 / error contract | Otvoren | Aktivni hook guta katalog/unrouted/count greške (`catch(() => [])`, `catch(() => null)`) i na kraju vraća `catalogErrorKey`, `unroutedErrorKey`, `membershipErrorKey` kao konstantni `null`. UI prima retry propove, ali stvarni error kanal nikad nije popunjen. Prethodni T12 closeout nije tačan za aktivni put. | Aktivirati `captureRead`/snapshot error kanale; razlikovati forbidden/not-found od transport/server greške; komponentni test mora prikazati i retry-ovati svaki pomoćni kvar. |
-| **TA5** | P2 / tačnost statusnih brojeva | Otvoren | Standardna lista pretvara kvar `/tickets/counts` u `null`, a page subtitle zatim prikazuje open/risk kao `0`. Korisnik ne može razlikovati stvarnu nulu od nedostupnog brojanja. | Uvesti loading/unavailable stanje ili zadržati posljednju uspješnu vrijednost uz stale indikator; nikad prikazati lažnu nulu. |
-| **TA6** | P2 / realtime operativnost | Otvoren | Silent reload namjerno guta glavni transport error. To čuva postojeći ekran, ali nema stale/offline indikatora ni telemetry potvrde u aktivnom list hooku. Lista može ostati zastarjela bez signala. | Sačuvati podatke, ali evidentirati kvar i prikazati nenametljiv stale/retry status; testirati uspješan oporavak. |
-| **TA7** | P2 / održivost | Otvoren | Produkcija i dead/refactor put imaju paralelne implementacije istog učitavanja, pagination i error modela. Testovi za `fetchTicketListSnapshot` mogu prolaziti bez zaštite stvarnog UI puta, što stvara lažni osjećaj pokrića. | Jedan produkcijski put i testovi kroz facade/page; obrisati mrtve duplikate nakon migracije. |
-| **TA8** | P2 / audit higijena | Otvoren | Ticket scope i dalje sadrži mnogo `Paket`, `Faza`, `Phase`, `Val`, `M8 B*` komentara. Oni opisuju historiju implementacije umjesto trajnog ugovora i već su doprinijeli kontradikciji između audita i koda. | Ukloniti fazne oznake; zadržati samo razlog, sigurnosni ugovor ili ponašanje. Ciljani grep mora biti čist bez brisanja korisnih objašnjenja. |
-| **TA9** | P2 / test dubina | Otvoren | Aktivni hook od 484 linije ima samo tri direktna testa fokusirana na stale answer/realtime/deep-link. Nema facade testa za paginaciju inboxa, pomoćne error kanale, counts failure, claim invalidaciju i account-isolated drafts. | Dodati table-driven hook/page testove za navedene grane; svaki novi bug prvo reprodukovati testom. |
-| **TA10** | P3 / storage namespace | Otvoren | Create draft koristi jedan globalni ključ bez subject ID-ja. Trenutno čuva samo service/unit/impact/urgency, pa nema slobodnog teksta, ali account switch može prenijeti prethodne organizacijske izbore. | Namespacovati i create draft po subjectu ili dokumentovati i testirati namjerno globalno ponašanje. |
-| **TA11** | QA / browser | Blokiran okruženjem | Nisu ponovljeni stvarni browser tokovi create, inbox pagination, detail reply/internal note, realtime, bulk, confidential, approval, time tracking, merge/split/forward i mobilni prikaz. | Pokrenuti relevantnih 15 Playwright fajlova na cookie-enabled stacku; sačuvati rezultate, trace/screenshot samo za padove. |
-| **TA12** | QA / performance | Blokiran browserom | Raniji T23 nije imao React Profiler mjerenje. Virtualizacija postoji, ali nema mjerljivog dokaza za listu/inbox/detail pod realtime opterećenjem. | Browser profil sa dogovorenim datasetom i pragovima; bez blind `React.memo` izmjena. |
+| ID       | Prioritet                      | Status                     | Nalaz                                                                                                                                                                                                                             | Uslov zatvaranja                                                                                                                             |
+| -------- | ------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TA1**  | P1 / podatkovna izolacija      | Urađeno u Fazi 1           | Composer i create draft ključevi sada uključuju normalizovani/enkodirani `subjectId`; javni i interni nacrt više se ne mogu vratiti drugom accountu u istoj kartici.                                                              | `ticket-message-composer.spec.tsx` dokazuje A→B izolaciju nad istim ticket ID-jem; storage test dokazuje izolaciju oba namespacea.           |
+| **TA2**  | P1 / aktivni produkcijski put  | Urađeno u Fazi 1           | `useTicketList` je tanki facade nad `useTicketListState` i `useTicketListData`; zadržan je postojeći page contract i claim lifecycle.                                                                                             | Produkcijski page koristi jedinstveni state/data put; TypeScript i ciljani hook testovi prolaze.                                             |
+| **TA3**  | P1 / skaliranje inboxa         | Urađeno aktivacijom Faze 1 | Jedinstveni aktivni data put koristi `fetchTicketListSnapshot` i `listGroupInboxPage()` sa server page/pageSize/total metapodacima. Nepaginirani poziv više nije u list UI putu.                                                  | Snapshot pagination testovi prolaze; dodatni page-boundary UI test ostaje u Fazi 2.                                                          |
+| **TA4**  | P1 / error contract            | Urađeno aktivacijom Faze 1 | Aktivni facade sada prosljeđuje stvarne `catalogErrorKey`, `unroutedErrorKey` i `membershipErrorKey` vrijednosti iz `captureRead` snapshota umjesto konstantnog `null`.                                                           | Snapshot error testovi prolaze; kompletni retry page testovi ostaju u Fazi 2.                                                                |
+| **TA5**  | P2 / tačnost statusnih brojeva | Otvoren                    | Standardna lista pretvara kvar `/tickets/counts` u `null`, a page subtitle zatim prikazuje open/risk kao `0`. Korisnik ne može razlikovati stvarnu nulu od nedostupnog brojanja.                                                  | Uvesti loading/unavailable stanje ili zadržati posljednju uspješnu vrijednost uz stale indikator; nikad prikazati lažnu nulu.                |
+| **TA6**  | P2 / realtime operativnost     | Otvoren                    | Silent reload namjerno guta glavni transport error. To čuva postojeći ekran, ali nema stale/offline indikatora ni telemetry potvrde u aktivnom list hooku. Lista može ostati zastarjela bez signala.                              | Sačuvati podatke, ali evidentirati kvar i prikazati nenametljiv stale/retry status; testirati uspješan oporavak.                             |
+| **TA7**  | P2 / održivost                 | Urađeno u Fazi 1           | Paralelni loader je uklonjen iz starog 484-linijskog hooka. Facade, state hook, data hook i snapshot sada čine jedan produkcijski tok.                                                                                            | Ciljani facade/snapshot testovi i TypeScript prolaze; nema drugog list loadera u page putu.                                                  |
+| **TA8**  | P2 / audit higijena            | Otvoren                    | Ticket scope i dalje sadrži mnogo `Paket`, `Faza`, `Phase`, `Val`, `M8 B*` komentara. Oni opisuju historiju implementacije umjesto trajnog ugovora i već su doprinijeli kontradikciji između audita i koda.                       | Ukloniti fazne oznake; zadržati samo razlog, sigurnosni ugovor ili ponašanje. Ciljani grep mora biti čist bez brisanja korisnih objašnjenja. |
+| **TA9**  | P2 / test dubina               | Otvoren                    | Aktivni hook od 484 linije ima samo tri direktna testa fokusirana na stale answer/realtime/deep-link. Nema facade testa za paginaciju inboxa, pomoćne error kanale, counts failure, claim invalidaciju i account-isolated drafts. | Dodati table-driven hook/page testove za navedene grane; svaki novi bug prvo reprodukovati testom.                                           |
+| **TA10** | P3 / storage namespace         | Urađeno u Fazi 1           | Create draft koristi `subjectId` namespace; submit i persistence lifecycle čiste/pišu isključivo ključ aktivnog korisnika. Dozvoljeni payload ostaje ograničen na service/unit/impact/urgency.                                    | Storage test potvrđuje različite create ključeve za dva korisnika.                                                                           |
+| **TA11** | QA / browser                   | Blokiran okruženjem        | Nisu ponovljeni stvarni browser tokovi create, inbox pagination, detail reply/internal note, realtime, bulk, confidential, approval, time tracking, merge/split/forward i mobilni prikaz.                                         | Pokrenuti relevantnih 15 Playwright fajlova na cookie-enabled stacku; sačuvati rezultate, trace/screenshot samo za padove.                   |
+| **TA12** | QA / performance               | Blokiran browserom         | Raniji T23 nije imao React Profiler mjerenje. Virtualizacija postoji, ali nema mjerljivog dokaza za listu/inbox/detail pod realtime opterećenjem.                                                                                 | Browser profil sa dogovorenim datasetom i pragovima; bez blind `React.memo` izmjena.                                                         |
 
 ## 6. Rizici po korisnički tok
 
@@ -105,7 +105,7 @@ Tok je dobro razložen i knowledge fallback više ne blokira korisnika. Preostal
 
 ### Lista i inbox
 
-Ovo je trenutno najveći implementacijski rizik. Aktivni put nije refaktorisani put koji audit opisuje. Posljedice su nepaginirani inbox, nevidljive pomoćne greške, lažne nule brojača i dupli kod koji testira neaktivnu implementaciju (TA2–TA7).
+Faza 1 je aktivirala refaktorisani put, paginirani inbox i pomoćne error kanale te uklonila dupli loader. Preostali rizici liste su lažna nula pri kvaru brojača i nevidljiv silent-reload kvar (TA5–TA6), uz potrebu za dubljim page-level recovery testovima.
 
 ### Detalj i komunikacija
 
@@ -115,11 +115,26 @@ Post-send semantika, panel isolation i pomoćna paralelnost su dobri. Najvažnij
 
 Invalidacija cachea postoji, ali silent failure nema operativni signal. Inbox ne koristi postojeći paginirani API u aktivnom UI-ju. Oboje treba riješiti prije performance polish-a.
 
-## 7. Fazni plan do 10/10
+## 7. Faza 1 — implementacijski closeout
+
+Faza „Izolacija draftova i jedinstven list data put“ mapirana je na **TA1, TA2, TA7 i TA10**. Aktiviranje jedinstvenog data puta je istovremeno zatvorilo produkcijski dio **TA3 i TA4**, jer su paginacija i pomoćni error kanali već postojali u izdvojenom snapshot sloju, ali ranije nisu bili spojeni na stranicu.
+
+Dokazi:
+
+- `useTicketList` je smanjen sa 484 linije na tanki facade i više ne sadrži paralelni transport/state loader;
+- composer i create storage ključevi imaju user namespace i verziju `v2`;
+- A→B test potvrđuje da drugi korisnik na istom tiketu ne dobija prvi nacrt;
+- uski ciljani Vitest: **4/4 fajla, 18/18 testova**;
+- kompletni ticket/realtime Vitest: **71/71 fajl, 223/223 testa**;
+- TypeScript, frontend build i i18n/design-system provjera: prolaze.
+
+TA5/TA6 i puni page-level retry/boundary testovi namjerno ostaju za Fazu 2.
+
+## 8. Fazni plan do 10/10
 
 Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u istom prolazu.
 
-### Faza 1 — sigurnost draftova i jedinstven list put
+### Faza 1 — sigurnost draftova i jedinstven list put (završena)
 
 **TA1, TA2, TA7, TA10**
 
@@ -171,7 +186,7 @@ Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u 
 
 **Gate za 10/10:** svi ne-E2E nalazi zatvoreni; stvarni browser testovi prošli; svaki izuzetak jasno dokumentovan, bez predstavljanja neizvršenog testa kao prolaza.
 
-## 8. Preporučeni redoslijed implementacijskih commitova
+## 9. Preporučeni redoslijed implementacijskih commitova
 
 1. `fix(tickets): isolate drafts by session principal`
 2. `refactor(tickets): activate unified list data flow`
@@ -180,8 +195,8 @@ Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u 
 5. `refactor(tickets): remove phase-specific comments`
 6. `docs(audit): close ticket module findings`
 
-## 9. Zaključak
+## 10. Zaključak
 
 Prethodni audit je korektno evidentirao veliki broj kvalitetnih popravki, ali njegov zaključak „svih 26 zatvoreno“ više se ne može koristiti kao dokaz trenutnog produkcijskog stanja. Najveći problem nije nedostatak funkcionalnosti, nego to što bolji, testirani list data sloj postoji paralelno sa starijim aktivnim hookom.
 
-Implementacija treba početi od TA1 i TA2: prvo izolacija draftova između identiteta, zatim spajanje stranice na jedinstveni list put. To istovremeno otključava paginaciju, vidljive pomoćne greške i pouzdanije testove. Nakon Faza 1–4 jedini opravdani razlog za zadržavanje ocjene ispod 10/10 biće stvarno neizvršeni browser/E2E i profiler dokazi.
+Faza 1 je završila TA1 i TA2: draftovi su izolovani između identiteta, a stranica koristi jedinstveni list put. Time su aktivirani paginacija i vidljivi pomoćni error kanali. Sljedeći rad počinje od TA5/TA6 i page-level recovery dokaza. Nakon preostalih ne-browser faza jedini opravdani razlog za zadržavanje ocjene ispod 10/10 biće stvarno neizvršeni browser/E2E i profiler dokazi.

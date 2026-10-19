@@ -82,7 +82,7 @@ export function TicketMessageComposer({
     clearDraft();
   };
   const clearDraft = () => {
-    clearSessionValue(draft.draftStorageKey);
+    if (draft.draftStorageKey !== null) clearSessionValue(draft.draftStorageKey);
     draft.bodyReference.current = "";
     // The storage effect removes the key after the state is cleared.
     draft.setBody("");

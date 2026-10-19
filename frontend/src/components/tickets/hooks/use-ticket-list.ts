@@ -1,483 +1,117 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query/query-keys";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { defaultInboxTab, type TicketListFilters } from "@/lib/tickets/filter-tickets";
-import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
-import { readCreatedRangeParam } from "@/lib/tickets/created-range";
 import { useToast } from "@/components/ui/toast";
-import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
-import { isTicketStaff } from "@/lib/session/route-access";
+import { queryKeys } from "@/lib/query/query-keys";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import {
-  ticketListPageSize,
-  workspaceViewsFor,
-  type TicketWorkspaceView,
-} from "@/lib/tickets/ticket-constants";
-import { toTicketCountsQuery, toTicketPageQuery } from "@/lib/tickets/ticket-page-query";
-import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
-import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
-import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
-import {
-  claimTicket,
-  getGroupInboxStatus,
-  listGroupInbox,
-  listTicketsPage,
-  type TicketResponse,
-} from "@/services/tickets-api";
+import { isTicketStaff } from "@/lib/session/route-access";
+import { mapClaimError } from "@/lib/tickets/map-ticket-error";
+import { ticketListPageSize, unroutedTicketPageSize } from "@/lib/tickets/ticket-constants";
+import { useTicketListData } from "@/lib/tickets/use-ticket-list-data";
+import { useTicketListState } from "@/lib/tickets/use-ticket-list-state";
+import { claimTicket } from "@/services/tickets-api";
 
-/** A list answer never carries more than 50 rows; the unrouted tab asks for it. */
-const unroutedPageSize = 50;
-
-function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView {
-  const allowed = workspaceViewsFor(isStaff);
-  if (value !== null && allowed.includes(value as TicketWorkspaceView)) {
-    return value as TicketWorkspaceView;
-  }
-  return isStaff ? "inbox" : "all";
-}
-
-const emptyFilters = (
-  view: TicketWorkspaceView,
-  currentUserId: string | null,
-  isStaff: boolean,
-  initialInboxTab?: string,
-): TicketListFilters => ({
-  view,
-  search: "",
-  status: "",
-  priority: "",
-  serviceId: "",
-  assignedUserId: "",
-  createdFrom: "",
-  createdTo: "",
-  currentUserId,
-  overdue: false,
-  atRisk: false,
-  forwarded: "",
-  // M8 B4: staff lists hide merged children by default; toggled via checkbox.
-  hideMerged: isStaff,
-  // M8 B6: inbox sub-tab is part of filter state (URL-persisted).
-  inboxTab: view === "inbox" ? (initialInboxTab ?? defaultInboxTab) : undefined,
-});
-
-/**
- * Ticket list state.
- *
- * Phase 1.1 (plan §1.1): the list used to download every ticket the caller may
- * see and then filter and page it in the browser. The filters now travel to the
- * server (`toTicketPageQuery`) and only one page comes back; the counters next
- * to the tabs come from `GET /tickets/counts`, so they still cover everything
- * the caller may list instead of just the visible page.
- */
+/** Thin facade joining URL/selection state, remote list data and ticket actions. */
 export function useTicketList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUserId } = useSession();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { currentUserId } = useSession();
   const capabilities = useSessionCapabilities();
   const isStaff = isTicketStaff(capabilities);
-  const view = parseView(searchParams.get("view"), isStaff);
-  const [pageItems, setPageItems] = useState<readonly TicketResponse[]>([]);
-  const [pageInfo, setPageInfo] = useState({
-    page: 1,
-    pageSize: ticketListPageSize,
-    total: 0,
-    totalIsCapped: false,
+  const state = useTicketListState({
+    currentUserId,
+    isStaff,
+    hasSession: capabilities.session !== null,
   });
-  const [counts, setCounts] = useState<TicketCounts | null>(null);
-  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
-  const [unroutedTotal, setUnroutedTotal] = useState(0);
-  const [unroutedPage, setUnroutedPage] = useState(1);
-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
-  const [inboxHidden, setInboxHidden] = useState(false);
-  const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
-  const initialInboxTab =
-    isStaff && view === "inbox"
-      ? searchParams.get("inboxTab")?.trim() || defaultInboxTab
-      : undefined;
-  const [filters, setFilters] = useState<TicketListFilters>(() => ({
-    ...emptyFilters(view, currentUserId, isStaff, initialInboxTab),
-    ...staffDeepLinkFilters(searchParams, isStaff),
-    // Paket 5.3.1: the created range is shareable through the URL.
-    createdFrom: readCreatedRangeParam(searchParams.get("createdFrom")),
-    createdTo: readCreatedRangeParam(searchParams.get("createdTo")),
-  }));
-  // Capabilities load asynchronously, so on a fresh page load `isStaff` is
-  // still false during the first render and the staff deep-link filters above
-  // resolve to their empty values. Apply them once when staff status is
-  // confirmed; later URL-independent edits by the user are left alone.
-  const staffDeepLinkApplied = useRef(isStaff);
-  const [deepLinkFiltersReady, setDeepLinkFiltersReady] = useState(!capabilities.isLoading);
-  useEffect(() => {
-    if (capabilities.isLoading) return;
-    if (isStaff && !staffDeepLinkApplied.current) {
-      staffDeepLinkApplied.current = true;
-      setFilters((current) => ({
-        ...current,
-        ...staffDeepLinkFilters(searchParams, true),
-      }));
-      setPage(1);
-    }
-    setDeepLinkFiltersReady(true);
-  }, [capabilities.isLoading, isStaff, searchParams]);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const data = useTicketListData({
+    enabled: !capabilities.isLoading && state.isDeepLinkReady,
+    view: state.view,
+    filters: state.filters,
+    page: state.page,
+    setPage: state.setPage,
+    unroutedPage: state.unroutedPage,
+    setUnroutedPage: state.setUnroutedPage,
+    currentUserId,
+    setSearchParams: state.setSearchParams,
+  });
   const [claimingId, setClaimingId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  const latestLoadId = useRef(0);
-  const queryFromUrl = searchParams.get("q") ?? "";
+  const { load } = data;
 
-  const load = useCallback(
-    async (silent = false) => {
-      // Deep-link filters are permission-sensitive. Do not issue an unfiltered
-      // requester query while capabilities are still resolving (T1).
-      if (capabilities.isLoading || !deepLinkFiltersReady) return;
-      const loadId = ++latestLoadId.current;
-      if (!silent) {
-        setIsLoading(true);
-        setErrorKey(null);
-      } else {
-        // A realtime reload must bypass React Query's 30 s staleTime (T26).
+  const onClaim = useCallback(
+    async (ticketId: string) => {
+      setClaimingId(ticketId);
+      try {
+        await claimTicket(ticketId);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists }),
           queryClient.invalidateQueries({ queryKey: queryKeys.ticketCountsPrefix }),
         ]);
-      }
-      try {
-        if (view === "inbox") {
-          // Faza 3.3: reads go through the query cache, so coming back to a screen
-          // inside `staleTime` costs no request — the socket invalidates the keys
-          // when something really changed.
-          const [catalog, inboxRows, unroutedPageResponse] = await Promise.all([
-            queryClient
-              .fetchQuery({
-                queryKey: queryKeys.offeredServices,
-                queryFn: () => listOfferedServices(),
-              })
-              .catch(() => []),
-            queryClient.fetchQuery({
-              queryKey: queryKeys.groupInbox,
-              queryFn: () => listGroupInbox(),
-            }),
-            queryClient
-              .fetchQuery({
-                queryKey: queryKeys.ticketList({
-                  unroutedQueue: true,
-                  hideMerged: filters.hideMerged === true ? true : undefined,
-                  page: unroutedPage,
-                  pageSize: unroutedPageSize,
-                }),
-                queryFn: () =>
-                  listTicketsPage({
-                    unroutedQueue: true,
-                    hideMerged: filters.hideMerged === true ? true : undefined,
-                    page: unroutedPage,
-                    pageSize: unroutedPageSize,
-                  }),
-              })
-              .catch(() => null),
-          ]);
-          // An empty inbox is ambiguous: ask the server whether it is empty
-          // because the person is in no handler group or simply has no tickets.
-          const membership =
-            inboxRows.length > 0
-              ? true
-              : await getGroupInboxStatus().then(
-                  (status) => status.hasGroupMembership,
-                  () => null,
-                );
-          if (loadId !== latestLoadId.current) return;
-          setServices(catalog);
-          setPageItems(inboxRows);
-          setPageInfo({
-            page: 1,
-            pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
-            total: inboxRows.length,
-            totalIsCapped: false,
-          });
-          setUnroutedTickets(unroutedTicketsFromList(unroutedPageResponse?.items ?? []));
-          setUnroutedTotal(unroutedPageResponse?.total ?? 0);
-          if (
-            unroutedPageResponse !== null &&
-            unroutedPageResponse.items.length === 0 &&
-            unroutedPageResponse.total > 0 &&
-            unroutedPageResponse.page > 1
-          ) {
-            setUnroutedPage(
-              Math.max(1, Math.ceil(unroutedPageResponse.total / unroutedPageResponse.pageSize)),
-            );
-          }
-          setCounts(null);
-          setHasGroupMembership(membership);
-        } else {
-          const query = toTicketPageQuery({
-            filters,
-            view,
-            currentUserId,
-            page,
-          });
-          const [catalog, response] = await Promise.all([
-            queryClient
-              .fetchQuery({
-                queryKey: queryKeys.offeredServices,
-                queryFn: () => listOfferedServices(),
-              })
-              .catch(() => []),
-            queryClient.fetchQuery({
-              queryKey: queryKeys.ticketList(query),
-              queryFn: () => listTicketsPage(query),
-            }),
-          ]);
-          if (loadId !== latestLoadId.current) return;
-          setServices(catalog);
-          setPageItems(response.items);
-          setPageInfo({
-            page: response.page,
-            pageSize: response.pageSize,
-            total: response.total,
-            totalIsCapped: response.totalIsCapped === true,
-          });
-          setUnroutedTickets([]);
-          setUnroutedTotal(0);
-          setHasGroupMembership(null);
-          // Counters are a separate, cheaper read: they cover all matching
-          // tickets, not just the page, and they are allowed to fail (the tabs
-          // then show zeros instead of breaking the list).
-          const countsQuery = toTicketCountsQuery(query);
-          const nextCounts = await queryClient
-            .fetchQuery({
-              queryKey: queryKeys.ticketCounts(countsQuery),
-              queryFn: () => getTicketCounts(countsQuery),
-            })
-            .catch(() => null);
-          if (loadId !== latestLoadId.current) return;
-          setCounts(nextCounts);
-          // A filter can move the requested page past the end; fall back to the
-          // last page that does have rows.
-          if (response.items.length === 0 && response.total > 0 && response.page > 1) {
-            setPage(Math.max(1, Math.ceil(response.total / response.pageSize)));
-          }
-        }
-        setInboxHidden(false);
+        toast({
+          tone: "success",
+          title: t("tickets.claimSuccess"),
+          action: {
+            label: t("tickets.claimSuccessOpen"),
+            onClick: () => navigate(`/tickets/${ticketId}`),
+          },
+        });
+        await load(true);
       } catch (error) {
-        if (loadId !== latestLoadId.current) return;
-        const mapped = mapTicketError(error);
-        if (
-          view === "inbox" &&
-          (mapped === "tickets.errorForbidden" || mapped === "tickets.errorInboxDisabled")
-        ) {
-          setInboxHidden(true);
-          setSearchParams({ view: "all" });
-          return;
-        }
-        if (silent) {
-          return;
-        }
-        setPageItems([]);
-        setUnroutedTickets([]);
-        setUnroutedTotal(0);
-        setErrorKey(mapped);
+        toast({ tone: "danger", title: t(mapClaimError(error)), error });
       } finally {
-        if (!silent && loadId === latestLoadId.current) {
-          setIsLoading(false);
-        }
+        setClaimingId(null);
       }
     },
-    [
-      capabilities.isLoading,
-      deepLinkFiltersReady,
-      view,
-      filters,
-      page,
-      unroutedPage,
-      currentUserId,
-      queryClient,
-      setSearchParams,
-    ],
+    [load, navigate, queryClient, t, toast],
   );
 
-  useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      view,
-      currentUserId,
-      search: queryFromUrl,
-      // When leaving the inbox the tab is meaningless; when (re-)entering it
-      // fall back to the remembered tab or the unrouted default so navigation
-      // doesn't accidentally strand the user on a hidden group tab.
-      inboxTab: view === "inbox" ? (current.inboxTab ?? defaultInboxTab) : undefined,
-    }));
-    setPage(1);
-    setUnroutedPage(1);
-    setSelectedIds(new Set());
-  }, [view, currentUserId, queryFromUrl]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Paket 5.3.1: mirror the created range into the URL (replace, no history
-  // entry per keystroke) so reload and a copied link keep it. Switching tabs
-  // keeps the range; the inbox ignores it, so it is not written there.
-  useEffect(() => {
-    if (view === "inbox") return;
-    const next = new URLSearchParams(searchParams);
-    for (const [key, value] of [
-      ["createdFrom", filters.createdFrom],
-      ["createdTo", filters.createdTo],
-    ] as const) {
-      if (value === "") next.delete(key);
-      else next.set(key, value);
-    }
-    if (next.toString() !== searchParams.toString()) {
-      setSearchParams(next, { replace: true });
-    }
-  }, [view, filters.createdFrom, filters.createdTo, searchParams, setSearchParams]);
-
-  // A requester who lands on the bare list or on a staff-only view is moved to
-  // an explicit allowed view, so the sidebar highlights the right entry.
-  useEffect(() => {
-    if (capabilities.session === null || isStaff) {
-      return;
-    }
-    if (searchParams.get("view") !== view) {
-      const next = new URLSearchParams(searchParams);
-      next.set("view", view);
-      setSearchParams(next, { replace: true });
-    }
-  }, [capabilities.session, isStaff, searchParams, setSearchParams, view]);
-
-  const reloadSilent = useCallback(async () => {
-    await load(true);
-  }, [load]);
-  useTicketCollectionRealtime(reloadSilent);
-
-  const totalPages = Math.max(1, Math.ceil(pageInfo.total / pageInfo.pageSize));
-  const unroutedCount = unroutedTotal;
-  const unroutedTotalPages = Math.max(1, Math.ceil(unroutedTotal / unroutedPageSize));
   const serviceNames = useMemo(
-    () => new Map(services.map((service) => [service.id, service.name])),
-    [services],
+    () => new Map(data.services.map((service) => [service.id, service.name])),
+    [data.services],
   );
-  const inboxGroupCounts = useMemo(() => {
-    const next = new Map<string, number>();
-    for (const ticket of pageItems) {
-      if (ticket.assignedGroupId !== null && ticket.status !== "UNROUTED") {
-        next.set(ticket.assignedGroupId, (next.get(ticket.assignedGroupId) ?? 0) + 1);
-      }
-    }
-    return next;
-  }, [pageItems]);
-
-  const onClaim = async (ticketId: string) => {
-    setClaimingId(ticketId);
-    try {
-      await claimTicket(ticketId);
-      // The claim changed a ticket, so the cached pages and counters are stale.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists });
-      // Claim errors/success go through the global toast (Paket 5.3.0, D2)
-      // instead of `errorKey`, so a failed claim never blanks the inbox
-      // (Constitution §30) and a successful one no longer forces a skeleton
-      // flash — the toast confirms it, so the revalidation can be silent.
-      toast({
-        tone: "success",
-        title: t("tickets.claimSuccess"),
-        action: {
-          label: t("tickets.claimSuccessOpen"),
-          onClick: () => navigate(`/tickets/${ticketId}`),
-        },
-      });
-      await load(true);
-    } catch (error) {
-      toast({ tone: "danger", title: t(mapClaimError(error)), error });
-    } finally {
-      setClaimingId(null);
-    }
-  };
-
-  const toggleSelected = (ticketId: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(ticketId)) {
-        next.delete(ticketId);
-      } else {
-        next.add(ticketId);
-      }
-      return next;
-    });
-  };
-
-  /**
-   * M8 B6: changing the inbox sub-tab updates the URL (so reload keeps it)
-   * and resets the unrouted pager back to page 1. Group tabs stay in local
-   * React state only insofar as the filter state reflects them — everything
-   * else reads from filters.inboxTab.
-   */
-  const setInboxTab = useCallback(
-    (tab: string) => {
-      if (view !== "inbox") return;
-      setFilters((current) => ({ ...current, inboxTab: tab }));
-      setUnroutedPage(1);
-      setSelectedIds(new Set());
-      const next = new URLSearchParams(searchParams);
-      next.set("inboxTab", tab);
-      setSearchParams(next, { replace: true });
-    },
-    [view, searchParams, setSearchParams],
+  const totalPages = Math.max(
+    1,
+    Math.ceil(data.pageInfo.total / (data.pageInfo.pageSize || ticketListPageSize)),
   );
+  const unroutedTotalPages = Math.max(1, Math.ceil(data.unroutedTotal / unroutedTicketPageSize));
 
   return {
-    view,
+    view: state.view,
     isStaff,
-    inboxHidden,
-    hasGroupMembership,
-    filters,
-    setFilters: (next: TicketListFilters) => {
-      setFilters(next);
-      setPage(1);
-      setSelectedIds(new Set());
-    },
-    setSearch: (search: string) => {
-      setFilters((current) => ({ ...current, search }));
-      setPage(1);
-      setSelectedIds(new Set());
-    },
-    setInboxTab,
-    page,
-    setPage,
+    inboxHidden: data.inboxHidden,
+    hasGroupMembership: data.hasGroupMembership,
+    filters: state.filters,
+    setFilters: state.setFilters,
+    setSearch: state.setSearch,
+    setInboxTab: state.setInboxTab,
+    page: state.page,
+    setPage: state.setPage,
     totalPages,
-    pageItems,
-    total: pageInfo.total,
-    totalIsCapped: pageInfo.totalIsCapped,
-    counts,
-    inboxGroupCounts,
-    unroutedTickets,
-    unroutedCount,
-    unroutedPage,
+    pageItems: data.pageItems,
+    total: data.pageInfo.total,
+    totalIsCapped: data.pageInfo.totalIsCapped,
+    counts: data.counts,
+    inboxGroupCounts: data.inboxGroupCounts,
+    unroutedTickets: data.unroutedTickets,
+    unroutedCount: data.unroutedTotal,
+    unroutedPage: state.unroutedPage,
     unroutedTotalPages,
-    setUnroutedPage,
+    setUnroutedPage: state.setUnroutedPage,
     serviceNames,
-    services,
-    isLoading,
-    errorKey,
-    // Optional subrequests are currently best-effort in this hook. Expose their
-    // error channels for the split ticket-list views introduced on master; a
-    // future transport error can populate them without changing the contract.
-    catalogErrorKey: null as TicketErrorKey | null,
-    unroutedErrorKey: null as TicketErrorKey | null,
-    membershipErrorKey: null as TicketErrorKey | null,
-    setErrorKey,
+    services: data.services,
+    isLoading: data.isLoading,
+    errorKey: data.errorKey,
+    catalogErrorKey: data.catalogErrorKey,
+    unroutedErrorKey: data.unroutedErrorKey,
+    membershipErrorKey: data.membershipErrorKey,
+    setErrorKey: data.setErrorKey,
     claimingId,
-    selectedIds,
-    setSelectedIds,
-    toggleSelected,
+    selectedIds: state.selectedIds,
+    setSelectedIds: state.setSelectedIds,
+    toggleSelected: state.toggleSelected,
     load,
     onClaim,
   };

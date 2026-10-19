@@ -14,10 +14,18 @@ export type PersistedCreateTicketDraft = {
   readonly urgency: TicketUrgency;
 };
 
-export const CREATE_TICKET_DRAFT_STORAGE_KEY = "helpdesk:ticket-create:draft:v1";
+function draftOwnerSegment(subjectId: string): string {
+  const normalized = subjectId.trim();
+  if (normalized.length === 0) throw new Error("Ticket drafts require an authenticated subject");
+  return encodeURIComponent(normalized);
+}
 
-export function ticketComposerDraftStorageKey(ticketId: string): string {
-  return `helpdesk:ticket:${encodeURIComponent(ticketId)}:composer-draft:v1`;
+export function createTicketDraftStorageKey(subjectId: string): string {
+  return `helpdesk:user:${draftOwnerSegment(subjectId)}:ticket-create:draft:v2`;
+}
+
+export function ticketComposerDraftStorageKey(subjectId: string, ticketId: string): string {
+  return `helpdesk:user:${draftOwnerSegment(subjectId)}:ticket:${encodeURIComponent(ticketId)}:composer-draft:v2`;
 }
 
 export function readSessionValue<T>(
