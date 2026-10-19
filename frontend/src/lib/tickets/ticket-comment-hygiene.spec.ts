@@ -23,7 +23,7 @@ describe("ticket production comment hygiene", () => {
     ];
     const serviceRoot = join(process.cwd(), "src", "services");
     const serviceFiles = readdirSync(serviceRoot)
-      .filter((name) => name.startsWith("tickets") && name.endsWith(".ts"))
+      .filter((name) => name.startsWith("ticket") && name.endsWith(".ts"))
       .map((name) => join(serviceRoot, name));
     const historicalLabel = /\b(?:paket|package|phase|faza|val)\s+\d|\bM\d+\s+(?:[A-Z]\d+|#\d+)\b/i;
     const violations = [

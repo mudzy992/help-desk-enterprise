@@ -6,7 +6,7 @@ Grana: `arena/bd31e07b-help-desk-enterprise`
 
 Auditirani HEAD prije ovog dokumenta: `55cd699`
 
-Status: **implementacija je funkcionalno jaka, ali prethodni closeout nije više tačan; potrebna je nova implementacijska iteracija**.
+Status: **Faze 1–4 završene; implementacijski i frontend quality gate zatvoreni, browser/E2E i profiler dokazi nisu izvršeni.**
 
 ## 1. Izvršni sažetak
 
@@ -19,9 +19,9 @@ Ponovni audit je pronašao važnu razliku između dokumentovanog stanja i stvarn
 - composer i create draft ključevi vezani su za korisnički identitet, uključujući in-place account switch u istoj kartici;
 - statusi TA1–TA4, TA7 i TA10 sada imaju implementacijski dokaz, dok TA5/TA6 i dublji page-level recovery testovi ostaju sljedeća faza.
 
-### Trenutna ocjena nakon Faze 3: **9.8/10**
+### Trenutna ocjena nakon Faze 4: **9.8/10**
 
-Ocjena nije niža zbog nedostupnog E2E stacka, nego zbog konkretnih produkcijskih gapova TA1–TA5. Nakon njihovog zatvaranja, statičkih i komponentnih gateova modul može biti **9.8/10**. Konačnih **10/10** zavisi samo od stvarnog browser/E2E prolaza i mjerljivog browser performance dokaza, u skladu sa dogovorom.
+Svi identifikovani produkcijski gapovi TA1–TA10 su zatvoreni. Ocjena ostaje **9.8/10** isključivo zato što E2E u ovom closeoutu nije dio izvršnog scopea, a stvarno browser profiler mjerenje bez raspoloživog browser stacka nije moguće legitimno prikazati kao prolaz. Konačnih **10/10** i dalje zahtijeva oba stvarna dokaza.
 
 ## 2. Obim
 
@@ -52,14 +52,17 @@ Ponovo su pregledani aktivni import putevi, veličine fajlova, storage granice, 
 
 Izvršeno 2026-10-19:
 
-- ciljani frontend Vitest za ticket/realtime scope nakon Faze 2: **71/71 fajl, 226/226 testova**;
-- ranije u istoj sesiji puni frontend Vitest: **339/339 fajlova, 1371/1371 testova**;
-- ranije u istoj sesiji frontend build i TypeScript: prolaze;
-- broj pronađenih backend ticket spec fajlova: **106**;
-- relevantni ticket Playwright fajlovi: **15**, sa približno **43** `describe/test/it` deklaracije;
-- `git diff --check`: prolazi prije izmjene audita.
+- puni frontend Vitest nakon Faze 4: **340/340 fajlova, 1379/1379 testova**;
+- frontend TypeScript i produkcijski build: prolaze (Vite upozorava na postojeće chunkove veće od 500 kB);
+- ESLint: **0 grešaka, 12 upozorenja izvan ticket scopea**;
+- Prettier `format:check`: prolazi;
+- i18n/design-system guard: prolazi, uz bs/en paritet **8791 ključa**;
+- ciljani backend ticket/websocket Jest, isključivo repo Jest: **18/82 suiteova i 70/70 stvarno izvršenih testova prolaze**; preostalih 64 suitea nije izvršeno jer `backend/generated/prisma` nije prisutan nakon `npm ci --ignore-scripts`;
+- statičkim cross-layer pregledom potvrđeni su pagination query/envelope, error-code, capability guard i realtime event/payload ugovori između backend i frontend izvora; komponentni i helper testovi ih dodatno pokrivaju;
+- ticket comment hygiene sada obuhvata i singularni `ticket-socket.ts`;
+- E2E/Playwright **nije pokrenut**, u skladu sa eksplicitnim izuzećem ovog closeouta.
 
-Backend ticket Jest nije validno izvršen: lokalne backend zavisnosti nisu instalirane, a `npx` je povukao Jest 30 i odbio zastarjeli CLI argument. Taj pokušaj se **ne predstavlja kao prolaz**. Playwright nije pokrenut jer je E2E stack u ovoj sesiji potvrđeno nedostupan.
+Backend rezultat nije potpuni zeleni gate: 64 suitea zaustavljena su pri TypeScript kompilaciji zbog nedostajućih generisanih Prisma artefakata i ne predstavljaju se kao prolaz. Mrežno Prisma generisanje nije ponavljano jer potrebni binary host nije dostupan u okruženju. Browser profiler nije izvršen: raspoloživo okruženje nema funkcionalan browser/authenticated stack, a jsdom trajanja ili čitanje historijskih `perf/` rezultata ne bi bili validan React/browser profiler dokaz.
 
 ## 4. Šta je potvrđeno urađeno
 
@@ -188,22 +191,34 @@ Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u 
 
 **Gate:** ciljani marker grep čist; nema neaktivnog refactor koda; ticket test matrica mapirana na svaki TA nalaz.
 
-### Faza 4 — cross-layer quality gate
+### Faza 4 — cross-layer quality gate (završena uz evidentiran backend infrastrukturni blokator)
 
 1. Puni frontend Vitest, build, TypeScript, ESLint, format, i18n/design-system guardovi.
 2. Ciljani backend ticket Jest uz postojeću repo verziju zavisnosti; bez `npx` instaliranja druge Jest verzije.
 3. Backend/frontend ugovor za paginaciju, error codes, capabilities i realtime payload.
 4. `git diff --check` i finalni audit status po svakom TA ID-ju.
 
-**Ciljana ocjena bez E2E:** **9.8/10**.
+**Rezultat bez E2E:** **9.8/10**.
 
-### Faza 5 — browser/E2E closeout
+Cross-layer dokaz je provjeren po sljedećoj matrici:
+
+| Ugovor | Backend izvor | Frontend potrošač/dokaz |
+|---|---|---|
+| pagination query | `dto/ticket-list-query.dto.ts`, `dto/group-inbox-query.dto.ts` | `ticket-page-query.ts`, `ticket-list-search-params.spec.ts` |
+| page envelope | `list/respond-ticket-list-page.ts`, `list/list-group-inbox-tickets.ts` | `services/tickets-api.ts`, `fetch-ticket-list-snapshot.spec.ts` |
+| error codes | `tickets.error.ts`, kontroleri i guardovi | `map-ticket-error.spec.ts`, list snapshot/facade error testovi |
+| capabilities | backend access-policy/guardovi | `use-session-capabilities.ts`, facade permissions testovi |
+| realtime event/payload | `ticket-realtime.types.ts`, gateway/bridge publish put | `ticket-socket.ts`, `apply-ticket-updated.ts`, realtime testovi |
+
+Matrica je statički contract dokaz nad istim commitom, ne zamjena za neizvršeni browser/E2E. Backend runtime dokaz ostaje djelimičan zbog Prisma blokatora opisanog u metodologiji.
+
+### Faza 5 — browser/E2E closeout (izuzeta / nije izvršena)
 
 **TA11, TA12**
 
-1. Pokrenuti ticket Playwright set na cookie-enabled stacku.
+1. Ticket Playwright set nije pokrenut; E2E je eksplicitno izuzet iz ovog closeouta.
 2. Posebno dokazati create, paginated inbox, draft account isolation, detail reply/internal note, realtime reconnect, confidential, approvals, SLA/time tracking, bulk, merge/split/forward i mobilni prikaz.
-3. Izvršiti dogovoreno profiler mjerenje bez spekulativne memoizacije.
+3. Profiler mjerenje nije izvršeno zbog nedostupnog browser/authenticated stacka; nije zamijenjeno spekulativnom memoizacijom niti jsdom pseudo-mjerenjem.
 
 **Gate za 10/10:** svi ne-E2E nalazi zatvoreni; stvarni browser testovi prošli; svaki izuzetak jasno dokumentovan, bez predstavljanja neizvršenog testa kao prolaza.
 
@@ -220,4 +235,4 @@ Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u 
 
 Prethodni audit je korektno evidentirao veliki broj kvalitetnih popravki, ali njegov zaključak „svih 26 zatvoreno“ više se ne može koristiti kao dokaz trenutnog produkcijskog stanja. Najveći problem nije nedostatak funkcionalnosti, nego to što bolji, testirani list data sloj postoji paralelno sa starijim aktivnim hookom.
 
-Faze 1–3 zatvorile su sve pronađene implementacijske ticket nalaze: draft izolaciju, jedinstveni list put, paginaciju, potpuni error/recovery contract, facade regresije i komentar higijenu. Slijedi cross-layer quality gate; nakon njega jedini opravdani razlog za zadržavanje ocjene ispod 10/10 biće stvarno neizvršeni browser/E2E i profiler dokazi.
+Faze 1–4 zatvorile su sve pronađene implementacijske ticket nalaze i frontend quality gate: draft izolaciju, jedinstveni list put, paginaciju, potpuni error/recovery contract, facade regresije i komentar higijenu. Ocjena ostaje ispod 10/10 samo zbog stvarno neizvršenih browser/E2E i profiler dokaza. E2E je u ovom zadatku eksplicitno izuzet; backend gate je djelimično izvršen i precizno dokumentovan, bez prikazivanja 64 compile-blokirana suitea kao prolaza.
