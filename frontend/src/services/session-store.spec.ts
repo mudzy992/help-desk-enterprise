@@ -73,6 +73,50 @@ describe("session-store", () => {
     expect(storage.getItem(sessionStorageKey)).toBeNull();
   });
 
+  it.each([
+    ["expired", { ...sampleSession, expiresAt: 1 }],
+    ["non-finite expiry", { ...sampleSession, expiresAt: "later" }],
+    ["missing principal", { expiresAt: sampleSession.expiresAt }],
+    [
+      "empty subject",
+      { ...sampleSession, principal: { ...sampleSession.principal, subjectId: " " } },
+    ],
+    [
+      "missing email",
+      { ...sampleSession, principal: { ...sampleSession.principal, email: undefined } },
+    ],
+    [
+      "empty display name",
+      { ...sampleSession, principal: { ...sampleSession.principal, displayName: "" } },
+    ],
+    [
+      "invalid local-only flag",
+      { ...sampleSession, principal: { ...sampleSession.principal, isLocalOnly: "yes" } },
+    ],
+  ])("drops a malformed %s entry", (_label, value) => {
+    const storage = createMemoryStorage();
+    storage.setItem(sessionStorageKey, JSON.stringify(value));
+    vi.stubGlobal("window", { localStorage: storage });
+
+    expect(readStoredSession()).toBeNull();
+    expect(storage.getItem(sessionStorageKey)).toBeNull();
+  });
+
+  it("copies only validated session fields from storage", () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      sessionStorageKey,
+      JSON.stringify({
+        ...sampleSession,
+        ignored: "root-value",
+        principal: { ...sampleSession.principal, ignored: "principal-value" },
+      }),
+    );
+    vi.stubGlobal("window", { localStorage: storage });
+
+    expect(readStoredSession()).toEqual(sampleSession);
+  });
+
   it("derives the expiry from the lifetime the API reports", () => {
     expect(
       storedSessionFrom({ expiresInSeconds: 600, principal: sampleSession.principal }, 1_000),

@@ -27,6 +27,7 @@ import {
 } from "@/services/session-store";
 
 const listeners = new Set<() => void>();
+let observedSubjectId: string | null | undefined;
 
 function emitSessionChange(): void {
   for (const listener of listeners) {
@@ -58,9 +59,11 @@ export function notifySessionRefreshed(): void {
  */
 function handleStorageChange(event: StorageEvent): void {
   if (event.key !== null && event.key !== sessionStorageKey) return;
-  if (readStoredSession() === null) {
+  const nextSubjectId = readStoredSession()?.principal.subjectId ?? null;
+  if (observedSubjectId !== undefined && observedSubjectId !== nextSubjectId) {
     clearUserScopedCache();
   }
+  observedSubjectId = nextSubjectId;
   emitSessionChange();
 }
 
@@ -78,7 +81,9 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): StoredSession | null {
-  return readStoredSession();
+  const session = readStoredSession();
+  observedSubjectId = session?.principal.subjectId ?? null;
+  return session;
 }
 
 function getServerSnapshot(): StoredSession | null {
@@ -104,7 +109,13 @@ export type SignInOutcome =
   | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
 
 function storeSession(response: AuthenticationSessionResponse): void {
-  writeStoredSession(storedSessionFrom(response));
+  const previousSubjectId = readStoredSession()?.principal.subjectId ?? null;
+  const session = storedSessionFrom(response);
+  if (previousSubjectId !== null && previousSubjectId !== session.principal.subjectId) {
+    clearUserScopedCache();
+  }
+  writeStoredSession(session);
+  observedSubjectId = session.principal.subjectId;
   emitSessionChange();
 }
 
@@ -153,9 +164,7 @@ export function useSession() {
 
   /** Microsoft ID token → application session. */
   const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
-    const response = await loginWithEntraIdToken(idToken);
-    writeStoredSession(storedSessionFrom(response));
-    emitSessionChange();
+    storeSession(await loginWithEntraIdToken(idToken));
   }, []);
 
   const completePasswordChange = useCallback(

@@ -57,6 +57,41 @@ describe("session changes made in another tab ", () => {
     expect(helpdeskQueryClient.getQueryData(["tickets", "list", {}])).toBeUndefined();
   });
 
+  it("drops the previous user's cache when another tab changes identity", () => {
+    const { result } = renderHook(() => useSession());
+    helpdeskQueryClient.setQueryData(["tickets", "list", {}], { items: ["private"] });
+
+    act(() => {
+      writeStoredSession({
+        expiresAt: Date.now() + 3_600_000,
+        principal: {
+          subjectId: "user-2",
+          email: "other@example.test",
+          displayName: "Other user",
+          isLocalOnly: false,
+        },
+      });
+      window.dispatchEvent(new StorageEvent("storage", { key: sessionStorageKey }));
+    });
+
+    expect(result.current.session?.principal.subjectId).toBe("user-2");
+    expect(helpdeskQueryClient.getQueryData(["tickets", "list", {}])).toBeUndefined();
+  });
+
+  it("keeps cached answers when the same identity only receives a new expiry", () => {
+    renderHook(() => useSession());
+    helpdeskQueryClient.setQueryData(["tickets", "list", {}], { items: ["same-user"] });
+
+    act(() => {
+      writeStoredSession({ expiresAt: Date.now() + 7_200_000, principal });
+      window.dispatchEvent(new StorageEvent("storage", { key: sessionStorageKey }));
+    });
+
+    expect(helpdeskQueryClient.getQueryData(["tickets", "list", {}])).toEqual({
+      items: ["same-user"],
+    });
+  });
+
   it("ignores storage events for other keys", () => {
     const { result } = renderHook(() => useSession());
 
