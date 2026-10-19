@@ -48,7 +48,7 @@ export function layoutWorkflowNodes(
     status,
     phase,
     x: workflowDiagram.columnX[phase],
-    y: workflowDiagram.rowY[orderInPhase[status] ?? 0],
+    y: workflowDiagram.rowY[orderInPhase[status]],
   }));
 }
 
@@ -107,4 +107,20 @@ export function layoutWorkflowEdges(
     });
   }
   return edges;
+}
+
+export function isNodeRelatedToSelection(
+  status: TicketStatus,
+  selected: TicketStatus | null,
+  transitions: readonly WorkflowTransition[],
+): boolean {
+  return (
+    selected === null ||
+    status === selected ||
+    transitions.some(
+      (item) =>
+        (item.from === selected && item.to === status) ||
+        (item.to === selected && item.from === status),
+    )
+  );
 }

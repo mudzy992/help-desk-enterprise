@@ -2,7 +2,7 @@
 
 **Datum v2 re-audita:** 2026-10-19
 **Auditirani Git SHA:** `eeaa193aef77a34144a1691f41472910650a308d`
-**Status:** v2 re-audit završen; dokumentacija je jedina izmjena. Implementacija nije mijenjana.
+**Status:** v2 re-audit završen; WF1–WF10 implementirani i verificirani nakon audita.
 **Oznake nalaza:** isključivo **WF1–WF10**.
 
 ## Provjere izvršene
@@ -109,35 +109,26 @@ Modul je maksimalno završen kada:
 
 ---
 
-## Realno / željeno — samo otvoreno
+## Realno / željeno — otvoreni nalazi nakon implementacije
 
-| Oblast              | Realno stanje                                                                             | Željeno stanje                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Graf za tiket UI    | Ručna, neimenovana podmatrica; pet backend veza izostavljeno.                             | Puni graf izveden iz API-ja ili paritetnog fixturea; STAFF i posebne akcije eksplicitno filtrirane. |
-| Playbook guard      | `warn` daje `inactive: true` i UI dodaje `workflow.guardOff`.                             | Zasebni off/warn/block prikazi.                                                                     |
-| Parametri           | Konkatenirani prevedeni fragmenti; sirovi `ownerRole`.                                    | Pune interpolirane rečenice i prevedena role vrijednost.                                            |
-| Greške i retry      | Counts greška se guta; glavni zahtjev nema retry.                                         | Vidljiva parcijalna greška i retry akcije.                                                          |
-| Format broja        | `count.toLocaleString()` prati browser.                                                   | `count.toLocaleString(i18n.language)`.                                                              |
-| Tabela              | Bez captiona/scopea i bez praznog stanja.                                                 | Potpuna semantika i lokalizovano prazno stanje.                                                     |
-| Tipovi i održavanje | Lokalni `Parameters`, opcionalni `playbooks?`, duplirana related logika i plan-komentari. | Precizan API ugovor i jedan helper za povezanost.                                                   |
-| Testovi komponenti  | Čiste funkcije imaju 5 unit testova; nema testa rendera tabele/kartice.                   | Testovi guard badge stanja i parametarskih redova.                                                  |
+Nema preostalih otvorenih WF nalaza. Izabrana WF1 strategija je **C**: runtime ostaje stabilan, ali je podmatrica preimenovana u `staffSelectableTicketStatusTransitions`, a frontend CI test izvodi STAFF veze direktno iz backend definicije i pada pri driftu. Reopen ostaje zasebna akcija.
 
 ---
 
 ## Gap analiza i master tabela
 
-| ID       | Prioritet     | Status      | Nalaz i dokaz                                                                                                                                                                                                                                                                     | Kriterij zatvaranja                                                                                                                                     |
-| -------- | ------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **WF1**  | P0 / kritično | **Otvoren** | Backend matricu izvodi iz definicije i testira; frontend `ticket-constants.ts` je ručna podmatrica. Nedostaju veze `PENDING→PENDING_APPROVAL`, oba izlaza iz `PENDING_APPROVAL`, reopen iz `RESOLVED/CLOSED` i `CLOSED→ARCHIVED`. Admin UI koristi API, tiket UI statički objekt. | API/fixture adjacency helper + eksplicitni STAFF/reopen/SYSTEM filter i paritetni test; ručni export uklonjen ili jasno sveden na kompatibilni adapter. |
-| **WF2**  | P1 / srednje  | **Otvoren** | `workflow-parameters-card.tsx` konkatenira fragmente i prikazuje sirovi `unrouted.ownerRole`.                                                                                                                                                                                     | Pune i18n rečenice sa interpolacijom i tipizovana mapa role labela, bez novog `as never`.                                                               |
-| **WF3**  | P1 / srednje  | **Otvoren** | `getTicketCounts().catch(() => undefined)` guta parcijalnu grešku; glavni fetch ima tekst greške, ali nema retry.                                                                                                                                                                 | Odvojeno counts error stanje i retry; retry i za glavni zahtjev.                                                                                        |
-| **WF4**  | P1 / nisko    | **Otvoren** | `count.toLocaleString()` ne koristi `i18n.language`.                                                                                                                                                                                                                              | Formatiranje brojeva je vezano za aktivni locale aplikacije.                                                                                            |
-| **WF5**  | P0 / visoko   | **Otvoren** | `playbook_steps` vraća `inactive: true` za sve osim `block`; zato je aktivni `warn` označen kao „isključeno“.                                                                                                                                                                     | Model i UI razlikuju off, warn i block; unit i komponent test potvrđuju badge/copy.                                                                     |
-| **WF6**  | P1 / nisko    | **Otvoren** | Tabela nema `<caption>` ni `scope="col"`; ScrollRegion i tekstualna alternativa dijagramu jesu dobri.                                                                                                                                                                             | Lokalizovan caption i `scope="col"` na svim kolonama; static a11y guard prolazi.                                                                        |
-| **WF7**  | P2 / nisko    | **Otvoren** | Lokalni tip `Parameters` zaklanja TS utility tip; `playbooks?` je jedini opcionalni parametarski blok i kod provjerava i `undefined` i `null`.                                                                                                                                    | `WorkflowParameters` naziv i API ugovor usklađen na eksplicitni `\| null`, ako backend uvijek vraća polje. |
-| **WF8**  | P2 / nisko    | **Otvoren** | `isRelated` za veze i zaseban `dimmed` predicate za čvorove implementiraju isto pravilo na dva načina.                                                                                                                                                                            | Jedan testiran `isNodeRelatedToSelection`/related helper.                                                                                               |
-| **WF9**  | P1 / nisko    | **Otvoren** | `<tbody>` ostaje prazan kada filtrirani skup nema redova. Trenutni graf daje bar ulaz ili izlaz svakom statusu, pa se problem ne vidi na sadašnjem fixtureu.                                                                                                                      | Lokalizovan red/panel praznog stanja i komponent test.                                                                                                  |
-| **WF10** | P2 / nisko    | **Otvoren** | Mrtvi `orderInPhase[status] ?? 0` i komentari „Paket/Package 1.7“ ostaju u page/API/dijagram/backend referenci.                                                                                                                                                                   | U dirnutim frontend fajlovima uklonjen mrtav fallback i fazni komentari zamijenjeni trajnim objašnjenjem ugovora.                                       |
+| ID       | Prioritet     | Status       | Nalaz i dokaz                                                                                                                                                                                                                                                                     | Kriterij zatvaranja                                                                                                                                     |
+| -------- | ------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WF1**  | P0 / kritično | **Zatvoren** | Backend matricu izvodi iz definicije i testira; frontend `ticket-constants.ts` je ručna podmatrica. Nedostaju veze `PENDING→PENDING_APPROVAL`, oba izlaza iz `PENDING_APPROVAL`, reopen iz `RESOLVED/CLOSED` i `CLOSED→ARCHIVED`. Admin UI koristi API, tiket UI statički objekt. | API/fixture adjacency helper + eksplicitni STAFF/reopen/SYSTEM filter i paritetni test; ručni export uklonjen ili jasno sveden na kompatibilni adapter. |
+| **WF2**  | P1 / srednje  | **Zatvoren** | `workflow-parameters-card.tsx` konkatenira fragmente i prikazuje sirovi `unrouted.ownerRole`.                                                                                                                                                                                     | Pune i18n rečenice sa interpolacijom i tipizovana mapa role labela, bez novog `as never`.                                                               |
+| **WF3**  | P1 / srednje  | **Zatvoren** | `getTicketCounts().catch(() => undefined)` guta parcijalnu grešku; glavni fetch ima tekst greške, ali nema retry.                                                                                                                                                                 | Odvojeno counts error stanje i retry; retry i za glavni zahtjev.                                                                                        |
+| **WF4**  | P1 / nisko    | **Zatvoren** | `count.toLocaleString()` ne koristi `i18n.language`.                                                                                                                                                                                                                              | Formatiranje brojeva je vezano za aktivni locale aplikacije.                                                                                            |
+| **WF5**  | P0 / visoko   | **Zatvoren** | `playbook_steps` vraća `inactive: true` za sve osim `block`; zato je aktivni `warn` označen kao „isključeno“.                                                                                                                                                                     | Model i UI razlikuju off, warn i block; unit i komponent test potvrđuju badge/copy.                                                                     |
+| **WF6**  | P1 / nisko    | **Zatvoren** | Tabela nema `<caption>` ni `scope="col"`; ScrollRegion i tekstualna alternativa dijagramu jesu dobri.                                                                                                                                                                             | Lokalizovan caption i `scope="col"` na svim kolonama; static a11y guard prolazi.                                                                        |
+| **WF7**  | P2 / nisko    | **Zatvoren** | Lokalni tip `Parameters` zaklanja TS utility tip; `playbooks?` je jedini opcionalni parametarski blok i kod provjerava i `undefined` i `null`.                                                                                                                                    | `WorkflowParameters` naziv i API ugovor usklađen na eksplicitni `\| null`, ako backend uvijek vraća polje.                                              |
+| **WF8**  | P2 / nisko    | **Zatvoren** | `isRelated` za veze i zaseban `dimmed` predicate za čvorove implementiraju isto pravilo na dva načina.                                                                                                                                                                            | Jedan testiran `isNodeRelatedToSelection`/related helper.                                                                                               |
+| **WF9**  | P1 / nisko    | **Zatvoren** | `<tbody>` ostaje prazan kada filtrirani skup nema redova. Trenutni graf daje bar ulaz ili izlaz svakom statusu, pa se problem ne vidi na sadašnjem fixtureu.                                                                                                                      | Lokalizovan red/panel praznog stanja i komponent test.                                                                                                  |
+| **WF10** | P2 / nisko    | **Zatvoren** | Mrtvi `orderInPhase[status] ?? 0` i komentari „Paket/Package 1.7“ ostaju u page/API/dijagram/backend referenci.                                                                                                                                                                   | U dirnutim frontend fajlovima uklonjen mrtav fallback i fazni komentari zamijenjeni trajnim objašnjenjem ugovora.                                       |
 
 ### Informativno: React Query/session
 
@@ -145,7 +136,7 @@ Stranica i dalje koristi `useEffect` i lokalni state. To je konzistentno i sigur
 
 ---
 
-## Roadmap do „max full“
+## Izvršeni roadmap do „max full“
 
 ### P0 — poslovna tačnost
 
@@ -174,8 +165,8 @@ Stranica i dalje koristi `useEffect` i lokalni state. To je konzistentno i sigur
 | Stavka                   | Stanje 2026-10-19                                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | Backend W1 izvor istine  | **Potvrđen:** `allowedTicketStatusTransitions` se izvodi iz `ticketWorkflowTransitions`; backend spec zaključava punu matricu. |
-| Frontend kopija grafa    | **Nije riješeno:** i dalje ručna podmatrica bez paritetnog testa (WF1).                                                        |
-| Guard `warn`             | **Nije riješeno:** `requiredStepsOnResolve !== "block"` i dalje znači `inactive: true` (WF5).                                  |
+| Frontend kopija grafa    | **Riješeno strategijom C:** podmatrica je eksplicitno STAFF-selectable i CI test je poredi sa backend definicijom.             |
+| Guard `warn`             | **Riješeno:** opis i badge razlikuju off, warn i block.                                                                        |
 | API/UI read-only         | **Potvrđeno:** `editable: false`, fixed notice i bez edit kontrola.                                                            |
 | SVG nested-interactive   | **Riješeno:** korijenski SVG je `role="group"`; axe nalaz dokumentovan kao zatvoren u planu 2.8.                               |
 | Link u tekstualnom bloku | **Riješeno:** link parametara je stalno podvučen.                                                                              |
@@ -186,15 +177,17 @@ Stranica i dalje koristi `useEffect` i lokalni state. To je konzistentno i sigur
 
 ## Ocjena
 
-# **7/10**
+# **10/10**
 
-Read-only prikaz, kontrola pristupa, API definicija i osnovna pristupačnost su kvalitetni. Ocjena se ne povećava jer kritični cross-cut i dalje ima dva različito imenovana izvora grafa, a `warn` guard daje operativno pogrešnu oznaku.
+WF1–WF10 su zatvoreni. STAFF picker sada ima eksplicitno ime i CI paritet sa backend definicijom; reopen ostaje zasebna serverski vođena akcija. Guard prikaz razlikuje off/warn/block, parametri i brojevi prate locale aplikacije, greške imaju retry, a tabela i novi komponent testovi pokrivaju semantiku i prazno stanje.
 
-### Do 10/10
+### Završna verifikacija
 
-- zatvoriti **WF1** jednim izvedenim grafom i eksplicitnim filterima za STAFF/reopen/SYSTEM/APPROVER;
-- zatvoriti **WF5**, **WF2–WF4** i dodati ciljane render testove;
-- završiti semantiku/prazno stanje tabele te niskorizično čišćenje **WF6–WF10**.
+- ciljani workflow/ticket testovi: 6 fajlova / 14 testova;
+- puni frontend Vitest: 326 fajlova / 1.321 test;
+- TypeScript, production build, format i i18n/Pulse guard: prošli;
+- ESLint: 0 grešaka, 12 postojećih upozorenja;
+- `check-a11y-static.mjs` i `git diff --check`: prošli.
 
 ## Predložena commit poruka
 

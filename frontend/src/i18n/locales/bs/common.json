@@ -6654,8 +6654,19 @@
       "hours_other": "{{count}} sati",
       "globalFields_one": "{{count}} globalno polje",
       "globalFields_few": "{{count}} globalna polja",
-      "globalFields_other": "{{count}} globalnih polja"
-    }
+      "globalFields_other": "{{count}} globalnih polja",
+      "closeCodesValue": "{{state}} · obavezni pri rješavanju: {{required}}",
+      "requiredFieldsValue": "{{state}} · {{fields}}",
+      "reopenValue": "{{state}} · {{days}}",
+      "waitingValue": "{{state}} · podsjetnik {{reminder}} d, zatvaranje {{close}} d",
+      "archiveValue": "{{state}} · {{days}}",
+      "cleanupValue": "{{hours}} · sedmični pregled: {{digest}}"
+    },
+    "guardWarn": "upozorenje",
+    "tableCaption": "Dozvoljeni prelazi statusa tiketa",
+    "emptyTransitions": "Nema prelaza za odabrani status.",
+    "countsError": "Brojači tiketa nisu dostupni.",
+    "retry": "Pokušaj ponovo"
   },
   "templates": {
     "title": "Šabloni i playbooks",

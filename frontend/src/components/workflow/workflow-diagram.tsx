@@ -6,6 +6,7 @@ import { TICKET_STATUS_META } from "@/lib/theme/semantic-meta";
 import {
   layoutWorkflowEdges,
   layoutWorkflowNodes,
+  isNodeRelatedToSelection,
   workflowDiagram,
 } from "@/lib/workflow/layout-workflow-diagram";
 import type { TicketStatus } from "@/services/tickets-api";
@@ -20,7 +21,7 @@ interface WorkflowDiagramProperties {
   readonly onSelect: (status: TicketStatus | null) => void;
 }
 
-/** Paket 1.7 (W3): SVG status flow, no chart library. */
+/** Accessible SVG view of the status flow, without a chart dependency. */
 export function WorkflowDiagram({
   statuses,
   transitions,
@@ -28,7 +29,7 @@ export function WorkflowDiagram({
   selected,
   onSelect,
 }: WorkflowDiagramProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nodes = useMemo(() => layoutWorkflowNodes(statuses), [statuses]);
   const edges = useMemo(() => layoutWorkflowEdges(nodes, transitions), [nodes, transitions]);
   const { width, height, nodeWidth, nodeHeight, columnX } = workflowDiagram;
@@ -98,14 +99,7 @@ export function WorkflowDiagram({
           })}
           {nodes.map((node) => {
             const active = selected === node.status;
-            const dimmed =
-              selected !== null &&
-              !active &&
-              !transitions.some(
-                (item) =>
-                  (item.from === selected && item.to === node.status) ||
-                  (item.to === selected && item.from === node.status),
-              );
+            const dimmed = !isNodeRelatedToSelection(node.status, selected, transitions);
             const count = counts[node.status];
             return (
               <g
@@ -170,7 +164,7 @@ export function WorkflowDiagram({
                     className="fill-current text-muted-foreground tnum"
                     style={{ fontSize: 11.5 }}
                   >
-                    {count.toLocaleString()}
+                    {count.toLocaleString(i18n.language)}
                   </text>
                 ) : null}
               </g>

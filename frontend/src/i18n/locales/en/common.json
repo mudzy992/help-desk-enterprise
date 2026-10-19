@@ -6622,8 +6622,19 @@
       "hours_one": "{{count}} hour",
       "hours_other": "{{count}} hours",
       "globalFields_one": "{{count}} global field",
-      "globalFields_other": "{{count}} global fields"
-    }
+      "globalFields_other": "{{count}} global fields",
+      "closeCodesValue": "{{state}} · required on resolve: {{required}}",
+      "requiredFieldsValue": "{{state}} · {{fields}}",
+      "reopenValue": "{{state}} · {{days}}",
+      "waitingValue": "{{state}} · reminder {{reminder}} d, close {{close}} d",
+      "archiveValue": "{{state}} · {{days}}",
+      "cleanupValue": "{{hours}} · weekly digest: {{digest}}"
+    },
+    "guardWarn": "warning",
+    "tableCaption": "Allowed ticket status transitions",
+    "emptyTransitions": "There are no transitions for the selected status.",
+    "countsError": "Ticket counts are unavailable.",
+    "retry": "Try again"
   },
   "templates": {
     "title": "Templates & playbooks",

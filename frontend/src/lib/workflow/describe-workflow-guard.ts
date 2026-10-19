@@ -1,12 +1,12 @@
 import type { TicketWorkflowResponse, WorkflowGuard } from "@/services/workflow-api";
 
-type Parameters = TicketWorkflowResponse["parameters"];
+type WorkflowParameters = TicketWorkflowResponse["parameters"];
 
 export type GuardDescription = {
   readonly key: `workflow.guards.${WorkflowGuard}`;
   readonly values: Readonly<Record<string, number | string>>;
-  /** The guard exists in the flow but the installation has it switched off. */
-  readonly inactive: boolean;
+  /** How this installation enforces the guard. */
+  readonly mode: "off" | "on" | "warn" | "block";
 };
 
 /**
@@ -15,62 +15,67 @@ export type GuardDescription = {
  */
 export function describeWorkflowGuard(
   guard: WorkflowGuard,
-  parameters: Parameters,
+  parameters: WorkflowParameters,
 ): GuardDescription {
   switch (guard) {
     case "close_code":
       return {
         key: "workflow.guards.close_code",
         values: {},
-        inactive:
+        mode:
           parameters.closeCodes === null ||
           !parameters.closeCodes.enabled ||
-          !parameters.closeCodes.requireOnResolve,
+          !parameters.closeCodes.requireOnResolve
+            ? "off"
+            : "on",
       };
     case "required_fields":
       return {
         key: "workflow.guards.required_fields",
         values: { count: parameters.requiredFields?.globalCount ?? 0 },
-        inactive: parameters.requiredFields === null || !parameters.requiredFields.enabled,
+        mode:
+          parameters.requiredFields === null || !parameters.requiredFields.enabled ? "off" : "on",
       };
     case "resolution_note":
-      return { key: "workflow.guards.resolution_note", values: {}, inactive: false };
+      return { key: "workflow.guards.resolution_note", values: {}, mode: "on" };
     case "approval_decision":
       return {
         key: "workflow.guards.approval_decision",
         values: {},
-        inactive: parameters.approvals === null || !parameters.approvals.enabled,
+        mode: parameters.approvals === null || !parameters.approvals.enabled ? "off" : "on",
       };
     case "reopen_window":
       return {
         key: "workflow.guards.reopen_window",
         values: { days: parameters.reopen?.windowDays ?? 0 },
-        inactive: parameters.reopen === null || !parameters.reopen.enabled,
+        mode: parameters.reopen === null || !parameters.reopen.enabled ? "off" : "on",
       };
     case "waiting_auto_close":
       return {
         key: "workflow.guards.waiting_auto_close",
         values: { days: parameters.waitingForUser?.autoCloseAfterDays ?? 0 },
-        inactive: parameters.waitingForUser === null || !parameters.waitingForUser.enabled,
+        mode:
+          parameters.waitingForUser === null || !parameters.waitingForUser.enabled ? "off" : "on",
       };
     case "archive_after":
       return {
         key: "workflow.guards.archive_after",
         values: { days: parameters.archive?.afterClosedDays ?? 0 },
-        inactive: parameters.archive === null || !parameters.archive.enabled,
+        mode: parameters.archive === null || !parameters.archive.enabled ? "off" : "on",
       };
     case "group_required":
-      return { key: "workflow.guards.group_required", values: {}, inactive: false };
+      return { key: "workflow.guards.group_required", values: {}, mode: "on" };
     case "playbook_steps":
       // only `block` refuses the change; `warn` just asks.
       return {
         key: "workflow.guards.playbook_steps",
         values: {},
-        inactive:
+        mode:
           parameters.playbooks === undefined ||
           parameters.playbooks === null ||
-          !parameters.playbooks.enabled ||
-          parameters.playbooks.requiredStepsOnResolve !== "block",
+          !parameters.playbooks.enabled
+            ? "off"
+            : parameters.playbooks.requiredStepsOnResolve,
       };
   }
 }

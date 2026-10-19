@@ -23,15 +23,31 @@ describe("describeWorkflowGuard ()", () => {
   it("uses the live numbers", () => {
     expect(describeWorkflowGuard("reopen_window", parameters)).toMatchObject({
       values: { days: 7 },
-      inactive: false,
+      mode: "on",
     });
     expect(describeWorkflowGuard("archive_after", parameters).values).toEqual({ days: 90 });
   });
 
-  it("marks switched-off or unavailable guards inactive", () => {
-    expect(describeWorkflowGuard("close_code", parameters).inactive).toBe(true);
-    expect(describeWorkflowGuard("waiting_auto_close", parameters).inactive).toBe(true);
-    expect(describeWorkflowGuard("approval_decision", parameters).inactive).toBe(true);
-    expect(describeWorkflowGuard("group_required", parameters).inactive).toBe(false);
+  it("marks switched-off or unavailable guards as off", () => {
+    expect(describeWorkflowGuard("close_code", parameters).mode).toBe("off");
+    expect(describeWorkflowGuard("waiting_auto_close", parameters).mode).toBe("off");
+    expect(describeWorkflowGuard("approval_decision", parameters).mode).toBe("off");
+    expect(describeWorkflowGuard("group_required", parameters).mode).toBe("on");
+  });
+
+  it("distinguishes playbook off, warn, and block modes", () => {
+    expect(describeWorkflowGuard("playbook_steps", parameters).mode).toBe("off");
+    expect(
+      describeWorkflowGuard("playbook_steps", {
+        ...parameters,
+        playbooks: { enabled: true, requiredStepsOnResolve: "warn" },
+      }).mode,
+    ).toBe("warn");
+    expect(
+      describeWorkflowGuard("playbook_steps", {
+        ...parameters,
+        playbooks: { enabled: true, requiredStepsOnResolve: "block" },
+      }).mode,
+    ).toBe("block");
   });
 });

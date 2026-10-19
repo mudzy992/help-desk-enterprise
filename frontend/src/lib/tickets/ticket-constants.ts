@@ -55,7 +55,7 @@ export const claimableTicketStatuses: readonly TicketStatus[] = [
   "IN_PROGRESS",
 ];
 
-export const allowedTicketStatusTransitions: Readonly<
+export const staffSelectableTicketStatusTransitions: Readonly<
   Record<TicketStatus, readonly TicketStatus[]>
 > = {
   PENDING: ["ASSIGNED", "IN_PROGRESS", "CLOSED"],

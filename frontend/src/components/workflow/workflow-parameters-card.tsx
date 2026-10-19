@@ -2,10 +2,18 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { TicketWorkflowResponse } from "@/services/workflow-api";
+import type { TranslationKey } from "@/i18n/translation-key";
+
+const ownerRoleKeys: Readonly<Record<string, TranslationKey>> = {
+  USER: "shell.roles.user",
+  AGENT: "shell.roles.agent",
+  ADMIN: "shell.roles.admin",
+  SUPER_ADMIN: "shell.roles.superAdmin",
+};
 
 type Row = { readonly label: string; readonly value: string; readonly alert?: boolean };
 
-/** Paket 1.7 (W2): the settings that parametrise the guards, as they are now. */
+/** Live settings that parameterize the read-only workflow guards. */
 export function WorkflowParametersCard({
   parameters,
 }: {
@@ -20,28 +28,40 @@ export function WorkflowParametersCard({
     {
       label: t("workflow.params.closeCodes"),
       value: parameters.closeCodes
-        ? `${onOff(parameters.closeCodes.enabled)} · ${t("workflow.params.requiredOnResolve")}: ${onOff(parameters.closeCodes.requireOnResolve)}`
+        ? t("workflow.params.closeCodesValue", {
+            state: onOff(parameters.closeCodes.enabled),
+            required: onOff(parameters.closeCodes.requireOnResolve),
+          })
         : unavailable,
     },
     {
       label: t("workflow.params.requiredFields"),
       value: parameters.requiredFields
-        ? `${onOff(parameters.requiredFields.enabled)} · ${t("workflow.params.globalFields", { count: parameters.requiredFields.globalCount })}`
+        ? t("workflow.params.requiredFieldsValue", {
+            state: onOff(parameters.requiredFields.enabled),
+            fields: t("workflow.params.globalFields", {
+              count: parameters.requiredFields.globalCount,
+            }),
+          })
         : unavailable,
     },
     {
       label: t("workflow.params.reopen"),
       value: parameters.reopen
-        ? `${onOff(parameters.reopen.enabled)} · ${t("workflow.params.days", { count: parameters.reopen.windowDays })}`
+        ? t("workflow.params.reopenValue", {
+            state: onOff(parameters.reopen.enabled),
+            days: t("workflow.params.days", { count: parameters.reopen.windowDays }),
+          })
         : unavailable,
     },
     {
       label: t("workflow.params.waitingForUser"),
       value: parameters.waitingForUser
-        ? `${onOff(parameters.waitingForUser.enabled)} · ${t("workflow.params.waitingValues", {
+        ? t("workflow.params.waitingValue", {
+            state: onOff(parameters.waitingForUser.enabled),
             reminder: parameters.waitingForUser.reminderAfterDays,
             close: parameters.waitingForUser.autoCloseAfterDays,
-          })}`
+          })
         : unavailable,
     },
     {
@@ -51,10 +71,18 @@ export function WorkflowParametersCard({
     {
       label: t("workflow.params.archive"),
       value: parameters.archive
-        ? `${onOff(parameters.archive.enabled)} · ${t("workflow.params.days", { count: parameters.archive.afterClosedDays })}`
+        ? t("workflow.params.archiveValue", {
+            state: onOff(parameters.archive.enabled),
+            days: t("workflow.params.days", { count: parameters.archive.afterClosedDays }),
+          })
         : unavailable,
     },
-    { label: t("workflow.params.unroutedOwner"), value: unrouted.ownerRole },
+    {
+      label: t("workflow.params.unroutedOwner"),
+      value: ownerRoleKeys[unrouted.ownerRole]
+        ? t(ownerRoleKeys[unrouted.ownerRole])
+        : unrouted.ownerRole,
+    },
     {
       label: t("workflow.params.unroutedTarget"),
       value: unrouted.targetGroupMissing
@@ -67,7 +95,10 @@ export function WorkflowParametersCard({
       value:
         unrouted.cleanupSlaHours === 0
           ? t("workflow.off")
-          : `${t("workflow.params.hours", { count: unrouted.cleanupSlaHours })} · ${t("workflow.params.digest")}: ${onOff(unrouted.weeklyDigest)}`,
+          : t("workflow.params.cleanupValue", {
+              hours: t("workflow.params.hours", { count: unrouted.cleanupSlaHours }),
+              digest: onOff(unrouted.weeklyDigest),
+            }),
     },
   ];
   return (

@@ -186,6 +186,9 @@ const intentionallyIdentical = new Set([
   "users.columnMfa",
   "users.scopeOu",
   "workflow.filterStatus",
+  "workflow.params.archiveValue",
+  "workflow.params.reopenValue",
+  "workflow.params.requiredFieldsValue",
 ]);
 
 function flatten(value: Record<string, unknown>, prefix = ""): Map<string, unknown> {
@@ -206,6 +209,6 @@ describe("identical Bosnian and English translations", () => {
     const en = flatten(english);
     const identical = [...bs].filter(([key, value]) => en.get(key) === value).map(([key]) => key);
     expect(identical.sort()).toEqual([...intentionallyIdentical].sort());
-    expect(identical).toHaveLength(183);
+    expect(identical).toHaveLength(186);
   });
 });
