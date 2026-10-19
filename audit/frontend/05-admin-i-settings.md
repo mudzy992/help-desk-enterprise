@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **9,2/10 nakon Faze 5**
+**Aktuelna ocjena:** **9,5/10 nakon Faze 6**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faze 1–5 završene 19. 10. 2026.; `AS1–AS6` i `AS10` su zatvoreni, a admin/config-package/access dijelovi `AS8` sada imaju direktnu pokrivenost.
+**Implementacijski status:** Faze 1–6 završene 19. 10. 2026.; `AS1–AS7` i `AS10` su zatvoreni. Admin, config-package, access i Ops Health dijelovi `AS8` imaju direktnu pokrivenost; preostaje email dio u Fazi 7.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -408,6 +408,18 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** nijedna izdvojena cjelina nema skrivenu zavisnost od parent render redoslijeda; glavni tokovi direktno testirani.
 
+#### Evidencija zatvaranja Faze 6 (19. 10. 2026.)
+
+- Monolitni `ops-health-card.tsx` je smanjen sa 988 na **301 liniju** i sada zadržava samo composition, management akcije i dijaloge.
+- Polling/load/non-destructive refresh ugovor izdvojen je u `useOpsHealthOverview`; hook koalescira preklapajuće refresh zahtjeve, čuva posljednji snapshot pri grešci, izlaže request ID i ne piše state nakon unmounta.
+- Komponentni statusi izdvojeni su u `ops-health-components.tsx` (172 linije), alert/red-history prikaz u `ops-health-alerts.tsx` (263), a HTTP/scheduler/queue/channel metrike u `ops-health-metrics.tsx` (256).
+- Alert, component i metrics cjeline imaju eksplicitne typed props i više ne zavise od parent lokalnog render redoslijeda.
+- Dodani su characterization testovi za component state, unknown alert fallback/detalje, queue sorting/DLQ growth, management visibility i acknowledge mutation/toast/refresh tok.
+- Hook testovi pokrivaju initial load, stale-snapshot refresh grešku sa request ID-em i overlapping refresh koalesciranje.
+- `AS7` i Ops Health dio `AS8` su zatvoreni.
+
+**Izvršni dokaz:** 5 ciljnih Ops Health test fajlova sa 38/38 testova i puni frontend Vitest prolaz 356/356 fajlova odnosno 1433/1433 testova; production build, scope ESLint, Prettier i `git diff --check` su prošli.
+
 ### Faza 7 — Email templates closeout
 
 **Nalazi:** `AS9`, email dio `AS8`
@@ -479,9 +491,9 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 | Settings registry konzistentnost        |       10,0 |        10 |
 | Config versions/import                  |        9,0 |        10 |
 | Email templates                         |        8,0 |        10 |
-| Testabilnost i održivost                |        7,6 |        10 |
+| Testabilnost i održivost                |        9,3 |        10 |
 | Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **9,2/10** | **10/10** |
+| **Ukupno**                              | **9,5/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 
