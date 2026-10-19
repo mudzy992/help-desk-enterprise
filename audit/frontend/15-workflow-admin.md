@@ -1,148 +1,201 @@
-# Modul 15: `/admin/workflow` (pregled statusnog toka tiketa)
+# Modul 15 — `/admin/workflow` (read-only pregled toka)
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, provjera backend guarda, provjera e2e i unit testova). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **WF** (workflow).
+**Datum v2 re-audita:** 2026-10-19
+**Auditirani Git SHA:** `eeaa193aef77a34144a1691f41472910650a308d`
+**Status:** v2 re-audit završen; dokumentacija je jedina izmjena. Implementacija nije mijenjana.
+**Oznake nalaza:** isključivo **WF1–WF10**.
 
-Provjere izvršene u sandboxu:
-- **Čitanje u cijelosti:** `pages/workflow-page.tsx` (115), `components/workflow/workflow-diagram.tsx` (186), `components/workflow/workflow-transitions-table.tsx` (98), `components/workflow/workflow-parameters-card.tsx` (93), `components/workflow/workflow-actor-meta.ts` (11), `lib/workflow/layout-workflow-diagram.ts` (110), `lib/workflow/describe-workflow-guard.ts` (70), `services/workflow-api.ts` (59), `lib/tickets/ticket-constants.ts` (dio sa `allowedTicketStatusTransitions`).
-- **Backend:** `backend/src/modules/tickets/workflow/ticket-workflow.controller.ts` (guard i dekorator uloga), `ticket-workflow-definition.ts` (lista prelaza, linije 33–77).
-- **Testovi:** `lib/workflow/describe-workflow-guard.spec.ts`, `lib/workflow/layout-workflow-diagram.spec.ts`, `e2e/tests/15-workflow-unrouted-realtime.spec.ts` (test „status flow is read-only and admin-only“, klik na čvor filtrira tabelu), `e2e/tests/22-accessibility.spec.ts` (`/admin/workflow` u axe skenu).
-- **Rutiranje:** `app/router.tsx` (~239–246, `RequireAccess` sa `canOpenAdminArea`), `lib/navigation.ts` (~119, `navigationAccessKinds.admin`).
+## Provjere izvršene
 
----
-
-## Modul
-
-Stranica `/admin/workflow` prikazuje statusni tok tiketa ove instalacije: dijagram (faze kao kolone, statusi kao čvorovi, prelazi kao krive), tabelu prelaza sa akterima, okidačima i uslovima (guard), i karticu sa stvarnim parametrima koji ih podešavaju. Stranica je samo za čitanje (`editable: false`, naznaka „fixed notice“). Podaci dolaze sa `GET /workflow/ticket-status`.
-
----
-
-## Povezani fajlovi i folderi
-
-| Fajl | Uloga | Linija |
-|---|---|---|
-| `frontend/src/pages/workflow-page.tsx` | Stranica: učitavanje, filter statusa, raspored | 115 |
-| `frontend/src/components/workflow/workflow-diagram.tsx` | SVG dijagram, čvorovi kao dugmad | 186 |
-| `frontend/src/components/workflow/workflow-transitions-table.tsx` | Tabela prelaza, filter, značke guardova | 98 |
-| `frontend/src/components/workflow/workflow-parameters-card.tsx` | Kartica sa parametrima (dl) | 93 |
-| `frontend/src/components/workflow/workflow-actor-meta.ts` | Boja po akteru (tokeni) | 11 |
-| `frontend/src/lib/workflow/layout-workflow-diagram.ts` | Raspored čvorova i krive | 110 |
-| `frontend/src/lib/workflow/describe-workflow-guard.ts` | Opis guarda sa živim parametrima | 70 |
-| `frontend/src/services/workflow-api.ts` | Tipovi i poziv API-ja | 59 |
-| `frontend/src/lib/tickets/ticket-constants.ts` | `allowedTicketStatusTransitions` (kopija grafa, vidi WF1) | 56–68 |
-| `frontend/src/lib/tickets/ticket-actions.ts` | `nextTicketStatuses` (koristi kopiju) | 8 |
-| `backend/src/modules/tickets/workflow/` | Izvor istine: definicija, servis, kontroler | — |
-| `e2e/tests/15-workflow-unrouted-realtime.spec.ts` | E2E: read-only i samo admin | — |
+1. **Inventar i čitanje koda u cijelosti:**
+   - `frontend/src/pages/workflow-page.tsx` — 115 linija;
+   - `frontend/src/components/workflow/workflow-diagram.tsx` — 202 linije;
+   - `workflow-parameters-card.tsx` — 101 linija;
+   - `workflow-transitions-table.tsx` — 111 linija;
+   - `workflow-actor-meta.ts` — 11 linija;
+   - `frontend/src/lib/workflow/describe-workflow-guard.ts` — 76 linija;
+   - `layout-workflow-diagram.ts` — 110 linija;
+   - pripadajući workflow specovi — 37 i 35 linija;
+   - `frontend/src/services/workflow-api.ts` — 60 linija.
+2. **WF1 parnost grafa:** pročitani su backend `ticket-workflow-definition.ts`, `deriveAllowedTransitions`, `tickets.constants.ts` i njihov spec; frontend `ticket-constants.ts`, `ticket-actions.ts`, potrošači `nextTicketStatuses` i zasebni `canShowReopenAction`.
+3. Pročitani su postojeći audit, `docs/plans/modules/1.7-workflow-unrouted-realtime.md`, `.cursor/docs/matrices/workflow-state-machine-guards/MATRIX.md`, cross-reference modula 05, 03/DET-12 i 14, ruta, navigacija i backend kontroler.
+4. Provjereni su WF2–WF10 u trenutnom kodu, uključujući guard `playbook_steps`, i18n konkatenacije, greške brojača, formatiranje brojeva, semantiku tabele, filter i komentare.
+5. Provjeren je pristup: frontend `RequireAccess(canOpenAdminArea)`, navigacijski `admin` access kind i backend `SessionAuthenticationGuard` + `RoleGuard` + `ADMIN/SUPER_ADMIN`.
+6. Provjerena je ranija SVG `nested-interactive` napomena u `docs/plans/modules/2.8-pristupacnost-i-ux.md`: riješena je zamjenom `role="img"` sa `role="group"`; link parametara je sada stalno podvučen.
+7. **Izvršeno:** `cd frontend && npx vitest run src/lib/workflow` — 2/2 fajla, 5/5 testova prošlo.
+8. **Pokušano:** backend `npm test -- ticket-workflow-definition --runInBand` — nije pokrenut jer backend dependencies nisu instalirane (`jest: not found`). Backend spec je pročitan i eksplicitno očekuje izvedenu matricu.
+9. **Nije izvršeno:** Playwright E2E 15 i axe E2E 22 jer ovaj prolaz nema podignut frontend/backend ni pripremljene E2E podatke. Specovi su pročitani: E2E 15 provjerava `editable: false`, zabranu agentu, prikaz dijagrama i filter; axe lista uključuje `/admin/workflow`.
 
 ---
 
 ## Trenutna implementacija
 
-**Učitavanje.** `WorkflowPage` u jednom `useEffect` šalje dva zahtjeva: `getTicketWorkflow()` (obavezan) i `getTicketCounts()` (za brojače po statusu). Greška prvog prikazuje `ApiErrorText`, greška drugog se guta. Zastavica `active` sprječava postavljanje stanja nakon odmontiranja.
+### Učitavanje
 
-**Dijagram.** `layoutWorkflowNodes` postavlja čvorove po fazi (kolona `intake`, `work`, `done`) i redu (`orderInPhase`, tip `Record<TicketStatus, number>`, pa TypeScript traži sve statuse). `layoutWorkflowEdges` crta kvadratne krive koje se savijaju uvijek na lijevu stranu, pa se A→B i B→A ne preklapaju. Klik na čvor (ili Enter/Space) filtrira prelaze; prelazi koji ne pripadaju izabranom statusu se prigušuju (opacity 0.12).
+`WorkflowPage` i dalje koristi jedan `useEffect` i lokalni state. Paralelno pokreće:
 
-**Tabela.** Filter `<select>` i tabela prelaza. Akteri su tačke u bojama tokena, okidači su tekst, a guardovi su značke. Opis guarda (`describeWorkflowGuard`) koristi stvarne parametre (npr. broj dana za reopen), a ako je guard isključen u instalaciji, značka dobija „isključeno“.
+- `GET /workflow/ticket-status` preko `getTicketWorkflow()` — obavezni sadržaj;
+- `getTicketCounts()` — opcionalni brojači po statusu.
 
-**Kartica parametara.** `<dl>` sa redovima (zatvaranje, obavezna polja, ponovno otvaranje, čekanje korisnika, odobrenja, arhiva, nerutirani tiketi). Ima link na podešavanja.
+Glavna greška prikazuje `ApiErrorText`, ali bez akcije za ponovni pokušaj. Greška brojača završava u `.catch(() => undefined)`, pa korisnik samo dobije dijagram bez brojeva. Lokalni `active` flag sprečava upis nakon unmounta.
 
-**Pristup.** Route: `RequireAccess` sa `canOpenAdminArea`. Navigacija: `navigationAccessKinds.admin`. Backend: `@RequireRoles(admin, superAdmin)` na `TicketWorkflowController`, uz `SessionAuthenticationGuard` i `RoleGuard`.
+Prebacivanje ove stranice na React Query može pojednostaviti cache/retry, ali samo po sebi nije poslovni gap niti uslov MVP-a modula 15.
 
-**Dobro urađeno.**
-- Backend guard je na nivou kontrolera i uloga je eksplicitna.
-- Tipovi guardova i okidača su unije (`WorkflowGuard`, `WorkflowTrigger`), a opis guarda ima šablonski tip ključa `workflow.guards.${WorkflowGuard}`, pa se greška u ključu vidi pri kompajliranju.
-- Boje su iz tokena (`rgb(var(--primary))` itd.), pa radi u obje teme.
-- Čvorovi dijagrama su `role="button"` sa `aria-pressed` i `aria-label`, reaguju na Enter i Space, a fokus-prsten je vidljiv (`group-focus-visible`).
-- Tabela prelaza je tekstualna alternativa dijagramu, pa informacije nisu samo vizuelne.
-- Kartica parametara koristi `<dl>` (semantika za parove naziv–vrijednost).
-- Raspored ima `ScrollRegion` (horizontalni skrol na malim ekranima).
-- Testovi: unit za `describeWorkflowGuard` i layout, e2e za read-only i filter, a11y scan u `22-accessibility`.
+### Dijagram
 
----
+API statusi se raspoređuju u tri faze (`intake`, `work`, `done`). SVG prikazuje usmjerene veze; SYSTEM veze su isprekidane, a boja prati aktera. Čvorovi su fokusabilne SVG grupe sa `role="button"`, `aria-pressed`, tastaturom i vidljivim fokusom. Izbor čvora filtrira tabelu i prigušuje nepovezane čvorove i veze.
 
-## Realno/željeno stanje
+Raniji `nested-interactive` axe problem je zatvoren: korijenski SVG je `role="group"`, ne `role="img"`. `ScrollRegion` daje dostupnu skrolabilnu regiju kada je to potrebno.
 
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Izvor grafa prelaza | Backend definicija je „single source of truth“, ali frontend ima ručnu kopiju (`allowedTicketStatusTransitions`) koja se koristi za dugmad statusa na tiketu. Kopija se razlikuje od definicije (WF1). | Jedan izvor: frontend čita graf sa servera ili je generisan iz definicije. |
-| Brojači statusa | Greška `getTicketCounts` se guta; dijagram ne prikazuje brojače bez objašnjenja (WF3) | Vidljiv indikator i pokušaj ponovo |
-| Oznaka „isključeno“ | `playbook_steps` u režimu `warn` se prikazuje kao „isključeno“, iako je guard aktivan i samo pita (WF5) | Tri stanja: isključeno, upozorenje, blokada |
-| Lokalizacija brojeva | `count.toLocaleString()` koristi jezik pregledača, ne jezik aplikacije (WF4) | `toLocaleString(i18n.language)` |
-| Lokalizacija vrijednosti | Sastavljanje rečenica konkatenacijom (`${onOff(…)} · ${…}`) u kodu; vrijednost `unrouted.ownerRole` se prikazuje sirova (WF2) | Cijeli niz u prevodu, enum vrijednosti prevedene |
-| Testovi komponenti | Nema komponentskih testova (pokriva ih e2e) | Test za značke guardova i kartice parametara |
+### Tabela prelaza
 
----
+Tabela je tekstualna alternativa dijagramu i prikazuje `from`, `to`, aktere, okidače i guardove. Guard opis koristi stvarne parametre instalacije. Tabela još nema `<caption>`, zaglavlja nemaju `scope="col"`, a prazan filtrirani rezultat nema poruku.
 
-## Gap analiza
+### Parametri
 
-1. **Dvije izvori istine za prelaze (WF1, visoka).** Backend `ticket-workflow-definition.ts` (koji navodi „single source of truth“) ima npr. `PENDING → PENDING_APPROVAL` (SYSTEM), `RESOLVED → IN_PROGRESS` i `CLOSED → IN_PROGRESS` (reopen, REQUESTER/STAFF), `CLOSED → ARCHIVED` (SYSTEM), `PENDING_APPROVAL → PENDING/CLOSED` (APPROVER). Frontend `allowedTicketStatusTransitions` nema `PENDING → PENDING_APPROVAL`, `PENDING_APPROVAL` je prazan, `RESOLVED` i `CLOSED` nemaju `IN_PROGRESS` (reopen se rješava posebno preko `canShowReopenAction`). Za STAFF akcije se poklapaju sa definicijom, osim reopena. Ipak, nema testa koji poredi dvije liste. Svaka nova tranzicija na backendu nije vidljiva na tiketu dok se ručno ne doda i na frontendu, a admin stranica i tiket mogu pokazivati različit tok. Popravka: frontend da čita graf iz `/workflow/ticket-status` ili da se generiše iz zajedničkog izvora, uz test parnosti.
-2. **Greška brojača se guta (WF3, niska).** `.catch(() => undefined)` za `getTicketCounts`. Dijagram tada prikazuje čvorove bez brojača, bez poruke. Nema retry dugmeta ni za glavni zahtjev (samo `ApiErrorText`).
-3. **Oznaka guarda u `warn` režimu (WF5, srednja).** `describeWorkflowGuard` za `playbook_steps` vraća `inactive: true` i kada je `requiredStepsOnResolve === "warn"`, pa se prikazuje „isključeno“. Komentar kaže „only `block` refuses the change; `warn` just asks“, pa je značka nekonzistentna sa tim: u `warn` režimu guard jeste aktivan (traži potvrdu). Admin može pogrešno zaključiti da je pravilo isključeno.
-4. **Brojevi bez jezika aplikacije (WF4, niska).** `count.toLocaleString()` u `workflow-diagram.tsx` koristi jezik pregledača. U ostatku aplikacije datumi i brojevi prate `i18n.language`, pa se ovdje može pojaviti drugačiji format (npr. `1,234` vs `1.234`).
-5. **Konkatenacija prevoda (WF2, srednja).** U `workflow-parameters-card.tsx` vrijednosti se sastavljaju u kodu: `` `${onOff(…)} · ${t(…)}: ${onOff(…)}` ``. Prevodilac ne može promijeniti redoslijed ni interpunkciju. Ispravno je da cijela rečenica bude u prevodu sa interpolacijom. Također, `unrouted.ownerRole` je sirova vrijednost (npr. „ADMIN“) bez prevoda.
-6. **Duplirana logika „povezan čvor“ (WF8, niska).** `isRelated` (prelaz dodiruje izabrani status) i `dimmed` (čvor nema prelaz sa izabranim) su dvije implementacije istog pravila. Mogu se razići.
-7. **Tipovi odgovora (WF7, niska).** `TicketWorkflowResponse.parameters.playbooks` je opcionalan (`playbooks?`), dok su ostali parametri `| null`. Ugovor nije ujednačen, a `describeWorkflowGuard` provjerava i `undefined` i `null`. Ime tipa `Parameters` u `describe-workflow-guard.ts` skriva globalni TypeScript tip `Parameters<T>`.
-8. **Pristupačnost tabele (WF6, niska).** Zaglavlja `<th>` nemaju `scope="col"`, tabela nema `<caption>` (naslov je u kartici iznad).
-9. **Prazno stanje filtera (WF9, niska).** Ako filter nema prelaza, tabela je prazna bez poruke. U trenutnoj definiciji svaki status ima bar jedan prelaz, pa je rizik mali, ali nije pokriven.
-10. **Mrtav mali kod i komentari (WF10, niska).** `layoutWorkflowNodes` ima `orderInPhase[status] ?? 0` iako je mapa tipizovana kao kompletna (fallback je mrtav). Komentari sa oznakama plana: „Paket 1.7 (W1/W2/W3)“, „Package 1.7 (W1)“ u backendu, „Paket 1.4 (P5)“.
+`WorkflowParametersCard` koristi semantički `<dl>` i prikazuje stanje close codeova, obaveznih polja, reopena, waiting-for-user automatike, approvala, arhive i nerutiranih tiketa. Vrijednosti se i dalje sklapaju konkatenacijom prevedenih fragmenata, dok se `unrouted.ownerRole` prikazuje kao sirova backend vrijednost. Link na postavke je sada stalno podvučen.
 
-**Što je dobro:** uloge na backendu i frontendu su usklađene; tipovi za guard i okidač su unije sa šablonskim ključevima (kompajler provjerava); boje iz tokena; čvorovi su dostupni tastaturom; tabela je tekstualna alternativa; kartica parametara koristi `<dl>`; e2e i unit testovi pokrivaju glavni tok.
+### Read-only ugovor i pristup
+
+- API tip garantuje `editable: false`.
+- UI eksplicitno prikazuje `workflow.fixedNotice` i nema kontrole za uređivanje grafa.
+- Ruta koristi `RequireAccess(check={canOpenAdminArea})`.
+- Navigacija koristi `navigationAccessKinds.admin`.
+- `TicketWorkflowController` zahtijeva autentikaciju te `ADMIN` ili `SUPER_ADMIN` ulogu.
+- E2E spec dodatno provjerava da agent dobija zabranu na API-ju.
+
+Ovaj sloj je i dalje usklađen.
 
 ---
 
-## Mišljenje tima i preporuka
+## WF1 — poređenje backend grafa i frontend matrice
 
-Modul je dobro zamišljen i urađen kao čitljiv pregled. Glavni problem je duplikat grafa prelaza (WF1): stranica koja se zove „tok statusa“ mora da bude jedini izvor istine, a sada je ručna kopija na tiketu. Ovo je srednje ozbiljno, ali je tiho: nema greške na ekranu, samo razlika u ponašanju. Popravka je mala: frontend čita graf sa servera (endpoint već postoji), a `allowedTicketStatusTransitions` se briše ili generiše.
+Backend je sada stvarni izvor poslovnog grafa: `ticketWorkflowTransitions` opisuje veze, aktere, okidače i guardove, a `tickets.constants.ts` izvodi `allowedTicketStatusTransitions` pozivom `deriveAllowedTransitions(ticketStatuses)`. Backend test zaključava puni rezultat.
 
-Preporuka redom:
-1. WF1: frontend tok čita sa `/workflow/ticket-status`, a `allowedTicketStatusTransitions` postaje izvedena vrijednost. Dok to nije urađeno, dodati test parnosti sa definicijom iz backenda (ili generisanje iz zajedničkog JSON-a).
-2. WF5: `warn` treba prikazati kao poseban status („upozorenje“), a ne „isključeno“.
-3. WF2: cijele rečenice u prevodima; enum vrijednosti prevesti.
-4. WF3, WF4: vidljiva greška brojača sa retry-em; `toLocaleString(i18n.language)`.
-5. WF6, WF8, WF7, WF9, WF10: čišćenje.
+Frontend, međutim, ima drugu statičku matricu u `lib/tickets/ticket-constants.ts`. Admin stranica prikazuje `response.transitions` iz API-ja, dok status akcije na detalju tiketa koriste `nextTicketStatuses()` nad statičkom matricom. Zato postoje **dva izvora na frontendu**: serverom isporučen puni graf za admin pregled i ručno održavan podskup za tiket UI.
 
----
+### Razlike po statusu
 
-## Bugovi i neusklađenosti
+| Status             | Backend izvedeni izlazi                                 | Frontend statički izlazi            | Razlika                                                                |
+| ------------------ | ------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------- |
+| `PENDING`          | `ASSIGNED`, `IN_PROGRESS`, `PENDING_APPROVAL`, `CLOSED` | `ASSIGNED`, `IN_PROGRESS`, `CLOSED` | Nedostaje SYSTEM/approval `→ PENDING_APPROVAL`.                        |
+| `UNROUTED`         | `PENDING`, `CLOSED`                                     | `PENDING`, `CLOSED`                 | Jednako.                                                               |
+| `PENDING_APPROVAL` | `PENDING`, `CLOSED`                                     | prazno                              | Nedostaju oba APPROVER ishoda.                                         |
+| `ASSIGNED`         | `IN_PROGRESS`, `PENDING`, `WAITING_FOR_USER`, `CLOSED`  | isto                                | Jednako.                                                               |
+| `IN_PROGRESS`      | `WAITING_FOR_USER`, `RESOLVED`, `ASSIGNED`              | isto                                | Jednako.                                                               |
+| `WAITING_FOR_USER` | `IN_PROGRESS`, `RESOLVED`, `CLOSED`                     | isto                                | Jednako; backend pojedine veze dodatno daje REQUESTER/SYSTEM akterima. |
+| `RESOLVED`         | `CLOSED`, `IN_PROGRESS`                                 | `CLOSED`                            | Nedostaje reopen `→ IN_PROGRESS`.                                      |
+| `CLOSED`           | `ARCHIVED`, `IN_PROGRESS`                               | prazno                              | Nedostaju SYSTEM archive i reopen `→ IN_PROGRESS`.                     |
+| `ARCHIVED`         | prazno                                                  | prazno                              | Jednako.                                                               |
 
-| ID | Ozbiljnost | Nalaz | Lokacija |
-|---|---|---|---|
-| WF1 | Srednja | Frontend kopija grafa prelaza (`allowedTicketStatusTransitions`) se ne poklapa sa backend definicijom (reopen, SYSTEM i APPROVER prelazi); nema testa parnosti. Admin stranica i tiket mogu prikazivati različit tok. | `lib/tickets/ticket-constants.ts:56–68`, `lib/tickets/ticket-actions.ts`, `backend/.../ticket-workflow-definition.ts` |
-| WF2 | Srednja | Rečenice sastavljene konkatenacijom u kodu; `unrouted.ownerRole` prikazan sirov. | `components/workflow/workflow-parameters-card.tsx` |
-| WF3 | Niska | Greška `getTicketCounts` se guta; nema indikatora ni retry-a. | `pages/workflow-page.tsx` |
-| WF4 | Niska | `count.toLocaleString()` bez jezika aplikacije. | `components/workflow/workflow-diagram.tsx` |
-| WF5 | Srednja | `playbook_steps` u režimu `warn` prikazan kao „isključeno“. | `lib/workflow/describe-workflow-guard.ts` |
-| WF6 | Niska (a11y) | `<th>` bez `scope`, tabela bez `<caption>`. | `components/workflow/workflow-transitions-table.tsx` |
-| WF7 | Niska | `playbooks?` opcionalan dok ostali parametri imaju `null`; tip `Parameters` skriva globalni. | `services/workflow-api.ts`, `lib/workflow/describe-workflow-guard.ts` |
-| WF8 | Niska | Dvije implementacije pravila „povezan čvor“. | `components/workflow/workflow-diagram.tsx` |
-| WF9 | Niska | Prazna tabela bez poruke kad filter nema rezultata. | `components/workflow/workflow-transitions-table.tsx` |
-| WF10 | Niska | Mrtav fallback `?? 0`; oznake plana u komentarima. | `lib/workflow/layout-workflow-diagram.ts`, `pages/workflow-page.tsx` |
+Frontend nema dodatne veze kojih nema na backendu; nedostaje mu pet backend veza. Dio odstupanja može biti namjeran: status dropdown je STAFF picker, reopen ima zasebno dugme i endpoint (`canShowReopenAction`), a čisto SYSTEM i APPROVER veze ne treba nuditi običnom status dropdownu. Problem je što naziv i tip `allowedTicketStatusTransitions` ne izražavaju taj filter, nema helpera koji filter izvodi iz API grafa i nema frontend↔backend testa parnosti. Buduća STAFF veza može tiho izostati.
+
+**Preporučeni minimalni pravac:** uvesti `buildAllowedTransitionsFromWorkflowResponse(transitions)` za puni adjacency list i zaseban, eksplicitno imenovan `staffSelectableTargets(from, transitions)` za status picker. Alternativa je zajednički JSON/fixture sa CI testom parnosti. Shared monorepo paket nije potreban u prvoj iteraciji.
 
 ---
 
-## Ocjena: 7/10
+## Definicija „max full“ za modul 15
 
-Obrazloženje:
-- **Plus:** čista stranica sa jasnom namjerom (samo čitanje), dobra pristupačnost dijagrama i tabele, tipovi guardova, uloge usklađene na obje strane, boje iz tokena, unit i e2e testovi, a11y skeniranje.
-- **Minus:** dvostruki izvor istine za prelaze (WF1) je arhitektonski rizik; „warn“ prikazan kao „isključeno“ (WF5) može zavesti admina; sastavljanje prevoda u kodu (WF2).
-- Ocjena je iznad prosjeka do sada jer je stranica mala, dobro ograničena i pokrivena testovima, a problemi su lokalizovani.
+Modul je maksimalno završen kada:
 
----
-
-## Must-Have kandidati (modul 15)
-
-Predloženi redoslijed. Ništa od ovoga nije implementirano.
-
-1. **WF1:** frontend graf prelaza iz `/workflow/ticket-status` (ili generisan iz zajedničkog izvora), uz test parnosti dok se ne uradi jedno od toga.
-2. **WF5:** tri stanja guarda (isključeno, upozorenje, blokada); ispraviti oznaku za `playbook_steps` u `warn` režimu.
-3. **WF2:** cijele rečenice u prevodima; prevedene vrijednosti enuma (`ownerRole`).
-4. **WF3:** vidljiva greška brojača i retry za glavni zahtjev.
-5. **WF4, WF6, WF7, WF8, WF9, WF10:** lokalizacija brojeva, `scope="col"`, ujednačen tip parametara, jedno pravilo za povezan čvor, poruka za prazan filter, čišćenje komentara i mrtvog koda.
+1. tiket akcije više ne zavise od neoznačene ručne kopije grafa; STAFF/reopen/SYSTEM/APPROVER filteri su eksplicitni i testirani;
+2. `playbook_steps` jasno razlikuje **off**, **warn** i **block**, umjesto da `warn` prikazuje kao isključeno;
+3. kartica parametara koristi pune i18n rečenice i prevedene role, bez konkatenacije u kodu;
+4. brojevi koriste jezik aplikacije, ne podrazumijevani browser locale;
+5. greška brojača je vidljiva i postoji retry za brojače i glavni zahtjev;
+6. tabela ima caption, `scope="col"` i lokalizovano prazno stanje;
+7. postoje unit/komponentski testovi za warn/off/block guard prikaz i parametarsku karticu;
+8. read-only ugovor i frontend/backend kontrola pristupa ostaju testirani.
 
 ---
 
-## Status ispravki (2026-10-13)
+## Realno / željeno — samo otvoreno
 
-Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rade tek nakon završetka auditnog ciklusa i potvrde obima.
+| Oblast              | Realno stanje                                                                             | Željeno stanje                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Graf za tiket UI    | Ručna, neimenovana podmatrica; pet backend veza izostavljeno.                             | Puni graf izveden iz API-ja ili paritetnog fixturea; STAFF i posebne akcije eksplicitno filtrirane. |
+| Playbook guard      | `warn` daje `inactive: true` i UI dodaje `workflow.guardOff`.                             | Zasebni off/warn/block prikazi.                                                                     |
+| Parametri           | Konkatenirani prevedeni fragmenti; sirovi `ownerRole`.                                    | Pune interpolirane rečenice i prevedena role vrijednost.                                            |
+| Greške i retry      | Counts greška se guta; glavni zahtjev nema retry.                                         | Vidljiva parcijalna greška i retry akcije.                                                          |
+| Format broja        | `count.toLocaleString()` prati browser.                                                   | `count.toLocaleString(i18n.language)`.                                                              |
+| Tabela              | Bez captiona/scopea i bez praznog stanja.                                                 | Potpuna semantika i lokalizovano prazno stanje.                                                     |
+| Tipovi i održavanje | Lokalni `Parameters`, opcionalni `playbooks?`, duplirana related logika i plan-komentari. | Precizan API ugovor i jedan helper za povezanost.                                                   |
+| Testovi komponenti  | Čiste funkcije imaju 5 unit testova; nema testa rendera tabele/kartice.                   | Testovi guard badge stanja i parametarskih redova.                                                  |
+
+---
+
+## Gap analiza i master tabela
+
+| ID       | Prioritet     | Status      | Nalaz i dokaz                                                                                                                                                                                                                                                                     | Kriterij zatvaranja                                                                                                                                     |
+| -------- | ------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WF1**  | P0 / kritično | **Otvoren** | Backend matricu izvodi iz definicije i testira; frontend `ticket-constants.ts` je ručna podmatrica. Nedostaju veze `PENDING→PENDING_APPROVAL`, oba izlaza iz `PENDING_APPROVAL`, reopen iz `RESOLVED/CLOSED` i `CLOSED→ARCHIVED`. Admin UI koristi API, tiket UI statički objekt. | API/fixture adjacency helper + eksplicitni STAFF/reopen/SYSTEM filter i paritetni test; ručni export uklonjen ili jasno sveden na kompatibilni adapter. |
+| **WF2**  | P1 / srednje  | **Otvoren** | `workflow-parameters-card.tsx` konkatenira fragmente i prikazuje sirovi `unrouted.ownerRole`.                                                                                                                                                                                     | Pune i18n rečenice sa interpolacijom i tipizovana mapa role labela, bez novog `as never`.                                                               |
+| **WF3**  | P1 / srednje  | **Otvoren** | `getTicketCounts().catch(() => undefined)` guta parcijalnu grešku; glavni fetch ima tekst greške, ali nema retry.                                                                                                                                                                 | Odvojeno counts error stanje i retry; retry i za glavni zahtjev.                                                                                        |
+| **WF4**  | P1 / nisko    | **Otvoren** | `count.toLocaleString()` ne koristi `i18n.language`.                                                                                                                                                                                                                              | Formatiranje brojeva je vezano za aktivni locale aplikacije.                                                                                            |
+| **WF5**  | P0 / visoko   | **Otvoren** | `playbook_steps` vraća `inactive: true` za sve osim `block`; zato je aktivni `warn` označen kao „isključeno“.                                                                                                                                                                     | Model i UI razlikuju off, warn i block; unit i komponent test potvrđuju badge/copy.                                                                     |
+| **WF6**  | P1 / nisko    | **Otvoren** | Tabela nema `<caption>` ni `scope="col"`; ScrollRegion i tekstualna alternativa dijagramu jesu dobri.                                                                                                                                                                             | Lokalizovan caption i `scope="col"` na svim kolonama; static a11y guard prolazi.                                                                        |
+| **WF7**  | P2 / nisko    | **Otvoren** | Lokalni tip `Parameters` zaklanja TS utility tip; `playbooks?` je jedini opcionalni parametarski blok i kod provjerava i `undefined` i `null`.                                                                                                                                    | `WorkflowParameters` naziv i API ugovor usklađen na eksplicitni `\| null`, ako backend uvijek vraća polje. |
+| **WF8**  | P2 / nisko    | **Otvoren** | `isRelated` za veze i zaseban `dimmed` predicate za čvorove implementiraju isto pravilo na dva načina.                                                                                                                                                                            | Jedan testiran `isNodeRelatedToSelection`/related helper.                                                                                               |
+| **WF9**  | P1 / nisko    | **Otvoren** | `<tbody>` ostaje prazan kada filtrirani skup nema redova. Trenutni graf daje bar ulaz ili izlaz svakom statusu, pa se problem ne vidi na sadašnjem fixtureu.                                                                                                                      | Lokalizovan red/panel praznog stanja i komponent test.                                                                                                  |
+| **WF10** | P2 / nisko    | **Otvoren** | Mrtvi `orderInPhase[status] ?? 0` i komentari „Paket/Package 1.7“ ostaju u page/API/dijagram/backend referenci.                                                                                                                                                                   | U dirnutim frontend fajlovima uklonjen mrtav fallback i fazni komentari zamijenjeni trajnim objašnjenjem ugovora.                                       |
+
+### Informativno: React Query/session
+
+Stranica i dalje koristi `useEffect` i lokalni state. To je konzistentno i sigurno za malu read-only stranicu; nema dokaza o session ili cache poslovnom defektu. Migracija na React Query nije zaseban WF nalaz niti dio MVP-a, osim ako se odabere WF1 strategija sa zajedničkim API cacheom.
+
+---
+
+## Roadmap do „max full“
+
+### P0 — poslovna tačnost
+
+1. **WF1:** izvesti puni adjacency list iz `WorkflowTransition[]`; odvojiti STAFF status picker od reopen/SYSTEM/APPROVER veza; dodati fixture/paritet test.
+2. **WF5:** proširiti guard opis na off/warn/block i testirati UI značke.
+
+### P1 — pouzdanost, i18n i pristupačnost
+
+3. **WF2:** pune i18n rečenice i role mapa.
+4. **WF3:** vidljiva counts greška i retry oba zahtjeva.
+5. **WF4:** locale-aware brojevi.
+6. **WF6:** caption i `scope="col"`.
+7. **WF9:** prazno stanje filtera.
+8. Dodati render testove za `WorkflowTransitionsTable` i `WorkflowParametersCard`.
+
+### P2 — održavanje
+
+9. **WF7:** precizirati tip parametara i `playbooks` nullability.
+10. **WF8:** centralizovati related predicate.
+11. **WF10:** ukloniti mrtav fallback i historijske fazne komentare u dirnutom frontend kodu.
+
+---
+
+## Status ispravki od 2026-10-13
+
+| Stavka                   | Stanje 2026-10-19                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Backend W1 izvor istine  | **Potvrđen:** `allowedTicketStatusTransitions` se izvodi iz `ticketWorkflowTransitions`; backend spec zaključava punu matricu. |
+| Frontend kopija grafa    | **Nije riješeno:** i dalje ručna podmatrica bez paritetnog testa (WF1).                                                        |
+| Guard `warn`             | **Nije riješeno:** `requiredStepsOnResolve !== "block"` i dalje znači `inactive: true` (WF5).                                  |
+| API/UI read-only         | **Potvrđeno:** `editable: false`, fixed notice i bez edit kontrola.                                                            |
+| SVG nested-interactive   | **Riješeno:** korijenski SVG je `role="group"`; axe nalaz dokumentovan kao zatvoren u planu 2.8.                               |
+| Link u tekstualnom bloku | **Riješeno:** link parametara je stalno podvučen.                                                                              |
+| Horizontalni skrol       | **Poboljšan:** koristi zajednički `ScrollRegion` sa uslovnom dostupnom regijom.                                                |
+| WF2–WF4, WF6–WF10        | **Nisu riješeni** u odnosu na prethodni audit.                                                                                 |
+
+---
+
+## Ocjena
+
+# **7/10**
+
+Read-only prikaz, kontrola pristupa, API definicija i osnovna pristupačnost su kvalitetni. Ocjena se ne povećava jer kritični cross-cut i dalje ima dva različito imenovana izvora grafa, a `warn` guard daje operativno pogrešnu oznaku.
+
+### Do 10/10
+
+- zatvoriti **WF1** jednim izvedenim grafom i eksplicitnim filterima za STAFF/reopen/SYSTEM/APPROVER;
+- zatvoriti **WF5**, **WF2–WF4** i dodati ciljane render testove;
+- završiti semantiku/prazno stanje tabele te niskorizično čišćenje **WF6–WF10**.
+
+## Predložena commit poruka
+
+`docs(audit): rewrite admin workflow module 15 review`
