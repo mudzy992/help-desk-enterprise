@@ -290,7 +290,7 @@ function LicenseFormSheet({
     setError(null);
   }, [open, license]);
 
-  const units = optionsQuery.data?.units ?? [];
+  const units = useMemo(() => optionsQuery.data?.units ?? [], [optionsQuery.data?.units]);
   useEffect(() => {
     if (open && unitId === "" && units.length > 0) setUnitId(units[0].id);
   }, [open, unitId, units]);

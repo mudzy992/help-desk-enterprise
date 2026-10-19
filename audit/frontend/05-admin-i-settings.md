@@ -467,7 +467,7 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 - Zbog nedostupnog API/browser stacka nisu predstavljeni kao izvršeni ručni 320/375/768/1280 px, zoom 200%, keyboard/focus niti server-integrisani mutation scenariji.
 - `AS11` je zatvoren. `AS12` ostaje jedini otvoren nalaz i isključivo predstavlja nedostajući izvršni browser dokaz; implementacijski E2E scenario je spreman.
 
-**Konačni status bez dostupne browser infrastrukture:** `AS1–AS11` zatvoreni; puni frontend Vitest prolaz je 358/358 fajlova i 1442/1442 testova, production build, i18n/design-system gate, Prettier i `git diff --check` su prošli. Puni ESLint je prošao bez errora uz 12 ranije postojeća warninga izvan ovog scopea. Ocjena je ograničena na **9,8/10** prema unaprijed definisanom exit gateu.
+**Konačni status bez dostupne browser infrastrukture:** `AS1–AS11` zatvoreni; puni frontend Vitest prolaz je 358/358 fajlova i 1442/1442 testova, production build, i18n/design-system gate, Prettier i `git diff --check` su prošli. Puni ESLint sada prolazi potpuno čist sa **0 errora i 0 warninga**; svih 12 zatečenih `react-hooks/exhaustive-deps` upozorenja uklonjeno je eksplicitnim dependency/stabilization ugovorima. Ocjena je ograničena na **9,8/10** prema unaprijed definisanom browser exit gateu.
 
 ---
 

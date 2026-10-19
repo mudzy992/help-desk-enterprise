@@ -37,6 +37,7 @@ export function ConfigVersionsWorkspace({
   const { t } = useTranslation();
   const admin = useConfigVersions(true);
   const shadow = useConfigVersionShadow();
+  const clearShadow = shadow.clear;
   const [statusFilter, setStatusFilter] = useState<ConfigVersionStatus | "ALL">("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [againstId, setAgainstId] = useState<string | null>(null);
@@ -55,8 +56,8 @@ export function ConfigVersionsWorkspace({
     }
     setSelectedId(visible[0]?.id ?? null);
     setValidation(null);
-    shadow.clear();
-  }, [selectedId, shadow.clear, visible]);
+    clearShadow();
+  }, [clearShadow, selectedId, visible]);
 
   const runAction = async (operation: () => Promise<void>): Promise<boolean> => {
     setIsBusy(true);

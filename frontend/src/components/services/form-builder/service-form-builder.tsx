@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FormBuilderActions } from "@/components/services/form-builder/form-builder-actions";
 import { FormFieldList } from "@/components/services/form-builder/form-field-list";
@@ -41,19 +41,22 @@ export function ServiceFormBuilder({
   const selected = form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
   const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
 
-  const applyForm = (loaded: ServiceFormResponse, preferredRef?: string) => {
-    const nextRef =
-      preferredRef ??
-      loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
-      loaded.activeFormVersionRef ??
-      loaded.versions[0]?.formVersionRef ??
-      null;
-    const version = loaded.versions.find((item) => item.formVersionRef === nextRef);
-    setForm(loaded);
-    setSelectedRef(nextRef);
-    setFields(version ? [...version.schema.fields] : []);
-    onActiveVersion(loaded.activeFormVersionRef);
-  };
+  const applyForm = useCallback(
+    (loaded: ServiceFormResponse, preferredRef?: string) => {
+      const nextRef =
+        preferredRef ??
+        loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
+        loaded.activeFormVersionRef ??
+        loaded.versions[0]?.formVersionRef ??
+        null;
+      const version = loaded.versions.find((item) => item.formVersionRef === nextRef);
+      setForm(loaded);
+      setSelectedRef(nextRef);
+      setFields(version ? [...version.schema.fields] : []);
+      onActiveVersion(loaded.activeFormVersionRef);
+    },
+    [onActiveVersion],
+  );
 
   const reload = async (preferredRef?: string) => {
     applyForm(await getServiceForm(serviceId), preferredRef);
@@ -75,7 +78,7 @@ export function ServiceFormBuilder({
     return () => {
       cancelled = true;
     };
-  }, [canWrite, serviceId]);
+  }, [applyForm, canWrite, serviceId]);
 
   const run = async (key: string, work: () => Promise<FormVersionResponse>) => {
     setPending(key);

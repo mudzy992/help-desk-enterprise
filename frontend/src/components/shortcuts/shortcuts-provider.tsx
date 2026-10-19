@@ -49,7 +49,7 @@ export function ShortcutsProvider({ defaultEnabled, children }: ShortcutsProvide
   });
   const singleKeysEnabled = preferences.data?.keyboardShortcutsEffective ?? defaultEnabled;
   const handlersRef = useRef(new Map<ShortcutId, { current: ShortcutHandler | null }[]>());
-  const [registeredVersion, setRegisteredVersion] = useState(0);
+  const [, setRegisteredVersion] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const matcherRef = useRef(createSequenceMatcher(shortcutCatalog));
 
@@ -98,7 +98,7 @@ export function ShortcutsProvider({ defaultEnabled, children }: ShortcutsProvide
     [register, singleKeysEnabled, openHelp],
   );
 
-  const registeredIds = useMemo(() => new Set(handlersRef.current.keys()), [registeredVersion]);
+  const registeredIds = new Set(handlersRef.current.keys());
 
   return (
     <ShortcutsContext.Provider value={registry}>

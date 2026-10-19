@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ServiceDowntimeWindowForm } from "@/components/services/service-downtime-window-form";
 import { ServiceDowntimeWindowRow } from "@/components/services/service-downtime-window-row";
@@ -37,7 +37,7 @@ export function ServiceDowntimeWindowsPanel({
   const managed = listManagedDowntimeWindows(windows);
   const canCancel = requireCatalogChangeReason(deleteReason) !== null;
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true);
     setErrorKey(null);
     try {
@@ -48,11 +48,11 @@ export function ServiceDowntimeWindowsPanel({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [serviceId]);
 
   useEffect(() => {
     void reload();
-  }, [serviceId]);
+  }, [reload]);
 
   const cancelWindow = async (window: DowntimeWindowResponse) => {
     const reason = requireCatalogChangeReason(deleteReason);

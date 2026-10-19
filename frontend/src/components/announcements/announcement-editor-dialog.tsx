@@ -139,19 +139,19 @@ export function AnnouncementEditorDialog({
     setUnitFilter("");
   }, [open, announcement]);
 
-  const audienceKey = `${draft.roles.join(",")}|${draft.organizationalUnitIds.join(",")}|${draft.groupIds.join(",")}`;
+  const { roles, organizationalUnitIds, groupIds } = draft;
   useEffect(() => {
     if (!open) return;
-    if (options.scopedToUnit && draft.organizationalUnitIds.length === 0) {
+    if (options.scopedToUnit && organizationalUnitIds.length === 0) {
       setAudienceCount(null);
       return;
     }
     let cancelled = false;
     const timer = window.setTimeout(() => {
       previewAnnouncementAudience({
-        roles: draft.roles,
-        organizationalUnitIds: draft.organizationalUnitIds,
-        groupIds: draft.groupIds,
+        roles,
+        organizationalUnitIds,
+        groupIds,
       })
         .then((result) => {
           if (!cancelled) {
@@ -167,8 +167,7 @@ export function AnnouncementEditorDialog({
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // audienceKey stands for the three audience arrays.
-  }, [open, audienceKey, options.scopedToUnit]);
+  }, [open, options.scopedToUnit, roles, organizationalUnitIds, groupIds]);
 
   const visibleUnits = useMemo(() => {
     const needle = unitFilter.trim().toLowerCase();

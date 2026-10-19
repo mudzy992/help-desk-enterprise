@@ -57,6 +57,7 @@ export function IncidentFormDialog({
   const { t } = useTranslation();
   const { toast } = useToast();
   const editing = mode.kind === "edit" ? mode.incident : null;
+  const presetServiceIds = mode.kind === "create" ? mode.presetServiceIds : undefined;
   const ticketIds = mode.kind === "create" ? (mode.ticketIds ?? []) : [];
   const [services, setServices] = useState<readonly ServiceResponse[] | null>(null);
   const [servicesFailed, setServicesFailed] = useState(false);
@@ -81,14 +82,23 @@ export function IncidentFormDialog({
     setVisibility(editing?.visibility ?? "ALL_USERS");
     setServiceIds(
       editing?.services.map((service) => service.id) ??
-        (mode.kind === "create" ? [...(mode.presetServiceIds ?? [])] : []),
+        (mode.kind === "create" ? [...(presetServiceIds ?? [])] : []),
     );
     setServiceFilter("");
     setMessage("");
     setStartedAt("");
     setNotify(false);
     setError(null);
-  }, [open]);
+  }, [
+    open,
+    editing?.title,
+    editing?.titleEn,
+    editing?.impact,
+    editing?.visibility,
+    editing?.services,
+    mode.kind,
+    presetServiceIds,
+  ]);
 
   useEffect(() => {
     if (!open || services !== null) return;

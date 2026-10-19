@@ -58,12 +58,15 @@ export function ServicesPage() {
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(null);
+  const { reload: reloadCatalogRows } = catalog;
+  const { reload: reloadRoutingCoverage } = routingCoverage;
+  const { reload: reloadCategoryRows } = categoryState;
   const reloadCatalog = useCallback(async () => {
-    await Promise.all([catalog.reload(), routingCoverage.reload()]);
-  }, [catalog.reload, routingCoverage.reload]);
+    await Promise.all([reloadCatalogRows(), reloadRoutingCoverage()]);
+  }, [reloadCatalogRows, reloadRoutingCoverage]);
   const reloadCategories = useCallback(async () => {
-    await Promise.all([categoryState.reload(), reloadCatalog()]);
-  }, [categoryState.reload, reloadCatalog]);
+    await Promise.all([reloadCategoryRows(), reloadCatalog()]);
+  }, [reloadCategoryRows, reloadCatalog]);
   const containerRef = useRef<HTMLElement>(null);
   const live = useAdminConfigLiveRefresh({
     domains: ["catalog", "routing"],

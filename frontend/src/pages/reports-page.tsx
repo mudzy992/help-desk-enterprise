@@ -136,7 +136,12 @@ export function ReportsPage() {
       .catch(() => setGroupOptions(null));
   }, [needsFilters, serviceOptions.length, i18n.language]);
 
-  const now = useMemo(() => new Date(), [preset, customFrom, customTo, organizationalUnitId]);
+  const reportWindowKey = `${preset}|${customFrom}|${customTo}|${organizationalUnitId}`;
+  const now = useMemo(() => {
+    // Re-anchor relative ranges only when the report filter changes.
+    void reportWindowKey;
+    return new Date();
+  }, [reportWindowKey]);
   const window_ = resolveReportWindow({
     preset,
     customFrom,
