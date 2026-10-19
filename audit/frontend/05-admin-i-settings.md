@@ -2,8 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **7,8/10**
+**Aktuelna ocjena:** **8,2/10 nakon Faze 1**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
+
+**Implementacijski status:** Faza 1 završena 19. 10. 2026.; `AS1` i `AS2` zatvoreni, OU dio `AS6` zatvoren, a audit-card pagination dio ostaje u Fazi 5.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -74,13 +76,13 @@ Aktuelni admin/settings/config scope ima približno **11.043 linije** u primarni
 
 ### 3.2 Izvršeni gateovi
 
-| Gate | Rezultat |
-|---|---|
-| Ciljani Vitest: 15 relevantnih fajlova | **PASS — 15/15 fajlova, 63/63 testa** |
-| `npm run build` | **PASS** |
-| `npm run lint` | **PASS bez errora; 12 repo warninga** |
-| Scope formatting / Prettier | **PASS** |
-| Stvarni authenticated browser/E2E | **NIJE IZVRŠEN** — lokalni API/frontend/auth stack nije dostupan |
+| Gate                                   | Rezultat                                                         |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| Ciljani Vitest: 15 relevantnih fajlova | **PASS — 15/15 fajlova, 63/63 testa**                            |
+| `npm run build`                        | **PASS**                                                         |
+| `npm run lint`                         | **PASS bez errora; 12 repo warninga**                            |
+| Scope formatting / Prettier            | **PASS**                                                         |
+| Stvarni authenticated browser/E2E      | **NIJE IZVRŠEN** — lokalni API/frontend/auth stack nije dostupan |
 
 Relevantni lint warning u scopeu je missing dependency (`shadow`) u `config-versions-workspace.tsx`; ostalih 11 warninga pripada drugim modulima. Build i dalje prijavljuje chunkove iznad 500 kB, uključujući veliki admin chunk; to nije samostalni blocker, ali potvrđuje potrebu da se prati admin bundle.
 
@@ -254,16 +256,16 @@ Unit/build/lint nisu dokaz za realnu route autorizaciju, focus, modal/blocker po
 
 ## 6. Access i sigurnosna matrica
 
-| Površina | Frontend odluka | Backend mora ostati autoritet | Reaudit zaključak |
-|---|---|---|---|
-| `/admin` | `canOpenAdminPage` + vidljivi tabovi | permission/role guard po endpointu | dobra osnova; održati route/tab testove |
-| Settings read | admin/settings capability | settings read guard | dobro |
-| Settings write | `canWriteSettings` + read-only | settings write + read-only guard | sigurnosno dobro; loading/error UX fail-open (`AS10`) |
-| Config versions | route check + `canWrite`/`canImport` | lifecycle/import permissions + read-only | dobra osnova; async problemi `AS1–AS3` |
-| Email templates | route check + settings write + read-only | controller permission + read-only | dobra osnova; testni dokaz nedostaje (`AS9`) |
-| Ops health/alerts | `adminOpsVisibility` | ops permissions | visibility centralizovana; velika komponenta/test gap |
-| Security audit/metrics | SuperAdmin/odgovarajuća granica | installation-wide guard | namjerno stroža granica dobro dokumentovana |
-| Audit log | permission + OU scope | OU authorization | child ima race guard; parent scope treba ojačati |
+| Površina               | Frontend odluka                          | Backend mora ostati autoritet            | Reaudit zaključak                                     |
+| ---------------------- | ---------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| `/admin`               | `canOpenAdminPage` + vidljivi tabovi     | permission/role guard po endpointu       | dobra osnova; održati route/tab testove               |
+| Settings read          | admin/settings capability                | settings read guard                      | dobro                                                 |
+| Settings write         | `canWriteSettings` + read-only           | settings write + read-only guard         | sigurnosno dobro; loading/error UX fail-open (`AS10`) |
+| Config versions        | route check + `canWrite`/`canImport`     | lifecycle/import permissions + read-only | dobra osnova; async problemi `AS1–AS3`                |
+| Email templates        | route check + settings write + read-only | controller permission + read-only        | dobra osnova; testni dokaz nedostaje (`AS9`)          |
+| Ops health/alerts      | `adminOpsVisibility`                     | ops permissions                          | visibility centralizovana; velika komponenta/test gap |
+| Security audit/metrics | SuperAdmin/odgovarajuća granica          | installation-wide guard                  | namjerno stroža granica dobro dokumentovana           |
+| Audit log              | permission + OU scope                    | OU authorization                         | child ima race guard; parent scope treba ojačati      |
 
 Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka nova write akcija mora imati i backend guard i read-only klasifikaciju.
 
@@ -283,6 +285,16 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 5. Dodati deferred-promise testove za success/error/out-of-order/unmount.
 
 **Exit gate:** relevantni testovi + build + lint; nijedan stariji request ne mijenja aktuelni state.
+
+#### Evidencija zatvaranja Faze 1 (19. 10. 2026.)
+
+- `useConfigVersions` sada zadržava posljednji uspješni snapshot pri refresh grešci, razlikuje initial loading i refresh te koristi request sequence za latest-only commit.
+- Promjena `enabled` stanja i unmount invalidiraju aktivni config request; zastarjeli odgovor više ne može vratiti podatke niti promijeniti loading state.
+- `AdminOpsPanel` OU bootstrap više ne šalje zahtjev bez audit pristupa, invalidira zahtjev pri access promjeni/unmountu i nakon novog rezultata zadržava selekciju samo ako ID još postoji.
+- Dodani su `use-config-versions.spec.tsx` i `admin-ops-panel.spec.tsx` sa snapshot-retention, overlapping-request, disable-invalidation, OU selection, access-race i no-access testovima.
+- `AS1` i `AS2` su zatvoreni. OU bootstrap/selekcija dio `AS6` je zatvoren; child audit pagination race ostaje eksplicitno mapiran na Fazu 5.
+
+**Izvršni dokaz:** 2 nova ciljna spec fajla, 6/6 testova; prošli puni relevantni test skup, build, scope ESLint, Prettier i `git diff --check` (konačni brojevi navedeni u commit closeoutu).
 
 ### Faza 2 — Config package preview/import ugovor
 
@@ -411,16 +423,16 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 ## 9. Kriterij ocjene
 
-| Oblast | Trenutno | Cilj |
-|---|---:|---:|
-| Access/RBAC/read-only sigurnosna osnova | 8,5 | 10 |
-| Async/race/error ugovori | 6,8 | 10 |
-| Settings registry konzistentnost | 7,2 | 10 |
-| Config versions/import | 7,4 | 10 |
-| Email templates | 8,0 | 10 |
-| Testabilnost i održivost | 6,8 | 10 |
-| Accessibility/responsive/browser dokaz | 7,0 | 10 |
-| **Ukupno** | **7,8/10** | **10/10** |
+| Oblast                                  |   Trenutno |      Cilj |
+| --------------------------------------- | ---------: | --------: |
+| Access/RBAC/read-only sigurnosna osnova |        8,5 |        10 |
+| Async/race/error ugovori                |        7,8 |        10 |
+| Settings registry konzistentnost        |        7,2 |        10 |
+| Config versions/import                  |        7,4 |        10 |
+| Email templates                         |        8,0 |        10 |
+| Testabilnost i održivost                |        6,8 |        10 |
+| Accessibility/responsive/browser dokaz  |        7,0 |        10 |
+| **Ukupno**                              | **8,2/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 

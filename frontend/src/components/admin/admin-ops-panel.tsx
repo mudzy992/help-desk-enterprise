@@ -1,5 +1,5 @@
 import { MessageSquare } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -35,21 +35,36 @@ export function AdminOpsPanel() {
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<AdminOpsMessageKey | null>(null);
   const [verifyResult, setVerifyResult] = useState<AuditLogVerifyResult | null>(null);
+  const unitRequestSequence = useRef(0);
 
   const loadUnits = useCallback(async () => {
+    const sequence = ++unitRequestSequence.current;
+    if (!visibility.auditExport) {
+      setUnitOptions([]);
+      setUnitId("");
+      setUnitLoadFailed(false);
+      return;
+    }
     setUnitLoadFailed(false);
     try {
       const options = flattenOriginUnitOptions(await listOrganizationalUnitTree());
+      if (sequence !== unitRequestSequence.current) return;
       setUnitOptions(options);
-      setUnitId((current) => current || options[0]?.id || "");
+      setUnitId((current) =>
+        options.some((option) => option.id === current) ? current : (options[0]?.id ?? ""),
+      );
     } catch {
-      setUnitOptions([]);
+      if (sequence !== unitRequestSequence.current) return;
+      // Preserve a previously loaded scope so a retryable refresh error is non-destructive.
       setUnitLoadFailed(true);
     }
-  }, []);
+  }, [visibility.auditExport]);
 
   useEffect(() => {
     void loadUnits();
+    return () => {
+      unitRequestSequence.current += 1;
+    };
   }, [loadUnits]);
 
   const runExport = async (format: AuditExportFormat) => {
