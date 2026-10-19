@@ -1,5 +1,5 @@
 import { dateTimeFormatter } from "@/lib/date-time-formatter";
-/** Package 1.6: "ping-pong" starts at this many forwards (mirrors the report default). */
+/** "ping-pong" starts at this many forwards (mirrors the report default). */
 export const forwardWarningThreshold = 3;
 
 export type TicketForwardFacts = {

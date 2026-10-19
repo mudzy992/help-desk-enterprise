@@ -12,7 +12,7 @@ import type { TicketAttachmentResponse } from "@/services/tickets-attachments-ap
 interface TicketAttachmentsPanelProperties {
   readonly items: readonly TicketAttachmentResponse[];
   readonly visible: boolean;
-  /** Paket 2.6 (§6): retention removed the files; explains an empty or short list. */
+  /** retention removed the files; explains an empty or short list. */
   readonly purgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;

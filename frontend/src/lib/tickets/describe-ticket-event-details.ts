@@ -8,7 +8,7 @@ import { parseSystemEventBody } from "@/lib/tickets/ticket-system-events";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 /**
- * Package 1.2 events carry structured details (see backend
+ * Ticket events carry structured details (see backend
  * `formatPriorityEventDetail` and the merge writers):
  *  - `ticket_priority_overridden:FROM:TO:manual|matrix:reason`
  *  - `ticket_merged:HD-1,HD-2:reason`, `ticket_merged_child:HD-1:reason`,

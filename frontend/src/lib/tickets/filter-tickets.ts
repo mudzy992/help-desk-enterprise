@@ -2,7 +2,7 @@ import type { TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
 import type { TicketPriority, TicketStatus, TicketResponse } from "@/services/tickets-api";
 
 /**
- * M8 B6: the inbox sub-tab key for the unrouted queue. Defined as a literal
+ * the inbox sub-tab key for the unrouted queue. Defined as a literal
  * here so this module does not pull UI code from inbox-view-tabs.
  */
 export const unroutedInboxTabKey = "unrouted";
@@ -10,7 +10,7 @@ export const unroutedInboxTabKey = "unrouted";
 export type TicketListFilters = {
   readonly view: TicketWorkspaceView;
   readonly search: string;
-  // Val 6.1 / modul 4 (D1): the UI still edits a single status at a time,
+  // the UI still edits a single status at a time,
   // but deep-link URLs may carry repeated `status=` keys. We keep the public
   // type a single status (so existing filter controls and saved views do not
   // have to learn about arrays) and only flatten to an array when building
@@ -23,18 +23,18 @@ export type TicketListFilters = {
   readonly createdFrom: string;
   readonly createdTo: string;
   readonly overdue: boolean;
-  /** Val 6.1 / modul 4 (D1): at-risk (not yet breached) tickets deep-linked from a card. */
+  /** at-risk (not yet breached) tickets deep-linked from a card. */
   readonly atRisk?: boolean;
-  /** Package 1.6, staff only. */
+  /** Staff-only forwarding filter. */
   readonly forwarded?: TicketForwardedFilter;
   /** , staff only: tickets I follow / where I was mentioned. */
   readonly personal?: TicketPersonalFilter;
-  /** Package 1.2 hide merged children (staff default: on). */
+  /** Hide merged children; enabled by default for staff. */
   readonly hideMerged?: boolean;
   /** , staff only: unrouted past the cleanup deadline. */
   readonly unroutedOverdue?: boolean;
   /**
-   * Package 5.2.3 active inbox sub-tab. `unrouted` is the unrouted
+   * Active inbox sub-tab. `unrouted` is the unrouted
    * queue; any other value is a group id. One field, serialized to the URL,
    * drives what the inbox displays, what page the unrouted pager is on and
    * what count pills show — no separate local useState that drifts from the
@@ -57,7 +57,7 @@ export function parseForwardedFilter(value: string | null): TicketForwardedFilte
 }
 
 /**
- * Val 6.1 / modul 4 (D1): a card or shareable link may send one or more
+ * a card or shareable link may send one or more
  * `status=` params (repeated keys). Returns the single status to put into
  * filter state (used by filter controls — a single-status chip stays visible),
  * plus any additional statuses that should be forwarded to the server query
@@ -125,14 +125,14 @@ export function matchesTicketView(
   return ticket.assignedUserId === null;
 }
 
-// M8 B4: staff lists hide merged children by default. The requester-facing
+// staff lists hide merged children by default. The requester-facing
 // "my tickets" / portal lists have no merged children at all, so the flag is
 // simply true for staff.
 export function defaultHideMerged(isStaff: boolean): boolean {
   return isStaff;
 }
 
-// M8 B6: the default inbox sub-tab when nothing is in the URL — unrouted queue
+// the default inbox sub-tab when nothing is in the URL — unrouted queue
 // first so an empty handler-group inbox still shows the meaningful queue.
 export const defaultInboxTab = unroutedInboxTabKey;
 

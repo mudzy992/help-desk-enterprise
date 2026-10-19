@@ -12,12 +12,12 @@ export type TicketPageQuery = {
   readonly requesterId?: string;
   readonly groupId?: string;
   readonly unassigned?: boolean;
-  /** Package 1.6 (staff only; the API ignores it for requesters). */
+  /** Staff only; the API ignores it for requesters. */
   readonly forwarded?: "any" | "toMyGroups";
   /** personal narrowings. */
   readonly following?: boolean;
   readonly mentionedMe?: boolean;
-  /** Package 1.2: leave merged children out. */
+  /** leave merged children out. */
   readonly hideMerged?: boolean;
   /** cleanup deadline filter. */
   readonly unroutedOverdue?: boolean;

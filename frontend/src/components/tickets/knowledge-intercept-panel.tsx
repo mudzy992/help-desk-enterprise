@@ -42,7 +42,7 @@ export function KnowledgeInterceptPanel({
   const [article, setArticle] = useState<KnowledgeArticleResponse | null>(null);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [isLoadingArticle, setIsLoadingArticle] = useState(false);
-  // Paket 2.9 (K1): visible confirmation of the per-article thumbs vote.
+  // visible confirmation of the per-article thumbs vote.
   const [votes, setVotes] = useState<Readonly<Record<string, boolean>>>({});
   const [votingId, setVotingId] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ export function KnowledgeInterceptPanel({
     try {
       await submitKnowledgeFeedback(articleId, isHelpful);
       setVotes((previous) => ({ ...previous, [articleId]: isHelpful }));
-      // Paket 5.2.4 (M14 B3): voting an article thumbs-up is the user's signal
+      // voting an article thumbs-up is the user's signal
       // that the article solved the problem — resolve intercept against *this*
       // article, not an arbitrary first suggestion. A thumbs-down, conversely,
       // clears any previous "pomoglo" state so the green confirmation does not

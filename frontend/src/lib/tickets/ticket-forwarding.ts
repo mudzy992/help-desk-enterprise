@@ -1,7 +1,7 @@
 import type { TicketStatus } from "@/services/tickets-api";
 import type { ForwardTargetGroup, ForwardTargetsResponse } from "@/services/tickets-forwarding-api";
 
-/** Mirrors backend `forwardableTicketStatuses` (package 1.1). */
+/** Mirrors the backend `forwardableTicketStatuses` contract. */
 export const forwardableStatuses: readonly TicketStatus[] = [
   "UNROUTED",
   "PENDING",

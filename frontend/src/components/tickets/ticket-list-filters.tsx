@@ -46,7 +46,7 @@ export function applyTicketListTab(filters: TicketListFilters, key: string): Tic
 /**
  * Tab counters of the list.
  *
- * Phase 1.1 (plan §1.1): the counters no longer come from the downloaded list
+ * the counters no longer come from the downloaded list
  * (which is one page now) but from `GET /tickets/counts`, computed over the
  * same filters and visibility. `null` means the counters could not be read —
  * the tabs then show zeros instead of blocking the list.
@@ -87,7 +87,7 @@ interface TicketListFiltersBarProperties {
   readonly services: readonly ServiceResponse[];
   readonly onChange: (filters: TicketListFilters) => void;
   readonly onSearchChange: (search: string) => void;
-  /** Package 1.6: the "forwarded" filter is staff-only. */
+  /** the "forwarded" filter is staff-only. */
   readonly isStaff?: boolean;
   /**
    * UX 2026-10-02: the saved-views control lives in the filter row instead of a

@@ -11,7 +11,7 @@ const base: TicketRoutingPreview = {
   slaProfileName: null,
 };
 
-describe("describeRoutingPreview (val 5, M7 B2)", () => {
+describe("describeRoutingPreview", () => {
   it("names the target group on an exact match", () => {
     expect(describeRoutingPreview(base)).toEqual([
       { key: "tickets.routingPreviewRouted", params: { group: "Service desk" } },

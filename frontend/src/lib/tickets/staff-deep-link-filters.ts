@@ -23,7 +23,7 @@ const deepLinkStatuses: ReadonlySet<TicketStatus> = new Set<TicketStatus>([
 /**
  * Staff-only filters that may arrive through a shareable URL (deep links).
  *
- * Val 6.1 / modul 4 (D1): dashboard metric cards (Kritični, Nerutirani,
+ * dashboard metric cards (Kritični, Nerutirani,
  * Prekoračeni, Čeka korisnika, Čeka odobrenje) and SLA / attention "All" links
  * now carry `status`, `priority`, `overdue`, `atRisk` in the URL. Without
  * reading those, a click on a card landed the user on an unfiltered list,
@@ -61,19 +61,19 @@ export function staffDeepLinkFilters(
   }
   const parsedStatus = parseStatusFilter(searchParams.getAll("status"), deepLinkStatuses);
   return {
-    // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
+    // `/tickets?forwarded=toMyGroups` is a shareable deep link.
     forwarded: parseForwardedFilter(searchParams.get("forwarded")),
     // `/tickets?personal=mentionedMe` (notification deep link).
     personal: parsePersonalFilter(searchParams.get("personal")),
-    // Package 1.2 staff lists hide merged children unless asked.
+    // Staff lists hide merged children unless explicitly requested.
     hideMerged: searchParams.get("hideMerged") !== "false",
     // deep link from the dashboard and the weekly digest.
     unroutedOverdue: parseBooleanFlag(searchParams.get("unroutedOverdue")),
-    // Package 5.2.3 preserve the inbox sub-tab across reloads when
+    // Preserve the inbox sub-tab across reloads when
     // explicitly set in the URL. Defaulting is handled by use-ticket-list so
     // non-inbox views are not polluted with an "unrouted" tab value.
     inboxTab: rawTab !== null && rawTab.trim().length > 0 ? rawTab.trim() : undefined,
-    // Val 6.1 / modul 4 (D1): card deep links — the first status populates
+    // card deep links — the first status populates
     // the filter chip; additional repeated `status=` keys are forwarded to
     // the server alongside it without changing the UI (multi-status deep
     // links are a share/link feature, not a UI control yet).

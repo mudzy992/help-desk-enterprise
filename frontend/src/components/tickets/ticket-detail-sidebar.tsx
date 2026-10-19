@@ -24,7 +24,6 @@ interface TicketDetailSidebarProperties {
   readonly serviceName: string;
   readonly authorNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
-  /** Package 1.2 (P6). */
   readonly canOverridePriority?: boolean;
   readonly onEditPriority?: () => void;
   /** Who set the manual priority, when and why (badge tooltip). */
@@ -43,7 +42,7 @@ export function TicketDetailSidebar({
 }: TicketDetailSidebarProperties) {
   const { t, i18n } = useTranslation();
   const { hasPermission } = useSessionCapabilities();
-  // Paket 1.7 (U3): fix the cause — a rule for this origin unit + service.
+  // fix the cause — a rule for this origin unit + service.
   const withoutRule = ticket.status === "UNROUTED" || ticket.routedByUnroutedFallback === true;
   const createRuleHref =
     withoutRule && hasPermission(permissionKeys.routingWrite)
@@ -105,7 +104,7 @@ export function TicketDetailSidebar({
         </span>
       ),
     },
-    // M8 #3 (val 5): the request type and the wished deadline the requester gave.
+    // Show the request type and wished deadline supplied by the requester.
     {
       label: t("tickets.requestType"),
       value:

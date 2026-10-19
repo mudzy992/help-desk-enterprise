@@ -27,7 +27,7 @@ interface TicketCollaborationBarProperties {
   readonly canFollow: boolean;
 }
 
-/** Paket 2.4 (A6, C2): who is on the ticket right now, and the Follow toggle. */
+/** who is on the ticket right now, and the Follow toggle. */
 export function TicketCollaborationBar(props: TicketCollaborationBarProperties) {
   const showPresence =
     props.presenceEnabled && (props.presence.others.length > 0 || props.presence.agentTyping);

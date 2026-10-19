@@ -27,7 +27,7 @@ interface CreateTicketServicePickerProperties {
 }
 
 /**
- * Paket 5.3.1 (D9): service step of ticket creation — search, category chips
+ * service step of ticket creation — search, category chips
  * and a compact list grouped by category, with recently used services first.
  * Scales to 100+ services: one flat render, no per-row effects.
  *

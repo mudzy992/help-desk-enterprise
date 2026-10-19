@@ -21,7 +21,7 @@ import type { TicketResponse } from "@/services/tickets-api";
 import type { TicketSlaContextResponse } from "@/services/tickets-context-api";
 
 /*
-  Paket 4.2 (dio B): the ticket detail rail.
+  the ticket detail rail.
 
   The right column used to stack up to 13 cards of equal weight, so the panels
   read constantly drowned in the ones read occasionally. The rail is now three

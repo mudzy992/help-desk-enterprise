@@ -6,7 +6,7 @@ import {
 } from "@/services/tickets-routing-preview-api";
 
 /**
- * Val 5, M7 B2: the review step asks the server which group (and SLA profile)
+ * the review step asks the server which group (and SLA profile)
  * the ticket would land in, using the same decision `POST /tickets` makes.
  * Nothing is created; the request is skipped until a service is selected.
  */

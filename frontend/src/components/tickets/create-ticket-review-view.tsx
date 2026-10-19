@@ -43,7 +43,7 @@ export function CreateTicketReviewView({
 }: CreateTicketReviewViewProperties) {
   const { t } = useTranslation();
   const priority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
-  // Val 5, M7 B2: the routing card used to say only that the outcome is decided
+  // the routing card used to say only that the outcome is decided
   // on submit; it now asks the same endpoint creation uses.
   const routingPreview = useTicketRoutingPreview(draft.serviceId, draft.originUnitId);
   const routingLines =

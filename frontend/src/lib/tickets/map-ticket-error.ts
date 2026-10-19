@@ -139,7 +139,6 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   FORWARD_TARGET_USER_NOT_MEMBER: "tickets.errorForwardTargetUser",
   FORWARD_NO_PREVIOUS_GROUP: "tickets.errorForwardNoPrevious",
   HANDLER_GROUP_NOT_FOUND: "tickets.errorValidation",
-  // Package 1.2
   MERGE_SELF: "tickets.errorMergeInvalid",
   MERGE_PARENT_INVALID: "tickets.errorMergeInvalid",
   MERGE_CHILD_INVALID: "tickets.errorMergeInvalid",

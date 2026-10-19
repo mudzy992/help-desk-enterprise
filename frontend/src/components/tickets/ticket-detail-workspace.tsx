@@ -55,7 +55,7 @@ interface TicketDetailWorkspaceProperties {
   readonly timeTracking: TicketTimeTrackingControls;
   readonly attachments: readonly TicketAttachmentResponse[];
   readonly attachmentsVisible: boolean;
-  /** Paket 2.6: retention removed the attachments at this moment. */
+  /** retention removed the attachments at this moment. */
   readonly attachmentsPurgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;
@@ -63,10 +63,10 @@ interface TicketDetailWorkspaceProperties {
   readonly onDelete: (attachmentId: string) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
-  /** Paket 3.3 (P4): text to insert into the public reply ("insert workaround"). */
+  /** text to insert into the public reply ("insert workaround"). */
   readonly composerInsertText?: ComposerInsertText | null;
   readonly composerCollaboration?: ComposerCollaborationOptions;
-  /** Paket 2.9 (K1c): enables "make an article" on public agent replies. */
+  /** enables "make an article" on public agent replies. */
   readonly canWriteKnowledge?: boolean;
 }
 

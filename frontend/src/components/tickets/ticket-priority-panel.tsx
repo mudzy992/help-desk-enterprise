@@ -21,7 +21,7 @@ interface TicketPriorityPanelProperties {
 }
 
 /**
- * Package 1.2 (P6): manual priority with a required reason; the SLA targets
+ * manual priority with a required reason; the SLA targets
  * are re-measured from the ticket start. A manual priority can be handed back
  * to the impact × urgency matrix.
  */

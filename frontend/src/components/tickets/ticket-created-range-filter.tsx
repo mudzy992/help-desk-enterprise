@@ -28,7 +28,7 @@ const presetLabelKeys = {
 } as const satisfies Record<CreatedRangePreset, string>;
 
 /**
- * Paket 5.3.1: "Created" range of the ticket list — presets plus two day
+ * "Created" range of the ticket list — presets plus two day
  * pickers for a custom range. Days are the user's local calendar days; the
  * filter state holds the resulting instants (see `created-range.ts`).
  */

@@ -107,7 +107,7 @@ export function CreateTicketFields({
           value={draft.assetId}
           onChange={(assetId) => onChange({ ...draft, assetId })}
         />
-        {/* M8 #3 (val 5): RAW's `request type` and the wished deadline. */}
+        {/* Optional request type and wished deadline from the requester. */}
         <label className={labelClassName}>
           <span>{t("tickets.requestTypeField")}</span>
           <input

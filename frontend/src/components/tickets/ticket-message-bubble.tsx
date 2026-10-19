@@ -15,9 +15,9 @@ interface TicketMessageBubbleProperties {
   readonly authorName: string;
   readonly isOwn: boolean;
   readonly locale: string;
-  /** Paket 2.4: highlights mentions of the current user. */
+  /** highlights mentions of the current user. */
   readonly currentUserId?: string | null;
-  /** Paket 2.9 (K1c): optional actions under the bubble (e.g. "Make an article"). */
+  /** optional actions under the bubble (e.g. "Make an article"). */
   readonly actions?: ReactNode;
 }
 
@@ -31,7 +31,7 @@ export function TicketMessageBubble({
 }: TicketMessageBubbleProperties) {
   const { t } = useTranslation();
   const isInternal = message.type === "INTERNAL_NOTE";
-  // Paket 2.6: an anonymized author reads "Former user #…" in English.
+  // an anonymized author reads "Former user #…" in English.
   const shownName = localizePersonName(authorName, locale);
   return (
     <article

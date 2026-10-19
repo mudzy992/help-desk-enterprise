@@ -41,7 +41,7 @@ function groupLabel(group: ForwardTargetGroup): string {
 }
 
 /**
- * Package 1.1: forward (escalate) a ticket to another group, possibly in
+ * forward (escalate) a ticket to another group, possibly in
  * another OU. The server lists only groups the actor may use, so the dialog
  * never offers a target that would be refused for OU reasons.
  */

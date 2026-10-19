@@ -16,7 +16,7 @@ interface MentionPickerProperties {
 }
 
 /**
- * Paket 2.4 (B1): colleagues who can see the ticket, filtered by what follows `@`.
+ * colleagues who can see the ticket, filtered by what follows `@`.
  * Keyboard handling (arrows / Enter / Esc) lives in the composer's textarea.
  */
 export function MentionPicker({

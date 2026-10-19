@@ -13,7 +13,7 @@ interface TicketWorkspaceNavProperties {
   readonly view: TicketWorkspaceView;
   readonly inboxHidden: boolean;
   readonly isStaff: boolean;
-  /** Paket 5.3.1 (D10): the inbox badge lives on its tab (and on the sidebar item). */
+  /** the inbox badge lives on its tab (and on the sidebar item). */
   readonly counts?: SidebarTicketCounts | null;
 }
 

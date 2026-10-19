@@ -40,13 +40,13 @@ interface TicketDetailConversationProperties {
   readonly composerTemplates?: ComposerTemplatesOptions;
   readonly composerInsertText?: ComposerInsertText | null;
   readonly composerCollaboration?: ComposerCollaborationOptions;
-  /** Paket 2.9 (K1c): the viewer may write knowledge articles. */
+  /** the viewer may write knowledge articles. */
   readonly canWriteKnowledge?: boolean;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
   const { t } = useTranslation();
-  // Paket 2.9 (K1c): public agent replies can become an article draft
+  // public agent replies can become an article draft
   // (knowledge writers only; never from confidential tickets).
   const canDraftArticle = props.canWriteKnowledge === true && !props.ticket.isConfidential;
   const [articleSource, setArticleSource] = useState<{
@@ -55,7 +55,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
   } | null>(null);
   const footer =
     props.ticket.status === "ARCHIVED" ? null : props.ticket.mergedIntoTicketId ? (
-      // Package 1.2 (M3): a merged child is read-only; replies go to the parent.
+      // a merged child is read-only; replies go to the parent.
       <p
         className="rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-foreground"
         data-testid="ticket-merged-composer-notice"

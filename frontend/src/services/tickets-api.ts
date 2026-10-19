@@ -44,7 +44,7 @@ export type TicketResponse = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly classification: string;
-  /** M8 #3: RAW's request type and the requested deadline (separate from the SLA). */
+  /** RAW request type and requested deadline, separate from the SLA. */
   readonly requestType: string | null;
   readonly dueAt: string | null;
   readonly isConfidential: boolean;
@@ -71,13 +71,11 @@ export type TicketResponse = {
   readonly closedAt?: string | null;
   readonly archivedAt?: string | null;
   readonly waitingForUserEnteredAt?: string | null;
-  /** Package 1.6 */
   readonly forwardCount?: number;
-  /** Paket 1.7 (U1): no routing rule matched; sent to the unrouted target group. */
+  /** no routing rule matched; sent to the unrouted target group. */
   readonly routedByUnroutedFallback?: boolean;
   readonly lastForwardedAt?: string | null;
   readonly lastForwardFromGroupName?: string | null;
-  /** Package 1.2 */
   readonly priorityOverridden?: boolean;
   readonly mergedAt?: string | null;
   readonly mergedIntoTicketNumber?: string | null;
@@ -89,7 +87,7 @@ export type TicketResponse = {
   readonly csat?: TicketCsatDescriptor;
   readonly redactionWarnings?: readonly RedactionMatch[];
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
-  /** Paket 2.6 (§11): only on the detail; `legalHold` only for privacy.view holders. */
+  /** only on the detail; `legalHold` only for privacy.view holders. */
   readonly privacy?: TicketPrivacyMarkers;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -163,7 +161,7 @@ export type CreateTicketInput = {
   readonly formData?: Record<string, unknown>;
   readonly acknowledgeDuplicate?: boolean;
   readonly assetId?: string;
-  /** M8 #3: the requester's own words for what this is, and the wished deadline. */
+  /** The requester's own request type and wished deadline. */
   readonly requestType?: string;
   readonly dueAt?: string;
 };
@@ -174,7 +172,7 @@ export type UpdateTicketInput = {
   readonly impact?: TicketImpact;
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
-  /** M8 #3: `null` clears the value. */
+  /** `null` clears the value. */
   readonly requestType?: string | null;
   readonly dueAt?: string | null;
   readonly formData?: Record<string, unknown>;
@@ -212,7 +210,7 @@ export type TicketPage = {
   /** Exact up to 10 000; above that the server stops counting (`totalIsCapped`). */
   readonly total: number;
   readonly totalIsCapped?: boolean;
-  /** Package 5.2.3 (M8 B5): epoch ms at which the server computed `total`. */
+  /** epoch ms at which the server computed `total`. */
   readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
@@ -225,7 +223,7 @@ export function listGroupInboxPage(query: TicketPageQuery = {}): Promise<TicketP
 }
 
 /**
- * One page of the visible tickets (phase 1.1, plan §1.1).
+ * One server-paginated page of tickets visible to the current principal.
  *
  * `GET /tickets` always answers this envelope now: it used to return a plain
  * array with every ticket in the table when no `page`/`pageSize` was sent, and

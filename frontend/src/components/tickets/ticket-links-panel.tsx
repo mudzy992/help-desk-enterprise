@@ -35,7 +35,7 @@ const relationKey = {
   mergedChild: "tickets.collaboration.links.relation.mergedChild",
 } as const satisfies Readonly<Record<TicketLinkRelation, TicketTranslationKey>>;
 
-/** Paket 2.4 (D3/D4): related tickets (staff only). */
+/** related tickets (staff only). */
 export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelProperties) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();

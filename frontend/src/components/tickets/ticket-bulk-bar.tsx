@@ -35,9 +35,9 @@ interface TicketBulkBarProperties {
   readonly onClear: () => void;
   readonly onError: (key: TicketErrorKey) => void;
   readonly onComplete: () => void;
-  /** Package 1.2: ticket numbers of the selection, to pick the merge parent. */
+  /** ticket numbers of the selection, to pick the merge parent. */
   readonly ticketNumbers?: ReadonlyMap<string, string>;
-  /** Paket 3.3: number, title and priority of the selection ("Create problem"). */
+  /** number, title and priority of the selection ("Create problem"). */
   readonly ticketSummaries?: ReadonlyMap<string, ProblemLinkTicket>;
 }
 
@@ -55,9 +55,9 @@ export function TicketBulkBar({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [broadcastArmed, setBroadcastArmed] = useState(false);
-  // Paket 2.7 (§8.3): "Create incident from selected" (status.incidents.manage).
+  // "Create incident from selected" (status.incidents.manage).
   const [incidentOpen, setIncidentOpen] = useState(false);
-  // Paket 3.3 (§8.1): "Create problem" / "Add to problem" (problem.manage).
+  // "Create problem" / "Add to problem" (problem.manage).
   const [problemOpen, setProblemOpen] = useState(false);
   const { toast } = useToast();
   const { session, hasPermission, hasRole } = useSessionCapabilities();

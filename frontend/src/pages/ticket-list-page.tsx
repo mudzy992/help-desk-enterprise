@@ -35,7 +35,7 @@ export function TicketListPage() {
     () => flattenOrganizationalUnitNames(directory.tree),
     [directory.tree],
   );
-  // Phase 1.1: the headline numbers come from the server counters (they cover
+  // the headline numbers come from the server counters (they cover
   // every matching ticket), not from the rows of the current page.
   const pageTitle = isInbox ? t("tickets.views.all") : t(ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox

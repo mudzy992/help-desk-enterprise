@@ -11,7 +11,7 @@ export type CreateTicketDraft = {
   readonly formData: Record<string, unknown>;
   /** own equipment, "" = none. */
   readonly assetId: string;
-  /** M8 #3: what the request is about, and the wished deadline ("" = none). */
+  /** What the request is about and the wished deadline; empty means none. */
   readonly requestType: string;
   readonly dueAt: string;
 };

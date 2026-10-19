@@ -49,7 +49,7 @@ describe("staffDeepLinkFilters", () => {
     expect(staffDeepLinkFilters(new URLSearchParams("forwarded=bogus"), true).forwarded).toBe("");
   });
 
-  // Val 6.1 / modul 4 (D1): card links from the dashboard carry status,
+  // card links from the dashboard carry status,
   // priority, overdue and atRisk — the list must apply them.
   it("parses a single status from metric card links", () => {
     const url = new URLSearchParams("view=all&status=UNROUTED");

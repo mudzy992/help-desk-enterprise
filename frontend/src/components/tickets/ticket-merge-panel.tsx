@@ -31,7 +31,7 @@ interface TicketMergePanelProperties {
 }
 
 /**
- * Package 1.2 (M5): merge this ticket into another one. The search only offers
+ * merge this ticket into another one. The search only offers
  * tickets that pass rule M1 and that the person handles as staff; the server
  * checks everything again on submit.
  */

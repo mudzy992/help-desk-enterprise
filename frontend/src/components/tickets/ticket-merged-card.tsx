@@ -13,7 +13,7 @@ interface TicketMergedCardProperties {
   readonly onRetry?: () => void;
 }
 
-/** Package 1.2 (M7): children merged into this ticket (staff only). */
+/** children merged into this ticket (staff only). */
 export function TicketMergedCard({ items, errorKey = null, onRetry }: TicketMergedCardProperties) {
   const { t, i18n } = useTranslation();
   if (errorKey !== null) {

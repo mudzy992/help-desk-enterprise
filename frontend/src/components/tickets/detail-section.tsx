@@ -8,7 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 
 /*
-  Paket 4.2 (dio B) — the collapsible section primitive used inside the ticket
+  the collapsible section primitive used inside the ticket
   detail rail cards.
 
   The rail owns the state (one store for all sections, persisted per user); the

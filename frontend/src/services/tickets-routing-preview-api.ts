@@ -18,7 +18,7 @@ export type TicketRoutingPreview = {
 
 /**
  * Same routing decision `POST /tickets` would make, without creating anything.
- * Val 5, M7 B2: the review step used to say only "the outcome is decided on
+ * the review step used to say only "the outcome is decided on
  * submit"; it now shows the target group and profile before sending.
  */
 export function fetchTicketRoutingPreview(input: {

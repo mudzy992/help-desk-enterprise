@@ -13,7 +13,7 @@ interface TicketForwardHistoryPanelProperties {
   readonly visible: boolean;
 }
 
-/** Package 1.1: the ticket's route between groups and OUs (staff only). */
+/** the ticket's route between groups and OUs (staff only). */
 export function TicketForwardHistoryPanel({
   ticketId,
   versionKey,

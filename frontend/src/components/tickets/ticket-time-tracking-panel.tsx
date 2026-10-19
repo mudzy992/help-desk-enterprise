@@ -31,7 +31,7 @@ interface TicketTimeTrackingPanelProperties {
 
 type EditTarget = { readonly item: TicketTimeLogResponse; readonly mode: "edit" | "delete" };
 
-/** Package 1.3: time entries of the ticket, guarded timer, manual entry and corrections. */
+/** time entries of the ticket, guarded timer, manual entry and corrections. */
 export function TicketTimeTrackingPanel({
   items,
   visible,

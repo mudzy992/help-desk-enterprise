@@ -17,7 +17,7 @@ interface TicketMergedBannerProperties {
 }
 
 /**
- * Package 1.2 (M7): on a merged child — where the work continues, and for
+ * on a merged child — where the work continues, and for
  * staff with `ticket.merge` the way back (unmerge with a reason).
  */
 export function TicketMergedBanner({

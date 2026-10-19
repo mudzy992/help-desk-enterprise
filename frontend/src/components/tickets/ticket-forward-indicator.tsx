@@ -18,7 +18,7 @@ interface TicketForwardIndicatorProperties {
 }
 
 /**
- * Package 1.6 (plan §3 D8/D9): "↪ 2" next to a forwarded ticket, amber from
+ * "↪ 2" next to a forwarded ticket, amber from
  * three forwards. Staff only: the internal movement is not requester data.
  */
 export function TicketForwardIndicator({

@@ -10,6 +10,7 @@ import { useTicketList } from "@/components/tickets/hooks/use-ticket-list";
 import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
 import { listOfferedServices } from "@/services/service-catalog-api";
 import {
+  claimTicket,
   listTicketsPage,
   type TicketPage,
   type TicketResponse,
@@ -48,7 +49,7 @@ vi.mock("@/lib/session/use-session-capabilities", () => ({
 
 vi.mock("@/services/tickets-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/tickets-api")>();
-  return { ...actual, listTicketsPage: vi.fn() };
+  return { ...actual, claimTicket: vi.fn(), listTicketsPage: vi.fn() };
 });
 
 vi.mock("@/services/tickets-counts-api", async (importOriginal) => {
@@ -146,6 +147,7 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
     vi.mocked(listOfferedServices).mockResolvedValue([]);
     vi.mocked(getTicketCounts).mockReset();
     vi.mocked(getTicketCounts).mockResolvedValue(counts);
+    vi.mocked(claimTicket).mockReset().mockResolvedValue(ticketRow("claimed"));
     vi.mocked(listTicketsPage).mockReset();
     vi.mocked(listTicketsPage).mockImplementation(
       () =>
@@ -200,6 +202,42 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
     await act(async () => {
       pendingPages[0]?.resolve(ticketPage([]));
     });
+  });
+
+  it("exposes a counts failure without replacing it with zero", async () => {
+    vi.mocked(getTicketCounts).mockRejectedValueOnce(new Error("counts offline"));
+    const { result } = renderHook(() => useTicketList(), { wrapper });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      pendingPages[0]?.resolve(ticketPage([ticketRow("visible")]));
+    });
+
+    expect(result.current.pageItems.map((item) => item.id)).toEqual(["visible"]);
+    expect(result.current.counts).toBeNull();
+    expect(result.current.countsErrorKey).toBe("tickets.errorGeneric");
+  });
+
+  it("invalidates and reloads the active list after a successful claim", async () => {
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useTicketList(), { wrapper });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      pendingPages[0]?.resolve(ticketPage([ticketRow("claim-me")]));
+    });
+
+    let claim: Promise<void> | undefined;
+    act(() => {
+      claim = result.current.onClaim("claim-me");
+    });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      pendingPages[1]?.resolve(ticketPage([ticketRow("claimed")]));
+      await claim;
+    });
+
+    expect(claimTicket).toHaveBeenCalledWith("claim-me");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tickets", "list"] });
+    expect(result.current.pageItems.map((item) => item.id)).toEqual(["claimed"]);
   });
 
   it("keeps the last page and exposes a recoverable error when silent refresh fails", async () => {
