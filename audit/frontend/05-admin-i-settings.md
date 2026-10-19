@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **8,2/10 nakon Faze 1**
+**Aktuelna ocjena:** **8,5/10 nakon Faze 2**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faza 1 završena 19. 10. 2026.; `AS1` i `AS2` zatvoreni, OU dio `AS6` zatvoren, a audit-card pagination dio ostaje u Fazi 5.
+**Implementacijski status:** Faze 1 i 2 završene 19. 10. 2026.; `AS1–AS3` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package dio `AS8` sada ima direktnu component pokrivenost.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -309,6 +309,17 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** samo uspješan import refreshuje katalog; zastarjeli preview se nikad ne renderuje.
 
+#### Evidencija zatvaranja Faze 2 (19. 10. 2026.)
+
+- Preview više ne prolazi kroz workspace mutation runner i zato ne pokreće `admin.load()` niti globalni lifecycle error kanal.
+- Preview ima vlastiti busy/error/request-ID state i monotoni request sequence; samo posljednji odgovor smije postaviti report ili završiti loading.
+- Promjena fajla, mapiranja, environment-bound opcije i cancel invalidiraju prethodni preview; import je omogućen samo kada report odgovara aktuelnom inputu.
+- Stvarni import i dalje jedini koristi `runAction`, pa samo uspješan mutation prolazi kroz katalog refresh; neuspješan import zadržava validni report za retry.
+- Dodan je lokalizovani live status previewa i direktni component testovi za odvajanje preview/import toka, out-of-order odgovore, invalidaciju opcije, unsigned potvrdu, import success/error, oversize fajl te lokalnu grešku sa request ID-em.
+- `AS3` i config-package dio `AS8` su zatvoreni.
+
+**Izvršni dokaz:** novi `config-package-import.spec.tsx` sa 7 determinističkih testova, uz postojeće mapping/action/hook testove; završni gateovi evidentirani su u commit closeoutu.
+
 ### Faza 3 — Settings registry concurrency i recovery
 
 **Nalazi:** `AS4`, `AS5`
@@ -428,11 +439,11 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 | Access/RBAC/read-only sigurnosna osnova |        8,5 |        10 |
 | Async/race/error ugovori                |        7,8 |        10 |
 | Settings registry konzistentnost        |        7,2 |        10 |
-| Config versions/import                  |        7,4 |        10 |
+| Config versions/import                  |        9,0 |        10 |
 | Email templates                         |        8,0 |        10 |
 | Testabilnost i održivost                |        6,8 |        10 |
 | Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **8,2/10** | **10/10** |
+| **Ukupno**                              | **8,5/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 

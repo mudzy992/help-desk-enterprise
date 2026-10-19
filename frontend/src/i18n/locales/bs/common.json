@@ -5347,6 +5347,7 @@
       "importHint": "Učitajte paket iz drugog okruženja. Pregled prikazuje šta će se mapirati; uvoz kreira NACRT verziju koju zatim validirate i aktivirate.",
       "file": "Datoteka paketa (.json, max 5 MB)",
       "preview": "Pregledaj uvoz",
+      "previewing": "Pregled uvoza je u toku…",
       "source": "Izvor",
       "sourceValue": "{{environment}}, verzija {{version}}, izvezeno {{date}}",
       "signature": "Potpis",

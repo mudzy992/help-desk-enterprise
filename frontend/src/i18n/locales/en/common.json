@@ -5328,6 +5328,7 @@
       "importHint": "Upload a package from another environment. The preview shows what will be mapped; import creates a DRAFT version that you then validate and activate.",
       "file": "Package file (.json, max 5 MB)",
       "preview": "Preview import",
+      "previewing": "Previewing import…",
       "source": "Source",
       "sourceValue": "{{environment}}, version {{version}}, exported {{date}}",
       "signature": "Signature",
