@@ -57,13 +57,13 @@ const overview = {
   http: { series: [] },
   dlq: { integrationDlq: 0, growth: null },
   configuration: { alertsEnabled: true, historyDays: 90 },
-} as OpsOverview;
+} as unknown as OpsOverview;
 
 describe("OpsHealthCard controller composition", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     state.load.mockResolvedValue(undefined);
-    vi.mocked(acknowledgeOpsAlert).mockResolvedValue(undefined);
+    vi.mocked(acknowledgeOpsAlert).mockResolvedValue(overview.alerts[0]);
   });
   afterEach(cleanup);
 

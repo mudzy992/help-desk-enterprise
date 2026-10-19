@@ -107,9 +107,7 @@ export function SettingsPage() {
                 pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
-              {/* 5.4.0-e.2: the actionable security surfaces live on the admin
-                  „Sigurnost" tab; Postavke only points there instead of hosting
-                  a second copy of the same cards. */}
+              {/* Keep one canonical security editor; Settings links to its Admin tab. */}
               {canOpenSecurityTab ? <AdminSecurityPointerCard /> : null}
             </div>
           </div>

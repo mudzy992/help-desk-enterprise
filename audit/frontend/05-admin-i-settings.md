@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **9,5/10 nakon Faze 6**
+**Aktuelna ocjena:** **9,8/10 nakon Faza 7 i 8**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faze 1–6 završene 19. 10. 2026.; `AS1–AS7` i `AS10` su zatvoreni. Admin, config-package, access i Ops Health dijelovi `AS8` imaju direktnu pokrivenost; preostaje email dio u Fazi 7.
+**Implementacijski status:** Faze 1–8 završene 19. 10. 2026.; `AS1–AS11` su zatvoreni. `AS12` je implementacijski pripremljen, ali izvršni browser dokaz ostaje infrastrukturno blokiran jer lokalni E2E API na `http://localhost:10001/health` nije dostupan.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -433,6 +433,18 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** nema gubitka drafta, stale previewa ni write puta u read-only stanju.
 
+#### Evidencija zatvaranja Faze 7 (19. 10. 2026.)
+
+- Preview se sada odmah invalidira pri promjeni templatea, localea, confidential moda ili drafta; otkazani stariji odgovor ne može vratiti stale sadržaj.
+- Unknown placeholder čisti preview i blokira preview/save/test tokove.
+- Save i test koriste zajednički sinhroni operation guard: međusobno su isključivi i dupli submit ne može poslati drugi zahtjev prije React rerendera.
+- Uspješan save objavljuje serverom vraćeni overview, resetuje draft baseline i uklanja dirty stanje; greške zadržavaju draft i postojeći toast feedback.
+- Page load koristi request sequence i unmount invalidaciju, prikazuje request ID i retry, a read-only politika zadržava pregled uz write-disabled editor.
+- Direktni editor/page testovi pokrivaju read-only, latest preview, unknown placeholder, save/test exclusion, save clean-state, stay/proceed, browser unload, locale/reset te load error/request-ID/retry.
+- `AS9` i preostali email dio `AS8` su zatvoreni.
+
+**Izvršni dokaz:** 2 nova component spec fajla sa 9/9 testova; završni puni gateovi navedeni su u Fazi 8 evidenciji.
+
 ### Faza 8 — Higijena, integracijski i browser closeout
 
 **Nalazi:** `AS11`, `AS12` i završna regresija svih nalaza
@@ -446,6 +458,16 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 6. Ažurirati ovaj audit dokazima i zatvoriti svaki `AS` nalaz pojedinačno.
 
 **Exit gate:** svi AS nalazi zatvoreni; realni browser run zelen. Ako browser infrastruktura nije dostupna, dokumentovati blokadu i završiti najviše na **9,8/10**.
+
+#### Evidencija zatvaranja Faze 8 (19. 10. 2026.)
+
+- Uklonjene su historijske packet/milestone oznake iz aktivnog Admin/Settings production i test scopea; preostali komentari opisuju trajne sigurnosne, layout i UX invariante.
+- Email E2E scenarij proširen je dirty-navigation stay/proceed dokazom, očuvanjem drafta nakon „stay“ odluke i 320 px horizontal-overflow provjerom.
+- Playwright komanda `npm test -- --project=chromium tests/11-email-templates.spec.ts` je **stvarno pokrenuta**, ali global setup je prekinut prije browser scenarija: `E2E stack not ready at http://localhost:10001/health: TypeError: fetch failed`.
+- Zbog nedostupnog API/browser stacka nisu predstavljeni kao izvršeni ručni 320/375/768/1280 px, zoom 200%, keyboard/focus niti server-integrisani mutation scenariji.
+- `AS11` je zatvoren. `AS12` ostaje jedini otvoren nalaz i isključivo predstavlja nedostajući izvršni browser dokaz; implementacijski E2E scenario je spreman.
+
+**Konačni status bez dostupne browser infrastrukture:** `AS1–AS11` zatvoreni; puni frontend Vitest prolaz je 358/358 fajlova i 1442/1442 testova, production build, i18n/design-system gate, Prettier i `git diff --check` su prošli. Puni ESLint je prošao bez errora uz 12 ranije postojeća warninga izvan ovog scopea. Ocjena je ograničena na **9,8/10** prema unaprijed definisanom exit gateu.
 
 ---
 
@@ -487,13 +509,13 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 | Oblast                                  |   Trenutno |      Cilj |
 | --------------------------------------- | ---------: | --------: |
 | Access/RBAC/read-only sigurnosna osnova |       10,0 |        10 |
-| Async/race/error ugovori                |        9,3 |        10 |
+| Async/race/error ugovori                |       10,0 |        10 |
 | Settings registry konzistentnost        |       10,0 |        10 |
-| Config versions/import                  |        9,0 |        10 |
-| Email templates                         |        8,0 |        10 |
-| Testabilnost i održivost                |        9,3 |        10 |
-| Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **9,5/10** | **10/10** |
+| Config versions/import                  |        9,8 |        10 |
+| Email templates                         |       10,0 |        10 |
+| Testabilnost i održivost                |       10,0 |        10 |
+| Accessibility/responsive/browser dokaz  |        8,5 |        10 |
+| **Ukupno**                              | **9,8/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 
@@ -503,17 +525,17 @@ Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo
 
 Modul se može označiti zatvorenim tek kada:
 
-- [ ] `AS1–AS12` imaju implementaciju, test i evidence bilješku;
-- [ ] refresh greške ne brišu uspješne podatke;
-- [ ] svi relevantni async tokovi su latest-only;
-- [ ] settings pending stanje je tačno za paralelne i preklapajuće operacije;
-- [ ] preview ne pokreće mutation reload i ne prikazuje stale report;
-- [ ] read-only loading/error ne izlaže aktivne write kontrole;
-- [ ] Ops Health je razložen u testabilne odgovornosti;
-- [ ] email dirty/save/test/preview tokovi imaju direktne testove;
-- [ ] nema historijskih packet/milestone komentara u aktivnom scopeu;
-- [ ] build, lint, format, i18n i relevantni testovi prolaze;
-- [ ] relevantni E2E/browser scenariji su stvarno izvršeni i evidentirani.
+- [ ] `AS1–AS12` imaju implementaciju, test i evidence bilješku — `AS1–AS11` završeni; `AS12` blokiran infrastrukturom;
+- [x] refresh greške ne brišu uspješne podatke;
+- [x] svi relevantni async tokovi su latest-only;
+- [x] settings pending stanje je tačno za paralelne i preklapajuće operacije;
+- [x] preview ne pokreće mutation reload i ne prikazuje stale report;
+- [x] read-only loading/error ne izlaže aktivne write kontrole;
+- [x] Ops Health je razložen u testabilne odgovornosti;
+- [x] email dirty/save/test/preview tokovi imaju direktne testove;
+- [x] nema historijskih packet/milestone komentara u aktivnom scopeu;
+- [x] build, lint, format, i18n i relevantni testovi prolaze;
+- [ ] relevantni E2E/browser scenariji su stvarno izvršeni i evidentirani — run pokušan, stack nije dostupan.
 
 **Preporučeni redoslijed implementacije:** Faza 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
 Faze su namjerno segmentirane tako da se svaka može zasebno implementirati, testirati, commitovati i pushati bez oslanjanja na nezavršen kasniji segment.

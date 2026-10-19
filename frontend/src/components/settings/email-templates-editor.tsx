@@ -60,6 +60,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const operation = useRef<"save" | "test" | null>(null);
   const focused = useRef<{
     field: EmailTemplateField;
     element: HTMLInputElement | HTMLTextAreaElement;
@@ -100,6 +101,10 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
 
   // Live preview (debounced) through the server renderer — exactly what recipients get.
   useEffect(() => {
+    // Never leave a preview for the previous key/locale/draft visible while the
+    // server validates and renders the current selection.
+    setPreview(null);
+    setPreviewError(null);
     if (content === undefined || hasUnknown) return undefined;
     let cancelled = false;
     const handle = window.setTimeout(() => {
@@ -141,6 +146,8 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   };
 
   const save = async (reason: string) => {
+    if (!canWrite || hasUnknown || operation.current !== null) return;
+    operation.current = "save";
     setSaving(true);
     try {
       const saved = await saveEmailTemplates({
@@ -158,12 +165,14 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         error: error,
       });
     } finally {
+      operation.current = null;
       setSaving(false);
     }
   };
 
   const sendTest = async () => {
-    if (content === undefined) return;
+    if (!canWrite || content === undefined || hasUnknown || operation.current !== null) return;
+    operation.current = "test";
     setTesting(true);
     try {
       const result = await sendTestEmailTemplate({
@@ -185,6 +194,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         error,
       });
     } finally {
+      operation.current = null;
       setTesting(false);
     }
   };
@@ -324,7 +334,13 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
                 type="button"
                 size="xs"
                 variant="outline"
-                disabled={!canWrite || testing || hasUnknown || !overview.delivery.hasSmtpTransport}
+                disabled={
+                  !canWrite ||
+                  saving ||
+                  testing ||
+                  hasUnknown ||
+                  !overview.delivery.hasSmtpTransport
+                }
                 data-testid="email-template-send-test"
                 onClick={() => void sendTest()}
               >
@@ -336,7 +352,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
             </div>
             {canWrite && dirty && !hasUnknown ? (
               <SettingsReasonConfirm
-                pending={saving}
+                pending={saving || testing}
                 onCancel={() => setDraft(overview.templates)}
                 onConfirm={save}
               />

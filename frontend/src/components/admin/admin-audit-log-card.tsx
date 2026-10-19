@@ -218,8 +218,8 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
 }
 
 /**
- * The actor column used to show a raw user id. It shows the person's display
- * name now (packet 5.4.0-f follow-up) with the id kept as the cell tooltip; an
+ * The actor column shows the person's display name with the id kept as the cell
+ * tooltip; an
  * account that no longer exists falls back to a translated "unknown user", never
  * to the bare id.
  */

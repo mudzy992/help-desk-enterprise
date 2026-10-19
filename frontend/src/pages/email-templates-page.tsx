@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
@@ -27,20 +27,32 @@ export function EmailTemplatesPage() {
   const [overview, setOverview] = useState<EmailTemplatesOverview | null>(null);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const requestSequence = useRef(0);
 
   const load = useCallback(async () => {
+    const sequence = ++requestSequence.current;
+    setLoading(true);
     try {
-      setOverview(await getEmailTemplates());
+      const next = await getEmailTemplates();
+      if (sequence !== requestSequence.current) return;
+      setOverview(next);
       setErrorKey(null);
       setRequestId(null);
     } catch (loadError) {
+      if (sequence !== requestSequence.current) return;
       setErrorKey(mapApiError(loadError));
       setRequestId(readApiRequestId(loadError));
+    } finally {
+      if (sequence === requestSequence.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [load]);
 
   return (
@@ -69,7 +81,13 @@ export function EmailTemplatesPage() {
       {errorKey !== null ? (
         <div className="space-y-2">
           <ApiErrorText messageKey={errorKey} requestId={requestId} />
-          <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() => void load()}
+          >
             {t("ui.retry")}
           </Button>
         </div>

@@ -62,9 +62,8 @@ describe("AdminSecurityPanel", () => {
   });
 
   /*
-    5.4.0-e.2/e.3: the SuperAdmin opens „Sigurnost" and must find what they can
-    change **without scrolling past the journal** (the journal is the tallest
-    card on the tab, so anything under it is off-screen). The administration
+    The SuperAdmin must find what they can change without scrolling past the
+    journal (the journal is the tallest card on the tab). The administration
     cards come first and the journal follows as the record of every change.
     A profile without the right never mounts them, so a deep link by a regular
     ADMIN cannot fire a single SuperAdmin request.

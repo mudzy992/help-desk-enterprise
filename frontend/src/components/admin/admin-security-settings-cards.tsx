@@ -154,8 +154,7 @@ export function AdminSecurityPolicyCards({
   return (
     <>
       <Card className="fade-in" data-testid="admin-security-policy-card">
-        {/* 5.4.0-e.3: the card holds the session policy *and* the breached-password
-            check, so its title names the group instead of only the first row. */}
+        {/* The title covers both session policy and breached-password controls. */}
         <CardHeader
           title={t("admin.security.policyTitle")}
           subtitle={t("admin.security.policyBody")}

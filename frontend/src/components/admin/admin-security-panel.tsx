@@ -17,11 +17,8 @@ import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
  * switch (edited through dialogs, never inline), and the bulk password reset.
  * The Postavke tab keeps a pointer row so nobody has to guess where they went.
  *
- * 5.4.0-e.3 (owner's live review): the settings cards come **before** the
- * journal. The journal is the tallest surface on the tab, so everything under it
- * disappears below the fold — which is how the accessible part of the tab looked
- * empty while only the record was visible. This way the tab opens with what can
- * be changed and the journal sits right underneath, ready to confirm the write.
+ * Settings cards come before the tall journal so the tab opens with actionable
+ * controls; the journal follows immediately to confirm each write.
  */
 export function AdminSecurityPanel({
   isLoading,

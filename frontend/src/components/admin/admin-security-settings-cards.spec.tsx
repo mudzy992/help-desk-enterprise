@@ -99,7 +99,7 @@ describe("AdminSecurityPolicyCards", () => {
     expect(html).toContain('data-testid="admin-security-policy-row-webhook"');
     expect(html).toContain("admin.security.auditWebhookRow");
     expect(html).toContain("admin.security.captchaRow");
-    // 5.4.0-e.3: the card holds two groups, so its title covers both rows.
+    // The grouped card title covers both policy rows.
     expect(html).toContain("admin.security.policyTitle");
     expect(html).toContain("admin.security.policyBody");
     expect(html).toContain("admin.security.sessionPolicyRow");
