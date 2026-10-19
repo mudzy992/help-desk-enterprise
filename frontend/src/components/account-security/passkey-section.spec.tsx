@@ -5,7 +5,7 @@ import { PasskeySection } from "@/components/account-security/passkey-section";
 import type { PasskeyView } from "@/services/account-security-api";
 
 /*
-  Paket 5.4.0-e: the profile "Passkey" card. The spec renders without a browser
+  The profile "Passkey" card. The spec renders without a browser
   and asserts the two rules a list must never break: a raw credential row id is
   not printed (it may appear only inside a title attribute) and the empty list
   says so instead of rendering a bare button.

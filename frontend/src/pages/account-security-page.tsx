@@ -26,7 +26,7 @@ import {
 } from "@/services/account-security-api";
 
 /**
- * Paket 2.1: "Moj profil → Sigurnost naloga" — password, two-step
+ * "Moj profil → Sigurnost naloga" — password, two-step
  * verification and active sessions of the signed-in user.
  */
 export function AccountSecurityPage() {

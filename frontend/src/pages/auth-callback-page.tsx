@@ -12,7 +12,7 @@ import { useSession } from "@/lib/session/use-session";
 import { getAuthenticationProviders } from "@/services/auth-api";
 
 /*
-  Paket 1.8 (A1): landing page of the Microsoft redirect. It finishes the MSAL
+  Landing page of the Microsoft redirect. It finishes the MSAL
   flow, exchanges the ID token for an application session and continues to the
   page the user originally wanted. Any failure goes back to /login with a flag,
   where the message is shown (no token or error detail is ever rendered).

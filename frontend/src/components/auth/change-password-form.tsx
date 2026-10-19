@@ -13,10 +13,10 @@ import { fallbackMinimumPasswordLength } from "@/services/auth-api";
 interface ChangePasswordFormProperties {
   readonly onCompleted: (newPassword: string) => Promise<void>;
   readonly onCancel?: () => void;
-  /** Paket 2.1: an expired password explains itself differently. */
+  /** An expired password explains itself differently. */
   readonly reason?: "temporary" | "expired";
   /**
-   * Paket 5.1 (M2 #2): `private.auth.password.minLength` from the sign-in
+   * `private.auth.password.minLength` from the sign-in
    * response. The form used to hard-code 12 and disagree with a stricter policy.
    */
   readonly passwordMinLength?: number;

@@ -14,7 +14,7 @@ function submitCode(code: string) {
   fireEvent.submit(input.closest("form") as HTMLFormElement);
 }
 
-describe("MfaCodeDialog disable flow (A25)", () => {
+describe("MfaCodeDialog disable flow", () => {
   afterEach(() => {
     cleanup();
   });

@@ -4,8 +4,7 @@ import { MfaSection } from "@/components/account-security/mfa-section";
 import type { MfaStatus } from "@/services/account-security-api";
 
 /*
-  Paket 5.4.0-e.2: the live review asked whether MFA still has a place once
-  passkeys exist. It does — an authenticator code (and the recovery codes) stay
+  Passkeys do not replace MFA: an authenticator code (and the recovery codes) stay
   the second factor, a passkey is added *as another way to prove it*, so the
   account card has to say that in one sentence instead of letting an
   administrator look for a separate switch.

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MfaMethodStep } from "@/components/auth/mfa-method-step";
 
 /*
-  Paket 5.4.0-e: the second factor step must keep the pre-passkey behaviour for
+  The second factor step must keep the pre-passkey behaviour for
   a server that does not announce `methods` — the choice buttons appear only
   when the account offers a passkey and the browser can run the ceremony.
 */
@@ -82,7 +82,7 @@ describe("MfaMethodStep", () => {
   });
 
   /*
-    Paket 5.4.1 closeout (M3, MFA korak): the human check sits above the code
+    the human check sits above the code
     field and holds the submit button until it is solved. The passkey branch
     never shows it — a passkey is not guessable.
   */

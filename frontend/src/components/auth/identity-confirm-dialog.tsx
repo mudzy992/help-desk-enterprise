@@ -15,7 +15,7 @@ import {
 } from "@/services/security-api";
 
 /**
- * Paket 5.4.0-e: the one dialog for "confirm it is really you" before a
+ * The one dialog for "confirm it is really you" before a
  * sensitive action. It offers the current code, and — when the account has a
  * passkey and the browser supports it — the alternative "Potvrdi passkeyjem".
  *

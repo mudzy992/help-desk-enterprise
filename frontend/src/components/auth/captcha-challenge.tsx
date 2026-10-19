@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { hintClassName } from "@/components/ui/control";
 
 /*
-  Paket 5.4.1 (M3): the Turnstile widget on the sign-in page.
+  The Turnstile widget on the sign-in page.
 
   It renders **only** when the server answered `CAPTCHA_REQUIRED` — the login
   page used to be able to sign in without any check, and it still can: the
   challenge appears after repeated failures, not on every visit. Three rules the
   widget has to keep:
 
-    * the Cloudflare script is loaded on demand, once per page, explicitly
+    * The Cloudflare script is loaded on demand, once per page, explicitly
       (`?render=explicit`); no third-party script runs before the challenge is
       actually needed;
     * a Turnstile token is single-use — after a rejected attempt the widget is

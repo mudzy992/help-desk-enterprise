@@ -12,11 +12,11 @@ import { ceremonyMessageKey, passkeyMessageKey } from "@/lib/webauthn/passkey-er
 import { startPasskeyLogin } from "@/services/auth-api";
 
 /**
- * Paket 5.4.0-e: the second factor step. When the account has a passkey the
+ * The second factor step. When the account has a passkey the
  * person may choose "Kod iz aplikacije" or "Potvrdi passkeyjem"; the server's
  * `methods` list decides what is offered, and a missing field (older server)
  * keeps the TOTP-only behaviour. The chosen factor is remembered per device so
- * the next sign-in opens on it.
+ * The next sign-in opens on it.
  *
  * Storing the session stays in the session hook — this component only runs the
  * browser ceremony and hands the assertion up, so a code login and a passkey
@@ -44,7 +44,7 @@ export function MfaMethodStep({
   readonly onCompletePasskey: (assertion: AuthenticationResponseJSON) => Promise<void>;
   readonly onVerified: () => void;
   readonly onCancel: () => void;
-  /** Paket 5.4.1 closeout (M3): rendered above the code field, only for the code. */
+  /** Rendered above the code field, only for the code. */
   readonly captcha?: ReactNode;
   readonly isCaptchaBlocked?: boolean;
   readonly isCaptchaUnavailable?: boolean;

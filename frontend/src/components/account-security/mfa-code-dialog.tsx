@@ -12,7 +12,7 @@ interface MfaCodeDialogProperties {
   readonly onSubmit: (code: string) => Promise<void>;
 }
 
-/** Paket 2.1: sensitive MFA actions are confirmed with a current code. */
+/** Sensitive MFA actions are confirmed with a current code. */
 export function MfaCodeDialog({
   open,
   onOpenChange,

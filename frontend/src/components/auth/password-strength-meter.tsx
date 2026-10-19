@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import type { BadgeTone } from "@/lib/ui/presentation-types";
 
 /*
-  Paket 2.1 (M7): guidance only — the server decides. zxcvbn-ts and its
+  Guidance only — the server decides. zxcvbn-ts and its
   dictionaries (~1 MB) load lazily, the first time a password is typed.
 */
 type Scorer = (password: string) => number;

@@ -13,7 +13,7 @@ vi.mock("@/lib/branding/branding-store", () => ({
 
 const codes = ["aaaaa-11111", "bbbbb-22222"];
 
-describe("RecoveryCodesPanel copy (A22)", () => {
+describe("RecoveryCodesPanel copy", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();

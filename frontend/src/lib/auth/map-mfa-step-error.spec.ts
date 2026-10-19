@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/services/api";
 import { mapMfaCodeError, mapMfaEnrollmentLoadError } from "./map-mfa-step-error";
 
-describe("MFA intermediate-step error mapping (5.2.1 M2 #5)", () => {
+describe("MFA intermediate-step error mapping", () => {
   it("uses the shared expired-sign-in message for invalid or expired MFA tokens", () => {
     const error = new ApiError(401, "INVALID_CREDENTIALS", "raw backend detail");
     expect(mapMfaCodeError(error)).toBe("signInExpired");

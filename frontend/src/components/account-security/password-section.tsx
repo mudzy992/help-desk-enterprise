@@ -17,7 +17,7 @@ interface PasswordSectionProperties {
   readonly onChanged: () => void;
 }
 
-/** Paket 2.1 (M7): own password change; other sessions end, this one stays. */
+/** Own password change; other sessions end, this one stays. */
 export function PasswordSection({ password, onChanged }: PasswordSectionProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();

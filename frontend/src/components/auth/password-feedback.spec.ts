@@ -3,7 +3,7 @@ import { ApiError } from "@/services/api";
 import { readPasswordFeedbackKeys } from "@/components/auth/password-feedback";
 
 /*
-  Paket 5.1 (M1 #1): the install wizard reports the broken password rules under
+  The install wizard reports the broken password rules under
   its own code (`PASSWORD_POLICY_VIOLATIONS`), while the forced-change flow uses
   `INVALID_PASSWORD`. Both screens share this mapping, so `password12345` no
   longer slips through the founder account with a vague message.

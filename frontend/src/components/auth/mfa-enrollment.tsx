@@ -30,7 +30,7 @@ function groupSecret(secret: string): string {
 }
 
 /**
- * Paket 2.1 (M2): scan the QR code (or type the key), then prove it with a
+ * Scan the QR code (or type the key), then prove it with a
  * first code. The QR library loads only here.
  */
 export function MfaEnrollment({ loadSecret, onConfirm, onCancel }: MfaEnrollmentProperties) {
