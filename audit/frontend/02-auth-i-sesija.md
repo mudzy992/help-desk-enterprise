@@ -131,9 +131,9 @@ Poseban status:
 
 ## 7. Ocjena
 
-### **9.5/10**
+### **9.7/10**
 
-Modul je značajno bolji od historijske ocjene 5/10. Faze 1–3 dodatno zatvaraju cross-tab izolaciju identiteta, strogu storage validaciju, logout/sign-in race i Account Security query/test ugovor. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
+Modul je značajno bolji od historijske ocjene 5/10. Faze 1–4 dodatno zatvaraju cross-tab izolaciju identiteta, strogu storage validaciju, logout/sign-in race, Account Security query/test ugovor i tipizovani login flow. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
 
 Do 10/10 nedostaju tri vrste dokaza:
 
@@ -214,6 +214,32 @@ Verifikacija Faze 3:
 - ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
 
 Ocjena nakon Faze 3: **9.5/10**.
+
+## Status implementacije — Faza 4 (2026-10-19)
+
+Faza 4 je kompletirana i **AS6 je zatvoren**:
+
+- tipizovani `LoginFlowStep` i `LoginFlowEvent` ugovor izdvojen je u čisti reducer/controller;
+- server outcomes se iscrpno mapiraju na credentials, forced-password-change, MFA, enrollment i recovery-code korake;
+- router handoff prihvata samo kompletna runtime-validirana osjetljiva polja, a malformed state počinje iz credentials koraka;
+- svaka tranzicija zamjenjuje cijelo stanje, pa prethodni password-change/MFA token ili recovery kodovi ne ostaju u narednom koraku;
+- change/MFA/enrollment/recovery prezentacija izdvojena je u `LoginFlowStep`, dok postojeće specijalizovane forme ostaju zasebne komponente;
+- `login-page.tsx` je smanjen sa 621 na 519 linija i sada orkestrira provider discovery, credentials/CAPTCHA i navigaciju umjesto da renderuje sve auth korake;
+- direktni reducer testovi pokrivaju outcome matricu, zamjenu osjetljivih tokena, enrollment→codes, cancel cleanup i validan/nevalidan router handoff;
+- postojeći login/CAPTCHA/MFA ugovor i E2E markup nisu promijenjeni.
+
+Verifikacija Faze 4:
+
+- ciljani login-flow testovi — **3/3 fajla i 16/16 testova prolazi**;
+- puni frontend Vitest — **338/338 fajlova i 1369/1369 testova prolazi**;
+- TypeScript i produkcijski build — prolaze;
+- ciljani ESLint — prolazi bez outputa;
+- i18n/design-system check — prolazi, 8788 ključeva i BS/EN parity;
+- ciljani grep nema produkcijske `as unknown as`/`as never` zaobilaznice;
+- `git diff --check` — prolazi;
+- ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
+
+Ocjena nakon Faze 4: **9.7/10**.
 
 ## 8. Fazni plan do 10/10
 
