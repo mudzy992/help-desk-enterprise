@@ -10,13 +10,13 @@ import { addonRegistryKey } from "@/lib/settings/is-featured-setting-key";
 
 interface AddonsSettingsPanelProperties {
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
 export function AddonsSettingsPanel({
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: AddonsSettingsPanelProperties) {
   const { t } = useTranslation();
@@ -65,7 +65,7 @@ export function AddonsSettingsPanel({
             key={item.key}
             item={item}
             canWrite={canWrite}
-            pending={pendingKey === addonRegistryKey(item.key)}
+            pending={pendingKeys.has(addonRegistryKey(item.key))}
             onSave={onSave}
           />
         ))}

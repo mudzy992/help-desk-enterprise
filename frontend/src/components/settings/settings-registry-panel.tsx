@@ -19,7 +19,7 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
 interface SettingsRegistryPanelProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly errorKey: ApiErrorKey | null;
   readonly onSave: SettingsSaver;
 }
@@ -33,7 +33,7 @@ interface SettingsRegistryPanelProperties {
 export function SettingsRegistryPanel({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   errorKey,
   onSave,
 }: SettingsRegistryPanelProperties) {
@@ -110,7 +110,7 @@ export function SettingsRegistryPanel({
               group={group}
               allEntries={entries}
               canWrite={canWrite}
-              pendingKey={pendingKey}
+              pendingKeys={pendingKeys}
               onSave={onSave}
               isFiltered={isFiltered}
             />

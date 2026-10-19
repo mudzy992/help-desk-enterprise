@@ -30,7 +30,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 interface BrandingSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSaveMany: SettingsSaverMany;
 }
 
@@ -41,7 +41,7 @@ interface BrandingSettingsCardProperties {
 export function BrandingSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSaveMany,
 }: BrandingSettingsCardProperties) {
   const { t } = useTranslation();
@@ -76,7 +76,7 @@ export function BrandingSettingsCard({
         : null,
   };
   const hasErrors = Object.values(errors).some((error) => error !== null);
-  const busy = saving || (pendingKey !== null && pendingKey.startsWith("public.branding."));
+  const busy = saving || [...pendingKeys].some((key) => key.startsWith("public.branding."));
   const disabled = !canWrite || busy;
 
   const update = (field: BrandingField, value: string) =>

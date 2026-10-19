@@ -89,7 +89,7 @@ const noop = vi.fn(async () => ({ changed: [], reset: [] }) as never);
 describe("AdminSecurityPolicyCards", () => {
   it("lists one row per policy surface with its live state", () => {
     const html = renderToStaticMarkup(
-      <AdminSecurityPolicyCards entries={entries} canWrite pendingKey={null} onSave={noop} />,
+      <AdminSecurityPolicyCards entries={entries} canWrite pendingKeys={new Set()} onSave={noop} />,
     );
     expect(html).toContain('data-testid="admin-security-policy-row-session"');
     expect(html).toContain('data-testid="admin-security-policy-row-hibp"');
@@ -111,7 +111,7 @@ describe("AdminSecurityPolicyCards", () => {
 
   it("never renders an edit form inside the card", () => {
     const html = renderToStaticMarkup(
-      <AdminSecurityPolicyCards entries={entries} canWrite pendingKey={null} onSave={noop} />,
+      <AdminSecurityPolicyCards entries={entries} canWrite pendingKeys={new Set()} onSave={noop} />,
     );
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<form");
@@ -126,7 +126,7 @@ describe("AdminSecurityPolicyCards", () => {
       <AdminSecurityPolicyCards
         entries={entries}
         canWrite={false}
-        pendingKey={null}
+        pendingKeys={new Set()}
         onSave={noop}
       />,
     );
@@ -139,7 +139,7 @@ describe("AdminSecurityPolicyCards", () => {
     // No captcha entry in the registry yet: `none` is the default, so the row
     // must not promise a check that is not running.
     const off = renderToStaticMarkup(
-      <AdminSecurityPolicyCards entries={entries} canWrite pendingKey={null} onSave={noop} />,
+      <AdminSecurityPolicyCards entries={entries} canWrite pendingKeys={new Set()} onSave={noop} />,
     );
     expect(off).toContain("admin.security.captchaHint");
     expect(off.match(/settings\.security\.enabled/g) ?? []).toHaveLength(1);
@@ -148,7 +148,7 @@ describe("AdminSecurityPolicyCards", () => {
       <AdminSecurityPolicyCards
         entries={[...entries, entry(captchaProviderKey, "turnstile")]}
         canWrite
-        pendingKey={null}
+        pendingKeys={new Set()}
         onSave={noop}
       />,
     );
@@ -159,7 +159,7 @@ describe("AdminSecurityPolicyCards", () => {
 
   it("ignores the redaction switch — it belongs to Usklađenost", () => {
     const html = renderToStaticMarkup(
-      <AdminSecurityPolicyCards entries={entries} canWrite pendingKey={null} onSave={noop} />,
+      <AdminSecurityPolicyCards entries={entries} canWrite pendingKeys={new Set()} onSave={noop} />,
     );
     expect(html).not.toContain("private.security.redaction.enabled");
   });

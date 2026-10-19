@@ -28,7 +28,7 @@ interface SettingsCategoryDialogProperties {
    */
   readonly allEntries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
@@ -48,7 +48,7 @@ export function SettingsCategoryDialog({
   entries,
   allEntries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: SettingsCategoryDialogProperties) {
   const { t } = useTranslation();
@@ -142,7 +142,7 @@ export function SettingsCategoryDialog({
           entry={openEntry}
           entries={allEntries}
           canWrite={canWrite}
-          pending={pendingKey === openEntry.key}
+          pending={pendingKeys.has(openEntry.key)}
           onSave={onSave}
         />
       )}

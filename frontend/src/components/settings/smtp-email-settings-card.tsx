@@ -33,14 +33,14 @@ const providerPresetHosts: Readonly<Record<string, string>> = {
 interface SmtpEmailSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
 export function SmtpEmailSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: SmtpEmailSettingsCardProperties) {
   const { t } = useTranslation();
@@ -99,7 +99,7 @@ export function SmtpEmailSettingsCard({
           actions={
             <Switch
               checked={effectiveEnabled}
-              disabled={!canWrite || pendingKey === smtpSettingKeys.enabled}
+              disabled={!canWrite || pendingKeys.has(smtpSettingKeys.enabled)}
               onCheckedChange={(checked) => setDraftEnabled(checked)}
               aria-label={t("settings.smtp.enabled")}
             />
@@ -193,7 +193,7 @@ export function SmtpEmailSettingsCard({
           ) : null}
           {draftEnabled !== null && draftEnabled !== smtpEnabled ? (
             <SettingsReasonConfirm
-              pending={pendingKey === smtpSettingKeys.enabled}
+              pending={pendingKeys.has(smtpSettingKeys.enabled)}
               disabled={blockingParents.length > 0}
               onCancel={() => setDraftEnabled(null)}
               onConfirm={async (reason) => {
@@ -224,7 +224,7 @@ export function SmtpEmailSettingsCard({
         entries={drawerEntries}
         allEntries={entries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
       <SettingDependentsDialog
@@ -238,7 +238,7 @@ export function SmtpEmailSettingsCard({
         parentKey={smtpSettingKeys.enabled}
         parentTitle={t("settings.smtp.enabled")}
         dependents={dependents ?? []}
-        isPending={pendingKey === smtpSettingKeys.enabled}
+        isPending={pendingKeys.has(smtpSettingKeys.enabled)}
         onCancel={() => {
           setDependents(null);
           setPendingReason(null);

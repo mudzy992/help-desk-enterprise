@@ -2,10 +2,10 @@
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
-**Aktuelna ocjena:** **8,5/10 nakon Faze 2**
+**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
 **Cilj nakon plana:** **10/10 uz izvršen browser/E2E closeout**
 
-**Implementacijski status:** Faze 1 i 2 završene 19. 10. 2026.; `AS1–AS3` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package dio `AS8` sada ima direktnu component pokrivenost.
+**Implementacijski status:** Faze 1–3 završene 19. 10. 2026.; `AS1–AS5` su zatvoreni, OU dio `AS6` je zatvoren, a audit-card pagination dio ostaje u Fazi 5. Config-package dio `AS8` sada ima direktnu component pokrivenost.
 **Prefiks nalaza:** `AS` (Admin/Settings)
 
 ---
@@ -333,6 +333,19 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 
 **Exit gate:** kontrole se ne enableuju prije završetka posljednje operacije za dati ključ.
 
+#### Evidencija zatvaranja Faze 3 (19. 10. 2026.)
+
+- `pendingKeys` je sada jedini kanonski pending ugovor; singularni `pendingKey` je uklonjen iz hooka, Settings pagea, admin security settings kompozicije i svih settings kartica/dijaloga.
+- Registry koristi per-key reference count: paralelne disjunktne i preklapajuće single/batch operacije nezavisno dodaju i uklanjaju samo vlastite pending reference.
+- Sve kontrole provjeravaju članstvo kroz `pendingKeys.has(key)`; branding batch stanje provjerava cijeli skup po trajnom key prefiksu.
+- Write i read greške sada izlažu request ID; `reload` čisti write grešku prije eksplicitnog refetcha.
+- React Query stale snapshot ostaje vidljiv pri background refresh grešci, dok Settings page prikazuje korelacijsku grešku i retry CTA bez uklanjanja postojećih kartica.
+- Initial registry greška također ima request ID i retry; retry je onemogućen dok je refresh aktivan.
+- Dodani su hook testovi za batch, overlapping key reference-count, failure uz aktivnu preklapajuću operaciju i stale-data refresh grešku, te page testovi za initial/background recovery.
+- `AS4` i `AS5` su zatvoreni.
+
+**Izvršni dokaz:** prošireni registry/page/security testovi sa 16/16 ciljanih testova; puni frontend Vitest prolaz 349/349 fajlova i 1408/1408 testova, production build, scope ESLint, Prettier i `git diff --check` su prošli.
+
 ### Faza 4 — Read-only i access matrica
 
 **Nalazi:** `AS10`, access dio `AS8`
@@ -437,13 +450,13 @@ Frontend skrivanje nikada se ne smije tretirati kao sigurnosna kontrola. Svaka n
 | Oblast                                  |   Trenutno |      Cilj |
 | --------------------------------------- | ---------: | --------: |
 | Access/RBAC/read-only sigurnosna osnova |        8,5 |        10 |
-| Async/race/error ugovori                |        7,8 |        10 |
-| Settings registry konzistentnost        |        7,2 |        10 |
+| Async/race/error ugovori                |        8,4 |        10 |
+| Settings registry konzistentnost        |       10,0 |        10 |
 | Config versions/import                  |        9,0 |        10 |
 | Email templates                         |        8,0 |        10 |
 | Testabilnost i održivost                |        6,8 |        10 |
 | Accessibility/responsive/browser dokaz  |        7,0 |        10 |
-| **Ukupno**                              | **8,5/10** | **10/10** |
+| **Ukupno**                              | **8,8/10** | **10/10** |
 
 Ocjena nije kazna za količinu funkcionalnosti; upravo suprotno, modul ima mnogo zrelih funkcija. Snižena je zato što kritične state-machine i race tvrdnje nisu dovoljno testirane, a dio aktuelnog koda demonstrira konkretne edge-case kvarove.
 

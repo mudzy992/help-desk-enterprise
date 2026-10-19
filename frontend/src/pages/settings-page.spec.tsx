@@ -1,9 +1,18 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/pages/settings-page";
 
-const state = vi.hoisted(() => ({ admin: true, canWrite: false, locked: false }));
+const state = vi.hoisted(() => ({
+  admin: true,
+  canWrite: false,
+  locked: false,
+  entries: [{ key: "x" }],
+  errorKey: null as string | null,
+  requestId: null as string | null,
+  isRefreshing: false,
+  reload: vi.fn(),
+}));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("@/lib/session/use-session-capabilities", () => ({
   useSessionCapabilities: () => ({
@@ -23,10 +32,13 @@ vi.mock("@/lib/session/use-session-capabilities", () => ({
 }));
 vi.mock("@/lib/settings/use-settings-registry", () => ({
   useSettingsRegistry: () => ({
-    entries: [{ key: "x" }],
+    entries: state.entries,
     isLoading: false,
-    pendingKey: null,
-    errorKey: null,
+    isRefreshing: state.isRefreshing,
+    pendingKeys: new Set(),
+    requestId: state.requestId,
+    reload: state.reload,
+    errorKey: state.errorKey,
     save: vi.fn(),
     saveMany: vi.fn(),
   }),
@@ -64,6 +76,18 @@ vi.mock("@/components/settings/unrouted-queue-settings-card", () => ({
 }));
 
 describe("SettingsPage access", () => {
+  beforeEach(() => {
+    state.admin = true;
+    state.canWrite = false;
+    state.locked = false;
+    state.entries = [{ key: "x" }];
+    state.errorKey = null;
+    state.requestId = null;
+    state.isRefreshing = false;
+    state.reload.mockReset();
+  });
+  afterEach(cleanup);
+
   it("combines settings.write with read-only mode", () => {
     state.admin = true;
     state.canWrite = true;
@@ -75,9 +99,29 @@ describe("SettingsPage access", () => {
 
   it("shows the forbidden state without admin access", () => {
     state.admin = false;
-    state.canWrite = false;
-    state.locked = false;
     render(<SettingsPage />);
     expect(screen.getByText("settings.forbiddenTitle")).toBeTruthy();
+  });
+
+  it("shows initial registry errors with request id and a retry action", () => {
+    state.entries = [];
+    state.errorKey = "errors.generic";
+    state.requestId = "request-17";
+    render(<SettingsPage />);
+
+    expect(screen.getByText("errors.generic")).toBeTruthy();
+    expect(screen.getByText("errors.requestId")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "ui.retry" }));
+    expect(state.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps stale registry content visible with a retryable refresh error", () => {
+    state.errorKey = "errors.generic";
+    state.requestId = "request-18";
+    render(<SettingsPage />);
+
+    expect(screen.getByText("errors.generic")).toBeTruthy();
+    expect(screen.getByTestId("write-state")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "ui.retry" })).toBeTruthy();
   });
 });

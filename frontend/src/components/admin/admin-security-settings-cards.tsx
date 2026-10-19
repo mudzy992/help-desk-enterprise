@@ -53,7 +53,7 @@ export function AdminSecuritySettingsCards() {
       <AdminSecurityPolicyCards
         entries={registry.entries}
         canWrite={canWrite}
-        pendingKey={registry.pendingKey}
+        pendingKeys={registry.pendingKeys}
         onSave={registry.save}
       />
       {canWrite ? <AdminBulkPasswordResetCard /> : null}
@@ -85,12 +85,12 @@ const rowDescriptionKeys = {
 export function AdminSecurityPolicyCards({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }) {
   const { t } = useTranslation();
@@ -187,7 +187,7 @@ export function AdminSecurityPolicyCards({
         entries={drawerEntries}
         allEntries={entries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
     </>

@@ -15,14 +15,14 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
 interface AuthProviderSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
 export function AuthProviderSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: AuthProviderSettingsCardProperties) {
   const { t } = useTranslation();
@@ -56,7 +56,7 @@ export function AuthProviderSettingsCard({
               <button
                 key={provider.id}
                 type="button"
-                disabled={!canWrite || pendingKey === authSettingKeys.mode}
+                disabled={!canWrite || pendingKeys.has(authSettingKeys.mode)}
                 className={cn(
                   "rounded-lg border p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                   pendingMode === provider.id
@@ -86,7 +86,7 @@ export function AuthProviderSettingsCard({
           </p>
           {draftMode !== null && draftMode !== mode ? (
             <SettingsReasonConfirm
-              pending={pendingKey === authSettingKeys.mode}
+              pending={pendingKeys.has(authSettingKeys.mode)}
               onCancel={() => setDraftMode(null)}
               onConfirm={async (reason) => {
                 await onSave({
@@ -108,7 +108,7 @@ export function AuthProviderSettingsCard({
         entries={detailEntries}
         allEntries={entries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
     </>

@@ -21,14 +21,14 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
 interface UnroutedQueueSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
 export function UnroutedQueueSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: UnroutedQueueSettingsCardProperties) {
   const { t } = useTranslation();
@@ -83,7 +83,7 @@ export function UnroutedQueueSettingsCard({
             </span>
             <Switch
               checked={effectiveEnabled}
-              disabled={!canWrite || pendingKey === unroutedSettingKeys.enabled}
+              disabled={!canWrite || pendingKeys.has(unroutedSettingKeys.enabled)}
               onCheckedChange={(checked) => setDraftEnabled(checked)}
               aria-label={t("settings.unrouted.enabled")}
             />
@@ -103,7 +103,7 @@ export function UnroutedQueueSettingsCard({
             <select
               className={`${selectCompactClassName} max-w-[220px]`}
               value={draftTarget ?? targetGroupId}
-              disabled={!canWrite || pendingKey === unroutedSettingKeys.targetGroupId}
+              disabled={!canWrite || pendingKeys.has(unroutedSettingKeys.targetGroupId)}
               onChange={(event) => setDraftTarget(event.target.value)}
             >
               <option value="">{t("settings.unrouted.targetGroupNone")}</option>
@@ -124,7 +124,7 @@ export function UnroutedQueueSettingsCard({
           ) : null}
           {draftTarget !== null && draftTarget !== targetGroupId ? (
             <SettingsReasonConfirm
-              pending={pendingKey === unroutedSettingKeys.targetGroupId}
+              pending={pendingKeys.has(unroutedSettingKeys.targetGroupId)}
               onCancel={() => setDraftTarget(null)}
               onConfirm={async (reason) => {
                 await onSave({
@@ -156,7 +156,7 @@ export function UnroutedQueueSettingsCard({
           </Button>
           {draftEnabled !== null && draftEnabled !== enabled ? (
             <SettingsReasonConfirm
-              pending={pendingKey === unroutedSettingKeys.enabled}
+              pending={pendingKeys.has(unroutedSettingKeys.enabled)}
               onCancel={() => setDraftEnabled(null)}
               onConfirm={async (reason) => {
                 await onSave({
@@ -178,7 +178,7 @@ export function UnroutedQueueSettingsCard({
         entries={drawerEntries}
         allEntries={entries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
     </>

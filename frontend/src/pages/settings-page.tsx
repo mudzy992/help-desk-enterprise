@@ -13,6 +13,7 @@ import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
 import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
 import { ApiErrorText } from "@/components/ui/api-error-text";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
@@ -48,8 +49,19 @@ export function SettingsPage() {
           body={t("settings.forbiddenBody")}
         />
       ) : null}
-      {!isLoading && canOpen && registry.errorKey !== null && registry.entries.length === 0 ? (
-        <ApiErrorText messageKey={registry.errorKey} />
+      {!isLoading && canOpen && registry.errorKey !== null ? (
+        <div className="space-y-2">
+          <ApiErrorText messageKey={registry.errorKey} requestId={registry.requestId} />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={registry.isRefreshing}
+            onClick={() => void registry.reload()}
+          >
+            {t("ui.retry")}
+          </Button>
+        </div>
       ) : null}
       {!isLoading && canOpen && registry.entries.length > 0 ? (
         <>
@@ -58,19 +70,19 @@ export function SettingsPage() {
               <BrandingSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSaveMany={registry.saveMany}
               />
               <AuthProviderSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <SmtpEmailSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <EmailTemplatesCard canWrite={canWrite} />
@@ -80,19 +92,19 @@ export function SettingsPage() {
             <div className="space-y-4">
               <AddonsSettingsPanel
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <UnroutedQueueSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <SecurityComplianceSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               {/* 5.4.0-e.2: the actionable security surfaces live on the admin
@@ -104,7 +116,7 @@ export function SettingsPage() {
           <SettingsRegistryPanel
             entries={registry.entries}
             canWrite={canWrite}
-            pendingKey={registry.pendingKey}
+            pendingKeys={registry.pendingKeys}
             errorKey={registry.errorKey}
             onSave={registry.save}
           />

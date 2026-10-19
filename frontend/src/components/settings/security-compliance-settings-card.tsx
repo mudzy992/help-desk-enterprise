@@ -20,14 +20,14 @@ type SecurityRowId = "redaction" | "confidential" | "audit" | "readOnly";
 interface SecurityComplianceSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
 }
 
 export function SecurityComplianceSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
 }: SecurityComplianceSettingsCardProperties) {
   const { t } = useTranslation();
@@ -110,7 +110,7 @@ export function SecurityComplianceSettingsCard({
         entries={drawerEntries}
         allEntries={entries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
     </>

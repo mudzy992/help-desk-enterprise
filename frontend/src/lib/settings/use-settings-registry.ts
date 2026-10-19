@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { queryKeys } from "@/lib/query/query-keys";
 import {
   getSettingsGeneration,
@@ -45,8 +45,26 @@ export function useSettingsRegistry() {
     queryFn: getSettingsRegistry,
   });
   const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(new Set());
+  const pendingCounts = useRef(new Map<string, number>());
   const [writeErrorKey, setWriteErrorKey] = useState<ApiErrorKey | null>(null);
+  const [writeRequestId, setWriteRequestId] = useState<string | null>(null);
   const observedGeneration = useRef(settingsGeneration);
+
+  const beginPending = useCallback((keys: readonly string[]) => {
+    for (const key of new Set(keys)) {
+      pendingCounts.current.set(key, (pendingCounts.current.get(key) ?? 0) + 1);
+    }
+    setPendingKeys(new Set(pendingCounts.current.keys()));
+  }, []);
+
+  const endPending = useCallback((keys: readonly string[]) => {
+    for (const key of new Set(keys)) {
+      const count = pendingCounts.current.get(key) ?? 0;
+      if (count <= 1) pendingCounts.current.delete(key);
+      else pendingCounts.current.set(key, count - 1);
+    }
+    setPendingKeys(new Set(pendingCounts.current.keys()));
+  }, []);
 
   useEffect(() => {
     if (settingsGeneration === observedGeneration.current) return;
@@ -60,38 +78,43 @@ export function useSettingsRegistry() {
 
   const save = useCallback(
     async (input: SettingsSaveInput): Promise<SettingsWriteResponse> => {
-      setPendingKeys(new Set([input.key]));
+      beginPending([input.key]);
       setWriteErrorKey(null);
+      setWriteRequestId(null);
       try {
         const response = await updateSetting(input);
         await invalidate();
         return response;
       } catch (error) {
         setWriteErrorKey(mapApiError(error));
+        setWriteRequestId(readApiRequestId(error));
         throw error;
       } finally {
-        setPendingKeys(new Set());
+        endPending([input.key]);
       }
     },
-    [invalidate],
+    [beginPending, endPending, invalidate],
   );
 
   const saveMany = useCallback(
     async (input: SettingsSaveManyInput): Promise<SettingsWriteResponse> => {
-      setPendingKeys(new Set(input.entries.map((entry) => entry.key)));
+      const keys = input.entries.map((entry) => entry.key);
+      beginPending(keys);
       setWriteErrorKey(null);
+      setWriteRequestId(null);
       try {
         const response = await updateSettings(input);
         await invalidate();
         return response;
       } catch (error) {
         setWriteErrorKey(mapApiError(error));
+        setWriteRequestId(readApiRequestId(error));
         throw error;
       } finally {
-        setPendingKeys(new Set());
+        endPending(keys);
       }
     },
-    [invalidate],
+    [beginPending, endPending, invalidate],
   );
 
   const entries = query.data ?? [];
@@ -99,15 +122,23 @@ export function useSettingsRegistry() {
     () => writeErrorKey ?? (query.error === null ? null : mapApiError(query.error)),
     [query.error, writeErrorKey],
   );
-  const pendingKey = pendingKeys.values().next().value ?? null;
+  const requestId =
+    writeErrorKey !== null
+      ? writeRequestId
+      : query.error === null
+        ? null
+        : readApiRequestId(query.error);
 
   return {
     entries,
     isLoading: query.isLoading,
-    pendingKey,
+    isRefreshing: query.isFetching && !query.isLoading,
     pendingKeys,
     errorKey,
+    requestId,
     reload: async () => {
+      setWriteErrorKey(null);
+      setWriteRequestId(null);
       await query.refetch();
     },
     save,

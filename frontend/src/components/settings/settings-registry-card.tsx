@@ -18,7 +18,7 @@ interface SettingsRegistryCardProperties {
   /** Full registry, for dependency evaluation of keys outside this category. */
   readonly allEntries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
   /** Set while a global search is active: then the card shows every match. */
   readonly isFiltered: boolean;
@@ -38,7 +38,7 @@ export function SettingsRegistryCard({
   group,
   allEntries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
   isFiltered,
 }: SettingsRegistryCardProperties) {
@@ -106,7 +106,7 @@ export function SettingsRegistryCard({
         entries={group.entries}
         allEntries={allEntries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
 
@@ -122,7 +122,7 @@ export function SettingsRegistryCard({
           entry={openEntry}
           entries={allEntries}
           canWrite={canWrite}
-          pending={pendingKey === openEntry.key}
+          pending={pendingKeys.has(openEntry.key)}
           onSave={onSave}
         />
       )}
