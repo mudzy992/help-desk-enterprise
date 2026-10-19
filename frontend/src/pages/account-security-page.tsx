@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MfaSection } from "@/components/account-security/mfa-section";
 import { PasskeySection } from "@/components/account-security/passkey-section";
@@ -35,30 +35,36 @@ export function AccountSecurityPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const overview = useQuery({ queryKey: queryKeys.accountSecurity, queryFn: getAccountSecurity });
+  const sessions = useQuery({ queryKey: queryKeys.accountSessions, queryFn: listOwnSessions });
   const platformPasskey = usePlatformPasskeyAvailable();
-  const [sessions, setSessions] = useState<readonly UserSession[] | null>(null);
-  const [sessionsError, setSessionsError] = useState(false);
-  const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [confirmOthers, setConfirmOthers] = useState(false);
   const [sessionToRevoke, setSessionToRevoke] = useState<UserSession | null>(null);
 
-  const loadSessions = useCallback(async () => {
-    try {
-      setSessions((await listOwnSessions()).items);
-      setSessionsError(false);
-    } catch {
-      setSessionsError(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadSessions();
-  }, [loadSessions]);
-
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.accountSecurity });
-    void loadSessions();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.accountSessions });
   };
+
+  const revokeSession = useMutation({
+    mutationFn: (sessionId: string) => revokeOwnSession(sessionId),
+    onSuccess: async () => {
+      toast({ tone: "success", title: t("account.security.sessionRevoked") });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.accountSessions });
+    },
+    onError: () => toast({ tone: "danger", title: t("account.security.actionFailed") }),
+  });
+
+  const revokeOthers = useMutation({
+    mutationFn: () => revokeOtherSessions(),
+    onSuccess: async (result) => {
+      toast({
+        tone: "success",
+        title: t("account.security.othersRevoked", { count: result.revoked }),
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.accountSessions });
+    },
+    onError: () => toast({ tone: "danger", title: t("account.security.actionFailed") }),
+  });
 
   const data = overview.data;
   const expiresAt = data?.password.expiresAt ?? null;
@@ -148,11 +154,12 @@ export function AccountSecurityPage() {
               title={t("account.security.sessionsTitle")}
               subtitle={t("account.security.sessionsSubtitle")}
               actions={
-                sessions && sessions.some((session) => !session.current) ? (
+                sessions.data?.items.some((session) => !session.current) ? (
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
+                    disabled={revokeOthers.isPending}
                     onClick={() => setConfirmOthers(true)}
                   >
                     {t("account.security.revokeOthers")}
@@ -161,14 +168,24 @@ export function AccountSecurityPage() {
               }
             />
             <div className="px-4 py-2">
-              {sessionsError ? (
-                <p className={errorTextClassName} role="alert">
-                  {t("account.security.loadFailed")}
-                </p>
-              ) : sessions ? (
+              {sessions.isPending ? <PanelSkeleton label={t("account.security.loading")} /> : null}
+              {sessions.isError ? (
+                <div className="space-y-2" role="alert">
+                  <p className={errorTextClassName}>{t("account.security.loadFailed")}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void sessions.refetch()}
+                  >
+                    {t("account.security.retry")}
+                  </Button>
+                </div>
+              ) : null}
+              {sessions.data ? (
                 <SessionsList
-                  sessions={sessions}
-                  busySessionId={busySessionId}
+                  sessions={sessions.data.items}
+                  busySessionId={revokeSession.isPending ? revokeSession.variables : null}
                   onRevoke={setSessionToRevoke}
                 />
               ) : null}
@@ -189,14 +206,7 @@ export function AccountSecurityPage() {
           const session = sessionToRevoke;
           setSessionToRevoke(null);
           if (session === null) return;
-          setBusySessionId(session.id);
-          void revokeOwnSession(session.id)
-            .then(() => {
-              toast({ tone: "success", title: t("account.security.sessionRevoked") });
-              return loadSessions();
-            })
-            .catch(() => toast({ tone: "danger", title: t("account.security.actionFailed") }))
-            .finally(() => setBusySessionId(null));
+          revokeSession.mutate(session.id);
         }}
       />
       <ConfirmDialog
@@ -208,15 +218,7 @@ export function AccountSecurityPage() {
         intent="danger"
         onConfirm={() => {
           setConfirmOthers(false);
-          void revokeOtherSessions()
-            .then((result) => {
-              toast({
-                tone: "success",
-                title: t("account.security.othersRevoked", { count: result.revoked }),
-              });
-              return loadSessions();
-            })
-            .catch(() => toast({ tone: "danger", title: t("account.security.actionFailed") }));
+          revokeOthers.mutate();
         }}
       />
     </div>

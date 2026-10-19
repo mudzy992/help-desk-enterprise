@@ -131,9 +131,9 @@ Poseban status:
 
 ## 7. Ocjena
 
-### **9.2/10**
+### **9.5/10**
 
-Modul je značajno bolji od historijske ocjene 5/10. Faze 1 i 2 dodatno zatvaraju cross-tab izolaciju identiteta, strogu storage validaciju i logout/sign-in race. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
+Modul je značajno bolji od historijske ocjene 5/10. Faze 1–3 dodatno zatvaraju cross-tab izolaciju identiteta, strogu storage validaciju, logout/sign-in race i Account Security query/test ugovor. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
 
 Do 10/10 nedostaju tri vrste dokaza:
 
@@ -191,6 +191,29 @@ Verifikacija Faze 2:
 - ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
 
 Ocjena nakon Faze 2: **9.2/10**.
+
+## Status implementacije — Faza 3 (2026-10-19)
+
+Faza 3 je kompletirana i **AS4 i AS5 su zatvoreni**:
+
+- aktivne sesije prebačene su sa ručnog `useState/useEffect` lifecyclea na zaseban React Query ključ `accountSessions`;
+- overview i sessions upiti učitavaju se paralelno, imaju nezavisna loading/error stanja i sessions panel ima vlastiti retry;
+- pojedinačna i bulk revokacija koriste `useMutation`, stabilan pending state, success/error toast i ciljanu invalidaciju sessions queryja;
+- child MFA/passkey/password promjene invalidiraju overview i sessions ugovore kroz centralne query ključeve;
+- dodan je page-level integracijski test koji pokriva paralelni load, partial sessions failure/retry, potvrdu i uspjeh pojedinačne revokacije, mutation busy/error stanje, bulk revokaciju i child invalidation;
+- produkcijski API i vizuelni ugovor stranice nisu promijenjeni.
+
+Verifikacija Faze 3:
+
+- ciljani Account Security testovi — **3/3 fajla i 14/14 testova prolazi**;
+- puni frontend Vitest — **337/337 fajlova i 1365/1365 testova prolazi**;
+- TypeScript i produkcijski build — prolaze;
+- ciljani ESLint — prolazi bez outputa;
+- i18n/design-system check — prolazi, 8788 ključeva i BS/EN parity;
+- `git diff --check` — prolazi;
+- ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
+
+Ocjena nakon Faze 3: **9.5/10**.
 
 ## 8. Fazni plan do 10/10
 

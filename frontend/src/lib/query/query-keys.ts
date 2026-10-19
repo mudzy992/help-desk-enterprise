@@ -14,6 +14,7 @@ export function localDayKey(now: Date = new Date()): string {
 export const queryKeys = {
   /** own account security (profile page and the expiry banner). */
   accountSecurity: ["account", "security"] as const,
+  accountSessions: ["account", "sessions"] as const,
   accountNotifications: ["account", "notifications"] as const,
   /** own preferences (keyboard shortcuts; the language is synced separately). */
   userPreferences: ["account", "preferences"] as const,
