@@ -179,7 +179,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
                 const key = auditActionTranslationKey(known);
                 return (
                   <option key={known} value={known}>
-                    {key === null ? known : t(key as never)}
+                    {key === null ? known : t(key)}
                   </option>
                 );
               })}
@@ -287,14 +287,12 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
                         <td className="whitespace-nowrap px-3">
                           <RelativeTime value={row.createdAt} locale={i18n.language} />
                         </td>
-                        <td className="px-3 text-[12px]">
-                          {t(securityActionLabelKey(actionKey) as never)}
-                        </td>
+                        <td className="px-3 text-[12px]">{t(securityActionLabelKey(actionKey))}</td>
                         <td className="max-w-[220px] px-3 text-[12px] text-muted-foreground">
                           <span title={row.entityId}>
                             {entityKey === null
                               ? t("admin.ops.auditLog.labels.unknownEntity")
-                              : t(entityKey as never)}
+                              : t(entityKey)}
                           </span>
                         </td>
                         <td

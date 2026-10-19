@@ -1,6 +1,7 @@
 import { ArrowRight, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { isKnownInstallStepKey, installStepLabelKey } from "@/lib/install/install-wizard-order";
 import { setupChecklistTarget } from "@/lib/setup-checklist/setup-checklist-target";
 import type { SetupChecklistItem } from "@/services/setup-checklist-api";
@@ -32,11 +33,13 @@ export function SetupChecklistItemRow({ item }: { readonly item: SetupChecklistI
             keeps them honest (`dashboard.setupChecklist.item.*`, the F5
             recommendation titles). */}
         <p className="text-[12.5px] leading-5 font-medium text-foreground">
-          {t(item.titleKey as never, {
+          {t(item.titleKey as TranslationKey, {
             defaultValue: fallbackKey === null ? undefined : t(fallbackKey),
           })}
         </p>
-        <p className="text-[11.5px] leading-4 text-muted-foreground">{t(itemHintKey as never)}</p>
+        <p className="text-[11.5px] leading-4 text-muted-foreground">
+          {t(itemHintKey as TranslationKey)}
+        </p>
       </div>
       <Link
         to={setupChecklistTarget(item)}

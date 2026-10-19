@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,7 @@ export function SlaProfileForm({
           required
         />
       </label>
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey as never)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey as TranslationKey)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting || calendarId.length === 0}>
           {isSubmitting ? t("sla.saving") : profile ? t("sla.saveProfile") : t("sla.createProfile")}

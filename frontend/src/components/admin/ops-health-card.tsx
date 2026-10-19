@@ -582,7 +582,7 @@ function AlertItem({
   const detailLabel = (label: string) => {
     const [head, ...rest] = label.split(".");
     const key = alertDetailLabelKey(head ?? label);
-    const translated = key === null ? (head ?? label) : t(key as never);
+    const translated = key === null ? (head ?? label) : t(key);
     return [translated, ...rest].join(" · ");
   };
   return (
@@ -744,7 +744,7 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
                   >
                     <td className="px-3">
                       <span className="font-medium text-foreground">
-                        {nameKey === null ? scheduler.queue : t(nameKey as never)}
+                        {nameKey === null ? scheduler.queue : t(nameKey)}
                       </span>
                       <code className="block text-[11.5px] text-muted-foreground">
                         {scheduler.schedulerId}

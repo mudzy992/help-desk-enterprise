@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import { knownAuditActions } from "@/lib/audit/audit-log-actions";
 export { knownAuditActions } from "@/lib/audit/audit-log-actions";
 import { knownAuditEntityTypes } from "@/lib/audit/audit-log-entities";
@@ -15,25 +16,32 @@ function keySlug(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-export function auditActionTranslationKey(action: string): string | null {
-  return knownActions.has(action) ? `admin.ops.auditLog.labels.actions.${keySlug(action)}` : null;
+export function auditActionTranslationKey(action: string): TranslationKey | null {
+  return knownActions.has(action)
+    ? (`admin.ops.auditLog.labels.actions.${keySlug(action)}` as TranslationKey)
+    : null;
 }
 
-export function auditEntityTranslationKey(entityType: string): string | null {
+export function auditEntityTranslationKey(entityType: string): TranslationKey | null {
   return knownEntityTypes.has(entityType)
-    ? `admin.ops.auditLog.labels.entities.${keySlug(entityType)}`
+    ? (`admin.ops.auditLog.labels.entities.${keySlug(entityType)}` as TranslationKey)
     : null;
 }
 
 /** i18n key of a metadata value, or `null` when the value keeps its own words. */
-export function auditMetadataValueTranslationKey(field: string, value: string): string | null {
+export function auditMetadataValueTranslationKey(
+  field: string,
+  value: string,
+): TranslationKey | null {
   const known = knownAuditMetadataValues[field];
   if (known === undefined || !known.includes(value)) return null;
-  return `admin.ops.auditLog.values.${field}.${keySlug(value)}`;
+  return `admin.ops.auditLog.values.${field}.${keySlug(value)}` as TranslationKey;
 }
 
-export function auditMetadataFieldTranslationKey(field: string): string | null {
-  return knownMetadataFields.has(field) ? `admin.ops.auditLog.labels.fields.${field}` : null;
+export function auditMetadataFieldTranslationKey(field: string): TranslationKey | null {
+  return knownMetadataFields.has(field)
+    ? (`admin.ops.auditLog.labels.fields.${field}` as TranslationKey)
+    : null;
 }
 
 export type AuditMetadataEntry = {

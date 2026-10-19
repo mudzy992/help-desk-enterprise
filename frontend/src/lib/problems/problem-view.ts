@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
@@ -198,9 +199,9 @@ export function transitionLabelKey(
   return `problems.transition.${to}`;
 }
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+type Translate = (key: TranslationKey, options?: Record<string, unknown>) => string;
 
-const historyFieldKeys: Readonly<Record<string, string>> = {
+const historyFieldKeys: Readonly<Record<string, TranslationKey>> = {
   title: "problems.fields.title",
   description: "problems.fields.description",
   impact: "problems.fields.impact",

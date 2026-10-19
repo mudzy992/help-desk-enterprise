@@ -40,7 +40,7 @@
     "brandTagline": "Enterprise servisni centar",
     "searchPlaceholder": "Pretraga tiketa, članaka, korisnika…",
     "searchGroupTickets": "Tiketi",
-    "searchGroupKnowledge": "Knowledge Base",
+    "searchGroupKnowledge": "Baza znanja",
     "searchGroupUsers": "Korisnici",
     "searchNoResults": "Nema rezultata za ovaj upit.",
     "systemsPrefix": "Svi sistemi",
@@ -223,7 +223,7 @@
       "organizationalUnit": "Organizaciona jedinica (audit opseg)",
       "organizationalUnitLoadError": "Stablo organizacionih jedinica nije učitano.",
       "needOrganizationalUnit": "Odaberite organizacionu jedinicu prije exporta.",
-      "auditLogTitle": "Audit log",
+      "auditLogTitle": "Dnevnik revizije",
       "auditLogBody": "Revizijski dnevnik (noviji prvo) u opsegu odabrane organizacione jedinice.",
       "auditLogLoading": "Učitavanje audit loga",
       "auditLogEmptyTitle": "Nema audit zapisa",
@@ -236,13 +236,13 @@
       "auditLogColumnActor": "Akter",
       "auditLogColumnRequest": "Zahtjev",
       "auditLogColumnDetails": "Detalji",
-      "auditTitle": "Audit export",
+      "auditTitle": "Izvoz revizije",
       "auditBody": "CSV/JSON izvoz s tamper-evident hash lancem — svaki red vezuje hash prethodnog.",
       "verify": "Provjeri lanac",
       "verifyDisabled": "Tamper-evident lanac je isključen u postavkama.",
       "verifyValid": "Hash lanac je validan ({{count}} zapisa).",
       "verifyBroken": "Prekid na indeksu {{index}} (id {{id}}); provjereno {{count}} zapisa.",
-      "supportTitle": "Support bundle",
+      "supportTitle": "Paket za podršku",
       "supportBody": "Dijagnostički paket: config verzija, red poslova, hash lanac, requestId tragovi (bez tajni).",
       "supportGenerate": "Generiši paket",
       "supportForbidden": "Support bundle dostupan je samo SuperAdmin nalogu.",
@@ -641,7 +641,7 @@
             "manual_directory_catalog": "Ručni katalog imenika"
           },
           "via": {
-            "admin": "Administrator",
+            "admin": "Administrator sistema",
             "server": "Serverski alat (CLI)",
             "rekey_asset_licenses": "Alat: ponovno šifrovanje licenci",
             "seed_default_role_permissions": "Alat: zadane permisije uloga"
@@ -828,13 +828,13 @@
         "api": "API",
         "database": "Baza podataka",
         "redis": "Redis",
-        "worker": "Worker",
+        "worker": "Radnik",
         "disk": "Disk za priloge",
         "clamav": "Antivirus (ClamAV)",
         "email": "Slanje e-maila",
         "ldapsCa": "LDAPS CA certifikat",
         "inbound": "Sandučić {{mailbox}}",
-        "eventLoop": "Event-loop lag {{ms}} ms",
+        "eventLoop": "Kašnjenje petlje događaja {{ms}} ms",
         "heartbeat": "Signal prije {{age}}",
         "noHeartbeat": "Nema signala",
         "unknown": "Nema podatka",
@@ -915,7 +915,7 @@
         "title": "Zakazani poslovi",
         "empty": "Nema podataka o zakazanim poslovima (čeka se mjerenje workera).",
         "job": "Posao",
-        "interval": "Interval",
+        "interval": "Interval izvršavanja",
         "lastSuccess": "Posljednji uspjeh",
         "next": "Sljedeće",
         "state": "Stanje",
@@ -976,14 +976,14 @@
         "extraRecipientsValue_other": "{{count}} adresa",
         "fallback": "Rezervni kanal (env)",
         "fallbackMissing": "Nije podešen: ako padne baza ili Redis, alarm se samo logira (OPS_ALERT_SMTP_URL, OPS_ALERT_EMAIL_TO).",
-        "uptime": "Uptime Kuma push",
+        "uptime": "Slanje u Uptime Kuma",
         "configured": "Podešeno",
         "notConfigured": "Nije podešeno"
       },
       "history": {
         "title": "Historija riješenih alarma ({{days}} dana)",
         "empty": "Nema riješenih alarma u periodu čuvanja.",
-        "alert": "Alarm",
+        "alert": "Upozorenje",
         "severity": "Težina",
         "started": "Početak",
         "duration": "Trajanje",
@@ -1162,11 +1162,11 @@
         "description": "Standardni IT paket: AGENT i ADMIN uloge ograničene na ciljnu organizacionu jedinicu."
       },
       "PACK_HR_RESTRICTED": {
-        "name": "HR Restricted",
+        "name": "Ograničeni HR",
         "description": "Ograničeni HR paket: AGENT uloga na ciljnoj OJ i servisu."
       },
       "PACK_FINANCE_RESTRICTED": {
-        "name": "Finance Restricted",
+        "name": "Ograničene finansije",
         "description": "Ograničeni Finance paket: AGENT i ADMIN uloge na ciljnoj OJ i servisu."
       }
     },
@@ -1190,7 +1190,7 @@
       "integrations.queue.manage": "Upravljanje redom integracija",
       "audit.export": "Export audita",
       "reports.export": "Export izvještaja",
-      "supportBundle.export": "Support bundle",
+      "supportBundle.export": "Paket za podršku",
       "confidential.break_glass": "Break-glass pristup",
       "knowledge.article.write": "Pisanje članaka",
       "knowledge.article.review": "Pregled članaka",
@@ -1198,7 +1198,7 @@
       "edge.connect": "Edge povezivanje",
       "edge.notify.receive": "Edge obavijesti",
       "ticket.message.send": "Slanje poruka na tiketu",
-      "ticket.remote.open_quick_assist": "Quick Assist",
+      "ticket.remote.open_quick_assist": "Brza pomoć",
       "reports.schedule.manage": "Upravljanje zakazanim izvještajima",
       "privacy.view": "Pregled zaštite ličnih podataka",
       "privacy.manage": "Upravljanje zaštitom ličnih podataka",
@@ -1253,7 +1253,7 @@
     "edit": "Uredi",
     "delete": "Obriši",
     "deleting": "Brisanje…",
-    "fallbackBadge": "Fallback",
+    "fallbackBadge": "Rezervno",
     "fallbackForUnit": "Fallback grupa za {{unit}}",
     "memberCount": "{{count}} članova",
     "membersMetric": "Članovi",
@@ -1569,7 +1569,7 @@
       "subtitle": "Secret postavke se čuvaju šifrovane; isključivanje gasi odlazni mail",
       "disabledNote": "Kanal je isključen — vrijednosti ispod se ne koriste, a polja su zaključana.",
       "enabled": "SMTP uključen",
-      "host": "Host",
+      "host": "Poslužitelj",
       "username": "Korisnik",
       "password": "Lozinka (secret)",
       "scope": "Opseg",
@@ -1656,7 +1656,7 @@
       "title": "Dodaci (addon katalog)",
       "subtitle": "Stanje dodataka iz registra postavki — isključivanje je graceful, nema mrtvih linkova u UI",
       "loading": "Učitavanje dodataka…",
-      "registryBadge": "registry",
+      "registryBadge": "registar",
       "loadFailed": "Nije moguće učitati dodatke. Osvježite stranicu; ako se ponovi, provjerite vezu sa serverom."
     },
     "registry": {
@@ -2751,7 +2751,7 @@
           "sender": "Pošiljalac"
         },
         "private.edgeExtension": {
-          "transport": "Transport",
+          "transport": "Prijenos",
           "features": "Funkcije",
           "notifications": "Obavještenja"
         },
@@ -2940,7 +2940,7 @@
       "organizationName": "Naziv organizacije",
       "supportEmail": "E-mail podrške",
       "supportUrl": "Stranica podrške (https)",
-      "logo": "Logo",
+      "logo": "Logotip",
       "logoHint": "PNG, JPEG ili WebP, najviše 200 KB i 1024 × 1024 px. SVG nije dozvoljen.",
       "logoUpload": "Učitaj logo",
       "logoRemove": "Ukloni logo",
@@ -2970,7 +2970,7 @@
     "detail": {
       "isSet": "postavljeno",
       "inherited": "naslijeđeno iz defaulta",
-      "default": "Default",
+      "default": "Zadano",
       "current": "Trenutno",
       "noDefault": "nema",
       "noValue": "—",
@@ -3150,7 +3150,7 @@
     "metricFirstResponse": "Prosj. prvi odgovor",
     "metricResolution": "Prosj. rješenje",
     "metricCsat": "CSAT (zadovoljstvo)",
-    "metricKbResolution": "KB resolution rate",
+    "metricKbResolution": "Stopa rješavanja pomoću baze znanja",
     "metricEmpty": "—",
     "hintCreated": "{{count}} tiketa u odabranom periodu",
     "hintFirstResponse": "{{count}} tiketa s evidentiranim prvim odgovorom",
@@ -3704,7 +3704,7 @@
     "savingService": "Spremanje…",
     "cancel": "Odustani",
     "name": "Naziv",
-    "slug": "Slug",
+    "slug": "Identifikator",
     "category": "Kategorija",
     "categoryEmpty": "Nema kategorija — uslugu nije moguće kreirati",
     "mutationHint": "Kreiranje počinje u statusu Nacrt. Slug se ne mijenja nakon unosa.",
@@ -3799,7 +3799,7 @@
       "stepsHeading": "Koraci onboardinga",
       "subtitle": "Čarobnjak: servis → forma → routing → SLA → odobrenja · odvojen od lifecycle statusa",
       "activeBadge": "{{count}} aktivnih",
-      "progress": "Onboarding {{completed}}/{{total}}",
+      "progress": "Uvođenje {{completed}}/{{total}}",
       "progressPaused": "Onboarding pauziran · {{completed}}/{{total}}",
       "progressReady": "Spreman za objavu · {{completed}}/{{total}}",
       "continue": "Nastavi onboarding",
@@ -3863,7 +3863,7 @@
       "fieldLabel": "Oznaka",
       "fieldType": "Tip",
       "fieldRequired": "Obavezno",
-      "placeholder": "Placeholder",
+      "placeholder": "Primjer unosa",
       "helpText": "Pomoćni tekst",
       "options": "Opcije (select)",
       "optionValue": "Vrijednost",
@@ -3949,7 +3949,7 @@
     "ouActions": "OU akcije",
     "ouSave": "Sačuvaj OU",
     "ouNamePlaceholder": "Naziv OU",
-    "ouParentPlaceholder": "Parent OU",
+    "ouParentPlaceholder": "Nadređena organizacijska jedinica",
     "ouParentNone": "Bez parenta (korijen)",
     "ouDnPlaceholder": "Distinguished Name (opciono)",
     "ouDeleteBlocked": "OU se ne može obrisati dok postoje povezani zapisi",
@@ -3995,7 +3995,7 @@
     "syncTitle": "AD sinhronizacija",
     "syncSubtitle": "režim čitanja: {{mode}}",
     "syncMode": "Režim čitanja",
-    "syncThrottle": "Throttle",
+    "syncThrottle": "Ograničenje protoka",
     "syncThrottleValue": "{{qps}} qps",
     "syncCache": "Keš",
     "syncCacheValue": "{{minutes}} min / OU {{hours}} h",
@@ -4052,7 +4052,7 @@
       "columnSummary": "Sažetak",
       "columnActions": "Akcije",
       "actorSystem": "Sistem (raspored)",
-      "openPlan": "Plan",
+      "openPlan": "Otvori plan",
       "kindTest": "Test veze",
       "kindDryRun": "Probni prolaz",
       "kindApply": "Primjena",
@@ -4118,7 +4118,7 @@
   "locale": {
     "label": "Jezik",
     "bosnian": "Bosanski",
-    "english": "English"
+    "english": "Engleski"
   },
   "install": {
     "title": "Početno podešavanje",
@@ -4224,7 +4224,7 @@
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati.",
       "test": {
-        "title": "Test e-mail",
+        "title": "Testna e-poruka",
         "body": "Pošaljite probnu poruku i provjerite da SMTP zaista radi.",
         "address": "Adresa (prazno = adresa super admina)",
         "send": "Pošalji test",
@@ -4461,7 +4461,7 @@
       "section.announcements": "Obavještenja",
       "section.security": "Sigurnost prijave",
       "section.privacy": "Privatnost i podaci",
-      "section.auditWebhook": "Audit webhook",
+      "section.auditWebhook": "Webhook revizije",
       "section.itsm": "ITSM moduli",
       "section.integrations": "Integracije",
       "securityRecommendations": "Sigurnosne preporuke"
@@ -4527,7 +4527,7 @@
         "smtp": "SMTP i testno slanje",
         "emailNotifications": "Email notifikacije",
         "catalogBlueprints": "Katalog servisa iz predloška",
-        "policyPackIt": "IT policy pack",
+        "policyPackIt": "Paket IT pravila",
         "addonsOverview": "Pregled dodataka",
         "handlerLevels": "Grupe L1/L2",
         "slaOverview": "SLA pregled (profili, kalendar, prioriteti)",
@@ -4839,7 +4839,7 @@
         }
       },
       "auditWebhook": {
-        "title": "Audit webhook",
+        "title": "Webhook revizije",
         "value": "Svaki sigurnosno važan događaj odlazi i van sistema — u SIEM ili na vaš endpoint.",
         "whatYouGet": {
           "1": "Prijave, promjene uloga i promjene postavki putuju u vaš log.",
@@ -4916,7 +4916,7 @@
           "help": "Sesija se zatvara nakon 1800 sekundi (30 minuta) bez aktivnosti."
         },
         "captcha": {
-          "title": "Turnstile (captcha)",
+          "title": "Turnstile (zaštita od robota)",
           "help": "Uključuje se ručno, kada unesete site i secret ključ — bez njih bi zaključao prijavu."
         }
       }
@@ -4930,7 +4930,7 @@
     "tabCoverage": "Matrica pokrivanja",
     "tabTester": "Test rezolucije",
     "tabRules": "Pravila",
-    "tabChangeLog": "Change log",
+    "tabChangeLog": "Dnevnik izmjena",
     "newRule": "Novo pravilo",
     "createHeading": "Novo pravilo",
     "createSubtitle": "Uspješan unos zahtijeva razlog — upisuje se u ChangeLog s diff-om",
@@ -5004,7 +5004,7 @@
     "deleteImpact": "Prije: {{before}} → Poslije: {{after}} (grupa: {{group}})",
     "rulesEmptyTitle": "Nema routing pravila",
     "rulesEmptyHint": "Kreirajte WHEN/THEN pravilo za origin OU i servis.",
-    "changeLogHeading": "Change log",
+    "changeLogHeading": "Dnevnik izmjena",
     "changeLogSubtitle": "Svaka uspješna izmjena: ko, kada, razlog + deterministički before/after diff (tajne su redaktovane). Nije dio AuditLog hash lanca.",
     "changeLogEmptyTitle": "Nema izmjena",
     "changeLogEmptyBody": "Uspješne create/update/delete akcije pojaviće se ovdje.",
@@ -5126,7 +5126,7 @@
     "selectNone": "Nije odabrano",
     "overrideMatchRequired": "Pravilo izuzetka mora ciljati uslugu ili organizacionu jedinicu.",
     "rulesHint": "Manji evaluation order se ocjenjuje prvi. Specifičniji match (servis/OU) pobjedi pri istom redoslijedu.",
-    "changeLogHeading": "Change log",
+    "changeLogHeading": "Dnevnik izmjena",
     "changeLogHint": "Prije/poslije, akter, vrijeme i razlog.",
     "newCalendar": "Novi kalendar",
     "deleteCalendarAction": "Obriši kalendar",
@@ -5224,7 +5224,7 @@
     "workerStale": "worker: neaktivan",
     "workerUnknown": "worker: nepoznato",
     "workerRefresh": "Osvježi status workera",
-    "retryNow": "Retry now",
+    "retryNow": "Pokušaj ponovo",
     "retrying": "Ponovno slanje…",
     "noError": "Nema greške",
     "columnType": "Tip",
@@ -5288,14 +5288,14 @@
     "shadowSampleSize": "Uzorak",
     "shadowRoutingMismatches": "Promjene rutiranja",
     "shadowSlaMismatches": "Promjene SLA pravila",
-    "rollback": "Rollback",
+    "rollback": "Vrati prethodnu verziju",
     "rollbackReason": "Razlog rollback-a",
     "validationOkTitle": "Validacija je prošla",
     "validationOkBody": "Dry-run nije prijavio greške. Verziju možete aktivirati.",
     "columnPath": "Putanja",
     "columnCode": "Kod",
     "columnMessage": "Poruka",
-    "diffHeading": "Diff",
+    "diffHeading": "Razlike",
     "diffHint": "Uporedite odabranu verziju s drugom. Prikaz dolazi s GET :id/diff.",
     "compareAgainst": "Uporedi sa",
     "comparePlaceholder": "Izaberite verziju",
@@ -5424,7 +5424,7 @@
     "ownerMode": "Tip vlasnika",
     "ownerModeUser": "Korisnik",
     "ownerModeGroup": "Grupa",
-    "reviewerUserId": "Reviewer",
+    "reviewerUserId": "Recenzent",
     "classification": "Klasifikacija",
     "deleteAction": "Obriši članak",
     "deleteConfirm": "Trajno obrisati „{{title}}“? Feedback se također briše.",
@@ -6662,7 +6662,7 @@
     "intro": "Gotovi odgovori za composer i checkliste koraka za tipične zahtjeve. Šablon se nikad ne šalje sam — umeće se u tekst koji agent pregleda.",
     "tabs": {
       "shared": "Šabloni",
-      "playbooks": "Playbooks",
+      "playbooks": "Priručnici",
       "mine": "Moji šabloni"
     },
     "disabledTemplates": "Šabloni odgovora su isključeni (Postavke → Tiketi).",
@@ -6831,7 +6831,7 @@
       "clearTemplate": "Ukloni oznaku šablona"
     },
     "checklist": {
-      "title": "Playbook",
+      "title": "Priručnik",
       "progress": "{{done}}/{{total}} koraka",
       "requiredProgress": "obavezni {{done}}/{{total}}",
       "attach": "Priključi playbook",
@@ -7130,7 +7130,7 @@
       "teamsInstallHint": "Instalirajte aplikaciju u Teamsu da biste primali obavijesti tamo."
     },
     "passkeys": {
-      "title": "Passkey (FIDO2)",
+      "title": "Pristupni ključ (FIDO2)",
       "subtitle": "Prijava i potvrde bez kucanja koda, uz provjeru na samom uređaju.",
       "add": "Dodaj passkey",
       "adding": "Čekam potvrdu na uređaju…",
@@ -7354,7 +7354,7 @@
       },
       "deactivatedBy": {
         "directory": "Direktorij (AD)",
-        "admin": "Administrator"
+        "admin": "Administrator sistema"
       },
       "status": {
         "PENDING_APPROVAL": "Čeka odobrenje",
@@ -9965,7 +9965,7 @@
     "tabs": {
       "status": "Status",
       "channels": "Kanali",
-      "simulator": "Simulator"
+      "simulator": "Simulator poruka"
     },
     "mode": {
       "off": "Isključen",
@@ -9982,7 +9982,7 @@
       "lastInbound": "Posljednja ulazna aktivnost",
       "lastDelivery": "Posljednja isporuka",
       "failed": "Neuspjele isporuke",
-      "endpoint": "Messaging endpoint",
+      "endpoint": "Krajnja tačka za poruke",
       "never": "Nikad",
       "addonOff": "Addon „Microsoft Teams“ je isključen – konektor ne prima niti šalje ništa.",
       "openSettings": "Otvori postavke"
@@ -10046,7 +10046,7 @@
       "lastStatus": "Posljednji odgovor: HTTP {{status}}",
       "empty": "Još nema poruka. Instalirajte aplikaciju ili pošaljite „pomoć“.",
       "you": "Korisnik",
-      "bot": "Bot",
+      "bot": "Robot",
       "actionSent": "Akcija",
       "installed": "Aplikacija instalirana",
       "placeholder": "Poruka botu, npr. „moji tiketi“ ili „novi tiket“",

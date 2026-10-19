@@ -1,3 +1,5 @@
+import type { TranslationKey } from "@/i18n/translation-key";
+
 /**
  * §4.1: the single catalogue of keyboard shortcuts. The engine,
  * the help dialog and aria-keyshortcuts all read it, so a shortcut cannot be
@@ -40,7 +42,7 @@ export interface ShortcutDefinition {
   /** Human labels for the help dialog and tooltips. */
   readonly display: readonly string[];
   /** i18n key of the description (under a11y.shortcuts.actions). */
-  readonly descriptionKey: string;
+  readonly descriptionKey: TranslationKey;
   /**
    * The component handles the key itself (inside the editor); the engine only
    * lists it in the help dialog.
@@ -59,7 +61,7 @@ const d = (
   context,
   sequence,
   display,
-  descriptionKey: `a11y.shortcuts.actions.${id}`,
+  descriptionKey: `a11y.shortcuts.actions.${id}` as TranslationKey,
   ...(handledByComponent ? { handledByComponent } : {}),
 });
 

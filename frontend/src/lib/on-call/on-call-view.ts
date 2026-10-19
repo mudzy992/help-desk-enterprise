@@ -1,9 +1,20 @@
 import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { TFunction } from "i18next";
 import { ApiError } from "@/services/api";
-import type { OnCallSegmentView } from "@/services/on-call-api";
+import type { OnCallSegmentView, OnCallSwapStatus } from "@/services/on-call-api";
+import type { TranslationKey } from "@/i18n/translation-key";
 
 /** pure helpers for the on-call page. */
+const swapStatusKeys = {
+  PENDING: "onCall.swaps.status.PENDING",
+  ACCEPTED: "onCall.swaps.status.ACCEPTED",
+  DECLINED: "onCall.swaps.status.DECLINED",
+  CANCELLED: "onCall.swaps.status.CANCELLED",
+} as const satisfies Record<OnCallSwapStatus, TranslationKey>;
+
+export function onCallSwapStatusKey(status: OnCallSwapStatus): TranslationKey {
+  return swapStatusKeys[status];
+}
 
 export const onCallErrorKeys = {
   ON_CALL_DISABLED: "onCall.errors.disabled",

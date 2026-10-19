@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/toast";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   formatOnCallTime,
+  onCallSwapStatusKey,
   groupSegmentsByDay,
   isOnCallDisabledError,
   mapOnCallError,
@@ -378,7 +379,7 @@ export function OnCallPage() {
                     <li key={swap.id} className={hintClassName}>
                       {swap.groupName}: {swap.requester.displayName} → {swap.colleague.displayName}{" "}
                       · {formatOnCallTime(swap.startsAt, t, swap.timezone)} ·{" "}
-                      {t(`onCall.swaps.status.${swap.status}` as never) as unknown as string}
+                      {t(onCallSwapStatusKey(swap.status))}
                     </li>
                   ))}
                 </ul>

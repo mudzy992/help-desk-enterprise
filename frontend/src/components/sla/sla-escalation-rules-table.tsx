@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
@@ -39,7 +40,11 @@ export function SlaEscalationRulesTable({
               <td className="px-4 text-[12.5px]">{rule.level}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.triggerOffsetMinutes}</td>
               <td className="px-4 text-[12px] text-muted-foreground">
-                {formatSlaEscalationTarget(rule, t as never, groupNames)}
+                {formatSlaEscalationTarget(
+                  rule,
+                  (key: TranslationKey, options?: Record<string, string>) => t(key, options),
+                  groupNames,
+                )}
               </td>
               {canWrite ? (
                 <td className="px-4 text-right">

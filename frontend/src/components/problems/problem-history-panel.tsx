@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -41,8 +42,7 @@ export function ProblemHistoryPanel({
       />
     );
   }
-  const translate = (key: string, options?: Record<string, unknown>) =>
-    t(key as never, options as never) as unknown as string;
+  const translate = (key: TranslationKey, options?: Record<string, unknown>) => t(key, options);
   return (
     <Card className="p-0">
       <CardHeader title={t("problems.history.title")} />

@@ -1,9 +1,10 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import { changeStatusKeys } from "@/lib/changes/change-labels";
 import type { ChangeStatus } from "@/services/changes-api";
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+type Translate = (key: TranslationKey, options?: Record<string, unknown>) => string;
 
-const historyFieldKeys: Readonly<Record<string, string>> = {
+const historyFieldKeys: Readonly<Record<string, TranslationKey>> = {
   title: "changes.fields.title",
   type: "changes.fields.type",
   description: "changes.fields.description",

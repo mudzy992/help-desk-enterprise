@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 
 /**
@@ -51,9 +52,9 @@ export const alertDetailFieldSlugs = [
 export type AlertDetailFieldSlug = (typeof alertDetailFieldSlugs)[number];
 
 /** The label key for a detail field; `null` for a field this client does not know. */
-export function alertDetailLabelKey(field: string): string | null {
+export function alertDetailLabelKey(field: string): TranslationKey | null {
   return (alertDetailFieldSlugs as readonly string[]).includes(field)
-    ? `admin.opsHealth.alertDetailLabels.${field}`
+    ? (`admin.opsHealth.alertDetailLabels.${field}` as TranslationKey)
     : null;
 }
 

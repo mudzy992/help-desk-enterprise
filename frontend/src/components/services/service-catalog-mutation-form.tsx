@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -278,7 +279,11 @@ export function ServiceCatalogMutationForm({
             ) : null}
             {slaProfiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
-                {formatSlaProfileName(profile.key, profile.name, t as never)}
+                {formatSlaProfileName(
+                  profile.key,
+                  profile.name,
+                  (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                )}
               </option>
             ))}
           </Select>

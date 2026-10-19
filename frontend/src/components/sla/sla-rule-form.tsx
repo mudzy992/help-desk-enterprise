@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -166,7 +167,7 @@ export function SlaRuleForm({
         />
       </label>
       {matchError ? <p className={errorTextClassName}>{t("sla.overrideMatchRequired")}</p> : null}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey as never)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey as TranslationKey)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t("sla.saving") : rule ? t("sla.saveRule") : t("sla.createRule")}

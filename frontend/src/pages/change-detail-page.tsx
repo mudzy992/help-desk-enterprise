@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, GitPullRequestArrow, MoreHorizontal, Pencil, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChangeActionSheet } from "@/components/changes/change-action-sheet";
 import { ChangeApprovalsPanel } from "@/components/changes/change-approvals-panel";
@@ -305,7 +306,7 @@ function TextBlock({
 }: {
   readonly title: string;
   readonly value: string | null;
-  readonly emptyKey?: string;
+  readonly emptyKey?: TranslationKey;
 }) {
   const { t } = useTranslation();
   return (
@@ -314,9 +315,7 @@ function TextBlock({
       {value !== null && value.trim() !== "" ? (
         <p className="whitespace-pre-wrap px-4 py-3 text-[12.5px] text-foreground">{value}</p>
       ) : (
-        <p className={`px-4 py-3 ${hintClassName}`}>
-          {t((emptyKey ?? "changes.detail.notSet") as never)}
-        </p>
+        <p className={`px-4 py-3 ${hintClassName}`}>{t(emptyKey ?? "changes.detail.notSet")}</p>
       )}
     </Card>
   );

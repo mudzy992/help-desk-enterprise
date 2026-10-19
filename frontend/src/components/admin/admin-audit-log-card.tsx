@@ -96,6 +96,15 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
     void load();
   }, [load]);
 
+  const actionLabel = (action: string) => {
+    const key = auditActionTranslationKey(action);
+    return t(key ?? "admin.ops.auditLog.labels.unknownAction");
+  };
+  const entityLabel = (entityType: string) => {
+    const key = auditEntityTranslationKey(entityType);
+    return t(key ?? "admin.ops.auditLog.labels.unknownEntity");
+  };
+
   return (
     <Card className="fade-in">
       <CardHeader
@@ -153,16 +162,10 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
                       <td className="whitespace-nowrap px-3">
                         <RelativeTime value={row.createdAt} locale={i18n.language} />
                       </td>
-                      <td className="px-3 text-[12px]">
-                        {auditActionTranslationKey(row.action) === null
-                          ? t("admin.ops.auditLog.labels.unknownAction")
-                          : t(auditActionTranslationKey(row.action) as never)}
-                      </td>
+                      <td className="px-3 text-[12px]">{actionLabel(row.action)}</td>
                       <td className="max-w-[220px] px-3 text-[12px] text-muted-foreground">
                         <span title={row.entityId}>
-                          {auditEntityTranslationKey(row.entityType) === null
-                            ? t("admin.ops.auditLog.labels.unknownEntity")
-                            : t(auditEntityTranslationKey(row.entityType) as never)}
+                          {entityLabel(row.entityType)}
                           <code className="ml-1.5 text-[11px]">{row.entityId}</code>
                         </span>
                       </td>

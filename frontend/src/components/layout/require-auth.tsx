@@ -9,6 +9,7 @@ import { setUnauthorizedHandler } from "@/services/api";
 import { decideLocaleSync } from "@/i18n/locale-preference-sync";
 import { parseLocale, persistLocale } from "@/i18n/locale";
 import i18n from "i18next";
+import { ensureLocaleResources } from "@/i18n/config";
 import { reportClientError } from "@/lib/app/client-logger";
 import { getUserPreferences, updateUserPreferences } from "@/services/user-preferences-api";
 
@@ -50,6 +51,7 @@ export function RequireAuth() {
           await updateUserPreferences({ preferredLocale: decision.locale });
         } else if (decision.action === "apply") {
           persistLocale(decision.locale);
+          await ensureLocaleResources(decision.locale);
           await i18n.changeLanguage(decision.locale);
         }
       })

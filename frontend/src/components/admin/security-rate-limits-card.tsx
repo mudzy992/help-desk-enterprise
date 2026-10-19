@@ -2,6 +2,7 @@ import { ChevronRight, Gauge, RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { queryKeys } from "@/lib/query/query-keys";
 import { IdentityConfirmDialog } from "@/components/auth/identity-confirm-dialog";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -110,10 +111,10 @@ export function isValidRateLimitsReason(reason: string): boolean {
 export function groupSummary(
   group: RateLimitGroupId,
   config: SecurityRateLimitConfig,
-  t: (key: never, options?: Record<string, unknown>) => string,
+  t: (key: TranslationKey, options?: Record<string, unknown>) => string,
 ): string {
   if (group === "account") {
-    return t("admin.security.rateLimitSummaryAccount" as never, {
+    return t("admin.security.rateLimitSummaryAccount", {
       failures: config.accountDelayStartsAfterFailures,
       base: config.accountDelayBaseMilliseconds,
       max: config.accountDelayMaxMilliseconds,
@@ -121,12 +122,12 @@ export function groupSummary(
     });
   }
   if (group === "ip") {
-    return t("admin.security.rateLimitSummaryIp" as never, {
+    return t("admin.security.rateLimitSummaryIp", {
       failures: config.ipMaxFailures,
       window: config.ipWindowSeconds,
     });
   }
-  return t("admin.security.rateLimitSummaryOther" as never, {
+  return t("admin.security.rateLimitSummaryOther", {
     failures: config.otherMaxFailures,
     window: config.otherWindowSeconds,
   });
@@ -230,7 +231,11 @@ export function AdminSecurityRateLimitsCard() {
                     {t(groupTitleKeys[group.id])}
                   </span>
                   <span className="tnum mt-0.5 block text-[11px] text-muted-foreground">
-                    {groupSummary(group.id, config.config, t as never)}
+                    {groupSummary(
+                      group.id,
+                      config.config,
+                      (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                    )}
                   </span>
                 </span>
                 <ChevronRight size={14} className="shrink-0 text-muted-foreground" />

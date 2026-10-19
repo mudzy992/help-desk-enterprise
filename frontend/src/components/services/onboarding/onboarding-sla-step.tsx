@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -66,7 +67,11 @@ export function OnboardingSlaStep({
           >
             {activeProfiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
-                {formatSlaProfileName(profile.key, profile.name, t as never)}
+                {formatSlaProfileName(
+                  profile.key,
+                  profile.name,
+                  (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                )}
               </option>
             ))}
           </Select>

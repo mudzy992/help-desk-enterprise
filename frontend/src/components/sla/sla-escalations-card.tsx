@@ -1,6 +1,7 @@
 import { BellRing } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -75,7 +76,11 @@ export function SlaEscalationsCard({
                   <p className="text-[11.5px] leading-[18px] text-muted-foreground">
                     {t("sla.escalationNotifyAction")} ·{" "}
                     <span className="text-foreground/70">
-                      {formatSlaEscalationTarget(rule, t as never, groupNames)}
+                      {formatSlaEscalationTarget(
+                        rule,
+                        (key: TranslationKey, options?: Record<string, string>) => t(key, options),
+                        groupNames,
+                      )}
                     </span>
                   </p>
                 </div>
