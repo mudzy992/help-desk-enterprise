@@ -10061,7 +10061,8 @@
       "actionSent": "Akcija",
       "installed": "Aplikacija instalirana",
       "placeholder": "Poruka botu, npr. „moji tiketi“ ili „novi tiket“",
-      "send": "Pošalji"
+      "send": "Pošalji",
+      "userSearch": "Pretraži korisnike"
     },
     "errors": {
       "appIdRequired": "Za paket je potreban Bot App ID (GUID).",

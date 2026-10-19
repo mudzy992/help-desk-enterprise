@@ -200,6 +200,35 @@ Modul je maksimalno završen kada:
 
 ---
 
+## Status implementacije od 2026-10-19
+
+Implementacija nakon ovog audita zatvara ili bitno smanjuje sve nalaze:
+
+| Nalaz | Status implementacije                                                                                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TM1   | **Zatvoren:** polling je u `useTeamsSimulator`; poštuje aktivni/vidljivi tab, sprečava paralelne zahtjeve, resetuje kontekst i briše oporavljenu grešku. Hook testovi pokrivaju ključne tokove.  |
+| TM2   | **Zatvoren:** page je smanjen sa 693 na 65 linija; status, channels i simulator su zasebne komponente, a polling je zaseban hook.                                                                |
+| TM3   | **Zatvoren:** prikazi koriste `ApiErrorText`; `describeTeamsError` čuva lokalizovani ključ i `readApiRequestId` rezultat.                                                                        |
+| TM4   | **Zatvoren u kodu:** sređene su readiness ikone, action zaglavlje i live regija; channels axe korak dodat je u E2E 33. Taj E2E je izmijenjen, ali nije pokrenut u ovoj implementacijskoj sesiji. |
+| TM5   | **Zatvoren:** oba OpenUrl puta koriste testirani HTTP(S)-only helper; unsafe vrijednosti nisu linkovi.                                                                                           |
+| TM6   | **Zatvoren:** event mapa je iscrpno tipizovana sa `TeamsChannelEvent`, bez `in` i non-null assertion escapeova.                                                                                  |
+| TM7   | **Zatvoren u kodu:** ConfirmDialog callback eksplicitno provjerava zatvaranje; poseban komponent test nije dodat.                                                                                |
+| TM8   | **Zatvoren u kodu:** draft se briše tek nakon uspješnog slanja; poseban send komponent test nije dodat.                                                                                          |
+| TM9   | **Djelimično:** picker sada ima lokalnu pretragu po imenu i e-mailu, ali API i dalje učitava puni `listUsersSummary()` bez server-side paginacije/pretrage.                                      |
+| TM10  | **Zatvoren:** uklonjen je dupli readiness POST, a action busy/error obrazac centralizovan je u `useTeamsAsyncAction`.                                                                            |
+| TM11  | **Zatvoren u kodu:** nedostupan simulator normalizuje aktivni tab na status; poseban komponent test nije dodat.                                                                                  |
+| TM12  | **Zatvoren:** `fact` je statičan helper izvan komponente, a fazni komentar je zamijenjen trajnim opisom ugovora.                                                                                 |
+
+Verifikacija implementacije:
+
+- `npx tsc -b` — prolazi;
+- ciljani ESLint Teams fajlova — prolazi;
+- `npm run i18n:check` — prolazi, bs/en parity potvrđen;
+- puni frontend Vitest — **329/329 fajlova i 1333/1333 testova prolazi**;
+- E2E 33 — **nije pokrenut**, samo je proširen channels axe korakom.
+
+Preostalo do punog 10/10: server-side skalabilan user search/paginacija za TM9 te direktni komponent testovi za TM7/TM8/TM11 i izvršenje E2E 33.
+
 ## Ocjena
 
 # **6/10**

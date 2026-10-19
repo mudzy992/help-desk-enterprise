@@ -9981,7 +9981,8 @@
       "actionSent": "Action",
       "installed": "App installed",
       "placeholder": "Message to the bot, e.g. “my tickets” or “new ticket”",
-      "send": "Send"
+      "send": "Send",
+      "userSearch": "Search users"
     },
     "errors": {
       "appIdRequired": "The package needs the Bot App ID (GUID).",

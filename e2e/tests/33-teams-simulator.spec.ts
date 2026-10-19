@@ -158,6 +158,9 @@ test.describe('33 teams simulator', () => {
         await expect(page.getByText(/TEAMS_SIMULATOR_SECRET/)).toBeVisible();
         await expectNoSeriousA11yViolations(page, 'teams-admin-status', testInfo);
 
+        await page.getByRole('tab', { name: /Kanali|Channels/ }).click();
+        await expectNoSeriousA11yViolations(page, 'teams-admin-channels', testInfo);
+
         await page.getByRole('tab', { name: /Simulator/ }).click();
         await page.getByRole('combobox', { name: /^Korisnik|^User/ }).selectOption(userId);
         const input = page.getByRole('textbox', { name: /Poruka botu|Message to the bot/ });

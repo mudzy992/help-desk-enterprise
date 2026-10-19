@@ -1,9 +1,8 @@
 import { apiDownloadRequest, apiRequest } from "@/services/api";
 
 /**
- * Paket 3.1 (§16): `/integrations/teams/*`. Types mirror
- * `backend/src/modules/teams/teams-admin.service.ts`. Admin routes need
- * `integrations.teams.manage`; `/me` is open to every signed-in user.
+ * `/integrations/teams/*` contracts mirror the backend admin service.
+ * Admin routes need `integrations.teams.manage`; `/me` is available to every signed-in user.
  */
 
 export type TeamsMode = "off" | "simulator" | "live";

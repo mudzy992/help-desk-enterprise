@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, Textarea, Input } from "@/components/ui/field";
 import { mergeActionData, parseCardText } from "@/lib/teams/adaptive-card-text";
+import { safeAdaptiveCardUrl } from "@/lib/teams/safe-adaptive-card-url";
 import { cn } from "@/lib/utils";
 
 type CardNode = Readonly<Record<string, unknown>>;
@@ -24,7 +25,7 @@ const asNodes = (value: unknown): readonly CardNode[] =>
 const asText = (value: unknown): string => (typeof value === "string" ? value : "");
 
 /**
- * Paket 3.1 (§16): renders the Adaptive Card subset the connector sends
+ * Renders the Adaptive Card subset the connector sends
  * (TextBlock, FactSet, ColumnSet, Container, ActionSet, Input.Text, Input.ChoiceSet,
  * Action.Execute/Submit/OpenUrl/ShowCard) with the design system — a
  * faithful-enough preview for the simulator, not a general renderer.
@@ -112,14 +113,18 @@ export function AdaptiveCardPreview({
           >
             {asNodes(node.items).map((item, index) => renderElement(item, `${key}-${index}`))}
             {select?.type === "Action.OpenUrl" ? (
-              <a
-                className="text-[11.5px] text-link hover:underline"
-                href={asText(select.url)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {asText(select.title)}
-              </a>
+              safeAdaptiveCardUrl(select.url) ? (
+                <a
+                  className="text-[11.5px] text-link hover:underline"
+                  href={safeAdaptiveCardUrl(select.url) ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {asText(select.title)}
+                </a>
+              ) : (
+                <span className="text-[11.5px] text-muted-foreground">{asText(select.title)}</span>
+              )
             ) : null}
           </div>
         );
@@ -201,11 +206,19 @@ export function AdaptiveCardPreview({
         {actions.map((action, index) => {
           const title = asText(action.title);
           if (action.type === "Action.OpenUrl") {
-            return (
+            const href = safeAdaptiveCardUrl(action.url);
+            return href === null ? (
+              <span
+                key={index}
+                className="inline-flex h-[26px] items-center rounded-md border border-border px-2 text-[11.5px] text-muted-foreground"
+              >
+                {title}
+              </span>
+            ) : (
               <a
                 key={index}
                 className="inline-flex h-[26px] items-center rounded-md border border-border px-2 text-[11.5px] text-link hover:bg-surface-hover"
-                href={asText(action.url)}
+                href={href}
                 target="_blank"
                 rel="noreferrer"
               >

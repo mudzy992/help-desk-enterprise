@@ -1,4 +1,5 @@
 import { ApiError } from "@/services/api";
+import { readApiRequestId } from "@/lib/map-api-error";
 
 export type TeamsErrorKey =
   | "teamsAdmin.errors.appIdRequired"
@@ -15,4 +16,13 @@ export function mapTeamsError(error: unknown): TeamsErrorKey {
   if (error.code === "TEAMS_SIMULATOR_OFF") return "teamsAdmin.errors.simulatorOff";
   if (error.status === 403) return "teamsAdmin.errors.forbidden";
   return "teamsAdmin.errors.generic";
+}
+
+export type TeamsErrorDetails = {
+  readonly key: TeamsErrorKey;
+  readonly requestId: string | null;
+};
+
+export function describeTeamsError(error: unknown): TeamsErrorDetails {
+  return { key: mapTeamsError(error), requestId: readApiRequestId(error) };
 }
