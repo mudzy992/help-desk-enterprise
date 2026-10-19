@@ -3066,6 +3066,7 @@
     "slaEmpty": "No tickets past their SLA due time.",
     "inboxSnapshotTitle": "Group inbox",
     "inboxSnapshotSubtitle": "Unclaimed tickets by group",
+    "inboxSnapshotPartial": "The distribution shows the first {{shown}} of {{total}} tickets; the card uses the server total.",
     "inboxOpen": "Open inbox",
     "inboxEmpty": "No unclaimed tickets in your groups.",
     "inboxUnroutedBanner": "unrouted tickets",

@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HBars } from "@/components/charts/h-bars";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { PanelSkeleton } from "@/components/ui/skeleton";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { queryKeys } from "@/lib/query/query-keys";
 import { groupInboxCounts } from "@/lib/dashboard/dashboard-ticket-sets";
@@ -15,14 +18,26 @@ import type { TicketResponse } from "@/services/tickets-api";
 
 interface DashboardInboxSnapshotProperties {
   readonly unroutedCount: number;
+  readonly inboxCount: number | null;
+  readonly inboxTotalIsCapped: boolean;
   readonly inboxTickets: readonly TicketResponse[] | null;
   readonly groupNames: ReadonlyMap<string, string>;
+  readonly isLoading: boolean;
+  readonly errorKey: TicketErrorKey | null;
+  readonly requestId: string | null;
+  readonly onRetry: () => Promise<void>;
 }
 
 export function DashboardInboxSnapshot({
   unroutedCount,
+  inboxCount,
+  inboxTotalIsCapped,
   inboxTickets,
   groupNames,
+  isLoading,
+  errorKey,
+  requestId,
+  onRetry,
 }: DashboardInboxSnapshotProperties) {
   const { t } = useTranslation();
   // Val 6.1 / modul 4 (D5): counts through React Query instead of an ad-hoc
@@ -57,6 +72,29 @@ export function DashboardInboxSnapshot({
     color: group.groupId === null ? SEMANTIC_DOT_HEX.danger : SEMANTIC_DOT_HEX.primary,
     suffix: t("dashboard.inboxGroupCountSuffix"),
   }));
+  const isPartial =
+    inboxCount !== null && inboxTickets !== null && inboxCount > inboxTickets.length;
+
+  if (isLoading) {
+    return <PanelSkeleton label={t("dashboard.inboxSnapshotTitle")} />;
+  }
+
+  if (errorKey !== null) {
+    return (
+      <Card className="fade-in">
+        <CardHeader
+          title={t("dashboard.inboxSnapshotTitle")}
+          subtitle={t("dashboard.inboxSnapshotSubtitle")}
+        />
+        <div className="px-4 py-4">
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          <Button className="mt-3" size="xs" variant="outline" onClick={() => void onRetry()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="fade-in">
@@ -96,8 +134,18 @@ export function DashboardInboxSnapshot({
           </Link>
         ) : null}
         {bars.length > 0 ? (
-          <HBars items={bars} />
-        ) : displayUnroutedCount === 0 ? (
+          <>
+            <HBars items={bars} />
+            {isPartial ? (
+              <p className="mt-2 text-[11.5px] text-muted-foreground">
+                {t("dashboard.inboxSnapshotPartial", {
+                  shown: inboxTickets?.length ?? 0,
+                  total: inboxTotalIsCapped ? `${inboxCount}+` : inboxCount,
+                })}
+              </p>
+            ) : null}
+          </>
+        ) : inboxTickets !== null && displayUnroutedCount === 0 ? (
           <EmptyState
             title={t("dashboard.inboxEmpty")}
             action={

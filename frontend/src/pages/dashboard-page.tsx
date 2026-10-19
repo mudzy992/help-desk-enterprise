@@ -17,7 +17,7 @@ import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
-import { canOpenAdminArea, canOpenReports } from "@/lib/session/route-access";
+import { canOpenAdminArea, canOpenReports, isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function DashboardPage() {
@@ -26,21 +26,26 @@ export function DashboardPage() {
   // Val 1 (M15/B5): dugme je bilo trajno onemogućeno uz poruku da ruta ne
   // postoji, iako `/reports` postoji; sada je link, uz isto pravilo pristupa.
   const reportsVisible = canOpenReports(capabilities);
+  const isStaff = isTicketStaff(capabilities);
   // F6.3: the post-install checklist is administration content (it names what
   // the installation is still missing) — read and dismiss both need settings.write.
   const setupChecklistVisible = canOpenAdminArea(capabilities);
   const {
-    isStaff,
     summary,
     inboxCount,
+    inboxTotalIsCapped,
     inboxTickets,
+    isInboxLoading,
+    inboxErrorKey,
+    inboxRequestId,
+    reloadInbox,
     serviceNames,
     originNames,
     groupNames,
     isLoading,
     errorKey,
     requestId,
-  } = useDashboardSummary();
+  } = useDashboardSummary(isStaff);
   const recentExclusive =
     summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
 
@@ -85,7 +90,12 @@ export function DashboardPage() {
         />
       ) : (
         <div className="grid gap-4">
-          <DashboardMetricGrid summary={summary} inboxCount={inboxCount} isStaff={isStaff} />
+          <DashboardMetricGrid
+            summary={summary}
+            inboxCount={inboxCount}
+            inboxTotalIsCapped={inboxTotalIsCapped}
+            isStaff={isStaff}
+          />
           <DashboardCharts summary={summary} />
           <div
             className={isStaff ? "grid grid-cols-1 gap-3 xl:grid-cols-3" : "grid grid-cols-1 gap-3"}
@@ -95,8 +105,14 @@ export function DashboardPage() {
                 <DashboardSlaWatchlist items={summary.slaWatchlist} />
                 <DashboardInboxSnapshot
                   unroutedCount={summary.unrouted}
+                  inboxCount={inboxCount}
+                  inboxTotalIsCapped={inboxTotalIsCapped}
                   inboxTickets={inboxTickets}
                   groupNames={groupNames}
+                  isLoading={isInboxLoading}
+                  errorKey={inboxErrorKey}
+                  requestId={inboxRequestId}
+                  onRetry={reloadInbox}
                 />
               </>
             ) : null}

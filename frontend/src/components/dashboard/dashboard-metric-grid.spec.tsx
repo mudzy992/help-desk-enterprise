@@ -51,25 +51,40 @@ describe("DashboardMetricGrid links", () => {
     const { container } = render(
       <I18nextProvider i18n={i18next}>
         <MemoryRouter>
-          <DashboardMetricGrid summary={makeSummary()} inboxCount={12} isStaff />
+          <DashboardMetricGrid
+            summary={makeSummary()}
+            inboxCount={12}
+            inboxTotalIsCapped={false}
+            isStaff
+          />
         </MemoryRouter>
       </I18nextProvider>,
     );
     return [...container.querySelectorAll("a")];
   }
 
-  it("links the critical card to priority=CRITICAL", () => {
-    const link = links().find((element) =>
+  it("links open and critical cards to the same four-status set used by the counters", () => {
+    const allLinks = links();
+    const open = allLinks.find((element) =>
+      (element.textContent ?? "").includes(bsDashboard.dashboard.metricOpen),
+    );
+    const critical = allLinks.find((element) =>
       (element.textContent ?? "").includes(bsDashboard.dashboard.metricCritical),
     );
-    expect(link?.getAttribute("href")).toContain("priority=CRITICAL");
+    const expectedStatuses = ["PENDING", "UNROUTED", "ASSIGNED", "IN_PROGRESS"];
+    expect(new URLSearchParams(open?.getAttribute("href")?.split("?")[1]).getAll("status")).toEqual(
+      expectedStatuses,
+    );
+    const criticalQuery = new URLSearchParams(critical?.getAttribute("href")?.split("?")[1]);
+    expect(criticalQuery.get("priority")).toBe("CRITICAL");
+    expect(criticalQuery.getAll("status")).toEqual(expectedStatuses);
   });
 
-  it("links the unrouted card to status=UNROUTED", () => {
+  it("links the canonical unrouted count to the canonical inbox queue", () => {
     const link = links().find((element) =>
       (element.textContent ?? "").includes(bsDashboard.dashboard.metricUnrouted),
     );
-    expect(link?.getAttribute("href")).toContain("status=UNROUTED");
+    expect(link?.getAttribute("href")).toBe("/tickets?view=inbox&inboxTab=unrouted");
   });
 
   it("links overdue card to overdue=true", () => {

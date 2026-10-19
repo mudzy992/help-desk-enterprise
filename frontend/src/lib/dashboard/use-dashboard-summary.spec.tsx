@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
 import { fetchDashboardSummary } from "@/services/report-summary-api";
-import { listTicketsPage } from "@/services/tickets-api";
+import { listGroupInboxPage, listTicketsPage } from "@/services/tickets-api";
 
 const realtime = vi.hoisted(() => ({ reload: null as null | (() => Promise<void>) }));
 
@@ -37,7 +37,7 @@ vi.mock("@/lib/dashboard/compose-dashboard-summary", async (importOriginal) => {
 vi.mock("@/services/report-summary-api", () => ({ fetchDashboardSummary: vi.fn() }));
 vi.mock("@/services/tickets-api", () => ({
   listTicketsPage: vi.fn(),
-  listGroupInbox: vi.fn(() => Promise.resolve([])),
+  listGroupInboxPage: vi.fn(() => Promise.resolve({ ...emptyPage, total: 0 })),
 }));
 vi.mock("@/services/service-catalog-api", () => ({
   listServices: vi.fn(() => Promise.resolve([])),
@@ -70,6 +70,9 @@ describe("useDashboardSummary", () => {
     vi.mocked(listTicketsPage)
       .mockReset()
       .mockResolvedValue(emptyPage as never);
+    vi.mocked(listGroupInboxPage)
+      .mockReset()
+      .mockResolvedValue({ ...emptyPage, total: 0 });
     vi.mocked(invalidateDashboardQueries).mockClear();
   });
 
@@ -99,6 +102,35 @@ describe("useDashboardSummary", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.summary).toBeNull();
     expect(result.current.errorKey).not.toBeNull();
+  });
+
+  it("uses the inbox page total instead of the number of first-page items", async () => {
+    vi.mocked(listGroupInboxPage).mockResolvedValueOnce({
+      ...emptyPage,
+      items: [],
+      total: 73,
+      pageSize: 25,
+    });
+    const { result } = renderHook(() => useDashboardSummary(true), {
+      wrapper: wrapperFor(client),
+    });
+
+    await waitFor(() => expect(result.current.isInboxLoading).toBe(false));
+    expect(result.current.inboxCount).toBe(73);
+    expect(result.current.inboxTickets).toEqual([]);
+    expect(result.current.inboxErrorKey).toBeNull();
+  });
+
+  it("keeps an inbox transport failure distinct from an empty inbox", async () => {
+    vi.mocked(listGroupInboxPage).mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useDashboardSummary(true), {
+      wrapper: wrapperFor(client),
+    });
+
+    await waitFor(() => expect(result.current.isInboxLoading).toBe(false));
+    expect(result.current.inboxCount).toBeNull();
+    expect(result.current.inboxTickets).toBeNull();
+    expect(result.current.inboxErrorKey).not.toBeNull();
   });
 
   it("invalidates dashboard keys before a realtime silent reload", async () => {

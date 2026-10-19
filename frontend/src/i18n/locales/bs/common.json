@@ -3078,6 +3078,7 @@
     "slaEmpty": "Nema tiketa s prekoračenim SLA rokom.",
     "inboxSnapshotTitle": "Grupni inbox",
     "inboxSnapshotSubtitle": "Nepreuzeti tiketi po grupama",
+    "inboxSnapshotPartial": "Raspodjela prikazuje prvih {{shown}} od {{total}} tiketa; kartica koristi serverski total.",
     "inboxOpen": "Otvori inbox",
     "inboxEmpty": "Nema nepreuzetih tiketa u grupama.",
     "inboxUnroutedBanner": "neusmjerenih tiketa",

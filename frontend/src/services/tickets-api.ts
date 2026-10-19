@@ -187,12 +187,6 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
   });
 }
 
-export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
-  // Dashboard's existing aggregate consumer only needs the first page; the
-  // ticket workspace uses `listGroupInboxPage` and its page metadata directly.
-  return (await listGroupInboxPage()).items;
-}
-
 export type GroupInboxStatus = {
   readonly hasGroupMembership: boolean;
 };

@@ -3,9 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { localDayKey, queryKeys } from "@/lib/query/query-keys";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
-import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
-import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
 import { loadDashboardPrimary } from "@/lib/dashboard/load-dashboard-primary";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
@@ -14,7 +12,7 @@ import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-er
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
 import { listOfferedServices, listServices } from "@/services/service-catalog-api";
-import { listGroupInbox, type TicketResponse } from "@/services/tickets-api";
+import { listGroupInboxPage, type TicketPage, type TicketResponse } from "@/services/tickets-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { RoutingRuleResponse } from "@/services/routing-api";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
@@ -23,7 +21,12 @@ export type DashboardSummaryState = {
   readonly isStaff: boolean;
   readonly summary: DashboardSummary | null;
   readonly inboxCount: number | null;
+  readonly inboxTotalIsCapped: boolean;
   readonly inboxTickets: readonly TicketResponse[] | null;
+  readonly isInboxLoading: boolean;
+  readonly inboxErrorKey: TicketErrorKey | null;
+  readonly inboxRequestId: string | null;
+  readonly reloadInbox: () => Promise<void>;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
@@ -33,27 +36,50 @@ export type DashboardSummaryState = {
   readonly reload: () => Promise<void>;
 };
 
-export function useDashboardSummary(isStaffInput?: boolean): DashboardSummaryState {
+export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
   const { currentUserId } = useSession();
-  // Val 6.1 / modul 4 (D14): a single source of session capabilities per
-  // dashboard render. The page already calls `useSessionCapabilities` for the
-  // reports button, so it passes the resolved boolean in; when omitted (e.g.
-  // in tests) we still resolve it here.
-  const capabilities = useSessionCapabilities();
-  const isStaff = isStaffInput ?? isTicketStaff(capabilities);
   // The counters carry a day ("opened today"), so the day is part of the key:
   // when it changes the callback identity changes with it and the effect below
   // fetches the new day instead of showing yesterday's payload.
   const dayKey = localDayKey();
   const queryClient = useQueryClient();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [inboxTickets, setInboxTickets] = useState<readonly TicketResponse[] | null>(null);
+  const [inboxPage, setInboxPage] = useState<TicketPage | null>(null);
+  const [isInboxLoading, setIsInboxLoading] = useState(isStaff);
+  const [inboxErrorKey, setInboxErrorKey] = useState<TicketErrorKey | null>(null);
+  const [inboxRequestId, setInboxRequestId] = useState<string | null>(null);
   const [serviceNames, setServiceNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  const reloadInbox = useCallback(async () => {
+    if (!isStaff) {
+      setInboxPage(null);
+      setIsInboxLoading(false);
+      setInboxErrorKey(null);
+      setInboxRequestId(null);
+      return;
+    }
+    setIsInboxLoading(true);
+    setInboxErrorKey(null);
+    setInboxRequestId(null);
+    try {
+      const page = await queryClient.fetchQuery({
+        queryKey: queryKeys.groupInbox,
+        queryFn: () => listGroupInboxPage(),
+      });
+      setInboxPage(page);
+    } catch (error) {
+      setInboxPage(null);
+      setInboxErrorKey(mapTicketError(error));
+      setInboxRequestId(readApiRequestId(error));
+    } finally {
+      setIsInboxLoading(false);
+    }
+  }, [isStaff, queryClient]);
 
   const reload = useCallback(
     async (silent = false) => {
@@ -93,15 +119,8 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
         // auxiliary lookups that do not block first
         // paint. Each catches independently so one failing lookup cannot blank
         // the whole dashboard.
-        const [inbox, catalog, tree, rules] = await Promise.all([
-          isStaff
-            ? queryClient
-                .fetchQuery({
-                  queryKey: queryKeys.groupInbox,
-                  queryFn: () => listGroupInbox(),
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
+        const [, catalog, tree, rules] = await Promise.all([
+          reloadInbox(),
           queryClient
             .fetchQuery({
               queryKey: queryKeys.dashboardServiceNames,
@@ -130,7 +149,6 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
                 .catch((): readonly RoutingRuleResponse[] => [])
             : Promise.resolve([] as readonly RoutingRuleResponse[]),
         ]);
-        setInboxTickets(inbox);
         setServiceNames(
           new Map(catalog.map((service: ServiceResponse) => [service.id, service.name])),
         );
@@ -143,7 +161,6 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
           return;
         }
         setSummary(null);
-        setInboxTickets(null);
         setServiceNames(new Map());
         setOriginNames(new Map());
         setGroupNames(new Map());
@@ -155,7 +172,7 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
         }
       }
     },
-    [currentUserId, dayKey, isStaff, queryClient],
+    [currentUserId, dayKey, isStaff, queryClient, reloadInbox],
   );
 
   useEffect(() => {
@@ -170,8 +187,13 @@ export function useDashboardSummary(isStaffInput?: boolean): DashboardSummarySta
   return {
     isStaff,
     summary,
-    inboxCount: inboxTickets === null ? null : inboxTickets.length,
-    inboxTickets,
+    inboxCount: inboxPage?.total ?? null,
+    inboxTotalIsCapped: inboxPage?.totalIsCapped === true,
+    inboxTickets: inboxPage?.items ?? null,
+    isInboxLoading,
+    inboxErrorKey,
+    inboxRequestId,
+    reloadInbox,
     serviceNames,
     originNames,
     groupNames,
