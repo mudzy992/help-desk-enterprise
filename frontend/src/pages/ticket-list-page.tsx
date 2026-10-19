@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { AlertTriangle, Plus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketInboxPanel } from "@/components/tickets/ticket-inbox-panel";
@@ -37,14 +37,21 @@ export function TicketListPage() {
   );
   // Phase 1.1: the headline numbers come from the server counters (they cover
   // every matching ticket), not from the rows of the current page.
-  const openCount = list.counts?.open ?? 0;
-  const riskCount = list.counts?.overdue ?? 0;
-  // Paket 5.3.1 (D10): the inbox is a tab of "All tickets"; the heading names
-  // the section, the active tab names the view.
   const pageTitle = isInbox ? t("tickets.views.all") : t(ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox
     ? t("tickets.inboxHint")
-    : t("tickets.listSubtitle", { open: openCount, risk: riskCount });
+    : list.counts === null
+      ? t("tickets.listSubtitleCountsUnavailable")
+      : t("tickets.listSubtitle", {
+          open: list.counts.open,
+          risk: list.counts.overdue,
+        });
+  const listHealthWarning =
+    list.refreshErrorKey !== null
+      ? t("tickets.refreshUnavailable")
+      : list.countsErrorKey !== null
+        ? t("tickets.countsUnavailable")
+        : null;
   const crumbs = isInbox
     ? [brandCrumb, t("tickets.title"), t("tickets.views.inbox")]
     : [brandCrumb, t("tickets.title")];
@@ -82,6 +89,21 @@ export function TicketListPage() {
         isStaff={list.isStaff}
         counts={workspaceCounts}
       />
+      {listHealthWarning !== null ? (
+        <div
+          className="mt-3 flex items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-[11.5px] text-warning"
+          role="alert"
+          data-testid="ticket-list-health-warning"
+        >
+          <span className="flex items-center gap-2">
+            <AlertTriangle size={14} aria-hidden="true" />
+            {listHealthWarning}
+          </span>
+          <Button type="button" size="sm" variant="outline" onClick={() => void list.load()}>
+            {t("tickets.retry")}
+          </Button>
+        </div>
+      ) : null}
       {isInbox ? (
         <TicketInboxPanel
           activeTab={inboxActiveTab}

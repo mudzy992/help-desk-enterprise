@@ -16,6 +16,9 @@ import {
   type TicketStatus,
 } from "@/services/tickets-api";
 
+const reportClientErrorMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/app/client-logger", () => ({ reportClientError: reportClientErrorMock }));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: "bs" } }),
 }));
@@ -110,7 +113,10 @@ const counts: TicketCounts = {
   byStatus: countsByStatus,
 };
 
-type DeferredPage = { readonly resolve: (page: TicketPage) => void };
+type DeferredPage = {
+  readonly resolve: (page: TicketPage) => void;
+  readonly reject: (error: Error) => void;
+};
 
 describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
   let queryClient: ReturnType<typeof createHelpdeskQueryClient>;
@@ -130,10 +136,12 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
 
   beforeEach(() => {
     pendingPages = [];
+    reportClientErrorMock.mockReset();
     initialEntry = "/tickets?view=all";
     capabilityState.isLoading = false;
     capabilityState.isStaff = false;
     queryClient = createHelpdeskQueryClient();
+    queryClient.setDefaultOptions({ queries: { retry: false } });
     vi.mocked(listOfferedServices).mockReset();
     vi.mocked(listOfferedServices).mockResolvedValue([]);
     vi.mocked(getTicketCounts).mockReset();
@@ -141,8 +149,8 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
     vi.mocked(listTicketsPage).mockReset();
     vi.mocked(listTicketsPage).mockImplementation(
       () =>
-        new Promise<TicketPage>((resolve) => {
-          pendingPages.push({ resolve });
+        new Promise<TicketPage>((resolve, reject) => {
+          pendingPages.push({ resolve, reject });
         }),
     );
   });
@@ -192,6 +200,46 @@ describe("useTicketList: which answer reaches the screen (T1, T26)", () => {
     await act(async () => {
       pendingPages[0]?.resolve(ticketPage([]));
     });
+  });
+
+  it("keeps the last page and exposes a recoverable error when silent refresh fails", async () => {
+    const { result } = renderHook(() => useTicketList(), { wrapper });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      pendingPages[0]?.resolve(ticketPage([ticketRow("stable")]));
+    });
+
+    let silentReload: Promise<void> | undefined;
+    act(() => {
+      silentReload = result.current.load(true);
+    });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(2));
+    act(() => {
+      pendingPages[1]?.reject(new Error("offline"));
+    });
+    await act(async () => {
+      await silentReload;
+    });
+
+    expect(result.current.pageItems.map((item) => item.id)).toEqual(["stable"]);
+    expect(result.current.refreshErrorKey).toBe("tickets.errorGeneric");
+    expect(result.current.errorKey).toBeNull();
+    expect(reportClientErrorMock).toHaveBeenCalledWith(
+      "ticket_list_refresh_failed",
+      expect.any(Error),
+    );
+
+    let recovery: Promise<void> | undefined;
+    act(() => {
+      recovery = result.current.load(true);
+    });
+    await waitFor(() => expect(listTicketsPage).toHaveBeenCalledTimes(3));
+    await act(async () => {
+      pendingPages[2]?.resolve(ticketPage([ticketRow("recovered")]));
+      await recovery;
+    });
+    expect(result.current.refreshErrorKey).toBeNull();
+    expect(result.current.pageItems.map((item) => item.id)).toEqual(["recovered"]);
   });
 
   it("reads the server again on a silent reload instead of the fresh cache", async () => {

@@ -94,6 +94,8 @@ export function useTicketList() {
     total: data.pageInfo.total,
     totalIsCapped: data.pageInfo.totalIsCapped,
     counts: data.counts,
+    countsErrorKey: data.countsErrorKey,
+    refreshErrorKey: data.refreshErrorKey,
     inboxGroupCounts: data.inboxGroupCounts,
     unroutedTickets: data.unroutedTickets,
     unroutedCount: data.unroutedTotal,

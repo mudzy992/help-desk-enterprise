@@ -4,6 +4,7 @@ import { fetchTicketListSnapshot } from "@/lib/tickets/fetch-ticket-list-snapsho
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { getGroupInboxStatus, listGroupInboxPage, listTicketsPage } from "@/services/tickets-api";
 import { listOfferedServices } from "@/services/service-catalog-api";
+import { getTicketCounts } from "@/services/tickets-counts-api";
 
 vi.mock("@/services/tickets-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/tickets-api")>();
@@ -18,6 +19,11 @@ vi.mock("@/services/tickets-api", async (importOriginal) => {
 vi.mock("@/services/service-catalog-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/service-catalog-api")>();
   return { ...actual, listOfferedServices: vi.fn() };
+});
+
+vi.mock("@/services/tickets-counts-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/services/tickets-counts-api")>();
+  return { ...actual, getTicketCounts: vi.fn() };
 });
 
 const filters: TicketListFilters = {
@@ -87,6 +93,31 @@ describe("fetchTicketListSnapshot inbox reads", () => {
 
     expect(snapshot.hasGroupMembership).toBeNull();
     expect(snapshot.membershipErrorKey).toBe("tickets.errorGeneric");
+    queryClient.clear();
+  });
+
+  it("reports a counts failure instead of representing it as zero", async () => {
+    vi.mocked(listTicketsPage).mockReset().mockResolvedValueOnce({
+      items: [],
+      total: 0,
+      totalIsCapped: false,
+      page: 1,
+      pageSize: 25,
+    });
+    vi.mocked(getTicketCounts).mockReset().mockRejectedValueOnce(new Error("counts offline"));
+
+    const snapshot = await fetchTicketListSnapshot({
+      view: "all",
+      filters: { ...filters, view: "all" },
+      page: 1,
+      unroutedPage: 1,
+      currentUserId: "agent-1",
+      queryClient,
+      silent: false,
+    });
+
+    expect(snapshot.counts).toBeNull();
+    expect(snapshot.countsErrorKey).toBe("tickets.errorGeneric");
     queryClient.clear();
   });
 

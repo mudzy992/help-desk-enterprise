@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { useSearchParams } from "react-router-dom";
+import { reportClientError } from "@/lib/app/client-logger";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { createLatestRequestGate } from "@/lib/tickets/latest-request-gate";
@@ -51,6 +52,8 @@ export function useTicketListData({
     () => new Map(),
   );
   const [counts, setCounts] = useState<TicketCounts | null>(null);
+  const [countsErrorKey, setCountsErrorKey] = useState<TicketErrorKey | null>(null);
+  const [refreshErrorKey, setRefreshErrorKey] = useState<TicketErrorKey | null>(null);
   const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
   const [unroutedTotal, setUnroutedTotal] = useState(0);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
@@ -72,6 +75,7 @@ export function useTicketListData({
         pendingVisibleLoads.current += 1;
         setIsLoading(true);
         setErrorKey(null);
+        setRefreshErrorKey(null);
       }
       try {
         const snapshot = await fetchTicketListSnapshot({
@@ -84,6 +88,7 @@ export function useTicketListData({
           silent,
         });
         if (!requestGate.isLatest(requestToken)) return;
+        setRefreshErrorKey(null);
         setServices(snapshot.services);
         setCatalogErrorKey(snapshot.catalogErrorKey);
         setUnroutedErrorKey(snapshot.unroutedErrorKey);
@@ -97,7 +102,10 @@ export function useTicketListData({
             new Map(current).set(inboxGroupId, snapshot.pageInfo.total),
           );
         }
-        setCounts(snapshot.counts);
+        setCountsErrorKey(snapshot.countsErrorKey);
+        if (snapshot.countsErrorKey === null || !silent) {
+          setCounts(snapshot.counts);
+        }
         setUnroutedTickets(snapshot.unroutedTickets);
         setUnroutedTotal(snapshot.unroutedTotal);
         setHasGroupMembership(snapshot.hasGroupMembership);
@@ -127,7 +135,11 @@ export function useTicketListData({
           setSearchParams({ view: "all" });
           return;
         }
-        if (silent) return;
+        if (silent) {
+          setRefreshErrorKey(mapped);
+          reportClientError("ticket_list_refresh_failed", error);
+          return;
+        }
         setPageItems([]);
         setUnroutedTickets([]);
         setUnroutedTotal(0);
@@ -165,6 +177,8 @@ export function useTicketListData({
     pageInfo,
     inboxGroupCounts,
     counts,
+    countsErrorKey,
+    refreshErrorKey,
     unroutedTickets,
     unroutedTotal,
     services,

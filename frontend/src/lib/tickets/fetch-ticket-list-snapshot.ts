@@ -39,6 +39,7 @@ export type TicketListSnapshot = {
   readonly pageInfo: TicketListPageInfo;
   readonly inboxGroupId: string | null;
   readonly counts: TicketCounts | null;
+  readonly countsErrorKey: TicketErrorKey | null;
   readonly unroutedTickets: readonly TicketResponse[];
   readonly unroutedTotal: number;
   readonly unroutedPageInfo: Pick<TicketListPageInfo, "page" | "pageSize" | "total"> | null;
@@ -146,6 +147,7 @@ export async function fetchTicketListSnapshot({
             },
       inboxGroupId,
       counts: null,
+      countsErrorKey: null,
       unroutedTickets: unroutedTicketsFromList(unroutedPageResponse?.items ?? []),
       unroutedTotal: unroutedPageResponse?.total ?? 0,
       unroutedPageInfo:
@@ -176,7 +178,7 @@ export async function fetchTicketListSnapshot({
       queryKey: queryKeys.ticketList(query),
       queryFn: () => listTicketsPage(query),
     }),
-    queryClient.fetchQuery(ticketCountsQueryOptions(countsQuery)).catch(() => null),
+    captureRead(queryClient.fetchQuery(ticketCountsQueryOptions(countsQuery))),
   ]);
   return {
     services: services.value ?? [],
@@ -189,7 +191,8 @@ export async function fetchTicketListSnapshot({
       totalIsCapped: response.totalIsCapped === true,
     },
     inboxGroupId: null,
-    counts,
+    counts: counts.value,
+    countsErrorKey: counts.errorKey,
     unroutedTickets: [],
     unroutedTotal: 0,
     unroutedPageInfo: null,

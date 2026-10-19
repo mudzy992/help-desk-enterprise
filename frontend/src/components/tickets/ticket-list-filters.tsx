@@ -54,16 +54,16 @@ export function applyTicketListTab(filters: TicketListFilters, key: string): Tic
  * "All" is every status the counters know except ARCHIVED: the default list
  * hides the archive, and the counters group over all statuses.
  */
-export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null, riskCount: number) {
-  const allCount =
-    counts === null
-      ? 0
-      : ticketStatusValues.reduce(
-          (sum, status) => (status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0)),
-          0,
-        );
+export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null) {
+  const allCount = counts
+    ? ticketStatusValues.reduce(
+        (sum, status) => (status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0)),
+        0,
+      )
+    : null;
+  const withCount = (count: number | null) => (count === null ? {} : { count });
   return [
-    { key: "ALL", label: t("tickets.filters.allTickets"), count: allCount },
+    { key: "ALL", label: t("tickets.filters.allTickets"), ...withCount(allCount) },
     {
       key: SLA_RISK_TAB,
       label: (
@@ -72,12 +72,12 @@ export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null, 
           {t("tickets.filters.slaRisk")}
         </span>
       ),
-      count: riskCount,
+      ...withCount(counts?.overdue ?? null),
     },
     ...ticketStatusValues.map((status) => ({
       key: status,
       label: t(ticketStatusLabelKey[status]),
-      count: counts?.byStatus[status] ?? 0,
+      ...withCount(counts?.byStatus[status] ?? null),
     })),
   ];
 }

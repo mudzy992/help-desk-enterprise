@@ -31,7 +31,6 @@ export function TicketListStandardView({
   canExport,
 }: TicketListStandardViewProperties) {
   const { t } = useTranslation();
-  const riskCount = list.counts?.overdue ?? 0;
 
   return (
     <div className="mt-4 min-w-0">
@@ -39,7 +38,7 @@ export function TicketListStandardView({
         className="mb-3"
         active={ticketListTabKey(list.filters)}
         onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
-        items={ticketStatusTabItems(t, list.counts, riskCount)}
+        items={ticketStatusTabItems(t, list.counts)}
       />
       <TicketListFiltersBar
         filters={list.filters}
