@@ -131,9 +131,9 @@ Poseban status:
 
 ## 7. Ocjena
 
-### **9.0/10**
+### **9.2/10**
 
-Modul je značajno bolji od historijske ocjene 5/10. Faza 1 dodatno zatvara cross-tab izolaciju identiteta i strogu storage validaciju. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
+Modul je značajno bolji od historijske ocjene 5/10. Faze 1 i 2 dodatno zatvaraju cross-tab izolaciju identiteta, strogu storage validaciju i logout/sign-in race. Kritične greške koje su odjavljivale korisnika na mrežni kvar, duplirale capability zahtjeve ili demontirale stranicu pri refreshu više nisu prisutne. Cookie granica, MFA/passkey dizajn, 401 klasifikacija i ciljano testiranje su iznad prosjeka.
 
 Do 10/10 nedostaju tri vrste dokaza:
 
@@ -167,6 +167,30 @@ Verifikacija Faze 1:
 - ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
 
 Ocjena nakon Faze 1: **9.0/10**.
+
+## Status implementacije — Faza 2 (2026-10-19)
+
+Faza 2 je kompletirana i **AS8 je zatvoren**:
+
+- odjava i dalje odmah briše lokalnu sesiju i user-scoped cache, pa offline odjava ostaje trenutna;
+- server logout sada prima `AbortSignal` i registruje se kao jedina pending logout tranzicija;
+- lokalna i Entra prijava čekaju završetak prethodne logout tranzicije prije slanja novog login zahtjeva;
+- uredan logout odgovor odmah otključava sljedeću prijavu;
+- zaglavljen logout se nakon dvije sekunde abortira prije nego što se dozvoli login, pa zakašnjeli odgovor ne može primijeniti brisanje cookieja preko novije sesije;
+- server/Entra logout greška i dalje ne vraća lokalnu sesiju niti blokira korisnika trajno;
+- deferred-response test potvrđuje da login nije pozvan prije logout završetka; timeout test potvrđuje abort signala i tek zatim novu prijavu.
+
+Verifikacija Faze 2:
+
+- ciljani logout/session testovi — **3/3 fajla i 16/16 testova prolazi**;
+- puni frontend Vitest — **336/336 fajlova i 1359/1359 testova prolazi**;
+- TypeScript i produkcijski build — prolaze;
+- ciljani ESLint — prolazi bez outputa;
+- i18n/design-system check — prolazi, 8788 ključeva i BS/EN parity;
+- `git diff --check` — prolazi;
+- ostaju samo postojeća Vite chunk i test-suite SSR/i18n upozorenja.
+
+Ocjena nakon Faze 2: **9.2/10**.
 
 ## 8. Fazni plan do 10/10
 

@@ -27,7 +27,30 @@ import {
 } from "@/services/session-store";
 
 const listeners = new Set<() => void>();
+const logoutRequestTimeoutMs = 2_000;
 let observedSubjectId: string | null | undefined;
+let pendingLogout: Promise<void> | null = null;
+
+function beginServerLogout(): void {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const request = logoutSession(controller.signal).catch(() => undefined);
+  const timeout = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      resolve();
+    }, logoutRequestTimeoutMs);
+  });
+  const settled = Promise.race([request, timeout]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    if (pendingLogout === settled) pendingLogout = null;
+  });
+  pendingLogout = settled;
+}
+
+async function waitForPendingLogout(): Promise<void> {
+  await pendingLogout;
+}
 
 function emitSessionChange(): void {
   for (const listener of listeners) {
@@ -149,6 +172,7 @@ export function useSession() {
       rememberMe = false,
       captchaToken?: string,
     ): Promise<SignInOutcome> => {
+      await waitForPendingLogout();
       const response = await loginWithPassword({
         email,
         password,
@@ -164,6 +188,7 @@ export function useSession() {
 
   /** Microsoft ID token → application session. */
   const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
+    await waitForPendingLogout();
     storeSession(await loginWithEntraIdToken(idToken));
   }, []);
 
@@ -219,7 +244,7 @@ export function useSession() {
     // Revoke on the server too; the local sign-out
     // does not wait for it (offline sign-out must still work).
     if (readStoredSession() !== null) {
-      void logoutSession().catch(() => undefined);
+      beginServerLogout();
     }
     clearStoredSession();
     clearUserScopedCache();

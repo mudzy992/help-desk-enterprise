@@ -159,9 +159,9 @@ export function refreshSession(): Promise<AuthenticationSessionResponse> {
   return apiRequest("/auth/refresh", { method: "POST" });
 }
 
-/** Server-side sign out (revokes the token); failures are ignored by callers. */
-export function logoutSession(): Promise<void> {
-  return apiRequest("/auth/logout", { method: "POST" });
+/** Server-side sign out (revokes the token); callers may abort a stalled request. */
+export function logoutSession(signal?: AbortSignal): Promise<void> {
+  return apiRequest("/auth/logout", { method: "POST", signal });
 }
 
 /** Paket 1.8 (A1): which sign-in options the login page offers. */
