@@ -21,5 +21,6 @@ WORKDIR /usr/share/nginx/html
 
 COPY --from=build /usr/app/dist ./
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./security-headers.inc /etc/nginx/conf.d/security-headers.inc
 
 EXPOSE 10000

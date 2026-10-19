@@ -93,8 +93,6 @@ export class ApiClient {
     type LoginBody = {
       status?: string;
       mfaToken?: string;
-      /** Only from a stack that predates the httpOnly session cookie. */
-      accessToken?: string;
     };
     let body = await this.requestJson<LoginBody>('/auth/login', {
       method: 'POST',
@@ -123,15 +121,9 @@ export class ApiClient {
       saveApiSessionCookie(email, this.sessionCookie);
       return this.sessionCookie;
     }
-    // Privremeni fallback za CI koji koristi vanjski E2E_API_URL; iz ovog checkouta nije moguće
-    // potvrditi da li je taj deployment već prešao na HttpOnly kolačić.
-    // TODO(audit/frontend/02-auth-i-sesija.md#A8): ukloniti tek kad puni E2E run na deploymentu
-    // koji izdaje kolačić prođe specove 37 i 39. PR smoke podskup ih ne pokreće.
-    if (typeof body.accessToken === 'string' && body.accessToken.length > 0) {
-      this.setBearerToken(body.accessToken);
-      return body.accessToken;
-    }
-    throw new Error('Login response did not set the session cookie');
+    throw new Error(
+      'Login response did not set helpdesk_session; browser E2E requires the HttpOnly cookie contract',
+    );
   }
 
   async requestJson<T>(
