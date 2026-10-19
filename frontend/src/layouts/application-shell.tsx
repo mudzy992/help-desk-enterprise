@@ -15,6 +15,7 @@ import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
 import { ActiveTimerHost } from "@/components/time-tracking/active-timer-host";
 import { isTicketStaff } from "@/lib/session/route-access";
+import { pageRenderKey } from "@/lib/navigation/page-render-key";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { AnnouncerRegions } from "@/components/a11y/announcer-regions";
 import { RouteFocusManager, mainContentId } from "@/components/a11y/route-focus-manager";
@@ -91,7 +92,7 @@ export function ApplicationShell() {
                 <PasswordExpiryBanner />
                 <AnnouncementsHost />
               </div>
-              <div key={location.pathname} className="page-in">
+              <div key={pageRenderKey(location)} className="page-in">
                 <RouteErrorBoundary>
                   <Outlet />
                 </RouteErrorBoundary>

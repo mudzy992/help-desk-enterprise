@@ -134,6 +134,25 @@ Verifikacija Faze 1:
 - puni frontend Vitest — **334/334 fajlova i 1341/1341 test prolaze**;
 - `git diff --check` — prolazi.
 
+## Status implementacije — Faza 2 (2026-10-19)
+
+Faza 2 je kompletirana i **LR4 je zatvoren**:
+
+- uveden je čisti `pageRenderKey` koji identitet ekrana gradi iz `pathname + search + hash`;
+- page wrapper sada remountuje vlastiti `RouteErrorBoundary` i animaciju kada query ili hash odabere drugi ekran;
+- maintenance, password-expiry i announcement banneri ostaju izvan keyed wrappera i ne remountuju se;
+- regresioni test prvo izaziva render grešku, zatim potvrđuje oporavak na query-only navigaciji, pa isti tok ponavlja za hash-only navigaciju;
+- privremena ocjena nakon Faze 2 je **9.2/10**; otvoreni ostaju LR5, LR7 i LR8.
+
+Verifikacija Faze 2:
+
+- ciljani boundary test — 2/2 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **334/334 fajlova i 1342/1342 testa prolaze**;
+- `git diff --check` — prolazi.
+
 ## Fazni roadmap
 
 ### Faza 1 — ugovor ruta
