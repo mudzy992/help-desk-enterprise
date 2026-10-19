@@ -195,6 +195,20 @@ Verifikacija Faze 4:
 - puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
 - `git diff --check` — prolazi.
 
+## Status implementacije — Faza 5 (2026-10-19)
+
+Implementacijski dio Faze 5 je završen, ali **LR8 još nije označen kao zatvoren** jer browser izvršenje nema dostupno E2E okruženje:
+
+- dodan je `e2e/tests/54-shell-responsive.spec.ts` sa zasebnim Playwright slučajevima za 360 px i 390 px;
+- test se prijavljuje kao SuperAdmin i provjerava mobile navigation, command palette, appearance, notifications i account kontrole;
+- mjeri `documentElement.scrollWidth`, granice headera i granice svakog vidljivog header dugmeta;
+- test pada ako dokument/header/kontrola izađe iz viewporta;
+- za svaki viewport test prilaže stvarni screenshot headera kao Playwright artefakt;
+- E2E TypeScript i Playwright discovery prolaze: 2 testa u 1 fajlu;
+- stvarno izvršenje je pokušano, ali global setup je stao prije browser testa jer E2E stack nije dostupan na `http://localhost:10001/health`; rezultat nije predstavljen kao prolaz.
+
+LR8 se zatvara tek nakon uspješnog izvršenja ova dva testa na konfigurisanom E2E/staging stacku. Ocjena zato ostaje **9.8/10** umjesto da se administrativno podigne na 10/10 bez browser dokaza.
+
 ## Fazni roadmap
 
 ### Faza 1 — ugovor ruta
