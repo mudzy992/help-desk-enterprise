@@ -450,10 +450,10 @@ jobs:
           # to `e2e/tests/<number>-*.spec.ts`; an unknown number fails loudly
           # instead of silently running everything.
           #
-          # 2026-10-06: the *gate* on a PR is the smoke subset below, not all 36
+          # 2026-10-06: the *gate* on a PR is the smoke subset below, not all 54
           # files — a merge should not wait ~35-60 min. The full run happens
           # nightly (`schedule`) and on demand (`workflow_dispatch`).
-          smoke_specs="01,02,03,15,22"
+          smoke_specs="01,02,03,15,22,54"
           case "${{ github.event_name }}" in
             pull_request)
               specs="$smoke_specs"

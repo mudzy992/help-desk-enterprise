@@ -209,6 +209,16 @@ Implementacijski dio Faze 5 je završen, ali **LR8 još nije označen kao zatvor
 
 LR8 se zatvara tek nakon uspješnog izvršenja ova dva testa na konfigurisanom E2E/staging stacku. Ocjena zato ostaje **9.8/10** umjesto da se administrativno podigne na 10/10 bez browser dokaza.
 
+## Status implementacije — Faza 6 (2026-10-19)
+
+Faza 6 je povezala responsive provjeru sa obaveznom CI kapijom:
+
+- test `54-shell-responsive.spec.ts` dodat je u PR smoke skup uz postojeće kritične tokove;
+- svaki pull request koji mijenja kod sada izvršava 360/390 header provjeru sa `retries=0` i fail-fast pravilom;
+- CI i E2E dokumentacija ažurirane su sa šest smoke fajlova i trenutna 54 E2E testna fajla;
+- ručni dispatch za `specs=54` je pokušan, ali GitHub integration token nema pravo kreirati workflow dispatch (`HTTP 403`); to nije evidentirano kao prolaz testa;
+- LR8 ostaje otvoren do prvog uspješnog browser izvršenja, ali više ne zavisi od ručnog odabira testa na narednom PR-u.
+
 ## Fazni roadmap
 
 ### Faza 1 — ugovor ruta

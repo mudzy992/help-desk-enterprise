@@ -34,8 +34,8 @@ runners (Coolify contract) — and runs in three modes:
 
 | Event | Mode | Scope |
 |---|---|---|
-| `pull_request` (and the change touches code) | **smoke — the gate** | 5 files (`01, 02, 03, 15, 22`), `retries=0`, `--max-failures=1` |
-| `schedule` (nightly, 01:00 UTC) | **full** | all 36 files, `retries=1` |
+| `pull_request` (and the change touches code) | **smoke — the gate** | 6 files (`01, 02, 03, 15, 22, 54`), `retries=0`, `--max-failures=1` |
+| `schedule` (nightly, 01:00 UTC) | **full** | all 54 files, `retries=1` |
 | `workflow_dispatch` | triage or full | `specs=10,18,22`, `retries: 0`, `max_failures: 8`, or nothing for all files |
 
 A manual dispatch also takes `skip_gates` (**on by default**): the backend and frontend jobs are skipped and
