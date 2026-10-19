@@ -1,4 +1,7 @@
-import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
+import type {
+  TicketPriority,
+  TicketStatus,
+} from "../../../generated/prisma/enums";
 
 /**
  * Phase 2.4 (plan §2.4): the dashboard and the SLA screen stop deriving their
@@ -36,8 +39,15 @@ export type DashboardSummaryCounts = {
   readonly priorityCounts: readonly TicketPriorityCount[];
 };
 
+export type DashboardVolumeDay = {
+  readonly date: string;
+  readonly created: number;
+  readonly resolved: number;
+};
+
 export type DashboardSummaryResponse = DashboardSummaryCounts & {
   readonly generatedAt: string;
+  readonly volume14d: readonly DashboardVolumeDay[];
 };
 
 export type SlaExposureCounts = {

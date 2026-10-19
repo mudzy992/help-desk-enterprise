@@ -3055,7 +3055,7 @@
     "statusChartSubtitle": "All open and closed tickets you can access",
     "statusChartCenter": "tickets total",
     "volumeChartTitle": "Ticket flow — last 14 days",
-    "volumeChartSubtitle": "Created versus resolved, from the same ticket list",
+    "volumeChartSubtitle": "Created and resolved per day in the reporting time zone",
     "volumeTruncatedHint": "The window holds more tickets than one page — the chart numbers are a lower bound.",
     "volumeCreated": "Created",
     "volumeResolved": "Resolved",

@@ -38,6 +38,11 @@ function ticket(
 function counts(overrides: Partial<DashboardSummaryCounts> = {}): DashboardSummaryCounts {
   return {
     generatedAt: "2026-09-14T15:00:00.000Z",
+    volume14d: Array.from({ length: 14 }, (_, index) => ({
+      date: `2026-09-${String(index + 1).padStart(2, "0")}`,
+      created: 0,
+      resolved: 0,
+    })),
     total: 0,
     open: 0,
     critical: 0,
@@ -64,10 +69,7 @@ function summaryInput(
     readonly overdueTickets?: readonly TicketResponse[];
     readonly assignedToMeTickets?: readonly TicketResponse[];
     readonly unassignedTickets?: readonly TicketResponse[];
-    readonly volumeTickets?: readonly TicketResponse[];
-    readonly volumeTruncated?: boolean;
     readonly currentUserId?: string | null;
-    readonly now?: Date;
     readonly counts?: Partial<DashboardSummaryCounts>;
   } = {},
 ) {
@@ -77,10 +79,7 @@ function summaryInput(
     overdueTickets: overrides.overdueTickets ?? [],
     assignedToMeTickets: overrides.assignedToMeTickets ?? [],
     unassignedTickets: overrides.unassignedTickets ?? [],
-    volumeTickets: overrides.volumeTickets ?? [],
-    volumeTruncated: overrides.volumeTruncated ?? false,
     currentUserId: overrides.currentUserId ?? null,
-    now: overrides.now ?? new Date(2026, 8, 14, 15, 0, 0),
   };
 }
 
@@ -143,29 +142,15 @@ describe("composeDashboardSummary", () => {
     expect(summary.recent[0].createdAt >= summary.recent[1].createdAt).toBe(true);
   });
 
-  it("buckets created and resolved tickets across the last 14 local days", () => {
-    const summary = composeDashboardSummary(
-      summaryInput({
-        volumeTickets: [
-          ticket("1", "PENDING", {
-            createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
-          }),
-          ticket("2", "RESOLVED", {
-            createdAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
-            resolvedAt: new Date(2026, 8, 13, 10, 0, 0).toISOString(),
-          }),
-          ticket("4", "RESOLVED", {
-            createdAt: new Date(2026, 8, 10, 9, 0, 0).toISOString(),
-          }),
-        ],
-      }),
-    );
+  it("uses the exact server-side daily aggregate without rebucketing ticket rows", () => {
+    const volume14d = Array.from({ length: 14 }, (_, index) => ({
+      date: `2026-09-${String(index + 1).padStart(2, "0")}`,
+      created: index === 13 ? 4 : 0,
+      resolved: index === 12 ? 3 : 0,
+    }));
+    const summary = composeDashboardSummary(summaryInput({ counts: { volume14d } }));
 
-    expect(summary.volume14d).toHaveLength(14);
-    expect(summary.volume14d[0]).toEqual({ d: "01. 09", created: 1, resolved: 0 });
-    expect(summary.volume14d[12]).toEqual({ d: "13. 09", created: 0, resolved: 1 });
-    expect(summary.volume14d[13]).toEqual({ d: "14. 09", created: 1, resolved: 0 });
-    expect(summary.volume14d[9]).toEqual({ d: "10. 09", created: 1, resolved: 0 });
+    expect(summary.volume14d).toEqual(volume14d);
   });
 
   it("keeps the chart empty rather than undefined when there is no data", () => {
@@ -175,12 +160,5 @@ describe("composeDashboardSummary", () => {
     expect(summary.volume14d.every((day) => day.created === 0 && day.resolved === 0)).toBe(true);
     expect(summary.recent).toEqual([]);
     expect(summary.attention).toEqual([]);
-  });
-
-  it("marks the chart as a lower bound when the window held more than one page", () => {
-    expect(composeDashboardSummary(summaryInput({ volumeTruncated: true })).volumeTruncated).toBe(
-      true,
-    );
-    expect(composeDashboardSummary(summaryInput()).volumeTruncated).toBe(false);
   });
 });

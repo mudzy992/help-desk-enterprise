@@ -1,11 +1,16 @@
-import type { DashboardSummaryResponse } from './report-summary.types';
+import type { DashboardSummaryResponse } from "./report-summary.types";
 import {
   parseDashboardSummaryResponse,
   parseSlaSummaryResponse,
-} from './parse-report-summary-cache';
+} from "./parse-report-summary-cache";
 
 const dashboardPayload: DashboardSummaryResponse = {
-  generatedAt: '2026-09-24T10:00:00.000Z',
+  generatedAt: "2026-09-24T10:00:00.000Z",
+  volume14d: Array.from({ length: 14 }, (_, index) => ({
+    date: `2026-09-${String(index + 11).padStart(2, "0")}`,
+    created: 0,
+    resolved: 0,
+  })),
   total: 1,
   open: 1,
   critical: 0,
@@ -19,36 +24,38 @@ const dashboardPayload: DashboardSummaryResponse = {
   unassigned: 0,
   assignedToMe: 0,
   requestedByMe: 1,
-  statusCounts: [{ status: 'PENDING', count: 1 }],
-  priorityCounts: [{ priority: 'LOW', count: 1 }],
+  statusCounts: [{ status: "PENDING", count: 1 }],
+  priorityCounts: [{ priority: "LOW", count: 1 }],
 };
 
-describe('parseDashboardSummaryResponse', () => {
-  it('accepts a payload written by this build', () => {
-    expect(parseDashboardSummaryResponse(dashboardPayload)).toEqual(dashboardPayload);
+describe("parseDashboardSummaryResponse", () => {
+  it("accepts a payload written by this build", () => {
+    expect(parseDashboardSummaryResponse(dashboardPayload)).toEqual(
+      dashboardPayload,
+    );
   });
 
   it.each([
-    ['not an object', 'nope'],
-    ['missing counter', { ...dashboardPayload, overdue: undefined }],
-    ['counter as string', { ...dashboardPayload, total: '4' }],
-    ['statusCounts not an array', { ...dashboardPayload, statusCounts: null }],
-  ])('rejects %s', (_label, value) => {
+    ["not an object", "nope"],
+    ["missing counter", { ...dashboardPayload, overdue: undefined }],
+    ["counter as string", { ...dashboardPayload, total: "4" }],
+    ["statusCounts not an array", { ...dashboardPayload, statusCounts: null }],
+  ])("rejects %s", (_label, value) => {
     expect(parseDashboardSummaryResponse(value)).toBeNull();
   });
 });
 
-describe('parseSlaSummaryResponse', () => {
+describe("parseSlaSummaryResponse", () => {
   const slaPayload = {
-    generatedAt: '2026-09-24T10:00:00.000Z',
+    generatedAt: "2026-09-24T10:00:00.000Z",
     totals: { open: 2, onTrack: 1, atRisk: 1, breached: 0 },
     profiles: [
       {
-        slaProfileId: 'profile-standard',
+        slaProfileId: "profile-standard",
         exposure: { open: 2, onTrack: 1, atRisk: 1, breached: 0 },
         priorities: [
           {
-            priority: 'HIGH',
+            priority: "HIGH",
             exposure: { open: 2, onTrack: 1, atRisk: 1, breached: 0 },
           },
         ],
@@ -56,28 +63,31 @@ describe('parseSlaSummaryResponse', () => {
     ],
   };
 
-  it('accepts a payload written by this build', () => {
+  it("accepts a payload written by this build", () => {
     expect(parseSlaSummaryResponse(slaPayload)).toEqual(slaPayload);
   });
 
   it.each([
-    ['missing generatedAt', { ...slaPayload, generatedAt: 5 }],
-    ['broken totals', { ...slaPayload, totals: { open: 2 } }],
-    ['profiles not an array', { ...slaPayload, profiles: {} }],
+    ["missing generatedAt", { ...slaPayload, generatedAt: 5 }],
+    ["broken totals", { ...slaPayload, totals: { open: 2 } }],
+    ["profiles not an array", { ...slaPayload, profiles: {} }],
     [
-      'profile without an id',
-      { ...slaPayload, profiles: [{ exposure: slaPayload.totals, priorities: [] }] },
+      "profile without an id",
+      {
+        ...slaPayload,
+        profiles: [{ exposure: slaPayload.totals, priorities: [] }],
+      },
     ],
     [
-      'profile with a broken exposure',
+      "profile with a broken exposure",
       {
         ...slaPayload,
         profiles: [
-          { slaProfileId: 'p', exposure: { open: 1 }, priorities: [] },
+          { slaProfileId: "p", exposure: { open: 1 }, priorities: [] },
         ],
       },
     ],
-  ])('rejects %s', (_label, value) => {
+  ])("rejects %s", (_label, value) => {
     expect(parseSlaSummaryResponse(value)).toBeNull();
   });
 });

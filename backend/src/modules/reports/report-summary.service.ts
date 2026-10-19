@@ -1,19 +1,20 @@
-import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
-import { createSingleFlightCache } from '../../common/cache/single-flight-cache';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
-import type { SettingsService } from '../settings/settings.service';
-import { defaultTicketArchiveConfiguration } from '../tickets/archive/archive.constants';
-import { buildTicketListWhere } from '../tickets/list/build-ticket-list-where';
-import { TicketsError } from '../tickets/tickets.error';
-import { ReportSummaryCache } from './report-summary.cache';
-import { loadDashboardSummaryCounts } from './summary/load-dashboard-summary-counts';
-import { loadSlaSummaryCounts } from './summary/load-sla-summary-counts';
+import { ForbiddenException, Injectable, Optional } from "@nestjs/common";
+import { createSingleFlightCache } from "../../common/cache/single-flight-cache";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { AuthorizationContextLoader } from "../authorization/authorization-context.loader";
+import { readInstallationTimeZone } from "../settings/read-installation-time-zone";
+import type { SettingsService } from "../settings/settings.service";
+import { defaultTicketArchiveConfiguration } from "../tickets/archive/archive.constants";
+import { buildTicketListWhere } from "../tickets/list/build-ticket-list-where";
+import { TicketsError } from "../tickets/tickets.error";
+import { ReportSummaryCache } from "./report-summary.cache";
+import { loadDashboardSummaryCounts } from "./summary/load-dashboard-summary-counts";
+import { loadDashboardVolume } from "./summary/load-dashboard-volume";
+import { loadSlaSummaryCounts } from "./summary/load-sla-summary-counts";
 import type {
   DashboardSummaryResponse,
   SlaSummaryResponse,
-} from './summary/report-summary.types';
+} from "./summary/report-summary.types";
 
 /**
  * Phase 2.4 (plan §2.4): the dashboard and SLA counters as server-side
@@ -35,9 +36,10 @@ export class ReportSummaryService {
    * the same user started its own aggregate scan. Misses are single-flighted
    * per key inside the process; the TTL stays with Redis (ttl 0 here).
    */
-  private readonly dashboardFlights = createSingleFlightCache<DashboardSummaryResponse>({
-    ttlMs: 0,
-  });
+  private readonly dashboardFlights =
+    createSingleFlightCache<DashboardSummaryResponse>({
+      ttlMs: 0,
+    });
   private readonly slaFlights = createSingleFlightCache<SlaSummaryResponse>({
     ttlMs: 0,
   });
@@ -85,17 +87,26 @@ export class ReportSummaryService {
     // M15 B4 (val 5): no scope clause any more — the counters match the ticket
     // list with an empty query (visibility from `buildTicketListWhere`), and the
     // personal counters travel inside the same payload.
-    const counts = await loadDashboardSummaryCounts(this.prisma, {
-      where: where === null ? { id: { in: [] } } : where,
-      actorUserId: input.actorUserId,
-      now,
-      timeZone,
-    });
+    const visibleWhere = where === null ? { id: { in: [] } } : where;
+    const [counts, volume14d] = await Promise.all([
+      loadDashboardSummaryCounts(this.prisma, {
+        where: visibleWhere,
+        actorUserId: input.actorUserId,
+        now,
+        timeZone,
+      }),
+      loadDashboardVolume(this.prisma, { where: visibleWhere, now, timeZone }),
+    ]);
     const response: DashboardSummaryResponse = {
       ...counts,
       generatedAt: now.toISOString(),
+      volume14d,
     };
-    await this.cache.writeDashboardSummary(input.actorUserId, response, timeZone);
+    await this.cache.writeDashboardSummary(
+      input.actorUserId,
+      response,
+      timeZone,
+    );
     return response;
   }
 
@@ -159,10 +170,10 @@ export class ReportSummaryService {
         now,
       );
     } catch (error) {
-      if (error instanceof TicketsError && error.code === 'FORBIDDEN') {
+      if (error instanceof TicketsError && error.code === "FORBIDDEN") {
         throw new ForbiddenException({
-          code: 'FORBIDDEN',
-          message: 'Authorization failed',
+          code: "FORBIDDEN",
+          message: "Authorization failed",
         });
       }
       throw error;

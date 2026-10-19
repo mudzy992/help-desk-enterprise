@@ -3067,7 +3067,7 @@
     "statusChartSubtitle": "Svi otvoreni i zatvoreni tiketi kojima imate pristup",
     "statusChartCenter": "tiketa ukupno",
     "volumeChartTitle": "Tok tiketa — zadnjih 14 dana",
-    "volumeChartSubtitle": "Kreirani naspram riješenih, iz istog niza tiketa",
+    "volumeChartSubtitle": "Kreirani i riješeni po danu u izvještajnoj vremenskoj zoni",
     "volumeTruncatedHint": "U periodu ima više tiketa nego što staje u jedan prikaz — brojevi na grafiku su donja granica.",
     "volumeCreated": "Kreirani",
     "volumeResolved": "Riješeni",

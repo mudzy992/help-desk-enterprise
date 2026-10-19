@@ -15,13 +15,13 @@ Ponovni audit ipak ne potvrđuje raniji status „zatvoren“. Pronađeni su akt
 - inbox broj i grupni grafikon koriste samo prvu stranicu, pa su netačni iznad page limita;
 - kvar pomoćnog inbox zahtjeva može izgledati kao stvarno prazan inbox;
 - paralelni reloadovi i promjena korisnika nemaju zaštitu od zastarjelog odgovora;
-- 14-dnevni grafikon nije egzaktan niti semantički tačan za „riješeno“, a može napraviti do šest sekvencijalnih zahtjeva;
+- Faza 3 zamijenila je klijentsko straničenje egzaktnim server-side 14-dnevnim created/resolved agregatom;
 - granica dana se ne osvježava pouzdano ako dashboard ostane otvoren preko ponoći;
 - page-level, component-state i stvarni browser tokovi nisu dovoljno pokriveni.
 
-### Trenutna ocjena nakon Faze 2: **9.2/10**
+### Trenutna ocjena nakon Faze 3: **9.5/10**
 
-Faze 1–2 zatvorile su metric/inbox contract, capability duplikaciju, konkurentne reloadove, silent recovery, day-boundary osvježavanje i setup-checklist failure UX. Ocjena ostaje ispod 10/10 zbog otvorenog egzaktnog volume agregata, test-depth/comment-hygiene closeouta te browser/profiler dokaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
+Faze 1–3 zatvorile su metric/inbox contract, deterministički recovery i egzaktan server-side 14-dnevni agregat. Ocjena ostaje ispod 10/10 zbog test-depth/comment-hygiene closeouta te stvarnih browser/profiler dokaza. Konačnih 10/10 zahtijeva i izvršene browser/E2E i profiler dokaze; neizvršeni testovi se ne računaju kao prolaz.
 
 ## 2. Obim
 
@@ -85,7 +85,7 @@ Posljednji puni frontend gate na istom HEAD-u iz Tickets closeouta ostaje: **340
 | DA4 | Visoka | **Zatvoreno — Faza 1** | **Pomoćni kvar može izgledati kao prazno stanje.** Group inbox greška se pretvara u `null`; kada je unrouted 0, `DashboardInboxSnapshot` sa `inboxTickets=null` renderuje `dashboard.inboxEmpty`. Korisniku se transportni/permission kvar predstavlja kao dokaz da nema tiketa. | Uvesti eksplicitno loading/error/unavailable stanje i retry; nikad ne renderovati empty bez uspješnog odgovora. |
 | DA5 | Visoka | **Zatvoreno — Faza 2** | **Nema latest-request/account-switch zaštite.** `reload()` može biti aktivan tokom realtime reloada ili promjene `currentUserId`; stariji primary ili lookup odgovor može poslije novijeg upisati `summary`, inbox i mape iz prethodnog konteksta. Cleanup ne poništava asinhrone state upise. | Monotoni request token ili AbortSignal za primary i progressive fazu; test A→B promjene korisnika i out-of-order reloadova. |
 | DA6 | Srednja | **Zatvoreno — Faza 2** | **Silent reload kvar je potpuno nevidljiv.** Catch za `silent=true` samo vraća kontrolu; nema telemetry signala, stale/unavailable indikatora ni testa oporavka nakon sljedećeg eventa. | Sačuvati stare podatke, ali evidentirati telemetry i izložiti nenametljiv stale/retry signal; test fail → recovery. |
-| DA7 | Visoka | Otvoreno | **Volume grafikon nije 10/10 contract.** „Resolved“ obuhvata samo tikete kreirane u istom 14-dnevnom prozoru; do 300 redova se učitava kroz najviše šest sekvencijalnih poziva, a iznad toga UI prikazuje donju granicu. Raniji „prihvaćen rizik“ ostavlja netačnu poslovnu metriku. | Server-side daily aggregate za created i resolved po njihovim vlastitim datumima i reporting timezoneu; jedan bounded zahtjev, egzaktan rezultat i backend/frontend contract test. |
+| DA7 | Visoka | **Zatvoreno — Faza 3** | **Volume grafikon nije 10/10 contract.** „Resolved“ obuhvata samo tikete kreirane u istom 14-dnevnom prozoru; do 300 redova se učitava kroz najviše šest sekvencijalnih poziva, a iznad toga UI prikazuje donju granicu. Raniji „prihvaćen rizik“ ostavlja netačnu poslovnu metriku. | Server-side daily aggregate za created i resolved po njihovim vlastitim datumima i reporting timezoneu; jedan bounded zahtjev, egzaktan rezultat i backend/frontend contract test. |
 | DA8 | Srednja | **Zatvoreno — Faza 2** | **Dan se ne rotira pouzdano preko ponoći.** `localDayKey()` se računa tokom rendera, ali nema timer/subscription koji garantuje render na promjeni dana. Otvoren dashboard može nastaviti prikazivati jučerašnji `openedToday`. | Uvesti day-boundary invalidaciju/refetch prema dogovorenoj reporting timezone semantici i test sa fake timerom preko ponoći. |
 | DA9 | Srednja | **Zatvoreno — Faza 1** | **Capability izvor je i dalje dupliran.** Stranica čita capabilities, a `useDashboardSummary()` se poziva bez već izračunatog `isStaff`, pa hook ponovo poziva `useSessionCapabilities`. React Query vjerovatno deduplicira mrežu, ali tvrdnja starog audita da stranica prosljeđuje boolean nije tačna. | Izračunati `isStaff` jednom na page boundaryju i proslijediti ga hooku; testirati staff/requester request matricu. |
 | DA10 | Srednja | **Zatvoreno — Faza 2** | **Setup checklist failure UX je tih.** Početni read kvar sakrije karticu, a dismiss kvar samo vrati dugme bez poruke/request ID-a. Administrator ne zna je li akcija uspjela niti može razlikovati „sve završeno“ od nedostupnog checklista. | Modelirati loading/error/dismiss error, retry i `ApiErrorText`/toast; zadržati dashboard funkcionalnim. |
@@ -120,6 +120,21 @@ Faza „Determinističko učitavanje i recovery“ zatvorila je **DA5, DA6, DA8 
 - setup-checklist load također ima generation/unmount zaštitu.
 
 Regresioni dokaz nakon implementacije: **9/9 dashboard test fajlova, 39/39 testova** i frontend TypeScript prolaze. Novi testovi pokrivaju A→B out-of-order odgovor, silent fail→recovery, telemetry poziv, prelazak ponoći, checklist read retry i dismiss failure.
+
+## 6. Faza 3 — implementacijski closeout
+
+Faza „Egzaktan server-side 14-dnevni agregat“ zatvorila je **DA7**:
+
+- postojeći `/reports/dashboard/summary` sada vraća tačno 14 `volume14d` bucket-a u istom HTTP odgovoru kao brojači;
+- `created` se broji po `createdAt`, a `resolved` nezavisno po `resolvedAt`, pa tiket kreiran prije prozora i riješen unutar prozora ulazi u ispravan resolved bucket;
+- svaki bucket koristi isti kanonski ticket visibility `where` kao lista i ostali summary brojači;
+- granice dana koriste installation reporting timezone i stvarne DST prijelaze;
+- server workload je fiksno ograničen na 28 indeksiranih count projekcija, nezavisno od broja tiketa;
+- frontend više ne učitava do šest stranica raw tiketa, ne rebucketira redove i nema netačni `volumeTruncated` lower-bound contract;
+- cache parser odbacuje stari ili neispravan payload bez tačno 14 validnih bucket-a;
+- grafikon lokalizuje server civil-date ključeve samo za prikaz, bez promjene bucket semantike.
+
+Izvršeni dokaz: frontend dashboard **9/9 fajlova, 33/33 testa**; backend window/cache suiteovi **2/2 fajla, 13/13 testova**. Backend service integration test je proširen scenarijem „kreiran prije prozora, riješen unutar prozora“, ali lokalno nije izvršen jer checkout nema `backend/generated/prisma`; pokušaj je zaustavljen pri TypeScript kompilaciji i ne predstavlja se kao prolaz.
 
 ## 6. Korekcije prethodnog audita
 
@@ -157,7 +172,7 @@ Regresioni dokaz nakon implementacije: **9/9 dashboard test fajlova, 39/39 testo
 
 **Gate:** out-of-order, account-switch, unmount, silent fail→success i midnight fake-timer testovi prolaze.
 
-### Faza 3 — egzaktan 14-dnevni agregat
+### Faza 3 — egzaktan 14-dnevni agregat (završena)
 
 **DA7**
 

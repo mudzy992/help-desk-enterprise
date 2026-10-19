@@ -19,8 +19,15 @@ export type TicketPriorityCount = {
   readonly count: number;
 };
 
+export type DashboardVolumeDay = {
+  readonly date: string;
+  readonly created: number;
+  readonly resolved: number;
+};
+
 export type DashboardSummaryCounts = {
   readonly generatedAt: string;
+  readonly volume14d: readonly DashboardVolumeDay[];
   readonly total: number;
   readonly open: number;
   readonly critical: number;

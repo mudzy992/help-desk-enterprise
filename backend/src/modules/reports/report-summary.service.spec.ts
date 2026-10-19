@@ -1,26 +1,26 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from "@nestjs/common";
 
 // The generated Prisma client is not resolvable inside jest; the in-memory
 // harness replaces it anyway (same stub as the other ticket harness specs).
-jest.mock('../../common/prisma/prisma.service', () => ({
+jest.mock("../../common/prisma/prisma.service", () => ({
   PrismaService: class PrismaService {},
 }));
-import type { TicketSlaStateRecord } from '../sla/ticket-sla.types';
-import { defaultTicketArchiveConfiguration } from '../tickets/archive/archive.constants';
-import { defaultReportsTimeZone } from '../settings/definitions/reports-settings';
-import { createTicketsServiceHarness } from '../tickets/create-tickets-service-harness';
-import { listTicketsPage } from '../tickets/list-tickets';
-import { buildTicketRecord } from '../tickets/list/ticket-record-fixture';
-import { ticketsTestIds } from '../tickets/tickets-test-ids';
-import type { SettingsService } from '../settings/settings.service';
-import type { ReportSummaryCache } from './report-summary.cache';
-import { ReportSummaryService } from './report-summary.service';
+import type { TicketSlaStateRecord } from "../sla/ticket-sla.types";
+import { defaultTicketArchiveConfiguration } from "../tickets/archive/archive.constants";
+import { defaultReportsTimeZone } from "../settings/definitions/reports-settings";
+import { createTicketsServiceHarness } from "../tickets/create-tickets-service-harness";
+import { listTicketsPage } from "../tickets/list-tickets";
+import { buildTicketRecord } from "../tickets/list/ticket-record-fixture";
+import { ticketsTestIds } from "../tickets/tickets-test-ids";
+import type { SettingsService } from "../settings/settings.service";
+import type { ReportSummaryCache } from "./report-summary.cache";
+import { ReportSummaryService } from "./report-summary.service";
 import type {
   DashboardSummaryResponse,
   SlaSummaryResponse,
-} from './summary/report-summary.types';
+} from "./summary/report-summary.types";
 
-const now = new Date('2026-09-24T10:00:00.000Z');
+const now = new Date("2026-09-24T10:00:00.000Z");
 
 type World = ReturnType<typeof createTicketsServiceHarness>;
 
@@ -68,16 +68,19 @@ function createService(world: World, settingsTimeZone?: string) {
 }
 
 function seedState(
-  overrides: Partial<TicketSlaStateRecord> & { readonly id: string; readonly ticketId: string },
+  overrides: Partial<TicketSlaStateRecord> & {
+    readonly id: string;
+    readonly ticketId: string;
+  },
 ): TicketSlaStateRecord {
   return {
-    slaProfileId: 'profile-standard',
+    slaProfileId: "profile-standard",
     slaRuleId: null,
     responseMinutes: 60,
     resolutionMinutes: 480,
-    startedAt: new Date('2026-09-20T08:00:00.000Z'),
-    responseDueAt: new Date('2026-09-20T09:00:00.000Z'),
-    resolutionDueAt: new Date('2026-09-20T16:00:00.000Z'),
+    startedAt: new Date("2026-09-20T08:00:00.000Z"),
+    responseDueAt: new Date("2026-09-20T09:00:00.000Z"),
+    resolutionDueAt: new Date("2026-09-20T16:00:00.000Z"),
     respondedAt: null,
     resolutionCompletedAt: null,
     pausedAt: null,
@@ -97,45 +100,45 @@ function seedState(
  *  for the watcher and one HR ticket nobody outside HR can see. */
 function seedTickets(world: World) {
   world.memory.tickets.set(
-    't-open',
+    "t-open",
     buildTicketRecord({
-      id: 't-open',
-      status: 'PENDING',
-      priority: 'HIGH',
+      id: "t-open",
+      status: "PENDING",
+      priority: "HIGH",
       requesterId: ticketsTestIds.requester,
       createdAt: now,
     }),
   );
   world.memory.tickets.set(
-    't-closed',
+    "t-closed",
     buildTicketRecord({
-      id: 't-closed',
-      status: 'CLOSED',
+      id: "t-closed",
+      status: "CLOSED",
       requesterId: ticketsTestIds.requester,
-      createdAt: new Date('2026-09-20T09:00:00.000Z'),
-      resolvedAt: new Date('2026-09-21T09:00:00.000Z'),
-      closedAt: new Date('2026-09-21T09:00:00.000Z'),
+      createdAt: new Date("2026-09-01T09:00:00.000Z"),
+      resolvedAt: new Date("2026-09-21T09:00:00.000Z"),
+      closedAt: new Date("2026-09-21T09:00:00.000Z"),
     }),
   );
   world.memory.tickets.set(
-    't-it',
+    "t-it",
     buildTicketRecord({
-      id: 't-it',
-      status: 'IN_PROGRESS',
+      id: "t-it",
+      status: "IN_PROGRESS",
       requesterId: ticketsTestIds.watcher,
       assignedUserId: ticketsTestIds.agentIt,
-      createdAt: new Date('2026-09-20T09:00:00.000Z'),
+      createdAt: new Date("2026-09-20T09:00:00.000Z"),
     }),
   );
   world.memory.tickets.set(
-    't-hr',
+    "t-hr",
     buildTicketRecord({
-      id: 't-hr',
-      status: 'PENDING',
+      id: "t-hr",
+      status: "PENDING",
       originUnitId: ticketsTestIds.ouHr,
       serviceId: ticketsTestIds.serviceAccess,
       requesterId: ticketsTestIds.watcher,
-      createdAt: new Date('2026-09-20T09:00:00.000Z'),
+      createdAt: new Date("2026-09-20T09:00:00.000Z"),
     }),
   );
 }
@@ -143,32 +146,32 @@ function seedTickets(world: World) {
 /** The SLA states behind those tickets. */
 function seedSlaStates(world: World) {
   world.memory.slaStates.set(
-    'sla-open',
-    seedState({ id: 'sla-open', ticketId: 't-open', isResponseAtRisk: true }),
+    "sla-open",
+    seedState({ id: "sla-open", ticketId: "t-open", isResponseAtRisk: true }),
   );
   world.memory.slaStates.set(
-    'sla-it',
-    seedState({ id: 'sla-it', ticketId: 't-it', isResolutionBreached: true }),
+    "sla-it",
+    seedState({ id: "sla-it", ticketId: "t-it", isResolutionBreached: true }),
   );
   world.memory.slaStates.set(
-    'sla-closed',
+    "sla-closed",
     seedState({
-      id: 'sla-closed',
-      ticketId: 't-closed',
+      id: "sla-closed",
+      ticketId: "t-closed",
       isResolutionBreached: true,
-      resolutionCompletedAt: new Date('2026-09-21T09:00:00.000Z'),
+      resolutionCompletedAt: new Date("2026-09-21T09:00:00.000Z"),
     }),
   );
 }
 
 function normalize(value: unknown): unknown {
   if (value instanceof Date) {
-    return '<date>';
+    return "<date>";
   }
   if (Array.isArray(value)) {
     return value.map((entry) => normalize(entry));
   }
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     return Object.fromEntries(
       Object.entries(value).map(([key, entry]) => [key, normalize(entry)]),
     );
@@ -176,8 +179,8 @@ function normalize(value: unknown): unknown {
   return value;
 }
 
-describe('ReportSummaryService', () => {
-  it('answers the dashboard with the numbers of the visible list', async () => {
+describe("ReportSummaryService", () => {
+  it("answers the dashboard with the numbers of the visible list", async () => {
     const world = createTicketsServiceHarness();
     seedTickets(world);
     const { service } = createService(world);
@@ -197,21 +200,32 @@ describe('ReportSummaryService', () => {
     expect(page.total).toBe(2);
     expect(summary.total).toBe(page.total);
     expect(summary.statusCounts).toEqual([
-      { status: 'PENDING', count: 1 },
-      { status: 'CLOSED', count: 1 },
+      { status: "PENDING", count: 1 },
+      { status: "CLOSED", count: 1 },
     ]);
     expect(summary.requestedByMe).toBe(2);
     expect(summary.assignedToMe).toBe(0);
     expect(summary.openedToday).toBe(1);
     expect(summary.generatedAt).toBe(now.toISOString());
+    expect(summary.volume14d).toHaveLength(14);
+    expect(summary.volume14d.find((day) => day.date === "2026-09-21")).toEqual({
+      date: "2026-09-21",
+      created: 0,
+      resolved: 1,
+    });
+    expect(summary.volume14d.find((day) => day.date === "2026-09-24")).toEqual({
+      date: "2026-09-24",
+      created: 1,
+      resolved: 0,
+    });
   });
 
-  it('builds the counters on the same where as the list', async () => {
+  it("builds the counters on the same where as the list", async () => {
     const world = createTicketsServiceHarness();
     seedTickets(world);
     const { service } = createService(world);
-    const findMany = jest.spyOn(world.memory.prisma.ticket, 'findMany');
-    const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
+    const findMany = jest.spyOn(world.memory.prisma.ticket, "findMany");
+    const groupBy = jest.spyOn(world.memory.prisma.ticket, "groupBy");
 
     await listTicketsPage(
       world.memory.prisma as never,
@@ -226,15 +240,16 @@ describe('ReportSummaryService', () => {
     });
 
     const listWhere = (findMany.mock.calls[0]?.[0] as { where: unknown }).where;
-    const summaryWhere = (groupBy.mock.calls[0]?.[0] as { where: unknown }).where;
+    const summaryWhere = (groupBy.mock.calls[0]?.[0] as { where: unknown })
+      .where;
     expect(normalize(summaryWhere)).toEqual(normalize(listWhere));
   });
 
-  it('serves the second call from the cache without querying again', async () => {
+  it("serves the second call from the cache without querying again", async () => {
     const world = createTicketsServiceHarness();
     seedTickets(world);
     const { service, store } = createService(world);
-    const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
+    const groupBy = jest.spyOn(world.memory.prisma.ticket, "groupBy");
 
     const first = await service.loadDashboardSummary({
       actorUserId: ticketsTestIds.requester,
@@ -251,7 +266,9 @@ describe('ReportSummaryService', () => {
     expect(second).toEqual(first);
     // No settings service in this construction: the installation default zone.
     expect(
-      store.get(`dashboard:${ticketsTestIds.requester}:${defaultReportsTimeZone}`),
+      store.get(
+        `dashboard:${ticketsTestIds.requester}:${defaultReportsTimeZone}`,
+      ),
     ).toEqual(first);
   });
 
@@ -260,7 +277,7 @@ describe('ReportSummaryService', () => {
     seedTickets(world);
     // One spy for the whole test: a second `jest.spyOn` would return this same
     // mock with the calls of every earlier round still in it.
-    const count = jest.spyOn(world.memory.prisma.ticket, 'count');
+    const count = jest.spyOn(world.memory.prisma.ticket, "count");
     const openedTodayClauseFor = async (settingsTimeZone?: string) => {
       count.mockClear();
       const { service } = createService(world, settingsTimeZone);
@@ -269,38 +286,39 @@ describe('ReportSummaryService', () => {
         now,
       });
       // Calls in order: openedToday, requestedByMe, overdue.
-      return (count.mock.calls[0]?.[0] as { where: { AND: readonly unknown[] } })
-        .where.AND[1];
+      return (
+        count.mock.calls[0]?.[0] as { where: { AND: readonly unknown[] } }
+      ).where.AND[1];
     };
 
-    await expect(openedTodayClauseFor('UTC')).resolves.toEqual({
-      createdAt: { gte: new Date('2026-09-24T00:00:00.000Z') },
+    await expect(openedTodayClauseFor("UTC")).resolves.toEqual({
+      createdAt: { gte: new Date("2026-09-24T00:00:00.000Z") },
     });
-    await expect(openedTodayClauseFor('Europe/Sarajevo')).resolves.toEqual({
-      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
+    await expect(openedTodayClauseFor("Europe/Sarajevo")).resolves.toEqual({
+      createdAt: { gte: new Date("2026-09-23T22:00:00.000Z") },
     });
     // Nothing configured (or no settings service in the graph) → the default.
-    expect(defaultReportsTimeZone).toBe('Europe/Sarajevo');
+    expect(defaultReportsTimeZone).toBe("Europe/Sarajevo");
     await expect(openedTodayClauseFor(undefined)).resolves.toEqual({
-      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
+      createdAt: { gte: new Date("2026-09-23T22:00:00.000Z") },
     });
   });
 
-  it('rejects an actor without an authorization context', async () => {
+  it("rejects an actor without an authorization context", async () => {
     const world = createTicketsServiceHarness();
     const { service } = createService(world);
 
     await expect(
-      service.loadDashboardSummary({ actorUserId: 'user-ghost', now }),
+      service.loadDashboardSummary({ actorUserId: "user-ghost", now }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('counts the SLA exposure of the open, visible tickets', async () => {
+  it("counts the SLA exposure of the open, visible tickets", async () => {
     const world = createTicketsServiceHarness();
     seedTickets(world);
     seedSlaStates(world);
     const { service } = createService(world);
-    const groupBy = jest.spyOn(world.memory.prisma.ticketSlaState, 'groupBy');
+    const groupBy = jest.spyOn(world.memory.prisma.ticketSlaState, "groupBy");
 
     const summary = await service.loadSlaSummary({
       actorUserId: ticketsTestIds.agentIt,
@@ -309,18 +327,23 @@ describe('ReportSummaryService', () => {
 
     // Two visible open tickets (the requester's pending one and the IT one); the
     // breached state of the closed ticket is not "exposure".
-    expect(summary.totals).toEqual({ open: 2, onTrack: 0, atRisk: 1, breached: 1 });
+    expect(summary.totals).toEqual({
+      open: 2,
+      onTrack: 0,
+      atRisk: 1,
+      breached: 1,
+    });
     expect(summary.profiles).toEqual([
       {
-        slaProfileId: 'profile-standard',
+        slaProfileId: "profile-standard",
         exposure: { open: 2, onTrack: 0, atRisk: 1, breached: 1 },
         priorities: [
           {
-            priority: 'MEDIUM',
+            priority: "MEDIUM",
             exposure: { open: 1, onTrack: 0, atRisk: 0, breached: 1 },
           },
           {
-            priority: 'HIGH',
+            priority: "HIGH",
             exposure: { open: 1, onTrack: 0, atRisk: 1, breached: 0 },
           },
         ],
@@ -334,7 +357,7 @@ describe('ReportSummaryService', () => {
       }
     ).where.ticket.is.AND;
     const openTicketWhere = scoped[0] as { readonly AND: readonly unknown[] };
-    const findMany = jest.spyOn(world.memory.prisma.ticket, 'findMany');
+    const findMany = jest.spyOn(world.memory.prisma.ticket, "findMany");
     await listTicketsPage(
       world.memory.prisma as never,
       world.authorizationContextLoader as never,
@@ -347,11 +370,11 @@ describe('ReportSummaryService', () => {
   });
 });
 
-describe('ReportSummaryService single flight', () => {
-  it('shares one computation between concurrent cold requests', async () => {
+describe("ReportSummaryService single flight", () => {
+  it("shares one computation between concurrent cold requests", async () => {
     const world = createTicketsServiceHarness();
     const { service } = createService(world);
-    const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
+    const groupBy = jest.spyOn(world.memory.prisma.ticket, "groupBy");
     const input = { actorUserId: ticketsTestIds.requester, now };
 
     const [first, second, third] = await Promise.all([

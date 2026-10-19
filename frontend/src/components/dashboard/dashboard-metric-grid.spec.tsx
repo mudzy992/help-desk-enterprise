@@ -38,7 +38,6 @@ function makeSummary(): DashboardSummary {
     recent: [],
     slaWatchlist: [],
     attention: [],
-    volumeTruncated: false,
   };
 }
 

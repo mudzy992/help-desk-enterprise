@@ -3,6 +3,7 @@ import { Donut } from "@/components/charts/donut";
 import { DualAreaChart } from "@/components/charts/dual-area-chart";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
+import { formatDashboardDayLabel } from "@/lib/dashboard/format-dashboard-day-label";
 import { TICKET_STATUS_META } from "@/lib/theme/semantic-meta";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 
@@ -11,7 +12,7 @@ interface DashboardChartsProperties {
 }
 
 export function DashboardCharts({ summary }: DashboardChartsProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Val 6.1 / modul 4 (D15): the page-level EmptyState already renders for
   // `summary.total === 0`, so the inner check was unreachable.
@@ -42,18 +43,13 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
         <div className="px-4 py-4">
           <DualAreaChart
             data={summary.volume14d.map((day) => ({
-              label: day.d,
+              label: formatDashboardDayLabel(new Date(`${day.date}T12:00:00`), i18n.language),
               a: day.created,
               b: day.resolved,
             }))}
             aLabel={t("dashboard.volumeCreated")}
             bLabel={t("dashboard.volumeResolved")}
           />
-          {summary.volumeTruncated ? (
-            <p className="mt-3 border-t border-border/70 pt-3 text-[11px] leading-[18px] text-muted-foreground">
-              {t("dashboard.volumeTruncatedHint")}
-            </p>
-          ) : null}
         </div>
       </Card>
     </div>
