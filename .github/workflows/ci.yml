@@ -201,8 +201,8 @@ jobs:
         run: node ../scripts/check-ticket-translation-keys.mjs
       - name: Test the ticket translation guard itself
         run: node --test ../scripts/check-ticket-translation-keys.test.mjs
-      - name: Check the Pulse design system (tokens, colours, radius, i18n)
-        run: node ../scripts/check-pulse-design-system.mjs
+      - name: Check i18n keys and the Pulse design system
+        run: npm run i18n:check
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)
         run: node ../scripts/check-theme-contrast.mjs
       - name: Check the install wizard's Aurora palette and shim (kontrast + pokrivenost)

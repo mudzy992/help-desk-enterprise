@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { selectClassName } from "@/components/ui/control";
-import { formatConfigDiffChange } from "@/lib/config-versions/config-version-display";
+import {
+  formatConfigDiffChange,
+  configVersionStatusLabelKey,
+} from "@/lib/config-versions/config-version-display";
 import type { ConfigVersion } from "@/services/config-versions-types";
 import type { useConfigVersionDiff } from "@/lib/config-versions/use-config-version-diff";
 
@@ -38,7 +41,7 @@ export function ConfigVersionDiffPanel({
           <option value="">{t("configVersions.comparePlaceholder")}</option>
           {options.map((version) => (
             <option key={version.id} value={version.id}>
-              v{version.version} · {t(`configVersions.statuses.${version.status}`)}
+              v{version.version} · {t(configVersionStatusLabelKey(version.status))}
             </option>
           ))}
         </select>

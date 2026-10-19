@@ -1584,7 +1584,7 @@
       "subtitle": "Verzija konfiguracije i integritet",
       "validation": "Validacija",
       "validationReady": "spremno",
-      "installWizard": "Install wizard",
+      "installWizard": "Čarobnjak za instalaciju",
       "installLocked": "zaključan {{date}}",
       "installOpen": "nije zaključan",
       "openConfigVersions": "Otvori config verzije",
@@ -5312,11 +5312,11 @@
     "shadowRoutingResult": "{{count}} od {{sampleSize}} uzorkovanih tiketa bi promijenilo grupu",
     "shadowSlaResult": "{{count}} od {{sampleSize}} uzorkovanih tiketa bi pogodilo drugo SLA pravilo",
     "statuses": {
-      "DRAFT": "DRAFT",
-      "VALIDATED": "VALIDATED",
-      "SHADOW": "SHADOW",
-      "ACTIVE": "ACTIVE",
-      "ROLLED_BACK": "ROLLED_BACK"
+      "DRAFT": "Nacrt",
+      "VALIDATED": "Validirana",
+      "SHADOW": "Probna",
+      "ACTIVE": "Aktivna",
+      "ROLLED_BACK": "Vraćena"
     },
     "errorUnauthorized": "Prijava je potrebna za pregled verzija konfiguracije.",
     "errorForbidden": "Nemate dozvolu za ovu radnju na verziji konfiguracije.",
@@ -5395,7 +5395,7 @@
         "policyPack": "Paket politika",
         "formVersion": "Verzija forme",
         "responseTemplate": "Šablon odgovora",
-        "playbook": "Playbook",
+        "playbook": "Plan rada",
         "slaProfile": "SLA profil",
         "calendar": "Kalendar radnog vremena"
       }
@@ -9969,7 +9969,7 @@
     },
     "mode": {
       "off": "Isključen",
-      "simulator": "Simulator",
+      "simulator": "Simulacija",
       "live": "Produkcija"
     },
     "status": {

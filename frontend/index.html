@@ -15,8 +15,8 @@
     -->
     <script>
       (function () {
-        // Paket 4.1: one-off move of the legacy storage keys (mirrors
-        // src/lib/storage/legacy-storage-keys.ts); runs before anything reads them.
+        // Move recognized legacy storage keys before any application code reads them.
+        // The mapping mirrors src/lib/storage/legacy-storage-keys.ts.
         try {
           var legacy = [
             ["ep-helpdesk.theme.design", "service-desk.theme.design"],
@@ -33,7 +33,14 @@
               window.localStorage.setItem(legacy[i][1], value);
             window.localStorage.removeItem(legacy[i][0]);
           }
-        } catch (error) {}
+        } catch (error) {
+          if (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1"
+          ) {
+            console.warn("Legacy storage migration failed", error);
+          }
+        }
       })();
       (function () {
         try {

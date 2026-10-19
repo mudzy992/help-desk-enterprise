@@ -150,7 +150,10 @@ function checkColors() {
           section,
           `${where} Tailwind default palette colour: ${line.trim()}`,
         );
-      if (file.startsWith("frontend/src/components/ui/") && rawNeutralUtility.test(line))
+      if (
+        file.startsWith("frontend/src/components/ui/") &&
+        rawNeutralUtility.test(line)
+      )
         fail(
           section,
           `${where} untokenized black/white UI utility: ${line.trim()}`,
@@ -428,8 +431,47 @@ function checkContract() {
       );
     }
   }
+  const contracts = [
+    ["DESIGNS", "DESIGN"],
+    ["MODES", "MODE"],
+    ["ACCENTS", "ACCENT"],
+  ];
+  for (const [plural, singular] of contracts) {
+    const valuesMatch = new RegExp(
+      `THEME_${plural}[^=]*=\\s*\\[([^\\]]*)\\]`,
+    ).exec(storage);
+    const defaultMatch = new RegExp(
+      `DEFAULT_THEME_${singular}[^=]*=\\s*\"([^\"]+)\"`,
+    ).exec(storage);
+    if (valuesMatch === null || defaultMatch === null) {
+      fail(
+        section,
+        `theme ${singular.toLowerCase()} values/default missing from theme-storage.ts`,
+      );
+      continue;
+    }
+    const values = [...valuesMatch[1].matchAll(/"([a-z]+)"/g)].map(
+      (match) => match[1],
+    );
+    for (const value of values) {
+      if (!prePaint.includes(`!== "${value}"`)) {
+        fail(
+          section,
+          `pre-paint script does not validate theme ${singular.toLowerCase()} "${value}"`,
+        );
+      }
+    }
+    if (
+      !prePaint.includes(`${singular.toLowerCase()} = "${defaultMatch[1]}"`)
+    ) {
+      fail(
+        section,
+        `pre-paint script does not use the default theme ${singular.toLowerCase()}`,
+      );
+    }
+  }
   notes.push(
-    `contract: ${storageKeys.length} storage keys mirrored in the pre-paint script`,
+    `contract: ${storageKeys.length} storage keys and all theme values/defaults mirrored in pre-paint`,
   );
 
   const provider = read("frontend/src/lib/theme/theme-provider.tsx");

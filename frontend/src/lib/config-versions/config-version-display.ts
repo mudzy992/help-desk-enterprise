@@ -13,6 +13,18 @@ const tones: Record<ConfigVersionStatus, BadgeTone> = {
   [configVersionStatuses.rolledBack]: "neutral",
 };
 
+const statusLabelKeys = {
+  DRAFT: "configVersions.statuses.DRAFT",
+  VALIDATED: "configVersions.statuses.VALIDATED",
+  SHADOW: "configVersions.statuses.SHADOW",
+  ACTIVE: "configVersions.statuses.ACTIVE",
+  ROLLED_BACK: "configVersions.statuses.ROLLED_BACK",
+} as const satisfies Record<ConfigVersionStatus, string>;
+
+export function configVersionStatusLabelKey(status: ConfigVersionStatus) {
+  return statusLabelKeys[status];
+}
+
 export function configVersionBadgeTone(status: ConfigVersionStatus): BadgeTone {
   return tones[status];
 }

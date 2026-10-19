@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Download, FileSpreadsheet, RotateCcw, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { parseLocale } from "@/i18n/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,7 +76,7 @@ export function AssetImportPanel() {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const selectedType = typeId || types[0]?.id || "";
-  const language = i18n.language.startsWith("en") ? "en" : "bs";
+  const language = parseLocale(i18n.resolvedLanguage ?? i18n.language);
 
   const step = result ? 3 : preview ? (mappingChanged(preview, mapping) ? 2 : 3) : file ? 1 : 0;
   const steps = [

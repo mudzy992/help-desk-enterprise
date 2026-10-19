@@ -1,8 +1,8 @@
 # Modul 14: `i18n` i tema
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (metrike nad prevodima, grep, čitanje ključnih fajlova). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
+Datum audita: 2026-10-19
+Grana: `arena/bd31e07b-help-desk-enterprise`
+Status: implementacijski re-audit; IT5–IT10 obrađeni, IT3/IT4 djelimični, IT2 namjerno nije mijenjan.
 Oznake nalaza: **IT** (i18n i tema).
 
 **Metod.** Ključevi su provjereni skriptom (Python, JSON flatten): broj ključeva, paritet bs/en, ključevi korišteni u `t("…")` pozivima, plural forme. Teme i locale su čitani u cijelosti (`i18n/config.ts`, `i18n/locale.ts`, `i18n/use-locale.ts`, `i18n/locale-preference-sync.ts`, `i18n/i18next.d.ts`, `lib/theme/theme-provider.tsx`, `lib/theme/theme-storage.ts` (zaglavlje), `components/layout/theme-switcher.tsx` (aria i ključevi), `index.html` (pre-paint skripta)). Ne mogu se potvrditi bez build analize: veličina bundle-a i broj ključeva koji se koriste dinamički.
@@ -17,22 +17,22 @@ Dvije teme aplikacije (`pulse` i `classic`, sa modovima `light`/`dark`/`system` 
 
 ## Povezani fajlovi i folderi
 
-| Fajl | Uloga | Linija |
-|---|---|---|
-| `frontend/src/i18n/config.ts` | Inicijalizacija i18next, resursi, missing-key upozorenje u DEV | 69 |
-| `frontend/src/i18n/locale.ts` | `supportedLocales`, `parseLocale`, čuvanje u `localStorage`, `lang` atribut | 49 |
-| `frontend/src/i18n/use-locale.ts` | Hook za promjenu jezika, čuva i na serveru | 37 |
-| `frontend/src/i18n/locale-preference-sync.ts` | Odluka pri prijavi: push ili apply jezika sa servera | 24 |
-| `frontend/src/i18n/i18next.d.ts` | Tipovi ključeva iz `bs/common.json` | 12 |
-| `frontend/src/i18n/locales/bs/common.json` | Prevodi (bosanski), 8 170 ključeva, 565 KB | 9 320 linija |
-| `frontend/src/i18n/locales/en/common.json` | Prevodi (engleski), 8 090 ključeva, 550 KB | 9 240 linija |
-| `frontend/src/i18n/*.spec.ts` | Pokrivenost admin-ops i settings-registry ključeva | 4 fajla |
-| `frontend/src/lib/theme/theme-provider.tsx` | Kontekst teme, sistemski mod, primjena na `<html>` | 163 |
-| `frontend/src/lib/theme/theme-storage.ts` | Ugovor tema (tipovi, ključevi, `isDarkAppearance`) | 89 |
-| `frontend/src/lib/theme/semantic-meta.ts` | Meta podaci tema | 75 |
-| `frontend/src/components/layout/theme-switcher.tsx` | Meni teme, moda i akcenta | 162 |
-| `frontend/src/components/layout/locale-select.tsx` | Izbor jezika | 33 |
-| `frontend/index.html` | Pre-paint skripta: migracija starih ključeva i primjena teme | — |
+| Fajl                                                | Uloga                                                                       | Linija       |
+| --------------------------------------------------- | --------------------------------------------------------------------------- | ------------ |
+| `frontend/src/i18n/config.ts`                       | Inicijalizacija i18next, resursi, missing-key upozorenje u DEV              | 69           |
+| `frontend/src/i18n/locale.ts`                       | `supportedLocales`, `parseLocale`, čuvanje u `localStorage`, `lang` atribut | 49           |
+| `frontend/src/i18n/use-locale.ts`                   | Hook za promjenu jezika, čuva i na serveru                                  | 37           |
+| `frontend/src/i18n/locale-preference-sync.ts`       | Odluka pri prijavi: push ili apply jezika sa servera                        | 24           |
+| `frontend/src/i18n/i18next.d.ts`                    | Tipovi ključeva iz `bs/common.json`                                         | 12           |
+| `frontend/src/i18n/locales/bs/common.json`          | Prevodi (bosanski), 8 170 ključeva, 565 KB                                  | 9 320 linija |
+| `frontend/src/i18n/locales/en/common.json`          | Prevodi (engleski), 8 090 ključeva, 550 KB                                  | 9 240 linija |
+| `frontend/src/i18n/*.spec.ts`                       | Pokrivenost admin-ops i settings-registry ključeva                          | 4 fajla      |
+| `frontend/src/lib/theme/theme-provider.tsx`         | Kontekst teme, sistemski mod, primjena na `<html>`                          | 163          |
+| `frontend/src/lib/theme/theme-storage.ts`           | Ugovor tema (tipovi, ključevi, `isDarkAppearance`)                          | 89           |
+| `frontend/src/lib/theme/semantic-meta.ts`           | Meta podaci tema                                                            | 75           |
+| `frontend/src/components/layout/theme-switcher.tsx` | Meni teme, moda i akcenta                                                   | 162          |
+| `frontend/src/components/layout/locale-select.tsx`  | Izbor jezika                                                                | 33           |
+| `frontend/index.html`                               | Pre-paint skripta: migracija starih ključeva i primjena teme                | —            |
 
 ---
 
@@ -54,15 +54,15 @@ Dvije teme aplikacije (`pulse` i `classic`, sa modovima `light`/`dark`/`system` 
 
 ## Realno/željeno stanje
 
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Učitavanje prijevoda | Oba JSON-a (≈1,1 MB sirovo) su statički importovana u `config.ts` (IT2) | Učitavanje jezika na zahtjev ili po namespace-u |
-| Namespace | Jedan `common` sa 8 170 ključeva (IT2) | Podjela po domenu (tickets, admin, install…) |
-| Vrijednosti | 201 ključ ima isti tekst u bs i en, neki su engleski i u bs UI-ju (IT3) | Bosanski prijevod ili svjesno zadržan termin |
-| Dinamički ključevi | Ključevi u šablonima (`${status}`) i `as never` (IT4) | Tipizovani mapiranja (`Record<Status, TranslationKey>`) |
-| Pokrivenost | Testovi samo za dva domena (IT5) | Test: paritet, bez nepostojećih ključeva, bez neiskorištenih |
-| Tema u HTML-u | Skripta u `index.html` ručno usklađena sa TS kodom (IT6) | Jedan izvor (generisan ili provjeren testom) |
-| Promjena teme | `toggleMode` upisuje u `localStorage` unutar `setState` updatera (IT7) | Upis u efektu ili u eksplicitnom handleru |
+| Oblast               | Realno stanje                                                           | Željeno stanje                                               |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Učitavanje prijevoda | Oba JSON-a (≈1,1 MB sirovo) su statički importovana u `config.ts` (IT2) | Učitavanje jezika na zahtjev ili po namespace-u              |
+| Namespace            | Jedan `common` sa 8 170 ključeva (IT2)                                  | Podjela po domenu (tickets, admin, install…)                 |
+| Vrijednosti          | 201 ključ ima isti tekst u bs i en, neki su engleski i u bs UI-ju (IT3) | Bosanski prijevod ili svjesno zadržan termin                 |
+| Dinamički ključevi   | Ključevi u šablonima (`${status}`) i `as never` (IT4)                   | Tipizovani mapiranja (`Record<Status, TranslationKey>`)      |
+| Pokrivenost          | Testovi samo za dva domena (IT5)                                        | Test: paritet, bez nepostojećih ključeva, bez neiskorištenih |
+| Tema u HTML-u        | Skripta u `index.html` ručno usklađena sa TS kodom (IT6)                | Jedan izvor (generisan ili provjeren testom)                 |
+| Promjena teme        | `toggleMode` upisuje u `localStorage` unutar `setState` updatera (IT7)  | Upis u efektu ili u eksplicitnom handleru                    |
 
 ---
 
@@ -87,6 +87,7 @@ Dvije teme aplikacije (`pulse` i `classic`, sa modovima `light`/`dark`/`system` 
 Ovo je najzdraviji dio aplikacije po pitanju prevoda: skoro potpun paritet, tipovi, dokumentovan izbor. Glavni problemi su skalabilnost (jedan namespace, oba jezika odmah) i pouzdanost dinamičkih ključeva (`as never`, šabloni). Tema je dobro urađena, a jedina ozbiljnija stvar je ručna sinhronizacija pre-paint skripte.
 
 Preporuka redom:
+
 1. IT4: tipizovati dinamičke ključeve (mape `Record<Status, TranslationKey>`), ukloniti `as never` (zajedno sa modulima 10 i 13).
 2. IT5: alat za provjeru ključeva (paritet, nepostojeći, neiskorišteni) u `npm run i18n:check`, uključen u CI.
 3. IT2: lazy učitavanje jezika (`i18next-http-backend` ili dinamički `import()`), ili bar provjera veličine bundle-a.
@@ -98,23 +99,24 @@ Preporuka redom:
 
 ## Bugovi i neusklađenosti
 
-| ID | Ozbiljnost | Nalaz | Lokacija |
-|---|---|---|---|
-| IT2 | Srednja | Oba prevodna paketa (≈1,1 MB sirovo) statički importovana, jedan namespace. | `i18n/config.ts` |
-| IT3 | Niska | 201 ključ sa istim tekstom u bs i en; sirova enum vrijednost prikazana korisniku (`VALIDATED`), engleske riječi u bs UI-ju. | `configVersions.statuses.*`, `settings.system.installWizard`, `a11y.chart.period`, `teamsAdmin.mode.simulator`, `configVersions.package.kinds.playbook` |
-| IT4 | Srednja | Približno 225 `t()` poziva sa dinamičkim ključem (šablon `${…}` ili varijabla) bez provjere tipova; `t(key as never, … as never) as unknown as string`. | `lib/tickets/ticket-text.ts`, `lib/charts/chart-summary.ts` i ostali pozivi sa šablonima |
-| IT5 | Srednja | Nema provjere pariteta, nepostojećih i neiskorištenih ključeva u CI-ju; nema ESLint pravila za tekst u JSX-u. | `i18n/*.spec.ts` (samo dva domena) |
-| IT6 | Niska | Pre-paint skripta ručno usklađena sa `theme-storage.ts`; migracija starog ključa sesije. | `index.html`, `lib/theme/theme-storage.ts` |
-| IT7 | Niska | Side effect (`writeStored`) u `setState` updateru u `toggleMode`. | `lib/theme/theme-provider.tsx` |
-| IT8 | Niska (a11y) | Opcije moda i akcenta u meniju bez `aria-checked`/`menuitemradio`. | `components/layout/theme-switcher.tsx` |
-| IT9 | Niska | Duplirana logika jezika (`startsWith("en") ? "en" : "bs"`) umjesto `parseLocale`. | `components/assets/asset-import-panel.tsx` |
-| IT10 | Niska | Prazan `catch (error) {}` u pre-paint skripti; oznake „Paket 1.5“, „Paket 4.1“ u komentarima. | `index.html`, `i18n/use-locale.ts`, `i18n/locale-preference-sync.ts` |
+| ID   | Ozbiljnost   | Nalaz                                                                                                                                                   | Lokacija                                                                                                                                                |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IT2  | Srednja      | Oba prevodna paketa (≈1,1 MB sirovo) statički importovana, jedan namespace.                                                                             | `i18n/config.ts`                                                                                                                                        |
+| IT3  | Niska        | 201 ključ sa istim tekstom u bs i en; sirova enum vrijednost prikazana korisniku (`VALIDATED`), engleske riječi u bs UI-ju.                             | `configVersions.statuses.*`, `settings.system.installWizard`, `a11y.chart.period`, `teamsAdmin.mode.simulator`, `configVersions.package.kinds.playbook` |
+| IT4  | Srednja      | Približno 225 `t()` poziva sa dinamičkim ključem (šablon `${…}` ili varijabla) bez provjere tipova; `t(key as never, … as never) as unknown as string`. | `lib/tickets/ticket-text.ts`, `lib/charts/chart-summary.ts` i ostali pozivi sa šablonima                                                                |
+| IT5  | Srednja      | Nema provjere pariteta, nepostojećih i neiskorištenih ključeva u CI-ju; nema ESLint pravila za tekst u JSX-u.                                           | `i18n/*.spec.ts` (samo dva domena)                                                                                                                      |
+| IT6  | Niska        | Pre-paint skripta ručno usklađena sa `theme-storage.ts`; migracija starog ključa sesije.                                                                | `index.html`, `lib/theme/theme-storage.ts`                                                                                                              |
+| IT7  | Niska        | Side effect (`writeStored`) u `setState` updateru u `toggleMode`.                                                                                       | `lib/theme/theme-provider.tsx`                                                                                                                          |
+| IT8  | Niska (a11y) | Opcije moda i akcenta u meniju bez `aria-checked`/`menuitemradio`.                                                                                      | `components/layout/theme-switcher.tsx`                                                                                                                  |
+| IT9  | Niska        | Duplirana logika jezika (`startsWith("en") ? "en" : "bs"`) umjesto `parseLocale`.                                                                       | `components/assets/asset-import-panel.tsx`                                                                                                              |
+| IT10 | Niska        | Prazan `catch (error) {}` u pre-paint skripti; oznake „Paket 1.5“, „Paket 4.1“ u komentarima.                                                           | `index.html`, `i18n/use-locale.ts`, `i18n/locale-preference-sync.ts`                                                                                    |
 
 ---
 
 ## Ocjena: 7/10
 
 Obrazloženje:
+
 - **Plus:** skoro potpun paritet prevoda (8 170 ključeva), tipovi ključeva, provjera nepostojećih literal ključeva (0 nalaza), dobro dokumentovan izbor teme i jezika, sinhronizacija jezika sa serverom, pre-paint primjena teme bez treperenja.
 - **Minus:** monolitni JSON bez lazy učitavanja, dinamički ključevi bez tipova (`as never`), nema alata za provjeru ključeva u CI-ju, nekoliko engleskih vrijednosti u bs UI-ju, ručna sinhronizacija pre-paint skripte.
 
@@ -134,6 +136,30 @@ Predloženi redoslijed. Ništa od ovoga nije implementirano.
 
 ---
 
-## Status ispravki (2026-10-13)
+## Status ispravki (2026-10-19)
 
-Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rade tek nakon završetka auditnog ciklusa i potvrde obima.
+| ID   | Status       | Implementirani dokaz                                                                                                                                                                                                                                                                                                                                   |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| IT2  | Otvoren      | Lazy učitavanje/namespace split nije rađen bez eksplicitnog zahtjeva i mjerenja bundle-a.                                                                                                                                                                                                                                                              |
+| IT3  | Djelimično   | Prevedeni su statusi config verzija te očigledni BS tekstovi za install wizard, simulator i playbook; širi pregled jednakih bs/en vrijednosti ostaje zaseban batch.                                                                                                                                                                                    |
+| IT4  | Djelimično   | `chart-summary.ts` već koristi `TFunction`; config-version statusi sada koriste iscrpnu tipizovanu mapu umjesto dinamičkog template ključa u četiri potrošača. Širi dinamički inventar ostaje otvoren po domenima.                                                                                                                                     |
+| IT5  | **Zatvoren** | Postojeća provjera u `check-pulse-design-system.mjs` je potvrđena kao jedini izvor: provjerava bs/en paritet uz pluralne forme, statičke `t("…")` ključeve i dinamičke prefikse. Izložena je kao `npm run i18n:check` i eksplicitno se izvršava u frontend CI poslu. Unused-key scan nije uslov zatvaranja zbog legitimnih dinamičkih/config ključeva. |
+| IT6  | **Zatvoren** | Pulse guard sada poredi sva tri storage ključa, dozvoljene design/mode/accent vrijednosti i default vrijednosti sa pre-paint skriptom; `theme-contract.spec.ts` daje nezavisan regresijski test.                                                                                                                                                       |
+| IT7  | **Zatvoren** | `toggleMode` više nema storage side effect u React state updateru; računa sljedeći mod i prolazi kroz postojeći eksplicitni `setMode` handler.                                                                                                                                                                                                         |
+| IT8  | **Zatvoren** | Design, mode i accent opcije izlažu `menuitemradio` + `aria-checked`; jsdom test potvrđuje tri aktivne i osam neaktivnih opcija.                                                                                                                                                                                                                       |
+| IT9  | **Zatvoren** | Asset import koristi centralni `parseLocale(i18n.resolvedLanguage ?? i18n.language)`.                                                                                                                                                                                                                                                                  |
+| IT10 | **Zatvoren** | Prazni pre-paint catch sada daje lokalni development warning, a dirnuti i18n/index komentari opisuju ugovor bez paket/faznih oznaka.                                                                                                                                                                                                                   |
+
+### Verifikacija
+
+- `check-pulse-design-system.mjs`: 8 772 ključa, bs/en paritet, 4 498 statičkih ključeva i 88 dinamičkih prefiksa; theme storage/vrijednosti/defaulti usklađeni.
+- `check-theme-contrast.mjs` i `check-a11y-static.mjs`: prošli.
+- `npx vitest run src/i18n`: 5 fajlova / 43 testa.
+- puni frontend Vitest: 320/320 fajlova i 1 310/1 310 testova.
+- ciljani theme testovi: 2 fajla / 2 testa.
+- `npx tsc -b`: prošao.
+- `npm run lint`: 0 grešaka, 12 postojećih hook upozorenja.
+
+## Revidirana ocjena: 9/10
+
+IT5–IT10 više nisu otvoreni rizici. Do potpunog zatvaranja ostaju izmjereni i odobreni IT2 lazy-loading zahvat, naredni IT3 prevodilački batch i postepena tipizacija preostalih IT4 dinamičkih domena.

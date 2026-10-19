@@ -11,7 +11,8 @@
     "format:check": "prettier --check .",
     "preview": "vite preview",
     "test": "vitest run",
-    "audit:contrast": "node scripts/contrast-audit.mjs"
+    "audit:contrast": "node scripts/contrast-audit.mjs",
+    "i18n:check": "node ../scripts/check-pulse-design-system.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.30.0",
