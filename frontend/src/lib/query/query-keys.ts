@@ -22,6 +22,7 @@ export const queryKeys = {
   routingRules: ["catalog", "routing-rules"] as const,
   organizationalUnits: ["catalog", "organizational-units"] as const,
   services: ["catalog", "services"] as const,
+  statusIncidentServices: ["catalog", "services", "status-incident-options"] as const,
   /**
    * The dashboard's id→name lookup caches the raw `ServiceResponse[]`, while
    * `services` caches `{ service }` rows for the catalog table. The two shapes

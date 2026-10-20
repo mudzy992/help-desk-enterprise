@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   availabilityDotClassName,
@@ -63,6 +64,7 @@ const overallSurface: Record<OverallStatus, string> = {
 export function StatusPage() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const { overview, error: loadError, refreshing, nowMs, reload } = useStatusOverviewData();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<IncidentFormMode | null>(null);
@@ -72,25 +74,27 @@ export function StatusPage() {
   } | null>(null);
 
   const toggleSubscription = async (incident: Incident) => {
-    setBusyId(incident.id);
-    try {
-      if (incident.subscribed) {
-        await unsubscribeFromIncident(incident.id);
-        toast({ tone: "info", title: t("status.card.unsubscribed") });
-      } else {
-        await subscribeToIncident(incident.id);
-        toast({ tone: "success", title: t("status.card.subscribed") });
+    await operationGuard.run(`subscription:${incident.id}`, async () => {
+      setBusyId(incident.id);
+      try {
+        if (incident.subscribed) {
+          await unsubscribeFromIncident(incident.id);
+          toast({ tone: "info", title: t("status.card.unsubscribed") });
+        } else {
+          await subscribeToIncident(incident.id);
+          toast({ tone: "success", title: t("status.card.subscribed") });
+        }
+        await reload();
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapStatusError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusyId(null);
       }
-      await reload();
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapStatusError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
 
   const header = (

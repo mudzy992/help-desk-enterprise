@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,9 +7,11 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { mapApiError } from "@/lib/map-api-error";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { queryKeys } from "@/lib/query/query-keys";
 import { mapStatusError } from "@/lib/status/status-view";
-import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
+import { listServices } from "@/services/service-catalog-api";
 import {
   createIncident,
   editIncident,
@@ -59,8 +62,13 @@ export function IncidentFormDialog({
   const editing = mode.kind === "edit" ? mode.incident : null;
   const presetServiceIds = mode.kind === "create" ? mode.presetServiceIds : undefined;
   const ticketIds = mode.kind === "create" ? (mode.ticketIds ?? []) : [];
-  const [services, setServices] = useState<readonly ServiceResponse[] | null>(null);
-  const [servicesFailed, setServicesFailed] = useState(false);
+  const operationGuard = useOperationGuard();
+  const servicesQuery = useQuery({
+    queryKey: queryKeys.statusIncidentServices,
+    queryFn: listServices,
+    enabled: open,
+    retry: false,
+  });
   const [title, setTitle] = useState("");
   const [titleEn, setTitleEn] = useState("");
   const [impact, setImpact] = useState<IncidentImpact>("DEGRADED");
@@ -100,26 +108,13 @@ export function IncidentFormDialog({
     presetServiceIds,
   ]);
 
-  useEffect(() => {
-    if (!open || services !== null) return;
-    let active = true;
-    listServices()
-      .then((loaded) => {
-        if (active)
-          setServices(
-            loaded.filter(
-              (service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id),
-            ),
-          );
-      })
-      .catch(() => {
-        if (active) setServicesFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [open, services, serviceIds]);
-
+  const services = useMemo(
+    () =>
+      servicesQuery.data?.filter(
+        (service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id),
+      ) ?? null,
+    [serviceIds, servicesQuery.data],
+  );
   const filtered = useMemo(() => {
     const query = serviceFilter.trim().toLocaleLowerCase();
     const list = services ?? [];
@@ -143,54 +138,56 @@ export function IncidentFormDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!valid || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      if (editing === null) {
-        const result = await createIncident({
-          title: title.trim(),
-          titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
-          impact,
-          visibility,
-          serviceIds,
-          message: message.trim(),
-          ...(startedAt.length > 0 ? { startedAt: new Date(startedAt).toISOString() } : {}),
-          notifyOpenTicketHolders: visibility === "ALL_USERS" && notify,
-          ...(ticketIds.length > 0 ? { ticketIds } : {}),
-        });
-        toast({
-          tone: "success",
-          title: t("status.form.created"),
-          description:
-            [
-              ticketIds.length > 0
-                ? t("status.form.createdLinked", { count: ticketIds.length })
-                : null,
-              visibility === "ALL_USERS" && notify
-                ? t("status.form.createdNotified", { count: result.notified })
-                : null,
-            ]
-              .filter((part): part is string => part !== null)
-              .join(" · ") || undefined,
-        });
-      } else {
-        await editIncident(editing.id, {
-          title: title.trim(),
-          titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
-          impact,
-          visibility,
-          serviceIds,
-        });
-        toast({ tone: "success", title: t("status.form.saved") });
+    if (!valid || saving || operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (editing === null) {
+          const result = await createIncident({
+            title: title.trim(),
+            titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
+            impact,
+            visibility,
+            serviceIds,
+            message: message.trim(),
+            ...(startedAt.length > 0 ? { startedAt: new Date(startedAt).toISOString() } : {}),
+            notifyOpenTicketHolders: visibility === "ALL_USERS" && notify,
+            ...(ticketIds.length > 0 ? { ticketIds } : {}),
+          });
+          toast({
+            tone: "success",
+            title: t("status.form.created"),
+            description:
+              [
+                ticketIds.length > 0
+                  ? t("status.form.createdLinked", { count: ticketIds.length })
+                  : null,
+                visibility === "ALL_USERS" && notify
+                  ? t("status.form.createdNotified", { count: result.notified })
+                  : null,
+              ]
+                .filter((part): part is string => part !== null)
+                .join(" · ") || undefined,
+          });
+        } else {
+          await editIncident(editing.id, {
+            title: title.trim(),
+            titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
+            impact,
+            visibility,
+            serviceIds,
+          });
+          toast({ tone: "success", title: t("status.form.saved") });
+        }
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapStatusError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
       }
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapStatusError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -282,8 +279,23 @@ export function IncidentFormDialog({
               aria-label={t("status.form.servicesFilter")}
             />
             <div className="mt-2 grid max-h-44 gap-2 overflow-y-auto rounded-md border border-border p-2.5">
-              {servicesFailed ? (
-                <span className={errorTextClassName}>{t("status.form.servicesFailed")}</span>
+              {servicesQuery.error !== null && services === null ? (
+                <div className="grid gap-2">
+                  <span className={errorTextClassName} role="alert">
+                    {t("status.form.servicesFailed")}
+                    {readApiRequestId(servicesQuery.error)
+                      ? ` · ${t("errors.requestId", { requestId: readApiRequestId(servicesQuery.error) })}`
+                      : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => void servicesQuery.refetch()}
+                  >
+                    {t("ui.retry")}
+                  </Button>
+                </div>
               ) : services === null ? (
                 <span className={hintClassName}>{t("status.loading")}</span>
               ) : filtered.length === 0 ? (

@@ -6,6 +6,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   localizedIncidentTitle,
@@ -43,6 +44,7 @@ export function IncidentUpdateDialog({
 }: IncidentUpdateDialogProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const options = nextIncidentStatuses(incident.status);
   const [status, setStatus] = useState<IncidentStatus>(incident.status);
   const [message, setMessage] = useState("");
@@ -80,28 +82,32 @@ export function IncidentUpdateDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (message.trim().length < 3 || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const result = await postIncidentUpdate(incident.id, {
-        status,
-        message: message.trim(),
-        ...(resolving ? { notifyOnResolve: notify } : {}),
-      });
-      toast({
-        tone: "success",
-        title: resolving ? t("status.update.resolved") : t("status.update.posted"),
-        description:
-          resolving && notify ? t("status.update.notified", { count: result.notified }) : undefined,
-      });
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapStatusError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    if (message.trim().length < 3 || saving || operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        const result = await postIncidentUpdate(incident.id, {
+          status,
+          message: message.trim(),
+          ...(resolving ? { notifyOnResolve: notify } : {}),
+        });
+        toast({
+          tone: "success",
+          title: resolving ? t("status.update.resolved") : t("status.update.posted"),
+          description:
+            resolving && notify
+              ? t("status.update.notified", { count: result.notified })
+              : undefined,
+        });
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapStatusError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   return (

@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **7,8/10 nakon Faze 1**
+**Aktuelna ocjena:** **8,3/10 nakon Faze 2**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -112,16 +112,11 @@ Globalni `busyId` na status stranici dodatno blokira sve subscription akcije zbo
 
 Stari overview ostaje vidljiv na refresh grešci. Domain error se mapira prije generičkog API fallbacka, uključujući `STATUS_PAGE_DISABLED`, a mutation callbackovi čekaju isti eksplicitni `reload()` ugovor umjesto page-local `inFlight` prečice. Direktni hook testovi pokrivaju stale retention, request correlation, overlapping response order, hidden-tab polling i unmount cancellation.
 
-### SS3 — Incident dependency loading nema robustan retry i stale ugovor
+### SS3 — Incident dependency loading ima eksplicitan query/retry ugovor
 
-**Prioritet:** P1
-**Lokacija:** `incident-form-dialog.tsx`
+**Prioritet:** zatvoreno u Fazi 2
 
-Lista servisa se učitava lokalnim effectom. Na grešci se postavlja `servicesFailed`, ali nema eksplicitnog Retry dugmeta, request ID-a ni resetovanja greške nakon uspješnog ponovnog pokušaja. Effect zavisi od `serviceIds`, iako je dependency zapravo katalog, što otežava razumijevanje ponovnog poziva. `servicesFailed` se ne resetuje pri ponovnom otvaranju niti prije novog zahtjeva.
-
-Forma ostaje blokirana jer servis mora biti izabran, ali korisnik nema jasan recovery put osim zatvaranja/mijenjanja stanja.
-
-**Za zatvaranje:** zajednički catalog query/cache ili typed dependency controller; vidljiv error + Retry; očuvanje preset/edited servisa; request identity i component testovi.
+Incident editor koristi zaseban React Query ključ za servisne opcije, bez kolizije s catalog-row cache oblikom. Query je aktivan samo dok je dijalog otvoren, čuva uspješne podatke kroz refresh, prikazuje povezanu grešku, request ID i eksplicitni Retry bez zatvaranja dijaloga ili gubitka drafta. Aktivni servisi i već sačuvani neaktivni izbori deriviraju se iz query rezultata umjesto effecta zavisnog od `serviceIds`.
 
 ### SS4 — Civil-time ugovor incidenta i downtimea nije eksplicitan
 
@@ -303,6 +298,14 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 5. Testirati double submit i recovery.
 
 **Exit gate:** jedna korisnička namjera proizvodi najviše jedan write zahtjev; dependency outage ne zahtijeva zatvaranje dijaloga.
+
+**Status nakon Faze 2: završeno.**
+
+- Incident create/edit i update/resolve koriste synchronous `useOperationGuard`; subscription akcije su zaključane po incident ID-u.
+- Servisne opcije prebačene su na zaseban typed React Query cache sa error/request ID/Retry ugovorom i očuvanjem drafta.
+- Uklonjen je dependency effect čiji je retry implicitno zavisio od promjene `serviceIds`. `SS3`, status-page dio `SS1` i pripadajući dio `SS12` su zatvoreni; ticket link/unlink dio `SS1` mapiran je na Fazu 3.
+
+**Izvršni dokaz:** ciljni concurrency/controller suite prolazi; production TypeScript/Vite build i ciljani ESLint prolaze. Puni gate rezultat evidentira se nakon objedinjene Faze 3 regresije.
 
 ### Faza 3 — Ticket incident controller
 
