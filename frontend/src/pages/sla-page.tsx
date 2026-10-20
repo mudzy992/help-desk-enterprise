@@ -1,8 +1,9 @@
 import { CalendarDays, Grid3x3, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { PriorityMatrixPanel } from "@/components/sla/priority-matrix-panel";
 import { SlaCalendarsPanel } from "@/components/sla/sla-calendars-panel";
 import { SlaComplianceCard } from "@/components/sla/sla-compliance-card";
@@ -16,6 +17,7 @@ import { errorTextClassName, selectCompactClassName } from "@/components/ui/cont
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { useSlaPageData } from "@/lib/sla/use-sla-page-data";
 import { useSlaPageMutations } from "@/lib/sla/use-sla-page-mutations";
+import { parseSlaPageSearch, updateSlaPageSearch } from "@/lib/sla/sla-page-search";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
@@ -25,8 +27,15 @@ export function SlaPage() {
   const { t } = useTranslation();
   const { session, isLoading: isSessionLoading, hasPermission } = useSessionCapabilities();
   const canWrite = hasPermission(permissionKeys.slaWrite);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlState = parseSlaPageSearch(searchParams);
+  const { view, panel: profilesPanel, organizationalUnitId } = urlState;
+  const updateUrl = useCallback(
+    (patch: Parameters<typeof updateSlaPageSearch>[1]) =>
+      setSearchParams((current) => updateSlaPageSearch(current, patch), { replace: true }),
+    [setSearchParams],
+  );
   const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
-  const [organizationalUnitId, setOrganizationalUnitId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     void listOrganizationalUnitTree()
@@ -41,24 +50,39 @@ export function SlaPage() {
     };
   }, []);
   useEffect(() => {
-    if (organizationalUnitId !== null || isSessionLoading || unitOptions.length === 0) {
+    if (isSessionLoading || unitOptions.length === 0) {
       return;
     }
-    const preferredId = session?.organizationalUnitId;
-    setOrganizationalUnitId(
-      unitOptions.find((option) => option.id === preferredId)?.id ?? unitOptions[0]?.id ?? null,
-    );
-  }, [isSessionLoading, organizationalUnitId, session?.organizationalUnitId, unitOptions]);
-  const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
-  const [profilesPanel, setProfilesPanel] = useState<"profiles" | "compliance">("profiles");
+    const preferredId = organizationalUnitId ?? session?.organizationalUnitId;
+    const resolved =
+      unitOptions.find((option) => option.id === preferredId)?.id ?? unitOptions[0]?.id ?? null;
+    if (resolved !== organizationalUnitId) updateUrl({ organizationalUnitId: resolved });
+  }, [
+    isSessionLoading,
+    organizationalUnitId,
+    session?.organizationalUnitId,
+    unitOptions,
+    updateUrl,
+  ]);
   const complianceActive = view === "profiles" && profilesPanel === "compliance";
   const data = useSlaPageData(organizationalUnitId, complianceActive);
+  useEffect(() => {
+    if (urlState.profileId !== null && data.selectedId !== urlState.profileId)
+      data.setSelectedId(urlState.profileId);
+  }, [data, urlState.profileId]);
+  useEffect(() => {
+    if (data.isLoading || data.profiles.length === 0) return;
+    const resolved = data.profiles.some((profile) => profile.id === data.selectedId)
+      ? data.selectedId
+      : (data.profiles[0]?.id ?? null);
+    if (resolved !== data.selectedId) data.setSelectedId(resolved);
+    if (resolved !== urlState.profileId) updateUrl({ profileId: resolved });
+  }, [data, updateUrl, urlState.profileId]);
   const scopeLabel =
     unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? null;
   const mutations = useSlaPageMutations(data, canWrite);
   const returnToProfiles = () => {
-    setView("profiles");
-    setProfilesPanel("profiles");
+    updateUrl({ view: "profiles", panel: "profiles" });
   };
   // Paket 1.7 (R3): sub-panels load on mount, so a key bump reloads them too.
   const [refreshKey, setRefreshKey] = useState(0);
@@ -136,7 +160,9 @@ export function SlaPage() {
                   className={selectCompactClassName}
                   value={organizationalUnitId ?? ""}
                   disabled={unitOptions.length === 0}
-                  onChange={(event) => setOrganizationalUnitId(event.target.value || null)}
+                  onChange={(event) =>
+                    updateUrl({ organizationalUnitId: event.target.value || null })
+                  }
                 >
                   <option value="" disabled>
                     {t("sla.complianceScopePick")}
@@ -149,16 +175,34 @@ export function SlaPage() {
                 </select>
               </label>
             ) : null}
-            <Button type="button" variant="outline" size="sm" onClick={() => setView("calendars")}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => updateUrl({ view: "calendars" })}
+            >
               <CalendarDays size={14} />
               {t("sla.manageCalendars")}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setView("matrix")}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => updateUrl({ view: "matrix" })}
+            >
               <Grid3x3 size={14} />
               {t("sla.managePriorityMatrix")}
             </Button>
             {canWrite && profilesPanel === "profiles" ? (
-              <Button type="button" variant="primary" size="sm" onClick={() => data.startCreate()}>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  data.startCreate();
+                  updateUrl({ profileId: null });
+                }}
+              >
                 <Plus size={14} />
                 {t("sla.newProfile")}
               </Button>
@@ -187,7 +231,7 @@ export function SlaPage() {
           className="mb-4"
           label={t("sla.title")}
           active={profilesPanel}
-          onChange={(key) => setProfilesPanel(key as "profiles" | "compliance")}
+          onChange={(key) => updateUrl({ panel: key as "profiles" | "compliance" })}
           items={[
             { key: "profiles", label: t("sla.profilesTab") },
             { key: "compliance", label: t("sla.complianceTab") },
@@ -201,8 +245,14 @@ export function SlaPage() {
               selectedId={data.selectedId}
               isLoading={data.isLoading}
               canWrite={canWrite}
-              onSelect={data.setSelectedId}
-              onNew={data.startCreate}
+              onSelect={(id) => {
+                data.setSelectedId(id);
+                updateUrl({ profileId: id });
+              }}
+              onNew={() => {
+                data.startCreate();
+                updateUrl({ profileId: null });
+              }}
             />
             {data.detailError ? (
               <EntityDetailQueryError

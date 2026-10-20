@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **8,7/10 nakon Faze 2**
+**Aktuelna ocjena:** **9,0/10 nakon Faze 3**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -235,14 +235,14 @@ Nisu izvršno dokazani:
 | ------------------------------------------ | ---------: | --------: |
 | Route access i backend sigurnosna granica  |        9,5 |        10 |
 | Async state, race i recovery               |        9,3 |        10 |
-| Reporting tačnost, period i vremenska zona |        7,2 |        10 |
+| Reporting tačnost, period i vremenska zona |        8,2 |        10 |
 | Mutation i cache konzistentnost            |        7,4 |        10 |
-| URL/shareability i navigacija              |        7,0 |        10 |
-| Testabilnost i održivost                   |        8,2 |        10 |
+| URL/shareability i navigacija              |        9,4 |        10 |
+| Testabilnost i održivost                   |        8,4 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **8,7/10** | **10/10** |
+| **Ukupno**                                 | **9,0/10** | **10/10** |
 
-Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race guardove i kvalitetan pure sloj. Odbici ostaju zbog identiteta SLA detail snapshotova, nedosljednog recovery/request-correlation ugovora, tihih filter/period fallbacka, mutation concurrency rizika, nepotpunog URL modela, slabe direktne component mreže i neizvršenog browser closeouta.
+Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race/recovery ugovore, validirano URL stanje i eksplicitnu validaciju perioda. Odbici ostaju zbog mutation concurrency rizika, nedokazanog timezone/DST ugovora, održivosti velikih komponenti, preostale direktne testne mreže i neizvršenog browser closeouta.
 
 ---
 
@@ -311,6 +311,17 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 5. Testirati deep link, invalid parametre, reset, history i disabled fetch/export.
 
 **Exit gate:** refresh/share/Back/Forward reproduciraju isti prikaz i isti API scope.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Reports tab, OU i overview period sada se čitaju direktno iz validiranog URL modela; overview period koristi zasebne `window`, `windowFrom` i `windowTo` ključeve pa ne kolidira sa Trends URL ugovorom.
+- Promjena taba više ne briše OU, period ni Trends filtere. URL promjena, uključujući browser Back/Forward, neposredno određuje prikaz i API scope bez mount-time `useRef` snapshot-a.
+- SLA view, profiles/compliance podtab, OU i aktivni profil uvedeni su u validirani URL model; nevalidni view/panel/OU/profil se kanonizuju na dozvoljeni fallback nakon učitavanja kataloga.
+- Custom overview period više nema silent 30d fallback niti automatski swap obrnutih datuma. Nepotpun, nemoguć ili obrnut datum daje eksplicitnu grešku, `aria-invalid` stanje i blokira dashboard/pack/bottleneck fetch, print i export tok.
+- Direktni parser/window testovi pokrivaju deep link, invalidne parametre, reset, očuvanje scopea kroz navigaciju, permission fallback i validan/nepotpun/nemoguć/obrnut custom period.
+- `RSL4` i `RSL6` su zatvoreni determinističkim dokazom. Browser Back/Forward dokaz ostaje eksplicitno neizvršen i mapiran na Fazu 8.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 12/12 testova; puni frontend Vitest prolaz ima 373/373 fajla odnosno 1492/1492 testa. Production TypeScript/Vite build, puni ESLint, i18n/design-system gate i Prettier su prošli; build zadržava postojeće non-fatal chunk-size upozorenje.
 
 ### Faza 4 — Mutation concurrency i precizni refresh
 
@@ -431,6 +442,6 @@ Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati
 
 ## 9. Završni zaključak
 
-Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Async guardovi, SLA load razdvajanje, CSAT označavanje, recovery dijelovi i backend testna baza podigli su kvalitet. Trenutna profesionalna ocjena je **7,9/10**: funkcionalno široko i sigurnosno dobro postavljeno, ali još bez jedinstvenog identity/recovery, URL, mutation i timezone ugovora te bez izvršnog browser dokaza.
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,0/10**; preostali odbici su mutation concurrency/refresh matrica, timezone/DST ugovor, održivost, završna deterministička regresija i neizvršen browser dokaz.
 
 Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.

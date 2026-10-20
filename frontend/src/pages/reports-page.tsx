@@ -42,6 +42,7 @@ import {
   toDateInputValue,
   type ReportPreset,
 } from "@/lib/reports/report-window";
+import { parseReportPageSearch, updateReportPageSearch } from "@/lib/reports/report-page-search";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -51,29 +52,17 @@ import { listOrganizationalUnitTree } from "@/services/organizational-units-api"
 import { fetchReportsDashboard, type ReportsDashboardResponse } from "@/services/reports-api";
 import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
 
-type ReportsTab = "overview" | "bottlenecks" | "csat" | "trends" | "packs" | "schedules";
-
-function readTab(value: string | null, canSchedule: boolean): ReportsTab {
-  if (value === "trends" || value === "packs" || value === "bottlenecks" || value === "csat") {
-    return value;
-  }
-  if (value === "schedules" && canSchedule) return "schedules";
-  return "overview";
-}
-
 export function ReportsPage() {
   const { t, i18n } = useTranslation();
   const { session, hasPermission } = useSessionCapabilities();
   const canExport = hasPermission(permissionKeys.reportsExport);
   const canSchedule = hasPermission(permissionKeys.reportsScheduleManage);
   const [dashboard, setDashboard] = useState<ReportsDashboardResponse | null>(null);
-  const [organizationalUnitId, setOrganizationalUnitId] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
-  const [preset, setPreset] = useState<ReportPreset>("30d");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+
   const [unitError, setUnitError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
     null,
   );
@@ -82,8 +71,11 @@ export function ReportsPage() {
   const [scheduleDraft, setScheduleDraft] = useState<ReportScheduleDraft | null>(null);
   const [trends, setTrends] = useState<ReportTrendsResponse | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = readTab(searchParams.get("tab"), canSchedule);
-  const initialUnitId = useRef(searchParams.get("organizationalUnitId")).current;
+  const pageSearch = useMemo(
+    () => parseReportPageSearch(searchParams, canSchedule),
+    [canSchedule, searchParams],
+  );
+  const { tab, organizationalUnitId, preset, customFrom, customTo } = pageSearch;
   const needsFilters = tab === "trends" || tab === "schedules";
   useLightPrintTheme();
 
@@ -93,21 +85,29 @@ export function ReportsPage() {
     setUnitError(null);
     try {
       const tree = await listOrganizationalUnitTree();
-      const options = flattenOriginUnitOptions(tree);
-      setUnitOptions(options);
-      const fromUrl = initialUnitId;
-      setOrganizationalUnitId(
-        options.find((option) => option.id === fromUrl)?.id ?? options[0]?.id ?? null,
-      );
+      setUnitOptions(flattenOriginUnitOptions(tree));
     } catch (error) {
-      setOrganizationalUnitId(null);
       setUnitError({ key: mapApiError(error), requestId: readApiRequestId(error) });
     }
-  }, [initialUnitId]);
+  }, []);
 
   useEffect(() => {
     void loadUnits();
   }, [loadUnits]);
+
+  useEffect(() => {
+    if (unitOptions.length === 0) return;
+    const resolved =
+      unitOptions.find((option) => option.id === organizationalUnitId)?.id ??
+      unitOptions[0]?.id ??
+      null;
+    if (resolved !== organizationalUnitId) {
+      setSearchParams(
+        (current) => updateReportPageSearch(current, { organizationalUnitId: resolved }),
+        { replace: true },
+      );
+    }
+  }, [organizationalUnitId, setSearchParams, unitOptions]);
 
   const filters = useReportFilterOptions(needsFilters, i18n.language);
   const serviceOptions: readonly TrendsFilterOption[] = filters.services;
@@ -125,12 +125,12 @@ export function ReportsPage() {
     customTo,
     now,
   });
-  const fromIso = window_.from.toISOString();
-  const toIso = window_.to.toISOString();
+  const fromIso = window_?.from.toISOString() ?? null;
+  const toIso = window_?.to.toISOString() ?? null;
 
   const reload = useCallback(async () => {
     const request = dashboardGuard.current.begin();
-    if (organizationalUnitId === null) {
+    if (organizationalUnitId === null || fromIso === null || toIso === null) {
       setDashboard(null);
       setIsLoading(false);
       return;
@@ -161,20 +161,55 @@ export function ReportsPage() {
 
   const onPresetChange = (next: ReportPreset) => {
     if (next === "custom") {
-      setCustomFrom(toDateInputValue(window_.from));
-      setCustomTo(toDateInputValue(now));
+      const current =
+        window_ ?? resolveReportWindow({ preset: "30d", customFrom: "", customTo: "", now });
+      setSearchParams(
+        (params) =>
+          updateReportPageSearch(params, {
+            preset: next,
+            customFrom: current === null ? "" : toDateInputValue(current.from),
+            customTo: toDateInputValue(now),
+          }),
+        { replace: true },
+      );
+      return;
     }
-    setPreset(next);
+    setSearchParams((params) => updateReportPageSearch(params, { preset: next }), {
+      replace: true,
+    });
   };
 
-  const changeTrends = (next: TrendsViewState) => {
-    setSearchParams(toTrendsSearch({ ...next, organizationalUnitId }), { replace: true });
+  const writeTrendsSearch = (next: TrendsViewState) => {
+    const trendParams = toTrendsSearch({ ...next, organizationalUnitId });
+    setSearchParams(
+      (current) => {
+        const merged = new URLSearchParams(current);
+        for (const key of [
+          "tab",
+          "preset",
+          "from",
+          "to",
+          "granularity",
+          "organizationalUnitId",
+          "serviceId",
+          "groupId",
+          "priority",
+        ])
+          merged.delete(key);
+        trendParams.forEach((value, key) => merged.set(key, value));
+        return merged;
+      },
+      { replace: true },
+    );
   };
+
+  const changeTrends = (next: TrendsViewState) => writeTrendsSearch(next);
 
   const changeUnit = (next: string) => {
-    setOrganizationalUnitId(next);
     if (tab === "trends") {
-      setSearchParams(toTrendsSearch({ ...trendsState, organizationalUnitId: next }), {
+      writeTrendsSearch({ ...trendsState, organizationalUnitId: next });
+    } else {
+      setSearchParams((params) => updateReportPageSearch(params, { organizationalUnitId: next }), {
         replace: true,
       });
     }
@@ -182,10 +217,12 @@ export function ReportsPage() {
 
   const changeTab = (key: string) => {
     if (key === "trends") {
-      setSearchParams(toTrendsSearch({ ...trendsState, organizationalUnitId }), { replace: true });
+      writeTrendsSearch(trendsState);
       return;
     }
-    setSearchParams(key === "overview" ? {} : { tab: key }, { replace: true });
+    setSearchParams((params) => updateReportPageSearch(params, { tab: key as typeof tab }), {
+      replace: true,
+    });
   };
 
   const unitLabel = unitOptions.find((option) => option.id === organizationalUnitId)?.label ?? "—";
@@ -194,7 +231,9 @@ export function ReportsPage() {
       ? `${formatTrendBucketLong(trendsState.from, "day", i18n.language)} – ${formatTrendBucketLong(trendsState.to, "day", i18n.language)}${
           trends === null ? "" : ` (${trends.timeZone})`
         }`
-      : `${window_.from.toLocaleDateString(i18n.language)} – ${window_.to.toLocaleDateString(i18n.language)}`;
+      : window_ === null
+        ? t("reports.errors.REPORT_WINDOW_INVALID")
+        : `${window_.from.toLocaleDateString(i18n.language)} – ${window_.to.toLocaleDateString(i18n.language)}`;
   const printScope = [
     unitLabel,
     tab === "trends" && trendsState.serviceId !== null
@@ -211,7 +250,7 @@ export function ReportsPage() {
     .join(" · ");
 
   const print = (view: "overview" | "trends") => {
-    if (organizationalUnitId !== null) {
+    if (organizationalUnitId !== null && fromIso !== null && toIso !== null) {
       // Audit beacon only; a failure must never block printing.
       void recordReportPdfExport({
         organizationalUnitId,
@@ -268,8 +307,19 @@ export function ReportsPage() {
                   customFrom={customFrom}
                   customTo={customTo}
                   onPresetChange={onPresetChange}
-                  onCustomFromChange={setCustomFrom}
-                  onCustomToChange={setCustomTo}
+                  invalid={window_ === null}
+                  onCustomFromChange={(value) =>
+                    setSearchParams(
+                      (params) => updateReportPageSearch(params, { customFrom: value }),
+                      { replace: true },
+                    )
+                  }
+                  onCustomToChange={(value) =>
+                    setSearchParams(
+                      (params) => updateReportPageSearch(params, { customTo: value }),
+                      { replace: true },
+                    )
+                  }
                 />
               ) : null}
               {unitOptions.length > 1 && tab !== "schedules" ? (
@@ -308,7 +358,9 @@ export function ReportsPage() {
           </Button>
         </div>
       ) : null}
-      {unitError ? (
+      {window_ === null && (tab === "overview" || tab === "packs" || tab === "bottlenecks") ? (
+        <ApiErrorText messageKey="reports.errors.REPORT_WINDOW_INVALID" requestId={null} />
+      ) : unitError ? (
         <div className="grid gap-2">
           <ApiErrorText messageKey={unitError.key} requestId={unitError.requestId} />
           <Button size="sm" variant="outline" onClick={() => void loadUnits()}>
@@ -320,11 +372,11 @@ export function ReportsPage() {
       ) : tab === "bottlenecks" ? (
         <ReportsBottlenecksPanel
           organizationalUnitId={organizationalUnitId}
-          from={fromIso}
-          to={toIso}
+          from={fromIso!}
+          to={toIso!}
         />
       ) : tab === "packs" ? (
-        <ReportPacksPanel organizationalUnitId={organizationalUnitId} from={fromIso} to={toIso} />
+        <ReportPacksPanel organizationalUnitId={organizationalUnitId} from={fromIso!} to={toIso!} />
       ) : tab === "trends" ? (
         <ReportTrendsPanel
           state={trendsState}
@@ -343,7 +395,9 @@ export function ReportsPage() {
               groupId: state.groupId,
               priority: state.priority,
             });
-            setSearchParams({ tab: "schedules" }, { replace: true });
+            setSearchParams((params) => updateReportPageSearch(params, { tab: "schedules" }), {
+              replace: true,
+            });
           }}
         />
       ) : tab === "schedules" ? (

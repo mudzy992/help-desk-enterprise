@@ -34,8 +34,16 @@ export function parseDateInputValue(value: string): Date | null {
   if (match === null) {
     return null;
   }
-  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const parsed = new Date(year, month, day);
+  return Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month ||
+    parsed.getDate() !== day
+    ? null
+    : parsed;
 }
 
 export function resolveReportWindow(input: {
@@ -43,14 +51,11 @@ export function resolveReportWindow(input: {
   readonly customFrom: string;
   readonly customTo: string;
   readonly now: Date;
-}): ReportWindow {
+}): ReportWindow | null {
   if (input.preset === "custom") {
-    const custom = customWindow(input.customFrom, input.customTo);
-    if (custom !== null) {
-      return custom;
-    }
+    return customWindow(input.customFrom, input.customTo);
   }
-  return rollingWindow(input.preset === "custom" ? "30d" : input.preset, input.now);
+  return rollingWindow(input.preset, input.now);
 }
 
 export function previousReportWindow(window: ReportWindow): ReportWindow {
@@ -95,10 +100,7 @@ function customWindow(fromValue: string, toValue: string): ReportWindow | null {
   }
   const start = startOfLocalDay(from);
   const end = endOfLocalDay(to);
-  if (start.getTime() <= end.getTime()) {
-    return { from: start, to: end };
-  }
-  return { from: startOfLocalDay(to), to: endOfLocalDay(from) };
+  return start.getTime() <= end.getTime() ? { from: start, to: end } : null;
 }
 
 function rollingWindow(preset: Exclude<ReportPreset, "custom">, now: Date): ReportWindow {
