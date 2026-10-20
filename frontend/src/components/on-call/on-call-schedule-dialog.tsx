@@ -9,7 +9,7 @@ import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/m
 import { useToast } from "@/components/ui/toast";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
-import { mapOnCallError, moveItem } from "@/lib/on-call/on-call-view";
+import { isValidTimeZone, mapOnCallError, moveItem } from "@/lib/on-call/on-call-view";
 import {
   saveOnCallSchedule,
   type OnCallGroupDetail,
@@ -105,9 +105,12 @@ export function OnCallScheduleDialog({
     setAddUserId("");
   };
 
+  const timezoneIsValid = isValidTimeZone(timezone);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (saving || reason.trim().length < 3 || operationGuard.isPending("save")) return;
+    if (saving || !timezoneIsValid || reason.trim().length < 3 || operationGuard.isPending("save"))
+      return;
     await operationGuard.run("save", async () => {
       setSaving(true);
       setError(null);
@@ -197,6 +200,9 @@ export function OnCallScheduleDialog({
               label={t("onCall.schedule.timezone")}
               required
               hint={t("onCall.schedule.timezoneHint")}
+              error={
+                timezone.trim() && !timezoneIsValid ? t("onCall.schedule.timezoneInvalid") : null
+              }
             >
               {(control) => (
                 <Input

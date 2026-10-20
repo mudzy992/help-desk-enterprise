@@ -5,6 +5,17 @@ import type { OnCallSegmentView, OnCallSwapStatus } from "@/services/on-call-api
 import type { TranslationKey } from "@/i18n/translation-key";
 
 /** pure helpers for the on-call page. */
+export function isValidTimeZone(timeZone: string): boolean {
+  const candidate = timeZone.trim();
+  if (!candidate) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: candidate }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const swapStatusKeys = {
   PENDING: "onCall.swaps.status.PENDING",
   ACCEPTED: "onCall.swaps.status.ACCEPTED",

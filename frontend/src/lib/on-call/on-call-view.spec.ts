@@ -9,6 +9,7 @@ import {
   fromZoneInputValue,
   toZoneInputValue,
   groupSegmentsByDay,
+  isValidTimeZone,
   mapOnCallError,
   moveItem,
   onCallWeekdayIndex,
@@ -32,6 +33,13 @@ describe("on-call view helpers ", () => {
     );
     expect(mapOnCallError(new ApiError(400, "OTHER", "x"))).toBeNull();
     expect(mapOnCallError(new Error("x"))).toBeNull();
+  });
+
+  it("validates IANA zones before schedule submission", () => {
+    expect(isValidTimeZone(" Europe/Sarajevo ")).toBe(true);
+    expect(isValidTimeZone("America/New_York")).toBe(true);
+    expect(isValidTimeZone("Not/A_Zone")).toBe(false);
+    expect(isValidTimeZone(" ")).toBe(false);
   });
 
   it("finds local midnight across the DST change", () => {

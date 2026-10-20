@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **9,1/10 nakon Faze 4**
+**Aktuelna ocjena:** **9,3/10 nakon Faze 5**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **9,1/10** nakon Faze 4 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
+Ocjena **9,3/10** nakon Faze 5 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
@@ -231,11 +231,7 @@ To otežava support korelaciju i testiranje. Nakon greške nije uvijek jasno da 
 
 **Prioritet:** P2
 
-On-call koristi zonu rasporeda i predstavlja dobar ugovor. Announcement editor, archive, manage tabela, banner/modal i izvještaj i dalje koriste browser zonu bez oznake. To može biti ispravna produkt odluka za globalnu publiku, ali nije dokumentovano niti testirano za korisnike u različitim zonama.
-
-IANA zona u schedule editoru ostaje slobodan tekst sa server-side validacijom tek nakon slanja.
-
-**Za zatvaranje:** donijeti produkt odluku za announcement vrijeme, prikazati oznaku zone i dodati DST/cross-zone contract testove; schedule form treba client-side IANA validaciju ili picker.
+On-call koristi zonu rasporeda i predstavlja dobar ugovor. Zatvoreno u Fazi 5. Produktni ugovor je browser-local authoring autora → ISO instant transport → browser-local prikaz primaoca. Editor taj ugovor i IANA zonu preglednika prikazuje uz civil-time unos, a centralni formatter uz svaki prikaz vremena uključuje oznaku zone. Schedule forma validira IANA zonu prije API poziva i daje pristupačnu field grešku. Pure contract testovi pokrivaju DST granicu, eksplicitnu cross-zone konfiguraciju formattera i nevalidne zone.
 
 ### OCN10 — A11y/responsive ugovor je djelimičan, bez browser potvrde
 
@@ -303,12 +299,12 @@ Potrebna je stvarna matrica:
 | Backend autorizacija i domenske granice     |        9,2 |        10 |
 | Async identity, stale state i recovery      |        9,3 |        10 |
 | Mutation concurrency i cache konzistentnost |        8,4 |        10 |
-| Vremenska zona i reporting tačnost          |        8,2 |        10 |
+| Vremenska zona i reporting tačnost          |        9,6 |        10 |
 | URL/shareability i navigacija               |        9,5 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
 | Testabilnost i održivost                    |        7,2 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **9,1/10** | **10/10** |
+| **Ukupno**                                  | **9,3/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -417,6 +413,15 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. DST/cross-zone contract testovi.
 
 **Exit gate:** isti civilni input proizvodi isti trenutak na klijentu i serveru.
+
+**Status nakon Faze 5: završeno.**
+
+- Announcement civil-time odluka je eksplicitna: autor unosi zidno vrijeme u IANA zoni svog preglednika, klijent ga prije API poziva pretvara u ISO instant, a svaki primalac isti instant vidi u svojoj browser zoni. Editor uz unos navodi zonu i ovu semantiku.
+- Centralni announcement formatter prima eksplicitnu zonu i uvijek prikazuje kratku oznaku zone, pa archive, manage, banner/modal i report više ne predstavljaju neoznačen sat.
+- Schedule dijalog prije slanja validira trimovanu IANA zonu kroz `Intl.DateTimeFormat`; prazna ili nepoznata zona blokira API poziv i prikazuje povezanu field grešku.
+- Contract testovi dokazuju DST prelaz Europe/Sarajevo, 23-satni dan, cross-zone formatter ugovor i odbijanje nevalidne zone. `OCN9` je zatvoren.
+
+**Izvršni dokaz:** ciljni timezone suite prolazi **2/2 fajla i 23/23 testa**; puni frontend Vitest prolazi **386/386 fajlova i 1521/1521 test**. Production TypeScript/Vite build, puni ESLint, i18n/design-system gate i Prettier prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
 
 ### Faza 6 — Puna deterministička testna mreža
 

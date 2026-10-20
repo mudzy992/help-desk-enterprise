@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import {
   announcementErrorDetail,
+  announcementTimeZone,
   fromLocalInputValue,
   mapAnnouncementError,
   toLocalInputValue,
@@ -129,6 +130,7 @@ export function AnnouncementEditorDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const operationGuard = useOperationGuard();
+  const timeZone = announcementTimeZone();
 
   const isPublished = announcement !== null && announcement.status === "PUBLISHED";
   const hasStarted = isPublished && Date.parse(announcement.startsAt) <= Date.now();
@@ -341,7 +343,11 @@ export function AnnouncementEditorDialog({
                 </Select>
               )}
             </Field>
-            <Field label={t("announcements.editor.startsAt")} required>
+            <Field
+              label={t("announcements.editor.startsAt")}
+              hint={t("announcements.editor.timeZoneHint", { timeZone })}
+              required
+            >
               {(control) => (
                 <Input
                   {...control}

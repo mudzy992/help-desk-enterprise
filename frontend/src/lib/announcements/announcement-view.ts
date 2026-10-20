@@ -127,7 +127,19 @@ export function acknowledgementPercent(acknowledged: number, audience: number): 
  * Date + time with explicit fields: `dateStyle` in "bs" renders as
  * "2026 M09 29" in browsers without Bosnian CLDR data.
  */
-export function announcementDateTimeFormatter(language: string): Intl.DateTimeFormat {
+export function announcementTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+/**
+ * Announcement instants are authored in the author's browser zone and each
+ * recipient sees that same instant in their own browser zone. The zone label is
+ * always present so a global announcement never presents an ambiguous clock.
+ */
+export function announcementDateTimeFormatter(
+  language: string,
+  timeZone = announcementTimeZone(),
+): Intl.DateTimeFormat {
   return dateTimeFormatter(language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
     day: "2-digit",
     month: "2-digit",
@@ -135,5 +147,7 @@ export function announcementDateTimeFormatter(language: string): Intl.DateTimeFo
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
+    timeZone,
+    timeZoneName: "short",
   });
 }
