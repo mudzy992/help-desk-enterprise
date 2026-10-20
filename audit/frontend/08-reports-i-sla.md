@@ -238,8 +238,8 @@ Nisu izvršno dokazani:
 | Reporting tačnost, period i vremenska zona |        9,5 |        10 |
 | Mutation i cache konzistentnost            |        9,4 |        10 |
 | URL/shareability i navigacija              |        9,4 |        10 |
-| Testabilnost i održivost                   |        10,0 |        10 |
-| Accessibility/responsive/browser dokaz     |         7,0 |        10 |
+| Testabilnost i održivost                   |       10,0 |        10 |
+| Accessibility/responsive/browser dokaz     |        7,0 |        10 |
 | **Ukupno**                                 | **9,8/10** | **10/10** |
 
 Ocjena priznaje zatvorenu determinističku matricu `RSL1–RSL12`: race/recovery, mutation concurrency, URL stanje, civil-time ugovor, stabilne identitete i direktne page granice. Jedini preostali odbitak je `RSL13`, odnosno neizvršen stvarni browser, responsive viewport, keyboard/focus, zoom i axe closeout.
@@ -434,6 +434,13 @@ Ocjena priznaje zatvorenu determinističku matricu `RSL1–RSL12`: race/recovery
 5. Evidentirati komandu, rezultat bez skipova, trace/screenshot artefakte i revision SHA.
 
 **Exit gate:** `RSL1–RSL13` zatvoreni i stvarni browser run zelen.
+
+#### Evidencija pokretanja Faze 8 (20. 10. 2026.)
+
+- Dodan je `55-reports-sla-closeout.spec.ts` za stvarni Reports Trends/Packs i SLA Compliance/Matrix Back/Forward ugovor, horizontalni overflow na 320/375/768/1280 px te serious/critical axe gate na Trends i Compliance površinama.
+- TypeScript provjera E2E projekta, Prettier i `git diff --check` prolaze.
+- Pokušano je izvršavanje obaveznih `07`, `12`, `17`, `18`, `19`, `29`, `42` i `50` scenarija sa `E2E_RETRIES=0`. Global setup je prije pokretanja ijednog testa zaustavljen jer stack nije dostupan na `http://localhost:10001/health`; frontend nije dostupan ni na `http://localhost:5173`, a Docker CLI nije instaliran.
+- Ovo nije browser prolaz: nema izvršenih testova, trace/screenshot dokaza ni osnove za zatvaranje `RSL13`. Faza 8 ostaje otvorena, a ocjena ostaje ograničena na **9,8/10** dok stvarni stack ne bude dostupan.
 
 ---
 
