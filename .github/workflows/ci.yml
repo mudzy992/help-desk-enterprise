@@ -270,7 +270,6 @@ jobs:
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
-        # TEMPORARY (Arena session arena/7a60171e): see the push trigger above.
         (github.event_name == 'push' && github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') ||
         (github.event_name == 'workflow_dispatch' && inputs.install_spec == '')
       ) &&
