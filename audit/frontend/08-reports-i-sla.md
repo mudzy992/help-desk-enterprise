@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **7,9/10**
+**Aktuelna ocjena:** **8,3/10 nakon Faze 1**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -234,13 +234,13 @@ Nisu izvršno dokazani:
 | Oblast                                     |   Trenutno |      Cilj |
 | ------------------------------------------ | ---------: | --------: |
 | Route access i backend sigurnosna granica  |        9,5 |        10 |
-| Async state, race i recovery               |        7,8 |        10 |
+| Async state, race i recovery               |        8,8 |        10 |
 | Reporting tačnost, period i vremenska zona |        7,2 |        10 |
 | Mutation i cache konzistentnost            |        7,4 |        10 |
 | URL/shareability i navigacija              |        7,0 |        10 |
-| Testabilnost i održivost                   |        7,3 |        10 |
+| Testabilnost i održivost                   |        7,8 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **7,9/10** | **10/10** |
+| **Ukupno**                                 | **8,3/10** | **10/10** |
 
 Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race guardove i kvalitetan pure sloj. Odbici ostaju zbog identiteta SLA detail snapshotova, nedosljednog recovery/request-correlation ugovora, tihih filter/period fallbacka, mutation concurrency rizika, nepotpunog URL modela, slabe direktne component mreže i neizvršenog browser closeouta.
 
@@ -260,6 +260,18 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 5. Deferred testovi za A→B, out-of-order, B error, retry i compliance scope promjenu.
 
 **Exit gate:** detail akcije nisu dostupne dok snapshot ne pripada aktivnom profilu; svaka server greška prikazuje request ID gdje postoji.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- SLA detail snapshot sada nosi eksplicitni `detailProfileId`; `detailReady` je tačan samo kada rules/change-log snapshot pripada trenutno izabranom profilu.
+- Promjena profila više ne može renderovati edit/delete površine nad pravilima prethodnog profila: tokom identity promjene prikazuje se loading stanje, a ne stale detail kao novi profil.
+- Base, detail i compliance query greške razdvojene su u typed state sa mapiranim ključem i API request ID-em.
+- Base, detail i compliance prikazi imaju lokalni retry sa disabled/pending zaštitom; detail koji je pao ostaje blokiran dok retry ne vrati snapshot aktivnog profila.
+- Escalation load ima zaseban query error, request correlation, retry i loading stanje; promjena profila odmah uklanja redove prethodnog profila.
+- Deferred testovi dokazuju A→B identity blokadu, latest-only out-of-order commit, B error + request ID + retry, base error + retry i compliance error + retry. Component test dokazuje escalation request ID i retry aktivnog profila.
+- `RSL1` je zatvoren. Query/recovery dio `RSL2` je zatvoren; mutation request-correlation dio ostaje mapiran na Fazu 4.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 369/369 fajlova odnosno 1479/1479 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 2 — Reports supporting-data i recovery konzistentnost
 

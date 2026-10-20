@@ -8,7 +8,9 @@ import { SlaCalendarsPanel } from "@/components/sla/sla-calendars-panel";
 import { SlaComplianceCard } from "@/components/sla/sla-compliance-card";
 import { SlaProfileDetail } from "@/components/sla/sla-profile-detail";
 import { SlaProfileList } from "@/components/sla/sla-profile-list";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { Button } from "@/components/ui/button";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
@@ -165,9 +167,19 @@ export function SlaPage() {
         }
       />
       {banner}
-      {data.errorKey ? (
+      {data.baseError ? (
+        <div className="mb-3">
+          <EntityDetailQueryError
+            messageKey={data.baseError.key}
+            requestId={data.baseError.requestId}
+            retrying={data.isLoading}
+            onRetry={() => void data.load()}
+          />
+        </div>
+      ) : null}
+      {data.mutationError ? (
         <p role="alert" className={`mb-3 ${errorTextClassName}`}>
-          {t(data.errorKey)}
+          {t(data.mutationError.key)}
         </p>
       ) : null}
       <div className="mt-2">
@@ -192,34 +204,49 @@ export function SlaPage() {
               onSelect={data.setSelectedId}
               onNew={data.startCreate}
             />
-            <SlaProfileDetail
-              profile={data.selected}
-              calendars={data.calendars}
-              calendar={selectedCalendar}
-              rules={data.rules}
-              changes={data.changes}
-              exposure={data.exposure}
-              canWrite={canWrite}
-              errorKey={data.errorKey}
-              isSubmitting={mutations.isSubmitting}
-              onSaveProfile={mutations.saveProfile}
-              onSaveRule={mutations.saveRule}
-              onDeleteRule={mutations.removeRule}
-              onDeleteProfile={mutations.removeProfile}
-            />
+            {data.detailError ? (
+              <EntityDetailQueryError
+                messageKey={data.detailError.key}
+                requestId={data.detailError.requestId}
+                retrying={data.isDetailLoading}
+                onRetry={() => void data.reloadSelected()}
+              />
+            ) : !data.detailReady || data.isDetailLoading ? (
+              <PanelSkeleton label={t("ui.loading")} />
+            ) : (
+              <SlaProfileDetail
+                profile={data.selected}
+                calendars={data.calendars}
+                calendar={selectedCalendar}
+                rules={data.rules}
+                changes={data.changes}
+                exposure={data.exposure}
+                canWrite={canWrite}
+                errorKey={data.errorKey}
+                isSubmitting={mutations.isSubmitting}
+                onSaveProfile={mutations.saveProfile}
+                onSaveRule={mutations.saveRule}
+                onDeleteRule={mutations.removeRule}
+                onDeleteProfile={mutations.removeProfile}
+              />
+            )}
           </div>
         ) : (
           <>
-            {data.complianceErrorKey ? (
-              <p role="alert" className={errorTextClassName}>
-                {t(data.complianceErrorKey)}
-              </p>
-            ) : null}
-            <SlaComplianceCard
-              compliance={data.compliance}
-              isLoading={data.isComplianceLoading}
-              scopeLabel={scopeLabel}
-            />
+            {data.complianceError ? (
+              <EntityDetailQueryError
+                messageKey={data.complianceError.key}
+                requestId={data.complianceError.requestId}
+                retrying={data.isComplianceLoading}
+                onRetry={() => void data.reloadCompliance()}
+              />
+            ) : (
+              <SlaComplianceCard
+                compliance={data.compliance}
+                isLoading={data.isComplianceLoading}
+                scopeLabel={scopeLabel}
+              />
+            )}
           </>
         )}
       </div>
