@@ -1,8 +1,8 @@
 # Modul 06 — Assets, Problems i Changes
 
 **Datum reaudita:** 20. 10. 2026.
-**Status:** reaudit završen; Faza 1 implementirana 20. 10. 2026.
-**Aktuelna ocjena:** **8,0/10 nakon Faze 1**
+**Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
+**Aktuelna ocjena:** **8,4/10 nakon Faze 2**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -237,12 +237,12 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | Oblast                                    |   Trenutno |      Cilj |
 | ----------------------------------------- | ---------: | --------: |
 | Route access i backend sigurnosna granica |        9,5 |        10 |
-| List/detail async i recovery ugovori      |        7,5 |        10 |
-| Mutation/version-conflict konzistentnost  |        7,5 |        10 |
-| URL/filter/bulk UX                        |        8,0 |        10 |
-| Testabilnost i održivost                  |        7,0 |        10 |
-| Accessibility/responsive/browser dokaz    |        6,5 |        10 |
-| **Ukupno**                                | **8,0/10** | **10/10** |
+| List/detail async i recovery ugovori | 8,8 | 10 |
+| Mutation/version-conflict konzistentnost | 7,5 | 10 |
+| URL/filter/bulk UX | 8,0 | 10 |
+| Testabilnost i održivost | 7,4 | 10 |
+| Accessibility/responsive/browser dokaz | 6,5 | 10 |
+| **Ukupno** | **8,4/10** | **10/10** |
 
 Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i race ponašanje kritičnih registara nije direktno dokazano, detail greške imaju pogrešnu semantiku, a koncentracija odgovornosti i dalje povećava regresioni rizik.
 
@@ -284,6 +284,18 @@ Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i rac
 4. Direktno testirati Asset, Problem i Change detail.
 
 **Exit gate:** transport/server greška se nigdje ne prikazuje kao „nije pronađeno“.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Shared detail-state resolver razlikuje loading, stvarni 404/not-found, operativnu grešku i ready stanje.
+- Uspješan Asset, Problem ili Change detail snapshot ostaje vidljiv kada background refresh padne.
+- Initial transport/server greška više ne koristi „nije pronađeno“ naslov; prikazuje mapiranu grešku, request ID i retry.
+- Stvarni API 404 zadržava domenski not-found prikaz bez lažnog recovery CTA-a.
+- Retry je onemogućen tokom aktivnog refetcha, pa recovery ne može biti duplo poslan.
+- Dodani su direktni resolver i presentation testovi za 404, 503, stale snapshot, loading, request correlation i retry pending.
+- `APC2` i detail dio `APC11` su zatvoreni.
+
+**Izvršni dokaz:** 2 ciljna fajla sa 8/8 testova, production TypeScript/Vite build i scope ESLint su prošli.
 
 ### Faza 3 — URL/filter i supporting-data konzistentnost
 

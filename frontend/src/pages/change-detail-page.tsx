@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
@@ -40,7 +41,8 @@ import {
   mapChangeError,
   primaryChangeAction,
 } from "@/lib/changes/change-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import {
   changeQueryKeys,
   claimChange,
@@ -109,7 +111,12 @@ export function ChangeDetailPage() {
     </Button>
   );
 
-  if (changeQuery.isLoading) {
+  const detailState = resolveEntityDetailState({
+    isLoading: changeQuery.isLoading,
+    hasData: changeQuery.data !== undefined,
+    error: changeQuery.error,
+  });
+  if (detailState === "loading") {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("changes.title")} />
@@ -117,17 +124,27 @@ export function ChangeDetailPage() {
       </section>
     );
   }
-  if (changeQuery.error || changeQuery.data === undefined) {
+  if (detailState === "error") {
+    return (
+      <section className="grid gap-4">
+        <PageHeader crumbs={crumbs} title={t("changes.title")} actions={back} />
+        <EntityDetailQueryError
+          messageKey={mapChangeError(changeQuery.error) ?? mapApiError(changeQuery.error)}
+          requestId={readApiRequestId(changeQuery.error)}
+          retrying={changeQuery.isFetching}
+          onRetry={() => void changeQuery.refetch()}
+        />
+      </section>
+    );
+  }
+  if (detailState === "not_found" || changeQuery.data === undefined) {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("changes.title")} actions={back} />
         <EmptyState
           icon={<GitPullRequestArrow size={18} />}
           title={t("changes.detail.notFoundTitle")}
-          body={t(
-            mapChangeError(changeQuery.error) ??
-              (changeQuery.error ? mapApiError(changeQuery.error) : "changes.errors.notFound"),
-          )}
+          body={t("changes.errors.notFound")}
         />
       </section>
     );
@@ -229,6 +246,14 @@ export function ChangeDetailPage() {
         }
         actions={actions}
       />
+      {changeQuery.error !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapChangeError(changeQuery.error) ?? mapApiError(changeQuery.error)}
+          requestId={readApiRequestId(changeQuery.error)}
+          retrying={changeQuery.isFetching}
+          onRetry={() => void changeQuery.refetch()}
+        />
+      ) : null}
       <div className="grid gap-4">
         <UnderlineTabs
           items={[

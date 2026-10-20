@@ -27,12 +27,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import {
   mapProblemError,
   problemStatusKeys,
@@ -110,7 +112,12 @@ export function ProblemDetailPage() {
     </Button>
   );
 
-  if (problemQuery.isLoading) {
+  const detailState = resolveEntityDetailState({
+    isLoading: problemQuery.isLoading,
+    hasData: problemQuery.data !== undefined,
+    error: problemQuery.error,
+  });
+  if (detailState === "loading") {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("problems.title")} />
@@ -118,17 +125,27 @@ export function ProblemDetailPage() {
       </section>
     );
   }
-  if (problemQuery.error || problemQuery.data === undefined) {
+  if (detailState === "error") {
+    return (
+      <section className="grid gap-4">
+        <PageHeader crumbs={crumbs} title={t("problems.title")} actions={back} />
+        <EntityDetailQueryError
+          messageKey={mapProblemError(problemQuery.error) ?? mapApiError(problemQuery.error)}
+          requestId={readApiRequestId(problemQuery.error)}
+          retrying={problemQuery.isFetching}
+          onRetry={() => void problemQuery.refetch()}
+        />
+      </section>
+    );
+  }
+  if (detailState === "not_found" || problemQuery.data === undefined) {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("problems.title")} actions={back} />
         <EmptyState
           icon={<Puzzle size={18} />}
           title={t("problems.detail.notFoundTitle")}
-          body={t(
-            mapProblemError(problemQuery.error) ??
-              (problemQuery.error ? mapApiError(problemQuery.error) : "problems.errors.notFound"),
-          )}
+          body={t("problems.errors.notFound")}
         />
       </section>
     );
@@ -233,6 +250,14 @@ export function ProblemDetailPage() {
         }
         actions={actions}
       />
+      {problemQuery.error !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapProblemError(problemQuery.error) ?? mapApiError(problemQuery.error)}
+          requestId={readApiRequestId(problemQuery.error)}
+          retrying={problemQuery.isFetching}
+          onRetry={() => void problemQuery.refetch()}
+        />
+      ) : null}
       <div className="grid gap-4">
         {problem.status === "NEW" && problem.owner === null && canManage ? (
           <div

@@ -34,6 +34,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName, ticketIdClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
@@ -52,7 +53,8 @@ import {
   resolveAssetIcon,
   warrantyState,
 } from "@/lib/assets/asset-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
@@ -144,7 +146,12 @@ export function AssetDetailPage() {
     </Button>
   );
 
-  if (assetQuery.isLoading) {
+  const detailState = resolveEntityDetailState({
+    isLoading: assetQuery.isLoading,
+    hasData: assetQuery.data !== undefined,
+    error: assetQuery.error,
+  });
+  if (detailState === "loading") {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("assets.title")} />
@@ -152,17 +159,27 @@ export function AssetDetailPage() {
       </section>
     );
   }
-  if (assetQuery.error || assetQuery.data === undefined) {
+  if (detailState === "error") {
+    return (
+      <section className="grid gap-4">
+        <PageHeader crumbs={crumbs} title={t("assets.title")} actions={back} />
+        <EntityDetailQueryError
+          messageKey={mapAssetError(assetQuery.error) ?? mapApiError(assetQuery.error)}
+          requestId={readApiRequestId(assetQuery.error)}
+          retrying={assetQuery.isFetching}
+          onRetry={() => void assetQuery.refetch()}
+        />
+      </section>
+    );
+  }
+  if (detailState === "not_found" || assetQuery.data === undefined) {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("assets.title")} actions={back} />
         <EmptyState
           icon={<Boxes size={18} />}
           title={t("assets.detail.notFoundTitle")}
-          body={t(
-            mapAssetError(assetQuery.error) ??
-              (assetQuery.error ? mapApiError(assetQuery.error) : "assets.errors.notFound"),
-          )}
+          body={t("assets.errors.notFound")}
         />
       </section>
     );
@@ -253,6 +270,14 @@ export function AssetDetailPage() {
         }
         actions={actions}
       />
+      {assetQuery.error !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapAssetError(assetQuery.error) ?? mapApiError(assetQuery.error)}
+          requestId={readApiRequestId(assetQuery.error)}
+          retrying={assetQuery.isFetching}
+          onRetry={() => void assetQuery.refetch()}
+        />
+      ) : null}
       <div className="grid gap-4">
         {asset.frequentFailure.flagged ? (
           <div
