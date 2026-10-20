@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Activity,
@@ -25,7 +25,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { mapApiError } from "@/lib/map-api-error";
 import {
   availabilityDotClassName,
   mapStatusError,
@@ -34,23 +34,13 @@ import {
 } from "@/lib/status/status-view";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
+import { useStatusOverviewData } from "@/lib/status/use-status-overview-data";
 import {
-  getStatusOverview,
   subscribeToIncident,
   unsubscribeFromIncident,
   type Incident,
   type IncidentStatus,
-  type StatusPageOverview,
 } from "@/services/status-api";
-
-/** Status changes minute by minute at most; faster polling only adds load. */
-const refreshEveryMs = 60_000;
-
-type LoadError = {
-  readonly key: ApiErrorKey;
-  readonly requestId: string | null;
-  readonly disabled: boolean;
-};
 
 const overallIcon: Record<OverallStatus, typeof CheckCircle2> = {
   operational: CheckCircle2,
@@ -73,45 +63,13 @@ const overallSurface: Record<OverallStatus, string> = {
 export function StatusPage() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const [overview, setOverview] = useState<StatusPageOverview | null>(null);
-  const [loadError, setLoadError] = useState<LoadError | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const { overview, error: loadError, refreshing, nowMs, reload } = useStatusOverviewData();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<IncidentFormMode | null>(null);
   const [updateTarget, setUpdateTarget] = useState<{
     readonly incident: Incident;
     readonly status?: IncidentStatus;
   } | null>(null);
-  const inFlight = useRef(false);
-
-  const load = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setRefreshing(true);
-    try {
-      setOverview(await getStatusOverview());
-      setLoadError(null);
-      setNowMs(Date.now());
-    } catch (caught) {
-      setLoadError({
-        key: mapApiError(caught),
-        requestId: readApiRequestId(caught),
-        disabled: mapStatusError(caught) === "status.errors.disabled",
-      });
-    } finally {
-      inFlight.current = false;
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, refreshEveryMs);
-    return () => window.clearInterval(timer);
-  }, [load]);
 
   const toggleSubscription = async (incident: Incident) => {
     setBusyId(incident.id);
@@ -123,7 +81,7 @@ export function StatusPage() {
         await subscribeToIncident(incident.id);
         toast({ tone: "success", title: t("status.card.subscribed") });
       }
-      await load();
+      await reload();
     } catch (caught) {
       toast({
         tone: "danger",
@@ -142,7 +100,7 @@ export function StatusPage() {
       subtitle={t("status.subtitle")}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing}>
             <RefreshCw className={cn(refreshing && "animate-spin")} />
             {t("status.refresh")}
           </Button>
@@ -186,7 +144,7 @@ export function StatusPage() {
       {loadError === null ? null : (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/25 bg-danger/5 px-4 py-3">
           <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing}>
             {t("status.refresh")}
           </Button>
         </div>
@@ -357,7 +315,7 @@ export function StatusPage() {
           open
           onOpenChange={(open) => (open ? undefined : setFormMode(null))}
           mode={formMode}
-          onSaved={() => void load()}
+          onSaved={() => void reload()}
         />
       ) : null}
       {updateTarget !== null ? (
@@ -366,7 +324,7 @@ export function StatusPage() {
           onOpenChange={(open) => (open ? undefined : setUpdateTarget(null))}
           incident={updateTarget.incident}
           initialStatus={updateTarget.status}
-          onSaved={() => void load()}
+          onSaved={() => void reload()}
         />
       ) : null}
     </div>

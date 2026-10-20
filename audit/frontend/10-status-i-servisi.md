@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **7,4/10**
+**Aktuelna ocjena:** **7,8/10 nakon Faze 1**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -12,18 +12,19 @@
 
 Modul je znatno zreliji od arhivskog audita od 13–15. oktobra. Backend ima ozbiljne autorizacijske i domenske granice, katalog više nema raniji render loop, onboarding čuva kreirani draft prije narednog koraka, status refresh zadržava prethodni overview, a servisni katalog razlikuje početnu grešku od pozadinske greške. Postoje i korisni E2E scenariji `21-status-monitoring.spec.ts` i `42-catalog-sla-routing-ux.spec.ts`.
 
-Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva kao aktuelni audit. Većina tada „prihvaćenih rizika“ i dalje je stvarni backlog, a današnji standard repozitorija je viši nakon modula 11–16 i faznog zatvaranja modula 09. Najvažniji preostali rizici su:
+Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva kao aktuelni audit. Većina tada „prihvaćenih rizika“ i dalje je stvarni backlog, a današnji standard repozitorija je viši nakon modula 11–16 i faznog zatvaranja modula 09.
+
+Faza 1 je u međuvremenu izdvojila i direktno testirala latest-only `/status` controller. Najvažniji preostali rizici su:
 
 1. status i incident mutation tokovi nemaju synchronous concurrency guard;
-2. `/status` nema izdvojen, latest-only i direktno testiran page controller;
-3. incident forme nemaju robustan dependency-retry ni eksplicitan civil-time ugovor;
-4. servisni filteri i otvoreni workspace nisu URL-backed;
-5. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
-6. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
-7. kritične komponente nemaju direktne component/page testove;
-8. browser dokaz nije izvršen u ovom reauditiranju.
+2. incident forme nemaju robustan dependency-retry ni eksplicitan civil-time ugovor;
+3. servisni filteri i otvoreni workspace nisu URL-backed;
+4. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
+5. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
+6. kritične komponente nemaju direktne component/page testove;
+7. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **7,4/10** priznaje jaku backend osnovu i ranije popravke, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **7,8/10 nakon Faze 1** priznaje jaku backend osnovu i ranije popravke, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -103,16 +104,13 @@ Globalni `busyId` na status stranici dodatno blokira sve subscription akcije zbo
 
 **Za zatvaranje:** `useOperationGuard`/`createOperationGuard` sa ključem operacije i incident/ticket ID-em; direktni testovi za double submit, retry nakon greške i nezavisne entitete.
 
-### SS2 — `/status` request lifecycle nije izdvojen niti latest-only dokazan
+### SS2 — `/status` request lifecycle je eksplicitan i latest-only
 
-**Prioritet:** P1
-**Lokacija:** `status-page.tsx`
+**Prioritet:** zatvoreno u Fazi 1
 
-Page komponenta od 374 linije upravlja pollingom, initial/background errorom, timestampom, subscriptionima i svim dijalozima. `inFlight` sprečava paralelne overview zahtjeve, ali nema request ID/sequence ugovor, unmount cancellation niti direktni hook/page test. Ako zahtjev završi nakon unmounta, callback i dalje pokušava postaviti state. Mutation zatim čeka `load()`, ali ako je polling već u toku `load()` se samo vrati, pa mutation nema dokaz da je njen rezultat osvježen.
+`useStatusOverviewData` sada je jedini vlasnik overview query identityja, initial/background greške, request ID-a, `nowMs` vremena i visibility-aware pollinga. Svaki reload dobija latest-request token i vraća typed rezultat (`applied`, `error`, `stale`); stariji odgovor ne može prepisati noviji, a unmount poništava aktivni token.
 
-Početna domain greška se mapira kroz `mapApiError`; `mapStatusError` se koristi samo za `disabled` boolean. Time se specifična status poruka može izgubiti.
-
-**Za zatvaranje:** typed `useStatusOverviewData` controller sa initial/background stanjem, latest-only/cancel ugovorom, eksplicitnim refresh rezultatom i testovima za polling, visibility, stale response, unmount i mutation-follow-up refresh.
+Stari overview ostaje vidljiv na refresh grešci. Domain error se mapira prije generičkog API fallbacka, uključujući `STATUS_PAGE_DISABLED`, a mutation callbackovi čekaju isti eksplicitni `reload()` ugovor umjesto page-local `inFlight` prečice. Direktni hook testovi pokrivaju stale retention, request correlation, overlapping response order, hidden-tab polling i unmount cancellation.
 
 ### SS3 — Incident dependency loading nema robustan retry i stale ugovor
 
@@ -284,6 +282,15 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 5. Dodati direktne hook/page testove.
 
 **Exit gate:** stari overview ostaje vidljiv na refresh grešci, stale odgovor ne može pobijediti, a svaki retry je eksplicitan.
+
+**Status nakon Faze 1: završeno.**
+
+- `StatusPage` više ne posjeduje ručni `inFlight`, polling i query error state; koristi typed `useStatusOverviewData`.
+- Overlapping refreshi su latest-only, unmount poništava request identitet, a polling ne radi dok je dokument skriven.
+- Initial i background greške dijele domain-first mapiranje, request ID i eksplicitan Retry, uz očuvanje prethodnog overviewa.
+- Mutation follow-up koristi isti awaitable reload ugovor. `SS2` i pripadajući dio `SS12` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite prolazi **2/2 fajla i 10/10 testova**; puni frontend Vitest prolazi **394/394 fajla i 1544/1544 testa**. Production TypeScript/Vite build, puni ESLint, i18n/design-system, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
 
 ### Faza 2 — Incident mutation concurrency i dependency ugovor
 
