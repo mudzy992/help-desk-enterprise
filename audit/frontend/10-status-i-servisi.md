@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **9,0/10 nakon Faze 4**
+**Aktuelna ocjena:** **9,2/10 nakon Faze 5**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -16,13 +16,12 @@ Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva ka
 
 Faze 1–4 su izdvojile latest-only status/ticket controllere, zaštitile incident mutation tokove i uspostavile eksplicitan civil-time ugovor. Najvažniji preostali rizici su:
 
-1. servisni filteri i otvoreni workspace nisu URL-backed;
-2. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
-3. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
-4. kritične komponente nemaju direktne component/page testove;
-5. browser dokaz nije izvršen u ovom reauditiranju.
+1. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
+2. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
+3. kritične komponente nemaju direktne component/page testove;
+4. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **9,0/10 nakon Faze 4** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove i dosljedan civil-time ugovor, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **9,2/10 nakon Faze 5** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove, dosljedan civil-time ugovor i reproducibilan URL-backed katalog, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -127,16 +126,13 @@ Obje forme prikazuju stvarnu IANA zonu preglednika, downtime period prikazuje zo
 
 Link/unlink koriste ID-scoped operation guard. Unlink sada ima danger confirmation koji jasno kaže da se uklanja samo veza, ne incident; neuspjeh ostavlja dijalog otvoren za retry. Kandidat lookup i dalje koristi overview endpoint, ali više nije correctness blokator nalaza.
 
-### SS6 — Servisni katalog nema URL-backed prikaz
+### SS6 — Servisni katalog ima validiran URL-backed prikaz
 
-**Prioritet:** P1
-**Lokacije:** `service-catalog-list.tsx`, `services-page.tsx`
+**Prioritet:** zatvoreno u Fazi 5
 
-Search, kategorija, lifecycle i origin-unit filteri su lokalni state. Refresh, deep link i browser Back/Forward ih gube. Otvoreni onboarding, editor, lifecycle, downtime, form builder i category workspace također su lokalna tri-state stanja.
+Search, kategorija, lifecycle i origin-unit filteri sada se čitaju i ažuriraju kroz validirani search-param model. Create, edit, onboarding, form builder, downtime, lifecycle i categories workspace koriste stabilni `workspace/service` ugovor, pa refresh i deep link reproduciraju isti katalog prikaz.
 
-Za administrativni katalog je važno da support može podijeliti tačan filtrirani prikaz ili servis. Trenutni `/services` URL to ne može reproducirati.
-
-**Za zatvaranje:** validirani search-param model za filtere i stabilan `open/type/id` workspace ugovor; očuvanje nepovezanih parametara; post-data kanonizacija nedostupnih kategorija/OU/servisa; parser i browser history testovi.
+Updater čuva nepovezane URL parametre. Nakon učitavanja podataka kanonizuju se nedostupni category, origin-unit i service ID-evi; query/routing outage ne briše scope koji još nije moguće pouzdano validirati. Pure parser/update/canonicalization testovi i MemoryRouter Back/Forward test zatvaraju regresijski ugovor.
 
 ### SS7 — Data loading model je fragmentiran i routing failure je tih
 
@@ -340,7 +336,11 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 4. Očuvanje nepovezanih parametara.
 5. Parser/update i browser Back/Forward testovi.
 
-**Exit gate:** refresh, deep link i historija deterministički reproduciraju isti katalog prikaz.
+**Status:** završeno. Filteri i svi glavni katalog workspaceovi su URL-backed, nepovezani parametri se čuvaju, a nedostupni ID-evi kanonizuju tek nakon relevantnog data loada.
+
+**Izvršni dokaz:** URL model/history suite prolazi **2/2 fajla i 5/5 testova**; puni frontend Vitest prolazi **398/398 fajlova i 1556/1556 testova**. Production build, puni ESLint, i18n/design-system i Prettier prolaze; `git diff --check` prolazi. Browser/E2E nije izvršen.
+
+**Exit gate:** refresh, deep link i historija deterministički reproduciraju isti katalog prikaz — ispunjen.
 
 ### Faza 6 — Ujednačen services query/recovery sloj
 
