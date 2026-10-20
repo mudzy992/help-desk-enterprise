@@ -58,7 +58,7 @@ const overallSurface: Record<OverallStatus, string> = {
 };
 
 /**
- * Paket 2.7 (§8): the status page for every signed-in user. Holders of
+ * The status page is visible to every signed-in user. Holders of
  * `status.incidents.manage` open, update and resolve incidents here.
  */
 export function StatusPage() {

@@ -5,6 +5,7 @@ import { ServiceCatalogFilterBar } from "@/components/services/service-catalog-f
 import { ServiceCatalogTable } from "@/components/services/service-catalog-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { numberFormatter } from "@/lib/number-formatter";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { filterServiceCatalogRows } from "@/lib/services/filter-service-catalog-rows";
 import {
@@ -91,10 +92,7 @@ export function ServiceCatalogList({
   );
   const hasActiveFilters =
     query.trim().length > 0 || categoryId !== null || lifecycle !== "ALL" || originUnitId !== null;
-  const numberFormat = useMemo(
-    () => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }),
-    [i18n.language],
-  );
+  const numberFormat = numberFormatter(i18n.language, { maximumFractionDigits: 0 });
 
   useEffect(() => {
     if (!routingCoverage.isLoading && !routingCoverage.isAvailable) {

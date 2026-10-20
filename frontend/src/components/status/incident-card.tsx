@@ -52,7 +52,7 @@ export function useDurationLabel() {
   };
 }
 
-/** Paket 2.7 (§8.1): one incident with its timeline (newest first). */
+/** One incident with its timeline, newest first. */
 export function IncidentCard({
   incident,
   canManage,

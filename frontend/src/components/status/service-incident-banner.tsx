@@ -14,7 +14,7 @@ import {
 } from "@/services/status-api";
 
 /**
- * Paket 2.7 (§8.3): "Known problem" while opening a ticket. Loaded only when
+ * Ticket creation shows "Known problem" while opening a ticket. Loaded only when
  * the catalog already says the service has an open incident, so choosing a
  * healthy service costs no extra request. The requester may still create
  * the ticket - the banner informs, it never blocks.

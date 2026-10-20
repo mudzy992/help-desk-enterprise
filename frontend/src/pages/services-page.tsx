@@ -20,6 +20,7 @@ import { serviceCatalogLoadState } from "@/lib/services/service-catalog-load-sta
 import {
   canonicalizeServiceCatalogUrl,
   parseServiceCatalogUrl,
+  resolveServiceWorkspace,
   updateServiceCatalogUrl,
   type ServiceWorkspaceKind,
 } from "@/lib/services/service-catalog-url-state";
@@ -57,24 +58,25 @@ export function ServicesPage() {
   });
   const [searchParams, setSearchParams] = useSearchParams();
   const urlState = useMemo(() => parseServiceCatalogUrl(searchParams), [searchParams]);
+  const workspace = resolveServiceWorkspace(urlState);
+  const workspaceServiceId = "serviceId" in workspace ? workspace.serviceId : null;
   const selectedService =
-    urlState.serviceId === null
+    workspaceServiceId === null
       ? null
-      : (catalog.rows.find((row) => row.service.id === urlState.serviceId)?.service ?? null);
+      : (catalog.rows.find((row) => row.service.id === workspaceServiceId)?.service ?? null);
   const openWorkspace = (
     workspace: ServiceWorkspaceKind | null,
     serviceId: string | null = null,
   ) => {
     setSearchParams((current) => updateServiceCatalogUrl(current, { workspace, serviceId }));
   };
-  const wizardServiceId =
-    urlState.workspace === "onboarding" ? (urlState.serviceId ?? null) : undefined;
-  const editingService = urlState.workspace === "edit" ? selectedService : null;
-  const lifecycleService = urlState.workspace === "lifecycle" ? selectedService : null;
-  const downtimeService = urlState.workspace === "downtime" ? selectedService : null;
-  const formServiceId = urlState.workspace === "form" ? urlState.serviceId : null;
-  const isCreateOpen = urlState.workspace === "create";
-  const isCategoriesOpen = urlState.workspace === "categories";
+  const wizardServiceId = workspace.kind === "onboarding" ? workspace.serviceId : undefined;
+  const editingService = workspace.kind === "edit" ? selectedService : null;
+  const lifecycleService = workspace.kind === "lifecycle" ? selectedService : null;
+  const downtimeService = workspace.kind === "downtime" ? selectedService : null;
+  const formServiceId = workspace.kind === "form" ? workspace.serviceId : null;
+  const isCreateOpen = workspace.kind === "create";
+  const isCategoriesOpen = workspace.kind === "categories";
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(null);
   const { reload: reloadCatalogRows } = catalog;

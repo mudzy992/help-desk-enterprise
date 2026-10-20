@@ -31,7 +31,7 @@ interface IncidentUpdateDialogProperties {
 }
 
 /**
- * Paket 2.7 (§8.3): a timeline entry. Choosing RESOLVED shows how many
+ * Incident updates create a timeline entry. Choosing RESOLVED shows how many
  * people will be told (subscribers + requesters of linked tickets) before
  * the operator confirms; the notice is in-app only.
  */

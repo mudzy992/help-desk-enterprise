@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canonicalizeServiceCatalogUrl,
   parseServiceCatalogUrl,
+  resolveServiceWorkspace,
   updateServiceCatalogUrl,
 } from "@/lib/services/service-catalog-url-state";
 
@@ -30,6 +31,19 @@ describe("service catalog URL state", () => {
       lifecycle: "ALL",
       workspace: null,
       serviceId: null,
+    });
+  });
+
+  it("resolves workspace and service identity as a discriminated union", () => {
+    expect(
+      resolveServiceWorkspace(
+        parseServiceCatalogUrl(new URLSearchParams("workspace=edit&service=svc-1")),
+      ),
+    ).toEqual({ kind: "edit", serviceId: "svc-1" });
+    expect(
+      resolveServiceWorkspace(parseServiceCatalogUrl(new URLSearchParams("workspace=edit"))),
+    ).toEqual({
+      kind: "closed",
     });
   });
 

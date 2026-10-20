@@ -12,6 +12,15 @@ export const serviceWorkspaceKinds = [
 
 export type ServiceWorkspaceKind = (typeof serviceWorkspaceKinds)[number];
 
+export type ServiceWorkspaceState =
+  | { readonly kind: "closed" }
+  | { readonly kind: "create" | "categories" }
+  | { readonly kind: "onboarding"; readonly serviceId: string | null }
+  | {
+      readonly kind: "edit" | "form" | "downtime" | "lifecycle";
+      readonly serviceId: string;
+    };
+
 export interface ServiceCatalogUrlState {
   readonly query: string;
   readonly categoryId: string | null;
@@ -21,7 +30,16 @@ export interface ServiceCatalogUrlState {
   readonly serviceId: string | null;
 }
 
-const lifecycles = new Set<ServiceLifecycle>(["DRAFT", "ACTIVE", "DEPRECATED"]);
+const lifecycles: readonly ServiceLifecycle[] = ["DRAFT", "ACTIVE", "DEPRECATED"];
+
+function isServiceLifecycle(value: string | null): value is ServiceLifecycle {
+  return value !== null && lifecycles.some((lifecycle) => lifecycle === value);
+}
+
+function isServiceWorkspace(value: string | null): value is ServiceWorkspaceKind {
+  return value !== null && serviceWorkspaceKinds.some((workspace) => workspace === value);
+}
+
 const workspacesWithService = new Set<ServiceWorkspaceKind>([
   "edit",
   "onboarding",
@@ -39,21 +57,29 @@ const workspacesRequiringService = new Set<ServiceWorkspaceKind>([
 export function parseServiceCatalogUrl(params: URLSearchParams): ServiceCatalogUrlState {
   const lifecycleValue = params.get("lifecycle");
   const workspaceValue = params.get("workspace");
-  const workspace = serviceWorkspaceKinds.includes(workspaceValue as ServiceWorkspaceKind)
-    ? (workspaceValue as ServiceWorkspaceKind)
-    : null;
+  const workspace = isServiceWorkspace(workspaceValue) ? workspaceValue : null;
   return {
     query: params.get("q") ?? "",
     categoryId: params.get("category"),
-    lifecycle:
-      lifecycleValue !== null && lifecycles.has(lifecycleValue as ServiceLifecycle)
-        ? (lifecycleValue as ServiceLifecycle)
-        : "ALL",
+    lifecycle: isServiceLifecycle(lifecycleValue) ? lifecycleValue : "ALL",
     originUnitId: params.get("originUnit"),
     workspace,
     serviceId:
       workspace !== null && workspacesWithService.has(workspace) ? params.get("service") : null,
   };
+}
+
+export function resolveServiceWorkspace(state: ServiceCatalogUrlState): ServiceWorkspaceState {
+  if (state.workspace === null) return { kind: "closed" };
+  if (state.workspace === "create" || state.workspace === "categories") {
+    return { kind: state.workspace };
+  }
+  if (state.workspace === "onboarding") {
+    return { kind: "onboarding", serviceId: state.serviceId };
+  }
+  return state.serviceId === null
+    ? { kind: "closed" }
+    : { kind: state.workspace, serviceId: state.serviceId };
 }
 
 export function updateServiceCatalogUrl(

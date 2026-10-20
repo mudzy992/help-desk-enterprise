@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **9,6/10 nakon Faze 7**
+**Aktuelna ocjena:** **9,8/10 nakon Faze 8**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -14,14 +14,9 @@ Modul je znatno zreliji od arhivskog audita od 13–15. oktobra. Backend ima ozb
 
 Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva kao aktuelni audit. Većina tada „prihvaćenih rizika“ i dalje je stvarni backlog, a današnji standard repozitorija je viši nakon modula 11–16 i faznog zatvaranja modula 09.
 
-Faze 1–4 su izdvojile latest-only status/ticket controllere, zaštitile incident mutation tokove i uspostavile eksplicitan civil-time ugovor. Najvažniji preostali rizici su:
+Faze 1–8 su izdvojile latest-only controllere, zaštitile mutation tokove, uspostavile civil-time i URL ugovore te ujednačile query/recovery i statičku održivost. Preostali rizik za 10/10 je stvarni browser dokaz i dio direktne page/component matrice.
 
-1. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
-2. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
-3. kritične komponente nemaju direktne component/page testove;
-4. browser dokaz nije izvršen u ovom reauditiranju.
-
-Ocjena **9,6/10 nakon Faze 7** priznaje jaku backend osnovu, latest-only controllere, URL-backed katalog, ujednačen query/recovery sloj i hardened form/category mutation ugovore, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **9,8/10 nakon Faze 8** je maksimalna ocjena bez izvršenog browser/E2E closeouta. Ne tretira odsustvo regresije kao dokaz browser korektnosti.
 
 ---
 
@@ -141,6 +136,7 @@ Updater čuva nepovezane URL parametre. Nakon učitavanja podataka kanonizuju se
 Katalog, kategorije, routing coverage i onboarding lookup sada koriste typed React Query ključeve. Reload callbackovi zavise od stabilnog `refetch` ugovora, a kategorijska promjena osvježava samo kategorije i katalog; routing se osvježava samo za servisne/routing promjene ili objedinjeni live refresh.
 
 Routing greška više ne briše posljednji uspješni index niti tiho gasi filter: stranica prikazuje background upozorenje, mapiranu grešku, request ID i Retry. Onboarding draftovi se učitavaju kroz jedan keyed batch orchestration scope; postojeći `allSettled` loader izoluje parcijalni neuspjeh pojedinog servisa tako da zdrav progress ostaje vidljiv. Transport i dalje koristi izolovane per-service readove, ali više nema N nezavisnih UI state mašina niti correctness coupling između njih.
+
 ### SS8 — Downtime panel ima identity/recovery i mutation ugovor
 
 **Prioritet:** zatvoreno u Fazi 6
@@ -148,6 +144,7 @@ Routing greška više ne briše posljednji uspješni index niti tiho gasi filter
 Typed downtime controller koristi query identitet po `serviceId`, razdvaja initial loading od background refresh stanja i zadržava posljednje uspješne periode na grešci. Query greška izlaže request ID i Retry, a A→B promjena servisa ne može prikazati odgovor prethodnog scopea.
 
 Cancel mutation ima per-service/per-window synchronous operation guard, danger confirmation i zaseban mutation error/request ID. Neuspjeh ostavlja potvrdu otvorenom, dok query greška više ne dijeli mutation error slot niti briše zdrave podatke.
+
 ### SS9 — Form i katalog mutation ugovori su retry-safe i typed
 
 **Prioritet:** zatvoreno u Fazi 7
@@ -155,6 +152,7 @@ Cancel mutation ima per-service/per-window synchronous operation guard, danger c
 Create/update servisni inputi više se ne spajaju castovima: neutralne form vrijednosti mapiraju se u eksplicitne `CreateServiceInput` i `UpdateServiceInput` grane. Service, category, lifecycle i form-builder mutation tokovi koriste synchronous operation guard ključeve po entitetu i akciji.
 
 `ensureServiceForm` kreira prvu verziju samo nakon uspješnog praznog GET-a. Read outage više ne pokreće mutation, a konkurentni `FORM_ALREADY_EXISTS` tretira se kao idempotentan uspjeh i završava ponovnim GET-om, bez dupliranja verzije. Direktni testovi pokrivaju empty/create, postojeću verziju, read outage, read-only i konkurentni create recovery.
+
 ### SS10 — Category i form-builder validacija zatvara greške prije submitovanja
 
 **Prioritet:** zatvoreno u Fazi 7
@@ -162,13 +160,14 @@ Create/update servisni inputi više se ne spajaju castovima: neutralne form vrij
 Category parent izbor sada izbacuje samu kategoriju i sve potomke na proizvoljnoj dubini, pa korisnik ne može sastaviti ciklus prije submitovanja. Form builder koristi isti field-ID obrazac kao backend, prikazuje povezanu field grešku i blokira save za nevažeće/duplirane ID-eve, prazne labele te prazne ili duplirane select opcije.
 
 Pure testovi pokrivaju višeslojno category stablo i form draft matricu. Backend validacija ostaje defense-in-depth, ali više nije prvi trenutak u kojem se osnovna greška otkriva.
-### SS11 — Održivost i production hygiene nisu na standardu novijih modula
 
-**Prioritet:** P2
+### SS11 — Održivost i production hygiene imaju statički ugovor
 
-Najveće komponente imaju 300–400 linija i kombinuju fetch, mutation, permissions, dialog state i prezentaciju. Scope još sadrži delivery-history komentare (`Paket`, numerisani `§`). Tri-state modeli poput `undefined/null/object` nose skriveno značenje. `Intl.NumberFormat` se kreira po komponenti umjesto kroz zajednički cache, a API helperi i error mape nisu potpuno ujednačeni.
+**Prioritet:** zatvoreno u Fazi 8
 
-**Za zatvaranje:** controller/presentation granice, discriminated workspace unioni, comment-hygiene gate, centralni formatteri i typed API/error ugovori.
+Services workspace sada se iz URL modela prevodi u discriminated union (`closed`, `create`, `categories`, `onboarding` ili service-scoped workspace), pa stranica više ne interpretira nezavisni par nullable vrijednosti. URL enum parseri koriste type guardove bez assertion castova.
+
+Brojčani formatter koristi zajednički cache, a status/services scope više nema delivery-history komentare. Novi hygiene gate skenira production komponente i controllere i sprečava povratak `Paket`, `Faza`, `Val`, numerisanih paragrafa i internih oznaka. Query i mutation controller granice iz ranijih faza ostavljaju prezentacijskim komponentama typed data/error ugovore.
 
 ### SS12 — Testna mreža ne pokriva kritične page/component state mašine
 
@@ -363,7 +362,11 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 4. Ukloniti delivery-history komentare i dodati hygiene gate.
 5. Puni frontend/backend relevantni suite, build, ESLint, i18n/design-system, Prettier i `git diff --check`.
 
-**Exit gate:** svi deterministički i statički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
+**Status:** završeno. Workspace je discriminated, formatter cache je centralizovan, URL parseri su typed bez assertion castova, a comment-hygiene regresija ima statički gate.
+
+**Izvršni dokaz:** novi static/workspace/formatter suite prolazi **3/3 fajla i 7/7 testova**; puni frontend Vitest prolazi **403/403 fajla i 1566/1566 testova**. Frontend production build, puni ESLint, i18n/design-system, Prettier i `git diff --check` prolaze. Relevantni backend Jest je ponovo pokušan nakon `npm ci`, ali generisani Prisma client nije prisutan; `prisma generate` je blokiran ograničenjem mreže prema `binaries.prisma.sh`, pa backend suite nije predstavljen kao zelen. Browser/E2E nije izvršen.
+
+**Exit gate:** svi dostupni deterministički i statički frontend gateovi su zeleni; bez browser dokaza ocjena ostaje najviše 9,8/10 — ispunjen.
 
 ### Faza 9 — Browser/E2E closeout
 
