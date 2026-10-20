@@ -1,7 +1,7 @@
 import { apiRequest } from "@/services/api";
 import type { ReportTrendPriority } from "@/services/report-trends-api";
 
-/** Paket 2.5 (design §5.5): `/reports/schedules` (`reports.schedule.manage`). */
+/** `/reports/schedules` (`reports.schedule.manage`). */
 export const reportScheduleFrequencies = ["WEEKLY", "MONTHLY"] as const;
 export type ReportScheduleFrequency = (typeof reportScheduleFrequencies)[number];
 

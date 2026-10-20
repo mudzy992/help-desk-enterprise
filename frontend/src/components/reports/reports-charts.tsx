@@ -12,14 +12,14 @@ import type { ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsChartsProperties {
   readonly preset: ReportPreset;
-  /** Val 1 (M15/B1): kad je postavka isključena, kartica se ne prikazuje. */
+  /** kad je postavka isključena, kartica se ne prikazuje. */
   readonly bottleneckEnabled: boolean;
   readonly bottleneckItems: readonly HorizontalBarItem[];
   readonly bottleneckLabel: string | null;
   readonly serviceItems: readonly HorizontalBarItem[];
-  /** Val 1 (M15 gap): razrez po organizacionoj jedinici. */
+  /** razrez po organizacionoj jedinici. */
   readonly unitItems: readonly HorizontalBarItem[];
-  /** Val 1 (M15 gap): otvoreni tiketi po izvršiocu. */
+  /** otvoreni tiketi po izvršiocu. */
   readonly workloadItems: readonly HorizontalBarItem[];
   readonly volume: readonly GroupedBarDatum[];
   readonly agingItems: readonly HorizontalBarItem[];

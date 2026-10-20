@@ -27,7 +27,7 @@ import { fetchBottlenecks, type BottlenecksResponse } from "@/services/reports-a
 const disabledMessageKey = "reports.errors.BOTTLENECKS_DISABLED" as const;
 
 /**
- * Val 1 (M15/B2): `GET /reports/bottlenecks` je postojao, ali ga nijedan ekran
+ * `GET /reports/bottlenecks` must remain connected to a visible screen
  * nije zvao — RAW-ova svrha izvještaja („identifikacija uskih grla“) nije bila
  * dovršena. Panel prikazuje četiri brojača, tri razreza i dnevni trend, uz isti
  * OU opseg i isti period kao ostatak pregleda.

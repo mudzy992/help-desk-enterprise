@@ -14,6 +14,7 @@ import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   formatReportCell,
+  keyReportRows,
   nextReportSort,
   sortReportRows,
   type ReportSort,
@@ -36,11 +37,7 @@ interface ReportPacksPanelProperties {
   readonly to: string;
 }
 
-/**
- * Package 1.6 (plan §3 D2): choose a pack → "Show" (first rows, not audited)
- * → download CSV/JSON (audited). A change of pack, unit or period clears the
- * preview so what is on screen always matches what would be downloaded.
- */
+/** A scope change clears preview data so displayed and downloaded rows always match. */
 export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacksPanelProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
@@ -97,10 +94,10 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   const scope = organizationalUnitId === null ? null : { organizationalUnitId, from, to };
   const columnLabel = (column: string) =>
     t(`reports.packs.columns.${column}`, { defaultValue: column });
-  const rows = useMemo(
-    () => (preview === null ? [] : sortReportRows(preview.rows, sort, i18n.language)),
-    [preview, sort, i18n.language],
-  );
+  const rows = useMemo(() => {
+    if (preview === null) return [];
+    return keyReportRows(sortReportRows(preview.rows, sort, i18n.language), preview.columns);
+  }, [preview, sort, i18n.language]);
 
   const showPreview = async () => {
     if (selected === null || scope === null) return;
@@ -317,8 +314,8 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row, index) => (
-                      <tr key={index} className={tableRowClassName}>
+                    {rows.map(({ key, row }) => (
+                      <tr key={key} data-row-key={key} className={tableRowClassName}>
                         {preview.columns.map((column) => {
                           const value = row[column] ?? null;
                           return (

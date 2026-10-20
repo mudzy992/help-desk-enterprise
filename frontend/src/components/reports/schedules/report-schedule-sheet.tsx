@@ -86,7 +86,7 @@ const formErrorKeys = {
   recipientLimit: "reports.schedules.form.errors.recipientLimit",
 } as const satisfies Record<ReportScheduleFormError, string>;
 
-/** Paket 2.5 (design §7.3): create / edit a schedule (Sheet, max-w-md). */
+/** Create or edit one report schedule. */
 export function ReportScheduleSheet({
   open,
   onOpenChange,

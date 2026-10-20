@@ -36,19 +36,17 @@ import {
   reportErrorMessageKeys,
   type TrendsFilterOption,
 } from "@/components/reports/trends/report-trends-panel";
-import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
+import { useReportScheduleRuns } from "@/lib/reports/use-report-schedule-runs";
 import {
   deleteReportSchedule,
-  listReportScheduleRuns,
   listReportSchedules,
   runReportScheduleNow,
   sendReportScheduleTest,
   setReportScheduleEnabled,
   type ReportSchedule,
   type ReportScheduleList,
-  type ReportScheduleRun,
   type ReportScheduleRunStatus,
 } from "@/services/report-schedules-api";
 import { ReportScheduleSheet, type ReportScheduleDraft } from "./report-schedule-sheet";
@@ -84,7 +82,7 @@ const frequencyKeys = {
   MONTHLY: "reports.schedules.frequency.MONTHLY",
 } as const;
 
-/** Paket 2.5 (design §7.3): „Zakazani” — only with `reports.schedule.manage`. */
+/** Schedule management is available only with the reports schedule permission. */
 export function ReportSchedulesPanel({
   units,
   services,
@@ -473,34 +471,7 @@ export function ReportScheduleRunsSheet({
   readonly onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [runs, setRuns] = useState<readonly ReportScheduleRun[] | null>(null);
-  const [error, setError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const loadGuard = useRef(createLatestRequestGuard());
-
-  const load = useCallback(async () => {
-    if (schedule === null) return;
-    const request = loadGuard.current.begin();
-    setIsLoading(true);
-    setError(null);
-    try {
-      const loaded = await listReportScheduleRuns(schedule.id);
-      if (loadGuard.current.isCurrent(request)) setRuns(loaded.runs);
-    } catch (caught) {
-      if (loadGuard.current.isCurrent(request)) {
-        setError({ key: mapApiError(caught), requestId: readApiRequestId(caught) });
-      }
-    } finally {
-      if (loadGuard.current.isCurrent(request)) setIsLoading(false);
-    }
-  }, [schedule]);
-
-  useEffect(() => {
-    const guard = loadGuard.current;
-    setRuns(null);
-    void load();
-    return () => guard.cancel();
-  }, [load]);
+  const { runs, error, isLoading, load } = useReportScheduleRuns(schedule?.id ?? null);
 
   const describe = <T extends Record<string, string>>(map: T, code: string): string => {
     const key = keyOf(map, code);

@@ -11,7 +11,7 @@ import type {
 } from "@/services/reports-api";
 
 /**
- * Val 1 usko grlo je do sada postojao samo kao API. Pregled ga sada
+ * Bottleneck data must be transformed into a stable presentation model.
  * crta iz istih podataka, a ovdje se odlučuje **šta se broji** — jedan red
  * razreza nosi četiri brojača, pa grafikoni idu sa zbirom („tiketa u zastoju“),
  * a puna tabela ostaje za detalj po brojaču.

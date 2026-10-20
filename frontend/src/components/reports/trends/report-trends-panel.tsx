@@ -1,5 +1,5 @@
 import { CalendarClock, Download, HelpCircle, LineChart, Printer, Table2 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TrendChart, type TrendSeries } from "@/components/charts/trend-chart";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
-import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { mapApiError } from "@/lib/map-api-error";
 import {
   allowedTrendGranularities,
   estimateTrendGranularity,
@@ -27,21 +27,19 @@ import {
   formatTrendPercent,
   readReportErrorCode,
   resolveTrendPresetRange,
-  toTrendsQuery,
   trendPresets,
   type ReportTrendErrorCode,
   type TrendPreset,
   type TrendsViewState,
 } from "@/lib/reports/report-trends-view";
 import { cn } from "@/lib/utils";
+import { useReportTrendsData } from "@/lib/reports/use-report-trends-data";
 import type { ReportExportFormat } from "@/services/report-packs-api";
 import {
   downloadReportTrends,
-  fetchReportTrends,
   reportTrendPriorities,
   type ReportTrendGranularity,
   type ReportTrendPriority,
-  type ReportTrendsQuery,
   type ReportTrendsResponse,
 } from "@/services/report-trends-api";
 
@@ -59,12 +57,6 @@ interface ReportTrendsPanelProperties {
   readonly onPrint: () => void;
   readonly onLoaded?: (trends: ReportTrendsResponse | null) => void;
 }
-
-type LoadError = {
-  readonly code: ReportTrendErrorCode | null;
-  readonly key: ApiErrorKey;
-  readonly requestId: string | null;
-};
 
 const presetKeys = {
   "30d": "reports.trends.presets.30d",
@@ -107,11 +99,7 @@ const errorKeys = {
 
 export { errorKeys as reportErrorMessageKeys };
 
-/**
- * Paket 2.5 (design §7.2): „Trendovi” — filters in the URL, six charts over
- * the same buckets, each with a table view, CSV/JSON export, print/PDF and
- * „Zakaži ovaj izvještaj”.
- */
+/** Six charts share one query and support table, export, print and scheduling views. */
 export function ReportTrendsPanel({
   state,
   organizationalUnitId,
@@ -127,49 +115,12 @@ export function ReportTrendsPanel({
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const locale = i18n.language;
-  const [trends, setTrends] = useState<ReportTrendsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<LoadError | null>(null);
-  const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
-
-  const query = useMemo(
-    () => (organizationalUnitId === null ? null : toTrendsQuery(state, organizationalUnitId)),
-    [state, organizationalUnitId],
+  const { trends, isLoading, error, query } = useReportTrendsData(
+    state,
+    organizationalUnitId,
+    onLoaded,
   );
-  const queryKey = query === null ? null : JSON.stringify(query);
-
-  useEffect(() => {
-    if (query === null) {
-      setIsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const currentQuery = JSON.parse(queryKey ?? "{}") as ReportTrendsQuery;
-    setTrends(null);
-    onLoaded?.(null);
-    setIsLoading(true);
-    setError(null);
-    fetchReportTrends(currentQuery)
-      .then((loaded) => {
-        if (cancelled) return;
-        setTrends(loaded);
-        onLoaded?.(loaded);
-      })
-      .catch((caught: unknown) => {
-        if (cancelled) return;
-        setTrends(null);
-        onLoaded?.(null);
-        setError({
-          code: readReportErrorCode(caught),
-          key: mapApiError(caught),
-          requestId: readApiRequestId(caught),
-        });
-      })
-      .finally(() => !cancelled && setIsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [onLoaded, query, queryKey]);
+  const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
 
   const allowed = allowedTrendGranularities(state.from, state.to);
   const automatic = estimateTrendGranularity(state.from, state.to);
@@ -807,7 +758,7 @@ function SeriesTable({
         </thead>
         <tbody>
           {labels.map((label, index) => (
-            <tr key={`${label}-${index}`} className={tableRowClassName}>
+            <tr key={label} className={tableRowClassName}>
               <td className="px-2">{label}</td>
               {series.map((item) => {
                 const value = item.values[index] ?? null;

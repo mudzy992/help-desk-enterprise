@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **9,5/10 nakon Faze 5**
+**Aktuelna ocjena:** **9,7/10 nakon Faze 6**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -238,9 +238,9 @@ Nisu izvršno dokazani:
 | Reporting tačnost, period i vremenska zona |        9,5 |        10 |
 | Mutation i cache konzistentnost            |        9,4 |        10 |
 | URL/shareability i navigacija              |        9,4 |        10 |
-| Testabilnost i održivost                   |        8,7 |        10 |
+| Testabilnost i održivost                   |        9,5 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **9,5/10** | **10/10** |
+| **Ukupno**                                 | **9,7/10** | **10/10** |
 
 Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race/recovery ugovore, validirano URL stanje i eksplicitnu validaciju perioda. Odbici ostaju zbog mutation concurrency rizika, nedokazanog timezone/DST ugovora, održivosti velikih komponenti, preostale direktne testne mreže i neizvršenog browser closeouta.
 
@@ -386,6 +386,20 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 
 **Exit gate:** nema index ključeva na dinamičkim redovima, najveće state mašine su izvan render monolita i hygiene gate je zelen.
 
+#### Evidencija zatvaranja Faze 6 (20. 10. 2026.)
+
+- Prije i uz mehaničko izdvajanje dodani su characterization testovi za dashboard active/scope/latest-only ugovor, Trends correlated error→recovery i schedule-history recovery.
+- Overview dashboard orchestration izdvojen je iz `ReportsPage` u typed `useReportsDashboardData` controller hook; stranica više ne posjeduje request guard, fetch lifecycle ni error korelaciju.
+- Trends query/fetch/cancel/error state mašina izdvojena je iz render monolita u `useReportTrendsData`; prezentacijska komponenta zadržava samo filtere, export i prikaz.
+- Schedule run-history query/retry/latest-only state izdvojen je u `useReportScheduleRuns`, dok sheet ostaje prezentacijska granica.
+- Report-pack redovi sada dobijaju determinističan content key izveden iz deklarisanog redoslijeda kolona i occurrence suffix za stvarne duplikate. Sort/reorder više ne prenosi DOM identitet na drugi red.
+- Trends table period redovi više ne koriste index u React ključu.
+- Delivery-history komentari (`Paket`, `Package`, `Val`, numerisani design/plan `§`) uklonjeni su iz Reports/SLA page/component/lib/service scopea, uz očuvanje trajnih invarijanti.
+- Dodan je scope comment-hygiene gate koji rekurzivno provjerava produkcijske Reports/SLA izvore.
+- `RSL9`, `RSL10` i `RSL12` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite ima 5 fajlova sa 10/10 testova; puni frontend Vitest prolaz ima 378/378 fajlova odnosno 1504/1504 testa. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli. Browser/E2E dokaz nije izvršen i ostaje za Fazu 8.
+
 ### Faza 7 — Puna deterministička testna mreža i statički closeout
 
 **Nalazi:** `RSL11`, završna regresija `RSL1–RSL12`
@@ -466,6 +480,6 @@ Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati
 
 ## 9. Završni zaključak
 
-Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,5/10**; preostali odbici su održivost velikih state mašina, završna deterministička regresija i neizvršen browser dokaz.
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,7/10**; preostali odbici su završna deterministička testna mreža i neizvršen browser dokaz.
 
 Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.

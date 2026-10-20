@@ -14,7 +14,7 @@ import { formatCsat } from "@/lib/reports/report-format";
 import { fetchTicketCsatSummary, type TicketCsatSummary } from "@/services/tickets-csat-api";
 
 /**
- * Val 1 (M9/B3): RAW traži CSAT razrez po OU/servisu/grupi, a `GET
+ * The product requires CSAT razrez po OU/servisu/grupi, a `GET
  * /tickets/csat/summary` ga je već računao bez ijednog pozivaoca. Skala i prag
  * dolaze iz CSAT konfiguracije (`private.csat.scaleMax`), pa se prikazuje
  * „x / 10“ kad je skala 10, a ne „x / 5“.

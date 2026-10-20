@@ -85,7 +85,7 @@ export function SlaPage() {
   const returnToProfiles = () => {
     updateUrl({ view: "profiles", panel: "profiles" });
   };
-  // Paket 1.7 (R3): sub-panels load on mount, so a key bump reloads them too.
+  // Sub-panels load on mount, so a key bump reloads them too.
   const [refreshKey, setRefreshKey] = useState(0);
   const containerRef = useRef<HTMLElement>(null);
   const live = useAdminConfigLiveRefresh({

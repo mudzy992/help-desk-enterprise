@@ -1,6 +1,6 @@
 import { apiDownloadRequest, apiRequest } from "@/services/api";
 
-/** Package 1.6: report packs (list, preview, download). */
+/** report packs (list, preview, download). */
 export type ReportPackKey =
   | "monthly_kpi"
   | "overdue_by_service"
@@ -8,7 +8,7 @@ export type ReportPackKey =
   | "kb_helpfulness"
   | "forward_ping_pong"
   | "time_tracking"
-  // Paket 3.2 C9b: only while the CMDB module is on.
+  // Available only while the CMDB module is enabled.
   | "asset_inventory"
   | "asset_expiring"
   | "asset_license_compliance"
@@ -19,7 +19,7 @@ export type ReportPackKey =
   | "problem_time_to_resolution"
   | "problem_backlog"
   | "problem_recurrence"
-  // Paket 3.4: only while the change module is on.
+  // Available only while the change module is enabled.
   | "change_outcomes"
   | "change_schedule";
 

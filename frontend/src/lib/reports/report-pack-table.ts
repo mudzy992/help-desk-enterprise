@@ -29,6 +29,25 @@ export function sortReportRows(
   });
 }
 
+export type KeyedReportRow = {
+  readonly key: string;
+  readonly row: Readonly<Record<string, ReportCell>>;
+};
+
+/** Stable content identity; duplicate rows receive a deterministic occurrence suffix. */
+export function keyReportRows(
+  rows: readonly Readonly<Record<string, ReportCell>>[],
+  columns: readonly string[],
+): readonly KeyedReportRow[] {
+  const occurrences = new Map<string, number>();
+  return rows.map((row) => {
+    const content = JSON.stringify(columns.map((column) => [column, row[column] ?? null]));
+    const occurrence = occurrences.get(content) ?? 0;
+    occurrences.set(content, occurrence + 1);
+    return { key: `${content}#${occurrence}`, row };
+  });
+}
+
 export function nextReportSort(current: ReportSort | null, column: string): ReportSort {
   if (current?.column !== column) {
     return { column, direction: "desc" };

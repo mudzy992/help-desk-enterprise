@@ -3,7 +3,7 @@ import { useBranding } from "@/lib/branding/branding-store";
 import { useTranslation } from "react-i18next";
 
 /**
- * Paket 2.5 (design §6): „Izvezi PDF” = the browser print dialog with a print
+ * „Izvezi PDF” = the browser print dialog with a print
  * layout. The page always prints in the light Pulse palette, whatever theme is
  * active (also for Ctrl+P), and the previous theme is restored afterwards.
  */

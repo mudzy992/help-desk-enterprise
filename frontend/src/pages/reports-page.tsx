@@ -1,5 +1,5 @@
 import { BarChart3, Printer } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ReportPrintHeader, useLightPrintTheme } from "@/components/reports/print/report-print";
@@ -44,12 +44,11 @@ import {
 } from "@/lib/reports/report-window";
 import { parseReportPageSearch, updateReportPageSearch } from "@/lib/reports/report-page-search";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
+import { useReportsDashboardData } from "@/lib/reports/use-reports-dashboard-data";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import { fetchReportsDashboard, type ReportsDashboardResponse } from "@/services/reports-api";
 import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
 
 export function ReportsPage() {
@@ -57,16 +56,10 @@ export function ReportsPage() {
   const { session, hasPermission } = useSessionCapabilities();
   const canExport = hasPermission(permissionKeys.reportsExport);
   const canSchedule = hasPermission(permissionKeys.reportsScheduleManage);
-  const [dashboard, setDashboard] = useState<ReportsDashboardResponse | null>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
-  const [requestId, setRequestId] = useState<string | null>(null);
 
   const [unitError, setUnitError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
     null,
   );
-  const dashboardGuard = useRef(createLatestRequestGuard());
   const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
   const [scheduleDraft, setScheduleDraft] = useState<ReportScheduleDraft | null>(null);
   const [trends, setTrends] = useState<ReportTrendsResponse | null>(null);
@@ -128,36 +121,16 @@ export function ReportsPage() {
   const fromIso = window_?.from.toISOString() ?? null;
   const toIso = window_?.to.toISOString() ?? null;
 
-  const reload = useCallback(async () => {
-    const request = dashboardGuard.current.begin();
-    if (organizationalUnitId === null || fromIso === null || toIso === null) {
-      setDashboard(null);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setErrorKey(null);
-    setRequestId(null);
-    try {
-      const loaded = await fetchReportsDashboard({
-        organizationalUnitId,
-        from: fromIso,
-        to: toIso,
-      });
-      if (dashboardGuard.current.isCurrent(request)) setDashboard(loaded);
-    } catch (error) {
-      if (!dashboardGuard.current.isCurrent(request)) return;
-      setDashboard(null);
-      setErrorKey(mapApiError(error));
-      setRequestId(readApiRequestId(error));
-    } finally {
-      if (dashboardGuard.current.isCurrent(request)) setIsLoading(false);
-    }
-  }, [organizationalUnitId, fromIso, toIso]);
-
-  useEffect(() => {
-    if (tab === "overview") void reload();
-  }, [reload, tab]);
+  const {
+    dashboard,
+    isLoading,
+    error: dashboardError,
+  } = useReportsDashboardData({
+    active: tab === "overview",
+    organizationalUnitId,
+    from: fromIso,
+    to: toIso,
+  });
 
   const onPresetChange = (next: ReportPreset) => {
     if (next === "custom") {
@@ -410,8 +383,8 @@ export function ReportsPage() {
         />
       ) : isLoading ? (
         <PanelSkeleton className="mt-0" label={t("reports.title")} />
-      ) : errorKey ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
+      ) : dashboardError ? (
+        <ApiErrorText messageKey={dashboardError.key} requestId={dashboardError.requestId} />
       ) : dashboard === null || dashboard.ticketCount === 0 ? (
         <EmptyState
           icon={<BarChart3 size={18} strokeWidth={1.8} />}

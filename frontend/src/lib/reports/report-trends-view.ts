@@ -26,7 +26,7 @@ export type TrendsViewState = {
   readonly preset: TrendPreset;
   readonly from: string;
   readonly to: string;
-  /** `null` = automatic (the backend picks, design §3). */
+  /** `null` means automatic granularity selected by the backend. */
   readonly granularity: ReportTrendGranularity | null;
   readonly organizationalUnitId: string | null;
   readonly serviceId: string | null;
@@ -272,7 +272,7 @@ export const reportTrendErrorCodes = [
   "REPORT_GRANULARITY_INVALID",
   "REPORT_TRENDS_DISABLED",
   "REPORTS_DISABLED",
-  /** Val 1 usko grlo je isključeno postavkom, nije greška u radu. */
+  /** A disabled bottleneck feature is configuration, not an operational error. */
   "BOTTLENECKS_DISABLED",
   "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND",
   "REPORT_FORMAT_NOT_ALLOWED",
