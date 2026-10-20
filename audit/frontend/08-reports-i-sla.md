@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **9,7/10 nakon Faze 6**
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -197,7 +197,7 @@ Postoje korisni pure testovi i po jedan minimalni test za `useSlaPageData`, `use
 
 Postojeći hook test ima samo jedan scenario; mutation test provjerava redoslijed select→load, ali ne race, error ni dupli submit.
 
-**Za zatvaranje:** deferred-promise hook/component testovi za sve navedene matrice; snapshot-only testovi nisu dovoljni.
+**Status:** zatvoreno u Fazama 1–7. Deferred hook testovi direktno dokazuju latest-only race, stale/background recovery, correlated retry i mutation concurrency ugovore, dok page testovi dokazuju Reports/SLA deep link, očuvanje scopea pri tab navigaciji, URL-backed prikaz i blokiranje nevalidnog perioda. Browser Back/Forward, responsive viewport i stvarni accessibility run ostaju isključivo u `RSL13`.
 
 ### RSL12 — Historijski komentari ostaju production noise
 
@@ -238,11 +238,11 @@ Nisu izvršno dokazani:
 | Reporting tačnost, period i vremenska zona |        9,5 |        10 |
 | Mutation i cache konzistentnost            |        9,4 |        10 |
 | URL/shareability i navigacija              |        9,4 |        10 |
-| Testabilnost i održivost                   |        9,5 |        10 |
-| Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **9,7/10** | **10/10** |
+| Testabilnost i održivost                   |        10,0 |        10 |
+| Accessibility/responsive/browser dokaz     |         7,0 |        10 |
+| **Ukupno**                                 | **9,8/10** | **10/10** |
 
-Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race/recovery ugovore, validirano URL stanje i eksplicitnu validaciju perioda. Odbici ostaju zbog mutation concurrency rizika, nedokazanog timezone/DST ugovora, održivosti velikih komponenti, preostale direktne testne mreže i neizvršenog browser closeouta.
+Ocjena priznaje zatvorenu determinističku matricu `RSL1–RSL12`: race/recovery, mutation concurrency, URL stanje, civil-time ugovor, stabilne identitete i direktne page granice. Jedini preostali odbitak je `RSL13`, odnosno neizvršen stvarni browser, responsive viewport, keyboard/focus, zoom i axe closeout.
 
 ---
 
@@ -413,6 +413,15 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 
 **Exit gate:** svi statički i deterministički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
 
+#### Evidencija zatvaranja Faze 7 (20. 10. 2026.)
+
+- Dodani su direktni `ReportsPage` testovi za Trends deep link i API scope, očuvanje OU/custom-period parametara pri navigaciji na Packs te blokiranje panela i zahtjeva za nevalidan custom period.
+- Dodani su direktni `SlaPage` testovi za matrix deep link sa OU/profil scopeom i URL-backed compliance podtab. Test fixture koristi puni OU ugovor sa `ouPath`, pa dokaz prolazi kroz stvarnu normalizaciju stabla.
+- Postojeća hook mreža zajedno sa novim page granicama pokriva latest-only race, initial/stale/background recovery, request correlation, retry pending i synchronous mutation double-submit. Responsivni i accessibility ugovori koji su deterministički ostaju pokriveni strukturnim komponentnim testovima; stvarni viewport, keyboard/focus i axe dokaz nije proglašen izvršenim.
+- Ciljni page suite prolazi 2/2 fajla i 5/5 testova. Puni frontend Vitest prolazi **380/380 fajlova i 1509/1509 testova**; production build i puni ESLint prolaze, uz postojeće non-fatal Vite chunk-size upozorenje.
+- Relevantni backend Reports/SLA pokušaj obuhvatio je 55 suiteova: 25 suiteova i 91 test su prošli, dok je 30 suiteova zaustavljeno pri TypeScript kompilaciji jer checkout nema generisani `backend/generated/prisma` klijent. To je reprodukovani infrastrukturni preduvjet, a ne test assertion regresija; backend suite zato nije lažno označen zelenim.
+- `RSL11` i završna deterministička regresija `RSL1–RSL12` su zatvoreni. `RSL13` i browser/E2E dokaz ostaju eksplicitno otvoreni, pa je ocjena ograničena na **9,8/10**.
+
 ### Faza 8 — Browser/E2E closeout
 
 **Nalazi:** `RSL13`
@@ -480,6 +489,6 @@ Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati
 
 ## 9. Završni zaključak
 
-Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,7/10**; preostali odbici su završna deterministička testna mreža i neizvršen browser dokaz.
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,8/10**; deterministička mreža je zatvorena, a jedini preostali odbitak je neizvršen browser dokaz.
 
 Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.
