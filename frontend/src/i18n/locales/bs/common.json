@@ -7778,6 +7778,8 @@
       "linkSubmit": "Poveži",
       "linked": "Tiket je povezan s incidentom.",
       "unlink": "Ukloni vezu",
+      "unlinkTitle": "Ukloniti vezu s incidentom?",
+      "unlinkBody": "Tiket više neće biti povezan s ovim incidentom. Sam incident se ne mijenja.",
       "unlinked": "Veza s incidentom je uklonjena.",
       "noOpen": "Nema otvorenih incidenata.",
       "requesterHint": "Obavijestit ćemo vas kada problem bude riješen."

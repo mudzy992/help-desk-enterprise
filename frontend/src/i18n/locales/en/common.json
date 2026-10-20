@@ -7736,6 +7736,8 @@
       "linkSubmit": "Link",
       "linked": "Ticket linked to the incident.",
       "unlink": "Remove link",
+      "unlinkTitle": "Remove the incident link?",
+      "unlinkBody": "The ticket will no longer be linked to this incident. The incident itself is not changed.",
       "unlinked": "Link to the incident removed.",
       "noOpen": "There are no open incidents.",
       "requesterHint": "We will notify you when the problem is resolved."

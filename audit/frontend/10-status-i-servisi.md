@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **8,3/10 nakon Faze 2**
+**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -24,7 +24,7 @@ Faza 1 je u međuvremenu izdvojila i direktno testirala latest-only `/status` co
 6. kritične komponente nemaju direktne component/page testove;
 7. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **7,8/10 nakon Faze 1** priznaje jaku backend osnovu i ranije popravke, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **8,8/10 nakon Faze 3** priznaje jaku backend osnovu, latest-only status/ticket controllere i zaštićene incident mutation tokove, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -93,16 +93,11 @@ Postoje helperi/testovi za lifecycle transitions, routing coverage, form field d
 
 ## 4. Aktivni nalazi
 
-### SS1 — Status mutation tokovi nisu zaštićeni od synchronous double-submit racea
+### SS1 — Status mutation tokovi imaju synchronous operation guard
 
-**Prioritet:** P1
-**Lokacije:** `status-page.tsx`, `incident-form-dialog.tsx`, `incident-update-dialog.tsx`, `ticket-incidents-panel.tsx`
+**Prioritet:** zatvoreno kroz Faze 2 i 3
 
-`setSaving(true)`, `setBusy(true)` i `setBusyId(...)` postaju vidljivi tek nakon React updatea. Dva click/submit događaja u istom tasku mogu pokrenuti dva `createIncident`, `editIncident`, `postIncidentUpdate`, subscribe/unsubscribe ili link/unlink zahtjeva. `ticket-incidents-panel.tsx` ima generički `run`, ali nema synchronous lock po operaciji ili entitetu.
-
-Globalni `busyId` na status stranici dodatno blokira sve subscription akcije zbog jednog incidenta, iako identitet operacije nije eksplicitan.
-
-**Za zatvaranje:** `useOperationGuard`/`createOperationGuard` sa ključem operacije i incident/ticket ID-em; direktni testovi za double submit, retry nakon greške i nezavisne entitete.
+Incident create/edit, update/resolve i status-page subscription koriste synchronous `useOperationGuard`; ključevi subscription, link i unlink operacija uključuju incident/ticket identitet. Ticket panel zadržava recovery nakon greške, a unlink prolazi kroz eksplicitni danger confirmation dijalog. React pending state ostaje prezentacijski signal, ne jedina concurrency zaštita.
 
 ### SS2 — `/status` request lifecycle je eksplicitan i latest-only
 
@@ -129,16 +124,13 @@ Backend ispravno radi s instantima i validira range, ali frontend nema DST/cross
 
 **Za zatvaranje:** dokumentovan civil-time ugovor, vidljiva zona, centralni helperi, stabilan/obnovljen `max`, DST i cross-zone testovi za incident i downtime.
 
-### SS5 — Ticket incident panel tiho nestaje i nema query identity
+### SS5 — Ticket incident panel ima eksplicitan identity/recovery ugovor
 
-**Prioritet:** P1
-**Lokacija:** `ticket-incidents-panel.tsx`
+**Prioritet:** zatvoreno u Fazi 3
 
-Svaka load greška postavlja `state=null`, a komponenta zatim vraća `null`. Korisnik i support ne vide grešku, request ID niti retry. Promjena `ticketId`/`versionKey` nema sequence/cancellation zaštitu, pa stariji odgovor može prepisati novi tiket. Picker ponovo učitava cijeli status overview samo radi kandidata.
+`useTicketIncidentsData` posjeduje identity `{ticketId, versionKey}`, latest-only guard, stale-data retention i query error/request ID. Promjena tiketa poništava prethodni scope, pa odgovor starog tiketa ne može prepisati novi. Initial greška više ne skriva panel: korisnik dobija `ApiErrorText` i Retry, dok background greška zadržava prethodne incidente.
 
-Unlink nema potvrdu/reason ugovor i link/unlink dijele jedan globalni busy flag. To je correctness i recovery rizik unutar ticket detaila.
-
-**Za zatvaranje:** typed ticket-incidents controller sa identityjem `{ticketId, versionKey}`, initial/background errorom, latest-only zaštitom, kandidat endpointom ili kešom, operation guardom i eksplicitnim unlink confirmation ugovorom.
+Link/unlink koriste ID-scoped operation guard. Unlink sada ima danger confirmation koji jasno kaže da se uklanja samo veza, ne incident; neuspjeh ostavlja dijalog otvoren za retry. Kandidat lookup i dalje koristi overview endpoint, ali više nije correctness blokator nalaza.
 
 ### SS6 — Servisni katalog nema URL-backed prikaz
 
@@ -318,6 +310,14 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 5. Dodati requester/staff component testove.
 
 **Exit gate:** panel nikada tiho ne nestaje zbog mrežne greške i odgovor starog tiketa ne može prepisati novi.
+
+**Status nakon Faze 3: završeno.**
+
+- Typed ticket-incidents controller uvodi latest-only `{ticketId, versionKey}` identity, stale retention, request ID i Retry.
+- Link/unlink imaju synchronous per-entity guard; unlink ima eksplicitni danger confirmation i ostaje otvoren nakon greške.
+- Requester/staff prikaz nastavlja koristiti backend `staff` odgovor, bez UI-only autorizacijske pretpostavke. `SS1`, `SS5` i pripadajući dio `SS12` su zatvoreni.
+
+**Izvršni dokaz:** ciljni controller/guard suite prolazi **3/3 fajla i 7/7 testova**; puni frontend Vitest prolazi **395/395 fajlova i 1546/1546 testova**. Production TypeScript/Vite build, puni ESLint i i18n/design-system gate prolaze; Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
 
 ### Faza 4 — Civil-time i dostupnost ugovor
 
