@@ -377,7 +377,19 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 3. Izvršiti responsive, zoom, keyboard/focus i axe matricu.
 4. Evidentirati komandu, revision SHA, rezultat bez skipova, trace i screenshot.
 
-**Exit gate:** `SS1–SS13` zatvoreni i stvarni browser run zelen.
+**Status pokušaja (2026-10-20): blokirano infrastrukturom, nije zatvoreno.** E2E TypeScript provjera prolazi, ali lokalni preflight potvrđuje da `localhost:5173` i `localhost:10001/health` nisu dostupni. Pokretanje:
+
+```bash
+E2E_RETRIES=0 npx playwright test \
+  tests/21-status-monitoring.spec.ts \
+  tests/42-catalog-sla-routing-ux.spec.ts --max-failures=1
+```
+
+zaustavljeno je u `globalSetup` porukom `E2E stack not ready at http://localhost:10001/health`; nijedan test nije počeo, pa nema legitimnog trace/screenshot/browser dokaza. Pokušaj manualnog GitHub Actions dispatcha za revision `04e05468a75f2b88ea53b87cff668dae41658516` odbijen je sa HTTP 403 (`Resource not accessible by integration`). Ovo se ne računa kao test failure, ali se izričito ne računa ni kao prolaz ili izvršen scenario.
+
+**Za nastavak:** obezbijediti live test stack i E2E actor secrets ili omogućiti Actions workflow dispatch ovom GitHub identitetu; zatim pokrenuti `21` i `42` bez skipova i evidentirati run URL, tačan tested SHA, rezultate, trace, screenshot i axe/responsive matricu.
+
+**Exit gate:** `SS1–SS13` zatvoreni i stvarni browser run zelen — **nije ispunjen**.
 
 ---
 
