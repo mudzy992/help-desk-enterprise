@@ -142,7 +142,7 @@ function SlaTimerBlock({
         </span>
         <span className={cn("tnum font-medium", remainingToneClass(timer))}>{remaining}</span>
       </div>
-      <Progress value={timer.usedPercent} tone={timer.tone} />
+      <Progress value={timer.usedPercent} tone={timer.tone} label={label} />
       {hint === undefined ? null : (
         <p className="mt-1 text-[10.5px] text-muted-foreground">{hint}</p>
       )}
