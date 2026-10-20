@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **9,3/10 nakon Faze 5**
+**Aktuelna ocjena:** **9,6/10 nakon Faze 6**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **9,3/10** nakon Faze 5 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
+Ocjena **9,6/10** nakon Faze 6 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
@@ -249,24 +249,13 @@ Pozitivno: role/aria-live, semantičke tabele, details/summary, modal i reason d
 
 Bez stvarnog browser runa nalaz ostaje otvoren bez obzira na strukturalni pregled.
 
-### OCN11 — Testna mreža ne pokriva kritične state mašine
+### OCN11 — Kritične state mašine imaju direktnu determinističku mrežu
 
-**Prioritet:** P1
+**Prioritet:** zatvoreno u Fazi 6
 
-Nedostaju direktni testovi za:
+Direktni hook/component testovi sada pokrivaju razdvojeni on-call overview/detail recovery i identity, Manage latest-only tok, schedule validation/save race, Host initial/background failure i settle recovery, header permission/refresh ponašanje, calendar feed create/copy tok, editor date/save ugovor te report stale identity i CSV concurrency. Pure URL, timezone i mutation-guard testovi dopunjuju ovu mrežu.
 
-- OnCallPage overview partial failure, stale refresh, group/week identity, request ID i retry;
-- swap/delete synchronous double submit i mutation recovery;
-- schedule dialog save race i timezone validaciju;
-- feed load/create/rotate/revoke/copy recovery;
-- header visibility refresh i stale behavior;
-- AnnouncementsPage capabilities error i URL state;
-- ManageAnnouncements list/options race, stale refresh i mutation cache matricu;
-- AnnouncementsHost initial/background error, modal selection, acknowledge/dismiss race;
-- editor save concurrency, duration/date validation i field semantics;
-- report CSV/reminder double submit i recovery.
-
-E2E `44` i `45` su korisni, ali ne zatvaraju navedene state mašine.
+Faza 6 je otkrila i zatvorila dva konkretna produkcijska propusta: CSV download nije imao synchronous operation guard, a prolazna header refresh greška brisala je posljednju uspješnu smjenu. Browser ponašanje ostaje odvojeno u `OCN13`; ne računa se kao deterministički component dokaz.
 
 ### OCN12 — Održivost i production hygiene
 
@@ -302,9 +291,9 @@ Potrebna je stvarna matrica:
 | Vremenska zona i reporting tačnost          |        9,6 |        10 |
 | URL/shareability i navigacija               |        9,5 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
-| Testabilnost i održivost                    |        7,2 |        10 |
+| Testabilnost i održivost                    |        8,8 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **9,3/10** | **10/10** |
+| **Ukupno**                                  | **9,6/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -434,6 +423,15 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. Statički responsive i accessibility contract testovi gdje su deterministički.
 
 **Exit gate:** kritične state mašine imaju direktan dokaz, ne samo pure helper ili E2E pokrivenost.
+
+**Status nakon Faze 6: završeno.**
+
+- Dodano je šest component test fajlova sa 17 testova za schedule, Host, header indicator, calendar feed, editor i report state mašine.
+- Dokazani su initial/background recovery, očuvanje stale podataka, permission gating, API payload/validacija, latest-only identity, mutation recovery i synchronous double-submit ugovori.
+- CSV download sada koristi synchronous operation guard; header zadržava posljednju uspješnu smjenu nakon prolazne refresh greške.
+- Zajedno s ranije uvedenim overview/detail/Manage controller testovima, URL parserima i pure helperima, `OCN11` je zatvoren.
+
+**Izvršni dokaz:** novi component suite prolazi **6/6 fajlova i 17/17 testova**; puni frontend Vitest prolazi **392/392 fajla i 1538/1538 testova**. Production TypeScript/Vite build, puni ESLint, i18n/design-system i Prettier gate prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
 
 ### Faza 7 — Održivost i statički closeout
 

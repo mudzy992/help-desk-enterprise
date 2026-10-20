@@ -66,19 +66,22 @@ export function AnnouncementReportDialog({
 
   const download = async () => {
     if (announcementId === null) return;
-    setBusy("csv");
-    try {
-      const file = await downloadAnnouncementReport(announcementId);
-      triggerBlobDownload(file.blob, file.fileName);
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(null);
-    }
+    const id = announcementId;
+    await operationGuard.run(`csv:${id}`, async () => {
+      setBusy("csv");
+      try {
+        const file = await downloadAnnouncementReport(id);
+        triggerBlobDownload(file.blob, file.fileName);
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(null);
+      }
+    });
   };
 
   const remind = async () => {

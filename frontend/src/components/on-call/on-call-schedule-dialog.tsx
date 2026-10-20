@@ -382,7 +382,7 @@ export function OnCallScheduleDialog({
             >
               {t("ui.cancel")}
             </Button>
-            <Button type="submit" disabled={saving || reason.trim().length < 3}>
+            <Button type="submit" disabled={saving || !timezoneIsValid || reason.trim().length < 3}>
               {saving ? t("onCall.saving") : t("onCall.schedule.save")}
             </Button>
           </ModalFooter>

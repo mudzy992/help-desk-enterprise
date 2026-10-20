@@ -33,9 +33,9 @@ export function OnCallHeaderIndicator() {
         .then((loaded) => {
           if (active) setMe(loaded);
         })
-        .catch(() => {
-          if (active) setMe(null);
-        });
+        // A transient refresh failure must not erase a still-useful active shift.
+        // Initial failures remain silent because `me` starts as null.
+        .catch(() => undefined);
     };
     load();
     const timer = window.setInterval(load, refreshEveryMs);
