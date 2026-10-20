@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SettingsService } from '../settings/settings.service';
+import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
 import { settingKeys } from '../settings/setting-keys';
 import { reportErrorCodes } from './reports.constants';
 import { ReportsError } from './reports.error';
@@ -13,9 +14,7 @@ export class ReportsConfigurationLoader {
   async load(): Promise<ReportsConfiguration> {
     try {
       return parseReportsConfiguration({
-        timeZone: await this.settingsService.getSetting(
-          settingKeys.privateInstallationTimeZone,
-        ),
+        timeZone: await readInstallationTimeZone(this.settingsService),
         reportsEnabled: await this.settingsService.getSetting(
           settingKeys.privateReportsEnabled,
         ),
