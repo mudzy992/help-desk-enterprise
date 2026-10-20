@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, GitPullRequestArrow, MoreHorizontal, Pencil, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TranslationKey } from "@/i18n/translation-key";
@@ -41,6 +41,11 @@ import {
   mapChangeError,
   primaryChangeAction,
 } from "@/lib/changes/change-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
+import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import {
@@ -88,13 +93,14 @@ export function ChangeDetailPage() {
     enabled: canEdit,
   });
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: changeQueryKeys.all });
-  const claimMutation = useMutation({
+  const refresh = () =>
+    void invalidateEntityQueries(queryClient, entityMutationQueryKeys.changes.record(changeId));
+  const claimMutation = useEntityMutation<void, ChangeDetail>({
     mutationFn: () => claimChange(changeId),
-    onSuccess: (next) => {
+    invalidate: () => entityMutationQueryKeys.changes.record(changeId),
+    onSuccess: (_variables, next) => {
       queryClient.setQueryData(changeQueryKeys.detail(changeId), next);
       toast({ tone: "success", title: t("changes.detail.claimed") });
-      refresh();
     },
     onError: (caught) =>
       toast({

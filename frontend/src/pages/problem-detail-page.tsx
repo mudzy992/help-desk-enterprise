@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -33,6 +33,8 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
+import { entityMutationQueryKeys } from "@/lib/entity-list/entity-mutation-query-keys";
+import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import {
@@ -90,12 +92,12 @@ export function ProblemDetailPage() {
       queryClient.invalidateQueries({ queryKey: problemQueryKeys.tickets(problemId) }),
     ]);
   };
-  const claimMutation = useMutation({
+  const claimMutation = useEntityMutation<void, ProblemDetail>({
     mutationFn: () => claimProblem(problemId),
-    onSuccess: (next) => {
+    invalidate: () => entityMutationQueryKeys.problems.record(problemId),
+    onSuccess: (_variables, next) => {
       queryClient.setQueryData(problemQueryKeys.detail(problemId), next);
       toast({ tone: "success", title: t("problems.detail.claimed") });
-      refresh();
     },
     onError: (caught) =>
       toast({

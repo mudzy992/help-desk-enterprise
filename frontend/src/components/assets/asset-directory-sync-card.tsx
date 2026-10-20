@@ -14,12 +14,15 @@ import {
 } from "@/components/ui/control";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { ApiError } from "@/services/api";
 import {
   assetDirectoryQueryKeys,
-  assetQueryKeys,
   getAssetDirectorySyncStatus,
   runAssetDirectorySync,
   type AssetDirectoryConflict,
@@ -66,7 +69,7 @@ export function AssetDirectorySyncCard() {
             result.applied ?? { created: 0, updated: 0, failed: 0 },
           ),
         });
-        void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+        void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
       } else {
         void queryClient.invalidateQueries({ queryKey: assetDirectoryQueryKeys.status });
       }

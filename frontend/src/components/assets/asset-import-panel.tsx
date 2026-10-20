@@ -17,6 +17,10 @@ import { Field, Select } from "@/components/ui/field";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { formatAssetDateTime, localizedName, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -159,7 +163,7 @@ export function AssetImportPanel() {
             : t("assets.import.failedTitle"),
         description: t("assets.import.appliedBody", response.applied),
       });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
     }
   }
 

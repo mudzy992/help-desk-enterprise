@@ -21,6 +21,10 @@ import {
   transferStatusTone,
 } from "@/lib/assets/asset-transfer-view";
 import { formatAssetDate, mapAssetError } from "@/lib/assets/asset-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   assetTransferQueryKeys,
@@ -259,7 +263,7 @@ function TransferRow({
       "upload",
       async () => {
         await uploadSignedTransfer(item.id, file);
-        await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.all });
+        await invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.transfers);
       },
       t("assets.transfers.signedUploaded", { number: item.number }),
     );
@@ -422,7 +426,7 @@ function CancelTransferSheet({
     setError(null);
     try {
       await cancelAssetTransfer(transfer.id, reason.trim());
-      await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.all });
+      await invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.transfers);
       toast({
         tone: "success",
         title: t("assets.transfers.cancelled", { number: transfer.number }),

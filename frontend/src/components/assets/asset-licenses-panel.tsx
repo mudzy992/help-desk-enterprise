@@ -3,6 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Eye, KeyRound, Plus, Trash2 } from "lucide-react";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { queryKeys } from "@/lib/query/query-keys";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
@@ -327,7 +331,7 @@ function LicenseFormSheet({
       if (license === null) await createLicense(input);
       else await updateLicense(license.id, input);
       toast({ tone: "success", title: t("assets.licenses.saved") });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.licenses);
       onOpenChange(false);
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));
@@ -574,7 +578,7 @@ function LicenseDetailSheet({
     try {
       await action();
       if (success) toast({ tone: "success", title: success });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.licenses);
       return true;
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));

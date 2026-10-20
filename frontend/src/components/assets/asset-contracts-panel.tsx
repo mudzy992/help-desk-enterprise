@@ -3,6 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { FileText, Plus, Trash2 } from "lucide-react";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { queryKeys } from "@/lib/query/query-keys";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
@@ -304,7 +308,7 @@ function ContractFormSheet({
       if (contract === null) await createContract(input);
       else await updateContract(contract.id, input);
       toast({ tone: "success", title: t("assets.contracts.saved") });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.contracts);
       onOpenChange(false);
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));
@@ -497,7 +501,7 @@ function ContractDetailSheet({
     try {
       await action();
       toast({ tone: "success", title: success });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.contracts);
       return true;
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));

@@ -27,6 +27,10 @@ import {
   mapAssetError,
   resolveAssetIcon,
 } from "@/lib/assets/asset-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
@@ -89,7 +93,8 @@ export function AssetCatalogManager() {
     retry: false,
   });
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+  const refresh = () =>
+    void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.catalog);
 
   async function toggleArchived(action: () => Promise<unknown>) {
     try {

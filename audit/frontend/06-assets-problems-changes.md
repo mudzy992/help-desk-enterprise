@@ -2,7 +2,7 @@
 
 **Datum reaudita:** 20. 10. 2026.
 **Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
-**Aktuelna ocjena:** **8,9/10 nakon Faze 3**
+**Aktuelna ocjena:** **9,2/10 nakon Faze 4**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -238,11 +238,11 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | ----------------------------------------- | ---------: | --------: |
 | Route access i backend sigurnosna granica |        9,5 |        10 |
 | List/detail async i recovery ugovori      |        9,5 |        10 |
-| Mutation/version-conflict konzistentnost  |        7,5 |        10 |
+| Mutation/version-conflict konzistentnost  |        8,8 |        10 |
 | URL/filter/bulk UX                        |        9,2 |        10 |
-| Testabilnost i održivost                  |        7,8 |        10 |
+| Testabilnost i održivost                  |        8,2 |        10 |
 | Accessibility/responsive/browser dokaz    |        6,5 |        10 |
-| **Ukupno**                                | **8,9/10** | **10/10** |
+| **Ukupno**                                | **9,2/10** | **10/10** |
 
 Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, URL-search i supporting-data recovery ugovori su ojačani; preostali odbici prvenstveno dolaze iz mutation/race dokaza, koncentracije odgovornosti i neizvršenog browser closeouta.
 
@@ -332,6 +332,18 @@ Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, UR
 4. Testirati delete, bulk move, Problem lifecycle, Change approval/action i version conflict.
 
 **Exit gate:** nijedna mutation akcija ne šalje dupli zahtjev niti refetchuje nepovezane capability/catalog podatke.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Uvedena je eksplicitna mutation→query matrica za Asset registre, katalog, licence, ugovore i transfere te Problem/Change record i Change template tokove.
+- Uklonjene su široke `assetQueryKeys.all`, `problemQueryKeys.all` i `changeQueryKeys.all` invalidacije iz auditiranih page/component mutation tokova; capability, options, konfiguracija, signatory i template queryji više se ne refetchuju kao sporedni efekat nepovezane akcije.
+- Shared `useEntityMutation` sada postavlja sinhroni operation guard prije nego React Query zakaže mutation, čime blokira dva zahtjeva iz istog synchronous double-click ticka.
+- Guard se pouzdano oslobađa kroz `onSettled`, uključujući error putanju, pa je kontrolisani retry ponovo moguć.
+- Asset delete te licence/contract delete već koriste guarded contract; Problem i Change claim akcije su migrirane na isti contract uz precizne detail/events/list invalidacije.
+- Dodani su deferred-promise testovi koji dokazuju synchronous double-submit blokadu, deklarisanu invalidaciju i retry nakon greške, kao i testovi izolacije mutation→query matrice.
+- `APC5` je zatvoren. `APC6` mutation lifecycle osnova i kritični delete/claim tokovi su zatvoreni; preostali specifični conflict/action scenariji ostaju dio direktne testne mreže u Fazi 6.
+
+**Izvršni dokaz:** 2 nova ciljna test fajla sa 4/4 testa; puni frontend Vitest prolaz ima 364/364 fajla odnosno 1461/1461 test. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 5 — Assets dekompozicija
 

@@ -10,6 +10,10 @@ import { EntityListQueryError } from "@/components/entity-list/entity-list-query
 import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
 import { AssetAssignSheet, AssetUnassignSheet } from "@/components/assets/asset-action-sheets";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { assetBulkMoveMax, planBulkMove } from "@/lib/assets/asset-bulk-move";
 import { AssetOverviewPanel } from "@/components/assets/asset-overview-panel";
 import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
@@ -313,7 +317,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   function bulkDone() {
     setSelected(new Map());
-    void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+    void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
   }
 
   const advancedCount = [
@@ -754,7 +758,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
           catalog={catalogQuery.data}
           options={optionsQuery.data}
           onSaved={(id) => {
-            void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+            void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
             navigate(`/assets/${id}`);
           }}
         />

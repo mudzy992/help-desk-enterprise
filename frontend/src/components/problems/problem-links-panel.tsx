@@ -10,6 +10,10 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input, Select } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
 import { incidentStatusTranslationKey } from "@/lib/status/status-view";
 import type { IncidentStatusTranslationKey } from "@/lib/status/status-view";
@@ -21,7 +25,6 @@ import {
   linkProblemIncident,
   linkProblemService,
   problemLinkKeys,
-  problemQueryKeys,
   searchProblemAssets,
   searchProblemIncidents,
   unlinkProblemAsset,
@@ -96,8 +99,10 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
     onSuccess: () => {
       setError(null);
       void queryClient.invalidateQueries({ queryKey: problemLinkKeys.links(problem.id) });
-      // The history tab shows the link events.
-      void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
+      void invalidateEntityQueries(
+        queryClient,
+        entityMutationQueryKeys.problems.record(problem.id),
+      );
     },
     onError: (cause) => setError(t(mapProblemError(cause) ?? mapApiError(cause))),
   });
