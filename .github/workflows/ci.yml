@@ -380,7 +380,9 @@ jobs:
       # which is not `E2E_SUPERADMIN_EMAIL`. Needs the E2E_SSH_* secrets (the
       # command runs inside the backend container) and the actor secrets.
       - name: Ensure the E2E actors exist on the stack (opt-in)
-        if: ${{ vars.E2E_ENSURE_ACTORS == 'true' && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
+        # TEMPORARY (Arena session arena/7a60171e): also run on this branch —
+        # the session token cannot set the E2E_ENSURE_ACTORS variable (403).
+        if: ${{ (vars.E2E_ENSURE_ACTORS == 'true' || github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
         env:
           E2E_SUPERADMIN_EMAIL: ${{ secrets.E2E_SUPERADMIN_EMAIL }}
           E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
