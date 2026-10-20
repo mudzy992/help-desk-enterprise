@@ -215,7 +215,7 @@ Capability gate koristi `ApiErrorText`, ali ne prosljeđuje request ID. List i s
 ### APC12 — Browser/responsive/accessibility closeout nije izvršen
 
 **Prioritet:** P1 za 10/10
-**Dokaz:** E2E izvori `23–32` su pročitani; nema rezultata aktuelnog runa
+**Dokaz:** E2E izvori `23–32` su pročitani i run je stvarno pokušan 20. 10. 2026.; global setup je blokiran jer lokalni API stack nije dostupan na `http://localhost:10001/health`
 
 Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni dokaz. Nedostaju ili nisu dokazani:
 
@@ -422,6 +422,16 @@ Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, UR
 4. Evidentirati komande, rezultate i artefakte.
 
 **Exit gate:** svi `APC1–APC12` zatvoreni i realni browser run zelen. Ako infrastruktura nije dostupna, dokumentovati blokadu i završiti najviše na **9,8/10**.
+
+#### Evidencija pokušaja Faze 8 (20. 10. 2026.)
+
+- E2E dependencies su instalirane čistim `npm ci`; Playwright TypeScript gate prolazi.
+- Scope `23–32` se uspješno kolektuje kao **10 fajlova i 22 testa**.
+- Capability recovery scenario je pojačan stvarnim prvim network abortom, uklanjanjem intercepta kroz drugi request, klikom na retry i dokazom da alert nestaje.
+- Dodan je browser scenario za Asset search deep link, Back/Forward sinhronizaciju i 320 px horizontalni overflow ugovor.
+- Stvarni run komandom `npx playwright test tests/23-assets.spec.ts ... tests/32-change-scheduling.spec.ts --max-failures=1` jeste pokrenut, ali nijedan scenario nije izvršen: `globalSetup` je završio sa `E2E stack not ready at http://localhost:10001/health: TypeError: fetch failed`.
+- Direktni preflight je potvrdio da nisu dostupni ni API na portu `10001` ni frontend na `5173`; Docker CLI nije instaliran u okruženju, pa stack nije moguće podići iz ovog worktreea.
+- `APC12` zato ostaje otvoren. Faza 8 je infrastrukturno blokirana, browser run se ne označava zelenim, a ocjena ostaje na dozvoljenom maksimumu **9,8/10**.
 
 ---
 
