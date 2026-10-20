@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ServiceCatalogMutationForm } from "@/components/services/service-catalog-mutation-form";
+import {
+  ServiceCatalogMutationForm,
+  type ServiceCatalogMutationValues,
+} from "@/components/services/service-catalog-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -36,6 +40,7 @@ export function ServiceCatalogMutationSheet({
   onSaved,
 }: ServiceCatalogMutationSheetProperties) {
   const { t } = useTranslation();
+  const operationGuard = useOperationGuard();
   const isCreate = service === null;
   const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>([]);
   const [policyPacks, setPolicyPacks] = useState<readonly PersistedPolicyPackOption[]>([]);
@@ -74,22 +79,28 @@ export function ServiceCatalogMutationSheet({
     };
   }, [open]);
 
-  const save = async (values: CreateServiceInput | UpdateServiceInput) => {
-    setIsSaving(true);
-    setErrorKey(null);
-    try {
-      if (isCreate) {
-        await createService(values as CreateServiceInput);
-      } else if (service !== null) {
-        await updateService(service.id, values as UpdateServiceInput);
+  const save = async (values: ServiceCatalogMutationValues) => {
+    const operationKey = `service:${service?.id ?? "create"}`;
+    if (operationGuard.isPending(operationKey)) return;
+    await operationGuard.run(operationKey, async () => {
+      setIsSaving(true);
+      setErrorKey(null);
+      try {
+        if (isCreate) {
+          const input: CreateServiceInput = values;
+          await createService(input);
+        } else if (service !== null) {
+          const { slug: _slug, ...input } = values;
+          await updateService(service.id, input satisfies UpdateServiceInput);
+        }
+        await onSaved();
+        onOpenChange(false);
+      } catch (error) {
+        setErrorKey(mapServiceCatalogError(error));
+      } finally {
+        setIsSaving(false);
       }
-      await onSaved();
-      onOpenChange(false);
-    } catch (error) {
-      setErrorKey(mapServiceCatalogError(error));
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   return (

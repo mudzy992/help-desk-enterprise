@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
+import { ApiError } from "@/services/api";
 import { ensureServiceForm } from "@/lib/services/ensure-service-form";
 import {
   createServiceForm,
@@ -57,6 +58,25 @@ describe("ensureServiceForm", () => {
 
     expect(createServiceForm).toHaveBeenCalledWith("svc-1", defaultServiceFormSchema);
     expect(loaded.versions).toHaveLength(1);
+  });
+
+  it("recovers a concurrent first-version create without creating a duplicate", async () => {
+    vi.mocked(getServiceForm)
+      .mockResolvedValueOnce(emptyForm("svc-1"))
+      .mockResolvedValueOnce(draftForm("svc-1"));
+    vi.mocked(createServiceForm).mockRejectedValue(
+      new ApiError(409, "FORM_ALREADY_EXISTS", "exists"),
+    );
+
+    const loaded = await ensureServiceForm("svc-1", true);
+    expect(loaded.versions).toHaveLength(1);
+    expect(createServiceForm).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not turn an initial read outage into a create mutation", async () => {
+    vi.mocked(getServiceForm).mockRejectedValue(new ApiError(503, "UNAVAILABLE", "offline"));
+    await expect(ensureServiceForm("svc-1", true)).rejects.toMatchObject({ status: 503 });
+    expect(createServiceForm).not.toHaveBeenCalled();
   });
 
   it("does not create when versions already exist", async () => {

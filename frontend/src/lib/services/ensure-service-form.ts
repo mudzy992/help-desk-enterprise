@@ -1,26 +1,26 @@
 import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
+import { ApiError } from "@/services/api";
 import {
   createServiceForm,
   getServiceForm,
   type ServiceFormResponse,
 } from "@/services/service-catalog-api";
 
-/// GET /form returns 200 with an empty version list for a new service.
-/// The first version must be POST /form, not POST /form/versions.
+/**
+ * Loads the service form and creates the first version only after a successful
+ * empty read. A concurrent creator is treated as success and followed by GET,
+ * making retry/reopen safe without hiding unrelated read or create failures.
+ */
 export async function ensureServiceForm(
   serviceId: string,
   canWrite: boolean,
 ): Promise<ServiceFormResponse> {
+  const loaded = await getServiceForm(serviceId);
+  if (loaded.versions.length > 0 || !canWrite) return loaded;
   try {
-    const loaded = await getServiceForm(serviceId);
-    if (loaded.versions.length > 0 || !canWrite) {
-      return loaded;
-    }
+    await createServiceForm(serviceId, defaultServiceFormSchema);
   } catch (error) {
-    if (!canWrite) {
-      throw error;
-    }
+    if (!(error instanceof ApiError) || error.code !== "FORM_ALREADY_EXISTS") throw error;
   }
-  await createServiceForm(serviceId, defaultServiceFormSchema);
   return getServiceForm(serviceId);
 }

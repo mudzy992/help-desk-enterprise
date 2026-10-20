@@ -3913,7 +3913,9 @@
       "errorVersioningDisabled": "Verzionisanje formi je ugašeno.",
       "errorNotDraft": "Aktivirati se može samo DRAFT verzija.",
       "errorNoActive": "Nema aktivne verzije forme.",
-      "errorGeneric": "Formu trenutno nije moguće izmijeniti."
+      "errorGeneric": "Formu trenutno nije moguće izmijeniti.",
+      "fieldIdInvalid": "ID mora početi malim slovom i sadržavati samo mala slova, brojeve i donju crtu.",
+      "draftInvalid": "Ispravite nevažeće ili duplirane ID-eve, prazne nazive i opcije prije spremanja."
     },
     "routingRefreshWarning": "Prikazuju se posljednji učitani podaci rutiranja jer osvježavanje nije uspjelo."
   },

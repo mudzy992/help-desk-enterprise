@@ -11,11 +11,9 @@ import type { PersistedPolicyPackOption } from "@/services/policy-packs-api";
 import { listSlaProfiles, type SlaProfile } from "@/services/sla-api";
 import type {
   AutoAssignStrategy,
-  CreateServiceInput,
   DataClassification,
   ServiceCategoryResponse,
   ServiceResponse,
-  UpdateServiceInput,
 } from "@/services/service-catalog-api";
 
 const classificationOptions: readonly DataClassification[] = [
@@ -59,7 +57,7 @@ interface ServiceCatalogMutationFormProperties {
   readonly isSaving: boolean;
   readonly errorKey: string | null;
   readonly onCancel: () => void;
-  readonly onSubmit: (values: CreateServiceInput | UpdateServiceInput) => void;
+  readonly onSubmit: (values: ServiceCatalogMutationValues) => void;
 }
 
 export function ServiceCatalogMutationForm({
@@ -124,24 +122,9 @@ export function ServiceCatalogMutationForm({
     if (!canSubmit) {
       return;
     }
-    const trimmedReason = reason.trim();
-    if (isCreate) {
-      onSubmit({
-        name: name.trim(),
-        slug: slug.trim(),
-        categoryId,
-        classification,
-        requiresApproval,
-        isConfidentialDefault,
-        autoAssignStrategy,
-        policyPackId,
-        slaProfileId,
-        reason: trimmedReason,
-      } satisfies CreateServiceInput);
-      return;
-    }
     onSubmit({
       name: name.trim(),
+      slug: slug.trim(),
       categoryId,
       classification,
       requiresApproval,
@@ -149,8 +132,8 @@ export function ServiceCatalogMutationForm({
       autoAssignStrategy,
       policyPackId,
       slaProfileId,
-      reason: trimmedReason,
-    } satisfies UpdateServiceInput);
+      reason: reason.trim(),
+    });
   };
 
   return (

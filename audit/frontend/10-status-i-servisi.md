@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **9,4/10 nakon Faze 6**
+**Aktuelna ocjena:** **9,6/10 nakon Faze 7**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -21,7 +21,7 @@ Faze 1–4 su izdvojile latest-only status/ticket controllere, zaštitile incide
 3. kritične komponente nemaju direktne component/page testove;
 4. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **9,4/10 nakon Faze 6** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove, URL-backed katalog i ujednačen query/recovery sloj, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **9,6/10 nakon Faze 7** priznaje jaku backend osnovu, latest-only controllere, URL-backed katalog, ujednačen query/recovery sloj i hardened form/category mutation ugovore, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -148,28 +148,20 @@ Routing greška više ne briše posljednji uspješni index niti tiho gasi filter
 Typed downtime controller koristi query identitet po `serviceId`, razdvaja initial loading od background refresh stanja i zadržava posljednje uspješne periode na grešci. Query greška izlaže request ID i Retry, a A→B promjena servisa ne može prikazati odgovor prethodnog scopea.
 
 Cancel mutation ima per-service/per-window synchronous operation guard, danger confirmation i zaseban mutation error/request ID. Neuspjeh ostavlja potvrdu otvorenom, dok query greška više ne dijeli mutation error slot niti briše zdrave podatke.
-### SS9 — Form/onboarding mutation i cache ugovori ostaju djelimični
+### SS9 — Form i katalog mutation ugovori su retry-safe i typed
 
-**Prioritet:** P2
-**Lokacije:** form builder, mutation sheet, onboarding wizard i service API helperi
+**Prioritet:** zatvoreno u Fazi 7
 
-`ensureServiceForm` ima pure test, ali create/retry idempotency cijelog UI toka nije direktno dokazana. Form builder promjene pokreću širok katalog reload. Create/update se i dalje spajaju castom `values as CreateServiceInput`, što skriva razliku ugovora. Dio dinamičkih i18n ključeva i tipova ostaje oslabljen castovima.
+Create/update servisni inputi više se ne spajaju castovima: neutralne form vrijednosti mapiraju se u eksplicitne `CreateServiceInput` i `UpdateServiceInput` grane. Service, category, lifecycle i form-builder mutation tokovi koriste synchronous operation guard ključeve po entitetu i akciji.
 
-Onboarding je bolji nego u arhivskom stanju, ali nema punu component matricu za svaki korak, stale service identity, close/reopen, synchronous submit i partial API uspjeh.
+`ensureServiceForm` kreira prvu verziju samo nakon uspješnog praznog GET-a. Read outage više ne pokreće mutation, a konkurentni `FORM_ALREADY_EXISTS` tretira se kao idempotentan uspjeh i završava ponovnim GET-om, bez dupliranja verzije. Direktni testovi pokrivaju empty/create, postojeću verziju, read outage, read-only i konkurentni create recovery.
+### SS10 — Category i form-builder validacija zatvara greške prije submitovanja
 
-**Za zatvaranje:** razdvojeni typed create/update inputi, idempotency ključ ili backend-safe retry, ciljane invalidacije i characterization testovi svih onboarding koraka.
+**Prioritet:** zatvoreno u Fazi 7
 
-### SS10 — Category i form-builder UX se oslanja na backend tek nakon submitovanja
+Category parent izbor sada izbacuje samu kategoriju i sve potomke na proizvoljnoj dubini, pa korisnik ne može sastaviti ciklus prije submitovanja. Form builder koristi isti field-ID obrazac kao backend, prikazuje povezanu field grešku i blokira save za nevažeće/duplirane ID-eve, prazne labele te prazne ili duplirane select opcije.
 
-**Prioritet:** P2
-**Lokacije:** category mutation, form-field editor/draft
-
-Backend validira category parent ciklus i field identifier, ali UI ne isključuje sve potomke iz parent izbora i ne koristi puni backend field-ID ugovor prije submitovanja. Korisnik grešku saznaje kasno, a field-level recovery nije uvijek precizan.
-
-Brisanje kategorije ima jači confirmation model od brisanja DRAFT servisa i cancelovanja downtime prozora, pa destruktivne akcije nisu dosljedne.
-
-**Za zatvaranje:** frontend mirror validacija uz backend source of truth, potomak-filter, povezane field greške i jedinstvena matrica confirm/reason pravila.
-
+Pure testovi pokrivaju višeslojno category stablo i form draft matricu. Backend validacija ostaje defense-in-depth, ali više nije prvi trenutak u kojem se osnovna greška otkriva.
 ### SS11 — Održivost i production hygiene nisu na standardu novijih modula
 
 **Prioritet:** P2
@@ -355,7 +347,11 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 4. Ujednačiti destructive confirmation/reason matricu.
 5. Dodati punu onboarding/form/category mutation test mrežu.
 
-**Exit gate:** partial success se može sigurno ponoviti bez duplikata i bez oslanjanja na kasni generički backend error.
+**Status:** završeno. Create/update payloadi su typed bez castova; ensure tok je retry-safe; category potomci i field-ID/schema greške validiraju se prije submitovanja; mutation tokovi imaju synchronous guard.
+
+**Izvršni dokaz:** ciljni form/category/guard suite prolazi **4/4 fajla i 10/10 testova**; puni frontend Vitest prolazi **401/401 fajlova i 1563/1563 testova**. Production build, puni ESLint, i18n/design-system i Prettier prolaze; `git diff --check` prolazi. Browser/E2E nije izvršen.
+
+**Exit gate:** partial success se može sigurno ponoviti bez duplikata i bez oslanjanja na kasni generički backend error — ispunjen.
 
 ### Faza 8 — Održivost i statički closeout
 

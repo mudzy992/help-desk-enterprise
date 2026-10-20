@@ -3896,7 +3896,9 @@
       "errorVersioningDisabled": "Form versioning is disabled.",
       "errorNotDraft": "Only a DRAFT version can be activated.",
       "errorNoActive": "There is no active form version.",
-      "errorGeneric": "The form cannot be changed right now."
+      "errorGeneric": "The form cannot be changed right now.",
+      "fieldIdInvalid": "ID must start with a lowercase letter and contain only lowercase letters, numbers, and underscores.",
+      "draftInvalid": "Fix invalid or duplicate IDs, empty labels, and options before saving."
     },
     "routingRefreshWarning": "Showing the last loaded routing coverage because the refresh failed."
   },

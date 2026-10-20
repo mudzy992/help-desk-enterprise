@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select } from "@/components/ui/field";
+import { availableCategoryParents } from "@/lib/services/category-parent-options";
 import type { ServiceCategoryErrorKey } from "@/lib/services/map-service-category-error";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 
@@ -36,7 +37,7 @@ export function ServiceCategoryMutationForm({
   const [slug, setSlug] = useState(category?.slug ?? "");
   const [sortOrder, setSortOrder] = useState(String(category?.sortOrder ?? 0));
   const [parentId, setParentId] = useState(category?.parentId ?? "");
-  const parentOptions = categories.filter((item) => item.id !== category?.id);
+  const parentOptions = availableCategoryParents(categories, category?.id ?? null);
   const canSubmit = name.trim().length > 0 && (!isCreate || slug.trim().length > 0);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {

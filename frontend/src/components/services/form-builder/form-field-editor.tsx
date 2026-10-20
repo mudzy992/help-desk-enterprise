@@ -4,6 +4,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import {
   isSelectFormFieldType,
+  isValidFieldIdentifier,
   SERVICE_FORM_FIELD_TYPES,
   withSelectOptions,
 } from "@/lib/services/form-field-draft";
@@ -30,7 +31,11 @@ export function FormFieldEditor({
   return (
     <div className="grid gap-2 rounded-lg border border-border bg-elevated/40 p-3">
       <div className="grid gap-2 md:grid-cols-2">
-        <Field label={t("services.forms.fieldId")} required>
+        <Field
+          label={t("services.forms.fieldId")}
+          required
+          error={isValidFieldIdentifier(field.id) ? null : t("services.forms.fieldIdInvalid")}
+        >
           {(control) => (
             <Input
               {...control}
