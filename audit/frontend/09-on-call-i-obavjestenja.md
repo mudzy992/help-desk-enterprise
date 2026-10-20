@@ -465,6 +465,13 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 
 **Exit gate:** `OCN1–OCN13` zatvoreni i stvarni browser run zelen.
 
+**Status Faze 8: u toku — izvršenje blokirano nedostupnim lokalnim stackom.**
+
+- Scenarij `44` proširen je keyboard aktivacijom grupe, URL potvrdom, viewport matricom 320/375/768/1280, dokument-level overflow provjerom, 200% CSS zoom provjerom i serious/critical axe skenom.
+- Scenarij `45` proširen je keyboard promjenom taba, stvarnim Back/Forward URL dokazom, istom responsive/zoom matricom i axe skenom announcement archivea.
+- Playwright discovery nalazi **3 testa u 2 fajla**; E2E TypeScript (`tsc --noEmit`), Prettier i `git diff --check` prolaze.
+- Pokušano izvršenje komandom `npx playwright test tests/44-on-call-schedule.spec.ts tests/45-announcements-lifecycle.spec.ts --project=chromium`, ali global setup prekida prije testova jer `http://localhost:10001/health` nije dostupan (`E2E stack not ready`, `fetch failed`). Frontend na `localhost:5173` također nije dostupan, a Docker CLI nije instaliran. Nema test prolaza, tracea ni screenshota i `OCN10`/`OCN13` ostaju otvoreni; ocjena ostaje **9,8/10**.
+
 ---
 
 ## 7. Obavezna završna matrica
