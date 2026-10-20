@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { MarkdownView } from "@/components/privacy/markdown-view";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import {
   Modal,
@@ -31,7 +32,7 @@ import {
   severityTone,
 } from "@/lib/announcements/announcement-view";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { cn } from "@/lib/utils";
 import {
   acknowledgeAnnouncement,
@@ -85,7 +86,7 @@ export function AnnouncementsHost() {
   const { toast } = useToast();
   const operationGuard = useOperationGuard();
   const queryClient = useQueryClient();
-  const { data } = useQuery({
+  const { data, error, isFetching, refetch } = useQuery({
     queryKey: announcementQueryKeys.active,
     queryFn: getActiveAnnouncements,
     staleTime: 30_000,
@@ -158,6 +159,20 @@ export function AnnouncementsHost() {
     });
   };
 
+  if (error !== null && data === undefined) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-danger/30 bg-danger/10 px-4 py-2">
+        <ApiErrorText
+          messageKey={mapAnnouncementError(error) ?? mapApiError(error)}
+          requestId={readApiRequestId(error)}
+        />
+        <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+          {t("ui.retry")}
+        </Button>
+      </div>
+    );
+  }
+
   if (data === undefined || !data.enabled || current === undefined) {
     return (
       <AnnouncementModal
@@ -175,6 +190,17 @@ export function AnnouncementsHost() {
 
   return (
     <>
+      {error === null ? null : (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+          <ApiErrorText
+            messageKey={mapAnnouncementError(error) ?? mapApiError(error)}
+            requestId={readApiRequestId(error)}
+          />
+          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      )}
       <section
         aria-label={t("announcements.banner.region")}
         className={cn(

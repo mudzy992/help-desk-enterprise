@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **8,3/10 nakon Faze 2**
+**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **8,3/10** nakon Faze 2 priznaje zatvoren on-call query identitet, recovery i synchronous mutation concurrency, zrelu domensku osnovu, backend zaštite i vremensku zonu, ali zadržava ozbiljan odbitak za announcement recovery i preostalu testnu mrežu.
+Ocjena **8,8/10** nakon Faze 3 priznaje zatvoren on-call i announcement query identitet/recovery te synchronous mutation concurrency, uz zrelu domensku osnovu, backend zaštite i vremensku zonu. Preostali odbici su URL stanje, civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
@@ -164,7 +164,7 @@ Query ima `retry: false`, ali render ne čita `error`. Kada capabilities zahtjev
 
 Ovo je fail-closed u sigurnosnom smislu, ali netačno u UX i operativnom smislu: outage se predstavlja kao autorizacijska odluka.
 
-**Za zatvaranje:** blocking error sa request ID-em i retryjem prije donošenja capability odluke; ne prikazivati „read-only“ stanje kao potvrđenu dozvolu.
+**Status:** zatvoreno u Fazi 3. Početna capabilities greška sada je blocking i korelirana request ID-em, sa pending-safe retryjem; Manage odluka se ne donosi dok capability autoritet nije uspješno učitan.
 
 ### OCN5 — ManageAnnouncements ručni controller ima race i parcijalni recovery dug
 
@@ -181,7 +181,7 @@ Dodatno:
 - `refreshEverywhere` invalidira active/archive tek nakon što `load()` završi; ako refresh liste padne, povezani query cachevi se ne invalidiraju iako je mutation uspio;
 - `editing` koristi trostanje `ManagedAnnouncement | null | undefined`, što otežava invariantu edit/create/closed.
 
-**Za zatvaranje:** typed controller ili React Query za list/options, latest-only zaštita, odvojena recovery stanja i mutation→cache matrica koja ne zavisi od uspjeha post-mutation refresha.
+**Status:** zatvoreno u Fazi 3. Typed controller razdvaja list/options snapshot, error i pending identitet, koristi latest-only guardove i lokalne retry akcije; mutation invalidacija active/archive cachea više ne zavisi od uspjeha manage refresha.
 
 ### OCN6 — AnnouncementsHost skriva query outage kao prazno stanje
 
@@ -192,7 +192,7 @@ Active query čita samo `data`; `error` se ignoriše. Ako prvi load ili poll pad
 
 Header indikator za on-call ima sličan, iako manje kritičan obrazac: greška je tiha, komponenta nestane, a visibility povratak ne pokreće neposredni refresh.
 
-**Za zatvaranje:** definirati host-level recovery politiku: initial failure signal, stale snapshot ponašanje, visibility refresh i request correlation bez alert spama svakih 60 sekundi.
+**Status:** zatvoreno u Fazi 3. Initial active-query failure više nije prazan host nego korelirani error/retry prikaz; background failure zadržava aktivna obavještenja uz upozorenje i lokalni retry, a React Query focus lifecycle pokreće visibility recovery.
 
 ### OCN7 — Announcement i on-call page state nije URL-kanonski
 
@@ -301,14 +301,14 @@ Potrebna je stvarna matrica:
 | Oblast                                      |   Trenutno |      Cilj |
 | ------------------------------------------- | ---------: | --------: |
 | Backend autorizacija i domenske granice     |        9,2 |        10 |
-| Async identity, stale state i recovery      |        8,3 |        10 |
+| Async identity, stale state i recovery      |        9,3 |        10 |
 | Mutation concurrency i cache konzistentnost |        8,4 |        10 |
 | Vremenska zona i reporting tačnost          |        8,2 |        10 |
 | URL/shareability i navigacija               |        6,0 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
-| Testabilnost i održivost                    |        6,8 |        10 |
+| Testabilnost i održivost                    |        7,2 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **8,3/10** | **10/10** |
+| **Ukupno**                                  | **8,8/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -373,6 +373,16 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. Precizna active/archive/manage invalidacija nakon mutacija.
 
 **Exit gate:** outage se nikad ne predstavlja kao nedostatak dozvole ili „nema obavještenja“.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Announcement capabilities query sada razlikuje loading, autoritativni rezultat i blocking failure. Greška prikazuje mapirani ključ, API request ID i pending-safe retry; administrator više ne gubi Manage tab kao lažni permission rezultat.
+- Izdvojen je `useManagedAnnouncementsData` controller sa nezavisnim list/options snapshotima, latest-request guardovima, request correlationom i lokalnim retryjem. Kvar options kataloga ne briše uspješnu Manage tabelu; create/edit akcije ostaju blokirane samo dok options nisu dostupne.
+- Preklopljeni mount/retry/post-mutation zahtjevi više ne mogu vratiti stariju listu. Manage refresh, active invalidacija i archive invalidacija sada su nezavisni, pa uspješna mutation akcija osvježava povezane cacheve i kada naredni manage load padne.
+- `AnnouncementsHost` prikazuje initial active-query failure umjesto praznog stanja. Background failure zadržava posljednji uspješan banner/modal snapshot i prikazuje korelirano upozorenje sa retryjem; focus lifecycle ostaje React Query recovery signal bez dodatnog polling spama.
+- Deferred controller testovi dokazuju list/options parcijalni failure, options-only recovery i latest-only preklopljeni list refresh. `OCN4`, `OCN5`, `OCN6` i announcement query/recovery dio `OCN8` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite prolazi 3/3 fajla i 9/9 testova; puni frontend Vitest prolazi **384/384 fajla i 1516/1516 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
 
 ### Faza 4 — URL state i navigacijski ugovor
 

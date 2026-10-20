@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -6,6 +6,7 @@ import { BarChart3, Megaphone, Pencil, Plus, Send, Trash2, Undo2 } from "lucide-
 import { AnnouncementEditorDialog } from "@/components/announcements/announcement-editor-dialog";
 import { AnnouncementReportDialog } from "@/components/announcements/announcement-report-dialog";
 import { MarkdownView } from "@/components/privacy/markdown-view";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -23,21 +24,18 @@ import {
   severityTone,
   statusTone,
 } from "@/lib/announcements/announcement-view";
+import { useManagedAnnouncementsData } from "@/lib/announcements/use-managed-announcements-data";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
   deleteAnnouncement,
   getAnnouncementArchive,
   getAnnouncementCapabilities,
-  getAnnouncementOptions,
-  listManagedAnnouncements,
   previewAnnouncementAudience,
   publishAnnouncement,
   withdrawAnnouncement,
   type AnnouncementEffectiveStatus,
-  type AnnouncementList,
-  type AnnouncementOptions,
   type ManagedAnnouncement,
 } from "@/services/announcements-api";
 
@@ -72,7 +70,13 @@ type PendingAction =
  */
 export function AnnouncementsPage() {
   const { t } = useTranslation();
-  const { data: capabilities, isLoading } = useQuery({
+  const {
+    data: capabilities,
+    error: capabilitiesError,
+    isLoading,
+    isFetching,
+    refetch: retryCapabilities,
+  } = useQuery({
     queryKey: announcementQueryKeys.capabilities,
     queryFn: getAnnouncementCapabilities,
     retry: false,
@@ -92,6 +96,29 @@ export function AnnouncementsPage() {
       <div>
         {header}
         <PanelSkeleton label={t("ui.loading")} />
+      </div>
+    );
+  }
+  if (capabilitiesError !== null && capabilities === undefined) {
+    return (
+      <div className="grid gap-4">
+        {header}
+        <Card>
+          <div className="grid gap-3 p-4">
+            <ApiErrorText
+              messageKey={mapAnnouncementError(capabilitiesError) ?? mapApiError(capabilitiesError)}
+              requestId={readApiRequestId(capabilitiesError)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void retryCapabilities()}
+              disabled={isFetching}
+            >
+              {t("ui.retry")}
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -213,9 +240,16 @@ function ManageAnnouncements() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [list, setList] = useState<AnnouncementList | null>(null);
-  const [options, setOptions] = useState<AnnouncementOptions | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    list,
+    options,
+    listError,
+    optionsError,
+    pending: dataPending,
+    reload,
+    reloadList,
+    reloadOptions,
+  } = useManagedAnnouncementsData();
   const [editing, setEditing] = useState<ManagedAnnouncement | null | undefined>(undefined);
   const [reportId, setReportId] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
@@ -224,28 +258,12 @@ function ManageAnnouncements() {
   const [busy, setBusy] = useState(false);
   const operationGuard = useOperationGuard();
 
-  const load = useCallback(async () => {
-    setLoadError(null);
-    try {
-      const [nextList, nextOptions] = await Promise.all([
-        listManagedAnnouncements(),
-        getAnnouncementOptions(),
-      ]);
-      setList(nextList);
-      setOptions(nextOptions);
-    } catch (caught) {
-      setLoadError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-    }
-  }, [t]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   const refreshEverywhere = async () => {
-    await load();
-    void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
-    void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
+    reload();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active }),
+      queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive }),
+    ]);
   };
 
   const askPublish = async (item: ManagedAnnouncement) => {
@@ -297,23 +315,29 @@ function ManageAnnouncements() {
 
   const formatter = announcementDateTimeFormatter(i18n.language);
 
-  const loadFailure =
-    loadError === null ? null : (
+  const loadFailure = (kind: "list" | "options") => {
+    const error = kind === "list" ? listError : optionsError;
+    if (error === null) return null;
+    return (
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <p role="alert" className={errorTextClassName}>
-          {loadError}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => void load()}>
+        <ApiErrorText messageKey={error.key} requestId={error.requestId} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void (kind === "list" ? reloadList() : reloadOptions())}
+          disabled={kind === "list" ? dataPending.list : dataPending.options}
+        >
           {t("announcements.manage.retry")}
         </Button>
       </div>
     );
+  };
 
-  if (list === null || options === null) {
-    return loadError === null ? (
+  if (list === null) {
+    return listError === null ? (
       <PanelSkeleton label={t("ui.loading")} />
     ) : (
-      <Card>{loadFailure}</Card>
+      <Card>{loadFailure("list")}</Card>
     );
   }
 
@@ -327,13 +351,14 @@ function ManageAnnouncements() {
             : t("announcements.manage.subtitle")
         }
         actions={
-          <Button size="sm" onClick={() => setEditing(null)}>
+          <Button size="sm" onClick={() => setEditing(null)} disabled={options === null}>
             <Plus aria-hidden />
             {t("announcements.manage.new")}
           </Button>
         }
       />
-      {loadFailure}
+      {loadFailure("list")}
+      {loadFailure("options")}
       {list.announcements.length === 0 ? (
         <div className="p-4">
           <EmptyState
@@ -408,7 +433,7 @@ function ManageAnnouncements() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap justify-end gap-1">
-                        {editable ? (
+                        {editable && options !== null ? (
                           <Button variant="ghost" size="xs" onClick={() => setEditing(item)}>
                             <Pencil aria-hidden />
                             {t("announcements.manage.edit")}
@@ -459,17 +484,19 @@ function ManageAnnouncements() {
         </div>
       )}
 
-      <AnnouncementEditorDialog
-        open={editing !== undefined}
-        onOpenChange={(open) => (open ? undefined : setEditing(undefined))}
-        options={options}
-        announcement={editing ?? null}
-        onSaved={() => {
-          setEditing(undefined);
-          toast({ tone: "success", title: t("announcements.manage.saved") });
-          void refreshEverywhere();
-        }}
-      />
+      {options === null ? null : (
+        <AnnouncementEditorDialog
+          open={editing !== undefined}
+          onOpenChange={(open) => (open ? undefined : setEditing(undefined))}
+          options={options}
+          announcement={editing ?? null}
+          onSaved={() => {
+            setEditing(undefined);
+            toast({ tone: "success", title: t("announcements.manage.saved") });
+            void refreshEverywhere();
+          }}
+        />
+      )}
       <AnnouncementReportDialog
         announcementId={reportId}
         onOpenChange={(open) => (open ? undefined : setReportId(null))}
