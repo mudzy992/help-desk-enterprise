@@ -7,6 +7,7 @@ import { hintClassName } from "@/components/ui/control";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapOnCallError } from "@/lib/on-call/on-call-view";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
@@ -25,6 +26,7 @@ import {
 export function OnCallCalendarFeedCard() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const [status, setStatus] = useState<{
     readonly exists: boolean;
     readonly createdAt: string | null;
@@ -51,36 +53,40 @@ export function OnCallCalendarFeedCard() {
   if (status === null) return null;
 
   const rotate = async () => {
-    setBusy(true);
-    try {
-      const { token } = await rotateOnCallCalendarToken();
-      setUrl(onCallCalendarUrl(token));
-      setStatus({ exists: true, createdAt: new Date().toISOString() });
-      setConfirm(null);
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapOnCallError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(false);
-    }
+    await operationGuard.run("rotate", async () => {
+      setBusy(true);
+      try {
+        const { token } = await rotateOnCallCalendarToken();
+        setUrl(onCallCalendarUrl(token));
+        setStatus({ exists: true, createdAt: new Date().toISOString() });
+        setConfirm(null);
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapOnCallError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(false);
+      }
+    });
   };
 
   const revoke = async () => {
-    setBusy(true);
-    try {
-      await revokeOnCallCalendarToken();
-      setUrl(null);
-      setStatus({ exists: false, createdAt: null });
-      setConfirm(null);
-      toast({ tone: "success", title: t("onCall.feed.revoked") });
-    } catch (caught) {
-      toast({ tone: "danger", title: t(mapApiError(caught)), error: caught });
-    } finally {
-      setBusy(false);
-    }
+    await operationGuard.run("revoke", async () => {
+      setBusy(true);
+      try {
+        await revokeOnCallCalendarToken();
+        setUrl(null);
+        setStatus({ exists: false, createdAt: null });
+        setConfirm(null);
+        toast({ tone: "success", title: t("onCall.feed.revoked") });
+      } catch (caught) {
+        toast({ tone: "danger", title: t(mapApiError(caught)), error: caught });
+      } finally {
+        setBusy(false);
+      }
+    });
   };
 
   const copy = async () => {

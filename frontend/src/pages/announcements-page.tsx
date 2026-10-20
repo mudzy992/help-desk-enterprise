@@ -23,6 +23,7 @@ import {
   severityTone,
   statusTone,
 } from "@/lib/announcements/announcement-view";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
@@ -221,6 +222,7 @@ function ManageAnnouncements() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const operationGuard = useOperationGuard();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -267,27 +269,30 @@ function ManageAnnouncements() {
 
   const confirm = async () => {
     if (pending === null) return;
-    setBusy(true);
-    setActionError(null);
-    try {
-      if (pending.kind === "publish") {
-        await publishAnnouncement(pending.item.id);
-        toast({ tone: "success", title: t("announcements.manage.published") });
-      } else if (pending.kind === "withdraw") {
-        await withdrawAnnouncement(pending.item.id, reason.trim());
-        toast({ tone: "success", title: t("announcements.manage.withdrawn") });
-      } else {
-        await deleteAnnouncement(pending.item.id);
-        toast({ tone: "success", title: t("announcements.manage.deleted") });
+    const operation = pending;
+    await operationGuard.run(`${operation.kind}:${operation.item.id}`, async () => {
+      setBusy(true);
+      setActionError(null);
+      try {
+        if (operation.kind === "publish") {
+          await publishAnnouncement(operation.item.id);
+          toast({ tone: "success", title: t("announcements.manage.published") });
+        } else if (operation.kind === "withdraw") {
+          await withdrawAnnouncement(operation.item.id, reason.trim());
+          toast({ tone: "success", title: t("announcements.manage.withdrawn") });
+        } else {
+          await deleteAnnouncement(operation.item.id);
+          toast({ tone: "success", title: t("announcements.manage.deleted") });
+        }
+        setPending(null);
+        setReason("");
+        await refreshEverywhere();
+      } catch (caught) {
+        setActionError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+      } finally {
+        setBusy(false);
       }
-      setPending(null);
-      setReason("");
-      await refreshEverywhere();
-    } catch (caught) {
-      setActionError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CalendarClock,
@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { createOperationGuard } from "@/lib/async/operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { useOnCallGroupDetail } from "@/lib/on-call/use-on-call-group-detail";
 import { useOnCallOverviewData } from "@/lib/on-call/use-on-call-overview-data";
@@ -80,6 +81,7 @@ export function OnCallPage() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const operationGuard = useRef(createOperationGuard());
 
   useEffect(() => {
     if (overview === null) return;
@@ -132,49 +134,56 @@ export function OnCallPage() {
   );
 
   const decide = async (swap: OnCallSwapView, decision: "accept" | "decline" | "cancel") => {
-    setBusy(swap.id);
-    try {
-      await decideOnCallSwap(swap.id, decision);
-      toast({
-        tone: "success",
-        title:
-          decision === "accept"
-            ? t("onCall.swaps.accepted")
-            : decision === "decline"
-              ? t("onCall.swaps.declined")
-              : t("onCall.swaps.cancelled"),
-      });
-      reloadAll();
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapOnCallError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(null);
-    }
+    await operationGuard.current.run(`swap:${swap.id}`, async () => {
+      setBusy(swap.id);
+      try {
+        await decideOnCallSwap(swap.id, decision);
+        toast({
+          tone: "success",
+          title:
+            decision === "accept"
+              ? t("onCall.swaps.accepted")
+              : decision === "decline"
+                ? t("onCall.swaps.declined")
+                : t("onCall.swaps.cancelled"),
+        });
+        reloadAll();
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapOnCallError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(null);
+      }
+    });
   };
 
   const confirmDelete = async (reason: string) => {
     if (pendingDelete === null || detail === null) return;
-    setBusy("delete");
-    setDeleteError(null);
-    try {
-      if (pendingDelete.kind === "schedule") {
-        await deleteOnCallSchedule(detail.group.id, reason);
-        toast({ tone: "success", title: t("onCall.schedule.deleted") });
-      } else {
-        await deleteOnCallOverride(pendingDelete.id, reason);
-        toast({ tone: "success", title: t("onCall.override.deleted") });
+    const operation = pendingDelete;
+    const groupId = detail.group.id;
+    const key = operation.kind === "schedule" ? `schedule:${groupId}` : `override:${operation.id}`;
+    await operationGuard.current.run(key, async () => {
+      setBusy("delete");
+      setDeleteError(null);
+      try {
+        if (operation.kind === "schedule") {
+          await deleteOnCallSchedule(groupId, reason);
+          toast({ tone: "success", title: t("onCall.schedule.deleted") });
+        } else {
+          await deleteOnCallOverride(operation.id, reason);
+          toast({ tone: "success", title: t("onCall.override.deleted") });
+        }
+        setPendingDelete(null);
+        reloadAll();
+      } catch (caught) {
+        setDeleteError(t(mapOnCallError(caught) ?? mapApiError(caught)));
+      } finally {
+        setBusy(null);
       }
-      setPendingDelete(null);
-      reloadAll();
-    } catch (caught) {
-      setDeleteError(t(mapOnCallError(caught) ?? mapApiError(caught)));
-    } finally {
-      setBusy(null);
-    }
+    });
   };
 
   const header = (

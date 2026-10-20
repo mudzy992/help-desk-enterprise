@@ -12,6 +12,7 @@ import {
   mapAnnouncementError,
   toLocalInputValue,
 } from "@/lib/announcements/announcement-view";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   createAnnouncement,
@@ -127,6 +128,7 @@ export function AnnouncementEditorDialog({
   const [unitFilter, setUnitFilter] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const operationGuard = useOperationGuard();
 
   const isPublished = announcement !== null && announcement.status === "PUBLISHED";
   const hasStarted = isPublished && Date.parse(announcement.startsAt) <= Date.now();
@@ -208,26 +210,29 @@ export function AnnouncementEditorDialog({
       organizationalUnitIds: draft.organizationalUnitIds,
       groupIds: draft.groupIds,
     };
-    setSaving(true);
-    setError(null);
-    try {
-      const saved =
-        announcement === null
-          ? await createAnnouncement(input)
-          : await updateAnnouncement(announcement.id, input);
-      onSaved(saved);
-    } catch (caught) {
-      const detail = announcementErrorDetail(caught);
-      if (detail !== null && detail.startsWith("duration:")) {
-        setError(
-          t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
-        );
-      } else {
-        setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+    if (operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        const saved =
+          announcement === null
+            ? await createAnnouncement(input)
+            : await updateAnnouncement(announcement.id, input);
+        onSaved(saved);
+      } catch (caught) {
+        const detail = announcementErrorDetail(caught);
+        if (detail !== null && detail.startsWith("duration:")) {
+          setError(
+            t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
+          );
+        } else {
+          setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        }
+      } finally {
+        setSaving(false);
       }
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const canSave =

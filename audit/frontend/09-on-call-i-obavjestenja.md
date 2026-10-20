@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **7,9/10 nakon Faze 1**
+**Aktuelna ocjena:** **8,3/10 nakon Faze 2**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **7,9/10** nakon Faze 1 priznaje zatvoren on-call query identitet i recovery, zrelu domensku osnovu, backend zaštite i vremensku zonu, ali zadržava ozbiljan odbitak za mutation concurrency, announcement recovery i preostalu testnu mrežu.
+Ocjena **8,3/10** nakon Faze 2 priznaje zatvoren on-call query identitet, recovery i synchronous mutation concurrency, zrelu domensku osnovu, backend zaštite i vremensku zonu, ali zadržava ozbiljan odbitak za announcement recovery i preostalu testnu mrežu.
 
 ---
 
@@ -153,7 +153,7 @@ Rizici uključuju:
 
 Backend može odbiti dio ponovljenih operacija, ali UX ne smije zavisiti od slučajnog server konflikta.
 
-**Za zatvaranje:** sinhroni operation guard sa stabilnim operation keyem, per-action pending i deferred synchronous-double-click testovima.
+**Status:** zatvoreno u Fazi 2. Stabilni operation key i sinhroni guard sada štite on-call swap/delete/feed/save te announcement settle/save/publish/withdraw/delete/reminder tokove prije prvog `await`; React pending state ostaje prezentacijski signal, ne concurrency autoritet.
 
 ### OCN4 — Capabilities greška degradira dozvole bez objašnjenja
 
@@ -302,13 +302,13 @@ Potrebna je stvarna matrica:
 | ------------------------------------------- | ---------: | --------: |
 | Backend autorizacija i domenske granice     |        9,2 |        10 |
 | Async identity, stale state i recovery      |        8,3 |        10 |
-| Mutation concurrency i cache konzistentnost |        6,2 |        10 |
+| Mutation concurrency i cache konzistentnost |        8,4 |        10 |
 | Vremenska zona i reporting tačnost          |        8,2 |        10 |
 | URL/shareability i navigacija               |        6,0 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
 | Testabilnost i održivost                    |        6,8 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **7,9/10** | **10/10** |
+| **Ukupno**                                  | **8,3/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -350,6 +350,17 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. Deferred synchronous-double-click testovi.
 
 **Exit gate:** svaka korisnička akcija šalje najviše jedan zahtjev i osvježava samo pogođeni snapshot.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Uveden je stabilni `useOperationGuard` adapter nad kanonskim sinhronim operation guardom. Rezervacija nastaje prije prvog `await` i ostaje ista kroz rerender, pa synchronous double-click ne zavisi od kašnjenja React state updatea.
+- On-call swap accept/decline/cancel koristi per-swap key; schedule i override delete koriste zasebne entity ključeve. Range i schedule save, kao i feed rotate/revoke, zaštićeni su prije mrežnog zahtjeva.
+- Announcement banner/modal acknowledge/dismiss, editor create/update, publish/withdraw/delete i report reminder koriste entity/action ključeve. Paralelne različite akcije ostaju dozvoljene, dok se identična aktivna operacija odbacuje.
+- Mutation toastovi nastavljaju prosljeđivati originalni API error, pa zajednički toast prikazuje i kopira request ID gdje ga backend vraća. Query/error standardizacija izvan mutation toka ostaje mapirana na `OCN8` i Fazu 3.
+- Precizni refresh ugovor ostaje domenski: swap odluke osvježavaju overview/me/swaps/detail; schedule/override promjene osvježavaju on-call scope; announcement mutacije osvježavaju manage, active i archive površine.
+- Direktni hook test dokazuje sinhrono blokiranje duplikata, stabilnost kroz rerender i otključavanje po završetku. `OCN3` i mutation concurrency dio `OCN8` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite prolazi 8/8 fajlova i 32/32 testa; puni frontend Vitest prolazi **383/383 fajla i 1514/1514 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
 
 ### Faza 3 — Announcement capabilities, host i manage recovery
 

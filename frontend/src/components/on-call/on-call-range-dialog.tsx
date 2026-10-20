@@ -5,6 +5,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { fromZoneInputValue, mapOnCallError, toZoneInputValue } from "@/lib/on-call/on-call-view";
 import { createOnCallOverride, requestOnCallSwap } from "@/services/on-call-api";
@@ -43,6 +44,7 @@ export function OnCallRangeDialog({
 }: OnCallRangeDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const [userId, setUserId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -76,34 +78,43 @@ export function OnCallRangeDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!valid || saving || startIso === null || endIso === null) return;
-    setSaving(true);
-    setError(null);
-    try {
-      if (mode === "override") {
-        await createOnCallOverride(groupId, {
-          userId,
-          startsAt: startIso,
-          endsAt: endIso,
-          reason: reason.trim(),
-        });
-        toast({ tone: "success", title: t("onCall.override.saved") });
-      } else {
-        await requestOnCallSwap(groupId, {
-          colleagueId: userId,
-          startsAt: startIso,
-          endsAt: endIso,
-          reason: reason.trim(),
-        });
-        toast({ tone: "success", title: t("onCall.swap.requested") });
+    if (
+      !valid ||
+      saving ||
+      startIso === null ||
+      endIso === null ||
+      operationGuard.isPending("save")
+    )
+      return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (mode === "override") {
+          await createOnCallOverride(groupId, {
+            userId,
+            startsAt: startIso,
+            endsAt: endIso,
+            reason: reason.trim(),
+          });
+          toast({ tone: "success", title: t("onCall.override.saved") });
+        } else {
+          await requestOnCallSwap(groupId, {
+            colleagueId: userId,
+            startsAt: startIso,
+            endsAt: endIso,
+            reason: reason.trim(),
+          });
+          toast({ tone: "success", title: t("onCall.swap.requested") });
+        }
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
       }
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (

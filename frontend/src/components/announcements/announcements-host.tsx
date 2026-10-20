@@ -30,6 +30,7 @@ import {
   severityRole,
   severityTone,
 } from "@/lib/announcements/announcement-view";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { cn } from "@/lib/utils";
 import {
@@ -82,6 +83,7 @@ function SeverityIcon({
 export function AnnouncementsHost() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: announcementQueryKeys.active,
@@ -131,27 +133,29 @@ export function AnnouncementsHost() {
   };
 
   const settle = async (item: ActiveAnnouncement) => {
-    setBusyId(item.id);
-    try {
-      if (item.requiresAcknowledgement) {
-        await acknowledgeAnnouncement(item.id);
-        toast({ tone: "success", title: t("announcements.banner.acknowledged") });
-      } else {
-        await dismissAnnouncement(item.id);
+    await operationGuard.run(`settle:${item.id}`, async () => {
+      setBusyId(item.id);
+      try {
+        if (item.requiresAcknowledgement) {
+          await acknowledgeAnnouncement(item.id);
+          toast({ tone: "success", title: t("announcements.banner.acknowledged") });
+        } else {
+          await dismissAnnouncement(item.id);
+        }
+        removeLocally(item.id);
+        if (modal?.id === item.id) setModal(null);
+        void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+        void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
+      } finally {
+        setBusyId(null);
       }
-      removeLocally(item.id);
-      if (modal?.id === item.id) setModal(null);
-      void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-      void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
 
   if (data === undefined || !data.enabled || current === undefined) {

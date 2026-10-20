@@ -7,6 +7,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapOnCallError, moveItem } from "@/lib/on-call/on-call-view";
 import {
@@ -51,6 +52,7 @@ export function OnCallScheduleDialog({
 }: OnCallScheduleDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const schedule = detail.schedule;
   const [timezone, setTimezone] = useState("");
   const [handoffTime, setHandoffTime] = useState("08:00");
@@ -105,29 +107,31 @@ export function OnCallScheduleDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (saving || reason.trim().length < 3) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await saveOnCallSchedule(detail.group.id, {
-        timezone: timezone.trim(),
-        handoffTime,
-        rotationLength,
-        rotationStartDate,
-        isActive,
-        autoAssignOutsideHours: autoAssign,
-        ownerUserId: ownerUserId === "" ? null : ownerUserId,
-        memberUserIds: members.map((member) => member.userId),
-        reason: reason.trim(),
-      });
-      toast({ tone: "success", title: t("onCall.schedule.saved") });
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    if (saving || reason.trim().length < 3 || operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        await saveOnCallSchedule(detail.group.id, {
+          timezone: timezone.trim(),
+          handoffTime,
+          rotationLength,
+          rotationStartDate,
+          isActive,
+          autoAssignOutsideHours: autoAssign,
+          ownerUserId: ownerUserId === "" ? null : ownerUserId,
+          memberUserIds: members.map((member) => member.userId),
+          reason: reason.trim(),
+        });
+        toast({ tone: "success", title: t("onCall.schedule.saved") });
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
+      }
+    });
   };
 
   return (

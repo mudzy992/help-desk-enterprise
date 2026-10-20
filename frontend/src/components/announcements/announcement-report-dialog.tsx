@@ -13,6 +13,7 @@ import {
   mapAnnouncementError,
 } from "@/lib/announcements/announcement-view";
 import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -34,6 +35,7 @@ export function AnnouncementReportDialog({
 }: AnnouncementReportDialogProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const [report, setReport] = useState<AnnouncementReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"csv" | "remind" | null>(null);
@@ -81,24 +83,27 @@ export function AnnouncementReportDialog({
 
   const remind = async () => {
     if (announcementId === null) return;
-    setBusy("remind");
-    try {
-      const result = await remindAnnouncement(announcementId);
-      toast({
-        tone: "success",
-        title: t("announcements.report.reminded", { count: result.notified }),
-        ...(result.emailQueued ? { description: t("announcements.report.remindedEmail") } : {}),
-      });
-      await load(announcementId);
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(null);
-    }
+    const id = announcementId;
+    await operationGuard.run(`remind:${id}`, async () => {
+      setBusy("remind");
+      try {
+        const result = await remindAnnouncement(id);
+        toast({
+          tone: "success",
+          title: t("announcements.report.reminded", { count: result.notified }),
+          ...(result.emailQueued ? { description: t("announcements.report.remindedEmail") } : {}),
+        });
+        await load(id);
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(null);
+      }
+    });
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
