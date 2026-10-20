@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
+**Aktuelna ocjena:** **9,0/10 nakon Faze 4**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -14,17 +14,15 @@ Modul je znatno zreliji od arhivskog audita od 13–15. oktobra. Backend ima ozb
 
 Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva kao aktuelni audit. Većina tada „prihvaćenih rizika“ i dalje je stvarni backlog, a današnji standard repozitorija je viši nakon modula 11–16 i faznog zatvaranja modula 09.
 
-Faza 1 je u međuvremenu izdvojila i direktno testirala latest-only `/status` controller. Najvažniji preostali rizici su:
+Faze 1–4 su izdvojile latest-only status/ticket controllere, zaštitile incident mutation tokove i uspostavile eksplicitan civil-time ugovor. Najvažniji preostali rizici su:
 
-1. status i incident mutation tokovi nemaju synchronous concurrency guard;
-2. incident forme nemaju robustan dependency-retry ni eksplicitan civil-time ugovor;
-3. servisni filteri i otvoreni workspace nisu URL-backed;
-4. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
-5. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
-6. kritične komponente nemaju direktne component/page testove;
-7. browser dokaz nije izvršen u ovom reauditiranju.
+1. servisni filteri i otvoreni workspace nisu URL-backed;
+2. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
+3. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
+4. kritične komponente nemaju direktne component/page testove;
+5. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **8,8/10 nakon Faze 3** priznaje jaku backend osnovu, latest-only status/ticket controllere i zaštićene incident mutation tokove, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **9,0/10 nakon Faze 4** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove i dosljedan civil-time ugovor, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -113,16 +111,13 @@ Stari overview ostaje vidljiv na refresh grešci. Domain error se mapira prije g
 
 Incident editor koristi zaseban React Query ključ za servisne opcije, bez kolizije s catalog-row cache oblikom. Query je aktivan samo dok je dijalog otvoren, čuva uspješne podatke kroz refresh, prikazuje povezanu grešku, request ID i eksplicitni Retry bez zatvaranja dijaloga ili gubitka drafta. Aktivni servisi i već sačuvani neaktivni izbori deriviraju se iz query rezultata umjesto effecta zavisnog od `serviceIds`.
 
-### SS4 — Civil-time ugovor incidenta i downtimea nije eksplicitan
+### SS4 — Incident i downtime imaju eksplicitan civil-time ugovor
 
-**Prioritet:** P1
-**Lokacije:** `incident-form-dialog.tsx`, `service-downtime-window-form.tsx`, status/downtime prikazi
+**Prioritet:** zatvoreno u Fazi 4
 
-Incident `datetime-local` se parsira browser lokalnom zonom i šalje kao ISO instant, ali editor ne prikazuje IANA zonu niti objašnjava author/recipient semantiku. `max={toLocalInput(new Date())}` se računa tokom rendera i može zastarjeti u dugo otvorenom dijalogu. Sličan civil-time rizik postoji u downtime formi.
+Incident i downtime `datetime-local` vrijednosti koriste dokumentovan browser-zone civil-time ugovor i na API granici postaju ISO instant. Centralni helper odbija neispravne kalendarske vrijednosti i nepostojeće civilno vrijeme round-trip provjerom; downtime dodatno validira strogo rastući interval prije slanja.
 
-Backend ispravno radi s instantima i validira range, ali frontend nema DST/cross-zone contract testove za ovaj modul.
-
-**Za zatvaranje:** dokumentovan civil-time ugovor, vidljiva zona, centralni helperi, stabilan/obnovljen `max`, DST i cross-zone testovi za incident i downtime.
+Obje forme prikazuju stvarnu IANA zonu preglednika, downtime period prikazuje zonu i puni lokalizovani raspon, a incident `max` se osvježava svakih 30 sekundi dok je dijalog otvoren. Pure testovi pokrivaju round-trip, neispravne vrijednosti, cross-zone prikaz, sarajevski DST skok i cross-day/range pravila.
 
 ### SS5 — Ticket incident panel ima eksplicitan identity/recovery ugovor
 
@@ -329,7 +324,11 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 4. Stabilizovati ili osvježavati `max` u otvorenom incident dijalogu.
 5. Dodati DST/cross-zone/range testove.
 
-**Exit gate:** isti ugovor vrijedi u UI-u, API payloadu i prikazu primaoca.
+**Status:** završeno. Browser-zona je vidljiva u authoring formama i periodu, API prima ISO instant, `max` ostaje svjež, a DST/cross-zone/range ugovor ima pure regresijske testove.
+
+**Izvršni dokaz:** production build prolazi; puni frontend Vitest prolazi **396/396 fajlova i 1549/1549 testova**. Ciljani ESLint prolazi. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
+
+**Exit gate:** isti ugovor vrijedi u UI-u, API payloadu i prikazu primaoca — ispunjen.
 
 ### Faza 5 — URL-backed katalog i workspace
 

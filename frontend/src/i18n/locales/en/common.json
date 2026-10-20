@@ -3653,7 +3653,8 @@
         "UPCOMING": "Scheduled",
         "ACTIVE": "Active",
         "EXPIRED": "Expired"
-      }
+      },
+      "timeZoneHint": "Civil time in your browser zone: {{timeZone}}. The end must be after the start."
     },
     "columnName": "Service",
     "columnLifecycle": "Lifecycle",
@@ -7695,7 +7696,7 @@
       "message": "First message",
       "messageHint": "What users notice and what we are doing. Shown on the status page.",
       "startedAt": "Start",
-      "startedAtHint": "Leave empty for now; enter an earlier time if the problem began before it was reported.",
+      "startedAtHint": "Leave empty for now; enter an earlier time if the problem began before it was reported. Civil time uses your browser zone: {{timeZone}}.",
       "notify": "Notify users with open tickets on these services",
       "notifyHint": "In-app notice only (no e-mail); personal notification settings apply.",
       "createSubmit": "Create incident",

@@ -3670,7 +3670,8 @@
         "UPCOMING": "Zakazano",
         "ACTIVE": "Aktivno",
         "EXPIRED": "Isteklo"
-      }
+      },
+      "timeZoneHint": "Lokalno vrijeme u zoni preglednika: {{timeZone}}. Kraj mora biti nakon početka."
     },
     "columnName": "Usluga",
     "columnLifecycle": "Životni ciklus",
@@ -7737,7 +7738,7 @@
       "message": "Prva poruka",
       "messageHint": "Šta korisnici primjećuju i šta radimo. Vidljivo na stranici statusa.",
       "startedAt": "Početak",
-      "startedAtHint": "Ostavite prazno za sada; unesite raniji trenutak ako je problem počeo prije prijave.",
+      "startedAtHint": "Ostavite prazno za sada; unesite ranije vrijeme ako je problem počeo prije prijave. Lokalno vrijeme koristi zonu preglednika: {{timeZone}}.",
       "notify": "Obavijesti korisnike s otvorenim tiketima na ovim servisima",
       "notifyHint": "Samo obavijest u aplikaciji (bez e-maila); poštuju se lične postavke obavještenja.",
       "createSubmit": "Kreiraj incident",

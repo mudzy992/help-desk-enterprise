@@ -11,6 +11,11 @@ import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { queryKeys } from "@/lib/query/query-keys";
 import { mapStatusError } from "@/lib/status/status-view";
+import {
+  browserTimeZone,
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/services/downtime-datetime";
 import { listServices } from "@/services/service-catalog-api";
 import {
   createIncident,
@@ -40,12 +45,6 @@ interface IncidentFormDialogProperties {
 
 const titleMax = 200;
 const messageMax = 4000;
-
-/** `datetime-local` wants local time without seconds or zone. */
-function toLocalInput(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 /**
  * Paket 2.7 (§8.3): one dialog for "New incident" on /status, "Create
@@ -80,6 +79,14 @@ export function IncidentFormDialog({
   const [notify, setNotify] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentMinute, setCurrentMinute] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!open) return;
+    setCurrentMinute(new Date());
+    const timer = window.setInterval(() => setCurrentMinute(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [open]);
 
   // Reset on every open so a cancelled draft never leaks into the next incident.
   useEffect(() => {
@@ -130,11 +137,13 @@ export function IncidentFormDialog({
         : [...current, serviceId],
     );
 
+  const startedAtInstant = startedAt.length === 0 ? null : fromDatetimeLocalValue(startedAt);
   const valid =
     title.trim().length >= 3 &&
     serviceIds.length > 0 &&
     (editing !== null || message.trim().length >= 3) &&
-    (startedAt.length === 0 || new Date(startedAt).getTime() <= Date.now());
+    (startedAt.length === 0 ||
+      (startedAtInstant !== null && Date.parse(startedAtInstant) <= currentMinute.getTime()));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -151,7 +160,7 @@ export function IncidentFormDialog({
             visibility,
             serviceIds,
             message: message.trim(),
-            ...(startedAt.length > 0 ? { startedAt: new Date(startedAt).toISOString() } : {}),
+            ...(startedAtInstant !== null ? { startedAt: startedAtInstant } : {}),
             notifyOpenTicketHolders: visibility === "ALL_USERS" && notify,
             ...(ticketIds.length > 0 ? { ticketIds } : {}),
           });
@@ -325,13 +334,16 @@ export function IncidentFormDialog({
                   />
                 )}
               </Field>
-              <Field label={t("status.form.startedAt")} hint={t("status.form.startedAtHint")}>
+              <Field
+                label={t("status.form.startedAt")}
+                hint={t("status.form.startedAtHint", { timeZone: browserTimeZone() })}
+              >
                 {(control) => (
                   <Input
                     {...control}
                     type="datetime-local"
                     value={startedAt}
-                    max={toLocalInput(new Date())}
+                    max={toDatetimeLocalValue(currentMinute)}
                     onChange={(event) => setStartedAt(event.target.value)}
                   />
                 )}

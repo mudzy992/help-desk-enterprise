@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@/lib/services/downtime-datetime";
+import {
+  browserTimeZone,
+  fromDatetimeLocalValue,
+  isValidCivilRange,
+  toDatetimeLocalValue,
+} from "@/lib/services/downtime-datetime";
 import {
   mapServiceCatalogError,
   type ServiceCatalogErrorKey,
@@ -55,6 +60,7 @@ export function ServiceDowntimeWindowForm({
     requireCatalogChangeReason(values.reason) !== null &&
     values.startsAt.length > 0 &&
     values.endsAt.length > 0 &&
+    isValidCivilRange(values.startsAt, values.endsAt) &&
     values.message.trim().length > 0 &&
     !isSaving;
 
@@ -65,8 +71,8 @@ export function ServiceDowntimeWindowForm({
     setIsSaving(true);
     setErrorKey(null);
     const payload = {
-      startsAt: fromDatetimeLocalValue(values.startsAt),
-      endsAt: fromDatetimeLocalValue(values.endsAt),
+      startsAt: fromDatetimeLocalValue(values.startsAt) as string,
+      endsAt: fromDatetimeLocalValue(values.endsAt) as string,
       message: values.message.trim(),
       reason: values.reason.trim(),
     };
@@ -96,7 +102,11 @@ export function ServiceDowntimeWindowForm({
         void submit();
       }}
     >
-      <Field label={t("services.downtime.startsAt")} required>
+      <Field
+        label={t("services.downtime.startsAt")}
+        hint={t("services.downtime.timeZoneHint", { timeZone: browserTimeZone() })}
+        required
+      >
         {(control) => (
           <Input
             {...control}
@@ -106,7 +116,11 @@ export function ServiceDowntimeWindowForm({
           />
         )}
       </Field>
-      <Field label={t("services.downtime.endsAt")} required>
+      <Field
+        label={t("services.downtime.endsAt")}
+        hint={t("services.downtime.timeZoneHint", { timeZone: browserTimeZone() })}
+        required
+      >
         {(control) => (
           <Input
             {...control}
