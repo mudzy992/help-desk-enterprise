@@ -6,7 +6,7 @@ import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
 import { formatAssetDate } from "@/lib/assets/asset-view";
 import type { AssetDetail } from "@/services/assets-api";
 
-/** Paket 3.2 (§17.3): licences on the device (or its user) and covering contracts. */
+/** Delivery invariant (requirement): licences on the device (or its user) and covering contracts. */
 export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
   const { t, i18n } = useTranslation();
   const licenses = asset.licenses ?? [];

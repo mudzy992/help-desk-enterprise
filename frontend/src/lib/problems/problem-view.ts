@@ -128,7 +128,7 @@ const severityRank: Readonly<Record<ProblemSeverity, number>> = {
   CRITICAL: 3,
 };
 
-/** §8.1: a problem created from tickets starts at their highest priority. */
+/** requirement: a problem created from tickets starts at their highest priority. */
 export function highestSeverity(values: readonly ProblemSeverity[]): ProblemSeverity {
   return values.reduce<ProblemSeverity>(
     (best, value) => (severityRank[value] > severityRank[best] ? value : best),
@@ -137,7 +137,7 @@ export function highestSeverity(values: readonly ProblemSeverity[]): ProblemSeve
 }
 
 /**
- * §8.1: title suggested from the first selected ticket, description listing
+ * requirement: title suggested from the first selected ticket, description listing
  * the linked ticket numbers (the agent edits both before saving).
  */
 export function suggestProblemDraft(
@@ -150,7 +150,7 @@ export function suggestProblemDraft(
   return { title, description: numbers.length > 0 ? `${descriptionIntro} ${numbers}` : "" };
 }
 
-/** Mirrors the backend (§5): cancel and reopen need a reason. */
+/** Mirrors the backend (requirement): cancel and reopen need a reason. */
 export function transitionNeedsReason(from: ProblemStatus, to: ProblemStatus): boolean {
   return (
     to === "CANCELLED" || (to === "INVESTIGATING" && (from === "RESOLVED" || from === "CANCELLED"))
@@ -218,7 +218,7 @@ const historyFieldKeys: Readonly<Record<string, TranslationKey>> = {
   resolution: "problems.fields.resolution",
 };
 
-/** One line of the problem history (§16). */
+/** One line of the problem history (requirement). */
 export function problemHistoryText(
   t: Translate,
   action: string,
@@ -286,7 +286,7 @@ export function problemHistoryText(
         failed: count("failed"),
       });
     }
-    // P5b (§9): affected CMDB items, extra services, status-page incidents.
+    // P5b (requirement): affected CMDB items, extra services, status-page incidents.
     case "asset_linked":
       return t("problems.history.assetLinked", { asset: value("assetTag") ?? "—" });
     case "asset_unlinked":

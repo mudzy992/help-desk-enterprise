@@ -34,7 +34,7 @@ interface ProblemFormSheetProperties {
 }
 
 /**
- * Paket 3.3 (§14): create a problem by hand or edit its basics (title,
+ * Delivery invariant (requirement): create a problem by hand or edit its basics (title,
  * description, impact/urgency, unit, owner, group, service). The analysis
  * fields are edited on the Analysis tab.
  */

@@ -78,7 +78,7 @@ function useErrorText() {
   };
 }
 
-/** Paket 3.2 (§4, §7, §17.7): types with attributes, and locations (asset.type.manage). */
+/** Delivery invariant (requirement, requirement, requirement): types with attributes, and locations (asset.type.manage). */
 export function AssetCatalogManager() {
   const { t, i18n } = useTranslation();
   const locationsEnabled = useAssetLocationsEnabled();
@@ -896,7 +896,7 @@ function LocationEditor({
     setError(null);
   }, [open, location, initialParentId]);
 
-  // §7: any location may be a parent, except the location itself, its own
+  // requirement: any location may be a parent, except the location itself, its own
   // sub-locations (no cycles) and parents that would exceed the depth limit.
   const rows = flattenLocationTree(catalog.locations);
   const excluded =

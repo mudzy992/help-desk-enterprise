@@ -58,7 +58,7 @@ function AssetChip({ asset }: { readonly asset: AssetRelationSummary }) {
   );
 }
 
-/** Paket 3.2 (§6): relations list, add/remove and the impact view. */
+/** Delivery invariant (requirement): relations list, add/remove and the impact view. */
 export function AssetRelationsPanel({
   asset,
   onChanged,

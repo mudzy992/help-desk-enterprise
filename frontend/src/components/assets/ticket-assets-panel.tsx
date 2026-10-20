@@ -28,7 +28,7 @@ import {
 } from "@/services/assets-api";
 
 /**
- * Paket 3.2 (§8): equipment on a ticket. Staff with `asset.read` add, remove
+ * Delivery invariant (requirement): equipment on a ticket. Staff with `asset.read` add, remove
  * and mark the primary item; the requester sees the linked equipment only.
  * Hidden when the module is off or nothing is linked and editing is not
  * possible.

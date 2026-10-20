@@ -41,7 +41,7 @@ interface ProblemResolveTicketsSectionProperties {
 }
 
 /**
- * Paket 3.3 (P4, §8.4): optional group resolution when a problem becomes
+ * Delivery invariant (P4, requirement): optional group resolution when a problem becomes
  * RESOLVED. Nothing is preselected: the agent ticks the box, reviews which
  * open tickets will be resolved (and why others are skipped) and edits the
  * public message the requesters receive.

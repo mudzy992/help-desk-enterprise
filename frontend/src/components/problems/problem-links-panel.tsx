@@ -61,7 +61,7 @@ const rowClassName =
   "flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-muted/60";
 
 /**
- * Paket 3.3 P5b (§9): additional services, affected CMDB items (with
+ * Delivery invariant (requirement): additional services, affected CMDB items (with
  * suggestions from the linked tickets) and status-page incidents. Problem
  * managers of the group edit; everyone with `problem.read` sees the links.
  */

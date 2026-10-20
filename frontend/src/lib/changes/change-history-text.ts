@@ -36,7 +36,7 @@ const countOf = (detail: Record<string, unknown> | null, key: string): number =>
   return Array.isArray(value) ? value.length : 0;
 };
 
-/** One line of the change history (§19). */
+/** One line of the change history (requirement). */
 export function changeHistoryText(
   t: Translate,
   action: string,

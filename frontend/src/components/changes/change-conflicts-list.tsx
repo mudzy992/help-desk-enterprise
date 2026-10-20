@@ -6,7 +6,7 @@ import { changeStatusKeys, changeStatusTone, formatChangeWindow } from "@/lib/ch
 import type { ChangeConflicts } from "@/services/changes-api";
 
 /**
- * Paket 3.4 (§9): overlapping changes, downtime windows and a freeze. A
+ * Delivery invariant (requirement): overlapping changes, downtime windows and a freeze. A
  * blocking freeze is an error; everything else is a warning to acknowledge.
  */
 export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeConflicts }) {

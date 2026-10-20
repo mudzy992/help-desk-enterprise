@@ -64,7 +64,7 @@ export function changeOutcomeTone(outcome: ChangeOutcome): BadgeTone {
 
 const levelValue: Readonly<Record<ChangeLevel, number>> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
 
-/** §7, mirrors `computeChangeRisk`: impact × likelihood. */
+/** requirement, mirrors `computeChangeRisk`: impact × likelihood. */
 export function computeChangeRisk(impact: ChangeLevel, likelihood: ChangeLevel): ChangeRisk {
   const product = levelValue[impact] * levelValue[likelihood];
   if (product <= 2) return "LOW";
@@ -76,19 +76,19 @@ export function computeChangeRisk(impact: ChangeLevel, likelihood: ChangeLevel):
 export const changeReasonMin = 5;
 export const changeFailedReviewMin = 20;
 
-/** §6: return, withdraw and cancel need a reason. */
+/** requirement: return, withdraw and cancel need a reason. */
 export function actionNeedsReason(action: ChangeAction): boolean {
   return action === "return" || action === "withdraw" || action === "cancel";
 }
 
-/** §9: actions whose window is checked for conflicts (target AUTHORIZATION or STANDARD schedule). */
+/** requirement: actions whose window is checked for conflicts (target AUTHORIZATION or STANDARD schedule). */
 export function actionChecksConflicts(action: ChangeAction, type: ChangeType): boolean {
   return (
     action === "authorize" || action === "schedule" || (action === "submit" && type === "EMERGENCY")
   );
 }
 
-/** §12: review notes; failed or rolled-back changes need a real lesson. */
+/** requirement: review notes; failed or rolled-back changes need a real lesson. */
 export function reviewNotesMin(outcome: ChangeOutcome | null): number {
   return outcome === "FAILED" || outcome === "ROLLED_BACK" ? changeFailedReviewMin : 1;
 }

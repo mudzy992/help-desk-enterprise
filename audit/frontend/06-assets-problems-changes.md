@@ -2,7 +2,7 @@
 
 **Datum reaudita:** 20. 10. 2026.
 **Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
-**Aktuelna ocjena:** **9,6/10 nakon Faze 6**
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7; browser dokaz još nije zatvoren**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -240,9 +240,9 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | List/detail async i recovery ugovori      |        9,5 |        10 |
 | Mutation/version-conflict konzistentnost  |        8,8 |        10 |
 | URL/filter/bulk UX                        |        9,2 |        10 |
-| Testabilnost i održivost                  |        9,3 |        10 |
+| Testabilnost i održivost                  |         10 |        10 |
 | Accessibility/responsive/browser dokaz    |        6,5 |        10 |
-| **Ukupno**                                | **9,6/10** | **10/10** |
+| **Ukupno**                                | **9,8/10** | **10/10** |
 
 Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, URL-search i supporting-data recovery ugovori su ojačani; preostali odbici prvenstveno dolaze iz mutation/race dokaza, koncentracije odgovornosti i neizvršenog browser closeouta.
 
@@ -402,6 +402,14 @@ Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, UR
 4. Ažurirati audit dokazima za svaki nalaz.
 
 **Exit gate:** 0 lint errora/warninga u punom frontend lint runu i svi unit/component gateovi zeleni.
+
+#### Evidencija zatvaranja Faze 7 (20. 10. 2026.)
+
+- Iz Assets/Problems/Changes production scopea uklonjene su historijske `Paket` i numerisane `§` oznake, uz zadržavanje komentara koji objašnjavaju domenske, permission, consistency i UX invariante.
+- Dodan je scope hygiene test koji skenira relevantne page, component, lib i service izvore i sprečava ponovno uvođenje delivery-history oznaka.
+- `APC10` je zatvoren; statički dio završne regresije `APC1–APC11` je zelen.
+
+**Izvršni dokaz:** hygiene test 1/1; puni frontend Vitest prolaz 368/368 fajlova odnosno 1474/1474 testa; production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 8 — Browser/E2E closeout
 

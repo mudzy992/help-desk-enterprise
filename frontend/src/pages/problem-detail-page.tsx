@@ -57,7 +57,7 @@ import {
 
 type Tab = "overview" | "analysis" | "tickets" | "links" | "changes" | "history";
 
-/** Paket 3.3 (§14): problem record with overview, analysis, tickets and history. */
+/** Delivery invariant (requirement): problem record with overview, analysis, tickets and history. */
 export function ProblemDetailPage() {
   const { t } = useTranslation();
   const { problemId = "" } = useParams();
@@ -160,7 +160,7 @@ export function ProblemDetailPage() {
     (to) => to !== "CANCELLED" && !(to === "INVESTIGATING" && problem.status !== "NEW"),
   );
 
-  // P4 (§7): a known error (or resolved problem) without an article offers one.
+  // P4 (requirement): a known error (or resolved problem) without an article offers one.
   const canCreateArticle =
     canManage &&
     (problem.status === "KNOWN_ERROR" || problem.status === "RESOLVED") &&

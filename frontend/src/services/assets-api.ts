@@ -2,7 +2,7 @@ import { apiDownloadRequest, apiRequest } from "@/services/api";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 
 /**
- * Paket 3.2 (§14): `/assets/*`. Types mirror `backend/src/modules/assets`.
+ * Delivery invariant (requirement): `/assets/*`. Types mirror `backend/src/modules/assets`.
  * The server is authoritative for the module switch, permissions and the
  * unit scope; these calls only decide what the UI renders.
  */
@@ -577,7 +577,7 @@ export function setAssetLocationArchived(id: string, archived: boolean): Promise
   });
 }
 
-/** Paket 3.2 (§8): the requester's own equipment for the create form. */
+/** Delivery invariant (requirement): the requester's own equipment for the create form. */
 export type TicketAssetPickerItem = {
   readonly id: string;
   readonly assetTag: string;
@@ -651,7 +651,7 @@ export function setPrimaryTicketAsset(
   );
 }
 
-// ------------------------------------------------------------ licences and contracts (§9, §10)
+// ------------------------------------------------------------ licences and contracts (requirement, requirement)
 
 export const softwareLicenseKinds = ["PER_DEVICE", "PER_USER", "SITE", "SUBSCRIPTION"] as const;
 export type SoftwareLicenseKind = (typeof softwareLicenseKinds)[number];
@@ -871,7 +871,7 @@ export function removeContractItem(id: string, assetId: string): Promise<unknown
   });
 }
 
-// ------------------------------------------------------------ import / export (§11, §13)
+// ------------------------------------------------------------ import / export (requirement, requirement)
 
 export type AssetImportMode = "CREATE_ONLY" | "UPSERT";
 export type AssetImportStatus = "PREVIEW" | "APPLIED" | "FAILED" | "EXPIRED";
@@ -1012,7 +1012,7 @@ export async function exportAssets(
   triggerBlobDownload(result.blob, result.fileName ?? `assets.${format}`);
 }
 
-// ------------------------------------------------------------ AD computers (§12)
+// ------------------------------------------------------------ AD computers (requirement)
 
 export type AssetDirectorySyncTotals = {
   readonly seen: number;

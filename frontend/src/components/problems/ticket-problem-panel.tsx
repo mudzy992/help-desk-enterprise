@@ -17,7 +17,7 @@ import { mapProblemError, problemStatusKeys, problemStatusTone } from "@/lib/pro
 import { getTicketProblem, problemQueryKeys, unlinkProblemTicket } from "@/services/problems-api";
 
 /**
- * Paket 3.3 (§8.3): the problem behind a ticket. Staff with `problem.read`
+ * Delivery invariant (requirement): the problem behind a ticket. Staff with `problem.read`
  * see it; requesters never get the panel (the server returns visible=false).
  */
 export function TicketProblemPanel({

@@ -39,7 +39,7 @@ const totalKeys = [
   "conflicts",
 ] as const satisfies readonly (keyof AssetDirectorySyncTotals)[];
 
-/** Paket 3.2 (§12): AD computers — status, dry-run and manual sync (admins). */
+/** Delivery invariant (requirement): AD computers — status, dry-run and manual sync (admins). */
 export function AssetDirectorySyncCard() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();

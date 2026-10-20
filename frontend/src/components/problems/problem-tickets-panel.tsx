@@ -28,7 +28,7 @@ import {
   type ProblemDetail,
 } from "@/services/problems-api";
 
-/** Paket 3.3 (§8.3): tickets grouped under the problem, open/total. */
+/** Delivery invariant (requirement): tickets grouped under the problem, open/total. */
 export function ProblemTicketsPanel({
   problem,
   onChanged,

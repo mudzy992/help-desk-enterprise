@@ -84,7 +84,7 @@ type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
 /**
- * Paket 3.2 (§17.2, §17.7): the asset register with filters and, for
+ * Delivery invariant (requirement, requirement): the asset register with filters and, for
  * `asset.type.manage`, the catalog of types, attributes and locations.
  */
 export function AssetsPage() {

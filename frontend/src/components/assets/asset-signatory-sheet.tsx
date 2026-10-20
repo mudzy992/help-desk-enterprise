@@ -21,7 +21,7 @@ export type SignatorySheetUnit = {
   } | null;
 };
 
-/** Paket 3.2 C9c: pick the transfer-record signatory of one organizational unit. */
+/** Delivery invariant: pick the transfer-record signatory of one organizational unit. */
 export function AssetSignatorySheet({
   unit,
   onOpenChange,

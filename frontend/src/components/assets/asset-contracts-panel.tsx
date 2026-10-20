@@ -65,7 +65,7 @@ function useDebounced(value: string): string {
   return debounced;
 }
 
-/** Paket 3.2 (§10): warranty, support, lease and maintenance contracts. */
+/** Delivery invariant (requirement): warranty, support, lease and maintenance contracts. */
 export function AssetContractsPanel({ canManage }: { readonly canManage: boolean }) {
   const { t, i18n } = useTranslation();
   const [searchText, setSearchText] = useState("");

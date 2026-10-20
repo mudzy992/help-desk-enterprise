@@ -51,7 +51,7 @@ const statusTone: Readonly<
   EXPIRED: "neutral",
 };
 
-/** Paket 3.2 (§11, §17.4): template → file → mapping → preview and confirmation. */
+/** Delivery invariant (requirement, requirement): template → file → mapping → preview and confirmation. */
 export function AssetImportPanel() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();

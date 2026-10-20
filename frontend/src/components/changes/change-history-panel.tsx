@@ -11,7 +11,7 @@ import { changeHistoryText, mapChangeError } from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { changeQueryKeys, getChangeEvents } from "@/services/changes-api";
 
-/** Paket 3.4 (§19): newest first, the last 200 entries. */
+/** Delivery invariant (requirement): newest first, the last 200 entries. */
 export function ChangeHistoryPanel({
   changeId,
   versionKey,

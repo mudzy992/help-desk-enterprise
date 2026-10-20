@@ -42,7 +42,7 @@ import {
 } from "@/services/changes-api";
 
 /**
- * Paket 3.4 (§13): standard change templates. Only change managers see this
+ * Delivery invariant (requirement): standard change templates. Only change managers see this
  * tab; templates are deactivated, never deleted, and must stay low or medium risk.
  */
 export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOptions | undefined }) {

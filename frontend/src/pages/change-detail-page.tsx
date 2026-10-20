@@ -63,7 +63,7 @@ type Tab = "overview" | "plan" | "approvals" | "links" | "history";
 
 const finalStatuses = new Set(["CLOSED", "REJECTED", "CANCELLED"]);
 
-/** Paket 3.4 (§17): change record with overview, plan, CAB approval, links and history. */
+/** Delivery invariant (requirement): change record with overview, plan, CAB approval, links and history. */
 export function ChangeDetailPage() {
   const { t } = useTranslation();
   const { changeId = "" } = useParams();

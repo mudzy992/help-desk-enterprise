@@ -32,7 +32,7 @@ const holderReasonKeys = {
 } as const;
 
 /**
- * Paket 3.2 C9b: asset manager overview. Every card is a real table (numbers
+ * Delivery invariant: asset manager overview. Every card is a real table (numbers
  * are text, bars are decoration only), so nothing depends on colour or on a
  * chart being readable by a screen reader.
  */

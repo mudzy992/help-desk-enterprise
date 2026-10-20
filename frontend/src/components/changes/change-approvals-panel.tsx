@@ -26,7 +26,7 @@ interface ChangeApprovalsPanelProperties {
 }
 
 /**
- * Paket 3.4 (§8): CAB round, quorum, who can still vote and the vote form.
+ * Delivery invariant (requirement): CAB round, quorum, who can still vote and the vote form.
  * Rejecting needs a comment; earlier rounds stay visible but do not count.
  */
 export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelProperties) {

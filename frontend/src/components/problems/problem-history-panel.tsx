@@ -11,7 +11,7 @@ import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemHistoryText } from "@/lib/problems/problem-view";
 import { getProblemEvents, problemQueryKeys } from "@/services/problems-api";
 
-/** Paket 3.3 (§16): newest first, the last 200 entries. */
+/** Delivery invariant (requirement): newest first, the last 200 entries. */
 export function ProblemHistoryPanel({
   problemId,
   versionKey,

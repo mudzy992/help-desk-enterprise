@@ -77,7 +77,7 @@ function parseOne<T extends string>(raw: string | null, values: readonly T[]): T
   return raw !== null && (values as readonly string[]).includes(raw) ? (raw as T) : "";
 }
 
-/** Paket 3.4 (§17): change register with the advanced search and cursor paging. */
+/** Delivery invariant (requirement): change register with the advanced search and cursor paging. */
 export function ChangesPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();

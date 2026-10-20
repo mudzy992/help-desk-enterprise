@@ -64,7 +64,7 @@ function useDebounced(value: string, minLength = 2): string {
   return debounced;
 }
 
-/** Paket 3.2 (§9): licence register with compliance (used / seats). */
+/** Delivery invariant (requirement): licence register with compliance (used / seats). */
 export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean }) {
   const { t, i18n } = useTranslation();
   const [searchText, setSearchText] = useState("");

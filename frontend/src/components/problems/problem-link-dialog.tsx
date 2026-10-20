@@ -55,7 +55,7 @@ const titleMax = 200;
 const descriptionMax = 8000;
 
 /**
- * Paket 3.3 (§8.1): "Create problem" from the selected tickets (or the open
+ * Delivery invariant (requirement): "Create problem" from the selected tickets (or the open
  * ticket) and "Add to problem" (search among open problems). Skipped tickets
  * are listed with the reason before the dialog closes.
  */

@@ -1,7 +1,7 @@
 import { apiRequest } from "@/services/api";
 
 /**
- * Paket 3.4: `/changes/*`. Types mirror `backend/src/modules/changes`.
+ * Delivery invariant: `/changes/*`. Types mirror `backend/src/modules/changes`.
  * The server enforces the module switch, permissions, the unit scope and the
  * CAB membership; these calls only decide what the UI renders.
  */

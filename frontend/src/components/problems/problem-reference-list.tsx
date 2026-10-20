@@ -67,7 +67,7 @@ export function AssetProblemsPanel({ items }: { readonly items: readonly Problem
 }
 
 /**
- * P5b (§9): "This outage is caused by problem P-…" on an incident card. Shown
+ * P5b (requirement): "This outage is caused by problem P-…" on an incident card. Shown
  * only to people who manage incidents; renders nothing without links.
  */
 export function IncidentProblemLinks({ incidentId }: { readonly incidentId: string }) {

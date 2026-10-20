@@ -47,7 +47,7 @@ describe("asset view helpers ()", () => {
 
 import { flattenLocationTree, locationHeight, locationSubtree } from "@/lib/assets/asset-view";
 
-describe("location tree (§7)", () => {
+describe("location tree (requirement)", () => {
   const locations = [
     { id: "hq", name: "Direkcija", parentId: null },
     { id: "vi", name: "Visoko", parentId: "ze" },

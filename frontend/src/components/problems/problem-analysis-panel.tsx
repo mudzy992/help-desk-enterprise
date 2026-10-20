@@ -25,7 +25,7 @@ function sameWhys(left: readonly ProblemWhy[], right: readonly ProblemWhy[]): bo
 }
 
 /**
- * Paket 3.3 (§6, §7): root cause analysis: category, cause, up to five
+ * Delivery invariant (requirement, requirement): root cause analysis: category, cause, up to five
  * "why?" steps, workaround and resolution. Read-only without `problem.manage`
  * or once the problem is closed/cancelled.
  */

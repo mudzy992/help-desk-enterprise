@@ -38,7 +38,7 @@ interface ProblemStatusSheetProperties {
 }
 
 /**
- * Paket 3.3 (§5, §8.4): status change with the reason where the rules ask for
+ * Delivery invariant (requirement, requirement): status change with the reason where the rules ask for
  * one; RESOLVED optionally resolves the open linked tickets (P4).
  */
 export function ProblemStatusSheet({

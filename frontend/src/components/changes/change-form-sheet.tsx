@@ -66,7 +66,7 @@ interface ChangeFormSheetProperties {
 const textMax = 8000;
 
 /**
- * Paket 3.4 (§6, §17): create a change or edit it. A standard change starts
+ * Delivery invariant (requirement, requirement): create a change or edit it. A standard change starts
  * from a template (plans, impact and likelihood come from it). In SCHEDULED
  * only the window and the owner can change (`editScope = "window"`).
  */
@@ -159,7 +159,7 @@ export function ChangeFormSheet({
     setTemplateId(id);
     const next = options.templates.find((item) => item.id === id);
     if (next === undefined) return;
-    // §13: the template decides impact, likelihood and the downtime default.
+    // requirement: the template decides impact, likelihood and the downtime default.
     setImpact(next.impact);
     setLikelihood(next.likelihood);
     setCausesDowntime(next.causesDowntime);
@@ -175,7 +175,7 @@ export function ChangeFormSheet({
     (startIso !== null && endIso !== null && startIso >= endIso);
   const windowHalf = (startIso === null) !== (endIso === null);
 
-  // §9 / §17: live conflicts while the window is chosen (debounced).
+  // requirement / requirement: live conflicts while the window is chosen (debounced).
   const previewInput = buildChangeConflictPreview({
     open,
     type,

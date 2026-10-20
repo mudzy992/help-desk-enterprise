@@ -80,7 +80,7 @@ type Tab =
   | "history";
 type Sheet = "edit" | "duplicate" | "status" | "assign" | "unassign" | null;
 
-/** Paket 3.2 (§17.3): asset card with overview, tickets, relations and history. */
+/** Delivery invariant (requirement): asset card with overview, tickets, relations and history. */
 export function AssetDetailPage() {
   const { t, i18n } = useTranslation();
   const { assetId = "" } = useParams();

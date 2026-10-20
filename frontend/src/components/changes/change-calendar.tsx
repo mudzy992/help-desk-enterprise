@@ -42,7 +42,7 @@ type DayItems = {
 };
 
 /**
- * Paket 3.4 (§17, §20): month calendar of changes, downtime windows (not
+ * Delivery invariant (requirement, requirement): month calendar of changes, downtime windows (not
  * created by a change) and freeze periods. A table on wide screens, a list by
  * day on narrow ones; risk is always written out, never colour alone.
  */

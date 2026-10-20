@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 
-/** Paket 3.2 (§9, §10): days left until a licence or contract ends. */
+/** Delivery invariant (requirement, requirement): days left until a licence or contract ends. */
 export function AssetExpiryBadge({ daysLeft }: { readonly daysLeft: number | null }) {
   const { t } = useTranslation();
   if (daysLeft === null) return null;

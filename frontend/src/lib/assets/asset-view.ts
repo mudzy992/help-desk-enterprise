@@ -52,7 +52,7 @@ export function assetStatusTone(status: AssetStatus): AssetTone {
   }
 }
 
-/** Mirrors backend `assetStatusTransitions` (§5); the server re-checks. */
+/** Mirrors backend `assetStatusTransitions` (requirement); the server re-checks. */
 export const assetStatusTransitions: Readonly<Record<AssetStatus, readonly AssetStatus[]>> = {
   ORDERED: ["IN_STOCK", "IN_USE", "RETIRED", "LOST"],
   IN_STOCK: ["IN_USE", "IN_REPAIR", "RETIRED", "LOST"],

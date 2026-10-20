@@ -25,7 +25,7 @@ interface ProblemArticleSheetProperties {
 }
 
 /**
- * Paket 3.3 (P4, §7): the known error becomes a knowledge article DRAFT
+ * Delivery invariant (P4, requirement): the known error becomes a knowledge article DRAFT
  * (symptoms, cause, workaround). Personal data is replaced on the server as in
  * 2.9; the agent reviews and edits the text, and picks a service when the
  * problem has none. Publishing follows the regular knowledge base workflow.

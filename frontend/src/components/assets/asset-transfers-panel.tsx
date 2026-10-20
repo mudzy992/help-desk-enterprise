@@ -55,7 +55,7 @@ interface AssetTransfersPanelProperties {
 }
 
 /**
- * Paket 3.2 C9 (§7a.7): transfer records. The register (all records in the
+ * Delivery invariant (requirement): transfer records. The register (all records in the
  * viewer's scope), one asset's records and "my" records share this panel.
  */
 export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProperties) {

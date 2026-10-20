@@ -95,7 +95,7 @@ const nullable = (value: string): string | null =>
   value.trim().length === 0 ? null : value.trim();
 
 /**
- * Paket 3.2 (§3, §4, §17): create, edit or duplicate an asset. Attributes
+ * Delivery invariant (requirement, requirement, requirement): create, edit or duplicate an asset. Attributes
  * follow the selected type; the server validates types, uniqueness and scope.
  */
 export function AssetFormSheet({

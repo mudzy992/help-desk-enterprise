@@ -65,7 +65,7 @@ function parseStatusFilter(raw: string | null): StatusFilter {
     : "open";
 }
 
-/** Paket 3.3 (§14): problem register with filters and cursor paging. */
+/** Delivery invariant (requirement): problem register with filters and cursor paging. */
 export function ProblemsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();

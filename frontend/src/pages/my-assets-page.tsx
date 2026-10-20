@@ -23,7 +23,7 @@ import { assetQueryKeys, getMyAssets } from "@/services/assets-api";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import { assetTransferQueryKeys, listMyAssetTransfers } from "@/services/asset-transfers-api";
 
-/** Paket 3.2 (§17.9): equipment assigned to the signed-in user, with own tickets. */
+/** Delivery invariant (requirement): equipment assigned to the signed-in user, with own tickets. */
 export function MyAssetsPage() {
   const { t, i18n } = useTranslation();
   const locationsEnabled = useAssetLocationsEnabled();
@@ -175,7 +175,7 @@ export function MyAssetsPage() {
   );
 }
 
-/** C9 (§7a.7): the user's own transfer records (download only). */
+/** C9 (requirement): the user's own transfer records (download only). */
 function MyTransfers() {
   const { t } = useTranslation();
   const { data } = useQuery({

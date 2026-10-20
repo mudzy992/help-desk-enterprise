@@ -1,4 +1,4 @@
-/** Mirrors backend `assetLimits.locationDepthMax` (§7). */
+/** Mirrors backend `assetLimits.locationDepthMax` (requirement). */
 export const assetLocationDepthMax = 6;
 
 export type LocationTreeRow<

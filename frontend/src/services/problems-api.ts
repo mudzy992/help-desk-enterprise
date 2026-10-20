@@ -2,7 +2,7 @@ import { apiRequest } from "@/services/api";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
 /**
- * Paket 3.3: `/problems/*`. Types mirror `backend/src/modules/problems`.
+ * Delivery invariant: `/problems/*`. Types mirror `backend/src/modules/problems`.
  * The server enforces the module switch, permissions and the unit scope;
  * these calls only decide what the UI renders.
  */
@@ -403,7 +403,7 @@ export type ProblemStatusInput = {
   readonly version: number;
   readonly status: ProblemStatus;
   readonly reason?: string;
-  /** P4 (§8.4): with RESOLVED, also resolve the open linked tickets. */
+  /** P4 (requirement): with RESOLVED, also resolve the open linked tickets. */
   readonly resolveTickets?: boolean;
   readonly message?: string;
   readonly closeCode?: string;
