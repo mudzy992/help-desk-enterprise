@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CalendarClock,
@@ -23,12 +23,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { mapApiError } from "@/lib/map-api-error";
+import { useOnCallGroupDetail } from "@/lib/on-call/use-on-call-group-detail";
+import { useOnCallOverviewData } from "@/lib/on-call/use-on-call-overview-data";
 import {
   formatOnCallTime,
   onCallSwapStatusKey,
   groupSegmentsByDay,
-  isOnCallDisabledError,
   mapOnCallError,
   startOfWeek,
 } from "@/lib/on-call/on-call-view";
@@ -38,24 +39,12 @@ import {
   decideOnCallSwap,
   deleteOnCallOverride,
   deleteOnCallSchedule,
-  getOnCallGroup,
-  getOnCallMe,
-  getOnCallOverview,
-  listOnCallSwaps,
-  type OnCallGroupDetail,
-  type OnCallMe,
-  type OnCallOverview,
   type OnCallSwapView,
 } from "@/services/on-call-api";
 
 const calendarDays = 28;
 const dayMs = 86_400_000;
 
-type LoadError = {
-  readonly key: ApiErrorKey;
-  readonly requestId: string | null;
-  readonly disabled: boolean;
-};
 type PendingDelete =
   { readonly kind: "schedule" } | { readonly kind: "override"; readonly id: string };
 
@@ -70,16 +59,21 @@ export function OnCallPage() {
   const { session } = useSessionCapabilities();
   const currentUserId = session?.principal.subjectId ?? null;
 
-  const [overview, setOverview] = useState<OnCallOverview | null>(null);
-  const [me, setMe] = useState<OnCallMe | null>(null);
-  const [swaps, setSwaps] = useState<readonly OnCallSwapView[]>([]);
-  const [loadError, setLoadError] = useState<LoadError | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    overview,
+    me,
+    swaps,
+    overviewError,
+    meError,
+    swapsError,
+    pending,
+    refreshing,
+    reloadAll: reloadOverviewData,
+    reloadOverview,
+    reloadMe,
+    reloadSwaps,
+  } = useOnCallOverviewData();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<OnCallGroupDetail | null>(null);
-  const [detailError, setDetailError] = useState<ApiErrorKey | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailRevision, setDetailRevision] = useState(0);
   const [weekOffset, setWeekOffset] = useState(0);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [rangeMode, setRangeMode] = useState<OnCallRangeMode | null>(null);
@@ -87,84 +81,46 @@ export function OnCallPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (overview === null) return;
+    setSelectedGroupId(
+      (current) =>
+        current ??
+        overview.groups.find((group) => group.hasSchedule)?.groupId ??
+        overview.groups[0]?.groupId ??
+        null,
+    );
+  }, [overview]);
+
+  const selectedOverviewGroup = overview?.groups.find((group) => group.groupId === selectedGroupId);
   const timeZone =
-    detail?.schedule?.timezone ??
-    detail?.defaultTimezone ??
-    Intl.DateTimeFormat().resolvedOptions().timeZone;
+    selectedOverviewGroup?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const rangeStart = useMemo(
     () => new Date(startOfWeek(new Date(), timeZone).getTime() + weekOffset * 7 * dayMs),
     [timeZone, weekOffset],
   );
-
-  const loadOverview = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const [loadedOverview, loadedMe, loadedSwaps] = await Promise.all([
-        getOnCallOverview(),
-        getOnCallMe(),
-        listOnCallSwaps(),
-      ]);
-      setOverview(loadedOverview);
-      setMe(loadedMe);
-      setSwaps(loadedSwaps.swaps);
-      setLoadError(null);
-      setSelectedGroupId(
-        (current) =>
-          current ??
-          loadedOverview.groups.find((group) => group.hasSchedule)?.groupId ??
-          loadedOverview.groups[0]?.groupId ??
-          null,
-      );
-    } catch (caught) {
-      setLoadError({
-        key: mapApiError(caught),
-        requestId: readApiRequestId(caught),
-        disabled: isOnCallDisabledError(caught),
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
-
-  useEffect(() => {
-    if (selectedGroupId === null) return;
-    // A response for a group or week that is no longer selected must not overwrite the current one.
-    let active = true;
-    setDetailLoading(true);
-    // A day of margin on both sides keeps DST days and the zone offset inside the window.
-    const from = new Date(rangeStart.getTime() - dayMs).toISOString();
-    const to = new Date(rangeStart.getTime() + (calendarDays + 1) * dayMs).toISOString();
-    getOnCallGroup(selectedGroupId, { from, to })
-      .then((loaded) => {
-        if (!active) return;
-        setDetail(loaded);
-        setDetailError(null);
-      })
-      .catch((caught: unknown) => {
-        if (active) setDetailError(mapApiError(caught));
-      })
-      .finally(() => {
-        if (active) setDetailLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [selectedGroupId, rangeStart, detailRevision]);
+  const detailRange = useMemo(
+    () => ({
+      from: new Date(rangeStart.getTime() - dayMs).toISOString(),
+      to: new Date(rangeStart.getTime() + (calendarDays + 1) * dayMs).toISOString(),
+    }),
+    [rangeStart],
+  );
+  const {
+    detail,
+    error: detailError,
+    loading: detailLoading,
+    retry: retryDetail,
+  } = useOnCallGroupDetail(selectedGroupId, detailRange);
 
   const selectGroup = (groupId: string) => {
-    setDetail(null);
-    setDetailError(null);
     setSelectedGroupId(groupId);
     setWeekOffset(0);
   };
 
   const reloadAll = () => {
-    void loadOverview();
-    setDetailRevision((revision) => revision + 1);
+    reloadOverviewData();
+    retryDetail();
   };
 
   const days = useMemo(
@@ -239,16 +195,26 @@ export function OnCallPage() {
     return (
       <div className="page-in">
         {header}
-        {loadError === null ? (
+        {overviewError === null ? (
           <PanelSkeleton label={t("onCall.loading")} />
-        ) : loadError.disabled ? (
+        ) : overviewError.disabled ? (
           <EmptyState
             icon={<CalendarClock size={18} />}
             title={t("onCall.disabledTitle")}
             body={t("onCall.disabledBody")}
           />
         ) : (
-          <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+          <div className="grid gap-2">
+            <ApiErrorText messageKey={overviewError.key} requestId={overviewError.requestId} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void reloadOverview()}
+              disabled={pending.overview}
+            >
+              {t("ui.retry")}
+            </Button>
+          </div>
         )}
       </div>
     );
@@ -273,15 +239,32 @@ export function OnCallPage() {
   return (
     <div className="page-in grid gap-4">
       {header}
-      {loadError === null ? null : (
-        <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+      {overviewError === null ? null : (
+        <ApiErrorText messageKey={overviewError.key} requestId={overviewError.requestId} />
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader title={t("onCall.mine.title")} subtitle={t("onCall.mine.subtitle")} />
           <div className="grid gap-2 px-4 py-3.5 text-[12.5px]">
-            {me === null || (me.current.length === 0 && me.next === null) ? (
+            {meError === null ? null : (
+              <div className="grid gap-2">
+                <ApiErrorText messageKey={meError.key} requestId={meError.requestId} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void reloadMe()}
+                  disabled={pending.me}
+                >
+                  {t("ui.retry")}
+                </Button>
+              </div>
+            )}
+            {me === null && pending.me ? (
+              <p role="status" className={hintClassName}>
+                {t("onCall.loading")}
+              </p>
+            ) : me === null || (me.current.length === 0 && me.next === null) ? (
               <p className={hintClassName}>{t("onCall.mine.none")}</p>
             ) : null}
             {me?.current.map((shift) => (
@@ -311,7 +294,24 @@ export function OnCallPage() {
         <Card>
           <CardHeader title={t("onCall.swaps.title")} subtitle={t("onCall.swaps.subtitle")} />
           <div className="grid gap-2 px-4 py-3.5">
-            {pendingSwaps.length === 0 ? (
+            {swapsError === null ? null : (
+              <div className="grid gap-2">
+                <ApiErrorText messageKey={swapsError.key} requestId={swapsError.requestId} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void reloadSwaps()}
+                  disabled={pending.swaps}
+                >
+                  {t("ui.retry")}
+                </Button>
+              </div>
+            )}
+            {pending.swaps && swaps.length === 0 ? (
+              <p role="status" className={hintClassName}>
+                {t("onCall.loading")}
+              </p>
+            ) : pendingSwaps.length === 0 ? (
               <p className={hintClassName}>{t("onCall.swaps.none")}</p>
             ) : null}
             <ul className="grid gap-2">
@@ -497,7 +497,12 @@ export function OnCallPage() {
           />
           <div className="grid gap-4 px-4 py-3.5">
             {detailError !== null ? (
-              <ApiErrorText messageKey={detailError} requestId={null} />
+              <div className="grid gap-2">
+                <ApiErrorText messageKey={detailError.key} requestId={detailError.requestId} />
+                <Button variant="outline" size="sm" onClick={retryDetail} disabled={detailLoading}>
+                  {t("ui.retry")}
+                </Button>
+              </div>
             ) : null}
             {detail === null && detailError === null ? (
               <PanelSkeleton label={t("onCall.loading")} />

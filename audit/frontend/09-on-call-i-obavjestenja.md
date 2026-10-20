@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **7,4/10**
+**Aktuelna ocjena:** **7,9/10 nakon Faze 1**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **7,4/10** priznaje zrelu domensku osnovu, backend zaštite, vremensku zonu i postojeće pure testove, ali zadržava ozbiljan odbitak za async/mutation konzistentnost, recovery i testnu mrežu.
+Ocjena **7,9/10** nakon Faze 1 priznaje zatvoren on-call query identitet i recovery, zrelu domensku osnovu, backend zaštite i vremensku zonu, ali zadržava ozbiljan odbitak za mutation concurrency, announcement recovery i preostalu testnu mrežu.
 
 ---
 
@@ -118,7 +118,7 @@ Ovo nije samo estetski dug: najveće datoteke istovremeno drže query orchestrat
 
 `loadOverview` nema request sequence/abort zaštitu. Refresh, mutation-triggered `reloadAll` i korisnički refresh mogu se preklopiti; stariji odgovor tada može prepisati noviji. `refreshing` takođe postaje `false` kada završi bilo koji zahtjev, ne nužno posljednji.
 
-**Za zatvaranje:** tri typed query stanja ili koherentan controller sa latest-only identitetom po izvoru, stale/background errorom, request ID-em i lokalnim retryjem.
+**Status:** zatvoreno u Fazi 1. Overview, me i swaps sada imaju odvojene typed query snapshot/error/pending ugovore, latest-only guard, request ID i lokalni retry; kvar jednog izvora ne odbacuje druga dva.
 
 ### OCN2 — Detail scope nije potpuno identity-safe pri sedmici i grešci
 
@@ -133,7 +133,7 @@ Greška detaila čuva samo translation key:
 - nema eksplicitnog retry dugmeta;
 - nema `detailGroupId`/window identiteta koji dokazuje da snapshot pripada aktivnom scopeu.
 
-**Za zatvaranje:** snapshot treba nositi group/window identity; stale period mora biti eksplicitno označen ili blokiran, error treba biti koreliran i lokalno recoverable.
+**Status:** zatvoreno u Fazi 1. Detail controller veže snapshot za group/from/to scope, uklanja prethodni scope odmah pri promjeni grupe ili sedmice, odbacuje zakašnjeli odgovor i izlaže koreliranu grešku sa lokalnim retryjem.
 
 ### OCN3 — Mutation concurrency nije sinhrono zaštićen
 
@@ -301,14 +301,14 @@ Potrebna je stvarna matrica:
 | Oblast                                      |   Trenutno |      Cilj |
 | ------------------------------------------- | ---------: | --------: |
 | Backend autorizacija i domenske granice     |        9,2 |        10 |
-| Async identity, stale state i recovery      |        6,4 |        10 |
+| Async identity, stale state i recovery      |        8,3 |        10 |
 | Mutation concurrency i cache konzistentnost |        6,2 |        10 |
 | Vremenska zona i reporting tačnost          |        8,2 |        10 |
 | URL/shareability i navigacija               |        6,0 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
-| Testabilnost i održivost                    |        6,3 |        10 |
+| Testabilnost i održivost                    |        6,8 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **7,4/10** | **10/10** |
+| **Ukupno**                                  | **7,9/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -328,6 +328,16 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 6. Deferred testovi za refresh race, partial failure, group A→B i week A→B.
 
 **Exit gate:** nijedan odgovor ne može commitovati u pogrešan scope; kvar jednog izvora ne briše druga dva.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- Izdvojen je `useOnCallOverviewData` controller sa odvojenim overview/me/swaps snapshotima, errorima i pending identitetima. Svaki izvor ima vlastiti latest-request guard, API request ID i lokalni retry; zajednički refresh više nije all-or-nothing `Promise.all`.
+- Uspješan snapshot ostaje dostupan pri background grešci, a kvar me ili swaps izvora više ne blokira overview i izbor grupe. Globalni refresh pokreće tri nezavisna zahtjeva i završava tek kada svi aktivni izvori završe.
+- Izdvojen je `useOnCallGroupDetail` controller. Snapshot je vezan za `groupId/from/to`; promjena grupe ili sedmice odmah uklanja stari detail i action površine, cleanup odbacuje zakašnjeli odgovor, a greška prikazuje request ID i lokalni retry.
+- Direktni deferred hook testovi dokazuju parcijalni failure/recovery, latest-only overlapping overview refresh, group/week scope blokadu, zakašnjeli odgovor i correlated detail retry.
+- `OCN1` i `OCN2` su zatvoreni. Announcement async nalazi i mutation concurrency ostaju mapirani na naredne faze.
+
+**Izvršni dokaz:** ciljni modul prolazi 5/5 fajlova i 24/24 testa; puni frontend Vitest prolazi **382/382 fajla i 1513/1513 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
 
 ### Faza 2 — Mutation concurrency i precizni refresh
 
