@@ -5,7 +5,7 @@ export function resolveEntityListState(input: {
   readonly hasError: boolean;
   readonly itemCount: number;
 }): EntityListState {
-  if (input.isLoading) return "loading";
-  if (input.hasError) return "error";
+  if (input.isLoading && input.itemCount === 0) return "loading";
+  if (input.hasError && input.itemCount === 0) return "error";
   return input.itemCount === 0 ? "empty" : "ready";
 }

@@ -4,6 +4,7 @@ import { GitPullRequestArrow, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
+import { EntityListQueryError } from "@/components/entity-list/entity-list-query-error";
 import { ChangeCalendar } from "@/components/changes/change-calendar";
 import { ChangeFormSheet } from "@/components/changes/change-form-sheet";
 import { ChangeTemplatesPanel } from "@/components/changes/change-templates-panel";
@@ -38,7 +39,7 @@ import {
 import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   changeOpenStatuses,
   changeQueryKeys,
@@ -205,6 +206,7 @@ export function ChangesPage() {
         forbiddenTitle={t("changes.forbiddenTitle")}
         forbiddenBody={t("changes.forbiddenBody")}
         errorKey={mapApiError(capabilitiesQuery.error)}
+        requestId={readApiRequestId(capabilitiesQuery.error)}
         onRetry={() => void capabilitiesQuery.refetch()}
       >
         {null}
@@ -378,9 +380,16 @@ export function ChangesPage() {
             </p>
 
             {listQuery.error ? (
-              <p role="alert" className={errorTextClassName}>
-                {t(mapChangeError(listQuery.error) ?? mapApiError(listQuery.error))}
-              </p>
+              <EntityListQueryError
+                messageKey={mapChangeError(listQuery.error) ?? mapApiError(listQuery.error)}
+                requestId={readApiRequestId(listQuery.error)}
+                retrying={listQuery.isFetching}
+                onRetry={() =>
+                  void (listQuery.isFetchNextPageError
+                    ? listQuery.fetchNextPage()
+                    : listQuery.refetch())
+                }
+              />
             ) : null}
 
             {listState === "loading" ? (

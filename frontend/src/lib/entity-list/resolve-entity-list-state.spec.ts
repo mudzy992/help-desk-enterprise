@@ -12,6 +12,8 @@ describe("resolveEntityListState", () => {
     [{ isLoading: true, hasError: false, itemCount: 0 }, "loading"],
     [{ isLoading: false, hasError: false, itemCount: 0 }, "empty"],
     [{ isLoading: false, hasError: false, itemCount: 1 }, "ready"],
+    [{ isLoading: false, hasError: true, itemCount: 2 }, "ready"],
+    [{ isLoading: true, hasError: false, itemCount: 2 }, "ready"],
   ] as const)("maps %o to %s", (input, expected) => {
     expect(resolveEntityListState(input)).toBe(expected);
   });

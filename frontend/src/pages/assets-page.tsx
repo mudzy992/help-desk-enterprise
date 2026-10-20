@@ -6,6 +6,7 @@ import { Boxes, Download, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
 import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
+import { EntityListQueryError } from "@/components/entity-list/entity-list-query-error";
 import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
 import { AssetAssignSheet, AssetUnassignSheet } from "@/components/assets/asset-action-sheets";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
@@ -43,7 +44,7 @@ import {
   resolveAssetIcon,
   warrantyState,
 } from "@/lib/assets/asset-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
@@ -126,6 +127,7 @@ export function AssetsPage() {
         forbiddenTitle={t("assets.forbiddenTitle")}
         forbiddenBody={t("assets.forbiddenBody")}
         errorKey={mapApiError(error)}
+        requestId={readApiRequestId(error)}
         onRetry={() => void retryCapabilities()}
       >
         {null}
@@ -511,9 +513,14 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
       </p>
 
       {listQuery.error ? (
-        <p role="alert" className={errorTextClassName}>
-          {t(mapAssetError(listQuery.error) ?? mapApiError(listQuery.error))}
-        </p>
+        <EntityListQueryError
+          messageKey={mapAssetError(listQuery.error) ?? mapApiError(listQuery.error)}
+          requestId={readApiRequestId(listQuery.error)}
+          retrying={listQuery.isFetching}
+          onRetry={() =>
+            void (listQuery.isFetchNextPageError ? listQuery.fetchNextPage() : listQuery.refetch())
+          }
+        />
       ) : null}
 
       {canManage && selected.size > 0 ? (

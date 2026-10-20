@@ -1,8 +1,8 @@
 # Modul 06 — Assets, Problems i Changes
 
 **Datum reaudita:** 20. 10. 2026.
-**Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **7,6/10**
+**Status:** reaudit završen; Faza 1 implementirana 20. 10. 2026.
+**Aktuelna ocjena:** **8,0/10 nakon Faze 1**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -237,12 +237,12 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | Oblast                                    |   Trenutno |      Cilj |
 | ----------------------------------------- | ---------: | --------: |
 | Route access i backend sigurnosna granica |        9,5 |        10 |
-| List/detail async i recovery ugovori      |        6,5 |        10 |
+| List/detail async i recovery ugovori      |        7,5 |        10 |
 | Mutation/version-conflict konzistentnost  |        7,5 |        10 |
 | URL/filter/bulk UX                        |        8,0 |        10 |
-| Testabilnost i održivost                  |        6,5 |        10 |
+| Testabilnost i održivost                  |        7,0 |        10 |
 | Accessibility/responsive/browser dokaz    |        6,5 |        10 |
-| **Ukupno**                                | **7,6/10** | **10/10** |
+| **Ukupno**                                | **8,0/10** | **10/10** |
 
 Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i race ponašanje kritičnih registara nije direktno dokazano, detail greške imaju pogrešnu semantiku, a koncentracija odgovornosti i dalje povećava regresioni rizik.
 
@@ -261,6 +261,17 @@ Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i rac
 4. Dodati shared helper testove i tri page characterization testa.
 
 **Exit gate:** initial error ne glumi empty; refresh/load-more error ne briše snapshot; retry je deterministički testiran.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- Shared list-state resolver sada tretira error/loading kao blocking stanje samo kada nema uspješnih redova; stale snapshot ostaje `ready` tokom background refetcha ili greške.
+- Assets, Problems i Changes registri renderuju zajednički recoverable error blok uz postojeću tabelu umjesto destruktivnog uklanjanja redova.
+- Retry razlikuje failed `fetchNextPage` od initial/background query greške: pagination retry ponavlja samo narednu stranicu, a ostalo koristi `refetch`.
+- List i capability greške sada prikazuju API request ID; retry dugme je onemogućeno dok recovery traje.
+- Dodani su direktni testovi za initial error, snapshot retention pri error/loading stanju, request correlation, retry akciju i retry pending stanje.
+- `APC1` je zatvoren; list/capability dio `APC11` je zatvoren. Detail i supporting-data dio `APC11` ostaje mapiran na Faze 2 i 3.
+
+**Izvršni dokaz:** 3 ciljna fajla sa 14/14 testova i puni frontend Vitest prolaz 359/359 fajlova odnosno 1447/1447 testova; production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 2 — Detail recovery matrica
 

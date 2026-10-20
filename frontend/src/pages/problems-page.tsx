@@ -4,6 +4,7 @@ import { Plus, Puzzle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
+import { EntityListQueryError } from "@/components/entity-list/entity-list-query-error";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import { formatAssetDate } from "@/lib/assets/asset-view";
 import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
-import { mapApiError } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   mapProblemError,
   problemAgeDays,
@@ -204,6 +205,7 @@ export function ProblemsPage() {
         forbiddenTitle={t("problems.forbiddenTitle")}
         forbiddenBody={t("problems.forbiddenBody")}
         errorKey={mapApiError(capabilitiesQuery.error)}
+        requestId={readApiRequestId(capabilitiesQuery.error)}
         onRetry={() => void capabilitiesQuery.refetch()}
       >
         {null}
@@ -348,9 +350,16 @@ export function ProblemsPage() {
         </p>
 
         {listQuery.error ? (
-          <p role="alert" className={errorTextClassName}>
-            {t(mapProblemError(listQuery.error) ?? mapApiError(listQuery.error))}
-          </p>
+          <EntityListQueryError
+            messageKey={mapProblemError(listQuery.error) ?? mapApiError(listQuery.error)}
+            requestId={readApiRequestId(listQuery.error)}
+            retrying={listQuery.isFetching}
+            onRetry={() =>
+              void (listQuery.isFetchNextPageError
+                ? listQuery.fetchNextPage()
+                : listQuery.refetch())
+            }
+          />
         ) : null}
 
         {listState === "loading" ? (

@@ -18,6 +18,7 @@ export function ModuleCapabilityGate({
   forbiddenTitle,
   forbiddenBody,
   errorKey,
+  requestId,
   onRetry,
   children,
 }: {
@@ -31,6 +32,7 @@ export function ModuleCapabilityGate({
   readonly forbiddenTitle: string;
   readonly forbiddenBody: string;
   readonly errorKey: ApiErrorKey;
+  readonly requestId?: string | null;
   readonly onRetry: () => void;
   readonly children: ReactNode;
 }) {
@@ -48,7 +50,7 @@ export function ModuleCapabilityGate({
       {state === "loading" ? <PanelSkeleton label={t("ui.loading")} /> : null}
       {state === "error" ? (
         <div className="grid gap-2">
-          <ApiErrorText messageKey={errorKey} />
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
           <Button type="button" size="sm" variant="outline" onClick={onRetry}>
             {t("ui.retry")}
           </Button>
