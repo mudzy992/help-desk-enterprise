@@ -2,7 +2,7 @@
 
 **Datum reaudita:** 20. 10. 2026.
 **Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
-**Aktuelna ocjena:** **9,2/10 nakon Faze 4**
+**Aktuelna ocjena:** **9,6/10 nakon Faze 6**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -240,9 +240,9 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | List/detail async i recovery ugovori      |        9,5 |        10 |
 | Mutation/version-conflict konzistentnost  |        8,8 |        10 |
 | URL/filter/bulk UX                        |        9,2 |        10 |
-| Testabilnost i održivost                  |        8,2 |        10 |
+| Testabilnost i održivost                  |        9,3 |        10 |
 | Accessibility/responsive/browser dokaz    |        6,5 |        10 |
-| **Ukupno**                                | **9,2/10** | **10/10** |
+| **Ukupno**                                | **9,6/10** | **10/10** |
 
 Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, URL-search i supporting-data recovery ugovori su ojačani; preostali odbici prvenstveno dolaze iz mutation/race dokaza, koncentracije odgovornosti i neizvršenog browser closeouta.
 
@@ -379,6 +379,17 @@ Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, UR
 4. Uvesti stabilne client ID-eve za dinamičke analysis redove.
 
 **Exit gate:** Problem i Change critical state machines imaju race/error/action pokrivenost i održive odgovornosti.
+
+#### Evidencija zatvaranja Faze 6 (20. 10. 2026.)
+
+- Problem RCA višeredni draft izdvojen je u typed controller sa eksplicitnim create/update/remove/clean operacijama.
+- Svaki uređivi “why” red sada dobija stabilni `clientId`; update i remove koriste identitet umjesto indeksa, pa brisanje srednjeg reda ne prenosi DOM/input identitet na sljedeći zapis.
+- Direktni testovi dokazuju očuvanje sibling ID-a, update po identitetu, novi stabilni red te trim/empty normalizaciju bez curenja client ID-a u API payload.
+- Change conflict preview odluka izdvojena je iz velikog sheeta u čistu typed granicu; zatvoren sheet, nepotpun, obrnut i zero-length window ne mogu pokrenuti preview request.
+- Conflict testovi karakterizuju payload izolaciju i window guardove; postojeći Change view testovi ostaju dokaz risk/action mapiranja, a Faza 4 guarded mutation testovi pokrivaju race/error retry contract lifecycle akcija.
+- `APC7`, `APC8` i `APC9` su zatvoreni; preostaju statička higijena (`APC10`) i stvarni browser closeout (`APC12`).
+
+**Izvršni dokaz:** 2 nova controller fajla sa 7/7 testova; puni frontend Vitest prolaz ima 367/367 fajlova odnosno 1473/1473 testa. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 7 — Comment hygiene i puna statička regresija
 

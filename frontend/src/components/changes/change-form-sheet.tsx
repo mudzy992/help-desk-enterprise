@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { buildChangeConflictPreview } from "@/lib/changes/change-conflict-preview";
 import {
   changeLevelKeys,
   changeRiskKeys,
@@ -175,17 +176,15 @@ export function ChangeFormSheet({
   const windowHalf = (startIso === null) !== (endIso === null);
 
   // §9 / §17: live conflicts while the window is chosen (debounced).
-  const previewInput: ChangeConflictPreviewInput | null =
-    open && startIso !== null && endIso !== null && !windowInvalid
-      ? {
-          type,
-          plannedStart: startIso,
-          plannedEnd: endIso,
-          serviceIds,
-          assetIds: assets.map((asset) => asset.id),
-          ...(change ? { changeId: change.id } : {}),
-        }
-      : null;
+  const previewInput = buildChangeConflictPreview({
+    open,
+    type,
+    plannedStart: startIso,
+    plannedEnd: endIso,
+    serviceIds,
+    assetIds: assets.map((asset) => asset.id),
+    changeId: change?.id,
+  });
   const [debouncedPreview, setDebouncedPreview] = useState<ChangeConflictPreviewInput | null>(null);
   const previewKey = previewInput === null ? "" : JSON.stringify(previewInput);
   useEffect(() => {
