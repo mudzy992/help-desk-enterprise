@@ -10,10 +10,7 @@ import { getOnCallMe, type OnCallMe } from "@/services/on-call-api";
 /** Refreshing every 5 minutes is enough for a shift that changes at handoff. */
 const refreshEveryMs = 5 * 60_000;
 
-/**
- * Paket 2.9 (K3, §4.4): "On call until 08:00" for whoever is on call right
- * now. Only asked for holders of oncall.read; silent when the feature is off.
- */
+/** Current shift indicator for users allowed to read on-call data. */
 export function OnCallHeaderIndicator() {
   const { t, i18n } = useTranslation();
   const { hasPermission, session } = useSessionCapabilities();

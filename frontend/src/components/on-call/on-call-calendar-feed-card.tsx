@@ -19,10 +19,7 @@ import {
   rotateOnCallCalendarToken,
 } from "@/services/on-call-api";
 
-/**
- * Paket 2.9 (K3, §4.6): personal iCal subscription. The URL is shown once
- * after it is created (only a hash is stored); a new one invalidates the old.
- */
+/** Personal iCal subscription whose secret URL is shown only when issued. */
 export function OnCallCalendarFeedCard() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();

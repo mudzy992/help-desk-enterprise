@@ -1,4 +1,4 @@
-import { dateTimeFormatter } from "@/lib/date-time-formatter";
+import { applicationDateLocale, dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { TFunction } from "i18next";
 import { ApiError } from "@/services/api";
 import type { OnCallSegmentView, OnCallSwapStatus } from "@/services/on-call-api";
@@ -289,7 +289,7 @@ export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): 
 }
 
 export function formatOnCallClock(iso: string, locale: string, timeZone?: string): string {
-  return dateTimeFormatter(locale.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
+  return dateTimeFormatter(applicationDateLocale(locale), {
     ...(timeZone ? { timeZone } : {}),
     hour: "2-digit",
     minute: "2-digit",

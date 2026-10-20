@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import {
+  announcementSeverityKeys,
   announcementToneClasses,
   mapAnnouncementError,
   modalShowsLeft,
@@ -46,12 +47,6 @@ import {
 
 const pollMs = 60_000;
 
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
-} as const;
-
 function sessionStore(): Storage | null {
   try {
     return typeof window === "undefined" ? null : window.sessionStorage;
@@ -73,13 +68,8 @@ function SeverityIcon({
 }
 
 /**
- * Paket 2.9 (K2, §3.2): active announcements for the signed-in user. One
- * banner (several announcements → counter and arrows) and, for MODAL
- * announcements, a dialog that returns on navigation at most three times per
- * session. The dialog can always be closed (Esc) and never blocks work.
- *
- * Mounted inside the page container, which remounts on every navigation, so
- * "the next navigation" is simply the next mount.
+ * Active announcements for the signed-in user. A session budget prevents
+ * modal announcements from repeatedly interrupting work across navigation.
  */
 export function AnnouncementsHost() {
   const { t } = useTranslation();
@@ -215,7 +205,7 @@ export function AnnouncementsHost() {
           />
           <div className="min-w-0 flex-1">
             <p className="font-semibold leading-5">
-              <span className="sr-only">{t(severityKeys[current.severity])}: </span>
+              <span className="sr-only">{t(announcementSeverityKeys[current.severity])}: </span>
               {current.title}
             </p>
             {current.serviceName ? (
@@ -334,7 +324,7 @@ function AnnouncementModal({
               {item.title}
             </ModalTitle>
             <ModalDescription className="text-[12px] text-muted-foreground">
-              {t(severityKeys[item.severity])}
+              {t(announcementSeverityKeys[item.severity])}
               {item.serviceName ? ` · ${item.serviceName}` : ""}
             </ModalDescription>
           </div>

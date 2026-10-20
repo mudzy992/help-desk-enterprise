@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import {
   announcementErrorDetail,
+  announcementSeverityKeys,
   announcementTimeZone,
   fromLocalInputValue,
   mapAnnouncementError,
@@ -32,11 +33,6 @@ const roleLabelKeys = {
   AGENT: "announcements.roles.AGENT",
   ADMIN: "announcements.roles.ADMIN",
   SUPER_ADMIN: "announcements.roles.SUPER_ADMIN",
-} as const;
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
 } as const;
 const hourMs = 3_600_000;
 
@@ -110,9 +106,8 @@ interface AnnouncementEditorDialogProperties {
 }
 
 /**
- * Paket 2.9 (K2, §3.3): editor with a live preview and the audience estimate.
- * A published announcement keeps its audience and acknowledgement mode (the
- * report counts against the audience captured at publication).
+ * Announcement editor with live preview and audience estimate. Published
+ * announcements retain the audience used by acknowledgement reporting.
  */
 export function AnnouncementEditorDialog({
   open,
@@ -318,7 +313,7 @@ export function AnnouncementEditorDialog({
                 >
                   {(["INFO", "WARNING", "CRITICAL"] as const).map((severity) => (
                     <option key={severity} value={severity}>
-                      {t(severityKeys[severity])}
+                      {t(announcementSeverityKeys[severity])}
                     </option>
                   ))}
                 </Select>

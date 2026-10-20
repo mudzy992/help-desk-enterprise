@@ -1,5 +1,10 @@
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
+/** Canonical date locale for the two supported interface languages. */
+export function applicationDateLocale(language: string): "en-GB" | "bs-BA" {
+  return language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA";
+}
+
 /** Reuses immutable Intl formatters while preserving every caller's locale/options contract. */
 export function dateTimeFormatter(
   locale: Intl.LocalesArgument,

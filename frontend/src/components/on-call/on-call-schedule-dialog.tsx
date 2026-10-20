@@ -40,10 +40,7 @@ type Member = {
   readonly isAvailable: boolean;
 };
 
-/**
- * Paket 2.9 (K3, §4.4): rotation settings and member order. Reordering uses
- * explicit up/down buttons (keyboard and screen-reader friendly, no drag).
- */
+/** Rotation settings and member order with keyboard-accessible reordering. */
 export function OnCallScheduleDialog({
   open,
   onOpenChange,

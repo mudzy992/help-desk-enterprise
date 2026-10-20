@@ -26,11 +26,7 @@ interface OnCallRangeDialogProperties {
   readonly onSaved: () => void;
 }
 
-/**
- * Paket 2.9 (K3, §4.1/§4.4): a manager's override, or an agent's swap
- * request to a rotation colleague (the colleague confirms before anything
- * changes). Times are entered on the schedule's wall clock and sent as instants.
- */
+/** Override or swap editor that converts schedule wall-clock input to instants. */
 export function OnCallRangeDialog({
   open,
   onOpenChange,

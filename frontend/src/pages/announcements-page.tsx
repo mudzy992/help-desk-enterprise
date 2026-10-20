@@ -24,6 +24,7 @@ import {
 } from "@/lib/announcements/announcement-page-search";
 import {
   announcementDateTimeFormatter,
+  announcementSeverityKeys,
   mapAnnouncementError,
   severityTone,
   statusTone,
@@ -42,12 +43,6 @@ import {
   type AnnouncementEffectiveStatus,
   type ManagedAnnouncement,
 } from "@/services/announcements-api";
-
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
-} as const;
 
 const statusKeys: Readonly<
   Record<AnnouncementEffectiveStatus, `announcements.status.${AnnouncementEffectiveStatus}`>
@@ -68,10 +63,7 @@ type PendingAction =
   | { readonly kind: "withdraw"; readonly item: ManagedAnnouncement }
   | { readonly kind: "delete"; readonly item: ManagedAnnouncement };
 
-/**
- * Paket 2.9 (K2, §3.2–3.3): the user's announcement archive (90 days) and,
- * for those allowed to publish, the management list with editor and report.
- */
+/** Announcement archive and capability-gated management workspace. */
 export function AnnouncementsPage() {
   const { t } = useTranslation();
   const {
@@ -181,7 +173,7 @@ function AnnouncementArchive() {
   });
   const [searchParams] = useSearchParams();
   const openId = searchParams.get("open");
-  // K2b: e-mail/Teams links (?open=<id>) expand and scroll to the announcement.
+  // Delivery links can deep-link to and expand one announcement.
   useEffect(() => {
     if (openId === null || data === undefined) return;
     const element = document.getElementById(`announcement-${openId}`);
@@ -216,7 +208,9 @@ function AnnouncementArchive() {
           <Card>
             <details className="group" id={`announcement-${item.id}`}>
               <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
-                <Badge tone={severityTone(item.severity)}>{t(severityKeys[item.severity])}</Badge>
+                <Badge tone={severityTone(item.severity)}>
+                  {t(announcementSeverityKeys[item.severity])}
+                </Badge>
                 <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
                   {item.title}
                 </span>
@@ -420,7 +414,7 @@ function ManageAnnouncements() {
                     <th scope="row" className="px-4 py-2.5 font-normal">
                       <span className="flex flex-wrap items-center gap-1.5">
                         <Badge tone={severityTone(item.severity)}>
-                          {t(severityKeys[item.severity])}
+                          {t(announcementSeverityKeys[item.severity])}
                         </Badge>
                         <span className="font-semibold text-foreground">{item.title}</span>
                       </span>

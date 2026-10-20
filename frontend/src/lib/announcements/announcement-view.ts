@@ -1,4 +1,5 @@
-import { dateTimeFormatter } from "@/lib/date-time-formatter";
+import { applicationDateLocale, dateTimeFormatter } from "@/lib/date-time-formatter";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { ApiError } from "@/services/api";
 import type {
   AnnouncementEffectiveStatus,
@@ -35,13 +36,19 @@ export function announcementErrorDetail(error: unknown): string | null {
 
 export type AnnouncementTone = "info" | "warning" | "danger";
 
+export const announcementSeverityKeys = {
+  INFO: "announcements.severity.INFO",
+  WARNING: "announcements.severity.WARNING",
+  CRITICAL: "announcements.severity.CRITICAL",
+} as const satisfies Record<AnnouncementSeverity, TranslationKey>;
+
 export function severityTone(severity: AnnouncementSeverity): AnnouncementTone {
   if (severity === "CRITICAL") return "danger";
   if (severity === "WARNING") return "warning";
   return "info";
 }
 
-/** §3.2: only CRITICAL interrupts a screen reader; the rest is polite. */
+/** Only critical notices interrupt a screen reader; other severities are polite. */
 export function severityRole(severity: AnnouncementSeverity): "alert" | "status" {
   return severity === "CRITICAL" ? "alert" : "status";
 }
@@ -72,7 +79,7 @@ export function statusTone(
   }
 }
 
-/** §3.2: a modal returns on navigation at most this many times per session. */
+/** Maximum number of modal appearances per announcement version and session. */
 export const modalShowsPerSession = 3;
 
 type SessionStore = Pick<Storage, "getItem" | "setItem">;
@@ -140,7 +147,7 @@ export function announcementDateTimeFormatter(
   language: string,
   timeZone = announcementTimeZone(),
 ): Intl.DateTimeFormat {
-  return dateTimeFormatter(language.toLowerCase().startsWith("en") ? "en-GB" : "bs-BA", {
+  return dateTimeFormatter(applicationDateLocale(language), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

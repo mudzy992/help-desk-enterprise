@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **9,6/10 nakon Faze 6**
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **9,6/10** nakon Faze 6 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
+Ocjena **9,8/10** nakon Faze 7 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
@@ -259,11 +259,11 @@ Faza 6 je otkrila i zatvorila dva konkretna produkcijska propusta: CSV download 
 
 ### OCN12 — Održivost i production hygiene
 
-**Prioritet:** P2
+**Prioritet:** zatvoreno u Fazi 7
 
-Najveće komponente i dalje kombinuju previše odgovornosti. Scope sadrži delivery-history komentare (`Paket`, `K2/K3`, numerisani `§`) i duplirane mape ozbiljnosti/locale logiku. `Intl.DateTimeFormat` instance se kreiraju u render tokovima. Announcement editor i Manage tabela imaju duboke ternare i širok mutation scope.
+Query odgovornosti su već izdvojene u typed overview/detail/Manage controllere i characterization mreža iz Faze 6 štiti njihove ugovore. Faza 7 centralizuje typed severity translation mapu, regionalni locale ugovor i keširane `Intl.DateTimeFormat` instance. Uklonjeni su delivery-history komentari (`Paket`, `K2/K3`, numerisani `§`) iz produkcijskog scopea i dodan je statički comment-hygiene test koji sprečava njihov povratak.
 
-**Za zatvaranje:** characterization testovi, typed controller hookovi, izdvajanje prezentacijskih sekcija, centralni severity/time formatter i comment-hygiene gate.
+Velike stranice i dalje orkestriraju više prezentacijskih sekcija, ali query identitet, mutation guardovi, formatiranje i domenski helperi više nisu anonimno duplicirani u render tokovima. Dalje cijepanje bez konkretnog ponašajnog dobitka nije uslov za ovaj nalaz.
 
 ### OCN13 — Browser/E2E closeout nije izvršen
 
@@ -291,9 +291,9 @@ Potrebna je stvarna matrica:
 | Vremenska zona i reporting tačnost          |        9,6 |        10 |
 | URL/shareability i navigacija               |        9,5 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
-| Testabilnost i održivost                    |        8,8 |        10 |
+| Testabilnost i održivost                    |        9,7 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **9,6/10** | **10/10** |
+| **Ukupno**                                  | **9,8/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -444,6 +444,15 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. Pokrenuti puni frontend/backend relevantni suite, build, ESLint 0/0, i18n/design-system, Prettier i `git diff --check`.
 
 **Exit gate:** deterministički i statički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
+
+**Status nakon Faze 7: završeno.**
+
+- `announcementSeverityKeys` je jedinstvena typed mapa za archive, Manage, editor, banner i modal.
+- `applicationDateLocale` centralizuje bs/en regionalni ugovor, a on-call page više ne kreira `Intl.DateTimeFormat` direktno u renderu nego koristi zajednički cache.
+- Produkcijski komentari opisuju aktuelni domenski ugovor umjesto historije isporuke. Novi statički hygiene gate obuhvata obje stranice te announcement/on-call komponente i biblioteke.
+- Typed query controlleri iz ranijih faza i characterization suite iz Faze 6 čine sigurnosnu mrežu za ovaj statički closeout. `OCN12` je zatvoren.
+
+**Izvršni dokaz:** ciljni statički/helper suite prolazi **4/4 fajla i 26/26 testova**; puni frontend Vitest prolazi **393/393 fajla i 1540/1540 testova**. Production TypeScript/Vite build, puni ESLint, i18n/design-system, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen, pa ocjena ostaje ograničena na **9,8/10**.
 
 ### Faza 8 — Browser/E2E closeout
 

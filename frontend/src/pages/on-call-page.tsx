@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { createOperationGuard } from "@/lib/async/operation-guard";
+import { applicationDateLocale, dateTimeFormatter } from "@/lib/date-time-formatter";
 import { mapApiError } from "@/lib/map-api-error";
 import { parseOnCallPageSearch, updateOnCallPageSearch } from "@/lib/on-call/on-call-page-search";
 import { useOnCallGroupDetail } from "@/lib/on-call/use-on-call-group-detail";
@@ -51,11 +52,7 @@ const dayMs = 86_400_000;
 type PendingDelete =
   { readonly kind: "schedule" } | { readonly kind: "override"; readonly id: string };
 
-/**
- * Paket 2.9 (K3, §4.4): who is on call, the four-week calendar, overrides and
- * swap requests. Everyone with `oncall.read` sees every schedule; managers
- * (`oncall.manage`) edit rotations and overrides.
- */
+/** On-call schedules, overrides and swaps with capability-gated management. */
 export function OnCallPage() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
@@ -244,7 +241,7 @@ export function OnCallPage() {
     .map((member) => ({ userId: member.userId, displayName: member.displayName }));
   const pendingSwaps = swaps.filter((swap) => swap.status === "PENDING");
   const recentSwaps = swaps.filter((swap) => swap.status !== "PENDING").slice(0, 10);
-  const dateOnly = new Intl.DateTimeFormat(i18n.language === "en" ? "en-GB" : "bs-BA", {
+  const dateOnly = dateTimeFormatter(applicationDateLocale(i18n.language), {
     timeZone,
     day: "2-digit",
     month: "2-digit",

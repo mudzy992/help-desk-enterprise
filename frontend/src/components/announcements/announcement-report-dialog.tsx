@@ -28,7 +28,7 @@ interface AnnouncementReportDialogProperties {
   readonly onOpenChange: (open: boolean) => void;
 }
 
-/** Paket 2.9 (K2, §3.3): acknowledged X of Y, per unit, who is missing, CSV and one reminder per 24 h. */
+/** Acknowledgement progress, pending recipients, delivery history and actions. */
 export function AnnouncementReportDialog({
   announcementId,
   onOpenChange,
@@ -254,7 +254,7 @@ const teamsResultKeys = {
   SKIPPED_DISABLED: "announcements.report.delivery.teams.SKIPPED_DISABLED",
 } as const;
 
-/** K2b: what went out by e-mail (per run) and to Teams. */
+/** Delivery outcomes for e-mail runs and the Teams channel. */
 function AnnouncementDeliverySummary({
   report,
   formatter,
