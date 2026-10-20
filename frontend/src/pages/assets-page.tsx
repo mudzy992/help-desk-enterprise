@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  errorTextClassName,
   hintClassName,
   selectCompactClassName,
   tableHeadClassName,
@@ -54,6 +53,7 @@ import {
   parseAssetStatus,
 } from "@/lib/assets/parse-asset-register-query";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
+import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
 import {
   assetQueryKeys,
   assetStatuses,
@@ -193,7 +193,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const [searchText, setSearchText] = useState(params.get("search") ?? "");
+  const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
   const search = useDebouncedValue(
     searchText.trim().length >= 2 ? searchText.trim() : "",
     searchDelayMs,
@@ -500,9 +500,12 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
       {(() => {
         const setupError = catalogQuery.error ?? optionsQuery.error;
         return setupError ? (
-          <p role="alert" className={errorTextClassName}>
-            {t(mapAssetError(setupError) ?? mapApiError(setupError))}
-          </p>
+          <EntityListQueryError
+            messageKey={mapAssetError(setupError) ?? mapApiError(setupError)}
+            requestId={readApiRequestId(setupError)}
+            retrying={catalogQuery.isFetching || optionsQuery.isFetching}
+            onRetry={() => void Promise.all([catalogQuery.refetch(), optionsQuery.refetch()])}
+          />
         ) : null;
       })()}
 

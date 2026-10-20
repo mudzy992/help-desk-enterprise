@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  errorTextClassName,
   hintClassName,
   selectCompactClassName,
   tableHeadClassName,
@@ -27,6 +26,7 @@ import { formatAssetDate } from "@/lib/assets/asset-view";
 import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
+import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   mapProblemError,
@@ -71,7 +71,7 @@ export function ProblemsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
-  const [searchText, setSearchText] = useState(params.get("search") ?? "");
+  const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
   const search = useDebouncedValue(searchText.trim(), 300);
   const status = parseStatusFilter(params.get("status"));
   const priority = (ticketPriorityValues as readonly string[]).includes(
@@ -334,14 +334,14 @@ export function ProblemsPage() {
           ) : null}
         </FilterBar>
 
-        {(() => {
-          const setupError = optionsQuery.error;
-          return setupError ? (
-            <p role="alert" className={errorTextClassName}>
-              {t(mapProblemError(setupError) ?? mapApiError(setupError))}
-            </p>
-          ) : null;
-        })()}
+        {optionsQuery.error ? (
+          <EntityListQueryError
+            messageKey={mapProblemError(optionsQuery.error) ?? mapApiError(optionsQuery.error)}
+            requestId={readApiRequestId(optionsQuery.error)}
+            retrying={optionsQuery.isFetching}
+            onRetry={() => void optionsQuery.refetch()}
+          />
+        ) : null}
 
         <p className={hintClassName} aria-live="polite">
           {listQuery.isLoading

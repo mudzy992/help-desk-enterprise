@@ -2,7 +2,7 @@
 
 **Datum reaudita:** 20. 10. 2026.
 **Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
-**Aktuelna ocjena:** **8,4/10 nakon Faze 2**
+**Aktuelna ocjena:** **8,9/10 nakon Faze 3**
 **Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
@@ -237,14 +237,14 @@ Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni doka
 | Oblast                                    |   Trenutno |      Cilj |
 | ----------------------------------------- | ---------: | --------: |
 | Route access i backend sigurnosna granica |        9,5 |        10 |
-| List/detail async i recovery ugovori | 8,8 | 10 |
-| Mutation/version-conflict konzistentnost | 7,5 | 10 |
-| URL/filter/bulk UX | 8,0 | 10 |
-| Testabilnost i održivost | 7,4 | 10 |
-| Accessibility/responsive/browser dokaz | 6,5 | 10 |
-| **Ukupno** | **8,4/10** | **10/10** |
+| List/detail async i recovery ugovori      |        9,5 |        10 |
+| Mutation/version-conflict konzistentnost  |        7,5 |        10 |
+| URL/filter/bulk UX                        |        9,2 |        10 |
+| Testabilnost i održivost                  |        7,8 |        10 |
+| Accessibility/responsive/browser dokaz    |        6,5 |        10 |
+| **Ukupno**                                | **8,9/10** | **10/10** |
 
-Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i race ponašanje kritičnih registara nije direktno dokazano, detail greške imaju pogrešnu semantiku, a koncentracija odgovornosti i dalje povećava regresioni rizik.
+Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, URL-search i supporting-data recovery ugovori su ojačani; preostali odbici prvenstveno dolaze iz mutation/race dokaza, koncentracije odgovornosti i neizvršenog browser closeouta.
 
 ---
 
@@ -308,6 +308,18 @@ Ocjena ne umanjuje širinu funkcionalnosti. Snižena je zato što recovery i rac
 4. Primijeniti ga na create/edit readiness i objasniti disabled stanje.
 
 **Exit gate:** input, URL i query key uvijek predstavljaju isti filter; supporting-data greška je oporavljiva bez reloadovanja stranice.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Assets, Problems i Changes koriste zajednički URL-backed search hook: kontrolisani input se ponovo poravnava sa URL vrijednošću nakon Back/Forward navigacije, deep linka i uklanjanja search parametra.
+- Postojeći debounce i query-key tok ostaje vezan za sinhronizovanu vrijednost, bez paralelnog trajnog izvora istine.
+- Options/catalog greške na sve tri liste sada prikazuju mapiranu grešku, API request ID i retry bez reloadovanja stranice.
+- Supporting-data greške na sve tri detail stranice imaju isti request-correlation/retry ugovor; retry je onemogućen dok odgovarajući query aktivno refetchuje.
+- React Query zadržava uspješan supporting-data snapshot pri background grešci, dok recoverable upozorenje ostaje vidljivo.
+- Dodani su direktni hook testovi za deep-link inicijalizaciju, lokalno tipkanje, Back/Forward promjene i reset uklanjanjem URL search vrijednosti.
+- `APC3`, `APC4` i preostali supporting-data dio `APC11` su zatvoreni.
+
+**Izvršni dokaz:** ciljni recovery i URL-sync suite ima 3 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 362/362 fajla odnosno 1457/1457 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 4 — Mutation i invalidation hardening
 

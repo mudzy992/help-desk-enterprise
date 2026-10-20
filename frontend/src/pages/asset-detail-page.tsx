@@ -186,6 +186,7 @@ export function AssetDetailPage() {
   }
 
   const asset = assetQuery.data;
+  const supportingError = capabilitiesQuery.error ?? catalogQuery.error ?? optionsQuery.error;
   const Icon = resolveAssetIcon(asset.type.icon);
   const canDelete = capabilitiesQuery.data?.canDelete === true;
   const canAssign = canManage && assetAssignableStatuses.includes(asset.status);
@@ -276,6 +277,22 @@ export function AssetDetailPage() {
           requestId={readApiRequestId(assetQuery.error)}
           retrying={assetQuery.isFetching}
           onRetry={() => void assetQuery.refetch()}
+        />
+      ) : null}
+      {supportingError !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapAssetError(supportingError) ?? mapApiError(supportingError)}
+          requestId={readApiRequestId(supportingError)}
+          retrying={
+            capabilitiesQuery.isFetching || catalogQuery.isFetching || optionsQuery.isFetching
+          }
+          onRetry={() =>
+            void Promise.all([
+              capabilitiesQuery.refetch(),
+              catalogQuery.refetch(),
+              optionsQuery.refetch(),
+            ])
+          }
         />
       ) : null}
       <div className="grid gap-4">

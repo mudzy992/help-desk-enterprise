@@ -152,6 +152,7 @@ export function ProblemDetailPage() {
   }
 
   const problem = problemQuery.data;
+  const supportingError = optionsQuery.error;
   // The natural next step is the primary action; the rest sit in the status sheet.
   const nextStep = problem.allowedTransitions.find(
     (to) => to !== "CANCELLED" && !(to === "INVESTIGATING" && problem.status !== "NEW"),
@@ -256,6 +257,14 @@ export function ProblemDetailPage() {
           requestId={readApiRequestId(problemQuery.error)}
           retrying={problemQuery.isFetching}
           onRetry={() => void problemQuery.refetch()}
+        />
+      ) : null}
+      {supportingError !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapProblemError(supportingError) ?? mapApiError(supportingError)}
+          requestId={readApiRequestId(supportingError)}
+          retrying={optionsQuery.isFetching}
+          onRetry={() => void optionsQuery.refetch()}
         />
       ) : null}
       <div className="grid gap-4">

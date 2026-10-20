@@ -151,6 +151,7 @@ export function ChangeDetailPage() {
   }
 
   const change = changeQuery.data;
+  const supportingError = capabilitiesQuery.error ?? optionsQuery.error;
   const primary = primaryChangeAction(change.allowedActions);
   const secondary = change.allowedActions.filter((item) => item !== primary);
   const applyNext = (next: ChangeDetail) => {
@@ -252,6 +253,14 @@ export function ChangeDetailPage() {
           requestId={readApiRequestId(changeQuery.error)}
           retrying={changeQuery.isFetching}
           onRetry={() => void changeQuery.refetch()}
+        />
+      ) : null}
+      {supportingError !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapChangeError(supportingError) ?? mapApiError(supportingError)}
+          requestId={readApiRequestId(supportingError)}
+          retrying={capabilitiesQuery.isFetching || optionsQuery.isFetching}
+          onRetry={() => void Promise.all([capabilitiesQuery.refetch(), optionsQuery.refetch()])}
         />
       ) : null}
       <div className="grid gap-4">
