@@ -518,6 +518,30 @@ jobs:
       - name: Summarize failures (JSON report)
         if: ${{ always() }}
         run: node scripts/summarize-playwright-json.mjs results.json
+      # TEMPORARY (Arena session arena/7a60171e): the session cannot read job
+      # logs or artifacts (blob storage is unreachable), so mirror the failure
+      # summary into a check-run readable via the REST API — same trick as
+      # e2e-triage-mirror.yml. Remove before merging to master.
+      - name: TEMP publish E2E failure summary as check-run
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            node scripts/summarize-playwright-json.mjs results.json || true
+            echo '--- global errors / stats (results.json) ---'
+            jq -c '{errors: (.errors // []), stats: (.stats // {})}' results.json 2>/dev/null || echo 'no results.json'
+          } > /tmp/e2e-summary.txt 2>&1
+          SUMMARY=$(head -c 60000 /tmp/e2e-summary.txt | jq -Rs .)
+          gh api "repos/${{ github.repository }}/check-runs" --method POST \
+            -f name="E2E failure summary TEMP (run ${{ github.run_id }})" \
+            -f head_sha="${{ github.sha }}" \
+            -F status=completed \
+            -f conclusion=neutral \
+            -f "output[title]=E2E failure summary (run ${{ github.run_id }})" \
+            -f "output[summary]=$SUMMARY" \
+            --jq '.id'
       - name: Upload the Playwright report and traces
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
