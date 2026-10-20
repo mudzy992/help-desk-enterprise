@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 20. 10. 2026.
 **Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
 **Status:** reaudit završen; implementacija nalaza nije započeta
-**Aktuelna ocjena:** **8,8/10 nakon Faze 3**
+**Aktuelna ocjena:** **9,1/10 nakon Faze 4**
 **Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
 ## 1. Izvršni sažetak
@@ -21,7 +21,7 @@ Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 7. ključne page/controller/host/editor state mašine nemaju direktne testove;
 8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-Ocjena **8,8/10** nakon Faze 3 priznaje zatvoren on-call i announcement query identitet/recovery te synchronous mutation concurrency, uz zrelu domensku osnovu, backend zaštite i vremensku zonu. Preostali odbici su URL stanje, civil-time odluka, puna testna mreža, održivost i browser dokaz.
+Ocjena **9,1/10** nakon Faze 4 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
@@ -208,7 +208,7 @@ Announcement `mine/manage` tab je lokalni state. On-call selected group i week o
 
 Archive `?open=` je pozitivan izuzetak.
 
-**Za zatvaranje:** validirani URL model za announcement tab/open i on-call group/week; kanonizacija tek nakon učitanih dozvoljenih opcija; direktni parser/page/Back-Forward testovi.
+**Status:** zatvoreno u Fazi 4. Announcement tab/open i on-call group/week sada su validirani URL modeli; kanonizacija se izvršava tek nakon capability/group podataka, a promjena URL-a neposredno određuje aktivni prikaz i query scope.
 
 ### OCN8 — Recovery i API error ugovor nije konzistentan
 
@@ -304,11 +304,11 @@ Potrebna je stvarna matrica:
 | Async identity, stale state i recovery      |        9,3 |        10 |
 | Mutation concurrency i cache konzistentnost |        8,4 |        10 |
 | Vremenska zona i reporting tačnost          |        8,2 |        10 |
-| URL/shareability i navigacija               |        6,0 |        10 |
+| URL/shareability i navigacija               |        9,5 |        10 |
 | Accessibility i responsive struktura        |        7,5 |        10 |
 | Testabilnost i održivost                    |        7,2 |        10 |
 | Browser/E2E dokaz                           |        4,5 |        10 |
-| **Ukupno**                                  | **8,8/10** | **10/10** |
+| **Ukupno**                                  | **9,1/10** | **10/10** |
 
 Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
@@ -395,6 +395,16 @@ Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću t
 5. Parser, page i history testovi.
 
 **Exit gate:** URL reproducira isti prikaz i aktivni scope.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Announcement `mine/manage` tab sada se čita iz validiranog `tab` parametra. Promjena taba čuva postojeći `open` deep link i nepovezane parametre; korisnik bez Manage capabilityja dobija kanonski `mine` URL tek nakon autoritativnog capability odgovora.
+- On-call `group` i četverosedmični `week` offset sada su URL source of truth. Direktni link, refresh i browser history određuju izabranu grupu i period bez mount-local kopije stanja.
+- Nevalidan ili nedostupan group ID kanonizuje se tek nakon učitanog overview kataloga na prvi raspored ili prvu grupu. Week prihvata samo granice `-52…52` u koraku četiri; nevalidna vrijednost se vraća na trenutnu sedmicu, a navigacija na granicama je blokirana.
+- Promjena grupe resetuje sedmicu i čuva nepovezane parametre. URL promjena automatski mijenja detail `group/from/to` identity, pa postojeći latest-only controller blokira prethodni scope.
+- Pure parser/update testovi dokazuju deep link, invalidne vrijednosti, canonical default i očuvanje `open`/nepovezanih parametara. `OCN7` je zatvoren determinističkim URL ugovorom; stvarni browser Back/Forward dokaz ostaje mapiran na Fazu 8.
+
+**Izvršni dokaz:** ciljni suite prolazi 5/5 fajlova i 10/10 testova; puni frontend Vitest prolazi **386/386 fajlova i 1520/1520 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
 
 ### Faza 5 — Civil-time i formular ugovor
 

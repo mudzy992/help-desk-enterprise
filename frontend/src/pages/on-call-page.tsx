@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import {
   CalendarClock,
   ChevronLeft,
@@ -25,6 +26,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { createOperationGuard } from "@/lib/async/operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
+import { parseOnCallPageSearch, updateOnCallPageSearch } from "@/lib/on-call/on-call-page-search";
 import { useOnCallGroupDetail } from "@/lib/on-call/use-on-call-group-detail";
 import { useOnCallOverviewData } from "@/lib/on-call/use-on-call-overview-data";
 import {
@@ -74,8 +76,15 @@ export function OnCallPage() {
     reloadMe,
     reloadSwaps,
   } = useOnCallOverviewData();
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageSearch = parseOnCallPageSearch(searchParams);
+  const requestedGroup = overview?.groups.find((group) => group.groupId === pageSearch.groupId);
+  const selectedGroupId =
+    requestedGroup?.groupId ??
+    overview?.groups.find((group) => group.hasSchedule)?.groupId ??
+    overview?.groups[0]?.groupId ??
+    null;
+  const weekOffset = pageSearch.weekOffset;
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [rangeMode, setRangeMode] = useState<OnCallRangeMode | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -84,15 +93,14 @@ export function OnCallPage() {
   const operationGuard = useRef(createOperationGuard());
 
   useEffect(() => {
-    if (overview === null) return;
-    setSelectedGroupId(
-      (current) =>
-        current ??
-        overview.groups.find((group) => group.hasSchedule)?.groupId ??
-        overview.groups[0]?.groupId ??
-        null,
-    );
-  }, [overview]);
+    if (overview === null || selectedGroupId === null) return;
+    const canonical = updateOnCallPageSearch(searchParams, {
+      groupId: selectedGroupId,
+      weekOffset,
+    });
+    if (canonical.toString() === searchParams.toString()) return;
+    setSearchParams(canonical, { replace: true });
+  }, [overview, searchParams, selectedGroupId, setSearchParams, weekOffset]);
 
   const selectedOverviewGroup = overview?.groups.find((group) => group.groupId === selectedGroupId);
   const timeZone =
@@ -116,8 +124,7 @@ export function OnCallPage() {
   } = useOnCallGroupDetail(selectedGroupId, detailRange);
 
   const selectGroup = (groupId: string) => {
-    setSelectedGroupId(groupId);
-    setWeekOffset(0);
+    setSearchParams((current) => updateOnCallPageSearch(current, { groupId, weekOffset: 0 }));
   };
 
   const reloadAll = () => {
@@ -543,15 +550,24 @@ export function OnCallPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setWeekOffset((value) => value - 4)}
+                      onClick={() =>
+                        setSearchParams((current) =>
+                          updateOnCallPageSearch(current, { weekOffset: weekOffset - 4 }),
+                        )
+                      }
                       aria-label={t("onCall.calendar.previous")}
+                      disabled={weekOffset <= -52}
                     >
                       <ChevronLeft />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setWeekOffset(0)}
+                      onClick={() =>
+                        setSearchParams((current) =>
+                          updateOnCallPageSearch(current, { weekOffset: 0 }),
+                        )
+                      }
                       disabled={weekOffset === 0}
                     >
                       {t("onCall.calendar.today")}
@@ -559,8 +575,13 @@ export function OnCallPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setWeekOffset((value) => value + 4)}
+                      onClick={() =>
+                        setSearchParams((current) =>
+                          updateOnCallPageSearch(current, { weekOffset: weekOffset + 4 }),
+                        )
+                      }
                       aria-label={t("onCall.calendar.next")}
+                      disabled={weekOffset >= 52}
                     >
                       <ChevronRight />
                     </Button>

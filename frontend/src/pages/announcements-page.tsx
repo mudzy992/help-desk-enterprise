@@ -19,6 +19,10 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import {
+  parseAnnouncementPageTab,
+  updateAnnouncementPageSearch,
+} from "@/lib/announcements/announcement-page-search";
+import {
   announcementDateTimeFormatter,
   mapAnnouncementError,
   severityTone,
@@ -81,7 +85,16 @@ export function AnnouncementsPage() {
     queryFn: getAnnouncementCapabilities,
     retry: false,
   });
-  const [tab, setTab] = useState<"mine" | "manage">("mine");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = parseAnnouncementPageTab(searchParams.get("tab"));
+  const tab = capabilities?.canManage === true ? requestedTab : "mine";
+
+  useEffect(() => {
+    if (capabilities === undefined || capabilities.canManage || requestedTab === "mine") return;
+    setSearchParams((current) => updateAnnouncementPageSearch(current, { tab: "mine" }), {
+      replace: true,
+    });
+  }, [capabilities, requestedTab, setSearchParams]);
 
   const header = (
     <PageHeader
@@ -145,7 +158,13 @@ export function AnnouncementsPage() {
             { key: "manage", label: t("announcements.tabs.manage") },
           ]}
           active={tab}
-          onChange={(key) => setTab(key === "manage" ? "manage" : "mine")}
+          onChange={(key) =>
+            setSearchParams((current) =>
+              updateAnnouncementPageSearch(current, {
+                tab: key === "manage" ? "manage" : "mine",
+              }),
+            )
+          }
         />
       ) : null}
       {canManage && tab === "manage" ? <ManageAnnouncements /> : <AnnouncementArchive />}
