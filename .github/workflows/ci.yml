@@ -17,7 +17,10 @@ name: CI
 #     walk (`install_spec` in the dispatch inputs).
 on:
   push:
-    branches: [main, master]
+    # TEMPORARY (Arena session arena/7a60171e): the session token has no
+    # actions:write, so it cannot dispatch. A push to this branch is the
+    # trigger instead. Remove the arena branch before merging to master.
+    branches: [main, master, arena/7a60171e-help-desk-enterprise]
     # A commit that only touches documentation cannot change product behaviour.
     # Note: this filter is deliberately NOT on `pull_request` (see above).
     paths-ignore:
