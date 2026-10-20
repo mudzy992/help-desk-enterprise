@@ -9,7 +9,7 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ import {
   reportErrorMessageKeys,
   type TrendsFilterOption,
 } from "@/components/reports/trends/report-trends-panel";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import {
@@ -448,7 +449,7 @@ function keyOf<T extends Record<string, string>>(map: T, code: string): T[keyof 
   return Object.prototype.hasOwnProperty.call(map, code) ? map[code as keyof T] : null;
 }
 
-function ReportScheduleRunsSheet({
+export function ReportScheduleRunsSheet({
   schedule,
   timeZone,
   onClose,
@@ -459,20 +460,33 @@ function ReportScheduleRunsSheet({
 }) {
   const { t, i18n } = useTranslation();
   const [runs, setRuns] = useState<readonly ReportScheduleRun[] | null>(null);
-  const [error, setError] = useState<ApiErrorKey | null>(null);
+  const [error, setError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const loadGuard = useRef(createLatestRequestGuard());
+
+  const load = useCallback(async () => {
+    if (schedule === null) return;
+    const request = loadGuard.current.begin();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const loaded = await listReportScheduleRuns(schedule.id);
+      if (loadGuard.current.isCurrent(request)) setRuns(loaded.runs);
+    } catch (caught) {
+      if (loadGuard.current.isCurrent(request)) {
+        setError({ key: mapApiError(caught), requestId: readApiRequestId(caught) });
+      }
+    } finally {
+      if (loadGuard.current.isCurrent(request)) setIsLoading(false);
+    }
+  }, [schedule]);
 
   useEffect(() => {
-    if (schedule === null) return;
-    let cancelled = false;
+    const guard = loadGuard.current;
     setRuns(null);
-    setError(null);
-    listReportScheduleRuns(schedule.id)
-      .then((loaded) => !cancelled && setRuns(loaded.runs))
-      .catch((caught: unknown) => !cancelled && setError(mapApiError(caught)));
-    return () => {
-      cancelled = true;
-    };
-  }, [schedule]);
+    void load();
+    return () => guard.cancel();
+  }, [load]);
 
   const describe = <T extends Record<string, string>>(map: T, code: string): string => {
     const key = keyOf(map, code);
@@ -497,7 +511,12 @@ function ReportScheduleRunsSheet({
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {error !== null ? (
-            <ApiErrorText messageKey={error} requestId={null} />
+            <div className="grid gap-2">
+              <ApiErrorText messageKey={error.key} requestId={error.requestId} />
+              <Button size="sm" variant="outline" disabled={isLoading} onClick={() => void load()}>
+                <RefreshCw size={14} /> {isLoading ? t("ui.loading") : t("ui.retry")}
+              </Button>
+            </div>
           ) : runs === null ? (
             <PanelSkeleton className="mt-0" label={t("reports.schedules.historyTitle")} />
           ) : runs.length === 0 ? (

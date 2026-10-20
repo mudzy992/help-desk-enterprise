@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Download, FileSpreadsheet, Play } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, Download, FileSpreadsheet, Play, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
@@ -47,6 +48,8 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   const [listError, setListError] = useState<{ key: ApiErrorKey; requestId: string | null } | null>(
     null,
   );
+  const [listLoading, setListLoading] = useState(false);
+  const listGuard = useRef(createLatestRequestGuard());
   const [selected, setSelected] = useState<ReportPackDescriptor | null>(null);
   const [preview, setPreview] = useState<ReportPackPreview | null>(null);
   const [previewError, setPreviewError] = useState<{
@@ -57,25 +60,33 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sort, setSort] = useState<ReportSort | null>(null);
 
-  useEffect(() => {
+  const loadList = useCallback(async () => {
     if (organizationalUnitId === null) return;
-    let cancelled = false;
+    const request = listGuard.current.begin();
+    setListLoading(true);
     setListError(null);
-    listReportPacks(organizationalUnitId)
-      .then((loaded) => {
-        if (cancelled) return;
-        setList(loaded);
-        setSelected((current) => current ?? loaded.packs[0] ?? null);
-      })
-      .catch(
-        (error: unknown) =>
-          !cancelled &&
-          setListError({ key: mapApiError(error), requestId: readApiRequestId(error) }),
+    try {
+      const loaded = await listReportPacks(organizationalUnitId);
+      if (!listGuard.current.isCurrent(request)) return;
+      setList(loaded);
+      setSelected(
+        (current) =>
+          loaded.packs.find((pack) => pack.key === current?.key) ?? loaded.packs[0] ?? null,
       );
-    return () => {
-      cancelled = true;
-    };
+    } catch (error) {
+      if (listGuard.current.isCurrent(request)) {
+        setListError({ key: mapApiError(error), requestId: readApiRequestId(error) });
+      }
+    } finally {
+      if (listGuard.current.isCurrent(request)) setListLoading(false);
+    }
   }, [organizationalUnitId]);
+
+  useEffect(() => {
+    const guard = listGuard.current;
+    void loadList();
+    return () => guard.cancel();
+  }, [loadList]);
 
   useEffect(() => {
     setPreview(null);
@@ -128,8 +139,15 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
       />
     );
   }
-  if (listError !== null) {
-    return <ApiErrorText messageKey={listError.key} requestId={listError.requestId} />;
+  if (listError !== null && list === null) {
+    return (
+      <div className="grid gap-2">
+        <ApiErrorText messageKey={listError.key} requestId={listError.requestId} />
+        <Button size="sm" variant="outline" disabled={listLoading} onClick={() => void loadList()}>
+          <RefreshCw size={14} /> {listLoading ? t("ui.loading") : t("ui.retry")}
+        </Button>
+      </div>
+    );
   }
   if (list === null) {
     return <PanelSkeleton className="mt-0" label={t("reports.packs.title")} />;
@@ -146,6 +164,19 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
 
   return (
     <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]" data-testid="report-packs">
+      {listError ? (
+        <div className="grid gap-2 lg:col-span-2">
+          <ApiErrorText messageKey={listError.key} requestId={listError.requestId} />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={listLoading}
+            onClick={() => void loadList()}
+          >
+            <RefreshCw size={14} /> {listLoading ? t("ui.loading") : t("ui.retry")}
+          </Button>
+        </div>
+      ) : null}
       <div className="space-y-2" role="listbox" aria-label={t("reports.packs.title")}>
         {list.packs.map((pack) => {
           const active = selected?.key === pack.key;
@@ -215,7 +246,17 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
           {loadingPreview ? (
             <PanelSkeleton className="mt-0" label={t("reports.packs.show")} />
           ) : previewError !== null ? (
-            <ApiErrorText messageKey={previewError.key} requestId={previewError.requestId} />
+            <div className="grid gap-2">
+              <ApiErrorText messageKey={previewError.key} requestId={previewError.requestId} />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={loadingPreview}
+                onClick={() => void showPreview()}
+              >
+                <RefreshCw size={14} /> {loadingPreview ? t("ui.loading") : t("ui.retry")}
+              </Button>
+            </div>
           ) : preview === null ? (
             <p className="text-[12.5px] text-muted-foreground">{t("reports.packs.pressShow")}</p>
           ) : preview.totalRows === 0 ? (

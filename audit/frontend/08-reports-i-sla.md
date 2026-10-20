@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **8,3/10 nakon Faze 1**
+**Aktuelna ocjena:** **8,7/10 nakon Faze 2**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -234,13 +234,13 @@ Nisu izvršno dokazani:
 | Oblast                                     |   Trenutno |      Cilj |
 | ------------------------------------------ | ---------: | --------: |
 | Route access i backend sigurnosna granica  |        9,5 |        10 |
-| Async state, race i recovery               |        8,8 |        10 |
+| Async state, race i recovery               |        9,3 |        10 |
 | Reporting tačnost, period i vremenska zona |        7,2 |        10 |
 | Mutation i cache konzistentnost            |        7,4 |        10 |
 | URL/shareability i navigacija              |        7,0 |        10 |
-| Testabilnost i održivost                   |        7,8 |        10 |
+| Testabilnost i održivost                   |        8,2 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **8,3/10** | **10/10** |
+| **Ukupno**                                 | **8,7/10** | **10/10** |
 
 Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race guardove i kvalitetan pure sloj. Odbici ostaju zbog identiteta SLA detail snapshotova, nedosljednog recovery/request-correlation ugovora, tihih filter/period fallbacka, mutation concurrency rizika, nepotpunog URL modela, slabe direktne component mreže i neizvršenog browser closeouta.
 
@@ -285,6 +285,19 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 5. Direktno testirati initial/background/retry matrice.
 
 **Exit gate:** recovery ne zahtijeva reload stranice i ne mijenja tiho scope izvještaja.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Service i group filter katalozi izdvojeni su u latest-only supporting-data hook koji razlikuje loading, uspješan snapshot i grešku svakog izvora.
+- Djelimičan kvar više ne briše uspješan susjedni katalog; server greška prikazuje mapiranu poruku, API request ID i retry sa pending zaštitom.
+- Uspješan service/group snapshot ostaje dostupan pri background refresh grešci, uz vidljivo upozorenje, pa scope više ne nestaje tiho.
+- Report pack list ima request correlation i retry za initial grešku; uspješan pack snapshot ostaje vidljiv pri grešci narednog OU refresha.
+- Pack preview greška sada ima lokalni retry i disabled/loading ugovor bez reloadovanja stranice.
+- Schedule run history ima latest-only zaštitu, request ID i lokalni retry; promjena schedule scopea ne može commitovati zakašnjeli odgovor prethodnog rasporeda.
+- Direktni hook/component testovi pokrivaju lazy load, djelimičan catalog failure, stale snapshot + recovery, pack initial/background/preview recovery i schedule-history retry.
+- `RSL3` i `RSL8` su zatvoreni; odgovarajući Reports recovery dio `RSL11` je direktno pokriven.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 8/8 testova; puni frontend Vitest prolaz ima 371/371 fajl odnosno 1486/1486 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
 
 ### Faza 3 — URL state i validacija perioda
 

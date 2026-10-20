@@ -36,6 +36,7 @@ import {
   toTrendsSearch,
   type TrendsViewState,
 } from "@/lib/reports/report-trends-view";
+import { useReportFilterOptions } from "@/lib/reports/use-report-filter-options";
 import {
   resolveReportWindow,
   toDateInputValue,
@@ -46,11 +47,9 @@ import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
-import { listGroups } from "@/services/groups-api";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { fetchReportsDashboard, type ReportsDashboardResponse } from "@/services/reports-api";
 import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
-import { listServices } from "@/services/service-catalog-api";
 
 type ReportsTab = "overview" | "bottlenecks" | "csat" | "trends" | "packs" | "schedules";
 
@@ -80,8 +79,6 @@ export function ReportsPage() {
   );
   const dashboardGuard = useRef(createLatestRequestGuard());
   const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
-  const [serviceOptions, setServiceOptions] = useState<readonly TrendsFilterOption[]>([]);
-  const [groupOptions, setGroupOptions] = useState<readonly TrendsFilterOption[] | null>(null);
   const [scheduleDraft, setScheduleDraft] = useState<ReportScheduleDraft | null>(null);
   const [trends, setTrends] = useState<ReportTrendsResponse | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -112,29 +109,9 @@ export function ReportsPage() {
     void loadUnits();
   }, [loadUnits]);
 
-  // Service and group filters are loaded only for the tabs that use them.
-  useEffect(() => {
-    if (!needsFilters || serviceOptions.length > 0) return;
-    void listServices()
-      .then((services) =>
-        setServiceOptions(
-          [...services]
-            .map((service) => ({ id: service.id, label: service.name }))
-            .sort((a, b) => a.label.localeCompare(b.label, i18n.language)),
-        ),
-      )
-      .catch(() => setServiceOptions([]));
-    // Groups are an admin list; without access the group filter is hidden.
-    void listGroups()
-      .then((groups) =>
-        setGroupOptions(
-          [...groups]
-            .map((group) => ({ id: group.id, label: group.name }))
-            .sort((a, b) => a.label.localeCompare(b.label, i18n.language)),
-        ),
-      )
-      .catch(() => setGroupOptions(null));
-  }, [needsFilters, serviceOptions.length, i18n.language]);
+  const filters = useReportFilterOptions(needsFilters, i18n.language);
+  const serviceOptions: readonly TrendsFilterOption[] = filters.services;
+  const groupOptions: readonly TrendsFilterOption[] = filters.groups;
 
   const reportWindowKey = `${preset}|${customFrom}|${customTo}|${organizationalUnitId}`;
   const now = useMemo(() => {
@@ -315,6 +292,22 @@ export function ReportsPage() {
         />
         <UnderlineTabs className="mb-4" items={tabs} active={tab} onChange={changeTab} />
       </div>
+      {needsFilters && (filters.serviceError ?? filters.groupError) ? (
+        <div className="mb-4 grid gap-2">
+          <ApiErrorText
+            messageKey={(filters.serviceError ?? filters.groupError)!.key}
+            requestId={(filters.serviceError ?? filters.groupError)!.requestId}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={filters.isLoading}
+            onClick={() => void filters.load()}
+          >
+            {filters.isLoading ? t("ui.loading") : t("ui.retry")}
+          </Button>
+        </div>
+      ) : null}
       {unitError ? (
         <div className="grid gap-2">
           <ApiErrorText messageKey={unitError.key} requestId={unitError.requestId} />
