@@ -43,6 +43,7 @@ export function SlaEscalationRulesPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reasonRequired, setReasonRequired] = useState(false);
   const loadGuard = useRef(createLatestRequestGuard());
+  const mutationPending = useRef(false);
 
   const reload = useCallback(async () => {
     const request = loadGuard.current.begin();
@@ -74,7 +75,8 @@ export function SlaEscalationRulesPanel({
   }, [reload, slaProfileId]);
 
   const handleSave = async (input: EscalationRuleWriteInput) => {
-    if (!canWrite || slaProfileId.length === 0) return;
+    if (!canWrite || slaProfileId.length === 0 || mutationPending.current) return;
+    mutationPending.current = true;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
@@ -88,17 +90,19 @@ export function SlaEscalationRulesPanel({
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      mutationPending.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (rule: SlaEscalationRule) => {
-    if (!canWrite) return;
+    if (!canWrite || mutationPending.current) return;
     if (deleteReason.trim().length === 0) {
       setReasonRequired(true);
       return;
     }
     setReasonRequired(false);
+    mutationPending.current = true;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
@@ -108,6 +112,7 @@ export function SlaEscalationRulesPanel({
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      mutationPending.current = false;
       setIsSubmitting(false);
     }
   };

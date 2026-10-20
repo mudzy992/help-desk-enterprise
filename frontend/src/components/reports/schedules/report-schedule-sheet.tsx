@@ -1,7 +1,8 @@
 import { Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   controlClassName,
@@ -19,7 +20,7 @@ import {
   type ReportScheduleFormError,
 } from "@/lib/reports/report-schedule-form";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
-import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   reportErrorMessageKeys,
   type TrendsFilterOption,
@@ -114,7 +115,10 @@ export function ReportScheduleSheet({
   const [candidateError, setCandidateError] = useState<ApiErrorKey | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const savePending = useRef(false);
+  const [saveError, setSaveError] = useState<{ key: string; requestId: string | null } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -187,8 +191,10 @@ export function ReportScheduleSheet({
       : values.filter((item) => item !== value);
 
   const submit = async () => {
+    if (savePending.current) return;
     setShowErrors(true);
     if (errors.length > 0) return;
+    savePending.current = true;
     setSaving(true);
     setSaveError(null);
     const input = {
@@ -214,8 +220,12 @@ export function ReportScheduleSheet({
       onOpenChange(false);
     } catch (caught) {
       const code = readReportErrorCode(caught);
-      setSaveError(code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]));
+      setSaveError({
+        key: code === null ? mapApiError(caught) : reportErrorMessageKeys[code],
+        requestId: readApiRequestId(caught),
+      });
     } finally {
+      savePending.current = false;
       setSaving(false);
     }
   };
@@ -511,9 +521,10 @@ export function ReportScheduleSheet({
             </ul>
           ) : null}
           {saveError !== null ? (
-            <p className={errorTextClassName} role="alert">
-              {saveError}
-            </p>
+            <ApiErrorText
+              messageKey={saveError.key as ApiErrorKey}
+              requestId={saveError.requestId}
+            />
           ) : null}
         </div>
         <div className="flex justify-end gap-2 border-t border-border/70 px-5 py-3">

@@ -181,6 +181,7 @@ export function useSlaPageData(organizationalUnitId: string | null, complianceAc
     errorKey: mutationError?.key ?? null,
     complianceErrorKey: complianceError?.key ?? null,
     setErrorKey,
+    setMutationError,
     setSelectedId,
     startCreate,
     clearSelection,

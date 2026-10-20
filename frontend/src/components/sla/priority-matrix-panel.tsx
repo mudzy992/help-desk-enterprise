@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, labelClassName } from "@/components/ui/control";
@@ -34,6 +34,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const savePending = useRef(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -61,7 +62,9 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
   });
 
   const handleSave = async () => {
-    if (!canWrite || dirty.length === 0 || reason.trim().length === 0) return;
+    if (!canWrite || dirty.length === 0 || reason.trim().length === 0 || savePending.current)
+      return;
+    savePending.current = true;
     setIsSaving(true);
     setErrorKey(null);
     try {
@@ -79,6 +82,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      savePending.current = false;
       setIsSaving(false);
     }
   };

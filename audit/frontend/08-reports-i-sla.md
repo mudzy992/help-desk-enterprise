@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **9,0/10 nakon Faze 3**
+**Aktuelna ocjena:** **9,3/10 nakon Faze 4**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -236,11 +236,11 @@ Nisu izvršno dokazani:
 | Route access i backend sigurnosna granica  |        9,5 |        10 |
 | Async state, race i recovery               |        9,3 |        10 |
 | Reporting tačnost, period i vremenska zona |        8,2 |        10 |
-| Mutation i cache konzistentnost            |        7,4 |        10 |
+| Mutation i cache konzistentnost            |        9,4 |        10 |
 | URL/shareability i navigacija              |        9,4 |        10 |
-| Testabilnost i održivost                   |        8,4 |        10 |
+| Testabilnost i održivost                   |        8,6 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **9,0/10** | **10/10** |
+| **Ukupno**                                 | **9,3/10** | **10/10** |
 
 Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race/recovery ugovore, validirano URL stanje i eksplicitnu validaciju perioda. Odbici ostaju zbog mutation concurrency rizika, nedokazanog timezone/DST ugovora, održivosti velikih komponenti, preostale direktne testne mreže i neizvršenog browser closeouta.
 
@@ -335,6 +335,18 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 5. Deferred testovi create/update/delete/manual-run i synchronous double click.
 
 **Exit gate:** svaki mutation šalje najviše jedan zahtjev i osvježava samo pogođeni snapshot.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Uveden je kanonski sinhroni operation guard koji rezerviše akciju prije prvog `await` izraza; synchronous double-click više ne može poslati dupli zahtjev.
+- Profile i rule create/update/delete tokovi imaju odvojene pending identitete. Profile mutacije osvježavaju samo base snapshot, dok rule mutacije osvježavaju samo detail snapshot.
+- SLA mutation greške sada čuvaju API request ID i prikazuju ga kroz standardni error prikaz; nakon greške ista akcija se može deterministički ponoviti.
+- Calendar save/delete, escalation create/update/delete, priority-matrix save i schedule create/update/toggle/test/run-now/delete dobili su sinhronu zaštitu prije mrežnog zahtjeva.
+- Schedule save greška prikazuje request ID. Uspješan schedule create/update direktno upisuje vraćeni entitet u listu bez redundantnog full list reloada; toggle i delete takođe mijenjaju samo pogođeni snapshot.
+- Direktni testovi dokazuju synchronous duplicate blokadu, otključavanje nakon završetka, profile/rule create-update-delete refresh matricu i correlated error→retry tok.
+- `RSL5` i mutation dio `RSL11` zatvoreni su determinističkim dokazom.
+
+**Izvršni dokaz:** ciljni suite ima 4 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 374/374 fajla odnosno 1496/1496 testova. Production build je prošao uz postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen i ostaje mapiran na Fazu 8.
 
 ### Faza 5 — Reporting timezone contract
 
@@ -442,6 +454,6 @@ Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati
 
 ## 9. Završni zaključak
 
-Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,0/10**; preostali odbici su mutation concurrency/refresh matrica, timezone/DST ugovor, održivost, završna deterministička regresija i neizvršen browser dokaz.
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,3/10**; preostali odbici su timezone/DST ugovor, održivost, završna deterministička regresija i neizvršen browser dokaz.
 
 Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.

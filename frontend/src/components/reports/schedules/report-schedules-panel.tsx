@@ -105,6 +105,17 @@ export function ReportSchedulesPanel({
   const [confirmRun, setConfirmRun] = useState<ReportSchedule | null>(null);
   const [runsFor, setRunsFor] = useState<ReportSchedule | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const pendingOperations = useRef(new Map<string, string>());
+  const beginOperation = (key: string, scheduleId: string) => {
+    if (pendingOperations.current.has(key)) return false;
+    pendingOperations.current.set(key, scheduleId);
+    setBusy(scheduleId);
+    return true;
+  };
+  const endOperation = (key: string) => {
+    pendingOperations.current.delete(key);
+    setBusy(pendingOperations.current.values().next().value ?? null);
+  };
 
   const reload = useCallback(async () => {
     try {
@@ -149,18 +160,20 @@ export function ReportSchedulesPanel({
     );
 
   const toggleEnabled = async (schedule: ReportSchedule, enabled: boolean) => {
-    setBusy(schedule.id);
+    const operationKey = "toggle:" + schedule.id;
+    if (!beginOperation(operationKey, schedule.id)) return;
     try {
       replace(await setReportScheduleEnabled(schedule.id, enabled));
     } catch (caught) {
       fail(caught);
     } finally {
-      setBusy(null);
+      endOperation(operationKey);
     }
   };
 
   const sendTest = async (schedule: ReportSchedule) => {
-    setBusy(schedule.id);
+    const operationKey = "test:" + schedule.id;
+    if (!beginOperation(operationKey, schedule.id)) return;
     try {
       const result = await sendReportScheduleTest(schedule.id);
       toast(
@@ -175,12 +188,13 @@ export function ReportSchedulesPanel({
     } catch (caught) {
       fail(caught);
     } finally {
-      setBusy(null);
+      endOperation(operationKey);
     }
   };
 
   const runNow = async (schedule: ReportSchedule) => {
-    setBusy(schedule.id);
+    const operationKey = "run:" + schedule.id;
+    if (!beginOperation(operationKey, schedule.id)) return;
     try {
       const result = await runReportScheduleNow(schedule.id);
       toast(
@@ -192,12 +206,13 @@ export function ReportSchedulesPanel({
     } catch (caught) {
       fail(caught);
     } finally {
-      setBusy(null);
+      endOperation(operationKey);
     }
   };
 
   const remove = async (schedule: ReportSchedule) => {
-    setBusy(schedule.id);
+    const operationKey = "delete:" + schedule.id;
+    if (!beginOperation(operationKey, schedule.id)) return;
     try {
       await deleteReportSchedule(schedule.id);
       setList((current) =>
@@ -209,7 +224,7 @@ export function ReportSchedulesPanel({
     } catch (caught) {
       fail(caught);
     } finally {
-      setBusy(null);
+      endOperation(operationKey);
     }
   };
 
@@ -385,7 +400,6 @@ export function ReportSchedulesPanel({
         groups={groups}
         onSaved={(saved) => {
           replace(saved);
-          void reload();
           toast({ title: t("reports.schedules.saved"), tone: "success" });
         }}
       />

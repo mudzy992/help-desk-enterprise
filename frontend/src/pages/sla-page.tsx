@@ -13,7 +13,8 @@ import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-q
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
-import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
+import { selectCompactClassName } from "@/components/ui/control";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { useSlaPageData } from "@/lib/sla/use-sla-page-data";
 import { useSlaPageMutations } from "@/lib/sla/use-sla-page-mutations";
@@ -222,9 +223,12 @@ export function SlaPage() {
         </div>
       ) : null}
       {data.mutationError ? (
-        <p role="alert" className={`mb-3 ${errorTextClassName}`}>
-          {t(data.mutationError.key)}
-        </p>
+        <div className="mb-3">
+          <ApiErrorText
+            messageKey={data.mutationError.key}
+            requestId={data.mutationError.requestId}
+          />
+        </div>
       ) : null}
       <div className="mt-2">
         <UnderlineTabs
