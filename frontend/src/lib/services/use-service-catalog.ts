@@ -35,9 +35,10 @@ export function useServiceCatalog(): ServiceCatalogState {
     },
   });
 
+  const { refetch } = query;
   const reload = useCallback(async () => {
-    await query.refetch();
-  }, [query]);
+    await refetch();
+  }, [refetch]);
 
   return {
     rows: query.data ?? emptyCatalogRows,

@@ -1,47 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { queryKeys } from "@/lib/query/query-keys";
 import {
   listServiceCategories,
   type ServiceCategoryResponse,
 } from "@/services/service-categories-api";
 
+const emptyCategories: readonly ServiceCategoryResponse[] = [];
+
 export function useServiceCategories() {
-  const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
-  const [requestId, setRequestId] = useState<string | null>(null);
-  const requestSequence = useRef(0);
-
+  const query = useQuery({
+    queryKey: queryKeys.serviceCategories,
+    queryFn: listServiceCategories,
+    retry: false,
+  });
+  const { refetch } = query;
   const reload = useCallback(async () => {
-    const sequence = ++requestSequence.current;
-    setIsLoading(true);
-    setErrorKey(null);
-    setRequestId(null);
-    try {
-      const loaded = await listServiceCategories();
-      if (sequence === requestSequence.current) {
-        setCategories(loaded);
-      }
-    } catch (error) {
-      // Keep the last successful category list during a transient refresh error.
-      // Clearing it here made the catalog flicker to an empty state until a full
-      // page reload, even though its cached service rows were still available.
-      if (sequence === requestSequence.current) {
-        setErrorKey(mapApiError(error));
-        setRequestId(readApiRequestId(error));
-      }
-    } finally {
-      if (sequence === requestSequence.current) {
-        setHasLoaded(true);
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  return { categories, hasLoaded, isLoading, errorKey, requestId, reload };
+    await refetch();
+  }, [refetch]);
+  const errorKey: ApiErrorKey | null = query.error === null ? null : mapApiError(query.error);
+  return {
+    categories: query.data ?? emptyCategories,
+    hasLoaded: query.data !== undefined,
+    isLoading: query.isLoading,
+    isRefreshing: query.isFetching && query.data !== undefined,
+    errorKey,
+    requestId: query.error === null ? null : readApiRequestId(query.error),
+    reload,
+  };
 }

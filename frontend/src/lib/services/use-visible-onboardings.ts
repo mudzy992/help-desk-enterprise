@@ -1,53 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/query-keys";
 import { loadVisibleOnboardings } from "@/lib/services/load-visible-onboardings";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
 import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
 
+const emptyOnboardings: readonly ServiceOnboardingResponse[] = [];
+
 export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
-  const [onboardings, setOnboardings] = useState<readonly ServiceOnboardingResponse[]>([]);
-  const requestSequence = useRef(0);
-  const draftKey = rows
+  const draftIds = rows
     .filter((row) => row.service.lifecycle === "DRAFT")
     .map((row) => row.service.id)
-    .sort()
-    .join("\u0000");
-
-  useEffect(() => {
-    const draftIds = draftKey.length === 0 ? [] : draftKey.split("\u0000");
-    const draftIdSet = new Set(draftIds);
-    const sequence = ++requestSequence.current;
-    setOnboardings((current) =>
-      current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
-    );
-    if (draftIds.length === 0) {
-      setOnboardings([]);
-      return () => {
-        requestSequence.current += 1;
-      };
-    }
-
-    void loadVisibleOnboardings(draftIds, (serviceId, onboarding) => {
-      if (sequence !== requestSequence.current) {
-        return;
-      }
-      setOnboardings((current) => {
-        const withoutService = current.filter((item) => item.serviceId !== serviceId);
-        return onboarding === null ? withoutService : [...withoutService, onboarding];
-      });
-    }).catch(() => {
-      // Keep visible progress when a background refresh fails, but remove
-      // records for services which are no longer drafts in the latest read.
-      if (sequence === requestSequence.current) {
-        setOnboardings((current) =>
-          current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
-        );
-      }
-    });
-
-    return () => {
-      requestSequence.current += 1;
-    };
-  }, [draftKey]);
-
-  return onboardings;
+    .sort();
+  const draftKey = draftIds.join("\u0000");
+  const query = useQuery({
+    queryKey: queryKeys.serviceOnboardings(draftKey),
+    queryFn: () => loadVisibleOnboardings(draftIds),
+    enabled: draftIds.length > 0,
+    retry: false,
+  });
+  return draftIds.length === 0 ? emptyOnboardings : (query.data ?? emptyOnboardings);
 }

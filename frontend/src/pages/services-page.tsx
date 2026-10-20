@@ -84,12 +84,15 @@ export function ServicesPage() {
     await Promise.all([reloadCatalogRows(), reloadRoutingCoverage()]);
   }, [reloadCatalogRows, reloadRoutingCoverage]);
   const reloadCategories = useCallback(async () => {
-    await Promise.all([reloadCategoryRows(), reloadCatalog()]);
-  }, [reloadCategoryRows, reloadCatalog]);
+    await Promise.all([reloadCategoryRows(), reloadCatalogRows()]);
+  }, [reloadCategoryRows, reloadCatalogRows]);
+  const reloadAll = useCallback(async () => {
+    await Promise.all([reloadCategoryRows(), reloadCatalogRows(), reloadRoutingCoverage()]);
+  }, [reloadCategoryRows, reloadCatalogRows, reloadRoutingCoverage]);
   const containerRef = useRef<HTMLElement>(null);
   const live = useAdminConfigLiveRefresh({
     domains: ["catalog", "routing"],
-    reload: reloadCategories,
+    reload: reloadAll,
     containerRef,
   });
   const catalogView = serviceCatalogLoadState({
@@ -105,7 +108,8 @@ export function ServicesPage() {
   });
   const hasRefreshError =
     (catalog.hasLoaded && catalog.errorKey !== null) ||
-    (categoryState.hasLoaded && categoryState.errorKey !== null);
+    (categoryState.hasLoaded && categoryState.errorKey !== null) ||
+    (routingCoverage.hasLoaded && routingCoverage.errorKey !== null);
 
   useEffect(() => {
     if (!catalog.hasLoaded || !categoryState.hasLoaded) return;
@@ -173,12 +177,7 @@ export function ServicesPage() {
             requestId={catalog.requestId}
           />
           <div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void reloadCategories()}
-            >
+            <Button type="button" size="sm" variant="outline" onClick={() => void reloadAll()}>
               {t("services.retryLoad")}
             </Button>
           </div>
@@ -207,13 +206,19 @@ export function ServicesPage() {
                     />
                   </>
                 ) : null}
+                {routingCoverage.hasLoaded && routingCoverage.errorKey ? (
+                  <>
+                    <p className="text-[11.5px] text-muted-foreground">
+                      {t("services.routingRefreshWarning")}
+                    </p>
+                    <ApiErrorText
+                      messageKey={routingCoverage.errorKey}
+                      requestId={routingCoverage.requestId}
+                    />
+                  </>
+                ) : null}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void reloadCategories()}
-              >
+              <Button type="button" size="sm" variant="outline" onClick={() => void reloadAll()}>
                 {t("services.retryLoad")}
               </Button>
             </div>

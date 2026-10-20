@@ -3654,7 +3654,10 @@
         "ACTIVE": "Active",
         "EXPIRED": "Expired"
       },
-      "timeZoneHint": "Civil time in your browser zone: {{timeZone}}. The end must be after the start."
+      "timeZoneHint": "Civil time in your browser zone: {{timeZone}}. The end must be after the start.",
+      "refreshWarning": "Showing the last loaded windows because the refresh failed.",
+      "cancelConfirmTitle": "Cancel this downtime window?",
+      "cancelConfirmDescription": "This window will be removed from the schedule. The reason remains recorded in the audit log."
     },
     "columnName": "Service",
     "columnLifecycle": "Lifecycle",
@@ -3894,7 +3897,8 @@
       "errorNotDraft": "Only a DRAFT version can be activated.",
       "errorNoActive": "There is no active form version.",
       "errorGeneric": "The form cannot be changed right now."
-    }
+    },
+    "routingRefreshWarning": "Showing the last loaded routing coverage because the refresh failed."
   },
   "directory": {
     "usersIntro": "Users mapped to organizational units.",

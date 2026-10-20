@@ -3671,7 +3671,10 @@
         "ACTIVE": "Aktivno",
         "EXPIRED": "Isteklo"
       },
-      "timeZoneHint": "Lokalno vrijeme u zoni preglednika: {{timeZone}}. Kraj mora biti nakon početka."
+      "timeZoneHint": "Lokalno vrijeme u zoni preglednika: {{timeZone}}. Kraj mora biti nakon početka.",
+      "refreshWarning": "Prikazuju se posljednji učitani periodi jer osvježavanje nije uspjelo.",
+      "cancelConfirmTitle": "Otkazati period nedostupnosti?",
+      "cancelConfirmDescription": "Ovaj period će biti uklonjen iz rasporeda. Razlog ostaje zabilježen u auditu."
     },
     "columnName": "Usluga",
     "columnLifecycle": "Životni ciklus",
@@ -3911,7 +3914,8 @@
       "errorNotDraft": "Aktivirati se može samo DRAFT verzija.",
       "errorNoActive": "Nema aktivne verzije forme.",
       "errorGeneric": "Formu trenutno nije moguće izmijeniti."
-    }
+    },
+    "routingRefreshWarning": "Prikazuju se posljednji učitani podaci rutiranja jer osvježavanje nije uspjelo."
   },
   "directory": {
     "usersIntro": "Korisnici mapirani na organizacijske jedinice.",

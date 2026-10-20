@@ -3,7 +3,7 @@
 **Datum reauditiranja:** 2026-10-20
 **Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
 **Status:** otvoren za implementaciju
-**Aktuelna ocjena:** **9,2/10 nakon Faze 5**
+**Aktuelna ocjena:** **9,4/10 nakon Faze 6**
 **Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
@@ -21,7 +21,7 @@ Faze 1–4 su izdvojile latest-only status/ticket controllere, zaštitile incide
 3. kritične komponente nemaju direktne component/page testove;
 4. browser dokaz nije izvršen u ovom reauditiranju.
 
-Ocjena **9,2/10 nakon Faze 5** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove, dosljedan civil-time ugovor i reproducibilan URL-backed katalog, ali ne tretira odsustvo regresije kao dokaz korektnosti.
+Ocjena **9,4/10 nakon Faze 6** priznaje jaku backend osnovu, latest-only controllere, zaštićene mutation tokove, URL-backed katalog i ujednačen query/recovery sloj, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
@@ -134,33 +134,20 @@ Search, kategorija, lifecycle i origin-unit filteri sada se čitaju i ažuriraju
 
 Updater čuva nepovezane URL parametre. Nakon učitavanja podataka kanonizuju se nedostupni category, origin-unit i service ID-evi; query/routing outage ne briše scope koji još nije moguće pouzdano validirati. Pure parser/update/canonicalization testovi i MemoryRouter Back/Forward test zatvaraju regresijski ugovor.
 
-### SS7 — Data loading model je fragmentiran i routing failure je tih
+### SS7 — Services read modeli imaju ujednačen query/recovery sloj
 
-**Prioritet:** P1
-**Lokacije:** `use-service-catalog.ts`, `use-service-categories.ts`, `use-catalog-routing-coverage.ts`, `use-visible-onboardings.ts`, `services-page.tsx`
+**Prioritet:** zatvoreno u Fazi 6
 
-Katalog koristi React Query, dok kategorije, routing coverage i onboardings koriste zasebne ručne sequence state mašine. Njihova recovery pravila nisu ista:
+Katalog, kategorije, routing coverage i onboarding lookup sada koriste typed React Query ključeve. Reload callbackovi zavise od stabilnog `refetch` ugovora, a kategorijska promjena osvježava samo kategorije i katalog; routing se osvježava samo za servisne/routing promjene ili objedinjeni live refresh.
 
-- katalog i kategorije izlažu error/request ID;
-- routing coverage na grešci briše index, postavlja `isAvailable=false` i ne izlaže grešku;
-- onboarding lookup djelimično radi N+1 po DRAFT servisu;
-- `reloadCategories` kaskadno reloada kategorije, katalog i routing čak i kada promjena nije uticala na sve scopeove.
+Routing greška više ne briše posljednji uspješni index niti tiho gasi filter: stranica prikazuje background upozorenje, mapiranu grešku, request ID i Retry. Onboarding draftovi se učitavaju kroz jedan keyed batch orchestration scope; postojeći `allSettled` loader izoluje parcijalni neuspjeh pojedinog servisa tako da zdrav progress ostaje vidljiv. Transport i dalje koristi izolovane per-service readove, ali više nema N nezavisnih UI state mašina niti correctness coupling između njih.
+### SS8 — Downtime panel ima identity/recovery i mutation ugovor
 
-`useServiceCatalog.reload` zavisi od cijelog React Query result objekta (`[query]`), pa stabilnost callbacka nije ugovorno jasna i može širiti nepotrebne effect/live-refresh promjene.
+**Prioritet:** zatvoreno u Fazi 6
 
-**Za zatvaranje:** typed query ključevi i ujednačen query/recovery sloj; routing error + Retry; ciljane invalidacije; stabilan reload callback; batch onboarding summary.
+Typed downtime controller koristi query identitet po `serviceId`, razdvaja initial loading od background refresh stanja i zadržava posljednje uspješne periode na grešci. Query greška izlaže request ID i Retry, a A→B promjena servisa ne može prikazati odgovor prethodnog scopea.
 
-### SS8 — Downtime panel briše zdrave podatke na grešci i nema race zaštitu
-
-**Prioritet:** P1
-**Lokacija:** `service-downtime-windows-panel.tsx`
-
-Svaki reload vraća panel na skeleton, a catch radi `setWindows([])`. Pozadinska greška zato briše posljednju uspješnu listu i istovremeno može prikazati empty copy uz error. Nema request sequence/cancel zaštite kada se brzo promijeni `serviceId` ili sheet zatvori.
-
-Cancel mutation koristi React state kao jedini pending guard, nema synchronous lock, nema potvrdu i dijeli jedan error slot sa query greškom. Request ID se ne prikazuje.
-
-**Za zatvaranje:** typed downtime controller sa initial/background stanjem, latest-only identityjem po service ID-u, stale-data retentionom, query/mutation error razdvajanjem i per-window operation guardom.
-
+Cancel mutation ima per-service/per-window synchronous operation guard, danger confirmation i zaseban mutation error/request ID. Neuspjeh ostavlja potvrdu otvorenom, dok query greška više ne dijeli mutation error slot niti briše zdrave podatke.
 ### SS9 — Form/onboarding mutation i cache ugovori ostaju djelimični
 
 **Prioritet:** P2
@@ -352,7 +339,11 @@ Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici 
 4. Batch onboarding summary i ciljane invalidacije.
 5. Testirati partial failure i A→B service race.
 
-**Exit gate:** nijedan parcijalni outage ne briše zdrav, nepovezan scope.
+**Status:** završeno. Services read modeli koriste typed query identitete i stale retention; routing i downtime greške imaju request ID/Retry, invalidacije su ciljane, a downtime cancel ima potvrdu i synchronous guard.
+
+**Izvršni dokaz:** ciljni recovery/race suite prolazi **3/3 fajla i 4/4 testa**; puni frontend Vitest prolazi **400/400 fajlova i 1559/1559 testova**. Production build, puni ESLint, i18n/design-system i Prettier prolaze; `git diff --check` prolazi. Browser/E2E nije izvršen.
+
+**Exit gate:** nijedan parcijalni outage ne briše zdrav, nepovezan scope — ispunjen.
 
 ### Faza 7 — Form builder, kategorije i onboarding hardening
 
