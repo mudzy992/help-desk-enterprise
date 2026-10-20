@@ -180,7 +180,7 @@ export function ReportScheduleSheet({
     },
     list.settings.maxRecipients,
   );
-  const next = previewNextReportRun(frequency, sendTime, new Date());
+  const next = previewNextReportRun(frequency, sendTime, list.settings.timeZone, new Date());
   const selectedIds = useMemo(
     () => new Set(recipients.map((recipient) => recipient.id)),
     [recipients],
@@ -302,7 +302,10 @@ export function ReportScheduleSheet({
                     year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: list.settings.timeZone,
+                    timeZoneName: "short",
                   }),
+                  zone: list.settings.timeZone,
                 })}
           </p>
 

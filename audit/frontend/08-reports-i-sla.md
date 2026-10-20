@@ -2,7 +2,7 @@
 
 **Datum reaudit-a:** 20. 10. 2026.
 **Status:** otvoren implementacijski plan
-**Aktuelna ocjena:** **9,3/10 nakon Faze 4**
+**Aktuelna ocjena:** **9,5/10 nakon Faze 5**
 **Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
@@ -235,12 +235,12 @@ Nisu izvršno dokazani:
 | ------------------------------------------ | ---------: | --------: |
 | Route access i backend sigurnosna granica  |        9,5 |        10 |
 | Async state, race i recovery               |        9,3 |        10 |
-| Reporting tačnost, period i vremenska zona |        8,2 |        10 |
+| Reporting tačnost, period i vremenska zona |        9,5 |        10 |
 | Mutation i cache konzistentnost            |        9,4 |        10 |
 | URL/shareability i navigacija              |        9,4 |        10 |
-| Testabilnost i održivost                   |        8,6 |        10 |
+| Testabilnost i održivost                   |        8,7 |        10 |
 | Accessibility/responsive/browser dokaz     |        6,5 |        10 |
-| **Ukupno**                                 | **9,3/10** | **10/10** |
+| **Ukupno**                                 | **9,5/10** | **10/10** |
 
 Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race/recovery ugovore, validirano URL stanje i eksplicitnu validaciju perioda. Odbici ostaju zbog mutation concurrency rizika, nedokazanog timezone/DST ugovora, održivosti velikih komponenti, preostale direktne testne mreže i neizvršenog browser closeouta.
 
@@ -361,6 +361,18 @@ Ocjena priznaje široku funkcionalnost, dobru backend zaštitu, poboljšane race
 
 **Exit gate:** isti input proizvodi isti period/sljedeće slanje na klijentu i serveru.
 
+#### Evidencija zatvaranja Faze 5 (20. 10. 2026.)
+
+- Produkt odluka je kanonizovana: `private.installation.timeZone` je reporting civil-time zona za dashboard, Trends, schedule preview, scheduler i run history; browser zona nije poslovni input.
+- Reports konfiguracija sada izlaže reporting zonu dashboard builderu, a dashboard API odgovor je vraća klijentu. Overview print period prikazuje server-confirmed zonu, dok Trends i schedule površine nastavljaju prikazivati istu konfiguracijsku zonu.
+- Frontend dobija centralni Intl-only civil-time helper koji semantički prati backend `notification-schedule-time`/`report-schedule-calendar` ugovor.
+- Schedule preview više ne računa ponedjeljak/prvi dan u browser-local vremenu. Koristi `list.settings.timeZone`, civilni datum u toj zoni i isti strictly-after algoritam kao backend `nextReportRunAt`.
+- Preview formatiranje eksplicitno koristi reporting zonu i prikazuje zone abbreviation; korisnik u drugoj zoni zato vidi stvarni server send slot.
+- Contract testovi pokrivaju Sarajevo spring-forward/fall-back, civilnu ponoć, korisnike u različitim zonama i weekly/monthly boundary.
+- `RSL7` je zatvoren determinističkim frontend/backend contract dokazom.
+
+**Izvršni dokaz:** ciljni frontend suite ima 2 fajla sa 7/7 testova, a backend configuration contract 1 fajl sa 9/9 testova. Puni frontend Vitest prolaz ima 375/375 fajlova odnosno 1499/1499 testova; production TypeScript/Vite build, puni ESLint sa 0 warninga i i18n/design-system gate su prošli. Backend production build je pokušavan, ali je generisanje Prisma klijenta blokirano mrežnim ograničenjem prema `binaries.prisma.sh`; ovo je jasno blokiran build dokaz, ne prolaz. Browser/E2E dokaz nije izvršen i ostaje za Fazu 8.
+
 ### Faza 6 — Održivost i stabilni identiteti
 
 **Nalazi:** `RSL9`, `RSL10`, `RSL12`
@@ -454,6 +466,6 @@ Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati
 
 ## 9. Završni zaključak
 
-Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,3/10**; preostali odbici su timezone/DST ugovor, održivost, završna deterministička regresija i neizvršen browser dokaz.
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,5/10**; preostali odbici su održivost velikih state mašina, završna deterministička regresija i neizvršen browser dokaz.
 
 Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.

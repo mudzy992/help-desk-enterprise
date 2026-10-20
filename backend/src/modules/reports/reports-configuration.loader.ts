@@ -13,6 +13,9 @@ export class ReportsConfigurationLoader {
   async load(): Promise<ReportsConfiguration> {
     try {
       return parseReportsConfiguration({
+        timeZone: await this.settingsService.getSetting(
+          settingKeys.privateInstallationTimeZone,
+        ),
         reportsEnabled: await this.settingsService.getSetting(
           settingKeys.privateReportsEnabled,
         ),

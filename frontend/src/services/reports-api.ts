@@ -37,6 +37,7 @@ export type ReportDashboardAging = {
 };
 
 export type ReportsDashboardResponse = {
+  readonly timeZone: string;
   readonly window: { readonly from: string; readonly to: string };
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;

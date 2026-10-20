@@ -37,6 +37,7 @@ import type {
 } from './aggregate-report-dashboard-charts';
 
 export type ReportsDashboard = {
+  readonly timeZone: string;
   readonly window: { readonly from: string; readonly to: string };
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;
@@ -87,6 +88,7 @@ export async function buildReportsDashboard(input: {
       countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
     ]);
     return {
+      timeZone: input.configuration.timeZone ?? 'UTC',
       window: { from: window.from.toISOString(), to: window.to.toISOString() },
       previousWindow: {
         from: previousWindow.from.toISOString(),
@@ -155,6 +157,7 @@ export async function buildReportsDashboard(input: {
     countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
   ]);
   return {
+    timeZone: input.configuration.timeZone ?? 'UTC',
     window: {
       from: window.from.toISOString(),
       to: window.to.toISOString(),

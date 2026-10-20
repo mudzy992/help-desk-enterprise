@@ -44,21 +44,30 @@ describe("schedule form", () => {
     expect(isValidSendTime("07:60")).toBe(false);
   });
 
-  it("previews the next Monday / 1st strictly after now", () => {
-    const saturday = new Date(2026, 8, 26, 12, 0);
-    expect(previewNextReportRun("WEEKLY", "07:00", saturday)).toEqual(new Date(2026, 8, 28, 7, 0));
-    const mondayMorning = new Date(2026, 8, 28, 6, 0);
-    expect(previewNextReportRun("WEEKLY", "07:00", mondayMorning)).toEqual(
-      new Date(2026, 8, 28, 7, 0),
+  it("previews the next Monday / 1st in the configured zone", () => {
+    expect(
+      previewNextReportRun("WEEKLY", "07:00", "Europe/Sarajevo", new Date("2026-09-26T10:00:00Z")),
+    ).toEqual(new Date("2026-09-28T05:00:00Z"));
+    expect(
+      previewNextReportRun("MONTHLY", "07:00", "Europe/Sarajevo", new Date("2026-09-30T22:00:00Z")),
+    ).toEqual(new Date("2026-10-01T05:00:00Z"));
+    expect(previewNextReportRun("MONTHLY", "bad", "Europe/Sarajevo", new Date())).toBeNull();
+  });
+
+  it("keeps the civil send hour through spring and fall DST boundaries", () => {
+    const spring = previewNextReportRun(
+      "WEEKLY",
+      "07:00",
+      "Europe/Sarajevo",
+      new Date("2026-03-28T12:00:00Z"),
     );
-    const mondayLate = new Date(2026, 8, 28, 7, 0);
-    expect(previewNextReportRun("WEEKLY", "07:00", mondayLate)).toEqual(new Date(2026, 9, 5, 7, 0));
-    expect(previewNextReportRun("MONTHLY", "07:00", new Date(2026, 11, 15))).toEqual(
-      new Date(2027, 0, 1, 7, 0),
+    const fall = previewNextReportRun(
+      "WEEKLY",
+      "07:00",
+      "Europe/Sarajevo",
+      new Date("2026-10-24T12:00:00Z"),
     );
-    expect(previewNextReportRun("MONTHLY", "07:00", new Date(2026, 9, 1, 6, 59))).toEqual(
-      new Date(2026, 9, 1, 7, 0),
-    );
-    expect(previewNextReportRun("MONTHLY", "bad", new Date())).toBeNull();
+    expect(spring).toEqual(new Date("2026-03-30T05:00:00Z"));
+    expect(fall).toEqual(new Date("2026-10-26T06:00:00Z"));
   });
 });

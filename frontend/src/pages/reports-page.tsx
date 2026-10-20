@@ -233,7 +233,7 @@ export function ReportsPage() {
         }`
       : window_ === null
         ? t("reports.errors.REPORT_WINDOW_INVALID")
-        : `${window_.from.toLocaleDateString(i18n.language)} – ${window_.to.toLocaleDateString(i18n.language)}`;
+        : `${window_.from.toLocaleDateString(i18n.language)} – ${window_.to.toLocaleDateString(i18n.language)}${dashboard === null ? "" : ` (${dashboard.timeZone})`}`;
   const printScope = [
     unitLabel,
     tab === "trends" && trendsState.serviceId !== null
