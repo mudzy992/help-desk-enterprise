@@ -1,273 +1,447 @@
-# Modul 10: Status i servisi
+# Modul 10: Status i servisi — dubinski reaudit
 
-Datum audita: 2026-10-13
-Datum zatvaranja: 2026-10-15
-Val: **6.1.10**
-Status: **zatvoren**
-Ocjena nakon vala: **7/10**
-
-## Trenutna implementacija (nakon vala 6.1.10)
-
-- Katalog koristi stabilnu praznu `rows` referencu, a učitavanje vidljivih onboardinga zavisi od stabilnog skupa DRAFT ID-eva. Ekvivalentni rerenderi više ne ponavljaju N+1 učitavanje niti stvaraju update loop (`use-service-catalog.ts`, `use-visible-onboardings.ts`).
-- Onboarding wizard prikazuje grešku iznad koraka bez skrivanja drafta. Nakon kreiranja odmah pamti onboarding zapis, pa retry drugog koraka nastavlja isti servis umjesto kreiranja duplikata; inicijalni revision razlog je lokalizovan (`service-onboarding-wizard.tsx`, `complete-onboarding-step.ts`).
-- Status stranica prikazuje refresh grešku uz postojeći overview i retry, a ukupno stanje ima `role="status"`. Polling i stari podaci ostaju aktivni (`status-page.tsx`).
-- Akcija „Kreiraj tiket“ iz kataloga prenosi enkodirani `serviceId` koji create-ticket forma već čita iz URL-a (`service-catalog-table.tsx`).
-- Policy pack i SLA select zadržavaju vidljiv prikaz sačuvane nedostupne vrijednosti. Greška SLA liste ima alert i retry, a SLA onboarding bira prvi aktivni profil i kada profili stignu nakon mounta (`service-catalog-mutation-form.tsx`, `onboarding-sla-step.tsx`).
-- Frontend već ima ESLint/Prettier i `lint` skriptu iz paketa 6.1.1; setup nije dupliran. U ovom valu dodani su RTL testovi za wizard recovery, asinhroni SLA izbor i stabilnost onboarding hooka.
-- Pregled commitova `08d172b0` i `a6e15cad` pokazao je da su to ranije ispravke modula 7/9 (O1–O4, O9, OB2/OB3 i testovi), bez implementacije nalaza modula 10.
-
-## Status ispravki
-
-| ID   | Status                       | Zaključak                                                                                                                                    |
-| ---- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| ST1  | Urađeno                      | Refresh greška je vidljiva uz stari overview i retry; postojeći polling ostaje nepromijenjen.                                                |
-| ST2  | Urađeno                      | Lokalna varijabla je preimenovana u `plannedWindow` i više ne sjenči browser `window`.                                                       |
-| ST3  | Prihvaćen rizik (2026-10-15) | Nekorišteni `overallTone` je niski cleanup bez uticaja na korisnički tok.                                                                    |
-| ST4  | Prihvaćen rizik (2026-10-15) | Incident form dependency/retry upozorenje ostaje ciljani backlog; postojeći lint ga javno evidentira.                                        |
-| ST5  | Prihvaćen rizik (2026-10-15) | Semantika zone i dugotrajno otvorenog `max` zahtijeva produkt odluku.                                                                        |
-| ST6  | Urađeno                      | Ukupno statusno stanje sada ima `role="status"`.                                                                                             |
-| ST7  | Prihvaćen rizik (2026-10-15) | N+1 problem-link upiti i tiha greška ostaju odvojeni data-loading backlog.                                                                   |
-| ST8  | Prihvaćen rizik (2026-10-15) | Ticket incident race guard i pojednostavljenje dozvola nisu mijenjani bez ciljane RTL pokrivenosti.                                          |
-| ST9  | Prihvaćen rizik (2026-10-15) | Potvrda unlink akcije je produktna odluka i nije uvedena naslijepo.                                                                          |
-| ST10 | Prihvaćen rizik (2026-10-15) | Pravilo za link/unlink, `STAFF_ONLY` vidljivost i `eventDetail` zahtijeva backend/produkt odluku; backend nije mijenjan.                     |
-| ST11 | Prihvaćen rizik (2026-10-15) | Retry resolve previewa i default `notify` ostaju niski UX backlog.                                                                           |
-| ST12 | Prihvaćen rizik (2026-10-15) | Razdvajanje impact i availability tona je humanization backlog bez promjene ponašanja.                                                       |
-| SV1  | Urađeno                      | Stabilna prazna katalog referenca i stabilan DRAFT ključ uklanjaju render loop; RTL hook test potvrđuje da ekvivalentni rerender ne reloada. |
-| SV2  | Urađeno                      | Greška više ne skriva wizard korake; draft ostaje montiran i korisnik može ponoviti submit.                                                  |
-| SV3  | Urađeno                      | Kreirani onboarding zapis se pamti prije narednog API koraka, pa retry ne kreira dupli servis; revision razlog je lokalizovan.               |
-| SV4  | Prihvaćen rizik (2026-10-15) | `ensureServiceForm` recovery i moguća dupla prva verzija zahtijevaju zaseban API/idempotency zahvat.                                         |
-| SV5  | Prihvaćen rizik (2026-10-15) | Ciljana invalidacija form buildera ostaje backlog; puni katalog reload nije funkcionalni blokator.                                           |
-| SV6  | Urađeno                      | Visible onboarding N+1 skup se ponavlja samo kada se promijeni stabilni skup DRAFT ID-eva.                                                   |
-| SV7  | Urađeno                      | Sačuvani nedostupni policy/SLA ID ostaje vidljiv; SLA list greška ima alert i retry bez brisanja sačuvane vrijednosti.                       |
-| SV8  | Prihvaćen rizik (2026-10-15) | Brisanje opcija, i18n defaulta i UI validacija field ID-a ostaju zaseban form-builder backlog.                                               |
-| SV9  | Urađeno                      | Link za novi tiket prenosi enkodirani `serviceId` query parametar.                                                                           |
-| SV10 | Prihvaćen rizik (2026-10-15) | Tačan broj downtime prozora i category fallback zahtijevaju proširen prikazni model.                                                         |
-| SV11 | Prihvaćen rizik (2026-10-15) | Potpuna React Query migracija je eksplicitno van obima zatvaranja.                                                                           |
-| SV12 | Prihvaćen rizik (2026-10-15) | Spajanje mutation forme i onboarding service koraka u zajednički hook ostaje refactor backlog.                                               |
-| SV13 | Prihvaćen rizik (2026-10-15) | Downtime active guard i uklanjanje skeleton treperenja ostaju ciljani hook backlog.                                                          |
-| SV14 | Prihvaćen rizik (2026-10-15) | Zamjena tri-state overlay stanja discriminated unionima je održavanje bez trenutne regresije.                                                |
-| SV15 | Prihvaćen rizik (2026-10-15) | Cross-cutting uklanjanje `t as never` i razdvajanje create/update tipova nije šireno izvan modula.                                           |
-| SV16 | Prihvaćen rizik (2026-10-15) | Zajednički JSON helper kroz service API sloj je cross-cutting cleanup.                                                                       |
-| SV17 | Prihvaćen rizik (2026-10-15) | Masovno uklanjanje mrtvog koda je eksplicitno van obima.                                                                                     |
-| SV18 | Prihvaćen rizik (2026-10-15) | Generisani OpenAPI/zajednički tipovi su eksplicitno van obima.                                                                               |
-| SV19 | Prihvaćen rizik (2026-10-15) | UI zabrana izbora potomka kategorije čeka ciljanu potvrdu backend validacije ciklusa.                                                        |
-| SV20 | Prihvaćen rizik (2026-10-15) | Dodatna potvrda delete/cancel akcija zahtijeva dosljednu produkt odluku.                                                                     |
-| SV21 | Prihvaćen rizik (2026-10-15) | Routing retry labela i duplo upozorenje su niski UX backlog.                                                                                 |
-| SV22 | Urađeno                      | SLA step reaguje kada aktivni profili stignu nakon mounta i bira prvi profil; pokriven RTL testom.                                           |
-| SV23 | Prihvaćen rizik (2026-10-15) | Magični broj finalnog koraka ostaje mali maintainability dug.                                                                                |
-| SV24 | Prihvaćen rizik (2026-10-15) | Reset OU filtera kao derivirano stanje nema dokazanu korisničku regresiju.                                                                   |
-| SV25 | Prihvaćen rizik (2026-10-15) | Neenkodirani UUID segmenti nose nizak rizik; globalna API normalizacija nije dio vala.                                                       |
-| SV26 | Zaključeno                   | Autentifikovani katalog je namijenjen i podnosiocima radi izbora servisa; proširenje dokumentacije API ugovora ostaje neblokirajuće.         |
-
-## Završne provjere
-
-- `npx tsc -b`: prošao.
-- `npm run lint`: prošao sa 0 grešaka i 14 postojećih upozorenja; upozorenja ST4 i SV13 ostaju prihvaćeni rizici.
-- `npm run format:check`: prošao.
-- `npx vitest run`: **242 fajla / 985 testova**, sve prošlo.
-- `git diff --check`: prošao.
-- E2E/browser: pokušani su postojeći `21-status-monitoring.spec.ts` i `42-catalog-sla-routing-ux.spec.ts`, ali nijedan test nije izvršen jer lokalni stack nije bio dostupan na `http://localhost:10001/health`. Workflow dispatch ostaje `21,42` (opciono `22` za a11y).
-- Ručni React profiler na `/services` pri sporom katalogu nije izvršen; stabilnost je potvrđena ciljanim hook testom.
-
-## Polazno stanje (arhiva)
-
-Sljedeći tekst je originalni audit od 2026-10-13. Tvrdnje poput „ništa nije implementirano“ i navod da lint ne postoji opisuju tadašnji snapshot, ne trenutno stanje.
-
-# Modul 10: Status i servisi
-
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, grep, provjera backend guardova i e2e pokrivenosti). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **ST** (status stranica i incidenti) i **SV** (katalog servisa, kategorije, forme, onboarding, prozori nedostupnosti). Ovo se ne miješa sa O/OB (modul 9), KB (modul 7), RS (modul 8), R (modul 6) i S (modul 5).
-
-Provjere izvršene u sandboxu:
-
-- **Čitanje u cijelosti (frontend, status):** `pages/status-page.tsx` (303), `lib/status/status-view.ts` (113), `services/status-api.ts` (144), `components/status/incident-form-dialog.tsx` (281), `components/status/incident-card.tsx` (177), `components/status/incident-update-dialog.tsx` (160), `components/status/service-incident-banner.tsx` (94), `components/status/ticket-incidents-panel.tsx` (196).
-- **Čitanje u cijelosti (frontend, servisi):** `pages/services-page.tsx` (266), `services/service-catalog-api.ts` (238), `services/service-forms-api.ts` (33), `components/services/service-catalog-table.tsx` (376), `service-catalog-list.tsx` (183), `service-catalog-filter-bar.tsx` (156), `service-catalog-category-chips.tsx` (50), `service-category-chip.tsx` (31), `service-catalog-lifecycle-actions.tsx` (114), `service-catalog-lifecycle-dialog.tsx` (48), `service-catalog-mutation-form.tsx` (279), `service-catalog-mutation-sheet.tsx` (134), `service-downtime-window-form.tsx` (144), `service-downtime-windows-panel.tsx` (138), `categories/service-categories-panel.tsx` (129), `onboarding/service-onboarding-wizard.tsx` (297), `onboarding/onboarding-wizard-steps.tsx` (112), `onboarding/onboarding-service-step.tsx` (91), `onboarding/onboarding-form-step.tsx` (41), `onboarding/onboarding-routing-step.tsx` (59), `onboarding/onboarding-sla-step.tsx` (64), `onboarding/onboarding-approvals-step.tsx` (59), `form-builder/service-form-builder.tsx` (161), `form-builder/service-form-builder-sheet.tsx` (45), `form-builder/form-builder-actions.tsx` (67), `form-builder/form-field-editor.tsx` (174), `form-builder/form-field-list.tsx` (57), `form-builder/form-version-history.tsx` (60).
-- **Čitanje u cijelosti (lib):** `use-service-catalog.ts`, `use-catalog-routing-coverage.ts`, `use-visible-onboardings.ts`, `use-service-categories.ts`, `load-visible-onboardings.ts`, `load-catalog-routing-coverage.ts`, `service-catalog-load-state.ts`, `resolve-catalog-write-flags.ts`, `filter-service-catalog-rows.ts`, `form-field-draft.ts`, `ensure-service-form.ts`, `load-or-start-onboarding.ts`, `require-catalog-change-reason.ts`, `complete-onboarding-step.ts`, `map-service-catalog-error.ts`, `lib/sla/sla-profile-name.ts`.
-- **Samo pregled (nazivi, potpisi, upotreba):** `services/service-onboarding-api.ts` (160), `services/service-downtime-api.ts` (88), `services/service-categories-api.ts` (59), `categories/service-category-mutation-form.tsx` (96, do reda 40), `categories/service-category-mutation-sheet.tsx` (98), `categories/service-categories-admin-sheet.tsx` (56), `service-downtime-windows-sheet.tsx` (43), `service-downtime-window-row.tsx` (58), `service-catalog-read-only-banner.tsx` (24), `onboarding/service-onboarding-stepper.tsx` (25), `onboarding/service-onboarding-pipeline-card.tsx` (81). Mapiranja `map-service-category-error.ts`, `map-service-forms-error.ts`, `map-service-onboarding-error.ts` nisu pročitana, samo struktura. Nisu pročitani `catalog-routing-index.ts`, `catalog-coverage-note.ts`, `allowed-service-lifecycle-transitions.ts`, `onboarding-step-state.ts`, `default-service-form-schema.ts`, `downtime-datetime.ts` (osim pregleda).
-- **Backend (guardovi i servisi):** `status-page/status-page.controller.ts` (cijelo), `status-page/public-status-page.controller.ts` (overview), `status-page/status-page.service.ts` (`forTicket`, filteri vidljivosti), `status-page/status-incidents.service.ts` (`linkTicket`, `unlinkTicket`, `subscribe`, `assertStaffTicket`, `eventDetail`), `service-catalog/service-availability.controller.ts` (dekoratori), `service-catalog/service-categories.controller.ts`, `services.controller.ts`, `service-forms.controller.ts` (dekoratori). **Nije provjereno:** backend `service-onboarding` guardovi, validacija ciklusa u kategorijama (`service-categories` servis).
-- **E2E:** `21-status-monitoring.spec.ts` (3 testa: admin vidi zdravlje i test alarm; tok incidenta od obavještenja do rješavanja; obični korisnik ne može da upravlja) i `42-catalog-sla-routing-ux.spec.ts` (4 testa: kreiranje/izmjena servisa, onboarding, lifecycle i filteri; SLA kalendar; routing; overflow na širinama). Nije pročitan svaki red.
-- **Pretraga:** `as never`, `as unknown`, `: any`, `eslint-disable`, `console.`, `TODO`, `dangerouslySetInnerHTML` u obuhvaćenom kodu: samo `t as never` (2 mjesta u modulu, 36 u cijelom `src`). Nema ESLint, Prettier konfiguracije niti `lint` skripte u `frontend/` (`package.json` ima samo `test` među provjerama kvaliteta).
-- **Nije pokrenut pregledač.** Nalaz SV1 (beskonačni render) potvrđen je izolovanom reprodukcijom sa React 18.3.1 i jsdom, koja ponavlja isti obrazac hookova. Treba ga potvrditi i u stvarnoj aplikaciji (React DevTools profiler na `/services` pri sporom učitavanju).
+**Datum reauditiranja:** 2026-10-20
+**Scope:** `/status`, `/services`, incidenti uz tiket, servisni katalog, kategorije, onboarding, obrasci servisa, dostupnost i planirani prekidi
+**Status:** otvoren za implementaciju
+**Aktuelna ocjena:** **7,4/10**
+**Cilj:** **10/10** uz stvarni browser/E2E dokaz
 
 ---
 
-## Modul
+## 1. Izvršni sažetak
 
-Modul pokriva dva nezavisna dijela koja dijele jednu stranicu i jezik:
+Modul je znatno zreliji od arhivskog audita od 13–15. oktobra. Backend ima ozbiljne autorizacijske i domenske granice, katalog više nema raniji render loop, onboarding čuva kreirani draft prije narednog koraka, status refresh zadržava prethodni overview, a servisni katalog razlikuje početnu grešku od pozadinske greške. Postoje i korisni E2E scenariji `21-status-monitoring.spec.ts` i `42-catalog-sla-routing-ux.spec.ts`.
 
-- **Status (`/status`)** je javna i interna stranica stanja servisa. Prikazuje ukupno stanje, planirane prekide, aktivne incidente i istoriju. Upravljači (`statusIncidentsManage`) otvaraju incident, dodaju ažuriranja, rješavaju ga i vide koliko ljudi će biti obaviješteno. Iz tiketa se vidi „poznati problem“ i može se vezati ili odvezati incident. Osvježavanje je na 60 sekundi uz provjeru vidljivosti taba.
-- **Servisi (`/services`)** je katalog za administratore: lista sa filterima, kategorije, kreiranje i izmjena, lifecycle (DRAFT → ACTIVE → DEPRECATED), prozori nedostupnosti, forme sa verzijama i wizard za uvođenje servisa (SERVICE → FORM → ROUTING → SLA → APPROVALS → finalize).
+Ipak, oznaka „zatvoren, 7/10“ iz starog dokumenta više nije prihvatljiva kao aktuelni audit. Većina tada „prihvaćenih rizika“ i dalje je stvarni backlog, a današnji standard repozitorija je viši nakon modula 11–16 i faznog zatvaranja modula 09. Najvažniji preostali rizici su:
 
-Najveći rizik je u dijelu servisa: stranica drži više od deset overlay stanja, dva ručna `useState` načina učitavanja podataka pored react-query, i nekoliko mjesta gdje se stanje prikaza razlikuje od stanja koje se šalje. Status dio je u boljem stanju na backendu (vidljivost je zaštićena u servisu, ne samo u UI), ali na frontendu ima tihe greške i jedno pitanje oko vezivanja tiketa za incident.
+1. status i incident mutation tokovi nemaju synchronous concurrency guard;
+2. `/status` nema izdvojen, latest-only i direktno testiran page controller;
+3. incident forme nemaju robustan dependency-retry ni eksplicitan civil-time ugovor;
+4. servisni filteri i otvoreni workspace nisu URL-backed;
+5. katalog kombinuje React Query i više ručnih request state mašina sa različitim recovery pravilima;
+6. downtime panel briše prethodne podatke na refresh grešci i nema request identity zaštitu;
+7. kritične komponente nemaju direktne component/page testove;
+8. browser dokaz nije izvršen u ovom reauditiranju.
 
----
-
-## Povezani fajlovi i folderi
-
-| Fajl ili folder                                                                          | Uloga                                                                                  | Linija                                        |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `frontend/src/pages/status-page.tsx`                                                     | Stranica statusa, polling 60s, dijalozi                                                | 303                                           |
-| `frontend/src/lib/status/status-view.ts`                                                 | Stanje, tonovi, mapiranje grešaka, prelazi statusa                                     | 113                                           |
-| `frontend/src/services/status-api.ts`                                                    | Tipovi i API `/status/*`                                                               | 144                                           |
-| `frontend/src/components/status/`                                                        | Dijalog incidenta, kartica, ažuriranje, banner, panel u tiketu                         | 6 fajlova, ~1 100                             |
-| `frontend/src/pages/services-page.tsx`                                                   | Stranica servisa, orkestracija overlay-a                                               | 266                                           |
-| `frontend/src/components/services/`                                                      | Tabela, lista, filteri, forme, wizard, forme (builder), prozori, kategorije            | ~45 fajlova                                   |
-| `frontend/src/lib/services/`                                                             | Hookovi učitavanja, mapiranje grešaka, pravila, helperi wizarda                        | ~40 fajlova                                   |
-| `frontend/src/services/service-*.ts`                                                     | API za katalog, kategorije, forme, onboarding, prozore                                 | 5 fajlova                                     |
-| `frontend/src/lib/sla/sla-profile-name.ts`                                               | Lokalizacija imena SLA profila (koristi se i u servisima)                              | —                                             |
-| `frontend/src/components/tickets/create-ticket-draft-view.tsx`, `create-ticket-form.tsx` | Potrošači: `ServiceIncidentBanner` („poznati problem“) i preselekcija servisa iz URL-a | —                                             |
-| `backend/src/modules/status-page/`                                                       | Kontroleri, incidenti, vidljivost, javni endpoint                                      | —                                             |
-| `backend/src/modules/service-catalog/`                                                   | Kontroleri servisa, kategorija, formi, prozora                                         | —                                             |
-| `e2e/tests/21-status-monitoring.spec.ts`, `e2e/tests/42-catalog-sla-routing-ux.spec.ts`  | E2E pokrivenost                                                                        | 3 + 4 testa                                   |
-| `frontend/src/lib/status/status-view.spec.ts`, `frontend/src/lib/services/*.spec.ts`     | Jedinični testovi (samo lib)                                                           | 15 fajlova u `lib/services`, 1 u `lib/status` |
+Ocjena **7,4/10** priznaje jaku backend osnovu i ranije popravke, ali ne tretira odsustvo regresije kao dokaz korektnosti.
 
 ---
 
-## Trenutna implementacija
+## 2. Scope i pregledani dokaz
 
-**Status.** `StatusPage` drži `overview`, `loadError`, `refreshing`, `nowMs`, `busyId`, `formMode` i `updateTarget`. Učitavanje ide preko `load` sa `inFlight` ref zaštitom, a `setInterval` od 60 s proverava `document.visibilityState`. Greška pri osvježavanju se upisuje u `loadError`, ali se prikazuje samo kad `overview === null`. `IncidentCard` prikazuje tri posljednja ažuriranja i dugme za proširenje. `IncidentFormDialog` kreira i mijenja incident, a `IncidentUpdateDialog` objavljuje ažuriranje ili rješava incident uz pregled broja obaviještenih (`resolve-preview`). `TicketIncidentsPanel` za zaposlene prikazuje vezane incidente, dugme za vezu i „Novi incident“ (samo sa `statusIncidentsManage`). Za podnosioca prikazuje samo otvorene javne incidente. `ServiceIncidentBanner` se učitava samo kad katalog kaže da servis ima incident, tako da izbor zdravog servisa ne stvara dodatni zahtjev.
+### Frontend ulazne tačke
 
-**Servisi.** `ServicesPage` kombinuje pet hookova: `useServiceCatalog` (react-query), `useServiceCategories` i `useCatalogRoutingCoverage` (ručno, sa `requestSequence` ref), `useVisibleOnboardings` (po jedan zahtjev po DRAFT servisu) i `useAdminConfigLiveRefresh`. Prikaz ima tri stanja preko `serviceCatalogLoadState` (čista funkcija sa testom): učitavanje, greška prije prvog uspjeha, i spremno. Greška pri osvježavanju nakon uspjeha prikazuje upozorenje sa dugmetom za ponovni pokušaj (`hasRefreshError`). Lista (`ServiceCatalogList`) drži filtere, računa vidljive redove u `useMemo` preko `filterServiceCatalogRows` (pretraga bez dijakritika), i prikazuje prazno stanje sa razlikom „nema rezultata“ i „nema servisa“. Tabela ima osam kolona i meni akcija po redu. Forma servisa (`ServiceCatalogMutationForm`) traži razlog promjene, a lifecycle prelazi, brisanje i prozori nedostupnosti traže razlog. Wizard je modal sa stepperom i koracima; `completeServiceOnboardingStep` i `completeNamedOnboardingStep` šalju korak na backend. `ServiceFormBuilder` upravlja verzijama forme (DRAFT, ACTIVE, RETIRED), uređivanjem polja i opcijama za select.
+- `frontend/src/pages/status-page.tsx`
+- `frontend/src/pages/services-page.tsx`
+- `frontend/src/components/status/*`
+- `frontend/src/components/services/*`
+- `frontend/src/lib/status/*`
+- `frontend/src/lib/services/*`
+- `frontend/src/services/status-api.ts`
+- `frontend/src/services/service-*-api.ts`
+- route i navigation ugovori u `frontend/src/app/router.tsx` i `frontend/src/lib/navigation.ts`
 
-**Backend.** Kontroleri za status koriste `SessionAuthenticationGuard` na nivou klase. Pisanja (`POST/PATCH incidents`, `updates`, `resolve-preview`) imaju `RoleGuard` i `statusIncidentsManage`. Čitanja i veze tiket↔incident nemaju `RoleGuard`, a provjeravaju se u servisu. Vidljivost je u servisu: `STAFF_ONLY` se za podnosioce filtrira (`status-page.service.ts`), anonimni javni endpoint koristi `anonymousViewer` i `ALL_USERS` (`public-status-page.controller.ts`, sa in-memory keš i limitom po IP), `subscribe` provjerava vidljivost incidenta. Servisni kontroleri za pisanja imaju `serviceCatalogWrite`, `serviceAvailabilityWrite` i `serviceFormsWrite`, a UI koristi iste permisije (`resolveCatalogWriteFlags`).
+### Backend reference
 
----
+- `backend/src/modules/status-page/*`
+- `backend/src/modules/service-catalog/*`
+- controller guardovi, permission dekoratori i service-scope zaštita
+- incident lifecycle, availability/downtime i form-schema validatori
 
-## Realno/željeno stanje
+### Testni dokaz
 
-| Oblast                            | Realno stanje                                                   | Željeno stanje                                                                     |
-| --------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Greška osvježavanja statusa       | Tiha: uz stare podatke nema poruke, polling ne javlja grešku    | Greška uz stare podatke, sa vremenom posljednjeg uspješnog osvježavanja i dugmetom |
-| Greška na katalogu nakon uspjeha  | Upozorenje i retry (`hasRefreshError`)                          | Isti obrazac na `/status` (usklađenost)                                            |
-| Render katalog bez podataka       | Beskonačni render dok je katalog u učitavanju ili greškom (SV1) | Stabilna referenca praznih podataka, bez ponovnog renderovanja                     |
-| Wizard, greška pri snimanju       | Svi koraci nestanu, nema retry-a u režimu kreiranja             | Greška iznad koraka, koraci ostaju, unos sačuvan                                   |
-| Kreiranje servisa u wizardu       | Nije atomično, ponovni pokušaj kreira duplikat (SV3)            | Jedan atomičan zahtjev ili idempotentan korak                                      |
-| Dugme „Kreiraj tiket“ iz kataloga | Ne preselektuje servis                                          | Preselektuje servis preko `?serviceId=`                                            |
-| Select za policy pack i SLA       | Vrijednost van liste prikazuje „—“ (SV7)                        | Prikaz odgovara stanju ili se vrijednost drži vidljivom                            |
-| Opcije select polja               | Dodavanje, bez brisanja; tekst hardkodiran (SV8)                | Dodavanje i brisanje; i18n                                                         |
-| Greška učitavanja SLA profila     | Prikazuje se kao „nema profila“ (tiho)                          | Posebna poruka sa retry-em                                                         |
-| Učitavanje podataka               | Pet obrazaca (react-query, ručno, lokalni fetch)                | Jedan obrazac (react-query)                                                        |
-| Tipovi API-ja                     | Ručno prepisani iz backenda                                     | Zajednička šema ili generisani tipovi                                              |
-| Lint i format                     | Nema ESLint/Prettier ni `lint` skripte                          | `react-hooks/exhaustive-deps` i Prettier u CI                                      |
-| Testovi komponenti                | Nema za `components/status` i `components/services`             | Komponentski testovi za wizard, dijalog incidenta, panel u tiketu                  |
-| E2E                               | Osnovni tokovi (incident, servis, onboarding)                   | Dodati: prozori, verzije formi, kategorije, veza tiket↔incident, STAFF_ONLY u UI   |
+- frontend unit/helper/hook testovi za status-view, katalog filtering/load state, routing coverage, onboarding, lifecycle i error mape;
+- backend status/service-catalog testovi, uključujući authorization compatibility i domenske validatore;
+- E2E `21-status-monitoring.spec.ts` i `42-catalog-sla-routing-ux.spec.ts` su pregledani kao kod;
+- browser scenariji nisu izvršeni u ovom reauditiranju jer lokalni backend/frontend stack nije dostupan.
 
----
+### Važno razgraničenje
 
-## Gap analiza
-
-1. **Stabilnost renderovanja (kritično).** `useServiceCatalog` vraća `query.data ?? []`, što je novi niz pri svakom renderu dok nema podataka. `useVisibleOnboardings` ima `[rows]` kao zavisnost i u efektu uvijek postavlja novi niz (`filter` ili `[]`), pa se stanje mijenja i render se ponavlja. Ovo traje dok je katalog u učitavanju ili u greški. Izolovana reprodukcija to potvrđuje („Maximum update depth exceeded“).
-2. **Tihi neuspjesi.** Status: greška osvježavanja (ST1), `IncidentProblemLinks` guta grešku (ST7), `ServiceIncidentBanner` i `TicketIncidentsPanel` potiskuju grešku bez poruke. Katalog: `listSlaProfiles` i `listPersistedPolicyPacks` padaju u praznu listu (SV7, SV23), `ensureServiceForm` guta grešku za pisca (SV4).
-3. **Nekonzistentnost prikaza i stanja.** Select za policy pack i SLA ne prikazuje vrijednost koju šalje (SV7). Tabela „Kreiraj tiket“ ne prenosi servis (SV9). Prozor nedostupnosti ima `count: 1` hardkodiran (SV10).
-4. **Neatomični tokovi.** Kreiranje servisa u wizardu radi dva zahtjeva bez rollback-a (SV3). `ensureServiceForm` može napraviti dupli prvi version na prolaznu grešku (SV4).
-5. **Nepotrebno opterećenje.** Otvaranje ili snimanje forme pokreće puni `reloadCatalog` (services i sve stranice routing pokrivenosti) (SV5). `useVisibleOnboardings` pravi zahtjev po DRAFT servisu pri svakom osvježavanju (SV6). `listSlaProfiles` se poziva u tri komponente.
-6. **Duplikacija.** Forma servisa i `OnboardingServiceStep` dijele ista polja i pravila (SV14). Mapiranja grešaka (4 fajla), `sequence` obrazac (4 mjesta), `json` helper (9 fajlova u `src/services`), tonovi bedževa sa ugniježđenim ternarima.
-7. **Tipovi i i18n.** `t as never` na 36 mjesta u 24 fajla (`formatSlaProfileName` prima pogrešan tip prevodioca). `label(t: unknown, key)` u formi servisa zaobilazi TS. `values as CreateServiceInput` u sheet-u. Hardkodirani stringovi: „Opcija”, „opcija_1”, „polje_”, engleski razlog revizije u `complete-onboarding-step.ts`.
-8. **Mrtav kod.** `ServiceOnboardingPipelineCard` (nigdje se ne koristi), `overallTone` (nigdje se ne koristi, ni u testovima), `isValidFieldIdentifier` (samo u spec-u, UI ne validira ID polja), `countUpcomingDowntimeWindows`, `getServiceFormVersion`, `getServiceCategory`, `routingConfigurationReference` (0 upotreba izvan fajla), `shouldWarnServiceRuntimeAvailability` (omotač bez vrijednosti).
-9. **Pristupačnost.** `status-overall` nema `role="status"`, pa promjena stanja nije najavljena (ST6). Chip-ovi filtera nemaju `aria-pressed`. `aria-label` na `<span>—</span>` nema efekta. Verzije forme nemaju `aria-current`.
-10. **Automatizacija.** Nema ESLint-a sa `react-hooks` pravilima, pa nisu uhvaćeni efekti sa nepotpunim zavisnostima (ST4, SV1, SV13). Nema Prettier-a, nema `lint` skripte.
-11. **Testovi.** Komponente status i servisi nemaju jedinične testove (samo lib). E2E ne pokriva: prozore nedostupnosti, verzije formi (kreiranje, aktivacija), kategorije (CRUD), uklanjanje veze tiket↔incident, `STAFF_ONLY` u UI, grešku pri snimanju u wizardu.
+- „Test postoji“ ne znači da je izvršen u browseru.
+- Pure helper test ne zatvara React lifecycle, race, focus ili responsive rizik.
+- Backend validacija ne zamjenjuje jasan frontend field-level ugovor.
+- Arhivski „prihvaćen rizik“ nije automatski zatvoren nalaz.
 
 ---
 
-## Mišljenje tima i preporuka
+## 3. Arhitektura i pozitivni nalazi
 
-Tim bi prvo riješio stabilnost renderovanja i tihe greške, jer su to stvari koje korisnik vidi odmah: stranica koja troši CPU dok čeka katalog, i status koji izgleda svježe a nije. Odmah iza toga ide wizard: greška u koraku ne bi smjela da sakrije unos, a kreiranje u dva koraka mora biti sigurno pri ponovnom pokušaju.
+### 3.1 Backend autorizacija je dobra osnova
 
-Preporuka nije veliki refaktor. Tri stvari su dovoljne za većinu koristi:
+Service catalog controlleri koriste `SessionAuthenticationGuard`, `RoleGuard`, typed permission ključeve i `RequireServiceScope`. Write ovlasti su razdvojene na catalog, forms i availability domene. Authorization compatibility testovi dokazuju da catalog write ne postaje implicitno availability write i da se service scope primjenjuje na osjetljive operacije.
 
-- jedan obrazac učitavanja (react-query) za katalog, kategorije, pokrivenost i onboarding, sa zajedničkim `useLatestRequest` helperom gdje react-query ne pokriva slučaj;
-- jedan `ErrorBanner` sa vremenom posljednjeg uspjeha i retry-em, koji koriste i `/status` i `/services`;
-- razdvojen `OnboardingServiceStep` i forma servisa preko zajedničkog hooka za polja.
+Status backend je zaseban modul sa incident lifecycleom, subscriptionima, ticket linkovima, public/staff vidljivošću i resolve previewom. To je bolja osnova od UI-only skrivanja akcija.
 
-Preporučujem da `window`-sjenčenje (ST2), mrtvi kod (SV17) i `t as never` (SV15) budu u istom PR-u kao pravila ESLint-a. Tako se ne vraćaju.
+### 3.2 Katalog pravilno razlikuje početno i pozadinsko učitavanje
 
-Pitanje za backend: `linkTicket` i `unlinkTicket` provjeravaju samo da je akter staff na tiketu, a ne `statusIncidentsManage` niti vidljivost incidenta (ST10). Ako je cilj da svaki agent na tiketu može da veže bilo koji incident, to treba napisati u dokumentaciji. Ako nije, potrebna je provjera. Sistemski događaj upisuje naslov incidenta u tiket, pa ovo može biti i pitanje privatnosti za `STAFF_ONLY` incidente.
+`serviceCatalogLoadState` i `ServicesPage` razlikuju početni skeleton/error od refresh upozorenja uz postojeće podatke. `useServiceCategories` čuva posljednju uspješnu listu pri prolaznoj grešci. Ovo je ispravan stale-data recovery obrazac.
 
----
+### 3.3 Raniji onboarding kvarovi su stvarno popravljeni
 
-## Bugovi i neusklađenosti
+Wizard više ne skriva draft kada naredni korak padne. Kreirani onboarding zapis se pamti prije nastavka, a SLA korak reaguje na profile koji stignu asinhrono. Postoje direktni RTL testovi za ključne recovery tokove.
 
-### Status (ST)
+### 3.4 Status stranica čuva overview pri refresh grešci
 
-| ID   | Ozbiljnost            | Nalaz                                                                                                                                                                                                                                                                                                                      | Lokacija                                                                                  |
-| ---- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| ST1  | Srednja               | Greška osvježavanja se ne prikazuje kad `overview` postoji. Polling tiho ostavlja stare podatke bez oznake.                                                                                                                                                                                                                | `pages/status-page.tsx` (`loadError` čita se samo u `overview === null`, ~137–146)        |
-| ST2  | Niska                 | `overview.planned.map((window) =>` sjenči globalni `window` (u istoj komponenti se koristi `window.setInterval`).                                                                                                                                                                                                          | `pages/status-page.tsx` (~205)                                                            |
-| ST3  | Niska                 | `overallTone` nije korišten nigdje (ni u komponentama ni u testovima). Mrtav kod.                                                                                                                                                                                                                                          | `lib/status/status-view.ts` (62)                                                          |
-| ST4  | Srednja               | `IncidentFormDialog`: efekti sa nepotpunim zavisnostima. Efekat za servise se ponovo pokreće na svaki toggle dok je `services === null`. `servicesFailed` se ne resetuje i nema retry. Greška se prikazuje kao prazna lista.                                                                                               | `components/status/incident-form-dialog.tsx`                                              |
-| ST5  | Niska                 | `max` na `datetime-local` je računat pri renderu (zastarjeva ako je dijalog otvoren). `toLocalInput` koristi zonu pregledača, a rasporedi (modul 9) koriste `settings.timeZone`. Dizajn, za odluku.                                                                                                                        | `components/status/incident-form-dialog.tsx` (~248)                                       |
-| ST6  | Niska                 | `status-overall` nema `role="status"`/`aria-live`. Promjena stanja nije najavljena čitaču ekrana. Ostali banneri to imaju.                                                                                                                                                                                                 | `pages/status-page.tsx` (165)                                                             |
-| ST7  | Srednja               | `IncidentProblemLinks`: po jedan react-query upit po kartici za upravljače, greška se guta (`data?.items ?? []`).                                                                                                                                                                                                          | `components/problems/problem-reference-list.tsx` (48–59), korišćeno u `incident-card.tsx` |
-| ST8  | Niska                 | `TicketIncidentsPanel.load` nema `cancelled`/`active` zaštitu (race pri promjeni `versionKey`). `canManage` ima redundantan uslov (`isSuperAdmin` i `hasRole` i `hasPermission`).                                                                                                                                          | `components/status/ticket-incidents-panel.tsx`                                            |
-| ST9  | Niska                 | Dugme „Ukloni vezu“ ima jedan klik bez potvrde. Kategorije imaju dvostepenu potvrdu, pa je ponašanje nekonzistentno.                                                                                                                                                                                                       | `components/status/ticket-incidents-panel.tsx`                                            |
-| ST10 | Srednja (za provjeru) | `linkTicket` i `unlinkTicket` ne provjeravaju vidljivost incidenta niti `statusIncidentsManage`, samo staff na tiketu. `eventDetail()` upisuje naslov incidenta u sistemski događaj tiketa, pa `STAFF_ONLY` naslov može završiti u tiketu koji vidi podnosilac. Treba provjeriti da li podnosilac vidi sistemske događaje. | `backend/src/modules/status-page/status-incidents.service.ts` (235–288, 326–342, 429)     |
-| ST11 | Niska                 | `IncidentUpdateDialog`: greška učitavanja preview-a nema retry (effect ne ponavlja zbog `preview !== null`). `notify` je podrazumijevano uključen.                                                                                                                                                                         | `components/status/incident-update-dialog.tsx`                                            |
-| ST12 | Niska                 | `incident-card.tsx` i `ticket-incidents-panel.tsx` koriste `availabilityTone` za impact. Dvije domene su spojene.                                                                                                                                                                                                          | `components/status/incident-card.tsx` (69)                                                |
+Pozadinska greška se prikazuje uz postojeći overview i request ID, dok polling ostaje aktivan. Ukupno stanje ima `role="status"`, incident kartice koriste semantičke sekcije, a public/staff ponašanje je odvojeno backend odgovorom.
 
-### Servisi (SV)
+### 3.5 Domenski helperi i backend validatori su iznad prosjeka
 
-| ID   | Ozbiljnost           | Nalaz                                                                                                                                                                                                                                                                                                                                                | Lokacija                                                                                                                                     |
-| ---- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| SV1  | Visoka               | **Beskonačni render dok katalog nema podatke.** `rows: query.data ?? []` daje novi niz pri svakom renderu, a `useVisibleOnboardings` ima `[rows]` u zavisnostima i u efektu uvijek postavlja novo stanje. Potvrđeno izolovanom reprodukcijom (React 18.3.1 + jsdom): „Maximum update depth exceeded“. Treba potvrditi u pregledaču.                  | `lib/services/use-service-catalog.ts`, `lib/services/use-visible-onboardings.ts`                                                             |
-| SV2  | Visoka               | **Wizard sakriva korake na bilo koju grešku.** Uslov je `!isLoadingOnboarding && errorKey === null`, pa greška pri snimanju koraka ukloni formu. U režimu kreiranja (`serviceId === null`) nema retry-a, pa korisnik ostaje blokiran i gubi unos.                                                                                                    | `components/services/onboarding/service-onboarding-wizard.tsx`                                                                               |
-| SV3  | Visoka               | **Kreiranje servisa nije atomično.** `completeServiceOnboardingStep` (kreiranje) pa `saveOnboardingServiceStep`. Ako drugi poziv padne, `record` ostaje `null`, pa ponovni pokušaj kreira drugi servis sa istim slugom (409, prikazano kao „duplicate slug“). Razlog revizije je hardkodiran na engleskom.                                           | `lib/services/complete-onboarding-step.ts`                                                                                                   |
-| SV4  | Srednja              | `ensureServiceForm` guta grešku GET-a za pisca i pokušava `createServiceForm`. Na prolaznu grešku može napraviti dupli prvi version. Komentar koristi `///` (neuobičajen oblik).                                                                                                                                                                     | `lib/services/ensure-service-form.ts`                                                                                                        |
-| SV5  | Srednja              | `ServiceFormBuilder` poziva `onActiveVersion` pri svakom `applyForm` (otvaranje, snimanje), a sheet tada radi `onChanged()` = `reloadCatalog()`: puni katalog i sve stranice routing pokrivenosti.                                                                                                                                                   | `components/services/form-builder/service-form-builder-sheet.tsx`, `service-form-builder.tsx`                                                |
-| SV6  | Srednja              | `loadVisibleOnboardings` pravi zahtjev po DRAFT servisu (N+1) i ponavlja se pri svakom `rows` (svaki reload).                                                                                                                                                                                                                                        | `lib/services/load-visible-onboardings.ts`, `use-visible-onboardings.ts`                                                                     |
-| SV7  | Srednja              | **Select prikazuje drugu vrijednost od sačuvane.** `policyPackId` (onemogućen paket se filtrira iz opcija) i `slaProfileId` (profil nije učitan) ostaju u stanju, ali select prikazuje „—“. Snimanje šalje sačuvanu vrijednost. Greška učitavanja SLA profila je tiha.                                                                               | `components/services/service-catalog-mutation-form.tsx` (~150–250)                                                                           |
-| SV8  | Srednja              | Opcije select polja: nema brisanja opcije. Stringovi „Opcija”, „opcija_1” i „polje_” su hardkodirani (`form-field-editor.tsx`, `form-field-draft.ts`). `isValidFieldIdentifier` se ne koristi u UI, pa ID nije validiran dok backend ne odbije snimanje.                                                                                             | `components/services/form-builder/form-field-editor.tsx`, `lib/services/form-field-draft.ts`                                                 |
-| SV9  | Srednja              | Dugme „Kreiraj tiket“ u tabeli vodi na `/tickets/new` bez `?serviceId=`. Forma tiketa čita `serviceId` iz URL-a, pa se servis ne preselektuje.                                                                                                                                                                                                       | `components/services/service-catalog-table.tsx` (~313), `components/tickets/create-ticket-form.tsx` (43)                                     |
-| SV10 | Niska                | `services.downtime.upcomingBadge` uvijek ima `count: 1` (`hasUpcomingDowntime` je bulova vrijednost). `categoryName` se fallback-uje na `service.slug`.                                                                                                                                                                                              | `components/services/service-catalog-table.tsx`                                                                                              |
-| SV11 | Srednja              | Tri načina učitavanja u istom ekranu: react-query (`useServiceCatalog`), ručni `useState` + `requestSequence` (`useServiceCategories`, `useCatalogRoutingCoverage`, `useVisibleOnboardings`), lokalni fetch bez keša (wizard, forma, sheet, prozori).                                                                                                | `pages/services-page.tsx`, `lib/services/use-*.ts`                                                                                           |
-| SV12 | Srednja              | Forma servisa i `OnboardingServiceStep` dupliraju polja i validaciju.                                                                                                                                                                                                                                                                                | `service-catalog-mutation-form.tsx`, `onboarding/onboarding-service-step.tsx`                                                                |
-| SV13 | Niska                | `ServiceDowntimeWindowsPanel`: `useEffect(() => reload(), [serviceId])` bez `reload` u zavisnostima i bez `cancelled` zaštite. Svako osvježavanje vraća panel na skeleton (treperenje). Greška vraća praznu listu i istovremeno poruku „nema prozora“.                                                                                               | `components/services/service-downtime-windows-panel.tsx`                                                                                     |
-| SV14 | Niska                | `services-page.tsx` `wizardServiceId` (`undefined`/`null`/id) i `downtime-windows-panel` `editing` (`undefined`/`null`/objekat) su tri-stanja koja se teško čitaju. Treba discriminated union.                                                                                                                                                       | `pages/services-page.tsx`, `service-downtime-windows-panel.tsx`                                                                              |
-| SV15 | Srednja              | `t as never` u 36 mjesta (24 fajla), uključujući `formatSlaProfileName`. `label(t: unknown, key)` u formi servisa zaobilazi TS. `values as CreateServiceInput` u sheet-u (create i update nisu razdvojeni tipovima).                                                                                                                                 | `components/services/service-catalog-mutation-form.tsx`, `service-catalog-mutation-sheet.tsx`, `lib/sla/sla-profile-name.ts` (cross-cutting) |
-| SV16 | Niska                | `const json` helper ponovljen u 9 fajlova `src/services/*`. `service-catalog-api.ts` koristi `JSON.stringify` direktno (nekonzistentno).                                                                                                                                                                                                             | `src/services/*-api.ts` (cross-cutting)                                                                                                      |
-| SV17 | Niska                | Mrtav kod: `ServiceOnboardingPipelineCard`, `countUpcomingDowntimeWindows`, `getServiceFormVersion`, `getServiceCategory`, `routingConfigurationReference`, `shouldWarnServiceRuntimeAvailability`, `isValidFieldIdentifier` (samo u spec-u). `listServiceCategories` je re-export u `service-catalog-api.ts`, pa postoje dvije putanje za isti tip. | razni                                                                                                                                        |
-| SV18 | Srednja              | Tipovi su ručno prepisani iz backenda bez zajedničke šeme. `effectiveAvailability?` duplira `availability`, `incidentImpact?` je opcionalan bez razloga.                                                                                                                                                                                             | `services/service-catalog-api.ts` (1–130)                                                                                                    |
-| SV19 | Niska                | `parentOptions` u formi kategorije isključuje samo sebe, a ne i potomke, pa je cikl u UI moguć. Backend validaciju nije provjereno.                                                                                                                                                                                                                  | `components/services/categories/service-category-mutation-form.tsx`                                                                          |
-| SV20 | Niska                | Brisanje DRAFT servisa i otkazivanje prozora: samo razlog, bez potvrde. Kategorije imaju dvostepenu potvrdu.                                                                                                                                                                                                                                         | `service-catalog-lifecycle-actions.tsx`, `service-downtime-windows-panel.tsx`                                                                |
-| SV21 | Niska                | Labela dugmeta za ponovno učitavanje u routing koraku je `services.onboarding.next` („Dalje“). Upozorenje o pokrivenosti se prikazuje dvaput (wizard i routing korak).                                                                                                                                                                               | `onboarding/onboarding-routing-step.tsx`, `service-onboarding-wizard.tsx`                                                                    |
-| SV22 | Srednja (vjerovatno) | `OnboardingSlaStep`: `useState(selectedId                                                                                                                                                                                                                                                                                                            |                                                                                                                                              | activeProfiles[0]?.id)`se računa jednom. Ako profili stignu poslije montiranja, vrijednost ostaje`""` i „Dalje“ je onemogućeno dok korisnik ne promijeni izbor. Potvrditi u pregledaču. | `components/services/onboarding/onboarding-sla-step.tsx` |
-| SV23 | Niska                | `OnboardingWizardSteps`/`service-onboarding-wizard.tsx`: `completed === 5` je magični broj umjesto `SERVICE_ONBOARDING_STEPS.length - 1`.                                                                                                                                                                                                            | `components/services/onboarding/service-onboarding-wizard.tsx`                                                                               |
-| SV24 | Niska                | `service-catalog-list.tsx`: `useEffect` za resetovanje `originUnitId` je derivirano stanje.                                                                                                                                                                                                                                                          | `components/services/service-catalog-list.tsx`                                                                                               |
-| SV25 | Niska                | ID-ovi u putanjama (`/services/${id}`) nisu enkodirani. ID-ovi su UUID, pa je rizik nizak.                                                                                                                                                                                                                                                           | `services/service-catalog-api.ts` i ostali `*-api.ts`                                                                                        |
-| SV26 | Niska (za provjeru)  | `GET /services` je dostupan svakom autentifikovanom korisniku i vraća `openTicketCount` i `activeForm`. Namjeravano je za podnosioce, ali nije dokumentovano.                                                                                                                                                                                        | `backend/src/modules/service-catalog/services.controller.ts` (63)                                                                            |
+Postoje helperi/testovi za lifecycle transitions, routing coverage, form field draftove, change reason, availability evaluation, downtime range/overlap, kategorije i open-ticket agregate. To smanjuje rizik da se kompleksna pravila sakriju u JSX-u.
 
 ---
 
-## Ocjena: 5/10
+## 4. Aktivni nalazi
 
-Obrazloženje:
+### SS1 — Status mutation tokovi nisu zaštićeni od synchronous double-submit racea
 
-- **Plus:** backend vidljivost incidenata je u servisu (`STAFF_ONLY`, `ALL_USERS`, javni keš), pisanja imaju permisije na kontroleru, a UI koristi iste permisije (`resolveCatalogWriteFlags`). Stanja učitavanja su izdvojena u čistu funkciju sa testom (`serviceCatalogLoadState`). Greške su tipizovane (`ServiceCatalogErrorKey`) i prolaze kroz `t()`. Pretraga je otporna na dijakritike. Brisanje kategorije ima dvostepenu potvrdu. Stranica servisa ima obrazac za grešku pri osvježavanju (`hasRefreshError`), koji `/status` nema. E2E pokriva glavne tokove.
-- **Minus:** beskonačni render dok katalog nema podataka (SV1), wizard koji sakrije unos i ne dozvoljava retry (SV2), neatomično kreiranje servisa (SV3), tihe greške na statusu (ST1) i u katalogu (SV7, SV22), select koji prikazuje pogrešnu vrijednost (SV7), dugme „Kreiraj tiket“ bez preselekcije (SV9), pet obrazaca učitavanja i dupliranje (SV11, SV12), `t as never` i ručni tipovi (SV15, SV18), mrtav kod, nema ESLint-a ni komponentskih testova.
-- Ocjena je ispod modula 9 (6/10) jer je SV1 i SV2 utiču na korisnika odmah. Ispravke mogu popraviti ocjenu za 2 do 3 boda.
+**Prioritet:** P1
+**Lokacije:** `status-page.tsx`, `incident-form-dialog.tsx`, `incident-update-dialog.tsx`, `ticket-incidents-panel.tsx`
+
+`setSaving(true)`, `setBusy(true)` i `setBusyId(...)` postaju vidljivi tek nakon React updatea. Dva click/submit događaja u istom tasku mogu pokrenuti dva `createIncident`, `editIncident`, `postIncidentUpdate`, subscribe/unsubscribe ili link/unlink zahtjeva. `ticket-incidents-panel.tsx` ima generički `run`, ali nema synchronous lock po operaciji ili entitetu.
+
+Globalni `busyId` na status stranici dodatno blokira sve subscription akcije zbog jednog incidenta, iako identitet operacije nije eksplicitan.
+
+**Za zatvaranje:** `useOperationGuard`/`createOperationGuard` sa ključem operacije i incident/ticket ID-em; direktni testovi za double submit, retry nakon greške i nezavisne entitete.
+
+### SS2 — `/status` request lifecycle nije izdvojen niti latest-only dokazan
+
+**Prioritet:** P1
+**Lokacija:** `status-page.tsx`
+
+Page komponenta od 374 linije upravlja pollingom, initial/background errorom, timestampom, subscriptionima i svim dijalozima. `inFlight` sprečava paralelne overview zahtjeve, ali nema request ID/sequence ugovor, unmount cancellation niti direktni hook/page test. Ako zahtjev završi nakon unmounta, callback i dalje pokušava postaviti state. Mutation zatim čeka `load()`, ali ako je polling već u toku `load()` se samo vrati, pa mutation nema dokaz da je njen rezultat osvježen.
+
+Početna domain greška se mapira kroz `mapApiError`; `mapStatusError` se koristi samo za `disabled` boolean. Time se specifična status poruka može izgubiti.
+
+**Za zatvaranje:** typed `useStatusOverviewData` controller sa initial/background stanjem, latest-only/cancel ugovorom, eksplicitnim refresh rezultatom i testovima za polling, visibility, stale response, unmount i mutation-follow-up refresh.
+
+### SS3 — Incident dependency loading nema robustan retry i stale ugovor
+
+**Prioritet:** P1
+**Lokacija:** `incident-form-dialog.tsx`
+
+Lista servisa se učitava lokalnim effectom. Na grešci se postavlja `servicesFailed`, ali nema eksplicitnog Retry dugmeta, request ID-a ni resetovanja greške nakon uspješnog ponovnog pokušaja. Effect zavisi od `serviceIds`, iako je dependency zapravo katalog, što otežava razumijevanje ponovnog poziva. `servicesFailed` se ne resetuje pri ponovnom otvaranju niti prije novog zahtjeva.
+
+Forma ostaje blokirana jer servis mora biti izabran, ali korisnik nema jasan recovery put osim zatvaranja/mijenjanja stanja.
+
+**Za zatvaranje:** zajednički catalog query/cache ili typed dependency controller; vidljiv error + Retry; očuvanje preset/edited servisa; request identity i component testovi.
+
+### SS4 — Civil-time ugovor incidenta i downtimea nije eksplicitan
+
+**Prioritet:** P1
+**Lokacije:** `incident-form-dialog.tsx`, `service-downtime-window-form.tsx`, status/downtime prikazi
+
+Incident `datetime-local` se parsira browser lokalnom zonom i šalje kao ISO instant, ali editor ne prikazuje IANA zonu niti objašnjava author/recipient semantiku. `max={toLocalInput(new Date())}` se računa tokom rendera i može zastarjeti u dugo otvorenom dijalogu. Sličan civil-time rizik postoji u downtime formi.
+
+Backend ispravno radi s instantima i validira range, ali frontend nema DST/cross-zone contract testove za ovaj modul.
+
+**Za zatvaranje:** dokumentovan civil-time ugovor, vidljiva zona, centralni helperi, stabilan/obnovljen `max`, DST i cross-zone testovi za incident i downtime.
+
+### SS5 — Ticket incident panel tiho nestaje i nema query identity
+
+**Prioritet:** P1
+**Lokacija:** `ticket-incidents-panel.tsx`
+
+Svaka load greška postavlja `state=null`, a komponenta zatim vraća `null`. Korisnik i support ne vide grešku, request ID niti retry. Promjena `ticketId`/`versionKey` nema sequence/cancellation zaštitu, pa stariji odgovor može prepisati novi tiket. Picker ponovo učitava cijeli status overview samo radi kandidata.
+
+Unlink nema potvrdu/reason ugovor i link/unlink dijele jedan globalni busy flag. To je correctness i recovery rizik unutar ticket detaila.
+
+**Za zatvaranje:** typed ticket-incidents controller sa identityjem `{ticketId, versionKey}`, initial/background errorom, latest-only zaštitom, kandidat endpointom ili kešom, operation guardom i eksplicitnim unlink confirmation ugovorom.
+
+### SS6 — Servisni katalog nema URL-backed prikaz
+
+**Prioritet:** P1
+**Lokacije:** `service-catalog-list.tsx`, `services-page.tsx`
+
+Search, kategorija, lifecycle i origin-unit filteri su lokalni state. Refresh, deep link i browser Back/Forward ih gube. Otvoreni onboarding, editor, lifecycle, downtime, form builder i category workspace također su lokalna tri-state stanja.
+
+Za administrativni katalog je važno da support može podijeliti tačan filtrirani prikaz ili servis. Trenutni `/services` URL to ne može reproducirati.
+
+**Za zatvaranje:** validirani search-param model za filtere i stabilan `open/type/id` workspace ugovor; očuvanje nepovezanih parametara; post-data kanonizacija nedostupnih kategorija/OU/servisa; parser i browser history testovi.
+
+### SS7 — Data loading model je fragmentiran i routing failure je tih
+
+**Prioritet:** P1
+**Lokacije:** `use-service-catalog.ts`, `use-service-categories.ts`, `use-catalog-routing-coverage.ts`, `use-visible-onboardings.ts`, `services-page.tsx`
+
+Katalog koristi React Query, dok kategorije, routing coverage i onboardings koriste zasebne ručne sequence state mašine. Njihova recovery pravila nisu ista:
+
+- katalog i kategorije izlažu error/request ID;
+- routing coverage na grešci briše index, postavlja `isAvailable=false` i ne izlaže grešku;
+- onboarding lookup djelimično radi N+1 po DRAFT servisu;
+- `reloadCategories` kaskadno reloada kategorije, katalog i routing čak i kada promjena nije uticala na sve scopeove.
+
+`useServiceCatalog.reload` zavisi od cijelog React Query result objekta (`[query]`), pa stabilnost callbacka nije ugovorno jasna i može širiti nepotrebne effect/live-refresh promjene.
+
+**Za zatvaranje:** typed query ključevi i ujednačen query/recovery sloj; routing error + Retry; ciljane invalidacije; stabilan reload callback; batch onboarding summary.
+
+### SS8 — Downtime panel briše zdrave podatke na grešci i nema race zaštitu
+
+**Prioritet:** P1
+**Lokacija:** `service-downtime-windows-panel.tsx`
+
+Svaki reload vraća panel na skeleton, a catch radi `setWindows([])`. Pozadinska greška zato briše posljednju uspješnu listu i istovremeno može prikazati empty copy uz error. Nema request sequence/cancel zaštite kada se brzo promijeni `serviceId` ili sheet zatvori.
+
+Cancel mutation koristi React state kao jedini pending guard, nema synchronous lock, nema potvrdu i dijeli jedan error slot sa query greškom. Request ID se ne prikazuje.
+
+**Za zatvaranje:** typed downtime controller sa initial/background stanjem, latest-only identityjem po service ID-u, stale-data retentionom, query/mutation error razdvajanjem i per-window operation guardom.
+
+### SS9 — Form/onboarding mutation i cache ugovori ostaju djelimični
+
+**Prioritet:** P2
+**Lokacije:** form builder, mutation sheet, onboarding wizard i service API helperi
+
+`ensureServiceForm` ima pure test, ali create/retry idempotency cijelog UI toka nije direktno dokazana. Form builder promjene pokreću širok katalog reload. Create/update se i dalje spajaju castom `values as CreateServiceInput`, što skriva razliku ugovora. Dio dinamičkih i18n ključeva i tipova ostaje oslabljen castovima.
+
+Onboarding je bolji nego u arhivskom stanju, ali nema punu component matricu za svaki korak, stale service identity, close/reopen, synchronous submit i partial API uspjeh.
+
+**Za zatvaranje:** razdvojeni typed create/update inputi, idempotency ključ ili backend-safe retry, ciljane invalidacije i characterization testovi svih onboarding koraka.
+
+### SS10 — Category i form-builder UX se oslanja na backend tek nakon submitovanja
+
+**Prioritet:** P2
+**Lokacije:** category mutation, form-field editor/draft
+
+Backend validira category parent ciklus i field identifier, ali UI ne isključuje sve potomke iz parent izbora i ne koristi puni backend field-ID ugovor prije submitovanja. Korisnik grešku saznaje kasno, a field-level recovery nije uvijek precizan.
+
+Brisanje kategorije ima jači confirmation model od brisanja DRAFT servisa i cancelovanja downtime prozora, pa destruktivne akcije nisu dosljedne.
+
+**Za zatvaranje:** frontend mirror validacija uz backend source of truth, potomak-filter, povezane field greške i jedinstvena matrica confirm/reason pravila.
+
+### SS11 — Održivost i production hygiene nisu na standardu novijih modula
+
+**Prioritet:** P2
+
+Najveće komponente imaju 300–400 linija i kombinuju fetch, mutation, permissions, dialog state i prezentaciju. Scope još sadrži delivery-history komentare (`Paket`, numerisani `§`). Tri-state modeli poput `undefined/null/object` nose skriveno značenje. `Intl.NumberFormat` se kreira po komponenti umjesto kroz zajednički cache, a API helperi i error mape nisu potpuno ujednačeni.
+
+**Za zatvaranje:** controller/presentation granice, discriminated workspace unioni, comment-hygiene gate, centralni formatteri i typed API/error ugovori.
+
+### SS12 — Testna mreža ne pokriva kritične page/component state mašine
+
+**Prioritet:** P1
+
+Postoje kvalitetni pure/helper testovi, ali nedostaju direktni testovi za:
+
+- StatusPage initial/background error, polling, stale response i subscription race;
+- IncidentForm dependency failure/retry, civil time i double submit;
+- IncidentUpdate resolve preview failure/retry i submit race;
+- TicketIncidentsPanel ticket identity, silent error, link/unlink race;
+- ServicesPage partial query failure i live-refresh race;
+- URL state, jer još nije implementiran;
+- downtime stale refresh/service switch/cancel race;
+- category/form builder/onboarding mutation recovery matrice.
+
+E2E `21` i `42` su vrijedni end-to-end scenariji, ali nisu zamjena za determinističke state-machine testove. U ovom reauditiranju su pročitani, ne izvršeni.
+
+**Za zatvaranje:** direktna hook/component/page mreža, zatim stvarni Playwright run sa trace/screenshot dokazom.
+
+### SS13 — Browser accessibility/responsive closeout nije aktuelno dokazan
+
+**Prioritet:** P1 za 10/10
+
+Potrebno je izvršiti, ne samo održavati, browser matricu:
+
+- `/status` kao user i manager;
+- incident create/edit/update/resolve/subscribe;
+- ticket known-problem i staff link/unlink panel;
+- `/services` filteri, editori, onboarding, form builder, kategorije i downtime;
+- 320/375/768/1280 px, 200% zoom, keyboard/focus return;
+- serious/critical axe;
+- initial/background failure, stale A→B identity i synchronous double-submit;
+- revision SHA, rezultat bez skipova, trace i screenshot artefakti.
+
+Bez ovog dokaza ocjena ne može biti 10/10.
 
 ---
 
-## Must-Have kandidati (modul 10)
+## 5. Ocjena po oblasti
 
-Predloženi redoslijed. Ništa od ovoga nije implementirano.
+| Oblast                                        |   Trenutno |      Cilj |
+| --------------------------------------------- | ---------: | --------: |
+| Backend autorizacija i domenske granice       |        9,3 |        10 |
+| Query identity, stale state i recovery        |        6,7 |        10 |
+| Mutation concurrency i cache konzistentnost   |        6,3 |        10 |
+| Civil-time, dostupnost i incident correctness |        7,2 |        10 |
+| URL/shareability i navigacija                 |        5,5 |        10 |
+| Accessibility i responsive struktura          |        7,8 |        10 |
+| Testabilnost i održivost                      |        6,9 |        10 |
+| Browser/E2E dokaz                             |        4,5 |        10 |
+| **Ukupno**                                    | **7,4/10** | **10/10** |
 
-1. **SV1:** stabilna referenca za prazne podatke u `useServiceCatalog` i `useVisibleOnboardings` (bez novog niza pri svakom renderu). Potvrditi u pregledaču prije i poslije.
-2. **SV2 i SV3:** wizard prikazuje grešku uz korake (ne umjesto njih), ima retry i u režimu kreiranja, a kreiranje servisa je idempotentno ili atomično pri ponovnom pokušaju.
-3. **ST1:** greška osvježavanja statusa uz stare podatke, sa vremenom posljednjeg uspjeha i retry-em. Isti obrazac kao `hasRefreshError` na `/services`.
-4. **SV9:** dugme „Kreiraj tiket“ prenosi `?serviceId=`.
-5. **SV7 i SV22:** select za policy pack i SLA prikazuje sačuvanu vrijednost (ili je jasno označena kao nedostupna), greška učitavanja profila se prikazuje, a efekat za inicijalnu vrijednost reaguje na učitavanje profila.
-6. **ST10 (backend, za provjeru):** odluka o pravilu za `linkTicket`, `unlinkTicket` i `eventDetail` sa `STAFF_ONLY` incidentima. Ako je potrebno, dodati provjeru vidljivosti.
-7. **SV5 i SV6:** zatvoriti puni `reloadCatalog` pri otvaranju forme i ograničiti zahtjeve za DRAFT onboarding na promjenu broja DRAFT servisa.
-8. **SV8:** brisanje opcija select polja, i18n za „Opcija“ i „opcija_1“, validacija ID-a polja u UI.
-9. **Automatizacija:** ESLint sa `react-hooks/exhaustive-deps`, Prettier, `lint` skripta u `frontend/package.json`. Uključiti ST4, SV13 u ispravke.
-10. **Testovi:** komponentski testovi za `ServiceOnboardingWizard` (greška, retry, kreiranje), `IncidentFormDialog` (servisi i greška), `TicketIncidentsPanel` (veza i odveza); e2e za prozore nedostupnosti, verzije formi i CRUD kategorija.
-11. **Cross-cutting (sa modulima 5 i 16):** `t as never` zamijeniti pravim tipom prevodioca (`TFunction`) i zajednički `json` helper za `src/services`.
+Ocjena nije aritmetički prosjek. P1 correctness, recovery i concurrency rizici nose veću težinu od količine implementirane funkcionalnosti.
 
 ---
 
-## Status ispravki (2026-10-13)
+## 6. Fazni implementacijski plan do 10/10
 
-Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rade tek nakon završetka auditnog ciklusa i potvrde obima.
+### Faza 1 — Status overview controller i recovery
+
+**Nalazi:** `SS2`, dio `SS12`
+
+1. Izdvojiti `useStatusOverviewData`.
+2. Modelirati initial/background error i request ID.
+3. Uvesti latest-only/unmount zaštitu i visibility-aware polling.
+4. Definisati mutation-follow-up refresh ugovor.
+5. Dodati direktne hook/page testove.
+
+**Exit gate:** stari overview ostaje vidljiv na refresh grešci, stale odgovor ne može pobijediti, a svaki retry je eksplicitan.
+
+### Faza 2 — Incident mutation concurrency i dependency ugovor
+
+**Nalazi:** `SS1`, `SS3`, dio `SS12`
+
+1. Uvesti synchronous operation guard za create/edit/update/resolve/subscribe.
+2. Prebaciti listu servisa na typed query/cache.
+3. Dodati error/request ID/Retry bez gubitka drafta.
+4. Razdvojiti query i mutation greške.
+5. Testirati double submit i recovery.
+
+**Exit gate:** jedna korisnička namjera proizvodi najviše jedan write zahtjev; dependency outage ne zahtijeva zatvaranje dijaloga.
+
+### Faza 3 — Ticket incident controller
+
+**Nalazi:** `SS5`, dio `SS1`, dio `SS12`
+
+1. Uvesti identity `{ticketId, versionKey}` i latest-only zaštitu.
+2. Prikazati initial/background greške i retry.
+3. Uvesti per-operation guard za link/unlink.
+4. Donijeti potvrđen unlink confirmation/reason ugovor.
+5. Dodati requester/staff component testove.
+
+**Exit gate:** panel nikada tiho ne nestaje zbog mrežne greške i odgovor starog tiketa ne može prepisati novi.
+
+### Faza 4 — Civil-time i dostupnost ugovor
+
+**Nalazi:** `SS4`, dio `SS8`
+
+1. Dokumentovati incident/downtime authoring zonu.
+2. Centralizovati civil-time ↔ instant helper.
+3. Prikazati IANA zonu uz input i periode.
+4. Stabilizovati ili osvježavati `max` u otvorenom incident dijalogu.
+5. Dodati DST/cross-zone/range testove.
+
+**Exit gate:** isti ugovor vrijedi u UI-u, API payloadu i prikazu primaoca.
+
+### Faza 5 — URL-backed katalog i workspace
+
+**Nalazi:** `SS6`
+
+1. URL-backed `q`, category, lifecycle i origin-unit filteri.
+2. URL-backed otvoreni servis/workspace (`edit`, `onboarding`, `form`, `downtime`, `lifecycle`).
+3. Validacija i post-data kanonizacija nedostupnih ID-eva.
+4. Očuvanje nepovezanih parametara.
+5. Parser/update i browser Back/Forward testovi.
+
+**Exit gate:** refresh, deep link i historija deterministički reproduciraju isti katalog prikaz.
+
+### Faza 6 — Ujednačen services query/recovery sloj
+
+**Nalazi:** `SS7`, `SS8`
+
+1. Typed query ključevi za katalog, kategorije, routing i onboarding.
+2. Ujednačiti initial/background error i request ID.
+3. Zadržati stale routing/downtime podatke na refresh grešci.
+4. Batch onboarding summary i ciljane invalidacije.
+5. Testirati partial failure i A→B service race.
+
+**Exit gate:** nijedan parcijalni outage ne briše zdrav, nepovezan scope.
+
+### Faza 7 — Form builder, kategorije i onboarding hardening
+
+**Nalazi:** `SS9`, `SS10`, dio `SS12`
+
+1. Razdvojiti create/update tipove bez castova.
+2. Zatvoriti ensure/idempotency recovery.
+3. Uvesti frontend field-ID i category-descendant validaciju.
+4. Ujednačiti destructive confirmation/reason matricu.
+5. Dodati punu onboarding/form/category mutation test mrežu.
+
+**Exit gate:** partial success se može sigurno ponoviti bez duplikata i bez oslanjanja na kasni generički backend error.
+
+### Faza 8 — Održivost i statički closeout
+
+**Nalazi:** `SS11`, regresija `SS1–SS12`
+
+1. Controller/presentation granice.
+2. Discriminated workspace state.
+3. Centralni number/date formatteri i typed error ugovori.
+4. Ukloniti delivery-history komentare i dodati hygiene gate.
+5. Puni frontend/backend relevantni suite, build, ESLint, i18n/design-system, Prettier i `git diff --check`.
+
+**Exit gate:** svi deterministički i statički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
+
+### Faza 9 — Browser/E2E closeout
+
+**Nalazi:** `SS13`, završna regresija `SS1–SS13`
+
+1. Proširiti `21` i `42` na failure/race/history tokove.
+2. Izvršiti user/manager i ticket-integrated scenarije.
+3. Izvršiti responsive, zoom, keyboard/focus i axe matricu.
+4. Evidentirati komandu, revision SHA, rezultat bez skipova, trace i screenshot.
+
+**Exit gate:** `SS1–SS13` zatvoreni i stvarni browser run zelen.
+
+---
+
+## 7. Obavezna završna test matrica
+
+### Unit/hook
+
+- status initial/background failure, visibility polling i latest-only;
+- operation guard po incidentu/tiketu/windowu;
+- civil-time/DST/cross-zone;
+- URL parser/update i canonical defaults;
+- catalog/category/routing/onboarding partial failure;
+- downtime A→B identity i stale retention;
+- lifecycle, category descendant i field identifier validacija.
+
+### Component/page
+
+- StatusPage refresh/subscription/dialog orchestration;
+- IncidentForm i IncidentUpdate dependency/mutation recovery;
+- TicketIncidentsPanel requester/staff/link/unlink;
+- ServicesPage partial data i live refresh;
+- filter/workspace URL state;
+- downtime, lifecycle, category, form builder i onboarding;
+- field errors, request ID, retry i focus return.
+
+### Backend
+
+- permission + role + service-scope matrica;
+- incident visibility/lifecycle/subscription/link authorization;
+- availability/downtime configuration i overlap;
+- category cycle i form schema validacija;
+- idempotent onboarding/form creation;
+- audit reason i mutation diff.
+
+### Browser/E2E
+
+- `21-status-monitoring.spec.ts` proširen failure/race scenarijima;
+- `42-catalog-sla-routing-ux.spec.ts` proširen URL/history i partial-outage scenarijima;
+- 320/375/768/1280, 200% zoom;
+- keyboard-only i focus return;
+- serious/critical axe;
+- trace/screenshot artefakti i revision SHA.
+
+---
+
+## 8. Preporučeni redoslijed implementacije
+
+1. Faza 1 — Status overview controller.
+2. Faza 2 — Incident concurrency i dependency recovery.
+3. Faza 3 — Ticket incident identity/recovery.
+4. Faza 4 — Civil-time ugovor.
+5. Faza 5 — URL-backed katalog/workspace.
+6. Faza 6 — Services query/recovery konsolidacija.
+7. Faza 7 — Form/category/onboarding hardening.
+8. Faza 8 — Statički closeout.
+9. Faza 9 — Browser/E2E dokaz.
+
+Redoslijed prvo zatvara correctness i race rizike, zatim shareability i podatkovni sloj, pa održivost i browser dokaz. Vizuelni polish ne treba ići ispred request identityja, mutation guardova i recoveryja.
+
+---
+
+## 9. Zaključak
+
+Status i servisi imaju široku funkcionalnost i jaku backend osnovu, ali trenutni frontend nije na standardu 10/10 koji je uspostavljen u kasnije zatvorenim modulima. Najveći dug nije nedostatak ekrana nego nedovoljno eksplicitan lifecycle: ko je vlasnik query identiteta, šta ostaje vidljivo nakon greške, može li ista namjera poslati dva write zahtjeva i može li URL reproducirati korisnikov kontekst.
+
+Reaudit zato zamjenjuje staru oznaku „zatvoren 7/10“ aktivnim planom od devet faza. Cilj od 10/10 je realan tek nakon determinističkih controller/component testova i stvarno izvršene browser matrice; bez E2E dokaza maksimalna ocjena ostaje 9,8/10.
