@@ -529,24 +529,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            node scripts/summarize-playwright-json.mjs results.json || true
             echo '--- global errors / stats (results.json) ---'
             jq -c '{errors: (.errors // []), stats: (.stats // {})}' results.json 2>/dev/null || echo 'no results.json'
+            node scripts/summarize-playwright-json.mjs results.json || true
           } > /tmp/e2e-summary.txt 2>&1
           SUMMARY=$(head -c 60000 /tmp/e2e-summary.txt | jq -Rs .)
           node - <<'NODE' || true
           const fs = require('node:fs');
-          const { execFileSync } = require('node:child_process');
-          const text = fs.readFileSync('/tmp/e2e-summary.txt', 'utf8').replace(/\s+/g, ' ').slice(0, 5200);
-          for (let i = 0; i * 130 < text.length; i += 1) {
-            const chunk = text.slice(i * 130, (i + 1) * 130);
-            execFileSync('gh', [
-              'api', `repos/${process.env.GITHUB_REPOSITORY}/statuses/${process.env.GITHUB_SHA}`,
-              '--method', 'POST',
-              '-f', 'state=error',
-              '-f', `context=arena-e2e-diag/${String(i + 1).padStart(2, '0')}`,
-              '-f', `description=${chunk}`,
-            ], { stdio: 'inherit' });
+          const text = fs.readFileSync('/tmp/e2e-summary.txt', 'utf8');
+          const esc = (s) => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+          for (let i = 0; i < 10 && i * 900 < text.length; i += 1) {
+            const chunk = text.slice(i * 900, (i + 1) * 900);
+            console.log(`::error title=E2E diag ${String(i + 1).padStart(2, '0')}::${esc(chunk)}`);
           }
           NODE
           gh api "repos/${{ github.repository }}/check-runs" --method POST \
