@@ -8,7 +8,7 @@ import {
   invalidateEntityQueries,
 } from "@/lib/entity-list/entity-mutation-query-keys";
 import { queryKeys } from "@/lib/query/query-keys";
-import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
+import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { buildContractInput } from "@/lib/assets/asset-commercial-drafts";
 import {
   assetStatusKeys,
   assetStatusTone,
@@ -287,21 +288,24 @@ function ContractFormSheet({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const money = parseMoneyInput(cost);
-    if (supplier.trim() === "" || endsAt === "" || unitId === "")
-      return setError(t("assets.contracts.errors.required"));
-    if (startsAt !== "" && startsAt > endsAt) return setError(t("assets.contracts.errors.dates"));
-    if (money === "invalid") return setError(t("assets.licenses.errors.cost"));
-    const input = {
+    const result = buildContractInput({
       kind,
-      supplier: supplier.trim(),
-      reference: reference.trim() || null,
-      startsAt: startsAt || null,
+      supplier,
+      reference,
+      startsAt,
       endsAt,
-      cost: money,
-      notes: notes.trim() || null,
-      organizationalUnitId: unitId,
-    };
+      cost,
+      notes,
+      unitId,
+    });
+    if (!result.ok) {
+      const key =
+        result.error === "cost"
+          ? "assets.licenses.errors.cost"
+          : (`assets.contracts.errors.${result.error}` as const);
+      return setError(t(key));
+    }
+    const input = result.input;
     setPending(true);
     setError(null);
     try {

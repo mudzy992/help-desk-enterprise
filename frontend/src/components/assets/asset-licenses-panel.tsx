@@ -8,7 +8,7 @@ import {
   invalidateEntityQueries,
 } from "@/lib/entity-list/entity-mutation-query-keys";
 import { queryKeys } from "@/lib/query/query-keys";
-import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
+import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { buildLicenseInput } from "@/lib/assets/asset-commercial-drafts";
 import { formatAssetDate, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
@@ -301,30 +302,20 @@ function LicenseFormSheet({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const money = parseMoneyInput(cost);
-    const seatCount = kind === "SITE" ? null : seats.trim() === "" ? null : Number(seats);
-    if (productName.trim() === "" || unitId === "")
-      return setError(t("assets.licenses.errors.required"));
-    if (kind !== "SITE" && (seatCount === null || !Number.isInteger(seatCount) || seatCount < 0))
-      return setError(t("assets.licenses.errors.seats"));
-    if (kind === "SUBSCRIPTION" && validUntil === "")
-      return setError(t("assets.licenses.errors.validUntil"));
-    if (money === "invalid") return setError(t("assets.licenses.errors.cost"));
-    const input = {
-      productName: productName.trim(),
-      vendor: vendor.trim() || null,
+    const result = buildLicenseInput({
+      productName,
+      vendor,
       kind,
-      seats: seatCount,
-      validUntil: validUntil || null,
-      cost: money,
-      notes: notes.trim() || null,
-      organizationalUnitId: unitId,
-      ...(removeKey
-        ? { licenseKey: "" }
-        : licenseKey.trim() !== ""
-          ? { licenseKey: licenseKey.trim() }
-          : {}),
-    };
+      seats,
+      validUntil,
+      cost,
+      notes,
+      unitId,
+      licenseKey,
+      removeKey,
+    });
+    if (!result.ok) return setError(t(`assets.licenses.errors.${result.error}` as const));
+    const input = result.input;
     setPending(true);
     setError(null);
     try {

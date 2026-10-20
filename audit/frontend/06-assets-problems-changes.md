@@ -357,6 +357,17 @@ Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, UR
 
 **Exit gate:** glavne Assets cjeline imaju jasne typed granice i direktne testove; nema skrivenih parent-render zavisnosti.
 
+#### Evidencija zatvaranja Faze 5 (20. 10. 2026.)
+
+- Licence i contract editori više ne sastavljaju i validiraju API payload unutar render komponente; typed draft controlleri izdvojeni su u `asset-commercial-drafts.ts`.
+- Controlleri imaju diskriminisani success/error rezultat, normalizuju whitespace, novac, nullable vrijednosti i license-key semantiku prije mutation sloja.
+- Direktni characterization testovi pokrivaju contract normalizaciju, datumske i money greške, license seat/expiry pravila, SITE licencu i eksplicitno uklanjanje ključa.
+- Catalog ostaje razdijeljen na zasebne typed `TypeEditor`, `AttributeEditor`, `LocationEditor`, `LocationRow` i `EditorFooter` cjeline, dok postojeći asset-view testovi pokrivaju njegove izdvojene tree/view modele.
+- Dinamički transfer validation redovi više ne koriste index key, nego stabilni sadržajni ključ.
+- Assets dio `APC7`, Assets dio `APC8` i pripadajući Assets dio `APC9` su zatvoreni.
+
+**Izvršni dokaz:** novi typed draft suite ima 5/5 testova; production TypeScript/Vite build i scope ESLint su prošli. Puni frontend gate evidentira se prije Faza 5 commita.
+
 ### Faza 6 — Problems i Changes dekompozicija
 
 **Nalazi:** preostali `APC7`, `APC8`, `APC9`
