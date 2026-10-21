@@ -50,22 +50,12 @@ test.describe("24 assets access", () => {
     const env = readE2EEnvironment();
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.setViewportSize({ width: 320, height: 720 });
-    const navLog: string[] = [];
-    page.on("framenavigated", (frame) => {
-      if (frame === page.mainFrame()) navLog.push(frame.url());
-    });
     await page.goto("/assets?search=first");
     await expect(page).toHaveURL(/\/assets\?search=first/, { timeout: 15_000 });
     const search = page.getByRole("searchbox", {
       name: /Pretraga imovine|Search assets/i,
     });
-    try {
-      await expect(search).toHaveValue("first");
-    } catch {
-      throw new Error(
-        `TEMP-DIAG searchbox missing; finalUrl=${page.url()}; navLog=${navLog.join(" -> ")}`,
-      );
-    }
+    await expect(search).toHaveValue("first");
     await search.fill("second");
     await expect(page).toHaveURL(/search=second/, { timeout: 15_000 });
     await page.goBack();

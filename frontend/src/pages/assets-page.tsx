@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -202,6 +202,25 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     searchText.trim().length >= 2 ? searchText.trim() : "",
     searchDelayMs,
   );
+  // Commit the debounced search to the URL with a history PUSH (unlike the
+  // other filters, which replace): Back/Forward must step through searches.
+  // The ref tracks the last committed value and absorbs external URL changes
+  // (Back/Forward, deep links) so they are not re-pushed.
+  const urlSearch = params.get("search") ?? "";
+  const committedSearchRef = useRef(urlSearch);
+  useEffect(() => {
+    committedSearchRef.current = urlSearch;
+  }, [urlSearch]);
+  useEffect(() => {
+    if (search === committedSearchRef.current) return;
+    committedSearchRef.current = search;
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (search === "") next.delete("search");
+      else next.set("search", search);
+      return next;
+    });
+  }, [search, setParams]);
   const typeId = params.get("type") ?? "";
   const status = parseAssetStatus(params.get("status"));
   const organizationalUnitId = params.get("unit") ?? "";
@@ -378,7 +397,6 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         searchValue={searchText}
         onSearchChange={(value) => {
           setSearchText(value);
-          setFilterParam("search", value.trim());
         }}
         activeCount={advancedCount}
         resetLabel={t("assets.list.resetFilters")}
