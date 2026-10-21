@@ -51,6 +51,7 @@ test.describe("24 assets access", () => {
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto("/assets?search=first");
+    await expect(page).toHaveURL(/\/assets\?search=first/, { timeout: 15_000 });
     const search = page.getByRole("searchbox", {
       name: /Pretraga imovine|Search assets/i,
     });

@@ -208,7 +208,12 @@ function DimensionTable({
           {t("sla.complianceBreakdownEmpty")}
         </p>
       ) : (
-        <div className="max-h-72 overflow-auto rounded-md border border-border">
+        <div
+          className="max-h-72 overflow-auto rounded-md border border-border"
+          role="region"
+          aria-label={title}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[560px] border-collapse text-[11px]">
             <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
               <tr>
