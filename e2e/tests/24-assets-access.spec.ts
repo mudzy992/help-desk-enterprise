@@ -52,6 +52,8 @@ test.describe("24 assets access", () => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto("/assets?search=first");
     await expect(page).toHaveURL(/\/assets\?search=first/, { timeout: 15_000 });
+    await page.waitForTimeout(5_000);
+    await expect(page).toHaveURL(/\/assets\?search=first/);
     const search = page.getByRole("searchbox", {
       name: /Pretraga imovine|Search assets/i,
     });
