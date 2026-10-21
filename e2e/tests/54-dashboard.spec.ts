@@ -22,7 +22,7 @@ test.describe("54 dashboard contracts", () => {
     await page.goto("/");
 
     const open = page
-      .locator('a[href*="view=all"]')
+      .locator('a[href*="view=all"]:not([href*="priority=CRITICAL"])')
       .filter({ hasText: /otvoreni tiketi|open tickets/i });
     const critical = page.locator('a[href*="priority=CRITICAL"]');
     const unrouted = page.locator(

@@ -118,7 +118,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
       await test.step('fill and submit the service create form', async () => {
         await dialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(serviceName);
-        await dialog.getByLabel(/Slug/i).fill(slug);
+        await dialog.getByLabel(/Slug|Identifikator/i).fill(slug);
         await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
 
         const classification = dialog.getByLabel(/Classification|Klasifikacija/);

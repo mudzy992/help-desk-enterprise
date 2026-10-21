@@ -202,7 +202,7 @@ function AppearancePreview() {
             <span className="text-[11.5px] text-muted-foreground">
               {t("appearance.previewProgress")}
             </span>
-            <Progress value={62} />
+            <Progress value={62} label={t("appearance.previewProgress")} />
           </div>
           <Field label={t("appearance.previewFieldLabel")}>
             {(control) => (

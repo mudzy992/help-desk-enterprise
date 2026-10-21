@@ -476,7 +476,7 @@ jobs:
             push)
               # TEMPORARY (Arena session arena/7a60171e): triage subset for the
               # push-trigger workaround. Remove before merging to master.
-              specs="11,14,22,24,33,42,45,54,55"
+              specs="11,22,24,42,45,54,55"
               retries="0"
               max_failures="0"
               echo "TEMP Arena triage run: specs=$specs, retries=$retries."
