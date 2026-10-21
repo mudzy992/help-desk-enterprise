@@ -483,10 +483,10 @@ jobs:
             push)
               # TEMPORARY (Arena session arena/7a60171e): full run on push for
               # the push-trigger workaround. Remove before merging to master.
-              specs="24"
-              retries="0"
+              specs=""
+              retries="${E2E_RETRIES:-1}"
               max_failures="0"
-              echo "TEMP Arena triage run: specs=$specs, retries=$retries."
+              echo "TEMP Arena full run: all files, retries=$retries."
               ;;
             *)
               specs=""
