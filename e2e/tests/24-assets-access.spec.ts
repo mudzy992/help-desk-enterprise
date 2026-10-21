@@ -53,7 +53,10 @@ test.describe("24 assets access", () => {
       else await route.continue();
     });
     await page.goto("/assets");
-    await expect(page.getByRole("alert")).toBeVisible({ timeout: 15_000 });
+    // The aborted capabilities request only surfaces once the page has
+    // mounted behind the shell's own session loading; on a loaded staging
+    // stack that can take well past 15 s.
+    await expect(page.getByRole("alert")).toBeVisible({ timeout: 45_000 });
     await expect(
       page.getByText(/Modul imovine je isključen|The assets module is off/),
     ).toHaveCount(0);
