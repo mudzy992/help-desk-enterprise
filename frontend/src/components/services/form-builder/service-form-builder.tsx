@@ -44,25 +44,23 @@ export function ServiceFormBuilder({
   const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
   const validDraft = isValidFormFieldDraft(fields);
 
-  const applyForm = useCallback(
-    (loaded: ServiceFormResponse, preferredRef?: string) => {
-      const nextRef =
-        preferredRef ??
-        loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
-        loaded.activeFormVersionRef ??
-        loaded.versions[0]?.formVersionRef ??
-        null;
-      const version = loaded.versions.find((item) => item.formVersionRef === nextRef);
-      setForm(loaded);
-      setSelectedRef(nextRef);
-      setFields(version ? [...version.schema.fields] : []);
-      onActiveVersion(loaded.activeFormVersionRef);
-    },
-    [onActiveVersion],
-  );
+  const applyForm = useCallback((loaded: ServiceFormResponse, preferredRef?: string) => {
+    const nextRef =
+      preferredRef ??
+      loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
+      loaded.activeFormVersionRef ??
+      loaded.versions[0]?.formVersionRef ??
+      null;
+    const version = loaded.versions.find((item) => item.formVersionRef === nextRef);
+    setForm(loaded);
+    setSelectedRef(nextRef);
+    setFields(version ? [...version.schema.fields] : []);
+  }, []);
 
   const reload = async (preferredRef?: string) => {
-    applyForm(await getServiceForm(serviceId), preferredRef);
+    const loaded = await getServiceForm(serviceId);
+    applyForm(loaded, preferredRef);
+    return loaded;
   };
 
   useEffect(() => {
@@ -90,7 +88,8 @@ export function ServiceFormBuilder({
       setErrorKey(null);
       try {
         const result = await work();
-        await reload(result.formVersionRef);
+        const loaded = await reload(result.formVersionRef);
+        onActiveVersion(loaded.activeFormVersionRef);
       } catch (error) {
         setErrorKey(mapServiceFormsError(error));
       } finally {

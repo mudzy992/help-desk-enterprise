@@ -4,6 +4,8 @@ import type {
   DataClassification,
   ServiceAvailability,
   ServiceLifecycle,
+  ServiceOnboardingStatus,
+  ServiceOnboardingStep,
 } from '../../generated/prisma/enums';
 import type { ServiceRuntimeAvailability } from './service-availability.types';
 
@@ -56,6 +58,12 @@ export type ServiceActiveFormSummary = {
   readonly fieldCount: number;
 };
 
+export type ServiceOnboardingSummary = {
+  readonly status: ServiceOnboardingStatus;
+  readonly currentStep: ServiceOnboardingStep;
+  readonly completedSteps: readonly ServiceOnboardingStep[];
+};
+
 export type ServiceResponse = {
   readonly id: string;
   readonly name: string;
@@ -77,6 +85,8 @@ export type ServiceResponse = {
   readonly policyPackId: string | null;
   readonly openTicketCount: number;
   readonly activeForm: ServiceActiveFormSummary;
+  /** Present on list reads; null when no onboarding exists for this service. */
+  readonly onboarding?: ServiceOnboardingSummary | null;
   /** Paket 2.7: worst impact of open incidents on the service (null = none). */
   readonly incidentImpact: IncidentImpact | null;
   readonly warnings?: readonly string[];

@@ -62,13 +62,13 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
     // A refresh keeps the current screen while it loads; only the first request
     // (or a retry after an error) shows the gate skeleton.
     setState((current) => (current.status === "ready" ? current : LOADING_STATE));
-    void Promise.all([
-      loadInstallSetupStatus(),
-      // Readiness is advisory here: a failed read degrades to `null` so it
-      // cannot hide the wizard or prevent its step screens from working.
-      loadInstallReadiness().catch(() => null),
-    ])
-      .then(([status, readiness]) => {
+    void loadInstallSetupStatus()
+      .then(async (status) => {
+        // A completed installation rejects wizard-only readiness reads with
+        // 409. Do not emit that expected conflict on every application load.
+        const readiness = status.isCompleted
+          ? null
+          : await loadInstallReadiness().catch(() => null);
         if (isCancelled) return;
         setState({
           status: "ready",
