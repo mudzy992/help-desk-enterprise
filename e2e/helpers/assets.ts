@@ -105,7 +105,11 @@ export async function withSettings(
     // environment dirty.
     await setSettings(api, restored, `${reason} (restore)`, {
       resetDependents: true,
-    }).catch(() => undefined);
+    });
+    const entries = await api.requestJson<RegistryEntry[]>('/settings');
+    for (const [key, expected] of Object.entries(restored)) {
+      expect(entries.find((entry) => entry.key === key)?.value ?? null, `restored setting ${key}`).toEqual(expected);
+    }
   }
 }
 

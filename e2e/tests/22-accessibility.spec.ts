@@ -111,6 +111,24 @@ test.describe('22 accessibility', () => {
     });
   }
 
+  test('reduced motion disables entrance animation and modal focus returns to its trigger', async ({ page }) => {
+    const env = readE2EEnvironment();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await signIn(page, env.agentEmail, env.agentPassword);
+    await page.goto('/');
+    await settle(page);
+
+    await expect.poll(() => page.locator('.page-in').first().evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
+
+    const trigger = page.getByRole('button', { name: /Open command palette|Otvori komandnu paletu/i });
+    await trigger.click();
+    const palette = page.getByRole('dialog');
+    await expect(palette).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(palette).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test('skip link, focus on route change and unique tab titles', async ({ page }) => {
     const env = readE2EEnvironment();
     await signIn(page, env.agentEmail, env.agentPassword);

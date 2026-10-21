@@ -10,6 +10,7 @@ import {
   move,
   pickAssetType,
   retireAssets,
+  readSetting,
   setSetting,
   uniqueStamp,
   withSettings,
@@ -33,12 +34,9 @@ test.describe("24 assets access", () => {
   test.afterAll(async () => {
     const env = readE2EEnvironment();
     const admin = new ApiClient();
-    try {
-      await admin.login(env.superAdminEmail, env.superAdminPassword);
-      await setSetting(admin, assetSettingKeys.cmdb, true, "E2E 24 safety restore");
-    } catch (error) {
-      console.warn(`[e2e] 24 safety restore of the cmdb setting failed: ${String(error)}`);
-    }
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    await setSetting(admin, assetSettingKeys.cmdb, true, "E2E 24 safety restore");
+    expect(await readSetting(admin, assetSettingKeys.cmdb), "E2E 24 must leave the shared stack with CMDB enabled").toBe(true);
   });
 
   test("capability network error is distinct and retryable", async ({

@@ -4,6 +4,10 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
 function Harness({ action }: { readonly action?: () => void }) {
   const { toast } = useToast();
   const [result, setResult] = useState("");

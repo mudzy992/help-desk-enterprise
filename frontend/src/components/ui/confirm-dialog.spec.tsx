@@ -3,6 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
 afterEach(cleanup);
 
 describe("ConfirmDialog danger flow", () => {

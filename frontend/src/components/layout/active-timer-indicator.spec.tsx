@@ -1,6 +1,6 @@
+import type { AnchorHTMLAttributes } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter } from "react-router-dom";
 import { ActiveTimerIndicator } from "@/components/layout/active-timer-indicator";
 import type { ActiveTimer } from "@/services/tickets-collaboration-api";
 
@@ -11,6 +11,20 @@ vi.mock("react-i18next", () => ({
     t: (key: string, options?: Record<string, unknown>) =>
       options === undefined ? key : `${key}|${JSON.stringify(options)}`,
   }),
+}));
+
+vi.mock("react-router-dom", () => ({
+  Link: ({
+    to,
+    children,
+    ...properties
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    readonly to: string;
+  }) => (
+    <a href={to} {...properties}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/lib/time-tracking/active-timer-store", () => ({
@@ -32,11 +46,7 @@ const timer: ActiveTimer = {
 };
 
 function render(): string {
-  return renderToStaticMarkup(
-    <MemoryRouter>
-      <ActiveTimerIndicator />
-    </MemoryRouter>,
-  );
+  return renderToStaticMarkup(<ActiveTimerIndicator />);
 }
 
 describe("ActiveTimerIndicator", () => {

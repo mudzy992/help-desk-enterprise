@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Request } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { firstServiceCategoryId } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -17,6 +17,11 @@ type NamedRecord = {
 type ServiceRecord = NamedRecord & {
   readonly slug: string;
   readonly lifecycle: string;
+  readonly onboarding?: {
+    readonly status: string;
+    readonly currentStep: string;
+    readonly completedSteps: readonly string[];
+  } | null;
 };
 
 type CalendarRecord = {
@@ -174,21 +179,40 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
           throw new Error('[e2e] cannot verify onboarding progress without the created service ID.');
         }
         const targetServiceId = serviceId;
-        // Verify through the visible outcome instead of a raw network wait:
-        // the catalog fires one onboarding GET per DRAFT service in parallel,
-        // so on a loaded staging stack the single response this test used to
-        // await can sit in the browser's connection queue past any reasonable
-        // timeout. The progress chip below renders only once the browser has
-        // read this service's onboarding as IN_PROGRESS (0 of 5 steps), which
-        // is the same end-to-end evidence. Server-side persistence was already
-        // asserted via the API in the previous step.
-        await page.reload();
+        // The catalog list owns the onboarding summary. It must load that state
+        // in the single services response and must not regress to one expected
+        // 404-producing onboarding request per draft service.
+        const catalogOnboardingRequests: string[] = [];
+        const recordCatalogOnboardingRequest = (request: Request) => {
+          const path = new URL(request.url()).pathname;
+          if (request.method() === 'GET' && /^\/services\/[^/]+\/onboarding$/.test(path)) {
+            catalogOnboardingRequests.push(path);
+          }
+        };
+        page.on('request', recordCatalogOnboardingRequest);
+        const [servicesResponse] = await Promise.all([
+          page.waitForResponse((response) => {
+            const url = new URL(response.url());
+            return response.request().method() === 'GET' && url.pathname === '/services';
+          }),
+          page.reload(),
+        ]);
+        expect(servicesResponse.ok()).toBe(true);
+        const browserCatalog = (await servicesResponse.json()) as readonly ServiceRecord[];
+        const browserService = browserCatalog.find((service) => service.id === targetServiceId);
+        expect(browserService?.onboarding?.status).toBe('IN_PROGRESS');
+
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 30_000 });
         const onboardingChip = page.getByTestId(`service-onboarding-progress-${targetServiceId}`);
         await expect(onboardingChip).toHaveText(/(?:Onboarding|Uvođenje) 0\/5/, {
           timeout: 60_000,
         });
+        page.off('request', recordCatalogOnboardingRequest);
+        expect(
+          catalogOnboardingRequests,
+          'catalog reload must not issue per-service onboarding GET requests',
+        ).toEqual([]);
         await expect(
           page.getByRole('heading', {
             name: /Service onboarding in progress|Servisni onboarding u toku/i,
@@ -228,7 +252,12 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         await expect(serviceRow).toBeVisible();
 
         await page.getByTestId(`service-actions-${serviceId}`).click();
-        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click({ force: true });
+        const manageLifecycle = page.getByRole('menuitem', {
+          name: /Manage lifecycle|Upravljaj životnim ciklusom/i,
+        });
+        await expect(manageLifecycle).toBeVisible();
+        await expect(manageLifecycle).toBeEnabled();
+        await manageLifecycle.click();
         const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
         await expect(lifecycleDialog).toBeVisible();
         const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });
