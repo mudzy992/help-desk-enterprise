@@ -10,6 +10,7 @@ import {
   move,
   pickAssetType,
   retireAssets,
+  setSetting,
   uniqueStamp,
   withSettings,
   type AssetOptions,
@@ -23,6 +24,23 @@ import { signIn } from "../helpers/sign-in";
  * only sees equipment in their unit scope, and only SUPER_ADMIN deletes.
  */
 test.describe("24 assets access", () => {
+  // The module-off test below mutates a GLOBAL setting. Its withSettings
+  // restore runs in a finally, but a Playwright test timeout aborts the test
+  // body before that restore PATCH lands — one slow run then leaves the whole
+  // stack with assets disabled and every later assets spec fails with
+  // ASSETS_DISABLED. This hook runs outside any single test's timeout and
+  // guarantees the ambient state (module on) is restored whatever happened.
+  test.afterAll(async () => {
+    const env = readE2EEnvironment();
+    const admin = new ApiClient();
+    try {
+      await admin.login(env.superAdminEmail, env.superAdminPassword);
+      await setSetting(admin, assetSettingKeys.cmdb, true, "E2E 24 safety restore");
+    } catch (error) {
+      console.warn(`[e2e] 24 safety restore of the cmdb setting failed: ${String(error)}`);
+    }
+  });
+
   test("capability network error is distinct and retryable", async ({
     page,
   }) => {
@@ -72,6 +90,10 @@ test.describe("24 assets access", () => {
   test("module off: API 404 ASSETS_DISABLED and the pages say so", async ({
     page,
   }) => {
+    // Toggling a global module off and back on involves several API calls and
+    // a full UI sign-in; on a slow staging stack the default 90 s is not
+    // enough, and aborting mid-restore poisons the stack (see afterAll).
+    test.setTimeout(300_000);
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
