@@ -4,6 +4,7 @@ import { requestedServiceLifecycles } from './service-visible-lifecycles';
 import { countOpenTicketsByService } from './count-open-tickets-by-service';
 import { loadActiveFormSummaries } from './load-active-form-summaries';
 import { loadServiceCategoryLabels } from './load-service-category-labels';
+import { loadServiceOnboardingSummaries } from './load-service-onboarding-summaries';
 import { loadServiceDowntimeWindowsForServices } from './load-service-downtime-windows';
 import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
 import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
@@ -34,12 +35,13 @@ export async function listServices(
     orderBy: [{ name: 'asc' }],
   });
   const serviceIds = records.map((record) => record.id);
-  const [windowsByServiceId, openTicketCounts, incidentImpacts, activeForms, categoryLabels] = await Promise.all([
+  const [windowsByServiceId, openTicketCounts, incidentImpacts, activeForms, categoryLabels, onboardingSummaries] = await Promise.all([
     loadServiceDowntimeWindowsForServices(prisma, serviceIds),
     countOpenTicketsByService(prisma, serviceIds),
     loadOpenIncidentImpacts(prisma, serviceIds),
     loadActiveFormSummaries(prisma, serviceIds),
     loadServiceCategoryLabels(prisma, records.map((record) => record.categoryId)),
+    loadServiceOnboardingSummaries(prisma, serviceIds),
   ]);
   const mapped = records.map((record): ServiceResponse => ({
     ...toServiceResponse(
@@ -52,6 +54,7 @@ export async function listServices(
       activeForms.get(record.id) ?? undefined,
     ),
     category: categoryLabels.get(record.categoryId) ?? null,
+    onboarding: onboardingSummaries.get(record.id) ?? null,
   }));
   if (input.offeredOnly !== true) {
     return mapped;

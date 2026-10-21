@@ -37,6 +37,12 @@ export type ServiceActiveFormSummary = {
   readonly fieldCount: number;
 };
 
+export type ServiceOnboardingSummary = {
+  readonly status: "IN_PROGRESS" | "READY_FOR_FINALIZATION" | "ABANDONED" | "COMPLETED";
+  readonly currentStep: "SERVICE" | "FORM" | "ROUTING" | "SLA" | "APPROVALS";
+  readonly completedSteps: readonly ("SERVICE" | "FORM" | "ROUTING" | "SLA" | "APPROVALS")[];
+};
+
 export type ServiceResponse = {
   readonly id: string;
   readonly name: string;
@@ -55,6 +61,7 @@ export type ServiceResponse = {
   readonly policyPackId: string | null;
   readonly openTicketCount: number;
   readonly activeForm: ServiceActiveFormSummary;
+  readonly onboarding?: ServiceOnboardingSummary | null;
   readonly incidentImpact?: "DEGRADED" | "DOWN" | "MAINTENANCE" | null;
   /** Paket 5.3.1: category label on list reads (requesters cannot read categories). */
   readonly category?: { readonly name: string; readonly sortOrder: number } | null;

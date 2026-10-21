@@ -1,22 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query/query-keys";
-import { loadVisibleOnboardings } from "@/lib/services/load-visible-onboardings";
+import { useMemo } from "react";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
-import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
+import type { ServiceOnboardingSummary } from "@/services/service-catalog-api";
 
-const emptyOnboardings: readonly ServiceOnboardingResponse[] = [];
+export type VisibleServiceOnboarding = ServiceOnboardingSummary & {
+  readonly serviceId: string;
+};
 
-export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
-  const draftIds = rows
-    .filter((row) => row.service.lifecycle === "DRAFT")
-    .map((row) => row.service.id)
-    .sort();
-  const draftKey = draftIds.join("\u0000");
-  const query = useQuery({
-    queryKey: queryKeys.serviceOnboardings(draftKey),
-    queryFn: () => loadVisibleOnboardings(draftIds),
-    enabled: draftIds.length > 0,
-    retry: false,
-  });
-  return draftIds.length === 0 ? emptyOnboardings : (query.data ?? emptyOnboardings);
+/**
+ * Derives visible onboarding progress from the batch catalog response. This
+ * avoids one expected 404 request for every draft service without onboarding.
+ */
+export function useVisibleOnboardings(
+  rows: readonly ServiceCatalogRow[],
+): readonly VisibleServiceOnboarding[] {
+  return useMemo(
+    () =>
+      rows.flatMap((row) => {
+        const onboarding = row.service.onboarding;
+        return row.service.lifecycle === "DRAFT" &&
+          onboarding !== null &&
+          onboarding !== undefined &&
+          onboarding.status !== "COMPLETED"
+          ? [{ ...onboarding, serviceId: row.service.id }]
+          : [];
+      }),
+    [rows],
+  );
 }

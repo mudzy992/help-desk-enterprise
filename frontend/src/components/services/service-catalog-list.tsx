@@ -14,14 +14,14 @@ import {
 } from "@/lib/services/service-catalog-url-state";
 import type { CatalogRoutingCoverageState } from "@/lib/services/use-catalog-routing-coverage";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
+import type { VisibleServiceOnboarding } from "@/lib/services/use-visible-onboardings";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
-import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
 
 interface ServiceCatalogListProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly categories: readonly ServiceCategoryResponse[];
-  readonly onboardings: readonly ServiceOnboardingResponse[];
+  readonly onboardings: readonly VisibleServiceOnboarding[];
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
   readonly routingCoverage: CatalogRoutingCoverageState;
   readonly canManageForms: boolean;
