@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "audit:contrast": "node scripts/contrast-audit.mjs",
-    "i18n:check": "node ../scripts/check-pulse-design-system.mjs"
+    "i18n:check": "node ../scripts/check-pulse-design-system.mjs",
+    "audit:production": "npm audit --omit=dev --audit-level=high --json"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.30.0",
@@ -32,7 +33,6 @@
     "@tanstack/react-virtual": "^3.14.13",
     "@zxcvbn-ts/core": "^4.2.0",
     "@zxcvbn-ts/language-common": "^4.1.3",
-    "axios": "^1.7.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "i18next": "^23.11.5",
@@ -44,7 +44,6 @@
     "react-router-dom": "^7.18.4",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -64,7 +63,8 @@
     "jsdom": "^25.0.1",
     "postcss": "^8.4.38",
     "prettier": "^3.9.10",
-    "tailwindcss": "^3.4.4",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.5.4",
     "typescript-eslint": "^8.71.2",
     "vite": "^5.4.2",

@@ -190,6 +190,17 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: Audit production dependencies (high/critical gate)
+        id: production-audit
+        run: npm run --silent audit:production > frontend-production-audit.json
+      - name: Upload production dependency audit
+        if: always() && steps.production-audit.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-production-audit
+          path: frontend/frontend-production-audit.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Check tracked files are client-neutral (Paket 4.1 §9, 4.1a §6)
         run: node ../scripts/check-client-neutral.mjs
       - name: Test the client-neutral guard itself (Paket 4.1a §6.4)
