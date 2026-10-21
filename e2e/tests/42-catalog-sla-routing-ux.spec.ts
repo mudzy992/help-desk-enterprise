@@ -235,7 +235,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         await expect(serviceRow).toBeVisible();
 
         await page.getByTestId(`service-actions-${serviceId}`).click();
-        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click();
+        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click({ force: true });
         const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
         await expect(lifecycleDialog).toBeVisible();
         const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });

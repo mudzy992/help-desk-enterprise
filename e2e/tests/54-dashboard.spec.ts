@@ -60,8 +60,8 @@ test.describe("54 dashboard contracts", () => {
 
   test("dashboard remains within the mobile viewport", async ({ page }) => {
     const env = readE2EEnvironment();
-    await page.setViewportSize({ width: 390, height: 844 });
     await signIn(page, env.agentEmail, env.agentPassword);
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
     await expect(page.locator("#main-content h1").first()).toBeVisible();

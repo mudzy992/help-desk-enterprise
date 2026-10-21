@@ -476,7 +476,7 @@ jobs:
             push)
               # TEMPORARY (Arena session arena/7a60171e): triage subset for the
               # push-trigger workaround. Remove before merging to master.
-              specs="24,42,45,54,55"
+              specs="24,42,54,55"
               retries="0"
               max_failures="0"
               echo "TEMP Arena triage run: specs=$specs, retries=$retries."
@@ -542,6 +542,12 @@ jobs:
             echo '--- global errors / stats (results.json) ---'
             jq -c '{errors: (.errors // []), stats: (.stats // {})}' results.json 2>/dev/null || echo 'no results.json'
             node scripts/summarize-playwright-json.mjs results.json || true
+            echo '--- error contexts (page snapshots of failed tests) ---'
+            for f in test-results/*/error-context.md; do
+              [ -e "$f" ] || continue
+              echo "== $f"
+              grep -E "searchbox|textbox|Pretraga|Search|Modul|pristup|access|heading|alert|tab |button|main" "$f" | head -25 || true
+            done
           } > /tmp/e2e-summary.txt 2>&1
           SUMMARY=$(head -c 60000 /tmp/e2e-summary.txt | jq -Rs .)
           node - <<'NODE' || true

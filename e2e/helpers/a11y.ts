@@ -79,7 +79,15 @@ export async function expectNoSeriousA11yViolations(
       const entry = { page: label, url: page.url(), rule: violation.id, impact: violation.impact ?? 'unknown', target, help: violation.help };
       report.push(entry);
       if (BLOCKING.has(violation.impact ?? '')) {
-        blocking.push(`${violation.impact} ${violation.id} @ ${target} — ${violation.help}`);
+        const detail = (node.failureSummary ?? '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .slice(0, 3)
+          .join(' | ');
+        blocking.push(
+          `${violation.impact} ${violation.id} @ ${target} — ${violation.help}${detail ? ` (${detail})` : ''}`,
+        );
       }
     }
   }
