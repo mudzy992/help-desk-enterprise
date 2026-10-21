@@ -477,6 +477,7 @@ jobs:
               # TEMPORARY (Arena session arena/7a60171e): triage subset for the
               # push-trigger workaround; restore the `*)` behaviour (full run)
               # before the final full CI. Remove before merging to master.
+              # (retrigger: master deployed with the a11y fix)
               specs="26"
               retries="0"
               max_failures="0"
