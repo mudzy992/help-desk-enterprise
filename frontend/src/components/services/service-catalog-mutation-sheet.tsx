@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ServiceCatalogMutationForm,
   type ServiceCatalogMutationValues,
 } from "@/components/services/service-catalog-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
+import { PartialResourceError } from "@/components/ui/partial-resource-error";
+import { usePartialResource } from "@/lib/async/use-partial-resource";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -43,10 +45,14 @@ export function ServiceCatalogMutationSheet({
   const operationGuard = useOperationGuard();
   const isCreate = service === null;
   const [categories, setCategories] = useState<readonly ServiceCategoryResponse[]>([]);
-  const [policyPacks, setPolicyPacks] = useState<readonly PersistedPolicyPackOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<ServiceCatalogErrorKey | null>(null);
+  const loadPolicyPacks = useCallback(() => listPersistedPolicyPacks(), []);
+  const policyPacksResource = usePartialResource<
+    readonly PersistedPolicyPackOption[],
+    ServiceCatalogErrorKey
+  >({ load: loadPolicyPacks, mapError: mapServiceCatalogError, enabled: open });
 
   useEffect(() => {
     if (!open) {
@@ -55,17 +61,13 @@ export function ServiceCatalogMutationSheet({
     let cancelled = false;
     setIsLoading(true);
     setErrorKey(null);
-    Promise.all([listServiceCategories(), listPersistedPolicyPacks().catch(() => [])])
-      .then(([loadedCategories, loadedPacks]) => {
-        if (!cancelled) {
-          setCategories(loadedCategories);
-          setPolicyPacks(loadedPacks);
-        }
+    void listServiceCategories()
+      .then((loadedCategories) => {
+        if (!cancelled) setCategories(loadedCategories);
       })
       .catch((error: unknown) => {
         if (!cancelled) {
           setCategories([]);
-          setPolicyPacks([]);
           setErrorKey(mapServiceCatalogError(error));
         }
       })
@@ -115,18 +117,28 @@ export function ServiceCatalogMutationSheet({
         ) : errorKey && categories.length === 0 ? (
           <p className={`mt-4 ${errorTextClassName}`}>{t(errorKey)}</p>
         ) : (
-          <ServiceCatalogMutationForm
-            key={service?.id ?? "create"}
-            service={service}
-            categories={categories}
-            policyPacks={policyPacks}
-            isSaving={isSaving}
-            errorKey={errorKey}
-            onCancel={() => onOpenChange(false)}
-            onSubmit={(values) => {
-              void save(values);
-            }}
-          />
+          <>
+            {policyPacksResource.errorKey ? (
+              <PartialResourceError
+                messageKey={policyPacksResource.errorKey}
+                requestId={policyPacksResource.requestId}
+                retry={policyPacksResource.retry}
+              />
+            ) : null}
+            <ServiceCatalogMutationForm
+              key={service?.id ?? "create"}
+              service={service}
+              categories={categories}
+              policyPacks={policyPacksResource.data ?? []}
+              policyPacksAvailable={policyPacksResource.data !== null}
+              isSaving={isSaving}
+              errorKey={errorKey}
+              onCancel={() => onOpenChange(false)}
+              onSubmit={(values) => {
+                void save(values);
+              }}
+            />
+          </>
         )}
       </SheetContent>
     </Sheet>

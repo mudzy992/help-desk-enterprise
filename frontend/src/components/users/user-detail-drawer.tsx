@@ -19,6 +19,7 @@ interface UserDetailDrawerProperties {
   readonly isSelf: boolean;
   readonly originUnits: readonly { id: string; label: string }[];
   readonly services: readonly ServiceResponse[];
+  readonly servicesAvailable: boolean;
   readonly onChanged: () => Promise<void>;
   readonly onPasswordIssued: (result: CreateUserResponse) => void;
   readonly onDeleted: () => void;
@@ -33,6 +34,7 @@ export function UserDetailDrawer({
   isSelf,
   originUnits,
   services,
+  servicesAvailable,
   onChanged,
   onPasswordIssued,
   onDeleted,
@@ -73,7 +75,12 @@ export function UserDetailDrawer({
               {t("users.rolesHeading")}
             </h3>
             <div className="rounded-lg border border-border/70">
-              <UserRolesSection userId={user.id} originUnits={originUnits} services={services} />
+              <UserRolesSection
+                userId={user.id}
+                originUnits={originUnits}
+                services={services}
+                servicesAvailable={servicesAvailable}
+              />
             </div>
           </section>
           {canManage && !isSelf ? (

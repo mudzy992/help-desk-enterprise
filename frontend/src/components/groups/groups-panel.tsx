@@ -16,7 +16,7 @@ import type { GroupListItemResponse } from "@/services/groups-api";
 
 interface GroupsPanelProperties {
   readonly groups: readonly GroupListItemResponse[];
-  readonly routingRuleCounts: ReadonlyMap<string, number>;
+  readonly routingRuleCounts: ReadonlyMap<string, number> | null;
   readonly originUnits: readonly OriginUnitOption[];
   readonly users: readonly DirectoryUser[];
   readonly canWrite: boolean;

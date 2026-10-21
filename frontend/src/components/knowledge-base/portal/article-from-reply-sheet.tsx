@@ -1,5 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { PartialResourceError } from "@/components/ui/partial-resource-error";
+import { usePartialResource } from "@/lib/async/use-partial-resource";
 import { useToast } from "@/components/ui/toast";
 import {
   buildKnowledgeCategoryTree,
@@ -51,11 +53,19 @@ export function ArticleFromReplySheet({
   const [body, setBody] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [reason, setReason] = useState("");
-  const [categories, setCategories] = useState<readonly KnowledgeCategory[]>([]);
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
+  const loadCategories = useCallback(() => listKnowledgeCategories(), []);
+  const categoriesResource = usePartialResource<
+    readonly KnowledgeCategory[],
+    KnowledgeArticleErrorKey
+  >({
+    load: loadCategories,
+    mapError: mapKnowledgeArticleError,
+    enabled: source !== null,
+    resetKey: source?.ticketId ?? null,
+  });
   useEffect(() => {
     if (source === null) return;
     let cancelled = false;
@@ -64,13 +74,12 @@ export function ArticleFromReplySheet({
     setRequestId(null);
     setCategoryId("");
     setReason(t("knowledgeBase.portal.fromReply.defaultReason"));
-    Promise.all([previewKnowledgeDraftFromReply(source), listKnowledgeCategories().catch(() => [])])
-      .then(([preview, loaded]) => {
+    void previewKnowledgeDraftFromReply(source)
+      .then((preview) => {
         if (cancelled) return;
         setDraft(preview);
         setTitle(preview.title);
         setBody(preview.body);
-        setCategories(loaded);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -84,14 +93,14 @@ export function ArticleFromReplySheet({
 
   const options = useMemo(
     () =>
-      buildKnowledgeCategoryTree(categories).flatMap((node) => [
+      buildKnowledgeCategoryTree(categoriesResource.data ?? []).flatMap((node) => [
         { id: node.id, label: knowledgeCategoryName(node, i18n.language) },
         ...node.children.map((child) => ({
           id: child.id,
           label: `${knowledgeCategoryName(node, i18n.language)} › ${knowledgeCategoryName(child, i18n.language)}`,
         })),
       ]),
-    [categories, i18n.language],
+    [categoriesResource.data, i18n.language],
   );
 
   const canSave =
@@ -216,11 +225,19 @@ export function ArticleFromReplySheet({
                 />
               )}
             </Field>
+            {categoriesResource.errorKey ? (
+              <PartialResourceError
+                messageKey={categoriesResource.errorKey}
+                requestId={categoriesResource.requestId}
+                retry={categoriesResource.retry}
+              />
+            ) : null}
             <Field label={t("knowledgeBase.portal.placement.category")}>
               {(control) => (
                 <Select
                   {...control}
                   value={categoryId}
+                  disabled={categoriesResource.data === null}
                   onChange={(event) => setCategoryId(event.target.value)}
                 >
                   <option value="">{t("knowledgeBase.portal.uncategorized")}</option>

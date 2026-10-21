@@ -49,6 +49,22 @@ export function GroupMembersSection({
     <div className="grid gap-2 border-t border-border/70 pt-3">
       <p className="text-[12px] font-semibold text-foreground">{t("groups.members.heading")}</p>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
+      {roleScopeSummaries.errorKey ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <ApiErrorText
+            messageKey={roleScopeSummaries.errorKey}
+            requestId={roleScopeSummaries.requestId}
+          />
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            onClick={() => void roleScopeSummaries.retry()}
+          >
+            {t("ui.retry")}
+          </Button>
+        </div>
+      ) : null}
       {group.members.length === 0 ? (
         <p className="text-[11px] text-muted-foreground">{t("groups.members.empty")}</p>
       ) : (
@@ -94,7 +110,7 @@ export function GroupMembersSection({
           >
             <option value="">{t("groups.members.addSelect")}</option>
             {availableUsers.map((user) => {
-              const roleScopeSummary = roleScopeSummaries.get(user.id);
+              const roleScopeSummary = roleScopeSummaries.data.get(user.id);
               const scopeLabel =
                 roleScopeSummary !== undefined && roleScopeSummary.length > 0
                   ? roleScopeSummary
@@ -109,7 +125,11 @@ export function GroupMembersSection({
           <Button
             type="button"
             size="xs"
-            disabled={selectedUserId.length === 0 || pendingUserId !== null}
+            disabled={
+              selectedUserId.length === 0 ||
+              pendingUserId !== null ||
+              (roleScopeSummaries.data.size === 0 && roleScopeSummaries.errorKey !== null)
+            }
             onClick={() => {
               setPendingUserId(selectedUserId);
               void mutate(() => addGroupMember(group.id, selectedUserId))

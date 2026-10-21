@@ -54,6 +54,7 @@ interface ServiceCatalogMutationFormProperties {
   readonly service: ServiceResponse | null;
   readonly categories: readonly ServiceCategoryResponse[];
   readonly policyPacks: readonly PersistedPolicyPackOption[];
+  readonly policyPacksAvailable: boolean;
   readonly isSaving: boolean;
   readonly errorKey: string | null;
   readonly onCancel: () => void;
@@ -64,6 +65,7 @@ export function ServiceCatalogMutationForm({
   service,
   categories,
   policyPacks,
+  policyPacksAvailable,
   isSaving,
   errorKey,
   onCancel,
@@ -232,6 +234,7 @@ export function ServiceCatalogMutationForm({
           <Select
             {...control}
             value={policyPackId ?? ""}
+            disabled={!policyPacksAvailable}
             onChange={(event) => setPolicyPackId(event.target.value || null)}
           >
             <option value="">—</option>

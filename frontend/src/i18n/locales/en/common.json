@@ -1291,7 +1291,8 @@
     "problemGroupBadge": "Problem group",
     "cabGroupBadge": "CAB",
     "deleteConfirmTitle": "Delete the group \"{{name}}\"?",
-    "deleteConfirmBody": "The group has {{count}} members. Deletion is audited and cannot be undone."
+    "deleteConfirmBody": "The group has {{count}} members. Deletion is audited and cannot be undone.",
+    "routingRuleCountUnavailable": "Routing rule count is unavailable."
   },
   "permissions": {
     "title": "Role permissions",

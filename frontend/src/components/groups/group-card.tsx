@@ -8,7 +8,7 @@ import type { GroupListItemResponse } from "@/services/groups-api";
 
 interface GroupCardProperties {
   readonly group: GroupListItemResponse;
-  readonly routingRuleCount: number;
+  readonly routingRuleCount: number | null;
   readonly isExpanded: boolean;
   readonly canWrite: boolean;
   readonly isPending: boolean;
@@ -73,7 +73,9 @@ export function GroupCard({
               : group.organizationalUnitPath}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {t("groups.routingRuleCount", { count: routingRuleCount })}
+            {routingRuleCount === null
+              ? t("groups.routingRuleCountUnavailable")
+              : t("groups.routingRuleCount", { count: routingRuleCount })}
           </p>
         </div>
         <div className="shrink-0 text-right">

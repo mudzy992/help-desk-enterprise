@@ -1300,7 +1300,8 @@
     "problemGroupBadge": "Problem-grupa",
     "cabGroupBadge": "CAB",
     "deleteConfirmTitle": "Obrisati grupu „{{name}}“?",
-    "deleteConfirmBody": "Grupa ima {{count}} članova. Brisanje se bilježi u audit i ne može se poništiti."
+    "deleteConfirmBody": "Grupa ima {{count}} članova. Brisanje se bilježi u audit i ne može se poništiti.",
+    "routingRuleCountUnavailable": "Broj pravila rutiranja nije dostupan."
   },
   "permissions": {
     "title": "Permisije uloga",

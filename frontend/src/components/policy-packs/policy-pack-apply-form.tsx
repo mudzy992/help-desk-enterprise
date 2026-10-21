@@ -26,12 +26,14 @@ interface PolicyPackApplyFormProperties {
   readonly packs: readonly PolicyPackSummary[];
   readonly unitOptions: readonly { id: string; label: string }[];
   readonly serviceOptions: readonly { id: string; label: string }[];
+  readonly serviceOptionsAvailable: boolean;
 }
 
 export function PolicyPackApplyForm({
   packs,
   unitOptions,
   serviceOptions,
+  serviceOptionsAvailable,
 }: PolicyPackApplyFormProperties) {
   const { t } = useTranslation();
   const [packKey, setPackKey] = useState(packs[0]?.key ?? "");
@@ -170,6 +172,7 @@ export function PolicyPackApplyForm({
             <select
               className={selectCompactClassName}
               value={serviceId}
+              disabled={!serviceOptionsAvailable}
               onChange={(event) => {
                 setServiceId(event.target.value);
                 setPlan(null);

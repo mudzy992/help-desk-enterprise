@@ -12,10 +12,12 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { controlCompactClassName } from "@/components/ui/control";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { PartialResourceError } from "@/components/ui/partial-resource-error";
+import { usePartialResource } from "@/lib/async/use-partial-resource";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { countRoutingRulesByGroup } from "@/lib/groups/count-routing-rules-by-group";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
-import { readApiRequestId } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
@@ -33,9 +35,14 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   const { hasPermission } = useSessionCapabilities();
   const canWrite = hasPermission(permissionKeys.groupManage);
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
-  const [routingRuleCounts, setRoutingRuleCounts] = useState<ReadonlyMap<string, number>>(
-    () => new Map(),
+  const loadRoutingRuleCounts = useCallback(
+    async () => countRoutingRulesByGroup(await listRoutingRules()),
+    [],
   );
+  const routingRuleCounts = usePartialResource<ReadonlyMap<string, number>, ApiErrorKey>({
+    load: loadRoutingRuleCounts,
+    mapError: mapApiError,
+  });
   const [filterUnitId, setFilterUnitId] = useState(() =>
     parseAdminGroupsOrganizationalUnitFilter(searchParams),
   );
@@ -51,15 +58,10 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
     setErrorKey(null);
     setRequestId(null);
     try {
-      const [loaded, rules] = await Promise.all([
-        listGroups(filterUnitId.length > 0 ? filterUnitId : undefined),
-        listRoutingRules().catch(() => []),
-      ]);
+      const loaded = await listGroups(filterUnitId.length > 0 ? filterUnitId : undefined);
       setGroups(loaded);
-      setRoutingRuleCounts(countRoutingRulesByGroup(rules));
     } catch (error) {
       setGroups([]);
-      setRoutingRuleCounts(new Map());
       setErrorKey(mapGroupsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
@@ -155,19 +157,28 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
           ) : errorKey ? (
             <ApiErrorText messageKey={errorKey} requestId={requestId} />
           ) : (
-            <GroupsPanel
-              groups={groups}
-              routingRuleCounts={routingRuleCounts}
-              originUnits={originUnits}
-              users={directory.users}
-              canWrite={canWrite}
-              showCreateForm={showCreateForm}
-              createPending={createPending}
-              onCreate={() => setShowCreateForm(true)}
-              onCancelCreate={() => setShowCreateForm(false)}
-              onSubmitCreate={handleCreate}
-              onChanged={reload}
-            />
+            <>
+              {routingRuleCounts.errorKey ? (
+                <PartialResourceError
+                  messageKey={routingRuleCounts.errorKey}
+                  requestId={routingRuleCounts.requestId}
+                  retry={routingRuleCounts.retry}
+                />
+              ) : null}
+              <GroupsPanel
+                groups={groups}
+                routingRuleCounts={routingRuleCounts.data}
+                originUnits={originUnits}
+                users={directory.users}
+                canWrite={canWrite}
+                showCreateForm={showCreateForm}
+                createPending={createPending}
+                onCreate={() => setShowCreateForm(true)}
+                onCancelCreate={() => setShowCreateForm(false)}
+                onSubmitCreate={handleCreate}
+                onChanged={reload}
+              />
+            </>
           )}
         </div>
       </Card>
