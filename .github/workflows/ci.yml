@@ -429,8 +429,15 @@ jobs:
             exit 1
           fi
           echo "Ensuring the actors in container: $container"
+          # TEMPORARY (Arena session): surface the CLI output as an annotation
+          # (job logs are not readable from the sandbox). Behaviour unchanged.
+          set +e
           printf '%s' "$actors" | ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" "$ssh_target" \
-            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin"
+            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin" > /tmp/ensure.out 2>&1
+          ensure_rc=$?
+          set -e
+          echo "::error title=ensure actors diag::$(tail -c 1400 /tmp/ensure.out | tr '\n' ' ' | sed 's/%/%25/g')"
+          if [ "$ensure_rc" -ne 0 ]; then exit "$ensure_rc"; fi
       - run: npx playwright install --with-deps chromium
       - name: Run E2E (smoke on a pull request, full on schedule / dispatch)
         env:
@@ -474,12 +481,12 @@ jobs:
               echo "Dispatch: specs='${specs:-all}', retries=$retries, max_failures=$max_failures."
               ;;
             push)
-              # TEMPORARY (Arena session arena/7a60171e): full run on push for
-              # the push-trigger workaround. Remove before merging to master.
-              specs=""
-              retries="${E2E_RETRIES:-1}"
+              # TEMPORARY (Arena session arena/7a60171e): triage subset for the
+              # push-trigger workaround. Remove before merging to master.
+              specs="14,15,37"
+              retries="0"
               max_failures="0"
-              echo "TEMP Arena full run: all files, retries=$retries."
+              echo "TEMP Arena triage run: specs=$specs, retries=$retries."
               ;;
             *)
               specs=""
