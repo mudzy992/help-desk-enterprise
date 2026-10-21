@@ -6,19 +6,26 @@ import { protectedRoutes } from "@/app/protected-route-catalog";
 import { RequireAuth } from "@/components/layout/require-auth";
 import { RouteErrorElement } from "@/components/layout/route-error-boundary";
 import { ApplicationShell } from "@/layouts/application-shell";
-import { DashboardPage } from "@/pages/dashboard-page";
-import { NotFoundPage } from "@/pages/not-found-page";
-import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
-import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
-import { AppearancePage } from "@/pages/appearance-page";
-import { LoginPage } from "@/pages/login-page";
-import { AuthCallbackPage } from "@/pages/auth-callback-page";
-import { ServicesPage } from "@/pages/services-page";
 import { LegacyAdminRedirect } from "@/pages/legacy-admin-redirect";
-import { TicketsPage } from "@/pages/tickets-page";
-import { TicketCreatePage } from "@/pages/ticket-create-page";
-import { TicketDetailPage } from "@/pages/ticket-detail-page";
-import { TicketListPage } from "@/pages/ticket-list-page";
+
+const DashboardPage = lazyPage(() => import("@/pages/dashboard-page"), "DashboardPage");
+const NotFoundPage = lazyPage(() => import("@/pages/not-found-page"), "NotFoundPage");
+const KnowledgeArticleDetailPage = lazyPage(
+  () => import("@/pages/knowledge-article-detail-page"),
+  "KnowledgeArticleDetailPage",
+);
+const KnowledgeBasePage = lazyPage(
+  () => import("@/pages/knowledge-base-page"),
+  "KnowledgeBasePage",
+);
+const AppearancePage = lazyPage(() => import("@/pages/appearance-page"), "AppearancePage");
+const LoginPage = lazyPage(() => import("@/pages/login-page"), "LoginPage");
+const AuthCallbackPage = lazyPage(() => import("@/pages/auth-callback-page"), "AuthCallbackPage");
+const ServicesPage = lazyPage(() => import("@/pages/services-page"), "ServicesPage");
+const TicketsPage = lazyPage(() => import("@/pages/tickets-page"), "TicketsPage");
+const TicketCreatePage = lazyPage(() => import("@/pages/ticket-create-page"), "TicketCreatePage");
+const TicketDetailPage = lazyPage(() => import("@/pages/ticket-detail-page"), "TicketDetailPage");
+const TicketListPage = lazyPage(() => import("@/pages/ticket-list-page"), "TicketListPage");
 
 const InstallPage = lazyPage(() => import("@/pages/install-page"), "InstallPage");
 const AccountSecurityPage = lazyPage(

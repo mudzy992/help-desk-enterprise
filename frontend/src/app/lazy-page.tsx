@@ -14,9 +14,9 @@ import { isChunkLoadError, reloadForChunkError } from "@/lib/app/chunk-reload";
 import { reportClientError } from "@/lib/app/client-logger";
 
 /**
- * Heavy, role-gated pages (admin, reports, routing,
- * SLA, config versions, install) are split into their own chunks. The loader
- * picks the named export so page modules stay unchanged.
+ * Route-level pages are split into their own chunks so public/requester cold
+ * paths do not download unrelated staff and admin modules. The loader picks
+ * the named export so page modules stay unchanged.
  *
  * A chunk that no longer exists (a redeploy while the tab was open) triggers
  * one automatic reload; if that does not help, the boundary shows a message

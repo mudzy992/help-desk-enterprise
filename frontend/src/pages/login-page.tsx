@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { safeReturnPath, startEntraSignIn } from "@/lib/auth/entra-redirect";
+import { scheduleIdlePrefetch } from "@/lib/app/idle-prefetch";
 import {
   readPendingLoginStep,
   reduceLoginFlow,
@@ -44,6 +45,8 @@ const POINTS = [
 
 export function LoginPage() {
   const { t } = useTranslation();
+
+  useEffect(() => scheduleIdlePrefetch(() => import("@/pages/dashboard-page")), []);
   const branding = useBranding();
   const navigate = useNavigate();
   const location = useLocation();

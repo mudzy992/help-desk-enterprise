@@ -37,6 +37,10 @@ export default defineConfig({
     },
   },
   build: {
+    manifest: true,
+    // Raw size is noisy for modern minified modules; the post-build guard enforces
+    // stricter 250 KiB gzip chunk and route-specific cold-path budgets.
+    chunkSizeWarningLimit: 700,
     // Hashed bundles live under /static/, not Vite's default /assets/: the SPA
     // owns the /assets route (CMDB module), and a build directory of the same
     // name made nginx answer a refresh of /assets with a directory redirect.

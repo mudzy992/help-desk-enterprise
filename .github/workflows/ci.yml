@@ -244,6 +244,10 @@ jobs:
         run: npm run format:check
       - run: npm test
       - run: npm run build
+      - name: Enforce frontend bundle and cold-route budgets
+        run: npm run bundle:check
+      - name: Test the bundle-budget guard itself
+        run: node --test ../scripts/check-frontend-bundle-budget.test.mjs
 
   # A documentation-only pull request never has to build the product, but it
   # still must not merge a broken mirror or a bad frontmatter — that is exactly
