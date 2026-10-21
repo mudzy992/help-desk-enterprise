@@ -486,7 +486,7 @@ jobs:
               specs=""
               retries="${E2E_RETRIES:-1}"
               max_failures="0"
-              echo "TEMP Arena full run: all files, retries=$retries."
+              echo "TEMP Arena full run (attempt 5): all files, retries=$retries."
               ;;
             *)
               specs=""
