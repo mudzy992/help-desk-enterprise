@@ -486,7 +486,7 @@ jobs:
               specs="14,15,37"
               retries="0"
               max_failures="0"
-              echo "TEMP Arena triage run: specs=$specs, retries=$retries."
+              echo "TEMP Arena triage run (retry after backend restart): specs=$specs, retries=$retries."
               ;;
             *)
               specs=""
