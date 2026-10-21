@@ -126,7 +126,8 @@ test.describe("45 announcements lifecycle (5.3.7)", () => {
         await mineTab.focus();
         await expect(mineTab).toBeFocused();
         await page.keyboard.press("Enter");
-        await expect(page).toHaveURL(/(?:\?|&)tab=mine(?:&|$)/);
+        // "mine" is the canonical default: the app strips the tab param.
+        await expect(page).toHaveURL(/\/announcements$/);
         await expect(page.getByText(title).first()).toBeVisible();
       });
 
@@ -134,7 +135,7 @@ test.describe("45 announcements lifecycle (5.3.7)", () => {
         await page.goBack();
         await expect(page).toHaveURL(/(?:\?|&)tab=manage(?:&|$)/);
         await page.goForward();
-        await expect(page).toHaveURL(/(?:\?|&)tab=mine(?:&|$)/);
+        await expect(page).toHaveURL(/\/announcements$/);
         for (const width of [320, 375, 768, 1280]) {
           await page.setViewportSize({ width, height: 900 });
           await expect(page.getByText(title).first()).toBeVisible();

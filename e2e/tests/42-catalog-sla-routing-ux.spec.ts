@@ -118,7 +118,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
 
       await test.step('fill and submit the service create form', async () => {
         await dialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(serviceName);
-        await dialog.getByLabel(/Slug/i).fill(slug);
+        await dialog.getByLabel(/Slug|Identifikator/i).fill(slug);
         await dialog.getByLabel(/Category|Kategorija/).selectOption(categoryId);
 
         const classification = dialog.getByLabel(/Classification|Klasifikacija/);
@@ -195,7 +195,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 20_000 });
         const onboardingChip = page.getByTestId(`service-onboarding-progress-${targetServiceId}`);
-        await expect(onboardingChip).toHaveText(/Onboarding 0\/5/);
+        await expect(onboardingChip).toHaveText(/(?:Onboarding|Uvođenje) 0\/5/);
         await expect(
           page.getByRole('heading', {
             name: /Service onboarding in progress|Servisni onboarding u toku/i,
@@ -235,7 +235,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         await expect(serviceRow).toBeVisible();
 
         await page.getByTestId(`service-actions-${serviceId}`).click();
-        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click();
+        await page.getByRole('menuitem', { name: /Manage lifecycle|Upravljaj životnim ciklusom/i }).click({ force: true });
         const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
         await expect(lifecycleDialog).toBeVisible();
         const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });

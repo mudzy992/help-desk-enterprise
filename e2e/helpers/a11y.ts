@@ -63,10 +63,22 @@ export async function expectNoSeriousA11yViolations(
   // Let running CSS transitions/animations settle first: a button that has just
   // become enabled fades from opacity 0.45 to 1 (transition-all 150 ms), and axe
   // measuring mid-fade reports a colour-contrast failure that no user sees.
+  // The check repeats in a loop: content that mounts after an async load starts
+  // a fresh fade-in, so a single pass can finish before the analysed elements
+  // even exist (measured on the staging stack as ~1.3:1 "contrast" on body text
+  // that is simply still fading in).
   await page.evaluate(async () => {
-    // Only finite ones: skeleton pulses and spinners never finish.
-    const finite = document.getAnimations().filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)));
-    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
+    await document.fonts.ready.catch(() => undefined);
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      // Only finite ones: skeleton pulses and spinners never finish.
+      const finite = document
+        .getAnimations()
+        .filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)));
+      const running = finite.filter((animation) => animation.playState === 'running');
+      if (running.length === 0) return;
+      await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
   });
   const results = await builder.analyze();
 
@@ -79,7 +91,15 @@ export async function expectNoSeriousA11yViolations(
       const entry = { page: label, url: page.url(), rule: violation.id, impact: violation.impact ?? 'unknown', target, help: violation.help };
       report.push(entry);
       if (BLOCKING.has(violation.impact ?? '')) {
-        blocking.push(`${violation.impact} ${violation.id} @ ${target} — ${violation.help}`);
+        const detail = (node.failureSummary ?? '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .slice(0, 3)
+          .join(' | ');
+        blocking.push(
+          `${violation.impact} ${violation.id} @ ${target} — ${violation.help}${detail ? ` (${detail})` : ''}`,
+        );
       }
     }
   }

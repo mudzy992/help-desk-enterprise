@@ -84,13 +84,13 @@ test.describe('11 e-mail templates', () => {
     await page.getByRole('link', { name: /postavke|settings/i }).click();
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('button').first().click();
+    await page.getByTestId('confirm-dialog-cancel').click();
     await expect(page).toHaveURL(/\/admin\/email-templates/);
     await expect(heading).toHaveValue('Unsaved browser draft');
 
     await page.getByRole('link', { name: /postavke|settings/i }).click();
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('button').last().click();
+    await page.getByTestId('confirm-dialog-confirm').click();
     await expect(page).toHaveURL(/\/admin\?tab=settings/);
   });
 
@@ -120,7 +120,7 @@ test.describe('11 e-mail templates', () => {
 
     // Unknown placeholder: live warning, no save offered.
     await heading.fill(`${marker} {{nope}}`);
-    await expect(page.getByRole('alert').first()).toContainText('{{nope}}');
+    await expect(page.getByText(/\{\{nope\}\}/)).toBeVisible();
     await heading.fill(marker);
 
     const reason = page.getByLabel(/razlog|reason/i).last();

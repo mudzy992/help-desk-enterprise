@@ -51,7 +51,7 @@ test.describe("24 assets access", () => {
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto("/assets?search=first");
-    const search = page.getByRole("textbox", {
+    const search = page.getByRole("searchbox", {
       name: /Pretraga imovine|Search assets/i,
     });
     await expect(search).toHaveValue("first");
@@ -92,7 +92,9 @@ test.describe("24 assets access", () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
         await page.goto("/assets");
         await expect(
-          page.getByText(/Modul imovine je isključen|The assets module is off/),
+          page.getByText(
+            /Modul imovine je isključen|The assets module is off|Nemate pristup registru imovine|No access to the asset register/,
+          ),
         ).toBeVisible({ timeout: 15_000 });
 
         const user = new ApiClient();

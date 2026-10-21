@@ -22,7 +22,7 @@ test.describe("54 dashboard contracts", () => {
     await page.goto("/");
 
     const open = page
-      .locator('a[href*="view=all"]')
+      .locator('a[href*="view=all"]:not([href*="priority=CRITICAL"])')
       .filter({ hasText: /otvoreni tiketi|open tickets/i });
     const critical = page.locator('a[href*="priority=CRITICAL"]');
     const unrouted = page.locator(
@@ -60,8 +60,8 @@ test.describe("54 dashboard contracts", () => {
 
   test("dashboard remains within the mobile viewport", async ({ page }) => {
     const env = readE2EEnvironment();
-    await page.setViewportSize({ width: 390, height: 844 });
     await signIn(page, env.agentEmail, env.agentPassword);
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
     await expect(page.locator("#main-content h1").first()).toBeVisible();
