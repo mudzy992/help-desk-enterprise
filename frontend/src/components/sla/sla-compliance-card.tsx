@@ -157,7 +157,12 @@ function ComplianceTable({
   return (
     <section aria-label={title}>
       <h3 className="mb-3 text-[12px] font-semibold text-foreground">{title}</h3>
-      <div className="max-h-72 overflow-auto rounded-md border border-border">
+      <div
+        className="max-h-72 overflow-auto rounded-md border border-border"
+        role="region"
+        aria-label={title}
+        tabIndex={0}
+      >
         <table className="w-full min-w-[440px] border-collapse text-[11px]">
           <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
             <tr>
