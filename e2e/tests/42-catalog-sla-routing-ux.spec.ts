@@ -195,7 +195,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
         await expect(serviceRow).toBeVisible({ timeout: 20_000 });
         const onboardingChip = page.getByTestId(`service-onboarding-progress-${targetServiceId}`);
-        await expect(onboardingChip).toHaveText(/Onboarding 0\/5/);
+        await expect(onboardingChip).toHaveText(/(?:Onboarding|Uvođenje) 0\/5/);
         await expect(
           page.getByRole('heading', {
             name: /Service onboarding in progress|Servisni onboarding u toku/i,
