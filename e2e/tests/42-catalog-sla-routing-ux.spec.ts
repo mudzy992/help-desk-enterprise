@@ -175,9 +175,13 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         }
         const targetServiceId = serviceId;
         const [onboardingResponse] = await Promise.all([
-          page.waitForResponse((response) =>
-            response.request().method() === 'GET' &&
-            response.url().includes(`/services/${targetServiceId}/onboarding`),
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === 'GET' &&
+              response.url().includes(`/services/${targetServiceId}/onboarding`),
+            // The staging API can take well over the 20 s default to answer a
+            // cold GET while the full suite hammers the stack.
+            { timeout: 60_000 },
           ),
           page.reload(),
         ]);
