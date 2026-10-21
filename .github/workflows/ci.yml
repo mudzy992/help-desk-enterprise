@@ -476,7 +476,7 @@ jobs:
             push)
               # TEMPORARY (Arena session arena/7a60171e): triage subset for the
               # push-trigger workaround. Remove before merging to master.
-              specs="22,24,55"
+              specs="24,55"
               retries="0"
               max_failures="0"
               echo "TEMP Arena triage run: specs=$specs, retries=$retries."
@@ -554,8 +554,8 @@ jobs:
           const fs = require('node:fs');
           const text = fs.readFileSync('/tmp/e2e-summary.txt', 'utf8');
           const esc = (s) => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
-          for (let i = 0; i < 10 && i * 900 < text.length; i += 1) {
-            const chunk = text.slice(i * 900, (i + 1) * 900);
+          for (let i = 0; i < 10 && i * 2500 < text.length; i += 1) {
+            const chunk = text.slice(i * 2500, (i + 1) * 2500);
             console.log(`::error title=E2E diag ${String(i + 1).padStart(2, '0')}::${esc(chunk)}`);
           }
           NODE

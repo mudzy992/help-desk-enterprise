@@ -80,6 +80,14 @@ export async function expectNoSeriousA11yViolations(
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
   });
+  // Neutralise entrance animations for the scan itself: async content that
+  // mounts while axe is analysing would otherwise be measured mid-fade (a
+  // 0.18 s fade-in reads as ~1.3–2.6:1 "contrast" on settled body text). The
+  // gate measures the state users actually read, not a transition frame.
+  await page.addStyleTag({
+    content:
+      '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }',
+  });
   const results = await builder.analyze();
 
   const blocking: string[] = [];
