@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 import { SessionCheckError } from "@/components/auth/session-check-error";
@@ -33,6 +33,31 @@ export function ApplicationShell() {
   const { maintenance } = usePublicMaintenance();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const commandPaletteReturnFocus = useRef<HTMLElement | null>(null);
+
+  const openCommandPalette = useCallback(() => {
+    commandPaletteReturnFocus.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const changeCommandPaletteOpen = useCallback((open: boolean) => {
+    setIsCommandPaletteOpen(open);
+    if (!open) {
+      const returnTarget = commandPaletteReturnFocus.current;
+      window.requestAnimationFrame(() => {
+        if (returnTarget?.isConnected) returnTarget.focus();
+      });
+    }
+  }, []);
+
+  const toggleCommandPalette = useCallback(() => {
+    if (isCommandPaletteOpen) {
+      changeCommandPaletteOpen(false);
+    } else {
+      openCommandPalette();
+    }
+  }, [changeCommandPaletteOpen, isCommandPaletteOpen, openCommandPalette]);
 
   // location.key changes on every navigation, including same-path links and
   // back/forward, so the mobile menu closes whichever way the user moved.
@@ -52,10 +77,7 @@ export function ApplicationShell() {
 
   return (
     <ShortcutsProvider defaultEnabled={isStaff}>
-      <GlobalShortcuts
-        onTogglePalette={() => setIsCommandPaletteOpen((current) => !current)}
-        onOpenPalette={() => setIsCommandPaletteOpen(true)}
-      />
+      <GlobalShortcuts onTogglePalette={toggleCommandPalette} onOpenPalette={openCommandPalette} />
       <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
         <SkipToContentLink targetId={mainContentId} />
         <AnnouncerRegions />
@@ -68,7 +90,7 @@ export function ApplicationShell() {
         <div className="flex min-w-0 flex-1 flex-col print:block">
           <AppHeader
             onOpenNavigation={() => setIsMobileNavigationOpen(true)}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onOpenCommandPalette={openCommandPalette}
           />
           <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
             <SheetContent side="left" className="flex w-[min(86vw,280px)] flex-col p-0">
@@ -79,7 +101,7 @@ export function ApplicationShell() {
               <AppSidebar />
             </SheetContent>
           </Sheet>
-          <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+          <CommandPalette open={isCommandPaletteOpen} onOpenChange={changeCommandPaletteOpen} />
           {/* a11y-focus: main only receives programmatic focus (skip link); a ring around the whole page would be noise. */}
           <main
             id={mainContentId}

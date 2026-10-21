@@ -193,11 +193,16 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const [servicesResponse] = await Promise.all([
           page.waitForResponse((response) => {
             const url = new URL(response.url());
-            return response.request().method() === 'GET' && url.pathname === '/services';
+            return (
+              response.request().method() === 'GET' &&
+              response.request().resourceType() !== 'document' &&
+              url.pathname === '/services'
+            );
           }),
           page.reload(),
         ]);
         expect(servicesResponse.ok()).toBe(true);
+        expect(await servicesResponse.headerValue('content-type')).toContain('application/json');
         const browserCatalog = (await servicesResponse.json()) as readonly ServiceRecord[];
         const browserService = browserCatalog.find((service) => service.id === targetServiceId);
         expect(browserService?.onboarding?.status).toBe('IN_PROGRESS');
