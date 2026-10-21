@@ -25,9 +25,11 @@ test.describe("54 dashboard contracts", () => {
       .locator('a[href*="view=all"]:not([href*="priority=CRITICAL"])')
       .filter({ hasText: /otvoreni tiketi|open tickets/i });
     const critical = page.locator('a[href*="priority=CRITICAL"]');
-    const unrouted = page.locator(
-      'a[href="/tickets?view=inbox&inboxTab=unrouted"]',
-    );
+    // The inbox snapshot shows a banner with the same href whenever unrouted
+    // tickets exist; the metric card is the one carrying the coverage hint.
+    const unrouted = page
+      .locator('a[href="/tickets?view=inbox&inboxTab=unrouted"]')
+      .filter({ hasText: /rupa u pokriću|coverage gap/i });
     await expect(open).toBeVisible();
     await expect(critical).toBeVisible();
     await expect(unrouted).toBeVisible();
