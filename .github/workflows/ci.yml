@@ -17,10 +17,7 @@ name: CI
 #     walk (`install_spec` in the dispatch inputs).
 on:
   push:
-    # TEMPORARY (Arena session arena/7a60171e): the session token has no
-    # actions:write, so it cannot dispatch. A push to this branch is the
-    # trigger instead. Remove the arena branch before merging to master.
-    branches: [main, master, arena/7a60171e-help-desk-enterprise]
+    branches: [main, master]
     # A commit that only touches documentation cannot change product behaviour.
     # Note: this filter is deliberately NOT on `pull_request` (see above).
     paths-ignore:
@@ -273,7 +270,6 @@ jobs:
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') ||
         (github.event_name == 'workflow_dispatch' && inputs.install_spec == '')
       ) &&
       (
@@ -380,9 +376,7 @@ jobs:
       # which is not `E2E_SUPERADMIN_EMAIL`. Needs the E2E_SSH_* secrets (the
       # command runs inside the backend container) and the actor secrets.
       - name: Ensure the E2E actors exist on the stack (opt-in)
-        # TEMPORARY (Arena session arena/7a60171e): also run on this branch —
-        # the session token cannot set the E2E_ENSURE_ACTORS variable (403).
-        if: ${{ (vars.E2E_ENSURE_ACTORS == 'true' || github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
+        if: ${{ vars.E2E_ENSURE_ACTORS == 'true' && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
         env:
           E2E_SUPERADMIN_EMAIL: ${{ secrets.E2E_SUPERADMIN_EMAIL }}
           E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
@@ -429,15 +423,8 @@ jobs:
             exit 1
           fi
           echo "Ensuring the actors in container: $container"
-          # TEMPORARY (Arena session): surface the CLI output as an annotation
-          # (job logs are not readable from the sandbox). Behaviour unchanged.
-          set +e
           printf '%s' "$actors" | ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" "$ssh_target" \
-            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin" > /tmp/ensure.out 2>&1
-          ensure_rc=$?
-          set -e
-          echo "::error title=ensure actors diag::$(tail -c 1400 /tmp/ensure.out | tr '\n' ' ' | sed 's/%/%25/g')"
-          if [ "$ensure_rc" -ne 0 ]; then exit "$ensure_rc"; fi
+            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin"
       - run: npx playwright install --with-deps chromium
       - name: Run E2E (smoke on a pull request, full on schedule / dispatch)
         env:
@@ -479,14 +466,6 @@ jobs:
               retries="${E2E_RETRIES:-1}"
               max_failures="${{ inputs.max_failures || '0' }}"
               echo "Dispatch: specs='${specs:-all}', retries=$retries, max_failures=$max_failures."
-              ;;
-            push)
-              # TEMPORARY (Arena session arena/7a60171e): full run on push for
-              # the push-trigger workaround. Remove before merging to master.
-              specs="54"
-              retries="0"
-              max_failures="0"
-              echo "TEMP Arena triage run: specs=$specs, retries=$retries."
               ;;
             *)
               specs=""
@@ -535,45 +514,6 @@ jobs:
       - name: Summarize failures (JSON report)
         if: ${{ always() }}
         run: node scripts/summarize-playwright-json.mjs results.json
-      # TEMPORARY (Arena session arena/7a60171e): the session cannot read job
-      # logs or artifacts (blob storage is unreachable), so mirror the failure
-      # summary into a check-run readable via the REST API — same trick as
-      # e2e-triage-mirror.yml. Remove before merging to master.
-      - name: TEMP publish E2E failure summary as check-run
-        if: ${{ always() }}
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo '--- global errors / stats (results.json) ---'
-            jq -c '{errors: (.errors // []), stats: (.stats // {})}' results.json 2>/dev/null || echo 'no results.json'
-            node scripts/summarize-playwright-json.mjs results.json || true
-            echo '--- error contexts (page snapshots of failed tests) ---'
-            for f in test-results/*/error-context.md; do
-              [ -e "$f" ] || continue
-              echo "== $f"
-              sed -n '1,110p' "$f"
-            done
-          } > /tmp/e2e-summary.txt 2>&1
-          SUMMARY=$(head -c 60000 /tmp/e2e-summary.txt | jq -Rs .)
-          node - <<'NODE' || true
-          const fs = require('node:fs');
-          const text = fs.readFileSync('/tmp/e2e-summary.txt', 'utf8');
-          const esc = (s) => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
-          for (let i = 0; i < 10 && i * 2500 < text.length; i += 1) {
-            const chunk = text.slice(i * 2500, (i + 1) * 2500);
-            console.log(`::error title=E2E diag ${String(i + 1).padStart(2, '0')}::${esc(chunk)}`);
-          }
-          NODE
-          gh api "repos/${{ github.repository }}/check-runs" --method POST \
-            -f name="E2E failure summary TEMP (run ${{ github.run_id }})" \
-            -f head_sha="${{ github.sha }}" \
-            -F status=completed \
-            -f conclusion=neutral \
-            -f "output[title]=E2E failure summary (run ${{ github.run_id }})" \
-            -f "output[summary]=$SUMMARY" \
-            --jq '.id'
       - name: Upload the Playwright report and traces
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

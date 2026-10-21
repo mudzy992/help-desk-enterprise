@@ -12,10 +12,6 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
-  # TEMPORARY (Arena session arena/7a60171e): push trigger workaround — the
-  # session token cannot dispatch workflows (403). Remove before merging.
-  push:
-    branches: [arena/7a60171e-help-desk-enterprise]
 
 concurrency:
   group: perf-smoke-${{ github.ref }}

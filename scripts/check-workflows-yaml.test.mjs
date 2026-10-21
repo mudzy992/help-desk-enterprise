@@ -96,9 +96,6 @@ test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch",
     "!cancelled() && " +
       "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
-      // TEMPORARY (Arena session arena/7a60171e): push trigger workaround in
-      // ci.yml because the session token has no actions:write. Revert together.
-      "(github.event_name == 'push' && github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') || " +
       "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
       "( inputs.skip_gates == true || " +
       "(needs.backend.result == 'success' && needs.frontend.result == 'success') )",
