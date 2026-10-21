@@ -22,10 +22,14 @@ const response = (id: string) => ({
 });
 
 describe("useTeamsSimulator", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
   });
 

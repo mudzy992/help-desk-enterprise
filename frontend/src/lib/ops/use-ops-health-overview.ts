@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { getOpsOverview, type OpsOverview } from "@/services/ops-health-api";
 
@@ -20,7 +21,7 @@ export function useOpsHealthOverview() {
   const mounted = useRef(true);
 
   const load = useCallback(async () => {
-    if (inFlight.current) return;
+    if (inFlight.current) return false;
     inFlight.current = true;
     if (mounted.current) setRefreshing(true);
     try {
@@ -29,26 +30,31 @@ export function useOpsHealthOverview() {
       setOverview(next);
       setLoadError(null);
       setNowMs(Date.now());
+      return true;
     } catch (caught) {
       if (!mounted.current) return;
       setLoadError({ key: mapApiError(caught), requestId: readApiRequestId(caught) });
+      return false;
     } finally {
       inFlight.current = false;
       if (mounted.current) setRefreshing(false);
     }
   }, []);
 
+  useVisibilityAwarePolling({
+    poll: async () => {
+      if (!(await load())) throw new Error("Ops health polling failed");
+    },
+    intervalMs: refreshEveryMs,
+    telemetryKey: "ops.health_poll_failed",
+  });
+
   useEffect(() => {
     mounted.current = true;
-    void load();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, refreshEveryMs);
     return () => {
       mounted.current = false;
-      window.clearInterval(timer);
     };
-  }, [load]);
+  }, []);
 
   return { overview, loadError, refreshing, nowMs, load };
 }

@@ -50,6 +50,7 @@ function renderIndicator() {
 
 describe("OnCallHeaderIndicator lifecycle", () => {
   beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.getOnCallMe.mockReset();
     mocks.capabilities.session = { isSuperAdmin: false };
     mocks.capabilities.hasPermission.mockReturnValue(true);
@@ -58,6 +59,7 @@ describe("OnCallHeaderIndicator lifecycle", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("does not request or render data without on-call permission", () => {

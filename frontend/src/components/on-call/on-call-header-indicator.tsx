@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { CalendarClock } from "lucide-react";
@@ -18,27 +19,22 @@ export function OnCallHeaderIndicator() {
     session !== null && (session.isSuperAdmin || hasPermission(permissionKeys.onCallRead));
   const [me, setMe] = useState<OnCallMe | null>(null);
 
+  const mounted = useRef(true);
+  const poll = useCallback(async () => {
+    const loaded = await getOnCallMe();
+    if (mounted.current) setMe(loaded);
+  }, []);
+  useVisibilityAwarePolling({
+    poll,
+    intervalMs: refreshEveryMs,
+    enabled: allowed,
+    telemetryKey: "on_call.header_poll_failed",
+  });
   useEffect(() => {
-    if (!allowed) {
-      setMe(null);
-      return;
-    }
-    let active = true;
-    const load = () => {
-      if (document.visibilityState !== "visible") return;
-      getOnCallMe()
-        .then((loaded) => {
-          if (active) setMe(loaded);
-        })
-        // A transient refresh failure must not erase a still-useful active shift.
-        // Initial failures remain silent because `me` starts as null.
-        .catch(() => undefined);
-    };
-    load();
-    const timer = window.setInterval(load, refreshEveryMs);
+    mounted.current = true;
+    if (!allowed) setMe(null);
     return () => {
-      active = false;
-      window.clearInterval(timer);
+      mounted.current = false;
     };
   }, [allowed]);
 

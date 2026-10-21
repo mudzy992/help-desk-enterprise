@@ -1,5 +1,6 @@
 import { ShieldAlert, UserX } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -96,8 +97,10 @@ export function PrivacyAnonymizationPanel({
       setCandidates(loadedCandidates);
       setErasures(loadedErasures);
       setLoadError(null);
+      return true;
     } catch (caught) {
       setLoadError({ key: mapApiError(caught), requestId: readApiRequestId(caught) });
+      return false;
     }
   }, []);
 
@@ -115,11 +118,14 @@ export function PrivacyAnonymizationPanel({
   const active =
     erasures?.some((erasure) => erasure.status === "QUEUED" || erasure.status === "RUNNING") ??
     false;
-  useEffect(() => {
-    if (!active) return;
-    const timer = window.setInterval(() => void reload(), 5000);
-    return () => window.clearInterval(timer);
-  }, [active, reload]);
+  useVisibilityAwarePolling({
+    poll: async () => {
+      if (!(await reload())) throw new Error("Privacy anonymization polling failed");
+    },
+    intervalMs: 5_000,
+    enabled: active,
+    telemetryKey: "privacy.anonymization_poll_failed",
+  });
 
   const nameOf = useMemo(() => {
     const byId = new Map((users ?? []).map((user) => [user.id, user.displayName]));

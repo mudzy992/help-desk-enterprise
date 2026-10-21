@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { mapTeamsError, type TeamsErrorKey } from "@/lib/teams/map-teams-error";
 import {
   listTeamsSimulatorMessages,
@@ -19,38 +20,35 @@ export function useTeamsSimulator(
 } {
   const [messages, setMessages] = useState<readonly TeamsSimulatorMessage[]>([]);
   const [refreshErrorKey, setRefreshErrorKey] = useState<TeamsErrorKey | null>(null);
-  const refreshInFlight = useRef(false);
+  const mounted = useRef(true);
 
-  const refresh = useCallback(async () => {
-    if (!active || !userId || document.visibilityState === "hidden" || refreshInFlight.current)
-      return;
-    refreshInFlight.current = true;
-    try {
-      const result = await listTeamsSimulatorMessages(userId, scope);
-      setMessages(result.items);
-      setRefreshErrorKey(null);
-    } catch (error) {
-      setRefreshErrorKey(mapTeamsError(error));
-    } finally {
-      refreshInFlight.current = false;
-    }
-  }, [active, scope, userId]);
+  const poll = useCallback(async () => {
+    const result = await listTeamsSimulatorMessages(userId, scope);
+    if (!mounted.current) return;
+    setMessages(result.items);
+    setRefreshErrorKey(null);
+  }, [scope, userId]);
+
+  const { refreshNow } = useVisibilityAwarePolling({
+    poll,
+    intervalMs: simulatorPollMs,
+    enabled: active && userId.length > 0,
+    telemetryKey: "teams.simulator_poll_failed",
+    immediate: false,
+    onError: (error) => {
+      if (mounted.current) setRefreshErrorKey(mapTeamsError(error));
+    },
+  });
 
   useEffect(() => {
+    mounted.current = true;
     setMessages([]);
     setRefreshErrorKey(null);
-    if (!active || !userId) return undefined;
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), simulatorPollMs);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") void refresh();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    if (active && userId.length > 0) void refreshNow();
     return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      mounted.current = false;
     };
-  }, [active, refresh, userId]);
+  }, [active, refreshNow, scope, userId]);
 
-  return { messages, refreshErrorKey, refresh };
+  return { messages, refreshErrorKey, refresh: refreshNow };
 }

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
+import { reportClientError } from "@/lib/app/client-logger";
 import type { Socket } from "socket.io-client";
 import { useSession } from "@/lib/session/use-session";
 import {
@@ -69,29 +71,26 @@ export function useInboxNotifications() {
       setUnreadCount(0);
       return;
     }
-    try {
-      const response = await getNotificationUnreadCount();
-      setUnreadCount(response.unreadCount);
-    } catch {
-      setUnreadCount(0);
-    }
+    const response = await getNotificationUnreadCount();
+    setUnreadCount(response.unreadCount);
   }, [session]);
 
+  const previousSocketHealth = useRef(socketHealth);
+  useVisibilityAwarePolling({
+    poll: refreshUnread,
+    intervalMs: unreadCountFallbackIntervalMs,
+    enabled: session !== null && shouldPollUnreadCount(socketHealth),
+    telemetryKey: "notifications.unread_poll_failed",
+  });
+
   useEffect(() => {
-    if (session === null) {
-      return;
-    }
-    // Runs on every health change: a reconnect refreshes at once (the socket
-    // may have missed events while it was away) and disarms the timer, while a
-    // disconnect arms it.
-    void refreshUnread();
-    if (!shouldPollUnreadCount(socketHealth)) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      void refreshUnread();
-    }, unreadCountFallbackIntervalMs);
-    return () => window.clearInterval(timer);
+    const reconnected =
+      previousSocketHealth.current !== "connected" && socketHealth === "connected";
+    previousSocketHealth.current = socketHealth;
+    if (!reconnected || session === null) return;
+    void refreshUnread().catch((error) =>
+      reportClientError("notifications.unread_reconnect_failed", error, readApiRequestId(error)),
+    );
   }, [refreshUnread, session, socketHealth]);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import type { TranslationKey } from "@/i18n/translation-key";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
@@ -51,16 +52,19 @@ export function useStatusOverviewData() {
     }
   }, []);
 
+  useVisibilityAwarePolling({
+    poll: async () => {
+      if ((await reload()) === "error") throw new Error("Status overview polling failed");
+    },
+    intervalMs: refreshEveryMs,
+    telemetryKey: "status.overview_poll_failed",
+    immediate: false,
+  });
+
   useEffect(() => {
     void reload();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void reload();
-    }, refreshEveryMs);
     const currentGuard = guard.current;
-    return () => {
-      window.clearInterval(timer);
-      currentGuard.cancel();
-    };
+    return () => currentGuard.cancel();
   }, [reload]);
 
   return {
