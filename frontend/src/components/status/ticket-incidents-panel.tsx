@@ -37,7 +37,7 @@ interface TicketIncidentsPanelProperties {
 }
 
 /**
- * Paket 2.7 (§8.3). Staff: the incidents this ticket is linked to, link /
+ * Staff view: the incidents this ticket is linked to, link /
  * unlink, and "New incident" from this ticket (manage permission).
  * Requester: a "known problem" banner for public incidents only.
  */

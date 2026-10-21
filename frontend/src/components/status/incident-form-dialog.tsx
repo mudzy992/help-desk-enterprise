@@ -47,7 +47,7 @@ const titleMax = 200;
 const messageMax = 4000;
 
 /**
- * Paket 2.7 (§8.3): one dialog for "New incident" on /status, "Create
+ * Shared dialog for "New incident" on /status, "Create
  * incident from selected" in the ticket list and editing an open incident.
  */
 export function IncidentFormDialog({
