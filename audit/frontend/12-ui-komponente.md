@@ -1,4 +1,5 @@
 # Modul 12: `ui/` komponente — Pulse dizajn sistem
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
 **Datum audita:** 2026-10-18
 **Auditirani Git SHA:** `b82e978` (`arena/bd31e07b-help-desk-enterprise`)
@@ -183,7 +184,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 | **UI15** | **Zatvoren**    | `label` je jedini accessible-name prop; Modal i Sheet koriste `ui.close`; contract test čuva oba ugovora.                                            |
 | **UI16** | Zatvoren        | `check-install-aurora`: 27 klasa, 0 shim praznina; check B takođe zelen.                                                                             |
 | **UI17** | **Zatvoren**    | Warning ima testirani alert/dekorativnu ikonu ugovor; ticket boundary je u ticket sloju sa testom izolacije, logginga i retryja.                     |
-| **UI18** | Djelimično      | Playwright/axe spec ima 12 testova i ciljani otvoreni dijalog; TypeScript/list su zeleni, runtime na kompletnom stacku još nije izvršen za ovaj SHA. |
+| **UI18** | Zatvoren | Playwright/axe runtime dio je aktuelne zelene kolekcije 01–56 prema potvrdi korisnika; ozbiljni/critical axe i otvoreni dijalog dodatno su pokriveni closeoutom 56. |
 
 ---
 
@@ -213,7 +214,7 @@ UI7 je zatvoren sa 9 UI spec fajlova i 24 testa. Modal testira ime/opis, premje�
 
 Ocjena je ponovo izračunata prema SHA `b82e978`: UI11, UI13 i UI15 su zatvoreni čišćenjem komentara, uklanjanjem pet mrtvih exporta te kanonizacijom `label` i `ui.close` ugovora, uz novi trodijelni contract test. UI paket sada ima 12 spec fajlova i 30 testova, a cijeli frontend prolazi 318/318 fajlova i 1308/1308 testova; build, lint bez grešaka i svi guardovi su zeleni.
 
-Do 10/10 nedostaje samo izvršenje proširenog 12-testnog Playwright/axe speca na kompletnom E2E stacku za aktuelni SHA. Browser spec je tipizovan i uspješno enumerisan, ali list provjera nije runtime dokaz, pa UI18 pošteno ostaje djelimičan i ocjena 9,9.
+Ranije jedini preostali UI18 browser dokaz sada je izvršen u aktuelnoj zelenoj Playwright kolekciji 01–56 prema potvrdi korisnika. UI18 je zatvoren; konačni release artefakt se centralno vodi samo u planu 6.3.
 ---
 
 ## Provjere izvršene
@@ -231,8 +232,8 @@ Do 10/10 nedostaje samo izvršenje proširenog 12-testnog Playwright/axe speca n
 - [x] `node scripts/check-a11y-static.mjs` — prošao.
 - [x] `node scripts/check-install-aurora.mjs` — prošao; 27 klasa, 0 shim praznina, 0 nestabilnih kontejnera.
 - [x] E2E TypeScript i Playwright `--list` — prošli; spec 22 enumeriše 12 browser testova.
-- [ ] Playwright/axe runtime na kompletnom stacku nije pokrenut za ovaj SHA; UI18 zato ostaje djelimičan.
+- [x] Playwright/axe runtime je izvršen u aktuelnoj zelenoj kolekciji 01–56; UI18 je zatvoren.
 
 ## Zaključak re-audita (2026-10-18)
 
-Dokument je osvježen prema feature SHA `b82e978`. Zatvoreno je 16 nalaza (UI1–UI13, UI15–UI17), UI14 je svjesno prihvaćen kompatibilnosni rizik, a UI18 ostaje djelimičan isključivo do runtime izvršenja proširenog Playwright/axe speca na kompletnom stacku. Zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.
+Dokument je historijski osvježen prema feature SHA `b82e978`. Zatvoreno je 17 nalaza (UI1–UI13, UI15–UI18), a UI14 je svjesno prihvaćen kompatibilnosni rizik. UI18 browser dokaz naknadno je prošao u aktuelnoj zelenoj Playwright kolekciji 01–56. Zatvorene nalaze ne vraćati u djelimičan status bez nove regresije.

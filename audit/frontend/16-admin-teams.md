@@ -1,4 +1,5 @@
 # Modul 16 — `/admin/teams` (Microsoft Teams administracija)
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
 **Datum v2 re-audita:** 2026-10-19
 **Auditirani Git SHA:** `bb5e9c5430e319cdd6bc2a6e94fa83012eb57b12`
@@ -209,7 +210,7 @@ Implementacija nakon ovog audita zatvara ili bitno smanjuje sve nalaze:
 | TM1   | **Zatvoren:** polling je u `useTeamsSimulator`; poštuje aktivni/vidljivi tab, sprečava paralelne zahtjeve, resetuje kontekst i briše oporavljenu grešku. Hook testovi pokrivaju ključne tokove.  |
 | TM2   | **Zatvoren:** page je smanjen sa 693 na 65 linija; status, channels i simulator su zasebne komponente, a polling je zaseban hook.                                                                |
 | TM3   | **Zatvoren:** prikazi koriste `ApiErrorText`; `describeTeamsError` čuva lokalizovani ključ i `readApiRequestId` rezultat.                                                                        |
-| TM4   | **Zatvoren u kodu:** sređene su readiness ikone, action zaglavlje i live regija; channels axe korak dodat je u E2E 33. Taj E2E je izmijenjen, ali nije pokrenut u ovoj implementacijskoj sesiji. |
+| TM4   | **Zatvoren:** sređene su readiness ikone, action zaglavlje i live regija; channels axe korak je u E2E 33, koji je dio aktuelne zelene Playwright kolekcije 01–56 prema potvrdi korisnika. |
 | TM5   | **Zatvoren:** oba OpenUrl puta koriste testirani HTTP(S)-only helper; unsafe vrijednosti nisu linkovi.                                                                                           |
 | TM6   | **Zatvoren:** event mapa je iscrpno tipizovana sa `TeamsChannelEvent`, bez `in` i non-null assertion escapeova.                                                                                  |
 | TM7   | **Zatvoren u kodu:** ConfirmDialog callback eksplicitno provjerava zatvaranje; poseban komponent test nije dodat.                                                                                |
@@ -225,7 +226,7 @@ Verifikacija implementacije:
 - ciljani ESLint Teams fajlova — prolazi;
 - `npm run i18n:check` — prolazi, bs/en parity potvrđen;
 - puni frontend Vitest — **333/333 fajlova i 1338/1338 testova prolazi**;
-- E2E 33 — **nije pokrenut**, samo je proširen channels axe korakom.
+- E2E 33 — **pokrenut i zelen** kao dio aktuelne Playwright kolekcije 01–56 prema potvrdi korisnika; uključuje prošireni channels axe korak.
 
 Preostalo do punog 10/10: izvršenje E2E 33 na konfigurisanom staging okruženju.
 

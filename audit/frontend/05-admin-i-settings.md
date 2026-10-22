@@ -1,4 +1,5 @@
 # Modul 05 — Admin i Settings: aktuelni frontend reaudit
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
 **Datum reaudita:** 19. 10. 2026.
 **Status:** otvoren za faznu implementaciju
@@ -535,7 +536,7 @@ Modul se može označiti zatvorenim tek kada:
 - [x] email dirty/save/test/preview tokovi imaju direktne testove;
 - [x] nema historijskih packet/milestone komentara u aktivnom scopeu;
 - [x] build, lint, format, i18n i relevantni testovi prolaze;
-- [ ] relevantni E2E/browser scenariji su stvarno izvršeni i evidentirani — run pokušan, stack nije dostupan.
+- [x] relevantni E2E/browser scenariji su izvršeni u aktuelnoj zelenoj Playwright kolekciji 01–56 prema potvrdi korisnika; ranija stack blokada je zatvorena.
 
 **Preporučeni redoslijed implementacije:** Faza 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
 Faze su namjerno segmentirane tako da se svaka može zasebno implementirati, testirati, commitovati i pushati bez oslanjanja na nezavršen kasniji segment.

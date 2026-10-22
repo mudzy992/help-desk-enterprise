@@ -6,11 +6,13 @@ Ovo je novi, samostalni audit kompletnog frontenda na grani `arena/bd31e07b-help
 
 Audit je namjerno urađen bez preuzimanja zaključaka, ocjena ili statusa iz ranijih frontend audit dokumenata. Postojeći auditi nisu korišteni kao dokaz da je nešto riješeno. Svaki zaključak u ovom dokumentu izveden je iz aktuelnog koda, aktuelnih testova i quality-gate rezultata na završnom nizu commitova Faza 1–10.
 
+**Aktivni implementacijski plan nalaza:** `docs/plans/modules/6.3-frontend-9.9-10-closeout-plan.md`. Kompletna aktuelna Playwright kolekcija 01–56 prolazi prema potvrdi korisnika; jedini budući zvanični release artefakt ne vodi se kao dupli otvoreni nalaz ovdje, nego isključivo kao `OPEN-CI-FINAL` u planu 6.3 §1.2.
+
 Referentni SHA za statički pregled i lokalne quality gateove:
 
 - `7684515` — početni Faza 10 quality gate;
 - browser closeout: E2E 54 zelen na završnom responsive nizu i E2E 56 zelen na `a08b48e`, prema potvrdi korisnika;
-- puni Playwright i završni CI run namjerno su odgođeni do večeras i nisu predstavljeni kao izvršeni u ovom auditu.
+- kompletna aktuelna Playwright kolekcija 01–56 prolazi prema potvrdi korisnika; jedini preostali release-evidence korak centralno je evidentiran kao `OPEN-CI-FINAL` u planu 6.3.
 
 ## 2. Izvršni zaključak
 
@@ -37,7 +39,7 @@ Ocjena 10/10 nije dodijeljena iz četiri razloga:
 1. nekoliko naslijeđenih page/service hotspotova i dalje je iznad novog 500-line standarda;
 2. pojedini vizualno i poslovno veliki domeni imaju snažan E2E/lib dokaz, ali slabiji direktni component/page test census;
 3. produkcijski React build ne daje React Profiler commit callbackove, pa je taj dio closeouta dokumentovan kao owner exception;
-4. puna Playwright matrica i konačni CI URL su odgođeni po odluci korisnika.
+4. konačni zvanični release CI artefakt na završnom SHA još nije unesen; aktuelna kolekcija 01–56 je zelena prema potvrdi korisnika.
 
 ## 3. Metodologija
 
@@ -152,7 +154,7 @@ Ovi fajlovi su zaključani baseline guardom i ne mogu dalje rasti bez svjesne iz
 | Realtime, polling i async recovery           |   9,84 | Shared visibility-aware polling, partial-resource i realtime ugovori su dobro testirani.                       |
 | I18n, theme i branding                       |   9,94 | Automatski bs/en paritet, token/theme contract i contrast gate su izuzetno jaki.                               |
 | Performance, bundle i dependencies           |   9,76 | Bundle i production audit su zeleni; React production profiler exception ostaje otvorena dokazna granica.      |
-| Testna arhitektura i quality gates           |   9,88 | 1.623 unit/component testa i širok E2E katalog; puna finalna browser matrica je odgođena.                      |
+| Testna arhitektura i quality gates           |   9,88 | 1.623 unit/component testa i zelena aktuelna E2E kolekcija 01–56; finalni release artefakt vodi plan 6.3.      |
 
 ## 6. Detaljna procjena po oblastima
 
@@ -365,7 +367,7 @@ Pozitivno:
 
 Preostalo:
 
-- puna install browser matrica je zaseban skupi gate i nije dio trenutnog odgođenog browser closeouta.
+- install browser matrica je dio aktuelne zelene kolekcije 01–56 prema potvrdi korisnika; konačni release artefakt se vodi samo u planu 6.3.
 
 ### 6.15. UI, charts, accessibility i responsive — 9,87
 
@@ -438,7 +440,7 @@ Preostalo:
 
 - nije svaka routana stranica pokrivena direktnim `page.spec.tsx` testom;
 - mnoge su dobro pokrivene kroz lib/component/E2E nivo, ali direct page error/loading orchestration dokaz nije uniforman;
-- puna finalna Playwright matrica i CI URL su svjesno odgođeni.
+- aktuelna Playwright kolekcija 01–56 je zelena prema potvrdi korisnika; zaseban konačni release artefakt se ne vodi kao otvoren nalaz ovog audita nego isključivo kao `OPEN-CI-FINAL` u planu 6.3.
 
 ## 7. Novi nalazi
 
@@ -490,10 +492,9 @@ Preostalo:
 ### FA6 — Konačni browser artefakti
 
 - **Ozbiljnost:** dokazni nalaz
-- **Status:** odgođeno odlukom korisnika
-- **Dokaz:** E2E 54 i 56 su potvrđeni zeleni; potpuni Playwright i konačni CI URL planirani su za večeras.
-- **Rizik:** nema dokaza na jednom konačnom SHA za svaki browser spec.
-- **Preporuka:** priložiti run URL, head SHA, listu specova i finalni summary bez ponovne izmjene aplikacije između runa i evidencije.
+- **Status:** aktuelni suite zatvoren; release dokaz centralizovan
+- **Dokaz:** kompletna aktuelna Playwright kolekcija 01–56 prolazi prema potvrdi korisnika, uključujući naknadno zatvorene E2E 54 i 56.
+- **Centralni registar:** jedina preostala zvanična release-evidence obaveza vodi se kao `OPEN-CI-FINAL` u `docs/plans/modules/6.3-frontend-9.9-10-closeout-plan.md` §1.2.
 - **Owner:** korisnik / release owner.
 
 ## 8. Prioriteti nakon audita
@@ -516,18 +517,17 @@ Nema otvorenog P1 funkcionalnog nalaza.
 
 1. FA4 — opcioni profiling-enabled job.
 2. FA5 — dev dependency maintenance.
-3. FA6 — večerašnji finalni browser artefakti.
+3. FA6 — aktuelni testni status zatvoren; pratiti samo centralni `OPEN-CI-FINAL` iz plana 6.3.
 
 ## 9. Uslovi za 10/10
 
 Ocjena se može podići na 10/10 tek kada su istovremeno ispunjeni sljedeći uslovi:
 
-1. potpuna finalna Playwright matrica zelena na jednom poznatom SHA;
-2. CI run URL i summary sačuvani u closeout dokumentu;
-3. kritični runtime API parseri imaju stvarni cross-layer response fixture;
-4. production React commit profiler ima profiling build dokaz ili formalno ostaje prihvaćen izuzetak, u kojem slučaju maksimalna performance ocjena ostaje ispod 10;
-5. legacy hotspotovi nemaju aktivno miješanje novih odgovornosti i prioritetni asset hotspot je dodatno razložen;
-6. nema otvorenog serious/critical axe, horizontalnog page overflowa, bs/en drifta, bundle prekoračenja ili production dependency nalaza.
+1. centralni `OPEN-CI-FINAL` iz plana 6.3 zatvoren na poznatom završnom SHA;
+2. kritični runtime API parseri imaju stvarni cross-layer response fixture;
+3. production React commit profiler ima profiling build dokaz ili formalno ostaje prihvaćen izuzetak, u kojem slučaju maksimalna performance ocjena ostaje ispod 10;
+4. legacy hotspotovi nemaju aktivno miješanje novih odgovornosti i prioritetni asset hotspot je dodatno razložen;
+5. nema otvorenog serious/critical axe, horizontalnog page overflowa, bs/en drifta, bundle prekoračenja ili production dependency nalaza.
 
 ## 10. Konačna presuda
 

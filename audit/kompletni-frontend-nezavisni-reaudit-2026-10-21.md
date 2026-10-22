@@ -1,4 +1,5 @@
 # Potpuno nezavisni reaudit kompletnog frontenda
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
 **Datum:** 21.10.2026.  
 **Auditirani commit:** `7f0391c1e71fb36940269d5ff479d54142698f51` (`Update ci.yml`)  
