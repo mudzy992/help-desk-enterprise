@@ -87,7 +87,7 @@ export function DashboardMetricGrid({
   return (
     <div
       data-testid="dashboard-metric-grid"
-      className="fade-in grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4"
+      className="fade-in grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4"
     >
       {metrics.map((metric) => (
         <Link

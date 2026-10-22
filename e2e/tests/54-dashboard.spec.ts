@@ -66,7 +66,8 @@ test.describe("54 dashboard contracts", () => {
 
     for (const viewport of [
       { width: 320, height: 800, metricColumns: 1 },
-      { width: 390, height: 844, metricColumns: 1 },
+      { width: 360, height: 800, metricColumns: 2 },
+      { width: 390, height: 844, metricColumns: 2 },
       { width: 768, height: 1024, metricColumns: 2 },
     ]) {
       await page.setViewportSize(viewport);
