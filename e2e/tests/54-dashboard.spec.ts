@@ -66,7 +66,8 @@ test.describe("54 dashboard contracts", () => {
 
     for (const viewport of [
       { width: 320, height: 800, metricColumns: 1 },
-      { width: 390, height: 844, metricColumns: 2 },
+      { width: 390, height: 844, metricColumns: 1 },
+      { width: 768, height: 1024, metricColumns: 2 },
     ]) {
       await page.setViewportSize(viewport);
       await page.goto("/");
@@ -84,20 +85,23 @@ test.describe("54 dashboard contracts", () => {
         const charts = document.querySelector<HTMLElement>(
           '[data-testid="dashboard-chart-grid"]',
         );
-        if (metric === null || charts === null)
-          throw new Error("Dashboard grids are missing");
+        const main = document.querySelector<HTMLElement>("#main-content");
+        if (metric === null || charts === null || main === null)
+          throw new Error("Dashboard layout regions are missing");
         return {
           metricColumns:
             getComputedStyle(metric).gridTemplateColumns.split(" ").length,
           chartColumns:
             getComputedStyle(charts).gridTemplateColumns.split(" ").length,
           overflow: document.documentElement.scrollWidth - window.innerWidth,
+          mainOverflow: main.scrollWidth - main.clientWidth,
         };
       });
 
       expect(layout.metricColumns).toBe(viewport.metricColumns);
       expect(layout.chartColumns).toBe(1);
       expect(layout.overflow).toBeLessThanOrEqual(1);
+      expect(layout.mainOverflow).toBeLessThanOrEqual(1);
     }
   });
 });

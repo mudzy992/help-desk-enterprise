@@ -56,7 +56,7 @@ export function ScrollRegion({ label, className, children, ...rest }: ScrollRegi
       aria-label={focusable ? (label ?? t("a11y.scrollRegion")) : rest["aria-label"]}
       className={cn(
         className,
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+        "min-w-0 max-w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
       )}
     >
       {children}

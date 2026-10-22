@@ -106,7 +106,7 @@ export function ApplicationShell() {
           <main
             id={mainContentId}
             tabIndex={-1}
-            className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
+            className="app-main min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus:outline-none print:overflow-visible"
           >
             <div className="mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0">
               <div className="print:hidden">
