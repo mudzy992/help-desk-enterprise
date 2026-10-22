@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-22  
-**Aktivna etapa:** moduli 01–10 auditirani; sljedeći je modul 11 — `privacy`
+**Aktivna etapa:** moduli 01–11 auditirani; sljedeći je modul 12 — `tickets`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 

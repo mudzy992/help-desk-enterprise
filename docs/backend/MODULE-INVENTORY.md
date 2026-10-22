@@ -26,13 +26,13 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  08 | `audit-log`              | visok    |            21 |            7 | 1.625 |          1 |       1 | audit završen |
 |  09 | `security`               | kritičan |             9 |            6 |   999 |          5 |       3 | audit završen |
 |  10 | `security-audit-webhook` | visok    |            11 |            2 |   665 |          0 |       2 | audit završen |
-|  11 | `privacy`                | kritičan |            44 |           16 | 6.635 |          3 |      11 | sljedeće      |
+|  11 | `privacy`                | kritičan |            44 |           16 | 6.635 |          3 |      11 | audit završen |
 
 ### Val B — jezgra tiketa i izvršenje
 
 |   # | Modul               | Rizik    | Prod. fajlovi | Spec fajlovi |    LOC | Kontroleri | Servisi | Status        |
 | --: | ------------------- | -------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
-|  12 | `tickets`           | kritičan |           470 |          107 | 31.986 |         19 |      29 | nije započeto |
+|  12 | `tickets`           | kritičan |           470 |          107 | 31.986 |         19 |      29 | sljedeće      |
 |  13 | `routing`           | kritičan |            32 |            8 |  2.414 |          1 |       1 | nije započeto |
 |  14 | `sla`               | kritičan |           120 |           28 |  7.623 |          6 |       9 | nije započeto |
 |  15 | `service-catalog`   | visok    |           124 |           23 |  6.365 |          4 |       3 | nije započeto |
