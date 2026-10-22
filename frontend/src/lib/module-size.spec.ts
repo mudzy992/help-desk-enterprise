@@ -2,23 +2,23 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 
-const libLineLimit = 320;
-const applicationLineLimit = 500;
-const legacyHotspotCeilings: Readonly<Record<string, number>> = {
-  "pages/asset-detail-page.tsx": 732,
-  "pages/announcements-page.tsx": 575,
-  "pages/playbook-editor-page.tsx": 573,
-  "pages/account-notifications-page.tsx": 540,
-  "pages/changes-page.tsx": 522,
-  "pages/problems-page.tsx": 521,
-  "pages/response-template-editor-page.tsx": 520,
-  "pages/login-page.tsx": 519,
-  "pages/templates-page.tsx": 518,
-  "components/assets/asset-import-panel.tsx": 575,
-  "components/announcements/announcement-editor-dialog.tsx": 550,
-  "services/problems-api.ts": 578,
-  "services/changes-api.ts": 514,
+type CloseoutBaseline = {
+  readonly moduleLimits: {
+    readonly lib: number;
+    readonly application: number;
+  };
+  readonly legacyHotspots: Readonly<Record<string, number>>;
 };
+
+const baseline = JSON.parse(
+  readFileSync(
+    join(process.cwd(), "..", "docs", "frontend", "quality", "6.3-baseline.json"),
+    "utf8",
+  ),
+) as CloseoutBaseline;
+const libLineLimit = baseline.moduleLimits.lib;
+const applicationLineLimit = baseline.moduleLimits.application;
+const legacyHotspotCeilings = baseline.legacyHotspots;
 
 function sourceFiles(root: string): readonly string[] {
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
