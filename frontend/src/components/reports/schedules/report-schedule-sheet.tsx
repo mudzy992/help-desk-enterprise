@@ -1,3 +1,10 @@
+import {
+  formErrorKeys,
+  frequencyKeys,
+  priorityKeys,
+  sectionKeys,
+  type ReportScheduleSheetProperties,
+} from "./report-schedule-contract";
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,74 +24,20 @@ import {
   previewNextReportRun,
   reportScheduleNameMaxLength,
   validateReportScheduleForm,
-  type ReportScheduleFormError,
 } from "@/lib/reports/report-schedule-form";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import {
-  reportErrorMessageKeys,
-  type TrendsFilterOption,
-} from "@/components/reports/trends/report-trends-panel";
+import { reportErrorMessageKeys } from "@/components/reports/trends/report-trends-panel";
 import {
   createReportSchedule,
   listReportRecipientCandidates,
   reportScheduleFrequencies,
   updateReportSchedule,
-  type ReportSchedule,
   type ReportScheduleFrequency,
-  type ReportScheduleList,
   type ReportScheduleRecipient,
   type ReportScheduleSection,
 } from "@/services/report-schedules-api";
 import { reportTrendPriorities, type ReportTrendPriority } from "@/services/report-trends-api";
-
-export type ReportScheduleDraft = {
-  readonly organizationalUnitId: string | null;
-  readonly serviceId: string | null;
-  readonly groupId: string | null;
-  readonly priority: ReportTrendPriority | null;
-};
-
-interface ReportScheduleSheetProperties {
-  readonly open: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly list: ReportScheduleList;
-  /** Existing schedule (edit) or a draft from „Zakaži ovaj izvještaj”. */
-  readonly schedule: ReportSchedule | null;
-  readonly draft: ReportScheduleDraft | null;
-  readonly units: readonly TrendsFilterOption[];
-  readonly services: readonly TrendsFilterOption[];
-  readonly groups: readonly TrendsFilterOption[] | null;
-  readonly onSaved: (schedule: ReportSchedule) => void;
-}
-
-const frequencyKeys = {
-  WEEKLY: "reports.schedules.frequency.WEEKLY",
-  MONTHLY: "reports.schedules.frequency.MONTHLY",
-} as const;
-
-const sectionKeys = {
-  kpi: "reports.schedules.sections.kpi",
-  trend: "reports.schedules.sections.trend",
-  topServices: "reports.schedules.sections.topServices",
-  overdue: "reports.schedules.sections.overdue",
-} as const;
-
-const priorityKeys = {
-  LOW: "reports.trends.priority.LOW",
-  MEDIUM: "reports.trends.priority.MEDIUM",
-  HIGH: "reports.trends.priority.HIGH",
-  CRITICAL: "reports.trends.priority.CRITICAL",
-} as const;
-
-const formErrorKeys = {
-  name: "reports.schedules.form.errors.name",
-  sendTime: "reports.schedules.form.errors.sendTime",
-  unit: "reports.schedules.form.errors.unit",
-  sections: "reports.schedules.form.errors.sections",
-  recipients: "reports.schedules.form.errors.recipients",
-  recipientLimit: "reports.schedules.form.errors.recipientLimit",
-} as const satisfies Record<ReportScheduleFormError, string>;
 
 /** Create or edit one report schedule. */
 export function ReportScheduleSheet({
@@ -542,3 +495,5 @@ export function ReportScheduleSheet({
     </Sheet>
   );
 }
+
+export type { ReportScheduleDraft } from "./report-schedule-contract";
