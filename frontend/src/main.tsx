@@ -4,6 +4,7 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import { App } from "@/app/app";
+import { ApplicationProfiler } from "@/lib/performance/application-profiler";
 import { initializeI18n } from "@/i18n/config";
 import { reloadForChunkError } from "@/lib/app/chunk-reload";
 import { reportClientError } from "@/lib/app/client-logger";
@@ -35,7 +36,9 @@ startBranding();
 function renderApplication(root: HTMLElement): void {
   createRoot(root).render(
     <StrictMode>
-      <App />
+      <ApplicationProfiler>
+        <App />
+      </ApplicationProfiler>
     </StrictMode>,
   );
 }
