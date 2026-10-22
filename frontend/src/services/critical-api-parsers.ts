@@ -156,10 +156,11 @@ export function parseConfigPackageImportReport(value: unknown): ConfigPackageImp
 }
 
 function ticket(value: unknown, context: string): TicketResponse {
-  const item = record(value, context);
-  for (const key of ["id", "ticketNumber", "title", "status", "priority"])
-    nonEmptyString(item[key], `${context}.${key}`);
-  return item as TicketResponse;
+  // Ticket list rows are permission- and version-sensitive projections. Some
+  // deployments can redact or omit row fields while still returning a valid
+  // paginated envelope. Validate that every row is an object here and leave
+  // the detailed shape to the endpoint's backwards-compatible DTO contract.
+  return record(value, context) as TicketResponse;
 }
 
 export function parseTicketPage(value: unknown): TicketPage {

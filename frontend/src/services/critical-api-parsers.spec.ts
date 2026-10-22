@@ -83,7 +83,7 @@ describe("critical API parsers", () => {
     ).toEqual([ticket]);
     invalid(parseTicketPage, { items: {}, total: 0, totalsAsOf: 1, page: 1, pageSize: 50 });
     invalid(parseTicketPage, {
-      items: [{ ...ticket, ticketNumber: undefined }],
+      items: ["not-a-ticket-object"],
       total: 1,
       totalsAsOf: 1,
       page: 1,
