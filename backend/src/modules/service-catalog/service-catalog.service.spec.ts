@@ -92,6 +92,60 @@ describe('ServiceCatalogService CRUD', () => {
     expect(listed.map((item) => item.id)).toEqual([created.id]);
   });
 
+  it('serves the GET /services onboarding contract with one batch read', async () => {
+    const { service, memory } = createHarness();
+    const category = await service.createCategory({ name: 'IT', slug: 'it' });
+    const statuses = [
+      'IN_PROGRESS',
+      'READY_FOR_FINALIZATION',
+      'ABANDONED',
+      'COMPLETED',
+    ] as const;
+    const services = await Promise.all(
+      [...statuses, null].map((status, index) =>
+        service.create({
+          name: `Service ${index}`,
+          slug: `service-${index}`,
+          categoryId: category.id,
+        }).then((created) => ({ created, status })),
+      ),
+    );
+    for (const [index, item] of services.entries()) {
+      if (item.status === null) continue;
+      memory.seedOnboarding({
+        id: `onboarding-${index}`,
+        serviceId: item.created.id,
+        status: item.status,
+        currentStep: 'FORM',
+        completedSteps: ['SERVICE'],
+        formVersionRef: null,
+        routingConfigurationRef: null,
+        slaConfigurationRef: null,
+        approvalsConfigurationRef: null,
+        lastValidationErrors: [],
+        createdAt: new Date('2026-09-10T10:00:00.000Z'),
+        updatedAt: new Date('2026-09-10T10:00:00.000Z'),
+      });
+    }
+
+    const listed = await service.list({ categoryId: category.id });
+    const onboardingByServiceId = new Map(
+      listed.map((item) => [item.id, item.onboarding]),
+    );
+    for (const item of services) {
+      expect(onboardingByServiceId.get(item.created.id)).toEqual(
+        item.status === null
+          ? null
+          : {
+              status: item.status,
+              currentStep: 'FORM',
+              completedSteps: ['SERVICE'],
+            },
+      );
+    }
+    expect(memory.onboardingFindManyCalls()).toBe(1);
+  });
+
   it('rejects duplicate slugs and missing categories', async () => {
     const { service } = createHarness();
     const category = await service.createCategory({ name: 'IT', slug: 'it' });

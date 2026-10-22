@@ -7,15 +7,7 @@ export async function loadServiceOnboardingSummaries(
   serviceIds: readonly string[],
 ): Promise<ReadonlyMap<string, ServiceOnboardingSummary>> {
   if (serviceIds.length === 0) return new Map();
-  // Lightweight in-memory catalog harnesses predate onboarding and omit this
-  // delegate. Production Prisma always supplies it.
-  const delegate = (
-    prisma as PrismaService & {
-      readonly serviceOnboarding?: PrismaService['serviceOnboarding'];
-    }
-  ).serviceOnboarding;
-  if (delegate === undefined) return new Map();
-  const rows = await delegate.findMany({
+  const rows = await prisma.serviceOnboarding.findMany({
     where: { serviceId: { in: [...serviceIds] } },
     select: {
       serviceId: true,

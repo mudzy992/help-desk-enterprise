@@ -11,6 +11,7 @@ import type { DowntimeWindowRecord } from './service-availability.types';
 import type { ServiceCategoryRecord, ServiceRecord } from './service-catalog.types';
 import type { FormVersionRecord } from './service-forms.types';
 import type { TicketFormVersionRecord } from './create-in-memory-ticket-delegate';
+import type { ServiceOnboardingPersistence } from '../service-onboarding/to-onboarding-record';
 
 export type InMemoryServiceCategory = ServiceCategoryRecord;
 export type InMemoryService = ServiceRecord;
@@ -30,6 +31,7 @@ export function createInMemoryServiceCatalogPrisma(): {
     serviceDowntimeWindow: Record<string, unknown>;
     formVersion: Record<string, unknown>;
     ticket: Record<string, unknown>;
+    serviceOnboarding: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
@@ -39,6 +41,8 @@ export function createInMemoryServiceCatalogPrisma(): {
   seedFormVersion: (version: FormVersionRecord) => void;
   seedTicket: (ticket: TicketFormVersionRecord) => void;
   seedPolicyPack: (id: string) => void;
+  seedOnboarding: (onboarding: ServiceOnboardingPersistence) => void;
+  onboardingFindManyCalls: () => number;
   seedServiceDependents: (serviceId: string, dependents: Partial<ServiceDependents>) => void;
   changeLogs: InMemoryServiceCatalogChangeLog[];
 } {
@@ -48,6 +52,8 @@ export function createInMemoryServiceCatalogPrisma(): {
   const formVersions = new Map<string, FormVersionRecord>();
   const tickets = new Map<string, TicketFormVersionRecord>();
   const policyPacks = new Set<string>();
+  const onboardings = new Map<string, ServiceOnboardingPersistence>();
+  let onboardingFindManyCallCount = 0;
   const dependents = new Map<string, ServiceDependents>();
   const changeLogs: InMemoryServiceCatalogChangeLog[] = [];
   let nextIdentifier = 1;
@@ -67,6 +73,13 @@ export function createInMemoryServiceCatalogPrisma(): {
     ),
     formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
     ticket: createInMemoryTicketDelegate(tickets, nextId),
+    serviceOnboarding: {
+      findMany: async ({ where }: { where: { serviceId: { in: string[] } } }) => {
+        onboardingFindManyCallCount += 1;
+        const serviceIds = new Set(where.serviceId.in);
+        return [...onboardings.values()].filter((row) => serviceIds.has(row.serviceId));
+      },
+    },
     serviceDowntimeWindow: createInMemoryServiceDowntimeWindowDelegate(
       downtimeWindows,
       nextId,
@@ -103,6 +116,10 @@ export function createInMemoryServiceCatalogPrisma(): {
     seedPolicyPack: (id) => {
       policyPacks.add(id);
     },
+    seedOnboarding: (onboarding) => {
+      onboardings.set(onboarding.id, onboarding);
+    },
+    onboardingFindManyCalls: () => onboardingFindManyCallCount,
     seedServiceDependents: (serviceId, counts) => {
       dependents.set(serviceId, {
         ...emptyServiceDependents(),
