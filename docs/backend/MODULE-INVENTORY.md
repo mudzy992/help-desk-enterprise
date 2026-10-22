@@ -23,8 +23,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  05 | `organizational-units`   | visok    |            43 |           11 | 1.987 |          1 |       1 | audit završen |
 |  06 | `groups`                 | visok    |            27 |            6 | 1.282 |          2 |       1 | audit završen |
 |  07 | `settings`               | kritičan |           103 |           28 | 9.375 |          2 |       1 | audit završen |
-|  08 | `audit-log`              | visok    |            21 |            7 | 1.625 |          1 |       1 | sljedeće      |
-|  09 | `security`               | kritičan |             9 |            6 |   999 |          5 |       3 | nije započeto |
+|  08 | `audit-log`              | visok    |            21 |            7 | 1.625 |          1 |       1 | audit završen |
+|  09 | `security`               | kritičan |             9 |            6 |   999 |          5 |       3 | sljedeće      |
 |  10 | `security-audit-webhook` | visok    |            11 |            2 |   665 |          0 |       2 | nije započeto |
 |  11 | `privacy`                | kritičan |            44 |           16 | 6.635 |          3 |      11 | nije započeto |
 

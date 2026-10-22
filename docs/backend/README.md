@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-22  
-**Aktivna etapa:** moduli 01–07 auditirani; sljedeći je modul 08 — `audit-log`
+**Aktivna etapa:** moduli 01–08 auditirani; sljedeći je modul 09 — `security`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
