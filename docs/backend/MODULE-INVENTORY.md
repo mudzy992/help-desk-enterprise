@@ -32,8 +32,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 
 |   # | Modul               | Rizik    | Prod. fajlovi | Spec fajlovi |    LOC | Kontroleri | Servisi | Status        |
 | --: | ------------------- | -------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
-|  12 | `tickets`           | kritičan |           470 |          107 | 31.986 |         19 |      29 | sljedeće      |
-|  13 | `routing`           | kritičan |            32 |            8 |  2.414 |          1 |       1 | nije započeto |
+|  12 | `tickets`           | kritičan |           470 |          107 | 31.516 |         19 |      56 | audit završen |
+|  13 | `routing`           | kritičan |            32 |            8 |  2.414 |          1 |       1 | sljedeće      |
 |  14 | `sla`               | kritičan |           120 |           28 |  7.623 |          6 |       9 | nije započeto |
 |  15 | `service-catalog`   | visok    |           124 |           23 |  6.365 |          4 |       3 | nije započeto |
 |  16 | `templates`         | visok    |            24 |            6 |  3.103 |          3 |       3 | nije započeto |

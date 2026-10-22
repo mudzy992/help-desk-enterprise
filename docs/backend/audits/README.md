@@ -19,7 +19,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 09 — security                                           | audit završen | [Detaljni audit](09-security.md)                                             | 3 P1, 6 P2, 2 P3 | **6,00/10**     |
 | 10 — security-audit-webhook                             | audit završen | [Detaljni audit](10-security-audit-webhook.md)                               | 3 P1, 6 P2, 2 P3 | **5,92/10**     |
 | 11 — privacy                                            | audit završen | [Detaljni audit](11-privacy.md)                                              | 4 P1, 7 P2, 2 P3 | **5,57/10**     |
-| 12 — tickets                                            | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
-| 13–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 12 — tickets                                            | audit završen | [Detaljni audit](12-tickets.md)                                              | 8 P1, 8 P2, 3 P3 | **5,38/10**     |
+| 13 — routing                                            | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
+| 14–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
