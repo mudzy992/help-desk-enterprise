@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/services/api";
 import {
@@ -11,6 +13,13 @@ import {
   parseTicketPage,
 } from "@/services/critical-api-parsers";
 
+const fixtures = JSON.parse(
+  readFileSync(
+    join(process.cwd(), "..", "contracts", "fixtures", "critical-api-responses.json"),
+    "utf8",
+  ),
+) as Record<string, unknown>;
+
 function invalid(parser: (value: unknown) => unknown, fixture: unknown) {
   try {
     parser(fixture);
@@ -22,6 +31,27 @@ function invalid(parser: (value: unknown) => unknown, fixture: unknown) {
 }
 
 describe("critical API parsers", () => {
+  it("accepts every shared cross-layer response fixture", () => {
+    expect(parseCurrentSession(fixtures.currentSession).principal.subjectId).toBe("user-agent-1");
+    expect(parseAuthenticationLogin(fixtures.authenticationSession)).toMatchObject({
+      expiresInSeconds: 3600,
+    });
+    expect(parseAuthenticationLogin(fixtures.authenticationMfaRequired)).toMatchObject({
+      status: "MFA_REQUIRED",
+    });
+    expect(parseInstallSetupStatus(fixtures.installStatus).isCompleted).toBe(true);
+    expect(parseTicketPage(fixtures.ticketPage)).toMatchObject({
+      total: 44,
+      totalsAsOf: 1_792_659_600_000,
+      page: 1,
+      pageSize: 50,
+    });
+    expect(parseRoutingCoveragePage(fixtures.routingCoveragePage).items).toHaveLength(1);
+    expect(parseServiceCatalog(fixtures.serviceCatalog)).toHaveLength(1);
+    expect(parseSettingsRegistry(fixtures.settingsRegistry)).toHaveLength(1);
+    expect(parseConfigPackageImportReport(fixtures.configPackagePreview).canImport).toBe(true);
+  });
+
   it("validates established and intermediate authentication sessions", () => {
     expect(
       parseAuthenticationLogin({
@@ -91,6 +121,10 @@ describe("critical API parsers", () => {
       totalsAsOf: 1,
       page: 1,
       pageSize: 50,
+    });
+    invalid(parseTicketPage, {
+      ...(fixtures.ticketPage as Record<string, unknown>),
+      items: [{ id: "ticket-1", number: "HD-44" }],
     });
     invalid(parseRoutingCoveragePage, {
       items: [],

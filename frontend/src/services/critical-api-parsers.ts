@@ -156,11 +156,12 @@ export function parseConfigPackageImportReport(value: unknown): ConfigPackageImp
 }
 
 function ticket(value: unknown, context: string): TicketResponse {
-  // Ticket list rows are permission- and version-sensitive projections. Some
-  // deployments can redact or omit row fields while still returning a valid
-  // paginated envelope. Validate that every row is an object here and leave
-  // the detailed shape to the endpoint's backwards-compatible DTO contract.
-  return record(value, context) as TicketResponse;
+  const item = record(value, context);
+  // Permission-sensitive projections may omit descriptive fields, but identity
+  // and the public ticket number are invariant list-row contract fields.
+  nonEmptyString(item.id, `${context}.id`);
+  nonEmptyString(item.ticketNumber, `${context}.ticketNumber`);
+  return item as TicketResponse;
 }
 
 export function parseTicketPage(value: unknown): TicketPage {

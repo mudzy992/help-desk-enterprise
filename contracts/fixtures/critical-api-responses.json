@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "currentSession": {
+    "principal": {
+      "subjectId": "user-agent-1",
+      "email": "agent@example.test",
+      "displayName": "Agent Example",
+      "isLocalOnly": true
+    },
+    "isSuperAdmin": false,
+    "roleKeys": ["AGENT"],
+    "permissionKeys": ["ticket.read", "ticket.update"],
+    "organizationalUnitId": "ou-support",
+    "organizationalUnitName": "Support"
+  },
+  "authenticationSession": {
+    "expiresInSeconds": 3600,
+    "principal": {
+      "subjectId": "user-agent-1",
+      "email": "agent@example.test",
+      "displayName": "Agent Example",
+      "isLocalOnly": true
+    }
+  },
+  "authenticationMfaRequired": {
+    "status": "MFA_REQUIRED",
+    "mfaToken": "fixture-mfa-token",
+    "expiresInSeconds": 300
+  },
+  "installStatus": {
+    "isCompleted": true,
+    "nextStep": "READY",
+    "steps": {
+      "organization": "COMPLETED",
+      "services": "COMPLETED"
+    },
+    "summary": {
+      "organizationName": "Example Help Desk",
+      "organizationalUnitCount": 3,
+      "serviceCount": 5,
+      "groupCount": 2,
+      "teamMemberCount": 8,
+      "enabledAddonKeys": ["assets", "problems"],
+      "deferredSteps": []
+    }
+  },
+  "ticketPage": {
+    "items": [
+      {
+        "id": "ticket-1",
+        "ticketNumber": "HD-44",
+        "title": "VPN access",
+        "description": "VPN access is unavailable.",
+        "status": "IN_PROGRESS",
+        "priority": "HIGH",
+        "impact": "HIGH",
+        "urgency": "HIGH",
+        "classification": "INTERNAL",
+        "requestType": null,
+        "dueAt": null,
+        "isConfidential": false,
+        "formData": {},
+        "originUnitId": "ou-support",
+        "serviceId": "service-access",
+        "formVersionRef": null,
+        "requesterId": "user-requester-1",
+        "assignedGroupId": "group-support",
+        "assignedUserId": "user-agent-1",
+        "createdAt": "2026-10-22T08:00:00.000Z",
+        "updatedAt": "2026-10-22T09:00:00.000Z"
+      }
+    ],
+    "total": 44,
+    "totalsAsOf": 1792659600000,
+    "page": 1,
+    "pageSize": 50
+  },
+  "routingCoveragePage": {
+    "items": [
+      {
+        "originUnitId": "ou-support",
+        "originUnitPath": "/example/support",
+        "serviceId": "service-access",
+        "serviceName": "Access",
+        "serviceLifecycle": "ACTIVE",
+        "hasExactRule": true,
+        "resolution": {
+          "kind": "RULE",
+          "groupId": "group-support"
+        }
+      }
+    ],
+    "total": 1,
+    "take": 100,
+    "cursor": null,
+    "nextCursor": null
+  },
+  "serviceCatalog": [
+    {
+      "id": "service-access",
+      "name": "Access",
+      "slug": "access",
+      "categoryId": "category-it",
+      "lifecycle": "ACTIVE",
+      "availability": "OPERATIONAL",
+      "offeredToRequesters": true,
+      "openTicketCount": 4,
+      "runtimeAvailability": {
+        "isCurrentlyAvailable": true,
+        "isCurrentlyUnavailable": false,
+        "hasActiveDowntime": false,
+        "hasUpcomingDowntime": true,
+        "upcomingDowntimeCount": 1,
+        "showStatusInTicketCreate": true
+      },
+      "activeForm": {
+        "id": "form-access-v2",
+        "version": 2,
+        "fieldCount": 3
+      },
+      "onboarding": null
+    }
+  ],
+  "settingsRegistry": [
+    {
+      "key": "private.security.mfa_required",
+      "description": "Require MFA for staff.",
+      "categoryId": "security",
+      "categoryPriority": 10,
+      "valueType": "boolean",
+      "visibility": "private",
+      "titleKey": "settings.security.mfaRequired.title",
+      "helpKey": "settings.security.mfaRequired.help",
+      "isRequired": true,
+      "isSet": true,
+      "requires": []
+    }
+  ],
+  "configPackagePreview": {
+    "header": {
+      "formatVersion": 1,
+      "exportedAt": "2026-10-22T09:00:00.000Z"
+    },
+    "checksum": "sha256:fixture",
+    "signature": "valid",
+    "items": [],
+    "blockingCount": 0,
+    "canImport": true
+  }
+}
