@@ -17,8 +17,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |   # | Modul                    | Rizik    | Prod. fajlovi | Spec fajlovi |   LOC | Kontroleri | Servisi | Status        |
 | --: | ------------------------ | -------- | ------------: | -----------: | ----: | ---------: | ------: | ------------- |
 |  01 | `authentication`         | kritičan |            80 |           40 | 7.206 |          2 |       9 | audit završen |
-|  02 | `authorization`          | kritičan |            46 |           25 | 2.722 |          1 |       2 | sljedeće      |
-|  03 | `rbac`                   | kritičan |            18 |            5 |   995 |          1 |       1 | nije započeto |
+|  02 | `authorization`          | kritičan |            46 |           25 | 2.722 |          1 |       2 | audit završen |
+|  03 | `rbac`                   | kritičan |            18 |            5 |   995 |          1 |       1 | sljedeće      |
 |  04 | `users`                  | visok    |            32 |           22 | 2.704 |          4 |       1 | nije započeto |
 |  05 | `organizational-units`   | visok    |            43 |           11 | 1.987 |          1 |       1 | nije započeto |
 |  06 | `groups`                 | visok    |            27 |            6 | 1.282 |          2 |       1 | nije započeto |

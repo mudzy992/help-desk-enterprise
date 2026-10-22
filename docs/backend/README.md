@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-22  
-**Aktivna etapa:** modul 01 `authentication` auditiran; sljedeći je modul 02 — `authorization`
+**Aktivna etapa:** moduli 01–02 auditirani; sljedeći je modul 03 — `rbac`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
