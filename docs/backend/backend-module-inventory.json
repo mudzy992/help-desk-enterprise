@@ -1,0 +1,770 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "backend/src/modules",
+  "generatedAt": "2026-10-22",
+  "modules": [
+    {
+      "module": "announcements",
+      "typescriptFiles": 18,
+      "productionFiles": 16,
+      "specFiles": 2,
+      "productionLoc": 2102,
+      "controllers": 1,
+      "services": 3,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "notifications",
+        "ops-health",
+        "privacy",
+        "settings"
+      ]
+    },
+    {
+      "module": "assets",
+      "typescriptFiles": 57,
+      "productionFiles": 44,
+      "specFiles": 13,
+      "productionLoc": 9053,
+      "controllers": 2,
+      "services": 13,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "directory-sync",
+        "notifications",
+        "privacy",
+        "reports",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "audit-log",
+      "typescriptFiles": 28,
+      "productionFiles": 21,
+      "specFiles": 7,
+      "productionLoc": 1625,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "change-log",
+        "settings"
+      ]
+    },
+    {
+      "module": "authentication",
+      "typescriptFiles": 120,
+      "productionFiles": 80,
+      "specFiles": 40,
+      "productionLoc": 7206,
+      "controllers": 2,
+      "services": 9,
+      "moduleDependencies": [
+        "audit-log",
+        "authorization",
+        "branding",
+        "notifications",
+        "privacy",
+        "settings",
+        "websocket"
+      ]
+    },
+    {
+      "module": "authorization",
+      "typescriptFiles": 71,
+      "productionFiles": 46,
+      "specFiles": 25,
+      "productionLoc": 2722,
+      "controllers": 1,
+      "services": 2,
+      "moduleDependencies": ["audit-log", "authentication", "settings"]
+    },
+    {
+      "module": "branding",
+      "typescriptFiles": 6,
+      "productionFiles": 5,
+      "specFiles": 1,
+      "productionLoc": 207,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": ["settings"]
+    },
+    {
+      "module": "change-log",
+      "typescriptFiles": 12,
+      "productionFiles": 10,
+      "specFiles": 2,
+      "productionLoc": 286,
+      "controllers": 0,
+      "services": 0,
+      "moduleDependencies": []
+    },
+    {
+      "module": "changes",
+      "typescriptFiles": 27,
+      "productionFiles": 23,
+      "specFiles": 4,
+      "productionLoc": 3506,
+      "controllers": 1,
+      "services": 7,
+      "moduleDependencies": [
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "notifications",
+        "privacy",
+        "problems",
+        "service-catalog",
+        "settings"
+      ]
+    },
+    {
+      "module": "config-versioning",
+      "typescriptFiles": 55,
+      "productionFiles": 51,
+      "specFiles": 4,
+      "productionLoc": 4463,
+      "controllers": 1,
+      "services": 2,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "routing",
+        "service-catalog",
+        "settings",
+        "sla",
+        "tickets"
+      ]
+    },
+    {
+      "module": "directory-sync",
+      "typescriptFiles": 94,
+      "productionFiles": 73,
+      "specFiles": 21,
+      "productionLoc": 5287,
+      "controllers": 2,
+      "services": 5,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "notifications",
+        "organizational-units",
+        "privacy",
+        "settings"
+      ]
+    },
+    {
+      "module": "docs",
+      "typescriptFiles": 13,
+      "productionFiles": 9,
+      "specFiles": 4,
+      "productionLoc": 778,
+      "controllers": 1,
+      "services": 2,
+      "moduleDependencies": ["authentication"]
+    },
+    {
+      "module": "edge-extension",
+      "typescriptFiles": 17,
+      "productionFiles": 15,
+      "specFiles": 2,
+      "productionLoc": 851,
+      "controllers": 1,
+      "services": 2,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "notifications",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "groups",
+      "typescriptFiles": 33,
+      "productionFiles": 27,
+      "specFiles": 6,
+      "productionLoc": 1282,
+      "controllers": 2,
+      "services": 1,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "health",
+      "typescriptFiles": 4,
+      "productionFiles": 3,
+      "specFiles": 1,
+      "productionLoc": 187,
+      "controllers": 1,
+      "services": 0,
+      "moduleDependencies": ["integration-queue"]
+    },
+    {
+      "module": "inbound-email",
+      "typescriptFiles": 26,
+      "productionFiles": 24,
+      "specFiles": 2,
+      "productionLoc": 1694,
+      "controllers": 1,
+      "services": 3,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "notifications",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "install",
+      "typescriptFiles": 262,
+      "productionFiles": 208,
+      "specFiles": 54,
+      "productionLoc": 12982,
+      "controllers": 7,
+      "services": 19,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "branding",
+        "change-log",
+        "groups",
+        "notifications",
+        "organizational-units",
+        "policy-packs",
+        "rbac",
+        "routing",
+        "service-catalog",
+        "settings",
+        "sla",
+        "users"
+      ]
+    },
+    {
+      "module": "integration-queue",
+      "typescriptFiles": 40,
+      "productionFiles": 30,
+      "specFiles": 10,
+      "productionLoc": 1606,
+      "controllers": 1,
+      "services": 8,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "notifications",
+        "settings",
+        "teams",
+        "tickets"
+      ]
+    },
+    {
+      "module": "knowledge-base",
+      "typescriptFiles": 85,
+      "productionFiles": 73,
+      "specFiles": 12,
+      "productionLoc": 6152,
+      "controllers": 3,
+      "services": 7,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "notifications",
+        "privacy",
+        "routing",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "notifications",
+      "typescriptFiles": 128,
+      "productionFiles": 87,
+      "specFiles": 41,
+      "productionLoc": 9778,
+      "controllers": 3,
+      "services": 8,
+      "moduleDependencies": [
+        "announcements",
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "branding",
+        "change-log",
+        "changes",
+        "integration-queue",
+        "on-call",
+        "ops-health",
+        "privacy",
+        "problems",
+        "reports",
+        "routing",
+        "settings",
+        "sla",
+        "teams",
+        "tickets",
+        "users"
+      ]
+    },
+    {
+      "module": "observability",
+      "typescriptFiles": 19,
+      "productionFiles": 14,
+      "specFiles": 5,
+      "productionLoc": 671,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "config-versioning",
+        "settings"
+      ]
+    },
+    {
+      "module": "on-call",
+      "typescriptFiles": 21,
+      "productionFiles": 18,
+      "specFiles": 3,
+      "productionLoc": 2101,
+      "controllers": 1,
+      "services": 3,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "notifications",
+        "privacy",
+        "settings",
+        "sla"
+      ]
+    },
+    {
+      "module": "ops-health",
+      "typescriptFiles": 37,
+      "productionFiles": 25,
+      "specFiles": 12,
+      "productionLoc": 4164,
+      "controllers": 1,
+      "services": 6,
+      "moduleDependencies": [
+        "announcements",
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "branding",
+        "changes",
+        "directory-sync",
+        "health",
+        "inbound-email",
+        "integration-queue",
+        "knowledge-base",
+        "notifications",
+        "on-call",
+        "privacy",
+        "problems",
+        "reports",
+        "security-audit-webhook",
+        "settings",
+        "sla",
+        "tickets",
+        "websocket"
+      ]
+    },
+    {
+      "module": "organizational-units",
+      "typescriptFiles": 54,
+      "productionFiles": 43,
+      "specFiles": 11,
+      "productionLoc": 1987,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "users"
+      ]
+    },
+    {
+      "module": "policy-packs",
+      "typescriptFiles": 44,
+      "productionFiles": 32,
+      "specFiles": 12,
+      "productionLoc": 2133,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "settings"
+      ]
+    },
+    {
+      "module": "privacy",
+      "typescriptFiles": 60,
+      "productionFiles": 44,
+      "specFiles": 16,
+      "productionLoc": 6635,
+      "controllers": 3,
+      "services": 11,
+      "moduleDependencies": [
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "changes",
+        "inbound-email",
+        "notifications",
+        "problems",
+        "reports",
+        "security",
+        "settings",
+        "tickets",
+        "users"
+      ]
+    },
+    {
+      "module": "problems",
+      "typescriptFiles": 30,
+      "productionFiles": 22,
+      "specFiles": 8,
+      "productionLoc": 3372,
+      "controllers": 1,
+      "services": 7,
+      "moduleDependencies": [
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "knowledge-base",
+        "notifications",
+        "privacy",
+        "settings",
+        "sla",
+        "tickets"
+      ]
+    },
+    {
+      "module": "rbac",
+      "typescriptFiles": 23,
+      "productionFiles": 18,
+      "specFiles": 5,
+      "productionLoc": 995,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": ["audit-log", "authentication", "authorization"]
+    },
+    {
+      "module": "reports",
+      "typescriptFiles": 113,
+      "productionFiles": 86,
+      "specFiles": 27,
+      "productionLoc": 10082,
+      "controllers": 3,
+      "services": 5,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "changes",
+        "knowledge-base",
+        "notifications",
+        "problems",
+        "settings",
+        "sla",
+        "tickets"
+      ]
+    },
+    {
+      "module": "routing",
+      "typescriptFiles": 40,
+      "productionFiles": 32,
+      "specFiles": 8,
+      "productionLoc": 2414,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "change-log",
+        "settings"
+      ]
+    },
+    {
+      "module": "search",
+      "typescriptFiles": 9,
+      "productionFiles": 7,
+      "specFiles": 2,
+      "productionLoc": 318,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "knowledge-base",
+        "organizational-units",
+        "tickets"
+      ]
+    },
+    {
+      "module": "security",
+      "typescriptFiles": 15,
+      "productionFiles": 9,
+      "specFiles": 6,
+      "productionLoc": 999,
+      "controllers": 5,
+      "services": 3,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "security-audit-webhook",
+        "settings"
+      ]
+    },
+    {
+      "module": "security-audit-webhook",
+      "typescriptFiles": 13,
+      "productionFiles": 11,
+      "specFiles": 2,
+      "productionLoc": 665,
+      "controllers": 0,
+      "services": 2,
+      "moduleDependencies": ["settings"]
+    },
+    {
+      "module": "service-catalog",
+      "typescriptFiles": 147,
+      "productionFiles": 124,
+      "specFiles": 23,
+      "productionLoc": 6365,
+      "controllers": 4,
+      "services": 3,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "routing",
+        "service-onboarding",
+        "settings",
+        "status-page",
+        "tickets"
+      ]
+    },
+    {
+      "module": "service-onboarding",
+      "typescriptFiles": 47,
+      "productionFiles": 40,
+      "specFiles": 7,
+      "productionLoc": 2555,
+      "controllers": 3,
+      "services": 2,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "routing",
+        "service-catalog",
+        "settings"
+      ]
+    },
+    {
+      "module": "settings",
+      "typescriptFiles": 131,
+      "productionFiles": 103,
+      "specFiles": 28,
+      "productionLoc": 9375,
+      "controllers": 2,
+      "services": 1,
+      "moduleDependencies": [
+        "assets",
+        "authentication",
+        "authorization",
+        "branding",
+        "change-log",
+        "install",
+        "notifications",
+        "tickets"
+      ]
+    },
+    {
+      "module": "setup-checklist",
+      "typescriptFiles": 8,
+      "productionFiles": 6,
+      "specFiles": 2,
+      "productionLoc": 233,
+      "controllers": 1,
+      "services": 1,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "install",
+        "settings"
+      ]
+    },
+    {
+      "module": "sla",
+      "typescriptFiles": 148,
+      "productionFiles": 120,
+      "specFiles": 28,
+      "productionLoc": 7623,
+      "controllers": 6,
+      "services": 9,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "notifications",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "status-page",
+      "typescriptFiles": 14,
+      "productionFiles": 9,
+      "specFiles": 5,
+      "productionLoc": 1322,
+      "controllers": 2,
+      "services": 2,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "notifications",
+        "privacy",
+        "service-catalog",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "teams",
+      "typescriptFiles": 44,
+      "productionFiles": 38,
+      "specFiles": 6,
+      "productionLoc": 4352,
+      "controllers": 2,
+      "services": 11,
+      "moduleDependencies": [
+        "assets",
+        "audit-log",
+        "authentication",
+        "authorization",
+        "branding",
+        "changes",
+        "integration-queue",
+        "knowledge-base",
+        "notifications",
+        "on-call",
+        "service-catalog",
+        "settings",
+        "status-page",
+        "tickets"
+      ]
+    },
+    {
+      "module": "templates",
+      "typescriptFiles": 30,
+      "productionFiles": 24,
+      "specFiles": 6,
+      "productionLoc": 3103,
+      "controllers": 3,
+      "services": 3,
+      "moduleDependencies": [
+        "authentication",
+        "authorization",
+        "branding",
+        "change-log",
+        "notifications",
+        "settings",
+        "tickets"
+      ]
+    },
+    {
+      "module": "tickets",
+      "typescriptFiles": 577,
+      "productionFiles": 470,
+      "specFiles": 107,
+      "productionLoc": 31986,
+      "controllers": 19,
+      "services": 29,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "edge-extension",
+        "notifications",
+        "on-call",
+        "routing",
+        "service-catalog",
+        "settings",
+        "sla",
+        "templates",
+        "websocket"
+      ]
+    },
+    {
+      "module": "users",
+      "typescriptFiles": 54,
+      "productionFiles": 32,
+      "specFiles": 22,
+      "productionLoc": 2704,
+      "controllers": 4,
+      "services": 1,
+      "moduleDependencies": [
+        "audit-log",
+        "authentication",
+        "authorization",
+        "change-log",
+        "directory-sync",
+        "notifications",
+        "policy-packs",
+        "settings"
+      ]
+    },
+    {
+      "module": "websocket",
+      "typescriptFiles": 44,
+      "productionFiles": 28,
+      "specFiles": 16,
+      "productionLoc": 1707,
+      "controllers": 0,
+      "services": 2,
+      "moduleDependencies": [
+        "authentication",
+        "notifications",
+        "observability",
+        "settings",
+        "tickets"
+      ]
+    }
+  ]
+}
