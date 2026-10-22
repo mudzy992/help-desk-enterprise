@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-22",
+  "routes": {
+    "account-notifications-page": [
+      "src/services/notification-preferences-api.spec.ts",
+      "../e2e/tests/36-notifications-email.spec.ts"
+    ],
+    "account-security-page": [
+      "src/pages/account-security-page.spec.tsx",
+      "../e2e/tests/37-authentication-security.spec.ts"
+    ],
+    "admin-page": [
+      "src/pages/admin-page.spec.tsx",
+      "../e2e/tests/35-ops-health.spec.ts"
+    ],
+    "announcements-page": [
+      "src/lib/announcements/use-managed-announcements-data.spec.tsx",
+      "../e2e/tests/45-announcements-lifecycle.spec.ts"
+    ],
+    "appearance-page": [
+      "src/lib/theme/theme-storage.spec.ts",
+      "../e2e/tests/56-definitive-frontend-closeout.spec.ts"
+    ],
+    "asset-detail-page": [
+      "src/lib/assets/asset-view.spec.ts",
+      "../e2e/tests/26-assets-tickets.spec.ts"
+    ],
+    "assets-page": [
+      "src/lib/assets/parse-asset-register-query.spec.ts",
+      "../e2e/tests/23-assets.spec.ts"
+    ],
+    "auth-callback-page": ["src/pages/auth-callback-page.spec.tsx"],
+    "change-detail-page": [
+      "src/lib/changes/change-view.spec.ts",
+      "../e2e/tests/31-change-lifecycle.spec.ts"
+    ],
+    "changes-page": [
+      "src/lib/changes/change-list-filters.spec.ts",
+      "../e2e/tests/32-change-scheduling.spec.ts"
+    ],
+    "config-versions-page": [
+      "src/pages/config-versions-page.spec.tsx",
+      "../e2e/tests/09-config-ops.spec.ts"
+    ],
+    "dashboard-page": [
+      "src/pages/dashboard-page.spec.tsx",
+      "../e2e/tests/54-dashboard.spec.ts"
+    ],
+    "docs-page": [
+      "src/lib/docs/use-docs.spec.tsx",
+      "../e2e/tests/49-docs-smoke.spec.ts"
+    ],
+    "email-templates-page": [
+      "src/pages/email-templates-page.spec.tsx",
+      "../e2e/tests/11-email-templates.spec.ts"
+    ],
+    "install-page": [
+      "src/pages/install-page.spec.tsx",
+      "../e2e/tests/51-install-wizard-minimum.spec.ts"
+    ],
+    "install-preview-page": [
+      "src/components/install/install-wizard-e2e-markup.spec.tsx"
+    ],
+    "knowledge-article-detail-page": [
+      "src/lib/knowledge-base/use-knowledge-article.spec.tsx",
+      "../e2e/tests/34-knowledge-portal.spec.ts"
+    ],
+    "knowledge-base-page": [
+      "src/lib/knowledge-base/knowledge-portal.spec.ts",
+      "../e2e/tests/34-knowledge-portal.spec.ts"
+    ],
+    "legacy-admin-redirect": [
+      "src/lib/navigation.spec.ts",
+      "src/pages/admin-page.spec.tsx"
+    ],
+    "login-page": [
+      "src/pages/login-page.spec.tsx",
+      "../e2e/tests/39-login-session-flow.spec.ts"
+    ],
+    "my-assets-page": [
+      "src/lib/assets/asset-view.spec.ts",
+      "../e2e/tests/24-assets-access.spec.ts"
+    ],
+    "not-found-page": ["src/pages/not-found-page.spec.tsx"],
+    "on-call-page": [
+      "src/lib/on-call/on-call-view.spec.ts",
+      "../e2e/tests/44-on-call-schedule.spec.ts"
+    ],
+    "playbook-editor-page": [
+      "src/lib/templates/editor-lifecycle.spec.ts",
+      "../e2e/tests/16-templates-playbooks.spec.ts"
+    ],
+    "privacy-notice-page": [
+      "src/lib/privacy/privacy-view.spec.ts",
+      "../e2e/tests/43-privacy-notice-editor.spec.ts"
+    ],
+    "privacy-page": [
+      "src/components/privacy/privacy-workflow-contract.spec.ts",
+      "../e2e/tests/20-privacy.spec.ts"
+    ],
+    "problem-detail-page": [
+      "src/lib/problems/problem-view.spec.ts",
+      "../e2e/tests/30-problem-lifecycle.spec.ts"
+    ],
+    "problems-page": [
+      "src/lib/problems/problem-list-filters.spec.ts",
+      "../e2e/tests/29-problem-reports.spec.ts"
+    ],
+    "reports-page": [
+      "src/pages/reports-page.spec.tsx",
+      "../e2e/tests/55-reports-sla-closeout.spec.ts"
+    ],
+    "response-template-editor-page": [
+      "src/lib/templates/editor-lifecycle.spec.ts",
+      "../e2e/tests/16-templates-playbooks.spec.ts"
+    ],
+    "routing-page": [
+      "src/components/routing/build-routing-coverage-matrix.spec.ts",
+      "../e2e/tests/02-routing-fallback.spec.ts"
+    ],
+    "services-page": [
+      "src/lib/services/load-catalog-routing-coverage.spec.ts",
+      "../e2e/tests/42-catalog-sla-routing-ux.spec.ts"
+    ],
+    "sla-page": [
+      "src/pages/sla-page.spec.tsx",
+      "../e2e/tests/50-sla-escalations.spec.ts"
+    ],
+    "status-page": [
+      "src/lib/status/use-status-overview-data.spec.tsx",
+      "../e2e/tests/21-status-monitoring.spec.ts"
+    ],
+    "teams-admin-page": [
+      "src/pages/teams-admin-page.spec.tsx",
+      "../e2e/tests/33-teams-simulator.spec.ts"
+    ],
+    "templates-page": [
+      "src/lib/templates/templates-lib.spec.ts",
+      "../e2e/tests/16-templates-playbooks.spec.ts"
+    ],
+    "ticket-create-page": [
+      "src/lib/tickets/build-create-ticket-input.spec.ts",
+      "../e2e/tests/01-ticket-create.spec.ts"
+    ],
+    "ticket-detail-page": [
+      "src/lib/tickets/load-ticket-detail.spec.ts",
+      "../e2e/tests/40-ticket-workspace.spec.ts"
+    ],
+    "ticket-list-page": [
+      "src/components/tickets/hooks/use-ticket-list.spec.tsx",
+      "../e2e/tests/40-ticket-workspace.spec.ts"
+    ],
+    "tickets-page": [
+      "src/lib/tickets/ticket-page-query.spec.ts",
+      "../e2e/tests/40-ticket-workspace.spec.ts"
+    ],
+    "visual-qa-primitives-page": [
+      "src/components/ui/public-api-contract.spec.ts",
+      "../e2e/tests/22-accessibility.spec.ts"
+    ],
+    "workflow-page": [
+      "src/lib/workflow/layout-workflow-diagram.spec.ts",
+      "../e2e/tests/15-workflow-unrouted-realtime.spec.ts"
+    ]
+  }
+}
