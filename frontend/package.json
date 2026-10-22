@@ -15,7 +15,8 @@
     "audit:contrast": "node scripts/contrast-audit.mjs",
     "i18n:check": "node ../scripts/check-pulse-design-system.mjs",
     "audit:production": "npm audit --omit=dev --audit-level=high --json",
-    "bundle:check": "node ../scripts/check-frontend-bundle-budget.mjs"
+    "bundle:check": "node ../scripts/check-frontend-bundle-budget.mjs",
+    "docs:frontend:check": "node ../scripts/check-frontend-docs.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.30.0",

@@ -7,6 +7,23 @@
 > Nalazi u `docs/plans/**` se **ne ispravljaju** u ovoj fazi; ovdje se samo evidentiraju (odluka vlasnika,
 > 2026-10-03).
 
+## 2026-10-22 — Frontend dokumentacijski indeks, paginirane novosti i lebdeći sadržaj
+
+**Dodato:** `docs/frontend/README.md` kao jedinstvena ulazna tačka te indeksi za aktuelni audit, aktivni plan,
+arhitekturu, quality dokaze i tehničku frontend hronologiju. Postojeće putanje nisu premještane. Novi
+`check-frontend-docs.mjs` provjerava relativne linkove, status/datum dokumenata, jednu kanonsku audit oznaku i ISO
+datume u stranici „Šta je novo“.
+
+**Izmijenjeno:** `docs/user-guide/sta-je-novo.md` dobio je stvarne stavke završene 22.10.2026. i zapis incidenta
+iz 16.10. koji je već postojao u tehničkom dnevniku. Aplikacijska stranica sada prikazuje deset novosti po stranici,
+čuva broj stranice u `changesPage` parametru i nudi pristupačne prethodna/sljedeća kontrole. Pretraga i dalje
+indeksira puni dokument. Desni sidebar **Na ovoj stranici** na širokom viewportu koristi sticky pozicioniranje,
+ograničenu visinu i vlastiti skrol, pa ostaje dostupan tokom čitanja dugog vodiča. Ogledalo
+`backend/content/docs/` je regenerisano.
+
+**Zašto:** rastući dnevnik više ne smije praviti jednu neograničenu tabelu, a sadržaj dugog vodiča ne treba nestati
+iz viewporta. Istovremeno je uklonjena nejasnoća između aktuelnog audita/plana i historijskih snapshotova.
+
 ## 2026-10-16 — Lažni alarm „Worker ne radi" i zaustavljen izlazni e-mail (incident)
 
 **Razlog (incident 2026-10-16):** na svježoj instalaciji administrator je dobio KRITIČNO *„Worker ne radi"*
