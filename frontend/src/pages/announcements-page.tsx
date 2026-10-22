@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { BarChart3, Megaphone, Pencil, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import { AnnouncementEditorDialog } from "@/components/announcements/announcement-editor-dialog";
+import { AnnouncementArchive } from "@/components/announcements/announcement-archive";
 import { AnnouncementReportDialog } from "@/components/announcements/announcement-report-dialog";
-import { MarkdownView } from "@/components/privacy/markdown-view";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { errorTextClassName, hintClassName } from "@/components/ui/control";
+import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Textarea } from "@/components/ui/field";
 import { PageHeader } from "@/components/layout/page-header";
@@ -35,7 +35,6 @@ import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
   deleteAnnouncement,
-  getAnnouncementArchive,
   getAnnouncementCapabilities,
   previewAnnouncementAudience,
   publishAnnouncement,
@@ -161,91 +160,6 @@ export function AnnouncementsPage() {
       ) : null}
       {canManage && tab === "manage" ? <ManageAnnouncements /> : <AnnouncementArchive />}
     </div>
-  );
-}
-
-function AnnouncementArchive() {
-  const { t, i18n } = useTranslation();
-  const { data, error, isLoading } = useQuery({
-    queryKey: announcementQueryKeys.archive,
-    queryFn: getAnnouncementArchive,
-    retry: false,
-  });
-  const [searchParams] = useSearchParams();
-  const openId = searchParams.get("open");
-  // Delivery links can deep-link to and expand one announcement.
-  useEffect(() => {
-    if (openId === null || data === undefined) return;
-    const element = document.getElementById(`announcement-${openId}`);
-    if (element instanceof HTMLDetailsElement) {
-      element.open = true;
-      element.scrollIntoView({ block: "start" });
-      element.querySelector("summary")?.focus({ preventScroll: true });
-    }
-  }, [openId, data]);
-  const formatter = announcementDateTimeFormatter(i18n.language);
-  if (isLoading) return <PanelSkeleton label={t("ui.loading")} />;
-  if (error) {
-    return (
-      <p role="alert" className={errorTextClassName}>
-        {t(mapAnnouncementError(error) ?? mapApiError(error))}
-      </p>
-    );
-  }
-  if (data === undefined || data.length === 0) {
-    return (
-      <EmptyState
-        icon={<Megaphone size={18} />}
-        title={t("announcements.archive.emptyTitle")}
-        body={t("announcements.archive.emptyBody")}
-      />
-    );
-  }
-  return (
-    <ul className="grid gap-3" aria-label={t("announcements.archive.label")}>
-      {data.map((item) => (
-        <li key={item.id}>
-          <Card>
-            <details className="group" id={`announcement-${item.id}`}>
-              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
-                <Badge tone={severityTone(item.severity)}>
-                  {t(announcementSeverityKeys[item.severity])}
-                </Badge>
-                <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
-                  {item.title}
-                </span>
-                {item.requiresAcknowledgement ? (
-                  item.acknowledgedAt ? (
-                    <Badge tone="success">
-                      {t("announcements.archive.acknowledgedAt", {
-                        at: formatter.format(new Date(item.acknowledgedAt)),
-                      })}
-                    </Badge>
-                  ) : (
-                    <Badge tone="warning">{t("announcements.archive.notAcknowledged")}</Badge>
-                  )
-                ) : null}
-                <span className="text-[11.5px] text-muted-foreground">
-                  {formatter.format(new Date(item.startsAt))} –{" "}
-                  {formatter.format(new Date(item.endsAt))}
-                </span>
-              </summary>
-              <div className="border-t border-border/70 px-4 py-3">
-                {item.serviceName ? (
-                  <p className={hintClassName}>
-                    {t("announcements.banner.service", { name: item.serviceName })}
-                  </p>
-                ) : null}
-                <MarkdownView
-                  source={item.body}
-                  className="grid gap-2 text-[12.5px] leading-5 text-foreground"
-                />
-              </div>
-            </details>
-          </Card>
-        </li>
-      ))}
-    </ul>
   );
 }
 

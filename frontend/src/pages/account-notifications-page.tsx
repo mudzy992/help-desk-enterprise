@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +13,10 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useLocale } from "@/i18n/use-locale";
+import {
+  notificationCategoryLabel,
+  notificationEmailModes,
+} from "@/lib/notifications/notification-preference-view";
 import { queryKeys } from "@/lib/query/query-keys";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { ApiError } from "@/services/api";
@@ -32,29 +35,18 @@ import {
   type NotificationPreferences,
 } from "@/services/notification-preferences-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
+import {
+  NotificationAvailabilityNotices,
+  NotificationLockHint,
+  NotificationTeamsStatus,
+} from "@/components/account/notification-preference-views";
 import { OnCallCalendarFeedCard } from "@/components/on-call/on-call-calendar-feed-card";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { getTeamsMe } from "@/services/teams-api";
 
-type CategoryLabelKey =
-  `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
-type Replace<S extends string> = S extends `${infer Head}.${infer Tail}`
-  ? `${Head}_${Replace<Tail>}`
-  : S;
-
-const categoryLabel = (key: NotificationPreferenceCategoryKey) =>
-  `account.notifications.categories.${key.replace(/\./g, "_")}` as CategoryLabelKey;
-
-const emailModes: readonly NotificationEmailMode[] = ["IMMEDIATE", "DIGEST", "OFF"];
-
-/**
- * Paket 2.2 (N10): "Moj profil → Notifikacije". A draft copy is edited
- * locally and saved in one PUT with only the changed values.
- */
 export function AccountNotificationsPage() {
   const capabilities = useSessionCapabilities();
-  // Paket 2.9 (K3): personal on-call calendar feed for holders of oncall.read.
   const canUseOnCall =
     capabilities.session !== null &&
     (capabilities.session.isSuperAdmin || capabilities.hasPermission(permissionKeys.onCallRead));
@@ -156,7 +148,6 @@ export function AccountNotificationsPage() {
     );
 
   const policy = draft?.policy;
-  // Paket 3.1: Teams column only while the connector can deliver to personal chats.
   const showTeams = policy?.teamsChannelAvailable === true;
   const [teamsConnected, setTeamsConnected] = useState<boolean | null>(null);
   useEffect(() => {
@@ -207,31 +198,12 @@ export function AccountNotificationsPage() {
       {query.isPending ? <PanelSkeleton label={t("account.notifications.title")} /> : null}
       {draft && policy ? (
         <div className="space-y-5">
-          {!editable ? (
-            <p className="rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground">
-              {t("account.notifications.disabledByAdmin")}
-            </p>
-          ) : null}
-          {!policy.emailChannelAvailable ? (
-            <p className="rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground">
-              {t("account.notifications.emailUnavailable")}
-            </p>
-          ) : null}
+          <NotificationAvailabilityNotices
+            editable={editable}
+            emailAvailable={policy.emailChannelAvailable}
+          />
           {showTeams && teamsConnected !== null ? (
-            <p
-              className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface px-3 py-2 text-[12.5px] text-muted-foreground"
-              data-testid="teams-connection"
-            >
-              <span className="font-medium text-foreground">
-                {t("account.notifications.teamsLabel")}
-              </span>
-              <Badge tone={teamsConnected ? "success" : "neutral"} dot>
-                {teamsConnected
-                  ? t("account.notifications.teamsConnected")
-                  : t("account.notifications.teamsNotInstalled")}
-              </Badge>
-              {teamsConnected ? null : <span>{t("account.notifications.teamsInstallHint")}</span>}
-            </p>
+            <NotificationTeamsStatus connected={teamsConnected} />
           ) : null}
           {problems.length > 0 ? (
             <ul
@@ -275,10 +247,10 @@ export function AccountNotificationsPage() {
                     <tr key={category.key} className="border-b border-border/50 last:border-0">
                       <td className="px-4 py-2.5 align-top">
                         <p className="font-medium text-foreground">
-                          {t(`${categoryLabel(category.key)}.label`)}
+                          {t(`${notificationCategoryLabel(category.key)}.label`)}
                         </p>
                         <p className="text-[11.5px] text-muted-foreground">
-                          {t(`${categoryLabel(category.key)}.hint`)}
+                          {t(`${notificationCategoryLabel(category.key)}.hint`)}
                         </p>
                       </td>
                       <td className="px-4 py-2.5 align-top">
@@ -290,10 +262,10 @@ export function AccountNotificationsPage() {
                               onCheckedChange={(checked) =>
                                 updateCategory(category.key, { inApp: checked })
                               }
-                              aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnInApp")}`}
+                              aria-label={`${t(`${notificationCategoryLabel(category.key)}.label`)} — ${t("account.notifications.columnInApp")}`}
                             />
                             {category.alwaysOn || category.inAppLocked ? (
-                              <LockHint alwaysOn={category.alwaysOn} />
+                              <NotificationLockHint alwaysOn={category.alwaysOn} />
                             ) : null}
                           </div>
                         ) : (
@@ -313,10 +285,10 @@ export function AccountNotificationsPage() {
                                   email: event.target.value as NotificationEmailMode,
                                 })
                               }
-                              aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnEmail")}`}
+                              aria-label={`${t(`${notificationCategoryLabel(category.key)}.label`)} — ${t("account.notifications.columnEmail")}`}
                               className="w-auto min-w-[9rem]"
                             >
-                              {emailModes
+                              {notificationEmailModes
                                 .filter(
                                   (mode) =>
                                     mode !== "DIGEST" ||
@@ -329,7 +301,9 @@ export function AccountNotificationsPage() {
                                   </option>
                                 ))}
                             </Select>
-                            {category.emailLocked ? <LockHint alwaysOn={false} /> : null}
+                            {category.emailLocked ? (
+                              <NotificationLockHint alwaysOn={false} />
+                            ) : null}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">
@@ -346,7 +320,7 @@ export function AccountNotificationsPage() {
                               onCheckedChange={(checked) =>
                                 updateCategory(category.key, { teams: checked })
                               }
-                              aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnTeams")}`}
+                              aria-label={`${t(`${notificationCategoryLabel(category.key)}.label`)} — ${t("account.notifications.columnTeams")}`}
                             />
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -522,19 +496,5 @@ export function AccountNotificationsPage() {
         onConfirm={() => void reset()}
       />
     </div>
-  );
-}
-
-function LockHint({ alwaysOn }: { readonly alwaysOn: boolean }) {
-  const { t } = useTranslation();
-  const label = t(alwaysOn ? "account.notifications.alwaysOn" : "account.notifications.locked");
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
-      title={label}
-    >
-      <Lock size={12} aria-hidden="true" />
-      <span className="sr-only sm:not-sr-only">{label}</span>
-    </span>
   );
 }

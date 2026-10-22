@@ -1,10 +1,11 @@
-import { BookOpen, Eye, EyeOff, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { CaptchaSlot, hasTurnstileConfiguration } from "@/components/auth/captcha-slot";
 import { type CaptchaLoadState } from "@/components/auth/captcha-challenge";
 import { LoginFlowStep } from "@/components/auth/login-flow-step";
+import { LoginValuePoints, MicrosoftMark } from "@/components/auth/login-presentation";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import { useBranding } from "@/lib/branding/branding-store";
@@ -36,12 +37,6 @@ import {
   stays narrow and focused on the right. The form markup (ids, submit button,
   change-password flow) is unchanged on purpose — it is the E2E entry point.
 */
-
-const POINTS = [
-  { icon: Ticket, key: "login.pointTickets" },
-  { icon: BookOpen, key: "login.pointKnowledge" },
-  { icon: TrendingUp, key: "login.pointInsight" },
-] as const;
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -246,18 +241,7 @@ export function LoginPage() {
           <p className="mt-3 text-[13.5px] leading-6 text-primary-foreground/85">
             {t("login.panelBody")}
           </p>
-          <ul className="mt-7 space-y-3">
-            {POINTS.map((point) => (
-              <li key={point.key} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 text-primary-foreground">
-                  <point.icon size={14} strokeWidth={2} aria-hidden="true" />
-                </span>
-                <span className="text-[12.5px] leading-5 text-primary-foreground/90">
-                  {t(point.key)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <LoginValuePoints />
         </div>
 
         <p className="relative flex items-center gap-1.5 text-[11.5px] text-primary-foreground/70">
@@ -499,21 +483,5 @@ export function LoginPage() {
         </section>
       </main>
     </div>
-  );
-}
-
-/** Four-square Microsoft logo (brand colours are fixed by Microsoft). */
-function MicrosoftMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 21 21" aria-hidden="true" className="mr-1.5">
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
   );
 }
