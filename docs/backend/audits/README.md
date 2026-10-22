@@ -15,6 +15,7 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 05 — organizational-units                               | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
 | 06 — groups                                             | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
 | 07 — settings                                           | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
-| 08–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 08 — audit-log                                          | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
+| 09–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
