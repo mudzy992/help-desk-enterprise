@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "lockedAt": "2026-10-22",
+  "owner": "frontend-platform",
+  "reviewBy": "2027-01-22",
+  "runnerClass": {
+    "browser": "Chromium stable, headless",
+    "ci": "GitHub hosted ubuntu-latest, 4 vCPU class",
+    "measurement": "three runs; cold and warm navigation reported separately"
+  },
+  "builds": {
+    "production": {
+      "buildKind": "production",
+      "reactCommitsRequired": false,
+      "maxLongTasks": 8,
+      "maxTotalLongTaskDurationMs": 800,
+      "maxSingleLongTaskMs": 250
+    },
+    "reactProfiling": {
+      "buildKind": "react-profiling",
+      "reactCommitsRequired": true,
+      "maxCommits": 40,
+      "maxTotalCommitDurationMs": 500,
+      "maxSingleCommitDurationMs": 120,
+      "maxLongTasks": 8,
+      "maxTotalLongTaskDurationMs": 800,
+      "maxSingleLongTaskMs": 250
+    }
+  },
+  "scenarios": [
+    {
+      "key": "dashboard",
+      "path": "/?profile=1",
+      "fixtureCardinality": { "tickets": 250, "activity": 100 }
+    },
+    {
+      "key": "ticket-list",
+      "path": "/tickets?view=all&profile=1",
+      "fixtureCardinality": { "tickets": 1000 }
+    },
+    {
+      "key": "ticket-inbox",
+      "path": "/tickets?view=inbox&profile=1",
+      "fixtureCardinality": { "tickets": 1000 }
+    },
+    {
+      "key": "ticket-detail",
+      "path": "/tickets/{ticketId}?profile=1",
+      "fixtureCardinality": { "messages": 250, "events": 250 }
+    },
+    {
+      "key": "assets",
+      "path": "/assets?profile=1",
+      "fixtureCardinality": { "assets": 1000 }
+    },
+    {
+      "key": "service-catalog",
+      "path": "/services?profile=1",
+      "fixtureCardinality": { "services": 500 }
+    }
+  ]
+}

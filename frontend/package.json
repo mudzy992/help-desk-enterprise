@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:profiling": "tsc -b && vite build --mode react-profiling --outDir dist-profiling",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
