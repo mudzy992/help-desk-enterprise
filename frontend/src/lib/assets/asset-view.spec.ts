@@ -4,6 +4,7 @@ import {
   assetStatusTransitions,
   daysUntil,
   formatAttributeValue,
+  resolveAssetActionAvailability,
   warrantyState,
 } from "@/lib/assets/asset-view";
 
@@ -24,6 +25,32 @@ describe("asset view helpers ()", () => {
     expect(assetStatusTransitions.DISPOSED).toEqual([]);
     expect(assetStatusTransitions.RETIRED).toContain("DISPOSED");
     expect(assetStatusTransitions.IN_USE).not.toContain("DISPOSED");
+  });
+
+  it("resolves detail actions from permissions, assignment and status", () => {
+    expect(
+      resolveAssetActionAvailability({
+        canManage: false,
+        canDelete: false,
+        status: "IN_STOCK",
+        assigned: true,
+      }),
+    ).toEqual({
+      edit: false,
+      duplicate: false,
+      changeStatus: false,
+      assign: false,
+      unassign: false,
+      delete: false,
+    });
+    expect(
+      resolveAssetActionAvailability({
+        canManage: true,
+        canDelete: true,
+        status: "DISPOSED",
+        assigned: true,
+      }),
+    ).toMatchObject({ assign: false, unassign: true, delete: true });
   });
 
   it("formats attribute values for display", () => {

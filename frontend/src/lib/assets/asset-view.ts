@@ -71,6 +71,22 @@ export const assetAssignableStatuses: readonly AssetStatus[] = [
   "IN_REPAIR",
 ];
 
+export function resolveAssetActionAvailability(input: {
+  readonly canManage: boolean;
+  readonly canDelete: boolean;
+  readonly status: AssetStatus;
+  readonly assigned: boolean;
+}) {
+  return {
+    edit: input.canManage,
+    duplicate: input.canManage,
+    changeStatus: input.canManage,
+    assign: input.canManage && assetAssignableStatuses.includes(input.status),
+    unassign: input.canManage && input.assigned,
+    delete: input.canDelete,
+  } as const;
+}
+
 export const assetRelationKindKeys: {
   readonly [K in AssetRelationKind]: {
     readonly out: `assets.relations.kinds.${K}.out`;
