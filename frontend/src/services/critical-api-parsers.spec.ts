@@ -71,10 +71,24 @@ describe("critical API parsers", () => {
   });
 
   it("validates paginated ticket and routing envelopes", () => {
+    const ticket = {
+      id: "ticket-1",
+      ticketNumber: "HD-44",
+      title: "VPN access",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+    };
     expect(
-      parseTicketPage({ items: [], total: 0, totalsAsOf: 1, page: 1, pageSize: 50 }).items,
-    ).toEqual([]);
+      parseTicketPage({ items: [ticket], total: 44, totalsAsOf: 1, page: 1, pageSize: 50 }).items,
+    ).toEqual([ticket]);
     invalid(parseTicketPage, { items: {}, total: 0, totalsAsOf: 1, page: 1, pageSize: 50 });
+    invalid(parseTicketPage, {
+      items: [{ ...ticket, ticketNumber: undefined }],
+      total: 1,
+      totalsAsOf: 1,
+      page: 1,
+      pageSize: 50,
+    });
     invalid(parseRoutingCoveragePage, {
       items: [],
       total: 0,

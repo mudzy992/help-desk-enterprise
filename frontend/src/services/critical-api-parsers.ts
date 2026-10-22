@@ -157,7 +157,7 @@ export function parseConfigPackageImportReport(value: unknown): ConfigPackageImp
 
 function ticket(value: unknown, context: string): TicketResponse {
   const item = record(value, context);
-  for (const key of ["id", "number", "title", "status", "priority"])
+  for (const key of ["id", "ticketNumber", "title", "status", "priority"])
     nonEmptyString(item[key], `${context}.${key}`);
   return item as TicketResponse;
 }
