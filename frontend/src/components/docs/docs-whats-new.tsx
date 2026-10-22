@@ -67,10 +67,10 @@ export function DocsWhatsNew({ headingIds, markdown, onPageChange, page }: DocsW
     );
 
   return (
-    <>
-      {pagination}
-      <MarkdownView headingIds={headingIds} source={result.markdown} />
-      {pagination}
-    </>
+    <MarkdownView
+      headingIds={headingIds}
+      renderTableNavigation={() => pagination}
+      source={result.markdown}
+    />
   );
 }
