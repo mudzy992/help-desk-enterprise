@@ -25,8 +25,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  07 | `settings`               | kritičan |           103 |           28 | 9.375 |          2 |       1 | audit završen |
 |  08 | `audit-log`              | visok    |            21 |            7 | 1.625 |          1 |       1 | audit završen |
 |  09 | `security`               | kritičan |             9 |            6 |   999 |          5 |       3 | audit završen |
-|  10 | `security-audit-webhook` | visok    |            11 |            2 |   665 |          0 |       2 | sljedeće      |
-|  11 | `privacy`                | kritičan |            44 |           16 | 6.635 |          3 |      11 | nije započeto |
+|  10 | `security-audit-webhook` | visok    |            11 |            2 |   665 |          0 |       2 | audit završen |
+|  11 | `privacy`                | kritičan |            44 |           16 | 6.635 |          3 |      11 | sljedeće      |
 
 ### Val B — jezgra tiketa i izvršenje
 
