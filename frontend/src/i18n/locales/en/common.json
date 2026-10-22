@@ -3658,7 +3658,10 @@
       "timeZoneHint": "Civil time in your browser zone: {{timeZone}}. The end must be after the start.",
       "refreshWarning": "Showing the last loaded windows because the refresh failed.",
       "cancelConfirmTitle": "Cancel this downtime window?",
-      "cancelConfirmDescription": "This window will be removed from the schedule. The reason remains recorded in the audit log."
+      "cancelConfirmDescription": "This window will be removed from the schedule. The reason remains recorded in the audit log.",
+      "upcomingBadge_one": "+{{count}} scheduled downtime",
+      "upcomingBadge_other": "+{{count}} scheduled downtimes",
+      "upcomingBadge_zero": "+{{count}} scheduled downtimes"
     },
     "columnName": "Service",
     "columnLifecycle": "Lifecycle",

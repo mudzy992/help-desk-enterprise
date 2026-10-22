@@ -42,6 +42,7 @@ describe('evaluateServiceRuntimeAvailability', () => {
     expect(runtime.ticketCreationAllowed).toBe(true);
     expect(runtime.hasActiveDowntime).toBe(false);
     expect(runtime.hasUpcomingDowntime).toBe(false);
+    expect(runtime.upcomingDowntimeCount).toBe(0);
   });
 
   it('marks stored DOWN and MAINTENANCE as currently unavailable', () => {
@@ -84,10 +85,17 @@ describe('evaluateServiceRuntimeAvailability', () => {
         startsAt: '2026-09-10T12:00:00.000Z',
         endsAt: '2026-09-10T13:00:00.000Z',
       }),
+      windowRecord({
+        id: 'later-future',
+        startsAt: '2026-09-10T14:00:00.000Z',
+        endsAt: '2026-09-10T15:00:00.000Z',
+      }),
     ]);
     expect(runtime.state).toBe('CURRENTLY_AVAILABLE');
     expect(runtime.hasUpcomingDowntime).toBe(true);
+    expect(runtime.upcomingDowntimeCount).toBe(2);
     expect(runtime.hasActiveDowntime).toBe(false);
+    expect(runtime.upcomingDowntimeWindow?.id).toBe('future');
     expect(runtime.upcomingDowntimeWindow?.phase).toBe('UPCOMING');
     expect(runtime.effectiveAvailability).toBe('OPERATIONAL');
     expect(runtime.ticketCreationAllowed).toBe(true);

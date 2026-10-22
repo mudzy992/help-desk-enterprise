@@ -99,6 +99,7 @@ describe("critical API parsers", () => {
         isCurrentlyUnavailable: false,
         hasActiveDowntime: false,
         hasUpcomingDowntime: false,
+        upcomingDowntimeCount: 0,
         showStatusInTicketCreate: false,
       },
       activeForm: { fieldCount: 0 },

@@ -268,12 +268,16 @@ function ServiceCatalogTableRow({
                 onClick={() => onManageDowntime(service)}
               >
                 <Badge tone="info" className="text-[10px]" dot={false}>
-                  {t("services.downtime.upcomingBadge", { count: 1 })}
+                  {t("services.downtime.upcomingBadge", {
+                    count: service.runtimeAvailability.upcomingDowntimeCount,
+                  })}
                 </Badge>
               </button>
             ) : (
               <Badge tone="info" className="text-[10px]" dot={false}>
-                {t("services.downtime.upcomingBadge", { count: 1 })}
+                {t("services.downtime.upcomingBadge", {
+                  count: service.runtimeAvailability.upcomingDowntimeCount,
+                })}
               </Badge>
             )
           ) : null}

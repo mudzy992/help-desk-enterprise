@@ -39,6 +39,7 @@ export type ServiceRuntimeAvailability = {
   readonly isCurrentlyUnavailable: boolean;
   readonly hasActiveDowntime: boolean;
   readonly hasUpcomingDowntime: boolean;
+  readonly upcomingDowntimeCount: number;
   readonly activeDowntimeWindow: DowntimeWindowResponse | null;
   readonly upcomingDowntimeWindow: DowntimeWindowResponse | null;
   readonly ticketCreationAllowed: true;

@@ -3675,7 +3675,11 @@
       "timeZoneHint": "Lokalno vrijeme u zoni preglednika: {{timeZone}}. Kraj mora biti nakon početka.",
       "refreshWarning": "Prikazuju se posljednji učitani periodi jer osvježavanje nije uspjelo.",
       "cancelConfirmTitle": "Otkazati period nedostupnosti?",
-      "cancelConfirmDescription": "Ovaj period će biti uklonjen iz rasporeda. Razlog ostaje zabilježen u auditu."
+      "cancelConfirmDescription": "Ovaj period će biti uklonjen iz rasporeda. Razlog ostaje zabilježen u auditu.",
+      "upcomingBadge_one": "+{{count}} zakazani prekid",
+      "upcomingBadge_few": "+{{count}} zakazana prekida",
+      "upcomingBadge_other": "+{{count}} zakazanih prekida",
+      "upcomingBadge_zero": "+{{count}} zakazanih prekida"
     },
     "columnName": "Usluga",
     "columnLifecycle": "Životni ciklus",

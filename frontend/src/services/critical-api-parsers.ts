@@ -99,6 +99,7 @@ function service(value: unknown, context: string): ServiceResponse {
     "showStatusInTicketCreate",
   ])
     boolean(runtime[key], `${context}.runtimeAvailability.${key}`);
+  number(runtime.upcomingDowntimeCount, `${context}.runtimeAvailability.upcomingDowntimeCount`);
   const activeForm = record(item.activeForm, `${context}.activeForm`);
   number(activeForm.fieldCount, `${context}.activeForm.fieldCount`);
   if (item.onboarding !== undefined && item.onboarding !== null)
