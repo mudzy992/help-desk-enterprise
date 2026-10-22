@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseRoutingCoveragePage } from "@/services/critical-api-parsers";
 
 export type RoutingOutcome = "EXACT" | "PARENT_FALLBACK" | "UNROUTED";
 
@@ -88,7 +89,7 @@ export function listRoutingCoverage(
   if (query.cursor !== undefined) search.set("cursor", query.cursor);
   const serialized = search.toString();
   const suffix = serialized.length === 0 ? "" : `?${serialized}`;
-  return apiRequest(`/routing/coverage${suffix}`);
+  return apiRequestValidated(`/routing/coverage${suffix}`, parseRoutingCoveragePage);
 }
 
 export function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {

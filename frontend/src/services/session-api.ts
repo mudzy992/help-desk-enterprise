@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequestValidated } from "@/services/api";
+import { parseCurrentSession } from "@/services/critical-api-parsers";
 import type { SessionPrincipal } from "@/services/session-store";
 
 export type CurrentSessionResponse = {
@@ -17,5 +18,5 @@ export type CurrentSessionResponse = {
 };
 
 export function getCurrentSession(): Promise<CurrentSessionResponse> {
-  return apiRequest("/auth/session");
+  return apiRequestValidated("/auth/session", parseCurrentSession);
 }

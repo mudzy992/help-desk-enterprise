@@ -1,4 +1,13 @@
-import { apiDownloadRequest, apiRequest, type ApiDownloadResult } from "@/services/api";
+import {
+  apiDownloadRequest,
+  apiRequest,
+  apiRequestValidated,
+  type ApiDownloadResult,
+} from "@/services/api";
+import {
+  parseConfigPackageImportReport,
+  parseConfigVersionList,
+} from "@/services/critical-api-parsers";
 import type {
   ConfigPackageImportReport,
   ConfigPackageMappings,
@@ -22,7 +31,7 @@ export type {
 } from "@/services/config-versions-types";
 
 export function listConfigVersions(): Promise<readonly ConfigVersion[]> {
-  return apiRequest("/config-versions");
+  return apiRequestValidated("/config-versions", parseConfigVersionList);
 }
 
 export function createConfigVersion(releaseNotes?: string): Promise<ConfigVersion> {
@@ -98,7 +107,7 @@ function configPackageForm(input: ConfigPackageImportInput): FormData {
 export function previewConfigPackageImport(
   input: ConfigPackageImportInput,
 ): Promise<ConfigPackageImportReport> {
-  return apiRequest("/config-versions/import/preview", {
+  return apiRequestValidated("/config-versions/import/preview", parseConfigPackageImportReport, {
     method: "POST",
     body: configPackageForm(input),
   });

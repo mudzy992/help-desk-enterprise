@@ -2,7 +2,11 @@ import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/browser";
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import {
+  parseAuthenticationLogin,
+  parseAuthenticationSession,
+} from "@/services/critical-api-parsers";
 import type { SessionPrincipal } from "@/services/session-store";
 
 /** The session the API established. The token travels only in its HttpOnly cookie. */
@@ -135,7 +139,7 @@ export function loginWithPassword(input: {
   /** sent only once the page shows the Turnstile widget. */
   readonly captchaToken?: string;
 }): Promise<AuthenticationLoginResponse> {
-  return apiRequest("/auth/login", {
+  return apiRequestValidated("/auth/login", parseAuthenticationLogin, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -145,7 +149,7 @@ export function changePasswordOnFirstLogin(input: {
   readonly passwordChangeToken: string;
   readonly newPassword: string;
 }): Promise<AuthenticationLoginResponse> {
-  return apiRequest("/auth/change-password", {
+  return apiRequestValidated("/auth/change-password", parseAuthenticationLogin, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${input.passwordChangeToken}`,
@@ -156,7 +160,7 @@ export function changePasswordOnFirstLogin(input: {
 
 /** 1 h session, extended while the user is active. */
 export function refreshSession(): Promise<AuthenticationSessionResponse> {
-  return apiRequest("/auth/refresh", { method: "POST" });
+  return apiRequestValidated("/auth/refresh", parseAuthenticationSession, { method: "POST" });
 }
 
 /** Server-side sign out (revokes the token); callers may abort a stalled request. */
@@ -183,7 +187,7 @@ export function getAuthenticationProviders(): Promise<AuthenticationProviders> {
 
 /** Exchanges a Microsoft Entra ID token for an application session. */
 export function loginWithEntraIdToken(idToken: string): Promise<AuthenticationSessionResponse> {
-  return apiRequest("/auth/entra", {
+  return apiRequestValidated("/auth/entra", parseAuthenticationSession, {
     method: "POST",
     body: JSON.stringify({ idToken }),
   });

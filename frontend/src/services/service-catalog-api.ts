@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseServiceCatalog } from "@/services/critical-api-parsers";
 import {
   listServiceCategories as listServiceCategoriesFromApi,
   type ServiceCategoryResponse as ServiceCategoryApiResponse,
@@ -158,11 +159,11 @@ export type ServiceTicketCreationEligibility = {
 };
 
 export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequest("/services?offeredOnly=true");
+  return apiRequestValidated("/services?offeredOnly=true", parseServiceCatalog);
 }
 
 export function listServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequest("/services");
+  return apiRequestValidated("/services", parseServiceCatalog);
 }
 
 export function createService(input: CreateServiceInput): Promise<ServiceResponse> {

@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseSettingsRegistry } from "@/services/critical-api-parsers";
 import type { InstallAddonsStatus } from "@/services/install-addons-api";
 
 export type EmailChannelSettings = {
@@ -77,7 +78,7 @@ export function getEmailChannelSettings(): Promise<EmailChannelSettings> {
 }
 
 export function getSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> {
-  return apiRequest("/settings");
+  return apiRequestValidated("/settings", parseSettingsRegistry);
 }
 
 export function getPublicSettings(): Promise<

@@ -1,5 +1,6 @@
 import { installTokenHeaders } from "@/lib/install/install-token-store";
 import { readStoredSession } from "@/services/session-store";
+import type { ApiParser } from "@/services/api-contract";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -137,7 +138,16 @@ async function readApiResponse<T>(response: Response): Promise<T> {
   if (text.trim().length === 0) {
     return undefined as T;
   }
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(
+      502,
+      "INVALID_API_RESPONSE",
+      "The API returned malformed JSON",
+      response.headers.get("x-request-id"),
+    );
+  }
 }
 
 /** Body plus response headers for endpoints that return pagination metadata. */
@@ -151,6 +161,28 @@ export async function apiRequestWithHeaders<T>(
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await apiRequestWithHeaders<T>(path, init)).data;
+}
+
+/** Runtime-validated trust boundary for critical API contracts. */
+export async function apiRequestValidated<T>(
+  path: string,
+  parser: ApiParser<T>,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await apiRequestWithHeaders<unknown>(path, init);
+  try {
+    return parser(response.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "INVALID_API_RESPONSE") {
+      throw new ApiError(
+        error.status,
+        error.code,
+        error.message,
+        error.requestId ?? response.headers.get("x-request-id"),
+      );
+    }
+    throw error;
+  }
 }
 
 export async function apiBlobRequest(path: string, init: RequestInit = {}): Promise<Blob> {

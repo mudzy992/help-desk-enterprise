@@ -2,7 +2,8 @@ import {
   toTicketListSearchParams,
   type TicketPageQuery,
 } from "@/lib/tickets/ticket-list-search-params";
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseTicketPage } from "@/services/critical-api-parsers";
 import type { ServiceFormSchema } from "@/services/service-catalog-api";
 
 export type TicketSlaSnapshot = {
@@ -213,7 +214,7 @@ export type TicketPage = {
 /** One page of the caller's group inbox, with server-calculated totals. */
 export function listGroupInboxPage(query: TicketPageQuery = {}): Promise<TicketPage> {
   const search = toTicketListSearchParams(query).toString();
-  return apiRequest(`/tickets/inbox?${search}`);
+  return apiRequestValidated(`/tickets/inbox?${search}`, parseTicketPage);
 }
 
 /**
@@ -225,7 +226,7 @@ export function listGroupInboxPage(query: TicketPageQuery = {}): Promise<TicketP
  */
 export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
   const search = toTicketListSearchParams(query).toString();
-  return apiRequest(`/tickets?${search}`);
+  return apiRequestValidated(`/tickets?${search}`, parseTicketPage);
 }
 
 export function getTicket(ticketId: string): Promise<TicketResponse> {

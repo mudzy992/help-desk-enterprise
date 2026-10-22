@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseInstallSetupStatus } from "@/services/critical-api-parsers";
 import type { InstallProfile } from "@/services/install-profile-api";
 import type { InstallStepKey, InstallWizardStep } from "@/services/install-step-key";
 
@@ -97,11 +98,11 @@ export type SaveInstallLoginProviderInput = {
 };
 
 export function loadInstallSetupStatus(): Promise<InstallSetupStatus> {
-  return apiRequest<InstallSetupStatus>("/install/status");
+  return apiRequestValidated("/install/status", parseInstallSetupStatus);
 }
 
 export function completeInstallSetup(): Promise<InstallSetupStatus> {
-  return apiRequest<InstallSetupStatus>("/install/complete", {
+  return apiRequestValidated("/install/complete", parseInstallSetupStatus, {
     method: "POST",
   });
 }
