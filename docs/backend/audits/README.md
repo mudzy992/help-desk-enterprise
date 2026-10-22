@@ -13,6 +13,7 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 03 — rbac                                               | audit završen | [Detaljni audit](03-rbac.md)                                                 | 5 P2, 3 P3       | **8,03/10**     |
 | 04 — users                                              | audit završen | [Detaljni audit](04-users.md)                                                | 3 P1, 6 P2       | **6,59/10**     |
 | 05 — organizational-units                               | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
-| 06–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 06 — groups                                             | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
+| 07–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
