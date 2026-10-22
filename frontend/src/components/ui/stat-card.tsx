@@ -24,14 +24,14 @@ export function StatCard({
   deltaTone = "neutral",
 }: StatCardProperties) {
   return (
-    <Card className="h-full px-4 py-3.5 transition-colors duration-150 hover:border-line-strong">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
+    <Card className="h-full min-w-0 px-3 py-3.5 transition-colors duration-150 hover:border-line-strong sm:px-4">
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <span className="min-w-0 break-words text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
           {label}
         </span>
         {icon ? <span className="text-muted-foreground">{icon}</span> : null}
       </div>
-      <div className="mt-1.5 flex items-baseline gap-2">
+      <div className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span
           className={cn(
             "tnum text-[24px] font-semibold leading-7 tracking-tight",

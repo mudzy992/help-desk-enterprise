@@ -44,12 +44,21 @@ export function Donut({
   const description = data.map((datum) => `${datum.label}: ${datum.value}`).join(", ");
 
   return (
-    <div className={cn("flex items-center gap-5", className)}>
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-5",
+        className,
+      )}
+    >
+      <div
+        className="relative max-w-full shrink-0"
+        style={{ width: `min(${size}px, 100%)`, aspectRatio: "1 / 1" }}
+      >
         <svg
           width={size}
           height={size}
-          className="-rotate-90"
+          viewBox={`0 0 ${size} ${size}`}
+          className="h-full w-full -rotate-90"
           role="img"
           aria-label={[centerLabel ?? "", description].filter(Boolean).join(" — ")}
         >
@@ -100,7 +109,7 @@ export function Donut({
           ) : null}
         </div>
       </div>
-      <ul className="min-w-0 flex-1 space-y-1" role="list">
+      <ul className="w-full min-w-0 flex-1 space-y-1" role="list">
         {data.map((datum) => (
           <li key={datum.label}>
             <button

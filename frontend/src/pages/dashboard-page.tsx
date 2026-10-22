@@ -53,7 +53,7 @@ export function DashboardPage() {
     summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
 
   return (
-    <section>
+    <section className="min-w-0">
       <PageHeader
         crumbs={[brandCrumb, t("navigation.dashboard")]}
         title={t("navigation.dashboard")}
@@ -92,7 +92,7 @@ export function DashboardPage() {
           }
         />
       ) : (
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {isStale ? (
             <div className="flex items-center gap-2">
               <Warning text={t("dashboard.refreshStale")} />
@@ -109,7 +109,11 @@ export function DashboardPage() {
           />
           <DashboardCharts summary={summary} />
           <div
-            className={isStaff ? "grid grid-cols-1 gap-3 xl:grid-cols-3" : "grid grid-cols-1 gap-3"}
+            className={
+              isStaff
+                ? "grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+                : "grid min-w-0 grid-cols-1 gap-3"
+            }
           >
             {isStaff ? (
               <>

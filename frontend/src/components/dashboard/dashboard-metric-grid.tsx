@@ -85,12 +85,15 @@ export function DashboardMetricGrid({
   ).filter((metric) => isStaff || requesterMetricLabelKeys.includes(metric.labelKey));
 
   return (
-    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div
+      data-testid="dashboard-metric-grid"
+      className="fade-in grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4"
+    >
       {metrics.map((metric) => (
         <Link
           key={metric.labelKey}
           to={metric.to}
-          className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="min-w-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <StatCard
             label={t(metric.labelKey)}

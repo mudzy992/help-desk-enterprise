@@ -58,16 +58,46 @@ test.describe("54 dashboard contracts", () => {
     await expect(page.getByText(/Grupni inbox|Group inbox/i)).toHaveCount(0);
   });
 
-  test("dashboard remains within the mobile viewport", async ({ page }) => {
+  test("dashboard reflows its cards and charts within mobile viewports", async ({
+    page,
+  }) => {
     const env = readE2EEnvironment();
     await signIn(page, env.agentEmail, env.agentPassword);
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
 
-    await expect(page.locator("#main-content h1").first()).toBeVisible();
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(1);
+    for (const viewport of [
+      { width: 320, height: 800, metricColumns: 1 },
+      { width: 390, height: 844, metricColumns: 2 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/");
+
+      await expect(page.locator("#main-content h1").first()).toBeVisible();
+      const metricGrid = page.getByTestId("dashboard-metric-grid");
+      const chartGrid = page.getByTestId("dashboard-chart-grid");
+      await expect(metricGrid).toBeVisible();
+      await expect(chartGrid).toBeVisible();
+
+      const layout = await page.evaluate(() => {
+        const metric = document.querySelector<HTMLElement>(
+          '[data-testid="dashboard-metric-grid"]',
+        );
+        const charts = document.querySelector<HTMLElement>(
+          '[data-testid="dashboard-chart-grid"]',
+        );
+        if (metric === null || charts === null)
+          throw new Error("Dashboard grids are missing");
+        return {
+          metricColumns:
+            getComputedStyle(metric).gridTemplateColumns.split(" ").length,
+          chartColumns:
+            getComputedStyle(charts).gridTemplateColumns.split(" ").length,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+
+      expect(layout.metricColumns).toBe(viewport.metricColumns);
+      expect(layout.chartColumns).toBe(1);
+      expect(layout.overflow).toBeLessThanOrEqual(1);
+    }
   });
 });

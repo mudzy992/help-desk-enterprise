@@ -25,8 +25,11 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
   }));
 
   return (
-    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-      <Card className="fade-in">
+    <div
+      data-testid="dashboard-chart-grid"
+      className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-3"
+    >
+      <Card className="fade-in min-w-0 overflow-hidden">
         <CardHeader
           title={t("dashboard.statusChartTitle")}
           subtitle={t("dashboard.statusChartSubtitle")}
@@ -35,7 +38,7 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
           <Donut data={donutData} centerLabel={t("dashboard.statusChartCenter")} />
         </div>
       </Card>
-      <Card className="fade-in xl:col-span-2">
+      <Card className="fade-in min-w-0 overflow-hidden xl:col-span-2">
         <CardHeader
           title={t("dashboard.volumeChartTitle")}
           subtitle={t("dashboard.volumeChartSubtitle")}
