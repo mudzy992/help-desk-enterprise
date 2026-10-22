@@ -67,6 +67,16 @@ export function DocsToc({ toc }: { readonly toc: readonly DocsHeading[] }) {
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
                 href={`#${heading.id}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  const target = document.getElementById(heading.id);
+                  if (target === null) return;
+                  target.scrollIntoView({ behavior: "auto", block: "start" });
+                  const url = new URL(window.location.href);
+                  url.hash = heading.id;
+                  window.history.replaceState(window.history.state, "", url);
+                  setActiveId(heading.id);
+                }}
               >
                 {heading.text}
               </a>

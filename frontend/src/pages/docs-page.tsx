@@ -31,7 +31,9 @@ export function DocsPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
-  const changesPage = Number(searchParams.get("changesPage") ?? "1");
+  const [changesPage, setChangesPageState] = useState(() =>
+    Number(searchParams.get("changesPage") ?? "1"),
+  );
   const [audience, setAudience] = useState<DocsAudience>("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentSlugs, setRecentSlugs] = useState<readonly string[]>([]);
@@ -79,24 +81,16 @@ export function DocsPage() {
     window.print();
   }, []);
 
-  const setChangesPage = useCallback(
-    (pageNumber: number): void => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          if (pageNumber <= 1) {
-            next.delete("changesPage");
-          } else {
-            next.set("changesPage", String(pageNumber));
-          }
-          return next;
-        },
-        { replace: true },
-      );
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [setSearchParams],
-  );
+  const setChangesPage = useCallback((pageNumber: number): void => {
+    setChangesPageState(pageNumber);
+    const url = new URL(window.location.href);
+    if (pageNumber <= 1) {
+      url.searchParams.delete("changesPage");
+    } else {
+      url.searchParams.set("changesPage", String(pageNumber));
+    }
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
 
   const setQuery = (value: string): void => {
     const next = new URLSearchParams(searchParams);
