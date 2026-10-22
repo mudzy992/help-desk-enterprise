@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-22  
-**Aktivna etapa:** standard i inventar završeni; sljedeći je audit modula 01 — `authentication`
+**Aktivna etapa:** modul 01 `authentication` auditiran; sljedeći je modul 02 — `authorization`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
