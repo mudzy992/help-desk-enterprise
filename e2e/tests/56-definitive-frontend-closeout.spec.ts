@@ -152,6 +152,7 @@ test.describe("56 definitive frontend responsive, a11y and profiler closeout", (
 
   test("requester and agent keyboard surfaces remain operable", async ({
     page,
+    browser,
   }) => {
     const env = readE2EEnvironment();
     await page.context().clearCookies();
@@ -163,11 +164,23 @@ test.describe("56 definitive frontend responsive, a11y and profiler closeout", (
     await page.keyboard.press("Enter");
     await expect(page.locator("#main-content")).toBeFocused();
 
-    await page.context().clearCookies();
-    await signIn(page, env.agentEmail, env.agentPassword);
-    await page.goto("/");
-    await page.keyboard.press("Shift+Slash");
-    await expect(page.getByTestId("shortcuts-help")).toBeVisible();
+    // A cookie-only reset leaves the requester's local session snapshot in the
+    // original page. Use an isolated browser context so signIn cannot mistake
+    // the still-mounted requester shell for an authenticated agent shell.
+    const agentContext = await browser.newContext();
+    const agentPage = await agentContext.newPage();
+    try {
+      await signIn(agentPage, env.agentEmail, env.agentPassword);
+      await agentPage.goto("/");
+      await agentPage
+        .locator("#main-content h1:visible")
+        .first()
+        .waitFor({ state: "visible" });
+      await agentPage.keyboard.press("Shift+Slash");
+      await expect(agentPage.getByTestId("shortcuts-help")).toBeVisible();
+    } finally {
+      await agentContext.close();
+    }
   });
 
   test("React commits and browser long tasks stay within predeclared thresholds", async ({
