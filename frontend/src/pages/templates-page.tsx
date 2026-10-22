@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { TemplateScopeCell } from "@/components/templates/template-scope-cell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -303,30 +304,6 @@ export function TemplatesPage() {
   );
 }
 
-function ScopeCell({
-  serviceIds,
-  categoryIds,
-  groupIds = [],
-}: {
-  readonly serviceIds: readonly string[];
-  readonly categoryIds: readonly string[];
-  readonly groupIds?: readonly string[];
-}) {
-  const { t } = useTranslation();
-  if (serviceIds.length + categoryIds.length + groupIds.length === 0) {
-    return <Badge tone="info">{t("templates.list.global")}</Badge>;
-  }
-  return (
-    <span className="text-[11.5px] text-muted-foreground">
-      {t("templates.list.scopeSummary", {
-        services: serviceIds.length,
-        categories: categoryIds.length,
-        groups: groupIds.length,
-      })}
-    </span>
-  );
-}
-
 function TemplateTable({
   items,
   locale,
@@ -373,7 +350,7 @@ function TemplateTable({
                 {item.ownership === "personal" ? (
                   <Badge>{t("templates.picker.personal")}</Badge>
                 ) : (
-                  <ScopeCell
+                  <TemplateScopeCell
                     serviceIds={item.serviceIds}
                     categoryIds={item.categoryIds}
                     groupIds={item.groupIds}
@@ -449,7 +426,7 @@ function PlaybookTable({
                 ) : null}
               </td>
               <td>
-                <ScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} />
+                <TemplateScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} />
               </td>
               <td className="tnum text-right">
                 {item.steps.length}

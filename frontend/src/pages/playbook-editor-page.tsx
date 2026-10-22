@@ -1,30 +1,22 @@
-import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
-  ClipboardList,
-  GripVertical,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, ClipboardList } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { PlaybookStepsEditor } from "@/components/templates/playbook-steps-editor";
 import { ScopeMultiSelect, type ScopeOption } from "@/components/templates/scope-multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { hintClassName } from "@/components/ui/control";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
-import { moveItem } from "@/lib/templates/reorder-steps";
-import { cn } from "@/lib/utils";
+import { blankPlaybookStep, type PlaybookStepDraft } from "@/lib/templates/playbook-editor-model";
 import { listKnowledgeArticles } from "@/services/knowledge-base-api";
 import { listServices } from "@/services/service-catalog-api";
 import { listServiceCategories } from "@/services/service-categories-api";
@@ -34,27 +26,6 @@ import {
   listManagedTemplates,
   updatePlaybook,
 } from "@/services/templates-api";
-
-type StepDraft = {
-  readonly uid: string;
-  readonly stepKey?: string;
-  readonly title: string;
-  readonly instructions: string;
-  readonly required: boolean;
-  readonly knowledgeArticleId: string;
-  readonly responseTemplateId: string;
-};
-
-let uidCounter = 0;
-const newUid = () => `draft-${++uidCounter}`;
-const blankStep = (): StepDraft => ({
-  uid: newUid(),
-  title: "",
-  instructions: "",
-  required: false,
-  knowledgeArticleId: "",
-  responseTemplateId: "",
-});
 
 /**
  * Paket 1.4 (P1, A1): playbook editor. Steps reorder by drag & drop or with
@@ -72,7 +43,7 @@ export function PlaybookEditorPage() {
   const [isActive, setIsActive] = useState(true);
   const [serviceIds, setServiceIds] = useState<readonly string[]>([]);
   const [categoryIds, setCategoryIds] = useState<readonly string[]>([]);
-  const [steps, setSteps] = useState<readonly StepDraft[]>([blankStep()]);
+  const [steps, setSteps] = useState<readonly PlaybookStepDraft[]>([blankPlaybookStep()]);
   const [reason, setReason] = useState("");
   const [version, setVersion] = useState<number | null>(null);
   const [activeTickets, setActiveTickets] = useState(0);
@@ -147,7 +118,7 @@ export function PlaybookEditorPage() {
     };
   }, []);
 
-  const updateStep = (index: number, patch: Partial<StepDraft>) =>
+  const updateStep = (index: number, patch: Partial<PlaybookStepDraft>) =>
     setSteps((current) =>
       current.map((step, position) => (position === index ? { ...step, ...patch } : step)),
     );
@@ -284,197 +255,19 @@ export function PlaybookEditorPage() {
                 </div>
               </div>
             </Card>
-            <Card>
-              <CardHeader
-                title={t("templates.playbook.steps")}
-                subtitle={
-                  version !== null
-                    ? `${t("templates.playbook.versionNote", { version })} ${t("templates.playbook.activeTickets", { count: activeTickets })}`
-                    : undefined
-                }
-                actions={
-                  canEdit ? (
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => setSteps((current) => [...current, blankStep()])}
-                      disabled={disabled || steps.length >= 50}
-                      data-testid="playbook-add-step"
-                    >
-                      <Plus size={12} /> {t("templates.playbook.addStep")}
-                    </Button>
-                  ) : null
-                }
-              />
-              <ol className="space-y-3 p-4">
-                {steps.map((step, index) => (
-                  <li
-                    key={step.uid}
-                    onDragOver={(event) => {
-                      if (dragIndex !== null) event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      if (dragIndex !== null)
-                        setSteps((current) => moveItem(current, dragIndex, index));
-                      setDragIndex(null);
-                    }}
-                    className={cn(
-                      "rounded-lg border border-border bg-surface p-3",
-                      dragIndex === index && "opacity-50",
-                    )}
-                    data-testid="playbook-step"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <span
-                        draggable={canEdit}
-                        onDragStart={(event) => {
-                          setDragIndex(index);
-                          event.dataTransfer.effectAllowed = "move";
-                        }}
-                        onDragEnd={() => setDragIndex(null)}
-                        title={t("templates.playbook.dragHandle")}
-                        aria-hidden="true"
-                        className={cn("text-muted-foreground", canEdit && "cursor-grab")}
-                      >
-                        <GripVertical size={14} />
-                      </span>
-                      <span className="text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("templates.playbook.stepNumber", { number: index + 1 })}
-                      </span>
-                      {canEdit ? (
-                        <div className="ml-auto flex items-center gap-0.5">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t("templates.playbook.moveUp")}
-                            disabled={disabled || index === 0}
-                            onClick={() =>
-                              setSteps((current) => moveItem(current, index, index - 1))
-                            }
-                          >
-                            <ArrowUp size={13} />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t("templates.playbook.moveDown")}
-                            disabled={disabled || index === steps.length - 1}
-                            onClick={() =>
-                              setSteps((current) => moveItem(current, index, index + 1))
-                            }
-                          >
-                            <ArrowDown size={13} />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t("templates.playbook.removeStep")}
-                            disabled={disabled || steps.length === 1}
-                            onClick={() =>
-                              setSteps((current) =>
-                                current.filter((_, position) => position !== index),
-                              )
-                            }
-                          >
-                            <Trash2 size={13} />
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                        <Field label={t("templates.playbook.stepTitle")} required>
-                          {(control) => (
-                            <Input
-                              {...control}
-                              value={step.title}
-                              onChange={(event) => updateStep(index, { title: event.target.value })}
-                              maxLength={200}
-                              disabled={disabled}
-                              data-testid={`playbook-step-title-${index + 1}`}
-                            />
-                          )}
-                        </Field>
-                        <div className="pb-2">
-                          <Checkbox
-                            checked={step.required}
-                            onChange={(event) =>
-                              updateStep(index, { required: event.target.checked })
-                            }
-                            disabled={disabled}
-                            data-testid={`playbook-step-required-${index + 1}`}
-                            label={
-                              <span className="text-[12.5px]">
-                                {t("templates.playbook.stepRequired")}
-                              </span>
-                            }
-                          />
-                        </div>
-                      </div>
-                      <Field label={t("templates.playbook.stepInstructions")}>
-                        {(control) => (
-                          <Textarea
-                            {...control}
-                            value={step.instructions}
-                            onChange={(event) =>
-                              updateStep(index, { instructions: event.target.value })
-                            }
-                            rows={2}
-                            maxLength={4000}
-                            disabled={disabled}
-                          />
-                        )}
-                      </Field>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Field label={t("templates.playbook.stepArticle")}>
-                          {(control) => (
-                            <Select
-                              {...control}
-                              value={step.knowledgeArticleId}
-                              onChange={(event) =>
-                                updateStep(index, { knowledgeArticleId: event.target.value })
-                              }
-                              disabled={disabled}
-                            >
-                              <option value="">{t("templates.playbook.stepArticleNone")}</option>
-                              {withCurrent(articles, step.knowledgeArticleId).map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.name}
-                                </option>
-                              ))}
-                            </Select>
-                          )}
-                        </Field>
-                        <Field label={t("templates.playbook.stepTemplate")}>
-                          {(control) => (
-                            <Select
-                              {...control}
-                              value={step.responseTemplateId}
-                              onChange={(event) =>
-                                updateStep(index, { responseTemplateId: event.target.value })
-                              }
-                              disabled={disabled}
-                            >
-                              <option value="">{t("templates.playbook.stepTemplateNone")}</option>
-                              {withCurrent(templates, step.responseTemplateId).map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.name}
-                                </option>
-                              ))}
-                            </Select>
-                          )}
-                        </Field>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Card>
+            <PlaybookStepsEditor
+              steps={steps}
+              setSteps={setSteps}
+              updateStep={updateStep}
+              articles={articles}
+              templates={templates}
+              canEdit={canEdit}
+              disabled={disabled}
+              version={version}
+              activeTickets={activeTickets}
+              dragIndex={dragIndex}
+              setDragIndex={setDragIndex}
+            />
             {canEdit ? (
               <Card className="space-y-3 p-4">
                 <Field
@@ -567,7 +360,3 @@ export function PlaybookEditorPage() {
 }
 
 /** Keeps a selected id visible even if it is no longer in the loaded list. */
-function withCurrent(options: readonly ScopeOption[], currentId: string): readonly ScopeOption[] {
-  if (currentId === "" || options.some((option) => option.id === currentId)) return options;
-  return [...options, { id: currentId, name: currentId }];
-}

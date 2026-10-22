@@ -15,6 +15,11 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
+import {
+  emptyResponseTemplateForm,
+  type ResponseTemplateBodyField,
+  type ResponseTemplateForm,
+} from "@/lib/templates/response-template-editor-model";
 import { parseTagsInput, unknownTemplateVariables } from "@/lib/templates/template-variables";
 import { cn } from "@/lib/utils";
 import { listGroups } from "@/services/groups-api";
@@ -31,34 +36,6 @@ import {
   type TemplateLocale,
 } from "@/services/templates-api";
 
-type Form = {
-  name: string;
-  kind: ResponseTemplateKind;
-  bodyBs: string;
-  bodyEn: string;
-  tags: string;
-  isActive: boolean;
-  serviceIds: readonly string[];
-  categoryIds: readonly string[];
-  groupIds: readonly string[];
-  reason: string;
-};
-
-const emptyForm: Form = {
-  name: "",
-  kind: "REPLY",
-  bodyBs: "",
-  bodyEn: "",
-  tags: "",
-  isActive: true,
-  serviceIds: [],
-  categoryIds: [],
-  groupIds: [],
-  reason: "",
-};
-
-type BodyField = "bodyBs" | "bodyEn";
-
 /**
  * Paket 1.4 (A1): dedicated editor page — form on the left, live preview on
  * the right (sample ticket or a real one the admin can open), clickable
@@ -74,7 +51,7 @@ export function ResponseTemplateEditorPage() {
   const [ownership, setOwnership] = useState<ResponseTemplateOwnership>(
     searchParams.get("ownership") === "personal" ? "personal" : "shared",
   );
-  const [form, setForm] = useState<Form>(emptyForm);
+  const [form, setForm] = useState<ResponseTemplateForm>(emptyResponseTemplateForm);
   const [canEdit, setCanEdit] = useState(true);
   const [loaded, setLoaded] = useState(isNew);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
@@ -86,7 +63,7 @@ export function ResponseTemplateEditorPage() {
   const [previewTicketId, setPreviewTicketId] = useState("");
   const [preview, setPreview] = useState<RenderedTemplate | null>(null);
   const [previewErrorKey, setPreviewErrorKey] = useState<TemplatesErrorKey | null>(null);
-  const [activeBody, setActiveBody] = useState<BodyField>("bodyBs");
+  const [activeBody, setActiveBody] = useState<ResponseTemplateBodyField>("bodyBs");
   const bodyReferences = {
     bodyBs: useRef<HTMLTextAreaElement>(null),
     bodyEn: useRef<HTMLTextAreaElement>(null),
@@ -196,7 +173,7 @@ export function ResponseTemplateEditorPage() {
     [form.bodyBs, form.bodyEn],
   );
 
-  const update = <K extends keyof Form>(key: K, value: Form[K]) =>
+  const update = <K extends keyof ResponseTemplateForm>(key: K, value: ResponseTemplateForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   const insertVariable = (placeholder: string) => {

@@ -27,7 +27,9 @@ import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
 import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
+import { withSearchParam } from "@/lib/entity-list/with-search-param";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { parseProblemStatusFilter, problemStatusesOf } from "@/lib/problems/problem-list-filters";
 import {
   mapProblemError,
   problemAgeDays,
@@ -42,28 +44,10 @@ import {
   getProblemOptions,
   listProblemsPage,
   problemQueryKeys,
-  problemOpenStatuses,
   problemStatuses,
   type ProblemListFilters,
   type ProblemSeverity,
-  type ProblemStatus,
 } from "@/services/problems-api";
-
-/** "open" and "all" are presets; any other value is a single status. */
-type StatusFilter = "open" | "all" | ProblemStatus;
-
-function statusesOf(filter: StatusFilter): readonly ProblemStatus[] | undefined {
-  if (filter === "all") return undefined;
-  if (filter === "open") return problemOpenStatuses;
-  return [filter];
-}
-
-function parseStatusFilter(raw: string | null): StatusFilter {
-  if (raw === "all") return "all";
-  return raw !== null && (problemStatuses as readonly string[]).includes(raw)
-    ? (raw as ProblemStatus)
-    : "open";
-}
 
 /** Delivery invariant (requirement): problem register with filters and cursor paging. */
 export function ProblemsPage() {
@@ -73,7 +57,7 @@ export function ProblemsPage() {
   const [params, setParams] = useSearchParams();
   const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
   const search = useDebouncedValue(searchText.trim(), 300);
-  const status = parseStatusFilter(params.get("status"));
+  const status = parseProblemStatusFilter(params.get("status"));
   const priority = (ticketPriorityValues as readonly string[]).includes(
     params.get("priority") ?? "",
   )
@@ -96,17 +80,8 @@ export function ProblemsPage() {
   }, []);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const setParam = (key: string, value: string) => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (value === "") next.delete(key);
-        else next.set(key, value);
-        return next;
-      },
-      { replace: true },
-    );
-  };
+  const setParam = (key: string, value: string) =>
+    setParams((current) => withSearchParam(current, key, value), { replace: true });
 
   const capabilitiesQuery = useQuery({
     queryKey: problemQueryKeys.capabilities,
@@ -125,7 +100,7 @@ export function ProblemsPage() {
   const filters: ProblemListFilters = useMemo(
     () => ({
       search: search || undefined,
-      status: statusesOf(status),
+      status: problemStatusesOf(status),
       priority: priority ? [priority] : undefined,
       ownerUserId: owner || undefined,
       groupId: groupId || undefined,

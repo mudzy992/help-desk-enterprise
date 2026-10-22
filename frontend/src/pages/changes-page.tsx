@@ -39,9 +39,14 @@ import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability
 import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
 import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
 import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
+import { withSearchParam } from "@/lib/entity-list/with-search-param";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
-  changeOpenStatuses,
+  changeStatusesOf,
+  parseChangeFilterValue,
+  parseChangeStatusFilter,
+} from "@/lib/changes/change-list-filters";
+import {
   changeQueryKeys,
   changeRisks,
   changeStatuses,
@@ -51,31 +56,10 @@ import {
   listChangesPage,
   type ChangeListFilters,
   type ChangeRisk,
-  type ChangeStatus,
   type ChangeType,
 } from "@/services/changes-api";
 
 type PageTab = "register" | "calendar" | "templates";
-
-/** "open" and "all" are presets; any other value is a single status. */
-type StatusFilter = "open" | "all" | ChangeStatus;
-
-function statusesOf(filter: StatusFilter): readonly ChangeStatus[] | undefined {
-  if (filter === "all") return undefined;
-  if (filter === "open") return changeOpenStatuses;
-  return [filter];
-}
-
-function parseStatusFilter(raw: string | null): StatusFilter {
-  if (raw === "all") return "all";
-  return raw !== null && (changeStatuses as readonly string[]).includes(raw)
-    ? (raw as ChangeStatus)
-    : "open";
-}
-
-function parseOne<T extends string>(raw: string | null, values: readonly T[]): T | "" {
-  return raw !== null && (values as readonly string[]).includes(raw) ? (raw as T) : "";
-}
 
 /** Delivery invariant (requirement): change register with the advanced search and cursor paging. */
 export function ChangesPage() {
@@ -85,9 +69,9 @@ export function ChangesPage() {
   const [params, setParams] = useSearchParams();
   const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
   const search = useDebouncedValue(searchText.trim(), 300);
-  const status = parseStatusFilter(params.get("status"));
-  const type = parseOne<ChangeType>(params.get("type"), changeTypes);
-  const risk = parseOne<ChangeRisk>(params.get("risk"), changeRisks);
+  const status = parseChangeStatusFilter(params.get("status"));
+  const type = parseChangeFilterValue<ChangeType>(params.get("type"), changeTypes);
+  const risk = parseChangeFilterValue<ChangeRisk>(params.get("risk"), changeRisks);
   const owner = params.get("owner") === "me" ? "me" : "";
   const cabGroupId = params.get("cab") ?? "";
   const serviceId = params.get("service") ?? "";
@@ -96,17 +80,8 @@ export function ChangesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const tabParam = params.get("tab");
 
-  const setParam = (key: string, value: string) => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (value === "") next.delete(key);
-        else next.set(key, value);
-        return next;
-      },
-      { replace: true },
-    );
-  };
+  const setParam = (key: string, value: string) =>
+    setParams((current) => withSearchParam(current, key, value), { replace: true });
 
   const capabilitiesQuery = useQuery({
     queryKey: changeQueryKeys.capabilities,
@@ -125,7 +100,7 @@ export function ChangesPage() {
   const filters: ChangeListFilters = useMemo(
     () => ({
       search: search || undefined,
-      status: statusesOf(status),
+      status: changeStatusesOf(status),
       type: type ? [type] : undefined,
       risk: risk ? [risk] : undefined,
       ownerUserId: owner || undefined,
