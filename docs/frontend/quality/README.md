@@ -14,6 +14,7 @@
 | 6    | [Performance profiling](6.3-phase-6-performance-profiling.md)                | Završeno |
 | 7    | [Dependency i tooling hygiene](6.3-phase-7-dependency-tooling-hygiene.md)    | Završeno |
 | 8    | [Dokumentacija i „Šta je novo“](6.3-phase-8-documentation-whats-new.md)      | Završeno |
+| 9    | [Finalni quality gate i ocjena](6.3-phase-9-final-quality-score.md)          | Završeno |
 
 ## Machine-readable ugovori
 

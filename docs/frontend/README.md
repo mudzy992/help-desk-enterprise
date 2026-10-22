@@ -16,14 +16,14 @@ Ovo je kanonska mapa frontend dokumentacije. Postojeće putanje nisu premještan
 
 ## Status izvora
 
-| Oblast                          | Kanonski izvor                                                                                                         | Status                           |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Zvanični audit                  | [`docs/audits/2026-10-22-zvanicni-potpuni-frontend-audit.md`](../audits/2026-10-22-zvanicni-potpuni-frontend-audit.md) | Aktuelan, 9,82/10 polazna ocjena |
-| Plan nalaza                     | [`6.3-frontend-9.9-10-closeout-plan.md`](../plans/modules/6.3-frontend-9.9-10-closeout-plan.md)                        | Jedini aktivni FA plan           |
-| Raniji frontend planovi         | [Indeks planova](plans/README.md)                                                                                      | Historijski/završeni             |
-| Quality dokazi                  | [`docs/frontend/quality/`](quality/README.md)                                                                          | Aktuelni po fazama               |
-| Korisničke novosti              | [`docs/user-guide/sta-je-novo.md`](../user-guide/sta-je-novo.md)                                                       | Kanonski user-facing sažetak     |
-| Tehničke promjene dokumentacije | [`DOCS_CHANGELOG.md`](../../DOCS_CHANGELOG.md)                                                                         | Detaljni tehnički zapis          |
+| Oblast                          | Kanonski izvor                                                                                                         | Status                                   |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Zvanični audit                  | [`docs/audits/2026-10-22-zvanicni-potpuni-frontend-audit.md`](../audits/2026-10-22-zvanicni-potpuni-frontend-audit.md) | Aktuelan, 9,90/10 završna lokalna ocjena |
+| Plan nalaza                     | [`6.3-frontend-9.9-10-closeout-plan.md`](../plans/modules/6.3-frontend-9.9-10-closeout-plan.md)                        | Jedini aktivni FA plan                   |
+| Raniji frontend planovi         | [Indeks planova](plans/README.md)                                                                                      | Historijski/završeni                     |
+| Quality dokazi                  | [`docs/frontend/quality/`](quality/README.md)                                                                          | Aktuelni po fazama                       |
+| Korisničke novosti              | [`docs/user-guide/sta-je-novo.md`](../user-guide/sta-je-novo.md)                                                       | Kanonski user-facing sažetak             |
+| Tehničke promjene dokumentacije | [`DOCS_CHANGELOG.md`](../../DOCS_CHANGELOG.md)                                                                         | Detaljni tehnički zapis                  |
 
 ## Pravilo statusa
 

@@ -447,7 +447,7 @@ Preostalo:
 ### FA1 — Shared cross-layer fixture za runtime-validirane kritične API odgovore
 
 - **Ozbiljnost:** srednja
-- **Status:** otvoreno poboljšanje
+- **Status:** zatvoreno u planu 6.3
 - **Dokaz:** ticket parser incident je prošao raniji minimalni test jer fixture nije predstavljao stvarni backend response mapper.
 - **Rizik:** frontend i backend tipovi mogu izgledati kompatibilno dok runtime JSON mapper izostavi ili preimenuje polje.
 - **Preporuka:** za session, tickets, services, users, routing i settings parser ugovore koristiti fixture generisan ili direktno dijeljen sa backend response mapper testom.
@@ -456,7 +456,7 @@ Preostalo:
 ### FA2 — Preostali legacy hotspotovi
 
 - **Ozbiljnost:** srednja
-- **Status:** kontrolisan dug
+- **Status:** zatvoreno za planirani opseg; preostalo pod automatskim pragom
 - **Dokaz:** 13 produkcijskih fajlova ostaje iznad novog 500-line standarda; najveći ima 732 linije.
 - **Rizik:** veća review površina, teži race/error testovi i veća vjerovatnoća spajanja nepovezanih odgovornosti.
 - **Preporuka:** ne raditi blanket refactor. Razdvajati samo pri sljedećoj funkcionalnoj izmjeni, uz direktan test izdvojene odgovornosti.
@@ -465,7 +465,7 @@ Preostalo:
 ### FA3 — Neujednačen direktni page/component test census
 
 - **Ozbiljnost:** niska do srednja
-- **Status:** otvoreno poboljšanje
+- **Status:** zatvoreno kroz route evidence registry i guard
 - **Dokaz:** Assets i Changes imaju snažan E2E, ali malo colocated component testova; mnoge routane stranice nemaju vlastiti page spec.
 - **Rizik:** sporiji i skuplji browser test postaje jedini dokaz za neka loading/error/empty stanja.
 - **Preporuka:** dodavati page orchestration testove za hotspotove i permission/error varijante, bez dupliranja već dokazane poslovne logike.
@@ -474,7 +474,7 @@ Preostalo:
 ### FA4 — Production React commit profiler dokaz
 
 - **Ozbiljnost:** niska
-- **Status:** prihvaćen izuzetak
+- **Status:** tehnički implementirano; finalni browser dokaz čeka centralni release artefakt
 - **Dokaz:** production React uklanja Profiler callbackove; E2E artefakt bilježi owner exception.
 - **Rizik:** commit duration/rerender regresija može proći ako se oslanja samo na production bundle.
 - **Preporuka:** opciono dodati poseban profiling build/job; production long-task gate ostaje obavezan.
@@ -483,8 +483,8 @@ Preostalo:
 ### FA5 — Dev dependency audit održavanje
 
 - **Ozbiljnost:** niska
-- **Status:** otvoreno održavanje
-- **Dokaz:** production audit 0; puni npm audit prikazuje 15 frontend nalaza i 31 backend nalaz uključujući dev alatni lanac.
+- **Status:** zatvoreno kao upravljani izuzetak
+- **Dokaz:** završni frontend production audit 0; puni audit prikazuje 8 tooling nalaza. Backend ima 4 production i 24 full-tree moderate zapisa, svi pod registrovanim ownerom i rokom.
 - **Rizik:** CI/tooling supply-chain, ne runtime production bundle.
 - **Preporuka:** zaseban dependency maintenance PR sa kontrolisanim upgradeom i punom regresijom; ne koristiti `--force` automatski.
 - **Owner:** Platform/Dependabot owner.
@@ -533,4 +533,4 @@ Ocjena se može podići na 10/10 tek kada su istovremeno ispunjeni sljedeći usl
 
 Frontend je spreman za enterprise upotrebu i nalazi se iznad 9,7 u svakoj ocijenjenoj funkcionalnoj oblasti. Najniža ocjena je Assets/CMDB sa 9,74, ne zbog poznatog funkcionalnog kvara nego zbog koncentracije odgovornosti i slabijeg direktnog component-test censusa. Najviša ocjena je i18n/theme/branding sa 9,94.
 
-Rezultat nije umjetno podignut na 10/10. Aktuelni dokaz opravdava **9,82/10**: vrlo visok kvalitet, bez otvorenog kritičnog ili visokog frontend defekta, uz šest jasno ograničenih nalaza za daljnje zatvaranje.
+Rezultat nije umjetno podignut na 10/10. Nakon implementacije plana 6.3 i ponovljenih finalnih gateova, aktuelni lokalni dokaz opravdava **9,90/10** prema pravilu §13.4: nema otvorenog kritičnog ili visokog frontend defekta, FA1–FA3 su zatvoreni, a FA4–FA6 su tehnički implementirani ili formalno ograničeni. Viša ocjena nije dozvoljena dok `OPEN-CI-FINAL` ne potvrdi završni SHA i profiling-enabled browser dokaz. Detaljna tabela rezultata je u `docs/frontend/quality/6.3-phase-9-final-quality-score.md`.
