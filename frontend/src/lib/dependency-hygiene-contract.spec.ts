@@ -31,6 +31,7 @@ const exceptions = JSON.parse(
 describe("dependency hygiene contract", () => {
   it("locks the security-upgraded frontend toolchain and its Node runtime", () => {
     expect(packageJson.engines.node).toBe(">=22");
+    expect(packageJson.devDependencies.typescript).toMatch(/^\^5\.9\./);
     expect(packageJson.devDependencies.vite).toMatch(/^\^8\./);
     expect(packageJson.devDependencies.vitest).toMatch(/^\^5\./);
     expect(packageJson.devDependencies["@vitejs/plugin-react"]).toMatch(/^\^6\./);
