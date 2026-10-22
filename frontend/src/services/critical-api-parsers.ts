@@ -167,10 +167,11 @@ export function parseTicketPage(value: unknown): TicketPage {
   const page = record(value, "ticket page");
   objectArray(page.items, "ticket page.items", ticket);
   number(page.total, "ticket page.total");
-  number(page.totalsAsOf, "ticket page.totalsAsOf");
+  const totalsAsOf =
+    page.totalsAsOf === undefined ? Date.now() : number(page.totalsAsOf, "ticket page.totalsAsOf");
   number(page.page, "ticket page.page");
   number(page.pageSize, "ticket page.pageSize");
-  return page as TicketPage;
+  return { ...page, totalsAsOf } as TicketPage;
 }
 
 function userSummary(value: unknown, context: string): UserSummary {

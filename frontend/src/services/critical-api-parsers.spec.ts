@@ -81,6 +81,9 @@ describe("critical API parsers", () => {
     expect(
       parseTicketPage({ items: [ticket], total: 44, totalsAsOf: 1, page: 1, pageSize: 50 }).items,
     ).toEqual([ticket]);
+    const compatiblePage = parseTicketPage({ items: [ticket], total: 44, page: 1, pageSize: 50 });
+    expect(compatiblePage.items).toEqual([ticket]);
+    expect(compatiblePage.totalsAsOf).toEqual(expect.any(Number));
     invalid(parseTicketPage, { items: {}, total: 0, totalsAsOf: 1, page: 1, pageSize: 50 });
     invalid(parseTicketPage, {
       items: ["not-a-ticket-object"],
