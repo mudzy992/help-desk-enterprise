@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FormBuilderActions } from "@/components/services/form-builder/form-builder-actions";
 import { FormFieldList } from "@/components/services/form-builder/form-field-list";
@@ -35,6 +35,8 @@ export function ServiceFormBuilder({
 }: ServiceFormBuilderProperties) {
   const { t } = useTranslation();
   const operationGuard = useOperationGuard();
+  const serviceIdentity = useRef(serviceId);
+  serviceIdentity.current = serviceId;
   const [form, setForm] = useState<ServiceFormResponse | null>(null);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [fields, setFields] = useState<ServiceFormField[]>([]);
@@ -58,7 +60,9 @@ export function ServiceFormBuilder({
   }, []);
 
   const reload = async (preferredRef?: string) => {
-    const loaded = await getServiceForm(serviceId);
+    const requestedServiceId = serviceId;
+    const loaded = await getServiceForm(requestedServiceId);
+    if (serviceIdentity.current !== requestedServiceId) return null;
     applyForm(loaded, preferredRef);
     return loaded;
   };
@@ -87,9 +91,12 @@ export function ServiceFormBuilder({
       setPending(key);
       setErrorKey(null);
       try {
+        const previousActiveRef = form?.activeFormVersionRef ?? null;
         const result = await work();
         const loaded = await reload(result.formVersionRef);
-        onActiveVersion(loaded.activeFormVersionRef);
+        if (loaded !== null && loaded.activeFormVersionRef !== previousActiveRef) {
+          onActiveVersion(loaded.activeFormVersionRef);
+        }
       } catch (error) {
         setErrorKey(mapServiceFormsError(error));
       } finally {
