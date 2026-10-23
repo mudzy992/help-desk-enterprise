@@ -68,13 +68,13 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  35 | `directory-sync`     | kritičan |            73 |           21 |  5.214 |          2 |       5 | audit završen |
 |  36 | `teams`              | visok    |            38 |            6 |  4.352 |          3 |      11 | audit završen |
 |  37 | `edge-extension`     | visok    |            15 |            2 |    851 |          1 |       2 | audit završen |
-|  38 | `branding`           | srednji  |             5 |            1 |    207 |          1 |       1 | sljedeće      |
+|  38 | `branding`           | srednji  |             5 |            1 |    207 |          1 |       1 | audit završen |
 
 ### Val E — operativnost i sadržaj
 
 |   # | Modul           | Rizik    | Prod. fajlovi | Spec fajlovi |   LOC | Kontroleri | Servisi | Status        |
 | --: | --------------- | -------- | ------------: | -----------: | ----: | ---------: | ------: | ------------- |
-|  39 | `health`        | visok    |             3 |            1 |   187 |          1 |       0 | nije započeto |
+|  39 | `health`        | visok    |             3 |            1 |   187 |          1 |       0 | sljedeće      |
 |  40 | `observability` | visok    |            14 |            5 |   671 |          1 |       1 | nije započeto |
 |  41 | `ops-health`    | kritičan |            25 |           12 | 4.164 |          1 |       6 | nije započeto |
 |  42 | `docs`          | srednji  |             9 |            4 |   778 |          1 |       2 | nije započeto |
