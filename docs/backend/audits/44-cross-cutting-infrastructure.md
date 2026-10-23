@@ -174,7 +174,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 
 | ID | Prioritet | Nalaz | Status |
 |---|---|---|---|
-| BA-xcut-01 | P1 | Runtime container nema `USER` i radi kao root | otvoreno |
+| BA-xcut-01 | P1 | Runtime container nema `USER` i radi kao root | zatvoreno |
 | BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation | otvoreno |
 | BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | otvoreno |
 | BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu | otvoreno |
@@ -196,7 +196,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-20 | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | otvoreno |
 | BA-xcut-21 | P2 | Metric cardinality i distributed trace propagation nisu dokazani | otvoreno |
 | BA-xcut-22 | P2 | Nema globalnog/distribuiranog inbound rate limit ugovora | otvoreno |
-| BA-xcut-23 | P2 | Runtime image nema read-only FS/capability/no-new-privileges hardening ni storage permission preflight | otvoreno |
+| BA-xcut-23 | P2 | Runtime image nema read-only FS/capability/no-new-privileges hardening ni storage permission preflight | zatvoreno |
 | BA-xcut-24 | P2 | Production dependency audit ima 4 moderate advisories | otvoreno |
 | BA-xcut-25 | P2 | CLI-ji nemaju zajednički target fingerprint/operator audit/transaction safety framework | otvoreno |
 | BA-xcut-26 | P3 | Raw body se kopira za svaki JSON request umjesto samo potpisanih webhook ruta | otvoreno |

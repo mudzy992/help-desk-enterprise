@@ -161,7 +161,56 @@ Dvadeset ruta bez lokalnog guarda sada je vidljivo u jednom diffabilnom registru
 
 `BA-xcut-19` ostaje otvoren: manifest uklanja nevidljivost wiring-a, ali još ne centralizuje globalni guard/filter/interceptor ownership niti dokazuje semantičku auth klasu svih 20 ruta. Paket ne zatvara nalaz prije te behavior korekcije i negativnih testova. Zbir ostaje **691 otvoren / 1 zatvoren**.
 
-## Preostali paketi Vala 0
+## Paket 0.5 — container UID/filesystem/signal/storage safety
 
-1. **0.5 — container UID/filesystem/signal/storage safety testovi**;
-2. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
+**Status:** završeno; CI run [`40024200985`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40024200985) zelen na SHA `96036bfa6ecc8eea03bf540d109f12d7870a8992`.
+
+Implementirano:
+
+- finalni Docker stage eksplicitno radi kao korisnik `node`, koristi `STOPSIGNAL SIGTERM`, kopira runtime artefakte sa `node:node` vlasništvom i priprema writable uploads granicu;
+- backend i worker Compose servisi imaju read-only root filesystem, `cap_drop: ALL`, `no-new-privileges`, ograničen `/tmp` tmpfs i zajednički persistent uploads volume;
+- statički contract guard prekida CI ako nestane bilo koja Dockerfile ili Compose sigurnosna granica;
+- tri direktna testa guarda pokrivaju validan ugovor, nedostajući hardening i lažno zadovoljavanje `USER` pravilom samo u builder stageu;
+- zaseban CI posao gradi stvarni runtime image i dokazuje non-root UID/GID, read-only root, writable `/tmp`, writable persistent uploads te prijem i graceful obradu `SIGTERM` signala;
+- runtime failure output postaje GitHub annotation, a container posao je obavezan ulaz završnog CI gatea.
+
+### CI dokaz
+
+```text
+Statički container contract                 PASS
+Container contract testovi                  3/3 PASS
+Docker Compose model                        PASS
+Backend runtime image build                 PASS
+Runtime UID/GID != 0                        PASS
+Read-only root filesystem                   PASS
+/tmp tmpfs + persistent uploads write       PASS
+SIGTERM readiness/delivery/graceful exit     PASS
+Backend build/test                          PASS
+PostgreSQL/Redis integration                PASS
+Frontend build/test i docs                  PASS
+Završni CI gate                             PASS
+```
+
+Prva dva zvanična runtime pokušaja nisu prikazana kao uspjeh: inicijalni signal probe je zaustavljao proces prije registracije handlera pa je Docker nakon timeouta vratio `137`. Probe sada prvo čeka eksplicitni `signal-ready` marker i tek zatim šalje `SIGTERM`; završni run je dokazao graceful exit. Usput je ispravljena i nedostajuća završna navodnica u shell komandi CI summaryja, otkrivena kroz stvarni gate run.
+
+### Zatvoreni nalazi
+
+- `BA-xcut-01` — stvarni runtime image sada radi kao non-root korisnik i CI to provjerava numeričkim UID/GID probeom;
+- `BA-xcut-23` — read-only root, capability drop, `no-new-privileges`, ograničeni tmpfs i writable persistent storage sada su deklarisani i izvršno testirani.
+
+Zbir je sada **689 otvorenih / 3 zatvorena** nalaza.
+
+## Paket 0.6 — završni regression, traceability i dokaz
+
+**Status:** implementirano; čeka završni CI rezultat na konsolidovanom SHA-u.
+
+Konsolidovano:
+
+- kanonski audit, registar i machine-readable plan sinhronizovani su na **692 ukupno = 689 otvorenih + 3 zatvorena** nalaza;
+- severity baseline ostaje **174 P1 + 368 P2 + 150 P3**;
+- findings guard sada potvrđuje nove statuse `BA-xcut-01` i `BA-xcut-23` uz ranije zatvoreni `BA-xcut-31`;
+- promjena kanonskog registra, plana ili source audita više se ne klasifikuje kao docs-only: pokreće i backend/code gate, pa traceability dokaz ne može biti preskočen;
+- workflow guard ima regresijski test za ovu klasifikaciju;
+- završna lokalna regresija obuhvatila je findings i wiring checkere, njihove testove, container contract/testove, backend lint, workflow parser/testove i `git diff --check`.
+
+Završni CI run i njegov tačan SHA upisuju se tek nakon stvarno zelenog rezultata.

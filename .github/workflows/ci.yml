@@ -119,6 +119,10 @@ jobs:
             while IFS= read -r file; do
               [ -z "$file" ] && continue
               case "$file" in
+                docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)
+                  code=true
+                  docs=true
+                  ;;
                 docs/*|.cursor/*|*.md|perf/results/*) docs=true ;;
                 *) code=true ;;
               esac

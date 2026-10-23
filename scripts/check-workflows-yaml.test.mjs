@@ -85,6 +85,12 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
   assert.deepEqual(findWorkflowProblems(source), []);
 });
 
+test("backend findings dokumenti pokreću code i docs gateove", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  assert.ok(workflow.includes("docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)"));
+  assert.ok(workflow.includes("code=true\n                  docs=true"));
+});
+
 // E2E na pushu u `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
 // Izuzetak je dispatch sa `install_spec` (F6): tada se obični E2E **povlači**, jer njegov
 // `globalSetup` poziva `ensureInstall` i završi instalaciju koju wizard spec upravo hoda.
