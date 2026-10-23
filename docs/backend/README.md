@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–24 auditirani; sljedeći je modul 25 — `knowledge-base`
+**Aktivna etapa:** moduli 01–25 auditirani; sljedeći je modul 26 — `reports`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
