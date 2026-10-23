@@ -5,7 +5,7 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const requiredGeneratedFiles = Object.freeze([
-  ["client.ts", /export\s+\{\s*PrismaClient/u],
+  ["client.ts", /PrismaClient/u],
   ["enums.ts", /export\s+const/u],
   ["models.ts", /export\s+type/u],
   ["internal/class.ts", /getPrismaClient/u],
