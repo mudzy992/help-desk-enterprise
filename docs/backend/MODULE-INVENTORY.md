@@ -74,8 +74,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 
 |   # | Modul           | Rizik    | Prod. fajlovi | Spec fajlovi |   LOC | Kontroleri | Servisi | Status        |
 | --: | --------------- | -------- | ------------: | -----------: | ----: | ---------: | ------: | ------------- |
-|  39 | `health`        | visok    |             3 |            1 |   187 |          1 |       0 | sljedeće      |
-|  40 | `observability` | visok    |            14 |            5 |   671 |          1 |       1 | nije započeto |
+|  39 | `health`        | visok    |             3 |            1 |   187 |          1 |       0 | audit završen |
+|  40 | `observability` | visok    |            14 |            5 |   671 |          1 |       1 | sljedeće      |
 |  41 | `ops-health`    | kritičan |            25 |           12 | 4.164 |          1 |       6 | nije započeto |
 |  42 | `docs`          | srednji  |             9 |            4 |   778 |          1 |       2 | nije započeto |
 |  43 | `change-log`    | srednji  |            10 |            2 |   286 |          0 |       0 | nije započeto |
