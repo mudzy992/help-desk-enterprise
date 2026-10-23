@@ -184,7 +184,7 @@ test("backend container job gradi image, izvršava runtime probe i ulazi u gate"
   assert.ok(container.includes("docker build --pull"));
   assert.ok(container.includes("npm run container:runtime:test"));
   assert.ok(gate.includes("backend-container"));
-  assert.ok(gate.includes("needs.backend-container.result"));
+  assert.ok(gate.includes("needs['backend-container'].result"));
 });
 
 test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni gate", () => {
