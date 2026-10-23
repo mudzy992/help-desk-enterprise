@@ -27,7 +27,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 17 — notifications                                      | audit završen | [Detaljni audit](17-notifications.md)                                        | 3 P1, 8 P2, 4 P3 | **5,05/10**     |
 | 18 — websocket                                          | audit završen | [Detaljni audit](18-websocket.md)                                            | 4 P1, 7 P2, 3 P3 | **4,88/10**     |
 | 19 — integration-queue                                  | audit završen | [Detaljni audit](19-integration-queue.md)                                    | 4 P1, 8 P2, 3 P3 | **4,41/10**     |
-| 20 — inbound-email                                      | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
-| 21–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 20 — inbound-email                                      | audit završen | [Detaljni audit](20-inbound-email.md)                                        | 3 P1, 7 P2, 3 P3 | **5,06/10**     |
+| 21 — on-call                                            | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
+| 22–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
