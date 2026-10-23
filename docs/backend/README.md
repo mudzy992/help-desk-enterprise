@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–33 auditirani; sljedeći je modul 34 — `service-onboarding`
+**Aktivna etapa:** moduli 01–34 auditirani; sljedeći je modul 35 — `directory-sync`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
