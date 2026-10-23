@@ -41,13 +41,13 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  18 | `websocket`         | visok    |            28 |           16 |  1.679 |          0 |       3 | audit završen |
 |  19 | `integration-queue` | kritičan |            30 |           10 |  1.576 |          1 |      11 | audit završen |
 |  20 | `inbound-email`     | kritičan |            24 |            2 |  1.670 |          1 |       3 | audit završen |
-|  21 | `on-call`           | visok    |            18 |            3 |  2.101 |          1 |       3 | sljedeće      |
+|  21 | `on-call`           | visok    |            18 |            3 |  2.083 |          2 |       3 | audit završen |
 
 ### Val C — poslovni domeni
 
 |   # | Modul            | Rizik   | Prod. fajlovi | Spec fajlovi |    LOC | Kontroleri | Servisi | Status        |
 | --: | ---------------- | ------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
-|  22 | `assets`         | visok   |            44 |           13 |  9.053 |          2 |      13 | nije započeto |
+|  22 | `assets`         | visok   |            44 |           13 |  9.053 |          2 |      13 | sljedeće      |
 |  23 | `problems`       | visok   |            22 |            8 |  3.372 |          1 |       7 | nije započeto |
 |  24 | `changes`        | visok   |            23 |            4 |  3.506 |          1 |       7 | nije započeto |
 |  25 | `knowledge-base` | visok   |            73 |           12 |  6.152 |          3 |       7 | nije započeto |
