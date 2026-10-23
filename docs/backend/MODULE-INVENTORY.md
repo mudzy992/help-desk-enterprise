@@ -76,8 +76,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 | --: | --------------- | -------- | ------------: | -----------: | ----: | ---------: | ------: | ------------- |
 |  39 | `health`        | visok    |             3 |            1 |   187 |          1 |       0 | audit završen |
 |  40 | `observability` | visok    |            14 |            5 |   671 |          1 |       1 | audit završen |
-|  41 | `ops-health`    | kritičan |            25 |           12 | 4.164 |          1 |       6 | sljedeće      |
-|  42 | `docs`          | srednji  |             9 |            4 |   778 |          1 |       2 | nije započeto |
+|  41 | `ops-health`    | kritičan |            25 |           12 | 4.164 |          1 |       6 | audit završen |
+|  42 | `docs`          | srednji  |             9 |            4 |   778 |          1 |       2 | sljedeće      |
 |  43 | `change-log`    | srednji  |            10 |            2 |   286 |          0 |       0 | nije započeto |
 
 ## 3. Završne audit jedinice
