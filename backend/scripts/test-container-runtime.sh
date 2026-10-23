@@ -36,7 +36,19 @@ docker run --rm \
     fi
   '
 
-container="$(docker run -d --name "backend-signal-$$" "$image" node -e "process.on('SIGTERM',()=>process.exit(0)); setInterval(()=>undefined,1000)")"
+container="$(docker run -d --name "backend-signal-$$" "$image" node -e "process.on('SIGTERM',()=>process.exit(0)); console.log('signal-ready'); setInterval(()=>undefined,1000)")"
+ready=0
+for _attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if docker logs "$container" 2>&1 | grep -q '^signal-ready$'; then
+    ready=1
+    break
+  fi
+  sleep 0.2
+done
+if [ "$ready" -ne 1 ]; then
+  echo "signal probe did not become ready" >&2
+  exit 1
+fi
 docker stop --time 5 "$container" >/dev/null
 exit_code="$(docker inspect "$container" --format '{{.State.ExitCode}}')"
 container=""
