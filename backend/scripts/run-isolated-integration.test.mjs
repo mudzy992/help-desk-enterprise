@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { URL } from "node:url";
+import { buildDatabaseName, integrationSpecs, withDatabaseName } from "./run-isolated-integration.mjs";
+
+test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
+  const names = integrationSpecs.map((spec, index) => buildDatabaseName(index + 1, spec));
+  assert.equal(new Set(names).size, integrationSpecs.length);
+  for (const name of names) {
+    assert.match(name, /^[a-z0-9_]+$/u);
+    assert.ok(name.length <= 63);
+  }
+});
+
+test("mijenja samo database pathname u URL-u", () => {
+  const result = new URL(withDatabaseName(
+    "postgresql://user:pass@127.0.0.1:5432/template?schema=public",
+    "it_1_retention",
+  ));
+  assert.equal(result.pathname, "/it_1_retention");
+  assert.equal(result.username, "user");
+  assert.equal(result.password, "pass");
+  assert.equal(result.searchParams.get("schema"), "public");
+});
+
+test("odbija database ime koje može postati SQL/URL injection", () => {
+  assert.throws(
+    () => withDatabaseName("postgresql://u:p@localhost/base", 'bad";DROP DATABASE base'),
+    /nesigurno ime/u,
+  );
+});

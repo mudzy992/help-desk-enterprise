@@ -229,8 +229,8 @@ jobs:
         run: npm run db:migrate
       - name: Verify migration history is current
         run: npx prisma migrate status
-      - name: Test the dependency smoke harness
-        run: npm run test:dependency-smoke
+      - name: Test the dependency and database-isolation harnesses
+        run: npm run test:dependency-smoke && npm run test:integration-harness
       - name: Probe PostgreSQL transaction rollback and Redis cleanup
         run: npm run integration:dependency-smoke
       - name: Run real PostgreSQL integration suites

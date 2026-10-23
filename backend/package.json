@@ -29,7 +29,8 @@
     "test:safety-net:compile": "jest --runInBand --runTestsByPath src/common/principal-context/principal-context.loader.spec.ts src/common/security/secret-rotation.spec.ts src/common/admin-realtime/admin-config-realtime.spec.ts src/app.module.spec.ts src/worker.module.spec.ts src/scheduled-jobs.wiring.spec.ts",
     "test:dependency-smoke": "node --test scripts/dependency-smoke.test.mjs",
     "integration:dependency-smoke": "node scripts/dependency-smoke.mjs",
-    "test:integration": "jest --runInBand --runTestsByPath src/modules/privacy/retention/retention.integration.spec.ts src/modules/privacy/anonymization/anonymization.integration.spec.ts src/modules/privacy/export/export.integration.spec.ts src/modules/status-page/status-page.integration.spec.ts src/modules/ops-health/ops-alert.engine.integration.spec.ts"
+    "test:integration": "node scripts/run-isolated-integration.mjs",
+    "test:integration-harness": "node --test scripts/run-isolated-integration.test.mjs"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",
