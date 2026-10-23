@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–31 auditirani; sljedeći je modul 32 — `setup-checklist`
+**Aktivna etapa:** moduli 01–32 auditirani; sljedeći je modul 33 — `policy-packs`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 

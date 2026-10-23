@@ -62,8 +62,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 | --: | -------------------- | -------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
 |  30 | `config-versioning`  | kritičan |            51 |            4 |  4.412 |          1 |       4 | audit završen |
 |  31 | `install`            | kritičan |           208 |           54 | 12.774 |          7 |      19 | audit završen |
-|  32 | `setup-checklist`    | srednji  |             6 |            2 |    233 |          1 |       1 | sljedeće      |
-|  33 | `policy-packs`       | visok    |            32 |           12 |  2.133 |          1 |       1 | nije započeto |
+|  32 | `setup-checklist`    | srednji  |             6 |            2 |    233 |          1 |       1 | audit završen |
+|  33 | `policy-packs`       | visok    |            32 |           12 |  2.133 |          1 |       1 | sljedeće      |
 |  34 | `service-onboarding` | visok    |            40 |            7 |  2.555 |          3 |       2 | nije započeto |
 |  35 | `directory-sync`     | kritičan |            73 |           21 |  5.287 |          2 |       5 | nije započeto |
 |  36 | `teams`              | visok    |            38 |            6 |  4.352 |          2 |      11 | nije započeto |
