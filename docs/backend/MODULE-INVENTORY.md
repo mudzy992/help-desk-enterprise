@@ -52,8 +52,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  24 | `changes`        | visok   |            23 |            4 |  3.483 |          1 |       8 | audit završen |
 |  25 | `knowledge-base` | visok   |            73 |           12 |  6.079 |          3 |       8 | audit završen |
 |  26 | `reports`        | visok   |            86 |           27 |  9.996 |          3 |      15 | audit završen |
-|  27 | `search`         | srednji |             7 |            2 |    318 |          1 |       1 | sljedeće      |
-|  28 | `announcements`  | srednji |            16 |            2 |  2.102 |          1 |       3 | nije započeto |
+|  27 | `search`         | srednji |             7 |            2 |    311 |          1 |       1 | audit završen |
+|  28 | `announcements`  | srednji |            16 |            2 |  2.102 |          1 |       3 | sljedeće      |
 |  29 | `status-page`    | visok   |             9 |            5 |  1.322 |          2 |       2 | nije započeto |
 
 ### Val D — konfiguracija, instalacija i integracije
