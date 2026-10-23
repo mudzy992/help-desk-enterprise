@@ -40,7 +40,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 30 — config-versioning                                  | audit završen | [Detaljni audit](30-config-versioning.md)                                    | 7 P1, 10 P2, 3 P3 | **3,55/10**     |
 | 31 — install                                            | audit završen | [Detaljni audit](31-install.md)                                               | 6 P1, 11 P2, 4 P3 | **4,02/10**     |
 | 32 — setup-checklist                                    | audit završen | [Detaljni audit](32-setup-checklist.md)                                      | 7 P2, 4 P3       | **6,08/10**     |
-| 33 — policy-packs                                       | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
-| 33–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                 | —               |
+| 33 — policy-packs                                       | audit završen | [Detaljni audit](33-policy-packs.md)                                         | 7 P1, 9 P2, 3 P3 | **3,68/10**     |
+| 34 — service-onboarding                                 | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
+| 34–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                 | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
