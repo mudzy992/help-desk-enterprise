@@ -44,7 +44,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 34 — service-onboarding                                 | audit završen | [Detaljni audit](34-service-onboarding.md)                                   | 7 P1, 10 P2, 3 P3 | **4,15/10**     |
 | 35 — directory-sync                                     | audit završen | [Detaljni audit](35-directory-sync.md)                                       | 8 P1, 11 P2, 4 P3 | **3,40/10**     |
 | 36 — teams                                              | audit završen | [Detaljni audit](36-teams.md)                                                | 6 P1, 10 P2, 4 P3 | **4,05/10**     |
-| 37 — edge-extension                                     | sljedeće      | biće kreiran tokom audita                                                    | —                  | —               |
-| 37–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                  | —               |
+| 37 — edge-extension                                     | audit završen | [Detaljni audit](37-edge-extension.md)                                       | 7 P1, 10 P2, 4 P3 | **2,83/10**     |
+| 38 — branding                                           | sljedeće      | biće kreiran tokom audita                                                    | —                  | —               |
+| 38–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                  | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
