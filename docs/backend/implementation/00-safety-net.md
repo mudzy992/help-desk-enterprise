@@ -80,9 +80,55 @@ Prvi run `40013822041` je ispravno pao na preuskom `PrismaClient` content marker
 
 - `BA-xcut-31` — generated Prisma artefakt je sada obavezni CI gate, a svih šest ranije compile-blokiranih suiteova izvršava se i prolazi.
 
+## Paket 0.3 — disposable PostgreSQL/Redis harness i migration replay
+
+**Status:** završeno; CI run [`40018015822`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40018015822) zelen na SHA `cb446d9483f2ee22b3d306ff68e0335564f6e5c0`.
+
+Implementirano:
+
+- zaseban required `Backend PostgreSQL + Redis integration` CI job;
+- disposable PostgreSQL 17 i Redis 7 service containeri sa healthcheckovima;
+- kompletan `prisma migrate deploy` replay svih 76 migracijskih direktorija na praznoj bazi;
+- `prisma migrate status` dokaz da nema pending/failed migracije;
+- PostgreSQL read/write/rollback i Redis NX/read/delete/cleanup smoke;
+- tri direktna testa dependency smoke harnessa;
+- izolacijski runner koji za svaki real-DB suite klonira potpuno migriranu template bazu, izvršava suite i bazu briše sa `FORCE` cleanupom;
+- tri direktna testa sigurnog database naming/URL isolation contracta;
+- pet stvarnih PostgreSQL integration suiteova sada ulazi u obavezni CI gate;
+- integration failure output se objavljuje kao GitHub annotation, pa dokaz nije skriven iza nedostupnog runner log hosta;
+- završni CI gate eksplicitno zavisi od integration joba.
+
+### CI dokaz
+
+```text
+PostgreSQL 17 / Redis 7 healthcheck       PASS
+Prisma generate + artefakti               PASS
+76/76 migration direktorija replay        PASS
+Prisma migrate status                     PASS — database schema up to date
+Dependency/isolation harness testovi       6/6 PASS
+PostgreSQL transaction + Redis cleanup     PASS
+Privacy retention integration              8/8 PASS
+Privacy anonymization integration          6/6 PASS
+Privacy export integration                 4/4 PASS, 1 budget test svjesno skipped
+Status-page integration                    5/5 PASS
+Ops-alert engine integration               7/7 PASS
+Backend build/lint/full Jest                PASS
+Frontend build/test, docs i CI gate         PASS
+```
+
+Prvi integration run je otkrio dvije stvarne safety-net greške, bez prikrivanja:
+
+1. suiteovi su dijelili istu bazu pa su retention countovi bili kontaminirani podacima drugih suiteova;
+2. tri ops-alert integration scenarija nisu pratila deklarisani `openAfter: 2` hysteresis i 15-minutni notification retry.
+
+Prvi problem je riješen per-suite database izolacijom; drugi korekcijom test scenarija prema postojećem produkcijskom state-machine ugovoru. Produkcijska ops-alert logika nije mijenjana.
+
+### Nalazi i status
+
+Paket uvodi izvršni migration/dependency dokaz, ali ne zatvara široke production nalaze o TLS-u, privilege separationu, rollout concurrencyju, restoreu ili Redis failoveru. Oni ostaju otvoreni za Valove 1 i 9. Zbir ostaje **691 otvoren / 1 zatvoren**.
+
 ## Preostali paketi Vala 0
 
-1. **0.3 — disposable PostgreSQL/Redis harness i migration replay**;
-2. **0.4 — route/guard manifest i API/worker wiring snapshot**;
-3. **0.5 — container UID/filesystem/signal/storage safety testovi**;
-4. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
+1. **0.4 — route/guard manifest i API/worker wiring snapshot**;
+2. **0.5 — container UID/filesystem/signal/storage safety testovi**;
+3. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
