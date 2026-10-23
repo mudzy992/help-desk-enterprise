@@ -20,19 +20,25 @@ FROM node:22-alpine
 
 WORKDIR /usr/app
 
-COPY --from=builder /usr/app/node_modules ./node_modules
-COPY --from=builder /usr/app/dist ./dist
-COPY --from=builder /usr/app/package*.json ./
-COPY --from=builder /usr/app/prisma ./prisma/
-COPY --from=builder /usr/app/prisma.config.ts ./prisma.config.ts
+# The runtime stage uses Alpine's unprivileged `node` account (UID/GID 1000).
+# Ownership is set while copying so a read-only root filesystem stays usable;
+# only the mounted uploads volume and /tmp are writable at runtime.
+COPY --chown=node:node --from=builder /usr/app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /usr/app/dist ./dist
+COPY --chown=node:node --from=builder /usr/app/package*.json ./
+COPY --chown=node:node --from=builder /usr/app/prisma ./prisma/
+COPY --chown=node:node --from=builder /usr/app/prisma.config.ts ./prisma.config.ts
 # Faza 3 (b): generisano ogledalo dokumentacije; `docs/` nije u backend build
 # contextu, pa se sadržaj za /docs rute prenosi iz build stagea.
-COPY --from=builder /usr/app/content ./content
+COPY --chown=node:node --from=builder /usr/app/content ./content
+RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 
 ENV NODE_ENV=production
 ENV PORT=10001
 ENV UPLOAD_ROOT=/usr/app/uploads
 
 EXPOSE 10001
+STOPSIGNAL SIGTERM
+USER node
 
 CMD ["node", "dist/src/main.js"]

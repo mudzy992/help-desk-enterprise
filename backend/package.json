@@ -34,7 +34,10 @@
     "wiring:write": "node scripts/check-backend-wiring.mjs --write",
     "wiring:check": "node scripts/check-backend-wiring.mjs",
     "wiring:test": "node --test scripts/check-backend-wiring.test.mjs",
-    "test:wiring": "jest --runInBand --runTestsByPath src/app.module.spec.ts src/worker.module.spec.ts src/scheduled-jobs.wiring.spec.ts src/shutdown-worker.spec.ts"
+    "test:wiring": "jest --runInBand --runTestsByPath src/app.module.spec.ts src/worker.module.spec.ts src/scheduled-jobs.wiring.spec.ts src/shutdown-worker.spec.ts",
+    "container:check": "node scripts/check-container-contract.mjs",
+    "container:test": "node --test scripts/check-container-contract.test.mjs",
+    "container:runtime:test": "sh scripts/test-container-runtime.sh"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

@@ -79,6 +79,13 @@ services:
     build: ./backend
     command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     expose:
       - "10001"
     # Paket 2.7 §3.2: readiness = database + Redis. start_period covers `prisma migrate deploy`.
@@ -101,6 +108,13 @@ services:
     build: ./backend
     command: node dist/src/worker.js
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     # Paket 2.7 §3.2: worker heartbeat in Redis (written every 10 s) is younger than 120 s.
     healthcheck:
       test: ["CMD", "node", "dist/src/cli/worker-health.js"]

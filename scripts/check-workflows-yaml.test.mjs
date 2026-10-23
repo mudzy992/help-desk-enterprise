@@ -175,6 +175,18 @@ test("backend job zaključava route manifest i izvršava API/worker wiring suite
   );
 });
 
+test("backend container job gradi image, izvršava runtime probe i ulazi u gate", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const container = readJob(workflow, "backend-container");
+  const gate = readJob(workflow, "gate");
+  assert.ok(container.includes("npm run container:check"));
+  assert.ok(container.includes("docker compose config --quiet"));
+  assert.ok(container.includes("docker build --pull"));
+  assert.ok(container.includes("npm run container:runtime:test"));
+  assert.ok(gate.includes("backend-container"));
+  assert.ok(gate.includes("needs.backend-container.result"));
+});
+
 test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni gate", () => {
   const workflow = readFileSync(workflowPath, "utf8");
   const integration = readJob(workflow, "backend-integration");
