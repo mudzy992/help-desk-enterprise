@@ -17,10 +17,10 @@ name: CI
 #     walk (`install_spec` in the dispatch inputs).
 on:
   push:
-    # TEMPORARY (Arena session arena/7a60171e): the session token has no
-    # actions:write, so it cannot dispatch. A push to this branch is the
-    # trigger instead. Remove the arena branch before merging to master.
-    branches: [main, master, arena/7a60171e-help-desk-enterprise]
+    # TEMPORARY Arena implementation branches use push as their CI evidence
+    # because they are intentionally kept open without a pull request. Remove
+    # these branch entries before merging the completed implementation.
+    branches: [main, master, arena/7a60171e-help-desk-enterprise, arena/bd31e07b-help-desk-enterprise]
     # A commit that only touches documentation cannot change product behaviour..
     # Note: this filter is deliberately NOT on `pull_request` (see above).
     paths-ignore:
@@ -162,9 +162,18 @@ jobs:
         run: npm run audit:traceability
       - name: Test the backend audit traceability guard
         run: npm run audit:traceability:test
-      - run: npx prisma generate
+      - name: Validate the complete Prisma schema
+        run: npx prisma validate
+      - name: Generate the Prisma client
+        run: npm run db:generate
+      - name: Verify required generated Prisma artifacts
+        run: npm run check:prisma-generated
+      - name: Test the generated Prisma artifact guard
+        run: npm run check:prisma-generated:test
       - run: npm run build
       - run: npm run lint
+      - name: Run suites previously blocked by missing generated Prisma types
+        run: npm run test:safety-net:compile
       - run: npm test -- --ci --coverage=false
 
   frontend:
