@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console */
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { Pool } from "pg";

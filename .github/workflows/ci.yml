@@ -234,7 +234,21 @@ jobs:
       - name: Probe PostgreSQL transaction rollback and Redis cleanup
         run: npm run integration:dependency-smoke
       - name: Run real PostgreSQL integration suites
-        run: npm run test:integration
+        run: |
+          set +e
+          npm run test:integration > /tmp/backend-integration.log 2>&1
+          code=$?
+          cat /tmp/backend-integration.log
+          if [ "$code" -ne 0 ]; then
+            node - <<'NODE'
+          const text = require('node:fs').readFileSync('/tmp/backend-integration.log', 'utf8').slice(-20_000);
+          const escaped = text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+          for (let offset = 0; offset < escaped.length; offset += 3000) {
+            console.log(`::error title=Backend integration failure::${escaped.slice(offset, offset + 3000)}`);
+          }
+          NODE
+          fi
+          exit "$code"
 
   frontend:
     name: Frontend build + test
