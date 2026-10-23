@@ -39,8 +39,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  16 | `templates`         | visok    |            24 |            6 |  3.079 |          3 |       3 | audit završen |
 |  17 | `notifications`     | kritičan |            87 |           41 |  9.691 |          3 |      10 | audit završen |
 |  18 | `websocket`         | visok    |            28 |           16 |  1.679 |          0 |       3 | audit završen |
-|  19 | `integration-queue` | kritičan |            30 |           10 |  1.606 |          1 |       8 | sljedeće      |
-|  20 | `inbound-email`     | kritičan |            24 |            2 |  1.694 |          1 |       3 | nije započeto |
+|  19 | `integration-queue` | kritičan |            30 |           10 |  1.576 |          1 |      11 | audit završen |
+|  20 | `inbound-email`     | kritičan |            24 |            2 |  1.694 |          1 |       3 | sljedeće      |
 |  21 | `on-call`           | visok    |            18 |            3 |  2.101 |          1 |       3 | nije započeto |
 
 ### Val C — poslovni domeni
