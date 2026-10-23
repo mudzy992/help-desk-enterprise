@@ -47,7 +47,7 @@ Paket 0.1 nije samostalno zatvorio produkcijski BA nalaz; njegov guard sada čuv
 
 ## Paket 0.2 — generated Prisma/build gate i compile-blokirani suiteovi
 
-**Status:** završeno; CI run [`40014367779`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40014367779) zelen na SHA `f7202a52e53b1d6b32dfa38e4d83e98631497fd0`.
+**Status:** završeno; CI run [`40014942994`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40014942994) zelen na završnom SHA paketa `803a0a173878bb93500d57c72895768005202f9f`.
 
 Implementirano:
 
