@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–34 auditirani; sljedeći je modul 35 — `directory-sync`
+**Aktivna etapa:** moduli 01–35 auditirani; sljedeći je modul 36 — `teams`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
