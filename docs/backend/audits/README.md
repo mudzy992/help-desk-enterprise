@@ -35,7 +35,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 25 — knowledge-base                                     | audit završen | [Detaljni audit](25-knowledge-base.md)                                       | 4 P1, 11 P2, 4 P3 | **4,51/10**     |
 | 26 — reports                                            | audit završen | [Detaljni audit](26-reports.md)                                              | 2 P1, 12 P2, 5 P3 | **4,70/10**     |
 | 27 — search                                             | audit završen | [Detaljni audit](27-search.md)                                               | 1 P1, 7 P2, 5 P3  | **5,62/10**     |
-| 28 — announcements                                      | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
-| 28–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 28 — announcements                                      | audit završen | [Detaljni audit](28-announcements.md)                                        | 4 P1, 11 P2, 4 P3 | **4,31/10**     |
+| 29 — status-page                                        | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
+| 29–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
