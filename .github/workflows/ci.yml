@@ -256,7 +256,7 @@ jobs:
           fi
           exit "$code"
 
-  backend-container:
+  container:
     name: Backend container safety
     runs-on: ubuntu-latest
     needs: [changes]
@@ -923,7 +923,7 @@ jobs:
     name: CI gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [changes, backend, backend-integration, backend-container, frontend, docs-guard, e2e, e2e-install-wizard]
+    needs: [changes, backend, backend-integration, container, frontend, docs-guard, e2e, e2e-install-wizard]
     timeout-minutes: 5
     steps:
       - name: Summarize what ran
@@ -935,14 +935,14 @@ jobs:
             echo "| Docs guard | ${{ needs.docs-guard.result }} |"
             echo "| Backend | ${{ needs.backend.result }} |"
             echo "| Backend integration | ${{ needs.backend-integration.result }} |"
-            echo "| Backend container | ${{ needs['backend-container'].result }} |"
-            echo "| Frontend | ${{ needs.frontend.result }} |
+            echo "| Backend container | ${{ needs.container.result }} |"
+            echo "| Frontend | ${{ needs.frontend.result }} |"
             echo "| E2E | ${{ needs.e2e.result }} |"
             echo "| E2E install wizard | ${{ needs.e2e-install-wizard.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail when something actually failed
         run: |
-          results="${{ needs.changes.result }} ${{ needs.docs-guard.result }} ${{ needs.backend.result }} ${{ needs.backend-integration.result }} ${{ needs['backend-container'].result }} ${{ needs.frontend.result }} ${{ needs.e2e.result }} ${{ needs.e2e-install-wizard.result }}"
+          results="${{ needs.changes.result }} ${{ needs.docs-guard.result }} ${{ needs.backend.result }} ${{ needs.backend-integration.result }} ${{ needs.container.result }} ${{ needs.frontend.result }} ${{ needs.e2e.result }} ${{ needs.e2e-install-wizard.result }}"
           echo "Results: $results"
           for result in $results; do
             if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then

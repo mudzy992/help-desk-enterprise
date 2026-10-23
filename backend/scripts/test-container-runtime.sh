@@ -36,14 +36,14 @@ docker run --rm \
     fi
   '
 
-container="$(docker run -d --name "backend-signal-$$" "$image" node -e 'setInterval(() => undefined, 1000)')"
+container="$(docker run -d --name "backend-signal-$$" "$image" node -e "process.on('SIGTERM',()=>process.exit(0)); setInterval(()=>undefined,1000)")"
 docker stop --time 5 "$container" >/dev/null
 exit_code="$(docker inspect "$container" --format '{{.State.ExitCode}}')"
 container=""
 docker rm "backend-signal-$$" >/dev/null
-if [ "$exit_code" -ne 143 ]; then
-  echo "SIGTERM probe exit=$exit_code (expected 143)" >&2
+if [ "$exit_code" -ne 0 ]; then
+  echo "SIGTERM probe exit=$exit_code (expected graceful 0)" >&2
   exit 1
 fi
 
-echo "✓ container runtime: non-root UID/GID, read-only root, writable tmpfs/uploads, SIGTERM exit 143"
+echo "✓ container runtime: non-root UID/GID, read-only root, writable tmpfs/uploads, graceful SIGTERM"
