@@ -37,7 +37,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 27 — search                                             | audit završen | [Detaljni audit](27-search.md)                                               | 1 P1, 7 P2, 5 P3  | **5,62/10**     |
 | 28 — announcements                                      | audit završen | [Detaljni audit](28-announcements.md)                                        | 4 P1, 11 P2, 4 P3 | **4,31/10**     |
 | 29 — status-page                                        | audit završen | [Detaljni audit](29-status-page.md)                                          | 5 P1, 10 P2, 4 P3 | **4,11/10**     |
-| 30 — config-versioning                                  | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
-| 30–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 30 — config-versioning                                  | audit završen | [Detaljni audit](30-config-versioning.md)                                    | 7 P1, 10 P2, 3 P3 | **3,55/10**     |
+| 31 — install                                            | sljedeće      | biće kreiran tokom audita                                                    | —                 | —               |
+| 31–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |

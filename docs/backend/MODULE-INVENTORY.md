@@ -60,8 +60,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 
 |   # | Modul                | Rizik    | Prod. fajlovi | Spec fajlovi |    LOC | Kontroleri | Servisi | Status        |
 | --: | -------------------- | -------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
-|  30 | `config-versioning`  | kritičan |            51 |            4 |  4.463 |          1 |       2 | sljedeće      |
-|  31 | `install`            | kritičan |           208 |           54 | 12.982 |          7 |      19 | nije započeto |
+|  30 | `config-versioning`  | kritičan |            51 |            4 |  4.412 |          1 |       4 | audit završen |
+|  31 | `install`            | kritičan |           208 |           54 | 12.982 |          7 |      19 | sljedeće      |
 |  32 | `setup-checklist`    | srednji  |             6 |            2 |    233 |          1 |       1 | nije započeto |
 |  33 | `policy-packs`       | visok    |            32 |           12 |  2.133 |          1 |       1 | nije započeto |
 |  34 | `service-onboarding` | visok    |            40 |            7 |  2.555 |          3 |       2 | nije započeto |
