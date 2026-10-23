@@ -163,6 +163,18 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
   );
 });
 
+test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni gate", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const integration = readJob(workflow, "backend-integration");
+  const gate = readJob(workflow, "gate");
+  assert.ok(integration.includes("image: postgres:17-alpine"));
+  assert.ok(integration.includes("image: redis:7-alpine"));
+  assert.ok(integration.includes("npm run db:migrate"));
+  assert.ok(integration.includes("npm run test:integration"));
+  assert.ok(gate.includes("needs: [changes, backend, backend-integration,"));
+  assert.ok(gate.includes("needs.backend-integration.result"));
+});
+
 // Stvarna regresija (2026-10-05): korak je dobio drugi `run:` umjesto novog
 // koraka — GitHub je odbio cijeli workflow (run je završio bez ijednog joba).
 test("hvata ponovljeni ključ u istom bloku, a ne u susjednim koracima", () => {
