@@ -204,7 +204,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-28 | P3 | Recent request log je samo process-local volatilni buffer | otvoreno |
 | BA-xcut-29 | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru | otvoreno |
 | BA-xcut-30 | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | otvoreno |
-| BA-xcut-31 | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | otvoreno |
+| BA-xcut-31 | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno |
 | BA-xcut-32 | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno |
 
 ## 14. Ocjena

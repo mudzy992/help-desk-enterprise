@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { buildFindingsPlan, unitPlans, validateFindingsPlan } from "./check-backend-findings.mjs";
+import { buildFindingsPlan, parseFindingRows, unitPlans, validateFindingsPlan } from "./check-backend-findings.mjs";
 
 async function withAuditFixtures(mutate, run) {
   const directory = await mkdtemp(path.join(tmpdir(), "backend-findings-"));
@@ -46,6 +46,13 @@ test("gradi determinističan plan iz source audit tabela", async () => {
       status: "otvoreno",
     });
   });
+});
+
+test("čita escaped pipe u naslovu i izvorni status", () => {
+  assert.deepEqual(
+    parseFindingRows("| BA-xcut-04 | P1 | `npm ci \\|\\| npm install` | zatvoreno |"),
+    [{ id: "BA-xcut-04", severity: "P1", status: "zatvoreno" }],
+  );
 });
 
 test("odbija dupliciran BA ID između audit jedinica", async () => {

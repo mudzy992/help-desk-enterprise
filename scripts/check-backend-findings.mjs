@@ -5,7 +5,28 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const sourcePattern = /^(0[1-9]|[1-3][0-9]|4[0-4])-.+\.md$/u;
-const findingPattern = /^\|\s*(BA-[^|\s]+)\s*\|\s*(P[123])\s*\|/gmu;
+
+export function parseFindingRows(markdown) {
+  const findings = [];
+  for (const line of markdown.split(/\r?\n/u)) {
+    if (!/^\|\s*BA-[^|\s]+\s*\|/u.test(line)) continue;
+    const escapedPipe = "\u0000";
+    const columns = line
+      .replaceAll("\\|", escapedPipe)
+      .split("|")
+      .slice(1, -1)
+      .map((column) => column.replaceAll(escapedPipe, "|").trim());
+    const [id, severity, , status] = columns;
+    // Acceptance matrice u starijim auditima također koriste kratke BA-01
+    // oznake, ali nemaju severity u drugoj koloni i nisu finding registry redovi.
+    if (!/^P[123]$/u.test(severity)) continue;
+    if (!/^BA-[^\s]+$/u.test(id) || !status) {
+      throw new Error(`neispravan finding red: ${line}`);
+    }
+    findings.push({ id, severity, status });
+  }
+  return findings;
+}
 
 // A finding keeps its source BA id, while this table gives every source unit a
 // single implementation owner and first implementation wave. More precise
@@ -40,11 +61,10 @@ export async function buildFindingsPlan(auditsDirectory) {
     const plan = unitPlans[unit];
     if (plan === undefined) throw new Error(`jedinica ${unit} nema owner/val mapiranje`);
     const text = await readFile(path.join(auditsDirectory, source), "utf8");
-    for (const match of text.matchAll(findingPattern)) {
-      const [, id, severity] = match;
-      if (seen.has(id)) throw new Error(`dupliciran finding ID: ${id}`);
-      seen.add(id);
-      findings.push({ id, severity, source, owner: plan[0], wave: plan[1], status: "otvoreno" });
+    for (const finding of parseFindingRows(text)) {
+      if (seen.has(finding.id)) throw new Error(`dupliciran finding ID: ${finding.id}`);
+      seen.add(finding.id);
+      findings.push({ ...finding, source, owner: plan[0], wave: plan[1] });
     }
   }
   findings.sort((left, right) => left.id.localeCompare(right.id));

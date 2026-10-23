@@ -10,7 +10,7 @@ Val 0 je završen tek kada clean checkout ima reproducibilan install/generate/bu
 
 ## Paket 0.1 — zaključan baseline i BA traceability
 
-**Status:** implementirano; CI dokaz čeka run na završnom SHA paketa.
+**Status:** završeno; potvrđeno u CI runu `40014367779` na SHA `f7202a52e53b1d6b32dfa38e4d83e98631497fd0`.
 
 Implementirano:
 
@@ -39,16 +39,50 @@ node --test scripts/check-backend-findings.test.mjs
 PASS — 4/4
 ```
 
-Lokalni `prisma generate` ostaje **environment-blocked** jer sandbox nema mrežni pristup `binaries.prisma.sh`. Zbog toga lokalni build/full Jest nije proglašen zelenim. Postojeći CI generira Prisma client prije builda; rezultat na SHA-u ovog paketa tek treba evidentirati.
+Lokalni `prisma generate` ostaje **environment-blocked** jer sandbox nema mrežni pristup `binaries.prisma.sh`; lokalni build/full Jest zato nije zamijenio CI dokaz. CI je na SHA-u paketa 0.2 uspješno izvršio traceability gate prije Prisma/build/test lanca.
 
 ### Nalazi i status
 
-Ovaj paket uvodi dokaznu infrastrukturu, ali još ne zatvara produkcijski BA nalaz. `BA-xcut-31` ostaje otvoren dok generated Prisma, build i ranije compile-blokirani suiteovi ne prođu na tačnom CI SHA-u.
+Paket 0.1 nije samostalno zatvorio produkcijski BA nalaz; njegov guard sada čuva status koji dolazi iz izvornog audit reda i sinhronizuje machine-readable plan.
+
+## Paket 0.2 — generated Prisma/build gate i compile-blokirani suiteovi
+
+**Status:** završeno; CI run [`40014367779`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40014367779) zelen na SHA `f7202a52e53b1d6b32dfa38e4d83e98631497fd0`.
+
+Implementirano:
+
+- CI validira kompletnu multi-file Prisma schemu prije generisanja;
+- `npm run db:generate` je eksplicitan obavezni korak;
+- novi generated-artifact gate dokazuje `client.ts`, `enums.ts`, `models.ts` i `internal/class.ts` prije builda;
+- gate ima tri izolovana testa za kompletan, nedostajući i stale/pogrešan output;
+- šest suiteova koji su tokom audita bili compile-blokirani sada imaju eksplicitan CI korak prije full Jest regresije;
+- branch push daje zvanični CI dokaz bez PR-a i bez pokretanja remote E2E stacka.
+
+### CI dokaz
+
+```text
+Prisma validate                         PASS
+Prisma generate                         PASS
+Generated Prisma artefakti              4/4 PASS
+Generated-artifact guard testovi        3/3 PASS
+Backend build                           PASS
+Backend lint                            PASS
+Ranije compile-blokirani suiteovi       6/6 PASS
+Kompletan backend Jest                  PASS
+Frontend build + test                   PASS
+Docs guard                              PASS
+CI gate                                 PASS
+```
+
+Prvi run `40013822041` je ispravno pao na preuskom `PrismaClient` content markeru nakon uspješnog generate koraka. Marker je korigovan da prihvati stvarni Prisma 7 export shape, njegov unit test je ponovo prošao, a kompletan drugi run je zelen. Neuspjeli run nije skriven niti predstavljen kao pass.
+
+### Zatvoren nalaz
+
+- `BA-xcut-31` — generated Prisma artefakt je sada obavezni CI gate, a svih šest ranije compile-blokiranih suiteova izvršava se i prolazi.
 
 ## Preostali paketi Vala 0
 
-1. **0.2 — generated Prisma/build gate i compile-blocked suiteovi**;
-2. **0.3 — disposable PostgreSQL/Redis harness i migration replay**;
-3. **0.4 — route/guard manifest i API/worker wiring snapshot**;
-4. **0.5 — container UID/filesystem/signal/storage safety testovi**;
-5. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
+1. **0.3 — disposable PostgreSQL/Redis harness i migration replay**;
+2. **0.4 — route/guard manifest i API/worker wiring snapshot**;
+3. **0.5 — container UID/filesystem/signal/storage safety testovi**;
+4. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.

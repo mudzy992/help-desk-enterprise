@@ -707,7 +707,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-28` | P3 | Recent request log je samo process-local volatilni buffer | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-29` | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-30` | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-31` | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-31` | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-32` | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 
 ## Kontrolni zbir
@@ -716,5 +716,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 - P1: **174**
 - P2: **368**
 - P3: **150**
+- Otvoreno: **691**
+- Zatvoreno: **1** (`BA-xcut-31`, Val 0.2)
 - Duplicirani ID-evi: **0**
 - P0: **0**
