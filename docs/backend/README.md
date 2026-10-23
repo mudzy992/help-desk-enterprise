@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–39 auditirani; sljedeći je modul 40 — `observability`
+**Aktivna etapa:** moduli 01–40 auditirani; sljedeći je modul 41 — `ops-health`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
