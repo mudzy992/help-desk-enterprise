@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–17 auditirani; sljedeći je modul 18 — `websocket`
+**Aktivna etapa:** moduli 01–18 auditirani; sljedeći je modul 19 — `integration-queue`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
