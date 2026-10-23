@@ -84,8 +84,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 
 |   # | Jedinica                     | Obavezni opseg                                                                                                                                        | Status        |
 | --: | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-|  44 | Cross-cutting infrastruktura | `src/common/**`, root Nest wiring, `main.ts`, `worker.ts`, CLI, globalni guardovi/interceptori/filteri, Prisma konfiguracija i migracijska disciplina | sljedeće      |
-|  45 | Konsolidovani backend audit  | deduplikacija nalaza, globalna score tabela, cross-module traceability i jedinstveni fazni implementacijski master plan                               | nije započeto |
+|  44 | Cross-cutting infrastruktura | `src/common/**`, root Nest wiring, `main.ts`, `worker.ts`, CLI, globalni guardovi/interceptori/filteri, Prisma konfiguracija i migracijska disciplina | audit završen |
+|  45 | Konsolidovani backend audit  | deduplikacija nalaza, globalna score tabela, cross-module traceability i jedinstveni fazni implementacijski master plan                               | sljedeće      |
 
 ## 4. Pravila inventara
 
