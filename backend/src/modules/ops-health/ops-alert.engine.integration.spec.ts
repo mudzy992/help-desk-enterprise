@@ -134,6 +134,9 @@ describeIfDatabase('OpsAlertEngine (integration)', () => {
   it('lets only one of two concurrent instances open and announce', async () => {
     const now = new Date('2026-11-20T09:00:00.000Z');
     const worker: OpsObservation = { key: 'worker.down', active: true, severity: 'CRITICAL', details: {} };
+    // worker.down follows the catalog's 2-positive-check hysteresis. Prime the
+    // first check, then race two evaluators on the opening check.
+    await engine().apply([worker], context(new Date(now.getTime() - minute)));
     await Promise.all([engine().apply([worker], context(now)), engine().apply([worker], context(now))]);
     expect(await rows('worker.down')).toHaveLength(1);
     expect(sent).toHaveLength(1);
@@ -169,9 +172,12 @@ describeIfDatabase('OpsAlertEngine (integration)', () => {
     const t0 = new Date('2026-11-20T08:00:00.000Z');
     const worker: OpsObservation = { key: 'worker.down', active: true, severity: 'CRITICAL', details: {} };
     await subject.apply([worker], context(t0));
+    await subject.apply([worker], context(new Date(t0.getTime() + minute)));
     expect((await rows('worker.down'))[0]!.notifyCount).toBe(0);
     fallbackConfigured = true;
-    await subject.apply([worker], context(new Date(t0.getTime() + minute)));
+    // A failed notification is retryable after alertNotifyRetryMs (15 min),
+    // not on every evaluator tick.
+    await subject.apply([worker], context(new Date(t0.getTime() + 16 * minute)));
     expect(fallbackSent.map((message) => message.kind)).toEqual(['opened']);
     expect((await rows('worker.down'))[0]!.notifyCount).toBe(1);
   });
@@ -199,8 +205,9 @@ describeIfDatabase('OpsAlertEngine (integration)', () => {
     const t0 = new Date('2026-11-20T08:00:00.000Z');
     const worker: OpsObservation = { key: 'worker.down', active: true, severity: 'CRITICAL', details: {} };
     await subject.apply([worker], context(t0, { databaseAvailable: false }));
+    await subject.apply([worker], context(new Date(t0.getTime() + minute), { databaseAvailable: false }));
     expect(fallbackSent).toHaveLength(1);
-    await subject.apply([worker], context(new Date(t0.getTime() + minute)));
+    await subject.apply([worker], context(new Date(t0.getTime() + 2 * minute)));
     expect(await rows('worker.down')).toHaveLength(1);
     expect((await rows('worker.down'))[0]).toMatchObject({ status: 'FIRING', notifyCount: 1 });
     expect(sent).toHaveLength(0);
