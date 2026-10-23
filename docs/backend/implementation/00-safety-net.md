@@ -1,6 +1,7 @@
 # Backend implementacija — Val 0: reprodukcija i safety net
 
-**Status:** u toku  
+**Status:** završeno
+
 **Početak:** 2026-10-23  
 **Master plan:** [Backend implementacijski master plan](../BACKEND-IMPLEMENTATION-MASTER-PLAN.md)
 
@@ -202,7 +203,7 @@ Zbir je sada **689 otvorenih / 3 zatvorena** nalaza.
 
 ## Paket 0.6 — završni regression, traceability i dokaz
 
-**Status:** implementirano; čeka završni CI rezultat na konsolidovanom SHA-u.
+**Status:** završeno; završni CI run [`40024951273`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40024951273) zelen na konsolidovanom SHA `cefda62f5731549a7d63560fb100eb0ad101ad45`.
 
 Konsolidovano:
 
@@ -213,4 +214,4 @@ Konsolidovano:
 - workflow guard ima regresijski test za ovu klasifikaciju;
 - završna lokalna regresija obuhvatila je findings i wiring checkere, njihove testove, container contract/testove, backend lint, workflow parser/testove i `git diff --check`.
 
-Završni CI run i njegov tačan SHA upisuju se tek nakon stvarno zelenog rezultata.
+Završni run je ponovo izvršio i potvrdio backend build/full Jest, generated Prisma gate, svih pet real-DB suiteova, PostgreSQL/Redis harness, svih 76 migracija, container image/runtime probe, frontend build/test, docs guard i završni CI gate. Time je Val 0 završen bez zamjene izvršnog dokaza dokumentacijskom tvrdnjom.

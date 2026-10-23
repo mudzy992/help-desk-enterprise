@@ -62,6 +62,8 @@ Cross-cutting zabrane:
 
 ## 4. Val 0 — reprodukcija i audit safety net
 
+**Status:** završeno 2026-10-23; konsolidovani dokaz je CI run [`40024951273`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40024951273) na SHA `cefda62f5731549a7d63560fb100eb0ad101ad45`, a detaljni dnevnik je u [`implementation/00-safety-net.md`](implementation/00-safety-net.md).
+
 **Cilj:** ukloniti dokazne blokade prije behavior izmjena.
 
 ### Paketi
