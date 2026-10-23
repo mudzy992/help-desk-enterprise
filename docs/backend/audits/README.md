@@ -50,6 +50,6 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 40 — observability                                      | audit završen | [Detaljni audit](40-observability.md)                                        | 4 P1, 10 P2, 4 P3 | **4,08/10**     |
 | 41 — ops-health                                         | audit završen | [Detaljni audit](41-ops-health.md)                                           | 7 P1, 12 P2, 5 P3 | **3,68/10**     |
 | 42 — docs                                               | audit završen | [Detaljni audit](42-docs.md)                                                 | 2 P1, 8 P2, 5 P3 | **5,50/10**      |
-| 43 — change-log                                         | sljedeće      | biće kreiran tokom audita                                                    | —                  | —               |
-| 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
+| 43 — change-log                                         | audit završen | [Detaljni audit](43-change-log.md)                                           | 5 P1, 10 P2, 5 P3 | **3,57/10**     |
+| 44 — cross-cutting backend infrastruktura               | sljedeće      | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |

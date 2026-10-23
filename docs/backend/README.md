@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–42 auditirani; sljedeći je modul 43 — `change-log`
+**Aktivna etapa:** moduli 01–43 auditirani; sljedeća je jedinica 44 — cross-cutting backend infrastruktura
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 

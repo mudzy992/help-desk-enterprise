@@ -78,13 +78,13 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  40 | `observability` | visok    |            14 |            5 |   671 |          1 |       1 | audit završen |
 |  41 | `ops-health`    | kritičan |            25 |           12 | 4.164 |          1 |       6 | audit završen |
 |  42 | `docs`          | srednji  |             9 |            4 |   778 |          1 |       2 | audit završen |
-|  43 | `change-log`    | srednji  |            10 |            2 |   286 |          0 |       0 | sljedeće      |
+|  43 | `change-log`    | srednji  |            10 |            2 |   286 |          0 |       0 | audit završen |
 
 ## 3. Završne audit jedinice
 
 |   # | Jedinica                     | Obavezni opseg                                                                                                                                        | Status        |
 | --: | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-|  44 | Cross-cutting infrastruktura | `src/common/**`, root Nest wiring, `main.ts`, `worker.ts`, CLI, globalni guardovi/interceptori/filteri, Prisma konfiguracija i migracijska disciplina | nije započeto |
+|  44 | Cross-cutting infrastruktura | `src/common/**`, root Nest wiring, `main.ts`, `worker.ts`, CLI, globalni guardovi/interceptori/filteri, Prisma konfiguracija i migracijska disciplina | sljedeće      |
 |  45 | Konsolidovani backend audit  | deduplikacija nalaza, globalna score tabela, cross-module traceability i jedinstveni fazni implementacijski master plan                               | nije započeto |
 
 ## 4. Pravila inventara
