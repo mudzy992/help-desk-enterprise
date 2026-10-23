@@ -170,10 +170,16 @@ jobs:
         run: npm run check:prisma-generated
       - name: Test the generated Prisma artifact guard
         run: npm run check:prisma-generated:test
+      - name: Verify route/guard and root-module wiring snapshot
+        run: npm run wiring:check
+      - name: Test the wiring manifest guard
+        run: npm run wiring:test
       - run: npm run build
       - run: npm run lint
       - name: Run suites previously blocked by missing generated Prisma types
         run: npm run test:safety-net:compile
+      - name: Verify API/worker/scheduler/shutdown wiring
+        run: npm run test:wiring
       - run: npm test -- --ci --coverage=false
 
   backend-integration:

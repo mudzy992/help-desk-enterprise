@@ -163,6 +163,18 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
   );
 });
 
+test("backend job zaključava route manifest i izvršava API/worker wiring suiteove", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const backend = readJob(workflow, "backend");
+  assert.ok(backend.includes("npm run wiring:check"));
+  assert.ok(backend.includes("npm run wiring:test"));
+  assert.ok(backend.includes("npm run test:wiring"));
+  assert.ok(
+    backend.indexOf("npm run wiring:check") < backend.indexOf("npm run build"),
+    "stale manifest mora pasti prije builda",
+  );
+});
+
 test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni gate", () => {
   const workflow = readFileSync(workflowPath, "utf8");
   const integration = readJob(workflow, "backend-integration");
