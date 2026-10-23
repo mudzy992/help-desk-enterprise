@@ -694,7 +694,7 @@
       "typescriptFiles": 30,
       "productionFiles": 24,
       "specFiles": 6,
-      "productionLoc": 3103,
+      "productionLoc": 3079,
       "controllers": 3,
       "services": 3,
       "moduleDependencies": [

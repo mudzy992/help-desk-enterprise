@@ -36,8 +36,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  13 | `routing`           | kritičan |            32 |            8 |  2.382 |          1 |       2 | audit završen |
 |  14 | `sla`               | kritičan |           120 |           28 |  7.503 |          6 |       9 | audit završen |
 |  15 | `service-catalog`   | visok    |           124 |           23 |  6.241 |          4 |       3 | audit završen |
-|  16 | `templates`         | visok    |            24 |            6 |  3.103 |          3 |       3 | sljedeće      |
-|  17 | `notifications`     | kritičan |            87 |           41 |  9.778 |          3 |       8 | nije započeto |
+|  16 | `templates`         | visok    |            24 |            6 |  3.079 |          3 |       3 | audit završen |
+|  17 | `notifications`     | kritičan |            87 |           41 |  9.778 |          3 |       8 | sljedeće      |
 |  18 | `websocket`         | visok    |            28 |           16 |  1.707 |          0 |       2 | nije započeto |
 |  19 | `integration-queue` | kritičan |            30 |           10 |  1.606 |          1 |       8 | nije započeto |
 |  20 | `inbound-email`     | kritičan |            24 |            2 |  1.694 |          1 |       3 | nije započeto |
