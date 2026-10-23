@@ -52,4 +52,4 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 42 — docs                                               | audit završen | [Detaljni audit](42-docs.md)                                                 | 2 P1, 8 P2, 5 P3 | **5,50/10**      |
 | 43 — change-log                                         | audit završen | [Detaljni audit](43-change-log.md)                                           | 5 P1, 10 P2, 5 P3 | **3,57/10**     |
 | 44 — cross-cutting backend infrastruktura               | audit završen | [Detaljni audit](44-cross-cutting-infrastructure.md)                          | 8 P1, 17 P2, 7 P3 | **3,20/10**     |
-| 45 — konsolidovani audit i implementacijski master plan | sljedeće      | nakon cross-cutting audita                                                   | —                | —               |
+| 45 — konsolidovani audit i implementacijski master plan | audit završen | [Detaljni audit](45-consolidated-backend-audit.md)                            | 692 ukupno       | **5,12/10**     |

@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–43 i cross-cutting jedinica 44 auditirani; sljedeća je jedinica 45 — konsolidovani backend audit i implementacijski master plan
+**Aktivna etapa:** kompletan audit 01–45 završen; sljedeći korak nakon odobrenja je implementacijski Val 0 — reprodukcija i safety net
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
@@ -12,13 +12,16 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 2. [Inventar i redoslijed modula](MODULE-INVENTORY.md)
 3. [Machine-readable inventar](backend-module-inventory.json)
 4. [Registar pojedinačnih audita](audits/README.md)
+5. [Globalni registar backend nalaza](BACKEND-FINDINGS-REGISTER.md)
+6. [Implementacijski master plan](BACKEND-IMPLEMENTATION-MASTER-PLAN.md)
+7. [Konsolidovani audit 45](audits/45-consolidated-backend-audit.md)
 
 ## Trenutni status
 
 - standard zaključava devet ponderisanih presjeka, severity pravila, dokazivanje, ocjenjivanje i strukturu faznih planova;
 - inventar sadrži svih **43** direktorija iz `backend/src/modules`;
 - cross-cutting audit je završio pregled `src/common`, bootstrapa, workera, CLI-ja, Prisma konfiguracije i globalnih mehanizama;
-- nema implementacijskih izmjena proizvoda u ovoj etapi;
+- svih 45 audit jedinica je završeno; implementacijske izmjene proizvoda još nisu započete;
 - frontend `OPEN-CI-FINAL` ostaje zasebna release obaveza i ne blokira backend audit.
 
 ## Pravilo napredovanja

@@ -1,0 +1,411 @@
+# Backend implementacijski master plan
+
+**Status:** spreman za odobrenje — implementacija nije započeta  
+**Datum:** 2026-10-23  
+**Ulaz:** 44 završene audit jedinice, 692 otvoren nalaz  
+**Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
+
+## 1. Izvršna pravila
+
+Ovaj dokument je jedinstveni redoslijed implementacije. Lokalni planovi iz 44 audita ostaju izvor detalja, ali se rad ne smije voditi samo rednim brojem modula: zajedničke sigurnosne i podatkovne osnove moraju prethoditi domenima koji ih koriste.
+
+Obavezna pravila za svaki paket:
+
+1. prvo reprodukcija ili executable safety net, zatim korekcija;
+2. jedan primarni owner po cross-module invarijanti;
+3. nema schema contract reza bez expand/backfill/verify/contract plana;
+4. business mutation, audit/change log, outbox i invalidacija moraju imati eksplicitnu atomarnost;
+5. javne, webhook, worker i CLI granice moraju biti fail-closed;
+6. svaki zatvoreni BA ID dobija link na kod, test, migration i CI dokaz;
+7. P1 se ne zatvara samo unit testom ako nalaz zavisi od PostgreSQL/Redis/filesystem/multi-replica ponašanja;
+8. rollback nije “revert commit” kada je migracija već promijenila podatke;
+9. nakon svakog vala preračunava se baseline samo iz aktuelnog koda i izvršenih testova;
+10. finalnih 9,90+ nije moguće bez nula otvorenih P0/P1, formalno riješenih P2/P3 obaveza i zvaničnog CI/integracijskog dokaza.
+
+## 2. Primarni workstreamovi i owneri
+
+| Workstream | Primarni owner | Glavni audit izvori | Odgovornost |
+|---|---|---|---|
+| WS-A Identity boundary | authentication/authorization/rbac | 01–06, 09, 31, 42, 44 | session, step-up, permission/scope, principal cache, public route manifest |
+| WS-B Data integrity | platform data/Prisma | 07–16, 22–35, 43–44 | transakcije, constraints, locking, migracije, runtime DB privilegije |
+| WS-C Audit/config trust | audit-log/settings/config-versioning | 07–10, 30, 33, 43 | immutable audit, redaction, signed/versioned config, change semantics |
+| WS-D Async delivery | worker/integration platform | 14, 17–21, 28–29, 36, 39–41, 44 | outbox, queue claims, retry, scheduler readiness, graceful drain |
+| WS-E Privacy/security | security/privacy | 09–11, 20, 25–26, 37 | keys, token lifecycle, export/erase, webhook/inbound trust, extension boundary |
+| WS-F Domain workflows | domain owners | 12–16, 21–29, 33–36 | state machines, optimistic concurrency, idempotency, scoped reads |
+| WS-G Runtime platform | platform/SRE | 39–44 | health, logs, metrics, TLS, image, secrets, dependency/build reproducibility |
+| WS-H Evidence/quality | backend QA + platform | svi | generated Prisma, integration harness, contract/E2E, traceability i score |
+
+Owner znači odgovornost za canonical primitive i rollout, ne isključivo autorstvo svih izmjena.
+
+## 3. Dependency mapa
+
+```text
+W0 reproducible evidence + generated Prisma
+ ├─> W1 runtime/secret/DB privilege safety
+ │    ├─> W2 identity + authorization fail-closed
+ │    ├─> W3 audit/config/change-log trust
+ │    └─> W4 transaction/outbox/concurrency primitives
+ │          ├─> W5 core tickets/routing/SLA/catalog/templates
+ │          ├─> W6 notifications/websocket/queues/email/on-call
+ │          ├─> W7 assets/problems/changes/knowledge/reports/search
+ │          └─> W8 install/config/integrations/directory/Teams/extension
+ ├─> W9 health/observability/ops and scale hardening
+ └─> W10 documentation, full regression, score and release gate
+```
+
+Cross-cutting zabrane:
+
+- domain ne smije izmisliti vlastiti outbox, idempotency, audit-redaction ili authorization primitive ako canonical workstream još nije završen;
+- contract migration ne smije u isti rollout sa starim readerom/writerom koji ne razumije novu obaveznu semantiku;
+- cache/Redis optimizacija ne smije biti authority za sigurnosnu odluku bez durable revocation/version dokaza;
+- worker readiness ne smije postati zelena prije registracije obaveznih schedulera i queue capability probea.
+
+## 4. Val 0 — reprodukcija i audit safety net
+
+**Cilj:** ukloniti dokazne blokade prije behavior izmjena.
+
+### Paketi
+
+- W0.1: reproducibilan `npm ci`, pinovan Node/Prisma toolchain i CI cache bez lock fallbacka;
+- W0.2: generated Prisma client/enums kao obavezni CI korak; build nikad nije “zelen” bez generatora;
+- W0.3: disposable PostgreSQL i Redis integration harness sa migracijom od prazne baze i upgrade fixtureom;
+- W0.4: route/guard manifest, provider wiring snapshot i API/worker scheduled-job separation test;
+- W0.5: globalni BA traceability checker — svaki ID mapiran na paket, test i status;
+- W0.6: baseline container testovi za UID, filesystem, signal, health i writable storage;
+- W0.7: dependency/SBOM snapshot i production/full-tree audit odvojeni.
+
+### Acceptance
+
+- clean checkout radi generate, lint, build i ciljane testove jednom zaključanom komandom;
+- svih trenutno compile-blokiranih suiteova se izvršava ili otkriva stvarnu code grešku;
+- migration-from-zero i upgrade-from-fixture prolaze u CI-u;
+- 692/692 BA ID-eva postoji tačno jednom u registru i ima plan ownera;
+- nema produkcijske tajne niti produkcijske konekcije u testovima.
+
+### Rollback
+
+Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; build gate se privremeno može označiti infrastructure-failed, ali ne pretvoriti u pass.
+
+## 5. Val 1 — production safety perimeter
+
+**Prioritet:** svi cross-cutting P1 koji povećavaju blast radius svake naredne faze.
+
+### W1.1 Container i supply chain
+
+- non-root runtime UID/GID, minimalni production dependency sloj, digest-pinned base;
+- strict `npm ci`; ukloniti install fallback;
+- read-only root filesystem, dropped capabilities, no-new-privileges i eksplicitni writable mountovi;
+- SBOM, image scan, provenance/signature i dependency remediation za poznate advisories.
+
+**Acceptance:** runtime UID nije 0; image nema dev CLI/toolchain osim eksplicitno odobrenog ops imagea; lock drift prekida build; container radi sa read-only rootom; high/critical production CVE je 0.
+
+### W1.2 DB/migration privilege separation
+
+- zaseban release migrator credential i restricted API/worker role;
+- migracije izvući iz start komande replike u single-owner release job;
+- TLS verification, `lock_timeout`, `statement_timeout`, `idle_in_transaction_session_timeout` i globalni connection budget;
+- schema compatibility sentinel u readinessu;
+- backup/restore rehearsal i operator approval za destruktivne migracije.
+
+**Acceptance:** API/worker ne mogu `CREATE/DROP/ALTER`; release job je jedini DDL owner; dvije replike se mogu rolloutati bez konkurentnog migratora; restore drill mjeri RPO/RTO.
+
+### W1.3 Redis i secret transport
+
+- `rediss`/TLS, CA/server identity, auth i environment namespace;
+- centralna typed startup validacija svih tajni i dependency URL-ova;
+- pin/rotation ugovor po secret purposeu i zabrana nesigurnog fallbacka u productionu.
+
+**Acceptance:** plaintext production Redis config fatalno pada; pogrešan CA/hostname ne prolazi; staging i production ključevi/queueovi ne kolidiraju; secret vrijednosti nisu u logovima.
+
+### W1.4 Worker lifecycle
+
+- mandatory scheduler registration/reconcile sa startup deadlineom;
+- worker readiness/liveness, queue capability i draining stanje;
+- bounded graceful shutdown, drugi signal kao force path, telemetry flush;
+- unfinished/stalled job metrika i recovery test.
+
+**Acceptance:** nedostupan Redis drži readiness crvenom; djelimična registracija nije “started”; SIGTERM pod aktivnim jobom deterministički drainuje ili ostavlja retry-safe stanje.
+
+## 6. Val 2 — identity, scope i authorization
+
+### Redoslijed
+
+1. canonical principal/assignment/scope model;
+2. session revocation i authz version authority koja ne zavisi od stale cachea;
+3. centralni permission + OU/service/ownership policy;
+4. fail-closed step-up i emergency/recovery tokovi;
+5. role/permission mutation constraints i last-admin zaštite;
+6. route manifest: authenticated, public, webhook ili worker — bez implicitne pete klase;
+7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision;
+8. negative integration matrica za cross-user, cross-OU, scoped admin i inactive principal.
+
+### Pogođene jedinice
+
+01 authentication, 02 authorization, 03 rbac, 04 users, 05 organizational-units, 06 groups, 09 security, 31 install, 33 policy-packs, 42 docs, 44 infrastructure; zatim svi domain controlleri.
+
+### Migracijski rizik
+
+Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only validator i repair manifest, zatim constraint. Permission rename zahtijeva dual-read/dual-write period i mapu starih ključeva.
+
+### Acceptance matrica
+
+- deaktivacija/revocation vrijedi na narednom zahtjevu i tokom Redis outagea;
+- scoped rola ne dobija globalni read/write samo zbog role keya;
+- last super-admin/required permission invariant odolijeva dvjema konkurentnim transakcijama;
+- svaki controller endpoint pripada manifestovanoj auth klasi;
+- javne/webhook rute imaju vlastiti signature/rate/replay dokaz;
+- authz negative suite prolazi na realnom PostgreSQL-u i sa dvije API replike.
+
+## 7. Val 3 — audit, config i change trust
+
+### Canonical primitive
+
+- append-only audit API sa actor klasom, request/correlation ID-em, reason/action/entity registryjem;
+- DB role/trigger ili ekvivalentna tamper boundary, hash/checkpoint verifier i retention/legal-hold ugovor;
+- schema-driven centralna redakcija i payload size/depth limit;
+- transaction-only write interface ili transactional outbox gdje atomarnost prelazi sistemsku granicu;
+- change-log diff kao versionirani add/remove/replace format sa JSON Pointer segmentima;
+- signed/versioned config package, optimistic activation i environment-bound vrijednosti;
+- durable cross-replica config invalidation/realtime.
+
+### Pogođene jedinice
+
+07 settings, 08 audit-log, 09 security, 10 security-audit-webhook, 30 config-versioning, 31 install, 33 policy-packs, 38 branding, 42 docs, 43 change-log i svi mutation calleri.
+
+### Acceptance
+
+- missing/null/empty container/key escaping diff fixturei su tačni;
+- business mutation ne može commitovati bez obaveznog audit/outbox zapisa;
+- tajna/PII fixture se nikad ne pojavljuje u audit/change/log payloadu;
+- direktna DB izmjena audit reda je odbijena ili verifier je deterministički detektuje;
+- concurrent config activation daje jednog pobjednika;
+- rollback koristi prethodnu validiranu verziju, ne ad-hoc edit;
+- retention i legal hold imaju izvršni test.
+
+## 8. Val 4 — transakcije, idempotency i concurrency platforma
+
+### Shared ugovori
+
+- request idempotency key + persisted result/claim state;
+- transactional outbox sa leaseom, attempts, nextAttemptAt, terminal stateom i replay alatom;
+- optimistic version/If-Match primitive;
+- advisory/row lock helper za sequence, approval i singleton workflow;
+- bulk command framework sa max sizeom, per-item rezultatom i atomic/best-effort eksplicitnim modom;
+- storage write protocol: stage → DB intent → atomic promote → compensation/reconciler;
+- cache invalidation nakon commit-a, nikad kao zamjena za source of truth.
+
+### Acceptance
+
+- retry nakon timeouta ne duplira efekt;
+- dva workera ne izvršavaju isti claim efekt;
+- crash na svakoj granici ostavlja replayable ili potpuno rollbackovano stanje;
+- stale update vraća typed conflict;
+- bulk API ne može tiho vratiti parcijalni success;
+- file/DB referenca ne pokazuje na nepostojeći artefakt;
+- poison item ne blokira cijeli batch bez DLQ/skip politike.
+
+## 9. Val 5 — core service-management domeni
+
+### 5A Tickets (12)
+
+Atomizovati message/event/attachment/audit tok, break-glass audit, bulk/split/merge, approval race, CSV completeness i automation claim. Uvesti storage reconciliation i bounded export.
+
+### 5B Routing i SLA (13–14)
+
+Scope-aware query prije paginacije, bounded history, topology revision/cache, first-start lock, poison isolation, active timer config version i deterministični recompute. Scheduler prelazi na Val 1/4 primitive.
+
+### 5C Service catalog i templates (15–16)
+
+Version/activation locking, dependency preflight, immutable published definition, safe delete/reassign, template/playbook optimistic concurrency i idempotent completion.
+
+### Wave acceptance
+
+- end-to-end create→route→SLA→message→approval→resolve tok je atomski/retry-safe;
+- dvije paralelne odluke ne mogu obje pobijediti;
+- scoped totals i liste računaju authorization prije page limita;
+- config promjena ima eksplicitan grandfather/recompute rezultat;
+- load test potvrđuje query/latency budget bez neograničenog skena.
+
+## 10. Val 6 — komunikacija i async integracije
+
+### Jedinice
+
+17 notifications, 18 websocket, 19 integration-queue, 20 inbound-email, 21 on-call, 28 announcements, 29 status-page, 36 teams.
+
+### Redoslijed
+
+1. outbox/claim state iz Vala 4;
+2. per-channel idempotency i provider message key;
+3. retry taxonomy, timeout, backoff, Retry-After i terminal DLQ;
+4. signed inbound replay window i canonical raw body;
+5. cross-replica websocket/pubsub delivery i authorization recheck;
+6. on-call calculation/version/time-zone/DST safety;
+7. announcement/status publish transaction i cache invalidation;
+8. Teams OAuth/JWT/Graph egress policy i simulator isolation.
+
+### Acceptance
+
+- at-least-once delivery ne pravi dupli user-visible efekt;
+- provider success + local timeout se reconciliše;
+- invalid/old/replayed webhook je odbijen;
+- websocket user nakon revocationa ne nastavlja primati zabranjene događaje;
+- Redis/provider outage je vidljiv, bounded i recoverable;
+- DST i cross-midnight on-call fixturei daju determinističan rezultat.
+
+## 11. Val 7 — poslovni domeni i analitika
+
+### 7A Assets (22)
+
+Authorization/scoping, assignment/transfer invariants, import transaction/idempotency, file safety, license uniqueness i bounded history.
+
+### 7B Problems i changes (23–24)
+
+State-machine guards, manager scope, approval/CAB concurrency, blackout/collision semantika, rollback/evidence i atomic ticket links.
+
+### 7C Knowledge, reports i search (25–27)
+
+Publication/classification authorization, immutable revision, feedback uniqueness; report snapshot/as-of, export completeness i scheduler safety; search scope-before-limit, stable cursor i index/query-plan dokaz.
+
+### 7D Announcements/status (28–29)
+
+Publish/ack/dismiss atomarnost, target audience snapshot i public cache/integrity granice.
+
+### Acceptance
+
+Svaki domain dobija state transition tabelu, permission/scope matricu, conflict test, destructive action audit, pagination bounds, real DB constraint test i E2E happy/negative/retry scenario.
+
+## 12. Val 8 — konfiguracija, instalacija i vanjske granice
+
+### Jedinice
+
+30 config-versioning, 31 install, 32 setup-checklist, 33 policy-packs, 34 service-onboarding, 35 directory-sync, 36 teams, 37 edge-extension, 38 branding.
+
+### Kritični redoslijed
+
+1. install bootstrap token/founder/session i one-time completion;
+2. config trust primitive iz Vala 3;
+3. policy pack immutable role/permission ownership;
+4. onboarding workflow lock, expiry, cleanup i compensation;
+5. directory sync plan/apply snapshot, LDAP TLS, delete/deactivate guard i resumability;
+6. Teams production credential/JWT/Graph ugovor;
+7. edge-extension host trust, token storage, origin/message validation i least privilege;
+8. branding upload/content/storage/cache granice;
+9. checklist izvodi stanje iz authoritative readinessa, ne optimistic UI/admin flagova.
+
+### Acceptance
+
+- install se ne može ponovo otvoriti ili preuzeti raceom;
+- unsigned/environment-bound config zahtijeva eksplicitnu policy odluku i audit;
+- directory apply radi samo nad istim pregledanim snapshotom i mass-delete guard je fail-closed;
+- extension ne prihvata poruku/token sa neodobrenog origin/host konteksta;
+- onboarding crash se može nastaviti ili kompenzirati;
+- uploaded branding nije executable i storage je persistent/bounded.
+
+## 13. Val 9 — health, observability i operativna pouzdanost
+
+### Jedinice
+
+39 health, 40 observability, 41 ops-health, 42 docs, 44 infrastructure.
+
+### Paketi
+
+- startup/live/ready/draining semantika po API-u i workeru;
+- schema, DB write, Redis capability, queue flow i storage probeovi sa jasnim critical/noncritical statusom;
+- structured logger, centralna redakcija i bounded request ID;
+- OpenTelemetry propagation API→queue→worker i metric cardinality budget;
+- durable incident/alert state machine sa dedupe, hysteresis, silence/ack/resolve concurrency;
+- operational docs permission/scope i manifest validation;
+- runbookovi za migration failure, Redis outage, queue backlog, key rotation, restore i stuck workflow.
+
+### Acceptance
+
+- svaki health status ima dokumentovanu orchestrator akciju;
+- budući/korumpirani heartbeat nije healthy;
+- API/worker partial dependency failure daje tačno očekivani status;
+- secrets/PII redaction corpus prolazi;
+- cardinality load ne proizvodi unbounded series;
+- alert transitioni su idempotentni pod dvije evaluator replike;
+- runbook drill završava mjerljivim recovery dokazom.
+
+## 14. Val 10 — CLI, migracije i data repair closure
+
+Iako počinje osnovama u Valu 1, završni data-ops gate dolazi nakon domain korekcija.
+
+- jedinstveni CLI framework: target fingerprint, environment, operator, reason, dry-run, `--apply`, typed confirmation i audit;
+- least-privilege per-command credential;
+- resumable batch/checkpoint i before/after manifest;
+- katalog svih data backfill/repair migracija iz Valova 2–8;
+- expand/backfill verification prije contract migracije;
+- restore rehearsal na finalnoj shemi;
+- ukloniti future-timestamp praksu i uvesti monotoni release-owned naming policy.
+
+**Acceptance:** destruktivna komanda ne radi bez tačnog target fingerprinta i potvrde; dry-run/applied count se podudaraju ili konflikt eksplicitno objašnjava razliku; sve repair operacije su resumable i auditovane.
+
+## 15. Val 11 — završna verifikacija i release
+
+### Obavezni test slojevi
+
+1. unit i pure contract;
+2. Nest module/controller wiring;
+3. PostgreSQL/Redis/filesystem integration;
+4. migration-from-zero + upgrade + rollback/restore rehearsal;
+5. multi-replica race/queue/websocket/scheduler;
+6. backend API E2E permission/scope/state/retry matrica;
+7. performance/query-plan/cardinality;
+8. container/security/dependency scan;
+9. full repository CI i postojeća frontend Playwright kolekcija;
+10. finalni audit rescore na tačnom SHA-u.
+
+### Finalni gate
+
+- 692 izvornih ID-eva ima status zatvoreno ili formalno odobren exception sa ownerom, rokom i kompenzacijom;
+- nema otvorenog P0/P1 za release;
+- nema administrativnog zatvaranja bez testa/dokaza;
+- production dependency audit nema neodobren high/critical;
+- migracije i restore su prošli na release kandidatu;
+- lokalni i zvanični CI dokaz su odvojeno navedeni;
+- changelog i runbook dokumentuju stvarni rollout i rollback.
+
+## 16. Globalna acceptance/traceability matrica
+
+| Kontrola | Minimalni dokaz | Gate |
+|---|---|---|
+| Authentication/revocation | Redis-outage i multi-replica integration test | Val 2 |
+| Permission/scope | generated route matrix + negative DB-backed suite | Val 2 |
+| Audit/change log | transaction/tamper/redaction/integrity verifier | Val 3 |
+| Config | signature/version/concurrent activation/rollback | Val 3 |
+| Transaction/idempotency | crash-point i duplicate-delivery tests | Val 4 |
+| Schema/migration | zero/upgrade/expand-contract/restore | Valovi 1, 10 |
+| Queue/scheduler | Redis restart, poison item, duplicate worker, drain | Valovi 1, 6 |
+| Upload/storage | MIME/path/size/stage/promote/reconcile/persistence | Valovi 4, 7, 8 |
+| Privacy/secret | key rotation, legal hold, erase/export auth, redaction | Valovi 1–3, 8 |
+| API contract | producer-consumer fixture, typed errors, pagination bounds | svaki domain val |
+| Observability | trace propagation, cardinality load, alert state race | Val 9 |
+| Container/supply chain | UID, read-only FS, SBOM, scan, provenance | Val 1 |
+| CLI/data repair | target guard, dry-run parity, resume, operator audit | Val 10 |
+| Final quality | full CI/E2E/perf/security + rescore | Val 11 |
+
+## 17. Procjena veličine i paralelizacija
+
+Ovo nije jedan linearni PR. Relativna procjena:
+
+| Val | Veličina | Može paralelno nakon zavisnosti |
+|---|---:|---|
+| 0 | L | harness, route manifest, traceability, container test |
+| 1 | XL | image, DB migration role, Redis TLS, worker lifecycle |
+| 2 | XL | identity model i route matrix tek nakon W0/W1 |
+| 3 | XL | audit i config podtimovi uz zajedničku DB disciplinu |
+| 4 | XL | outbox/idempotency/storage primitive |
+| 5 | XL | tickets; routing/SLA; catalog/templates kao tri podvala |
+| 6 | XL | channeli paralelno nakon outboxa |
+| 7 | XL | assets; problem/change; knowledge/report/search paralelno |
+| 8 | XL | install/config prvo, zatim integracije |
+| 9 | L | health/log/trace/alerts/runbook podvale |
+| 10 | L | CLI i data repair po završetku schema rezova |
+| 11 | XL | testovi paralelno, release gate sekvencijalno |
+
+Svaki val treba vlastiti početni baseline, acceptance checklistu, rollout/rollback zapis, završni SHA, CI dokaz i parcijalni rescore. Brzina ne opravdava preskakanje dependency reda.
+
+## 18. Presuda plana
+
+Backend ima široku funkcionalnu bazu, ali 692 nalaz i 174 P1 znače da “jedan veliki cleanup” nije siguran pristup. Najkraći siguran put prvo smanjuje sistemski blast radius — reproducibilnost, privilege separation, TLS, revocation, audit i transakcijske primitive — pa tek zatim popravlja domain state machineove. Implementacija treba početi tek nakon korisničkog odobrenja ovog master plana i mora zadržati BA traceability do finalnog release gatea.
