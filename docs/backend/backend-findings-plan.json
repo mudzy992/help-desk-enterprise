@@ -1,0 +1,5549 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "docs/backend/audits/01-44",
+  "units": 44,
+  "total": 692,
+  "severity": {
+    "P1": 174,
+    "P2": 368,
+    "P3": 150
+  },
+  "findings": [
+    {
+      "id": "BA-announcements-01",
+      "severity": "P1",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-02",
+      "severity": "P1",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-03",
+      "severity": "P1",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-04",
+      "severity": "P1",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-05",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-06",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-07",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-08",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-09",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-10",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-11",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-12",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-13",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-14",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-15",
+      "severity": "P2",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-16",
+      "severity": "P3",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-17",
+      "severity": "P3",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-18",
+      "severity": "P3",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-announcements-19",
+      "severity": "P3",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-01",
+      "severity": "P1",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-02",
+      "severity": "P1",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-03",
+      "severity": "P1",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-04",
+      "severity": "P1",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-05",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-06",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-07",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-08",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-09",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-10",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-11",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-12",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-13",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-14",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-15",
+      "severity": "P2",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-16",
+      "severity": "P3",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-17",
+      "severity": "P3",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-18",
+      "severity": "P3",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-assets-19",
+      "severity": "P3",
+      "source": "22-assets.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-01",
+      "severity": "P1",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-02",
+      "severity": "P1",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-03",
+      "severity": "P1",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-04",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-05",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-06",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-07",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-08",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-09",
+      "severity": "P2",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-10",
+      "severity": "P3",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-audit-log-11",
+      "severity": "P3",
+      "source": "08-audit-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-01",
+      "severity": "P1",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-02",
+      "severity": "P1",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-03",
+      "severity": "P1",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-04",
+      "severity": "P2",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-05",
+      "severity": "P2",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-06",
+      "severity": "P2",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-07",
+      "severity": "P2",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authentication-08",
+      "severity": "P3",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-01",
+      "severity": "P2",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-02",
+      "severity": "P2",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-03",
+      "severity": "P2",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-04",
+      "severity": "P2",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-05",
+      "severity": "P3",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-06",
+      "severity": "P3",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-07",
+      "severity": "P3",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-authorization-08",
+      "severity": "P3",
+      "source": "02-authorization.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-01",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-02",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-03",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-04",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-05",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-06",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-07",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-08",
+      "severity": "P2",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-09",
+      "severity": "P3",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-10",
+      "severity": "P3",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-11",
+      "severity": "P3",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-12",
+      "severity": "P3",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-brand-13",
+      "severity": "P3",
+      "source": "38-branding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-01",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-02",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-03",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-04",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-05",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-06",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-07",
+      "severity": "P1",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-08",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-09",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-10",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-11",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-12",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-13",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-14",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-15",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-16",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-17",
+      "severity": "P2",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-18",
+      "severity": "P3",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-19",
+      "severity": "P3",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-changes-20",
+      "severity": "P3",
+      "source": "24-changes.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-01",
+      "severity": "P1",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-02",
+      "severity": "P1",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-03",
+      "severity": "P1",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-04",
+      "severity": "P1",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-05",
+      "severity": "P1",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-06",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-07",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-08",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-09",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-10",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-11",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-12",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-13",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-14",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-15",
+      "severity": "P2",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-16",
+      "severity": "P3",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-17",
+      "severity": "P3",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-18",
+      "severity": "P3",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-19",
+      "severity": "P3",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-clog-20",
+      "severity": "P3",
+      "source": "43-change-log.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-01",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-02",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-03",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-04",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-05",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-06",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-07",
+      "severity": "P1",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-08",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-09",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-10",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-11",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-12",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-13",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-14",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-15",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-16",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-17",
+      "severity": "P2",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-18",
+      "severity": "P3",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-19",
+      "severity": "P3",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-config-versioning-20",
+      "severity": "P3",
+      "source": "30-config-versioning.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-01",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-02",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-03",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-04",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-05",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-06",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-07",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-08",
+      "severity": "P1",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-09",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-10",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-11",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-12",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-13",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-14",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-15",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-16",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-17",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-18",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-19",
+      "severity": "P2",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-20",
+      "severity": "P3",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-21",
+      "severity": "P3",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-22",
+      "severity": "P3",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-directory-sync-23",
+      "severity": "P3",
+      "source": "35-directory-sync.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-01",
+      "severity": "P1",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-02",
+      "severity": "P1",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-03",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-04",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-05",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-06",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-07",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-08",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-09",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-10",
+      "severity": "P2",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-11",
+      "severity": "P3",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-12",
+      "severity": "P3",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-13",
+      "severity": "P3",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-14",
+      "severity": "P3",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-docs-15",
+      "severity": "P3",
+      "source": "42-docs.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-01",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-02",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-03",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-04",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-05",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-06",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-07",
+      "severity": "P1",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-08",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-09",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-10",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-11",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-12",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-13",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-14",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-15",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-16",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-17",
+      "severity": "P2",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-18",
+      "severity": "P3",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-19",
+      "severity": "P3",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-20",
+      "severity": "P3",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-edge-21",
+      "severity": "P3",
+      "source": "37-edge-extension.md",
+      "owner": "WS-E",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-01",
+      "severity": "P1",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-02",
+      "severity": "P1",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-03",
+      "severity": "P1",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-04",
+      "severity": "P2",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-05",
+      "severity": "P2",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-06",
+      "severity": "P2",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-07",
+      "severity": "P2",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-08",
+      "severity": "P2",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-09",
+      "severity": "P3",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-groups-10",
+      "severity": "P3",
+      "source": "06-groups.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-01",
+      "severity": "P1",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-02",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-03",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-04",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-05",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-06",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-07",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-08",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-09",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-10",
+      "severity": "P2",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-11",
+      "severity": "P3",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-12",
+      "severity": "P3",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-13",
+      "severity": "P3",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-health-14",
+      "severity": "P3",
+      "source": "39-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-01",
+      "severity": "P1",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-02",
+      "severity": "P1",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-03",
+      "severity": "P1",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-04",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-05",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-06",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-07",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-08",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-09",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-10",
+      "severity": "P2",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-11",
+      "severity": "P3",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-12",
+      "severity": "P3",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-inbound-email-13",
+      "severity": "P3",
+      "source": "20-inbound-email.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-01",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-02",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-03",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-04",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-05",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-06",
+      "severity": "P1",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-07",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-08",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-09",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-10",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-11",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-12",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-13",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-14",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-15",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-16",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-17",
+      "severity": "P2",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-18",
+      "severity": "P3",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-19",
+      "severity": "P3",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-20",
+      "severity": "P3",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-install-21",
+      "severity": "P3",
+      "source": "31-install.md",
+      "owner": "WS-A",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-01",
+      "severity": "P1",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-02",
+      "severity": "P1",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-03",
+      "severity": "P1",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-04",
+      "severity": "P1",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-05",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-06",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-07",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-08",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-09",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-10",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-11",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-12",
+      "severity": "P2",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-13",
+      "severity": "P3",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-14",
+      "severity": "P3",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-integration-queue-15",
+      "severity": "P3",
+      "source": "19-integration-queue.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-01",
+      "severity": "P1",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-02",
+      "severity": "P1",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-03",
+      "severity": "P1",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-04",
+      "severity": "P1",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-05",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-06",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-07",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-08",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-09",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-10",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-11",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-12",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-13",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-14",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-15",
+      "severity": "P2",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-16",
+      "severity": "P3",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-17",
+      "severity": "P3",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-18",
+      "severity": "P3",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-knowledge-base-19",
+      "severity": "P3",
+      "source": "25-knowledge-base.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-01",
+      "severity": "P1",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-02",
+      "severity": "P1",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-03",
+      "severity": "P1",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-04",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-05",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-06",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-07",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-08",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-09",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-10",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-11",
+      "severity": "P2",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-12",
+      "severity": "P3",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-13",
+      "severity": "P3",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-14",
+      "severity": "P3",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-notifications-15",
+      "severity": "P3",
+      "source": "17-notifications.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-01",
+      "severity": "P1",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-02",
+      "severity": "P1",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-03",
+      "severity": "P1",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-04",
+      "severity": "P1",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-05",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-06",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-07",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-08",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-09",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-10",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-11",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-12",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-13",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-14",
+      "severity": "P2",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-15",
+      "severity": "P3",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-16",
+      "severity": "P3",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-17",
+      "severity": "P3",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-obs-18",
+      "severity": "P3",
+      "source": "40-observability.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-01",
+      "severity": "P1",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-02",
+      "severity": "P1",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-03",
+      "severity": "P1",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-04",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-05",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-06",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-07",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-08",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-09",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-10",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-11",
+      "severity": "P2",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-12",
+      "severity": "P3",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-13",
+      "severity": "P3",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-on-call-14",
+      "severity": "P3",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-01",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-02",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-03",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-04",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-05",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-06",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-07",
+      "severity": "P1",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-08",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-09",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-10",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-11",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-12",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-13",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-14",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-15",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-16",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-17",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-18",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-19",
+      "severity": "P2",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-20",
+      "severity": "P3",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-21",
+      "severity": "P3",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-22",
+      "severity": "P3",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-23",
+      "severity": "P3",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-ops-24",
+      "severity": "P3",
+      "source": "41-ops-health.md",
+      "owner": "WS-G",
+      "wave": 9,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-01",
+      "severity": "P1",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-02",
+      "severity": "P1",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-03",
+      "severity": "P2",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-04",
+      "severity": "P2",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-05",
+      "severity": "P2",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-06",
+      "severity": "P2",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-07",
+      "severity": "P2",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-08",
+      "severity": "P3",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-organizational-units-09",
+      "severity": "P3",
+      "source": "05-organizational-units.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-01",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-02",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-03",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-04",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-05",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-06",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-07",
+      "severity": "P1",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-08",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-09",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-10",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-11",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-12",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-13",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-14",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-15",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-16",
+      "severity": "P2",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-17",
+      "severity": "P3",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-18",
+      "severity": "P3",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-policy-packs-19",
+      "severity": "P3",
+      "source": "33-policy-packs.md",
+      "owner": "WS-C",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-01",
+      "severity": "P1",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-02",
+      "severity": "P1",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-03",
+      "severity": "P1",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-04",
+      "severity": "P1",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-05",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-06",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-07",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-08",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-09",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-10",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-11",
+      "severity": "P2",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-12",
+      "severity": "P3",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-privacy-13",
+      "severity": "P3",
+      "source": "11-privacy.md",
+      "owner": "WS-E",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-01",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-02",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-03",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-04",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-05",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-06",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-07",
+      "severity": "P1",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-08",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-09",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-10",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-11",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-12",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-13",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-14",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-15",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-16",
+      "severity": "P2",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-17",
+      "severity": "P3",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-18",
+      "severity": "P3",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-problems-19",
+      "severity": "P3",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-01",
+      "severity": "P2",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-02",
+      "severity": "P2",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-03",
+      "severity": "P2",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-04",
+      "severity": "P2",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-05",
+      "severity": "P2",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-06",
+      "severity": "P3",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-07",
+      "severity": "P3",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-rbac-08",
+      "severity": "P3",
+      "source": "03-rbac.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-01",
+      "severity": "P1",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-02",
+      "severity": "P1",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-03",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-04",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-05",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-06",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-07",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-08",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-09",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-10",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-11",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-12",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-13",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-14",
+      "severity": "P2",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-15",
+      "severity": "P3",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-16",
+      "severity": "P3",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-17",
+      "severity": "P3",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-18",
+      "severity": "P3",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-reports-19",
+      "severity": "P3",
+      "source": "26-reports.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-01",
+      "severity": "P1",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-02",
+      "severity": "P1",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-03",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-04",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-05",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-06",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-07",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-08",
+      "severity": "P2",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-09",
+      "severity": "P3",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-10",
+      "severity": "P3",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-routing-11",
+      "severity": "P3",
+      "source": "13-routing.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-01",
+      "severity": "P1",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-02",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-03",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-04",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-05",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-06",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-07",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-08",
+      "severity": "P2",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-09",
+      "severity": "P3",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-10",
+      "severity": "P3",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-11",
+      "severity": "P3",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-12",
+      "severity": "P3",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-search-13",
+      "severity": "P3",
+      "source": "27-search.md",
+      "owner": "WS-F",
+      "wave": 7,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-01",
+      "severity": "P1",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-02",
+      "severity": "P1",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-03",
+      "severity": "P1",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-04",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-05",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-06",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-07",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-08",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-09",
+      "severity": "P2",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-10",
+      "severity": "P3",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-11",
+      "severity": "P3",
+      "source": "09-security.md",
+      "owner": "WS-E",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-01",
+      "severity": "P1",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-02",
+      "severity": "P1",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-03",
+      "severity": "P1",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-04",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-05",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-06",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-07",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-08",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-09",
+      "severity": "P2",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-10",
+      "severity": "P3",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-security-audit-webhook-11",
+      "severity": "P3",
+      "source": "10-security-audit-webhook.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-01",
+      "severity": "P1",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-02",
+      "severity": "P1",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-03",
+      "severity": "P1",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-04",
+      "severity": "P1",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-05",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-06",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-07",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-08",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-09",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-10",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-11",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-12",
+      "severity": "P2",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-13",
+      "severity": "P3",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-14",
+      "severity": "P3",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-catalog-15",
+      "severity": "P3",
+      "source": "15-service-catalog.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-01",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-02",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-03",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-04",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-05",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-06",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-07",
+      "severity": "P1",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-08",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-09",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-10",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-11",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-12",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-13",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-14",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-15",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-16",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-17",
+      "severity": "P2",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-18",
+      "severity": "P3",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-19",
+      "severity": "P3",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-service-onboarding-20",
+      "severity": "P3",
+      "source": "34-service-onboarding.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-01",
+      "severity": "P1",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-02",
+      "severity": "P1",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-03",
+      "severity": "P1",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-04",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-05",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-06",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-07",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-08",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-09",
+      "severity": "P2",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-10",
+      "severity": "P3",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-settings-11",
+      "severity": "P3",
+      "source": "07-settings.md",
+      "owner": "WS-C",
+      "wave": 3,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-01",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-02",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-03",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-04",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-05",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-06",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-07",
+      "severity": "P2",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-08",
+      "severity": "P3",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-09",
+      "severity": "P3",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-10",
+      "severity": "P3",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-setup-checklist-11",
+      "severity": "P3",
+      "source": "32-setup-checklist.md",
+      "owner": "WS-F",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-01",
+      "severity": "P1",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-02",
+      "severity": "P1",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-03",
+      "severity": "P1",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-04",
+      "severity": "P1",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-05",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-06",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-07",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-08",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-09",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-10",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-11",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-12",
+      "severity": "P2",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-13",
+      "severity": "P3",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-14",
+      "severity": "P3",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-15",
+      "severity": "P3",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-sla-16",
+      "severity": "P3",
+      "source": "14-sla.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-01",
+      "severity": "P1",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-02",
+      "severity": "P1",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-03",
+      "severity": "P1",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-04",
+      "severity": "P1",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-05",
+      "severity": "P1",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-06",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-07",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-08",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-09",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-10",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-11",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-12",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-13",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-14",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-15",
+      "severity": "P2",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-16",
+      "severity": "P3",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-17",
+      "severity": "P3",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-18",
+      "severity": "P3",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-status-page-19",
+      "severity": "P3",
+      "source": "29-status-page.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-01",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-02",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-03",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-04",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-05",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-06",
+      "severity": "P1",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-07",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-08",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-09",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-10",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-11",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-12",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-13",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-14",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-15",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-16",
+      "severity": "P2",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-17",
+      "severity": "P3",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-18",
+      "severity": "P3",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-19",
+      "severity": "P3",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-teams-20",
+      "severity": "P3",
+      "source": "36-teams.md",
+      "owner": "WS-D",
+      "wave": 8,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-01",
+      "severity": "P1",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-02",
+      "severity": "P1",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-03",
+      "severity": "P1",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-04",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-05",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-06",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-07",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-08",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-09",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-10",
+      "severity": "P2",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-11",
+      "severity": "P3",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-12",
+      "severity": "P3",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-templates-13",
+      "severity": "P3",
+      "source": "16-templates.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-01",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-02",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-03",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-04",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-05",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-06",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-07",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-08",
+      "severity": "P1",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-09",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-10",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-11",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-12",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-13",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-14",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-15",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-16",
+      "severity": "P2",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-17",
+      "severity": "P3",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-18",
+      "severity": "P3",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-tickets-19",
+      "severity": "P3",
+      "source": "12-tickets.md",
+      "owner": "WS-F",
+      "wave": 5,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-01",
+      "severity": "P1",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-02",
+      "severity": "P1",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-03",
+      "severity": "P1",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-04",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-05",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-06",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-07",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-08",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-users-09",
+      "severity": "P2",
+      "source": "04-users.md",
+      "owner": "WS-A",
+      "wave": 2,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-01",
+      "severity": "P1",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-02",
+      "severity": "P1",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-03",
+      "severity": "P1",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-04",
+      "severity": "P1",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-05",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-06",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-07",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-08",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-09",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-10",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-11",
+      "severity": "P2",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-12",
+      "severity": "P3",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-13",
+      "severity": "P3",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-websocket-14",
+      "severity": "P3",
+      "source": "18-websocket.md",
+      "owner": "WS-D",
+      "wave": 6,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-01",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-02",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-03",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-04",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-05",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-06",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-07",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-08",
+      "severity": "P1",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-09",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-10",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-11",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-12",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-13",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-14",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-15",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-16",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-17",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-18",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-19",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-20",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-21",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-22",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-23",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-24",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-25",
+      "severity": "P2",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-26",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-27",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-28",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-29",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-30",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-31",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    },
+    {
+      "id": "BA-xcut-32",
+      "severity": "P3",
+      "source": "44-cross-cutting-infrastructure.md",
+      "owner": "WS-G",
+      "wave": 1,
+      "status": "otvoreno"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** kompletan audit 01–45 završen; sljedeći korak nakon odobrenja je implementacijski Val 0 — reprodukcija i safety net
+**Aktivna etapa:** kompletan audit 01–45 završen; implementacijski Val 0 — reprodukcija i safety net je u toku (paket 0.1)
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
@@ -15,6 +15,7 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 5. [Globalni registar backend nalaza](BACKEND-FINDINGS-REGISTER.md)
 6. [Implementacijski master plan](BACKEND-IMPLEMENTATION-MASTER-PLAN.md)
 7. [Konsolidovani audit 45](audits/45-consolidated-backend-audit.md)
+8. [Implementacija Vala 0 — reprodukcija i safety net](implementation/00-safety-net.md)
 
 ## Trenutni status
 

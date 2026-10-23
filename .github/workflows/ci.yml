@@ -158,6 +158,10 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Verify backend audit traceability baseline
+        run: npm run audit:traceability
+      - name: Test the backend audit traceability guard
+        run: npm run audit:traceability:test
       - run: npx prisma generate
       - run: npm run build
       - run: npm run lint
