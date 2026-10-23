@@ -54,13 +54,13 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  26 | `reports`        | visok   |            86 |           27 |  9.996 |          3 |      15 | audit završen |
 |  27 | `search`         | srednji |             7 |            2 |    311 |          1 |       1 | audit završen |
 |  28 | `announcements`  | srednji |            16 |            2 |  2.086 |          1 |       3 | audit završen |
-|  29 | `status-page`    | visok   |             9 |            5 |  1.322 |          2 |       2 | sljedeće      |
+|  29 | `status-page`    | visok   |             9 |            5 |  1.313 |          2 |       3 | audit završen |
 
 ### Val D — konfiguracija, instalacija i integracije
 
 |   # | Modul                | Rizik    | Prod. fajlovi | Spec fajlovi |    LOC | Kontroleri | Servisi | Status        |
 | --: | -------------------- | -------- | ------------: | -----------: | -----: | ---------: | ------: | ------------- |
-|  30 | `config-versioning`  | kritičan |            51 |            4 |  4.463 |          1 |       2 | nije započeto |
+|  30 | `config-versioning`  | kritičan |            51 |            4 |  4.463 |          1 |       2 | sljedeće      |
 |  31 | `install`            | kritičan |           208 |           54 | 12.982 |          7 |      19 | nije započeto |
 |  32 | `setup-checklist`    | srednji  |             6 |            2 |    233 |          1 |       1 | nije započeto |
 |  33 | `policy-packs`       | visok    |            32 |           12 |  2.133 |          1 |       1 | nije započeto |
