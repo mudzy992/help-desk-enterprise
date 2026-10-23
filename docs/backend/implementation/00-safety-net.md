@@ -127,8 +127,41 @@ Prvi problem je riješen per-suite database izolacijom; drugi korekcijom test sc
 
 Paket uvodi izvršni migration/dependency dokaz, ali ne zatvara široke production nalaze o TLS-u, privilege separationu, rollout concurrencyju, restoreu ili Redis failoveru. Oni ostaju otvoreni za Valove 1 i 9. Zbir ostaje **691 otvoren / 1 zatvoren**.
 
+## Paket 0.4 — route/guard manifest i API/worker wiring snapshot
+
+**Status:** završeno; CI run [`40021429467`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40021429467) zelen na SHA `5401f15c65887d434aa54f32306ad75e21f1b976`.
+
+Implementirano:
+
+- TypeScript AST inventar svih backend controllera i HTTP route dekoratora;
+- deterministični machine-readable snapshot `docs/backend/backend-wiring-manifest.json`;
+- za svaku rutu zapisani su source fajl, controller, handler, HTTP metoda, puna putanja, class/method `UseGuards` i guard-boundary klasifikacija;
+- neutralna klasifikacija `inherited-or-public` namjerno ne proglašava rutu javnom samo zato što nema lokalni `UseGuards`;
+- snapshot root `AppModule` i `WorkerModule` import/controller/provider/export metadata;
+- četiri direktna testa AST parsera i snapshot semantike;
+- stale manifest prekida CI prije builda;
+- zaseban izvršni CI korak kompajlira API i worker module te provjerava scheduler ownership i worker shutdown;
+- workflow guard zaključava da se wiring provjere ne mogu neprimjetno ukloniti iz backend joba.
+
+### Snapshot rezultat
+
+```text
+Controller fajlovi                       98
+HTTP rute                               610
+Rute sa eksplicitnim lokalnim guardom   590
+Inherited/public review granica          20
+Root moduli                                2
+Wiring parser testovi                    4/4 PASS
+API/worker/scheduler/shutdown suiteovi   4/4 PASS
+```
+
+Dvadeset ruta bez lokalnog guarda sada je vidljivo u jednom diffabilnom registru: authentication entrypointi, health, branding, Teams inbound, privacy notice, public on-call calendar i public status. Snapshot ne tvrdi da su sve ispravno autorizovane; sigurnosna klasifikacija i centralni policy ostaju posao Vala 2. Njegova sadašnja uloga je da svaka nova/uklonjena ruta ili promjena guarda napravi obavezan review diff.
+
+### Nalazi i status
+
+`BA-xcut-19` ostaje otvoren: manifest uklanja nevidljivost wiring-a, ali još ne centralizuje globalni guard/filter/interceptor ownership niti dokazuje semantičku auth klasu svih 20 ruta. Paket ne zatvara nalaz prije te behavior korekcije i negativnih testova. Zbir ostaje **691 otvoren / 1 zatvoren**.
+
 ## Preostali paketi Vala 0
 
-1. **0.4 — route/guard manifest i API/worker wiring snapshot**;
-2. **0.5 — container UID/filesystem/signal/storage safety testovi**;
-3. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
+1. **0.5 — container UID/filesystem/signal/storage safety testovi**;
+2. **0.6 — završni Val 0 regression, traceability update i commit dokaz**.
