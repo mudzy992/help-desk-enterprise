@@ -22,7 +22,8 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 | 12 — tickets                                            | audit završen | [Detaljni audit](12-tickets.md)                                              | 8 P1, 8 P2, 3 P3 | **5,38/10**     |
 | 13 — routing                                            | audit završen | [Detaljni audit](13-routing.md)                                              | 2 P1, 6 P2, 3 P3 | **5,82/10**     |
 | 14 — sla                                                | audit završen | [Detaljni audit](14-sla.md)                                                  | 4 P1, 8 P2, 4 P3 | **5,09/10**     |
-| 15 — service-catalog                                    | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
-| 16–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
+| 15 — service-catalog                                    | audit završen | [Detaljni audit](15-service-catalog.md)                                      | 4 P1, 8 P2, 3 P3 | **5,23/10**     |
+| 16 — templates                                          | sljedeće      | biće kreiran tokom audita                                                    | —                | —               |
+| 17–43 — ostali moduli                                   | nije započeto | prema registru inventara                                                     | —                | —               |
 | 44 — cross-cutting backend infrastruktura               | nije započeto | nakon svih modula                                                            | —                | —               |
 | 45 — konsolidovani audit i implementacijski master plan | nije započeto | nakon cross-cutting audita                                                   | —                | —               |
