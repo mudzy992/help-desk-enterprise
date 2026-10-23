@@ -66,8 +66,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  33 | `policy-packs`       | visok    |            32 |           12 |  2.101 |          1 |       1 | audit završen |
 |  34 | `service-onboarding` | visok    |            40 |            7 |  2.515 |          3 |       2 | audit završen |
 |  35 | `directory-sync`     | kritičan |            73 |           21 |  5.214 |          2 |       5 | audit završen |
-|  36 | `teams`              | visok    |            38 |            6 |  4.352 |          2 |      11 | sljedeće      |
-|  37 | `edge-extension`     | visok    |            15 |            2 |    851 |          1 |       2 | nije započeto |
+|  36 | `teams`              | visok    |            38 |            6 |  4.352 |          3 |      11 | audit završen |
+|  37 | `edge-extension`     | visok    |            15 |            2 |    851 |          1 |       2 | sljedeće      |
 |  38 | `branding`           | srednji  |             5 |            1 |    207 |          1 |       1 | nije započeto |
 
 ### Val E — operativnost i sadržaj
