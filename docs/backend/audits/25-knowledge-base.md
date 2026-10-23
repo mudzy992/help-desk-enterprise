@@ -190,7 +190,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | I. Operativnost/perf.        |     7% |   4,20 |
 | **Ukupno**                   | **100%** | **4,51/10** |
 
-Ponderisani zbir je 4,505; P1 cap i neizvršena većina suiteova daju iskrenu završnu ocjenu 4,65? Ne — ponderisani zbir je autoritativan: **4,51/10**.
+Ponderisani zbir je 4,505, zaokružen na **4,51/10**. Otvoreni P1 nalazi ograničavaju maksimum na 7,49.
 
 ## 17. Fazni plan
 

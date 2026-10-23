@@ -51,8 +51,8 @@ Audit ide po zavisnostima i riziku, ne abecedno. Svaki red je zasebna audit jedi
 |  23 | `problems`       | visok   |            22 |            8 |  3.350 |          1 |       8 | audit završen |
 |  24 | `changes`        | visok   |            23 |            4 |  3.483 |          1 |       8 | audit završen |
 |  25 | `knowledge-base` | visok   |            73 |           12 |  6.079 |          3 |       8 | audit završen |
-|  26 | `reports`        | visok   |            86 |           27 | 10.082 |          3 |       5 | sljedeće      |
-|  27 | `search`         | srednji |             7 |            2 |    318 |          1 |       1 | nije započeto |
+|  26 | `reports`        | visok   |            86 |           27 |  9.996 |          3 |      15 | audit završen |
+|  27 | `search`         | srednji |             7 |            2 |    318 |          1 |       1 | sljedeće      |
 |  28 | `announcements`  | srednji |            16 |            2 |  2.102 |          1 |       3 | nije započeto |
 |  29 | `status-page`    | visok   |             9 |            5 |  1.322 |          2 |       2 | nije započeto |
 
