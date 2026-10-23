@@ -2,7 +2,7 @@
 
 **Status:** aktuelno  
 **Ažurirano:** 2026-10-23
-**Aktivna etapa:** moduli 01–41 auditirani; sljedeći je modul 42 — `docs`
+**Aktivna etapa:** moduli 01–42 auditirani; sljedeći je modul 43 — `change-log`
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
