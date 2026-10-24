@@ -147,7 +147,7 @@ Production dependency audit prijavljuje 4 moderate advisories: direktni `exceljs
 
 ### Implementacijski dodatak — W1.1, 2026-10-24
 
-Izvorno stanje iznad ostaje audit trag, ali je izvršno korigovano u paketu W1.1: strict `npm ci`, digest-pinned Alpine stageovi, production-only dependency sloj, uklonjen npm/build toolchain, CycloneDX SBOM, puni Grype inventar, actionable high/critical gate i GitHub/Sigstore provenance prošli su u CI runu [`40073196977`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073196977). Production npm audit sada vraća nula ranjivosti. Detalji i granice dokaza su u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
+Izvorno stanje iznad ostaje audit trag, ali je izvršno korigovano u paketu W1.1: strict `npm ci`, digest-pinned Alpine stageovi, production-only dependency sloj, uklonjen npm/build toolchain, CycloneDX SBOM, puni Grype inventar, actionable high/critical gate i GitHub/Sigstore provenance prošli su u CI runu [`40073544355`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073544355). Production npm audit sada vraća nula ranjivosti. Detalji i granice dokaza su u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
 
 ## 11. CLI, seed i operativni blast radius
 

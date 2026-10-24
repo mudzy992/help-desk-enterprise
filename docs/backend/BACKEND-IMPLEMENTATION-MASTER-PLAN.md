@@ -94,7 +94,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ### W1.1 Container i supply chain
 
-**Status:** završeno 2026-10-24; izvršni dokaz je CI run [`40073196977`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073196977) na SHA `7d6d98e35fcc42dae28e8441c786a8b2d9eb8d54`, uz detaljni dnevnik u [`implementation/01-production-safety-perimeter.md`](implementation/01-production-safety-perimeter.md).
+**Status:** završeno 2026-10-24; izvršni dokaz je CI run [`40073544355`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073544355) na SHA `f7615c7196cae623aa50376869ddea771e2f38cc`, uz detaljni dnevnik u [`implementation/01-production-safety-perimeter.md`](implementation/01-production-safety-perimeter.md).
 
 - non-root runtime UID/GID, minimalni production dependency sloj, digest-pinned base;
 - strict `npm ci`; ukloniti install fallback;

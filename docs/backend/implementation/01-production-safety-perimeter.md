@@ -6,7 +6,7 @@
 
 ## Paket W1.1 — container i supply chain
 
-**Status:** završeno; CI run [`40073196977`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073196977) zelen na SHA `7d6d98e35fcc42dae28e8441c786a8b2d9eb8d54`.
+**Status:** završeno; CI run [`40073544355`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073544355) zelen na SHA `f7615c7196cae623aa50376869ddea771e2f38cc`.
 
 ### Implementirano
 
