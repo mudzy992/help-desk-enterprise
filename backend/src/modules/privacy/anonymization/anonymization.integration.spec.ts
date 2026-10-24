@@ -8,7 +8,8 @@ import path from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
-import { defaultAuditHashAlgorithm } from '../../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes, defaultAuditHashAlgorithm } from '../../audit-log/audit-log.constants';
+import { redactAuditForSubject } from './audit-redaction';
 import { compareAuditLogChainOrder, verifyAuditLogChain } from '../../audit-log/verify-audit-log-chain';
 import { InboundRawStore } from '../../inbound-email/inbound-raw-store';
 import { DiskTicketAttachmentStorage } from '../../tickets/attachments/disk-ticket-attachment-storage';
@@ -209,6 +210,44 @@ describeIfDatabase('anonymization (integration)', () => {
     const result = verifyAuditLogChain({ records: records as never, hashAlgorithm: defaultAuditHashAlgorithm });
     expect(result.valid).toBe(true);
     expect(result.checkedCount).toBe(records.length);
+  });
+
+  it('rolls every metadata update and summary event back on a mid-batch failure', async () => {
+    const marker = `rollback-${stamp}@example.invalid`;
+    const subjectId = `rollback-subject-${stamp}`;
+    const erasureId = `rollback-erasure-${stamp}`;
+    for (const index of [1, 2]) {
+      await prisma.$transaction((transaction) => appendAuditLog(transaction as never, {
+        action: auditLogActions.privacyRetentionRun,
+        entityType: auditLogEntityTypes.retentionRun,
+        entityId: subjectId,
+        metadata: { marker, index },
+        actorUserId: null,
+      }));
+    }
+    let calls = 0;
+    const scrubber = {
+      scrub: (text: string) => ({ text, count: 0 }),
+      scrubJson: (_value: unknown) => {
+        calls += 1;
+        if (calls === 2) throw new Error('simulated mid-batch failure');
+        return { value: { redacted: true }, count: 1 };
+      },
+    };
+    await expect(redactAuditForSubject(prisma as never, {
+      userId: subjectId,
+      email: marker,
+      ticketIds: [],
+      scrubber: scrubber as never,
+      erasureId,
+      actorUserId: null,
+    })).rejects.toThrow('simulated mid-batch failure');
+    const rows = await prisma.auditLog.findMany({ where: { entityId: subjectId } });
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.redactedAt === null && JSON.stringify(row.metadata).includes(marker))).toBe(true);
+    expect(await prisma.auditLog.count({ where: { action: auditLogActions.auditRedacted, entityId: erasureId } })).toBe(0);
+    const chain = (await prisma.auditLog.findMany()).sort(compareAuditLogChainOrder);
+    expect(verifyAuditLogChain({ records: chain as never, hashAlgorithm: defaultAuditHashAlgorithm }).valid).toBe(true);
   });
 
   it('is idempotent and recognises a returning person', async () => {
