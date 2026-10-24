@@ -132,14 +132,15 @@ describe('authorization request path (phase 2.2)', () => {
 
     await expect(request(world.guard)).resolves.toBe(true);
     await expect(request(world.guard)).resolves.toBe(true);
-    expect(world.databaseReads()).toBe(1);
+    expect(world.databaseReads()).toBe(2);
 
     const before = await world.authorizationLoader.loadBySubjectId('user-1');
     expect(before?.assignments.map((assignment) => assignment.roleKey)).toEqual([
       'AGENT',
     ]);
-    // The authorization loader shares the cached load of the guard.
-    expect(world.databaseReads()).toBe(1);
+    // The authorization loader shares the cached payload, fenced by the
+    // lightweight durable authority read.
+    expect(world.databaseReads()).toBe(3);
 
     // The role changes (what `assignUserRole` + the hook do).
     world.rows.set(
@@ -163,7 +164,7 @@ describe('authorization request path (phase 2.2)', () => {
     expect(after?.assignments.map((assignment) => assignment.roleKey)).toEqual([
       'ADMIN',
     ]);
-    expect(world.databaseReads()).toBe(2);
+    expect(world.databaseReads()).toBe(4);
   });
 
   it('rejects a deactivated user on the next request, before the ttl', async () => {

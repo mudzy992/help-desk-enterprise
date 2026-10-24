@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type Redis from 'ioredis';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { redisTokens } from '../../common/redis/redis.tokens';
 
 /**
@@ -182,7 +183,10 @@ export class SessionRevocationStore {
   private readonly logger = new Logger(SessionRevocationStore.name);
   private readonly backend: SessionRevocationBackend;
 
-  constructor(@Optional() @Inject(redisTokens.client) redis?: Redis) {
+  constructor(
+    @Optional() @Inject(redisTokens.client) redis?: Redis,
+    @Optional() private readonly prisma?: PrismaService,
+  ) {
     this.backend =
       redis !== undefined && redis !== null
         ? createRedisSessionRevocationBackend(redis)
@@ -190,11 +194,36 @@ export class SessionRevocationStore {
   }
 
   async isRevoked(input: RevocationCheck): Promise<boolean> {
+    // A registry session is durable PostgreSQL state. Check it on every request:
+    // Redis may accelerate token/cutoff checks, but an outage or a stale replica
+    // must never resurrect a revoked session on another API instance.
+    if (input.sessionId) {
+      if (this.prisma === undefined) {
+        // Unit/standalone callers without Prisma retain the explicit in-memory
+        // backend contract; production DI always supplies PrismaService.
+      } else {
+        try {
+          const active = await this.prisma.userSession.findFirst({
+            where: {
+              id: input.sessionId,
+              userId: input.subjectId,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            select: { id: true },
+          });
+          if (active === null) return true;
+        } catch (error) {
+          this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
+          return true;
+        }
+      }
+    }
     try {
       return await this.backend.isRevoked(input);
     } catch (error) {
-      this.logger.warn(`session revocation check unavailable, failing open: ${String(error)}`);
-      return false;
+      this.logger.error(`session revocation cache unavailable, failing closed: ${String(error)}`);
+      return true;
     }
   }
 
