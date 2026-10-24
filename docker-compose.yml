@@ -95,6 +95,8 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       NODE_ENV: ${NODE_ENV:-production}
     restart: "no"
+    volumes:
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
       - db_net
 
@@ -122,6 +124,7 @@ services:
     volumes:
       - uploads:/usr/app/uploads
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
       - default
       - redis_net
@@ -154,6 +157,7 @@ services:
     volumes:
       - uploads:/usr/app/uploads
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
       - default
       - redis_net
