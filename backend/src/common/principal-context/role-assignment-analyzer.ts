@@ -9,6 +9,7 @@ export type AssignmentAnomalyCode = 'AMBIGUOUS_SCOPE' | 'DUPLICATE_ASSIGNMENT' |
 export type AssignmentAnomaly = { readonly code: AssignmentAnomalyCode; readonly assignmentIds: readonly string[]; readonly userId: string; readonly recommendation: string };
 export type AssignmentRepairManifest = { readonly schemaVersion: 1; readonly mode: 'report-only'; readonly generatedAt: string; readonly sourceFingerprint: string; readonly rowCount: number; readonly anomalies: readonly AssignmentAnomaly[] };
 
+/** Deterministic analysis only: this module deliberately exposes no write client. */
 const identity = (row: AssignmentInventoryRow): string => [row.userId, row.roleId, row.organizationalUnitId ?? '-', row.serviceId ?? '-'].join('|');
 export function analyzeRoleAssignments(rows: readonly AssignmentInventoryRow[], generatedAt = new Date().toISOString()): AssignmentRepairManifest {
   const sorted = [...rows].sort((a, b) => a.id.localeCompare(b.id));
