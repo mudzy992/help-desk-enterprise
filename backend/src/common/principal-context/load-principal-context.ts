@@ -52,7 +52,7 @@ type LoadedPrincipalUser = {
 };
 
 export function mapPrincipalUser(user: LoadedPrincipalUser): PrincipalContext {
-  const assignments: readonly PrincipalAssignment[] = user.userRoles.flatMap((userRole) => {
+  const assignments: readonly PrincipalAssignment[] = user.userRoles.flatMap((userRole): PrincipalAssignment[] => {
     const organizationalUnitId = userRole.organizationalUnit?.id ?? null;
     const organizationalUnitPath = userRole.organizationalUnit?.ouPath ?? null;
     const serviceId = userRole.service?.id ?? null;
