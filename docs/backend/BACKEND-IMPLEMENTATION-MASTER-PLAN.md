@@ -209,7 +209,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.5 atomska privacy redakcija i authenticated redaction transition — završen** na SHA `89e0480`, CI `40136626790`.
 - Metadata updatei, v4 rechain i završni `audit.redacted` događaj sada su jedna advisory-lockovana PostgreSQL transakcija; realni mid-batch kvar rollbackuje prvi već izvršeni update i ne ostavlja summary događaj.
 - `BA-audit-log-04` je zatvoren; dokaz je u [14-atomic-audit-redaction-transition.md](implementation/14-atomic-audit-redaction-transition.md).
-- Sljedeći paket je **W3.6 bounded streaming audit export i incremental verify**.
+- **W3.6 bounded streaming audit export i incremental verify — završen** na SHA `403fbf9`, CI `40140062168`.
+- Export koristi Node stream i stabilne `(createdAt,id)` keyset stranice od najviše 500 redova; verify je inkrementalan, support snapshot je capped na 5.000, a anchor čita samo head red.
+- `BA-audit-log-05` je zatvoren; dokaz je u [15-bounded-audit-export-incremental-verify.md](implementation/15-bounded-audit-export-incremental-verify.md).
+- Sljedeći paket je **W3.7 partitioned audit append concurrency**.
 
 ### Canonical primitive
 

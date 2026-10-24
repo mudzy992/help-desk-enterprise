@@ -348,7 +348,7 @@
     {
       "id": "BA-audit-log-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "završen (W3.6)",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
