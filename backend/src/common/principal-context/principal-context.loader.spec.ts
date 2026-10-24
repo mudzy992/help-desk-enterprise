@@ -93,6 +93,7 @@ function userRow(overrides: Record<string, unknown> = {}) {
     organizationalUnitId: 'ou-it',
     userRoles: [
       {
+        id: 'assignment-agent-ou-it',
         role: {
           key: 'AGENT',
           rolePermissions: [{ permission: { key: 'ticket.merge' } }],
@@ -171,6 +172,7 @@ describe('principal context loading (phase 2.2)', () => {
       userRow({
         userRoles: [
           {
+            id: 'assignment-admin-ou-it',
             role: {
               key: 'ADMIN',
               rolePermissions: [{ permission: { key: 'ticket.merge' } }],

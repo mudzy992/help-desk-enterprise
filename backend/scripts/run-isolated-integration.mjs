@@ -9,6 +9,7 @@ import pg from "pg";
 const { Client } = pg;
 
 export const integrationSpecs = Object.freeze([
+  "src/common/principal-context/role-assignment-analyzer.integration.spec.ts",
   "src/modules/privacy/retention/retention.integration.spec.ts",
   "src/modules/privacy/anonymization/anonymization.integration.spec.ts",
   "src/modules/privacy/export/export.integration.spec.ts",
