@@ -143,8 +143,14 @@ describe('principal context loading (phase 2.2)', () => {
     });
     expect(context?.assignments).toEqual([
       {
+        assignmentId: 'assignment-agent-ou-it',
         roleKey: 'AGENT',
         permissionKeys: ['ticket.merge'],
+        scope: {
+          kind: 'organizational-unit',
+          organizationalUnitId: 'ou-it',
+          organizationalUnitPath: '/Korisnici/IT',
+        },
         organizationalUnitId: 'ou-it',
         organizationalUnitPath: '/Korisnici/IT',
         serviceId: null,
