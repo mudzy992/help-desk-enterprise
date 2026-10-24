@@ -129,7 +129,7 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 | ID                  | Severity | Naslov                                                                                       | Status   | Veličina |
 | ------------------- | -------- | -------------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-authorization-01 | P2       | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a                          | zatvoreno | M        |
-| BA-authorization-02 | P2       | Ne postoji potpuni route-to-authorization manifest i CI guard                                | otvoreno | L        |
+| BA-authorization-02 | P2       | Ne postoji potpuni route-to-authorization manifest i CI guard                                | zatvoreno | L        |
 | BA-authorization-03 | P2       | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka                   | otvoreno | M        |
 | BA-authorization-04 | P2       | Integracijski testni gate zavisi od mrežnog Prisma engine downloada                          | otvoreno | M        |
 | BA-authorization-05 | P3       | Current-session response gubi scope uz permission capabilityje                               | otvoreno | M        |
@@ -142,7 +142,8 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 ### Implementacijski status Vala 2 (2026-10-24)
 
 - **W2.2:** `BA-authorization-01` je zatvoren na SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`; svaki cached principal sada zahtijeva PostgreSQL authority fence.
-- **W2.3:** SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`, uvodi centralnu permission + OU/service/ownership odluku bez role-key inputa i real-PostgreSQL cross-user/cross-OU/service negativnu matricu. Preostali route/decorator rollout nalazi ostaju otvoreni.
+- **W2.3:** SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`, uvodi centralnu permission + OU/service/ownership odluku bez role-key inputa i real-PostgreSQL cross-user/cross-OU/service negativnu matricu.
+- **W2.6:** SHA `52b5f1af95e7c650cfecef91a88a602edd5279e8`, CI `40127087672`, zatvara `BA-authorization-02`: svih 610 HTTP ruta i worker root imaju iscrpnu `authenticated/public/webhook/worker` klasifikaciju, owner i dokaz; CI odbija implicitnu petu klasu. Preostali permission/scope rollout nalazi ostaju otvoreni.
 
 ### BA-authorization-01 — Bounded stale grant nakon neuspjele invalidacije
 

@@ -722,13 +722,15 @@ W2.4 je na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`, zat
 
 W2.5 je na SHA `21f1caa`, CI `40126212216`, zatvorio `BA-rbac-04`, `BA-users-04` i `BA-users-05`. Odobreni deterministički repair, DB scope/identity constrainti, global-only SuperAdmin trigger i zajednička mutation serializacija dokazani su na stvarnom PostgreSQL-u; detalji su u [06-role-assignment-and-permission-invariants.md](implementation/06-role-assignment-and-permission-invariants.md).
 
+W2.6 je na SHA `52b5f1af95e7c650cfecef91a88a602edd5279e8`, CI `40127087672`, zatvorio `BA-authorization-02`. Svih 610 HTTP ruta i worker root imaju četveroklasni policy zapis, owner i dokaz; CI odbija implicitnu petu klasu. Detalji su u [07-exhaustive-route-policy-manifest.md](implementation/07-exhaustive-route-policy-manifest.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **672**
-- Zatvoreno: **20** (`BA-authorization-01`, `BA-rbac-04`, `BA-security-01`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **671**
+- Zatvoreno: **21** (`BA-authorization-01/02`, `BA-rbac-04`, `BA-security-01`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**
