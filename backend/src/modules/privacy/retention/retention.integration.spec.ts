@@ -164,6 +164,21 @@ describeIfDatabase('retention (integration)', () => {
 
   const deadline = () => new Date(Date.now() + 60_000);
 
+  it('rolls the audit append back with its failed business transaction', async () => {
+    const entityId = `atomic-${Date.now()}`;
+    await expect(prisma.$transaction(async (transaction) => {
+      await appendAuditLog(transaction as never, {
+        action: auditLogActions.privacyRetentionRun,
+        entityType: auditLogEntityTypes.retentionRun,
+        entityId,
+        metadata: { phase: 'before-business-failure' },
+        actorUserId: null,
+      });
+      throw new Error('simulated business failure');
+    })).rejects.toThrow('simulated business failure');
+    await expect(prisma.auditLog.count({ where: { entityId } })).resolves.toBe(0);
+  });
+
   it('skips content categories without a dry run', async () => {
     const run = await service(configuration()).runCategory({
       category: 'ticketContent',
