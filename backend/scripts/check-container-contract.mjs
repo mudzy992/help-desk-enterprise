@@ -13,7 +13,7 @@ export function validateContainerContract(dockerfile, compose) {
     if (!pattern.test(finalStage)) problems.push(`Dockerfile runtime: ${message}`);
   };
   const buildDigestPattern = /^node:22-bookworm-slim@sha256:[a-f0-9]{64}$/u;
-  const runtimeDigestPattern = /^gcr\.io\/distroless\/nodejs22-debian12:nonroot@sha256:[a-f0-9]{64}$/u;
+  const runtimeDigestPattern = /^gcr\.io\/distroless\/nodejs22-debian12@sha256:[a-f0-9]{64}$/u;
   if (
     stages.length !== 3 ||
     stages.slice(0, 2).some((stage) => !buildDigestPattern.test(stage[1])) ||
@@ -27,7 +27,7 @@ export function validateContainerContract(dockerfile, compose) {
   if (!/^FROM\s+[^\s]+\s+AS\s+production-deps\s*$[\s\S]*?RUN npm ci --omit=dev --omit=optional --ignore-scripts/mu.test(dockerfile)) {
     problems.push("Dockerfile supply chain: nedostaje strict production-only dependency stage");
   }
-  requireFinal(/^USER\s+nonroot\s*$/mu, "nedostaje `USER nonroot`");
+  requireFinal(/^USER\s+65532:65532\s*$/mu, "nedostaje `USER 65532:65532`");
   requireFinal(/^STOPSIGNAL\s+SIGTERM\s*$/mu, "nedostaje `STOPSIGNAL SIGTERM`");
   if (!/mkdir -p \/usr\/app\/uploads && chown 65532:65532 \/usr\/app\/uploads/u.test(dockerfile)) {
     problems.push("Dockerfile runtime: uploads ownership nije pripremljen za distroless nonroot UID");

@@ -24,7 +24,7 @@ RUN test -f dist/src/main.js && test -f dist/src/worker.js
 RUN mkdir -p /usr/app/uploads && chown 65532:65532 /usr/app/uploads
 
 # Distroless excludes shell, package manager and build CLI attack surface.
-FROM gcr.io/distroless/nodejs22-debian12:nonroot@sha256:13593b7570658e8477de39e2f4a1dd25db2f836d68a0ba771251572d23bb4f8e AS runtime
+FROM gcr.io/distroless/nodejs22-debian12@sha256:8a3e96fe3345b5d83ecec2066e7c498139a02a6d1214e4f6c39f9ce359f3f5bc AS runtime
 
 WORKDIR /usr/app
 COPY --chown=65532:65532 --from=production-deps /usr/app/node_modules ./node_modules
@@ -39,6 +39,6 @@ ENV UPLOAD_ROOT=/usr/app/uploads
 
 EXPOSE 10001
 STOPSIGNAL SIGTERM
-USER nonroot
+USER 65532:65532
 
 CMD ["dist/src/main.js"]

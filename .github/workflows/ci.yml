@@ -309,6 +309,7 @@ jobs:
           image: help-desk-backend:safety-net
           fail-build: false
           severity-cutoff: high
+          only-fixed: true
           output-format: json
           output-file: backend/backend-image-scan.json
       - name: Summarize image vulnerabilities

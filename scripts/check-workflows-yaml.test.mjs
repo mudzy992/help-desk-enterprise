@@ -193,6 +193,7 @@ test("backend container job gradi image, izvršava runtime probe i ulazi u gate"
   assert.ok(container.includes("anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"));
   assert.ok(container.includes("actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8"));
   assert.ok(container.includes("severity-cutoff: high"));
+  assert.ok(container.includes("only-fixed: true"));
   assert.ok(container.includes("npm run container:runtime:test"));
   assert.ok(gate.includes("container"));
   assert.ok(gate.includes("needs.container.result"));
