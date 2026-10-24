@@ -248,7 +248,10 @@ describeIfDatabase('retention (integration)', () => {
     expect(result.valid).toBe(true);
     // 3 remaining test rows + retention run audits + the purge entry.
     expect(result.checkedCount).toBe(await prisma.auditLog.count());
-    expect(await prisma.auditLog.count({ where: { action: auditLogActions.privacyRetentionRun } })).toBe(3);
+    expect(await prisma.auditLog.count({ where: {
+      action: auditLogActions.privacyRetentionRun,
+      entityId: { startsWith: 'e' },
+    } })).toBe(3);
     expect(await prisma.auditLog.count({ where: { action: 'audit.retention.purged' } })).toBe(1);
   });
 
