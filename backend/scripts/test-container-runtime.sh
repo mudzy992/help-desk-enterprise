@@ -30,6 +30,8 @@ docker run --rm \
     test ! -e node_modules/@nestjs/cli
     test ! -e node_modules/typescript
     test ! -e node_modules/prisma
+    ! command -v npm >/dev/null 2>&1
+    ! command -v npx >/dev/null 2>&1
     test ! -e prisma
     test ! -e src
     touch /tmp/safety-net

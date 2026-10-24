@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateContainerContract } from "./check-container-contract.mjs";
 
-const image = "node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402";
+const image = "node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392";
 const dockerfile = `
 FROM ${image} AS production-deps
 COPY package*.json ./
@@ -13,6 +13,7 @@ FROM ${image} AS runtime
 WORKDIR /usr/app
 COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/app/dist ./dist
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 ENV UPLOAD_ROOT=/usr/app/uploads
 STOPSIGNAL SIGTERM
