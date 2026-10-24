@@ -39,7 +39,15 @@
     "container:test": "node --test scripts/check-container-contract.test.mjs",
     "container:runtime:test": "sh scripts/test-container-runtime.sh",
     "audit:production": "npm audit --omit=dev --audit-level=high",
-    "sbom:production": "npm sbom --omit=dev --sbom-format=cyclonedx"
+    "sbom:production": "npm sbom --omit=dev --sbom-format=cyclonedx",
+    "db:migration-policy:check": "node scripts/check-migration-policy.mjs",
+    "db:migration-policy:test": "node --test scripts/check-migration-policy.test.mjs",
+    "db:migrate:release": "node scripts/run-release-migrations.mjs",
+    "db:migrate:release:test": "node --test scripts/run-release-migrations.test.mjs",
+    "db:roles:provision": "node scripts/provision-database-roles.mjs",
+    "db:privileges:verify": "node scripts/verify-database-privileges.mjs",
+    "db:restore:test": "sh scripts/test-backup-restore.sh",
+    "db:budget:check": "node -e \"require('./dist/src/common/database/database-runtime-contract.js').assertConnectionBudget(process.env)\""
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

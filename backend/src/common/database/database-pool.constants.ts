@@ -4,6 +4,8 @@ export const databasePoolConstants = {
     idleTimeoutMs: 'DB_POOL_IDLE_TIMEOUT_MS',
     connectionTimeoutMs: 'DB_POOL_CONNECTION_TIMEOUT_MS',
     statementTimeoutMs: 'DB_STATEMENT_TIMEOUT_MS',
+    lockTimeoutMs: 'DB_LOCK_TIMEOUT_MS',
+    idleInTransactionTimeoutMs: 'DB_IDLE_IN_TRANSACTION_TIMEOUT_MS',
   },
   defaults: {
     /**
@@ -19,6 +21,8 @@ export const databasePoolConstants = {
      * is a bug (or a report) and is cancelled with a visible error.
      */
     statementTimeoutMs: 5_000,
+    lockTimeoutMs: 2_000,
+    idleInTransactionTimeoutMs: 10_000,
     /** Identifies the API in `pg_stat_activity.application_name`. */
     applicationName: 'service-desk-api',
     /** Worker jobs (SLA scan, retention) may legitimately run longer. */

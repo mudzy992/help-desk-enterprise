@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "approvals": [
+    {
+      "migration": "20260910120000_organizational_unit_integrity",
+      "sha256": "93a68f0c2e63626ec67509410c5ddd39e3bff1b6a0082abbb05afcd14afadcc4",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260911080000_routing_rule_unique_origin_service",
+      "sha256": "27143a47b54d2d3c6e02cefa19a2211631e505e5534a7262793ce130cd0bb8b6",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260911180000_knowledge_article_lifecycle",
+      "sha256": "af5a1eae0bba4f33fa481d19538282c9c46a39423962b0cb4ef2e580d9618159",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260913090000_notification_inbox",
+      "sha256": "cce3ee335f18ee9b00fc82f087b5499815a32d9be4d10e3692040534ba7cdc38",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260923120000_ticket_list_composite_indexes",
+      "sha256": "8ee7bba3aab953a530e26ef61bb3bc91a06f03c5eb237385c51b07c5637e0e43",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260923140000_search_trigram_indexes",
+      "sha256": "59bb9a1f14fb0bc6f83f35076886424a5b49f24c0f1aec18b9632b043f0183f6",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260924120000_user_authz_version",
+      "sha256": "8c60ed873dce44705e936dcd65104b93c708651721ce5bbb57b1e69d973cf343",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260924140000_ticket_sla_next_due_at",
+      "sha256": "f5843b375551535d513091cabb34fb61f6ebce62546706c45971383949aa3667",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20260924180000_group_notifications",
+      "sha256": "4c6c4fa812f8c99d7639c631f947700df8744e7f99fec67eaa658599b5aa8bbc",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20270305090000_remove_teams_stub",
+      "sha256": "328670c7843d1294e755fd3cdc9e7de5f2076276fb238e8de8612ce373c40028",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20270313090000_ticket_form_version_optional",
+      "sha256": "396d0e3193ec77a85d78230a0a7c6b65ec008cfa4b1d549eaebd3cf42b52c885",
+      "approval": "legacy-baseline-reviewed-2026-10-24"
+    }
+  ]
+}

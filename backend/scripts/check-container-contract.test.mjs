@@ -9,6 +9,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev --omit=optional --ignore-scripts
 FROM ${image} AS builder
 RUN npm ci --include=dev
+FROM builder AS migration
+USER node
+ENTRYPOINT ["node", "scripts/run-release-migrations.mjs"]
 FROM ${image} AS runtime
 WORKDIR /usr/app
 COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
@@ -33,7 +36,14 @@ const service = (name) => `  ${name}:
     volumes:
       - uploads:/usr/app/uploads
 `;
-const compose = `services:\n${service("backend")}${service("worker")}  clamav:\n    image: clamav\n`;
+const compose = `services:
+  migrator:
+    profiles: ["release"]
+    build:
+      target: migration
+${service("backend")}${service("worker")}  clamav:
+    image: clamav
+`;
 
 test("prihvata digest-pinned production-only runtime i oba process servisa", () => {
   assert.deepEqual(validateContainerContract(dockerfile, compose), []);
@@ -41,7 +51,7 @@ test("prihvata digest-pinned production-only runtime i oba process servisa", () 
 
 test("odbija root runtime i nedostajuće hardening granice", () => {
   const problems = validateContainerContract(
-    dockerfile.replace("USER node", "USER root").replace("STOPSIGNAL SIGTERM\n", ""),
+    dockerfile.replace("USER node\nCMD", "USER root\nCMD").replace("STOPSIGNAL SIGTERM\n", ""),
     compose.replaceAll("    read_only: true\n", ""),
   );
   assert.ok(problems.includes("Dockerfile runtime: nedostaje `USER node`"));

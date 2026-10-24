@@ -13,8 +13,14 @@ export function validateContainerContract(dockerfile, compose) {
     if (!pattern.test(finalStage)) problems.push(`Dockerfile runtime: ${message}`);
   };
   const digestPattern = /^node:22-alpine@sha256:[a-f0-9]{64}$/u;
-  if (stages.length < 3 || stages.some((stage) => !digestPattern.test(stage[1]))) {
-    problems.push("Dockerfile supply chain: svaki stage mora koristiti digest-pinned node:22-alpine");
+  if (
+    stages.length < 4 ||
+    stages.some((stage) => !digestPattern.test(stage[1]) && !(stage[1] === "builder" && stage[2]?.toLowerCase() === "migration"))
+  ) {
+    problems.push("Dockerfile supply chain: svaki base stage mora koristiti digest-pinned node:22-alpine");
+  }
+  if (!/^FROM builder AS migration$[\s\S]*?^USER node$[\s\S]*?run-release-migrations\.mjs/mu.test(dockerfile)) {
+    problems.push("Dockerfile migration: nedostaje release-only non-root migrator stage");
   }
   if (/npm\s+ci[^\n]*(?:\|\||;)\s*npm\s+install/u.test(dockerfile)) {
     problems.push("Dockerfile supply chain: npm ci ne smije imati npm install fallback");
@@ -33,6 +39,15 @@ export function validateContainerContract(dockerfile, compose) {
     problems.push("Dockerfile runtime: builder node_modules ne smije u runtime");
   }
   requireFinal(/ENV UPLOAD_ROOT=\/usr\/app\/uploads/u, "UPLOAD_ROOT nije apsolutni persistent path");
+
+  const migratorStart = compose.indexOf("  migrator:");
+  const backendStart = compose.indexOf("  backend:");
+  if (migratorStart < 0 || !/target: migration/u.test(compose.slice(migratorStart, backendStart))) {
+    problems.push("compose: nedostaje release-profile migration target");
+  }
+  if (/^ {4}command:.*prisma migrate deploy/mu.test(compose.slice(backendStart, compose.indexOf("  worker:")))) {
+    problems.push("compose backend: runtime replika ne smije pokretati migracije");
+  }
 
   for (const service of ["backend", "worker"]) {
     const start = compose.indexOf(`  ${service}:`);

@@ -220,6 +220,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk_integration
       PRIVACY_IT_DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk_integration
+      ADMIN_DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk_integration
+      MIGRATION_DATABASE_URL: postgresql://servicedesk_migrator:migrator-ci@127.0.0.1:5432/servicedesk_integration
+      RUNTIME_DATABASE_URL: postgresql://servicedesk_runtime:runtime-ci@127.0.0.1:5432/servicedesk_integration
+      MIGRATOR_DB_PASSWORD: migrator-ci
+      RUNTIME_DB_PASSWORD: runtime-ci
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: 6379
     defaults:
@@ -235,10 +240,22 @@ jobs:
       - run: npm ci
       - name: Generate and verify the Prisma client
         run: npm run db:generate && npm run check:prisma-generated
-      - name: Replay every migration on an empty PostgreSQL database
-        run: npm run db:migrate
+      - name: Enforce destructive migration approval policy
+        run: npm run db:migration-policy:check && npm run db:migration-policy:test && npm run db:migrate:release:test
+      - name: Provision distinct migrator and restricted runtime roles
+        run: npm run db:roles:provision
+      - name: Replay every migration through the single-owner release migrator
+        run: npm run db:migrate:release
+      - name: Grant DML-only access after migration and prove DDL denial
+        run: npm run db:roles:provision -- --grant-runtime && npm run db:privileges:verify
       - name: Verify migration history is current
+        env:
+          DATABASE_URL: ${{ env.MIGRATION_DATABASE_URL }}
         run: npx prisma migrate status
+      - name: Verify deployment-wide connection budget
+        run: npm run build && DB_MAX_CONNECTIONS=120 API_REPLICAS=2 DB_POOL_MAX=40 WORKER_REPLICAS=1 WORKER_DB_POOL_MAX=10 npm run db:budget:check
+      - name: Prove disposable backup/restore RPO and RTO
+        run: npm run db:restore:test
       - name: Test the dependency and database-isolation harnesses
         run: npm run test:dependency-smoke && npm run test:integration-harness
       - name: Probe PostgreSQL transaction rollback and Redis cleanup
@@ -287,7 +304,8 @@ jobs:
       - name: Validate the Compose model
         working-directory: .
         env:
-          DATABASE_URL: postgresql://placeholder:placeholder@database:5432/servicedesk
+          DATABASE_URL: postgresql://runtime:placeholder@database:5432/servicedesk?sslmode=verify-full
+          MIGRATION_DATABASE_URL: postgresql://migrator:placeholder@database:5432/servicedesk?sslmode=verify-full
           REDIS_HOST: redis
           REDIS_PASSWORD: placeholder
           VITE_API_BASE_URL: /api

@@ -205,7 +205,10 @@ test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni
   const gate = readJob(workflow, "gate");
   assert.ok(integration.includes("image: postgres:17-alpine"));
   assert.ok(integration.includes("image: redis:7-alpine"));
-  assert.ok(integration.includes("npm run db:migrate"));
+  assert.ok(integration.includes("npm run db:migrate:release"));
+  assert.ok(integration.includes("npm run db:privileges:verify"));
+  assert.ok(integration.includes("npm run db:restore:test"));
+  assert.ok(integration.includes("npm run db:budget:check"));
   assert.ok(integration.includes("npm run test:integration"));
   assert.ok(gate.includes("needs: [changes, backend, backend-integration,"));
   assert.ok(gate.includes("needs.backend-integration.result"));

@@ -56,7 +56,7 @@ Preduslov: Coolify Environment ključevi iz `.env.example` već na ciljnom stack
 
 1. Restore PostgreSQL iz Coolify Database backupa na **ciljnu** bazu. `DATABASE_URL` → ta baza.
 2. Restore `uploads` volume iz `uploads-YYYY-MM-DD.tar.gz` (isti mount `/usr/app/uploads` na backend i worker).
-3. Deploy compose (`ops/COOLIFY.md`). Backend radi `prisma migrate deploy` pa API. **Ne** pokretati install wizard na restore-anoj bazi.
+3. Pokrenuti tačno jedan release migrator: `docker compose --profile release run --rm migrator`; tek nakon zelenog izlaza deployati API/worker compose servise. Runtime credential nema DDL prava i backend replike više ne izvršavaju migracije. **Ne** pokretati install wizard na restore-anoj bazi.
 4. Ako running config nije konzistentan, a `ConfigVersion` red postoji u restore-anoj bazi: `validate` pa `activate`. Nema import API-ja za off-box JSON — fajl je fallback (inspect/diff; ručni unos u `ConfigVersion.snapshot` samo ako dump nije upotrebljiv).
 5. Health: `GET https://api.…/health`. Zatim verifikacija ispod. Cilj: stack + 4 checka unutar 4h.
 6. **Obavezno (paket 2.6, ZZLP):** ponovo primijeniti anonimizacije izvršene nakon backupa baze. Ledger

@@ -1,5 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { schemaCompatibilityQuery } from '../../common/database/database-runtime-contract';
 import { RedisService } from '../../common/redis/redis.service';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import {
@@ -31,7 +32,15 @@ export class HealthController {
     this.readiness = new CachedProbe(
       () =>
         probeReadiness({
-          pingDatabase: () => prisma.$queryRaw`SELECT 1`,
+          pingDatabase: async () => {
+            await prisma.$queryRaw`SELECT 1`;
+            const compatibility = schemaCompatibilityQuery();
+            const rows = await prisma.$queryRawUnsafe<Array<{ compatible: boolean }>>(
+              compatibility.text,
+              ...compatibility.values,
+            );
+            if (rows[0]?.compatible !== true) throw new Error('database schema is not compatible');
+          },
           pingRedis: () => redis.getClient().ping(),
         }),
       readinessCacheMs,

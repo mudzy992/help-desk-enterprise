@@ -21,6 +21,11 @@ RUN npx prisma generate
 RUN npm run build
 RUN test -f dist/src/main.js && test -f dist/src/worker.js
 
+# Release-only image: owns Prisma CLI and migrations; API/worker runtime does not.
+FROM builder AS migration
+USER node
+ENTRYPOINT ["node", "scripts/run-release-migrations.mjs"]
+
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS runtime
 
 WORKDIR /usr/app

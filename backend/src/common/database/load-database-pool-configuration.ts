@@ -1,5 +1,6 @@
 import type { PoolConfig } from 'pg';
 import { databasePoolConstants } from './database-pool.constants';
+import { databaseSessionOptions } from './database-runtime-contract';
 
 /**
  * Turns the environment into an explicit pg pool configuration.
@@ -14,6 +15,8 @@ export type DatabasePoolConfiguration = {
   readonly idleTimeoutMillis: number;
   readonly connectionTimeoutMillis: number;
   readonly statementTimeoutMillis: number;
+  readonly lockTimeoutMillis: number;
+  readonly idleInTransactionTimeoutMillis: number;
   readonly applicationName: string;
 };
 
@@ -70,6 +73,14 @@ export function loadDatabasePoolConfiguration(
       limits.maximumTimeoutMs,
       environmentKeys.statementTimeoutMs,
     ),
+    lockTimeoutMillis: readInteger(
+      environment[environmentKeys.lockTimeoutMs], defaults.lockTimeoutMs,
+      limits.minimumTimeoutMs, limits.maximumTimeoutMs, environmentKeys.lockTimeoutMs,
+    ),
+    idleInTransactionTimeoutMillis: readInteger(
+      environment[environmentKeys.idleInTransactionTimeoutMs], defaults.idleInTransactionTimeoutMs,
+      limits.minimumTimeoutMs, limits.maximumTimeoutMs, environmentKeys.idleInTransactionTimeoutMs,
+    ),
     applicationName: isWorker
       ? defaults.workerApplicationName
       : defaults.applicationName,
@@ -91,7 +102,11 @@ export function toDatabasePoolConfig(
     idleTimeoutMillis: configuration.idleTimeoutMillis,
     connectionTimeoutMillis: configuration.connectionTimeoutMillis,
     application_name: configuration.applicationName,
-    options: `-c statement_timeout=${configuration.statementTimeoutMillis}`,
+    options: databaseSessionOptions({
+      statementTimeoutMs: configuration.statementTimeoutMillis,
+      lockTimeoutMs: configuration.lockTimeoutMillis,
+      idleInTransactionTimeoutMs: configuration.idleInTransactionTimeoutMillis,
+    }),
   };
 }
 
