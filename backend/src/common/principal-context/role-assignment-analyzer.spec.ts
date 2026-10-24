@@ -13,6 +13,9 @@ describe('role assignment report-only analyzer', () => {
     const manifest = analyzeRoleAssignments([{ ...base, roleKey: 'SUPER_ADMIN', organizationalUnitId: 'ou1', serviceId: 'svc1' }]);
     expect(manifest.anomalies.map(({ code }) => code).sort()).toEqual(['AMBIGUOUS_SCOPE', 'SUPER_ADMIN_NOT_LOCAL', 'SUPER_ADMIN_SCOPED']);
   });
+  it('reports dormant grants for operator review', () => {
+    expect(analyzeRoleAssignments([{ ...base, userIsActive: false }]).anomalies[0]?.code).toBe('INACTIVE_USER_ASSIGNMENT');
+  });
   it('accepts global, OU-only, and service-only assignments', () => {
     const rows = [base, { ...base, id: 'a2', roleId: 'r2', organizationalUnitId: 'ou1' }, { ...base, id: 'a3', roleId: 'r3', serviceId: 'svc1' }];
     expect(analyzeRoleAssignments(rows).anomalies).toEqual([]);

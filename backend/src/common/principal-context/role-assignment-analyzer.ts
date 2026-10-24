@@ -5,7 +5,7 @@ export type AssignmentInventoryRow = {
   readonly userIsActive: boolean; readonly userIsLocalOnly: boolean;
   readonly organizationalUnitId: string | null; readonly serviceId: string | null;
 };
-export type AssignmentAnomalyCode = 'AMBIGUOUS_SCOPE' | 'DUPLICATE_ASSIGNMENT' | 'SUPER_ADMIN_SCOPED' | 'SUPER_ADMIN_NOT_LOCAL';
+export type AssignmentAnomalyCode = 'AMBIGUOUS_SCOPE' | 'DUPLICATE_ASSIGNMENT' | 'INACTIVE_USER_ASSIGNMENT' | 'SUPER_ADMIN_SCOPED' | 'SUPER_ADMIN_NOT_LOCAL';
 export type AssignmentAnomaly = { readonly code: AssignmentAnomalyCode; readonly assignmentIds: readonly string[]; readonly userId: string; readonly recommendation: string };
 export type AssignmentRepairManifest = { readonly schemaVersion: 1; readonly mode: 'report-only'; readonly generatedAt: string; readonly sourceFingerprint: string; readonly rowCount: number; readonly anomalies: readonly AssignmentAnomaly[] };
 
@@ -17,6 +17,7 @@ export function analyzeRoleAssignments(rows: readonly AssignmentInventoryRow[], 
   for (const row of sorted) groups.set(identity(row), [...(groups.get(identity(row)) ?? []), row]);
   const anomalies: AssignmentAnomaly[] = [];
   for (const row of sorted) {
+    if (!row.userIsActive) anomalies.push({ code: 'INACTIVE_USER_ASSIGNMENT', assignmentIds: [row.id], userId: row.userId, recommendation: 'remove dormant grants after identity-owner review' });
     if (row.organizationalUnitId && row.serviceId) anomalies.push({ code: 'AMBIGUOUS_SCOPE', assignmentIds: [row.id], userId: row.userId, recommendation: 'choose exactly one OU or service scope after owner review' });
     if (row.roleKey === 'SUPER_ADMIN' && (row.organizationalUnitId || row.serviceId)) anomalies.push({ code: 'SUPER_ADMIN_SCOPED', assignmentIds: [row.id], userId: row.userId, recommendation: 'replace with one global SUPER_ADMIN assignment' });
     if (row.roleKey === 'SUPER_ADMIN' && !row.userIsLocalOnly) anomalies.push({ code: 'SUPER_ADMIN_NOT_LOCAL', assignmentIds: [row.id], userId: row.userId, recommendation: 'remove assignment or convert the identity to reviewed local-only ownership' });
