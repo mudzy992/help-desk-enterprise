@@ -14,7 +14,9 @@ describeIfDatabase('canonical role assignment database invariants (integration)'
   });
   afterAll(async () => {
     if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-    await prisma.role.deleteMany({ where: { key: { startsWith: `IT_SCOPE_${stamp}` } } });
+    await prisma.role.deleteMany({
+      where: { OR: [{ key: { startsWith: `IT_SCOPE_${stamp}` } }, { key: 'SUPER_ADMIN' }] },
+    });
     await prisma.$disconnect();
   });
 
@@ -50,7 +52,9 @@ describeIfDatabase('canonical role assignment database invariants (integration)'
   });
 
   it('rejects a scoped SUPER_ADMIN assignment at the database boundary', async () => {
-    const superAdmin = await prisma.role.findUniqueOrThrow({ where: { key: 'SUPER_ADMIN' } });
+    const superAdmin = await prisma.role.create({
+      data: { key: 'SUPER_ADMIN', name: 'SuperAdmin fixture', isSystem: true },
+    });
     const user = await prisma.user.create({ data: { email: `sa-scope-${stamp}@example.invalid`, displayName: 'Scoped SA fixture' } });
     userIds.push(user.id);
     const unit = await prisma.organizationalUnit.create({ data: { name: `SA Scope ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=SA-Scope-${stamp}`, ouPath: `/sa-scope-${stamp}` } });
