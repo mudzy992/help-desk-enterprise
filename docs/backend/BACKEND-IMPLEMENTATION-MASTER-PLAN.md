@@ -142,13 +142,16 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.2 durable session revocation i authz-version authority — završeno** na SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`.
 - PostgreSQL sada fencea svaki cached principal i svaki moderni `sid`; Redis revocation greška je fail-closed, sa stvarnim multi-replica PostgreSQL dokazom.
 - `BA-xcut-05` je zatvoren; `BA-authentication-02` ostaje otvoren zbog legacy no-`sid` durable cutoff granice.
-- Sljedeći paket je **W2.3 centralni permission + OU/service/ownership policy**.
+- **W2.3 centralni permission + OU/service/ownership policy — završeno** na SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`.
+- Centralni resource-policy entry point nema role-key input; persisted cross-user, sibling-OU i foreign-service scenariji dokazani su na stvarnom PostgreSQL-u.
+- Route/decorator migracija ostaje eksplicitni modul-po-modul rollout, ne prećutno zatvoren nalaz.
+- Sljedeći paket je **W2.4 fail-closed step-up i emergency/recovery tokovi**.
 
 ### Redoslijed
 
 1. canonical principal/assignment/scope model — **završeno (W2.1)**;
 2. session revocation i authz version authority koja ne zavisi od stale cachea — **završeno (W2.2)**;
-3. centralni permission + OU/service/ownership policy;
+3. centralni permission + OU/service/ownership policy — **završeno (W2.3 primitive + servisna granica)**;
 4. fail-closed step-up i emergency/recovery tokovi;
 5. role/permission mutation constraints i last-admin zaštite;
 6. route manifest: authenticated, public, webhook ili worker — bez implicitne pete klase;

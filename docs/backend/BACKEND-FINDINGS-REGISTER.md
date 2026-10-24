@@ -25,7 +25,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 01 | `authentication` | `BA-authentication-06` | P2 | Entra JWKS dohvat nema timeout ni cache | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-07` | P2 | Kritični testni gate zavisi od mrežnog Prisma engine downloada | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-08` | P3 | Clone detekcija jednog passkeya briše sve korisnikove passkeye | otvoreno | [01-authentication.md](audits/01-authentication.md) |
-| 02 | `authorization` | `BA-authorization-01` | P2 | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a | otvoreno | [02-authorization.md](audits/02-authorization.md) |
+| 02 | `authorization` | `BA-authorization-01` | P2 | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a | zatvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-02` | P2 | Ne postoji potpuni route-to-authorization manifest i CI guard | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-03` | P2 | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-04` | P2 | Integracijski testni gate zavisi od mrežnog Prisma engine downloada | otvoreno | [02-authorization.md](audits/02-authorization.md) |
@@ -714,13 +714,17 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 
 Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je report-only inventory i canonical principal/scope temelj za `BA-users-04` i `BA-users-05`. Oba nalaza ostaju otvorena jer ovaj sigurni pripremni paket namjerno ne radi repair i ne dodaje DB unique/check constraint. Dokaz i preostale granice su u [02-canonical-principal-assignment-scope.md](implementation/02-canonical-principal-assignment-scope.md).
 
+## Implementacijska napomena — Backend Val 2 / W2.2–W2.3
+
+W2.2 je zatvorio `BA-authorization-01` i `BA-xcut-05` durable PostgreSQL authority fenceom. W2.3 je na SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`, završio centralni permission + OU/service/ownership primitive i real-PostgreSQL negativnu matricu. Route/decorator rollout nalazi ostaju otvoreni; dokaz je u [04-central-resource-policy.md](implementation/04-central-resource-policy.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **677**
-- Zatvoreno: **15** (`BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **676**
+- Zatvoreno: **16** (`BA-authorization-01`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**
