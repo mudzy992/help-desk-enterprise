@@ -195,8 +195,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 | ID              | Severity | Naslov                                                                          | Status   | Veličina |
 | --------------- | -------- | ------------------------------------------------------------------------------- | -------- | -------- |
-| BA-audit-log-01 | P1       | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu  | otvoreno | L        |
-| BA-audit-log-02 | P1       | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | otvoreno | L        |
+| BA-audit-log-01 | P1       | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu  | završen (W3.2) | L        |
+| BA-audit-log-02 | P1       | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | završen (W3.2) | L        |
 | BA-audit-log-03 | P1       | Neključani chain i checkpoint u istoj bazi nemaju external tamper anchor        | otvoreno | L        |
 | BA-audit-log-04 | P2       | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran  | otvoreno | L        |
 | BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | otvoreno | M        |

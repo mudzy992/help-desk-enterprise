@@ -80,8 +80,8 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 07 | `settings` | `BA-settings-09` | P2 | Last-write-wins nema revision/ETag i može tiho izgubiti administratorsku izmjenu | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-10` | P3 | Key/string/JSON vrijednosti nemaju jedinstvene centralne size granice | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-11` | P3 | Realtime key allowlist je ručno održavana i ne prati registry metadata | otvoreno | [07-settings.md](audits/07-settings.md) |
-| 08 | `audit-log` | `BA-audit-log-01` | P1 | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
-| 08 | `audit-log` | `BA-audit-log-02` | P1 | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
+| 08 | `audit-log` | `BA-audit-log-01` | P1 | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu | završen (W3.2) | [08-audit-log.md](audits/08-audit-log.md) |
+| 08 | `audit-log` | `BA-audit-log-02` | P1 | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | završen (W3.2) | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-03` | P1 | Neključani chain i checkpoint u istoj bazi nemaju external tamper anchor | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-04` | P2 | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-05` | P2 | Export i verify učitavaju kompletan scope/chain u memoriju bez limita | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
@@ -732,7 +732,7 @@ W2.7 je na SHA `c78c445`, CI `40128598505`, zatvorio `BA-docs-01`, `BA-settings-
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **667**
-- Zatvoreno: **25** (`BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **665**
+- Zatvoreno: **27** (`BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

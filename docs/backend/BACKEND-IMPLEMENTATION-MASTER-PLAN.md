@@ -197,7 +197,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.1 canonical audit event policy — završen** na SHA `760216c`, CI `40131718141`.
 - Centralni runtime action/entity/actor inventar je fail-closed; correlation ID se nasljeđuje iz request konteksta; tajne se centralno rediguju prije hashiranja; metadata ima 16 KiB / depth 8 limite.
 - Real-PostgreSQL test dokazuje rollback audit append-a zajedno s neuspjelom business transakcijom. Nalazi `BA-audit-log-07/11` ostaju otvoreni zbog action-specific schema i persisted event-version granica; dokaz je u [10-canonical-audit-event-policy.md](implementation/10-canonical-audit-event-policy.md).
-- Sljedeći paket je **W3.2 immutable audit identity i versionirani hash envelope**.
+- **W3.2 immutable audit identity i versionirani hash envelope — završen** na SHA `ae9f851`, CI `40132759119`.
+- Audit actor/OU identifikatori više nisu mutirani `SetNull` relacijama; v3 red pohranjuje i hashira vlastiti algoritam, a real-PostgreSQL dokaz potvrđuje delete stabilnost i SHA-256→SHA-512 rotaciju.
+- `BA-audit-log-01/02` su zatvoreni; dokaz je u [11-immutable-audit-identity-hash-envelope.md](implementation/11-immutable-audit-identity-hash-envelope.md).
+- Sljedeći paket je **W3.3 cryptographic audit anchor i prošireni v4 envelope**.
 
 ### Canonical primitive
 

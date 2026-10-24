@@ -316,7 +316,7 @@
     {
       "id": "BA-audit-log-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "završen (W3.2)",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -324,7 +324,7 @@
     {
       "id": "BA-audit-log-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "završen (W3.2)",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
