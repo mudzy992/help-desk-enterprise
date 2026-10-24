@@ -270,6 +270,40 @@ describeIfDatabase('retention (integration)', () => {
     expect(await prisma.auditLog.count({ where: { action: 'audit.retention.purged' } })).toBe(1);
   });
 
+  it('preserves deleted actor/OU identity and verifies a per-row SHA rotation', async () => {
+    const stamp = Date.now();
+    const actor = await prisma.user.create({
+      data: { email: `audit-rotation-${stamp}@example.invalid`, displayName: 'Audit rotation actor' },
+    });
+    const unit = await prisma.organizationalUnit.create({
+      data: { name: 'Audit rotation OU', type: 'DIRECTORATE', distinguishedName: `OU=AUDIT-${stamp}`, ouPath: `/audit-${stamp}` },
+    });
+    for (const hashAlgorithm of ['sha256', 'sha512'] as const) {
+      await prisma.$transaction((transaction) => appendAuditLog(transaction as never, {
+        action: auditLogActions.privacyRetentionRun,
+        entityType: auditLogEntityTypes.retentionRun,
+        entityId: `rotation-${hashAlgorithm}-${stamp}`,
+        metadata: { hashAlgorithm },
+        actorUserId: actor.id,
+        organizationalUnitId: unit.id,
+        hashAlgorithm,
+      }));
+    }
+    await prisma.user.delete({ where: { id: actor.id } });
+    await prisma.organizationalUnit.delete({ where: { id: unit.id } });
+    const rotationRows = await prisma.auditLog.findMany({
+      where: { entityId: { startsWith: 'rotation-' } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    expect(rotationRows.map((row) => [row.actorUserId, row.organizationalUnitId, row.hashAlgorithm])).toEqual([
+      [actor.id, unit.id, 'sha256'],
+      [actor.id, unit.id, 'sha512'],
+    ]);
+    const checkpoint = await prisma.auditChainCheckpoint.findFirst({ orderBy: { createdAt: 'desc' } });
+    const records = (await prisma.auditLog.findMany()).map((row) => ({ ...row, metadata: row.metadata as never }));
+    expect(verifyAuditLogChain({ records: records as never, hashAlgorithm: 'sha256', start: checkpoint }).valid).toBe(true);
+  });
+
   it('refuses a disabled category and a parallel run', async () => {
     await expect(
       service(configuration({ attachments: 0 })).runCategory({

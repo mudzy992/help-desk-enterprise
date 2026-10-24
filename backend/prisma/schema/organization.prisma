@@ -26,7 +26,6 @@ model OrganizationalUnit {
   knowledgeArticles  KnowledgeArticle[]
   knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   userRoles          UserRole[]
-  auditLogs          AuditLog[]
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
 

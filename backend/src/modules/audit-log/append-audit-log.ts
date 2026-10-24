@@ -27,6 +27,7 @@ export async function appendAuditLog(
   const organizationalUnitId = prepared.organizationalUnitId ?? null;
   // Paket 2.6 (§6.5): new rows commit to a digest of the metadata (v2).
   const metadataDigest = computeAuditMetadataDigest(prepared.metadata);
+  const hashAlgorithm = prepared.hashAlgorithm ?? defaultAuditHashAlgorithm;
   const hash = computeAuditLogHash({
     previousHash,
     action: prepared.action,
@@ -36,8 +37,8 @@ export async function appendAuditLog(
     actorUserId: prepared.actorUserId,
     requestId,
     organizationalUnitId,
-    hashAlgorithm: prepared.hashAlgorithm ?? defaultAuditHashAlgorithm,
-    hashVersion: auditHashVersions.v2,
+    hashAlgorithm,
+    hashVersion: auditHashVersions.v3,
     metadataDigest,
   });
   await transaction.auditLog.create({
@@ -51,8 +52,9 @@ export async function appendAuditLog(
       hash,
       actorUserId: prepared.actorUserId,
       organizationalUnitId,
-      hashVersion: auditHashVersions.v2,
+      hashVersion: auditHashVersions.v3,
       metadataDigest,
+      hashAlgorithm,
     },
   });
 }

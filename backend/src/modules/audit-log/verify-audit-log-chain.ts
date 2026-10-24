@@ -52,8 +52,14 @@ export function verifyAuditLogChain(input: {
     const redacted = record.redactedAt !== null && record.redactedAt !== undefined;
     if (redacted) redactedCount += 1;
     const version = record.hashVersion ?? auditHashVersions.v1;
-    if (version === auditHashVersions.v2) {
+    if (version === auditHashVersions.v2 || version === auditHashVersions.v3) {
       const digest = record.metadataDigest ?? '';
+      const hashAlgorithm = version === auditHashVersions.v3
+        ? record.hashAlgorithm
+        : input.hashAlgorithm;
+      if (hashAlgorithm === undefined) {
+        return mismatch(ordered.length, record.id, index, details());
+      }
       if (!redacted && computeAuditMetadataDigest(record.metadata ?? {}) !== digest) {
         return mismatch(ordered.length, record.id, index, details());
       }
@@ -66,8 +72,8 @@ export function verifyAuditLogChain(input: {
         actorUserId: record.actorUserId,
         requestId: record.requestId,
         organizationalUnitId: record.organizationalUnitId,
-        hashAlgorithm: input.hashAlgorithm,
-        hashVersion: auditHashVersions.v2,
+        hashAlgorithm,
+        hashVersion: version,
         metadataDigest: digest,
       });
       if (record.hash !== expected) {

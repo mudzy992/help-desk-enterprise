@@ -128,10 +128,10 @@ model AuditLog {
   hashVersion            Int                 @default(1)
   /// SHA-256 of canonical metadata as written (v2 only).
   metadataDigest         String?
+  /// Per-row algorithm, committed into the v3 canonical envelope.
+  hashAlgorithm          String              @default("sha256")
   /// Metadata was redacted (anonymization); v1 rows become "sealed".
   redactedAt             DateTime?
-  actor                  User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-  organizationalUnit     OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
   createdAt              DateTime            @default(now())
 
   @@index([entityType, entityId])

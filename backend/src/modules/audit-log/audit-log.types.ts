@@ -44,6 +44,8 @@ export type AuditLogRecord = {
   readonly hashVersion?: number;
   readonly metadataDigest?: string | null;
   readonly redactedAt?: Date | null;
+  /** Persisted and hash-bound for v3; absent on legacy in-memory fixtures. */
+  readonly hashAlgorithm?: AuditHashAlgorithm;
 };
 
 export type AuditLogExportRow = {
