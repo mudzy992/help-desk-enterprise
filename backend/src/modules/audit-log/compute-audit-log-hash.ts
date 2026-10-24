@@ -24,6 +24,9 @@ export function computeAuditLogHash(input: {
   readonly hashAlgorithm?: AuditHashAlgorithm;
   readonly hashVersion?: AuditHashVersion;
   readonly metadataDigest?: string | null;
+  readonly rowId?: string;
+  readonly createdAt?: Date;
+  readonly redactedAt?: Date | null;
 }): string {
   const hashAlgorithm = resolveAuditHashAlgorithm(input.hashAlgorithm);
   const canonical = canonicalizeJson(buildCanonicalAuditPayload(input));

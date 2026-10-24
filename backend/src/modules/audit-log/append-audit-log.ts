@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Prisma } from '../../generated/prisma/client';
 import {
   auditLogChainLockKey,
@@ -28,6 +29,8 @@ export async function appendAuditLog(
   // Paket 2.6 (§6.5): new rows commit to a digest of the metadata (v2).
   const metadataDigest = computeAuditMetadataDigest(prepared.metadata);
   const hashAlgorithm = prepared.hashAlgorithm ?? defaultAuditHashAlgorithm;
+  const rowId = randomUUID();
+  const createdAt = new Date();
   const hash = computeAuditLogHash({
     previousHash,
     action: prepared.action,
@@ -38,11 +41,16 @@ export async function appendAuditLog(
     requestId,
     organizationalUnitId,
     hashAlgorithm,
-    hashVersion: auditHashVersions.v3,
+    hashVersion: auditHashVersions.v4,
     metadataDigest,
+    rowId,
+    createdAt,
+    redactedAt: null,
   });
   await transaction.auditLog.create({
     data: {
+      id: rowId,
+      createdAt,
       action: prepared.action,
       entityType: prepared.entityType,
       entityId: prepared.entityId,
@@ -52,7 +60,7 @@ export async function appendAuditLog(
       hash,
       actorUserId: prepared.actorUserId,
       organizationalUnitId,
-      hashVersion: auditHashVersions.v3,
+      hashVersion: auditHashVersions.v4,
       metadataDigest,
       hashAlgorithm,
     },

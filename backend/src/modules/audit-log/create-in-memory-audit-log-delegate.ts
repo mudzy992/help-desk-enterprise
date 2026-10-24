@@ -38,11 +38,11 @@ export function createInMemoryAuditLogDelegate(
         }
         return record;
       },
-      create: async ({ data }: { data: Omit<InMemoryAuditLogRecord, 'id' | 'createdAt'> }) => {
+      create: async ({ data }: { data: Omit<InMemoryAuditLogRecord, 'id' | 'createdAt'> & Partial<Pick<InMemoryAuditLogRecord, 'id' | 'createdAt'>> }) => {
         const created: InMemoryAuditLogRecord = {
           ...data,
-          id: nextId(),
-          createdAt: now(),
+          id: data.id ?? nextId(),
+          createdAt: data.createdAt ?? now(),
         };
         rows.push(created);
         return created;

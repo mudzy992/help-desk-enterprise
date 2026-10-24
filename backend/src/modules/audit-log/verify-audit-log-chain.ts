@@ -52,9 +52,9 @@ export function verifyAuditLogChain(input: {
     const redacted = record.redactedAt !== null && record.redactedAt !== undefined;
     if (redacted) redactedCount += 1;
     const version = record.hashVersion ?? auditHashVersions.v1;
-    if (version === auditHashVersions.v2 || version === auditHashVersions.v3) {
+    if (version === auditHashVersions.v2 || version === auditHashVersions.v3 || version === auditHashVersions.v4) {
       const digest = record.metadataDigest ?? '';
-      const hashAlgorithm = version === auditHashVersions.v3
+      const hashAlgorithm = version === auditHashVersions.v3 || version === auditHashVersions.v4
         ? record.hashAlgorithm
         : input.hashAlgorithm;
       if (hashAlgorithm === undefined) {
@@ -75,6 +75,11 @@ export function verifyAuditLogChain(input: {
         hashAlgorithm,
         hashVersion: version,
         metadataDigest: digest,
+        ...(version === auditHashVersions.v4 ? {
+          rowId: record.id,
+          createdAt: record.createdAt,
+          redactedAt: record.redactedAt ?? null,
+        } : {}),
       });
       if (record.hash !== expected) {
         return mismatch(ordered.length, record.id, index, details());
