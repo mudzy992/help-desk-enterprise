@@ -9,7 +9,11 @@ import path from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
-import { defaultAuditHashAlgorithm } from '../../audit-log/audit-log.constants';
+import {
+  auditLogActions,
+  auditLogEntityTypes,
+  defaultAuditHashAlgorithm,
+} from '../../audit-log/audit-log.constants';
 import { verifyAuditLogChain, compareAuditLogChainOrder } from '../../audit-log/verify-audit-log-chain';
 import { DiskTicketAttachmentStorage } from '../../tickets/attachments/disk-ticket-attachment-storage';
 import type { PrivacyConfiguration } from '../privacy-configuration.loader';
@@ -130,8 +134,8 @@ describeIfDatabase('retention (integration)', () => {
     for (let index = 0; index < 8; index += 1) {
       await prisma.$transaction((tx) =>
         appendAuditLog(tx as never, {
-          action: 'test.event',
-          entityType: 'test',
+          action: auditLogActions.privacyRetentionRun,
+          entityType: auditLogEntityTypes.retentionRun,
           entityId: `e${index}`,
           metadata: { index },
           actorUserId: null,
@@ -244,7 +248,7 @@ describeIfDatabase('retention (integration)', () => {
     expect(result.valid).toBe(true);
     // 3 remaining test rows + retention run audits + the purge entry.
     expect(result.checkedCount).toBe(await prisma.auditLog.count());
-    expect(await prisma.auditLog.count({ where: { action: 'test.event' } })).toBe(3);
+    expect(await prisma.auditLog.count({ where: { action: auditLogActions.privacyRetentionRun } })).toBe(3);
     expect(await prisma.auditLog.count({ where: { action: 'audit.retention.purged' } })).toBe(1);
   });
 
