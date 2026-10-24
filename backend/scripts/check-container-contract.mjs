@@ -12,9 +12,9 @@ export function validateContainerContract(dockerfile, compose) {
   const requireFinal = (pattern, message) => {
     if (!pattern.test(finalStage)) problems.push(`Dockerfile runtime: ${message}`);
   };
-  const digestPattern = /^node:22-bookworm-slim@sha256:[a-f0-9]{64}$/u;
+  const digestPattern = /^node:22-alpine@sha256:[a-f0-9]{64}$/u;
   if (stages.length < 3 || stages.some((stage) => !digestPattern.test(stage[1]))) {
-    problems.push("Dockerfile supply chain: svaki stage mora koristiti digest-pinned node:22-bookworm-slim");
+    problems.push("Dockerfile supply chain: svaki stage mora koristiti digest-pinned node:22-alpine");
   }
   if (/npm\s+ci[^\n]*(?:\|\||;)\s*npm\s+install/u.test(dockerfile)) {
     problems.push("Dockerfile supply chain: npm ci ne smije imati npm install fallback");
