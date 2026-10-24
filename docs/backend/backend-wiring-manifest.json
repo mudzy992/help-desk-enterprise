@@ -7677,7 +7677,7 @@
       "source": "backend/src/app.module.ts",
       "module": "AppModule",
       "imports": [
-        "ConfigModule.forRoot({\n      isGlobal: true,\n      envFilePath: ['.env'],\n    })",
+        "ConfigModule.forRoot({\n      isGlobal: true,\n      envFilePath: ['.env'],\n      validate: validateRuntimeEnvironment,\n    })",
         "PrismaModule",
         "AdminRealtimeModule",
         "RedisModule",
@@ -7732,7 +7732,7 @@
       "source": "backend/src/worker.module.ts",
       "module": "WorkerModule",
       "imports": [
-        "ConfigModule.forRoot({\n      isGlobal: true,\n      envFilePath: ['.env'],\n    })",
+        "ConfigModule.forRoot({\n      isGlobal: true,\n      envFilePath: ['.env'],\n      validate: validateRuntimeEnvironment,\n    })",
         "PrismaModule",
         "RedisModule",
         "SettingsModule",
