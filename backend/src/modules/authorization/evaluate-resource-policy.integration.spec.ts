@@ -62,9 +62,9 @@ describeIfDatabase('central resource policy matrix (integration)', () => {
     ]);
     userIds.push(owner.id, ouActor.id, serviceActor.id);
     const root = await prisma.organizationalUnit.create({ data: { name: `Root ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=Root-${stamp}`, ouPath: `/root-${stamp}` } });
-    const ouA = await prisma.organizationalUnit.create({ data: { name: `A ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=A-${stamp}`, ouPath: `${root.ouPath}/a`, parentId: root.id } });
-    const ouChild = await prisma.organizationalUnit.create({ data: { name: `Child ${stamp}`, type: 'TEAM', distinguishedName: `OU=Child-${stamp}`, ouPath: `${ouA.ouPath}/child`, parentId: ouA.id } });
-    const ouB = await prisma.organizationalUnit.create({ data: { name: `B ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=B-${stamp}`, ouPath: `${root.ouPath}/b`, parentId: root.id } });
+    const ouA = await prisma.organizationalUnit.create({ data: { name: `A ${stamp}`, type: 'SECTOR', distinguishedName: `OU=A-${stamp}`, ouPath: `${root.ouPath}/a`, parentId: root.id } });
+    const ouChild = await prisma.organizationalUnit.create({ data: { name: `Child ${stamp}`, type: 'SERVICE', distinguishedName: `OU=Child-${stamp}`, ouPath: `${ouA.ouPath}/child`, parentId: ouA.id } });
+    const ouB = await prisma.organizationalUnit.create({ data: { name: `B ${stamp}`, type: 'SECTOR', distinguishedName: `OU=B-${stamp}`, ouPath: `${root.ouPath}/b`, parentId: root.id } });
     unitIds.push(root.id, ouA.id, ouChild.id, ouB.id);
     const category = await prisma.serviceCategory.create({ data: { name: `Policy ${stamp}`, slug: `policy-${stamp}` } });
     categoryId = category.id;
