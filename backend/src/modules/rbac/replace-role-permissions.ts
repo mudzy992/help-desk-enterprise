@@ -45,22 +45,18 @@ export async function replaceRolePermissions(
   if (reason.length === 0 || reason.length > 500) {
     throw new RbacError('PREVIEW_REQUIRED');
   }
+  const role = await loadRoleByKey(prisma, input.roleKey);
+  const previousPermissionKeys = await getRolePermissions(prisma, role.key);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
-  const mutation = await prisma.$transaction(async (transaction) => {
+  const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
     // The same transaction lock protects admin availability and the permission
-    // matrix. Reads which decide whether a mutation is safe must happen only
-    // after this point, otherwise two callers can both pass a stale preflight.
+    // matrix. Every permission write is serialized before its invariant check.
     await lockActiveSuperAdminInvariant(transaction);
-    const role = await loadRoleByKey(transaction as PrismaService, input.roleKey);
     if (role.key === authorizationRoleKeys.superAdmin) {
       // Runtime SuperAdmin authority is intentionally the full catalog. Letting
       // this row be edited creates a deceptive matrix with no runtime effect.
       throw new RbacError('SYSTEM_ROLE_PERMISSIONS_IMMUTABLE');
     }
-    const previousPermissionKeys = await getRolePermissions(
-      transaction as PrismaService,
-      role.key,
-    );
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,
       nextPermissionKeys,
@@ -90,8 +86,8 @@ export async function replaceRolePermissions(
       actorUserId: input.actorUserId,
       requestId: input.requestId,
     });
-    return { roleId: role.id, permissionKeys: nextPermissionKeys };
+    return nextPermissionKeys;
   });
-  await invalidateRoleHolders(mutation.roleId);
-  return mutation.permissionKeys;
+  await invalidateRoleHolders(role.id);
+  return nextPermissionKeysApplied;
 }
