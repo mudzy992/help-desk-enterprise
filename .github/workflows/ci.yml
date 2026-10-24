@@ -190,7 +190,7 @@ jobs:
               line=${line//$'\r'/'%0D'}
               line=${line//$'\n'/'%0A'}
               echo "::error file=backend::${line}"
-            done < <(grep -E 'error TS[0-9]+:' /tmp/backend-build.log | head -20)
+            done < <(sed -E $'s/\\033\\[[0-9;]*[mK]//g' /tmp/backend-build.log | grep -E 'error TS[0-9]+:' | head -20)
           fi
           exit "$status"
       - run: npm run lint
