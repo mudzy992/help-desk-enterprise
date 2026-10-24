@@ -10,6 +10,10 @@ import { DocsController } from './docs.controller';
 import { DocsService } from './docs.service';
 import type { DocsManifest, DocsPageRecord } from './docs.types';
 
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 const roots: string[] = [];
 
 const page = (slug: string, part: string, order: number, roles: string[], title: string): DocsPageRecord => ({
