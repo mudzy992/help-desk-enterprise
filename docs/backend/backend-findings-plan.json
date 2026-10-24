@@ -5332,7 +5332,7 @@
     {
       "id": "BA-xcut-06",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1
@@ -5420,7 +5420,7 @@
     {
       "id": "BA-xcut-17",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1

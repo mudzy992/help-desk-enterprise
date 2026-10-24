@@ -682,7 +682,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-03` | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-04` | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-05` | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-06` | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-06` | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-07` | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-08` | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-09` | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
@@ -693,7 +693,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-14` | P2 | Budući migration timestampi do 2027-10 ruše pouzdanu chronology disciplinu | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-15` | P2 | Redis reconnect/offline queue/circuit-breaker i namespace contract nisu potpuni | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-16` | P2 | Admin realtime je process-local i gubi cross-replica događaje | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-17` | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-17` | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-18` | P2 | Request ID je neograničen untrusted input u logovima/envelopeu | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-19` | P2 | Globalni guard/filter/interceptor wiring zavisi od feature modula bez centralnog manifest testa | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-20` | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
@@ -716,7 +716,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **680**
-- Zatvoreno: **12** (`BA-xcut-01/02/03/04/07/09/10/23/24/29/30/31`)
+- Otvoreno: **678**
+- Zatvoreno: **14** (`BA-xcut-01/02/03/04/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

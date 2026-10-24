@@ -161,6 +161,50 @@ Namjerno ostaje otvoren:
 
 Kanonski zbir je sada **680 otvorenih / 12 zatvorenih** nalaza.
 
+## Paket W1.4 — Worker lifecycle
+
+**Status:** završeno; CI run [`40094120401`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40094120401) zelen na SHA `90d93f1739df132cc28cbf6af1f8a11b85c15960`.
+
+### Implementirano
+
+- svaki worker scheduler fatalno prekida startup ako početni `upsertJobScheduler` ne uspije;
+- discovery-based reconciler ponovo potvrđuje kompletan mandatory scheduler skup nakon bootstrapa i svakih pet minuta;
+- reconcile greška postavlja lifecycle u `degraded`, pa healthcheck više ne proglašava djelimični worker zdravim;
+- worker startup ima čvrst deadline od 45 sekundi i tek nakon kompletnog Nest/Bull/scheduler bootstrapa objavljuje `ready`;
+- readiness traži i svjež worker heartbeat i lifecycle `ready`, dok Redis/queue nedostupnost vraća non-zero healthcheck;
+- SIGTERM/SIGINT prvo objavljuje `draining`, zaustavlja novi BullMQ intake kroz Nest close i čeka aktivne poslove najviše 30 sekundi;
+- istekom drain deadlinea ili drugim signalom worker ide forced-exit putanjom, a zaključani posao ostaje BullMQ stalled/retry-safe;
+- prije urednog izlaza flushuju se stdout/stderr telemetry sinkovi, uz eksplicitnu tačku proširenja za buduće exportere;
+- Redis lifecycle zapis ima TTL i worker ga obnavlja, pa mrtav proces ne može ostaviti trajno zelen readiness;
+- realni CI recovery drill prisilno zatvara workera usred aktivnog posla i dokazuje da drugi worker preuzima stalled job u sljedećem pokušaju.
+
+### Izvršni dokaz
+
+```text
+Lifecycle/deadline/reconcile unit testovi       14/14 PASS
+Mandatory scheduler negative testovi            PASS
+Startup deadline i partial-init rejection        PASS
+Ready/degraded/draining health contract          PASS
+Bounded drain + telemetry flush                  PASS
+Forced unfinished-job abandonment               PASS
+BullMQ stalled detection i retry                 PASS
+Recovered job state                              completed / attemptsStarted=2
+Backend build/lint/full Jest                     PASS
+PostgreSQL/Redis integration                     PASS
+Container, frontend, docs i završni gate         PASS
+```
+
+Prvi CI pokušaj `40093799701` nije prihvaćen kao dokaz jer je jedan historijski digest-scheduler test još očekivao fail-open ponašanje. Test je ispravljen da zahtijeva fatalni startup; ponovljeni run `40094120401` potpuno je zelen.
+
+### Nalazi
+
+Zatvoreni:
+
+- `BA-xcut-06` — scheduler registration više ne može fail-open označiti worker pokrenutim, a periodični reconcile liječi izgubljene schedule zapise;
+- `BA-xcut-17` — worker sada ima readiness/liveness, startup i drain deadline, drugi-signal forced path, telemetry flush i stvarni stalled recovery dokaz.
+
+Kanonski zbir je sada **678 otvorenih / 14 zatvorenih** nalaza.
+
 ## Sljedeći paket
 
-**W1.4 — Worker lifecycle:** mandatory scheduler registration/reconcile, worker readiness/liveness i queue capability, bounded drain/forced shutdown, telemetry flush te unfinished/stalled job recovery dokaz.
+**Backend Val 2 — identity, scope i authorization:** canonical principal/assignment/scope model, session revocation i authz authority koja ne zavisi od stale cachea.

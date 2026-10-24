@@ -157,6 +157,10 @@ DB/migration granica je izvršno korigovana u CI runu [`40075479663`](https://gi
 
 Redis/secret granica je izvršno korigovana u CI runu [`40087131166`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40087131166): production startup odbija plaintext Redis, nedostajuću CA/auth/namespace konfiguraciju i implicitne purpose-secret fallbacke; ioredis i BullMQ koriste isti `rejectUnauthorized`/CA/servername ugovor. Stvarni Redis 7 TLS test dokazuje uspješan verified handshake, fail-closed pogrešan CA i hostname te izolovane staging/production ključeve. API i worker dijele centralni validator, a Redis dependency logovi više ne prenose raw error message. `BA-xcut-03`, `BA-xcut-09` i `BA-xcut-30` su zatvoreni. `BA-xcut-15` ostaje otvoren samo za reconnect/offline-queue/circuit-breaker dio; namespace dio je završen.
 
+### Implementacijski dodatak — W1.4, 2026-10-24
+
+Worker lifecycle je izvršno korigovan u CI runu [`40094120401`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40094120401): svaki schedule je fatalan pri inicijalnoj registraciji, kompletan scheduler skup se idempotentno reconcila pri bootstrapu i svakih pet minuta, a neuspjeh reconcilea postavlja readiness u `degraded`. Startup ima deadline od 45 sekundi; health traži svjež heartbeat i lifecycle `ready`; shutdown prvo objavljuje `draining`, zatvara BullMQ/Nest uz 30-sekundni deadline, flushuje telemetry sinkove, a drugi signal ili deadline završava forced exitom. Stvarni Redis/BullMQ CI test prisilno napušta aktivni job i dokazuje stalled retry/recovery. `BA-xcut-06` i `BA-xcut-17` su zatvoreni.
+
 ## 11. CLI, seed i operativni blast radius
 
 Pozitivno je što nekoliko CLI-ja ima dry-run, explicit `--apply`, reason i audit zapis. Secret helper ne ispisuje secret osim namjenske `pins` komande uz upozorenje. Ipak ne postoji jedinstveni CLI safety framework.
@@ -191,7 +195,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno |
 | BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu |zatvoreno |
 | BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno |
-| BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno |
+| BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno |
 | BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora |zatvoreno |
 | BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno |
 | BA-xcut-09 | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno |
@@ -202,7 +206,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-14 | P2 | Budući migration timestampi do 2027-10 ruše pouzdanu chronology disciplinu | otvoreno |
 | BA-xcut-15 | P2 | Redis reconnect/offline queue/circuit-breaker i namespace contract nisu potpuni | otvoreno |
 | BA-xcut-16 | P2 | Admin realtime je process-local i gubi cross-replica događaje | otvoreno |
-| BA-xcut-17 | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | otvoreno |
+| BA-xcut-17 | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | zatvoreno |
 | BA-xcut-18 | P2 | Request ID je neograničen untrusted input u logovima/envelopeu | otvoreno |
 | BA-xcut-19 | P2 | Globalni guard/filter/interceptor wiring zavisi od feature modula bez centralnog manifest testa | otvoreno |
 | BA-xcut-20 | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | otvoreno |
