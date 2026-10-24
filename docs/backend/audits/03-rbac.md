@@ -130,7 +130,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-01 | P2       | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu               | otvoreno | M        |
 | BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | otvoreno | M        |
 | BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | otvoreno | M        |
-| BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | otvoreno | S        |
+| BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
 | BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | otvoreno | M        |
 | BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | otvoreno | S        |
 | BA-rbac-07 | P3       | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token                | otvoreno | S        |

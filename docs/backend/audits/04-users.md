@@ -171,8 +171,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-users-01 | P1       | ADMIN users control plane ignoriše OU/service scope                                       | otvoreno | L        |
 | BA-users-02 | P1       | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno           | otvoreno | L        |
 | BA-users-03 | P1       | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle                       | otvoreno | L        |
-| BA-users-04 | P2       | Concurrent ordinary role assignment može kreirati duplikate                               | otvoreno | M        |
-| BA-users-05 | P2       | Role scope model dopušta besmislene dual-scope i lažno scoped SuperAdmin zapise           | otvoreno | M        |
+| BA-users-04 | P2       | Concurrent ordinary role assignment može kreirati duplikate                               | zatvoreno | M        |
+| BA-users-05 | P2       | Role scope model dopušta besmislene dual-scope i lažno scoped SuperAdmin zapise           | zatvoreno | M        |
 | BA-users-06 | P2       | Post-commit principal invalidacija nije durable ni fail-closed                            | otvoreno | M        |
 | BA-users-07 | P2       | Security controller koristi UUID pipe iako `User.id` nije UUID ugovor                     | otvoreno | S        |
 | BA-users-08 | P2       | Hard delete preflight ne pokriva historijske reference i može završiti sirovom FK greškom | otvoreno | M        |
@@ -219,7 +219,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 CI `40118964278` na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9` potvrđuje report-only inventory analyzer, verzionirani deterministični repair manifest i real-PostgreSQL dokaz da analiza ne mutira podatke. Database-backed principal sada dobija canonical `global | organizational-unit | service` scope, dok se dual-scope zapis fail-closed ne mapira u effective assignments.
 
-`BA-users-04` i `BA-users-05` ostaju **otvoreni**: schema još dopušta duplikate i nekanonske kombinacije, a W2.1 namjerno nema automatski repair, migraciju ni constraint. Ovaj dokaz zatvara pripremni inventory/canonicalization korak, ne izvorne nalaze.
+U granicama W2.1 `BA-users-04` i `BA-users-05` ostali su **otvoreni**: tadašnja schema još je dopuštala duplikate i nekanonske kombinacije, a paket namjerno nije imao automatski repair, migraciju ni constraint. Nalazi su naknadno zatvoreni u W2.5 odobrenim repairom i DB constraintima.
 
 ### BA-users-05 — Nejasna role scope kombinacija
 

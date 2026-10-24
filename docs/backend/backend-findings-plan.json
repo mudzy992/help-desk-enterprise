@@ -3396,7 +3396,7 @@
     {
       "id": "BA-rbac-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2
@@ -5132,7 +5132,7 @@
     {
       "id": "BA-users-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "04-users.md",
       "owner": "WS-A",
       "wave": 2
@@ -5140,7 +5140,7 @@
     {
       "id": "BA-users-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "04-users.md",
       "owner": "WS-A",
       "wave": 2

@@ -712,7 +712,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 
 ## Implementacijska napomena — Backend Val 2 / W2.1
 
-Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je report-only inventory i canonical principal/scope temelj za `BA-users-04` i `BA-users-05`. Oba nalaza ostaju otvorena jer ovaj sigurni pripremni paket namjerno ne radi repair i ne dodaje DB unique/check constraint. Dokaz i preostale granice su u [02-canonical-principal-assignment-scope.md](implementation/02-canonical-principal-assignment-scope.md).
+Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je report-only inventory i canonical principal/scope temelj za `BA-users-04` i `BA-users-05`. Nalazi su tada ostali otvoreni jer sigurni pripremni paket namjerno nije radio repair ni DB constraint; naknadno su zatvoreni u W2.5. Pripremni dokaz je u [02-canonical-principal-assignment-scope.md](implementation/02-canonical-principal-assignment-scope.md).
 
 ## Implementacijska napomena — Backend Val 2 / W2.2–W2.3
 
@@ -720,13 +720,15 @@ W2.2 je zatvorio `BA-authorization-01` i `BA-xcut-05` durable PostgreSQL authori
 
 W2.4 je na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`, zatvorio `BA-security-01` centralnim fail-closed step-up policyjem. Login MFA atomic claim i durable emergency-operation nalazi ostaju otvoreni; dokaz je u [05-fail-closed-step-up-policy.md](implementation/05-fail-closed-step-up-policy.md).
 
+W2.5 je na SHA `21f1caa`, CI `40126212216`, zatvorio `BA-rbac-04`, `BA-users-04` i `BA-users-05`. Odobreni deterministički repair, DB scope/identity constrainti, global-only SuperAdmin trigger i zajednička mutation serializacija dokazani su na stvarnom PostgreSQL-u; detalji su u [06-role-assignment-and-permission-invariants.md](implementation/06-role-assignment-and-permission-invariants.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **675**
-- Zatvoreno: **17** (`BA-authorization-01`, `BA-security-01`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **672**
+- Zatvoreno: **20** (`BA-authorization-01`, `BA-rbac-04`, `BA-security-01`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

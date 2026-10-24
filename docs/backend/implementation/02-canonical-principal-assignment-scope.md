@@ -18,7 +18,7 @@ Paket uvodi minimalni sigurni temelj za daljnju sanaciju identity/scope nalaza:
 4. fail-closed mapiranje nekonzistentnog assignmenta u principal context;
 5. pozitivan i negativan dokaz nad stvarnim PostgreSQL-om.
 
-Ovo nije završetak `BA-users-04` ili `BA-users-05`: schema još dopušta duplikate i nekonzistentne scope kombinacije. Nalazi zato ostaju otvoreni do odobrenog repaira i naknadnih DB constrainta.
+Ovo nije bio završetak `BA-users-04` ili `BA-users-05`: schema je tada još dopuštala duplikate i nekonzistentne scope kombinacije. Nalazi su naknadno zatvoreni odobrenim repairom i DB constraintima u W2.5.
 
 ## 3. Report-only inventar
 

@@ -138,7 +138,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 - **W2.1 canonical principal/assignment/scope temelj — završen** na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`.
 - Uvedeni su report-only inventar, deterministični repair manifest, fail-closed canonical scope mapiranje i real-PostgreSQL dokaz bez mutacije.
-- `BA-users-04` i `BA-users-05` ostaju otvoreni: ovaj paket namjerno nije izvršio repair niti dodao DB constrainte.
+- U granicama W2.1 `BA-users-04` i `BA-users-05` ostali su otvoreni jer pripremni paket nije izvršio repair niti dodao DB constrainte; naknadno su zatvoreni u W2.5.
 - **W2.2 durable session revocation i authz-version authority — završeno** na SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`.
 - PostgreSQL sada fencea svaki cached principal i svaki moderni `sid`; Redis revocation greška je fail-closed, sa stvarnim multi-replica PostgreSQL dokazom.
 - `BA-xcut-05` je zatvoren; `BA-authentication-02` ostaje otvoren zbog legacy no-`sid` durable cutoff granice.
@@ -148,7 +148,10 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.4 fail-closed step-up i emergency/recovery tokovi — završeno** na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`.
 - Rate-limit i bulk emergency tokovi koriste centralni proof boundary; no-MFA, replay/expiry, non-local SuperAdmin i degraded marker-store scenariji su fail-closed.
 - `BA-security-01` je zatvoren; durable bulk operation, login MFA atomic claim i authorization-epoch nalazi ostaju otvoreni.
-- Sljedeći paket je **W2.5 role/permission mutation constraints i last-admin zaštite**.
+- **W2.5 role/permission mutation constraints i last-admin zaštite — završeno** na SHA `21f1caa`, CI `40126212216`.
+- Odobreni deterministički repair, scope CHECK, tri scoped unique indeksa i global-only SuperAdmin trigger dokazani su izvršavanjem stvarne migracije na PostgreSQL-u, uključujući concurrency i rollback.
+- `BA-rbac-04`, `BA-users-04` i `BA-users-05` su zatvoreni; dokaz je u [06-role-assignment-and-permission-invariants.md](implementation/06-role-assignment-and-permission-invariants.md).
+- Sljedeći paket je **W2.6 route manifest: authenticated, public, webhook ili worker**.
 
 ### Redoslijed
 
@@ -156,7 +159,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 2. session revocation i authz version authority koja ne zavisi od stale cachea — **završeno (W2.2)**;
 3. centralni permission + OU/service/ownership policy — **završeno (W2.3 primitive + servisna granica)**;
 4. fail-closed step-up i emergency/recovery tokovi — **završeno (W2.4)**;
-5. role/permission mutation constraints i last-admin zaštite;
+5. role/permission mutation constraints i last-admin zaštite — **završeno (W2.5)**;
 6. route manifest: authenticated, public, webhook ili worker — bez implicitne pete klase;
 7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision;
 8. negative integration matrica za cross-user, cross-OU, scoped admin i inactive principal.
