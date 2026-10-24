@@ -178,22 +178,7 @@ jobs:
         run: npm run wiring:check
       - name: Test the wiring manifest guard
         run: npm run wiring:test
-      - name: Build backend with API-visible diagnostics
-        shell: bash
-        run: |
-          set +e
-          echo "::notice file=backend::backend build diagnostics started"
-          npm run build 2>&1 | tee /tmp/backend-build.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            while IFS= read -r line; do
-              line=${line//'%'/'%25'}
-              line=${line//$'\r'/'%0D'}
-              line=${line//$'\n'/'%0A'}
-              echo "::error file=backend::${line}"
-            done < <(sed -E $'s/\\033\\[[0-9;]*[mK]//g' /tmp/backend-build.log | tail -40)
-          fi
-          exit "$status"
+      - run: npm run build
       - run: npm run lint
       - name: Run suites previously blocked by missing generated Prisma types
         run: npm run test:safety-net:compile
