@@ -104,7 +104,52 @@ export function inspectModuleSource(source, file = "module.ts") {
   throw new Error(`${file}: nije pronađen @Module class`);
 }
 
-export async function buildBackendWiringManifest(root) {
+const routeClassifications = new Set(["authenticated", "public", "webhook", "worker"]);
+
+function routeIdentity(route) {
+  return `${route.controller}.${route.handler}`;
+}
+
+export function classifyRoutes(routes, policy) {
+  return routes.map((route) => {
+    const identity = routeIdentity(route);
+    const override = policy.routes[identity];
+    if (route.guardBoundary === "explicit") {
+      if (override !== undefined) throw new Error(`guarded ruta ne smije imati public/webhook override: ${identity}`);
+      const guards = [...route.classGuards, ...route.methodGuards];
+      if (!guards.some((guard) => guard === "SessionAuthenticationGuard" || guard === "InstallWizardLockGuard")) {
+        throw new Error(`ruta ima policy guard bez autentikacijske granice: ${identity}`);
+      }
+      return { ...route, classification: "authenticated", policyOwner: route.source?.split("/")[3] ?? "platform", policyProof: guards.join(", ") };
+    }
+    if (override === undefined) throw new Error(`HTTP ruta nije eksplicitno klasifikovana: ${identity}`);
+    return { ...route, classification: override.classification, policyOwner: override.owner, policyProof: override.proof };
+  });
+}
+
+function validatePolicy(policy, routes, modules) {
+  if (policy?.schemaVersion !== 1 || typeof policy.routes !== "object" || typeof policy.workers !== "object") {
+    throw new Error("route policy registry nema podržan schemaVersion/routes/workers ugovor");
+  }
+  const routeIds = new Set(routes.map(routeIdentity));
+  for (const [identity, entry] of Object.entries(policy.routes)) {
+    if (!routeIds.has(identity)) throw new Error(`route policy override je stale: ${identity}`);
+    if (!routeClassifications.has(entry.classification) || entry.classification === "authenticated" || entry.classification === "worker") {
+      throw new Error(`route policy override ima nedozvoljenu HTTP klasifikaciju: ${identity}`);
+    }
+    if (!entry.owner?.trim() || !entry.proof?.trim()) throw new Error(`route policy override nema owner/proof: ${identity}`);
+  }
+  const workerModules = new Set(modules.filter((entry) => entry.module === "WorkerModule").map((entry) => entry.module));
+  for (const [identity, entry] of Object.entries(policy.workers)) {
+    if (!workerModules.has(identity)) throw new Error(`worker policy je stale: ${identity}`);
+    if (entry.classification !== "worker" || !entry.owner?.trim() || !entry.proof?.trim()) {
+      throw new Error(`worker policy nema worker/owner/proof ugovor: ${identity}`);
+    }
+  }
+  for (const module of workerModules) if (policy.workers[module] === undefined) throw new Error(`worker nije klasifikovan: ${module}`);
+}
+
+export async function buildBackendWiringManifest(root, suppliedPolicy) {
   const sourceRoot = path.join(root, "backend/src");
   const files = (await walk(sourceRoot))
     .filter((file) => file.endsWith(".controller.ts"))
@@ -122,16 +167,25 @@ export async function buildBackendWiringManifest(root) {
   for (const relative of ["backend/src/app.module.ts", "backend/src/worker.module.ts"]) {
     modules.push({ source: relative, ...inspectModuleSource(await readFile(path.join(root, relative), "utf8"), relative) });
   }
+  const policy = suppliedPolicy ?? JSON.parse(await readFile(path.join(root, "backend/route-policy-overrides.json"), "utf8"));
+  validatePolicy(policy, routes, modules);
+  const classifiedRoutes = classifyRoutes(routes, policy);
+  const classificationCounts = classifiedRoutes.reduce((counts, route) => {
+    counts[route.classification] = (counts[route.classification] ?? 0) + 1;
+    return counts;
+  }, { worker: Object.keys(policy.workers).length });
   return {
-    schemaVersion: 1,
-    generatedFrom: "backend/src/**/*.controller.ts + app.module.ts + worker.module.ts",
+    schemaVersion: 2,
+    generatedFrom: "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
     controllerFiles: files.length,
-    routeCount: routes.length,
-    guardBoundaryCounts: routes.reduce((counts, route) => {
+    routeCount: classifiedRoutes.length,
+    classificationCounts,
+    guardBoundaryCounts: classifiedRoutes.reduce((counts, route) => {
       counts[route.guardBoundary] = (counts[route.guardBoundary] ?? 0) + 1;
       return counts;
     }, {}),
-    routes,
+    routes: classifiedRoutes,
+    executionSurfaces: Object.entries(policy.workers).map(([module, entry]) => ({ module, ...entry })),
     modules,
   };
 }
@@ -156,8 +210,9 @@ async function main() {
     throw error;
   }
   console.log(
-    `✓ backend wiring snapshot: ${manifest.controllerFiles} controllera, ${manifest.routeCount} ruta, ` +
-      `explicit=${manifest.guardBoundaryCounts.explicit ?? 0}, inherited/public=${manifest.guardBoundaryCounts["inherited-or-public"] ?? 0}`,
+    `✓ backend route policy: ${manifest.controllerFiles} controllera, ${manifest.routeCount} ruta, ` +
+      `authenticated=${manifest.classificationCounts.authenticated ?? 0}, public=${manifest.classificationCounts.public ?? 0}, ` +
+      `webhook=${manifest.classificationCounts.webhook ?? 0}, worker=${manifest.classificationCounts.worker ?? 0}`,
   );
 }
 

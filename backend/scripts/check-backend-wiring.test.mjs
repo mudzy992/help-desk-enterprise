@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { inspectControllerSource, inspectModuleSource } from "./check-backend-wiring.mjs";
+import { classifyRoutes, inspectControllerSource, inspectModuleSource } from "./check-backend-wiring.mjs";
 
 test("inventariše HTTP metode, putanje i class/method guardove", () => {
   const routes = inspectControllerSource(`
@@ -73,5 +73,41 @@ test("snapshotuje root module wiring nizove", () => {
       providers: ["WorkerRunner", "{ provide: APP_FILTER, useClass: Filter }"],
       exports: ["WorkerRunner"],
     },
+  );
+});
+
+test("odbija novu HTTP rutu bez guarda ili eksplicitne public/webhook klasifikacije", () => {
+  const [route] = inspectControllerSource(`
+    @Controller('new')
+    class NewController { @Get() read() {} }
+  `);
+  assert.throws(
+    () => classifyRoutes([{ source: "backend/src/modules/new/new.controller.ts", ...route }], { routes: {} }),
+    /HTTP ruta nije eksplicitno klasifikovana: NewController.read/,
+  );
+});
+
+test("guard je authenticated klasifikacija, a javni override mora imati eksplicitan dokaz", () => {
+  const guarded = {
+    source: "backend/src/modules/tickets/tickets.controller.ts",
+    controller: "TicketsController",
+    handler: "list",
+    classGuards: ["SessionAuthenticationGuard"],
+    methodGuards: [],
+    guardBoundary: "explicit",
+  };
+  assert.deepEqual(classifyRoutes([guarded], { routes: {} })[0], {
+    ...guarded,
+    classification: "authenticated",
+    policyOwner: "tickets",
+    policyProof: "SessionAuthenticationGuard",
+  });
+  assert.throws(
+    () => classifyRoutes([guarded], { routes: { "TicketsController.list": { classification: "public" } } }),
+    /guarded ruta ne smije imati public\/webhook override/,
+  );
+  assert.throws(
+    () => classifyRoutes([{ ...guarded, classGuards: ["RoleGuard"] }], { routes: {} }),
+    /policy guard bez autentikacijske granice/,
   );
 });
