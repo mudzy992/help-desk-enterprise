@@ -157,7 +157,10 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.7 globalne docs/settings/config permission granice — završen** na SHA `c78c445`, CI `40128598505`.
 - Docs koristi samo permissione globalnih assignmenta; settings registry zahtijeva `settings.read`, a config list/get/diff `config.version.read`. Scoped grantovi ne zadovoljavaju globalne odluke.
 - `BA-docs-01`, `BA-settings-05` i `BA-config-versioning-01/02` su zatvoreni; dokaz je u [08-global-read-permission-boundaries.md](implementation/08-global-read-permission-boundaries.md).
-- Sljedeći paket je **W2.8 završna route-level negativna authorization matrica**.
+- **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
+- Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
+- W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
+- Sljedeći paket je **W3.1 canonical append-only audit primitive i inventar**.
 
 ### Redoslijed
 
@@ -168,7 +171,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 5. role/permission mutation constraints i last-admin zaštite — **završeno (W2.5)**;
 6. route manifest: authenticated, public, webhook ili worker — **završeno (W2.6, bez implicitne pete klase)**;
 7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision — **završeno (W2.7)**;
-8. negative integration matrica za cross-user, cross-OU, scoped admin i inactive principal.
+8. negative integration matrica za cross-user, cross-OU, scoped admin i inactive principal — **završeno (W2.8)**.
 
 ### Pogođene jedinice
 
