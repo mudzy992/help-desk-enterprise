@@ -12,10 +12,10 @@ describe('health probes (2.7 §3)', () => {
     const down = () => Promise.reject(new Error('ECONNREFUSED 10.0.0.1:5432'));
     await expect(probeReadiness({ pingDatabase: ok, pingRedis: ok })).resolves.toEqual({
       status: 'ok',
-      checks: { database: 'ok', redis: 'ok' },
+      checks: { database: 'ok', redis: 'ok', auditAnchor: 'ok' },
     });
     const failed = await probeReadiness({ pingDatabase: down, pingRedis: ok });
-    expect(failed).toEqual({ status: 'fail', checks: { database: 'fail', redis: 'ok' } });
+    expect(failed).toEqual({ status: 'fail', checks: { database: 'fail', redis: 'ok', auditAnchor: 'ok' } });
     // Nothing from the error (hosts, messages) leaks into the public result.
     expect(JSON.stringify(failed)).not.toContain('10.0.0.1');
   });

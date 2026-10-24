@@ -9,7 +9,7 @@ export type ProbeState = 'ok' | 'fail';
 
 export type ReadinessResult = {
   readonly status: ProbeState;
-  readonly checks: { readonly database: ProbeState; readonly redis: ProbeState };
+  readonly checks: { readonly database: ProbeState; readonly redis: ProbeState; readonly auditAnchor: ProbeState };
 };
 
 export type WorkerProbeResult = {
@@ -66,12 +66,14 @@ async function probe(work: () => Promise<unknown>, timeoutMs: number): Promise<P
 export async function probeReadiness(dependencies: {
   readonly pingDatabase: () => Promise<unknown>;
   readonly pingRedis: () => Promise<unknown>;
+  readonly auditAnchorReady?: () => boolean;
 }): Promise<ReadinessResult> {
   const [database, redis] = await Promise.all([
     probe(dependencies.pingDatabase, readinessTimeouts.databaseMs),
     probe(dependencies.pingRedis, readinessTimeouts.redisMs),
   ]);
-  return { status: database === 'ok' && redis === 'ok' ? 'ok' : 'fail', checks: { database, redis } };
+  const auditAnchor = dependencies.auditAnchorReady?.() === false ? 'fail' : 'ok';
+  return { status: database === 'ok' && redis === 'ok' && auditAnchor === 'ok' ? 'ok' : 'fail', checks: { database, redis, auditAnchor } };
 }
 
 export function evaluateWorkerHeartbeat(input: {

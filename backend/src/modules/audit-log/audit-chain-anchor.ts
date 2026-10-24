@@ -34,13 +34,12 @@ function signature(anchor: UnsignedAnchor, key: string): string {
   return createHmac('sha256', key).update(payload(anchor)).digest('hex');
 }
 
-export async function publishAuditChainAnchor(input: {
-  readonly filePath: string;
+export function createAuditChainAnchor(input: {
   readonly key: string;
   readonly keyId: string;
   readonly chainHead: { readonly id: string; readonly hash: string; readonly createdAt: Date };
   readonly now?: Date;
-}): Promise<AuditChainAnchor> {
+}): AuditChainAnchor {
   const unsigned: UnsignedAnchor = {
     version: 1,
     chainHeadId: input.chainHead.id,
@@ -49,7 +48,17 @@ export async function publishAuditChainAnchor(input: {
     anchoredAt: (input.now ?? new Date()).toISOString(),
     keyId: input.keyId,
   };
-  const anchor = { ...unsigned, signature: signature(unsigned, input.key) };
+  return { ...unsigned, signature: signature(unsigned, input.key) };
+}
+
+export async function publishAuditChainAnchor(input: {
+  readonly filePath: string;
+  readonly key: string;
+  readonly keyId: string;
+  readonly chainHead: { readonly id: string; readonly hash: string; readonly createdAt: Date };
+  readonly now?: Date;
+}): Promise<AuditChainAnchor> {
+  const anchor = createAuditChainAnchor(input);
   await mkdir(path.dirname(input.filePath), { recursive: true });
   const temporary = `${input.filePath}.${process.pid}.tmp`;
   await writeFile(temporary, `${JSON.stringify(anchor)}\n`, { encoding: 'utf8', mode: 0o600 });
