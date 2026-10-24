@@ -121,6 +121,7 @@ services:
       <<: [*database-environment, *redis-environment, *app-environment]
     volumes:
       - uploads:/usr/app/uploads
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
     networks:
       - default
       - redis_net
@@ -152,6 +153,7 @@ services:
       DB_STATEMENT_TIMEOUT_MS: ${WORKER_DB_STATEMENT_TIMEOUT_MS:-30000}
     volumes:
       - uploads:/usr/app/uploads
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
     networks:
       - default
       - redis_net
