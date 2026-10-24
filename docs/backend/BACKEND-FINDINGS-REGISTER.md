@@ -91,7 +91,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 08 | `audit-log` | `BA-audit-log-09` | P2 | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-10` | P3 | Cursor/ID/query stringovi nemaju format i dužinske granice | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-11` | P3 | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona | otvoreno | [08-audit-log.md](audits/08-audit-log.md) |
-| 09 | `security` | `BA-security-01` | P1 | MFA-disabled SuperAdmin mijenja rate limite bez step-upa | otvoreno | [09-security.md](audits/09-security.md) |
+| 09 | `security` | `BA-security-01` | P1 | MFA-disabled SuperAdmin mijenja rate limite bez step-upa | zatvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-02` | P1 | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | otvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-03` | P1 | Privilegovani auth audit je best-effort i može nestati | otvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-04` | P2 | Klijent sam mintuje capability purpose | otvoreno | [09-security.md](audits/09-security.md) |
@@ -718,13 +718,15 @@ Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je
 
 W2.2 je zatvorio `BA-authorization-01` i `BA-xcut-05` durable PostgreSQL authority fenceom. W2.3 je na SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`, završio centralni permission + OU/service/ownership primitive i real-PostgreSQL negativnu matricu. Route/decorator rollout nalazi ostaju otvoreni; dokaz je u [04-central-resource-policy.md](implementation/04-central-resource-policy.md).
 
+W2.4 je na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`, zatvorio `BA-security-01` centralnim fail-closed step-up policyjem. Login MFA atomic claim i durable emergency-operation nalazi ostaju otvoreni; dokaz je u [05-fail-closed-step-up-policy.md](implementation/05-fail-closed-step-up-policy.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **676**
-- Zatvoreno: **16** (`BA-authorization-01`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **675**
+- Zatvoreno: **17** (`BA-authorization-01`, `BA-security-01`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

@@ -3780,7 +3780,7 @@
     {
       "id": "BA-security-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "09-security.md",
       "owner": "WS-E",
       "wave": 2

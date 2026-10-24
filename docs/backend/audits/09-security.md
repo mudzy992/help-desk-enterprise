@@ -157,7 +157,7 @@ Korisnik je potvrdio prolaz kompletne aktuelne CI/Playwright kolekcije 01–56. 
 
 | ID             | Severity | Nalaz                                                      | Status   |
 | -------------- | -------- | ---------------------------------------------------------- | -------- |
-| BA-security-01 | P1       | MFA-disabled SuperAdmin mijenja rate limite bez step-upa   | otvoreno |
+| BA-security-01 | P1       | MFA-disabled SuperAdmin mijenja rate limite bez step-upa   | zatvoreno |
 | BA-security-02 | P1       | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | otvoreno |
 | BA-security-03 | P1       | Privilegovani auth audit je best-effort i može nestati     | otvoreno |
 | BA-security-04 | P2       | Klijent sam mintuje capability purpose                     | otvoreno |
@@ -170,6 +170,12 @@ Korisnik je potvrdio prolaz kompletne aktuelne CI/Playwright kolekcije 01–56. 
 | BA-security-11 | P3       | Failure observability nema korelaciju/metrike              | otvoreno |
 
 ## 11. Detaljni nalazi
+
+### Implementacijski status Vala 2 / W2.4 (2026-10-24)
+
+`BA-security-01` je zatvoren na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`. Rate-limit i bulk emergency tok sada koriste isti `StepUpPolicyService`: persisted caller mora biti aktivan local-only SuperAdmin, passkey marker je purpose-scoped i single-use, a bez markera je obavezan TOTP/recovery faktor. Expired/replayed marker, nepostojeći faktor, non-local caller i marker-store greška završavaju fail-closed prije mutacije. Real-PostgreSQL integration test potvrđuje non-local emergency odbijanje.
+
+Preostali durable bulk operation, audit atomarnost, authorization epoch, TOCTOU, abuse-limit i observability nalazi ostaju otvoreni.
 
 ### BA-security-01 — MFA-disabled SuperAdmin mijenja rate limite bez step-upa
 

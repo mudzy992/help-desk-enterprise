@@ -145,14 +145,17 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.3 centralni permission + OU/service/ownership policy — završeno** na SHA `201678ac5b77d65bc4b2fc70b18132e0bbbadb74`, CI `40121407427`.
 - Centralni resource-policy entry point nema role-key input; persisted cross-user, sibling-OU i foreign-service scenariji dokazani su na stvarnom PostgreSQL-u.
 - Route/decorator migracija ostaje eksplicitni modul-po-modul rollout, ne prećutno zatvoren nalaz.
-- Sljedeći paket je **W2.4 fail-closed step-up i emergency/recovery tokovi**.
+- **W2.4 fail-closed step-up i emergency/recovery tokovi — završeno** na SHA `8206056d810e4cab0ab629cd96831309c11b66d0`, CI `40122665418`.
+- Rate-limit i bulk emergency tokovi koriste centralni proof boundary; no-MFA, replay/expiry, non-local SuperAdmin i degraded marker-store scenariji su fail-closed.
+- `BA-security-01` je zatvoren; durable bulk operation, login MFA atomic claim i authorization-epoch nalazi ostaju otvoreni.
+- Sljedeći paket je **W2.5 role/permission mutation constraints i last-admin zaštite**.
 
 ### Redoslijed
 
 1. canonical principal/assignment/scope model — **završeno (W2.1)**;
 2. session revocation i authz version authority koja ne zavisi od stale cachea — **završeno (W2.2)**;
 3. centralni permission + OU/service/ownership policy — **završeno (W2.3 primitive + servisna granica)**;
-4. fail-closed step-up i emergency/recovery tokovi;
+4. fail-closed step-up i emergency/recovery tokovi — **završeno (W2.4)**;
 5. role/permission mutation constraints i last-admin zaštite;
 6. route manifest: authenticated, public, webhook ili worker — bez implicitne pete klase;
 7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision;
