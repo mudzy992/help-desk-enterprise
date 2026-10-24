@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { DiscoveryModule } from '@nestjs/core';
+import { WorkerScheduleReconcilerService } from './worker-schedule-reconciler.service';
 import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
@@ -28,6 +30,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
 
 @Module({
   imports: [
+    DiscoveryModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
@@ -64,5 +67,6 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     ProblemSweepWorkerModule,
     ChangeSweepWorkerModule,
   ],
+  providers: [WorkerScheduleReconcilerService],
 })
 export class WorkerModule {}

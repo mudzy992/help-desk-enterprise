@@ -3,11 +3,11 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
-} from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
-import { SettingsService } from '../settings/settings.service';
+} from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
+import { registerRepeatableJob } from "../../common/scheduled-jobs/register-repeatable-job";
+import { SettingsService } from "../settings/settings.service";
 import {
   integrationDlqRetentionCompletedJobsToKeep,
   integrationDlqRetentionFailedJobsToKeep,
@@ -25,8 +25,8 @@ import {
   integrationWorkerHeartbeatRepeatEveryMilliseconds,
   integrationWorkerHeartbeatSchedulerId,
   integrationWorkerMaintenanceQueueName,
-} from './integration-worker-maintenance.job.constants';
-import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
+} from "./integration-worker-maintenance.job.constants";
+import { loadIntegrationQueueSettings } from "./load-integration-queue-settings";
 
 const fallbackPollSeconds = 15;
 
@@ -38,7 +38,8 @@ const fallbackPollSeconds = 15;
  * without a worker redeploy. Incident 2026-10-17: without it the heartbeat
  * schedule was write-once-at-boot, and losing it looked like a dead worker.
  */
-export const integrationWorkerMaintenanceReconcileIntervalMilliseconds = 5 * 60_000;
+export const integrationWorkerMaintenanceReconcileIntervalMilliseconds =
+  5 * 60_000;
 
 /**
  * Phase 4.1 (plan §4.1): registers the worker's two maintenance schedules in Redis.
@@ -67,7 +68,11 @@ export class IntegrationWorkerMaintenanceSchedulerService
     await this.registerSchedules();
     if (this.reconcileTimer === null) {
       this.reconcileTimer = setInterval(() => {
-        void this.registerSchedules();
+        void this.registerSchedules().catch((error: unknown) => {
+          this.logger.error(
+            `mandatory_schedule_reconcile_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+          );
+        });
       }, integrationWorkerMaintenanceReconcileIntervalMilliseconds);
       this.reconcileTimer.unref?.();
     }
@@ -85,7 +90,7 @@ export class IntegrationWorkerMaintenanceSchedulerService
       jobName: integrationWorkerHeartbeatJobName,
       label: integrationWorkerHeartbeatJobLabel,
       schedule: {
-        kind: 'every',
+        kind: "every",
         milliseconds: integrationWorkerHeartbeatRepeatEveryMilliseconds,
       },
       attempts: integrationWorkerHeartbeatJobAttempts,
@@ -101,7 +106,7 @@ export class IntegrationWorkerMaintenanceSchedulerService
       jobName: integrationDlqRetentionJobName,
       label: integrationDlqRetentionJobLabel,
       schedule: {
-        kind: 'every',
+        kind: "every",
         milliseconds: await this.resolvePollMilliseconds(),
       },
       attempts: integrationDlqRetentionJobAttempts,

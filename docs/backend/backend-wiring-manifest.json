@@ -7732,6 +7732,7 @@
       "source": "backend/src/worker.module.ts",
       "module": "WorkerModule",
       "imports": [
+        "DiscoveryModule",
         "ConfigModule.forRoot({\n      isGlobal: true,\n      envFilePath: ['.env'],\n      validate: validateRuntimeEnvironment,\n    })",
         "PrismaModule",
         "RedisModule",
@@ -7759,7 +7760,9 @@
         "ChangeSweepWorkerModule"
       ],
       "controllers": [],
-      "providers": [],
+      "providers": [
+        "WorkerScheduleReconcilerService"
+      ],
       "exports": []
     }
   ]

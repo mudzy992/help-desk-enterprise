@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import {
   notificationRetentionCronPattern,
   notificationRetentionJobAttempts,
@@ -8,7 +8,7 @@ import {
   notificationRetentionJobName,
   notificationRetentionQueueName,
   notificationRetentionSchedulerId,
-} from './notification-retention.constants';
+} from "./notification-retention.constants";
 
 /**
  * Registers the daily retention sweep. `upsertJobScheduler` is idempotent by id,
@@ -17,7 +17,9 @@ import {
  */
 @Injectable()
 export class NotificationRetentionSchedulerService implements OnModuleInit {
-  private readonly logger = new Logger(NotificationRetentionSchedulerService.name);
+  private readonly logger = new Logger(
+    NotificationRetentionSchedulerService.name,
+  );
 
   constructor(
     @InjectQueue(notificationRetentionQueueName) private readonly queue: Queue,
@@ -34,7 +36,7 @@ export class NotificationRetentionSchedulerService implements OnModuleInit {
           opts: {
             attempts: notificationRetentionJobAttempts,
             backoff: {
-              type: 'exponential',
+              type: "exponential",
               delay: notificationRetentionJobBackoffMilliseconds,
             },
             removeOnComplete: { count: 5 },
@@ -43,8 +45,12 @@ export class NotificationRetentionSchedulerService implements OnModuleInit {
         },
       );
     } catch (error) {
-      this.logger.warn(
-        `notification_retention_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`,
+      this.logger.error(
+        `notification_retention_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+      );
+      throw new Error(
+        "notification_retention mandatory schedule registration failed",
+        { cause: error },
       );
     }
   }

@@ -48,7 +48,8 @@
     "db:privileges:verify": "node scripts/verify-database-privileges.mjs",
     "db:restore:test": "sh scripts/test-backup-restore.sh",
     "db:budget:check": "node -e \"require('./dist/src/common/database/database-runtime-contract.js').assertConnectionBudget(process.env)\"",
-    "redis:tls-contract": "node scripts/redis-tls-contract.mjs"
+    "redis:tls-contract": "node scripts/redis-tls-contract.mjs",
+    "worker:recovery-contract": "node scripts/worker-recovery-contract.mjs"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

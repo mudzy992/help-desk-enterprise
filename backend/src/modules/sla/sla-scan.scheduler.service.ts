@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import {
   slaScanCompletedJobsToKeep,
   slaScanFailedJobsToKeep,
@@ -10,7 +10,7 @@ import {
   slaScanQueueName,
   slaScanRepeatEveryMilliseconds,
   slaScanSchedulerId,
-} from './sla-scan.constants';
+} from "./sla-scan.constants";
 
 /**
  * Phase 2.1 (plan §2.1): registers the recurring scan.
@@ -38,7 +38,7 @@ export class SlaScanSchedulerService implements OnModuleInit {
           opts: {
             attempts: slaScanJobAttempts,
             backoff: {
-              type: 'exponential',
+              type: "exponential",
               delay: slaScanJobBackoffMilliseconds,
             },
             removeOnComplete: { count: slaScanCompletedJobsToKeep },
@@ -47,11 +47,12 @@ export class SlaScanSchedulerService implements OnModuleInit {
         },
       );
     } catch (error) {
-      // A worker that cannot reach Redis keeps running for the other queues;
-      // the next restart (or the next successful boot) registers the schedule.
-      this.logger.warn(
-        `sla_scan_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`,
+      this.logger.error(
+        `sla_scan_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
       );
+      throw new Error("sla_scan mandatory schedule registration failed", {
+        cause: error,
+      });
     }
   }
 }

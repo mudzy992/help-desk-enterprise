@@ -1,8 +1,13 @@
-import 'dotenv/config';
-import { createRedisClient } from '../common/redis/create-redis-client';
-import { loadRedisConfiguration } from '../common/redis/load-redis-configuration';
-import { workerHeartbeatRedisKey } from '../modules/integration-queue/integration-queue.constants';
-import { defaultWorkerHeartbeatStaleSeconds, evaluateWorkerHeartbeat, withTimeout } from '../modules/health/health-probes';
+import "dotenv/config";
+import { createRedisClient } from "../common/redis/create-redis-client";
+import { loadRedisConfiguration } from "../common/redis/load-redis-configuration";
+import { workerHeartbeatRedisKey } from "../modules/integration-queue/integration-queue.constants";
+import {
+  defaultWorkerHeartbeatStaleSeconds,
+  evaluateWorkerHeartbeat,
+  withTimeout,
+} from "../modules/health/health-probes";
+import { workerLifecycleRedisKey } from "../worker-lifecycle";
 
 /*
   Paket 2.7 (§3.2): Docker healthcheck of the worker container.
@@ -12,17 +17,27 @@ import { defaultWorkerHeartbeatStaleSeconds, evaluateWorkerHeartbeat, withTimeou
 async function main(): Promise<number> {
   const redis = createRedisClient(loadRedisConfiguration());
   try {
-    const value = await withTimeout(async () => {
+    const probe = await withTimeout(async () => {
       await redis.connect();
-      return redis.get(workerHeartbeatRedisKey);
+      return Promise.all([
+        redis.get(workerHeartbeatRedisKey),
+        redis.get(workerLifecycleRedisKey),
+      ]);
     }, 4_000);
+    const [value, lifecycleRaw] = probe;
+    const lifecycle = lifecycleRaw
+      ? (JSON.parse(lifecycleRaw) as { state?: string })
+      : null;
     const result = evaluateWorkerHeartbeat({
       lastHeartbeatAt: value,
       nowMs: Date.now(),
       staleSeconds: defaultWorkerHeartbeatStaleSeconds,
     });
-    console.log(`worker_health=${result.status} heartbeat_age_s=${result.heartbeatAgeSeconds ?? 'none'}`);
-    return result.status === 'ok' ? 0 : 1;
+    const ready = result.status === "ok" && lifecycle?.state === "ready";
+    console.log(
+      `worker_health=${ready ? "ok" : "fail"} lifecycle=${lifecycle?.state ?? "missing"} heartbeat_age_s=${result.heartbeatAgeSeconds ?? "none"}`,
+    );
+    return ready ? 0 : 1;
   } catch (error) {
     console.log(`worker_health=fail reason=${(error as Error).message}`);
     return 1;

@@ -255,6 +255,8 @@ jobs:
           for attempt in 1 2 3 4 5; do docker logs redis-w13 2>&1 | grep -q 'Ready to accept connections' && break; sleep 1; done
           docker logs redis-w13 2>&1 | grep -q 'Ready to accept connections' || { docker logs redis-w13; exit 1; }
           REDIS_TLS_TEST_CA="$certs/ca.crt" REDIS_TLS_TEST_WRONG_CA="$certs/wrong.crt" npm run redis:tls-contract
+      - name: Prove unfinished job stalled recovery
+        run: npm run worker:recovery-contract
       - name: Generate and verify the Prisma client
         run: npm run db:generate && npm run check:prisma-generated
       - name: Enforce destructive migration approval policy

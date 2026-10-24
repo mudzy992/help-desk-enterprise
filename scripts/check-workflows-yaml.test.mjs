@@ -208,6 +208,7 @@ test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni
   assert.ok(integration.includes("npm run redis:tls-contract"));
   assert.ok(integration.includes("--tls-port 6380"));
   assert.ok(integration.includes("REDIS_TLS_TEST_WRONG_CA"));
+  assert.ok(integration.includes("npm run worker:recovery-contract"));
   assert.ok(integration.includes("npm run db:migrate:release"));
   assert.ok(integration.includes("npm run db:privileges:verify"));
   assert.ok(integration.includes("npm run db:restore:test"));

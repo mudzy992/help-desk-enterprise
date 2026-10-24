@@ -1,20 +1,22 @@
-import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Queue } from 'bullmq';
+import { InjectQueue } from "@nestjs/bullmq";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Queue } from "bullmq";
 import {
   assetDirectorySyncCronPattern,
   assetDirectorySyncJobAttempts,
   assetDirectorySyncJobName,
   assetDirectorySyncQueueName,
   assetDirectorySyncSchedulerId,
-} from './asset-directory-sync.constants';
+} from "./asset-directory-sync.constants";
 
 /** Idempotent by scheduler id, so restarts and extra workers converge on one schedule. */
 @Injectable()
 export class AssetDirectorySyncSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(AssetDirectorySyncSchedulerService.name);
 
-  constructor(@InjectQueue(assetDirectorySyncQueueName) private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(assetDirectorySyncQueueName) private readonly queue: Queue,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
@@ -24,11 +26,21 @@ export class AssetDirectorySyncSchedulerService implements OnModuleInit {
         {
           name: assetDirectorySyncJobName,
           data: {},
-          opts: { attempts: assetDirectorySyncJobAttempts, removeOnComplete: { count: 5 }, removeOnFail: { count: 20 } },
+          opts: {
+            attempts: assetDirectorySyncJobAttempts,
+            removeOnComplete: { count: 5 },
+            removeOnFail: { count: 20 },
+          },
         },
       );
     } catch (error) {
-      this.logger.warn(`asset_directory_sync_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `asset_directory_sync_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+      );
+      throw new Error(
+        "asset_directory_sync mandatory schedule registration failed",
+        { cause: error },
+      );
     }
   }
 }

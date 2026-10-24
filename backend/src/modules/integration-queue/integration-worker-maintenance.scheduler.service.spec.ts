@@ -1,15 +1,17 @@
 import {
   IntegrationWorkerMaintenanceSchedulerService,
   integrationWorkerMaintenanceReconcileIntervalMilliseconds,
-} from './integration-worker-maintenance.scheduler.service';
+} from "./integration-worker-maintenance.scheduler.service";
 import {
   integrationDlqRetentionSchedulerId,
   integrationWorkerHeartbeatJobName,
   integrationWorkerHeartbeatRepeatEveryMilliseconds,
   integrationWorkerHeartbeatSchedulerId,
-} from './integration-worker-maintenance.job.constants';
+} from "./integration-worker-maintenance.job.constants";
 
-function harness(upsertJobScheduler: jest.Mock = jest.fn().mockResolvedValue(undefined)) {
+function harness(
+  upsertJobScheduler: jest.Mock = jest.fn().mockResolvedValue(undefined),
+) {
   const queue = { upsertJobScheduler };
   const settingsService = { getSetting: async () => null };
   const service = new IntegrationWorkerMaintenanceSchedulerService(
@@ -31,14 +33,14 @@ const registeredIds = (calls: unknown[][]) => calls.map((call) => call[0]);
   `upsertJobScheduler` is idempotent by scheduler id, so this costs two Redis
   calls per interval and cannot double a job.
 */
-describe('IntegrationWorkerMaintenanceSchedulerService', () => {
+describe("IntegrationWorkerMaintenanceSchedulerService", () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => {
     jest.useRealTimers();
     jest.clearAllMocks();
   });
 
-  it('registers the heartbeat and the DLQ sweep at boot', async () => {
+  it("registers the heartbeat and the DLQ sweep at boot", async () => {
     const { service, upsertJobScheduler } = harness();
     await service.onModuleInit();
     expect(registeredIds(upsertJobScheduler.mock.calls)).toEqual([
@@ -53,7 +55,7 @@ describe('IntegrationWorkerMaintenanceSchedulerService', () => {
     service.onModuleDestroy();
   });
 
-  it('re-asserts both schedules so a lost registration heals without a redeploy', async () => {
+  it("re-asserts both schedules so a lost registration heals without a redeploy", async () => {
     const { service, upsertJobScheduler } = harness();
     await service.onModuleInit();
     expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
@@ -69,7 +71,7 @@ describe('IntegrationWorkerMaintenanceSchedulerService', () => {
     service.onModuleDestroy();
   });
 
-  it('stops re-asserting after the module is destroyed', async () => {
+  it("stops re-asserting after the module is destroyed", async () => {
     const { service, upsertJobScheduler } = harness();
     await service.onModuleInit();
     service.onModuleDestroy();
@@ -79,20 +81,17 @@ describe('IntegrationWorkerMaintenanceSchedulerService', () => {
     expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps reconciling after Redis refused the registration at boot', async () => {
+  it("fails startup when Redis refuses mandatory registration", async () => {
     const upsertJobScheduler = jest
       .fn()
-      .mockRejectedValueOnce(new Error('Connection is closed'))
-      .mockRejectedValueOnce(new Error('Connection is closed'))
+      .mockRejectedValueOnce(new Error("Connection is closed"))
+      .mockRejectedValueOnce(new Error("Connection is closed"))
       .mockResolvedValue(undefined);
     const { service } = harness(upsertJobScheduler);
-    // registerRepeatableJob logs `*_schedule_failed` instead of throwing: a
-    // worker that cannot reach Redis must still boot for its other queues.
-    await expect(service.onModuleInit()).resolves.toBeUndefined();
-    await jest.advanceTimersByTimeAsync(
-      integrationWorkerMaintenanceReconcileIntervalMilliseconds,
+    await expect(service.onModuleInit()).rejects.toThrow(
+      "integration_worker_heartbeat mandatory schedule registration failed",
     );
-    expect(upsertJobScheduler).toHaveBeenCalledTimes(4);
+    expect(upsertJobScheduler).toHaveBeenCalledTimes(1);
     service.onModuleDestroy();
   });
 });

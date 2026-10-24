@@ -1,6 +1,6 @@
-import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Queue } from 'bullmq';
+import { InjectQueue } from "@nestjs/bullmq";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Queue } from "bullmq";
 import {
   assetRemindersCronPattern,
   assetRemindersJobAttempts,
@@ -8,14 +8,16 @@ import {
   assetRemindersJobName,
   assetRemindersQueueName,
   assetRemindersSchedulerId,
-} from './asset-reminders.constants';
+} from "./asset-reminders.constants";
 
 /** Idempotent by scheduler id, so restarts and extra workers converge on one schedule. */
 @Injectable()
 export class AssetRemindersSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(AssetRemindersSchedulerService.name);
 
-  constructor(@InjectQueue(assetRemindersQueueName) private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(assetRemindersQueueName) private readonly queue: Queue,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
@@ -27,14 +29,23 @@ export class AssetRemindersSchedulerService implements OnModuleInit {
           data: {},
           opts: {
             attempts: assetRemindersJobAttempts,
-            backoff: { type: 'exponential', delay: assetRemindersJobBackoffMilliseconds },
+            backoff: {
+              type: "exponential",
+              delay: assetRemindersJobBackoffMilliseconds,
+            },
             removeOnComplete: { count: 5 },
             removeOnFail: { count: 20 },
           },
         },
       );
     } catch (error) {
-      this.logger.warn(`asset_reminders_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `asset_reminders_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+      );
+      throw new Error(
+        "asset_reminders mandatory schedule registration failed",
+        { cause: error },
+      );
     }
   }
 }
