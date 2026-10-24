@@ -154,7 +154,10 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.6 iscrpan route policy manifest — završen** na SHA `52b5f1af95e7c650cfecef91a88a602edd5279e8`, CI `40127087672`.
 - Svih 610 HTTP ruta i worker composition root pripadaju tačno jednoj klasi (`authenticated`, `public`, `webhook`, `worker`); CI odbija novu guardless/nekatalogizovanu rutu, policy guard bez auth granice i stale override.
 - `BA-authorization-02` je zatvoren; dokaz je u [07-exhaustive-route-policy-manifest.md](implementation/07-exhaustive-route-policy-manifest.md).
-- Sljedeći paket je **W2.7 docs/admin/config read granice: permission + scope odluka umjesto role-key stringa**.
+- **W2.7 globalne docs/settings/config permission granice — završen** na SHA `c78c445`, CI `40128598505`.
+- Docs koristi samo permissione globalnih assignmenta; settings registry zahtijeva `settings.read`, a config list/get/diff `config.version.read`. Scoped grantovi ne zadovoljavaju globalne odluke.
+- `BA-docs-01`, `BA-settings-05` i `BA-config-versioning-01/02` su zatvoreni; dokaz je u [08-global-read-permission-boundaries.md](implementation/08-global-read-permission-boundaries.md).
+- Sljedeći paket je **W2.8 završna route-level negativna authorization matrica**.
 
 ### Redoslijed
 
@@ -164,7 +167,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 4. fail-closed step-up i emergency/recovery tokovi — **završeno (W2.4)**;
 5. role/permission mutation constraints i last-admin zaštite — **završeno (W2.5)**;
 6. route manifest: authenticated, public, webhook ili worker — **završeno (W2.6, bez implicitne pete klase)**;
-7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision;
+7. docs/admin/config read granice prebaciti sa role-key stringa na permission + scope decision — **završeno (W2.7)**;
 8. negative integration matrica za cross-user, cross-OU, scoped admin i inactive principal.
 
 ### Pogođene jedinice

@@ -213,7 +213,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-settings-02 | P1       | Security konfiguracija i realtime događaj nisu cluster-atomic niti distribuirano invalidirani | otvoreno | L        |
 | BA-settings-03 | P1       | Concurrent dependency write skew može commitovati nevažeće globalno stanje                    | otvoreno | L        |
 | BA-settings-04 | P2       | `readOnly` je samo UI metadata i API dopušta izmjenu install-owned ključeva                   | otvoreno | M        |
-| BA-settings-05 | P2       | Svaki ADMIN može čitati globalni private registry bez settings-read permissiona               | otvoreno | M        |
+| BA-settings-05 | P2       | Svaki ADMIN može čitati globalni private registry bez settings-read permissiona               | zatvoreno | M        |
 | BA-settings-06 | P2       | `[REDACTED]` placeholder može biti pohranjen kao stvarni secret                               | otvoreno | S        |
 | BA-settings-07 | P2       | Change log nema request ID korelaciju za configuration mutation                               | otvoreno | M        |
 | BA-settings-08 | P2       | Automatski dependent reset nema zaseban per-key change-log zapis                              | otvoreno | M        |

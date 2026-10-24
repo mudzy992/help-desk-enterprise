@@ -180,7 +180,7 @@ Zeleni testovi pokrivaju role filtering, 404 behavior u serviceu, slug safety, l
 
 | ID         | Severity | Nalaz                                                                                             | Status   |
 | ---------- | -------- | ------------------------------------------------------------------------------------------------- | -------- |
-| BA-docs-01 | P1       | Bilo koja scoped role assignment postaje globalni docs role key; scope/permission se gube         | otvoreno |
+| BA-docs-01 | P1       | Bilo koja scoped role assignment postaje globalni docs role key; scope/permission se gube         | zatvoreno |
 | BA-docs-02 | P1       | Manifest nema unique/schema invariant; duplicate slug može spojiti unrestricted metadata i restricted body | otvoreno |
 | BA-docs-03 | P2       | Runtime manifest validation provjerava samo `pages` array, ne shape/role/part/slug/file integritet | otvoreno |
 | BA-docs-04 | P2       | Missing BS/EN fajlovi se tiho preskaču i partial mirror ostaje “loaded”                           | otvoreno |

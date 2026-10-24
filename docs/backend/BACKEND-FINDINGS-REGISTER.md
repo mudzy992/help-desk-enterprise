@@ -724,13 +724,15 @@ W2.5 je na SHA `21f1caa`, CI `40126212216`, zatvorio `BA-rbac-04`, `BA-users-04`
 
 W2.6 je na SHA `52b5f1af95e7c650cfecef91a88a602edd5279e8`, CI `40127087672`, zatvorio `BA-authorization-02`. Svih 610 HTTP ruta i worker root imaju četveroklasni policy zapis, owner i dokaz; CI odbija implicitnu petu klasu. Detalji su u [07-exhaustive-route-policy-manifest.md](implementation/07-exhaustive-route-policy-manifest.md).
 
+W2.7 je na SHA `c78c445`, CI `40128598505`, zatvorio `BA-docs-01`, `BA-settings-05` i `BA-config-versioning-01/02`. Globalni docs/settings/config readovi sada koriste katalogizovane permission capabilityje i odbijaju OU/service scoped grantove; detalji su u [08-global-read-permission-boundaries.md](implementation/08-global-read-permission-boundaries.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **671**
-- Zatvoreno: **21** (`BA-authorization-01/02`, `BA-rbac-04`, `BA-security-01`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **667**
+- Zatvoreno: **25** (`BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

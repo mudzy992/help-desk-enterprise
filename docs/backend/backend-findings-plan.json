@@ -1300,7 +1300,7 @@
     {
       "id": "BA-docs-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "42-docs.md",
       "owner": "WS-G",
       "wave": 9
@@ -4268,7 +4268,7 @@
     {
       "id": "BA-settings-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "07-settings.md",
       "owner": "WS-C",
       "wave": 3
