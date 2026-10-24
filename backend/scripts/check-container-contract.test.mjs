@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateContainerContract } from "./check-container-contract.mjs";
 
-const image = "node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32";
+const image = "node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402";
 const dockerfile = `
 FROM ${image} AS production-deps
 COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --omit=optional --ignore-scripts
 FROM ${image} AS builder
 RUN npm ci --include=dev
 FROM ${image} AS runtime

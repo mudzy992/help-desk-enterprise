@@ -19,7 +19,7 @@ export function validateContainerContract(dockerfile, compose) {
   if (/npm\s+ci[^\n]*(?:\|\||;)\s*npm\s+install/u.test(dockerfile)) {
     problems.push("Dockerfile supply chain: npm ci ne smije imati npm install fallback");
   }
-  if (!/^FROM\s+[^\s]+\s+AS\s+production-deps\s*$[\s\S]*?RUN npm ci --omit=dev --ignore-scripts/mu.test(dockerfile)) {
+  if (!/^FROM\s+[^\s]+\s+AS\s+production-deps\s*$[\s\S]*?RUN npm ci --omit=dev --omit=optional --ignore-scripts/mu.test(dockerfile)) {
     problems.push("Dockerfile supply chain: nedostaje strict production-only dependency stage");
   }
   requireFinal(/^USER\s+node\s*$/mu, "nedostaje `USER node`");
