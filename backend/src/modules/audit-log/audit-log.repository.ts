@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditLogRecord } from './audit-log.types';
-import { compareAuditLogChainOrder, type AuditChainStart } from './verify-audit-log-chain';
+import type { AuditChainStart } from './verify-audit-log-chain';
 
 @Injectable()
 export class AuditLogRepository {
@@ -63,9 +63,19 @@ export class AuditLogRepository {
     return new Map(users.map((user) => [user.id, user.displayName]));
   }
 
-  async listChain(): Promise<readonly AuditLogRecord[]> {
-    const records = await this.prisma.auditLog.findMany();
-    return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);
+  async findChainHead(): Promise<AuditLogRecord | null> {
+    const record = await this.prisma.auditLog.findFirst({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    return record === null ? null : toAuditLogRecord(record);
+  }
+
+  async listRecentChainSnapshot(take: number): Promise<readonly AuditLogRecord[]> {
+    const records = await this.prisma.auditLog.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
+    });
+    return records.map(toAuditLogRecord).reverse();
   }
 
   async listChainPage(input: {

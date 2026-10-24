@@ -18,6 +18,8 @@ export const auditLogListMaxTake = 200;
 
 /** Hard upper bound for one export/verification database page. */
 export const auditLogStreamPageSize = 500;
+/** Support bundles are in-memory ZIP inputs, so their audit excerpt is explicitly capped. */
+export const auditLogSnapshotMaxRecords = 5_000;
 
 export const auditLogActions = {
   policyPackApply: 'policy_pack.apply',

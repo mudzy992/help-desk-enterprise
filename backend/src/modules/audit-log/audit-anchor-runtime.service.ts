@@ -89,9 +89,8 @@ export class AuditAnchorRuntimeService implements OnApplicationBootstrap, OnModu
   async publish(now = new Date()): Promise<void> {
     try {
       this.assertConfigured();
-      const chain = await this.repository.listChain();
-      const head = chain.at(-1);
-      if (head === undefined) { this.lastPublishedAt = now.getTime(); return; }
+      const head = await this.repository.findChainHead();
+      if (head === null) { this.lastPublishedAt = now.getTime(); return; }
       const anchor = createAuditChainAnchor({ key: this.configuration.key!, keyId: this.configuration.keyId!, chainHead: head, now });
       await this.sink!.putImmutable(anchor);
       this.lastPublishedAt = now.getTime();

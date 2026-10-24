@@ -6,6 +6,7 @@ import {
   auditLogActions,
   auditLogEntityTypes,
   auditLogErrorCodes,
+  auditLogSnapshotMaxRecords,
   auditLogStreamPageSize,
 } from './audit-log.constants';
 import { AuditLogConfigurationLoader } from './audit-log-configuration.loader';
@@ -197,7 +198,7 @@ export class AuditLogService {
   }
 
   async snapshotExportJson(): Promise<string> {
-    const records = await this.repository.listChain();
+    const records = await this.repository.listRecentChainSnapshot(auditLogSnapshotMaxRecords);
     return serializeAuditLogJson(records.map(toAuditLogExportRow));
   }
 
