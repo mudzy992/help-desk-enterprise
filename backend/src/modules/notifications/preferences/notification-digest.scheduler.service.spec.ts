@@ -42,7 +42,7 @@ describe('NotificationDigestSchedulerService (M13)', () => {
     });
   });
 
-  it('swallows a scheduling failure', async () => {
+  it('fails startup on a scheduling failure', async () => {
     const queue = {
       upsertJobScheduler: async () => {
         throw new Error('redis is down');
@@ -50,6 +50,6 @@ describe('NotificationDigestSchedulerService (M13)', () => {
     } as unknown as Queue;
     await expect(
       new NotificationDigestSchedulerService(queue).onModuleInit(),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('notification_digest mandatory schedule registration failed');
   });
 });
