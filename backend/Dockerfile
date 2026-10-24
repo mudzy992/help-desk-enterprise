@@ -33,7 +33,8 @@ COPY --chown=node:node --from=builder /usr/app/package*.json ./
 # Generisano ogledalo dokumentacije za /docs rute.
 COPY --chown=node:node --from=builder /usr/app/content ./content
 # npm/corepack are build/package-manager tooling, not runtime requirements.
-RUN rm -rf /usr/local/lib/node_modules/npm \
+RUN apk add --no-cache zlib=1.3.2-r1 && \
+    rm -rf /usr/local/lib/node_modules/npm \
     /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack && \
     mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 

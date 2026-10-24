@@ -13,7 +13,7 @@ FROM ${image} AS runtime
 WORKDIR /usr/app
 COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/app/dist ./dist
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+RUN apk add --no-cache zlib=1.3.2-r1 && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 ENV UPLOAD_ROOT=/usr/app/uploads
 STOPSIGNAL SIGTERM
@@ -59,9 +59,11 @@ test("odbija mutable base, install fallback i builder dependencies u runtimeu", 
   const unsafe = dockerfile
     .replace(image, "node:22-alpine")
     .replace("RUN npm ci --include=dev", "RUN npm ci --include=dev || npm install")
+    .replace("zlib=1.3.2-r1", "zlib")
     .replace("--from=production-deps /usr/app/node_modules", "--from=builder /usr/app/node_modules");
   const problems = validateContainerContract(unsafe, compose);
   assert.ok(problems.some((problem) => problem.includes("digest-pinned")));
   assert.ok(problems.some((problem) => problem.includes("fallback")));
+  assert.ok(problems.some((problem) => problem.includes("zlib")));
   assert.ok(problems.some((problem) => problem.includes("builder node_modules")));
 });

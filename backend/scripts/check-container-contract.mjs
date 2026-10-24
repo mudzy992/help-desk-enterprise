@@ -25,6 +25,7 @@ export function validateContainerContract(dockerfile, compose) {
   requireFinal(/^USER\s+node\s*$/mu, "nedostaje `USER node`");
   requireFinal(/^STOPSIGNAL\s+SIGTERM\s*$/mu, "nedostaje `STOPSIGNAL SIGTERM`");
   requireFinal(/mkdir -p \/usr\/app\/uploads && chown node:node \/usr\/app\/uploads/u, "uploads ownership nije pripremljen");
+  requireFinal(/apk add --no-cache zlib=1\.3\.2-r1/u, "sigurnosna zlib verzija nije zaključana");
   requireFinal(/rm -rf \/usr\/local\/lib\/node_modules\/npm[\s\\]*[\s\S]*\/usr\/local\/bin\/npm[\s\S]*\/usr\/local\/bin\/npx/u, "npm/npx toolchain nije uklonjen iz runtimea");
   requireFinal(/COPY --chown=node:node --from=builder/u, "builder artefakti nisu kopirani kao node owner");
   requireFinal(/COPY --chown=node:node --from=production-deps \/usr\/app\/node_modules \.\/node_modules/u, "runtime ne koristi production-only dependencies");
