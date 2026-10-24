@@ -956,7 +956,7 @@
     {
       "id": "BA-config-versioning-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "30-config-versioning.md",
       "owner": "WS-C",
       "wave": 3
@@ -964,7 +964,7 @@
     {
       "id": "BA-config-versioning-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "30-config-versioning.md",
       "owner": "WS-C",
       "wave": 3

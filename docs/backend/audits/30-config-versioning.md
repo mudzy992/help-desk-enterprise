@@ -128,8 +128,8 @@ E2E 09 pokriva create, validate, shadow, UI, activate i rollback happy path. Ne 
 
 | ID                         | Severity | Nalaz                                                                                       | Status   |
 | -------------------------- | -------- | ------------------------------------------------------------------------------------------- | -------- |
-| BA-config-versioning-01    | P1       | ADMIN bez read permissiona dobija puni globalni privatni snapshot kroz list/get/diff        | otvoreno |
-| BA-config-versioning-02    | P1       | Scoped settings/import permission postaje globalna activate/rollback/import moć             | otvoreno |
+| BA-config-versioning-01    | P1       | ADMIN bez read permissiona dobija puni globalni privatni snapshot kroz list/get/diff        | zatvoreno |
+| BA-config-versioning-02    | P1       | Scoped settings/import permission postaje globalna activate/rollback/import moć             | zatvoreno |
 | BA-config-versioning-03    | P1       | Isključena validacija označava DRAFT validnim i dopušta neprovjeren destructive apply       | otvoreno |
 | BA-config-versioning-04    | P1       | Paralelna aktivacija nema lock/CAS ni DB invariant jednog ACTIVE reda                       | otvoreno |
 | BA-config-versioning-05    | P1       | Apply/rollback je nedokumentovan replace/upsert/skip hibrid i ACTIVE nije dokaz parityja     | otvoreno |

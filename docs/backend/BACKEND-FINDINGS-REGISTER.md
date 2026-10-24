@@ -73,7 +73,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 07 | `settings` | `BA-settings-02` | P1 | Security konfiguracija i realtime događaj nisu cluster-atomic niti distribuirano invalidirani | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-03` | P1 | Concurrent dependency write skew može commitovati nevažeće globalno stanje | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-04` | P2 | `readOnly` je samo UI metadata i API dopušta izmjenu install-owned ključeva | otvoreno | [07-settings.md](audits/07-settings.md) |
-| 07 | `settings` | `BA-settings-05` | P2 | Svaki ADMIN može čitati globalni private registry bez settings-read permissiona | otvoreno | [07-settings.md](audits/07-settings.md) |
+| 07 | `settings` | `BA-settings-05` | P2 | Svaki ADMIN može čitati globalni private registry bez settings-read permissiona | zatvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-06` | P2 | `[REDACTED]` placeholder može biti pohranjen kao stvarni secret | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-07` | P2 | Change log nema request ID korelaciju za configuration mutation | otvoreno | [07-settings.md](audits/07-settings.md) |
 | 07 | `settings` | `BA-settings-08` | P2 | Automatski dependent reset nema zaseban per-key change-log zapis | otvoreno | [07-settings.md](audits/07-settings.md) |
@@ -418,8 +418,8 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-17` | P3 | Edit audit/revision ne omogućava rekonstrukciju title/service promjena | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-18` | P3 | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-19` | P3 | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje | otvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 30 | `config-versioning` | `BA-config-versioning-01` | P1 | ADMIN bez read permissiona dobija puni globalni privatni snapshot kroz list/get/diff | otvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
-| 30 | `config-versioning` | `BA-config-versioning-02` | P1 | Scoped settings/import permission postaje globalna activate/rollback/import moć | otvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
+| 30 | `config-versioning` | `BA-config-versioning-01` | P1 | ADMIN bez read permissiona dobija puni globalni privatni snapshot kroz list/get/diff | zatvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
+| 30 | `config-versioning` | `BA-config-versioning-02` | P1 | Scoped settings/import permission postaje globalna activate/rollback/import moć | zatvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
 | 30 | `config-versioning` | `BA-config-versioning-03` | P1 | Isključena validacija označava DRAFT validnim i dopušta neprovjeren destructive apply | otvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
 | 30 | `config-versioning` | `BA-config-versioning-04` | P1 | Paralelna aktivacija nema lock/CAS ni DB invariant jednog ACTIVE reda | otvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
 | 30 | `config-versioning` | `BA-config-versioning-05` | P1 | Apply/rollback je nedokumentovan replace/upsert/skip hibrid i ACTIVE nije dokaz parityja | otvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
@@ -642,7 +642,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 41 | `ops-health` | `BA-ops-22` | P3 | Alert settings se čitaju bez atomarne revision granice; invalid values padaju na default | otvoreno | [41-ops-health.md](audits/41-ops-health.md) |
 | 41 | `ops-health` | `BA-ops-23` | P3 | Extra recipienti nemaju domain/ownership verifikaciju ni truncation/coverage indikator | otvoreno | [41-ops-health.md](audits/41-ops-health.md) |
 | 41 | `ops-health` | `BA-ops-24` | P3 | `sendTest` vanjski side-effect nastaje prije audita i nema idempotency key iz requesta | otvoreno | [41-ops-health.md](audits/41-ops-health.md) |
-| 42 | `docs` | `BA-docs-01` | P1 | Bilo koja scoped role assignment postaje globalni docs role key; scope/permission se gube | otvoreno | [42-docs.md](audits/42-docs.md) |
+| 42 | `docs` | `BA-docs-01` | P1 | Bilo koja scoped role assignment postaje globalni docs role key; scope/permission se gube | zatvoreno | [42-docs.md](audits/42-docs.md) |
 | 42 | `docs` | `BA-docs-02` | P1 | Manifest nema unique/schema invariant; duplicate slug može spojiti unrestricted metadata i restricted body | otvoreno | [42-docs.md](audits/42-docs.md) |
 | 42 | `docs` | `BA-docs-03` | P2 | Runtime manifest validation provjerava samo `pages` array, ne shape/role/part/slug/file integritet | otvoreno | [42-docs.md](audits/42-docs.md) |
 | 42 | `docs` | `BA-docs-04` | P2 | Missing BS/EN fajlovi se tiho preskaču i partial mirror ostaje “loaded” | otvoreno | [42-docs.md](audits/42-docs.md) |
