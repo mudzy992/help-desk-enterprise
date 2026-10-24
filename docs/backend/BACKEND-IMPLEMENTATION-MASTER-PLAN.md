@@ -200,7 +200,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.2 immutable audit identity i versionirani hash envelope — završen** na SHA `ae9f851`, CI `40132759119`.
 - Audit actor/OU identifikatori više nisu mutirani `SetNull` relacijama; v3 red pohranjuje i hashira vlastiti algoritam, a real-PostgreSQL dokaz potvrđuje delete stabilnost i SHA-256→SHA-512 rotaciju.
 - `BA-audit-log-01/02` su zatvoreni; dokaz je u [11-immutable-audit-identity-hash-envelope.md](implementation/11-immutable-audit-identity-hash-envelope.md).
-- Sljedeći paket je **W3.3 cryptographic audit anchor i prošireni v4 envelope**.
+- **W3.3 audit v4 envelope i potpisani izvanbazni anchor primitive — završen** na SHA `cde72c7`, CI `40134084046`.
+- V4 veže row ID, vrijeme i redaction state; potpisani anchor fail-closed razlikuje missing, signature, head i lag kvarove. Real-PostgreSQL redaction dokaz ostaje zelen nakon determinističkog v4 rechaina.
+- `BA-audit-log-08` je zatvoren. `BA-audit-log-03` ostaje otvoren jer filesystem primitive još nije remote/WORM deployment sink; dokaz je u [12-audit-v4-envelope-signed-anchor.md](implementation/12-audit-v4-envelope-signed-anchor.md).
+- Sljedeći paket je **W3.4 operativni remote/WORM anchor publisher i verifier**.
 
 ### Canonical primitive
 

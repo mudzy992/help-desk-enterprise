@@ -202,7 +202,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | otvoreno | M        |
 | BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | otvoreno | M        |
 | BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | otvoreno | L        |
-| BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | otvoreno | M        |
+| BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
 | BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | otvoreno | M        |
 | BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | otvoreno | S        |
 | BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | otvoreno | M        |
