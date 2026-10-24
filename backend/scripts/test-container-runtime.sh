@@ -13,10 +13,13 @@ trap cleanup EXIT INT TERM
 docker volume create "$volume" >/dev/null
 
 metadata="$(docker image inspect "$image" --format '{{.Config.User}}|{{.Config.StopSignal}}')"
-if [ "$metadata" != "node|SIGTERM" ]; then
-  echo "unexpected image metadata: $metadata (expected node|SIGTERM)" >&2
-  exit 1
-fi
+case "$metadata" in
+  nonroot\|SIGTERM|65532\|SIGTERM|65532:65532\|SIGTERM) ;;
+  *)
+    echo "unexpected image metadata: $metadata (expected distroless nonroot + SIGTERM)" >&2
+    exit 1
+    ;;
+esac
 
 docker run --rm \
   --read-only \
@@ -24,26 +27,23 @@ docker run --rm \
   --security-opt no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m,mode=1777 \
   --mount "type=volume,source=$volume,target=/usr/app/uploads" \
-  "$image" sh -eu -c '
-    test "$(id -u)" -ne 0
-    test "$(id -g)" -ne 0
-    test ! -e node_modules/@nestjs/cli
-    test ! -e node_modules/typescript
-    test ! -e node_modules/prisma
-    ! command -v npm >/dev/null 2>&1
-    ! command -v npx >/dev/null 2>&1
-    test ! -e prisma
-    test ! -e src
-    touch /tmp/safety-net
-    touch "$UPLOAD_ROOT/safety-net"
-    test -f "$UPLOAD_ROOT/safety-net"
-    if touch /usr/app/root-filesystem-must-stay-read-only 2>/dev/null; then
-      echo "root filesystem unexpectedly writable" >&2
-      exit 1
-    fi
+  "$image" -e '
+    const fs = require("node:fs");
+    if (process.getuid() === 0 || process.getgid() === 0) throw new Error("root runtime");
+    for (const path of ["node_modules/@nestjs/cli", "node_modules/typescript", "node_modules/prisma", "prisma", "src", "/bin/sh", "/usr/local/bin/npm"]) {
+      if (fs.existsSync(path)) throw new Error(`runtime toolchain exists: ${path}`);
+    }
+    fs.writeFileSync("/tmp/safety-net", "ok");
+    fs.writeFileSync(`${process.env.UPLOAD_ROOT}/safety-net`, "ok");
+    try {
+      fs.writeFileSync("/usr/app/root-filesystem-must-stay-read-only", "bad");
+      throw new Error("root filesystem unexpectedly writable");
+    } catch (error) {
+      if (error.code !== "EROFS") throw error;
+    }
   '
 
-container="$(docker run -d --name "backend-signal-$$" "$image" node -e "process.on('SIGTERM',()=>process.exit(0)); console.log('signal-ready'); setInterval(()=>undefined,1000)")"
+container="$(docker run -d --name "backend-signal-$$" "$image" -e "process.on('SIGTERM',()=>process.exit(0)); console.log('signal-ready'); setInterval(()=>undefined,1000)")"
 ready=0
 for _attempt in 1 2 3 4 5 6 7 8 9 10; do
   if docker logs "$container" 2>&1 | grep -q '^signal-ready$'; then
@@ -65,4 +65,4 @@ if [ "$exit_code" -ne 0 ]; then
   exit 1
 fi
 
-echo "✓ container runtime: non-root UID/GID, read-only root, writable tmpfs/uploads, graceful SIGTERM"
+echo "✓ distroless runtime: non-root, no shell/toolchain, read-only root, writable tmpfs/uploads, graceful SIGTERM"

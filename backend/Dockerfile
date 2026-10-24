@@ -1,5 +1,5 @@
-# The digest is intentionally shared by every stage: a tag update cannot silently
-# change either the compiler or runtime base. Renovation requires a reviewed diff.
+# Builder/dependency stages are digest-pinned and share one ABI-compatible
+# Debian base. Renovation requires an explicit reviewed digest diff.
 FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS production-deps
 
 WORKDIR /usr/app
@@ -20,22 +20,18 @@ ENV DATABASE_URL="postgresql://user:pass@host:5432/db"
 RUN npx prisma generate
 RUN npm run build
 RUN test -f dist/src/main.js && test -f dist/src/worker.js
+# Distroless nonroot uses UID/GID 65532 and has no shell for runtime setup.
+RUN mkdir -p /usr/app/uploads && chown 65532:65532 /usr/app/uploads
 
-FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS runtime
+# Distroless excludes shell, package manager and build CLI attack surface.
+FROM gcr.io/distroless/nodejs22-debian12:nonroot@sha256:13593b7570658e8477de39e2f4a1dd25db2f836d68a0ba771251572d23bb4f8e AS runtime
 
 WORKDIR /usr/app
-
-# Runtime receives only production dependencies and compiled application output.
-# Prisma/Nest/TypeScript build CLIs and source schema are intentionally excluded.
-COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
-COPY --chown=node:node --from=builder /usr/app/dist ./dist
-COPY --chown=node:node --from=builder /usr/app/package*.json ./
-# Generisano ogledalo dokumentacije za /docs rute.
-COPY --chown=node:node --from=builder /usr/app/content ./content
-# npm/corepack are build/package-manager tooling, not runtime requirements.
-RUN rm -rf /usr/local/lib/node_modules/npm \
-    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack && \
-    mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
+COPY --chown=65532:65532 --from=production-deps /usr/app/node_modules ./node_modules
+COPY --chown=65532:65532 --from=builder /usr/app/dist ./dist
+COPY --chown=65532:65532 --from=builder /usr/app/package*.json ./
+COPY --chown=65532:65532 --from=builder /usr/app/content ./content
+COPY --chown=65532:65532 --from=builder /usr/app/uploads ./uploads
 
 ENV NODE_ENV=production
 ENV PORT=10001
@@ -43,6 +39,6 @@ ENV UPLOAD_ROOT=/usr/app/uploads
 
 EXPOSE 10001
 STOPSIGNAL SIGTERM
-USER node
+USER nonroot
 
-CMD ["node", "dist/src/main.js"]
+CMD ["dist/src/main.js"]
