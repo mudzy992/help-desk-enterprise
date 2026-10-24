@@ -16,6 +16,9 @@ export const auditLogListDefaultTake = 50;
 
 export const auditLogListMaxTake = 200;
 
+/** Hard upper bound for one export/verification database page. */
+export const auditLogStreamPageSize = 500;
+
 export const auditLogActions = {
   policyPackApply: 'policy_pack.apply',
   policyPackUnapply: 'policy_pack.unapply',

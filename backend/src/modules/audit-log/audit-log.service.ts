@@ -6,6 +6,7 @@ import {
   auditLogActions,
   auditLogEntityTypes,
   auditLogErrorCodes,
+  auditLogStreamPageSize,
 } from './audit-log.constants';
 import { AuditLogConfigurationLoader } from './audit-log-configuration.loader';
 import { AuditLogError } from './audit-log.error';
@@ -145,7 +146,7 @@ export class AuditLogService {
     const repository = this.repository;
     const prisma = this.prisma;
     const includeGlobalRecords = authContext.isSuperAdmin;
-    const pageSize = 500;
+    const pageSize = auditLogStreamPageSize;
     async function* chunks(): AsyncGenerator<string> {
       let after: { createdAt: Date; id: string } | null = null;
       let recordCount = 0;
@@ -207,7 +208,7 @@ export class AuditLogService {
     }
     return verifyAuditLogChainIncrementally({
       readPage: (after, take) => this.repository.listChainPage({ after, take }),
-      pageSize: 500,
+      pageSize: auditLogStreamPageSize,
       hashAlgorithm: configuration.hashAlgorithm,
       start: await this.repository.findLatestCheckpoint(),
     });
