@@ -186,6 +186,10 @@ Compile-blokirani su principal context, secret rotation, admin realtime, app mod
 
 Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, multi-replica scheduler test, graceful termination test pod aktivnim poslom, container non-root test, TLS handshake test ni restore drill. Zato zelenih 77 testova nije production readiness dokaz.
 
+### Implementacijski status Vala 2 / W2.2 (2026-10-24)
+
+`BA-xcut-05` je zatvoren na SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`. Cached principal se prihvata samo poslije indexed PostgreSQL authority provjere verzije, active statusa i password-change stanja. Real-PostgreSQL multi-replica test dokazuje da commitovana deaktivacija važi na narednom zahtjevu i kada Redis invalidacija nije izvršena.
+
 ## 13. Registar nalaza
 
 | ID | Prioritet | Nalaz | Status |
@@ -194,7 +198,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation |zatvoreno |
 | BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno |
 | BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu |zatvoreno |
-| BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno |
+| BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | zatvoreno |
 | BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno |
 | BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora |zatvoreno |
 | BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno |

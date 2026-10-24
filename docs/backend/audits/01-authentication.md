@@ -160,6 +160,10 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 - **Acceptance:** unit test za missing/expired/revoked/wrong-user red; E2E pokušaj refresh-a poslije DB/administrativnog opoziva.
 - **Owner:** authentication/session owner.
 
+### Implementacijski status Vala 2 / W2.2 (2026-10-24)
+
+SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`, uvodi PostgreSQL authority provjeru svakog modernog `sid` tokena i fail-closed Redis read outage. Multi-replica real-PostgreSQL test potvrđuje da revocation commit jedne replike važi na narednoj provjeri druge replike uprkos stale Redis stanju. `BA-authentication-02` ipak ostaje otvoren dok legacy JWT bez `sid` ne dobije durable cutoff koji preživljava neuspjeli Redis write.
+
 ### BA-authentication-02 — Revocation fail-open
 
 - **Dokaz:** `SessionRevocationStore.isRevoked()` na svaku Redis grešku vraća `false`; svi write failurei se samo loguju. Guard običnog zahtjeva ne provjerava `UserSession` bazu.

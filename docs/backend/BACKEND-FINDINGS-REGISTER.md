@@ -681,7 +681,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-02` | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-03` | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-04` | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-05` | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-05` | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-06` | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-07` | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-08` | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
@@ -720,7 +720,7 @@ Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **678**
-- Zatvoreno: **14** (`BA-xcut-01/02/03/04/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **677**
+- Zatvoreno: **15** (`BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**
