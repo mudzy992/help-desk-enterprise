@@ -31,7 +31,7 @@ export class DocsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<DocsNavigation> {
     return runDocs(() =>
-      this.docs.navigation(roleKeysOf(request), parseDocsLocale(query.locale)),
+      this.docs.navigation(globalPermissionKeysOf(request), parseDocsLocale(query.locale)),
     );
   }
 
@@ -43,7 +43,7 @@ export class DocsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<DocsPageResponse> {
     return runDocs(() =>
-      this.docs.readPage(slug, roleKeysOf(request), parseDocsLocale(query.locale)),
+      this.docs.readPage(slug, globalPermissionKeysOf(request), parseDocsLocale(query.locale)),
     );
   }
 
@@ -59,21 +59,23 @@ export class DocsController {
       this.docs.search(
         query ?? '',
         Number.isNaN(parsed) ? docsLimits.searchDefaultLimit : parsed,
-        roleKeysOf(request),
+        globalPermissionKeysOf(request),
       ),
     );
   }
 }
 
-/**
- * Role iz sesije: `roleKeys` plus role iz dodjela. Isti izvor kao
- * `onCallViewerFromContext` — SUPER_ADMIN i paketske role (ASSET_MANAGER,
- * PROBLEM_MANAGER, CHANGE_MANAGER) dolaze iz dodjela.
- */
-function roleKeysOf(request: AuthenticatedHttpRequest): readonly string[] {
+/** Global docs resources accept only permissions from unscoped assignments. */
+function globalPermissionKeysOf(request: AuthenticatedHttpRequest): readonly string[] {
   const context: PrincipalContext | null = readPrincipalContext(request);
-  if (context === null) {
-    return [];
-  }
-  return [...new Set([...context.roleKeys, ...context.assignments.map((a) => a.roleKey)])];
+  if (context === null) return [];
+  const permissions = context.assignments
+    .filter((assignment) =>
+      assignment.scope?.kind === 'global' ||
+      (assignment.scope === undefined &&
+        assignment.organizationalUnitId === null &&
+        assignment.serviceId === null),
+    )
+    .flatMap((assignment) => assignment.permissionKeys);
+  return [...new Set(permissions)];
 }

@@ -13,12 +13,8 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import {
-  authorizationRoleKeys,
-  permissionKeys,
-} from '../authorization/authorization.constants';
+import { permissionKeys } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { UpdateSettingDto } from './dto/update-setting.dto';
 import { mapSettingsError } from './map-settings-error';
@@ -35,7 +31,7 @@ import type { SettingRegistryEntry } from './settings.types';
 
 @Controller('settings')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
-@RequireRoles(authorizationRoleKeys.admin)
+@RequirePermissions(permissionKeys.settingsRead)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,

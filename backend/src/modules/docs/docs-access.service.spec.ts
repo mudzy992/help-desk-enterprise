@@ -1,3 +1,4 @@
+import { permissionKeys } from '../authorization/authorization.constants';
 import { DocsAccessService } from './docs-access.service';
 import type { DocsPageRecord } from './docs.types';
 
@@ -25,11 +26,11 @@ describe('DocsAccessService (Faza 3, korak b)', () => {
     expect(access.canRead(page('tiketi', []), ['USER'])).toBe(true);
   });
 
-  it('stranica sa rolama traži poklapanje role iz sesije', () => {
+  it('restricted stranica traži odgovarajuću globalnu permission capability', () => {
     const instalacija = page('instalacija', ['ADMIN', 'SUPER_ADMIN']);
     expect(access.canRead(instalacija, ['USER', 'AGENT'])).toBe(false);
-    expect(access.canRead(instalacija, ['ADMIN'])).toBe(true);
-    expect(access.canRead(page('problemi', ['AGENT', 'PROBLEM_MANAGER']), ['PROBLEM_MANAGER'])).toBe(true);
+    expect(access.canRead(instalacija, [permissionKeys.settingsRead])).toBe(true);
+    expect(access.canRead(page('problemi', ['AGENT', 'PROBLEM_MANAGER']), [permissionKeys.problemRead])).toBe(true);
   });
 
   it('filtriranje liste čuva redoslijed i izbacuje nedozvoljene', () => {
@@ -42,7 +43,7 @@ describe('DocsAccessService (Faza 3, korak b)', () => {
       'pocetak-rad',
       'tiketi',
     ]);
-    expect(access.visiblePages(pages, ['ADMIN']).map((entry) => entry.slug)).toEqual([
+    expect(access.visiblePages(pages, [permissionKeys.settingsRead]).map((entry) => entry.slug)).toEqual([
       'pocetak-rad',
       'instalacija',
       'tiketi',
