@@ -4,7 +4,8 @@ export type RbacErrorCode =
   | 'FORBIDDEN'
   // Paket 5.1 (M4 B2): promjena prava traži pregled uticaja (potpisan token).
   | 'PREVIEW_REQUIRED'
-  | 'PREVIEW_STALE';
+  | 'PREVIEW_STALE'
+  | 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE';
 
 export class RbacError extends Error {
   constructor(readonly code: RbacErrorCode) {

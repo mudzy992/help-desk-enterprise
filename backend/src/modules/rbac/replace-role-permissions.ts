@@ -12,6 +12,8 @@ import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { ReplaceRolePermissionsInput } from './rbac.types';
 import { verifyRolePermissionPreviewToken } from './role-permission-preview-token';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { lockActiveSuperAdminInvariant } from '../users/super-admin-invariant';
 
 /**
  * Phase 2.2: a role's permission set is part of every holder's cached principal
@@ -43,10 +45,22 @@ export async function replaceRolePermissions(
   if (reason.length === 0 || reason.length > 500) {
     throw new RbacError('PREVIEW_REQUIRED');
   }
-  const role = await loadRoleByKey(prisma, input.roleKey);
-  const previousPermissionKeys = await getRolePermissions(prisma, role.key);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
-  const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
+  const mutation = await prisma.$transaction(async (transaction) => {
+    // The same transaction lock protects admin availability and the permission
+    // matrix. Reads which decide whether a mutation is safe must happen only
+    // after this point, otherwise two callers can both pass a stale preflight.
+    await lockActiveSuperAdminInvariant(transaction);
+    const role = await loadRoleByKey(transaction as PrismaService, input.roleKey);
+    if (role.key === authorizationRoleKeys.superAdmin) {
+      // Runtime SuperAdmin authority is intentionally the full catalog. Letting
+      // this row be edited creates a deceptive matrix with no runtime effect.
+      throw new RbacError('SYSTEM_ROLE_PERMISSIONS_IMMUTABLE');
+    }
+    const previousPermissionKeys = await getRolePermissions(
+      transaction as PrismaService,
+      role.key,
+    );
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,
       nextPermissionKeys,
@@ -76,8 +90,8 @@ export async function replaceRolePermissions(
       actorUserId: input.actorUserId,
       requestId: input.requestId,
     });
-    return nextPermissionKeys;
+    return { roleId: role.id, permissionKeys: nextPermissionKeys };
   });
-  await invalidateRoleHolders(role.id);
-  return nextPermissionKeysApplied;
+  await invalidateRoleHolders(mutation.roleId);
+  return mutation.permissionKeys;
 }

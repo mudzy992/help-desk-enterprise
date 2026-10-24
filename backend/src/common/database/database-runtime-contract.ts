@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271012120000_add_security_audit_webhook_state';
+  '20271013140000_user_role_scope_constraints';
 
 export function assertDatabaseTransport(
   connectionString: string,

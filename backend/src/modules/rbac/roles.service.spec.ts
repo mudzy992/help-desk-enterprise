@@ -145,6 +145,32 @@ describe('RolesService preview and replace', () => {
     expect(typeof auditCall?.[0].data.metadata.previewedAt).toBe('string');
   });
 
+  it('keeps the runtime-authoritative SUPER_ADMIN permission matrix immutable', async () => {
+    const previousKey = role.key;
+    role.key = authorizationRoleKeys.superAdmin;
+    try {
+      const { service, prisma } = createService();
+      const preview = await service.preview(
+        authorizationRoleKeys.superAdmin,
+        [permissionKeys.ticketMerge],
+        'super-1',
+      );
+      await expect(
+        service.replace({
+          roleKey: authorizationRoleKeys.superAdmin,
+          permissionKeys: [permissionKeys.ticketMerge],
+          previewToken: preview.previewToken,
+          reason: 'Attempt to narrow the immutable control-plane role',
+          actorUserId: 'super-1',
+          requestId: 'req-super-admin',
+        }),
+      ).rejects.toMatchObject({ code: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE' });
+      expect(prisma.rolePermission.deleteMany).not.toHaveBeenCalled();
+    } finally {
+      role.key = previousKey;
+    }
+  });
+
   it('refuses a write without the preview token', async () => {
     const { service } = createService();
     await expect(
