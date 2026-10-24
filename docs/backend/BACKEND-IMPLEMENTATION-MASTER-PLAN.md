@@ -203,7 +203,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.3 audit v4 envelope i potpisani izvanbazni anchor primitive — završen** na SHA `cde72c7`, CI `40134084046`.
 - V4 veže row ID, vrijeme i redaction state; potpisani anchor fail-closed razlikuje missing, signature, head i lag kvarove. Real-PostgreSQL redaction dokaz ostaje zelen nakon determinističkog v4 rechaina.
 - `BA-audit-log-08` je zatvoren. `BA-audit-log-03` ostaje otvoren jer filesystem primitive još nije remote/WORM deployment sink; dokaz je u [12-audit-v4-envelope-signed-anchor.md](implementation/12-audit-v4-envelope-signed-anchor.md).
-- Sljedeći paket je **W3.4 operativni remote/WORM anchor publisher i verifier**.
+- **W3.4 operativni remote/WORM anchor publisher i verifier — završen** na SHA `3a0dd21`, CI `40135290452`.
+- Deployment key provider, create-only remote PUT, read-after-write verifier, periodični publish, startup/readiness fail-closed granica i lag/failure metrike dokazani su fault/recovery testom.
+- `BA-audit-log-03` je zatvoren; dokaz je u [13-operational-worm-audit-anchor.md](implementation/13-operational-worm-audit-anchor.md).
+- Sljedeći paket je **W3.5 atomska privacy redakcija i authenticated redaction transition**.
 
 ### Canonical primitive
 
