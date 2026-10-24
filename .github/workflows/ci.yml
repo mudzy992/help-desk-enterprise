@@ -303,7 +303,15 @@ jobs:
           format: cyclonedx-json
           output-file: backend/backend-image.cdx.json
           upload-artifact: false
-      - name: Scan image for high/critical vulnerabilities
+      - name: Inventory all image vulnerabilities
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: backend/backend-image.cdx.json
+          fail-build: false
+          severity-cutoff: critical
+          output-format: json
+          output-file: backend/backend-image-scan-all.json
+      - name: Scan actionable high/critical image vulnerabilities
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
           image: help-desk-backend:safety-net
@@ -312,7 +320,7 @@ jobs:
           only-fixed: true
           output-format: json
           output-file: backend/backend-image-scan.json
-      - name: Summarize image vulnerabilities
+      - name: Summarize actionable image vulnerabilities
         id: image-vulnerabilities
         run: |
           count=$(jq '[.matches[]? | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")] | length' backend-image-scan.json)
@@ -334,6 +342,7 @@ jobs:
           path: |
             backend/backend-production-audit.json
             backend/backend-image.cdx.json
+            backend/backend-image-scan-all.json
             backend/backend-image-scan.json
           if-no-files-found: error
           retention-days: 30

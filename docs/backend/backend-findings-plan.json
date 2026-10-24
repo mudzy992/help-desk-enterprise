@@ -5316,7 +5316,7 @@
     {
       "id": "BA-xcut-04",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1
@@ -5476,7 +5476,7 @@
     {
       "id": "BA-xcut-24",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1
@@ -5516,7 +5516,7 @@
     {
       "id": "BA-xcut-29",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1

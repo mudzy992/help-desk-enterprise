@@ -145,6 +145,10 @@ Backend Dockerfile kompajlira multi-stage image, ali finalni stage nije producti
 
 Production dependency audit prijavljuje 4 moderate advisories: direktni `exceljs` i `ldapts`, te tranzitivni `uuid` i `ip-address`. Nema high/critical rezultata u ovom lokalnom snapshotu, ali moderate ReDoS/bounds rizik ostaje otvoren.
 
+### Implementacijski dodatak — W1.1, 2026-10-24
+
+Izvorno stanje iznad ostaje audit trag, ali je izvršno korigovano u paketu W1.1: strict `npm ci`, digest-pinned Alpine stageovi, production-only dependency sloj, uklonjen npm/build toolchain, CycloneDX SBOM, puni Grype inventar, actionable high/critical gate i GitHub/Sigstore provenance prošli su u CI runu [`40073196977`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073196977). Production npm audit sada vraća nula ranjivosti. Detalji i granice dokaza su u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
+
 ## 11. CLI, seed i operativni blast radius
 
 Pozitivno je što nekoliko CLI-ja ima dry-run, explicit `--apply`, reason i audit zapis. Secret helper ne ispisuje secret osim namjenske `pins` komande uz upozorenje. Ipak ne postoji jedinstveni CLI safety framework.
@@ -177,7 +181,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-01 | P1 | Runtime container nema `USER` i radi kao root | zatvoreno |
 | BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation | otvoreno |
 | BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | otvoreno |
-| BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu | otvoreno |
+| BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu |zatvoreno |
 | BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno |
 | BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno |
 | BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | otvoreno |
@@ -197,12 +201,12 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-21 | P2 | Metric cardinality i distributed trace propagation nisu dokazani | otvoreno |
 | BA-xcut-22 | P2 | Nema globalnog/distribuiranog inbound rate limit ugovora | otvoreno |
 | BA-xcut-23 | P2 | Runtime image nema read-only FS/capability/no-new-privileges hardening ni storage permission preflight | zatvoreno |
-| BA-xcut-24 | P2 | Production dependency audit ima 4 moderate advisories | otvoreno |
+| BA-xcut-24 | P2 | Production dependency audit ima 4 moderate advisories |zatvoreno |
 | BA-xcut-25 | P2 | CLI-ji nemaju zajednički target fingerprint/operator audit/transaction safety framework | otvoreno |
 | BA-xcut-26 | P3 | Raw body se kopira za svaki JSON request umjesto samo potpisanih webhook ruta | otvoreno |
 | BA-xcut-27 | P3 | Shutdown hooks se uključuju dvaput u API bootstrapu | otvoreno |
 | BA-xcut-28 | P3 | Recent request log je samo process-local volatilni buffer | otvoreno |
-| BA-xcut-29 | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru | otvoreno |
+| BA-xcut-29 | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru |zatvoreno |
 | BA-xcut-30 | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | otvoreno |
 | BA-xcut-31 | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno |
 | BA-xcut-32 | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno |
