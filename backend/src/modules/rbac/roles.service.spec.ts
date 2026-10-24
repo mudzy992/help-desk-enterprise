@@ -22,7 +22,11 @@ describe('RolesService preview and replace', () => {
   // Paket 5.1 (M4 B2): the preview is signed and the write only accepts a token
   // that matches the reviewed set, the actor and the 15-minute window.
   const previewSigningSecret = 'test-preview-signing-secret-value-0123456789';
-  const role = { id: 'role-agent', key: authorizationRoleKeys.agent, name: 'Agent' };
+  const role: { id: string; key: string; name: string } = {
+    id: 'role-agent',
+    key: authorizationRoleKeys.agent,
+    name: 'Agent',
+  };
   const permissionMerge = { id: 'perm-merge', key: permissionKeys.ticketMerge };
   const permissionSettings = {
     id: 'perm-settings',
