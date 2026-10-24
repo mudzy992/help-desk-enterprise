@@ -34,6 +34,6 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe('20271013140000_user_role_scope_constraints');
+    expect(expectedSchemaMigration).toBe('20271024120000_audit_immutable_identity_hash_envelope');
   });
 });

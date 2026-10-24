@@ -55,6 +55,11 @@
       "migration": "20270313090000_ticket_form_version_optional",
       "sha256": "396d0e3193ec77a85d78230a0a7c6b65ec008cfa4b1d549eaebd3cf42b52c885",
       "approval": "legacy-baseline-reviewed-2026-10-24"
+    },
+    {
+      "migration": "20271024120000_audit_immutable_identity_hash_envelope",
+      "sha256": "1eb19ec29bee5ce01e6f57343a6ff66ea0b8c589ea592690257367690aa18649",
+      "approval": "W3.2: preserve immutable historical actor and OU identifiers by intentionally removing mutating SetNull foreign keys"
     }
   ]
 }
