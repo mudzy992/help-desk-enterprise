@@ -245,7 +245,16 @@ jobs:
       - name: Provision distinct migrator and restricted runtime roles
         run: npm run db:roles:provision
       - name: Replay every migration through the single-owner release migrator
-        run: npm run db:migrate:release
+        run: |
+          set +e
+          npm run db:migrate:release > /tmp/release-migration.log 2>&1
+          code=$?
+          cat /tmp/release-migration.log
+          if [ "$code" -ne 0 ]; then
+            message=$(node -e "process.stdout.write(require('node:fs').readFileSync('/tmp/release-migration.log','utf8').replace(/%/g,'%25').replace(/\\r/g,'%0D').replace(/\\n/g,'%0A').slice(-3000))")
+            echo "::error title=Release migration failure::$message"
+          fi
+          exit "$code"
       - name: Grant DML-only access after migration and prove DDL denial
         run: npm run db:roles:provision -- --grant-runtime && npm run db:privileges:verify
       - name: Verify migration history is current

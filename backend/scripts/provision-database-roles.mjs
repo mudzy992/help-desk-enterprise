@@ -19,6 +19,8 @@ END $$;
 ALTER ROLE servicedesk_migrator PASSWORD ${quoteLiteral(input.migratorPassword)} NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 ALTER ROLE servicedesk_runtime PASSWORD ${quoteLiteral(input.runtimePassword)} NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 GRANT CONNECT ON DATABASE ${input.databaseIdentifier} TO servicedesk_migrator, servicedesk_runtime;
+GRANT CREATE ON DATABASE ${input.databaseIdentifier} TO servicedesk_migrator;
+REVOKE CREATE ON DATABASE ${input.databaseIdentifier} FROM servicedesk_runtime;
 GRANT USAGE, CREATE ON SCHEMA public TO servicedesk_migrator;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC, servicedesk_runtime;
 GRANT USAGE ON SCHEMA public TO servicedesk_runtime;
