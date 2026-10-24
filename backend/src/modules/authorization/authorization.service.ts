@@ -13,6 +13,8 @@ import {
   evaluateAuthorizationRequest,
 } from './evaluate-authorization-request';
 import type { AuthorizationAccessEvaluation } from './evaluate-authorization-request';
+import { evaluateResourcePolicy, type ResourcePolicyDecision } from './evaluate-resource-policy';
+import { loadOrganizationalUnitPath, serviceExists } from './load-authorization-scope';
 import type { AuthorizationRequirements } from './authorization.types';
 
 export type AuthorizationServiceInput = {
@@ -41,6 +43,45 @@ export class AuthorizationService {
       input,
       createAuthorizationLookups(this.authorizationContextLoader, this.prisma),
     );
+  }
+
+  /**
+   * Canonical permission + OU/service/ownership decision. Role keys are not an
+   * input and therefore cannot become an accidental authorization shortcut.
+   */
+  async authorizeResource(input: {
+    readonly principal: AuthorizationPrincipal | null;
+    readonly permissionKey: string;
+    readonly ownerUserId: string | null;
+    readonly organizationalUnitId: string | null;
+    readonly serviceId: string | null;
+    readonly allowOwner: boolean;
+  }): Promise<ResourcePolicyDecision> {
+    if (input.principal === null || input.principal.subjectId.trim().length === 0) {
+      return { allowed: false, reason: 'MISSING_CONTEXT' };
+    }
+    const [context, organizationalUnitPath, knownService] = await Promise.all([
+      this.authorizationContextLoader.loadBySubjectId(input.principal.subjectId),
+      input.organizationalUnitId === null
+        ? Promise.resolve(null)
+        : loadOrganizationalUnitPath(this.prisma, input.organizationalUnitId),
+      input.serviceId === null ? Promise.resolve(true) : serviceExists(this.prisma, input.serviceId),
+    ]);
+    if (
+      (input.organizationalUnitId !== null && organizationalUnitPath === null) ||
+      !knownService
+    ) return { allowed: false, reason: 'INVALID_INPUT' };
+    return evaluateResourcePolicy({
+      context,
+      permissionKey: input.permissionKey,
+      allowOwner: input.allowOwner,
+      target: {
+        ownerUserId: input.ownerUserId,
+        organizationalUnitId: input.organizationalUnitId,
+        organizationalUnitPath,
+        serviceId: input.serviceId,
+      },
+    });
   }
 
   /** Resolves a group resource scope without returning any group data to the caller. */

@@ -7,6 +7,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/principal-context/role-assignment-analyzer.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/principal-context/principal-authority.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authentication/session-revocation.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/authorization/evaluate-resource-policy.integration.spec.ts"));
   const names = integrationSpecs.map((spec, index) => buildDatabaseName(index + 1, spec));
   assert.equal(new Set(names).size, integrationSpecs.length);
   for (const name of names) {
