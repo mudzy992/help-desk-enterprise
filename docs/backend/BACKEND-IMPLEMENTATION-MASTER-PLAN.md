@@ -206,7 +206,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.4 operativni remote/WORM anchor publisher i verifier — završen** na SHA `3a0dd21`, CI `40135290452`.
 - Deployment key provider, create-only remote PUT, read-after-write verifier, periodični publish, startup/readiness fail-closed granica i lag/failure metrike dokazani su fault/recovery testom.
 - `BA-audit-log-03` je zatvoren; dokaz je u [13-operational-worm-audit-anchor.md](implementation/13-operational-worm-audit-anchor.md).
-- Sljedeći paket je **W3.5 atomska privacy redakcija i authenticated redaction transition**.
+- **W3.5 atomska privacy redakcija i authenticated redaction transition — završen** na SHA `89e0480`, CI `40136626790`.
+- Metadata updatei, v4 rechain i završni `audit.redacted` događaj sada su jedna advisory-lockovana PostgreSQL transakcija; realni mid-batch kvar rollbackuje prvi već izvršeni update i ne ostavlja summary događaj.
+- `BA-audit-log-04` je zatvoren; dokaz je u [14-atomic-audit-redaction-transition.md](implementation/14-atomic-audit-redaction-transition.md).
+- Sljedeći paket je **W3.6 bounded streaming audit export i incremental verify**.
 
 ### Canonical primitive
 
