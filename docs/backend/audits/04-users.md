@@ -215,6 +215,12 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Acceptance:** 20 konkurentnih jednakih grantova ostavlja jedan red i deterministički jedan effective grant.
 - **Owner:** users/data owner.
 
+### Implementacijski status Vala 2 / W2.1 (2026-10-24)
+
+CI `40118964278` na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9` potvrđuje report-only inventory analyzer, verzionirani deterministični repair manifest i real-PostgreSQL dokaz da analiza ne mutira podatke. Database-backed principal sada dobija canonical `global | organizational-unit | service` scope, dok se dual-scope zapis fail-closed ne mapira u effective assignments.
+
+`BA-users-04` i `BA-users-05` ostaju **otvoreni**: schema još dopušta duplikate i nekanonske kombinacije, a W2.1 namjerno nema automatski repair, migraciju ni constraint. Ovaj dokaz zatvara pripremni inventory/canonicalization korak, ne izvorne nalaze.
+
 ### BA-users-05 — Nejasna role scope kombinacija
 
 - **Dokaz:** DTO i servis dopuštaju oba scope ID-a; evaluator OU i service zahtjeve tretira kao odvojene tipove assignmenta. `SUPER_ADMIN` assignment prihvata scope iako `isSuperAdmin` ostaje globalan.

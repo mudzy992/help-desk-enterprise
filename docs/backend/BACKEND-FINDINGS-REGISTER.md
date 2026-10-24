@@ -710,6 +710,10 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-31` | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-32` | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 
+## Implementacijska napomena — Backend Val 2 / W2.1
+
+Na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`, završen je report-only inventory i canonical principal/scope temelj za `BA-users-04` i `BA-users-05`. Oba nalaza ostaju otvorena jer ovaj sigurni pripremni paket namjerno ne radi repair i ne dodaje DB unique/check constraint. Dokaz i preostale granice su u [02-canonical-principal-assignment-scope.md](implementation/02-canonical-principal-assignment-scope.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**

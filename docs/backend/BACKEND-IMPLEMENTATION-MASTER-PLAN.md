@@ -134,9 +134,16 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ## 6. Val 2 — identity, scope i authorization
 
+### Status
+
+- **W2.1 canonical principal/assignment/scope temelj — završen** na SHA `10ffd27758c766112fc67161a35489c3bcaa29e9`, CI `40118964278`.
+- Uvedeni su report-only inventar, deterministični repair manifest, fail-closed canonical scope mapiranje i real-PostgreSQL dokaz bez mutacije.
+- `BA-users-04` i `BA-users-05` ostaju otvoreni: ovaj paket namjerno nije izvršio repair niti dodao DB constrainte.
+- Sljedeći paket je **W2.2 durable session revocation i authz-version authority**.
+
 ### Redoslijed
 
-1. canonical principal/assignment/scope model;
+1. canonical principal/assignment/scope model — **završeno (W2.1)**;
 2. session revocation i authz version authority koja ne zavisi od stale cachea;
 3. centralni permission + OU/service/ownership policy;
 4. fail-closed step-up i emergency/recovery tokovi;
