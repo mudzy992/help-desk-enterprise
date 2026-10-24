@@ -46,7 +46,7 @@ export class StepUpPolicyService {
       }
     }
     if (!(await this.mfaService.isEnabled(subject.id))) {
-      this.deny('IDENTITY_CONFIRMATION_REQUIRED');
+      this.deny('IDENTITY_CONFIRMATION_REQUIRED', 'totp');
     }
     try {
       return await this.mfaService.verify(subject, input.code?.trim() ?? '');
@@ -56,7 +56,7 @@ export class StepUpPolicyService {
     }
   }
 
-  private deny(code: string): never {
-    throw new UnauthorizedException({ code });
+  private deny(code: string, method?: 'totp'): never {
+    throw new UnauthorizedException({ code, ...(method ? { method } : {}) });
   }
 }
