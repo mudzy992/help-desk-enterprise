@@ -110,6 +110,57 @@ Namjerno ostaju otvoreni:
 
 Kanonski zbir je sada **683 otvorena / 9 zatvorenih** nalaza.
 
+## Paket W1.3 — Redis i secret transport
+
+**Status:** završeno; CI run [`40087131166`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40087131166) zelen na SHA `954f85c147eb4341e7f2eea9cd6eb4f0c40fc96f`.
+
+### Implementirano
+
+- API i worker koriste isti centralni production startup validator;
+- production Redis fatalno odbija plaintext, nedostajuću CA, ACL username/password i nevalidan deployment namespace;
+- Redis CA se prima kao mounted PEM path ili base64, ali ne kroz dva istovremena izvora;
+- ioredis i BullMQ dobijaju isti CA, `servername` i obavezni `rejectUnauthorized: true` ugovor;
+- key i queue prefixi uključuju `DEPLOYMENT_ENV`, uz različite staging/production vrijednosti;
+- production zabranjuje implicitno izvođenje inbound-email, privacy-tombstone i privacy-export ključeva iz MFA ključa;
+- MFA ključ mora biti tačno 32 base64 bajta, config-package signing ključ najmanje 32 znaka, a purpose-specific ključevi eksplicitni;
+- dependency URL-ovi koji izlaze preko HTTP-a u productionu zahtijevaju HTTPS;
+- Redis client i subscriber logovi emituju samo tip greške, bez raw dependency poruke ili credentiala;
+- Compose i oba env kataloga dokumentuju TLS, CA, server identity, namespace i eksplicitne tajne;
+- rotation runbook definiše zasebni pin/rotation ugovor za MFA, inbound email, privacy, config signing, JWT/install, DB/Redis i provider tajne.
+
+### Izvršni dokaz
+
+```text
+Centralni validator + Redis unit testovi        31/31 PASS
+Plaintext/missing CA/auth/namespace rejection   PASS
+Verified Redis 7 TLS handshake                  PASS
+Pogrešan CA                                     REJECTED
+Pogrešan hostname                               REJECTED
+Production/staging key namespace                ISOLATED
+BullMQ environment queue prefix                 ISOLATED
+Secret-safe Redis error logging                 PASS
+Backend build/lint/full Jest                     PASS
+PostgreSQL + Redis integracija                  PASS
+Container/Compose/supply-chain                  PASS
+Frontend, docs i završni CI gate                PASS
+```
+
+Prvi CI pokušaj `40086825580` ispravno nije prihvaćen kao dokaz: wiring manifest nije bio osvježen, a TLS fixture private key nije bio čitljiv Redis container useru. SHA `954f85c...` sinhronizuje manifest i postavlja test-fixture dozvole; tek ponovljeni run `40087131166` je potpuno zelen.
+
+### Nalazi
+
+Zatvoreni:
+
+- `BA-xcut-03` — DB i Redis sada imaju production-obavezan hostname-verifying TLS/CA ugovor;
+- `BA-xcut-09` — API i worker koriste jedinstvenu typed/fatal production validaciju;
+- `BA-xcut-30` — minimumi, fallback i rotacija klasifikovani su po namjeni, a production derivacija je zabranjena.
+
+Namjerno ostaje otvoren:
+
+- `BA-xcut-15` — environment namespace je završen, ali kompletan reconnect/offline-queue/circuit-breaker ugovor pripada narednom lifecycle radu.
+
+Kanonski zbir je sada **680 otvorenih / 12 zatvorenih** nalaza.
+
 ## Sljedeći paket
 
-**W1.3 — Redis i secret transport:** `rediss`/TLS, CA/server identity, environment namespace, fatalna typed production validacija i pin/rotation ugovor po secret purposeu.
+**W1.4 — Worker lifecycle:** mandatory scheduler registration/reconcile, worker readiness/liveness i queue capability, bounded drain/forced shutdown, telemetry flush te unfinished/stalled job recovery dokaz.

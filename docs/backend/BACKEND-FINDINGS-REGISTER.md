@@ -679,13 +679,13 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 43 | `change-log` | `BA-clog-20` | P3 | Samo 2 testa; recorder/list/schema/redaction/transaction/tamper tokovi nisu direktno testirani | otvoreno | [43-change-log.md](audits/43-change-log.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-01` | P1 | Runtime container nema `USER` i radi kao root | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-02` | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-03` | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-03` | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-04` | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-05` | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-06` | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-07` | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-08` | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-09` | P2 | Nema jedinstvene typed/fatal production env validacije | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-09` | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-10` | P2 | Pool nema deployment-wide connection budget ni admission check | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-11` | P2 | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-12` | P2 | Readiness ne dokazuje schema kompatibilnost, write capability ni queue flow | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
@@ -706,7 +706,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-27` | P3 | Shutdown hooks se uključuju dvaput u API bootstrapu | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-28` | P3 | Recent request log je samo process-local volatilni buffer | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-29` | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-30` | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-30` | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-31` | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-32` | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 
@@ -716,7 +716,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **691**
-- Zatvoreno: **1** (`BA-xcut-31`, Val 0.2)
+- Otvoreno: **680**
+- Zatvoreno: **12** (`BA-xcut-01/02/03/04/07/09/10/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

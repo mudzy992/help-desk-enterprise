@@ -151,7 +151,11 @@ Izvorno stanje iznad ostaje audit trag, ali je izvršno korigovano u paketu W1.1
 
 ### Implementacijski dodatak — W1.2, 2026-10-24
 
-DB/migration granica je izvršno korigovana u CI runu [`40075479663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40075479663): odvojeni migrator/runtime roleovi, DDL-denial dokaz, single-owner advisory-lock release migrator, production TLS/timeout contract, globalni connection budget, schema sentinel i disposable backup/restore RPO/RTO drill prolaze na stvarnom PostgreSQL-u 17. `BA-xcut-03`, `BA-xcut-11`, `BA-xcut-12` i `BA-xcut-13` ostaju djelimično otvoreni prema eksplicitnim granicama zapisanim u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
+DB/migration granica je izvršno korigovana u CI runu [`40075479663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40075479663): odvojeni migrator/runtime roleovi, DDL-denial dokaz, single-owner advisory-lock release migrator, production TLS/timeout contract, globalni connection budget, schema sentinel i disposable backup/restore RPO/RTO drill prolaze na stvarnom PostgreSQL-u 17. `BA-xcut-11`, `BA-xcut-12` i `BA-xcut-13` ostaju djelimično otvoreni prema eksplicitnim granicama zapisanim u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
+
+### Implementacijski dodatak — W1.3, 2026-10-24
+
+Redis/secret granica je izvršno korigovana u CI runu [`40087131166`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40087131166): production startup odbija plaintext Redis, nedostajuću CA/auth/namespace konfiguraciju i implicitne purpose-secret fallbacke; ioredis i BullMQ koriste isti `rejectUnauthorized`/CA/servername ugovor. Stvarni Redis 7 TLS test dokazuje uspješan verified handshake, fail-closed pogrešan CA i hostname te izolovane staging/production ključeve. API i worker dijele centralni validator, a Redis dependency logovi više ne prenose raw error message. `BA-xcut-03`, `BA-xcut-09` i `BA-xcut-30` su zatvoreni. `BA-xcut-15` ostaje otvoren samo za reconnect/offline-queue/circuit-breaker dio; namespace dio je završen.
 
 ## 11. CLI, seed i operativni blast radius
 
@@ -184,13 +188,13 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 |---|---|---|---|
 | BA-xcut-01 | P1 | Runtime container nema `USER` i radi kao root | zatvoreno |
 | BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation |zatvoreno |
-| BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | otvoreno |
+| BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | zatvoreno |
 | BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu |zatvoreno |
 | BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno |
 | BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno |
 | BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora |zatvoreno |
 | BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno |
-| BA-xcut-09 | P2 | Nema jedinstvene typed/fatal production env validacije | otvoreno |
+| BA-xcut-09 | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno |
 | BA-xcut-10 | P2 | Pool nema deployment-wide connection budget ni admission check |zatvoreno |
 | BA-xcut-11 | P2 | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje | otvoreno |
 | BA-xcut-12 | P2 | Readiness ne dokazuje schema kompatibilnost, write capability ni queue flow | otvoreno |
@@ -211,7 +215,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-27 | P3 | Shutdown hooks se uključuju dvaput u API bootstrapu | otvoreno |
 | BA-xcut-28 | P3 | Recent request log je samo process-local volatilni buffer | otvoreno |
 | BA-xcut-29 | P3 | Nema SBOM/provenance/signing dokaza u deploy ugovoru |zatvoreno |
-| BA-xcut-30 | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | otvoreno |
+| BA-xcut-30 | P3 | Secret minimum od 16 bajtova i fallback derivacije nisu centralno klasifikovani po purposeu | zatvoreno |
 | BA-xcut-31 | P3 | 6/31 direktnih suiteova compile-blokirano je bez generated Prisma artefakta | zatvoreno |
 | BA-xcut-32 | P3 | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije | otvoreno |
 
