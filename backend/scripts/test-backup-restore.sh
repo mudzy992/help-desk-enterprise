@@ -5,7 +5,7 @@ source_url="${ADMIN_DATABASE_URL:?ADMIN_DATABASE_URL is required}"
 drill_db="servicedesk_restore_drill_$$"
 dump="${RUNNER_TEMP:-/tmp}/servicedesk-restore-$$.dump"
 started="$(date +%s)"
-pg() { docker run --rm --network host postgres:17-alpine "$@"; }
+pg() { docker run --rm -i --network host postgres:17-alpine "$@"; }
 cleanup() {
   pg dropdb --if-exists --force --maintenance-db="$source_url" "$drill_db" >/dev/null 2>&1 || true
   rm -f "$dump"
