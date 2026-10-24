@@ -13,6 +13,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/principal-context/principal-authority.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
+  "src/modules/security/step-up-policy.integration.spec.ts",
   "src/modules/privacy/retention/retention.integration.spec.ts",
   "src/modules/privacy/anonymization/anonymization.integration.spec.ts",
   "src/modules/privacy/export/export.integration.spec.ts",

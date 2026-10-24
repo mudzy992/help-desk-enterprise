@@ -1,18 +1,11 @@
-import {
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
-import { AuthenticationUserLoader } from '../authentication/authentication-user.loader';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
-import { mapAccountSecurityError } from '../authentication/security/account-security.error';
-import { MfaService } from '../authentication/security/mfa.service';
 import { SessionRegistryService } from '../authentication/security/session-registry.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { IdentityPasskeyService } from './identity-passkey.service';
+import { StepUpPolicyService } from './step-up-policy.service';
 
 /*
   Paket 5.4.0-d (M5): the SuperAdmin "force every local account to change its
@@ -55,9 +48,7 @@ export class BulkPasswordResetService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mfaService: MfaService,
-    private readonly identityPasskeyService: IdentityPasskeyService,
-    private readonly userLoader: AuthenticationUserLoader,
+    private readonly stepUpPolicy: StepUpPolicyService,
     private readonly sessionRegistry: SessionRegistryService,
     private readonly principalContextInvalidator: PrincipalContextInvalidator,
   ) {}
@@ -66,7 +57,12 @@ export class BulkPasswordResetService {
     caller: { readonly subjectId: string; readonly sessionId: string | null },
     input: { readonly code?: string },
   ): Promise<BulkPasswordResetResult> {
-    await this.assertIdentityConfirmed(caller, input.code);
+    await this.stepUpPolicy.assertConfirmed({
+      caller,
+      purpose: bulkPasswordResetStepUpPurpose,
+      code: input.code,
+      requireLocalSuperAdmin: true,
+    });
 
     const targets = await this.listEligibleUsers();
     const pending = targets.filter((user) => user.mustChangePassword !== true);
@@ -124,43 +120,6 @@ export class BulkPasswordResetService {
       revokedSessions,
       failedUsers,
     };
-  }
-
-  /**
-   * Proof of identity, stricter than the rate-limit endpoint on purpose:
-   * a fresh passkey step-up marker for **this** purpose, or a current TOTP
-   * code for an account that has TOTP enrolled. An account with neither is
-   * refused — there is no "no second factor, proceed anyway" path here.
-   */
-  private async assertIdentityConfirmed(
-    caller: { readonly subjectId: string; readonly sessionId: string | null },
-    code: string | undefined,
-  ): Promise<void> {
-    const confirmedByPasskey =
-      caller.sessionId !== null
-        ? await this.identityPasskeyService.consumeFreshConfirmation(
-            caller.sessionId,
-            bulkPasswordResetStepUpPurpose,
-          )
-        : false;
-    if (confirmedByPasskey) {
-      return;
-    }
-    if (!(await this.mfaService.isEnabled(caller.subjectId))) {
-      // A legacy token without a session id can never satisfy the passkey
-      // branch, and without TOTP there is nothing else to verify.
-      throw new UnauthorizedException({
-        code: 'IDENTITY_CONFIRMATION_REQUIRED',
-        method: 'totp',
-      });
-    }
-    const subject = await this.userLoader.findById(caller.subjectId);
-    if (subject === null) {
-      throw new UnauthorizedException({ code: 'USER_NOT_FOUND' });
-    }
-    await this.mfaService
-      .verify(subject, code?.trim() ?? '')
-      .catch(mapAccountSecurityError);
   }
 
   /**
