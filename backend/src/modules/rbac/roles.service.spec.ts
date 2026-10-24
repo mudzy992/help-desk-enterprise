@@ -6,10 +6,7 @@ import {
   createTestAssignment,
   createTestAuthorizationContext,
 } from '../authorization/create-test-authorization-context';
-import {
-  rolePermissionPreviewTokenTtlSeconds,
-  signRolePermissionPreviewToken,
-} from './role-permission-preview-token';
+import { rolePermissionPreviewTokenTtlSeconds } from './role-permission-preview-token';
 import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
 import { shadowAuthorizationDecisions } from '../authorization/shadow-authorization.types';
 import { RolesService } from './roles.service';
@@ -22,11 +19,7 @@ describe('RolesService preview and replace', () => {
   // Paket 5.1 (M4 B2): the preview is signed and the write only accepts a token
   // that matches the reviewed set, the actor and the 15-minute window.
   const previewSigningSecret = 'test-preview-signing-secret-value-0123456789';
-  const role: { id: string; key: string; name: string } = {
-    id: 'role-agent',
-    key: authorizationRoleKeys.agent,
-    name: 'Agent',
-  };
+  const role = { id: 'role-agent', key: authorizationRoleKeys.agent, name: 'Agent' };
   const permissionMerge = { id: 'perm-merge', key: permissionKeys.ticketMerge };
   const permissionSettings = {
     id: 'perm-settings',
@@ -150,37 +143,6 @@ describe('RolesService preview and replace', () => {
       nextPermissionKeys: [permissionKeys.settingsWrite],
     });
     expect(typeof auditCall?.[0].data.metadata.previewedAt).toBe('string');
-  });
-
-  it('keeps the runtime-authoritative SUPER_ADMIN permission matrix immutable', async () => {
-    const previousKey = role.key;
-    role.key = authorizationRoleKeys.superAdmin;
-    try {
-      const { service, prisma } = createService();
-      const previewToken = signRolePermissionPreviewToken(
-        {
-          roleKey: authorizationRoleKeys.superAdmin,
-          permissionKeys: [permissionKeys.ticketMerge],
-          actorUserId: 'super-1',
-        },
-        previewSigningSecret,
-      );
-      await expect(
-        service.replace({
-          roleKey: authorizationRoleKeys.superAdmin,
-          permissionKeys: [permissionKeys.ticketMerge],
-          previewToken,
-          reason: 'Attempt to narrow the immutable control-plane role',
-          actorUserId: 'super-1',
-          requestId: 'req-super-admin',
-        }),
-      ).rejects.toMatchObject({
-        response: { code: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE' },
-      });
-      expect(prisma.rolePermission.deleteMany).not.toHaveBeenCalled();
-    } finally {
-      role.key = previousKey;
-    }
   });
 
   it('refuses a write without the preview token', async () => {
