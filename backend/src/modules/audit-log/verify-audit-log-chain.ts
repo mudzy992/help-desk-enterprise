@@ -113,6 +113,46 @@ export function verifyAuditLogChain(input: {
   };
 }
 
+export async function verifyAuditLogChainIncrementally(input: {
+  readonly readPage: (after: { readonly createdAt: Date; readonly id: string } | null, take: number) => Promise<readonly AuditLogRecord[]>;
+  readonly pageSize: number;
+  readonly hashAlgorithm: AuditHashAlgorithm;
+  readonly start?: AuditChainStart | null;
+}): Promise<Extract<AuditLogVerifyResult, { enabled: true }>> {
+  let after: { createdAt: Date; id: string } | null = null;
+  let chainStart = input.start ?? null;
+  let checkedCount = 0;
+  let redactedCount = 0;
+  let sealedCount = 0;
+  for (;;) {
+    const page = await input.readPage(after, input.pageSize);
+    if (page.length === 0) break;
+    const result = verifyAuditLogChain({ records: page, hashAlgorithm: input.hashAlgorithm, start: chainStart });
+    redactedCount += result.redactedCount ?? 0;
+    sealedCount += result.sealedCount ?? 0;
+    if (!result.valid) {
+      return { ...result, checkedCount: checkedCount + result.checkedCount, firstMismatchIndex: checkedCount + result.firstMismatchIndex };
+    }
+    checkedCount += page.length;
+    const last = page.at(-1)!;
+    after = { createdAt: last.createdAt, id: last.id };
+    chainStart = { throughHash: last.hash, throughCreatedAt: last.createdAt, purgedCount: 0 };
+    if (page.length < input.pageSize) break;
+  }
+  return {
+    enabled: true,
+    valid: true,
+    checkedCount,
+    redactedCount,
+    sealedCount,
+    checkpoint: input.start === null || input.start === undefined ? null : {
+      throughHash: input.start.throughHash,
+      throughCreatedAt: input.start.throughCreatedAt.toISOString(),
+      purgedCount: input.start.purgedCount,
+    },
+  };
+}
+
 function mismatch(
   checkedCount: number,
   firstMismatchId: string,

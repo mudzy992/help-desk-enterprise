@@ -19,6 +19,18 @@ export function toAuditLogExportRow(record: AuditLogRecord): AuditLogExportRow {
   };
 }
 
+export function serializeAuditLogJsonRow(row: AuditLogExportRow): string {
+  return JSON.stringify(canonicalizeExportRow(row));
+}
+
+export function serializeAuditLogCsvHeader(): string {
+  return `${auditLogExportColumns.join(',')}\n`;
+}
+
+export function serializeAuditLogCsvRow(row: AuditLogExportRow): string {
+  return `${auditLogExportColumns.map((column) => csvCell(row[column])).join(',')}\n`;
+}
+
 export function serializeAuditLogJson(rows: readonly AuditLogExportRow[]): string {
   return `${JSON.stringify(rows.map(canonicalizeExportRow))}\n`;
 }

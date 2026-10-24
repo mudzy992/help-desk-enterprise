@@ -93,7 +93,7 @@ export class AuditLogController {
         format: query.format,
         requestId: readAuditRequestId(request.headers),
       });
-      return new StreamableFile(Buffer.from(exported.content, 'utf8'), {
+      return new StreamableFile(exported.stream, {
         type: exported.contentType,
         disposition: `attachment; filename="${exported.fileName}"`,
       });

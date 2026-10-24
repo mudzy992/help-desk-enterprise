@@ -99,7 +99,7 @@ export type AuditLogExportResult = {
   readonly format: AuditExportFormat;
   readonly fileName: string;
   readonly contentType: string;
-  readonly content: string;
+  readonly stream: NodeJS.ReadableStream;
 };
 
 /**

@@ -16,18 +16,28 @@ export class AuditLogRepository {
     });
   }
 
-  async listForExport(input: {
+  async listForExportPage(input: {
     readonly organizationalUnitIds: readonly string[];
     readonly includeGlobalRecords: boolean;
+    readonly take: number;
+    readonly after: { readonly createdAt: Date; readonly id: string } | null;
   }): Promise<readonly AuditLogRecord[]> {
+    const scope = [
+      { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
+      ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
+    ];
     const records = await this.prisma.auditLog.findMany({
       where: {
-        OR: [
-          { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
-          ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
+        AND: [
+          { OR: scope },
+          ...(input.after === null ? [] : [{ OR: [
+            { createdAt: { gt: input.after.createdAt } },
+            { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+          ] }]),
         ],
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: input.take,
     });
     return records.map(toAuditLogRecord);
   }
@@ -54,6 +64,21 @@ export class AuditLogRepository {
   async listChain(): Promise<readonly AuditLogRecord[]> {
     const records = await this.prisma.auditLog.findMany();
     return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);
+  }
+
+  async listChainPage(input: {
+    readonly take: number;
+    readonly after: { readonly createdAt: Date; readonly id: string } | null;
+  }): Promise<readonly AuditLogRecord[]> {
+    const records = await this.prisma.auditLog.findMany({
+      where: input.after === null ? undefined : { OR: [
+        { createdAt: { gt: input.after.createdAt } },
+        { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+      ] },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: input.take,
+    });
+    return records.map(toAuditLogRecord);
   }
 
   /** Paket 2.6 (§6.5): the latest retention checkpoint, if audit rows were purged. */
@@ -148,6 +173,7 @@ function toAuditLogRecord(record: {
   readonly hashVersion?: number;
   readonly metadataDigest?: string | null;
   readonly redactedAt?: Date | null;
+  readonly hashAlgorithm?: string;
 }): AuditLogRecord {
   return {
     id: record.id,
@@ -164,6 +190,7 @@ function toAuditLogRecord(record: {
     hashVersion: record.hashVersion ?? 1,
     metadataDigest: record.metadataDigest ?? null,
     redactedAt: record.redactedAt ?? null,
+    hashAlgorithm: record.hashAlgorithm as AuditLogRecord['hashAlgorithm'],
   };
 }
 
