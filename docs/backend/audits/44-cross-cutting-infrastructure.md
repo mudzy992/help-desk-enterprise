@@ -149,6 +149,10 @@ Production dependency audit prijavljuje 4 moderate advisories: direktni `exceljs
 
 Izvorno stanje iznad ostaje audit trag, ali je izvršno korigovano u paketu W1.1: strict `npm ci`, digest-pinned Alpine stageovi, production-only dependency sloj, uklonjen npm/build toolchain, CycloneDX SBOM, puni Grype inventar, actionable high/critical gate i GitHub/Sigstore provenance prošli su u CI runu [`40073544355`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40073544355). Production npm audit sada vraća nula ranjivosti. Detalji i granice dokaza su u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
 
+### Implementacijski dodatak — W1.2, 2026-10-24
+
+DB/migration granica je izvršno korigovana u CI runu [`40075479663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40075479663): odvojeni migrator/runtime roleovi, DDL-denial dokaz, single-owner advisory-lock release migrator, production TLS/timeout contract, globalni connection budget, schema sentinel i disposable backup/restore RPO/RTO drill prolaze na stvarnom PostgreSQL-u 17. `BA-xcut-03`, `BA-xcut-11`, `BA-xcut-12` i `BA-xcut-13` ostaju djelimično otvoreni prema eksplicitnim granicama zapisanim u [`../implementation/01-production-safety-perimeter.md`](../implementation/01-production-safety-perimeter.md).
+
 ## 11. CLI, seed i operativni blast radius
 
 Pozitivno je što nekoliko CLI-ja ima dry-run, explicit `--apply`, reason i audit zapis. Secret helper ne ispisuje secret osim namjenske `pins` komande uz upozorenje. Ipak ne postoji jedinstveni CLI safety framework.
@@ -179,15 +183,15 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | ID | Prioritet | Nalaz | Status |
 |---|---|---|---|
 | BA-xcut-01 | P1 | Runtime container nema `USER` i radi kao root | zatvoreno |
-| BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation | otvoreno |
+| BA-xcut-02 | P1 | Isti DB credential pokreće migracije i aplikaciju; nema runtime/migration privilege separation |zatvoreno |
 | BA-xcut-03 | P1 | Redis TLS/CA contract ne postoji, a DB TLS nije production-obavezan | otvoreno |
 | BA-xcut-04 | P1 | Build fallback `npm ci \|\| npm install`, mutable images i devDependencies u runtimeu ruše reproducibility/supply-chain granicu |zatvoreno |
 | BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | otvoreno |
 | BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | otvoreno |
-| BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | otvoreno |
+| BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora |zatvoreno |
 | BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno |
 | BA-xcut-09 | P2 | Nema jedinstvene typed/fatal production env validacije | otvoreno |
-| BA-xcut-10 | P2 | Pool nema deployment-wide connection budget ni admission check | otvoreno |
+| BA-xcut-10 | P2 | Pool nema deployment-wide connection budget ni admission check |zatvoreno |
 | BA-xcut-11 | P2 | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje | otvoreno |
 | BA-xcut-12 | P2 | Readiness ne dokazuje schema kompatibilnost, write capability ni queue flow | otvoreno |
 | BA-xcut-13 | P2 | Migracije nemaju expand/backfill/contract linter i destruction approval manifest | otvoreno |

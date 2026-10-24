@@ -105,6 +105,8 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ### W1.2 DB/migration privilege separation
 
+**Status:** završeno 2026-10-24; izvršni dokaz je CI run [`40075479663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40075479663) na SHA `97e78ab7e1d1b61e4812723d570b1bc20337a173`, uz detaljni dnevnik u [`implementation/01-production-safety-perimeter.md`](implementation/01-production-safety-perimeter.md).
+
 - zaseban release migrator credential i restricted API/worker role;
 - migracije izvući iz start komande replike u single-owner release job;
 - TLS verification, `lock_timeout`, `statement_timeout`, `idle_in_transaction_session_timeout` i globalni connection budget;
