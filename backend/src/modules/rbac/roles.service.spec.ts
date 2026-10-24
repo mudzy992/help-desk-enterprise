@@ -164,7 +164,9 @@ describe('RolesService preview and replace', () => {
           actorUserId: 'super-1',
           requestId: 'req-super-admin',
         }),
-      ).rejects.toMatchObject({ code: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE' });
+      ).rejects.toMatchObject({
+        response: { code: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE' },
+      });
       expect(prisma.rolePermission.deleteMany).not.toHaveBeenCalled();
     } finally {
       role.key = previousKey;
