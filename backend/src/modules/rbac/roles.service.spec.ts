@@ -6,7 +6,10 @@ import {
   createTestAssignment,
   createTestAuthorizationContext,
 } from '../authorization/create-test-authorization-context';
-import { rolePermissionPreviewTokenTtlSeconds } from './role-permission-preview-token';
+import {
+  rolePermissionPreviewTokenTtlSeconds,
+  signRolePermissionPreviewToken,
+} from './role-permission-preview-token';
 import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
 import { shadowAuthorizationDecisions } from '../authorization/shadow-authorization.types';
 import { RolesService } from './roles.service';
@@ -150,16 +153,19 @@ describe('RolesService preview and replace', () => {
     role.key = authorizationRoleKeys.superAdmin;
     try {
       const { service, prisma } = createService();
-      const preview = await service.preview(
-        authorizationRoleKeys.superAdmin,
-        [permissionKeys.ticketMerge],
-        'super-1',
+      const previewToken = signRolePermissionPreviewToken(
+        {
+          roleKey: authorizationRoleKeys.superAdmin,
+          permissionKeys: [permissionKeys.ticketMerge],
+          actorUserId: 'super-1',
+        },
+        previewSigningSecret,
       );
       await expect(
         service.replace({
           roleKey: authorizationRoleKeys.superAdmin,
           permissionKeys: [permissionKeys.ticketMerge],
-          previewToken: preview.previewToken,
+          previewToken,
           reason: 'Attempt to narrow the immutable control-plane role',
           actorUserId: 'super-1',
           requestId: 'req-super-admin',
