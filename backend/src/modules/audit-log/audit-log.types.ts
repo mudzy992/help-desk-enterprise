@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import type { JsonValue } from '../change-log/change-log.types';
 import type {
   allowedAuditExportFormats,
@@ -99,7 +100,7 @@ export type AuditLogExportResult = {
   readonly format: AuditExportFormat;
   readonly fileName: string;
   readonly contentType: string;
-  readonly stream: NodeJS.ReadableStream;
+  readonly stream: Readable;
 };
 
 /**
