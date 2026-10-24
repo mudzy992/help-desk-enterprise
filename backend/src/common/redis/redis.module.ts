@@ -31,7 +31,7 @@ const redisClientLogger = new Logger('RedisClient');
       useFactory: async (configuration: RedisConfiguration) => {
         const client = createRedisClient(configuration);
         client.on('error', (error: Error) => {
-          redisClientLogger.warn(`redis_client_error reason=${error.message}`);
+          redisClientLogger.warn(`redis_client_error type=${error.name}`);
         });
         // `lazyConnect` ostaje namjerno. Prva komanda sama otvori vezu, a ioredis
         // drži komande u offline redu dok handshake ne završi, pa GET nikad ne

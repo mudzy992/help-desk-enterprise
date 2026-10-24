@@ -18,12 +18,17 @@ x-database-environment: &database-environment
   DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: ${DB_IDLE_IN_TRANSACTION_TIMEOUT_MS:-10000}
 
 x-redis-environment: &redis-environment
+  DEPLOYMENT_ENV: ${DEPLOYMENT_ENV}
   REDIS_HOST: ${REDIS_HOST}
   REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_TLS: ${REDIS_TLS}
+  REDIS_CA_CERT_PATH: ${REDIS_CA_CERT_PATH:-}
+  REDIS_CA_CERT_BASE64: ${REDIS_CA_CERT_BASE64:-}
+  REDIS_SERVERNAME: ${REDIS_SERVERNAME}
   REDIS_USERNAME: ${REDIS_USERNAME:-servicedesk}
   REDIS_PASSWORD: ${REDIS_PASSWORD}
-  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-servicedesk}
-  QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:servicedesk}
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX}
+  QUEUE_PREFIX: ${QUEUE_PREFIX}
 
 # Paket 1.5: linkovi u e-mailovima. Oba procesa renderuju e-mailove (worker za
 # SLA događaje), pa oba moraju znati javni URL frontenda.
@@ -48,6 +53,7 @@ x-app-environment: &app-environment
   PRIVACY_TOMBSTONE_KEY_PREVIOUS: ${PRIVACY_TOMBSTONE_KEY_PREVIOUS:-}
   # Paket 2.6: master key wrapping per-export AES keys (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   PRIVACY_EXPORT_KEY: ${PRIVACY_EXPORT_KEY:-}
+  CONFIG_PACKAGE_SIGNING_KEY: ${CONFIG_PACKAGE_SIGNING_KEY:-}
   # Paket 2.7: fallback alarm channel used only when Postgres or Redis is down
   # (the normal channel reads recipients and SMTP from the database).
   OPS_ALERT_SMTP_URL: ${OPS_ALERT_SMTP_URL:-}

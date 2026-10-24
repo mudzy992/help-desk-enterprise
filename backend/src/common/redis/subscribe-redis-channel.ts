@@ -52,7 +52,7 @@ export async function subscribeRedisChannel(options: {
   // First, before anything can fail: without this listener ioredis logs
   // "[ioredis] Unhandled error event" for every failed reconnect attempt.
   subscriber.on('error', (error: Error) => {
-    options.logger.warn(`${options.label}_redis_error reason=${error.message}`);
+    options.logger.warn(`${options.label}_redis_error type=${error.name}`);
   });
   subscriber.on('message', (channel: string, message: string) => {
     if (channel === options.channel) {
@@ -105,5 +105,5 @@ export async function subscribeRedisChannel(options: {
 }
 
 function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? error.name : 'UnknownError';
 }

@@ -238,6 +238,21 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Prove Redis TLS trust, hostname rejection, authentication, and namespace isolation
+        env:
+          REDIS_TLS_TEST_PASSWORD: ci-redis-w13-password
+        run: |
+          certs="$RUNNER_TEMP/redis-tls"
+          mkdir -p "$certs"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=W1.3 Redis CA' -keyout "$certs/ca.key" -out "$certs/ca.crt" >/dev/null 2>&1
+          openssl req -newkey rsa:2048 -nodes -subj '/CN=redis.internal' -keyout "$certs/server.key" -out "$certs/server.csr" >/dev/null 2>&1
+          printf 'subjectAltName=DNS:redis.internal\nextendedKeyUsage=serverAuth\n' > "$certs/server.ext"
+          openssl x509 -req -days 1 -in "$certs/server.csr" -CA "$certs/ca.crt" -CAkey "$certs/ca.key" -CAcreateserial -extfile "$certs/server.ext" -out "$certs/server.crt" >/dev/null 2>&1
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=Wrong CA' -keyout "$certs/wrong.key" -out "$certs/wrong.crt" >/dev/null 2>&1
+          docker run -d --rm --name redis-w13 -p 6380:6380 -v "$certs:/certs:ro" redis:7-alpine redis-server --port 0 --tls-port 6380 --tls-cert-file /certs/server.crt --tls-key-file /certs/server.key --tls-ca-cert-file /certs/ca.crt --tls-auth-clients no --requirepass "$REDIS_TLS_TEST_PASSWORD"
+          trap 'docker rm -f redis-w13 >/dev/null 2>&1 || true' EXIT
+          for attempt in 1 2 3 4 5; do docker logs redis-w13 2>&1 | grep -q 'Ready to accept connections' && break; sleep 1; done
+          REDIS_TLS_TEST_CA="$certs/ca.crt" REDIS_TLS_TEST_WRONG_CA="$certs/wrong.crt" npm run redis:tls-contract
       - name: Generate and verify the Prisma client
         run: npm run db:generate && npm run check:prisma-generated
       - name: Enforce destructive migration approval policy
@@ -324,8 +339,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://runtime:placeholder@database:5432/servicedesk?sslmode=verify-full
           MIGRATION_DATABASE_URL: postgresql://migrator:placeholder@database:5432/servicedesk?sslmode=verify-full
-          REDIS_HOST: redis
+          DEPLOYMENT_ENV: production
+          REDIS_HOST: redis.internal
           REDIS_PASSWORD: placeholder
+          REDIS_TLS: "true"
+          REDIS_CA_CERT_PATH: /run/secrets/redis-ca.pem
+          REDIS_SERVERNAME: redis.internal
+          REDIS_KEY_PREFIX: production:servicedesk
+          QUEUE_PREFIX: bull:production:servicedesk
           VITE_API_BASE_URL: /api
         run: docker compose config --quiet
       - name: Audit production dependencies (high/critical gate)

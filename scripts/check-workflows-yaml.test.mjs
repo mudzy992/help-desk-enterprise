@@ -205,6 +205,9 @@ test("backend integration job ima disposable PostgreSQL/Redis i ulazi u završni
   const gate = readJob(workflow, "gate");
   assert.ok(integration.includes("image: postgres:17-alpine"));
   assert.ok(integration.includes("image: redis:7-alpine"));
+  assert.ok(integration.includes("npm run redis:tls-contract"));
+  assert.ok(integration.includes("--tls-port 6380"));
+  assert.ok(integration.includes("REDIS_TLS_TEST_WRONG_CA"));
   assert.ok(integration.includes("npm run db:migrate:release"));
   assert.ok(integration.includes("npm run db:privileges:verify"));
   assert.ok(integration.includes("npm run db:restore:test"));

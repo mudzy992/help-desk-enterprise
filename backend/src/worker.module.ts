@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
 import { InboundEmailWorkerModule } from './modules/inbound-email/inbound-email-worker.module';
@@ -30,6 +31,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
+      validate: validateRuntimeEnvironment,
     }),
     PrismaModule,
     RedisModule,

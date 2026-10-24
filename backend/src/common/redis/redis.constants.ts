@@ -6,6 +6,11 @@ export const redisConstants = {
     password: 'REDIS_PASSWORD',
     keyPrefix: 'REDIS_KEY_PREFIX',
     queuePrefix: 'QUEUE_PREFIX',
+    tls: 'REDIS_TLS',
+    caCertPath: 'REDIS_CA_CERT_PATH',
+    caCertBase64: 'REDIS_CA_CERT_BASE64',
+    servername: 'REDIS_SERVERNAME',
+    deploymentEnvironment: 'DEPLOYMENT_ENV',
   },
   defaults: {
     port: 6379,

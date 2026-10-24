@@ -1,6 +1,7 @@
 import { AdminRealtimeModule } from './common/admin-realtime/admin-realtime.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
@@ -51,6 +52,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
+      validate: validateRuntimeEnvironment,
     }),
     PrismaModule,
     AdminRealtimeModule,
