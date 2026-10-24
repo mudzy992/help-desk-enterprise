@@ -261,9 +261,13 @@ jobs:
           exit "$code"
 
   container:
-    name: Backend container safety
+    name: Backend container + supply chain
     runs-on: ubuntu-latest
     needs: [changes]
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     if: >-
       inputs.skip_gates != true &&
       (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
@@ -288,9 +292,45 @@ jobs:
           REDIS_PASSWORD: placeholder
           VITE_API_BASE_URL: /api
         run: docker compose config --quiet
-      - name: Build the backend runtime image
+      - name: Audit production dependencies (high/critical gate)
+        run: npm audit --omit=dev --audit-level=high --json > backend-production-audit.json
+      - name: Build the digest-pinned production runtime image
         run: docker build --pull --tag help-desk-backend:safety-net .
-      - name: Verify UID, filesystem, storage and signal behavior
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: help-desk-backend:safety-net
+          format: cyclonedx-json
+          output-file: backend/backend-image.cdx.json
+          upload-artifact: false
+      - name: Scan image for high/critical vulnerabilities
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: help-desk-backend:safety-net
+          fail-build: true
+          severity-cutoff: high
+          output-format: json
+          output-file: backend/backend-image-scan.json
+      - name: Materialize image for signed provenance
+        if: github.event_name == 'push'
+        run: docker save help-desk-backend:safety-net --output backend-image.tar
+      - name: Attest image archive provenance through GitHub Sigstore
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: backend/backend-image.tar
+      - name: Upload supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-supply-chain-${{ github.sha }}
+          path: |
+            backend/backend-production-audit.json
+            backend/backend-image.cdx.json
+            backend/backend-image-scan.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify UID, filesystem, toolchain exclusion, storage and signal behavior
         run: |
           set +e
           npm run container:runtime:test -- help-desk-backend:safety-net > /tmp/backend-container.log 2>&1

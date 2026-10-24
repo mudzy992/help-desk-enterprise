@@ -188,6 +188,11 @@ test("backend container job gradi image, izvršava runtime probe i ulazi u gate"
   assert.ok(container.includes("npm run container:check"));
   assert.ok(container.includes("docker compose config --quiet"));
   assert.ok(container.includes("docker build --pull"));
+  assert.ok(container.includes("npm audit --omit=dev --audit-level=high"));
+  assert.ok(container.includes("anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c"));
+  assert.ok(container.includes("anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"));
+  assert.ok(container.includes("actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8"));
+  assert.ok(container.includes("severity-cutoff: high"));
   assert.ok(container.includes("npm run container:runtime:test"));
   assert.ok(gate.includes("container"));
   assert.ok(gate.includes("needs.container.result"));

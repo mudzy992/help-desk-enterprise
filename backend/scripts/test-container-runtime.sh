@@ -27,6 +27,11 @@ docker run --rm \
   "$image" sh -eu -c '
     test "$(id -u)" -ne 0
     test "$(id -g)" -ne 0
+    test ! -e node_modules/@nestjs/cli
+    test ! -e node_modules/typescript
+    test ! -e node_modules/prisma
+    test ! -e prisma
+    test ! -e src
     touch /tmp/safety-net
     touch "$UPLOAD_ROOT/safety-net"
     test -f "$UPLOAD_ROOT/safety-net"

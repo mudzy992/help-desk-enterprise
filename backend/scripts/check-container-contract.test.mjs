@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateContainerContract } from "./check-container-contract.mjs";
 
+const image = "node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32";
 const dockerfile = `
-FROM node:22 AS builder
-RUN echo build
-FROM node:22-alpine
+FROM ${image} AS production-deps
+COPY package*.json ./
+RUN npm ci --omit=dev --ignore-scripts
+FROM ${image} AS builder
+RUN npm ci --include=dev
+FROM ${image} AS runtime
 WORKDIR /usr/app
+COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/app/dist ./dist
 RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 ENV UPLOAD_ROOT=/usr/app/uploads
@@ -29,7 +34,7 @@ const service = (name) => `  ${name}:
 `;
 const compose = `services:\n${service("backend")}${service("worker")}  clamav:\n    image: clamav\n`;
 
-test("prihvata zaključani runtime i oba process servisa", () => {
+test("prihvata digest-pinned production-only runtime i oba process servisa", () => {
   assert.deepEqual(validateContainerContract(dockerfile, compose), []);
 });
 
@@ -45,6 +50,17 @@ test("odbija root runtime i nedostajuće hardening granice", () => {
 });
 
 test("builder USER ne može zadovoljiti final-stage pravilo", () => {
-  const unsafe = dockerfile.replace("FROM node:22 AS builder", "FROM node:22 AS builder\nUSER node").replace("USER node\nCMD", "CMD");
+  const unsafe = dockerfile.replace("RUN npm ci --include=dev", "RUN npm ci --include=dev\nUSER node").replace("USER node\nCMD", "CMD");
   assert.ok(validateContainerContract(unsafe, compose).some((problem) => problem.includes("USER node")));
+});
+
+test("odbija mutable base, install fallback i builder dependencies u runtimeu", () => {
+  const unsafe = dockerfile
+    .replace(image, "node:22-alpine")
+    .replace("RUN npm ci --include=dev", "RUN npm ci --include=dev || npm install")
+    .replace("--from=production-deps /usr/app/node_modules", "--from=builder /usr/app/node_modules");
+  const problems = validateContainerContract(unsafe, compose);
+  assert.ok(problems.some((problem) => problem.includes("digest-pinned")));
+  assert.ok(problems.some((problem) => problem.includes("fallback")));
+  assert.ok(problems.some((problem) => problem.includes("builder node_modules")));
 });
