@@ -284,6 +284,12 @@ jobs:
         run: npm run container:check
       - name: Test the container contract guard
         run: npm run container:test
+      - name: Resolve current distroless Node 22 digest for reviewed pin updates
+        run: |
+          docker pull gcr.io/distroless/nodejs22-debian12:nonroot >/dev/null
+          digest=$(docker image inspect gcr.io/distroless/nodejs22-debian12:nonroot --format '{{index .RepoDigests 0}}')
+          version=$(docker run --rm gcr.io/distroless/nodejs22-debian12:nonroot --version)
+          echo "::notice title=Current distroless Node 22::$digest ($version)"
       - name: Validate the Compose model
         working-directory: .
         env:

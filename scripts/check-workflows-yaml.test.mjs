@@ -187,6 +187,7 @@ test("backend container job gradi image, izvršava runtime probe i ulazi u gate"
   const gate = readJob(workflow, "gate");
   assert.ok(container.includes("npm run container:check"));
   assert.ok(container.includes("docker compose config --quiet"));
+  assert.ok(container.includes("docker pull gcr.io/distroless/nodejs22-debian12:nonroot"));
   assert.ok(container.includes("docker build --pull"));
   assert.ok(container.includes("npm audit --omit=dev --audit-level=high"));
   assert.ok(container.includes("anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c"));
