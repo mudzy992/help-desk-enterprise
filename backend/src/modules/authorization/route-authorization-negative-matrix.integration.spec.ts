@@ -61,8 +61,8 @@ describeIfDatabase('route-level negative authorization matrix (integration)', ()
 
   it('denies cross-user, sibling-OU, scoped-admin global access, and inactive principals', async () => {
     const [settingsPermission, groupPermission] = await Promise.all([
-      prisma.permission.upsert({ where: { key: permissionKeys.settingsRead }, update: {}, create: { key: permissionKeys.settingsRead } }),
-      prisma.permission.upsert({ where: { key: permissionKeys.groupManage }, update: {}, create: { key: permissionKeys.groupManage } }),
+      prisma.permission.upsert({ where: { key: permissionKeys.settingsRead }, update: {}, create: { key: permissionKeys.settingsRead, description: 'Settings read matrix fixture' } }),
+      prisma.permission.upsert({ where: { key: permissionKeys.groupManage }, update: {}, create: { key: permissionKeys.groupManage, description: 'Group manage matrix fixture' } }),
     ]);
     const existingKeys = await prisma.permission.findMany({
       where: { id: { in: [settingsPermission.id, groupPermission.id] } },
