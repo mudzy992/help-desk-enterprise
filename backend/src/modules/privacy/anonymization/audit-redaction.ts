@@ -1,5 +1,7 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
+import { auditHashVersions } from '../../audit-log/build-canonical-audit-payload';
+import { computeAuditLogHash } from '../../audit-log/compute-audit-log-hash';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import type { TextScrubber } from './text-scrubber';
 
@@ -62,15 +64,42 @@ export async function redactAuditForSubject(
     if (rows.length < batch) break;
   }
   if (redacted > 0) {
-    await prisma.$transaction((transaction) =>
-      appendAuditLog(transaction as never, {
+    await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${871_001})`;
+      const chain = await transaction.auditLog.findMany({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+      let previousHash = chain[0]?.previousHash ?? '0'.repeat(64);
+      for (const row of chain) {
+        if (row.hashVersion === auditHashVersions.v4) {
+          const hash = computeAuditLogHash({
+            previousHash,
+            action: row.action,
+            entityType: row.entityType,
+            entityId: row.entityId,
+            metadata: {},
+            actorUserId: row.actorUserId,
+            requestId: row.requestId,
+            organizationalUnitId: row.organizationalUnitId,
+            hashAlgorithm: row.hashAlgorithm as 'sha256' | 'sha384' | 'sha512',
+            hashVersion: auditHashVersions.v4,
+            metadataDigest: row.metadataDigest,
+            rowId: row.id,
+            createdAt: row.createdAt,
+            redactedAt: row.redactedAt,
+          });
+          await transaction.auditLog.update({ where: { id: row.id }, data: { previousHash, hash } });
+          previousHash = hash;
+        } else {
+          previousHash = row.hash;
+        }
+      }
+      await appendAuditLog(transaction as never, {
         action: auditLogActions.auditRedacted,
         entityType: auditLogEntityTypes.privacyErasure,
         entityId: input.erasureId,
         metadata: { redacted, sealed, entries, entriesTruncated: redacted > entries.length },
         actorUserId: input.actorUserId,
-      }),
-    );
+      });
+    });
   }
   return { redacted, sealed };
 }
