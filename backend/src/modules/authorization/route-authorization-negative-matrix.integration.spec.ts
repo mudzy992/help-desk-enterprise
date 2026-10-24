@@ -90,6 +90,7 @@ describeIfDatabase('route-level negative authorization matrix (integration)', ()
     ]);
     userIds.push(owner.id, scopedAdmin.id, inactive.id);
     await prisma.userRole.createMany({ data: [
+      { userId: owner.id, roleId: role.id },
       { userId: scopedAdmin.id, roleId: role.id, organizationalUnitId: ouA.id },
       { userId: inactive.id, roleId: role.id },
     ] });
