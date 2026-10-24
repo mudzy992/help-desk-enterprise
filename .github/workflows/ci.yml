@@ -307,10 +307,16 @@ jobs:
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
           image: help-desk-backend:safety-net
-          fail-build: true
+          fail-build: false
           severity-cutoff: high
           output-format: json
           output-file: backend/backend-image-scan.json
+      - name: Summarize image vulnerabilities
+        id: image-vulnerabilities
+        run: |
+          count=$(jq '[.matches[]? | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")] | length' backend-image-scan.json)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          jq -r '.matches[]? | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical") | "::error title=Image vulnerability::\(.artifact.name)@\(.artifact.version): \(.vulnerability.id) [\(.vulnerability.severity)] fixed=\(.vulnerability.fix.versions // [])"' backend-image-scan.json
       - name: Materialize image for signed provenance
         if: github.event_name == 'push'
         run: docker save help-desk-backend:safety-net --output backend-image.tar
@@ -341,6 +347,11 @@ jobs:
             echo "::error title=Backend container runtime failure::$message"
           fi
           exit "$code"
+      - name: Enforce zero high/critical image vulnerabilities
+        if: always() && steps.image-vulnerabilities.outputs.count != '0'
+        run: |
+          echo "::error title=Image vulnerability gate::Found ${{ steps.image-vulnerabilities.outputs.count }} high/critical vulnerabilities."
+          exit 1
 
   frontend:
     name: Frontend build + test
