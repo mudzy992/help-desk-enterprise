@@ -192,6 +192,13 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 
 ## 7. Val 3 — audit, config i change trust
 
+### Status
+
+- **W3.1 canonical audit event policy — završen** na SHA `760216c`, CI `40131718141`.
+- Centralni runtime action/entity/actor inventar je fail-closed; correlation ID se nasljeđuje iz request konteksta; tajne se centralno rediguju prije hashiranja; metadata ima 16 KiB / depth 8 limite.
+- Real-PostgreSQL test dokazuje rollback audit append-a zajedno s neuspjelom business transakcijom. Nalazi `BA-audit-log-07/11` ostaju otvoreni zbog action-specific schema i persisted event-version granica; dokaz je u [10-canonical-audit-event-policy.md](implementation/10-canonical-audit-event-policy.md).
+- Sljedeći paket je **W3.2 immutable audit identity i versionirani hash envelope**.
+
 ### Canonical primitive
 
 - append-only audit API sa actor klasom, request/correlation ID-em, reason/action/entity registryjem;
