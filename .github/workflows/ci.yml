@@ -178,13 +178,13 @@ jobs:
         run: npm run wiring:check
       - name: Test the wiring manifest guard
         run: npm run wiring:test
-      - run: npm run build
-      - run: npm run lint
+      - run: npm run build || { echo '::error file=backend::BACKEND_BUILD_FAILED'; exit 1; }
+      - run: npm run lint || { echo '::error file=backend::BACKEND_LINT_FAILED'; exit 1; }
       - name: Run suites previously blocked by missing generated Prisma types
-        run: npm run test:safety-net:compile
+        run: npm run test:safety-net:compile || { echo '::error file=backend::BACKEND_SAFETY_NET_FAILED'; exit 1; }
       - name: Verify API/worker/scheduler/shutdown wiring
-        run: npm run test:wiring
-      - run: npm test -- --ci --coverage=false
+        run: npm run test:wiring || { echo '::error file=backend::BACKEND_WIRING_FAILED'; exit 1; }
+      - run: npm test -- --ci --coverage=false || { echo '::error file=backend::BACKEND_TEST_FAILED'; exit 1; }
 
   backend-integration:
     name: Backend PostgreSQL + Redis integration
