@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditLogRecord } from './audit-log.types';
 import { compareAuditLogChainOrder, type AuditChainStart } from './verify-audit-log-chain';
@@ -22,18 +23,19 @@ export class AuditLogRepository {
     readonly take: number;
     readonly after: { readonly createdAt: Date; readonly id: string } | null;
   }): Promise<readonly AuditLogRecord[]> {
-    const scope = [
+    const scope: Prisma.AuditLogWhereInput[] = [
       { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
       ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
     ];
+    const after: Prisma.AuditLogWhereInput[] = input.after === null ? [] : [{ OR: [
+      { createdAt: { gt: input.after.createdAt } },
+      { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+    ] }];
     const records = await this.prisma.auditLog.findMany({
       where: {
         AND: [
           { OR: scope },
-          ...(input.after === null ? [] : [{ OR: [
-            { createdAt: { gt: input.after.createdAt } },
-            { createdAt: input.after.createdAt, id: { gt: input.after.id } },
-          ] }]),
+          ...after,
         ],
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -70,11 +72,12 @@ export class AuditLogRepository {
     readonly take: number;
     readonly after: { readonly createdAt: Date; readonly id: string } | null;
   }): Promise<readonly AuditLogRecord[]> {
+    const where: Prisma.AuditLogWhereInput | undefined = input.after === null ? undefined : { OR: [
+      { createdAt: { gt: input.after.createdAt } },
+      { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+    ] };
     const records = await this.prisma.auditLog.findMany({
-      where: input.after === null ? undefined : { OR: [
-        { createdAt: { gt: input.after.createdAt } },
-        { createdAt: input.after.createdAt, id: { gt: input.after.id } },
-      ] },
+      where,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: input.take,
     });

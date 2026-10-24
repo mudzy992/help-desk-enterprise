@@ -144,6 +144,7 @@ export class AuditLogService {
     const scopedIds = selectOrganizationalUnitIdsInScope(units, requested.ouPath);
     const repository = this.repository;
     const prisma = this.prisma;
+    const includeGlobalRecords = authContext.isSuperAdmin;
     const pageSize = 500;
     async function* chunks(): AsyncGenerator<string> {
       let after: { createdAt: Date; id: string } | null = null;
@@ -155,7 +156,7 @@ export class AuditLogService {
         for (;;) {
           const page = await repository.listForExportPage({
             organizationalUnitIds: scopedIds,
-            includeGlobalRecords: authContext.isSuperAdmin,
+            includeGlobalRecords,
             take: pageSize,
             after,
           });
