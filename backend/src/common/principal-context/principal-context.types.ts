@@ -16,9 +16,11 @@
 import type { CanonicalAssignmentScope } from './canonical-assignment';
 
 export type PrincipalAssignment = {
-  readonly assignmentId: string;
+  /** Present on database-backed principals; optional for legacy synthetic contexts. */
+  readonly assignmentId?: string;
   readonly roleKey: string;
-  readonly scope: CanonicalAssignmentScope;
+  /** Present on database-backed principals; optional for legacy synthetic contexts. */
+  readonly scope?: CanonicalAssignmentScope;
   readonly permissionKeys: readonly string[];
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitPath: string | null;
