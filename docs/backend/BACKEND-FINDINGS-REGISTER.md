@@ -126,7 +126,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 11 | `privacy` | `BA-privacy-11` | P2 | Registar/listing površine nemaju potpunu paginaciju | otvoreno | [11-privacy.md](audits/11-privacy.md) |
 | 11 | `privacy` | `BA-privacy-12` | P3 | Processing record sadrži neattestirane sigurnosne tvrdnje | otvoreno | [11-privacy.md](audits/11-privacy.md) |
 | 11 | `privacy` | `BA-privacy-13` | P3 | Public notice cache nema eksplicitnu invalidaciju/version | otvoreno | [11-privacy.md](audits/11-privacy.md) |
-| 12 | `tickets` | `BA-tickets-01` | P1 | Create-message može commitovati poruku uz API grešku i dupli retry | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-01` | P1 | Create-message može commitovati poruku uz API grešku i dupli retry | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-02` | P1 | Break-glass grant prethodi kompletnom audit tragu | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-03` | P1 | Bulk execute ostavlja parcijalne promjene bez operation manifesta | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-04` | P1 | Split attachment copy pokazuje na nepostojeći blob | otvoreno | [12-tickets.md](audits/12-tickets.md) |

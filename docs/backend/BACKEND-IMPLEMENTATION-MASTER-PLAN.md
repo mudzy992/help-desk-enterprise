@@ -249,7 +249,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Transactional outbox invalidation intent, cross-replica retry delivery i DB-revision-validated read-through ugovor osiguravaju da cache/realtime ostane izvedena optimizacija, nikad source of truth.
 - Paket nema migraciju i ne zatvara domenske nalaze prije integracije njihovih mutation/read handlera; dokaz je u [27-durable-post-commit-cache-invalidation.md](implementation/27-durable-post-commit-cache-invalidation.md).
 - **Val 4 je potpuno završen (W4.1–W4.7).**
-- Sljedeći paket je **Val 5 / W5.1 tickets transactional command boundary za message/event/audit/outbox tok**.
+- **W5.1 tickets transactional message command boundary — završen** na SHA `15d86c9`, CI `40223728831`.
+- Required HTTP idempotency key, persisted result, DB unique message key i jedna transaction granica za message/mention/redaction/waiting/merged-copy/audit/outbox zatvorili su `BA-tickets-01`; dokaz je u [28-ticket-message-transactional-command-boundary.md](implementation/28-ticket-message-transactional-command-boundary.md).
+- Registar je sada **655 otvorenih / 37 zatvorenih / 692 ukupno**; `BA-tickets-12` ostaje otvoren do worker consumer/replay cutovera.
+- Sljedeći paket je **Val 5 / W5.2 ticket confidential break-glass atomic audit boundary**.
 
 ### Canonical primitive
 

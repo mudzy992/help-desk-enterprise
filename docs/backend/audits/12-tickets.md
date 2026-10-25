@@ -142,7 +142,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 | ID            | Severity | Nalaz                                                                    | Status   |
 | ------------- | -------- | ------------------------------------------------------------------------ | -------- |
-| BA-tickets-01 | P1       | Create-message može commitovati poruku uz API grešku i dupli retry       | otvoreno |
+| BA-tickets-01 | P1       | Create-message može commitovati poruku uz API grešku i dupli retry       | zatvoreno |
 | BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | otvoreno |
 | BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | otvoreno |
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | otvoreno |
