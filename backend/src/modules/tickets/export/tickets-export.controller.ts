@@ -18,8 +18,11 @@ import { SessionAuthenticationGuard } from "../../authentication/session-authent
 import { authorizationRoleKeys } from "../../authorization/authorization.constants";
 import { RequireRoles } from "../../authorization/require-roles.decorator";
 import { RoleGuard } from "../../authorization/role.guard";
-import type { Response } from "express";
 import type { TicketMutationContext } from "../tickets.types";
+
+type ExportHeaderResponse = {
+  setHeader(name: string, value: string): void;
+};
 import { ExportTicketsQueryDto } from "./dto/export-tickets-query.dto";
 import { TicketsExportService } from "./tickets-export.service";
 
@@ -47,7 +50,7 @@ export class TicketsExportController {
   async exportCsv(
     @Query() query: ExportTicketsQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-    @Res({ passthrough: true }) response: Response,
+    @Res({ passthrough: true }) response: ExportHeaderResponse,
   ): Promise<StreamableFile> {
     const exported = await this.exportService.exportCsv(
       {
