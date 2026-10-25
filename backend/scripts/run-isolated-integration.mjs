@@ -15,6 +15,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/idempotency/request-idempotency.integration.spec.ts",
   "src/common/outbox/transactional-outbox.integration.spec.ts",
   "src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts",
+  "src/common/database-lock/database-lock.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
