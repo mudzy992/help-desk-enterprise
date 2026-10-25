@@ -1,18 +1,39 @@
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
-import { seedItPeerAgent } from './seed-tickets-harness-actors';
+import { authorizationRoleKeys } from "../authorization/authorization.constants";
+import { seedItPeerAgent } from "./seed-tickets-harness-actors";
 import {
   createTicketsServiceHarness,
   ticketsTestIds,
-} from './create-tickets-service-harness';
-import { vpnCreateInput } from './vpn-create-input';
-import { redactedContentPlaceholder } from './redaction/redaction.constants';
+} from "./create-tickets-service-harness";
+import { vpnCreateInput } from "./vpn-create-input";
+import { redactedContentPlaceholder } from "./redaction/redaction.constants";
 
-jest.mock('../../common/prisma/prisma.service', () => ({
+jest.mock("../../common/prisma/prisma.service", () => ({
   PrismaService: class PrismaService {},
 }));
 
-describe('Tickets confidential ACL and break-glass', () => {
-  it('hides confidential tickets from same-OU agents outside the handler group', async () => {
+jest.mock("../../common/idempotency/request-idempotency.service", () => ({
+  RequestIdempotencyService: class RequestIdempotencyService {
+    constructor(private readonly prisma: unknown) {}
+    async execute(input: {
+      operation: (
+        transaction: unknown,
+      ) => Promise<{ statusCode: number; body: unknown }>;
+    }) {
+      return { ...(await input.operation(this.prisma)), replayed: false };
+    }
+  },
+}));
+
+jest.mock("../../common/outbox/transactional-outbox.service", () => ({
+  TransactionalOutboxService: class TransactionalOutboxService {
+    async enqueue() {
+      return undefined;
+    }
+  },
+}));
+
+describe("Tickets confidential ACL and break-glass", () => {
+  it("hides confidential tickets from same-OU agents outside the handler group", async () => {
     const harness = createTicketsServiceHarness();
     seedItPeerAgent(harness.contexts);
     harness.memory.seedGroupMember({
@@ -23,7 +44,7 @@ describe('Tickets confidential ACL and break-glass', () => {
       originUnitId: ticketsTestIds.ouIt,
       serviceId: ticketsTestIds.serviceVpn,
       groupId: ticketsTestIds.groupIt,
-      reason: 'IT VPN coverage',
+      reason: "IT VPN coverage",
     });
     const created = await harness.tickets.create(
       vpnCreateInput({ isConfidential: true }),
@@ -44,19 +65,19 @@ describe('Tickets confidential ACL and break-glass', () => {
       harness.tickets.getById(created.id, {
         actorUserId: ticketsTestIds.agentItPeer,
       }),
-    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    ).rejects.toMatchObject({ response: { code: "FORBIDDEN" } });
     await expect(
       harness.collaboration.listMessages(created.id, {
         actorUserId: ticketsTestIds.agentItPeer,
       }),
-    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    ).rejects.toMatchObject({ response: { code: "FORBIDDEN" } });
     const loaded = await harness.tickets.getById(created.id, {
       actorUserId: ticketsTestIds.requester,
     });
-    expect(loaded.title).toBe('VPN is down');
+    expect(loaded.title).toBe("VPN is down");
   });
 
-  it('keeps SuperAdmin out until break-glass with a reason, then audits without content', async () => {
+  it("keeps SuperAdmin out until break-glass with a reason, then audits without content", async () => {
     const harness = createTicketsServiceHarness();
     harness.memory.seedGroupMember({
       groupId: ticketsTestIds.groupIt,
@@ -66,7 +87,7 @@ describe('Tickets confidential ACL and break-glass', () => {
       originUnitId: ticketsTestIds.ouIt,
       serviceId: ticketsTestIds.serviceVpn,
       groupId: ticketsTestIds.groupIt,
-      reason: 'IT VPN coverage',
+      reason: "IT VPN coverage",
     });
     const created = await harness.tickets.create(
       vpnCreateInput({ isConfidential: true }),
@@ -83,40 +104,40 @@ describe('Tickets confidential ACL and break-glass', () => {
       }),
     ).rejects.toMatchObject({
       response: {
-        code: 'CONFIDENTIAL_ACCESS_DENIED',
+        code: "CONFIDENTIAL_ACCESS_DENIED",
         details: { breakGlassAvailable: true },
       },
     });
     await expect(
       harness.confidential.requestBreakGlass(
         created.id,
-        '   ',
-        '00000000-0000-4000-8000-000000000001',
+        "   ",
+        "00000000-0000-4000-8000-000000000001",
         { actorUserId: ticketsTestIds.superAdmin },
       ),
     ).rejects.toMatchObject({
-      response: { code: 'BREAK_GLASS_REASON_REQUIRED' },
+      response: { code: "BREAK_GLASS_REASON_REQUIRED" },
     });
     const granted = await harness.confidential.requestBreakGlass(
       created.id,
-      'Legal hold review',
-      '00000000-0000-4000-8000-000000000002',
+      "Legal hold review",
+      "00000000-0000-4000-8000-000000000002",
       { actorUserId: ticketsTestIds.superAdmin },
     );
     expect(granted.ticketId).toBe(created.id);
     const visible = await harness.tickets.getById(created.id, {
       actorUserId: ticketsTestIds.superAdmin,
     });
-    expect(visible.title).toBe('VPN is down');
+    expect(visible.title).toBe("VPN is down");
     const serialized = JSON.stringify(harness.memory.changeLogs);
-    expect(serialized).toContain('ticket_confidential_break_glass');
-    expect(serialized).toContain('Legal hold review');
+    expect(serialized).toContain("ticket_confidential_break_glass");
+    expect(serialized).toContain("Legal hold review");
     expect(serialized).toContain(redactedContentPlaceholder);
-    expect(serialized).not.toContain('VPN is down');
-    expect(serialized).not.toContain('Cannot connect from the office');
+    expect(serialized).not.toContain("VPN is down");
+    expect(serialized).not.toContain("Cannot connect from the office");
   });
 
-  it('allows configured viewer roles in OU/service scope without break-glass', async () => {
+  it("allows configured viewer roles in OU/service scope without break-glass", async () => {
     const harness = createTicketsServiceHarness();
     harness.confidentialConfig.allowedViewerRoles = [
       authorizationRoleKeys.admin,
@@ -125,7 +146,7 @@ describe('Tickets confidential ACL and break-glass', () => {
       originUnitId: ticketsTestIds.ouIt,
       serviceId: ticketsTestIds.serviceVpn,
       groupId: ticketsTestIds.groupIt,
-      reason: 'IT VPN coverage',
+      reason: "IT VPN coverage",
     });
     const created = await harness.tickets.create(
       vpnCreateInput({ isConfidential: true }),
@@ -138,14 +159,14 @@ describe('Tickets confidential ACL and break-glass', () => {
     expect(listed.map((item) => item.id)).toEqual([created.id]);
   });
 
-  it('allows an explicit grant and keeps ordinary tickets visible to SuperAdmin', async () => {
+  it("allows an explicit grant and keeps ordinary tickets visible to SuperAdmin", async () => {
     const harness = createTicketsServiceHarness();
     seedItPeerAgent(harness.contexts);
     await harness.routing.createRule({
       originUnitId: ticketsTestIds.ouIt,
       serviceId: ticketsTestIds.serviceVpn,
       groupId: ticketsTestIds.groupIt,
-      reason: 'IT VPN coverage',
+      reason: "IT VPN coverage",
     });
     const confidential = await harness.tickets.create(
       vpnCreateInput({ isConfidential: true }),
