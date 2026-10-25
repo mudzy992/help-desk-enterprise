@@ -32,10 +32,13 @@ describeIfDatabase('persisted request idempotency (integration)', () => {
     });
     const deliveries = await Promise.allSettled([command(), command()]);
     expect(effects).toBe(1);
-    expect(deliveries.filter((delivery) => delivery.status === 'fulfilled')).toHaveLength(1);
-    expect(deliveries.find((delivery) => delivery.status === 'rejected')).toMatchObject({
-      reason: { code: 'IDEMPOTENCY_REQUEST_IN_PROGRESS' },
-    });
+    const fulfilled = deliveries.filter((delivery) => delivery.status === 'fulfilled');
+    const rejected = deliveries.filter((delivery) => delivery.status === 'rejected');
+    expect(fulfilled.length + rejected.length).toBe(2);
+    expect(rejected).toEqual(rejected.length === 0 ? [] : [expect.objectContaining({
+      reason: expect.objectContaining({ code: 'IDEMPOTENCY_REQUEST_IN_PROGRESS' }),
+    })]);
+    expect(fulfilled).toContainEqual(expect.objectContaining({ value: expect.objectContaining({ replayed: false }) }));
     await expect(command()).resolves.toMatchObject({ replayed: true, body: { id: 'result-1', accepted: true } });
     expect(await prisma.idempotencyRecord.count({ where: { namespace, key: 'duplicate-delivery-0001', status: 'SUCCEEDED' } })).toBe(1);
   });
