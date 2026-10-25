@@ -85,7 +85,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.privacyErasureApproved]: schema(['identity', 'userId'], 'restricted'),
   [auditLogActions.privacyErasureCancelled]: schema(['userId'], 'restricted'),
   [auditLogActions.privacySubjectAnonymized]: schema(['erasureId', 'pseudonymTag', 'report'], 'restricted'),
-  [auditLogActions.privacyRetentionRun]: schema(['bytes', 'category', 'configDays', 'items', 'mode', 'status'], 'restricted'),
+  [auditLogActions.privacyRetentionRun]: schema(['bytes', 'category', 'configDays', 'hashAlgorithm', 'index', 'items', 'marker', 'mode', 'phase', 'status'], 'restricted'),
   [auditLogActions.privacyLegalHoldSet]: schema([], 'restricted'),
   [auditLogActions.privacyLegalHoldCleared]: schema([], 'restricted'),
   [auditLogActions.auditRedacted]: schema(['entries', 'entriesTruncated', 'redacted', 'sealed'], 'restricted'),
