@@ -48,6 +48,7 @@ describeIfDatabase('ticket bulk durable operation manifest', () => {
       throw new Error('fault after terminal result');
     })).rejects.toThrow('fault after terminal result');
     expect(await prisma.ticketBulkOperationItem.count({ where: { operationId: rollbackId, status: 'PENDING' } })).toBe(2);
-    expect(await prisma.ticketBulkOperation.count({ where: { id: rollbackId, status: 'PROCESSING', responseBody: { equals: null } as never } })).toBe(1);
+    expect(await prisma.ticketBulkOperation.findUnique({ where: { id: rollbackId },
+      select: { status: true, responseBody: true } })).toEqual({ status: 'PROCESSING', responseBody: null });
   });
 });
