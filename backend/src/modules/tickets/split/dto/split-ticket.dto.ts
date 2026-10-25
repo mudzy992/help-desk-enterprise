@@ -5,6 +5,7 @@ import {
   IsArray,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -13,6 +14,9 @@ import type { SplitTicketInput } from '../split.types';
 import { SplitTicketChildDto } from './split-ticket-child.dto';
 
 export class SplitTicketDto implements SplitTicketInput {
+  @IsUUID('4')
+  operationId!: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(ticketSplitConstants.maximumReasonLength)

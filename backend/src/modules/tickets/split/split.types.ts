@@ -18,6 +18,8 @@ export type SplitTicketChildInput = {
 };
 
 export type SplitTicketInput = {
+  /** Required by the HTTP DTO; optional only for legacy in-memory harness callers. */
+  readonly operationId?: string;
   readonly reason?: string;
   readonly children: readonly SplitTicketChildInput[];
 };

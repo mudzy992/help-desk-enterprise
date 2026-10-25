@@ -58,10 +58,12 @@ describeIfDatabase('ticket split attachment durable copy', () => {
     const parent = await prisma.ticket.findUniqueOrThrow({ where: { id: parentId } });
     const child = await prisma.ticket.findUniqueOrThrow({ where: { id: childId } });
     const writes = new StorageWriteService(prisma as never);
-    await transferSplitAttachments({ prisma: prisma as never, storage, storageWrites: writes, stagedStorage: flaky,
+    const promotions: import('./split-storage-promotion').SplitStoragePromotion[] = [];
+    await transferSplitAttachments({ prisma: prisma as never, storage, stagedStorage: flaky, promotions,
       parent: parent as never, child: child as never,
       request: { title: 'Child', attachmentIds: [sourceAttachmentId] } as never,
       configuration: { allowAttachmentMove: true } as never });
+    await expect(flaky.promote(promotions[0]!.stagingKey, promotions[0]!.finalKey)).rejects.toThrow('injected promotion fault');
     const copied = await prisma.ticketAttachment.findFirstOrThrow({ where: { ticketId: childId } });
     expect(copied.storagePath.startsWith(`tickets/${childId}/split-`)).toBe(true);
     await expect(storage.read(copied.storagePath)).rejects.toThrow('ATTACHMENT_NOT_FOUND');

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function TicketSplitPanel({
   const [firstTitle, setFirstTitle] = useState(`${ticket.title} (1)`);
   const [secondTitle, setSecondTitle] = useState(`${ticket.title} (2)`);
   const [busy, setBusy] = useState(false);
+  const operationIntent = useRef<{ fingerprint: string; id: string } | null>(null);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
@@ -85,8 +86,13 @@ export function TicketSplitPanel({
             size="sm"
             disabled={busy}
             onClick={() => {
+              const fingerprint = JSON.stringify({ ticketId: ticket.id, reason, firstTitle, secondTitle });
+              if (operationIntent.current?.fingerprint !== fingerprint) {
+                operationIntent.current = { fingerprint, id: crypto.randomUUID() };
+              }
               setBusy(true);
               void splitTicket(ticket.id, {
+                operationId: operationIntent.current.id,
                 reason,
                 children: [{ title: firstTitle }, { title: secondTitle }],
               })

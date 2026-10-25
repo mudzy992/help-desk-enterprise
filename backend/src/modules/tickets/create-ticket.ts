@@ -1,4 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { runCreateTicketTransaction } from './run-create-ticket-transaction';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
 import { applyCreateTicketRouting } from './apply-create-ticket-routing';
@@ -187,7 +188,7 @@ export async function createTicket(
       });
       return withTicketNumberRetry(async () => {
         const reserved = await reserveTicketSequence(prisma);
-        return prisma.$transaction(async (transaction) => {
+        return runCreateTicketTransaction(prisma, async (transaction) => {
         const ticketNumber = await nextTicketNumber(
           () => transaction.ticket.count(),
           () => readHighestTicketSequence(transaction),
