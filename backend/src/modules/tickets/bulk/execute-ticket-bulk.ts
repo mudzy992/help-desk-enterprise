@@ -48,7 +48,7 @@ export async function executeTicketBulk(input: {
     tickets: input.tickets,
   });
   const batchId = input.configuration.auditBatchIdEnabled
-    ? randomUUID()
+    ? (input.body.operationId ?? randomUUID())
     : null;
   const tickets = await dispatchBulkAction({ ...input, batchId });
   if (input.writeAggregateAudit !== false) await recordAuditEntry(input.prisma, {
@@ -59,6 +59,8 @@ export async function executeTicketBulk(input: {
       actionType: input.body.actionType,
       ticketIds: input.body.ticketIds,
       batchId,
+      ...(input.body.operationId === undefined ? {} : { operationId: input.body.operationId }),
+      ...(input.body.mode === undefined ? {} : { mode: input.body.mode, outcome: 'SUCCEEDED', succeeded: input.body.ticketIds.length, failed: 0 }),
     },
     actorUserId: input.actor.actorUserId,
     organizationalUnitId: resolveBulkOrganizationalUnitId(input.tickets),

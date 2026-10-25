@@ -138,7 +138,6 @@ export class TicketsBulkService {
       const operationId = body.operationId ?? randomUUID();
       const mode = body.mode ?? 'atomic';
       const command = { ...body, operationId, mode } as const;
-      const claim = await claimBulkOperation(this.prisma, command, gated.actorUserId);
       const common = {
         context: authContext,
         actor: gated,
@@ -164,8 +163,22 @@ export class TicketsBulkService {
               )
             : undefined,
       };
+      if (body.operationId === undefined || body.mode === undefined) {
+        const legacy = await executeTicketBulk({ ...common, prisma: this.prisma });
+        const reopen = await this.reopenConfigurationLoader.load();
+        const closeCodes = await this.closeCodesConfigurationLoader.load();
+        for (const ticket of legacy.tickets) publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
+        return {
+          ...successSummary(operationId, mode, legacy.tickets.map((ticket) => ticket.id), legacy.recipientCount),
+          batchId: legacy.batchId,
+          actionType: body.actionType,
+          tickets: await toTicketClientResponses(this.prisma, legacy.tickets, { reopen, closeCodes }),
+          ...(legacy.recipientCount === undefined ? {} : { recipientCount: legacy.recipientCount }),
+        };
+      }
+      const claim = await claimBulkOperation(this.prisma, command, gated.actorUserId);
       let result: Awaited<ReturnType<typeof executeTicketBulk>>;
-      let summary;
+      let summary: TicketBulkExecutionSummary;
       if (claim.replay !== null) {
         result = {
           batchId: operationId,
@@ -174,7 +187,8 @@ export class TicketsBulkService {
         };
         summary = claim.replay;
       } else if (mode === 'atomic') {
-        result = await this.prisma.$transaction(async (transaction) => {
+        try {
+          result = await this.prisma.$transaction(async (transaction) => {
           const executed = await executeTicketBulk({ ...common, prisma: transaction as never });
           const completed = {
             operationId, mode, outcome: 'SUCCEEDED' as const,
@@ -186,9 +200,21 @@ export class TicketsBulkService {
             where: { operationId }, data: { status: 'SUCCEEDED', attempts: 1, completedAt: new Date() },
           });
           await completeBulkOperation(transaction as never, operationId, completed);
-          return executed;
-        });
-        summary = successSummary(operationId, mode, body.ticketIds, result.recipientCount);
+            return executed;
+          });
+          summary = successSummary(operationId, mode, body.ticketIds, result.recipientCount);
+        } catch (error) {
+          const failedSummary: TicketBulkExecutionSummary = {
+            operationId, mode, outcome: 'FAILED', ticketIds: [],
+            succeeded: 0, failed: 1, rolledBack: body.ticketIds.length, skipped: 0,
+          };
+          await this.prisma.$transaction(async (transaction) => {
+            await transaction.ticketBulkOperationItem.updateMany({ where: { operationId },
+              data: { status: 'ROLLED_BACK', attempts: 1, completedAt: new Date() } });
+            await completeBulkOperation(transaction as never, operationId, failedSummary);
+          });
+          throw error;
+        }
       } else {
         const parent = tickets.find((ticket) => ticket.id === body.parentTicketId);
         const bulk = new BulkCommandService(this.prisma);
