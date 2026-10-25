@@ -86,7 +86,12 @@ export function TicketSplitPanel({
             size="sm"
             disabled={busy}
             onClick={() => {
-              const fingerprint = JSON.stringify({ ticketId: ticket.id, reason, firstTitle, secondTitle });
+              const fingerprint = JSON.stringify({
+                ticketId: ticket.id,
+                reason,
+                firstTitle,
+                secondTitle,
+              });
               if (operationIntent.current?.fingerprint !== fingerprint) {
                 operationIntent.current = { fingerprint, id: crypto.randomUUID() };
               }

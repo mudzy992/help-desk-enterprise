@@ -37,6 +37,8 @@ export function createInMemoryTicketMessageDelegate(
         : !where.type.notIn.includes(record.type);
     });
   return {
+    count: async ({ where }: { where?: MessageWhere } = {}) =>
+      matching(where).length,
     findMany: async ({
       where,
       orderBy,
