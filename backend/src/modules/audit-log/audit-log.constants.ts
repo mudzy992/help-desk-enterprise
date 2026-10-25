@@ -35,6 +35,7 @@ export const auditLogActions = {
   ticketConfidentialBreakGlass: 'ticket_confidential_break_glass',
   ticketBulkExecute: 'ticket_bulk.execute',
   ticketForwarded: 'ticket.forwarded',
+  ticketMessageCreated: 'ticket.message_created',
   ticketPriorityOverridden: 'ticket.priority_overridden',
   ticketMerged: 'ticket.merged',
   ticketUnmerged: 'ticket.unmerged',

@@ -36,6 +36,7 @@ export async function sendTicketMessageOptimistic(input: {
   input.setMessages((current) => [...current, pending]);
   try {
     const created = await createTicketMessage(input.ticketId, {
+      idempotencyKey: crypto.randomUUID(),
       type: input.type,
       body: input.body,
       ...(input.alsoToMerged === true ? { alsoToMerged: true } : {}),

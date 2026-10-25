@@ -14,6 +14,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.ticketConfidentialBreakGlass]: compatibility([auditLogEntityTypes.ticket]),
   [auditLogActions.ticketBulkExecute]: compatibility([auditLogEntityTypes.ticketBulk]),
   [auditLogActions.ticketForwarded]: compatibility([auditLogEntityTypes.ticket]),
+  [auditLogActions.ticketMessageCreated]: compatibility([auditLogEntityTypes.ticket]),
   [auditLogActions.ticketPriorityOverridden]: compatibility([auditLogEntityTypes.ticket]),
   [auditLogActions.ticketMerged]: compatibility([auditLogEntityTypes.ticket]),
   [auditLogActions.ticketUnmerged]: compatibility([auditLogEntityTypes.ticket]),

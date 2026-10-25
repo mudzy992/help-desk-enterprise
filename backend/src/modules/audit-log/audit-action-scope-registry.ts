@@ -13,6 +13,7 @@ export const auditActionScopeRegistry: Readonly<Record<string, AuditScopePolicy>
   [auditLogActions.ticketConfidentialDenied]: 'entity',
   [auditLogActions.ticketConfidentialBreakGlass]: 'entity',
   [auditLogActions.ticketForwarded]: 'entity',
+  [auditLogActions.ticketMessageCreated]: 'entity',
   [auditLogActions.ticketPriorityOverridden]: 'entity',
   [auditLogActions.ticketMerged]: 'entity',
   [auditLogActions.ticketUnmerged]: 'entity',

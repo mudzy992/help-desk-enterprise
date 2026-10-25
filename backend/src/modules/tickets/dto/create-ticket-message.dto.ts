@@ -1,8 +1,11 @@
-import { IsEnum, IsString, MaxLength, MinLength, IsBoolean, IsOptional } from 'class-validator';
+import { IsEnum, IsString, MaxLength, MinLength, IsBoolean, IsOptional, IsUUID } from 'class-validator';
 import { MessageType } from '../../../generated/prisma/enums';
 import { ticketConstants } from '../tickets.constants';
 
 export class CreateTicketMessageDto {
+  @IsUUID('4')
+  idempotencyKey!: string;
+
   @IsEnum(MessageType)
   type!: MessageType;
 

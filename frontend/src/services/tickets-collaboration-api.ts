@@ -95,6 +95,7 @@ export function listTicketMessages(ticketId: string): Promise<readonly TicketMes
 export function createTicketMessage(
   ticketId: string,
   input: {
+    readonly idempotencyKey: string;
     readonly type: MessageType;
     readonly body: string;
     /** copy a public reply to merged child tickets. */

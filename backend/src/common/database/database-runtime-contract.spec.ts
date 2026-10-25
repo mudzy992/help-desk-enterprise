@@ -34,6 +34,6 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe('20271025230000_storage_write_protocol');
+    expect(expectedSchemaMigration).toBe('20271026010000_ticket_message_command_boundary');
   });
 });

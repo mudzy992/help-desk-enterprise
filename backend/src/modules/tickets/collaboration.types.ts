@@ -58,6 +58,8 @@ export type TicketMessageResponse = {
 };
 
 export type CreateTicketMessageInput = {
+  /** Required at the HTTP boundary; optional only for trusted legacy/internal callers. */
+  readonly idempotencyKey?: string;
   readonly type: MessageType;
   readonly body: string;
   /** Package 1.2 (M4): copy a public agent reply to merged child tickets. */
