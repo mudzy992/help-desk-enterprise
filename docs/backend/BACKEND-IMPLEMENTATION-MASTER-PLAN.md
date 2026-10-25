@@ -245,7 +245,11 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.6 storage write protocol — završen** na SHA `02aa0b4`, CI `40220137718`.
 - Centralni stage→transactional intent→atomic promote tok ima content hash dedupe, pending/processing/ready/failed/compensated state, lease/backoff reconciler, rollback cleanup i durable compensation zapis kada cleanup zakaže.
 - Paket uvodi migraciju `20271025230000_storage_write_protocol`, ali ne zatvara domenske storage nalaze prije integracije konkretnih callera; dokaz je u [26-staged-storage-write-protocol.md](implementation/26-staged-storage-write-protocol.md).
-- Sljedeći paket je **Val 4 / W4.7 post-commit cache invalidation primitive; cache/realtime nikad nije source of truth**.
+- **W4.7 durable post-commit cache invalidation — završen** na SHA `bf57489`, CI `40221177051`.
+- Transactional outbox invalidation intent, cross-replica retry delivery i DB-revision-validated read-through ugovor osiguravaju da cache/realtime ostane izvedena optimizacija, nikad source of truth.
+- Paket nema migraciju i ne zatvara domenske nalaze prije integracije njihovih mutation/read handlera; dokaz je u [27-durable-post-commit-cache-invalidation.md](implementation/27-durable-post-commit-cache-invalidation.md).
+- **Val 4 je potpuno završen (W4.1–W4.7).**
+- Sljedeći paket je **Val 5 / W5.1 tickets transactional command boundary za message/event/audit/outbox tok**.
 
 ### Canonical primitive
 
