@@ -21,8 +21,9 @@ export class DatabaseLockService {
     validate(identity, timeoutMs);
     try {
       await transaction.$queryRaw`SELECT set_config('lock_timeout', ${`${timeoutMs}ms`}, true)`;
-      await transaction.$queryRaw`
-        SELECT pg_advisory_xact_lock(hashtextextended(${canonicalIdentity(identity)}, ${advisoryHashSeed}))`;
+      await transaction.$queryRaw<Array<{ acquired: number }>>`
+        SELECT 1 AS "acquired"
+        FROM pg_advisory_xact_lock(hashtextextended(${canonicalIdentity(identity)}, ${advisoryHashSeed}))`;
     } catch (error) {
       if (postgresCode(error) === '55P03') throw new DatabaseLockError(databaseLockErrorCodes.timeout);
       throw error;
