@@ -200,7 +200,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-03 | P1       | Neključani chain i checkpoint u istoj bazi nemaju external tamper anchor        | završen (W3.4) | L        |
 | BA-audit-log-04 | P2       | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran  | završen (W3.5) | L        |
 | BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | završen (W3.6) | M        |
-| BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | otvoreno | M        |
+| BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | završen (W3.7) | M        |
 | BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | otvoreno | L        |
 | BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
 | BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | otvoreno | M        |
@@ -251,6 +251,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** audit-log/platform owner.
 
 ### BA-audit-log-06 — Globalni chain lock je write bottleneck
+
+**Status: završen u W3.7.** V5 hash-bound particije koriste zasebne OU/global headove i advisory lockove; maintenance ostaje atomski preko shared/exclusive lock ugovora, retention checkpoint nosi mapu particijskih headova, a WORM anchor potpisuje aggregate svih headova. Realni PostgreSQL test u CI `40180285554` dokazuje da OU-B commitira dok je OU-A transakcija još otvorena, bez forkova. Detalji: [16-partitioned-audit-append-concurrency.md](../implementation/16-partitioned-audit-append-concurrency.md).
 
 - **Dokaz:** svaki append uzima isti `pg_advisory_xact_lock(871001)`, često unutar poslovne transakcije nakon drugih writeova.
 - **Uticaj:** svi auditirani moduli cluster-wide serijalizuju commit; spor/blocked transaction povećava tail latency i lock contention, a različit lock ordering s budućim tokovima povećava deadlock rizik.

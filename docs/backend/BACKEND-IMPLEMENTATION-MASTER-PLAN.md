@@ -212,7 +212,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.6 bounded streaming audit export i incremental verify — završen** na SHA `403fbf9`, CI `40140062168`.
 - Export koristi Node stream i stabilne `(createdAt,id)` keyset stranice od najviše 500 redova; verify je inkrementalan, support snapshot je capped na 5.000, a anchor čita samo head red.
 - `BA-audit-log-05` je zatvoren; dokaz je u [15-bounded-audit-export-incremental-verify.md](implementation/15-bounded-audit-export-incremental-verify.md).
-- Sljedeći paket je **W3.7 partitioned audit append concurrency**.
+- **W3.7 partitioned audit append concurrency — završen** na SHA `12d5876`, CI `40180285554`.
+- V5 hash-bound particije, shared maintenance/exclusive partition lockovi, partition-aware verifier/checkpoint/redaction i aggregate multi-head WORM anchor uklanjaju deployment-wide append bottleneck uz očuvan no-fork ugovor.
+- `BA-audit-log-06` je zatvoren; dokaz je u [16-partitioned-audit-append-concurrency.md](implementation/16-partitioned-audit-append-concurrency.md).
+- Sljedeći paket je **W3.8 versionirani audit action-schema registry i metadata granice**.
 
 ### Canonical primitive
 
