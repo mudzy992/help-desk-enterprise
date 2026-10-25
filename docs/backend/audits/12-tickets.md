@@ -144,7 +144,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | ------------- | -------- | ------------------------------------------------------------------------ | -------- |
 | BA-tickets-01 | P1       | Create-message može commitovati poruku uz API grešku i dupli retry       | zatvoreno |
 | BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | zatvoreno |
-| BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | otvoreno |
+| BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | zatvoreno |
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | otvoreno |
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | otvoreno |
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | otvoreno |
@@ -178,13 +178,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Test:** `break-glass-command.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje paralelni retry, replay, payload mismatch, tačno jedan grant/audit/change/system/outbox zapis i rollback svih poslovnih efekata nakon faulta; CI `40225951703` potvrđuje migration replay, backend build/unit/integration, frontend i container kolekcije.
 **Migracija:** `20271026030000_break_glass_atomic_boundary` backfilluje legacy grantove determinističnim UUID-em, uvodi NOT NULL + unique granicu i mora se ručno pokrenuti kroz release migrator.
 
-### BA-tickets-03 — Bulk execute ostavlja parcijalne promjene
+### BA-tickets-03 — Bulk execute ostavlja parcijalne promjene — ZATVORENO
 
-**Dokaz:** `execute-ticket-bulk.ts` dispatchuje sekvencijalne per-ticket operacije; aggregate audit nastaje tek poslije svih.  
-**Uticaj:** kasniji kvar ostavlja ranije assign/status/merge/broadcast promjene, moguće poslane poruke, bez pouzdanog batch rezultata.  
-**Korekcija:** durable bulk operation/item manifest, idempotency, jasno partial stanje i per-item retry/compensation; gdje je moguće DB transakcija.  
-**Acceptance:** fault na svakom itemu vraća stabilan operation ID i tačan success/failure/audit skup bez duplog broadcasta.  
-**Owner/veličina:** tickets/platform, L.
+**Završni dokaz:** HTTP granica zahtijeva UUID v4 `operationId` i eksplicitan `atomic`/`best-effort` režim. `TicketBulkOperation` i `TicketBulkOperationItem` čuvaju immutable request hash, ordinalni item manifest, attempts, terminalni rezultat i aggregate brojače. Atomic režim izvršava sve domenske writeove, per-ticket audit/system evente, item completion, aggregate audit i persisted rezultat u jednoj transakciji; kvar vraća poslovne writeove i durable manifest označava rollback. Best-effort režim koristi bounded zasebnu transakciju po itemu, čuva tačan success/failure skup i isti operation ID ponovo izvršava samo `FAILED`/`PENDING` iteme. Uspješni itemi se ne ponavljaju, a payload drift stabilno pada. Frontend zadržava operation ID dok je submit payload isti.
+**Test:** `ticket-bulk-operation.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje terminal replay, payload mismatch, manifest uniqueness, rollback item completion/resulta i failed-only best-effort resume; puni CI `40229199458` potvrđuje migration replay, backend build/unit/integration, frontend i container kolekcije.
+**Migracija:** `20271026050000_ticket_bulk_operation_manifest` uvodi operation/item manifest, DB status/mode/count checkove, unique operation-item/ordinal granice i mora se ručno pokrenuti kroz release migrator.
 
 ### BA-tickets-04 — Split attachment copy pokazuje na nepostojeći blob
 

@@ -254,7 +254,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.2 ticket confidential break-glass atomic audit boundary — završen** na SHA `b842ac0`, CI `40225951703`.
 - Required UUID v4 correlation ID, persisted replay/payload-drift zaštita i jedna transakcija za grant/change/audit/system event/outbox/success rezultat zatvorili su `BA-tickets-02`; stvarni PostgreSQL concurrency i rollback dokaz je u [29-ticket-break-glass-atomic-boundary.md](implementation/29-ticket-break-glass-atomic-boundary.md).
 - Registar je sada **654 otvorena / 38 zatvorenih / 692 ukupno**; migracija `20271026030000_break_glass_atomic_boundary` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.3 ticket bulk command durable operation/item manifest i eksplicitan atomic/best-effort režim (`BA-tickets-03`)**.
+- **W5.3 ticket bulk durable operation/item manifest — završen** na SHA `151061e`, CI `40229199458`.
+- Required UUID v4 operation ID, eksplicitni atomic/best-effort režim, durable operation/item manifest, canonical payload conflict, terminal replay, atomic rollback i failed-only best-effort resume zatvorili su `BA-tickets-03`; dokaz je u [30-ticket-bulk-durable-operation-manifest.md](implementation/30-ticket-bulk-durable-operation-manifest.md).
+- Registar je sada **653 otvorena / 39 zatvorenih / 692 ukupno**; migracija `20271026050000_ticket_bulk_operation_manifest` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.4 ticket split attachment stvarni blob-reference/copy protokol sa storage reconciliation dokazom (`BA-tickets-04`)**.
 
 ### Canonical primitive
 
