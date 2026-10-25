@@ -396,7 +396,7 @@
     {
       "id": "BA-audit-log-11",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "završen (W3.11)",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3

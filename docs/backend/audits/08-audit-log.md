@@ -205,7 +205,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
 | BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | završen (W3.9) | M        |
 | BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | završen (W3.10) | S        |
-| BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | otvoreno | M        |
+| BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | završen (W3.11) | M        |
 
 ## 11. Detaljni nalazi
 
@@ -299,6 +299,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** audit-log API owner.
 
 ### BA-audit-log-11 — Otvoreni action/entity stringovi
+
+**Status: završen u W3.11.** Svih 145 core akcija ima typed/runtime action→entity→schema v1 compatibility zapis; poznata akcija sa pogrešnim entity tipom pada prije writea. Extension namespace zahtijeva statičku punu schema/scope/compatibility deklaraciju i trenutno je fail-closed prazan. CI dokaz je `40191639867`. Detalji: [20-closed-audit-action-entity-contract.md](../implementation/20-closed-audit-action-entity-contract.md).
 
 - **Dokaz:** constants katalog postoji, ali write tip prihvata proizvoljan string i runtime ga ne potvrđuje; nema per-action schema/version veze.
 - **Uticaj:** typo pravi novi event class koji security journal/filter/retention/webhook možda ne prepoznaje; isti action može vremenom promijeniti metadata oblik bez verzije.

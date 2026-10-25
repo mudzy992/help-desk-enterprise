@@ -224,7 +224,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.10 bounded audit query identifikatori i stabilan cursor envelope — završen** na SHA `65fa04b`, CI `40189888596`.
 - OU/user query identifikatori imaju format i 128-char granicu; javni cursor je canonical bounded base64url v1 envelope, dekodira se prije repositoryja i vraća stabilan `AUDIT_INVALID_CURSOR` ugovor.
 - `BA-audit-log-10` je zatvoren; dokaz je u [19-bounded-audit-query-cursor-envelope.md](implementation/19-bounded-audit-query-cursor-envelope.md).
-- Sljedeći paket je **W3.11 typed action/entity/schema compatibility i extension namespace**.
+- **W3.11 typed action/entity/schema compatibility i extension namespace — završen** na SHA `b4e04d7`, CI `40191639867`.
+- Svih 145 core akcija ima zatvoren action→entity→schema ugovor; mismatch pada prije writea, a `ext.<provider>.<event>` ostaje fail-closed bez statičke pune definicije.
+- `BA-audit-log-11` je zatvoren; audit-log modul je zatvorio svih 11 nalaza. Dokaz je u [20-closed-audit-action-entity-contract.md](implementation/20-closed-audit-action-entity-contract.md).
+- Sljedeći paket je **Val 4 / W4.1 persisted request-idempotency claim/result primitive**.
 
 ### Canonical primitive
 
