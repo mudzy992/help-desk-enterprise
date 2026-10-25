@@ -22,6 +22,11 @@ type ExceptionFilterRequest = {
   headers?: unknown;
 };
 
+function hasCurrentEtag(value: unknown): value is { currentEtag: string } {
+  return typeof value === 'object' && value !== null &&
+    'currentEtag' in value && typeof value.currentEtag === 'string';
+}
+
 @Catch()
 export class HttpRequestExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -39,6 +44,9 @@ export class HttpRequestExceptionFilter implements ExceptionFilter {
     const status = resolveExceptionHttpStatus(exception);
     if (status === 503 && !(exception instanceof HttpException)) {
       response.setHeader('Retry-After', '2');
+    }
+    if (status === 412 && hasCurrentEtag(exception)) {
+      response.setHeader('ETag', exception.currentEtag);
     }
     response
       .status(status)
