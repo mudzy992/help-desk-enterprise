@@ -178,7 +178,17 @@ jobs:
         run: npm run wiring:check
       - name: Test the wiring manifest guard
         run: npm run wiring:test
-      - run: npm run build
+      - name: Build backend with annotated diagnostics
+        run: |
+          set +e
+          npm run build > /tmp/backend-build.log 2>&1
+          code=$?
+          cat /tmp/backend-build.log
+          if [ "$code" -ne 0 ]; then
+            message=$(node -e "process.stdout.write(require('node:fs').readFileSync('/tmp/backend-build.log','utf8').replace(/%/g,'%25').replace(/\\r/g,'%0D').replace(/\\n/g,'%0A').slice(-12000))")
+            echo "::error title=Backend build failure::$message"
+          fi
+          exit "$code"
       - run: npm run lint
       - name: Run suites previously blocked by missing generated Prisma types
         run: npm run test:safety-net:compile
