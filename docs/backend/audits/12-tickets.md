@@ -143,7 +143,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | ID            | Severity | Nalaz                                                                    | Status   |
 | ------------- | -------- | ------------------------------------------------------------------------ | -------- |
 | BA-tickets-01 | P1       | Create-message može commitovati poruku uz API grešku i dupli retry       | zatvoreno |
-| BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | otvoreno |
+| BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | zatvoreno |
 | BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | otvoreno |
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | otvoreno |
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | otvoreno |
@@ -172,13 +172,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Acceptance:** fault nakon svakog koraka daje jedan odgovor i konvergira waiting/SLA/mention/merged-copy.  
 **Owner/veličina:** tickets + notifications/SLA, L.
 
-### BA-tickets-02 — Break-glass grant prethodi kompletnom audit tragu
+### BA-tickets-02 — Break-glass grant prethodi kompletnom audit tragu — ZATVORENO
 
-**Dokaz:** `create-break-glass-event.ts` kreira aktivni event, zatim `recordConfidentialAccessAudit` zasebno piše change log, audit log i system event.  
-**Uticaj:** emergency pristup može postojati bez potpunog forenzičkog traga; API greška podstiče dupli grant.  
-**Korekcija:** event + DB audit/change/system u jednoj transakciji, immutable correlation ID; vanjske objave iz outboxa.  
-**Acceptance:** kvar bilo kojeg audit koraka ne aktivira pristup ili ostavlja vidljiv recoverable pending zapis.  
-**Owner/veličina:** tickets + audit-log, M/L.
+**Završni dokaz:** required UUID v4 `correlationId` je unique i immutable na `BreakGlassEvent`, a grant, change log, canonical audit, system event, durable `ticket.break_glass.effects` outbox intent i uspješni idempotency rezultat nastaju u jednoj PostgreSQL transakciji. Isti correlation ID i isti canonical payload vraćaju persisted rezultat bez duplikata; payload drift stabilno pada. Frontend drži isti ID za transportni retry istog submit intenta i mijenja ga tek kada korisnik promijeni payload.
+**Test:** `break-glass-command.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje paralelni retry, replay, payload mismatch, tačno jedan grant/audit/change/system/outbox zapis i rollback svih poslovnih efekata nakon faulta; CI `40225951703` potvrđuje migration replay, backend build/unit/integration, frontend i container kolekcije.
+**Migracija:** `20271026030000_break_glass_atomic_boundary` backfilluje legacy grantove determinističnim UUID-em, uvodi NOT NULL + unique granicu i mora se ručno pokrenuti kroz release migrator.
 
 ### BA-tickets-03 — Bulk execute ostavlja parcijalne promjene
 

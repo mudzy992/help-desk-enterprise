@@ -251,8 +251,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **Val 4 je potpuno završen (W4.1–W4.7).**
 - **W5.1 tickets transactional message command boundary — završen** na SHA `15d86c9`, CI `40223728831`.
 - Required HTTP idempotency key, persisted result, DB unique message key i jedna transaction granica za message/mention/redaction/waiting/merged-copy/audit/outbox zatvorili su `BA-tickets-01`; dokaz je u [28-ticket-message-transactional-command-boundary.md](implementation/28-ticket-message-transactional-command-boundary.md).
-- Registar je sada **655 otvorenih / 37 zatvorenih / 692 ukupno**; `BA-tickets-12` ostaje otvoren do worker consumer/replay cutovera.
-- Sljedeći paket je **Val 5 / W5.2 ticket confidential break-glass atomic audit boundary**.
+- **W5.2 ticket confidential break-glass atomic audit boundary — završen** na SHA `b842ac0`, CI `40225951703`.
+- Required UUID v4 correlation ID, persisted replay/payload-drift zaštita i jedna transakcija za grant/change/audit/system event/outbox/success rezultat zatvorili su `BA-tickets-02`; stvarni PostgreSQL concurrency i rollback dokaz je u [29-ticket-break-glass-atomic-boundary.md](implementation/29-ticket-break-glass-atomic-boundary.md).
+- Registar je sada **654 otvorena / 38 zatvorenih / 692 ukupno**; migracija `20271026030000_break_glass_atomic_boundary` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.3 ticket bulk command durable operation/item manifest i eksplicitan atomic/best-effort režim (`BA-tickets-03`)**.
 
 ### Canonical primitive
 
