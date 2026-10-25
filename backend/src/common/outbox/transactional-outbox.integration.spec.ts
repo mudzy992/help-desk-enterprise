@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import type { JsonValue } from '../../modules/change-log/change-log.types';
 import { TransactionalOutboxService } from './transactional-outbox.service';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -21,7 +22,7 @@ describeIfDatabase('transactional outbox (integration)', () => {
     await prisma.$disconnect();
   });
 
-  const enqueue = (key: string, payload: Record<string, unknown> = { event: 'created' }, maxAttempts?: number) =>
+  const enqueue = (key: string, payload: JsonValue = { event: 'created' }, maxAttempts?: number) =>
     prisma.$transaction((transaction) => outbox.enqueue(transaction, { topic, dedupeKey: key, payload, maxAttempts }));
 
   it('commits intent with the business transaction and rolls both back together', async () => {
