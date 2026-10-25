@@ -247,3 +247,22 @@ model InboundMailboxState {
   alertedAt        DateTime?
   updatedAt        DateTime  @updatedAt
 }
+
+model IdempotencyRecord {
+  id             String            @id @default(uuid())
+  namespace      String            @db.VarChar(80)
+  key            String            @db.VarChar(128)
+  requestHash    String            @db.Char(64)
+  status         IdempotencyStatus @default(PROCESSING)
+  ownerToken     String            @db.Uuid
+  leaseExpiresAt DateTime
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  expiresAt      DateTime
+
+  @@unique([namespace, key])
+  @@index([status, leaseExpiresAt])
+  @@index([expiresAt])
+}
