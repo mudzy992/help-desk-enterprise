@@ -148,7 +148,7 @@ export class TicketsCollaborationService {
       const redaction = await this.redactionConfigurationLoader.load();
       const waiting = await this.waitingForUserConfigurationLoader.load();
       const idempotencyKey = input.idempotencyKey ?? randomUUID();
-      let committed: { ticket: Parameters<typeof publishPersistedTicketMessages>[1]; messages: TicketPersistedMessageSink; messageType: string } | null = null;
+      const committed: { value: { ticket: Parameters<typeof publishPersistedTicketMessages>[1]; messages: TicketPersistedMessageSink; messageType: string } | null } = { value: null };
       const result = await this.idempotency.execute({
         namespace: `ticket.message.${ticketId}`,
         key: idempotencyKey,
@@ -193,14 +193,14 @@ export class TicketsCollaborationService {
               actorUserId: context.actorUserId, waitingResumed: resumed.status !== ticket.status },
           });
           const response = toTicketMessageResponse(message, scan.matches);
-          committed = { ticket: resumed, messages, messageType: message.type };
+          committed.value = { ticket: resumed, messages, messageType: message.type };
           return { statusCode: 201, body: response as never };
         },
       });
-      if (!result.replayed && committed !== null) {
-        publishPersistedTicketMessages(this.realtimeHub, committed.ticket, committed.messages);
-        if (committed.messageType === 'AGENT_REPLY') {
-          await applyTicketSlaTimers(gated, { ticket: committed.ticket, event: 'agent_replied' }).catch(() => undefined);
+      if (!result.replayed && committed.value !== null) {
+        publishPersistedTicketMessages(this.realtimeHub, committed.value.ticket, committed.value.messages);
+        if (committed.value.messageType === 'AGENT_REPLY') {
+          await applyTicketSlaTimers(gated, { ticket: committed.value.ticket, event: 'agent_replied' }).catch(() => undefined);
         }
       }
       return result.body as unknown as TicketMessageResponse;
