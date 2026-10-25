@@ -263,7 +263,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.5 ticket split potpuni preflight, operation idempotency i atomic multi-child DB granica — završen** na SHA `b65cffa`, CI `40233520653`.
 - Potpuni preflight, required UUID v4 operation ID, persisted replay/payload-drift zaštita, jedna transakcija za parent/children/messages/attachments/events/SLA/assignment/storage intente i post-commit promotion zatvorili su `BA-tickets-05`; stvarni PostgreSQL rollback/replay dokaz je u [32-ticket-split-atomic-idempotent-boundary.md](implementation/32-ticket-split-atomic-idempotent-boundary.md).
 - Registar je sada **651 otvoren / 41 zatvoren / 692 ukupno**; paket nema novu migraciju i koristi postojeće `RequestIdempotency` i `StorageWriteIntent` ugovore.
-- Sljedeći paket je **Val 5 / W5.6 approval decision/gate concurrency-safe granica (`BA-tickets-06`)**.
+- **W5.6 ticket approval decision/gate concurrency-safe granica — završen** na SHA `e4ab71c`, CI `40235330066`.
+- Conditional approval/ticket claim, jedna transakcija za odluku i side effecte te DB unique `(ticketId, stepOrder)` zatvorili su `BA-tickets-06`; stvarni PostgreSQL dokaz sa 20 paralelnih odluka je u [33-ticket-approval-concurrency-boundary.md](implementation/33-ticket-approval-concurrency-boundary.md).
+- Registar je sada **650 otvorenih / 42 zatvorena / 692 ukupno**; migracija `20271026100000_ticket_approval_concurrency_boundary` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.7 permission-correct i manifestovani CSV export (`BA-tickets-07`)**.
 
 ### Canonical primitive
 

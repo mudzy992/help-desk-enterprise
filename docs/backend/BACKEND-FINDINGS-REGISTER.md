@@ -131,7 +131,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-03` | P1 | Bulk execute ostavlja parcijalne promjene bez operation manifesta | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-04` | P1 | Split attachment copy pokazuje na nepostojeći blob | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-05` | P1 | Split kreira parcijalne childove prije pune validacije | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-06` | P1 | Approval decision/gate nisu concurrency-safe | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-06` | P1 | Approval decision/gate nisu concurrency-safe | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-07` | P1 | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-08` | P1 | Guardrail claim-before-effect može trajno progutati automation/CSAT | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-09` | P2 | Attachment limit/delete i DB/storage lifecycle nisu konzistentni | otvoreno | [12-tickets.md](audits/12-tickets.md) |
@@ -732,7 +732,7 @@ W2.7 je na SHA `c78c445`, CI `40128598505`, zatvorio `BA-docs-01`, `BA-settings-
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **651**
-- Zatvoreno: **41** (`BA-audit-log-11`, `BA-audit-log-10`, `BA-audit-log-09`, `BA-audit-log-07`, `BA-audit-log-06`, `BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-tickets-01/02/03/04/05`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **650**
+- Zatvoreno: **42** (`BA-audit-log-11`, `BA-audit-log-10`, `BA-audit-log-09`, `BA-audit-log-07`, `BA-audit-log-06`, `BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-tickets-01/02/03/04/05/06`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
 - Duplicirani ID-evi: **0**
 - P0: **0**

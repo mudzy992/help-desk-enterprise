@@ -147,7 +147,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | zatvoreno |
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | zatvoreno |
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | zatvoreno |
-| BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | otvoreno |
+| BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | zatvoreno |
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno |
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | otvoreno |
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | otvoreno |
@@ -197,13 +197,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Test:** `split-attachment-storage.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje rollback ranijih child writeova nakon kasne greške, nula preostalih childova, tačno dva childa nakon uspjeha, identičan replay bez drugog izvršenja i payload mismatch. Puni CI `40233520653` potvrđuje backend build/lint/unit, stvarni PostgreSQL/Redis integration, frontend, docs i container/supply-chain kolekcije.
 **Migracija:** paket ne uvodi novu migraciju; koristi postojeće `RequestIdempotency` i `StorageWriteIntent` schema ugovore.
 
-### BA-tickets-06 — Approval decision/gate nisu concurrency-safe
+### BA-tickets-06 — Approval decision/gate nisu concurrency-safe — ZATVORENO
 
-**Dokaz:** `decide-ticket-approval.ts` čita PENDING prije transakcije i bezuslovno updateuje po ID-u; `ensure-ticket-approval-gate.ts` radi check/update/create/event bez transakcije; schema nema unique ticket/step.  
-**Uticaj:** paralelni approve/reject mogu oba uspjeti i ostaviti kontradiktorne događaje; gate može napraviti duple pending redove ili status bez approvala.  
-**Korekcija:** conditional update/updateMany count, row lock/version, unique `(ticketId,stepOrder)` i jedna transakcija.  
-**Acceptance:** 20 paralelnih odluka daje jednog pobjednika; gate uvijek ima tačno jedan approval.  
-**Owner/veličina:** tickets/data, M.
+**Završni dokaz:** approval decision sada conditional claimuje jedini `PENDING` red i očekivani ticket status unutar iste transakcije koja zapisuje sve change/participant/system/decision efekte. Gubitnik ne može zapisati kontradiktoran događaj. Gate conditional claimuje status, a DB unique `(ticketId, stepOrder)` garantuje jedan canonical approval po workflow koraku. Migracija fail-closed odbija legacy duplikate umjesto proizvoljnog brisanja poslovne odluke.
+**Test:** `ticket-approval-concurrency.integration.spec.ts` na stvarnom PostgreSQL-u pokreće 20 paralelnih approve/reject odluka: tačno jedna uspijeva, 19 pada, ostaje jedan approval i ticket status odgovara pobjedniku; unique constraint dodatno odbija drugi red za isti korak. Puni CI `40235330066` potvrđuje migration replay/policy, backend build/lint/unit/integration, frontend, docs i container kolekcije.
+**Migracija:** `20271026100000_ticket_approval_concurrency_boundary` uvodi unique ticket/step granicu i mora se ručno pokrenuti kroz release migrator; legacy duplikati zahtijevaju prethodnu eksplicitnu operatorsku popravku.
 
 ### BA-tickets-07 — CSV export može biti tih i nepotpun
 
