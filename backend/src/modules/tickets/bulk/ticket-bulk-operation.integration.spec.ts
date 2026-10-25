@@ -12,6 +12,7 @@ describeIfDatabase('ticket bulk durable operation manifest', () => {
   const actorUserId = 'bulk-manifest-actor';
   const operationId = '20000000-0000-4000-8000-000000000001';
   const rollbackId = '20000000-0000-4000-8000-000000000002';
+  const bestEffortId = '20000000-0000-4000-8000-000000000003';
   const body = (id: string, priority: 'HIGH' | 'CRITICAL' = 'HIGH') => ({
     operationId: id, mode: 'atomic' as const, ticketIds: ['ticket-a', 'ticket-b'],
     actionType: 'set_priority' as const, priority, reason: 'integration proof',
@@ -19,7 +20,7 @@ describeIfDatabase('ticket bulk durable operation manifest', () => {
 
   beforeAll(() => { prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) }); });
   afterAll(async () => {
-    await prisma.ticketBulkOperation.deleteMany({ where: { id: { in: [operationId, rollbackId] } } });
+    await prisma.ticketBulkOperation.deleteMany({ where: { id: { in: [operationId, rollbackId, bestEffortId] } } });
     await prisma.$disconnect();
   });
 
@@ -36,6 +37,22 @@ describeIfDatabase('ticket bulk durable operation manifest', () => {
     expect(await prisma.ticketBulkOperationItem.count({ where: { operationId, status: 'SUCCEEDED' } })).toBe(2);
     await expect(claimBulkOperation(prisma, body(operationId, 'CRITICAL'), actorUserId))
       .rejects.toMatchObject({ code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' });
+  });
+
+  it('resumes only failed best-effort items and preserves successful item attempts', async () => {
+    const request = { ...body(bestEffortId), mode: 'best-effort' as const };
+    await claimBulkOperation(prisma, request, actorUserId);
+    await prisma.ticketBulkOperationItem.update({ where: { operationId_itemKey: { operationId: bestEffortId, itemKey: 'ticket-a' } },
+      data: { status: 'SUCCEEDED', attempts: 1, completedAt: new Date() } });
+    await prisma.ticketBulkOperationItem.update({ where: { operationId_itemKey: { operationId: bestEffortId, itemKey: 'ticket-b' } },
+      data: { status: 'FAILED', attempts: 1, errorCode: 'TRANSIENT', retryable: true, completedAt: new Date() } });
+    await completeBulkOperation(prisma, bestEffortId, { operationId: bestEffortId, mode: 'best-effort', outcome: 'PARTIAL',
+      ticketIds: ['ticket-a'], succeeded: 1, failed: 1, rolledBack: 0, skipped: 0 });
+    expect(await claimBulkOperation(prisma, request, actorUserId)).toEqual({ replay: null, resumed: true });
+    const retryable = await prisma.ticketBulkOperationItem.findMany({
+      where: { operationId: bestEffortId, status: { in: ['PENDING', 'FAILED'] } }, select: { itemKey: true },
+    });
+    expect(retryable).toEqual([{ itemKey: 'ticket-b' }]);
   });
 
   it('rolls item completion and terminal result back together after a fault', async () => {
