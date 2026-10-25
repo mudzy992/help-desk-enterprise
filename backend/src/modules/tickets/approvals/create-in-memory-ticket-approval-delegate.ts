@@ -1,5 +1,5 @@
-import { pickInMemoryRecord } from '../in-memory-record';
-import type { TicketApprovalRecord } from './approvals.types';
+import { pickInMemoryRecord } from "../in-memory-record";
+import type { TicketApprovalRecord } from "./approvals.types";
 
 type ApprovalWhere = {
   readonly id?: string;
@@ -28,11 +28,13 @@ export function createInMemoryTicketApprovalDelegate(
       orderBy,
     }: {
       where?: ApprovalWhere;
-      orderBy?: { stepOrder: 'asc' | 'desc' };
+      orderBy?: { stepOrder: "asc" | "desc" };
     } = {}) => {
       const items = matching(where);
-      if (orderBy?.stepOrder === 'desc') {
-        return [...items].sort((left, right) => right.stepOrder - left.stepOrder);
+      if (orderBy?.stepOrder === "desc") {
+        return [...items].sort(
+          (left, right) => right.stepOrder - left.stepOrder,
+        );
       }
       return [...items].sort((left, right) => left.stepOrder - right.stepOrder);
     },
@@ -48,7 +50,7 @@ export function createInMemoryTicketApprovalDelegate(
     create: async ({
       data,
     }: {
-      data: Omit<TicketApprovalRecord, 'id' | 'createdAt' | 'updatedAt'> & {
+      data: Omit<TicketApprovalRecord, "id" | "createdAt" | "updatedAt"> & {
         id?: string;
         approverUserId?: string | null;
         comment?: string | null;
@@ -67,6 +69,19 @@ export function createInMemoryTicketApprovalDelegate(
       records.set(created.id, created);
       return created;
     },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where?: ApprovalWhere;
+      data: Partial<TicketApprovalRecord>;
+    }) => {
+      const items = matching(where);
+      for (const current of items) {
+        records.set(current.id, { ...current, ...data, updatedAt: now() });
+      }
+      return { count: items.length };
+    },
     update: async ({
       where,
       data,
@@ -76,7 +91,7 @@ export function createInMemoryTicketApprovalDelegate(
     }) => {
       const current = records.get(where.id);
       if (current === undefined) {
-        throw new Error('NOT_FOUND');
+        throw new Error("NOT_FOUND");
       }
       const updated: TicketApprovalRecord = {
         ...current,

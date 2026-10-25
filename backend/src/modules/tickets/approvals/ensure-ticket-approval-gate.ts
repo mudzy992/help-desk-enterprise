@@ -1,11 +1,11 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { ticketSystemEventActions } from '../collaboration.constants';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
-import { insertSystemTicketEvent } from '../insert-system-ticket-event';
-import type { TicketRecord } from '../tickets.types';
-import { createPendingTicketApproval } from './create-pending-ticket-approval';
-import { resolveTicketApprovalRequirement } from './resolve-ticket-approval-requirement';
-import type { TicketApprovalsConfiguration } from './approvals.types';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { ticketSystemEventActions } from "../collaboration.constants";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
+import { insertSystemTicketEvent } from "../insert-system-ticket-event";
+import type { TicketRecord } from "../tickets.types";
+import { createPendingTicketApproval } from "./create-pending-ticket-approval";
+import { resolveTicketApprovalRequirement } from "./resolve-ticket-approval-requirement";
+import type { TicketApprovalsConfiguration } from "./approvals.types";
 
 /**
  * Val 2 (M9/B2). A service that requires approval only gated tickets that were
@@ -33,7 +33,7 @@ export async function ensureTicketApprovalGate(input: {
     serviceId: input.ticket.serviceId,
     serviceRequiresApproval: input.serviceRequiresApproval,
   });
-  if (!requiresApproval || input.ticket.status === 'PENDING_APPROVAL') {
+  if (!requiresApproval || input.ticket.status === "PENDING_APPROVAL") {
     return { ticket: input.ticket, gated: false };
   }
   const existing = await input.prisma.ticketApproval.findFirst({
@@ -43,9 +43,18 @@ export async function ensureTicketApprovalGate(input: {
   if (existing !== null) {
     return { ticket: input.ticket, gated: false };
   }
-  const updated = (await input.prisma.ticket.update({
+  const claimed = await input.prisma.ticket.updateMany({
+    where: { id: input.ticket.id, status: input.ticket.status },
+    data: { status: "PENDING_APPROVAL" },
+  });
+  if (claimed.count !== 1) {
+    const current = (await input.prisma.ticket.findUniqueOrThrow({
+      where: { id: input.ticket.id },
+    })) as TicketRecord;
+    return { ticket: current, gated: false };
+  }
+  const updated = (await input.prisma.ticket.findUniqueOrThrow({
     where: { id: input.ticket.id },
-    data: { status: 'PENDING_APPROVAL' },
   })) as TicketRecord;
   await createPendingTicketApproval(input.prisma, updated);
   input.messages.push(

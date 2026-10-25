@@ -1,27 +1,26 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { changeLogActions } from '../../change-log/change-log.constants';
-import { loadOrganizationalUnitPath } from '../../authorization/load-authorization-scope';
-import { assertTicketStatusTransition } from '../assert-ticket-status-transition';
-import { insertSystemTicketEvent } from '../insert-system-ticket-event';
-import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
-import { loadAccessibleTicket } from '../load-accessible-ticket';
-import { recordTicketChange } from '../record-ticket-change';
-import { ticketSystemEventActions } from '../collaboration.constants';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
-import type { TicketMutationContext, TicketRecord } from '../tickets.types';
-import { TicketsError } from '../tickets.error';
-import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
-import { assertCanDecideTicketApproval } from './assert-can-decide-ticket-approval';
-import {
-  ticketApprovalChangeLogReasons,
-} from './approvals.constants';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { AuthorizationContextLoader } from "../../authorization/authorization-context.loader";
+import { changeLogActions } from "../../change-log/change-log.constants";
+import { loadOrganizationalUnitPath } from "../../authorization/load-authorization-scope";
+import { assertTicketStatusTransition } from "../assert-ticket-status-transition";
+import { insertSystemTicketEvent } from "../insert-system-ticket-event";
+import { applyTicketLifecycleTimestamps } from "../apply-ticket-lifecycle-timestamps";
+import { loadAccessibleTicket } from "../load-accessible-ticket";
+import { recordTicketChange } from "../record-ticket-change";
+import { ticketSystemEventActions } from "../collaboration.constants";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
+import type { TicketMutationContext, TicketRecord } from "../tickets.types";
+import { TicketsError } from "../tickets.error";
+import { applyTicketSlaTimers } from "../apply-ticket-sla-timers";
+import { assertCanDecideTicketApproval } from "./assert-can-decide-ticket-approval";
+import { ticketApprovalChangeLogReasons } from "./approvals.constants";
 import type {
   TicketApprovalDecision,
   TicketApprovalRecord,
   TicketApprovalsConfiguration,
-} from './approvals.types';
-import { normalizeApprovalComment } from './normalize-approval-comment';
+} from "./approvals.types";
+import { normalizeApprovalComment } from "./normalize-approval-comment";
+import { claimTicketApprovalDecision } from "./claim-ticket-approval-decision";
 
 export async function decideTicketApproval(
   prisma: PrismaService,
@@ -45,20 +44,20 @@ export async function decideTicketApproval(
     context.actorUserId,
   );
   if (authContext === null) {
-    throw new TicketsError('FORBIDDEN');
+    throw new TicketsError("FORBIDDEN");
   }
   const originUnitPath = await loadOrganizationalUnitPath(
     prisma,
     ticket.originUnitId,
   );
   if (originUnitPath === null) {
-    throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
+    throw new TicketsError("ORIGIN_UNIT_NOT_FOUND");
   }
   const approval = (await prisma.ticketApproval.findUnique({
     where: { id: approvalId },
   })) as TicketApprovalRecord | null;
   if (approval === null || approval.ticketId !== ticket.id) {
-    throw new TicketsError('APPROVAL_NOT_FOUND');
+    throw new TicketsError("APPROVAL_NOT_FOUND");
   }
   assertCanDecideTicketApproval({
     context: authContext,
@@ -67,7 +66,7 @@ export async function decideTicketApproval(
     originUnitPath,
     configuration,
   });
-    const nextStatus = decision === 'APPROVED' ? 'PENDING' : 'CLOSED';
+  const nextStatus = decision === "APPROVED" ? "PENDING" : "CLOSED";
   assertTicketStatusTransition(ticket.status, nextStatus);
   const normalizedComment = normalizeApprovalComment(comment);
   const decidedAt = new Date();
@@ -77,23 +76,25 @@ export async function decideTicketApproval(
     now: decidedAt,
   });
   const decided = await prisma.$transaction(async (transaction) => {
-    await transaction.ticketApproval.update({
-      where: { id: approval.id },
-      data: {
-        status: decision,
-        approverUserId: context.actorUserId,
-        comment: normalizedComment,
-        decidedAt,
-      },
+    await claimTicketApprovalDecision({
+      transaction,
+      approvalId: approval.id,
+      ticketId: ticket.id,
+      expectedTicketStatus: ticket.status,
+      nextTicketStatus: nextStatus,
+      decision,
+      approverUserId: context.actorUserId,
+      comment: normalizedComment,
+      decidedAt,
+      ticketTimestamps: timestamps,
     });
-    const updated = (await transaction.ticket.update({
+    const updated = (await transaction.ticket.findUniqueOrThrow({
       where: { id: ticket.id },
-      data: { status: nextStatus, ...timestamps },
     })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {
       action: changeLogActions.update,
       reason:
-        decision === 'APPROVED'
+        decision === "APPROVED"
           ? ticketApprovalChangeLogReasons.approved
           : ticketApprovalChangeLogReasons.rejected,
       before: ticket,
@@ -109,7 +110,7 @@ export async function decideTicketApproval(
       await insertSystemTicketEvent(transaction as PrismaService, {
         ticketId: updated.id,
         action:
-          decision === 'APPROVED'
+          decision === "APPROVED"
             ? ticketSystemEventActions.approvalApproved
             : ticketSystemEventActions.approvalRejected,
         actorUserId: context.actorUserId,
@@ -119,7 +120,7 @@ export async function decideTicketApproval(
       await transaction.ticketMessage.create({
         data: {
           ticketId: updated.id,
-          type: 'APPROVAL_DECISION',
+          type: "APPROVAL_DECISION",
           body: normalizedComment,
           authorUserId: context.actorUserId,
         },
@@ -131,7 +132,7 @@ export async function decideTicketApproval(
     ticket: decided,
     previousStatus: ticket.status,
     now: decidedAt,
-    event: 'status_changed',
+    event: "status_changed",
   });
   return decided;
 }
@@ -142,13 +143,13 @@ async function ensureApproverParticipant(
   userId: string,
 ): Promise<void> {
   const existing = await prisma.ticketParticipant.findFirst({
-    where: { ticketId, role: 'APPROVER', userId },
+    where: { ticketId, role: "APPROVER", userId },
     select: { id: true },
   });
   if (existing !== null) {
     return;
   }
   await prisma.ticketParticipant.create({
-    data: { ticketId, role: 'APPROVER', userId },
+    data: { ticketId, role: "APPROVER", userId },
   });
 }
