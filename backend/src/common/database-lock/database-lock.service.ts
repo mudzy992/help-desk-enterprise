@@ -68,6 +68,7 @@ function validate(identity: DatabaseLockIdentity, timeoutMs: number): void {
 function postgresCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
   if ('code' in error && typeof error.code === 'string' && error.code === '55P03') return error.code;
+  if ('message' in error && typeof error.message === 'string' && error.message.includes('55P03')) return '55P03';
   if ('meta' in error && typeof error.meta === 'object' && error.meta !== null &&
       'code' in error.meta && typeof error.meta.code === 'string') return error.meta.code;
   if ('cause' in error) return postgresCode(error.cause);
