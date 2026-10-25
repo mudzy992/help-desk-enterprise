@@ -1,3 +1,4 @@
+/* global process, console */
 class GitHubJestReporter {
   onRunComplete(_contexts, results) {
     if (process.env.GITHUB_ACTIONS !== 'true') return;
