@@ -146,7 +146,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | zatvoreno |
 | BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | zatvoreno |
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | zatvoreno |
-| BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | otvoreno |
+| BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | zatvoreno |
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | otvoreno |
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno |
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | otvoreno |
@@ -191,13 +191,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Test:** `split-attachment-storage.integration.spec.ts` na stvarnom PostgreSQL-u i stvarnom disku injectuje promotion kvar, potvrđuje durable DB attachment + pending intent, zatim reconciliation, čitljiv child blob i očuvan parent blob. Puni CI `40231167864` potvrđuje backend/unit/integration, frontend i container kolekcije.
 **Migracija:** paket ne uvodi novu migraciju; koristi postojeći `StorageWriteIntent` ugovor iz migracije `20271025230000_storage_write_protocol`.
 
-### BA-tickets-05 — Split je parcijalan prije pune validacije
+### BA-tickets-05 — Split je parcijalan prije pune validacije — ZATVORENO
 
-**Dokaz:** `split-ticket.ts` kreira child i SLA/event prije `copySplitMessages`/`transferSplitAttachments`; childovi su sekvencijalni bez jedne operacije.  
-**Uticaj:** nevažeći ID ili zabrana na kasnijem koraku vraća grešku uz već kreirane childove/assets/events. Retry pravi dodatne childove.  
-**Korekcija:** potpuni preflight svih child inputa, operation idempotency i DB transakcija/manifests za multi-child/storage dio.  
-**Acceptance:** invalid input ne ostavlja child; crash/retry daje tačno definisan broj childova.  
-**Owner/veličina:** tickets, L.
+**Završni dokaz:** HTTP granica zahtijeva UUID v4 `operationId`, a frontend ga zadržava stabilnim za isti submit intent. Potpuni preflight prije prve poslovne mutacije provjerava sve message/attachment ID-jeve, konfiguracijske zabrane i višestruki move istog attachmenta. Parent, svi childovi, poruke, attachment metadata, storage intenti, događaji, SLA i assignment zapisi izvršavaju se u jednoj PostgreSQL transakciji; transaction-aware create helper uklanja nested transaction rizik. Persistirani idempotency rezultat vraća isti uređeni skup child ID-jeva pri identičnom retryu, dok payload drift stabilno pada. Attachment staging se čisti na rollbacku, a promotion počinje tek nakon commita.
+**Test:** `split-attachment-storage.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje rollback ranijih child writeova nakon kasne greške, nula preostalih childova, tačno dva childa nakon uspjeha, identičan replay bez drugog izvršenja i payload mismatch. Puni CI `40233520653` potvrđuje backend build/lint/unit, stvarni PostgreSQL/Redis integration, frontend, docs i container/supply-chain kolekcije.
+**Migracija:** paket ne uvodi novu migraciju; koristi postojeće `RequestIdempotency` i `StorageWriteIntent` schema ugovore.
 
 ### BA-tickets-06 — Approval decision/gate nisu concurrency-safe
 

@@ -260,7 +260,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.4 ticket split attachment durable copy i reconciliation — završen** na SHA `31f831c`, CI `40231167864`.
 - Stvarni child blob, transactional storage intent, deterministic copy idempotency key i worker-only bounded reconciliation zatvorili su `BA-tickets-04`; stvarni PostgreSQL + disk fault/recovery dokaz je u [31-ticket-split-attachment-durable-copy.md](implementation/31-ticket-split-attachment-durable-copy.md).
 - Registar je sada **652 otvorena / 40 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeći `StorageWriteIntent` ugovor.
-- Sljedeći paket je **Val 5 / W5.5 ticket split potpuni preflight, operation idempotency i atomic multi-child DB granica (`BA-tickets-05`)**.
+- **W5.5 ticket split potpuni preflight, operation idempotency i atomic multi-child DB granica — završen** na SHA `b65cffa`, CI `40233520653`.
+- Potpuni preflight, required UUID v4 operation ID, persisted replay/payload-drift zaštita, jedna transakcija za parent/children/messages/attachments/events/SLA/assignment/storage intente i post-commit promotion zatvorili su `BA-tickets-05`; stvarni PostgreSQL rollback/replay dokaz je u [32-ticket-split-atomic-idempotent-boundary.md](implementation/32-ticket-split-atomic-idempotent-boundary.md).
+- Registar je sada **651 otvoren / 41 zatvoren / 692 ukupno**; paket nema novu migraciju i koristi postojeće `RequestIdempotency` i `StorageWriteIntent` ugovore.
+- Sljedeći paket je **Val 5 / W5.6 approval decision/gate concurrency-safe granica (`BA-tickets-06`)**.
 
 ### Canonical primitive
 
