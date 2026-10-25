@@ -266,7 +266,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.6 ticket approval decision/gate concurrency-safe granica — završen** na SHA `e4ab71c`, CI `40235330066`.
 - Conditional approval/ticket claim, jedna transakcija za odluku i side effecte te DB unique `(ticketId, stepOrder)` zatvorili su `BA-tickets-06`; stvarni PostgreSQL dokaz sa 20 paralelnih odluka je u [33-ticket-approval-concurrency-boundary.md](implementation/33-ticket-approval-concurrency-boundary.md).
 - Registar je sada **650 otvorenih / 42 zatvorena / 692 ukupno**; migracija `20271026100000_ticket_approval_concurrency_boundary` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.7 permission-correct i manifestovani CSV export (`BA-tickets-07`)**.
+- **W5.7 permission-correct cursor CSV export i truncation manifest — završen** na SHA `21808ca`, CI `40237791891`.
+- Confidential i tačan `audit.export` OU/service scope sada ulaze u SQL prije limita; bounded ID cursor i eksplicitni audit/HTTP truncation manifest zatvorili su `BA-tickets-07`. Stvarni PostgreSQL dokaz je u [34-ticket-export-scope-cursor-manifest.md](implementation/34-ticket-export-scope-cursor-manifest.md).
+- Registar je sada **649 otvorenih / 43 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.8 guardrail effect claim/recovery i durable CSAT/automation izvršenje (`BA-tickets-08`)**.
 
 ### Canonical primitive
 

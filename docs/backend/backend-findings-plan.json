@@ -5004,7 +5004,7 @@
     {
       "id": "BA-tickets-07",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "12-tickets.md",
       "owner": "WS-F",
       "wave": 5

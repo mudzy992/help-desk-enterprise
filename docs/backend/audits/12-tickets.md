@@ -148,7 +148,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | zatvoreno |
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | zatvoreno |
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | zatvoreno |
-| BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno |
+| BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | zatvoreno |
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | otvoreno |
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | otvoreno |
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | otvoreno |
@@ -203,11 +203,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Test:** `ticket-approval-concurrency.integration.spec.ts` na stvarnom PostgreSQL-u pokreće 20 paralelnih approve/reject odluka: tačno jedna uspijeva, 19 pada, ostaje jedan approval i ticket status odgovara pobjedniku; unique constraint dodatno odbija drugi red za isti korak. Puni CI `40235330066` potvrđuje migration replay/policy, backend build/lint/unit/integration, frontend, docs i container kolekcije.
 **Migracija:** `20271026100000_ticket_approval_concurrency_boundary` uvodi unique ticket/step granicu i mora se ručno pokrenuti kroz release migrator; legacy duplikati zahtijevaju prethodnu eksplicitnu operatorsku popravku.
 
-### BA-tickets-07 — CSV export može biti tih i nepotpun
+### BA-tickets-07 — CSV export može biti tih i nepotpun — ZATVORENO
 
-**Dokaz:** `export-tickets.ts` učitava do 5.001 vidljiv red, pa tek onda izbacuje confidential i scope bez export permisije.  
-**Uticaj:** excluded redovi u prvih 5.001 potiskuju kasnije eligible redove; CSV ne javlja truncation i nije pouzdan poslovni/compliance izvoz.  
-**Korekcija:** permission/confidential predicate u DB where prije limita, cursor streaming i manifest/count/truncation semantika.  
+**Završni dokaz:** shared visibility, confidential zabrana i tačan OU/service scope assignmenta koji nosi `audit.export` sada pripadaju istom SQL `where` predikatu prije limita. Eligible redovi čitaju se stabilnim ID cursorom u batchovima od 500. Izvoz ima eksplicitan manifest (`exportedCount`, eligible lower bound, lower-bound indikator, `truncated`, `maxRows`) u audit metadata i HTTP `X-Export-*` headerima, pa 5.000-row granica više nije tiha.
+**Test:** `ticket-export-scope.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje da confidential i out-of-scope redovi ne mogu potisnuti dva kasnija eligible reda pri limitu dva. Puni CI `40237791891` potvrđuje backend build/lint/unit/integration, frontend, docs i container kolekcije.
+**Migracija:** paket ne uvodi novu migraciju.
 **Acceptance:** miješani >5.001 dataset izvozi kompletan eligible skup ili eksplicitno odbija kao prevelik.  
 **Owner/veličina:** tickets/authorization, M.
 
