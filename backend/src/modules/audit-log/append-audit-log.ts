@@ -22,8 +22,10 @@ export async function appendAuditLog(
   const organizationalUnitId = prepared.organizationalUnitId ?? null;
   const chainPartition = organizationalUnitId === null ? 'global' : `ou:${organizationalUnitId}`;
   const partitionLockKey = createHash('sha256').update(chainPartition).digest().readInt32BE(0);
-  await transaction.$executeRaw`SELECT pg_advisory_xact_lock_shared(${auditLogMaintenanceLockKey})`;
-  await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${auditLogChainLockKey}, ${partitionLockKey})`;
+  await transaction.$executeRaw`
+    SELECT
+      pg_advisory_xact_lock_shared(${auditLogMaintenanceLockKey}),
+      pg_advisory_xact_lock(${auditLogChainLockKey}, ${partitionLockKey})`;
   const latest = await transaction.auditLog.findFirst({
     where: { chainPartition },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
