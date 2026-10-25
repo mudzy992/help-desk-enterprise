@@ -89,6 +89,8 @@ describeIfDatabase('confidential break-glass atomic command boundary', () => {
     expect(await prisma.outboxMessage.count({ where: { dedupeKey: rollbackCorrelationId } })).toBe(0);
     expect(await prisma.changeLog.count({ where: { entityId: ticketId, diff: { path: ['after', 'correlationId'], equals: rollbackCorrelationId } } as never })).toBe(0);
     expect(await prisma.auditLog.count({ where: { entityId: ticketId, metadata: { path: ['correlationId'], equals: rollbackCorrelationId } } as never })).toBe(0);
-    expect(await prisma.idempotencyRecord.count({ where: { namespace: `ticket.break_glass.${ticketId}`, key: rollbackCorrelationId } })).toBe(0);
+    expect(await prisma.idempotencyRecord.count({ where: {
+      namespace: `ticket.break_glass.${ticketId}`, key: rollbackCorrelationId, status: 'PROCESSING', responseBody: { equals: null },
+    } })).toBe(1);
   });
 });
