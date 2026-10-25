@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RequestIdempotencyService } from '../../common/idempotency/request-idempotency.service';
 import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
-import { recordAuditEntry, type AuditLogTransactionalClient } from '../audit-log/audit-log.repository';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { addTicketParticipant } from './add-ticket-participant';
@@ -183,7 +184,7 @@ export class TicketsCollaborationService {
             action: auditLogActions.ticketMessageCreated,
             entityType: auditLogEntityTypes.ticket,
             entityId: ticket.id,
-            organizationalUnitId: ticket.organizationalUnitId,
+            organizationalUnitId: ticket.originUnitId,
             actorUserId: context.actorUserId,
             metadata: { idempotencyKey, messageId: message.id, messageType: message.type, source: message.source ?? 'APP' },
           });

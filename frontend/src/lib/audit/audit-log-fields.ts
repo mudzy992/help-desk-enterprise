@@ -78,6 +78,8 @@ export const knownAuditMetadataFields = [
   "locale",
   "matchedBy",
   "memberCount",
+  "messageId",
+  "messageType",
   "membership",
   "method",
   "missingGuardTripped",
