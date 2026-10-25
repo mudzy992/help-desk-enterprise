@@ -54,7 +54,7 @@ export class DatabaseLockService {
 }
 
 function canonicalIdentity(identity: DatabaseLockIdentity): string {
-  return `${identity.namespace}\u0000${identity.key}`;
+  return `${identity.namespace.length}:${identity.namespace}:${identity.key}`;
 }
 
 function validate(identity: DatabaseLockIdentity, timeoutMs: number): void {
