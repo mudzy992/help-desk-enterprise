@@ -204,7 +204,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | završen (W3.8) | L        |
 | BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
 | BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | završen (W3.9) | M        |
-| BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | otvoreno | S        |
+| BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | završen (W3.10) | S        |
 | BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | otvoreno | M        |
 
 ## 11. Detaljni nalazi
@@ -289,6 +289,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** audit-log + domain owners.
 
 ### BA-audit-log-10 — Slabe granice query identifikatora
+
+**Status: završen u W3.10.** OU/user identifikatori imaju 128-char i opaque-ID format granicu, a cursor je canonical bounded base64url v1 envelope koji se dekodira prije repositoryja. Malformed/unsupported input vraća stabilan `AUDIT_INVALID_CURSOR`; puni CI dokaz je `40189888596`. Detalji: [19-bounded-audit-query-cursor-envelope.md](../implementation/19-bounded-audit-query-cursor-envelope.md).
 
 - **Dokaz:** OU ID i cursor imaju samo string/MinLength; nema MaxLength ni CUID/opaque-ID limita. Nepostojeći cursor može procuriti kao ORM greška zavisno od Prisma ponašanja.
 - **Uticaj:** nepotreban parser/DB rad i nestabilan 4xx/5xx ugovor za malformed/oversized input.

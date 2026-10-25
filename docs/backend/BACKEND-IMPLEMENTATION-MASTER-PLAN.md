@@ -221,7 +221,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.9 audit OU scope provenance — završen** na SHA `aad1dd0`, CI `40188416889`.
 - Svih 145 akcija ima scope policy; kritični ticket/group/OU/problem/change/asset događaji prolaze PostgreSQL trigger provjeru protiv kanonskog entity scopea, a globalne akcije fail-closed odbijaju OU.
 - `BA-audit-log-09` je zatvoren; dokaz je u [18-audit-ou-scope-provenance.md](implementation/18-audit-ou-scope-provenance.md).
-- Sljedeći paket je **W3.10 bounded audit query identifikatori i stabilan cursor envelope**.
+- **W3.10 bounded audit query identifikatori i stabilan cursor envelope — završen** na SHA `65fa04b`, CI `40189888596`.
+- OU/user query identifikatori imaju format i 128-char granicu; javni cursor je canonical bounded base64url v1 envelope, dekodira se prije repositoryja i vraća stabilan `AUDIT_INVALID_CURSOR` ugovor.
+- `BA-audit-log-10` je zatvoren; dokaz je u [19-bounded-audit-query-cursor-envelope.md](implementation/19-bounded-audit-query-cursor-envelope.md).
+- Sljedeći paket je **W3.11 typed action/entity/schema compatibility i extension namespace**.
 
 ### Canonical primitive
 
