@@ -154,11 +154,26 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.knowledgeArticleReplyRedacted]: compatibility([auditLogEntityTypes.knowledgeArticle]),
 });
 
-export const auditExtensionCompatibilityRegistry: Readonly<Record<string, AuditActionCompatibility>> = Object.freeze({});
+export type AuditExtensionDefinition = Readonly<{
+  compatibility: AuditActionCompatibility;
+  scopePolicy: 'global' | 'producer' | 'entity';
+  metadataSchema: Readonly<{
+    version: 1;
+    allowedKeys: ReadonlySet<string>;
+    sensitivity: 'operational' | 'pseudonymous' | 'restricted';
+  }>;
+}>;
+
+/** Extensions are admitted only by a reviewed static declaration, never by namespace shape alone. */
+export const auditExtensionDefinitionRegistry: Readonly<Record<string, AuditExtensionDefinition>> = Object.freeze({});
 const extensionActionPattern = /^ext\.[a-z0-9][a-z0-9-]{1,31}\.[a-z][a-z0-9._-]{1,95}$/u;
+
+export function getAuditExtensionDefinition(action: string): AuditExtensionDefinition | undefined {
+  if (!extensionActionPattern.test(action)) return undefined;
+  return auditExtensionDefinitionRegistry[action];
+}
 
 export function getAuditActionCompatibility(action: string): AuditActionCompatibility | undefined {
   if (Object.prototype.hasOwnProperty.call(auditActionCompatibilityRegistry, action)) return auditActionCompatibilityRegistry[action];
-  if (!extensionActionPattern.test(action)) return undefined;
-  return auditExtensionCompatibilityRegistry[action];
+  return getAuditExtensionDefinition(action)?.compatibility;
 }

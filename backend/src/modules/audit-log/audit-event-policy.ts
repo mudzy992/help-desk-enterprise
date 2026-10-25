@@ -1,5 +1,5 @@
 import { getRequestId } from '../../common/request-context/request-context.storage';
-import { getAuditActionCompatibility } from './audit-action-compatibility-registry';
+import { getAuditActionCompatibility, getAuditExtensionDefinition } from './audit-action-compatibility-registry';
 import { getAuditActionSchema } from './audit-action-schema-registry';
 import { getAuditScopePolicy } from './audit-action-scope-registry';
 import { auditLogActions, auditLogEntityTypes } from './audit-log.constants';
@@ -36,10 +36,12 @@ function sanitize(value: unknown, depth: number, state: SanitizeState): unknown 
 }
 
 export function prepareAuditEntry(input: RecordAuditEntryInput): PreparedAuditEntry {
-  const actionSchema = getAuditActionSchema(input.action);
-  const scopePolicy = getAuditScopePolicy(input.action);
+  const coreAction = actionRegistry.has(input.action);
+  const extension = coreAction ? undefined : getAuditExtensionDefinition(input.action);
+  const actionSchema = coreAction ? getAuditActionSchema(input.action) : extension?.metadataSchema;
+  const scopePolicy = coreAction ? getAuditScopePolicy(input.action) : extension?.scopePolicy;
   const compatibility = getAuditActionCompatibility(input.action);
-  if (!actionRegistry.has(input.action) || actionSchema === undefined || scopePolicy === undefined || compatibility === undefined) {
+  if (actionSchema === undefined || scopePolicy === undefined || compatibility === undefined) {
     throw new Error(`AUDIT_ACTION_NOT_REGISTERED:${input.action}`);
   }
   if (!entityTypeRegistry.has(input.entityType)) throw new Error(`AUDIT_ENTITY_TYPE_NOT_REGISTERED:${input.entityType}`);
