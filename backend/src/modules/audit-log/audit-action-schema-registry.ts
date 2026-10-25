@@ -126,7 +126,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.assetDisposed]: schema([]),
   [auditLogActions.assetDeleted]: schema([]),
   [auditLogActions.assetImportApplied]: schema(['created', 'failed', 'fileName', 'mode', 'status', 'updated']),
-  [auditLogActions.assetExported]: schema([], 'pseudonymous'),
+  [auditLogActions.assetExported]: schema(['fileName', 'format'], 'pseudonymous'),
   [auditLogActions.assetLicenseKeyRevealed]: schema([], 'restricted'),
   [auditLogActions.assetLicenseSaved]: schema(['kdf', 'via']),
   [auditLogActions.assetContractSaved]: schema([]),

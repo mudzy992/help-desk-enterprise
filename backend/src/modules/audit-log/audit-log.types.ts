@@ -25,8 +25,9 @@ export type AuditLogConfiguration = {
 };
 
 export type RecordAuditEntryInput = {
-  readonly action: AuditAction;
-  readonly entityType: AuditEntityType;
+  /** Runtime is closed by the compatibility registry; wrappers may narrow this to AuditAction. */
+  readonly action: string;
+  readonly entityType: string;
   readonly entityId: string;
   readonly metadata: JsonValue;
   readonly actorUserId: string | null;
