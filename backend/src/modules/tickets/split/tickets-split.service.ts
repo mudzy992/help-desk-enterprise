@@ -1,28 +1,28 @@
-import { Inject, Injectable, Optional } from '@nestjs/common';
-import { RequestIdempotencyService } from '../../../common/idempotency/request-idempotency.service';
-import { DiskStagedStorageAdapter } from '../../../common/storage-write/disk-staged-storage.adapter';
-import { TICKET_ATTACHMENT_STORAGE } from '../attachments/attachment-storage.token';
-import type { TicketAttachmentStorage } from '../attachments/attachments.types';
-import { resolveUploadRoot } from '../attachments/resolve-upload-root';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { RoutingService } from '../../routing/routing.service';
-import { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
-import { TicketAssignmentService } from '../assignment/ticket-assignment.service';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
-import { executeTicketOperation } from '../execute-ticket-operation';
-import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
-import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
-import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
-import { TicketRealtimeHub } from '../ticket-realtime.hub';
-import { toSingleTicketClientResponse } from '../to-ticket-client-responses';
-import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
-import type { TicketMutationContext } from '../tickets.types';
-import { splitTicket } from './split-ticket';
-import type { SplitTicketInput, SplitTicketResult } from './split.types';
-import { TicketSplitConfigurationLoader } from './ticket-split-configuration.loader';
-import { ServiceFormsConfigurationLoader } from '../../service-catalog/service-forms-configuration.loader';
-import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
+import { Inject, Injectable, Optional } from "@nestjs/common";
+import { RequestIdempotencyService } from "../../../common/idempotency/request-idempotency.service";
+import { DiskStagedStorageAdapter } from "../../../common/storage-write/disk-staged-storage.adapter";
+import { TICKET_ATTACHMENT_STORAGE } from "../attachments/attachment-storage.token";
+import type { TicketAttachmentStorage } from "../attachments/attachments.types";
+import { resolveUploadRoot } from "../attachments/resolve-upload-root";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { AuthorizationContextLoader } from "../../authorization/authorization-context.loader";
+import { RoutingService } from "../../routing/routing.service";
+import { TicketApprovalsConfigurationLoader } from "../approvals/ticket-approvals-configuration.loader";
+import { TicketAssignmentService } from "../assignment/ticket-assignment.service";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
+import { executeTicketOperation } from "../execute-ticket-operation";
+import { publishPersistedTicketMessages } from "../publish-persisted-ticket-messages";
+import { TicketReopenConfigurationLoader } from "../reopen/ticket-reopen-configuration.loader";
+import { TicketAccessPolicyBinder } from "../ticket-access-policy-binder";
+import { TicketRealtimeHub } from "../ticket-realtime.hub";
+import { toSingleTicketClientResponse } from "../to-ticket-client-responses";
+import { TicketCloseCodesConfigurationLoader } from "../close-codes/ticket-close-codes-configuration.loader";
+import type { TicketMutationContext } from "../tickets.types";
+import { splitTicket } from "./split-ticket";
+import type { SplitTicketInput, SplitTicketResult } from "./split.types";
+import { TicketSplitConfigurationLoader } from "./ticket-split-configuration.loader";
+import { ServiceFormsConfigurationLoader } from "../../service-catalog/service-forms-configuration.loader";
+import { defaultServiceFormsConfiguration } from "../../service-catalog/service-forms.constants";
 
 @Injectable()
 export class TicketsSplitService {
@@ -39,7 +39,8 @@ export class TicketsSplitService {
     private readonly realtimeHub: TicketRealtimeHub,
     @Optional()
     private readonly serviceFormsConfigurationLoader?: ServiceFormsConfigurationLoader,
-    @Optional() @Inject(TICKET_ATTACHMENT_STORAGE)
+    @Optional()
+    @Inject(TICKET_ATTACHMENT_STORAGE)
     private readonly attachmentStorage?: TicketAttachmentStorage,
   ) {}
 
@@ -57,53 +58,105 @@ export class TicketsSplitService {
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();
       const messages: TicketPersistedMessageSink = [];
-      const copiesAttachments = input.children.some((child) => (child.attachmentIds?.length ?? 0) > 0 && child.moveAttachments !== true);
+      const copiesAttachments = input.children.some(
+        (child) =>
+          (child.attachmentIds?.length ?? 0) > 0 &&
+          child.moveAttachments !== true,
+      );
       if (copiesAttachments && this.attachmentStorage === undefined) {
-        throw new Error('TICKET_SPLIT_STORAGE_DEPENDENCIES_MISSING');
+        throw new Error("TICKET_SPLIT_STORAGE_DEPENDENCIES_MISSING");
       }
       const adapter = new DiskStagedStorageAdapter(resolveUploadRoot());
-      const promotions: import('./split-storage-promotion').SplitStoragePromotion[] = [];
+      const promotions: import("./split-storage-promotion").SplitStoragePromotion[] =
+        [];
       const operationId = input.operationId;
       let identifiers: { parentId: string; childIds: string[] };
       let replayed = false;
       if (operationId === undefined) {
         const legacy = await splitTicket({
-          prisma: this.prisma, attachmentStorage: this.attachmentStorage ?? unavailableAttachmentStorage,
-          stagedStorage: adapter, promotions, routingService: this.routingService,
+          prisma: this.prisma,
+          attachmentStorage:
+            this.attachmentStorage ?? unavailableAttachmentStorage,
+          stagedStorage: adapter,
+          promotions,
+          routingService: this.routingService,
           authorizationContextLoader: this.authorizationContextLoader,
-          approvalsConfigurationLoader: this.approvalsConfigurationLoader, configuration, formsConfiguration,
-          ticketId, body: input, context: gated, messages,
+          approvalsConfigurationLoader: this.approvalsConfigurationLoader,
+          configuration,
+          formsConfiguration,
+          ticketId,
+          body: input,
+          context: gated,
+          messages,
         });
         const assigned = [];
-        for (const child of legacy.children) assigned.push(await this.ticketAssignmentService.applyAfterCreate(child, gated, messages));
-        identifiers = { parentId: legacy.parent.id, childIds: assigned.map((child) => child.id) };
+        for (const child of legacy.children)
+          assigned.push(
+            await this.ticketAssignmentService.applyAfterCreate(
+              child,
+              gated,
+              messages,
+            ),
+          );
+        identifiers = {
+          parentId: legacy.parent.id,
+          childIds: assigned.map((child) => child.id),
+        };
       } else {
         const idempotency = new RequestIdempotencyService(this.prisma);
         try {
           const command = await idempotency.execute({
             namespace: `ticket.split.${ticketId}`,
             key: operationId,
-            request: { ticketId, actorUserId: gated.actorUserId, reason: input.reason ?? null, children: input.children } as never,
+            request: {
+              ticketId,
+              actorUserId: gated.actorUserId,
+              reason: input.reason ?? null,
+              children: input.children,
+            } as never,
             operation: async (transaction) => {
               const result = await splitTicket({
-                prisma: transaction as never, attachmentStorage: this.attachmentStorage ?? unavailableAttachmentStorage,
-                stagedStorage: adapter, promotions, routingService: this.routingService,
+                prisma: transaction as never,
+                attachmentStorage:
+                  this.attachmentStorage ?? unavailableAttachmentStorage,
+                stagedStorage: adapter,
+                promotions,
+                routingService: this.routingService,
                 authorizationContextLoader: this.authorizationContextLoader,
-                approvalsConfigurationLoader: this.approvalsConfigurationLoader, configuration, formsConfiguration,
-                ticketId, body: input, context: gated, messages,
+                approvalsConfigurationLoader: this.approvalsConfigurationLoader,
+                configuration,
+                formsConfiguration,
+                ticketId,
+                body: input,
+                context: gated,
+                messages,
               });
               const childIds: string[] = [];
               for (const child of result.children) {
-                const assigned = await this.ticketAssignmentService.applyAfterCreate(child, gated, messages, transaction as never);
+                const assigned =
+                  await this.ticketAssignmentService.applyAfterCreate(
+                    child,
+                    gated,
+                    messages,
+                    transaction as never,
+                  );
                 childIds.push(assigned.id);
               }
-              return { statusCode: 201, body: { parentId: result.parent.id, childIds } };
+              return {
+                statusCode: 201,
+                body: { parentId: result.parent.id, childIds },
+              };
             },
           });
-          identifiers = command.body as { parentId: string; childIds: string[] };
+          identifiers = command.body as {
+            parentId: string;
+            childIds: string[];
+          };
           replayed = command.replayed;
         } catch (error) {
-          await Promise.allSettled(promotions.map((promotion) => adapter.remove(promotion.stagingKey)));
+          await Promise.allSettled(
+            promotions.map((promotion) => adapter.remove(promotion.stagingKey)),
+          );
           throw error;
         }
       }
@@ -111,21 +164,49 @@ export class TicketsSplitService {
         for (const promotion of promotions) {
           try {
             await adapter.promote(promotion.stagingKey, promotion.finalKey);
-            await this.prisma.storageWriteIntent.updateMany({ where: { id: promotion.intentId, status: 'PENDING_PROMOTION' },
-              data: { status: 'READY', readyAt: new Date() } });
-          } catch { /* durable worker reconciliation owns retry */ }
+            await this.prisma.storageWriteIntent.updateMany({
+              where: { id: promotion.intentId, status: "PENDING_PROMOTION" },
+              data: { status: "READY", readyAt: new Date() },
+            });
+          } catch {
+            /* durable worker reconciliation owns retry */
+          }
         }
       }
-      const parent = await this.prisma.ticket.findUniqueOrThrow({ where: { id: identifiers.parentId } }) as never;
-      const persistedChildren = await this.prisma.ticket.findMany({ where: { id: { in: identifiers.childIds } } }) as never[];
+      const parent = (await this.prisma.ticket.findUniqueOrThrow({
+        where: { id: identifiers.parentId },
+      })) as never;
+      const persistedChildren = (await this.prisma.ticket.findMany({
+        where: { id: { in: identifiers.childIds } },
+      })) as Array<{ id: string }>;
+      const childrenById = new Map(
+        persistedChildren.map((child) => [child.id, child]),
+      );
       const children = [];
-      for (const child of persistedChildren) {
-        if (!replayed) publishPersistedTicketMessages(this.realtimeHub, child, messages);
-        children.push(await toSingleTicketClientResponse(this.prisma, child, { reopen, closeCodes }));
+      for (const childId of identifiers.childIds) {
+        const child = childrenById.get(childId);
+        if (child === undefined)
+          throw new Error("TICKET_SPLIT_CHILD_RESULT_MISSING");
+        if (!replayed)
+          publishPersistedTicketMessages(
+            this.realtimeHub,
+            child as never,
+            messages,
+          );
+        children.push(
+          await toSingleTicketClientResponse(this.prisma, child as never, {
+            reopen,
+            closeCodes,
+          }),
+        );
       }
-      if (!replayed) publishPersistedTicketMessages(this.realtimeHub, parent, messages);
+      if (!replayed)
+        publishPersistedTicketMessages(this.realtimeHub, parent, messages);
       return {
-        parent: await toSingleTicketClientResponse(this.prisma, parent, { reopen, closeCodes }),
+        parent: await toSingleTicketClientResponse(this.prisma, parent, {
+          reopen,
+          closeCodes,
+        }),
         children,
       };
     });
@@ -133,7 +214,13 @@ export class TicketsSplitService {
 }
 
 const unavailableAttachmentStorage: TicketAttachmentStorage = {
-  write: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
-  read: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
-  remove: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
+  write: async () => {
+    throw new Error("TICKET_ATTACHMENT_STORAGE_UNAVAILABLE");
+  },
+  read: async () => {
+    throw new Error("TICKET_ATTACHMENT_STORAGE_UNAVAILABLE");
+  },
+  remove: async () => {
+    throw new Error("TICKET_ATTACHMENT_STORAGE_UNAVAILABLE");
+  },
 };

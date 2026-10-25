@@ -196,9 +196,7 @@ describeIfDatabase("ticket split attachment durable copy", () => {
     ).toBe(2);
     await expect(
       execute({ children: ["Different payload", "Atomic second"] }),
-    ).rejects.toMatchObject({
-      response: { code: "IDEMPOTENCY_PAYLOAD_MISMATCH" },
-    });
+    ).rejects.toThrow("IDEMPOTENCY_PAYLOAD_MISMATCH");
     expect(
       await prisma.ticket.count({ where: { parentTicketId: parentId } }),
     ).toBe(3);
