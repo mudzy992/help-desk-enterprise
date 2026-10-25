@@ -1,0 +1,23 @@
+model StorageWriteIntent {
+  id             String             @id @default(uuid())
+  namespace      String             @db.VarChar(80)
+  key            String             @db.VarChar(160)
+  stagingKey     String             @unique @db.VarChar(300)
+  finalKey       String             @unique @db.VarChar(300)
+  contentHash    String             @db.Char(64)
+  sizeBytes      Int
+  status         StorageWriteStatus @default(PENDING_PROMOTION)
+  attempts       Int                @default(0)
+  maxAttempts    Int                @default(10)
+  nextAttemptAt  DateTime           @default(now())
+  ownerToken     String?            @db.Uuid
+  leaseExpiresAt DateTime?
+  lastError      String?            @db.VarChar(1000)
+  readyAt        DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([namespace, key])
+  @@index([namespace, status, nextAttemptAt, createdAt])
+  @@index([status, leaseExpiresAt])
+}

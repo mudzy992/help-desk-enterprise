@@ -184,3 +184,11 @@ enum OutboxStatus {
   SUCCEEDED
   DEAD_LETTER
 }
+
+enum StorageWriteStatus {
+  PENDING_PROMOTION
+  PROCESSING
+  READY
+  FAILED
+  COMPENSATED
+}
