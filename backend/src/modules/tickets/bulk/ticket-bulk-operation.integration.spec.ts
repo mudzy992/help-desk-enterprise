@@ -12,7 +12,7 @@ describeIfDatabase('ticket bulk durable operation manifest', () => {
   const actorUserId = 'bulk-manifest-actor';
   const operationId = '20000000-0000-4000-8000-000000000001';
   const rollbackId = '20000000-0000-4000-8000-000000000002';
-  const body = (id: string, priority = 'HIGH') => ({
+  const body = (id: string, priority: 'HIGH' | 'CRITICAL' = 'HIGH') => ({
     operationId: id, mode: 'atomic' as const, ticketIds: ['ticket-a', 'ticket-b'],
     actionType: 'set_priority' as const, priority, reason: 'integration proof',
   } satisfies ExecuteTicketBulkInput & { operationId: string; mode: 'atomic' });
