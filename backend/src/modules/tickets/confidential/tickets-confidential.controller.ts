@@ -47,6 +47,7 @@ export class TicketsConfidentialController {
     return this.ticketsConfidentialService.requestBreakGlass(
       ticketId,
       body.reason,
+      body.correlationId,
       readTicketMutationContext(request),
     );
   }

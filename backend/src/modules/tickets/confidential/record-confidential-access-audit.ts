@@ -25,6 +25,7 @@ export async function recordConfidentialAccessAudit(
     readonly result: 'allowed' | 'denied' | 'break_glass';
     readonly via?: string;
     readonly reason?: string;
+    readonly correlationId?: string;
     readonly configuration: TicketConfidentialConfiguration;
     readonly writeSystemEvent?: boolean;
     readonly messages?: TicketPersistedMessageSink;
@@ -49,6 +50,7 @@ export async function recordConfidentialAccessAudit(
       after: {
         result: input.result,
         ...(input.via === undefined ? {} : { via: input.via }),
+        ...(input.correlationId === undefined ? {} : { correlationId: input.correlationId }),
         ...(input.reason === undefined || input.reason.length === 0
           ? {}
           : { reason: input.reason }),
@@ -62,6 +64,7 @@ export async function recordConfidentialAccessAudit(
     metadata: {
       result: input.result,
       ...(input.via === undefined ? {} : { via: input.via }),
+      ...(input.correlationId === undefined ? {} : { correlationId: input.correlationId }),
     },
     actorUserId: input.actorUserId,
     organizationalUnitId: input.organizationalUnitId,

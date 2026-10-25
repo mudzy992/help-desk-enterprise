@@ -13,7 +13,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.policyPackUnapply]: schema(['packKey', 'removedUserRoleCount', 'serviceId', 'unboundOrganizationalUnit', 'unboundService']),
   [auditLogActions.ticketConfidentialViewed]: schema(['result', 'via'], 'restricted'),
   [auditLogActions.ticketConfidentialDenied]: schema(['result', 'via'], 'restricted'),
-  [auditLogActions.ticketConfidentialBreakGlass]: schema(['result', 'via'], 'restricted'),
+  [auditLogActions.ticketConfidentialBreakGlass]: schema(['correlationId', 'result', 'via'], 'restricted'),
   [auditLogActions.ticketBulkExecute]: schema(['actionType', 'batchId', 'ticketIds']),
   [auditLogActions.ticketForwarded]: schema(['batchId', 'forwardEventId', 'fromGroupId', 'fromUnitId', 'isCrossOu', 'reason', 'toGroupId', 'toUnitId', 'toUserId', 'viaBulk']),
   [auditLogActions.ticketMessageCreated]: schema(['idempotencyKey', 'messageId', 'messageType', 'source']),

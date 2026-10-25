@@ -58,6 +58,7 @@ export type BreakGlassEventRecord = {
 };
 
 export type BreakGlassResponse = {
+  readonly correlationId: string;
   readonly ticketId: string;
   readonly actorUserId: string;
   readonly expiresAt: string | null;

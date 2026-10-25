@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271026010000_ticket_message_command_boundary';
+  '20271026030000_break_glass_atomic_boundary';
 
 export function assertDatabaseTransport(
   connectionString: string,

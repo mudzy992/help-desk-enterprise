@@ -23,6 +23,7 @@ export class TicketsConfidentialService {
   requestBreakGlass(
     ticketId: string,
     reason: string,
+    correlationId: string,
     context: TicketMutationContext,
   ): Promise<BreakGlassResponse> {
     return executeTicketOperation(async () => {
@@ -36,6 +37,7 @@ export class TicketsConfidentialService {
         this.authorizationContextLoader,
         ticketId,
         reason,
+        correlationId,
         gated,
         gated.confidential,
       );

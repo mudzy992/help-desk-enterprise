@@ -91,6 +91,7 @@ describe('Tickets confidential ACL and break-glass', () => {
       harness.confidential.requestBreakGlass(
         created.id,
         '   ',
+        '00000000-0000-4000-8000-000000000001',
         { actorUserId: ticketsTestIds.superAdmin },
       ),
     ).rejects.toMatchObject({
@@ -99,6 +100,7 @@ describe('Tickets confidential ACL and break-glass', () => {
     const granted = await harness.confidential.requestBreakGlass(
       created.id,
       'Legal hold review',
+      '00000000-0000-4000-8000-000000000002',
       { actorUserId: ticketsTestIds.superAdmin },
     );
     expect(granted.ticketId).toBe(created.id);

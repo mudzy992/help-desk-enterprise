@@ -1,5 +1,5 @@
 import { ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ export function TicketBreakGlassPanel({ ticketId, onGranted }: TicketBreakGlassP
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const correlationId = useRef(crypto.randomUUID());
 
   return (
     <section className="pop-in max-w-xl rounded-lg border border-warning/30 bg-warning/6 px-5 py-4 shadow-card">
@@ -38,7 +39,10 @@ export function TicketBreakGlassPanel({ ticketId, onGranted }: TicketBreakGlassP
         <textarea
           className={textareaClassName}
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
+          onChange={(event) => {
+            setReason(event.target.value);
+            correlationId.current = crypto.randomUUID();
+          }}
           required
         />
       </label>
@@ -52,7 +56,7 @@ export function TicketBreakGlassPanel({ ticketId, onGranted }: TicketBreakGlassP
         onClick={() => {
           setIsSaving(true);
           setErrorKey(null);
-          void requestTicketBreakGlass(ticketId, reason.trim())
+          void requestTicketBreakGlass(ticketId, reason.trim(), correlationId.current)
             .then(() => onGranted())
             .catch((error: unknown) => setErrorKey(mapTicketError(error)))
             .finally(() => setIsSaving(false));
