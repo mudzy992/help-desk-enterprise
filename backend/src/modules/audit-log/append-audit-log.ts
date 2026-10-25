@@ -29,7 +29,7 @@ export async function appendAuditLog(
   const latest = await transaction.auditLog.findFirst({
     where: { chainPartition },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    select: { hash: true },
+    select: { hash: true, createdAt: true },
   });
   const previousHash = latest?.hash ?? auditLogGenesisHash;
   const requestId = prepared.requestId ?? null;
@@ -37,7 +37,7 @@ export async function appendAuditLog(
   const metadataDigest = computeAuditMetadataDigest(prepared.metadata);
   const hashAlgorithm = prepared.hashAlgorithm ?? defaultAuditHashAlgorithm;
   const rowId = randomUUID();
-  const createdAt = new Date();
+  const createdAt = new Date(Math.max(Date.now(), (latest?.createdAt?.getTime() ?? -1) + 1));
   const hash = computeAuditLogHash({
     previousHash,
     action: prepared.action,

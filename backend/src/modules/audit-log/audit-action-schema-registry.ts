@@ -21,7 +21,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.ticketUnmerged]: schema(['childTicketId', 'parentTicketId', 'reason', 'role']),
   [auditLogActions.ticketsExport]: schema(['filters', 'format', 'recordCount'], 'pseudonymous'),
   [auditLogActions.auditExport]: schema(['completed', 'format', 'recordCount'], 'pseudonymous'),
-  [auditLogActions.reportsExport]: schema(['format', 'organizationalUnitId', 'pack', 'recordCount'], 'pseudonymous'),
+  [auditLogActions.reportsExport]: schema(['fileName', 'format', 'from', 'organizationalUnitId', 'pack', 'recordCount', 'to'], 'pseudonymous'),
   [auditLogActions.supportBundleExport]: schema(['parts'], 'pseudonymous'),
   [auditLogActions.notificationReceipt]: schema(['equals', 'eventId', 'kind', 'path']),
   [auditLogActions.ticketRemoteAcknowledged]: schema(['event']),

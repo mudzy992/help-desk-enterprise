@@ -25,7 +25,7 @@ export function createInMemoryAuditLogDelegate(
           readonly createdAt?: 'asc' | 'desc';
           readonly id?: 'asc' | 'desc';
         }[];
-        readonly select?: { readonly hash?: boolean };
+        readonly select?: { readonly hash?: boolean; readonly createdAt?: boolean };
       }) => {
         const sorted = [...rows].sort(compareMemoryAuditLogs);
         const descending = args.orderBy?.[0]?.createdAt === 'desc';
@@ -34,7 +34,7 @@ export function createInMemoryAuditLogDelegate(
           return null;
         }
         if (args.select?.hash === true) {
-          return { hash: record.hash };
+          return { hash: record.hash, createdAt: record.createdAt };
         }
         return record;
       },

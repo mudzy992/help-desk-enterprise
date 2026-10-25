@@ -131,8 +131,8 @@ export type AuditLogWriteClient = {
     findFirst(args: {
       where?: { chainPartition: string };
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }];
-      select: { hash: true };
-    }): Promise<{ hash: string } | null>;
+      select: { hash: true; createdAt: true };
+    }): Promise<{ hash: string; createdAt?: Date } | null>;
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
   };
 };
