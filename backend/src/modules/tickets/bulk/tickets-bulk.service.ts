@@ -1,8 +1,12 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { TemplatesConfigurationLoader } from '../../templates/templates-configuration.loader';
 import { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
 import { TicketForwardingConfigurationLoader } from '../forwarding/ticket-forwarding-configuration.loader';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { BulkCommandService } from '../../../common/bulk-command/bulk-command.service';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { permissionKeys } from '../../authorization/authorization.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
@@ -19,10 +23,12 @@ import { assertBulkTicketScope } from './assert-bulk-ticket-scope';
 import { countBroadcastRecipients } from './apply-bulk-broadcast';
 import type {
   ExecuteTicketBulkInput,
+  TicketBulkExecutionSummary,
   TicketBulkPreview,
   TicketBulkResult,
 } from './bulk.types';
 import { executeTicketBulk } from './execute-ticket-bulk';
+import { claimBulkOperation, completeBulkOperation } from './ticket-bulk-operation';
 import { loadBulkTickets } from './load-bulk-tickets';
 import { TicketBulkConfigurationLoader } from './ticket-bulk-configuration.loader';
 import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
@@ -129,12 +135,15 @@ export class TicketsBulkService {
           broadcastConfirmed: body.broadcastConfirmed,
         });
       }
-      const result = await executeTicketBulk({
-        prisma: this.prisma,
+      const operationId = body.operationId ?? randomUUID();
+      const mode = body.mode ?? 'atomic';
+      const command = { ...body, operationId, mode } as const;
+      const claim = await claimBulkOperation(this.prisma, command, gated.actorUserId);
+      const common = {
         context: authContext,
         actor: gated,
         tickets,
-        body,
+        body: command,
         configuration,
         messages,
         forwarding: {
@@ -154,13 +163,67 @@ export class TicketsBulkService {
                 configuration.playbooksEnabled ? configuration.requiredStepsOnResolve : 'off',
               )
             : undefined,
-      });
+      };
+      let result: Awaited<ReturnType<typeof executeTicketBulk>>;
+      let summary;
+      if (claim.replay !== null) {
+        result = { batchId: operationId, tickets, recipientCount: claim.replay.recipientCount };
+        summary = claim.replay;
+      } else if (mode === 'atomic') {
+        result = await this.prisma.$transaction(async (transaction) => {
+          const executed = await executeTicketBulk({ ...common, prisma: transaction as never });
+          const completed = {
+            operationId, mode, outcome: 'SUCCEEDED' as const,
+            ticketIds: executed.tickets.map((ticket) => ticket.id),
+            succeeded: body.ticketIds.length, failed: 0, rolledBack: 0, skipped: 0,
+            ...(executed.recipientCount === undefined ? {} : { recipientCount: executed.recipientCount }),
+          };
+          await transaction.ticketBulkOperationItem.updateMany({
+            where: { operationId }, data: { status: 'SUCCEEDED', attempts: 1, completedAt: new Date() },
+          });
+          await completeBulkOperation(transaction as never, operationId, completed);
+          return executed;
+        });
+        summary = successSummary(operationId, mode, body.ticketIds, result.recipientCount);
+      } else {
+        const parent = tickets.find((ticket) => ticket.id === body.parentTicketId);
+        const bulk = new BulkCommandService(this.prisma);
+        const execution = await bulk.execute({
+          mode: 'best-effort',
+          items: tickets.filter((ticket) => ticket.id !== body.parentTicketId).map((ticket) => ({ key: ticket.id, payload: ticket })),
+          handle: async (item, transaction) => {
+            const itemTickets = body.actionType === 'merge_into_parent' && parent !== undefined ? [parent, item.payload] : [item.payload];
+            const executed = await executeTicketBulk({ ...common, prisma: transaction as never, tickets: itemTickets,
+              body: { ...command, ticketIds: itemTickets.map((ticket) => ticket.id) }, writeAggregateAudit: false });
+            await transaction.ticketBulkOperationItem.update({ where: { operationId_itemKey: { operationId, itemKey: item.key } },
+              data: { status: 'SUCCEEDED', attempts: { increment: 1 }, completedAt: new Date(), result: { ticketIds: executed.tickets.map((ticket) => ticket.id) } } });
+            return executed;
+          },
+        });
+        for (const item of execution.results.filter((entry) => entry.status === 'FAILED')) {
+          await this.prisma.ticketBulkOperationItem.update({ where: { operationId_itemKey: { operationId, itemKey: item.key } },
+            data: { status: 'FAILED', attempts: { increment: 1 }, completedAt: new Date(), errorCode: item.error.code, retryable: item.error.retryable } });
+        }
+        const successful = execution.results.flatMap((entry) => entry.status === 'SUCCEEDED' ? entry.value.tickets : []);
+        summary = { operationId, mode, outcome: execution.outcome, ticketIds: successful.map((ticket) => ticket.id),
+          succeeded: execution.succeeded, failed: execution.failed, rolledBack: 0, skipped: 0 };
+        await this.prisma.$transaction(async (transaction) => {
+          await recordAuditEntry(transaction as never, { action: auditLogActions.ticketBulkExecute,
+            entityType: auditLogEntityTypes.ticketBulk, entityId: operationId,
+            metadata: { operationId, mode, outcome: execution.outcome, actionType: body.actionType,
+              ticketIds: body.ticketIds, succeeded: execution.succeeded, failed: execution.failed },
+            actorUserId: gated.actorUserId, organizationalUnitId: null });
+          await completeBulkOperation(transaction as never, operationId, summary);
+        });
+        result = { batchId: operationId, tickets: successful };
+      }
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();
       for (const ticket of result.tickets) {
         publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
       }
       return {
+        ...summary,
         batchId: result.batchId,
         actionType: body.actionType,
         tickets: await toTicketClientResponses(this.prisma, result.tickets, {
@@ -171,4 +234,17 @@ export class TicketsBulkService {
       };
     });
   }
+}
+
+function successSummary(
+  operationId: string,
+  mode: 'atomic' | 'best-effort',
+  ticketIds: readonly string[],
+  recipientCount?: number,
+): TicketBulkExecutionSummary {
+  return {
+    operationId, mode, outcome: 'SUCCEEDED', ticketIds,
+    succeeded: ticketIds.length, failed: 0, rolledBack: 0, skipped: 0,
+    ...(recipientCount === undefined ? {} : { recipientCount }),
+  };
 }

@@ -10,6 +10,8 @@ export type TicketBulkActionType =
   | "merge_into_parent";
 
 export type ExecuteTicketBulkInput = {
+  readonly operationId: string;
+  readonly mode: "atomic" | "best-effort";
   readonly ticketIds: readonly string[];
   readonly actionType: TicketBulkActionType;
   readonly assignedGroupId?: string;

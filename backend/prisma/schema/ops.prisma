@@ -267,6 +267,49 @@ model IdempotencyRecord {
   @@index([expiresAt])
 }
 
+model TicketBulkOperation {
+  id           String   @id @db.Uuid
+  actorUserId  String
+  mode         String
+  actionType   String
+  requestHash  String   @db.Char(64)
+  status       String   @default("PROCESSING")
+  total        Int
+  succeeded    Int      @default(0)
+  failed       Int      @default(0)
+  rolledBack   Int      @default(0)
+  skipped      Int      @default(0)
+  responseBody Json?
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime @updatedAt
+  items        TicketBulkOperationItem[]
+
+  @@index([actorUserId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model TicketBulkOperationItem {
+  id          String   @id @default(cuid())
+  operationId String   @db.Uuid
+  itemKey     String
+  ticketId    String
+  ordinal     Int
+  status      String   @default("PENDING")
+  result      Json?
+  errorCode   String?
+  retryable   Boolean?
+  attempts    Int      @default(0)
+  completedAt DateTime?
+  updatedAt   DateTime @updatedAt
+  operation   TicketBulkOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, itemKey])
+  @@unique([operationId, ordinal])
+  @@index([operationId, status])
+  @@index([ticketId])
+}
+
 model OutboxMessage {
   id             String       @id @default(uuid())
   topic          String       @db.VarChar(100)

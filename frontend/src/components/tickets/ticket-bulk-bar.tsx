@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckSquare, Puzzle, Siren, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -59,6 +59,7 @@ export function TicketBulkBar({
   const [incidentOpen, setIncidentOpen] = useState(false);
   // "Create problem" / "Add to problem" (problem.manage).
   const [problemOpen, setProblemOpen] = useState(false);
+  const operationIntent = useRef<{ fingerprint: string; id: string } | null>(null);
   const { toast } = useToast();
   const { session, hasPermission, hasRole } = useSessionCapabilities();
   const canLinkProblem =
@@ -266,6 +267,11 @@ export function TicketBulkBar({
       onError("tickets.errorValidation");
       return;
     }
+    const fingerprint = JSON.stringify({ ticketIds, actionType, value, reason });
+    if (operationIntent.current?.fingerprint !== fingerprint) {
+      operationIntent.current = { fingerprint, id: crypto.randomUUID() };
+    }
+    const operationId = operationIntent.current.id;
     setBusy(true);
     try {
       if (actionType === "broadcast_message") {
@@ -275,6 +281,8 @@ export function TicketBulkBar({
           return;
         }
         await executeTicketBulk({
+          operationId,
+          mode: "atomic",
           ticketIds,
           actionType,
           previewConfirmed: true,
@@ -286,6 +294,8 @@ export function TicketBulkBar({
         setBroadcastArmed(false);
       } else {
         await executeTicketBulk({
+          operationId,
+          mode: "atomic",
           ticketIds,
           actionType,
           assignedGroupId: actionType === "assign_group" ? value : undefined,

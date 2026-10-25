@@ -42,6 +42,9 @@ export type TicketBulkConfiguration = {
 };
 
 export type ExecuteTicketBulkInput = {
+  /** Required at the HTTP boundary; optional only for legacy in-memory harness callers. */
+  readonly operationId?: string;
+  readonly mode?: 'atomic' | 'best-effort';
   readonly ticketIds: readonly string[];
   readonly actionType: TicketBulkActionType;
   readonly assignedGroupId?: string;
@@ -66,11 +69,22 @@ export type TicketBulkPreview = {
   readonly requiresBroadcastConfirmation: boolean;
 };
 
-export type TicketBulkResult = {
+export type TicketBulkExecutionSummary = {
+  readonly operationId: string;
+  readonly mode: 'atomic' | 'best-effort';
+  readonly outcome: 'SUCCEEDED' | 'PARTIAL' | 'FAILED';
+  readonly ticketIds: readonly string[];
+  readonly succeeded: number;
+  readonly failed: number;
+  readonly rolledBack: number;
+  readonly skipped: number;
+  readonly recipientCount?: number;
+};
+
+export type TicketBulkResult = TicketBulkExecutionSummary & {
   readonly batchId: string | null;
   readonly actionType: TicketBulkActionType;
   readonly tickets: readonly TicketResponse[];
-  readonly recipientCount?: number;
 };
 
 /** Package 1.1: bulk "assign group" is a forward and follows the forward rules. */
