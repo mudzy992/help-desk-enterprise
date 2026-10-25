@@ -1,0 +1,1 @@
+ALTER TABLE "AuditLog" ADD COLUMN "actionSchemaVersion" INTEGER NOT NULL DEFAULT 1;

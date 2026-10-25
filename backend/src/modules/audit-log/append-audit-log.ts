@@ -48,12 +48,13 @@ export async function appendAuditLog(
     requestId,
     organizationalUnitId,
     hashAlgorithm,
-    hashVersion: auditHashVersions.v5,
+    hashVersion: auditHashVersions.v6,
     metadataDigest,
     rowId,
     createdAt,
     redactedAt: null,
     chainPartition,
+    actionSchemaVersion: prepared.actionSchemaVersion,
   });
   await transaction.auditLog.create({
     data: {
@@ -68,10 +69,11 @@ export async function appendAuditLog(
       hash,
       actorUserId: prepared.actorUserId,
       organizationalUnitId,
-      hashVersion: auditHashVersions.v5,
+      hashVersion: auditHashVersions.v6,
       metadataDigest,
       hashAlgorithm,
       chainPartition,
+      actionSchemaVersion: prepared.actionSchemaVersion,
     },
   });
 }

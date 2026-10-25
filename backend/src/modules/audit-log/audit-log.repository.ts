@@ -198,6 +198,7 @@ function toAuditLogRecord(record: {
   readonly redactedAt?: Date | null;
   readonly hashAlgorithm?: string;
   readonly chainPartition?: string;
+  readonly actionSchemaVersion?: number;
 }): AuditLogRecord {
   return {
     id: record.id,
@@ -216,6 +217,7 @@ function toAuditLogRecord(record: {
     redactedAt: record.redactedAt ?? null,
     hashAlgorithm: record.hashAlgorithm as AuditLogRecord['hashAlgorithm'],
     chainPartition: record.chainPartition ?? 'global',
+    actionSchemaVersion: record.actionSchemaVersion ?? 1,
   };
 }
 

@@ -71,9 +71,9 @@ export async function redactAuditForSubject(
     const partitionHeads = new Map<string, string>();
     if (chain[0]?.previousHash) partitionHeads.set('global', chain[0].previousHash);
     for (const row of chain) {
-      const partition = row.hashVersion === auditHashVersions.v5 ? row.chainPartition : 'global';
+      const partition = (row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) ? row.chainPartition : 'global';
       const previousHash = partitionHeads.get(partition) ?? '0'.repeat(64);
-      if (row.hashVersion === auditHashVersions.v4 || row.hashVersion === auditHashVersions.v5) {
+      if (row.hashVersion === auditHashVersions.v4 || row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) {
         const hash = computeAuditLogHash({
           previousHash,
           action: row.action,
@@ -89,7 +89,8 @@ export async function redactAuditForSubject(
           rowId: row.id,
           createdAt: row.createdAt,
           redactedAt: row.redactedAt,
-          ...(row.hashVersion === auditHashVersions.v5 ? { chainPartition: partition } : {}),
+          ...((row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) ? { chainPartition: partition } : {}),
+          ...(row.hashVersion === auditHashVersions.v6 ? { actionSchemaVersion: row.actionSchemaVersion } : {}),
         });
         await transaction.auditLog.update({ where: { id: row.id }, data: { previousHash, hash } });
         partitionHeads.set(partition, hash);

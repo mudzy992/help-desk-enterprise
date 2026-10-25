@@ -57,16 +57,16 @@ export function verifyAuditLogChain(input: {
   });
   for (const [index, record] of ordered.entries()) {
     const version = record.hashVersion ?? auditHashVersions.v1;
-    const partition = version === auditHashVersions.v5 ? (record.chainPartition ?? '') : 'global';
+    const partition = (version === auditHashVersions.v5 || version === auditHashVersions.v6) ? (record.chainPartition ?? '') : 'global';
     const previousHash = partitionHeads.get(partition) ?? auditLogGenesisHash;
     if (record.previousHash !== previousHash) {
       return mismatch(ordered.length, record.id, index, details());
     }
     const redacted = record.redactedAt !== null && record.redactedAt !== undefined;
     if (redacted) redactedCount += 1;
-    if (version === auditHashVersions.v2 || version === auditHashVersions.v3 || version === auditHashVersions.v4 || version === auditHashVersions.v5) {
+    if (version === auditHashVersions.v2 || version === auditHashVersions.v3 || version === auditHashVersions.v4 || version === auditHashVersions.v5 || version === auditHashVersions.v6) {
       const digest = record.metadataDigest ?? '';
-      const hashAlgorithm = version === auditHashVersions.v3 || (version === auditHashVersions.v4 || version === auditHashVersions.v5)
+      const hashAlgorithm = version === auditHashVersions.v3 || (version === auditHashVersions.v4 || version === auditHashVersions.v5 || version === auditHashVersions.v6)
         ? record.hashAlgorithm
         : input.hashAlgorithm;
       if (hashAlgorithm === undefined) {
@@ -87,11 +87,12 @@ export function verifyAuditLogChain(input: {
         hashAlgorithm,
         hashVersion: version,
         metadataDigest: digest,
-        ...((version === auditHashVersions.v4 || version === auditHashVersions.v5) ? {
+        ...((version === auditHashVersions.v4 || version === auditHashVersions.v5 || version === auditHashVersions.v6) ? {
           rowId: record.id,
           createdAt: record.createdAt,
           redactedAt: record.redactedAt ?? null,
-          ...(version === auditHashVersions.v5 ? { chainPartition: partition } : {}),
+          ...((version === auditHashVersions.v5 || version === auditHashVersions.v6) ? { chainPartition: partition } : {}),
+          ...(version === auditHashVersions.v6 ? { actionSchemaVersion: record.actionSchemaVersion ?? 0 } : {}),
         } : {}),
       });
       if (record.hash !== expected) {
@@ -156,7 +157,7 @@ export async function verifyAuditLogChainIncrementally(input: {
         return { ...result, checkedCount: checkedCount + 1, firstMismatchIndex: checkedCount };
       }
       const version = record.hashVersion ?? auditHashVersions.v1;
-      const partition = version === auditHashVersions.v5 ? (record.chainPartition ?? '') : 'global';
+      const partition = (version === auditHashVersions.v5 || version === auditHashVersions.v6) ? (record.chainPartition ?? '') : 'global';
       partitionHeads.set(partition, record.hash);
       checkedCount += 1;
     }

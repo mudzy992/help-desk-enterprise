@@ -49,6 +49,8 @@ export type AuditLogRecord = {
   readonly hashAlgorithm?: AuditHashAlgorithm;
   /** v5 independent append chain; legacy rows belong to `global`. */
   readonly chainPartition?: string;
+  /** v6 hash-bound action metadata schema version. */
+  readonly actionSchemaVersion?: number;
 };
 
 export type AuditLogExportRow = {

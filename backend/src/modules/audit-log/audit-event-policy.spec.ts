@@ -1,6 +1,6 @@
 import { runWithRequestId } from '../../common/request-context/request-context.storage';
 import { auditLogActions, auditLogEntityTypes } from './audit-log.constants';
-import { auditRedactedValue, classifyAuditActor, getAuditRegistryInventory, prepareAuditEntry } from './audit-event-policy';
+import { auditPseudonymizedValue, auditRedactedValue, classifyAuditActor, getAuditRegistryInventory, prepareAuditEntry } from './audit-event-policy';
 
 describe('canonical audit event policy', () => {
   const valid = {
@@ -8,7 +8,7 @@ describe('canonical audit event policy', () => {
     entityType: auditLogEntityTypes.user,
     entityId: 'user-1',
     actorUserId: 'actor-1',
-    metadata: { changed: true },
+    metadata: { after: { active: true } },
   } as const;
 
   it('locks action, entity and actor registries', () => {
@@ -19,19 +19,21 @@ describe('canonical audit event policy', () => {
     expect(getAuditRegistryInventory().actions).toContain(auditLogActions.userUpdated);
   });
 
-  it('inherits correlation context and centrally redacts secrets', () => {
+  it('enforces the action allowlist and centrally sanitizes secrets and direct identifiers', () => {
+    expect(() => prepareAuditEntry({ ...valid, metadata: { invented: true } })).toThrow('AUDIT_METADATA_FIELD_NOT_ALLOWED');
     const result = runWithRequestId('request-123', () => prepareAuditEntry({
       ...valid,
-      metadata: { nested: { accessToken: 'must-not-persist', harmless: 'ok' } },
+      metadata: { after: { accessToken: 'must-not-persist', email: 'person@example.test', harmless: 'ok' } },
     }));
     expect(result.requestId).toBe('request-123');
-    expect(result.metadata).toEqual({ nested: { accessToken: auditRedactedValue, harmless: 'ok' } });
+    expect(result.actionSchemaVersion).toBe(1);
+    expect(result.metadata).toEqual({ after: { accessToken: auditRedactedValue, email: auditPseudonymizedValue, harmless: 'ok' } });
   });
 
   it('fails closed for oversized or excessively deep metadata', () => {
-    expect(() => prepareAuditEntry({ ...valid, metadata: { value: 'x'.repeat(17_000) } })).toThrow('AUDIT_METADATA_SIZE_EXCEEDED');
+    expect(() => prepareAuditEntry({ ...valid, metadata: { after: { value: 'x'.repeat(17_000) } } })).toThrow('AUDIT_METADATA_SIZE_EXCEEDED');
     let deep: unknown = 'leaf';
     for (let index = 0; index < 10; index += 1) deep = { child: deep };
-    expect(() => prepareAuditEntry({ ...valid, metadata: deep as never })).toThrow('AUDIT_METADATA_DEPTH_EXCEEDED');
+    expect(() => prepareAuditEntry({ ...valid, metadata: { after: deep } as never })).toThrow('AUDIT_METADATA_DEPTH_EXCEEDED');
   });
 });
