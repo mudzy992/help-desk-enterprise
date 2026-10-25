@@ -64,7 +64,7 @@ describeIfDatabase('ticket split attachment durable copy', () => {
       configuration: { allowAttachmentMove: true } as never });
     const copied = await prisma.ticketAttachment.findFirstOrThrow({ where: { ticketId: childId } });
     expect(copied.storagePath.startsWith(`tickets/${childId}/split-`)).toBe(true);
-    await expect(storage.read(copied.storagePath)).rejects.toMatchObject({ response: { code: 'ATTACHMENT_NOT_FOUND' } });
+    await expect(storage.read(copied.storagePath)).rejects.toThrow('ATTACHMENT_NOT_FOUND');
     expect(await writes.reconcileOne('ticket.split.attachment', disk)).toBe('ready');
     expect((await storage.read(copied.storagePath)).toString()).toBe('durable split contents');
     expect((await storage.read((await prisma.ticketAttachment.findUniqueOrThrow({ where: { id: sourceAttachmentId } })).storagePath)).toString()).toBe('durable split contents');
