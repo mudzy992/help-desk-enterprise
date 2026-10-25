@@ -9,16 +9,16 @@ function schema(keys: readonly string[], sensitivity: AuditMetadataSensitivity =
 
 /** Every registered action has an explicit, versioned top-level metadata allowlist. */
 export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchema>> = Object.freeze({
-  [auditLogActions.policyPackApply]: schema(['createdRolePermissionCount', 'createdUserRoleCount', 'packKey', 'serviceId']),
+  [auditLogActions.policyPackApply]: schema(['createdRolePermissionCount', 'createdUserRoleCount', 'packKey', 'serviceId', 'servicePolicyAfter', 'servicePolicyBefore']),
   [auditLogActions.policyPackUnapply]: schema(['packKey', 'removedUserRoleCount', 'serviceId', 'unboundOrganizationalUnit', 'unboundService']),
-  [auditLogActions.ticketConfidentialViewed]: schema([], 'restricted'),
-  [auditLogActions.ticketConfidentialDenied]: schema([], 'restricted'),
-  [auditLogActions.ticketConfidentialBreakGlass]: schema([], 'restricted'),
+  [auditLogActions.ticketConfidentialViewed]: schema(['result', 'via'], 'restricted'),
+  [auditLogActions.ticketConfidentialDenied]: schema(['result', 'via'], 'restricted'),
+  [auditLogActions.ticketConfidentialBreakGlass]: schema(['result', 'via'], 'restricted'),
   [auditLogActions.ticketBulkExecute]: schema(['actionType', 'batchId', 'ticketIds']),
   [auditLogActions.ticketForwarded]: schema(['batchId', 'forwardEventId', 'fromGroupId', 'fromUnitId', 'isCrossOu', 'reason', 'toGroupId', 'toUnitId', 'toUserId', 'viaBulk']),
   [auditLogActions.ticketPriorityOverridden]: schema(['from', 'reason', 'resetToMatrix', 'to']),
   [auditLogActions.ticketMerged]: schema(['batchId', 'childTicketIds', 'parentTicketId', 'parentTicketNumber', 'reason', 'role']),
-  [auditLogActions.ticketUnmerged]: schema([]),
+  [auditLogActions.ticketUnmerged]: schema(['childTicketId', 'parentTicketId', 'reason', 'role']),
   [auditLogActions.ticketsExport]: schema(['filters', 'format', 'recordCount'], 'pseudonymous'),
   [auditLogActions.auditExport]: schema(['completed', 'format', 'recordCount'], 'pseudonymous'),
   [auditLogActions.reportsExport]: schema(['format', 'organizationalUnitId', 'pack', 'recordCount'], 'pseudonymous'),
@@ -148,12 +148,12 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.changeStatusChanged]: schema(['action', 'from', 'reason', 'to']),
   [auditLogActions.changeApprovalRecorded]: schema(['decision', 'result', 'round']),
   [auditLogActions.changeTemplateSaved]: schema(['operation']),
-  [auditLogActions.knowledgeCategoryCreated]: schema([]),
+  [auditLogActions.knowledgeCategoryCreated]: schema(['key', 'nameBs', 'parentId']),
   [auditLogActions.knowledgeCategoryUpdated]: schema([]),
-  [auditLogActions.knowledgeCategoryArchived]: schema([]),
-  [auditLogActions.knowledgeCategoryRestored]: schema([]),
-  [auditLogActions.knowledgeArticleDraftedFromReply]: schema([]),
-  [auditLogActions.knowledgeArticleReplyRedacted]: schema([]),
+  [auditLogActions.knowledgeCategoryArchived]: schema(['key']),
+  [auditLogActions.knowledgeCategoryRestored]: schema(['key']),
+  [auditLogActions.knowledgeArticleDraftedFromReply]: schema(['messageId', 'ticketNumber']),
+  [auditLogActions.knowledgeArticleReplyRedacted]: schema(['body', 'messageId', 'title']),
 });
 
 export function getAuditActionSchema(action: string): AuditActionSchema | undefined {
