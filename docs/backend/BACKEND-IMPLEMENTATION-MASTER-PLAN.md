@@ -236,7 +236,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.3 optimistic version/If-Match primitive — završen** na SHA `1581815`, CI `40213980280`.
 - Centralni strong `"vN"` ETag parser/formatter, atomic CAS callback ugovor, obavezni 428 precondition, stabilni 412 stale response sa aktuelnim ETagom, 404 missing klasifikacija i fail-closed `N -> N+1` provjera sada su reusable platform API.
 - Paket nema migraciju i ne zatvara domenske nalaze prije integracije konkretnih mutation handlera; dokaz je u [23-optimistic-version-if-match-primitive.md](implementation/23-optimistic-version-if-match-primitive.md).
-- Sljedeći paket je **Val 4 / W4.4 advisory/row-lock helper za sequence, approval i singleton workflow**.
+- **W4.4 advisory/row-lock helper za sequence, approval i singleton workflow — završen** na SHA `e974365`, CI `40218285525`.
+- Centralni transaction-scoped PostgreSQL helper daje canonical bounded advisory identity, blocking timeout, try-lock, automatski commit/rollback release i fail-closed row-lock callback bez raw identifier API-ja.
+- Paket nema migraciju i ne zatvara domenske nalaze prije integracije njihovih writera; dokaz je u [24-transaction-scoped-database-lock-primitive.md](implementation/24-transaction-scoped-database-lock-primitive.md).
+- Sljedeći paket je **Val 4 / W4.5 bounded bulk-command framework sa per-item rezultatom i eksplicitnim atomic/best-effort modom**.
 
 ### Canonical primitive
 
