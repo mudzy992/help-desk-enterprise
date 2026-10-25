@@ -144,7 +144,7 @@ export async function listTicketsForExport(
       orderBy: { id: "asc" },
       take: Math.min(batchSize, limit - records.length),
       ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
-    })) as TicketRecord[];
+    })) as unknown as TicketRecord[];
     records.push(...batch);
     if (batch.length < batchSize) break;
     cursor = batch.at(-1)?.id;

@@ -128,14 +128,16 @@ export function buildTicketExportWhere(
         ? {}
         : {
             originUnit: {
-              OR: [
-                { ouPath: assignment.organizationalUnitPath },
-                {
-                  ouPath: {
-                    startsWith: `${assignment.organizationalUnitPath}/`,
+              is: {
+                OR: [
+                  { ouPath: assignment.organizationalUnitPath },
+                  {
+                    ouPath: {
+                      startsWith: `${assignment.organizationalUnitPath}/`,
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           }),
       ...(assignment.serviceId === null
