@@ -1,21 +1,21 @@
-import type { Prisma } from '../../generated/prisma/client';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
-import type { TicketArchiveConfiguration } from './archive/archive.types';
-import { buildTicketListWhere } from './list/build-ticket-list-where';
-import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
-import { ticketListPaging } from './list/list-tickets.constants';
-import { clampTicketListPageSize } from './list/clamp-ticket-list-page-size';
-import { ticketListSelect } from './list/ticket-list-select';
+import type { Prisma } from "../../generated/prisma/client";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { AuthorizationContextLoader } from "../authorization/authorization-context.loader";
+import { defaultTicketArchiveConfiguration } from "./archive/archive.constants";
+import type { TicketArchiveConfiguration } from "./archive/archive.types";
+import { buildTicketListWhere } from "./list/build-ticket-list-where";
+import { buildTicketListOrderBy } from "./list/build-ticket-list-order-by";
+import { ticketListPaging } from "./list/list-tickets.constants";
+import { clampTicketListPageSize } from "./list/clamp-ticket-list-page-size";
+import { ticketListSelect } from "./list/ticket-list-select";
 import {
   createPerClientSingleFlightCache,
   readTtlMsFromEnvironment,
-} from '../../common/cache/single-flight-cache';
+} from "../../common/cache/single-flight-cache";
 import {
   countTicketsCapped,
   type CappedTicketTotal,
-} from './list/count-tickets-capped';
+} from "./list/count-tickets-capped";
 
 /**
  * Staging slow log (2026-09-25, 100k tickets): the capped `COUNT` (≤ 10 001
@@ -28,8 +28,8 @@ import {
 const ticketListTotals = createPerClientSingleFlightCache<CappedTicketTotal>({
   ttlMs: () =>
     readTtlMsFromEnvironment(
-      'TICKET_LIST_TOTAL_CACHE_TTL_MS',
-      process.env.NODE_ENV === 'test' ? 0 : 30_000,
+      "TICKET_LIST_TOTAL_CACHE_TTL_MS",
+      process.env.NODE_ENV === "test" ? 0 : 30_000,
     ),
   maxEntries: 5000,
 });
@@ -39,8 +39,13 @@ function ticketListTotalKey(
   context: TicketMutationContext,
   archive: TicketArchiveConfiguration,
 ): string {
-  const { page: _page, pageSize: _pageSize, sort: _sort, dir: _dir, ...filters } =
-    query as ListTicketsQuery & Record<string, unknown>;
+  const {
+    page: _page,
+    pageSize: _pageSize,
+    sort: _sort,
+    dir: _dir,
+    ...filters
+  } = query as ListTicketsQuery & Record<string, unknown>;
   return JSON.stringify([
     context.actorUserId,
     filters,
@@ -52,7 +57,7 @@ import type {
   ListTicketsQuery,
   TicketMutationContext,
   TicketRecord,
-} from './tickets.types';
+} from "./tickets.types";
 
 export type TicketListPage = {
   readonly records: readonly TicketRecord[];
@@ -89,16 +94,17 @@ export async function listTicketsPage(
 ): Promise<TicketListPage> {
   const pageSize = clampTicketListPageSize(query.pageSize);
   const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
-  const { records, total, totalIsCapped, totalsAsOf } = await runTicketListQuery(
-    prisma,
-    authorizationContextLoader,
-    query,
-    context,
-    archive,
-    { skip: (page - 1) * pageSize, take: pageSize },
-    true,
-    ticketListSelect,
-  );
+  const { records, total, totalIsCapped, totalsAsOf } =
+    await runTicketListQuery(
+      prisma,
+      authorizationContextLoader,
+      query,
+      context,
+      archive,
+      { skip: (page - 1) * pageSize, take: pageSize },
+      true,
+      ticketListSelect,
+    );
   return { records, total, totalIsCapped, totalsAsOf, page, pageSize };
 }
 
@@ -111,6 +117,41 @@ export async function listTicketsPage(
  * row shape stays complete here (export columns and CSAT grouping both read
  * `formData`-adjacent fields), so no `select` projection is applied.
  */
+export async function listTicketsForExport(
+  prisma: PrismaService,
+  authorizationContextLoader: AuthorizationContextLoader,
+  query: ListTicketsQuery,
+  context: TicketMutationContext,
+  archive: TicketArchiveConfiguration,
+  limit: number,
+  exportWhere: Prisma.TicketWhereInput,
+): Promise<readonly TicketRecord[]> {
+  const where = await buildTicketListWhere(
+    prisma,
+    authorizationContextLoader,
+    query,
+    context,
+    archive,
+  );
+  if (where === null) return [];
+
+  const records: TicketRecord[] = [];
+  const batchSize = 500;
+  let cursor: string | undefined;
+  while (records.length < limit) {
+    const batch = (await prisma.ticket.findMany({
+      where: { AND: [where, exportWhere] },
+      orderBy: { id: "asc" },
+      take: Math.min(batchSize, limit - records.length),
+      ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
+    })) as TicketRecord[];
+    records.push(...batch);
+    if (batch.length < batchSize) break;
+    cursor = batch.at(-1)?.id;
+  }
+  return records;
+}
+
 export async function listTicketsWithin(
   prisma: PrismaService,
   authorizationContextLoader: AuthorizationContextLoader,
@@ -159,7 +200,12 @@ async function runTicketListQuery(
     archive,
   );
   if (where === null) {
-    return { records: [], total: 0, totalIsCapped: false, totalsAsOf: Date.now() };
+    return {
+      records: [],
+      total: 0,
+      totalIsCapped: false,
+      totalsAsOf: Date.now(),
+    };
   }
   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
   // k6 C (200 VU): search was the only read over budget (p95 763 ms) — the
@@ -167,8 +213,7 @@ async function runTicketListQuery(
   // query and is never reused (each `q` is a new cache key). With `q` the page
   // reads one extra row instead and reports "more exist" through
   // `totalIsCapped`, so the client shows "N+" and keeps the next-page button.
-  const searchWithoutCount =
-    countTotal && (query.q?.trim().length ?? 0) > 0;
+  const searchWithoutCount = countTotal && (query.q?.trim().length ?? 0) > 0;
   const findManyArguments: Prisma.TicketFindManyArgs = {
     where,
     orderBy,
@@ -194,13 +239,17 @@ async function runTicketListQuery(
     };
   }
   if (!countTotal) {
-    return { records, total: records.length, totalIsCapped: false, totalsAsOf: Date.now() };
+    return {
+      records,
+      total: records.length,
+      totalIsCapped: false,
+      totalsAsOf: Date.now(),
+    };
   }
   const cache = ticketListTotals(prisma);
   const totalKey = ticketListTotalKey(query, context, archive);
-  const { total, totalIsCapped } = await cache.get(
-    totalKey,
-    () => countTicketsCapped(prisma, where),
+  const { total, totalIsCapped } = await cache.get(totalKey, () =>
+    countTicketsCapped(prisma, where),
   );
   // M8 B5: expose when the total was computed so the UI can surface a
   // "refreshed Ns ago" hint; when the cache is disabled (TTL 0) we fall back
