@@ -1,4 +1,7 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { StorageWriteService } from '../../../common/storage-write/storage-write.service';
+import type { StagedStorageAdapter } from '../../../common/storage-write/storage-write.types';
+import type { TicketAttachmentStorage } from '../attachments/attachments.types';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { RoutingService } from '../../routing/routing.service';
@@ -23,6 +26,9 @@ import type { ServiceFormsConfiguration } from '../../service-catalog/service-fo
 
 export async function splitTicket(input: {
   readonly prisma: PrismaService;
+  readonly attachmentStorage: TicketAttachmentStorage;
+  readonly storageWrites: StorageWriteService;
+  readonly stagedStorage: StagedStorageAdapter;
   readonly routingService: RoutingService;
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
@@ -79,6 +85,9 @@ export async function splitTicket(input: {
     });
     await transferSplitAttachments({
       prisma: input.prisma,
+      storage: input.attachmentStorage,
+      storageWrites: input.storageWrites,
+      stagedStorage: input.stagedStorage,
       parent: loaded.ticket,
       child,
       request: childInput,

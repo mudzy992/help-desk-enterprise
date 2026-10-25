@@ -1,4 +1,9 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { StorageWriteService } from '../../../common/storage-write/storage-write.service';
+import { DiskStagedStorageAdapter } from '../../../common/storage-write/disk-staged-storage.adapter';
+import { TICKET_ATTACHMENT_STORAGE } from '../attachments/attachment-storage.token';
+import type { TicketAttachmentStorage } from '../attachments/attachments.types';
+import { resolveUploadRoot } from '../attachments/resolve-upload-root';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -34,6 +39,10 @@ export class TicketsSplitService {
     private readonly realtimeHub: TicketRealtimeHub,
     @Optional()
     private readonly serviceFormsConfigurationLoader?: ServiceFormsConfigurationLoader,
+    @Optional() @Inject(TICKET_ATTACHMENT_STORAGE)
+    private readonly attachmentStorage?: TicketAttachmentStorage,
+    @Optional()
+    private readonly storageWrites?: StorageWriteService,
   ) {}
 
   split(
@@ -50,8 +59,15 @@ export class TicketsSplitService {
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();
       const messages: TicketPersistedMessageSink = [];
+      const copiesAttachments = input.children.some((child) => (child.attachmentIds?.length ?? 0) > 0 && child.moveAttachments !== true);
+      if (copiesAttachments && (this.attachmentStorage === undefined || this.storageWrites === undefined)) {
+        throw new Error('TICKET_SPLIT_STORAGE_DEPENDENCIES_MISSING');
+      }
       const result = await splitTicket({
         prisma: this.prisma,
+        attachmentStorage: this.attachmentStorage ?? unavailableAttachmentStorage,
+        storageWrites: this.storageWrites ?? new StorageWriteService(this.prisma),
+        stagedStorage: new DiskStagedStorageAdapter(resolveUploadRoot()),
         routingService: this.routingService,
         authorizationContextLoader: this.authorizationContextLoader,
         approvalsConfigurationLoader: this.approvalsConfigurationLoader,
@@ -88,3 +104,9 @@ export class TicketsSplitService {
     });
   }
 }
+
+const unavailableAttachmentStorage: TicketAttachmentStorage = {
+  write: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
+  read: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
+  remove: async () => { throw new Error('TICKET_ATTACHMENT_STORAGE_UNAVAILABLE'); },
+};
