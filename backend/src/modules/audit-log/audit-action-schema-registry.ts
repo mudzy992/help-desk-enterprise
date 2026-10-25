@@ -29,7 +29,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.userRoleAssign]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
   [auditLogActions.userRoleRemove]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
   [auditLogActions.userCreated]: schema(['after', 'roleKey', 'via'], 'restricted'),
-  [auditLogActions.userUpdated]: schema(['after', 'before', 'directoryIdentityLinked', 'directoryKind'], 'restricted'),
+  [auditLogActions.userUpdated]: schema(['after', 'before', 'directoryIdentityLinked', 'directoryKind', 'displayName', 'email'], 'restricted'),
   [auditLogActions.userDeleted]: schema(['before'], 'restricted'),
   [auditLogActions.userPasswordReset]: schema(['mustChangePassword', 'reason'], 'restricted'),
   [auditLogActions.userPasswordResetRejected]: schema(['isLocalOnly', 'reason'], 'restricted'),
