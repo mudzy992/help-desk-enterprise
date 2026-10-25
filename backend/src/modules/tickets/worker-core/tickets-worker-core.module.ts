@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrincipalContextLoader } from '../../../common/principal-context/principal-context.loader';
+import { StorageWriteModule } from '../../../common/storage-write/storage-write.module';
+import { SplitAttachmentStorageReconciler } from '../split/split-attachment-storage-reconciler.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingConfigurationLoader } from '../../routing/routing-configuration.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -43,7 +45,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
  * `TicketsModule` itself is never imported by the worker.
  */
 @Module({
-  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule],
+  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule, StorageWriteModule],
   providers: [
     // Plain providers instead of AuthorizationModule/RoutingModule: those carry
     // controllers and interceptors that depend on API-only realtime hubs.
@@ -55,6 +57,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     TicketsCollaborationService,
     TicketsAttachmentsService,
     TicketsReopenService,
+    SplitAttachmentStorageReconciler,
     TicketAssignmentService,
     TicketAccessPolicyBinder,
     TicketLabelCacheService,

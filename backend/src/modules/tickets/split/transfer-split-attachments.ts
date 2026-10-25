@@ -5,6 +5,7 @@ import type { TicketAttachmentRecord, TicketAttachmentStorage } from '../attachm
 import { TicketsError } from '../tickets.error';
 import type { TicketRecord } from '../tickets.types';
 import type { SplitTicketChildInput, TicketSplitConfiguration } from './split.types';
+import { splitAttachmentStorageNamespace } from './split-attachment-storage-reconciler.service';
 
 export async function transferSplitAttachments(input: {
   readonly prisma: PrismaService;
@@ -32,7 +33,7 @@ export async function transferSplitAttachments(input: {
     const finalKey = `tickets/${input.child.id}/split-${record.id}.${record.extension}`;
     const contents = await input.storage.read(record.storagePath);
     await input.storageWrites.write({
-      namespace: 'ticket.split.attachment',
+      namespace: splitAttachmentStorageNamespace,
       key: `${record.id}:${input.child.id}`,
       finalKey,
       contents,
