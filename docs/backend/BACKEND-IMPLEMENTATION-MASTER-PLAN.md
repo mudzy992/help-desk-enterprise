@@ -227,7 +227,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.11 typed action/entity/schema compatibility i extension namespace — završen** na SHA `b4e04d7`, CI `40191639867`.
 - Svih 145 core akcija ima zatvoren action→entity→schema ugovor; mismatch pada prije writea, a `ext.<provider>.<event>` ostaje fail-closed bez statičke pune definicije.
 - `BA-audit-log-11` je zatvoren; audit-log modul je zatvorio svih 11 nalaza. Dokaz je u [20-closed-audit-action-entity-contract.md](implementation/20-closed-audit-action-entity-contract.md).
-- Sljedeći paket je **Val 4 / W4.1 persisted request-idempotency claim/result primitive**.
+- **W4.1 persisted request-idempotency claim/result primitive — završen** na SHA `f475adc`, CI `40211114841`.
+- Centralni servis daje atomic insert/CAS claim, canonical request hash conflict, owner-token lease recovery te isti-transaction business effect + persisted rezultat; response je capped na 64 KiB, retention je 24 sata i cleanup je bounded.
+- Platformski paket ne zatvara domenske nalaze prije integracije njihovih command handlera; dokaz je u [21-persisted-request-idempotency-primitive.md](implementation/21-persisted-request-idempotency-primitive.md).
+- Sljedeći paket je **Val 4 / W4.2 transactional outbox primitive**.
 
 ### Canonical primitive
 

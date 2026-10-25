@@ -73,6 +73,23 @@ export class RequestIdempotencyService {
     }, { timeout: leaseMs });
   }
 
+  async purgeExpired(batchSize = 500): Promise<number> {
+    const boundedBatchSize = Math.max(1, Math.min(batchSize, 1_000));
+    return this.prisma.$transaction(async (transaction) => {
+      const expired = await transaction.idempotencyRecord.findMany({
+        where: { expiresAt: { lt: new Date() } },
+        orderBy: { expiresAt: 'asc' },
+        select: { id: true },
+        take: boundedBatchSize,
+      });
+      if (expired.length === 0) return 0;
+      const deleted = await transaction.idempotencyRecord.deleteMany({
+        where: { id: { in: expired.map(({ id }) => id) }, expiresAt: { lt: new Date() } },
+      });
+      return deleted.count;
+    });
+  }
+
   private async claim(namespace: string, key: string, requestHash: string, ownerToken: string): Promise<
     | { readonly kind: 'acquired' }
     | { readonly kind: 'replay'; readonly statusCode: number; readonly body: JsonValue }
