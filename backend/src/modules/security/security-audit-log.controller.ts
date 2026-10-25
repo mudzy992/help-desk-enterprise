@@ -14,14 +14,19 @@ import {
   IsString,
   Matches,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import {
+  auditCursorMaxLength,
+  auditCursorPattern,
   auditLogListDefaultTake,
   auditLogListMaxTake,
+  auditOpaqueIdMaxLength,
+  auditOpaqueIdPattern,
 } from '../audit-log/audit-log.constants';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
@@ -55,17 +60,22 @@ export class SecurityAuditLogQueryDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(auditCursorMaxLength)
+  @Matches(auditCursorPattern)
   cursor?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @Matches(/^auth\./, { message: 'action must start with auth.' })
+  @MaxLength(auditOpaqueIdMaxLength)
+  @Matches(/^auth\.[A-Za-z0-9._-]+$/u, { message: 'action must be a bounded auth action' })
   action?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(auditOpaqueIdMaxLength)
+  @Matches(auditOpaqueIdPattern)
   userId?: string;
 }
 

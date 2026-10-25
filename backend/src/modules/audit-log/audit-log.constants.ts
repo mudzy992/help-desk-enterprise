@@ -17,6 +17,11 @@ export const auditLogListDefaultTake = 50;
 
 export const auditLogListMaxTake = 200;
 
+export const auditOpaqueIdMaxLength = 128;
+export const auditOpaqueIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+export const auditCursorMaxLength = 256;
+export const auditCursorPattern = /^[A-Za-z0-9_-]+$/u;
+
 /** Hard upper bound for one export/verification database page. */
 export const auditLogStreamPageSize = 500;
 /** Support bundles are in-memory ZIP inputs, so their audit excerpt is explicitly capped. */
@@ -252,6 +257,7 @@ export const auditLogErrorCodes = {
   formatNotAllowed: 'AUDIT_EXPORT_FORMAT_NOT_ALLOWED',
   hashAlgorithmUnsupported: 'AUDIT_HASH_ALGORITHM_UNSUPPORTED',
   organizationalUnitNotFound: 'AUDIT_ORGANIZATIONAL_UNIT_NOT_FOUND',
+  invalidCursor: 'AUDIT_INVALID_CURSOR',
   forbidden: 'FORBIDDEN',
 } as const;
 
@@ -267,6 +273,7 @@ export const auditLogErrorMessages: Record<
   AUDIT_EXPORT_FORMAT_NOT_ALLOWED: 'The requested audit export format is not allowed',
   AUDIT_HASH_ALGORITHM_UNSUPPORTED: 'The configured audit hash algorithm is not supported',
   AUDIT_ORGANIZATIONAL_UNIT_NOT_FOUND: 'The requested organizational unit was not found',
+  AUDIT_INVALID_CURSOR: 'The audit cursor is malformed, unsupported, or outside its bounds',
   FORBIDDEN: 'Authorization failed',
 };
 

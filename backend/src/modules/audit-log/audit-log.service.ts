@@ -10,6 +10,7 @@ import {
   auditLogStreamPageSize,
 } from './audit-log.constants';
 import { AuditLogConfigurationLoader } from './audit-log-configuration.loader';
+import { decodeAuditCursor, encodeAuditCursor } from './audit-cursor';
 import { AuditLogError } from './audit-log.error';
 import { AuditLogRepository } from './audit-log.repository';
 import type {
@@ -46,6 +47,7 @@ export class AuditLogService {
     readonly take: number;
     readonly cursor: string | null;
   }): Promise<AuditLogListResult> {
+    const cursorId = decodeAuditCursor(input.cursor);
     const authContext = await this.authorizationContextLoader.loadBySubjectId(
       input.actorUserId,
     );
@@ -62,7 +64,7 @@ export class AuditLogService {
       organizationalUnitIds: scopedIds,
       includeGlobalRecords: authContext.isSuperAdmin,
       take: input.take,
-      cursor: input.cursor,
+      cursor: cursorId,
     });
     return this.toListPage(page.items, page.nextCursor);
   }
@@ -79,11 +81,12 @@ export class AuditLogService {
     readonly take: number;
     readonly cursor: string | null;
   }): Promise<AuditLogListResult> {
+    const cursorId = decodeAuditCursor(input.cursor);
     const page = await this.repository.listAuthPage({
       action: input.action,
       userId: input.userId,
       take: input.take,
-      cursor: input.cursor,
+      cursor: cursorId,
     });
     return this.toListPage(page.items, page.nextCursor);
   }
@@ -116,7 +119,7 @@ export class AuditLogService {
       actorDisplayName:
         row.actorUserId === null ? null : (names.get(row.actorUserId) ?? null),
     }));
-    return { items, nextCursor };
+    return { items, nextCursor: nextCursor === null ? null : encodeAuditCursor(nextCursor) };
   }
 
   async export(input: {
