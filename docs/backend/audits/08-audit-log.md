@@ -201,7 +201,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-04 | P2       | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran  | završen (W3.5) | L        |
 | BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | završen (W3.6) | M        |
 | BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | završen (W3.7) | M        |
-| BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | otvoreno | L        |
+| BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | završen (W3.8) | L        |
 | BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
 | BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | otvoreno | M        |
 | BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | otvoreno | S        |
@@ -261,6 +261,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** audit-log/platform owner.
 
 ### BA-audit-log-07 — Otvorena metadata površina
+
+**Status: završen u W3.8.** Svih 145 kanonskih akcija ima versionirani top-level allowlist i sensitivity klasu; centralni writer odbija unknown polja, sanitizuje secret/PII ključeve te nameće 16 KiB, depth 8 i 128-key granice. V6 canonical envelope hash-bound veže `actionSchemaVersion`; potpuni CI `40187527565` uključuje puni Jest i stvarne PostgreSQL privacy/retention suiteove. Detalji: [17-versioned-audit-action-schema-registry.md](../implementation/17-versioned-audit-action-schema-registry.md).
 
 - **Dokaz:** input prihvata bilo koji `JsonValue`; nema action schema, secret/PII detectora, max bytes/depth ni centralnog allowlista. Producer direktno bira metadata.
 - **Uticaj:** credential/PII se može trajno zapisati i izvesti; ekstremna metadata povećava DB, hash, export i redaction trošak. Raniji `BA-users-09` dokazuje konkretan PII primjer.

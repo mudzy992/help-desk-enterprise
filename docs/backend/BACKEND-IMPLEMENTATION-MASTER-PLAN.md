@@ -215,7 +215,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.7 partitioned audit append concurrency — završen** na SHA `12d5876`, CI `40180285554`.
 - V5 hash-bound particije, shared maintenance/exclusive partition lockovi, partition-aware verifier/checkpoint/redaction i aggregate multi-head WORM anchor uklanjaju deployment-wide append bottleneck uz očuvan no-fork ugovor.
 - `BA-audit-log-06` je zatvoren; dokaz je u [16-partitioned-audit-append-concurrency.md](implementation/16-partitioned-audit-append-concurrency.md).
-- Sljedeći paket je **W3.8 versionirani audit action-schema registry i metadata granice**.
+- **W3.8 versionirani audit action-schema registry i metadata granice — završen** na SHA `b8df27b`, CI `40187527565`.
+- Svih 145 akcija ima eksplicitan versionirani allowlist/sensitivity schema zapis; centralna politika fail-closed sanitizuje secret/PII sadržaj i nameće 16 KiB, depth 8 i 128-key granice, a v6 hash-bound veže schema verziju.
+- `BA-audit-log-07` je zatvoren; dokaz je u [17-versioned-audit-action-schema-registry.md](implementation/17-versioned-audit-action-schema-registry.md).
+- Sljedeći paket je **W3.9 audit OU scope provenance**.
 
 ### Canonical primitive
 
