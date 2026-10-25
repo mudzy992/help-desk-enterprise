@@ -233,7 +233,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.2 transactional outbox primitive — završen** na SHA `40664e4`, CI `40213179907`.
 - Transaction-bound enqueue, canonical payload dedupe, PostgreSQL SKIP LOCKED claim, owner-token lease/heartbeat, bounded exponential retry, terminal dead letter, operator-provenance replay i terminal-only retention cleanup sada čine centralni reusable ugovor.
 - Platformski paket ne zatvara domenske nalaze prije integracije konkretnih producera/consumera; dokaz je u [22-transactional-outbox-primitive.md](implementation/22-transactional-outbox-primitive.md).
-- Sljedeći paket je **Val 4 / W4.3 optimistic version/If-Match primitive**.
+- **W4.3 optimistic version/If-Match primitive — završen** na SHA `1581815`, CI `40213980280`.
+- Centralni strong `"vN"` ETag parser/formatter, atomic CAS callback ugovor, obavezni 428 precondition, stabilni 412 stale response sa aktuelnim ETagom, 404 missing klasifikacija i fail-closed `N -> N+1` provjera sada su reusable platform API.
+- Paket nema migraciju i ne zatvara domenske nalaze prije integracije konkretnih mutation handlera; dokaz je u [23-optimistic-version-if-match-primitive.md](implementation/23-optimistic-version-if-match-primitive.md).
+- Sljedeći paket je **Val 4 / W4.4 advisory/row-lock helper za sequence, approval i singleton workflow**.
 
 ### Canonical primitive
 
