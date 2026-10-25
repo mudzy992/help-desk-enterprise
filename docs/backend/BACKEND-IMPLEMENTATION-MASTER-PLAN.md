@@ -257,7 +257,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.3 ticket bulk durable operation/item manifest — završen** na SHA `151061e`, CI `40229199458`.
 - Required UUID v4 operation ID, eksplicitni atomic/best-effort režim, durable operation/item manifest, canonical payload conflict, terminal replay, atomic rollback i failed-only best-effort resume zatvorili su `BA-tickets-03`; dokaz je u [30-ticket-bulk-durable-operation-manifest.md](implementation/30-ticket-bulk-durable-operation-manifest.md).
 - Registar je sada **653 otvorena / 39 zatvorenih / 692 ukupno**; migracija `20271026050000_ticket_bulk_operation_manifest` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.4 ticket split attachment stvarni blob-reference/copy protokol sa storage reconciliation dokazom (`BA-tickets-04`)**.
+- **W5.4 ticket split attachment durable copy i reconciliation — završen** na SHA `31f831c`, CI `40231167864`.
+- Stvarni child blob, transactional storage intent, deterministic copy idempotency key i worker-only bounded reconciliation zatvorili su `BA-tickets-04`; stvarni PostgreSQL + disk fault/recovery dokaz je u [31-ticket-split-attachment-durable-copy.md](implementation/31-ticket-split-attachment-durable-copy.md).
+- Registar je sada **652 otvorena / 40 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeći `StorageWriteIntent` ugovor.
+- Sljedeći paket je **Val 5 / W5.5 ticket split potpuni preflight, operation idempotency i atomic multi-child DB granica (`BA-tickets-05`)**.
 
 ### Canonical primitive
 

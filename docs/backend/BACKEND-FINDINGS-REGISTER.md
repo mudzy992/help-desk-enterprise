@@ -129,7 +129,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-01` | P1 | Create-message može commitovati poruku uz API grešku i dupli retry | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-02` | P1 | Break-glass grant prethodi kompletnom audit tragu | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-03` | P1 | Bulk execute ostavlja parcijalne promjene bez operation manifesta | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-04` | P1 | Split attachment copy pokazuje na nepostojeći blob | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-04` | P1 | Split attachment copy pokazuje na nepostojeći blob | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-05` | P1 | Split kreira parcijalne childove prije pune validacije | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-06` | P1 | Approval decision/gate nisu concurrency-safe | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-07` | P1 | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno | [12-tickets.md](audits/12-tickets.md) |

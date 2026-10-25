@@ -145,7 +145,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-01 | P1       | Create-message može commitovati poruku uz API grešku i dupli retry       | zatvoreno |
 | BA-tickets-02 | P1       | Break-glass grant prethodi kompletnom audit tragu                        | zatvoreno |
 | BA-tickets-03 | P1       | Bulk execute ostavlja parcijalne promjene bez operation manifesta        | zatvoreno |
-| BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | otvoreno |
+| BA-tickets-04 | P1       | Split attachment copy pokazuje na nepostojeći blob                       | zatvoreno |
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | otvoreno |
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | otvoreno |
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | otvoreno |
@@ -184,13 +184,12 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Test:** `ticket-bulk-operation.integration.spec.ts` na stvarnom PostgreSQL-u dokazuje terminal replay, payload mismatch, manifest uniqueness, rollback item completion/resulta i failed-only best-effort resume; puni CI `40229199458` potvrđuje migration replay, backend build/unit/integration, frontend i container kolekcije.
 **Migracija:** `20271026050000_ticket_bulk_operation_manifest` uvodi operation/item manifest, DB status/mode/count checkove, unique operation-item/ordinal granice i mora se ručno pokrenuti kroz release migrator.
 
-### BA-tickets-04 — Split attachment copy pokazuje na nepostojeći blob
+### BA-tickets-04 — Split attachment copy pokazuje na nepostojeći blob — ZATVORENO
 
-**Dokaz:** `transfer-split-attachments.ts` piše `storagePath=split-link/<id>/<child>`; `DiskTicketAttachmentStorage.read` radi direktni `readFile`, a link/fajl se ne kreira.  
-**Uticaj:** podržana split operacija deterministički stvara attachment koji se ne može preuzeti.  
-**Korekcija:** eksplicitni blob-reference model/refcount ili stvarni atomski copy; nikad sintetička putanja bez resolvera.  
-**Acceptance:** copy/move/download/delete i retention rade nad parent/child kombinacijama i storage failureima.  
-**Owner/veličina:** tickets/storage, M/L.
+**Završni dokaz:** split copy više ne zapisuje sintetički `split-link/...` path. Izvorni sadržaj se čita kroz containment-validirani attachment storage, stageuje pod durable `ticket.split.attachment` intentom i u istoj DB transakciji kreira child attachment koji pokazuje na stvarni deterministični final key. Original ostaje nezavisan i čitljiv; move i dalje premješta postojeći zapis bez nepotrebnog blob kopiranja.
+**Recovery:** worker-only `SplitAttachmentStorageReconciler` bounded obrađuje pending/expired promotion intentove sa lease/backoff/max-attempt semantikom centralnog storage-write protokola; više replika koriste `SKIP LOCKED` claim.
+**Test:** `split-attachment-storage.integration.spec.ts` na stvarnom PostgreSQL-u i stvarnom disku injectuje promotion kvar, potvrđuje durable DB attachment + pending intent, zatim reconciliation, čitljiv child blob i očuvan parent blob. Puni CI `40231167864` potvrđuje backend/unit/integration, frontend i container kolekcije.
+**Migracija:** paket ne uvodi novu migraciju; koristi postojeći `StorageWriteIntent` ugovor iz migracije `20271025230000_storage_write_protocol`.
 
 ### BA-tickets-05 — Split je parcijalan prije pune validacije
 
