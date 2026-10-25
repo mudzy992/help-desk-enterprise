@@ -203,7 +203,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | završen (W3.7) | M        |
 | BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | završen (W3.8) | L        |
 | BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
-| BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | otvoreno | M        |
+| BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | završen (W3.9) | M        |
 | BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | otvoreno | S        |
 | BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | otvoreno | M        |
 
@@ -279,6 +279,8 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** audit-log owner.
 
 ### BA-audit-log-09 — Scope provenance nije potvrđen
+
+**Status: završen u W3.9.** Svih 145 akcija ima `global`/`producer`/`entity` scope policy. Kritične entity akcije prolaze PostgreSQL `BEFORE INSERT` provjeru protiv kanonskog Ticket/Group/OU/Problem/Change/Asset scopea; falsifikovani OU rollbackuje transakciju. Stvarni PostgreSQL dokaz i puni CI su `40188416889`. Detalji: [18-audit-ou-scope-provenance.md](../implementation/18-audit-ou-scope-provenance.md).
 
 - **Dokaz:** producer šalje nullable `organizationalUnitId`; append ne provjerava entity→OU odnos niti action scope pravilo. Read autorizacija vjeruje tom polju.
 - **Uticaj:** producer bug može sakriti zapis od scoped auditora ili izložiti metadata drugom OU scopeu. Brisanje OU-a dodatno mijenja scope na null.

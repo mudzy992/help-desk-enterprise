@@ -218,7 +218,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.8 versionirani audit action-schema registry i metadata granice — završen** na SHA `b8df27b`, CI `40187527565`.
 - Svih 145 akcija ima eksplicitan versionirani allowlist/sensitivity schema zapis; centralna politika fail-closed sanitizuje secret/PII sadržaj i nameće 16 KiB, depth 8 i 128-key granice, a v6 hash-bound veže schema verziju.
 - `BA-audit-log-07` je zatvoren; dokaz je u [17-versioned-audit-action-schema-registry.md](implementation/17-versioned-audit-action-schema-registry.md).
-- Sljedeći paket je **W3.9 audit OU scope provenance**.
+- **W3.9 audit OU scope provenance — završen** na SHA `aad1dd0`, CI `40188416889`.
+- Svih 145 akcija ima scope policy; kritični ticket/group/OU/problem/change/asset događaji prolaze PostgreSQL trigger provjeru protiv kanonskog entity scopea, a globalne akcije fail-closed odbijaju OU.
+- `BA-audit-log-09` je zatvoren; dokaz je u [18-audit-ou-scope-provenance.md](implementation/18-audit-ou-scope-provenance.md).
+- Sljedeći paket je **W3.10 bounded audit query identifikatori i stabilan cursor envelope**.
 
 ### Canonical primitive
 
