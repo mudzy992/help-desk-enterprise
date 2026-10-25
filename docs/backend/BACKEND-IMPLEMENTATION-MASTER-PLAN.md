@@ -230,7 +230,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.1 persisted request-idempotency claim/result primitive — završen** na SHA `f475adc`, CI `40211114841`.
 - Centralni servis daje atomic insert/CAS claim, canonical request hash conflict, owner-token lease recovery te isti-transaction business effect + persisted rezultat; response je capped na 64 KiB, retention je 24 sata i cleanup je bounded.
 - Platformski paket ne zatvara domenske nalaze prije integracije njihovih command handlera; dokaz je u [21-persisted-request-idempotency-primitive.md](implementation/21-persisted-request-idempotency-primitive.md).
-- Sljedeći paket je **Val 4 / W4.2 transactional outbox primitive**.
+- **W4.2 transactional outbox primitive — završen** na SHA `40664e4`, CI `40213179907`.
+- Transaction-bound enqueue, canonical payload dedupe, PostgreSQL SKIP LOCKED claim, owner-token lease/heartbeat, bounded exponential retry, terminal dead letter, operator-provenance replay i terminal-only retention cleanup sada čine centralni reusable ugovor.
+- Platformski paket ne zatvara domenske nalaze prije integracije konkretnih producera/consumera; dokaz je u [22-transactional-outbox-primitive.md](implementation/22-transactional-outbox-primitive.md).
+- Sljedeći paket je **Val 4 / W4.3 optimistic version/If-Match primitive**.
 
 ### Canonical primitive
 
