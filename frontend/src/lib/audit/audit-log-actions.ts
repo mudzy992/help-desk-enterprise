@@ -10,6 +10,7 @@ export const knownAuditActions = [
   "ticket_confidential_break_glass",
   "ticket_bulk.execute",
   "ticket.forwarded",
+  "ticket.message_created",
   "ticket.priority_overridden",
   "ticket.merged",
   "ticket.unmerged",

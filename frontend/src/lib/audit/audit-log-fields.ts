@@ -67,6 +67,7 @@ export const knownAuditMetadataFields = [
   "isActive",
   "isCabGroup",
   "isCrossOu",
+  "idempotencyKey",
   "isFallback",
   "isLocalOnly",
   "isProblemGroup",
