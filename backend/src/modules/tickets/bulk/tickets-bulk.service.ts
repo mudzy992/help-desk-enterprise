@@ -167,7 +167,11 @@ export class TicketsBulkService {
       let result: Awaited<ReturnType<typeof executeTicketBulk>>;
       let summary;
       if (claim.replay !== null) {
-        result = { batchId: operationId, tickets, recipientCount: claim.replay.recipientCount };
+        result = {
+          batchId: operationId,
+          tickets,
+          ...(claim.replay.recipientCount === undefined ? {} : { recipientCount: claim.replay.recipientCount }),
+        };
         summary = claim.replay;
       } else if (mode === 'atomic') {
         result = await this.prisma.$transaction(async (transaction) => {
