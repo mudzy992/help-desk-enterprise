@@ -239,7 +239,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.4 advisory/row-lock helper za sequence, approval i singleton workflow — završen** na SHA `e974365`, CI `40218285525`.
 - Centralni transaction-scoped PostgreSQL helper daje canonical bounded advisory identity, blocking timeout, try-lock, automatski commit/rollback release i fail-closed row-lock callback bez raw identifier API-ja.
 - Paket nema migraciju i ne zatvara domenske nalaze prije integracije njihovih writera; dokaz je u [24-transaction-scoped-database-lock-primitive.md](implementation/24-transaction-scoped-database-lock-primitive.md).
-- Sljedeći paket je **Val 4 / W4.5 bounded bulk-command framework sa per-item rezultatom i eksplicitnim atomic/best-effort modom**.
+- **W4.5 bounded bulk-command framework — završen** na SHA `7b5ea04`, CI `40219266489`.
+- Centralni servis zahtijeva eksplicitan atomic/best-effort mode, 1–100 unique bounded itema, per-item rezultat, atomic rollback/skip klasifikaciju, sekvencijalne zasebne best-effort transakcije i redakciju nepoznatih grešaka.
+- Paket nema migraciju i ne zatvara domenske nalaze prije integracije konkretnih bulk handlera; dokaz je u [25-bounded-bulk-command-framework.md](implementation/25-bounded-bulk-command-framework.md).
+- Sljedeći paket je **Val 4 / W4.6 storage write protocol: stage → DB intent → atomic promote → compensation/reconciler**.
 
 ### Canonical primitive
 
