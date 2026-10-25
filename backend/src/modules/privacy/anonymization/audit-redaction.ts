@@ -38,8 +38,8 @@ export async function redactAuditForSubject(
     let sealed = 0;
     let cursor = '';
     for (;;) {
-      const rows = await transaction.$queryRaw<{ id: string; hash: string; hashVersion: number; metadata: unknown }[]>`
-        SELECT "id", "hash", "hashVersion", "metadata"
+      const rows = await transaction.$queryRaw<{ id: string; hash: string; hashVersion: number; metadata: unknown; actorUserId: string | null; entityId: string }[]>`
+        SELECT "id", "hash", "hashVersion", "metadata", "actorUserId", "entityId"
         FROM "AuditLog"
         WHERE "id" > ${cursor}
           AND "metadata" IS NOT NULL
@@ -53,13 +53,14 @@ export async function redactAuditForSubject(
       if (rows.length === 0) break;
       for (const row of rows) {
         const result = input.scrubber.scrubJson(row.metadata);
-        if (result.count === 0) continue;
+        const directlyRelated = row.actorUserId === input.userId || entityIds.includes(row.entityId);
+        if (result.count === 0 && !directlyRelated) continue;
         await transaction.auditLog.update({
           where: { id: row.id },
           data: { metadata: result.value as never, redactedAt },
         });
         redacted += 1;
-        if (row.hashVersion !== auditHashVersions.v2 && row.hashVersion !== auditHashVersions.v4) sealed += 1;
+        if (row.hashVersion === auditHashVersions.v1) sealed += 1;
         if (entries.length < entriesListed) entries.push({ id: row.id, hash: row.hash, v: row.hashVersion });
       }
       cursor = rows[rows.length - 1].id;
