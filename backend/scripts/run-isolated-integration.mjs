@@ -18,6 +18,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/database-lock/database-lock.integration.spec.ts",
   "src/common/bulk-command/bulk-command.integration.spec.ts",
   "src/common/storage-write/storage-write.integration.spec.ts",
+  "src/common/cache-invalidation/cache-invalidation.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
