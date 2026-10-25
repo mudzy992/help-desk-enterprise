@@ -15,6 +15,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
+  "src/modules/audit-log/partitioned-audit-chain.integration.spec.ts",
   "src/modules/security/step-up-policy.integration.spec.ts",
   "src/modules/privacy/retention/retention.integration.spec.ts",
   "src/modules/privacy/anonymization/anonymization.integration.spec.ts",

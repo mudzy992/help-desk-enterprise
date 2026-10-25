@@ -1,4 +1,5 @@
 import { Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { createAuditChainAnchor, type AuditChainAnchor } from './audit-chain-anchor';
 import { AuditLogRepository } from './audit-log.repository';
 
@@ -89,8 +90,15 @@ export class AuditAnchorRuntimeService implements OnApplicationBootstrap, OnModu
   async publish(now = new Date()): Promise<void> {
     try {
       this.assertConfigured();
-      const head = await this.repository.findChainHead();
-      if (head === null) { this.lastPublishedAt = now.getTime(); return; }
+      const heads = await this.repository.findChainHeads();
+      if (heads.length === 0) { this.lastPublishedAt = now.getTime(); return; }
+      const canonicalHeads = heads
+        .map((head) => `${head.chainPartition ?? 'global'}:${head.id}:${head.hash}`)
+        .sort()
+        .join('\n');
+      const aggregateHash = createHash('sha256').update(canonicalHeads).digest('hex');
+      const latest = [...heads].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0]!;
+      const head = { id: `partitions-${aggregateHash}`, hash: aggregateHash, createdAt: latest.createdAt };
       const anchor = createAuditChainAnchor({ key: this.configuration.key!, keyId: this.configuration.keyId!, chainHead: head, now });
       await this.sink!.putImmutable(anchor);
       this.lastPublishedAt = now.getTime();

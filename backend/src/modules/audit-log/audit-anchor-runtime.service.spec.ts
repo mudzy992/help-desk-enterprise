@@ -7,7 +7,7 @@ describe('AuditAnchorRuntimeService', () => {
 
   it('fails startup closed when key provider configuration is missing', async () => {
     delete process.env.AUDIT_ANCHOR_HMAC_KEY;
-    const service = new AuditAnchorRuntimeService({ findChainHead: jest.fn() } as never);
+    const service = new AuditAnchorRuntimeService({ findChainHeads: jest.fn() } as never);
     await expect(service.onApplicationBootstrap()).rejects.toThrow('AUDIT_ANCHOR_CONFIGURATION_REQUIRED');
     expect(service.status().ready).toBe(false);
   });
@@ -19,9 +19,9 @@ describe('AuditAnchorRuntimeService', () => {
       return { ok: true, status: 200, json: async () => stored } as Response;
     });
     const createdAt = new Date('2026-10-24T12:00:00.000Z');
-    const service = new AuditAnchorRuntimeService({ findChainHead: jest.fn().mockResolvedValue({ id: 'head-1', hash: 'a'.repeat(64), createdAt }) } as never);
+    const service = new AuditAnchorRuntimeService({ findChainHeads: jest.fn().mockResolvedValue([{ id: 'head-1', hash: 'a'.repeat(64), createdAt, chainPartition: 'global' }]) } as never);
     await service.publish(createdAt);
-    expect(fetchMock).toHaveBeenCalledWith('https://worm.invalid/audit/head-1.json', expect.objectContaining({ method: 'PUT', headers: expect.objectContaining({ 'if-none-match': '*' }) }));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/worm\.invalid\/audit\/partitions-[a-f0-9]{64}\.json$/u), expect.objectContaining({ method: 'PUT', headers: expect.objectContaining({ 'if-none-match': '*' }) }));
     expect(service.status(new Date(createdAt.getTime() + 119_999))).toMatchObject({ ready: true, reason: 'OK', publishLagMs: 119_999, publishFailuresTotal: 0 });
     expect(service.status(new Date(createdAt.getTime() + 120_001))).toMatchObject({ ready: false, reason: 'STALE' });
   });
@@ -34,12 +34,12 @@ describe('AuditAnchorRuntimeService', () => {
       if (init?.method === 'PUT') { stored = JSON.parse(String(init.body)); return { ok: true, status: 201 } as Response; }
       return { ok: true, status: 200, json: async () => stored } as Response;
     });
-    const repository = { findChainHead: jest.fn().mockResolvedValue({ id: 'head-2', hash: 'b'.repeat(64), createdAt: new Date() }) };
+    const repository = { findChainHeads: jest.fn().mockResolvedValue([{ id: 'head-2', hash: 'b'.repeat(64), createdAt: new Date(), chainPartition: 'global' }]) };
     const service = new AuditAnchorRuntimeService(repository as never);
     await expect(service.publish()).rejects.toThrow('AUDIT_ANCHOR_SINK_503');
     expect(service.status()).toMatchObject({ ready: false, reason: 'PUBLISH_FAILED', publishFailuresTotal: 1 });
     await service.publish();
-    expect(service.status()).toMatchObject({ ready: true, reason: 'OK', publishFailuresTotal: 1, lastPublishedHeadId: 'head-2' });
+    expect(service.status()).toMatchObject({ ready: true, reason: 'OK', publishFailuresTotal: 1, lastPublishedHeadId: expect.stringMatching(/^partitions-/u) });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

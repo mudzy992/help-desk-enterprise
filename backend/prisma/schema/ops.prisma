@@ -130,6 +130,8 @@ model AuditLog {
   metadataDigest         String?
   /// Per-row algorithm, committed into the v3 canonical envelope.
   hashAlgorithm          String              @default("sha256")
+  /// Independent append chain; global or one OU partition.
+  chainPartition         String              @default("global")
   /// Metadata was redacted (anonymization); v1 rows become "sealed".
   redactedAt             DateTime?
   createdAt              DateTime            @default(now())
@@ -138,6 +140,7 @@ model AuditLog {
   @@index([actorUserId])
   @@index([organizationalUnitId])
   @@index([createdAt])
+  @@index([chainPartition, createdAt, id])
 }
 
 /// Paket 5.4.2 (stavka 3): delivery state of the security-audit webhook.

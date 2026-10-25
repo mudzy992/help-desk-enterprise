@@ -2,7 +2,7 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
 import { auditHashVersions } from '../../audit-log/build-canonical-audit-payload';
 import { computeAuditLogHash } from '../../audit-log/compute-audit-log-hash';
-import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes, auditLogMaintenanceLockKey } from '../../audit-log/audit-log.constants';
 import type { TextScrubber } from './text-scrubber';
 
 const entriesListed = 2000;
@@ -29,7 +29,7 @@ export async function redactAuditForSubject(
   },
 ): Promise<AuditRedactionResult> {
   return prisma.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${871_001})`;
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${auditLogMaintenanceLockKey})`;
     const needle = input.email.toLowerCase();
     const entityIds = [input.userId, ...input.ticketIds];
     const redactedAt = new Date();
@@ -68,9 +68,12 @@ export async function redactAuditForSubject(
     if (redacted === 0) return { redacted, sealed };
 
     const chain = await transaction.auditLog.findMany({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
-    let previousHash = chain[0]?.previousHash ?? '0'.repeat(64);
+    const partitionHeads = new Map<string, string>();
+    if (chain[0]?.previousHash) partitionHeads.set('global', chain[0].previousHash);
     for (const row of chain) {
-      if (row.hashVersion === auditHashVersions.v4) {
+      const partition = row.hashVersion === auditHashVersions.v5 ? row.chainPartition : 'global';
+      const previousHash = partitionHeads.get(partition) ?? '0'.repeat(64);
+      if (row.hashVersion === auditHashVersions.v4 || row.hashVersion === auditHashVersions.v5) {
         const hash = computeAuditLogHash({
           previousHash,
           action: row.action,
@@ -81,16 +84,17 @@ export async function redactAuditForSubject(
           requestId: row.requestId,
           organizationalUnitId: row.organizationalUnitId,
           hashAlgorithm: row.hashAlgorithm as 'sha256' | 'sha384' | 'sha512',
-          hashVersion: auditHashVersions.v4,
+          hashVersion: row.hashVersion,
           metadataDigest: row.metadataDigest,
           rowId: row.id,
           createdAt: row.createdAt,
           redactedAt: row.redactedAt,
+          ...(row.hashVersion === auditHashVersions.v5 ? { chainPartition: partition } : {}),
         });
         await transaction.auditLog.update({ where: { id: row.id }, data: { previousHash, hash } });
-        previousHash = hash;
+        partitionHeads.set(partition, hash);
       } else {
-        previousHash = row.hash;
+        partitionHeads.set(partition, row.hash);
       }
     }
     await appendAuditLog(transaction as never, {

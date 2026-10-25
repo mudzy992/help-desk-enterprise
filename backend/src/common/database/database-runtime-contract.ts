@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271024120000_audit_immutable_identity_hash_envelope';
+  '20271025100000_partition_audit_chain';
 
 export function assertDatabaseTransport(
   connectionString: string,

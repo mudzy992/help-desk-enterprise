@@ -63,11 +63,12 @@ export class AuditLogRepository {
     return new Map(users.map((user) => [user.id, user.displayName]));
   }
 
-  async findChainHead(): Promise<AuditLogRecord | null> {
-    const record = await this.prisma.auditLog.findFirst({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    });
-    return record === null ? null : toAuditLogRecord(record);
+  async findChainHeads(): Promise<readonly AuditLogRecord[]> {
+    const records = await this.prisma.$queryRaw<Array<Record<string, unknown>>>`
+      SELECT DISTINCT ON ("chainPartition") *
+      FROM "AuditLog"
+      ORDER BY "chainPartition" ASC, "createdAt" DESC, "id" DESC`;
+    return records.map((record) => toAuditLogRecord(record as never));
   }
 
   async listRecentChainSnapshot(take: number): Promise<readonly AuditLogRecord[]> {
@@ -98,9 +99,18 @@ export class AuditLogRepository {
   async findLatestCheckpoint(): Promise<AuditChainStart | null> {
     const checkpoint = await this.prisma.auditChainCheckpoint.findFirst({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      select: { throughHash: true, throughCreatedAt: true, purgedCount: true },
+      select: { throughHash: true, throughCreatedAt: true, purgedCount: true, partitionHeads: true },
     });
-    return checkpoint;
+    if (checkpoint === null) return null;
+    return {
+      throughHash: checkpoint.throughHash,
+      throughCreatedAt: checkpoint.throughCreatedAt,
+      purgedCount: checkpoint.purgedCount,
+      partitionHeads:
+        checkpoint.partitionHeads !== null && typeof checkpoint.partitionHeads === 'object' && !Array.isArray(checkpoint.partitionHeads)
+          ? checkpoint.partitionHeads as Record<string, string>
+          : {},
+    };
   }
 
   async listPage(input: {
@@ -187,6 +197,7 @@ function toAuditLogRecord(record: {
   readonly metadataDigest?: string | null;
   readonly redactedAt?: Date | null;
   readonly hashAlgorithm?: string;
+  readonly chainPartition?: string;
 }): AuditLogRecord {
   return {
     id: record.id,
@@ -204,6 +215,7 @@ function toAuditLogRecord(record: {
     metadataDigest: record.metadataDigest ?? null,
     redactedAt: record.redactedAt ?? null,
     hashAlgorithm: record.hashAlgorithm as AuditLogRecord['hashAlgorithm'],
+    chainPartition: record.chainPartition ?? 'global',
   };
 }
 

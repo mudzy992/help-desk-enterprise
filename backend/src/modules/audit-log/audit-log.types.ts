@@ -47,6 +47,8 @@ export type AuditLogRecord = {
   readonly redactedAt?: Date | null;
   /** Persisted and hash-bound for v3; absent on legacy in-memory fixtures. */
   readonly hashAlgorithm?: AuditHashAlgorithm;
+  /** v5 independent append chain; legacy rows belong to `global`. */
+  readonly chainPartition?: string;
 };
 
 export type AuditLogExportRow = {
@@ -125,6 +127,7 @@ export type AuditLogWriteClient = {
   ): Promise<unknown>;
   readonly auditLog: {
     findFirst(args: {
+      where?: { chainPartition: string };
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }];
       select: { hash: true };
     }): Promise<{ hash: string } | null>;

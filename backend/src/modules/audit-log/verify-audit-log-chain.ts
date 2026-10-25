@@ -11,6 +11,7 @@ export type AuditChainStart = {
   readonly throughHash: string;
   readonly throughCreatedAt: Date;
   readonly purgedCount: number;
+  readonly partitionHeads?: Readonly<Record<string, string>>;
 };
 
 /**
@@ -26,11 +27,17 @@ export function verifyAuditLogChain(input: {
   readonly records: readonly AuditLogRecord[];
   readonly hashAlgorithm: AuditHashAlgorithm;
   readonly start?: AuditChainStart | null;
+  readonly partitionStarts?: ReadonlyMap<string, string>;
 }): Extract<AuditLogVerifyResult, { enabled: true }> {
   const ordered = [...input.records].sort(compareAuditLogChainOrder);
   const start = input.start ?? null;
   let redactedCount = 0;
   let sealedCount = 0;
+  const partitionHeads = new Map<string, string>([
+    ...Object.entries(start?.partitionHeads ?? {}),
+    ...(input.partitionStarts ?? []),
+  ]);
+  if (start !== null && !partitionHeads.has('global')) partitionHeads.set('global', start.throughHash);
   const details = () => ({
     redactedCount,
     sealedCount,
@@ -44,17 +51,17 @@ export function verifyAuditLogChain(input: {
           },
   });
   for (const [index, record] of ordered.entries()) {
-    const previousHash =
-      index === 0 ? (start?.throughHash ?? auditLogGenesisHash) : ordered[index - 1]?.hash;
-    if (previousHash === undefined || record.previousHash !== previousHash) {
+    const version = record.hashVersion ?? auditHashVersions.v1;
+    const partition = version === auditHashVersions.v5 ? (record.chainPartition ?? '') : 'global';
+    const previousHash = partitionHeads.get(partition) ?? auditLogGenesisHash;
+    if (record.previousHash !== previousHash) {
       return mismatch(ordered.length, record.id, index, details());
     }
     const redacted = record.redactedAt !== null && record.redactedAt !== undefined;
     if (redacted) redactedCount += 1;
-    const version = record.hashVersion ?? auditHashVersions.v1;
-    if (version === auditHashVersions.v2 || version === auditHashVersions.v3 || version === auditHashVersions.v4) {
+    if (version === auditHashVersions.v2 || version === auditHashVersions.v3 || version === auditHashVersions.v4 || version === auditHashVersions.v5) {
       const digest = record.metadataDigest ?? '';
-      const hashAlgorithm = version === auditHashVersions.v3 || version === auditHashVersions.v4
+      const hashAlgorithm = version === auditHashVersions.v3 || (version === auditHashVersions.v4 || version === auditHashVersions.v5)
         ? record.hashAlgorithm
         : input.hashAlgorithm;
       if (hashAlgorithm === undefined) {
@@ -75,19 +82,22 @@ export function verifyAuditLogChain(input: {
         hashAlgorithm,
         hashVersion: version,
         metadataDigest: digest,
-        ...(version === auditHashVersions.v4 ? {
+        ...((version === auditHashVersions.v4 || version === auditHashVersions.v5) ? {
           rowId: record.id,
           createdAt: record.createdAt,
           redactedAt: record.redactedAt ?? null,
+          ...(version === auditHashVersions.v5 ? { chainPartition: partition } : {}),
         } : {}),
       });
       if (record.hash !== expected) {
         return mismatch(ordered.length, record.id, index, details());
       }
+      partitionHeads.set(partition, record.hash);
       continue;
     }
     if (redacted) {
       sealedCount += 1;
+      partitionHeads.set(partition, record.hash);
       continue;
     }
     const expectedHash = computeAuditLogHash({
@@ -104,6 +114,7 @@ export function verifyAuditLogChain(input: {
     if (record.hash !== expectedHash) {
       return mismatch(ordered.length, record.id, index, details());
     }
+    partitionHeads.set(partition, record.hash);
   }
   return {
     enabled: true,
@@ -120,23 +131,32 @@ export async function verifyAuditLogChainIncrementally(input: {
   readonly start?: AuditChainStart | null;
 }): Promise<Extract<AuditLogVerifyResult, { enabled: true }>> {
   let after: { createdAt: Date; id: string } | null = null;
-  let chainStart = input.start ?? null;
+  const partitionHeads = new Map<string, string>(Object.entries(input.start?.partitionHeads ?? {}));
+  if (input.start !== null && input.start !== undefined && !partitionHeads.has('global')) partitionHeads.set('global', input.start.throughHash);
   let checkedCount = 0;
   let redactedCount = 0;
   let sealedCount = 0;
   for (;;) {
     const page = await input.readPage(after, input.pageSize);
     if (page.length === 0) break;
-    const result = verifyAuditLogChain({ records: page, hashAlgorithm: input.hashAlgorithm, start: chainStart });
-    redactedCount += result.redactedCount ?? 0;
-    sealedCount += result.sealedCount ?? 0;
-    if (!result.valid) {
-      return { ...result, checkedCount: checkedCount + result.checkedCount, firstMismatchIndex: checkedCount + result.firstMismatchIndex };
+    for (const record of page) {
+      const result = verifyAuditLogChain({
+        records: [record],
+        hashAlgorithm: input.hashAlgorithm,
+        partitionStarts: partitionHeads,
+      });
+      redactedCount += result.redactedCount ?? 0;
+      sealedCount += result.sealedCount ?? 0;
+      if (!result.valid) {
+        return { ...result, checkedCount: checkedCount + 1, firstMismatchIndex: checkedCount };
+      }
+      const version = record.hashVersion ?? auditHashVersions.v1;
+      const partition = version === auditHashVersions.v5 ? (record.chainPartition ?? '') : 'global';
+      partitionHeads.set(partition, record.hash);
+      checkedCount += 1;
     }
-    checkedCount += page.length;
     const last = page.at(-1)!;
     after = { createdAt: last.createdAt, id: last.id };
-    chainStart = { throughHash: last.hash, throughCreatedAt: last.createdAt, purgedCount: 0 };
     if (page.length < input.pageSize) break;
   }
   return {

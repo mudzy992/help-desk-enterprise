@@ -1,6 +1,7 @@
 export const auditLogGenesisHash = '0'.repeat(64);
 
 export const auditLogChainLockKey = 871_001;
+export const auditLogMaintenanceLockKey = 871_000;
 
 export const defaultAuditHashAlgorithm = 'sha256';
 

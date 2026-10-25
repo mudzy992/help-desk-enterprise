@@ -5,7 +5,7 @@ import type { JsonValue } from '../change-log/change-log.types';
  * SHA-256 digest of the canonical metadata. With v2 the metadata can later be
  * redacted (anonymization) while the chain stays fully verifiable.
  */
-export const auditHashVersions = { v1: 1, v2: 2, v3: 3, v4: 4 } as const;
+export const auditHashVersions = { v1: 1, v2: 2, v3: 3, v4: 4, v5: 5 } as const;
 export type AuditHashVersion = (typeof auditHashVersions)[keyof typeof auditHashVersions];
 
 export function buildCanonicalAuditPayload(input: {
@@ -23,9 +23,20 @@ export function buildCanonicalAuditPayload(input: {
   readonly rowId?: string;
   readonly createdAt?: Date;
   readonly redactedAt?: Date | null;
+  readonly chainPartition?: string;
 }): JsonValue {
   const content: Record<string, JsonValue> =
-    input.hashVersion === auditHashVersions.v4
+    input.hashVersion === auditHashVersions.v5
+      ? {
+          hashVersion: auditHashVersions.v5,
+          hashAlgorithm: input.hashAlgorithm ?? '',
+          metadataDigest: input.metadataDigest ?? '',
+          rowId: input.rowId ?? '',
+          createdAt: input.createdAt?.toISOString() ?? '',
+          redactedAt: input.redactedAt?.toISOString() ?? null,
+          chainPartition: input.chainPartition ?? '',
+        }
+      : input.hashVersion === auditHashVersions.v4
       ? {
           hashVersion: auditHashVersions.v4,
           hashAlgorithm: input.hashAlgorithm ?? '',
