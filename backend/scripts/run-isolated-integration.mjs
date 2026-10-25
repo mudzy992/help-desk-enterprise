@@ -13,6 +13,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/principal-context/user-role-constraint-migration.integration.spec.ts",
   "src/common/principal-context/principal-authority.integration.spec.ts",
   "src/common/idempotency/request-idempotency.integration.spec.ts",
+  "src/common/outbox/transactional-outbox.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",

@@ -266,3 +266,31 @@ model IdempotencyRecord {
   @@index([status, leaseExpiresAt])
   @@index([expiresAt])
 }
+
+model OutboxMessage {
+  id             String       @id @default(uuid())
+  topic          String       @db.VarChar(100)
+  dedupeKey      String       @db.VarChar(160)
+  payload        Json
+  payloadHash    String       @db.Char(64)
+  status         OutboxStatus @default(PENDING)
+  attempts       Int          @default(0)
+  maxAttempts    Int          @default(10)
+  nextAttemptAt  DateTime     @default(now())
+  ownerToken     String?      @db.Uuid
+  leaseExpiresAt DateTime?
+  lastError      String?      @db.VarChar(1000)
+  completedAt    DateTime?
+  replayCount    Int          @default(0)
+  lastReplayedAt DateTime?
+  lastReplayedBy String?      @db.VarChar(128)
+  lastReplayReason String?    @db.VarChar(500)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  expiresAt      DateTime
+
+  @@unique([topic, dedupeKey])
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([status, leaseExpiresAt])
+  @@index([expiresAt])
+}

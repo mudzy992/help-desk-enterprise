@@ -177,3 +177,10 @@ enum IdempotencyStatus {
   PROCESSING
   SUCCEEDED
 }
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  DEAD_LETTER
+}
