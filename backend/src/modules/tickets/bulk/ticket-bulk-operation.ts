@@ -11,6 +11,7 @@ export type StoredBulkOperation = {
   id: string;
   requestHash: string;
   status: string;
+  mode: string;
   responseBody: unknown;
 };
 
@@ -23,7 +24,7 @@ export async function claimBulkOperation(
   prisma: BulkOperationClient,
   body: ExecuteTicketBulkInput & { operationId: string; mode: 'atomic' | 'best-effort' },
   actorUserId: string,
-): Promise<{ replay: TicketBulkExecutionSummary | null }> {
+): Promise<{ replay: TicketBulkExecutionSummary | null; resumed: boolean }> {
   const requestHash = hashBulkRequest(body, actorUserId);
   try {
     await prisma.ticketBulkOperation.create({ data: {
@@ -31,13 +32,21 @@ export async function claimBulkOperation(
       requestHash, total: body.ticketIds.length,
       items: { create: body.ticketIds.map((ticketId, ordinal) => ({ itemKey: ticketId, ticketId, ordinal })) },
     } });
-    return { replay: null };
+    return { replay: null, resumed: false };
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error;
     const existing = await prisma.ticketBulkOperation.findUnique({ where: { id: body.operationId } }) as StoredBulkOperation | null;
     if (existing === null || existing.requestHash !== requestHash) throw new IdempotencyError(idempotencyErrorCodes.payloadMismatch);
     if (existing.status === 'PROCESSING' || existing.responseBody === null) throw new IdempotencyError(idempotencyErrorCodes.inProgress);
-    return { replay: existing.responseBody as TicketBulkExecutionSummary };
+    if (existing.mode === 'best-effort' && existing.status !== 'SUCCEEDED') {
+      const resumed = await prisma.ticketBulkOperation.updateMany({
+        where: { id: body.operationId, status: { in: ['PARTIAL', 'FAILED'] } },
+        data: { status: 'PROCESSING', responseBody: Prisma.JsonNull },
+      });
+      if (resumed.count !== 1) throw new IdempotencyError(idempotencyErrorCodes.inProgress);
+      return { replay: null, resumed: true };
+    }
+    return { replay: existing.responseBody as TicketBulkExecutionSummary, resumed: false };
   }
 }
 

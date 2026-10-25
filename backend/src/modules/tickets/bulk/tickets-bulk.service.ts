@@ -217,10 +217,17 @@ export class TicketsBulkService {
         }
       } else {
         const parent = tickets.find((ticket) => ticket.id === body.parentTicketId);
+        const retryableItems = claim.resumed
+          ? await this.prisma.ticketBulkOperationItem.findMany({
+              where: { operationId, status: { in: ['PENDING', 'FAILED'] } }, select: { ticketId: true },
+            })
+          : body.ticketIds.map((ticketId) => ({ ticketId }));
+        const retryableIds = new Set(retryableItems.map((item) => item.ticketId));
         const bulk = new BulkCommandService(this.prisma);
         const execution = await bulk.execute({
           mode: 'best-effort',
-          items: tickets.filter((ticket) => ticket.id !== body.parentTicketId).map((ticket) => ({ key: ticket.id, payload: ticket })),
+          items: tickets.filter((ticket) => ticket.id !== body.parentTicketId && retryableIds.has(ticket.id))
+            .map((ticket) => ({ key: ticket.id, payload: ticket })),
           handle: async (item, transaction) => {
             const itemTickets = body.actionType === 'merge_into_parent' && parent !== undefined ? [parent, item.payload] : [item.payload];
             const executed = await executeTicketBulk({ ...common, prisma: transaction as never, tickets: itemTickets,
@@ -234,18 +241,24 @@ export class TicketsBulkService {
           await this.prisma.ticketBulkOperationItem.update({ where: { operationId_itemKey: { operationId, itemKey: item.key } },
             data: { status: 'FAILED', attempts: { increment: 1 }, completedAt: new Date(), errorCode: item.error.code, retryable: item.error.retryable } });
         }
-        const successful = execution.results.flatMap((entry) => entry.status === 'SUCCEEDED' ? entry.value.tickets : []);
-        summary = { operationId, mode, outcome: execution.outcome, ticketIds: successful.map((ticket) => ticket.id),
-          succeeded: execution.succeeded, failed: execution.failed, rolledBack: 0, skipped: 0 };
+        const succeededItems = await this.prisma.ticketBulkOperationItem.findMany({
+          where: { operationId, status: 'SUCCEEDED' }, select: { ticketId: true }, orderBy: { ordinal: 'asc' },
+        });
+        const succeeded = succeededItems.length;
+        const failed = await this.prisma.ticketBulkOperationItem.count({ where: { operationId, status: 'FAILED' } });
+        const outcome = failed === 0 ? 'SUCCEEDED' as const : succeeded === 0 ? 'FAILED' as const : 'PARTIAL' as const;
+        summary = { operationId, mode, outcome, ticketIds: succeededItems.map((item) => item.ticketId),
+          succeeded, failed, rolledBack: 0, skipped: 0 };
         await this.prisma.$transaction(async (transaction) => {
           await recordAuditEntry(transaction as never, { action: auditLogActions.ticketBulkExecute,
             entityType: auditLogEntityTypes.ticketBulk, entityId: operationId,
-            metadata: { operationId, mode, outcome: execution.outcome, actionType: body.actionType,
-              ticketIds: body.ticketIds, succeeded: execution.succeeded, failed: execution.failed },
+            metadata: { operationId, mode, outcome: summary.outcome, actionType: body.actionType,
+              ticketIds: body.ticketIds, succeeded: summary.succeeded, failed: summary.failed },
             actorUserId: gated.actorUserId, organizationalUnitId: null });
           await completeBulkOperation(transaction as never, operationId, summary);
         });
-        result = { batchId: operationId, tickets: successful };
+        const succeededIds = new Set(summary.ticketIds);
+        result = { batchId: operationId, tickets: tickets.filter((ticket) => succeededIds.has(ticket.id)) };
       }
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();

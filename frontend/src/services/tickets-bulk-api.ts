@@ -37,6 +37,13 @@ export type TicketBulkPreview = {
 };
 
 export type TicketBulkResult = {
+  readonly operationId: string;
+  readonly mode: "atomic" | "best-effort";
+  readonly outcome: "SUCCEEDED" | "PARTIAL" | "FAILED";
+  readonly succeeded: number;
+  readonly failed: number;
+  readonly rolledBack: number;
+  readonly skipped: number;
   readonly batchId: string | null;
   readonly actionType: TicketBulkActionType;
   readonly tickets: readonly TicketResponse[];
