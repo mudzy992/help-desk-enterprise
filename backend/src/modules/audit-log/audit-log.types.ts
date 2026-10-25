@@ -3,6 +3,8 @@ import type { JsonValue } from '../change-log/change-log.types';
 import type {
   allowedAuditExportFormats,
   allowedAuditHashAlgorithms,
+  auditLogActions,
+  auditLogEntityTypes,
 } from './audit-log.constants';
 
 export type { AuditLogErrorCode } from './audit-log.constants';
@@ -10,6 +12,10 @@ export type { AuditLogErrorCode } from './audit-log.constants';
 export type AuditHashAlgorithm = (typeof allowedAuditHashAlgorithms)[number];
 
 export type AuditExportFormat = (typeof allowedAuditExportFormats)[number];
+export type CoreAuditAction = (typeof auditLogActions)[keyof typeof auditLogActions];
+export type AuditExtensionAction = `ext.${string}.${string}`;
+export type AuditAction = CoreAuditAction | AuditExtensionAction;
+export type AuditEntityType = (typeof auditLogEntityTypes)[keyof typeof auditLogEntityTypes];
 
 export type AuditLogConfiguration = {
   readonly exportEnabled: boolean;
@@ -19,8 +25,8 @@ export type AuditLogConfiguration = {
 };
 
 export type RecordAuditEntryInput = {
-  readonly action: string;
-  readonly entityType: string;
+  readonly action: AuditAction;
+  readonly entityType: AuditEntityType;
   readonly entityId: string;
   readonly metadata: JsonValue;
   readonly actorUserId: string | null;

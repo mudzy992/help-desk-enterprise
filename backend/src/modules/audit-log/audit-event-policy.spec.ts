@@ -12,8 +12,8 @@ describe('canonical audit event policy', () => {
   } as const;
 
   it('locks action, entity and actor registries', () => {
-    expect(() => prepareAuditEntry({ ...valid, action: 'invented.action' })).toThrow('AUDIT_ACTION_NOT_REGISTERED');
-    expect(() => prepareAuditEntry({ ...valid, entityType: 'invented_entity' })).toThrow('AUDIT_ENTITY_TYPE_NOT_REGISTERED');
+    expect(() => prepareAuditEntry({ ...valid, action: 'invented.action' as never })).toThrow('AUDIT_ACTION_NOT_REGISTERED');
+    expect(() => prepareAuditEntry({ ...valid, entityType: 'invented_entity' as never })).toThrow('AUDIT_ENTITY_TYPE_NOT_REGISTERED');
     expect(classifyAuditActor('actor')).toBe('human');
     expect(classifyAuditActor(null)).toBe('system');
     expect(getAuditRegistryInventory().actions).toContain(auditLogActions.userUpdated);
