@@ -1,5 +1,6 @@
 import { getRequestId } from '../../common/request-context/request-context.storage';
 import { getAuditActionSchema } from './audit-action-schema-registry';
+import { getAuditScopePolicy } from './audit-action-scope-registry';
 import { auditLogActions, auditLogEntityTypes } from './audit-log.constants';
 import type { RecordAuditEntryInput } from './audit-log.types';
 
@@ -35,10 +36,17 @@ function sanitize(value: unknown, depth: number, state: SanitizeState): unknown 
 
 export function prepareAuditEntry(input: RecordAuditEntryInput): PreparedAuditEntry {
   const actionSchema = getAuditActionSchema(input.action);
-  if (!actionRegistry.has(input.action) || actionSchema === undefined) {
+  const scopePolicy = getAuditScopePolicy(input.action);
+  if (!actionRegistry.has(input.action) || actionSchema === undefined || scopePolicy === undefined) {
     throw new Error(`AUDIT_ACTION_NOT_REGISTERED:${input.action}`);
   }
   if (!entityTypeRegistry.has(input.entityType)) throw new Error(`AUDIT_ENTITY_TYPE_NOT_REGISTERED:${input.entityType}`);
+  if (scopePolicy === 'global' && input.organizationalUnitId != null) {
+    throw new Error(`AUDIT_SCOPE_MUST_BE_GLOBAL:${input.action}`);
+  }
+  if (scopePolicy === 'entity' && input.organizationalUnitId == null) {
+    throw new Error(`AUDIT_SCOPE_REQUIRED:${input.action}`);
+  }
   if (input.metadata === null || typeof input.metadata !== 'object' || Array.isArray(input.metadata)) {
     throw new Error('AUDIT_METADATA_OBJECT_REQUIRED');
   }
