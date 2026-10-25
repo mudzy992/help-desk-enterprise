@@ -21,6 +21,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/cache-invalidation/cache-invalidation.integration.spec.ts",
   "src/modules/tickets/ticket-message-command.integration.spec.ts",
   "src/modules/tickets/confidential/break-glass-command.integration.spec.ts",
+  "src/modules/tickets/bulk/ticket-bulk-operation.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
