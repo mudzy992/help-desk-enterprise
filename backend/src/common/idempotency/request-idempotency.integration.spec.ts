@@ -30,10 +30,13 @@ describeIfDatabase('persisted request idempotency (integration)', () => {
         return { statusCode: 201, body: { id: 'result-1', accepted: true } };
       },
     });
-    const results = await Promise.all([command(), command()]);
+    const deliveries = await Promise.allSettled([command(), command()]);
     expect(effects).toBe(1);
-    expect(results.map((result) => result.replayed).sort()).toEqual([false, true]);
-    expect(results[0]?.body).toEqual(results[1]?.body);
+    expect(deliveries.filter((delivery) => delivery.status === 'fulfilled')).toHaveLength(1);
+    expect(deliveries.find((delivery) => delivery.status === 'rejected')).toMatchObject({
+      reason: { code: 'IDEMPOTENCY_REQUEST_IN_PROGRESS' },
+    });
+    await expect(command()).resolves.toMatchObject({ replayed: true, body: { id: 'result-1', accepted: true } });
     expect(await prisma.idempotencyRecord.count({ where: { namespace, key: 'duplicate-delivery-0001', status: 'SUCCEEDED' } })).toBe(1);
   });
 
