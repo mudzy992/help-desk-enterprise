@@ -11,8 +11,13 @@ export type AuditChainStart = {
   readonly throughHash: string;
   readonly throughCreatedAt: Date;
   readonly purgedCount: number;
-  readonly partitionHeads?: Readonly<Record<string, string>>;
+  readonly partitionHeads?: unknown;
 };
+
+function checkpointPartitionEntries(value: unknown): [string, string][] {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+}
 
 /**
  * Verifies the chain from the genesis hash, or from the latest retention
@@ -34,7 +39,7 @@ export function verifyAuditLogChain(input: {
   let redactedCount = 0;
   let sealedCount = 0;
   const partitionHeads = new Map<string, string>([
-    ...Object.entries(start?.partitionHeads ?? {}),
+    ...checkpointPartitionEntries(start?.partitionHeads),
     ...(input.partitionStarts ?? []),
   ]);
   if (start !== null && !partitionHeads.has('global')) partitionHeads.set('global', start.throughHash);
@@ -131,7 +136,7 @@ export async function verifyAuditLogChainIncrementally(input: {
   readonly start?: AuditChainStart | null;
 }): Promise<Extract<AuditLogVerifyResult, { enabled: true }>> {
   let after: { createdAt: Date; id: string } | null = null;
-  const partitionHeads = new Map<string, string>(Object.entries(input.start?.partitionHeads ?? {}));
+  const partitionHeads = new Map<string, string>(checkpointPartitionEntries(input.start?.partitionHeads));
   if (input.start !== null && input.start !== undefined && !partitionHeads.has('global')) partitionHeads.set('global', input.start.throughHash);
   let checkedCount = 0;
   let redactedCount = 0;
