@@ -242,7 +242,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W4.5 bounded bulk-command framework — završen** na SHA `7b5ea04`, CI `40219266489`.
 - Centralni servis zahtijeva eksplicitan atomic/best-effort mode, 1–100 unique bounded itema, per-item rezultat, atomic rollback/skip klasifikaciju, sekvencijalne zasebne best-effort transakcije i redakciju nepoznatih grešaka.
 - Paket nema migraciju i ne zatvara domenske nalaze prije integracije konkretnih bulk handlera; dokaz je u [25-bounded-bulk-command-framework.md](implementation/25-bounded-bulk-command-framework.md).
-- Sljedeći paket je **Val 4 / W4.6 storage write protocol: stage → DB intent → atomic promote → compensation/reconciler**.
+- **W4.6 storage write protocol — završen** na SHA `02aa0b4`, CI `40220137718`.
+- Centralni stage→transactional intent→atomic promote tok ima content hash dedupe, pending/processing/ready/failed/compensated state, lease/backoff reconciler, rollback cleanup i durable compensation zapis kada cleanup zakaže.
+- Paket uvodi migraciju `20271025230000_storage_write_protocol`, ali ne zatvara domenske storage nalaze prije integracije konkretnih callera; dokaz je u [26-staged-storage-write-protocol.md](implementation/26-staged-storage-write-protocol.md).
+- Sljedeći paket je **Val 4 / W4.7 post-commit cache invalidation primitive; cache/realtime nikad nije source of truth**.
 
 ### Canonical primitive
 
