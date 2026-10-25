@@ -52,7 +52,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.authMfaFailed]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authMfaPasskeyEnrolled]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authMfaPasskeyRemoved]: compatibility([auditLogEntityTypes.user]),
-  [auditLogActions.authRateLimitsChanged]: compatibility([auditLogEntityTypes.authEvent]),
+  [auditLogActions.authRateLimitsChanged]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authSessionRevoked]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authSessionsRevokedAll]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authorizationSuperAdminBypass]: compatibility([auditLogEntityTypes.authorization]),
