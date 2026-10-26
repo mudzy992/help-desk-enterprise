@@ -34,11 +34,13 @@ export async function deleteTicketAttachment(
   );
   const messages: TicketMessageRecord[] = [];
   const intentId = await prisma.$transaction(async (transaction) => {
-    const deletionIntentId = await createAttachmentDeletionIntent(transaction as PrismaService, {
-      attachmentId: record.id,
-      storagePath: record.storagePath,
-      sizeBytes: record.sizeBytes,
-    });
+    const deletionIntentId = transaction.storageWriteIntent
+      ? await createAttachmentDeletionIntent(transaction as PrismaService, {
+          attachmentId: record.id,
+          storagePath: record.storagePath,
+          sizeBytes: record.sizeBytes,
+        })
+      : undefined;
     await transaction.ticketAttachment.delete({ where: { id: record.id } });
     await recordCollaborationChange(transaction as PrismaService, {
       entityType: changeLogEntityTypes.ticketAttachment,
@@ -58,6 +60,7 @@ export async function deleteTicketAttachment(
     );
     return deletionIntentId;
   });
-  await promoteAttachmentDeletion({ prisma, storage, intentId });
+  if (intentId === undefined) await storage.remove(record.storagePath);
+  else await promoteAttachmentDeletion({ prisma, storage, intentId });
   return { messages };
 }
