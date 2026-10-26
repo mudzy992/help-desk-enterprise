@@ -16,6 +16,7 @@ import { TICKET_ATTACHMENT_STORAGE } from '../attachments/attachment-storage.tok
 import { DiskTicketAttachmentStorage } from '../attachments/disk-ticket-attachment-storage';
 import { resolveUploadRoot } from '../attachments/resolve-upload-root';
 import { TicketAttachmentConfigurationLoader } from '../attachments/ticket-attachment-configuration.loader';
+import { AttachmentDeletionReconciler } from '../attachments/attachment-deletion-reconciler.service';
 import { TicketsAttachmentsService } from '../attachments/tickets-attachments.service';
 import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from '../confidential/ticket-confidential-configuration.loader';
@@ -58,6 +59,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     TicketsAttachmentsService,
     TicketsReopenService,
     SplitAttachmentStorageReconciler,
+    AttachmentDeletionReconciler,
     TicketAssignmentService,
     TicketAccessPolicyBinder,
     TicketLabelCacheService,

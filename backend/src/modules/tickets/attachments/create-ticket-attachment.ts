@@ -23,6 +23,7 @@ import type {
 import { scanAttachmentWithClamav } from './scan-attachment-with-clamav';
 import { toTicketAttachmentResponse } from './to-attachment-response';
 import { validateTicketAttachment } from './validate-ticket-attachment';
+import { runAttachmentQuotaTransaction } from './run-attachment-quota-transaction';
 
 export async function createTicketAttachment(
   prisma: PrismaService,
@@ -64,7 +65,11 @@ export async function createTicketAttachment(
   });
   try {
     const messages: TicketMessageRecord[] = [];
-    const created = await prisma.$transaction(async (transaction) => {
+    const created = await runAttachmentQuotaTransaction({
+      prisma,
+      ticketId: ticket.id,
+      maxFiles: configuration.maxFilesPerTicket,
+      operation: async (transaction) => {
       const record = (await transaction.ticketAttachment.create({
         data: {
           ticketId: ticket.id,
@@ -93,7 +98,8 @@ export async function createTicketAttachment(
           actorUserId: context.actorUserId,
         }),
       );
-      return record;
+        return record;
+      },
     });
     return {
       attachment: toTicketAttachmentResponse(created, ticket),

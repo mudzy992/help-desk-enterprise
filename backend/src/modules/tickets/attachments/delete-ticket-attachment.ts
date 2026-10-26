@@ -14,6 +14,7 @@ import type { TicketMutationContext } from '../tickets.types';
 import { loadTicketAttachmentRecord } from './load-ticket-attachment-record';
 import type { TicketAttachmentStorage } from './attachments.types';
 import { toTicketAttachmentResponse } from './to-attachment-response';
+import { createAttachmentDeletionIntent, promoteAttachmentDeletion } from './attachment-deletion-intent';
 
 export async function deleteTicketAttachment(
   prisma: PrismaService,
@@ -31,9 +32,13 @@ export async function deleteTicketAttachment(
     context,
     permissionKeys.ticketAttachmentsUpload,
   );
-  await storage.remove(record.storagePath);
   const messages: TicketMessageRecord[] = [];
-  await prisma.$transaction(async (transaction) => {
+  const intentId = await prisma.$transaction(async (transaction) => {
+    const deletionIntentId = await createAttachmentDeletionIntent(transaction as PrismaService, {
+      attachmentId: record.id,
+      storagePath: record.storagePath,
+      sizeBytes: record.sizeBytes,
+    });
     await transaction.ticketAttachment.delete({ where: { id: record.id } });
     await recordCollaborationChange(transaction as PrismaService, {
       entityType: changeLogEntityTypes.ticketAttachment,
@@ -51,6 +56,8 @@ export async function deleteTicketAttachment(
         actorUserId: context.actorUserId,
       }),
     );
+    return deletionIntentId;
   });
+  await promoteAttachmentDeletion({ prisma, storage, intentId });
   return { messages };
 }
