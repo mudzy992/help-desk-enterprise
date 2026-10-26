@@ -44,12 +44,17 @@ export async function reopenSameTicket(input: {
   const outbox = supportsDurableCommands ? new TransactionalOutboxService(input.prisma) : undefined;
   const operation = async (transaction: Prisma.TransactionClient) => {
       const timestamps = applyTicketLifecycleTimestamps({ current: ticket, nextStatus: 'IN_PROGRESS', now: input.now });
+    let updated: TicketRecord;
+    if (supportsDurableCommands) {
       const claimed = await transaction.ticket.updateMany({
         where: { id: ticket.id, status: ticket.status, updatedAt: ticket.updatedAt },
         data: { status: 'IN_PROGRESS', ...timestamps },
       });
       if (claimed.count !== 1) throw new TicketsError('REOPEN_NOT_ELIGIBLE');
-      const updated = (await transaction.ticket.findUniqueOrThrow({ where: { id: ticket.id } })) as TicketRecord;
+      updated = (await transaction.ticket.findUniqueOrThrow({ where: { id: ticket.id } })) as TicketRecord;
+    } else {
+      updated = (await transaction.ticket.update({ where: { id: ticket.id }, data: { status: 'IN_PROGRESS', ...timestamps } })) as TicketRecord;
+    }
       await recordTicketChange(transaction as PrismaService, { action: changeLogActions.update, reason: ticketChangeLogReasons.reopen, before: ticket, after: updated, actorUserId: input.context.actorUserId });
       commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, { ticketId: updated.id, action: ticketSystemEventActions.ticketReopened, actorUserId: input.context.actorUserId }));
       if (comment !== null) commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, { ticketId: updated.id, action: comment, actorUserId: input.context.actorUserId }));
@@ -77,5 +82,7 @@ export async function reopenSameTicket(input: {
       })
     : { ...(await input.prisma.$transaction(operation)), replayed: false };
   if (!result.replayed) input.messages.push(...commandMessages);
-  return (await input.prisma.ticket.findUniqueOrThrow({ where: { id: result.body.ticketId } })) as TicketRecord;
+  const committed = await input.prisma.ticket.findUnique({ where: { id: result.body.ticketId } });
+  if (committed === null) throw new TicketsError('NOT_FOUND');
+  return committed as TicketRecord;
 }
