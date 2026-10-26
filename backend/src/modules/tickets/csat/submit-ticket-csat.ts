@@ -1,38 +1,39 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { buildChangeLogDiff } from '../../change-log/build-change-log-diff';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { AuthorizationContextLoader } from "../../authorization/authorization-context.loader";
+import { buildChangeLogDiff } from "../../change-log/build-change-log-diff";
 import {
   changeLogActions,
   changeLogEntityTypes,
-} from '../../change-log/change-log.constants';
-import type { ChangeLogPrismaClient } from '../../change-log/change-log.types';
-import { recordChangeLog } from '../../change-log/record-change-log';
-import { ticketSystemEventActions } from '../collaboration.constants';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
+} from "../../change-log/change-log.constants";
+import type { ChangeLogPrismaClient } from "../../change-log/change-log.types";
+import { recordChangeLog } from "../../change-log/record-change-log";
+import { ticketSystemEventActions } from "../collaboration.constants";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
 import {
   automationFingerprint,
   claimGuardrailTrigger,
-} from '../guardrails/claim-guardrail-trigger';
-import { guardrailClaimKinds } from '../guardrails/guardrails.constants';
-import type { TicketGuardrailsConfiguration } from '../guardrails/guardrails.types';
-import { insertSystemTicketEvent } from '../insert-system-ticket-event';
-import { loadAccessibleTicket } from '../load-accessible-ticket';
-import { assertTicketWritable } from '../archive/assert-ticket-writable';
+} from "../guardrails/claim-guardrail-trigger";
+import { guardrailClaimKinds } from "../guardrails/guardrails.constants";
+import type { TicketGuardrailsConfiguration } from "../guardrails/guardrails.types";
+import { runGuardrailEffectTransaction } from "../guardrails/run-guardrail-effect-transaction";
+import { insertSystemTicketEvent } from "../insert-system-ticket-event";
+import { loadAccessibleTicket } from "../load-accessible-ticket";
+import { assertTicketWritable } from "../archive/assert-ticket-writable";
 import {
   assertRedactionAllowed,
   scanTicketContent,
-} from '../redaction/assert-ticket-content-redaction';
-import type { TicketRedactionConfiguration } from '../redaction/redaction.types';
-import { ticketChangeLogReasons } from '../tickets.constants';
-import { TicketsError } from '../tickets.error';
-import type { TicketMutationContext, TicketRecord } from '../tickets.types';
-import { canActorSubmitTicketCsat } from './can-submit-ticket-csat';
-import { csatConstants, csatGuardrailFingerprint } from './csat.constants';
+} from "../redaction/assert-ticket-content-redaction";
+import type { TicketRedactionConfiguration } from "../redaction/redaction.types";
+import { ticketChangeLogReasons } from "../tickets.constants";
+import { TicketsError } from "../tickets.error";
+import type { TicketMutationContext, TicketRecord } from "../tickets.types";
+import { canActorSubmitTicketCsat } from "./can-submit-ticket-csat";
+import { csatConstants, csatGuardrailFingerprint } from "./csat.constants";
 import type {
   SubmitTicketCsatInput,
   TicketCsatConfiguration,
   TicketCsatRecord,
-} from './csat.types';
+} from "./csat.types";
 
 export async function submitTicketCsat(input: {
   readonly prisma: PrismaService;
@@ -53,7 +54,7 @@ export async function submitTicketCsat(input: {
   );
   assertTicketWritable(ticket, input.context);
   if (!input.configuration.enabled) {
-    throw new TicketsError('CSAT_DISABLED');
+    throw new TicketsError("CSAT_DISABLED");
   }
   const existing = (await input.prisma.ticketCsat.findUnique({
     where: { ticketId: ticket.id },
@@ -68,75 +69,90 @@ export async function submitTicketCsat(input: {
       alreadySubmitted: existing !== null,
     })
   ) {
-    throw new TicketsError(existing === null ? 'CSAT_NOT_ELIGIBLE' : 'CSAT_ALREADY_SUBMITTED');
+    throw new TicketsError(
+      existing === null ? "CSAT_NOT_ELIGIBLE" : "CSAT_ALREADY_SUBMITTED",
+    );
   }
-  const rating = normalizeRating(input.body.rating, input.configuration.scaleMax);
+  const rating = normalizeRating(
+    input.body.rating,
+    input.configuration.scaleMax,
+  );
   const comment = normalizeComment(input.body.comment);
   const scan = scanTicketContent({
     configuration: input.redaction,
     message: comment ?? undefined,
   });
   assertRedactionAllowed(scan);
-  const claimed = await claimGuardrailTrigger({
+  return runGuardrailEffectTransaction({
     prisma: input.prisma,
-    configuration: input.guardrails,
-    claim: {
-      kind: guardrailClaimKinds.event,
-      subjectKey: ticket.id,
-      fingerprint: automationFingerprint(csatGuardrailFingerprint, ticket.id),
-      ticketId: ticket.id,
-      actorUserId: input.context.actorUserId,
+    messages: input.messages,
+    operation: async (transaction) => {
+      const tx = transaction as PrismaService;
+      const claimed = await claimGuardrailTrigger({
+        prisma: tx,
+        configuration: input.guardrails,
+        claim: {
+          kind: guardrailClaimKinds.event,
+          subjectKey: ticket.id,
+          fingerprint: automationFingerprint(
+            csatGuardrailFingerprint,
+            ticket.id,
+          ),
+          ticketId: ticket.id,
+          actorUserId: input.context.actorUserId,
+        },
+      });
+      if (!claimed.allowed) {
+        throw new TicketsError("CSAT_ALREADY_SUBMITTED");
+      }
+      try {
+        const submission = (await tx.ticketCsat.create({
+          data: {
+            ticketId: ticket.id,
+            rating,
+            comment,
+            submittedByUserId: input.context.actorUserId,
+          },
+        })) as TicketCsatRecord;
+        // M9 B5: change log must reflect the real CSAT transition, not copy the
+        // same ticket snapshot twice (which produced an empty diff). CSAT lives on
+        // its own row, so record a minimal diff directly: rating null → rating
+        // and hasComment false/true. The free-text comment is PII and is NOT
+        // copied into audit metadata.
+        await recordChangeLog(tx as unknown as ChangeLogPrismaClient, {
+          entityType: changeLogEntityTypes.ticket,
+          entityId: ticket.id,
+          reason: ticketChangeLogReasons.csatSubmit,
+          actorUserId: input.context.actorUserId,
+          diff: buildChangeLogDiff({
+            action: changeLogActions.update,
+            resourceType: changeLogEntityTypes.ticket,
+            resourceId: ticket.id,
+            before: { csatRating: null, csatHasComment: false },
+            after: { csatRating: rating, csatHasComment: comment !== null },
+          }),
+        });
+        input.messages.push(
+          await insertSystemTicketEvent(tx, {
+            ticketId: ticket.id,
+            action: `${ticketSystemEventActions.csatSubmitted}:${rating}`,
+            actorUserId: input.context.actorUserId,
+          }),
+        );
+        return { ticket, submission };
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new TicketsError("CSAT_ALREADY_SUBMITTED");
+        }
+        throw error;
+      }
     },
   });
-  if (!claimed.allowed) {
-    throw new TicketsError('CSAT_ALREADY_SUBMITTED');
-  }
-  try {
-    const submission = (await input.prisma.ticketCsat.create({
-      data: {
-        ticketId: ticket.id,
-        rating,
-        comment,
-        submittedByUserId: input.context.actorUserId,
-      },
-    })) as TicketCsatRecord;
-    // M9 B5: change log must reflect the real CSAT transition, not copy the
-    // same ticket snapshot twice (which produced an empty diff). CSAT lives on
-    // its own row, so record a minimal diff directly: rating null → rating
-    // and hasComment false/true. The free-text comment is PII and is NOT
-    // copied into audit metadata.
-    await recordChangeLog(input.prisma as unknown as ChangeLogPrismaClient, {
-      entityType: changeLogEntityTypes.ticket,
-      entityId: ticket.id,
-      reason: ticketChangeLogReasons.csatSubmit,
-      actorUserId: input.context.actorUserId,
-      diff: buildChangeLogDiff({
-        action: changeLogActions.update,
-        resourceType: changeLogEntityTypes.ticket,
-        resourceId: ticket.id,
-        before: { csatRating: null, csatHasComment: false },
-        after: { csatRating: rating, csatHasComment: comment !== null },
-      }),
-    });
-    input.messages.push(
-      await insertSystemTicketEvent(input.prisma, {
-        ticketId: ticket.id,
-        action: `${ticketSystemEventActions.csatSubmitted}:${rating}`,
-        actorUserId: input.context.actorUserId,
-      }),
-    );
-    return { ticket, submission };
-  } catch (error) {
-    if (isUniqueConstraintError(error)) {
-      throw new TicketsError('CSAT_ALREADY_SUBMITTED');
-    }
-    throw error;
-  }
 }
 
 function normalizeRating(rating: number, scaleMax: number): number {
   if (!Number.isInteger(rating) || rating < 1 || rating > scaleMax) {
-    throw new TicketsError('INVALID_CSAT_RATING');
+    throw new TicketsError("INVALID_CSAT_RATING");
   }
   return rating;
 }
@@ -150,16 +166,16 @@ function normalizeComment(comment: string | undefined): string | null {
     return null;
   }
   if (trimmed.length > csatConstants.maximumCommentLength) {
-    throw new TicketsError('INVALID_CSAT_COMMENT');
+    throw new TicketsError("INVALID_CSAT_COMMENT");
   }
   return trimmed;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error !== null &&
-    'code' in error &&
-    (error as { code: unknown }).code === 'P2002'
+    "code" in error &&
+    (error as { code: unknown }).code === "P2002"
   );
 }

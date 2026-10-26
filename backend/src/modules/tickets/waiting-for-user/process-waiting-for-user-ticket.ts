@@ -1,18 +1,19 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { changeLogActions } from '../../change-log/change-log.constants';
-import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
-import { ticketSystemEventActions } from '../collaboration.constants';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
-import { insertSystemTicketEvent } from '../insert-system-ticket-event';
-import { recordTicketChange } from '../record-ticket-change';
-import { ticketChangeLogReasons } from '../tickets.constants';
-import type { TicketRecord } from '../tickets.types';
-import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
-import type { TicketSlaTimersPort } from '../../sla/ticket-sla.types';
-import { evaluateWaitingForUserAction } from './evaluate-waiting-for-user-action';
-import { claimWaitingForUserAutomation } from './claim-waiting-for-user-automation';
-import type { WaitingForUserConfiguration } from './waiting-for-user.types';
-import type { TicketGuardrailsConfiguration } from '../guardrails/guardrails.types';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { changeLogActions } from "../../change-log/change-log.constants";
+import { applyTicketLifecycleTimestamps } from "../apply-ticket-lifecycle-timestamps";
+import { ticketSystemEventActions } from "../collaboration.constants";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
+import { insertSystemTicketEvent } from "../insert-system-ticket-event";
+import { recordTicketChange } from "../record-ticket-change";
+import { ticketChangeLogReasons } from "../tickets.constants";
+import type { TicketRecord } from "../tickets.types";
+import { applyTicketSlaTimers } from "../apply-ticket-sla-timers";
+import type { TicketSlaTimersPort } from "../../sla/ticket-sla.types";
+import { evaluateWaitingForUserAction } from "./evaluate-waiting-for-user-action";
+import { claimWaitingForUserAutomation } from "./claim-waiting-for-user-automation";
+import type { WaitingForUserConfiguration } from "./waiting-for-user.types";
+import type { TicketGuardrailsConfiguration } from "../guardrails/guardrails.types";
+import { runGuardrailEffectTransaction } from "../guardrails/run-guardrail-effect-transaction";
 
 export async function processWaitingForUserTicket(input: {
   readonly prisma: PrismaService;
@@ -29,24 +30,29 @@ export async function processWaitingForUserTicket(input: {
     reminderSentAt: input.ticket.waitingForUserReminderSentAt,
     now: input.now,
   });
-  if (action === 'none' || input.ticket.status !== 'WAITING_FOR_USER') {
+  if (action === "none" || input.ticket.status !== "WAITING_FOR_USER") {
     return input.ticket;
   }
-  const allowed = await claimWaitingForUserAutomation({
+  return runGuardrailEffectTransaction({
     prisma: input.prisma,
-    ticket: input.ticket,
-    action,
-    guardrails: input.guardrails,
-    now: input.now,
     messages: input.messages,
+    operation: async (transaction) => {
+      const tx = transaction as PrismaService;
+      const transactionalInput = { ...input, prisma: tx };
+      const allowed = await claimWaitingForUserAutomation({
+        prisma: tx,
+        ticket: input.ticket,
+        action,
+        guardrails: input.guardrails,
+        now: input.now,
+        messages: input.messages,
+      });
+      if (!allowed) return input.ticket;
+      if (action === "remind")
+        return remindWaitingForUserTicket(transactionalInput);
+      return autoCloseWaitingForUserTicket(transactionalInput);
+    },
   });
-  if (!allowed) {
-    return input.ticket;
-  }
-  if (action === 'remind') {
-    return remindWaitingForUserTicket(input);
-  }
-  return autoCloseWaitingForUserTicket(input);
 }
 
 async function remindWaitingForUserTicket(input: {
@@ -85,13 +91,13 @@ async function autoCloseWaitingForUserTicket(input: {
 }): Promise<TicketRecord> {
   const timestamps = applyTicketLifecycleTimestamps({
     current: input.ticket,
-    nextStatus: 'CLOSED',
+    nextStatus: "CLOSED",
     now: input.now,
   });
   const updated = (await input.prisma.ticket.update({
     where: { id: input.ticket.id },
     data: {
-      status: 'CLOSED',
+      status: "CLOSED",
       ...timestamps,
     },
   })) as TicketRecord;
@@ -110,12 +116,12 @@ async function autoCloseWaitingForUserTicket(input: {
     }),
   );
   await applyTicketSlaTimers(
-    { actorUserId: 'system', slaTimers: input.slaTimers },
+    { actorUserId: "system", slaTimers: input.slaTimers },
     {
       ticket: updated,
       previousStatus: input.ticket.status,
       now: input.now,
-      event: 'status_changed',
+      event: "status_changed",
     },
   );
   return updated;
