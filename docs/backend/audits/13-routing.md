@@ -116,7 +116,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-03 | P2       | Scoped coverage paginira prije authorization filtera            | otvoreno |
 | BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | otvoreno |
 | BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | zatvoreno |
-| BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | otvoreno |
+| BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | zatvoreno |
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | otvoreno |
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | otvoreno |
 | BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | otvoreno |
@@ -168,6 +168,8 @@ Rules učitava sve redove, zatim sve labele i post-filter; global changes parale
 ### BA-routing-06 — Resolve učitava kompletno OU stablo
 
 `loadOrganizationalUnitAncestors` radi `organizationalUnit.findMany` bez where za svaki ticket resolve/preview. Uvesti recursive CTE/materialized ancestor relation/path-safe parent traversal ili cache sa invalidacijom; dokazati bounded latency na velikom stablu. **P2, M/L, routing/data.**
+
+**Closeout:** W5.25 (`4a2dce0`), zeleni CI `40381960475`; hot-path selektivno slijedi parent ID lanac uz depth budget 256, a test sa 10.000 nepovezanih OU redova potvrđuje lookup count koji zavisi samo od dubine. Dokaz: [52-routing-bounded-ancestor-resolution.md](../implementation/52-routing-bounded-ancestor-resolution.md). Paket nema novu DB migraciju.
 
 ### BA-routing-07 — Deleted scoped rule gubi historiju
 

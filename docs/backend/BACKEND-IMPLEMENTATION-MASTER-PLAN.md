@@ -320,7 +320,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.24 paginated routing rules and change logs — završen** na SHA `567f9a4`, CI `40380455353`.
 - Rules i change-log endpointi sada imaju bounded typed cursore, stabilne keyset redoslijede, scope-aware DB upite te pouzdane `total`/`hasMore` vrijednosti; frontend je usklađen sa page ugovorom. Time je zatvoren `BA-routing-05`; dokaz je u [51-routing-rules-change-log-pagination.md](implementation/51-routing-rules-change-log-pagination.md).
 - Registar je sada **632 otvorena / 60 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.25 bounded OU ancestor resolution (`BA-routing-06`)**.
+- **W5.25 bounded OU ancestor resolution — završen** na SHA `4a2dce0`, CI `40381960475`.
+- Pojedinačni resolve/preview više ne skenira cijelu OU tabelu nego slijedi samo parent lanac uz fail-closed depth budget 256; 10.000 unrelated-OU test dokazuje trošak proporcionalan dubini. Time je zatvoren `BA-routing-06`; dokaz je u [52-routing-bounded-ancestor-resolution.md](implementation/52-routing-bounded-ancestor-resolution.md).
+- Registar je sada **631 otvoren / 61 zatvoren / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.26 deleted scoped routing history (`BA-routing-07`)**.
 
 ### Canonical primitive
 
