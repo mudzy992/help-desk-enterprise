@@ -12,6 +12,8 @@ import {
 import {
   routingCoverageDefaultTake,
   routingCoverageMaximumTake,
+  routingListDefaultTake,
+  routingListMaximumTake,
 } from '../routing.constants';
 import { maximumChangeReasonLength } from '../../change-log/change-log.constants';
 
@@ -68,7 +70,22 @@ export class DeleteRoutingRuleDto {
   reason!: string;
 }
 
-export class ListRoutingRulesQueryDto {
+export class RoutingListQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(routingListMaximumTake)
+  take = routingListDefaultTake;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1024)
+  cursor?: string;
+}
+
+export class ListRoutingRulesQueryDto extends RoutingListQueryDto {
   @IsOptional()
   @IsString()
   @MinLength(1)

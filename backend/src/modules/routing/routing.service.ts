@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { changeLogEntityTypes } from '../change-log/change-log.constants';
-import { listChangeLogs } from '../change-log/list-change-logs';
+import { listChangeLogPage } from '../change-log/list-change-logs';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { assertRoutingRuleScope } from './assert-routing-rule-scope';
@@ -12,7 +12,10 @@ import {
   type RoutingRuleDeleteImpact,
 } from './delete-routing-rule';
 import { listRoutingHandlerGroups } from './list-routing-handler-groups';
-import { listRoutingRules } from './list-routing-rules';
+import {
+  listRoutingRules,
+  loadVisibleRoutingRuleIds,
+} from './list-routing-rules';
 import {
   assertOrWarnActivationRoutingCoverage,
   evaluateServiceRoutingCoverage,
@@ -21,14 +24,19 @@ import { mapRoutingError } from './map-routing-error';
 import { persistRoutingRuleChange } from './persist-routing-rule-change';
 import { resolveTicketRouting } from './resolve-ticket-routing';
 import {
-  filterRoutingChangeLogs,
-  filterRoutingRules,
   hasRoutingReadAccess,
-  isRoutingScopeVisible,
   isRoutingTargetGroupEligible,
   resolveRoutingReadAssignments,
 } from './routing-access-filter';
-import { routingCoverageMissingCode } from './routing.constants';
+import {
+  routingCoverageMissingCode,
+  routingListDefaultTake,
+  routingListMaximumTake,
+} from './routing.constants';
+import {
+  decodeRoutingChangeCursor,
+  encodeRoutingListCursor,
+} from './routing-list-cursor';
 import { RoutingError } from './routing.error';
 import {
   acceptsRoutingOnboardingReference,
@@ -42,12 +50,14 @@ import type {
   CreateRoutingRuleInput,
   ListRoutingRulesQuery,
   ResolveRoutingInput,
-  RoutingChangeLogResponse,
+  RoutingListQuery,
+  RoutingChangeLogPage,
   RoutingCoveragePage,
   RoutingCoverageQuery,
   RoutingHandlerGroupResponse,
   RoutingMutationContext,
   RoutingResolution,
+  RoutingRulePage,
   RoutingRuleResponse,
   UpdateRoutingRuleInput,
 } from './routing.types';
@@ -144,12 +154,12 @@ export class RoutingService {
     viewer: AuthorizationContext | null,
   ): Promise<RoutingRuleDeleteImpact> {
     return this.execute(async () => {
-      const rules = await toRoutingRuleResponses(
+      this.ensureReadAccess(viewer);
+      const visibleIds = await loadVisibleRoutingRuleIds(
         this.prisma,
-        await listRoutingRules(this.prisma, {}),
+        resolveRoutingReadAssignments(viewer),
       );
-      const visible = this.ensureReadableRules(rules, viewer);
-      if (!visible.some((rule) => rule.id === ruleId)) {
+      if (visibleIds !== null && !visibleIds.includes(ruleId)) {
         throw new RoutingError('RULE_NOT_FOUND');
       }
       return computeRoutingRuleDeleteImpact(
@@ -162,52 +172,33 @@ export class RoutingService {
 
   async listRuleChanges(
     ruleId: string,
+    query: RoutingListQuery,
     viewer: AuthorizationContext | null,
-  ): Promise<readonly RoutingChangeLogResponse[]> {
+  ): Promise<RoutingChangeLogPage> {
     return this.execute(async () => {
       this.ensureReadAccess(viewer);
-      const [rules, logs] = await Promise.all([
-        toRoutingRuleResponses(
-          this.prisma,
-          await listRoutingRules(this.prisma, {}),
-        ),
-        listChangeLogs(this.prisma, {
-          entityType: changeLogEntityTypes.routingRule,
-          entityId: ruleId,
-        }),
-      ]);
-      const visible = filterRoutingRules(rules, viewer);
-      // Allow global readers to read changelogs for deleted rules too.
-      const assignments = resolveRoutingReadAssignments(viewer);
-      const canRead =
-        visible.some((rule) => rule.id === ruleId) ||
-        (logs.length > 0 && isRoutingScopeVisible({ originUnitId: null, serviceId: null }, assignments));
-      if (!canRead) {
+      const visibleIds = await loadVisibleRoutingRuleIds(
+        this.prisma,
+        resolveRoutingReadAssignments(viewer),
+      );
+      if (visibleIds !== null && !visibleIds.includes(ruleId)) {
         throw new ForbiddenException('ROUTING_READ_FORBIDDEN');
       }
-      return logs;
+      return this.listChangeLogPage(query, ruleId, undefined);
     });
   }
 
   async listChanges(
+    query: RoutingListQuery,
     viewer: AuthorizationContext | null,
-  ): Promise<readonly RoutingChangeLogResponse[]> {
+  ): Promise<RoutingChangeLogPage> {
     return this.execute(async () => {
-      const [rules, logs] = await Promise.all([
-        toRoutingRuleResponses(
-          this.prisma,
-          await listRoutingRules(this.prisma, {}),
-        ),
-        listChangeLogs(this.prisma, {
-          entityType: changeLogEntityTypes.routingRule,
-        }),
-      ]);
-      const visible = this.ensureReadableRules(rules, viewer);
-      return filterRoutingChangeLogs(
-        logs,
-        viewer,
-        new Set(visible.map((rule) => rule.id)),
+      this.ensureReadAccess(viewer);
+      const visibleIds = await loadVisibleRoutingRuleIds(
+        this.prisma,
+        resolveRoutingReadAssignments(viewer),
       );
+      return this.listChangeLogPage(query, undefined, visibleIds ?? undefined);
     });
   }
 
@@ -223,13 +214,18 @@ export class RoutingService {
   async listRules(
     query: ListRoutingRulesQuery,
     viewer: AuthorizationContext | null,
-  ): Promise<readonly RoutingRuleResponse[]> {
+  ): Promise<RoutingRulePage> {
     return this.execute(async () => {
-      const rules = await toRoutingRuleResponses(
+      this.ensureReadAccess(viewer);
+      const page = await listRoutingRules(
         this.prisma,
-        await listRoutingRules(this.prisma, query),
+        query,
+        resolveRoutingReadAssignments(viewer),
       );
-      return filterRoutingRules(rules, viewer);
+      return {
+        ...page,
+        items: await toRoutingRuleResponses(this.prisma, page.items),
+      };
     });
   }
 
@@ -334,18 +330,44 @@ export class RoutingService {
     }
   }
 
+  private async listChangeLogPage(
+    query: RoutingListQuery,
+    entityId?: string,
+    entityIds?: readonly string[],
+  ): Promise<RoutingChangeLogPage> {
+    const take = Math.min(
+      routingListMaximumTake,
+      Math.max(1, query.take ?? routingListDefaultTake),
+    );
+    const cursor = decodeRoutingChangeCursor(query.cursor);
+    const page = await listChangeLogPage(this.prisma, {
+      entityType: changeLogEntityTypes.routingRule,
+      entityId,
+      entityIds,
+      take,
+      ...(cursor === null
+        ? {}
+        : { cursor: { createdAt: new Date(cursor.createdAt), id: cursor.id } }),
+    });
+    const last = page.items[page.items.length - 1];
+    return {
+      ...page,
+      take,
+      cursor: query.cursor ?? null,
+      nextCursor: page.hasMore && last !== undefined
+        ? encodeRoutingListCursor({
+            kind: 'change',
+            createdAt: last.createdAt,
+            id: last.id,
+          })
+        : null,
+    };
+  }
+
   private ensureReadAccess(context: AuthorizationContext | null): void {
     if (!hasRoutingReadAccess(context)) {
       throw new ForbiddenException('ROUTING_READ_FORBIDDEN');
     }
-  }
-
-  private ensureReadableRules(
-    rules: readonly RoutingRuleResponse[],
-    context: AuthorizationContext | null,
-  ): readonly RoutingRuleResponse[] {
-    this.ensureReadAccess(context);
-    return filterRoutingRules(rules, context);
   }
 
   private async execute<T>(op: () => Promise<T>): Promise<T> {

@@ -13,6 +13,8 @@ export const defaultRoutingConfiguration = {
 } as const;
 
 export const routingCoverageMissingCode = 'ROUTING_COVERAGE_MISSING' as const;
+export const routingListDefaultTake = 25;
+export const routingListMaximumTake = 100;
 
 export const routingCoverageDefaultTake = 50;
 export const routingCoverageMaximumTake = 50;

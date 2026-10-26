@@ -74,6 +74,15 @@ function matchesInMemoryRoutingService(
   );
 }
 
+type InMemoryChangeLogWhere = {
+  readonly entityType?: string;
+  readonly entityId?: string | { readonly in: readonly string[] };
+  readonly createdAt?: Date | { readonly lt: Date };
+  readonly id?: { readonly lt: string };
+  readonly OR?: readonly InMemoryChangeLogWhere[];
+  readonly AND?: readonly InMemoryChangeLogWhere[];
+};
+
 export type InMemoryRoutingChangeLog = {
   id: string;
   entityType: string;
@@ -232,36 +241,22 @@ export function createInMemoryRoutingPrisma() {
         changeLogs.push(entry);
         return entry;
       },
-      findMany: async ({
-        where,
-        orderBy,
-      }: {
-        where?: { entityType?: string; entityId?: string };
-        orderBy?: { createdAt: 'asc' | 'desc' };
+      findMany: async ({ where, take }: {
+        where?: InMemoryChangeLogWhere;
+        orderBy?: unknown;
         include?: unknown;
+        take?: number;
       }) => {
-        const filtered = changeLogs.filter((entry) => {
-          if (
-            where?.entityType !== undefined &&
-            entry.entityType !== where.entityType
-          ) {
-            return false;
-          }
-          if (
-            where?.entityId !== undefined &&
-            entry.entityId !== where.entityId
-          ) {
-            return false;
-          }
-          return true;
-        });
-        const sorted = [...filtered].sort((left, right) =>
-          orderBy?.createdAt === 'asc'
-            ? left.createdAt.getTime() - right.createdAt.getTime()
-            : right.createdAt.getTime() - left.createdAt.getTime(),
-        );
-        return sorted;
+        const sorted = changeLogs
+          .filter((entry) => matchesChangeLog(entry, where))
+          .sort((left, right) =>
+            right.createdAt.getTime() - left.createdAt.getTime() ||
+            right.id.localeCompare(left.id),
+          );
+        return take === undefined ? sorted : sorted.slice(0, take);
       },
+      count: async ({ where }: { where?: InMemoryChangeLogWhere } = {}) =>
+        changeLogs.filter((entry) => matchesChangeLog(entry, where)).length,
     },
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
       callback(prisma),
@@ -279,6 +274,21 @@ export function createInMemoryRoutingPrisma() {
   };
 }
 
+function matchesChangeLog(
+  entry: InMemoryRoutingChangeLog,
+  where?: InMemoryChangeLogWhere,
+): boolean {
+  if (where === undefined) return true;
+  if (where.entityType !== undefined && entry.entityType !== where.entityType) return false;
+  if (typeof where.entityId === 'string' && entry.entityId !== where.entityId) return false;
+  if (typeof where.entityId === 'object' && !where.entityId.in.includes(entry.entityId)) return false;
+  if (where.createdAt instanceof Date && entry.createdAt.getTime() !== where.createdAt.getTime()) return false;
+  if (typeof where.createdAt === 'object' && !(where.createdAt instanceof Date) && entry.createdAt >= where.createdAt.lt) return false;
+  if (where.id?.lt !== undefined && entry.id >= where.id.lt) return false;
+  if (where.AND !== undefined && !where.AND.every((part) => matchesChangeLog(entry, part))) return false;
+  return where.OR === undefined || where.OR.some((part) => matchesChangeLog(entry, part));
+}
+
 function createRoutingRuleDelegate(
   rules: Map<string, RoutingRuleRecord>,
   nextId: () => string,
@@ -289,18 +299,29 @@ function createRoutingRuleDelegate(
       rules.get(where.id) ?? null,
     findMany: async ({
       where,
+      select,
+      take,
     }: {
       where?: RoutingRuleWhere;
-    } = {}) =>
-      [...rules.values()]
+      select?: Record<string, boolean>;
+      orderBy?: unknown;
+      take?: number;
+    } = {}) => {
+      const matched = [...rules.values()]
         .filter((rule) => matchesInMemoryRoutingRule(rule, where))
         .sort((left, right) =>
           left.serviceId === right.serviceId
-            ? left.originUnitId.localeCompare(right.originUnitId)
+            ? left.originUnitId === right.originUnitId
+              ? left.id.localeCompare(right.id)
+              : left.originUnitId.localeCompare(right.originUnitId)
             : left.serviceId.localeCompare(right.serviceId),
-        ),
-    count: async ({ where }: { where: { serviceId: string } }) =>
-      [...rules.values()].filter((rule) => rule.serviceId === where.serviceId)
+        );
+      return (take === undefined ? matched : matched.slice(0, take)).map((rule) =>
+        pickInMemoryFields(rule, select),
+      );
+    },
+    count: async ({ where }: { where?: RoutingRuleWhere } = {}) =>
+      [...rules.values()].filter((rule) => matchesInMemoryRoutingRule(rule, where))
         .length,
     create: async ({
       data,

@@ -1,31 +1,35 @@
 import type { RoutingRuleRecord } from './routing.types';
 
+type StringFilter = string | { readonly in?: readonly string[]; readonly gt?: string };
+
 export type InMemoryRoutingRuleWhere = {
-  originUnitId?: string | { in: readonly string[] };
-  serviceId?: string | { in: readonly string[] };
+  originUnitId?: StringFilter;
+  serviceId?: StringFilter;
+  id?: StringFilter;
+  OR?: readonly InMemoryRoutingRuleWhere[];
+  AND?: readonly InMemoryRoutingRuleWhere[];
 };
 
 export function matchesInMemoryRoutingRule(
   rule: RoutingRuleRecord,
   where?: InMemoryRoutingRuleWhere,
 ): boolean {
-  if (where === undefined) {
-    return true;
+  if (where === undefined) return true;
+  if (!matchesString(rule.id, where.id)) return false;
+  if (!matchesString(rule.serviceId, where.serviceId)) return false;
+  if (!matchesString(rule.originUnitId, where.originUnitId)) return false;
+  if (where.AND !== undefined && !where.AND.every((part) => matchesInMemoryRoutingRule(rule, part))) {
+    return false;
   }
-  if (where.serviceId !== undefined) {
-    if (typeof where.serviceId === 'string') {
-      if (rule.serviceId !== where.serviceId) return false;
-    } else if (!where.serviceId.in.includes(rule.serviceId)) {
-      return false;
-    }
-  }
-  if (where.originUnitId === undefined) {
-    return true;
-  }
-  if (typeof where.originUnitId === 'string') {
-    return rule.originUnitId === where.originUnitId;
-  }
-  return where.originUnitId.in.includes(rule.originUnitId);
+  return where.OR === undefined || where.OR.some((part) => matchesInMemoryRoutingRule(rule, part));
+}
+
+function matchesString(value: string, filter?: StringFilter): boolean {
+  if (filter === undefined) return true;
+  if (typeof filter === 'string') return value === filter;
+  if (filter.in !== undefined && !filter.in.includes(value)) return false;
+  if (filter.gt !== undefined && value <= filter.gt) return false;
+  return true;
 }
 
 export function pickInMemoryFields<T extends object>(

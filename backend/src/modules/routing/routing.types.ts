@@ -46,10 +46,27 @@ export type RoutingChangeLogResponse = {
   readonly diff: ChangeLogDiffPayload;
 };
 
-export type ListRoutingRulesQuery = {
+export type RoutingListQuery = {
+  readonly take?: number;
+  readonly cursor?: string;
+};
+
+export type ListRoutingRulesQuery = RoutingListQuery & {
   readonly originUnitId?: string;
   readonly serviceId?: string;
 };
+
+export type RoutingPage<T> = {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type RoutingRulePage = RoutingPage<RoutingRuleResponse>;
+export type RoutingChangeLogPage = RoutingPage<RoutingChangeLogResponse>;
 
 export type ResolveRoutingInput = {
   readonly originUnitId: string;

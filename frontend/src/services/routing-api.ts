@@ -92,8 +92,24 @@ export function listRoutingCoverage(
   return apiRequestValidated(`/routing/coverage${suffix}`, parseRoutingCoveragePage);
 }
 
-export function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {
-  return apiRequest("/routing/rules");
+type RoutingRulePage = {
+  readonly items: readonly RoutingRuleResponse[];
+  readonly nextCursor: string | null;
+};
+
+export async function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {
+  const items: RoutingRuleResponse[] = [];
+  let cursor: string | null = null;
+  do {
+    const search = new URLSearchParams({ take: "100" });
+    if (cursor !== null) search.set("cursor", cursor);
+    const page = await apiRequest<RoutingRulePage>(
+      `/routing/rules?${search.toString()}`,
+    );
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor !== null);
+  return items;
 }
 
 export function resolveRouting(
@@ -174,6 +190,22 @@ export function getRoutingRuleDeleteImpact(ruleId: string): Promise<RoutingRuleD
   return apiRequest(`/routing/rules/${ruleId}/delete-impact`);
 }
 
-export function listRoutingChanges(): Promise<readonly RoutingChangeLogEntry[]> {
-  return apiRequest("/routing/changes");
+type RoutingChangeLogPage = {
+  readonly items: readonly RoutingChangeLogEntry[];
+  readonly nextCursor: string | null;
+};
+
+export async function listRoutingChanges(): Promise<readonly RoutingChangeLogEntry[]> {
+  const items: RoutingChangeLogEntry[] = [];
+  let cursor: string | null = null;
+  do {
+    const search = new URLSearchParams({ take: "100" });
+    if (cursor !== null) search.set("cursor", cursor);
+    const page = await apiRequest<RoutingChangeLogPage>(
+      `/routing/changes?${search.toString()}`,
+    );
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor !== null);
+  return items;
 }
