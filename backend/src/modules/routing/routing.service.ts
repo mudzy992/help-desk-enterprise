@@ -26,6 +26,7 @@ import {
   filterRoutingRules,
   hasRoutingReadAccess,
   isRoutingScopeVisible,
+  isRoutingTargetGroupEligible,
   resolveRoutingReadAssignments,
 } from './routing-access-filter';
 import { routingCoverageMissingCode } from './routing.constants';
@@ -65,6 +66,11 @@ export class RoutingService {
     context: RoutingMutationContext = { actorUserId: null },
   ): Promise<RoutingRuleResponse> {
     return this.execute(async () => {
+      await this.assertTargetGroupEligible(
+        input.groupId,
+        input.serviceId,
+        context.actorUserId,
+      );
       const created = await persistRoutingRuleChange(
         this.prisma,
         input,
@@ -90,6 +96,11 @@ export class RoutingService {
         ruleId,
         input.originUnitId,
         input.serviceId,
+      );
+      await this.assertTargetGroupEligible(
+        input.groupId,
+        input.serviceId,
+        context.actorUserId,
       );
       const updated = await updateRoutingRule(
         this.prisma,
@@ -206,7 +217,7 @@ export class RoutingService {
   ): Promise<readonly RoutingHandlerGroupResponse[]> {
     return this.execute(async () => {
       this.ensureReadAccess(viewer);
-      return listRoutingHandlerGroups(this.prisma);
+      return listRoutingHandlerGroups(this.prisma, viewer);
     });
   }
 
@@ -321,6 +332,36 @@ export class RoutingService {
     readonly reference: string;
   }): Promise<boolean> {
     return acceptsRoutingOnboardingReference(this.prisma, input);
+  }
+
+  private async assertTargetGroupEligible(
+    groupId: string,
+    serviceId: string,
+    actorUserId: string | null,
+  ): Promise<void> {
+    // Null actors are reserved for trusted internal callers and existing test harnesses.
+    if (actorUserId === null) {
+      return;
+    }
+    const [group, viewer] = await Promise.all([
+      this.prisma.group.findUnique({
+        where: { id: groupId },
+        select: { organizationalUnit: { select: { ouPath: true } } },
+      }),
+      this.authorizationContextLoader.loadBySubjectId(actorUserId),
+    ]);
+    if (group === null) {
+      throw new RoutingError('GROUP_NOT_FOUND');
+    }
+    if (
+      !isRoutingTargetGroupEligible(
+        group.organizationalUnit.ouPath,
+        serviceId,
+        viewer,
+      )
+    ) {
+      throw new ForbiddenException('ROUTING_TARGET_GROUP_FORBIDDEN');
+    }
   }
 
   private ensureReadAccess(context: AuthorizationContext | null): void {

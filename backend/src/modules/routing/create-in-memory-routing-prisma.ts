@@ -22,6 +22,7 @@ export type InMemoryRoutingService = {
 export type InMemoryRoutingGroup = {
   readonly id: string;
   readonly name: string;
+  readonly organizationalUnitPath?: string;
 };
 
 export type InMemoryRoutingServiceWhere = {
@@ -164,20 +165,43 @@ export function createInMemoryRoutingPrisma() {
         select,
       }: {
         where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(groups.get(where.id), select),
+        select?: Record<string, unknown>;
+      }) => {
+        const group = groups.get(where.id);
+        if (group === undefined) return null;
+        if (select?.organizationalUnit !== undefined) {
+          return {
+            organizationalUnit: { ouPath: group.organizationalUnitPath ?? '/' },
+          };
+        }
+        return pickInMemoryFields(group, select as Record<string, boolean> | undefined);
+      },
       findMany: async ({
         where,
         select,
       }: {
         where?: { id?: { in: readonly string[] } };
-        select?: Record<string, boolean>;
+        select?: Record<string, unknown>;
       } = {}) =>
         [...groups.values()]
           .filter((group) =>
             where?.id === undefined ? true : where.id.in.includes(group.id),
           )
-          .map((group) => pickInMemoryFields(group, select)),
+          .map((group) => {
+            if (select?.organizationalUnit !== undefined) {
+              return {
+                id: group.id,
+                name: group.name,
+                organizationalUnit: {
+                  ouPath: group.organizationalUnitPath ?? '/',
+                },
+              };
+            }
+            return pickInMemoryFields(
+              group,
+              select as Record<string, boolean> | undefined,
+            );
+          }),
     },
     routingRule: createRoutingRuleDelegate(rules, nextId, now),
     changeLog: {
