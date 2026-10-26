@@ -49,7 +49,7 @@ export class TicketsReopenController {
     if (idempotencyKey === undefined || idempotencyKey.trim().length === 0) {
       throw new BadRequestException({ code: 'IDEMPOTENCY_KEY_REQUIRED', message: 'Idempotency-Key header is required' });
     }
-    return this.reopenService.reopen(ticketId, body, readContext(request), idempotencyKey.trim());
+    return this.reopenService.reopen(ticketId, body, readContext(request), new Date(), idempotencyKey.trim());
   }
 }
 

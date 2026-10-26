@@ -39,8 +39,8 @@ export class TicketsReopenService {
     ticketId: string,
     input: ReopenTicketInput,
     context: TicketMutationContext,
-    idempotencyKey = `internal:${ticketId}:${randomUUID()}`,
     now = new Date(),
+    idempotencyKey = `internal:${ticketId}:${randomUUID()}`,
   ): Promise<TicketResponse> {
     return executeTicketOperation(async () => {
       const gated = await this.accessPolicies.bind(context);
