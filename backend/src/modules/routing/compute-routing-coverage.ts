@@ -10,6 +10,7 @@ import {
   encodeRoutingCoverageCursor,
 } from './routing-coverage-cursor';
 import { resolveFromAncestorChain } from './resolve-ticket-routing';
+import { isRoutingScopeVisible } from './routing-access-filter';
 import type {
   RoutingConfiguration,
   RoutingCoverageItem,
@@ -19,19 +20,35 @@ import type {
   RoutingServiceLifecycle,
 } from './routing.types';
 
+export type RoutingCoverageScopeAssignment = {
+  readonly organizationalUnitPath: string | null;
+  readonly serviceId: string | null;
+};
+
 export async function computeRoutingCoverage(
   prisma: PrismaService,
   query: RoutingCoverageQuery,
   configuration: RoutingConfiguration = defaultRoutingConfiguration,
+  scopeAssignments?: readonly RoutingCoverageScopeAssignment[],
 ): Promise<RoutingCoveragePage> {
   const take = Math.min(
     routingCoverageMaximumTake,
     Math.max(1, query.take ?? routingCoverageDefaultTake),
   );
   const cursor = decodeRoutingCoverageCursor(query.cursor);
+  const scopedServiceIds = resolveScopedServiceIds(scopeAssignments);
+  const requestedServiceId = query.serviceId;
+  const serviceIdFilter =
+    requestedServiceId !== undefined
+      ? scopedServiceIds === null || scopedServiceIds.includes(requestedServiceId)
+        ? requestedServiceId
+        : { in: [] as string[] }
+      : scopedServiceIds === null
+        ? undefined
+        : { in: scopedServiceIds };
   const serviceWhere = {
     ...(query.includeInactive === true ? {} : { lifecycle: 'ACTIVE' as const }),
-    ...(query.serviceId === undefined ? {} : { id: query.serviceId }),
+    ...(serviceIdFilter === undefined ? {} : { id: serviceIdFilter }),
   };
   const pageServiceWhere =
     cursor === null
@@ -72,7 +89,13 @@ export async function computeRoutingCoverage(
   const items: RoutingCoverageItem[] = [];
   for (const service of pageServices) {
     const ruleByOrigin = rulesByService.get(service.id) ?? new Map();
-    for (const origin of originUnits) {
+    const visibleOrigins = scopeAssignments === undefined
+      ? originUnits
+      : originUnits.filter((origin) => isRoutingScopeVisible({
+          originUnitPath: origin.ouPath,
+          serviceId: service.id,
+        }, scopeAssignments));
+    for (const origin of visibleOrigins) {
       const ancestors = walkOrganizationalUnitAncestors(origin.id, unitById);
       items.push({
         originUnitId: origin.id,
@@ -105,6 +128,17 @@ export async function computeRoutingCoverage(
           })
         : null,
   };
+}
+
+function resolveScopedServiceIds(
+  assignments: readonly RoutingCoverageScopeAssignment[] | undefined,
+): string[] | null {
+  if (assignments === undefined || assignments.some((item) => item.serviceId === null)) {
+    return null;
+  }
+  return [...new Set(assignments.flatMap((item) =>
+    item.serviceId === null ? [] : [item.serviceId],
+  ))].sort();
 }
 
 function filterById<T extends { readonly id: string }>(

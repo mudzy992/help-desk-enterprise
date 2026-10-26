@@ -22,7 +22,6 @@ import { persistRoutingRuleChange } from './persist-routing-rule-change';
 import { resolveTicketRouting } from './resolve-ticket-routing';
 import {
   filterRoutingChangeLogs,
-  filterRoutingCoverage,
   filterRoutingRules,
   hasRoutingReadAccess,
   isRoutingScopeVisible,
@@ -261,42 +260,13 @@ export class RoutingService {
     viewer: AuthorizationContext | null,
   ): Promise<RoutingCoveragePage> {
     return this.execute(async () => {
-      const configuration = await this.configurationLoader.load();
-      // Count all matching services (bypasses pagination) so `total` reflects
-      // the true number visible to the caller. For global readers we count
-      // directly via prisma.service.count; for scoped readers we fall back to
-      // computing coverage over a large page and filtering.
-      const serviceWhere = {
-        ...(query.includeInactive === true
-          ? {}
-          : { lifecycle: 'ACTIVE' as const }),
-        ...(query.serviceId === undefined ? {} : { id: query.serviceId }),
-      };
-      const assignments = resolveRoutingReadAssignments(viewer);
-      const isGlobalReader = assignments.some(
-        (a) => a.organizationalUnitPath === null && a.serviceId === null,
-      );
-      let total: number;
-      if (isGlobalReader) {
-        total = await this.prisma.service.count({ where: serviceWhere });
-      } else {
-        const fullPage = await computeRoutingCoverage(
-          this.prisma,
-          { ...query, take: 10_000, cursor: undefined },
-          configuration,
-        );
-        total = new Set(
-          filterRoutingCoverage(fullPage.items, viewer).map((i) => i.serviceId),
-        ).size;
-      }
-
-      const page = await computeRoutingCoverage(
+      this.ensureReadAccess(viewer);
+      return computeRoutingCoverage(
         this.prisma,
         query,
-        configuration,
+        await this.configurationLoader.load(),
+        resolveRoutingReadAssignments(viewer),
       );
-      const items = filterRoutingCoverage(page.items, viewer);
-      return { ...page, items, total };
     });
   }
 

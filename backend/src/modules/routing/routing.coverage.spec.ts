@@ -1,3 +1,5 @@
+import { permissionKeys } from '../authorization/authorization.constants';
+import type { AuthorizationContext } from '../authorization/authorization.types';
 import { routingOutcomes } from './routing.constants';
 import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
@@ -132,6 +134,52 @@ describe('RoutingService coverage', () => {
     const secondServiceIds = new Set(second.items.map((item) => item.serviceId));
     expect(secondServiceIds.size).toBe(first.total - 50);
     expect([...firstServiceIds].some((serviceId) => secondServiceIds.has(serviceId))).toBe(false);
+  });
+
+  it('applies service scope before count, cursor, and page selection', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    for (const [id, name] of [
+      ['service-allowed-a', 'A allowed'],
+      ['service-forbidden', 'B forbidden'],
+      ['service-allowed-c', 'C allowed'],
+    ] as const) {
+      memory.seedService({ id, name, lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    }
+    const viewer: AuthorizationContext = {
+      subjectId: 'scoped-reader', isLocalOnly: false, isSuperAdmin: false,
+      assignments: ['service-allowed-a', 'service-allowed-c'].map((serviceId) => ({
+        roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead],
+        organizationalUnitId: 'ou-child', organizationalUnitPath: '/Korisnici/Direkcija', serviceId,
+      })),
+    };
+
+    const first = await routing.coverage({ take: 1 }, viewer);
+    expect(first.total).toBe(2);
+    expect(new Set(first.items.map((item) => item.serviceId))).toEqual(new Set(['service-allowed-a']));
+    expect(first.items.map((item) => item.originUnitId)).toEqual(['ou-child', 'ou-leaf']);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await routing.coverage({ take: 1, cursor: first.nextCursor ?? undefined }, viewer);
+    expect(second.total).toBe(2);
+    expect(new Set(second.items.map((item) => item.serviceId))).toEqual(new Set(['service-allowed-c']));
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it('preserves paired OU and service assignments instead of creating a scope cross-product', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    memory.seedService({ id: 'service-a', name: 'Service A', lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    memory.seedService({ id: 'service-b', name: 'Service B', lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    const viewer: AuthorizationContext = {
+      subjectId: 'paired-reader', isLocalOnly: false, isSuperAdmin: false,
+      assignments: [
+        { roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead], organizationalUnitId: 'ou-leaf', organizationalUnitPath: '/Korisnici/Direkcija/IT', serviceId: 'service-a' },
+        { roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead], organizationalUnitId: 'ou-child', organizationalUnitPath: '/Korisnici/Direkcija', serviceId: 'service-b' },
+      ],
+    };
+
+    const page = await routing.coverage({}, viewer);
+    expect(page.items.filter((item) => item.serviceId === 'service-a').map((item) => item.originUnitId)).toEqual(['ou-leaf']);
+    expect(page.items.filter((item) => item.serviceId === 'service-b').map((item) => item.originUnitId)).toEqual(['ou-child', 'ou-leaf']);
   });
 
   it('rejects malformed coverage cursors', async () => {
