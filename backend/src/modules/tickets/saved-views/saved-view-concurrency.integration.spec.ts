@@ -46,4 +46,32 @@ describeIfDatabase('saved-view owner concurrency invariants', () => {
     expect(defaults.every((result) => result.status === 'fulfilled')).toBe(true);
     expect(await prisma.savedView.count({ where: { userId, isDefault: true } })).toBe(1);
   });
+
+  it('persists explicit sort null as SQL NULL while omitted sort preserves the value', async () => {
+    const view = await prisma.savedView.findFirstOrThrow({ where: { userId } });
+    await updateSavedView({
+      prisma: prisma as never,
+      savedViewId: view.id,
+      body: { sort: { field: 'updatedAt', direction: 'desc' } },
+      context: { actorUserId: userId },
+      configuration,
+    });
+    await updateSavedView({
+      prisma: prisma as never,
+      savedViewId: view.id,
+      body: { name: 'Preserved sort' },
+      context: { actorUserId: userId },
+      configuration,
+    });
+    expect((await prisma.savedView.findUniqueOrThrow({ where: { id: view.id } })).sort).toEqual({ field: 'updatedAt', direction: 'desc' });
+    const cleared = await updateSavedView({
+      prisma: prisma as never,
+      savedViewId: view.id,
+      body: { sort: null },
+      context: { actorUserId: userId },
+      configuration,
+    });
+    expect(cleared.sort).toBeNull();
+    expect((await prisma.savedView.findUniqueOrThrow({ where: { id: view.id } })).sort).toBeNull();
+  });
 });

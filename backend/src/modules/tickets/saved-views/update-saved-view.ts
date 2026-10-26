@@ -1,4 +1,5 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
 import { normalizeSavedViewColumns, normalizeSavedViewFilters, normalizeSavedViewName, normalizeSavedViewSort } from './normalize-saved-view';
@@ -34,7 +35,12 @@ export async function updateSavedView(input: {
         data: {
           name,
           filters: input.body.filters === undefined ? undefined : toSavedViewJsonValue(normalizeSavedViewFilters(input.body.filters)),
-          sort: nextSort === undefined || nextSort === null ? undefined : toSavedViewJsonValue(nextSort),
+          sort:
+            nextSort === undefined
+              ? undefined
+              : nextSort === null
+                ? Prisma.DbNull
+                : toSavedViewJsonValue(nextSort),
           columns: input.body.columns === undefined ? undefined : toSavedViewJsonValue([...normalizeSavedViewColumns(input.body.columns)]),
           isDefault,
         },

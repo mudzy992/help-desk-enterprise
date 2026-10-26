@@ -1,3 +1,4 @@
+import { Prisma } from '../../generated/prisma/client';
 import { pickInMemoryRecord } from './in-memory-record';
 import type { SavedViewRecord } from './saved-views/saved-views.types';
 
@@ -76,6 +77,10 @@ export function createInMemorySavedViewDelegate(
       const updated: SavedViewRecord = {
         ...current,
         ...data,
+        sort:
+          (data as { sort?: unknown }).sort === Prisma.DbNull
+            ? null
+            : (data.sort ?? current.sort),
         updatedAt: now(),
       };
       records.set(updated.id, updated);
