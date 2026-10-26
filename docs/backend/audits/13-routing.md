@@ -115,7 +115,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-02 | P1       | Service activation “coverage” prihvata bilo koje jedno pravilo  | otvoreno |
 | BA-routing-03 | P2       | Scoped coverage paginira prije authorization filtera            | otvoreno |
 | BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | otvoreno |
-| BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | otvoreno |
+| BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | zatvoreno |
 | BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | otvoreno |
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | otvoreno |
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | otvoreno |
@@ -162,6 +162,8 @@ Scoped grana poziva coverage sa `take:10000`, ali funkcija clampuje na `routingC
 ### BA-routing-05 — Rules i change logs nemaju paginaciju
 
 Rules učitava sve redove, zatim sve labele i post-filter; global changes paralelno učitava sve ruleove i sve change logove. Dodati cursor/filter/take, scope-aware DB query i stabilan total/hasMore; ne učitavati out-of-scope redove u proces. **P2, M, routing/API.**
+
+**Closeout:** W5.24 (`e72b0ee`, `567f9a4`), zeleni CI `40380455353`; rules i change logs imaju bounded typed cursore, stabilan redoslijed, DB scope predicate, total i hasMore. Dokaz: [51-routing-rules-change-log-pagination.md](../implementation/51-routing-rules-change-log-pagination.md). Paket nema novu DB migraciju.
 
 ### BA-routing-06 — Resolve učitava kompletno OU stablo
 
