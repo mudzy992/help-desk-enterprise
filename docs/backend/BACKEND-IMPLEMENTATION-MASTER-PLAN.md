@@ -326,7 +326,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.26 deleted scoped routing history — završen** na SHA `5daf251`, CI `40384827667`.
 - Routing change log sada trajno čuva OU/service authorization scope; scoped reader zadržava vlastitu create/delete historiju nakon brisanja, dok foreign obrisano pravilo ostaje 403. Time je zatvoren `BA-routing-07`; dokaz je u [53-routing-deleted-scoped-history.md](implementation/53-routing-deleted-scoped-history.md).
 - Registar je sada **630 otvorenih / 62 zatvorena / 692 ukupno**. Migracija `20271026140000_routing_change_log_scope` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.27 optimistic routing update concurrency (`BA-routing-08`)**.
+- **W5.27 optimistic routing update concurrency — završen** na SHA `3a88b2b`, CI `40398241803`.
+- Obavezni `expectedUpdatedAt` i atomski conditional update uklanjaju silent last-write-wins; stale writer dobija stabilni HTTP 409, a samo pobjednik piše ChangeLog. Time je zatvoren `BA-routing-08`; dokaz je u [54-routing-optimistic-update-concurrency.md](implementation/54-routing-optimistic-update-concurrency.md).
+- Registar je sada **629 otvorenih / 63 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.28 coverage resource budget (`BA-routing-09`)**.
 
 ### Canonical primitive
 

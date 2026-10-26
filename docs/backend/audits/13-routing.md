@@ -118,7 +118,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | zatvoreno |
 | BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | zatvoreno |
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | zatvoreno |
-| BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | otvoreno |
+| BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | zatvoreno |
 | BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | otvoreno |
 | BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | otvoreno |
 | BA-routing-11 | P3       | Kritične scoped/race/load grane nemaju izvršiv dokaz            | otvoreno |
@@ -180,6 +180,8 @@ Rules učitava sve redove, zatim sve labele i post-filter; global changes parale
 ### BA-routing-08 — Concurrent update je silent last-write-wins
 
 Update čita existing i before resolution u transakciji, ali nema version/`updatedAt` precondition. Dva administratora mogu oba dobiti uspjeh; drugi prepisuje prvi, a API ne javlja conflict. Dodati optimistic version/If-Match ili conditional updatedAt, sa conflict responseom i parallel testom. **P2, M, routing/data.**
+
+**Closeout:** W5.27 (`5d8f901`, `3a88b2b`), zeleni CI `40398241803`; obavezni `expectedUpdatedAt` sada pokreće atomski conditional update, stale writer dobija `ROUTING_RULE_CONFLICT`/HTTP 409, a paralelni test dokazuje jednog pobjednika i samo jedan update ChangeLog. Dokaz: [54-routing-optimistic-update-concurrency.md](../implementation/54-routing-optimistic-update-concurrency.md). Paket nema novu DB migraciju.
 
 ### BA-routing-09 — Coverage nema ukupni resource budget
 

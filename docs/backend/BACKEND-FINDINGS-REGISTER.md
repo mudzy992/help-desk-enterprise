@@ -152,7 +152,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 13 | `routing` | `BA-routing-05` | P2 | Rule/change-log liste su neograničene i post-filterirane | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-06` | P2 | Single-ticket resolve učitava kompletno OU stablo | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-07` | P2 | Scoped historija obrisanog pravila postaje nedostupna | otvoreno | [13-routing.md](audits/13-routing.md) |
-| 13 | `routing` | `BA-routing-08` | P2 | Concurrent update je neoznačeni last-write-wins | otvoreno | [13-routing.md](audits/13-routing.md) |
+| 13 | `routing` | `BA-routing-08` | P2 | Concurrent update je neoznačeni last-write-wins | zatvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-09` | P3 | Coverage matrica nema item/byte/runtime budžet | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-10` | P3 | OU cycle/missing parent se tiho tretira kao kraj lanca | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-11` | P3 | Kritične scoped/race/load grane nemaju izvršiv dokaz | otvoreno | [13-routing.md](audits/13-routing.md) |
