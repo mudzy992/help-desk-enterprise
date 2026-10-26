@@ -275,7 +275,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.9 attachment atomska kvota i durable deletion lifecycle — završen** na SHA `ad4e930`, CI `40316223173`.
 - PostgreSQL parent-row lock i transakcijsko ponovno brojanje atomizuju upload kvotu; transactional durable deletion intent, post-commit remove te lease/backoff/terminal worker reconciliation zatvorili su `BA-tickets-09`. Stvarni PostgreSQL concurrency i storage fault/retry dokaz je u [36-ticket-attachment-atomic-quota-durable-deletion.md](implementation/36-ticket-attachment-atomic-quota-durable-deletion.md).
 - Registar je sada **647 otvorenih / 45 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeću `StorageWriteIntent` shemu.
-- Sljedeći paket je **Val 5 / W5.10 reopen same-ticket transakcijska i idempotentna granica (`BA-tickets-10`)**.
+- **W5.10 same-ticket reopen atomska i idempotentna granica — završen** na SHA `7b63508`, CI `40319657162`.
+- Required idempotency key, conditional status claim i jedna transaction granica za parent/children/change/event/SLA outbox zatvorili su `BA-tickets-10`; stvarni PostgreSQL parallel/replay dokaz je u [37-ticket-reopen-atomic-idempotent-boundary.md](implementation/37-ticket-reopen-atomic-idempotent-boundary.md).
+- Registar je sada **646 otvorenih / 46 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeće `IdempotencyRecord` i `OutboxMessage` sheme.
+- Sljedeći paket je **Val 5 / W5.11 remote rate-limit atomska i bounded granica (`BA-tickets-11`)**.
 
 ### Canonical primitive
 

@@ -151,7 +151,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | zatvoreno |
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | zatvoreno |
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | zatvoreno |
-| BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | otvoreno |
+| BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | zatvoreno |
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | otvoreno |
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | otvoreno |
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | otvoreno |
@@ -223,7 +223,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-10 — Reopen same-ticket nije atomski/idempotentan
 
-`reopen-same-ticket.ts` odvojeno radi status, change log, događaje, child propagation i SLA. Uvesti conditional status update, DB transakciju za ticket/change/events/children i idempotentni SLA outbox. Parallel/fault test mora dati jednu reopen tranziciju. **P2, M/L, tickets/SLA.**
+**Status: zatvoreno u W5.10 (`7b63508`, CI `40319657162`).** Required idempotency key, payload-bound persisted replay, conditional status claim i jedna transakcija sada obuhvataju parent/children, change/event zapise i deduplicirane SLA outbox intente. Stvarni PostgreSQL parallel/replay dokaz je u `implementation/37-ticket-reopen-atomic-idempotent-boundary.md`. **P2, M/L, tickets/SLA.**
 
 ### BA-tickets-11 — Remote rate-limit race i široko čitanje
 

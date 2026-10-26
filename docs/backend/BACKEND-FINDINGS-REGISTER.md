@@ -135,7 +135,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-07` | P1 | CSV limit prije permission/confidential filtera daje tih nepotpun export | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-08` | P1 | Guardrail claim-before-effect može trajno progutati automation/CSAT | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-09` | P2 | Attachment limit/delete i DB/storage lifecycle nisu konzistentni | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-10` | P2 | Reopen same-ticket nije transakcijski niti idempotentan | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-10` | P2 | Reopen same-ticket nije transakcijski niti idempotentan | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-11` | P2 | Remote rate limit ima race i neograničeno čita system evente | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-12` | P2 | SLA/realtime/notification side effecti nemaju durable outbox/recovery | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-13` | P2 | Archive/waiting workeri nemaju batch/cursor granicu | otvoreno | [12-tickets.md](audits/12-tickets.md) |
