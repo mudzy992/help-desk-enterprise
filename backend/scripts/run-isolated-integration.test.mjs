@@ -13,7 +13,21 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/bulk-command/bulk-command.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/storage-write/storage-write.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/cache-invalidation/cache-invalidation.integration.spec.ts"));
-  assert.ok(integrationSpecs.includes("src/modules/tickets/ticket-message-command.integration.spec.ts"));
+  const requiredTicketEvidence = [
+    "src/modules/tickets/ticket-message-command.integration.spec.ts",
+    "src/modules/tickets/approvals/ticket-approval-concurrency.integration.spec.ts",
+    "src/modules/tickets/attachments/attachment-lifecycle.integration.spec.ts",
+    "src/modules/tickets/bulk/ticket-bulk-operation.integration.spec.ts",
+    "src/modules/tickets/export/ticket-export-scope.integration.spec.ts",
+    "src/modules/tickets/guardrails/guardrail-distributed-claim.integration.spec.ts",
+    "src/modules/tickets/guardrails/guardrail-effect-transaction.integration.spec.ts",
+    "src/modules/tickets/remote/remote-rate-limit.integration.spec.ts",
+    "src/modules/tickets/reopen/reopen-same-ticket.integration.spec.ts",
+    "src/modules/tickets/saved-views/saved-view-concurrency.integration.spec.ts",
+    "src/modules/tickets/split/split-attachment-storage.integration.spec.ts",
+    "src/modules/tickets/ticket-side-effect-outbox.integration.spec.ts",
+  ];
+  for (const spec of requiredTicketEvidence) assert.ok(integrationSpecs.includes(spec), `nedostaje obavezni ticket evidence shard: ${spec}`);
   assert.ok(integrationSpecs.includes("src/common/principal-context/principal-authority.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authentication/session-revocation.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authorization/evaluate-resource-policy.integration.spec.ts"));
