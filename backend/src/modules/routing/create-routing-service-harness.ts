@@ -59,7 +59,18 @@ export function createRoutingServiceHarness() {
     lifecycle: 'DRAFT',
     availability: 'OPERATIONAL',
   });
-  memory.seedGroup({ id: 'group-it', name: 'IT Support' });
-  memory.seedGroup({ id: 'group-net', name: 'Network Ops' });
-  return { memory, routing, viewer, now };
+  memory.seedGroup({
+    id: 'group-it',
+    name: 'IT Support',
+    organizationalUnitPath: '/Korisnici/Direkcija/IT',
+  });
+  memory.seedGroup({
+    id: 'group-net',
+    name: 'Network Ops',
+    organizationalUnitPath: '/Korisnici/Direkcija',
+  });
+  const registerViewer = (context: AuthorizationContext): void => {
+    contexts.set(context.subjectId, context);
+  };
+  return { memory, routing, viewer, now, registerViewer };
 }
