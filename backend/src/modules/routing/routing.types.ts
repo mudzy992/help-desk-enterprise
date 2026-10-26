@@ -127,6 +127,14 @@ export type RoutingCoveragePage = {
   readonly take: number;
   readonly cursor: string | null;
   readonly nextCursor: string | null;
+  readonly resourceBudget: {
+    readonly maximumItems: number;
+    readonly maximumBytes: number;
+    readonly maximumDurationMs: number;
+    readonly itemCount: number;
+    readonly estimatedBytes: number;
+    readonly limited: boolean;
+  };
 };
 
 export type RoutingCoverageQuery = {

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { changeLogEntityTypes } from '../change-log/change-log.constants';
 import { listChangeLogPage } from '../change-log/list-change-logs';
@@ -65,6 +65,8 @@ import type {
 
 @Injectable()
 export class RoutingService {
+  private readonly logger = new Logger(RoutingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: RoutingConfigurationLoader,
@@ -267,12 +269,21 @@ export class RoutingService {
   ): Promise<RoutingCoveragePage> {
     return this.execute(async () => {
       this.ensureReadAccess(viewer);
-      return computeRoutingCoverage(
+      const startedAt = Date.now();
+      const page = await computeRoutingCoverage(
         this.prisma,
         query,
         await this.configurationLoader.load(),
         resolveRoutingReadAssignments(viewer),
       );
+      this.logger.log({
+        event: 'routing.coverage.completed',
+        durationMs: Date.now() - startedAt,
+        itemCount: page.resourceBudget.itemCount,
+        estimatedBytes: page.resourceBudget.estimatedBytes,
+        budgetLimited: page.resourceBudget.limited,
+      });
+      return page;
     });
   }
 

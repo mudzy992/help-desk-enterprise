@@ -230,6 +230,70 @@ describe('RoutingService coverage', () => {
     expect(page.items.filter((item) => item.serviceId === 'service-b').map((item) => item.originUnitId)).toEqual(['ou-child', 'ou-leaf']);
   });
 
+  it('bounds service-by-OU expansion and continues at a complete service boundary', async () => {
+    const { memory, routing, viewer } = createRoutingServiceHarness();
+    for (let index = 0; index < 120; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      memory.seedUnit({
+        id: `ou-budget-${suffix}`,
+        parentId: 'ou-root',
+        ouPath: `/Korisnici/Budget ${suffix}`,
+      });
+    }
+    for (let index = 0; index < 5; index += 1) {
+      memory.seedService({
+        id: `service-budget-${index}`,
+        name: `Budget service ${index}`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+    }
+
+    const first = await routing.coverage({ take: 5 }, viewer);
+    expect(first.resourceBudget.itemCount).toBeLessThanOrEqual(500);
+    expect(first.resourceBudget.estimatedBytes).toBeLessThanOrEqual(1_000_000);
+    expect(first.resourceBudget.limited).toBe(true);
+    expect(new Set(first.items.map((item) => item.serviceId)).size).toBe(4);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await routing.coverage({
+      take: 5,
+      cursor: first.nextCursor ?? undefined,
+    }, viewer);
+    expect(new Set(second.items.map((item) => item.serviceId))).toEqual(
+      new Set(['service-budget-4']),
+    );
+    expect(second.resourceBudget.limited).toBe(false);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it('requires an OU filter when one service alone exceeds the coverage budget', async () => {
+    const { memory, routing, viewer } = createRoutingServiceHarness();
+    for (let index = 0; index < 500; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      memory.seedUnit({
+        id: `ou-large-${suffix}`,
+        parentId: 'ou-root',
+        ouPath: `/Korisnici/Large ${suffix}`,
+      });
+    }
+
+    await expect(routing.coverage({
+      includeInactive: true,
+      serviceId: 'service-vpn',
+    }, viewer)).rejects.toMatchObject({
+      status: 400,
+      response: { code: 'ROUTING_COVERAGE_BUDGET_EXCEEDED' },
+    });
+    const filtered = await routing.coverage({
+      includeInactive: true,
+      serviceId: 'service-vpn',
+      originUnitId: 'ou-large-000',
+    }, viewer);
+    expect(filtered.items).toHaveLength(1);
+    expect(filtered.resourceBudget.limited).toBe(false);
+  });
+
   it('rejects malformed coverage cursors', async () => {
     const { routing, viewer } = createRoutingServiceHarness();
     await expect(routing.coverage({ cursor: 'not-a-cursor' }, viewer)).rejects.toMatchObject({

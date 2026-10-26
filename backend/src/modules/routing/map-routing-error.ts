@@ -22,6 +22,8 @@ const messages: Record<RoutingErrorCode, string> = {
   RULE_NOT_FOUND: 'Routing rule was not found',
   DUPLICATE_RULE: 'A routing rule already exists for this origin unit and service',
   ROUTING_RULE_CONFLICT: 'The routing rule changed after it was loaded',
+  ROUTING_COVERAGE_BUDGET_EXCEEDED:
+    'Routing coverage exceeds the response budget; filter by organizational unit',
   REASON_REQUIRED: 'A reason is required for this routing change',
   ROUTING_COVERAGE_MISSING:
     'Service cannot be activated without at least one routing rule',

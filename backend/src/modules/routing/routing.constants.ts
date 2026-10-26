@@ -18,3 +18,7 @@ export const routingListMaximumTake = 100;
 
 export const routingCoverageDefaultTake = 50;
 export const routingCoverageMaximumTake = 50;
+/** Hard response-work limits; pages never split one service across cursors. */
+export const routingCoverageMaximumItems = 500;
+export const routingCoverageMaximumBytes = 1_000_000;
+export const routingCoverageMaximumDurationMs = 5_000;
