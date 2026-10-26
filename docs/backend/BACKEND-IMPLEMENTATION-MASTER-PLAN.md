@@ -329,7 +329,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.27 optimistic routing update concurrency — završen** na SHA `3a88b2b`, CI `40398241803`.
 - Obavezni `expectedUpdatedAt` i atomski conditional update uklanjaju silent last-write-wins; stale writer dobija stabilni HTTP 409, a samo pobjednik piše ChangeLog. Time je zatvoren `BA-routing-08`; dokaz je u [54-routing-optimistic-update-concurrency.md](implementation/54-routing-optimistic-update-concurrency.md).
 - Registar je sada **629 otvorenih / 63 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.28 coverage resource budget (`BA-routing-09`)**.
+- **W5.28 routing coverage resource budget — završen** na SHA `ca6f6fe`, CI `40401904911`.
+- Coverage sada primjenjuje item/byte/time budget, nastavlja cursor samo iza kompletnog servisa, zahtijeva OU filter kada jedan servis prelazi limit i emituje strukturirane metrike. Time je zatvoren `BA-routing-09`; dokaz je u [55-routing-coverage-resource-budget.md](implementation/55-routing-coverage-resource-budget.md).
+- Registar je sada **628 otvorenih / 64 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.29 fail-closed OU ancestor integrity (`BA-routing-10`)**.
 
 ### Canonical primitive
 

@@ -119,7 +119,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | zatvoreno |
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | zatvoreno |
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | zatvoreno |
-| BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | otvoreno |
+| BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | zatvoreno |
 | BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | otvoreno |
 | BA-routing-11 | P3       | Kritične scoped/race/load grane nemaju izvršiv dokaz            | otvoreno |
 
@@ -186,6 +186,8 @@ Update čita existing i before resolution u transakciji, ali nema version/`updat
 ### BA-routing-09 — Coverage nema ukupni resource budget
 
 `take` ograničava servise, ali jedan page proizvodi `services × svi OU-ovi` itema, fallback path arrays i labele. Uvesti item/byte/time cap, OU pagination/filter requirement za velika stabla i metrike. **P3, M, routing/performance.**
+
+**Closeout:** W5.28 (`ca6f6fe`), zeleni CI `40401904911`; coverage sada ima hard item/byte/time budget, service-boundary cursor nastavak, obavezni OU filter kada jedan servis prelazi budget i strukturirane operativne metrike. Dokaz: [55-routing-coverage-resource-budget.md](../implementation/55-routing-coverage-resource-budget.md). Paket nema novu DB migraciju.
 
 ### BA-routing-10 — Neispravan OU lanac se tiho skraćuje
 
