@@ -4,6 +4,7 @@ export type RoutingErrorKey =
   | "routing.errorUnauthorized"
   | "routing.errorForbidden"
   | "routing.errorDuplicate"
+  | "routing.errorConflict"
   | "routing.errorReason"
   | "routing.errorGeneric";
 
@@ -19,6 +20,9 @@ export function mapRoutingError(error: unknown): RoutingErrorKey {
   }
   if (error.code === "DUPLICATE_RULE") {
     return "routing.errorDuplicate";
+  }
+  if (error.code === "ROUTING_RULE_CONFLICT") {
+    return "routing.errorConflict";
   }
   if (error.code === "REASON_REQUIRED") {
     return "routing.errorReason";

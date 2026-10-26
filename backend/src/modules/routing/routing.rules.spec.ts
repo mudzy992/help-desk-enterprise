@@ -104,6 +104,7 @@ describe('RoutingService rules', () => {
       serviceId: 'service-vpn',
       groupId: 'group-net',
       reason: 'Retarget leaf rule to Network Ops',
+      expectedUpdatedAt: exact.updatedAt,
     });
     expect(updated.groupId).toBe('group-net');
     expect(updated.groupName).toBe('Network Ops');

@@ -115,7 +115,11 @@ export class RoutingService {
       const updated = await updateRoutingRule(
         this.prisma,
         ruleId,
-        { groupId: input.groupId, reason: input.reason },
+        {
+          groupId: input.groupId,
+          reason: input.reason,
+          expectedUpdatedAt: input.expectedUpdatedAt,
+        },
         context,
         await this.configurationLoader.load(),
       );

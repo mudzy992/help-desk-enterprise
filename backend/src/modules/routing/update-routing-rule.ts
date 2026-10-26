@@ -48,10 +48,18 @@ export async function updateRoutingRule(
       resolveInput,
       configuration,
     );
-    const updated = await client.routingRule.update({
-      where: { id: ruleId },
+    const expectedUpdatedAt = new Date(input.expectedUpdatedAt);
+    const claimed = await client.routingRule.updateMany({
+      where: { id: ruleId, updatedAt: expectedUpdatedAt },
       data: { groupId: input.groupId },
     });
+    if (claimed.count !== 1) {
+      throw new RoutingError('ROUTING_RULE_CONFLICT');
+    }
+    const updated = await client.routingRule.findUnique({ where: { id: ruleId } });
+    if (updated === null) {
+      throw new RoutingError('ROUTING_RULE_CONFLICT');
+    }
     const afterResolution = await resolveTicketRouting(
       client,
       resolveInput,

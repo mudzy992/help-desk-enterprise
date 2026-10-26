@@ -360,24 +360,26 @@ function createRoutingRuleDelegate(
       rules.set(created.id, created);
       return created;
     },
-    update: async ({
+    updateMany: async ({
       where,
       data,
     }: {
-      where: { id: string };
+      where: { id: string; updatedAt: Date };
       data: { groupId: string };
     }) => {
       const existing = rules.get(where.id);
-      if (existing === undefined) {
-        throw { code: 'P2025' };
+      if (
+        existing === undefined ||
+        existing.updatedAt.getTime() !== where.updatedAt.getTime()
+      ) {
+        return { count: 0 };
       }
-      const updated: RoutingRuleRecord = {
+      rules.set(where.id, {
         ...existing,
         groupId: data.groupId,
-        updatedAt: now(),
-      };
-      rules.set(where.id, updated);
-      return updated;
+        updatedAt: new Date(existing.updatedAt.getTime() + 1),
+      });
+      return { count: 1 };
     },
     delete: async ({ where }: { where: { id: string } }) => {
       const existing = rules.get(where.id);

@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Max,
@@ -53,6 +54,10 @@ export class UpdateRoutingRuleDto {
   @MinLength(1)
   @MaxLength(maximumChangeReasonLength)
   reason!: string;
+
+  @IsString()
+  @IsISO8601({ strict: true })
+  expectedUpdatedAt!: string;
 }
 
 export class DeleteRoutingRuleDto {

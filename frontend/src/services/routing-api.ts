@@ -123,6 +123,7 @@ export type UpdateRoutingRuleInput = {
   readonly serviceId: string;
   readonly groupId: string;
   readonly reason: string;
+  readonly expectedUpdatedAt: string;
 };
 
 export type DeleteRoutingRuleInput = {

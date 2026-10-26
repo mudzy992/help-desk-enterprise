@@ -5044,6 +5044,7 @@
     "errorUnauthorized": "Prijava je potrebna za pregled usmjeravanja.",
     "errorForbidden": "Nemate dozvolu za izmjenu usmjeravanja.",
     "errorDuplicate": "Pravilo za ovu kombinaciju OU i servisa već postoji.",
+    "errorConflict": "Drugi korisnik je u međuvremenu izmijenio pravilo usmjeravanja. Osvježite stranicu i pokušajte ponovo.",
     "errorReason": "Razlog izmjene je obavezan.",
     "errorGeneric": "Usmjeravanje trenutno nije dostupno.",
     "unknownGroup": "Nepoznata grupa"

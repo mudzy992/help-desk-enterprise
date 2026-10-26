@@ -5024,6 +5024,7 @@
     "errorUnauthorized": "Sign in is required to view routing.",
     "errorForbidden": "You do not have permission to change routing.",
     "errorDuplicate": "A rule already exists for this OU and service.",
+    "errorConflict": "The routing rule was changed by another user. Refresh the page and try again.",
     "errorReason": "A change reason is required.",
     "errorGeneric": "Routing is currently unavailable.",
     "unknownGroup": "Unknown group"

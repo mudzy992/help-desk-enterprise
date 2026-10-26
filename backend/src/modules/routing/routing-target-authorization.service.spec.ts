@@ -40,6 +40,7 @@ describe('RoutingService target-group authorization', () => {
       serviceId: 'service-vpn',
       groupId: 'group-net',
       reason: routingChangeReason,
+      expectedUpdatedAt: created.updatedAt,
     }, { actorUserId: actor.subjectId })).rejects.toMatchObject({
       constructor: ForbiddenException,
       message: 'ROUTING_TARGET_GROUP_FORBIDDEN',
@@ -66,6 +67,7 @@ describe('RoutingService target-group authorization', () => {
       serviceId: 'service-vpn',
       groupId: 'group-net',
       reason: routingChangeReason,
+      expectedUpdatedAt: created.updatedAt,
     }, { actorUserId: actor.subjectId })).rejects.toMatchObject({
       constructor: ForbiddenException,
       message: 'ROUTING_TARGET_GROUP_FORBIDDEN',

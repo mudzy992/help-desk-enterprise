@@ -29,6 +29,7 @@ export type CreateRoutingRuleInput = {
 export type UpdateRoutingRuleInput = {
   readonly groupId: string;
   readonly reason: string;
+  readonly expectedUpdatedAt: string;
 };
 
 export type RoutingMutationContext = {

@@ -41,6 +41,7 @@ export function EditRoutingRuleForm({
         serviceId: rule.serviceId,
         groupId,
         reason: reason.trim(),
+        expectedUpdatedAt: rule.updatedAt,
       });
       await onUpdated();
     } catch (error) {
