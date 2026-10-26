@@ -15,6 +15,7 @@ import type {
 import { createTicketAttachment } from './create-ticket-attachment';
 import { deleteTicketAttachment } from './delete-ticket-attachment';
 import { downloadTicketAttachment } from './download-ticket-attachment';
+import { downloadTicketAttachmentStream } from './download-ticket-attachment-stream';
 import { listTicketAttachments } from './list-ticket-attachments';
 import { TicketAttachmentConfigurationLoader } from './ticket-attachment-configuration.loader';
 
@@ -73,6 +74,19 @@ export class TicketsAttachmentsService {
   ) {
     return executeTicketOperation(async () =>
       downloadTicketAttachment(
+        this.prisma,
+        this.authorizationContextLoader,
+        this.storage,
+        ticketId,
+        attachmentId,
+        await this.accessPolicies.bind(context),
+      ),
+    );
+  }
+
+  downloadStream(ticketId: string, attachmentId: string, context: TicketMutationContext) {
+    return executeTicketOperation(async () =>
+      downloadTicketAttachmentStream(
         this.prisma,
         this.authorizationContextLoader,
         this.storage,

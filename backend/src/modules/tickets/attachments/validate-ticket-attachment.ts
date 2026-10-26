@@ -20,12 +20,12 @@ export function validateTicketAttachment(input: {
     throw new TicketsError('ATTACHMENTS_DISABLED');
   }
   const file = input.file;
-  if (file === undefined || file.buffer.length === 0) {
+  if (file === undefined || file.size <= 0 || file.buffer === undefined || file.buffer.length === 0) {
     throw new TicketsError('ATTACHMENT_REQUIRED');
   }
   if (
-    file.size !== file.buffer.length ||
-    file.buffer.length > configuration.maxFileSizeBytes
+    (file.temporaryPath === undefined && file.size !== file.buffer.length) ||
+    file.size > configuration.maxFileSizeBytes
   ) {
     throw new TicketsError('ATTACHMENT_TOO_LARGE');
   }
@@ -51,7 +51,7 @@ export function validateTicketAttachment(input: {
     originalName: sanitized.originalName,
     extension: sanitized.extension,
     mimeType: detected.mimeType,
-    sizeBytes: file.buffer.length,
+    sizeBytes: file.size,
     classification: inheritAttachmentClassification({
       ticketClassification: input.ticketClassification,
       requestedClassification: file.requestedClassification,

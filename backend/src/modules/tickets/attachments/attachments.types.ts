@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import type { DataClassification } from '../../../generated/prisma/enums';
 
 export type TicketAttachmentRecord = {
@@ -32,7 +33,9 @@ export type TicketAttachmentUploadInput = {
   readonly originalName: string;
   readonly declaredMimeType?: string;
   readonly size: number;
-  readonly buffer: Buffer;
+  readonly buffer?: Buffer;
+  /** Controller-owned bounded temporary file; removed after the service call. */
+  readonly temporaryPath?: string;
   readonly requestedClassification?: DataClassification;
 };
 
@@ -53,6 +56,13 @@ export type TicketAttachmentStorage = {
     readonly contents: Buffer;
   }): Promise<string>;
   read(storagePath: string): Promise<Buffer>;
+  writeFromPath?(input: {
+    readonly ticketId: string;
+    readonly extension: string;
+    readonly sourcePath: string;
+  }): Promise<string>;
+  openReadStream?(storagePath: string): Promise<Readable>;
+  copy?(input: { readonly sourcePath: string; readonly ticketId: string; readonly extension: string }): Promise<string>;
   remove(storagePath: string): Promise<void>;
 };
 
