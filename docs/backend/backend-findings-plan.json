@@ -5092,7 +5092,7 @@
     {
       "id": "BA-tickets-18",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "12-tickets.md",
       "owner": "WS-F",
       "wave": 5

@@ -159,7 +159,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | zatvoreno |
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | zatvoreno |
 | BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | zatvoreno |
-| BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | otvoreno |
+| BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | zatvoreno |
 | BA-tickets-19 | P3       | Kritične fault/race grane nemaju izvršiv integration dokaz               | otvoreno |
 
 ## 11. Detaljni nalazi
@@ -255,7 +255,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-18 — Visibility parity nije formalno jedinstven za sve izvedene površine
 
-Detail/list imaju snažan shared model, ali counts, summary, export i pojedine inbox/search izvedbe kombinuju zasebne filtere. Uvesti jednu capability/predicate specifikaciju i generativnu matricu nad svim površinama. **P3, M, tickets/authorization.**
+**Status: zatvoreno u W5.18 (`58b55f1`, CI `40362428376`).** Jedan `buildTicketSurfaceVisibility` capability entrypoint sada formalizira detail/list/count/summary/search, group-inbox narrowing i audit-export scope. Generativna actor/config matrica poredi kompletne read populacije, a inbox subset i postojeći export PostgreSQL dokazi zatvaraju izvedene površine; detalji su u `implementation/45-ticket-shared-visibility-parity-contract.md`. **P3, M, tickets/authorization.**
 
 ### BA-tickets-19 — Kritične race/fault grane nemaju izvršiv dokaz
 

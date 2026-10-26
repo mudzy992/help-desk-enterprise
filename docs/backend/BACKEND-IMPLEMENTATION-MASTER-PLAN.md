@@ -299,7 +299,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.17 saved-view `sort:null` clear semantika — završen** na SHA `943286d`, CI `40344015280`.
 - Omitted/object/explicit-null update stanja sada imaju odvojenu Prisma semantiku, a stvarni PostgreSQL dokaz potvrđuje persisted SQL NULL; time je zatvoren `BA-tickets-17`. Dokaz je u [44-ticket-saved-view-sort-clear-semantics.md](implementation/44-ticket-saved-view-sort-clear-semantics.md).
 - Registar je sada **639 otvorenih / 53 zatvorena / 692 ukupno**; paket nema novu migraciju. W5.15 migracija `20271026130000_saved_view_concurrency_invariants` ostaje obavezna release-migrator radnja dok korisnik ne potvrdi primjenu.
-- Sljedeći paket je **Val 5 / W5.18 shared visibility parity contract (`BA-tickets-18`)**.
+- **W5.18 shared visibility parity contract — završen** na SHA `58b55f1`, CI `40362428376`.
+- Jedan capability/predicate entrypoint formalizira detail/list/count/summary/search, group-inbox narrowing i audit-export scope; generativna actor/config matrica zatvorila je `BA-tickets-18`. Dokaz je u [45-ticket-shared-visibility-parity-contract.md](implementation/45-ticket-shared-visibility-parity-contract.md).
+- Registar je sada **638 otvorenih / 54 zatvorena / 692 ukupno**; paket nema novu migraciju. Korisnik je potvrdio uspješnu primjenu W5.15 migracije `20271026130000_saved_view_concurrency_invariants`.
+- Sljedeći paket je **Val 5 / W5.19 executable race/fault evidence completion (`BA-tickets-19`)**.
 
 ### Canonical primitive
 
