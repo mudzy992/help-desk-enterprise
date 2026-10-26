@@ -152,7 +152,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | zatvoreno |
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | zatvoreno |
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | zatvoreno |
-| BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | otvoreno |
+| BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | zatvoreno |
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | otvoreno |
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | otvoreno |
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | otvoreno |
@@ -227,7 +227,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-11 — Remote rate-limit race i široko čitanje
 
-`findLatestRemoteRequestAt` učitava sve system evente pa filtrira u memoriji; request radi read-then-insert bez locka/bucketa. Filtrirati action u DB, `take:1`, te koristiti atomic per-ticket window claim/rate-limit. Parallel test mora dozvoliti tačno jedan request. **P2, M, tickets.**
+**Status: zatvoreno u W5.11 (`1447ef3`, CI `40322188627`).** DB query sada filtrira tačan remote action i čita samo deterministički najnoviji zapis; parent-row `FOR UPDATE` serijalizuje window check i event insert u jednoj transakciji. Stvarni PostgreSQL test sa 12 paralelnih zahtjeva potvrđuje tačno jedan uspjeh u `implementation/38-ticket-remote-atomic-bounded-rate-limit.md`. **P2, M, tickets.**
 
 ### BA-tickets-12 — Post-commit side effecti nisu durable
 

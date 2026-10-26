@@ -278,7 +278,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.10 same-ticket reopen atomska i idempotentna granica — završen** na SHA `7b63508`, CI `40319657162`.
 - Required idempotency key, conditional status claim i jedna transaction granica za parent/children/change/event/SLA outbox zatvorili su `BA-tickets-10`; stvarni PostgreSQL parallel/replay dokaz je u [37-ticket-reopen-atomic-idempotent-boundary.md](implementation/37-ticket-reopen-atomic-idempotent-boundary.md).
 - Registar je sada **646 otvorenih / 46 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeće `IdempotencyRecord` i `OutboxMessage` sheme.
-- Sljedeći paket je **Val 5 / W5.11 remote rate-limit atomska i bounded granica (`BA-tickets-11`)**.
+- **W5.11 remote request atomska i bounded rate-limit granica — završen** na SHA `1447ef3`, CI `40322188627`.
+- Action-filtered latest-only query i per-ticket PostgreSQL row lock atomizuju window check i event insert; stvarni PostgreSQL test sa 12 paralelnih zahtjeva zatvorio je `BA-tickets-11`. Dokaz je u [38-ticket-remote-atomic-bounded-rate-limit.md](implementation/38-ticket-remote-atomic-bounded-rate-limit.md).
+- Registar je sada **645 otvorenih / 47 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.12 durable post-commit side-effect recovery (`BA-tickets-12`)**.
 
 ### Canonical primitive
 
