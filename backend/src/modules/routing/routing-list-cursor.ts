@@ -31,7 +31,11 @@ export function decodeRoutingRuleCursor(cursor?: string): RoutingRuleCursor | nu
     if (cursor === undefined) return null;
     throw invalidCursor();
   }
-  return decoded;
+  return {
+    serviceId: decoded.serviceId,
+    originUnitId: decoded.originUnitId,
+    id: decoded.id,
+  };
 }
 
 export function decodeRoutingChangeCursor(cursor?: string): RoutingChangeCursor | null {
@@ -46,7 +50,7 @@ export function decodeRoutingChangeCursor(cursor?: string): RoutingChangeCursor 
     if (cursor === undefined) return null;
     throw invalidCursor();
   }
-  return decoded;
+  return { createdAt: decoded.createdAt, id: decoded.id };
 }
 
 function decode(cursor?: string): Record<string, unknown> | null {

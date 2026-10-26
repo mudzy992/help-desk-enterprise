@@ -74,7 +74,7 @@ function matchesInMemoryRoutingService(
   );
 }
 
-type InMemoryChangeLogWhere = {
+export type InMemoryChangeLogWhere = {
   readonly entityType?: string;
   readonly entityId?: string | { readonly in: readonly string[] };
   readonly createdAt?: Date | { readonly lt: Date };

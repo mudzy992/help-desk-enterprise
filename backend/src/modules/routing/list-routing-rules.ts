@@ -36,9 +36,10 @@ export async function listRoutingRules(
     : await prisma.organizationalUnit.findMany({
         select: { id: true, ouPath: true },
       });
+  const scopedAssignments = assignments ?? [];
   const allowedPairs = units === null
     ? null
-    : assignments.flatMap((assignment) =>
+    : scopedAssignments.flatMap((assignment) =>
         units
           .filter((unit) => doesOrganizationalUnitScopeCover({
             assignedPath: assignment.organizationalUnitPath,

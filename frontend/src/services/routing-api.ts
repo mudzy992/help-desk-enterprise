@@ -103,9 +103,7 @@ export async function listRoutingRules(): Promise<readonly RoutingRuleResponse[]
   do {
     const search = new URLSearchParams({ take: "100" });
     if (cursor !== null) search.set("cursor", cursor);
-    const page = await apiRequest<RoutingRulePage>(
-      `/routing/rules?${search.toString()}`,
-    );
+    const page = await apiRequest<RoutingRulePage>(`/routing/rules?${search.toString()}`);
     items.push(...page.items);
     cursor = page.nextCursor;
   } while (cursor !== null);
@@ -201,9 +199,7 @@ export async function listRoutingChanges(): Promise<readonly RoutingChangeLogEnt
   do {
     const search = new URLSearchParams({ take: "100" });
     if (cursor !== null) search.set("cursor", cursor);
-    const page = await apiRequest<RoutingChangeLogPage>(
-      `/routing/changes?${search.toString()}`,
-    );
+    const page = await apiRequest<RoutingChangeLogPage>(`/routing/changes?${search.toString()}`);
     items.push(...page.items);
     cursor = page.nextCursor;
   } while (cursor !== null);
