@@ -1,6 +1,7 @@
 import { RequestIdempotencyService } from '../../../common/idempotency/request-idempotency.service';
 import { TransactionalOutboxService } from '../../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { Prisma } from '../../../generated/prisma/client';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
@@ -40,15 +41,8 @@ export async function reopenSameTicket(input: {
   const comment = normalizeReopenComment(input.body.comment);
   const commandMessages: TicketPersistedMessageSink = [];
   const supportsDurableCommands = input.prisma.idempotencyRecord !== undefined && input.prisma.outboxMessage !== undefined;
-  const idempotency = supportsDurableCommands
-    ? new RequestIdempotencyService(input.prisma)
-    : { execute: async <T extends { ticketId: string }>(command: { operation: (transaction: never) => Promise<{ statusCode: number; body: T }> }) => ({ ...(await input.prisma.$transaction(command.operation)), replayed: false }) };
   const outbox = supportsDurableCommands ? new TransactionalOutboxService(input.prisma) : undefined;
-  const result = await idempotency.execute({
-    namespace: 'ticket.reopen.same',
-    key: input.idempotencyKey,
-    request: { ticketId: ticket.id, actorUserId: input.context.actorUserId, comment },
-    operation: async (transaction) => {
+  const operation = async (transaction: Prisma.TransactionClient) => {
       const timestamps = applyTicketLifecycleTimestamps({ current: ticket, nextStatus: 'IN_PROGRESS', now: input.now });
       const claimed = await transaction.ticket.updateMany({
         where: { id: ticket.id, status: ticket.status, updatedAt: ticket.updatedAt },
@@ -72,9 +66,16 @@ export async function reopenSameTicket(input: {
           payload: { ticketId: change.after.id, previousStatus: change.before.status, now: input.now.toISOString(), event: 'merged' },
         });
       }
-      return { statusCode: 200, body: { ticketId: updated.id } };
-    },
-  });
+    return { statusCode: 200, body: { ticketId: updated.id } };
+  };
+  const result = supportsDurableCommands
+    ? await new RequestIdempotencyService(input.prisma).execute({
+        namespace: 'ticket.reopen.same',
+        key: input.idempotencyKey,
+        request: { ticketId: ticket.id, actorUserId: input.context.actorUserId, comment },
+        operation,
+      })
+    : { ...(await input.prisma.$transaction(operation)), replayed: false };
   if (!result.replayed) input.messages.push(...commandMessages);
   return (await input.prisma.ticket.findUniqueOrThrow({ where: { id: result.body.ticketId } })) as TicketRecord;
 }
