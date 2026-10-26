@@ -156,7 +156,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | zatvoreno |
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | zatvoreno |
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno |
-| BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | otvoreno |
+| BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | zatvoreno |
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | otvoreno |
 | BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | otvoreno |
 | BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | otvoreno |
@@ -243,7 +243,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-15 — Saved-view max/default invarijante imaju race
 
-Max je count-then-create; defaulti se pojedinačno čiste prije završnog create/updatea; schema ne garantuje jedan default. Uvesti transakciju i DB-enforced counter/partial unique ili serializable lock po useru. Fault/parallel test dokazuje max i tačno nula/jedan default prema zahtjevu. **P2, M, tickets/data.**
+**Status: zatvoreno u W5.15 (`f87da63`, CI `40336570823`).** Per-user PostgreSQL transaction advisory lock sada atomizuje count/create i default clear/set, postojeći name unique se mapira na domenski konflikt, a partial unique indeks garantuje jedan default. Stvarni test sa 20 paralelnih create zahtjeva i paralelnim default updateima dokumentovan je u `implementation/42-ticket-saved-view-concurrency-invariants.md`. **P2, M, tickets/data.**
 
 ### BA-tickets-16 — Attachment I/O bufferuje do 100 MB
 

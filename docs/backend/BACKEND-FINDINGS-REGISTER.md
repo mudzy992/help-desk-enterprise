@@ -140,7 +140,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-12` | P2 | SLA/realtime/notification side effecti nemaju durable outbox/recovery | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-13` | P2 | Archive/waiting workeri nemaju batch/cursor granicu | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-14` | P2 | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-15` | P2 | Saved-view max/default invarijante nisu concurrency-safe | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-15` | P2 | Saved-view max/default invarijante nisu concurrency-safe | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-16` | P2 | Attachment I/O bufferuje do 100 MB po zahtjevu | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-17` | P3 | Saved-view `sort:null` ne briše prethodni sort | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-18` | P3 | Counts/derived visibility nisu formalno jedan shared parity ugovor | otvoreno | [12-tickets.md](audits/12-tickets.md) |

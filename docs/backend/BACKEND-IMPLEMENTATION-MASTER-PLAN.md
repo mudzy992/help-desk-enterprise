@@ -290,7 +290,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.14 bounded/distributed duplicate guardrail — završen** na SHA `bfcc328`, CI `40331048262`.
 - DB-window/root filter i limit 100 ograničavaju similarity rad, dok PostgreSQL transaction advisory lock atomizuje repeat count+claim i create duplicate preflight među replikama. Stvarni 20-way concurrency dokaz zatvorio je `BA-tickets-14` i dokumentovan je u [41-ticket-bounded-distributed-guardrails.md](implementation/41-ticket-bounded-distributed-guardrails.md).
 - Registar je sada **642 otvorena / 50 zatvorenih / 692 ukupno**; paket nema novu migraciju. Korisnik je potvrdio uspješnu primjenu W5.12 migracije `20271026120000_ticket_side_effect_outbox`.
-- Sljedeći paket je **Val 5 / W5.15 saved-view concurrency invarijante (`BA-tickets-15`)**.
+- **W5.15 saved-view concurrency invarijante — završen** na SHA `f87da63`, CI `40336570823`.
+- Per-user PostgreSQL transaction lock atomizuje max count/create i default clear/set, dok partial unique indeks garantuje jedan default; stvarni 20-way create i parallel-default dokaz zatvorio je `BA-tickets-15` i dokumentovan je u [42-ticket-saved-view-concurrency-invariants.md](implementation/42-ticket-saved-view-concurrency-invariants.md).
+- Registar je sada **641 otvoren / 51 zatvoren / 692 ukupno**; migracija `20271026130000_saved_view_concurrency_invariants` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.16 attachment streaming/backpressure (`BA-tickets-16`)**.
 
 ### Canonical primitive
 
