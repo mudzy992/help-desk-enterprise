@@ -145,6 +145,8 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 **Acceptance:** aktivacija pada kada ijedan obavezni OU nema validan resolution; warning/override je eksplicitan i auditiran.  
 **Owner/veličina:** routing + service-catalog/onboarding, L.
 
+**Closeout:** W5.21 (`da66f2c`), zeleni CI `40374063956`; aktivacija sada zahtijeva exact/ancestor resolution za svaki OU i vraća determinističan missing skup. Dokaz: [48-routing-service-activation-coverage.md](../implementation/48-routing-service-activation-coverage.md). Paket nema novu DB migraciju.
+
 ### BA-routing-03 — Scoped coverage paginira globalni skup
 
 `computeRoutingCoverage` prvo bira globalnu service stranicu/cursor, a `RoutingService.coverage` zatim filtrira items prema vieweru. Scoped stranica može biti prazna i preskočiti vidljive servise na kasnijim globalnim stranicama; `nextCursor` opisuje globalni skup. Scope predicate mora ući prije count/cursor/page, uz test međusobno isprepletenih dozvoljenih/zabranjenih servisa. **P2, M/L, routing/authorization.**
