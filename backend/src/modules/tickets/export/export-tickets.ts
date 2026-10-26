@@ -7,11 +7,8 @@ import {
 } from "../../audit-log/audit-log.constants";
 import { AuthorizationContextLoader } from "../../authorization/authorization-context.loader";
 import { listTicketsForExport } from "../list-tickets";
-import {
-  authorizationRoleKeys,
-  permissionKeys,
-} from "../../authorization/authorization.constants";
 import type { AuthorizationContext } from "../../authorization/authorization.types";
+import { buildTicketSurfaceVisibility } from "../list/build-ticket-surface-visibility";
 import { loadTicketOverdueFlags } from "../load-ticket-overdue-flags";
 import { TicketsError } from "../tickets.error";
 import type { TicketAccessPolicyContext } from "../with-ticket-access-policies";
@@ -112,39 +109,7 @@ export async function exportTicketsCsv(input: {
 export function buildTicketExportWhere(
   context: AuthorizationContext,
 ): Prisma.TicketWhereInput {
-  if (context.isSuperAdmin) return { isConfidential: false };
-  const grants = context.assignments.filter(
-    (assignment) =>
-      [authorizationRoleKeys.agent, authorizationRoleKeys.admin].includes(
-        assignment.roleKey as never,
-      ) &&
-      assignment.permissionKeys.includes(permissionKeys.auditExport) &&
-      assignment.organizationalUnitPath !== null,
-  );
-  return {
-    isConfidential: false,
-    OR: grants.map((assignment) => ({
-      ...(assignment.organizationalUnitPath === null
-        ? {}
-        : {
-            originUnit: {
-              is: {
-                OR: [
-                  { ouPath: assignment.organizationalUnitPath },
-                  {
-                    ouPath: {
-                      startsWith: `${assignment.organizationalUnitPath}/`,
-                    },
-                  },
-                ],
-              },
-            },
-          }),
-      ...(assignment.serviceId === null
-        ? {}
-        : { serviceId: assignment.serviceId }),
-    })),
-  };
+  return buildTicketSurfaceVisibility({ surface: "audit_export", context })!;
 }
 
 // Free-text search terms are deliberately not written to the audit chain.
