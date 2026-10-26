@@ -153,7 +153,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | zatvoreno |
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | zatvoreno |
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | zatvoreno |
-| BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | otvoreno |
+| BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | zatvoreno |
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | otvoreno |
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | otvoreno |
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | otvoreno |
@@ -231,7 +231,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-12 — Post-commit side effecti nisu durable
 
-SLA, realtime Redis, notification/e-mail i poneki merged-copy koraci slijede DB commit bez zajedničkog outboxa. Kvar daje stale SLA ili propušten live/notification signal bez replaya. Uvesti domain outbox, idempotent consumers, delivery status/reconciliation i lag/failure metrike. **P2, L/XL, tickets/platform.**
+**Status: zatvoreno u W5.12 (`816da4d`, CI `40325366346`).** Transactional PostgreSQL trigger-intenti sada pokrivaju svaki committed ticket message te svaku status/priority promjenu. Worker consumeri koriste lease/backoff/dead-letter/manual replay, notification fan-out zadržava message-ID dedupe, a health snapshot izlaže pending/dead-letter/oldest-lag stanje. Stvarni PostgreSQL commit/rollback dokaz je u `implementation/39-ticket-durable-post-commit-side-effects.md`. **P2, L/XL, tickets/platform.**
 
 ### BA-tickets-13 — Workeri nemaju dosljedan batch limit
 

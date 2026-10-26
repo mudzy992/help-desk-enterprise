@@ -281,7 +281,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.11 remote request atomska i bounded rate-limit granica — završen** na SHA `1447ef3`, CI `40322188627`.
 - Action-filtered latest-only query i per-ticket PostgreSQL row lock atomizuju window check i event insert; stvarni PostgreSQL test sa 12 paralelnih zahtjeva zatvorio je `BA-tickets-11`. Dokaz je u [38-ticket-remote-atomic-bounded-rate-limit.md](implementation/38-ticket-remote-atomic-bounded-rate-limit.md).
 - Registar je sada **645 otvorenih / 47 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.12 durable post-commit side-effect recovery (`BA-tickets-12`)**.
+- **W5.12 durable post-commit side-effect recovery — završen** na SHA `816da4d`, CI `40325366346`.
+- Transactional PostgreSQL trigger-intenti za svaki ticket message i status/priority promjenu, idempotentni worker consumeri, lease/backoff/dead-letter/manual replay te lag/failure health snapshot zatvorili su `BA-tickets-12`. Stvarni commit/rollback dokaz je u [39-ticket-durable-post-commit-side-effects.md](implementation/39-ticket-durable-post-commit-side-effects.md).
+- Registar je sada **644 otvorena / 48 zatvorenih / 692 ukupno**; migracija `20271026120000_ticket_side_effect_outbox` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.13 bounded archive/waiting worker obrada (`BA-tickets-13`)**.
 
 ### Canonical primitive
 

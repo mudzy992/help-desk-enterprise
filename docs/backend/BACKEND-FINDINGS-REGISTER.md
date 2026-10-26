@@ -137,7 +137,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-09` | P2 | Attachment limit/delete i DB/storage lifecycle nisu konzistentni | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-10` | P2 | Reopen same-ticket nije transakcijski niti idempotentan | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-11` | P2 | Remote rate limit ima race i neograničeno čita system evente | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-12` | P2 | SLA/realtime/notification side effecti nemaju durable outbox/recovery | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-12` | P2 | SLA/realtime/notification side effecti nemaju durable outbox/recovery | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-13` | P2 | Archive/waiting workeri nemaju batch/cursor granicu | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-14` | P2 | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-15` | P2 | Saved-view max/default invarijante nisu concurrency-safe | otvoreno | [12-tickets.md](audits/12-tickets.md) |
