@@ -30,6 +30,24 @@ describe('canonical audit event policy', () => {
     expect(result.metadata).toEqual({ after: { accessToken: auditRedactedValue, email: auditPseudonymizedValue, harmless: 'ok' } });
   });
 
+  it('accepts the complete bounded ticket-export manifest metadata', () => {
+    expect(() => prepareAuditEntry({
+      action: auditLogActions.ticketsExport,
+      entityType: auditLogEntityTypes.ticketExport,
+      entityId: 'tickets',
+      actorUserId: 'actor-1',
+      metadata: {
+        format: 'csv',
+        recordCount: 100,
+        eligibleCountLowerBound: 101,
+        eligibleCountIsLowerBound: true,
+        truncated: true,
+        maxRows: 5000,
+        filters: { status: 'OPEN' },
+      },
+    })).not.toThrow();
+  });
+
   it('fails closed for oversized or excessively deep metadata', () => {
     expect(() => prepareAuditEntry({ ...valid, metadata: { after: { value: 'x'.repeat(17_000) } } })).toThrow('AUDIT_METADATA_SIZE_EXCEEDED');
     let deep: unknown = 'leaf';
