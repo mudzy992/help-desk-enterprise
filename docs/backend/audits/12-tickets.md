@@ -160,7 +160,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | zatvoreno |
 | BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | zatvoreno |
 | BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | zatvoreno |
-| BA-tickets-19 | P3       | Kritične fault/race grane nemaju izvršiv integration dokaz               | otvoreno |
+| BA-tickets-19 | P3       | Kritične fault/race grane nemaju izvršiv integration dokaz               | zatvoreno |
 
 ## 11. Detaljni nalazi
 
@@ -259,7 +259,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-19 — Kritične race/fault grane nemaju izvršiv dokaz
 
-Postojeći suite nema dokaz za message retry, approval race, split/storage failure, bulk partial, claim crash, remote race i export post-limit slučaj; 78 suiteova lokalno ne compilea bez generated Prisma. Dodati PostgreSQL/Redis/storage fault harness i obavezni CI shard. **P3, L, tickets/QA.**
+**Status: zatvoreno u W5.19 (`dcf94f9`, CI `40367476585`).** Izolovani real-PostgreSQL manifest sada obavezno izvršava svih 13 ticket race/fault suiteova, a harness guard sprječava njihovo tiho ispadanje. Prvi kompletni run otkrio je i ispravio dva Prisma `void` advisory-lock runtime kvara iz W5.14/W5.15; ponovljeni shard je potpuno zelen. Dokaz je u `implementation/46-ticket-executable-race-fault-evidence.md`. **P3, L, tickets/QA.**
 
 ## 12. Baseline score
 

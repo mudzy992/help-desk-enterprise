@@ -302,7 +302,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.18 shared visibility parity contract — završen** na SHA `58b55f1`, CI `40362428376`.
 - Jedan capability/predicate entrypoint formalizira detail/list/count/summary/search, group-inbox narrowing i audit-export scope; generativna actor/config matrica zatvorila je `BA-tickets-18`. Dokaz je u [45-ticket-shared-visibility-parity-contract.md](implementation/45-ticket-shared-visibility-parity-contract.md).
 - Registar je sada **638 otvorenih / 54 zatvorena / 692 ukupno**; paket nema novu migraciju. Korisnik je potvrdio uspješnu primjenu W5.15 migracije `20271026130000_saved_view_concurrency_invariants`.
-- Sljedeći paket je **Val 5 / W5.19 executable race/fault evidence completion (`BA-tickets-19`)**.
+- **W5.19 executable race/fault evidence completion — završen** na SHA `dcf94f9`, CI `40367476585`.
+- Izolovani PostgreSQL manifest sada obavezno izvršava svih 13 ticket race/fault suiteova; manifest guard sprječava tiho ispadanje. Kompletni shard otkrio je i ispravio Prisma `void` advisory-lock runtime kvarove u W5.14/W5.15, a ponovljeni run je potpuno zelen. Time je zatvoren `BA-tickets-19`; dokaz je u [46-ticket-executable-race-fault-evidence.md](implementation/46-ticket-executable-race-fault-evidence.md).
+- **Tickets modul `BA-tickets-01`–`BA-tickets-19` je potpuno zatvoren.** Registar je sada **637 otvorenih / 55 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.20 scoped routing target authorization (`BA-routing-01`)**.
 
 ### Canonical primitive
 
