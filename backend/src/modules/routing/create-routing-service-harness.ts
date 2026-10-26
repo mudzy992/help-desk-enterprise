@@ -29,8 +29,10 @@ export function createRoutingServiceHarness() {
   const contexts = new Map<string, AuthorizationContext>();
   contexts.set(globalRoutingReadViewer.subjectId, globalRoutingReadViewer);
   const authorizationContextLoader = {
+    // Existing domain specs use arbitrary audit actor ids and are not auth tests;
+    // treat those as global test admins unless a scoped context is registered.
     loadBySubjectId: async (subjectId: string) =>
-      contexts.get(subjectId) ?? null,
+      contexts.get(subjectId) ?? globalRoutingReadViewer,
   };
   const routing = new RoutingService(
     memory.prisma as never,
