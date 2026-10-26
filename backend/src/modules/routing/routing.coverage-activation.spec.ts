@@ -19,7 +19,12 @@ describe('evaluateServiceRoutingCoverage', () => {
       'service-vpn',
       { ...defaultRoutingConfiguration, requireCoverage: true },
     );
-    expect(evaluation).toEqual({ hasCoverage: false, requireCoverage: true });
+    expect(evaluation).toEqual({
+      hasCoverage: false,
+      requireCoverage: true,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-root', 'ou-child', 'ou-leaf'],
+    });
     expect(() => assertOrWarnActivationRoutingCoverage(evaluation)).toThrow(
       RoutingError,
     );
@@ -37,7 +42,59 @@ describe('evaluateServiceRoutingCoverage', () => {
     );
   });
 
-  it('returns null when a routing rule exists', async () => {
+  it('does not treat one leaf rule as complete service coverage', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    await routing.createRule({
+      originUnitId: 'ou-leaf',
+      serviceId: 'service-vpn',
+      groupId: 'group-it',
+      reason: routingChangeReason,
+    });
+
+    const evaluation = await evaluateServiceRoutingCoverage(
+      memory.prisma as never,
+      'service-vpn',
+      { ...defaultRoutingConfiguration, requireCoverage: true },
+    );
+
+    expect(evaluation).toMatchObject({
+      hasCoverage: false,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-root', 'ou-child'],
+    });
+    expect(() => assertOrWarnActivationRoutingCoverage(evaluation)).toThrow(
+      RoutingError,
+    );
+  });
+
+  it('requires coverage for every independent OU tree', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    memory.seedUnit({
+      id: 'ou-independent',
+      parentId: null,
+      ouPath: '/Partneri',
+    });
+    await routing.createRule({
+      originUnitId: 'ou-root',
+      serviceId: 'service-vpn',
+      groupId: 'group-it',
+      reason: routingChangeReason,
+    });
+
+    const evaluation = await evaluateServiceRoutingCoverage(
+      memory.prisma as never,
+      'service-vpn',
+      defaultRoutingConfiguration,
+    );
+
+    expect(evaluation).toMatchObject({
+      hasCoverage: false,
+      requiredOriginUnitCount: 4,
+      missingOriginUnitIds: ['ou-independent'],
+    });
+  });
+
+  it('returns null when an ancestor rule covers every origin unit', async () => {
     const { memory, routing } = createRoutingServiceHarness();
     await routing.createRule({
       originUnitId: 'ou-root',
