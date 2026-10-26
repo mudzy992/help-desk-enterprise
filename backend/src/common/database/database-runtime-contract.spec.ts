@@ -34,6 +34,6 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe('20271026120000_ticket_side_effect_outbox');
+    expect(expectedSchemaMigration).toBe('20271026130000_saved_view_concurrency_invariants');
   });
 });

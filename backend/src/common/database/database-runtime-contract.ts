@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271026120000_ticket_side_effect_outbox';
+  '20271026130000_saved_view_concurrency_invariants';
 
 export function assertDatabaseTransport(
   connectionString: string,
