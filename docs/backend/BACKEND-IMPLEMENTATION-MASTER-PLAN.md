@@ -272,7 +272,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.8 guardrail claim/effect atomska recovery granica — završen** na SHA `c15bf91`, CI `40285216835`.
 - Claim i CSAT/waiting/archive efekti sada commit/rollbackuju u istoj transakciji, uključujući realtime sink rollback; stvarni PostgreSQL fault/retry dokaz zatvorio je `BA-tickets-08` i dokumentovan je u [35-guardrail-effect-atomic-recovery.md](implementation/35-guardrail-effect-atomic-recovery.md).
 - Registar je sada **648 otvorenih / 44 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.9 attachment limit/delete i DB/storage lifecycle konzistentnost (`BA-tickets-09`)**.
+- **W5.9 attachment atomska kvota i durable deletion lifecycle — završen** na SHA `ad4e930`, CI `40316223173`.
+- PostgreSQL parent-row lock i transakcijsko ponovno brojanje atomizuju upload kvotu; transactional durable deletion intent, post-commit remove te lease/backoff/terminal worker reconciliation zatvorili su `BA-tickets-09`. Stvarni PostgreSQL concurrency i storage fault/retry dokaz je u [36-ticket-attachment-atomic-quota-durable-deletion.md](implementation/36-ticket-attachment-atomic-quota-durable-deletion.md).
+- Registar je sada **647 otvorenih / 45 zatvorenih / 692 ukupno**; paket nema novu migraciju i koristi postojeću `StorageWriteIntent` shemu.
+- Sljedeći paket je **Val 5 / W5.10 reopen same-ticket transakcijska i idempotentna granica (`BA-tickets-10`)**.
 
 ### Canonical primitive
 

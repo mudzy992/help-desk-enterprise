@@ -150,7 +150,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | zatvoreno |
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | zatvoreno |
 | BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | zatvoreno |
-| BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | otvoreno |
+| BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | zatvoreno |
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | otvoreno |
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | otvoreno |
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | otvoreno |
@@ -219,7 +219,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-09 — Attachment concurrency i cross-store nesklad
 
-Upload count-before-create nema zaključavanje/schema limit. Delete briše blob prije DB transakcije; DB kvar ostavlja metadata za missing file. Potreban je per-ticket atomic quota, deletion manifest/state, retry/reconciliation i quarantine. Acceptance pokriva paralelne uploadove i kvar prije/poslije svakog storage/DB koraka. **P2, L, tickets/storage.**
+**Status: zatvoreno u W5.9 (`ad4e930`, CI `40316223173`).** PostgreSQL parent-row lock i transakcijsko ponovno brojanje atomizuju kvotu. Durable deletion intent se upisuje u istoj transakciji koja uklanja metadata; fizički remove tek nakon commita i worker lease/backoff/terminal reconciliation zatvaraju cross-store crash prozor. Stvarni PostgreSQL parallel-upload i storage fault/retry dokaz je u `implementation/36-ticket-attachment-atomic-quota-durable-deletion.md`. **P2, L, tickets/storage.**
 
 ### BA-tickets-10 — Reopen same-ticket nije atomski/idempotentan
 
