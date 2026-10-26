@@ -151,6 +151,8 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 `computeRoutingCoverage` prvo bira globalnu service stranicu/cursor, a `RoutingService.coverage` zatim filtrira items prema vieweru. Scoped stranica može biti prazna i preskočiti vidljive servise na kasnijim globalnim stranicama; `nextCursor` opisuje globalni skup. Scope predicate mora ući prije count/cursor/page, uz test međusobno isprepletenih dozvoljenih/zabranjenih servisa. **P2, M/L, routing/authorization.**
 
+**Closeout:** W5.22 (`93ead93`), zeleni CI `40375898079`; service scope sada ulazi u DB count/cursor/page, OU/service assignment parovi ostaju povezani, a interleaved pagination test dokazuje scoped cursor. Dokaz: [49-routing-scoped-coverage-pagination.md](../implementation/49-routing-scoped-coverage-pagination.md). Paket nema novu DB migraciju.
+
 ### BA-routing-04 — Scoped total je ograničena aproksimacija
 
 Scoped grana poziva coverage sa `take:10000`, ali funkcija clampuje na `routingCoverageMaximumTake`, zatim broji filtrirane service ID-eve samo te stranice. UI računa broj stranica iz netačnog totala. Potreban je DB scope-aware distinct count ili autorizovani service query. **P2, M, routing/data.**

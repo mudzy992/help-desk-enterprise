@@ -311,7 +311,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.21 service activation routing coverage — završen** na SHA `da66f2c`, CI `40374063956`.
 - Aktivacijski gate sada zahtijeva exact/ancestor resolution za svaki OU, uključujući nezavisna OU stabla, i izlaže determinističan missing skup. Time je zatvoren `BA-routing-02`; dokaz je u [48-routing-service-activation-coverage.md](implementation/48-routing-service-activation-coverage.md).
 - Registar je sada **635 otvorenih / 57 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.22 scoped routing coverage pagination (`BA-routing-03`)**.
+- **W5.22 scoped routing coverage pagination — završen** na SHA `93ead93`, CI `40375898079`.
+- Authorization scope sada se primjenjuje prije DB count/cursor/page operacija, a OU/service assignment parovi ostaju povezani bez scope cross-producta. Time je zatvoren `BA-routing-03`; dokaz je u [49-routing-scoped-coverage-pagination.md](implementation/49-routing-scoped-coverage-pagination.md).
+- Registar je sada **634 otvorena / 58 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.23 exact scoped coverage total (`BA-routing-04`)**.
 
 ### Canonical primitive
 
