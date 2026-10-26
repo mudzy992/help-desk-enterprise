@@ -157,6 +157,8 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 Scoped grana poziva coverage sa `take:10000`, ali funkcija clampuje na `routingCoverageMaximumTake`, zatim broji filtrirane service ID-eve samo te stranice. UI računa broj stranica iz netačnog totala. Potreban je DB scope-aware distinct count ili autorizovani service query. **P2, M, routing/data.**
 
+**Closeout:** W5.23 (`93ead93`, dokaz `568141a`), zeleni CI `40377931686`; DB count koristi isti scope-aware service predicate kao cursor stranica, a 75-allowed/75-hidden test prelazi raniji cap 50. Dokaz: [50-routing-exact-scoped-coverage-total.md](../implementation/50-routing-exact-scoped-coverage-total.md). Paket nema novu DB migraciju.
+
 ### BA-routing-05 — Rules i change logs nemaju paginaciju
 
 Rules učitava sve redove, zatim sve labele i post-filter; global changes paralelno učitava sve ruleove i sve change logove. Dodati cursor/filter/take, scope-aware DB query i stabilan total/hasMore; ne učitavati out-of-scope redove u proces. **P2, M, routing/API.**

@@ -314,7 +314,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.22 scoped routing coverage pagination — završen** na SHA `93ead93`, CI `40375898079`.
 - Authorization scope sada se primjenjuje prije DB count/cursor/page operacija, a OU/service assignment parovi ostaju povezani bez scope cross-producta. Time je zatvoren `BA-routing-03`; dokaz je u [49-routing-scoped-coverage-pagination.md](implementation/49-routing-scoped-coverage-pagination.md).
 - Registar je sada **634 otvorena / 58 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.23 exact scoped coverage total (`BA-routing-04`)**.
+- **W5.23 exact scoped coverage total — završen** na SHA `568141a`, CI `40377931686`.
+- Scope-aware DB count dijeli predicate sa cursor stranicom, a 75 dozvoljenih i 75 isprepletenih zabranjenih servisa dokazuju tačan total iznad ranijeg capa 50. Time je zatvoren `BA-routing-04`; dokaz je u [50-routing-exact-scoped-coverage-total.md](implementation/50-routing-exact-scoped-coverage-total.md).
+- Registar je sada **633 otvorena / 59 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.24 paginated routing rules and change logs (`BA-routing-05`)**.
 
 ### Canonical primitive
 
