@@ -142,7 +142,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-14` | P2 | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-15` | P2 | Saved-view max/default invarijante nisu concurrency-safe | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-16` | P2 | Attachment I/O bufferuje do 100 MB po zahtjevu | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 12 | `tickets` | `BA-tickets-17` | P3 | Saved-view `sort:null` ne briše prethodni sort | otvoreno | [12-tickets.md](audits/12-tickets.md) |
+| 12 | `tickets` | `BA-tickets-17` | P3 | Saved-view `sort:null` ne briše prethodni sort | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-18` | P3 | Counts/derived visibility nisu formalno jedan shared parity ugovor | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-19` | P3 | Kritične fault/race grane nemaju izvršiv integration dokaz | otvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 13 | `routing` | `BA-routing-01` | P1 | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | otvoreno | [13-routing.md](audits/13-routing.md) |

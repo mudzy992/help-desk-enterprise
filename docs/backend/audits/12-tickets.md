@@ -158,7 +158,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno |
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | zatvoreno |
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | zatvoreno |
-| BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | otvoreno |
+| BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | zatvoreno |
 | BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | otvoreno |
 | BA-tickets-19 | P3       | Kritične fault/race grane nemaju izvršiv integration dokaz               | otvoreno |
 
@@ -251,7 +251,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-17 — `sort:null` ne čisti saved-view sort
 
-DTO dopušta null, ali `updateSavedView` mapira null u Prisma `undefined`, pa stara vrijednost ostaje. Razdvojiti omitted od explicit null i dodati contract test. **P3, S, tickets.**
+**Status: zatvoreno u W5.17 (`943286d`, CI `40344015280`).** Omitted sort sada čuva vrijednost, validan objekt je zamjenjuje, a explicit `null` koristi `Prisma.DbNull` i sprema SQL NULL. In-memory contract i stvarni PostgreSQL persist dokaz dokumentovani su u `implementation/44-ticket-saved-view-sort-clear-semantics.md`. **P3, S, tickets.**
 
 ### BA-tickets-18 — Visibility parity nije formalno jedinstven za sve izvedene površine
 

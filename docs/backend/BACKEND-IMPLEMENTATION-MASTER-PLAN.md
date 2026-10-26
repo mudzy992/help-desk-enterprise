@@ -296,7 +296,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.16 attachment streaming/backpressure — završen** na SHA `7f09966`, CI `40340858766`.
 - Disk-backed multipart, bounded signature read, streaming ClamAV/storage/download i shared concurrency/queue timeout limiter uklonili su per-request 100 MB heap buffering; 32 MiB stream i 20-way limiter test zatvorili su `BA-tickets-16`. Dokaz je u [43-ticket-attachment-streaming-backpressure.md](implementation/43-ticket-attachment-streaming-backpressure.md).
 - Registar je sada **640 otvorenih / 52 zatvorena / 692 ukupno**; paket nema novu migraciju. W5.15 migracija `20271026130000_saved_view_concurrency_invariants` ostaje obavezna release-migrator radnja dok korisnik ne potvrdi primjenu.
-- Sljedeći paket je **Val 5 / W5.17 saved-view `sort:null` clear semantika (`BA-tickets-17`)**.
+- **W5.17 saved-view `sort:null` clear semantika — završen** na SHA `943286d`, CI `40344015280`.
+- Omitted/object/explicit-null update stanja sada imaju odvojenu Prisma semantiku, a stvarni PostgreSQL dokaz potvrđuje persisted SQL NULL; time je zatvoren `BA-tickets-17`. Dokaz je u [44-ticket-saved-view-sort-clear-semantics.md](implementation/44-ticket-saved-view-sort-clear-semantics.md).
+- Registar je sada **639 otvorenih / 53 zatvorena / 692 ukupno**; paket nema novu migraciju. W5.15 migracija `20271026130000_saved_view_concurrency_invariants` ostaje obavezna release-migrator radnja dok korisnik ne potvrdi primjenu.
+- Sljedeći paket je **Val 5 / W5.18 shared visibility parity contract (`BA-tickets-18`)**.
 
 ### Canonical primitive
 
