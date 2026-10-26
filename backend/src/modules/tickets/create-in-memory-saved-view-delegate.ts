@@ -74,9 +74,12 @@ export function createInMemorySavedViewDelegate(
       if (current === undefined) {
         throw new Error('NOT_FOUND');
       }
+      const defined = Object.fromEntries(
+        Object.entries(data).filter(([, value]) => value !== undefined),
+      ) as Partial<SavedViewRecord>;
       const updated: SavedViewRecord = {
         ...current,
-        ...data,
+        ...defined,
         sort:
           (data as { sort?: unknown }).sort === Prisma.DbNull
             ? null
