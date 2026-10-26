@@ -28,6 +28,16 @@ export class TicketSideEffectOutboxReconciler implements OnModuleInit, OnApplica
   }
   onApplicationShutdown(): void { if (this.timer !== undefined) clearInterval(this.timer); }
 
+  async health(): Promise<{ pending: number; deadLetter: number; oldestPendingAgeMs: number }> {
+    const topics = [ticketMessageDeliveryTopic, ticketSlaEffectsTopic];
+    const [pending, deadLetter, oldest] = await Promise.all([
+      this.prisma.outboxMessage.count({ where: { topic: { in: topics }, status: { in: ['PENDING', 'PROCESSING'] } } }),
+      this.prisma.outboxMessage.count({ where: { topic: { in: topics }, status: 'DEAD_LETTER' } }),
+      this.prisma.outboxMessage.findFirst({ where: { topic: { in: topics }, status: { in: ['PENDING', 'PROCESSING'] } }, orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
+    ]);
+    return { pending, deadLetter, oldestPendingAgeMs: oldest === null ? 0 : Math.max(0, Date.now() - oldest.createdAt.getTime()) };
+  }
+
   async drain(): Promise<void> {
     for (let index = 0; index < 50; index += 1) {
       const message = await this.outbox.dispatchOne(ticketMessageDeliveryTopic, (delivery) => this.deliverMessage(delivery));
