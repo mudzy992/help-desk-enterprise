@@ -60,6 +60,11 @@
       "migration": "20271024120000_audit_immutable_identity_hash_envelope",
       "sha256": "1eb19ec29bee5ce01e6f57343a6ff66ea0b8c589ea592690257367690aa18649",
       "approval": "W3.2: preserve immutable historical actor and OU identifiers by intentionally removing mutating SetNull foreign keys"
+    },
+    {
+      "migration": "20271026140000_routing_change_log_scope",
+      "sha256": "3dd314bae38b2aa5aaa53dfc59893174f9a53b5e17eb50e60180723c3f5e59a7",
+      "approval": "W5.26: one-time deterministic backfill copies existing immutable routing snapshot scope into indexed authorization columns"
     }
   ]
 }

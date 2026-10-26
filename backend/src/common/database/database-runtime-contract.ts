@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271026130000_saved_view_concurrency_invariants';
+  '20271026140000_routing_change_log_scope';
 
 export function assertDatabaseTransport(
   connectionString: string,
