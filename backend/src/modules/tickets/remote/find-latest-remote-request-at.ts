@@ -5,12 +5,13 @@ export async function findLatestRemoteRequestAt(
   prisma: PrismaService,
   ticketId: string,
 ): Promise<Date | null> {
-  const records = await prisma.ticketMessage.findMany({
-    where: { ticketId, type: 'SYSTEM_EVENT' },
-    orderBy: { createdAt: 'desc' },
+  const latest = await prisma.ticketMessage.findFirst({
+    where: {
+      ticketId,
+      type: 'SYSTEM_EVENT',
+      body: ticketSystemEventActions.remoteRequested,
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   });
-  const latest = records.find(
-    (record) => record.body === ticketSystemEventActions.remoteRequested,
-  );
   return latest?.createdAt ?? null;
 }

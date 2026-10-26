@@ -32,16 +32,30 @@ export async function requestTicketRemote(
   if (access.visibility !== 'staff') {
     throw new TicketsError('FORBIDDEN');
   }
-  const lastRequestedAt = await findLatestRemoteRequestAt(prisma, ticket.id);
-  if (
-    isRemoteRequestRateLimited(lastRequestedAt, configuration.rateLimitMinutes)
-  ) {
-    throw new TicketsError('REMOTE_RATE_LIMITED');
-  }
-  const message = await insertSystemTicketEvent(prisma, {
-    ticketId: ticket.id,
-    action: ticketSystemEventActions.remoteRequested,
-    actorUserId: context.actorUserId,
+  const message = await prisma.$transaction(async (transaction) => {
+    // Serialize the read-window-claim sequence on the stable parent row. This
+    // avoids a bucket table/migration while allowing unrelated tickets to run
+    // concurrently. PostgreSQL releases the row lock with the transaction.
+    if (typeof transaction.$queryRaw === 'function') {
+      await transaction.$queryRaw`SELECT "id" FROM "Ticket" WHERE "id" = ${ticket.id} FOR UPDATE`;
+    }
+    const lastRequestedAt = await findLatestRemoteRequestAt(
+      transaction as PrismaService,
+      ticket.id,
+    );
+    if (
+      isRemoteRequestRateLimited(
+        lastRequestedAt,
+        configuration.rateLimitMinutes,
+      )
+    ) {
+      throw new TicketsError('REMOTE_RATE_LIMITED');
+    }
+    return insertSystemTicketEvent(transaction as PrismaService, {
+      ticketId: ticket.id,
+      action: ticketSystemEventActions.remoteRequested,
+      actorUserId: context.actorUserId,
+    });
   });
   return {
     ticketId: ticket.id,
