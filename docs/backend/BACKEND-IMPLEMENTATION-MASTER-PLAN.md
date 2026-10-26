@@ -305,7 +305,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.19 executable race/fault evidence completion — završen** na SHA `dcf94f9`, CI `40367476585`.
 - Izolovani PostgreSQL manifest sada obavezno izvršava svih 13 ticket race/fault suiteova; manifest guard sprječava tiho ispadanje. Kompletni shard otkrio je i ispravio Prisma `void` advisory-lock runtime kvarove u W5.14/W5.15, a ponovljeni run je potpuno zelen. Time je zatvoren `BA-tickets-19`; dokaz je u [46-ticket-executable-race-fault-evidence.md](implementation/46-ticket-executable-race-fault-evidence.md).
 - **Tickets modul `BA-tickets-01`–`BA-tickets-19` je potpuno zatvoren.** Registar je sada **637 otvorenih / 55 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.20 scoped routing target authorization (`BA-routing-01`)**.
+- **W5.20 scoped routing target authorization — završen** na SHA `2575e47`, CI `40371361442`.
+- Jedinstveni OU/service target eligibility ugovor sada štiti create/update i filtrira `/routing/groups`; globalni routing admin i superadmin zadržavaju eksplicitnu cross-OU mogućnost. Time je zatvoren `BA-routing-01`; dokaz je u [47-routing-scoped-target-authorization.md](implementation/47-routing-scoped-target-authorization.md).
+- Registar je sada **636 otvorenih / 56 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.21 service activation routing coverage (`BA-routing-02`)**.
 
 ### Canonical primitive
 

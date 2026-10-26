@@ -111,7 +111,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 | ID            | Severity | Nalaz                                                           | Status   |
 | ------------- | -------- | --------------------------------------------------------------- | -------- |
-| BA-routing-01 | P1       | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | otvoreno |
+| BA-routing-01 | P1       | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | zatvoreno |
 | BA-routing-02 | P1       | Service activation “coverage” prihvata bilo koje jedno pravilo  | otvoreno |
 | BA-routing-03 | P2       | Scoped coverage paginira prije authorization filtera            | otvoreno |
 | BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | otvoreno |
@@ -133,6 +133,8 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 **Korekcija:** definirati cross-OU routing permission/policy; učitati group OU i zahtijevati pokriven scope ili dedicated cross-OU pravo; `/groups` vratiti samo eligible grupe.  
 **Acceptance:** scoped admin ne vidi niti može postaviti foreign group; global/cross-OU admin može; negativni service/OU/group testovi.  
 **Owner/veličina:** routing + authorization/groups, M/L.
+
+**Closeout:** W5.20 (`2b8bfd5`, `c47f1fe`, `2575e47`), zeleni CI `40371361442`; zajednički target eligibility ugovor pokriva create/update i filtrira `/routing/groups`. Dokaz: [47-routing-scoped-target-authorization.md](../implementation/47-routing-scoped-target-authorization.md). Paket nema novu DB migraciju.
 
 ### BA-routing-02 — Activation coverage je “postoji jedno pravilo”
 

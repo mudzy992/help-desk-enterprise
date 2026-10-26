@@ -145,7 +145,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 12 | `tickets` | `BA-tickets-17` | P3 | Saved-view `sort:null` ne briše prethodni sort | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-18` | P3 | Counts/derived visibility nisu formalno jedan shared parity ugovor | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
 | 12 | `tickets` | `BA-tickets-19` | P3 | Kritične fault/race grane nemaju izvršiv integration dokaz | zatvoreno | [12-tickets.md](audits/12-tickets.md) |
-| 13 | `routing` | `BA-routing-01` | P1 | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | otvoreno | [13-routing.md](audits/13-routing.md) |
+| 13 | `routing` | `BA-routing-01` | P1 | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | zatvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-02` | P1 | Service activation “coverage” prihvata bilo koje jedno pravilo | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-03` | P2 | Scoped coverage paginira prije authorization filtera | otvoreno | [13-routing.md](audits/13-routing.md) |
 | 13 | `routing` | `BA-routing-04` | P2 | Scoped coverage `total` računa samo ograničenu prvu stranicu | otvoreno | [13-routing.md](audits/13-routing.md) |

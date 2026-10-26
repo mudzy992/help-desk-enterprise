@@ -3588,7 +3588,7 @@
     {
       "id": "BA-routing-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "13-routing.md",
       "owner": "WS-F",
       "wave": 5
