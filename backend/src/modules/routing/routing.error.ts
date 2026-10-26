@@ -11,7 +11,7 @@ export type RoutingErrorCode =
 export class RoutingError extends Error {
   constructor(
     readonly code: RoutingErrorCode,
-    message = code,
+    message: string = code,
   ) {
     super(message);
     this.name = 'RoutingError';
