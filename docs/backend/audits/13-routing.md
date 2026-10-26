@@ -117,7 +117,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | otvoreno |
 | BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | zatvoreno |
 | BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | zatvoreno |
-| BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | otvoreno |
+| BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | zatvoreno |
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | otvoreno |
 | BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | otvoreno |
 | BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | otvoreno |
@@ -174,6 +174,8 @@ Rules učitava sve redove, zatim sve labele i post-filter; global changes parale
 ### BA-routing-07 — Deleted scoped rule gubi historiju
 
 `listRuleChanges` dopušta deleted rule samo globalnom readeru; `listChanges` filtrira routing-rule log po trenutno vidljivim rule ID-evima. Scope postoji u diff snapshotu, ali se ne koristi. Persistirati/queryjati OU/service scope uz change log ili sigurno parsirati versioned snapshot; scoped admin mora zadržati historiju vlastitog obrisanog pravila. **P2, M, routing/audit.**
+
+**Closeout:** W5.26 (`a1fda3b`, `5daf251`), zeleni CI `40384827667`; immutable OU/service scope kolone sada autorizuju globalni i per-rule history i nakon brisanja, uz foreign-scope 403 dokaz. Dokaz: [53-routing-deleted-scoped-history.md](../implementation/53-routing-deleted-scoped-history.md). Nova migracija `20271026140000_routing_change_log_scope` je obavezna release-migrator radnja.
 
 ### BA-routing-08 — Concurrent update je silent last-write-wins
 

@@ -323,7 +323,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.25 bounded OU ancestor resolution — završen** na SHA `4a2dce0`, CI `40381960475`.
 - Pojedinačni resolve/preview više ne skenira cijelu OU tabelu nego slijedi samo parent lanac uz fail-closed depth budget 256; 10.000 unrelated-OU test dokazuje trošak proporcionalan dubini. Time je zatvoren `BA-routing-06`; dokaz je u [52-routing-bounded-ancestor-resolution.md](implementation/52-routing-bounded-ancestor-resolution.md).
 - Registar je sada **631 otvoren / 61 zatvoren / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.26 deleted scoped routing history (`BA-routing-07`)**.
+- **W5.26 deleted scoped routing history — završen** na SHA `5daf251`, CI `40384827667`.
+- Routing change log sada trajno čuva OU/service authorization scope; scoped reader zadržava vlastitu create/delete historiju nakon brisanja, dok foreign obrisano pravilo ostaje 403. Time je zatvoren `BA-routing-07`; dokaz je u [53-routing-deleted-scoped-history.md](implementation/53-routing-deleted-scoped-history.md).
+- Registar je sada **630 otvorenih / 62 zatvorena / 692 ukupno**. Migracija `20271026140000_routing_change_log_scope` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.27 optimistic routing update concurrency (`BA-routing-08`)**.
 
 ### Canonical primitive
 
