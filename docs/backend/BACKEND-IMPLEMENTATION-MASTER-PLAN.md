@@ -293,7 +293,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.15 saved-view concurrency invarijante — završen** na SHA `f87da63`, CI `40336570823`.
 - Per-user PostgreSQL transaction lock atomizuje max count/create i default clear/set, dok partial unique indeks garantuje jedan default; stvarni 20-way create i parallel-default dokaz zatvorio je `BA-tickets-15` i dokumentovan je u [42-ticket-saved-view-concurrency-invariants.md](implementation/42-ticket-saved-view-concurrency-invariants.md).
 - Registar je sada **641 otvoren / 51 zatvoren / 692 ukupno**; migracija `20271026130000_saved_view_concurrency_invariants` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.16 attachment streaming/backpressure (`BA-tickets-16`)**.
+- **W5.16 attachment streaming/backpressure — završen** na SHA `7f09966`, CI `40340858766`.
+- Disk-backed multipart, bounded signature read, streaming ClamAV/storage/download i shared concurrency/queue timeout limiter uklonili su per-request 100 MB heap buffering; 32 MiB stream i 20-way limiter test zatvorili su `BA-tickets-16`. Dokaz je u [43-ticket-attachment-streaming-backpressure.md](implementation/43-ticket-attachment-streaming-backpressure.md).
+- Registar je sada **640 otvorenih / 52 zatvorena / 692 ukupno**; paket nema novu migraciju. W5.15 migracija `20271026130000_saved_view_concurrency_invariants` ostaje obavezna release-migrator radnja dok korisnik ne potvrdi primjenu.
+- Sljedeći paket je **Val 5 / W5.17 saved-view `sort:null` clear semantika (`BA-tickets-17`)**.
 
 ### Canonical primitive
 

@@ -157,7 +157,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | zatvoreno |
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno |
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | zatvoreno |
-| BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | otvoreno |
+| BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | zatvoreno |
 | BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | otvoreno |
 | BA-tickets-18 | P3       | Counts/derived visibility nisu formalno jedan shared parity ugovor       | otvoreno |
 | BA-tickets-19 | P3       | Kritične fault/race grane nemaju izvršiv integration dokaz               | otvoreno |
@@ -247,7 +247,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-16 — Attachment I/O bufferuje do 100 MB
 
-Multer input i storage `writeFile/readFile` koriste kompletan Buffer; svaki download vraća Buffer prije responsea. Paralelni zahtjevi množe heap pressure. Uvesti streaming upload/scan/storage/download, concurrency limit i byte/time backpressure; load test bez OOM-a. **P2, L, tickets/storage.**
+**Status: zatvoreno u W5.16 (`7f09966`, CI `40340858766`).** Multipart ide u bounded temp datoteku, signature čita 8 KiB, ClamAV/storage/download koriste 64 KiB stream/pipeline backpressure, a shared lease limiter ograničava aktivne i queued tokove sa timeoutom. 32 MiB streaming i 20-way limiter dokaz dokumentovani su u `implementation/43-ticket-attachment-streaming-backpressure.md`. **P2, L, tickets/storage.**
 
 ### BA-tickets-17 — `sort:null` ne čisti saved-view sort
 
