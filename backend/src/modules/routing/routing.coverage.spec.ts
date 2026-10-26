@@ -165,6 +165,54 @@ describe('RoutingService coverage', () => {
     expect(second.nextCursor).toBeNull();
   });
 
+  it('reports an exact scoped total beyond the former 50-service approximation cap', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    const allowedServiceIds: string[] = [];
+    for (let index = 0; index < 75; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      const serviceId = `service-scoped-${suffix}`;
+      allowedServiceIds.push(serviceId);
+      memory.seedService({
+        id: serviceId,
+        name: `Scoped service ${suffix}`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+      memory.seedService({
+        id: `service-hidden-${suffix}`,
+        name: `Scoped service ${suffix} hidden`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+    }
+    const viewer: AuthorizationContext = {
+      subjectId: 'large-scoped-reader',
+      isLocalOnly: false,
+      isSuperAdmin: false,
+      assignments: allowedServiceIds.map((serviceId) => ({
+        roleKey: 'routing-reader',
+        permissionKeys: [permissionKeys.routingRead],
+        organizationalUnitId: 'ou-child',
+        organizationalUnitPath: '/Korisnici/Direkcija',
+        serviceId,
+      })),
+    };
+
+    let cursor: string | undefined;
+    const pagedServiceIds = new Set<string>();
+    do {
+      const page = await routing.coverage({ take: 7, cursor }, viewer);
+      expect(page.total).toBe(75);
+      for (const item of page.items) {
+        pagedServiceIds.add(item.serviceId);
+      }
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor !== undefined);
+
+    expect(pagedServiceIds).toEqual(new Set(allowedServiceIds));
+    expect([...pagedServiceIds].some((id) => id.includes('hidden'))).toBe(false);
+  });
+
   it('preserves paired OU and service assignments instead of creating a scope cross-product', async () => {
     const { memory, routing } = createRoutingServiceHarness();
     memory.seedService({ id: 'service-a', name: 'Service A', lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
