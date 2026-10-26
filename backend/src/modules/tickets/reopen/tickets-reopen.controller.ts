@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Headers,
   ForbiddenException,
   Param,
   Post,
@@ -41,9 +43,13 @@ export class TicketsReopenController {
   reopen(
     @Param('ticketId') ticketId: string,
     @Body() body: ReopenTicketDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<TicketResponse> {
-    return this.reopenService.reopen(ticketId, body, readContext(request));
+    if (idempotencyKey === undefined || idempotencyKey.trim().length === 0) {
+      throw new BadRequestException({ code: 'IDEMPOTENCY_KEY_REQUIRED', message: 'Idempotency-Key header is required' });
+    }
+    return this.reopenService.reopen(ticketId, body, readContext(request), idempotencyKey.trim());
   }
 }
 

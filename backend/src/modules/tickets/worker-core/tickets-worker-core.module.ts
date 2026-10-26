@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrincipalContextLoader } from '../../../common/principal-context/principal-context.loader';
 import { StorageWriteModule } from '../../../common/storage-write/storage-write.module';
+import { OutboxModule } from '../../../common/outbox/outbox.module';
 import { SplitAttachmentStorageReconciler } from '../split/split-attachment-storage-reconciler.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingConfigurationLoader } from '../../routing/routing-configuration.loader';
@@ -26,6 +27,7 @@ import { TicketLabelCacheService } from '../labels/ticket-label-cache.service';
 import { TicketPriorityMatrixConfigurationLoader } from '../priority/ticket-priority-matrix-configuration.loader';
 import { TicketRedactionConfigurationLoader } from '../redaction/ticket-redaction-configuration.loader';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
+import { ReopenSlaOutboxReconciler } from '../reopen/reopen-sla-outbox-reconciler.service';
 import { TicketsReopenService } from '../reopen/tickets-reopen.service';
 import { TicketRequiredFieldsConfigurationLoader } from '../required-fields/ticket-required-fields-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from '../safe-logging/ticket-safe-logging-configuration.loader';
@@ -46,7 +48,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
  * `TicketsModule` itself is never imported by the worker.
  */
 @Module({
-  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule, StorageWriteModule],
+  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule, StorageWriteModule, OutboxModule],
   providers: [
     // Plain providers instead of AuthorizationModule/RoutingModule: those carry
     // controllers and interceptors that depend on API-only realtime hubs.
@@ -60,6 +62,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     TicketsReopenService,
     SplitAttachmentStorageReconciler,
     AttachmentDeletionReconciler,
+    ReopenSlaOutboxReconciler,
     TicketAssignmentService,
     TicketAccessPolicyBinder,
     TicketLabelCacheService,

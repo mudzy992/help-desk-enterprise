@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -38,6 +39,7 @@ export class TicketsReopenService {
     ticketId: string,
     input: ReopenTicketInput,
     context: TicketMutationContext,
+    idempotencyKey = `internal:${ticketId}:${randomUUID()}`,
     now = new Date(),
   ): Promise<TicketResponse> {
     return executeTicketOperation(async () => {
@@ -56,6 +58,7 @@ export class TicketsReopenService {
         formsConfiguration,
         ticketId,
         body: input,
+        idempotencyKey,
         context: gated,
         now,
         messages,

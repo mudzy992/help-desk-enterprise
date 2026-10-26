@@ -22,6 +22,7 @@ export async function reopenTicket(input: {
   readonly formsConfiguration?: ServiceFormsConfiguration;
   readonly ticketId: string;
   readonly body: ReopenTicketInput;
+  readonly idempotencyKey: string;
   readonly context: TicketMutationContext;
   readonly now?: Date;
   readonly messages?: TicketPersistedMessageSink;
@@ -52,6 +53,7 @@ export async function reopenTicket(input: {
     configuration: input.configuration,
     ticketId: input.ticketId,
     body: input.body,
+    idempotencyKey: input.idempotencyKey,
     context: input.context,
     now,
     messages,
