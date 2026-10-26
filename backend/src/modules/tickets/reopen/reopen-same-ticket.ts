@@ -33,17 +33,16 @@ export async function reopenSameTicket(input: {
   readonly messages: TicketPersistedMessageSink;
 }): Promise<TicketRecord> {
   const { ticket } = await loadAccessibleTicket(input.prisma, input.authorizationContextLoader, input.ticketId, input.context, { writable: true });
-  if (!input.configuration.enabled) throw new TicketsError('REOPEN_DISABLED');
-  assertTicketNotMerged(ticket);
-  const policy = resolveTicketReopenPolicy({ ticket, configuration: input.configuration, now: input.now });
-  if (!policy.eligible || policy.mode !== 'same_ticket') throw new TicketsError('REOPEN_NOT_ELIGIBLE');
-
   const comment = normalizeReopenComment(input.body.comment);
   const commandMessages: TicketPersistedMessageSink = [];
   const supportsDurableCommands = input.prisma.idempotencyRecord !== undefined && input.prisma.outboxMessage !== undefined;
   const outbox = supportsDurableCommands ? new TransactionalOutboxService(input.prisma) : undefined;
   const operation = async (transaction: Prisma.TransactionClient) => {
-      const timestamps = applyTicketLifecycleTimestamps({ current: ticket, nextStatus: 'IN_PROGRESS', now: input.now });
+    if (!input.configuration.enabled) throw new TicketsError('REOPEN_DISABLED');
+    assertTicketNotMerged(ticket);
+    const policy = resolveTicketReopenPolicy({ ticket, configuration: input.configuration, now: input.now });
+    if (!policy.eligible || policy.mode !== 'same_ticket') throw new TicketsError('REOPEN_NOT_ELIGIBLE');
+    const timestamps = applyTicketLifecycleTimestamps({ current: ticket, nextStatus: 'IN_PROGRESS', now: input.now });
     let updated: TicketRecord;
     if (supportsDurableCommands) {
       const claimed = await transaction.ticket.updateMany({
