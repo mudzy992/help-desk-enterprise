@@ -4,6 +4,6 @@ export async function acquireGuardrailSubjectLock(
   transaction: Prisma.TransactionClient,
   subjectKey: string,
 ): Promise<void> {
-  if (typeof transaction.$queryRaw !== "function") return;
-  await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${subjectKey}))`;
+  if (typeof transaction.$executeRaw !== "function") return;
+  await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${subjectKey}))`;
 }
