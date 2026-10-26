@@ -155,7 +155,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | zatvoreno |
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | zatvoreno |
 | BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | zatvoreno |
-| BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | otvoreno |
+| BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | zatvoreno |
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | otvoreno |
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | otvoreno |
 | BA-tickets-17 | P3       | Saved-view `sort:null` ne briše prethodni sort                           | otvoreno |
@@ -239,7 +239,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-14 — Duplicate guardrail nije bounded/distributed atomic
 
-`findDuplicateTickets` čita sve requester/service tickete, a datum filtrira u memoriji. `runExclusiveGuardrail` je process-local; distinct fingerprinti mogu paralelno probiti repeat count. Premjestiti date/status/limit u DB i recent-count+claim atomizirati DB lockom/rate-limit modelom. **P2, M, tickets/data.**
+**Status: zatvoreno u W5.14 (`bfcc328`, CI `40331048262`).** Duplicate kandidati sada imaju DB window/root filter i deterministički limit 100. PostgreSQL transaction advisory lock atomizuje count+claim među replikama i veže create duplicate preflight uz ticket insert; stvarni test sa 20 paralelnih različitih fingerprinta i limitom tri dokumentovan je u `implementation/41-ticket-bounded-distributed-guardrails.md`. **P2, M, tickets/data.**
 
 ### BA-tickets-15 — Saved-view max/default invarijante imaju race
 

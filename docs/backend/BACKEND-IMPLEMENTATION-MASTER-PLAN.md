@@ -287,7 +287,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.13 bounded archive/waiting worker obrada — završen** na SHA `cb3f945`, CI `40329391858`.
 - Shared keyset scanner sa batch/run budget granicom, DB due filtrima, continuation semantikom i per-ticket error isolation zatvorio je `BA-tickets-13`; 10.000-candidate/poison test dokaz je u [40-ticket-bounded-automation-workers.md](implementation/40-ticket-bounded-automation-workers.md).
 - Registar je sada **643 otvorena / 49 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.14 bounded/distributed duplicate guardrail (`BA-tickets-14`)**.
+- **W5.14 bounded/distributed duplicate guardrail — završen** na SHA `bfcc328`, CI `40331048262`.
+- DB-window/root filter i limit 100 ograničavaju similarity rad, dok PostgreSQL transaction advisory lock atomizuje repeat count+claim i create duplicate preflight među replikama. Stvarni 20-way concurrency dokaz zatvorio je `BA-tickets-14` i dokumentovan je u [41-ticket-bounded-distributed-guardrails.md](implementation/41-ticket-bounded-distributed-guardrails.md).
+- Registar je sada **642 otvorena / 50 zatvorenih / 692 ukupno**; paket nema novu migraciju. Korisnik je potvrdio uspješnu primjenu W5.12 migracije `20271026120000_ticket_side_effect_outbox`.
+- Sljedeći paket je **Val 5 / W5.15 saved-view concurrency invarijante (`BA-tickets-15`)**.
 
 ### Canonical primitive
 

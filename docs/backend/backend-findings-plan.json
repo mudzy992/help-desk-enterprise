@@ -5060,7 +5060,7 @@
     {
       "id": "BA-tickets-14",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "12-tickets.md",
       "owner": "WS-F",
       "wave": 5
