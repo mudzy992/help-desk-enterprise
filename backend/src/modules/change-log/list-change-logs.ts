@@ -24,15 +24,32 @@ export async function listChangeLogPage(
     readonly entityType: string;
     readonly entityId?: string;
     readonly entityIds?: readonly string[];
+    readonly scopePairs?: readonly {
+      readonly originUnitId: string;
+      readonly serviceId: string | null;
+    }[];
     readonly take: number;
     readonly cursor?: { readonly createdAt: Date; readonly id: string };
   },
 ): Promise<ChangeLogPage> {
-  const baseWhere = {
+  const entityWhere = {
     entityType: input.entityType,
     ...(input.entityId === undefined ? {} : { entityId: input.entityId }),
     ...(input.entityIds === undefined ? {} : { entityId: { in: [...input.entityIds] } }),
   };
+  const baseWhere = input.scopePairs === undefined
+    ? entityWhere
+    : {
+        AND: [
+          entityWhere,
+          {
+            OR: input.scopePairs.map((pair) => ({
+              scopeOriginUnitId: pair.originUnitId,
+              ...(pair.serviceId === null ? {} : { scopeServiceId: pair.serviceId }),
+            })),
+          },
+        ],
+      };
   const pageWhere = input.cursor === undefined
     ? baseWhere
     : {

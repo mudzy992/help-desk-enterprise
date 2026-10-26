@@ -116,15 +116,15 @@ export async function listRoutingRules(
   };
 }
 
-export async function loadVisibleRoutingRuleIds(
+export async function resolveRoutingScopePairs(
   prisma: PrismaService,
   assignments: readonly RoutingReadScopeAssignment[],
-): Promise<readonly string[] | null> {
+): Promise<readonly { readonly originUnitId: string; readonly serviceId: string | null }[] | null> {
   if (isGlobal(assignments)) return null;
   const units = await prisma.organizationalUnit.findMany({
     select: { id: true, ouPath: true },
   });
-  const pairs = assignments.flatMap((assignment) =>
+  return assignments.flatMap((assignment) =>
     units
       .filter((unit) => doesOrganizationalUnitScopeCover({
         assignedPath: assignment.organizationalUnitPath,
@@ -135,6 +135,14 @@ export async function loadVisibleRoutingRuleIds(
         serviceId: assignment.serviceId,
       })),
   );
+}
+
+export async function loadVisibleRoutingRuleIds(
+  prisma: PrismaService,
+  assignments: readonly RoutingReadScopeAssignment[],
+): Promise<readonly string[] | null> {
+  const pairs = await resolveRoutingScopePairs(prisma, assignments);
+  if (pairs === null) return null;
   const rules = await prisma.routingRule.findMany({
     where: {
       OR: pairs.map((pair) => ({

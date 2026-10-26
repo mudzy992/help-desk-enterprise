@@ -66,6 +66,8 @@ export async function updateRoutingRule(
       entityId: updated.id,
       reason,
       actorUserId: context.actorUserId,
+      scopeOriginUnitId: updated.originUnitId,
+      scopeServiceId: updated.serviceId,
       diff: buildChangeLogDiff({
         action: changeLogActions.update,
         resourceType: changeLogEntityTypes.routingRule,

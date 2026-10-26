@@ -148,8 +148,11 @@ model ChangeLog {
   diff       Json
   actorUserId String?
   actor      User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  scopeOriginUnitId String?
+  scopeServiceId String?
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+  @@index([entityType, scopeServiceId, scopeOriginUnitId, createdAt, id], map: "ChangeLog_routing_scope_page_idx")
   @@index([actorUserId])
 }

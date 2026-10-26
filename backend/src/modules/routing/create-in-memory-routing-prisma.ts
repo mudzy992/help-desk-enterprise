@@ -77,6 +77,8 @@ function matchesInMemoryRoutingService(
 export type InMemoryChangeLogWhere = {
   readonly entityType?: string;
   readonly entityId?: string | { readonly in: readonly string[] };
+  readonly scopeOriginUnitId?: string;
+  readonly scopeServiceId?: string;
   readonly createdAt?: Date | { readonly lt: Date };
   readonly id?: { readonly lt: string };
   readonly OR?: readonly InMemoryChangeLogWhere[];
@@ -90,6 +92,8 @@ export type InMemoryRoutingChangeLog = {
   reason: string;
   diff: ChangeLogDiffPayload;
   actorUserId: string | null;
+  scopeOriginUnitId: string | null;
+  scopeServiceId: string | null;
   createdAt: Date;
   actor: { displayName: string } | null;
 };
@@ -223,6 +227,8 @@ export function createInMemoryRoutingPrisma() {
           reason: string;
           diff: ChangeLogDiffPayload;
           actorUserId: string | null;
+          scopeOriginUnitId?: string;
+          scopeServiceId?: string;
         };
       }) => {
         const entry: InMemoryRoutingChangeLog = {
@@ -232,6 +238,8 @@ export function createInMemoryRoutingPrisma() {
           reason: data.reason,
           diff: data.diff,
           actorUserId: data.actorUserId,
+          scopeOriginUnitId: data.scopeOriginUnitId ?? null,
+          scopeServiceId: data.scopeServiceId ?? null,
           createdAt: nextChangeTimestamp(),
           actor:
             data.actorUserId === null
@@ -282,6 +290,8 @@ function matchesChangeLog(
   if (where.entityType !== undefined && entry.entityType !== where.entityType) return false;
   if (typeof where.entityId === 'string' && entry.entityId !== where.entityId) return false;
   if (typeof where.entityId === 'object' && !where.entityId.in.includes(entry.entityId)) return false;
+  if (where.scopeOriginUnitId !== undefined && entry.scopeOriginUnitId !== where.scopeOriginUnitId) return false;
+  if (where.scopeServiceId !== undefined && entry.scopeServiceId !== where.scopeServiceId) return false;
   if (where.createdAt instanceof Date && entry.createdAt.getTime() !== where.createdAt.getTime()) return false;
   if (typeof where.createdAt === 'object' && !(where.createdAt instanceof Date) && entry.createdAt >= where.createdAt.lt) return false;
   if (where.id?.lt !== undefined && entry.id >= where.id.lt) return false;

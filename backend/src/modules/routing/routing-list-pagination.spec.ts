@@ -78,6 +78,41 @@ describe('routing bounded list pagination', () => {
     await expect(routing.listChanges({ cursor: 'invalid' }, viewer)).rejects.toMatchObject({ status: 400 });
   });
 
+  it('keeps deleted own-scope history visible without exposing deleted foreign history', async () => {
+    const { routing } = createRoutingServiceHarness();
+    const foreign = await routing.createRule(
+      { originUnitId: 'ou-root', serviceId: 'service-vpn', groupId: 'group-net', reason: routingChangeReason },
+      { actorUserId: 'admin-root' },
+    );
+    const own = await routing.createRule(
+      { originUnitId: 'ou-leaf', serviceId: 'service-vpn', groupId: 'group-it', reason: routingChangeReason },
+      { actorUserId: 'admin-leaf' },
+    );
+    await routing.deleteRule(
+      own.id,
+      { originUnitId: 'ou-leaf', serviceId: 'service-vpn', reason: 'Remove own scoped rule' },
+      { actorUserId: 'admin-leaf' },
+    );
+    await routing.deleteRule(
+      foreign.id,
+      { originUnitId: 'ou-root', serviceId: 'service-vpn', reason: 'Remove foreign rule' },
+      { actorUserId: 'admin-root' },
+    );
+
+    const ownHistory = await routing.listRuleChanges(own.id, {}, scopedViewer());
+    expect(ownHistory.total).toBe(2);
+    expect(ownHistory.items.map((entry) => entry.diff.action)).toEqual(['delete', 'create']);
+    await expect(
+      routing.listRuleChanges(foreign.id, {}, scopedViewer()),
+    ).rejects.toMatchObject({ status: 403 });
+
+    const globalHistory = await routing.listChanges({}, scopedViewer());
+    expect(globalHistory.total).toBe(2);
+    expect(new Set(globalHistory.items.map((entry) => entry.entityId))).toEqual(
+      new Set([own.id]),
+    );
+  });
+
   it('does not expose foreign-rule logs to a scoped viewer', async () => {
     const { routing } = createRoutingServiceHarness();
     await routing.createRule(

@@ -15,6 +15,7 @@ import { listRoutingHandlerGroups } from './list-routing-handler-groups';
 import {
   listRoutingRules,
   loadVisibleRoutingRuleIds,
+  resolveRoutingScopePairs,
 } from './list-routing-rules';
 import {
   assertOrWarnActivationRoutingCoverage,
@@ -177,14 +178,19 @@ export class RoutingService {
   ): Promise<RoutingChangeLogPage> {
     return this.execute(async () => {
       this.ensureReadAccess(viewer);
-      const visibleIds = await loadVisibleRoutingRuleIds(
+      const scopePairs = await resolveRoutingScopePairs(
         this.prisma,
         resolveRoutingReadAssignments(viewer),
       );
-      if (visibleIds !== null && !visibleIds.includes(ruleId)) {
+      const page = await this.listChangeLogPage(
+        query,
+        ruleId,
+        scopePairs ?? undefined,
+      );
+      if (scopePairs !== null && page.total === 0) {
         throw new ForbiddenException('ROUTING_READ_FORBIDDEN');
       }
-      return this.listChangeLogPage(query, ruleId, undefined);
+      return page;
     });
   }
 
@@ -194,11 +200,11 @@ export class RoutingService {
   ): Promise<RoutingChangeLogPage> {
     return this.execute(async () => {
       this.ensureReadAccess(viewer);
-      const visibleIds = await loadVisibleRoutingRuleIds(
+      const scopePairs = await resolveRoutingScopePairs(
         this.prisma,
         resolveRoutingReadAssignments(viewer),
       );
-      return this.listChangeLogPage(query, undefined, visibleIds ?? undefined);
+      return this.listChangeLogPage(query, undefined, scopePairs ?? undefined);
     });
   }
 
@@ -333,7 +339,10 @@ export class RoutingService {
   private async listChangeLogPage(
     query: RoutingListQuery,
     entityId?: string,
-    entityIds?: readonly string[],
+    scopePairs?: readonly {
+      readonly originUnitId: string;
+      readonly serviceId: string | null;
+    }[],
   ): Promise<RoutingChangeLogPage> {
     const take = Math.min(
       routingListMaximumTake,
@@ -343,7 +352,7 @@ export class RoutingService {
     const page = await listChangeLogPage(this.prisma, {
       entityType: changeLogEntityTypes.routingRule,
       entityId,
-      entityIds,
+      scopePairs,
       take,
       ...(cursor === null
         ? {}
