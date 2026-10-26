@@ -154,7 +154,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | zatvoreno |
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | zatvoreno |
 | BA-tickets-12 | P2       | SLA/realtime/notification side effecti nemaju durable outbox/recovery    | zatvoreno |
-| BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | otvoreno |
+| BA-tickets-13 | P2       | Archive/waiting workeri nemaju batch/cursor granicu                      | zatvoreno |
 | BA-tickets-14 | P2       | Duplicate guardrail query i distributed repeat limit nisu bounded/atomic | otvoreno |
 | BA-tickets-15 | P2       | Saved-view max/default invarijante nisu concurrency-safe                 | otvoreno |
 | BA-tickets-16 | P2       | Attachment I/O bufferuje do 100 MB po zahtjevu                           | otvoreno |
@@ -235,7 +235,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 
 ### BA-tickets-13 — Workeri nemaju dosljedan batch limit
 
-Archive i waiting-for-user `findMany` učitavaju cijelu populaciju, za razliku od time/unrouted sweepova. Dodati cursor batch, per-run budget, continuation i per-ticket error isolation. Load test mora dokazati bounded memory/runtime i napredak nakon poison ticketa. **P2, M, tickets/workers.**
+**Status: zatvoreno u W5.13 (`cb3f945`, CI `40329391858`).** Oba workera sada koriste shared bounded keyset scanner, batch 25, per-run budget 100, DB due filtre, continuation kroz naredne scheduler prolaze i per-ticket error isolation. Test sa 10.000 kandidata i poison ticketom te višestruki continuation dokaz dokumentovani su u `implementation/40-ticket-bounded-automation-workers.md`. **P2, M, tickets/workers.**
 
 ### BA-tickets-14 — Duplicate guardrail nije bounded/distributed atomic
 

@@ -284,7 +284,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.12 durable post-commit side-effect recovery — završen** na SHA `816da4d`, CI `40325366346`.
 - Transactional PostgreSQL trigger-intenti za svaki ticket message i status/priority promjenu, idempotentni worker consumeri, lease/backoff/dead-letter/manual replay te lag/failure health snapshot zatvorili su `BA-tickets-12`. Stvarni commit/rollback dokaz je u [39-ticket-durable-post-commit-side-effects.md](implementation/39-ticket-durable-post-commit-side-effects.md).
 - Registar je sada **644 otvorena / 48 zatvorenih / 692 ukupno**; migracija `20271026120000_ticket_side_effect_outbox` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.13 bounded archive/waiting worker obrada (`BA-tickets-13`)**.
+- **W5.13 bounded archive/waiting worker obrada — završen** na SHA `cb3f945`, CI `40329391858`.
+- Shared keyset scanner sa batch/run budget granicom, DB due filtrima, continuation semantikom i per-ticket error isolation zatvorio je `BA-tickets-13`; 10.000-candidate/poison test dokaz je u [40-ticket-bounded-automation-workers.md](implementation/40-ticket-bounded-automation-workers.md).
+- Registar je sada **643 otvorena / 49 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.14 bounded/distributed duplicate guardrail (`BA-tickets-14`)**.
 
 ### Canonical primitive
 
