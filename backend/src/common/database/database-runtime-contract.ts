@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271026100000_ticket_approval_concurrency_boundary';
+  '20271026120000_ticket_side_effect_outbox';
 
 export function assertDatabaseTransport(
   connectionString: string,

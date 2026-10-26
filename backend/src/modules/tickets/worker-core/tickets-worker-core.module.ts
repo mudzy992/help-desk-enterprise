@@ -34,6 +34,7 @@ import { TicketSafeLoggingConfigurationLoader } from '../safe-logging/ticket-saf
 import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketCollaborationConfigurationLoader } from '../ticket-collaboration-configuration.loader';
 import { TicketRealtimeBridgeModule } from '../ticket-realtime-bridge.module';
+import { TicketSideEffectOutboxReconciler } from '../ticket-side-effect-outbox-reconciler.service';
 import { TicketsCollaborationService } from '../tickets-collaboration.service';
 import { TicketsService } from '../tickets.service';
 import { UnroutedQueueConfigurationLoader } from '../unrouted/unrouted-queue-configuration.loader';
@@ -63,6 +64,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     SplitAttachmentStorageReconciler,
     AttachmentDeletionReconciler,
     ReopenSlaOutboxReconciler,
+    TicketSideEffectOutboxReconciler,
     TicketAssignmentService,
     TicketAccessPolicyBinder,
     TicketLabelCacheService,
