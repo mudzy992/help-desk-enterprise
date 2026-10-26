@@ -149,7 +149,7 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 | BA-tickets-05 | P1       | Split kreira parcijalne childove prije pune validacije                   | zatvoreno |
 | BA-tickets-06 | P1       | Approval decision/gate nisu concurrency-safe                             | zatvoreno |
 | BA-tickets-07 | P1       | CSV limit prije permission/confidential filtera daje tih nepotpun export | zatvoreno |
-| BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | otvoreno |
+| BA-tickets-08 | P1       | Guardrail claim-before-effect može trajno progutati automation/CSAT      | zatvoreno |
 | BA-tickets-09 | P2       | Attachment limit/delete i DB/storage lifecycle nisu konzistentni         | otvoreno |
 | BA-tickets-10 | P2       | Reopen same-ticket nije transakcijski niti idempotentan                  | otvoreno |
 | BA-tickets-11 | P2       | Remote rate limit ima race i neograničeno čita system evente             | otvoreno |
@@ -211,13 +211,11 @@ Pregledani su relevantni E2E fajlovi 01–08, 10, 13–16, 20–22, 26, 30, 33, 
 **Acceptance:** miješani >5.001 dataset izvozi kompletan eligible skup ili eksplicitno odbija kao prevelik.  
 **Owner/veličina:** tickets/authorization, M.
 
-### BA-tickets-08 — Claim-before-effect trajno guta posao
+### BA-tickets-08 — Claim-before-effect trajno guta posao — ZATVORENO
 
-**Dokaz:** archive, waiting-for-user i CSAT prvo kreiraju `GuardrailClaim`; effect je poslije. Unique fingerprint ne uključuje expiry, `expiresAt` se ne oslobađa/čisti.  
-**Uticaj:** kvar poslije claim-a može trajno ostaviti CLOSED nearchiveovan, WAITING neobrađen ili CSAT nepodnošljiv; retry izgleda kao duplicate/loop.  
-**Korekcija:** claim/effect u istoj DB transakciji gdje je moguće ili lease/state machine sa ownerom, attemptom, completionom i retryjem; expiry-aware uniqueness/cleanup.  
-**Acceptance:** fault nakon claima se automatski oporavlja; dva workera daju jedan kompletan effect.  
-**Owner/veličina:** tickets/platform, L.
+**Završni dokaz:** centralni `runGuardrailEffectTransaction` sada izvršava claim i zaštićeni efekat u istoj PostgreSQL transakciji za CSAT, waiting-for-user reminder/auto-close i closed-ticket archive. Kvar poslije claima rollbackuje claim, ticket/CSAT/change/event writeove i vraća in-memory realtime sink, pa isti fingerprint ostaje ponovljiv; uspjeh zadržava unique claim kao terminalnu deduplikaciju.
+**Test:** `guardrail-effect-transaction.integration.spec.ts` na stvarnom PostgreSQL-u injectuje fault nakon claima, ticket izmjene i eventa, potvrđuje potpuni rollback i prazan sink, zatim uspješan retry sa tačno jednim claimom i efektom. Puni CI `40285216835` potvrđuje backend build/lint/unit/integration, frontend, docs i container kolekcije.
+**Migracija:** paket ne uvodi novu migraciju.
 
 ### BA-tickets-09 — Attachment concurrency i cross-store nesklad
 

@@ -269,7 +269,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.7 permission-correct cursor CSV export i truncation manifest — završen** na SHA `21808ca`, CI `40237791891`.
 - Confidential i tačan `audit.export` OU/service scope sada ulaze u SQL prije limita; bounded ID cursor i eksplicitni audit/HTTP truncation manifest zatvorili su `BA-tickets-07`. Stvarni PostgreSQL dokaz je u [34-ticket-export-scope-cursor-manifest.md](implementation/34-ticket-export-scope-cursor-manifest.md).
 - Registar je sada **649 otvorenih / 43 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.8 guardrail effect claim/recovery i durable CSAT/automation izvršenje (`BA-tickets-08`)**.
+- **W5.8 guardrail claim/effect atomska recovery granica — završen** na SHA `c15bf91`, CI `40285216835`.
+- Claim i CSAT/waiting/archive efekti sada commit/rollbackuju u istoj transakciji, uključujući realtime sink rollback; stvarni PostgreSQL fault/retry dokaz zatvorio je `BA-tickets-08` i dokumentovan je u [35-guardrail-effect-atomic-recovery.md](implementation/35-guardrail-effect-atomic-recovery.md).
+- Registar je sada **648 otvorenih / 44 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.9 attachment limit/delete i DB/storage lifecycle konzistentnost (`BA-tickets-09`)**.
 
 ### Canonical primitive
 
