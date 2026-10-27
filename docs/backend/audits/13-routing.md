@@ -120,7 +120,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | zatvoreno |
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | zatvoreno |
 | BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | zatvoreno |
-| BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | otvoreno |
+| BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | zatvoreno |
 | BA-routing-11 | P3       | Kritične scoped/race/load grane nemaju izvršiv dokaz            | otvoreno |
 
 ## 11. Detaljni nalazi
@@ -192,6 +192,8 @@ Update čita existing i before resolution u transakciji, ali nema version/`updat
 ### BA-routing-10 — Neispravan OU lanac se tiho skraćuje
 
 Ancestor walker prekida na cycle ili missing parent bez greške. Resolution tada može vratiti `UNROUTED` ili pogrešan fallback umjesto integrity alarma. Fail closed/health signal i data-integrity test su potrebni. **P3, S/M, routing/OU.**
+
+**Closeout:** W5.29 (`361c52e`), zeleni CI `40521917956`; DB-backed resolution i in-memory coverage walker sada fail-closed odbijaju OU cycle, missing parent i prekoračenje depth budgeta stabilnim `UNAVAILABLE` integrity signalima, dok nepostojeći origin zadržava `ORIGIN_UNIT_NOT_FOUND`. Dokaz: [56-routing-ou-ancestor-integrity.md](../implementation/56-routing-ou-ancestor-integrity.md). Paket nema novu DB migraciju.
 
 ### BA-routing-11 — Nedostaje izvršiva kritična matrica
 

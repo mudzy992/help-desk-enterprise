@@ -332,7 +332,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.28 routing coverage resource budget — završen** na SHA `ca6f6fe`, CI `40401904911`.
 - Coverage sada primjenjuje item/byte/time budget, nastavlja cursor samo iza kompletnog servisa, zahtijeva OU filter kada jedan servis prelazi limit i emituje strukturirane metrike. Time je zatvoren `BA-routing-09`; dokaz je u [55-routing-coverage-resource-budget.md](implementation/55-routing-coverage-resource-budget.md).
 - Registar je sada **628 otvorenih / 64 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.29 fail-closed OU ancestor integrity (`BA-routing-10`)**.
+- **W5.29 fail-closed OU ancestor integrity — završen** na SHA `361c52e`, CI `40521917956`.
+- DB-backed resolution i in-memory coverage walker više ne skraćuju oštećen OU ancestor lanac: cycle, missing parent i depth overflow vraćaju stabilan fail-closed integrity signal. Time je zatvoren `BA-routing-10`; dokaz je u [56-routing-ou-ancestor-integrity.md](implementation/56-routing-ou-ancestor-integrity.md).
+- Registar je sada **627 otvorenih / 65 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.30 izvršiva routing kritična matrica (`BA-routing-11`)**.
 
 ### Canonical primitive
 
