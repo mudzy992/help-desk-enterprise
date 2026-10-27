@@ -1,3 +1,4 @@
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { isPrismaUniqueConstraintError } from './is-prisma-unique-constraint-error';
 import type { TicketSlaStateRecord } from './ticket-sla.types';
@@ -39,7 +40,9 @@ export async function persistTicketSlaState(
     nextDueAt: state.nextDueAt,
     ...(state.configurationVersion !== undefined ? {
       configurationVersion: state.configurationVersion,
-      configurationSnapshot: state.configurationSnapshot,
+      configurationSnapshot: state.configurationSnapshot === null
+        ? Prisma.JsonNull
+        : state.configurationSnapshot as Prisma.InputJsonValue,
       configurationAppliedAt: state.configurationAppliedAt,
       configurationPolicy: state.configurationPolicy,
     } : {}),
