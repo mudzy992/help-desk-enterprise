@@ -48,6 +48,16 @@ export function validateContainerContract(dockerfile, compose) {
   if (/^ {4}command:.*prisma migrate deploy/mu.test(compose.slice(backendStart, compose.indexOf("  worker:")))) {
     problems.push("compose backend: runtime replika ne smije pokretati migracije");
   }
+  const storageStart = compose.indexOf("  storage-init:");
+  const frontendStart = compose.indexOf("  frontend:");
+  const storageBlock = storageStart < 0 ? "" : compose.slice(storageStart, frontendStart);
+  if (
+    !/^ {4}user: "0:0"$/mu.test(storageBlock) ||
+    !/chown -R 1000:1000 \/usr\/app\/uploads/u.test(storageBlock) ||
+    !/\$\{APP_FILES_ROOT:-\/mnt\/shared-app-files\/service-desk\}:\/usr\/app\/uploads/u.test(storageBlock)
+  ) {
+    problems.push("compose: nedostaje storage-init ownership granica za centralni app-files direktorij");
+  }
 
   for (const service of ["backend", "worker"]) {
     const start = compose.indexOf(`  ${service}:`);
@@ -62,7 +72,10 @@ export function validateContainerContract(dockerfile, compose) {
       [/^ {4}cap_drop:\n {6}- ALL$/mu, "cap_drop ALL"],
       [/^ {4}security_opt:\n {6}- no-new-privileges:true$/mu, "no-new-privileges"],
       [/^ {4}tmpfs:\n {6}- \/tmp:rw,noexec,nosuid,size=64m,mode=1777$/mu, "bounded /tmp tmpfs"],
-      [/^ {4}volumes:\n {6}- uploads:\/usr\/app\/uploads$/mu, "persistent uploads volume"],
+      [
+        /^ {4}volumes:\n {6}- \$\{APP_FILES_ROOT:-\/mnt\/shared-app-files\/service-desk\}:\/usr\/app\/uploads$/mu,
+        "central persistent app-files bind mount",
+      ],
     ];
     for (const [pattern, label] of checks) if (!pattern.test(block)) problems.push(`compose ${service}: nedostaje ${label}`);
   }

@@ -34,9 +34,17 @@ const service = (name) => `  ${name}:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     volumes:
-      - uploads:/usr/app/uploads
+      - \${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
 `;
 const compose = `services:
+  storage-init:
+    user: "0:0"
+    command:
+      - chown -R 1000:1000 /usr/app/uploads
+    volumes:
+      - \${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+  frontend:
+    image: frontend
   migrator:
     profiles: ["release"]
     build:

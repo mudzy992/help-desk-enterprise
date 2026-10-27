@@ -67,6 +67,26 @@ x-app-environment: &app-environment
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga
 # na WebSocket. Rolling deploy: vidi ops/ws-rolling-deploy.md (drain ≤ 30 s).
 services:
+  # Jednokratno priprema centralni host direktorij prije starta API-ja i workera.
+  # Bind mount je namjerno izvan Docker named-volume prostora kako bi svi trajni
+  # aplikacijski fajlovi bili pod jednom backup/ownership granicom na hostu.
+  storage-init:
+    build: ./backend
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /usr/app/uploads &&
+        chown -R 1000:1000 /usr/app/uploads &&
+        chmod 0750 /usr/app/uploads
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+
   frontend:
     build:
       context: ./frontend
@@ -102,6 +122,9 @@ services:
 
   backend:
     build: ./backend
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     read_only: true
     cap_drop:
@@ -122,7 +145,7 @@ services:
     environment:
       <<: [*database-environment, *redis-environment, *app-environment]
     volumes:
-      - uploads:/usr/app/uploads
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
       - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
@@ -132,6 +155,9 @@ services:
 
   worker:
     build: ./backend
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     command: node dist/src/worker.js
     restart: unless-stopped
     read_only: true
@@ -155,7 +181,7 @@ services:
       DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-10}
       DB_STATEMENT_TIMEOUT_MS: ${WORKER_DB_STATEMENT_TIMEOUT_MS:-30000}
     volumes:
-      - uploads:/usr/app/uploads
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
       - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
@@ -179,7 +205,6 @@ services:
       - default
 
 volumes:
-  uploads:
   clamav-db:
 
 networks:

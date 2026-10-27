@@ -25,16 +25,15 @@ Postgres **nije** u `docker-compose.yml`. Coolify Database resurs → Backups:
 2. Retention **≥ 14** kopija (Coolify “backups to keep”).
 3. Connection string restore-ane instance ide u `DATABASE_URL` (isti ključ kao u `.env.example`).
 
-### 2. Uploads dir
+### 2. Centralni direktorij aplikacijskih fajlova
 
-Named volume `uploads` (compose) mountan na `/usr/app/uploads` na **backend i worker** (`UPLOAD_ROOT`). Database backup **ne** uključuje fajlove. U DB je samo path.
+Host direktorij `${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}` bind-mountan je na `/usr/app/uploads` na **backend i worker** (`UPLOAD_ROOT`). Compose `storage-init` prije oba procesa kreira direktorij i postavlja ownership runtime korisniku UID/GID 1000. Aplikacija ispod te granice sama raspoređuje `tickets/`, `privacy-exports/`, `privacy-ledger/` i ostale namespace direktorije. Database backup **ne** uključuje ove fajlove; u DB je samo path.
 
-Daily, read-only volumen → arhiva na istu off-box destinaciju kao Postgres, ime `uploads-YYYY-MM-DD.tar.gz`.
-Umjesto ručne komande koristi `ops/dr/backup-uploads.sh` (ista radnja + SHA-256, manifest, retention 14 dana);
-instalacija na host je u odjeljku „Instalacija cron-a" ispod.
+Daily, read-only direktorij → arhiva na istu off-box destinaciju kao Postgres, ime `app-files-YYYY-MM-DD.tar.gz`.
+Koristi `ops/dr/backup-uploads.sh` (SHA-256, manifest, retention 14 dana); instalacija na host je u odjeljku „Instalacija cron-a" ispod.
 
 ```bash
-UPLOADS_VOLUME=<ime iz `docker volume ls`> ops/dr/backup-uploads.sh
+APP_FILES_ROOT=/mnt/shared-app-files/service-desk ops/dr/backup-uploads.sh
 ```
 
 Briši lokalne arhive starije od retention-a nakon što je off-box kopija potvrđena.
@@ -55,7 +54,7 @@ Zahtijeva `private.configVersioning.enabled=true`, Admin + `settings.write`. Nak
 Preduslov: Coolify Environment ključevi iz `.env.example` već na ciljnom stacku (uključujući `VITE_API_BASE_URL` kao build arg).
 
 1. Restore PostgreSQL iz Coolify Database backupa na **ciljnu** bazu. `DATABASE_URL` → ta baza.
-2. Restore `uploads` volume iz `uploads-YYYY-MM-DD.tar.gz` (isti mount `/usr/app/uploads` na backend i worker).
+2. Restore `app-files-YYYY-MM-DD.tar.gz` u `/mnt/shared-app-files/service-desk`; backend i worker dijele isti bind mount. Prije starta potvrditi da `storage-init` završava exit kodom 0.
 3. Pokrenuti tačno jedan release migrator: `docker compose --profile release run --rm migrator`; tek nakon zelenog izlaza deployati API/worker compose servise. Runtime credential nema DDL prava i backend replike više ne izvršavaju migracije. **Ne** pokretati install wizard na restore-anoj bazi.
 4. Ako running config nije konzistentan, a `ConfigVersion` red postoji u restore-anoj bazi: `validate` pa `activate`. Nema import API-ja za off-box JSON — fajl je fallback (inspect/diff; ručni unos u `ConfigVersion.snapshot` samo ako dump nije upotrebljiv).
 5. Health: `GET https://api.…/health`. Zatim verifikacija ispod. Cilj: stack + 4 checka unutar 4h.
@@ -66,7 +65,7 @@ Preduslov: Coolify Environment ključevi iz `.env.example` već na ciljnom stack
    docker exec -i "$BACKEND" node dist/src/cli/privacy-replay.js --apply    # izvršava; exit 0 = sve primijenjeno
    ```
    Exit 2 znači da je neki unos blokiran (npr. korisnik je u backupu još aktivan). Razlog je u ispisu i na
-   stranici Privatnost → Anonimizacija. Ledger je u uploads volumenu, pa uploads arhiva mora biti **ista ili
+   stranici Privatnost → Anonimizacija. Ledger je u centralnom app-files direktoriju, pa njegova arhiva mora biti **ista ili
    novija** od trenutka incidenta. Ako je stara baza još dostupna, prije restore-a pokrenuti
    `privacy-replay.js --export-ledger` na njoj: dopisuje u ledger završene anonimizacije koje u njemu fale.
    Retencija se ne ponavlja ručno. Noćni posao sam ponovo briše sve što je starije od roka.
@@ -90,7 +89,7 @@ Nema matrix foldera za ovaj runbook. Config snapshot API: `.cursor/docs/matrices
 ## Skripte i drill (paket 1.8)
 
 Automatizovani koraci iz ovog runbooka su u `ops/dr/`:
-- `backup-uploads.sh` — dnevna arhiva uploads volumena (cron na hostu);
+- `backup-uploads.sh` — dnevna arhiva centralnog app-files direktorija (cron na hostu);
 - `export-config.sh` — config snapshot „DR backup YYYY-MM-DD" (lozinku čita iz `ADMIN_PASSWORD` ili `ADMIN_PASSWORD_FILE`);
 - `verify-backups.sh` — kontrola svježine i SHA-256 za oba backupa (exit 1 = problem; za cron/monitoring);
 - `cron.example` — gotove cron linije za `/etc/cron.d/servicedesk-backups`;
@@ -107,7 +106,7 @@ ili `export-config.sh`, ni direktoriji `/opt/servicedesk` i `/var/backups/servic
 
 1. **Repo na host:** `/opt/servicedesk` (npr. `git clone` pa `git fetch && git checkout master`, ili kopija fajlova).
    Skripte se ne mijenjaju često, pa je dovoljno osvježiti ih uz veće nadogradnje.
-2. **Ime uploads volumena:** `docker volume ls | grep -i uploads` → `<IME_VOLUMENA>` (Coolify ga nasumično imenuje).
+2. **App-files lokacija:** kreirati `/mnt/shared-app-files/service-desk`; Compose `storage-init` postavlja ownership 1000:1000, ali mount mora biti dostupan Coolify hostu.
 3. **Lozinka za config snapshot:** nalog s `settings.write` (najbolje zaseban ADMIN za DR, ne lični SUPER_ADMIN).
    ```bash
    sudo install -d -m 700 /etc/servicedesk
@@ -115,7 +114,7 @@ ili `export-config.sh`, ni direktoriji `/opt/servicedesk` i `/var/backups/servic
    sudo sh -c 'read -rsp "Lozinka: " p && printf %s "$p" > /etc/servicedesk/admin-password'   # ne ispisuje se
    sudo ls -l /etc/servicedesk/admin-password                                                  # -rw------- root
    ```
-4. **Cron:** uredi `ops/dr/cron.example` (volumen, e-mail, domen), pa
+4. **Cron:** uredi `ops/dr/cron.example` (app-files putanju, e-mail, domen), pa
    `sudo install -m 0644 ops/dr/cron.example /etc/cron.d/servicedesk-backups`.
    Cron.d traži prazan red na kraju i korisnika `root` u svakoj liniji (docker + čitanje tajne).
 5. **Logovi i rotacija:**
@@ -133,7 +132,7 @@ ili `export-config.sh`, ni direktoriji `/opt/servicedesk` i `/var/backups/servic
    ```
 6. **Prvi prolaz ručno** (isti env kao u cronu), pa provjera:
    ```bash
-   sudo env UPLOADS_VOLUME=<IME_VOLUMENA> /opt/servicedesk/ops/dr/backup-uploads.sh
+   sudo env APP_FILES_ROOT=/mnt/shared-app-files/service-desk /opt/servicedesk/ops/dr/backup-uploads.sh
    sudo API_URL=https://api.desk.ba101.top ADMIN_EMAIL=<ADMIN_EMAIL> \
      ADMIN_PASSWORD_FILE=/etc/servicedesk/admin-password /opt/servicedesk/ops/dr/export-config.sh
    sudo /opt/servicedesk/ops/dr/verify-backups.sh      # očekivano: [verify-backups] OK

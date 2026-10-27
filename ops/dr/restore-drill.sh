@@ -7,7 +7,7 @@
 #   PG_USER        korisnik (default admin)
 #   DRILL_DB       ciljna baza (default servicedesk-drill) — mora sadržati "drill"
 #   DUMP_FILE      Coolify backup (.dmp custom format ili .sql / .sql.gz)  [obavezno]
-#   UPLOADS_ARCHIVE uploads-YYYY-MM-DD.tar.gz                            [obavezno]
+#   UPLOADS_ARCHIVE app-files-YYYY-MM-DD.tar.gz                            [obavezno]
 #   DRILL_UPLOADS_VOLUME  volumen za drill stack (default servicedesk-drill-uploads)
 # Ispisuje starost backupa (RPO) i trajanje; rezultat ide u zapisnik.
 set -euo pipefail

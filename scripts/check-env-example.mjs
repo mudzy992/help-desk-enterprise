@@ -16,6 +16,7 @@ const allowedUnread = [
   /^VITE_/,
   /^NODE_ENV$/,
   /^PORT$/,
+  /^APP_FILES_ROOT$/,
   /^(?:MIGRATION_DATABASE_URL|DB_MAX_CONNECTIONS|DB_CONNECTION_RESERVE|API_REPLICAS|WORKER_REPLICAS|MIGRATOR_CONNECTION_BUDGET)$/,
 ];
 // Variables read by code but intentionally not part of the deployment contract.
