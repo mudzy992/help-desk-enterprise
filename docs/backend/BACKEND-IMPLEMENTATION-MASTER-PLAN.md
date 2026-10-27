@@ -365,7 +365,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.39 bounded SLA compliance aggregation — završen** na SHA `6e22b2d`, CI `40570437083`.
 - PostgreSQL sada agregira profile/unit/service/group bez ticket-row materializacije u Nodeu, uz 365-day, 1.000-profile, 15.000-row, 4 MiB i 10 s budžete. Obavezni real-DB shard potvrđuje aggregate/procent ugovor. Time je zatvoren `BA-sla-09`; dokaz je u [66-sla-bounded-compliance-aggregation.md](implementation/66-sla-bounded-compliance-aggregation.md).
 - Registar je sada **617 otvorenih / 75 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.40 atomic and repairable SLA startup seed (`BA-sla-10`)**.
+- **W5.40 atomic and repairable SLA startup seed — završen** na SHA `e47a774`, CI `40572931191`.
+- Starting profile seed sada atomično upisuje profil/rules/escalations/audit pod key-based advisory lockom, a parcijalne laddere reparira po offsetu; konkurentni startup i repair dokazani su na stvarnom PostgreSQL-u. Time je zatvoren `BA-sla-10`; dokaz je u [67-sla-atomic-repairable-startup-seed.md](implementation/67-sla-atomic-repairable-startup-seed.md).
+- Registar je sada **616 otvorenih / 76 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.41 versioned SLA timer configuration and deterministic recompute (`BA-sla-11`)**.
 
 ### Canonical primitive
 
