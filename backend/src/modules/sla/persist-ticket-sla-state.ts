@@ -1,4 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isPrismaUniqueConstraintError } from './is-prisma-unique-constraint-error';
 import type { TicketSlaStateRecord } from './ticket-sla.types';
 
 export async function loadTicketSlaState(
@@ -43,9 +44,39 @@ export async function persistTicketSlaState(
       data,
     })) as TicketSlaStateRecord;
   }
-  return (await prisma.ticketSlaState.create({
-    data: { ticketId: state.ticketId, ...data },
-  })) as TicketSlaStateRecord;
+  const delegate = prisma.ticketSlaState as typeof prisma.ticketSlaState & {
+    upsert?: (args: {
+      where: { ticketId: string };
+      create: typeof data & { ticketId: string };
+      update: Record<string, never>;
+    }) => Promise<TicketSlaStateRecord>;
+  };
+  // Production Prisma translates this to a database-native conflict-safe
+  // first-writer-wins operation. The empty update deliberately preserves every
+  // field selected by the winner instead of applying the loser's stale state.
+  if (typeof delegate.upsert === 'function') {
+    return delegate.upsert({
+      where: { ticketId: state.ticketId },
+      create: { ticketId: state.ticketId, ...data },
+      update: {},
+    });
+  }
+  try {
+    return (await delegate.create({
+      data: { ticketId: state.ticketId, ...data },
+    })) as TicketSlaStateRecord;
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) {
+      throw error;
+    }
+    const winner = await delegate.findUnique({
+      where: { ticketId: state.ticketId },
+    });
+    if (winner === null) {
+      throw error;
+    }
+    return winner as TicketSlaStateRecord;
+  }
 }
 
 export async function persistTicketFirstResponseAt(
