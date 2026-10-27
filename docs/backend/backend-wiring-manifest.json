@@ -1,16 +1,16 @@
 {
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
-  "controllerFiles": 98,
-  "routeCount": 610,
+  "controllerFiles": 99,
+  "routeCount": 612,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 590,
+    "authenticated": 592,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 590,
+    "explicit": 592,
     "inherited-or-public": 20
   },
   "routes": [
@@ -7806,6 +7806,40 @@
       "handler": "resolve",
       "method": "GET",
       "path": "/sla/rules/resolve",
+      "classGuards": [
+        "SessionAuthenticationGuard",
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "sla",
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
+    },
+    {
+      "source": "backend/src/modules/sla/sla-timer-configuration-migration.controller.ts",
+      "controller": "SlaTimerConfigurationMigrationController",
+      "handler": "apply",
+      "method": "POST",
+      "path": "/sla/timer-configuration-migrations/apply",
+      "classGuards": [
+        "SessionAuthenticationGuard",
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "sla",
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
+    },
+    {
+      "source": "backend/src/modules/sla/sla-timer-configuration-migration.controller.ts",
+      "controller": "SlaTimerConfigurationMigrationController",
+      "handler": "preview",
+      "method": "POST",
+      "path": "/sla/timer-configuration-migrations/preview",
       "classGuards": [
         "SessionAuthenticationGuard",
         "RoleGuard",
