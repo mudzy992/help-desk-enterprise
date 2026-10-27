@@ -67,6 +67,8 @@ const messages: Record<SlaErrorCode, string> = {
     'An escalation rule with this trigger offset already exists on the profile',
   DUPLICATE_PRIORITY_MATRIX_CELL:
     'Duplicate impact and urgency cells in the priority matrix patch',
+  COMPLIANCE_RESOURCE_LIMIT_EXCEEDED:
+    'SLA compliance result exceeds the configured resource budget',
   UNAVAILABLE: 'SLA configuration is unavailable',
 };
 
