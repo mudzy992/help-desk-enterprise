@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271027180000_sla_scan_failure_quarantine';
+  '20271027190000_sla_rule_invariants';
 
 export function assertDatabaseTransport(
   connectionString: string,

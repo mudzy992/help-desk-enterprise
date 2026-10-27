@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
 import { persistTicketSlaState } from './persist-ticket-sla-state';
 import { withTicketSlaWriteLock } from './with-ticket-sla-write-lock';
+import { withSlaProfileWriteLock } from './with-sla-profile-write-lock';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -53,6 +54,34 @@ describeIfDatabase('SLA write coordination (integration)', () => {
     expect(results[0]?.id).toBe(rows[0]?.id);
     expect(results[1]?.id).toBe(rows[0]?.id);
     expect([firstCandidate.toISOString(), secondCandidate.toISOString()]).toContain(rows[0]?.startedAt.toISOString());
+  });
+
+  it('enforces effective rule keys, escalation offsets, and max levels under concurrency', async () => {
+    const stamp = Date.now();
+    const calendar = await first.businessHoursCalendar.create({ data: { key: `race-${stamp}`, name: 'Race calendar', timezone: 'UTC', weeklyHours: {} } });
+    const profile = await first.slaProfile.create({ data: { key: `race-${stamp}`, name: 'Race profile', calendarId: calendar.id } });
+    const duplicateRules = await Promise.allSettled([
+      first.slaRule.create({ data: { slaProfileId: profile.id, priority: 'HIGH', responseMinutes: 10, resolutionMinutes: 20, organizationalUnitId: null, serviceId: null } }),
+      second.slaRule.create({ data: { slaProfileId: profile.id, priority: 'HIGH', responseMinutes: 30, resolutionMinutes: 40, organizationalUnitId: null, serviceId: null } }),
+    ]);
+    expect(duplicateRules.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const duplicateOffsets = await Promise.allSettled([
+      first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 5, targetRole: 'ADMIN' } }),
+      second.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 5, targetRole: 'ADMIN' } }),
+    ]);
+    expect(duplicateOffsets.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const createWithinMaximum = (client: PrismaClient, offset: number) =>
+      withSlaProfileWriteLock(client as never, profile.id, async (locked) => {
+        const count = await locked.slaEscalationRule.count({ where: { slaProfileId: profile.id } });
+        if (count >= 2) return false;
+        await locked.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: offset, targetRole: 'ADMIN' } });
+        return true;
+      });
+    const maxResults = await Promise.all([
+      createWithinMaximum(first, 10), createWithinMaximum(second, 15),
+    ]);
+    expect(maxResults.filter(Boolean)).toHaveLength(1);
+    expect(await first.slaEscalationRule.count({ where: { slaProfileId: profile.id } })).toBe(2);
   });
 
   it('does not globally serialize unrelated tickets', async () => {

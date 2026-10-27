@@ -55,6 +55,7 @@ model SlaRule {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
+  @@unique([slaProfileId, priority, organizationalUnitId, serviceId], map: "SlaRule_effective_key_key")
   @@index([slaProfileId, priority])
   @@index([slaProfileId, evaluationOrder])
   @@index([organizationalUnitId])
@@ -125,6 +126,7 @@ model SlaEscalationRule {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
+  @@unique([slaProfileId, triggerOffsetMinutes], map: "SlaEscalationRule_profile_offset_key")
   @@index([slaProfileId])
   @@index([targetGroupId])
   @@index([targetUserId])
