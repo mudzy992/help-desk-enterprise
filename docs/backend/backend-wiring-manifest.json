@@ -4710,13 +4710,14 @@
       "path": "/priority-matrix",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/priority-matrix.controller.ts",
@@ -4726,13 +4727,14 @@
       "path": "/priority-matrix",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/priority-matrix.controller.ts",
@@ -4742,13 +4744,14 @@
       "path": "/priority-matrix/changes",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/privacy/privacy.controller.ts",
@@ -7380,13 +7383,14 @@
       "path": "/sla/calendars",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-calendars.controller.ts",
@@ -7396,13 +7400,14 @@
       "path": "/sla/calendars",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-calendars.controller.ts",
@@ -7412,13 +7417,14 @@
       "path": "/sla/calendars/:calendarId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-calendars.controller.ts",
@@ -7428,13 +7434,14 @@
       "path": "/sla/calendars/:calendarId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-calendars.controller.ts",
@@ -7444,13 +7451,14 @@
       "path": "/sla/calendars/:calendarId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-calendars.controller.ts",
@@ -7460,13 +7468,14 @@
       "path": "/sla/calendars/:calendarId/changes",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-compliance.controller.ts",
@@ -7493,13 +7502,14 @@
       "path": "/sla/escalation-rules",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-escalation-rules.controller.ts",
@@ -7509,13 +7519,14 @@
       "path": "/sla/escalation-rules",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-escalation-rules.controller.ts",
@@ -7525,13 +7536,14 @@
       "path": "/sla/escalation-rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-escalation-rules.controller.ts",
@@ -7541,13 +7553,14 @@
       "path": "/sla/escalation-rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-escalation-rules.controller.ts",
@@ -7557,13 +7570,14 @@
       "path": "/sla/escalation-rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-escalation-rules.controller.ts",
@@ -7573,13 +7587,14 @@
       "path": "/sla/escalation-rules/:ruleId/changes",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7589,13 +7604,14 @@
       "path": "/sla/profiles",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7605,13 +7621,14 @@
       "path": "/sla/profiles",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7621,13 +7638,14 @@
       "path": "/sla/profiles/:profileId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7637,13 +7655,14 @@
       "path": "/sla/profiles/:profileId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7653,13 +7672,14 @@
       "path": "/sla/profiles/:profileId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-profiles.controller.ts",
@@ -7669,13 +7689,14 @@
       "path": "/sla/profiles/:profileId/changes",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7685,13 +7706,14 @@
       "path": "/sla/rules",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7701,13 +7723,14 @@
       "path": "/sla/rules",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7717,13 +7740,14 @@
       "path": "/sla/rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7733,13 +7757,14 @@
       "path": "/sla/rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7749,13 +7774,14 @@
       "path": "/sla/rules/:ruleId",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7765,13 +7791,14 @@
       "path": "/sla/rules/:ruleId/changes",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/sla/sla-rules.controller.ts",
@@ -7781,13 +7808,14 @@
       "path": "/sla/rules/resolve",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SlaGlobalAdministrationGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "sla",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard"
     },
     {
       "source": "backend/src/modules/status-page/status-page.controller.ts",

@@ -23,6 +23,7 @@ import {
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { ChangeReasonDto } from './dto/change-reason.dto';
 import {
   CreateSlaRuleDto,
@@ -40,7 +41,7 @@ import type {
 
 @AdminConfigDomains('sla')
 @Controller('sla/rules')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
   new ValidationPipe({

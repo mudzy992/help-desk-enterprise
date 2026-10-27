@@ -22,6 +22,7 @@ import {
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import {
   CreateBusinessHoursCalendarDto,
   UpdateBusinessHoursCalendarDto,
@@ -36,7 +37,7 @@ import type {
 
 @AdminConfigDomains('sla')
 @Controller('sla/calendars')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
   new ValidationPipe({

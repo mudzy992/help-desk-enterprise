@@ -22,6 +22,7 @@ import {
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { ChangeReasonDto } from './dto/change-reason.dto';
 import { CreateSlaProfileDto, UpdateSlaProfileDto } from './dto/profile.dto';
 import { readSlaMutationContext } from './read-sla-mutation-context';
@@ -30,7 +31,7 @@ import type { SlaChangeLogResponse, SlaProfileResponse } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('sla/profiles')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
   new ValidationPipe({

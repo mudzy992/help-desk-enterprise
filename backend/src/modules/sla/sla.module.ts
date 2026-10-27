@@ -7,6 +7,7 @@ import { SlaCalendarsService } from './sla-calendars.service';
 import { SlaComplianceController } from './sla-compliance.controller';
 import { SlaComplianceService } from './sla-compliance.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { PriorityMatrixController } from './priority-matrix.controller';
 import { PriorityMatrixService } from './priority-matrix.service';
 import { SlaEscalationRulesController } from './sla-escalation-rules.controller';
@@ -33,6 +34,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaComplianceController,
   ],
   providers: [
+    SlaGlobalAdministrationGuard,
     SlaConfigurationLoader,
     SlaCalendarsService,
     SlaProfilesService,

@@ -18,6 +18,7 @@ import {
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { PatchPriorityMatrixDto } from './dto/priority-matrix.dto';
 import type { PriorityMatrixResponse } from './list-priority-matrix';
 import { PriorityMatrixService } from './priority-matrix.service';
@@ -26,7 +27,7 @@ import type { SlaChangeLogResponse } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('priority-matrix')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
