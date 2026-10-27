@@ -65,6 +65,11 @@
       "migration": "20271026140000_routing_change_log_scope",
       "sha256": "3dd314bae38b2aa5aaa53dfc59893174f9a53b5e17eb50e60180723c3f5e59a7",
       "approval": "W5.26: one-time deterministic backfill copies existing immutable routing snapshot scope into indexed authorization columns"
+    },
+    {
+      "migration": "20271027180000_sla_scan_failure_quarantine",
+      "sha256": "570f51ad171cd77385aafd8844a564e6dbc48eaf81f2336e6be8abf8810c458c",
+      "approval": "W5.37: quarantine metadata is owned exclusively by its ticket and is intentionally cascade-deleted with that ticket"
     }
   ]
 }
