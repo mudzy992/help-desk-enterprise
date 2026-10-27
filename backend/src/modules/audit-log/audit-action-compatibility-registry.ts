@@ -112,6 +112,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.onCallCalendarTokenRotated]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.onCallCalendarTokenRevoked]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.onCallEscalationNotified]: compatibility([auditLogEntityTypes.ticket]),
+  [auditLogActions.slaEscalationAudienceEmpty]: compatibility([auditLogEntityTypes.ticket]),
   [auditLogActions.announcementCreated]: compatibility([auditLogEntityTypes.announcement]),
   [auditLogActions.announcementUpdated]: compatibility([auditLogEntityTypes.announcement]),
   [auditLogActions.announcementPublished]: compatibility([auditLogEntityTypes.announcement]),

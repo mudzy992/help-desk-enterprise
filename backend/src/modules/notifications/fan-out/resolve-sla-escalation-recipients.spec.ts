@@ -111,11 +111,14 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
     Object.assign(harness.memory.prisma.user, {
       findMany: async (args: { where?: { id?: { in: readonly string[] } }; select?: Record<string, boolean> }) => {
         const rows = await originalFindMany(args);
-        return rows.map((row: { id: string }) => ({
-          ...row,
-          isActive: row.id !== ticketsTestIds.agentHr,
-          anonymizedAt: null,
-        }));
+        return rows.map((row) => {
+          if (row === null) return row;
+          return {
+            ...row,
+            isActive: row.id !== ticketsTestIds.agentHr,
+            anonymizedAt: null,
+          };
+        });
       },
     });
     const rule = await harness.memory.prisma.slaEscalationRule.create({

@@ -141,7 +141,7 @@ describeIfDatabase('SLA write coordination (integration)', () => {
   it('filters inactive and out-of-scope escalation recipients on PostgreSQL', async () => {
     const stamp = Date.now();
     const root = await first.organizationalUnit.create({ data: { name: `Scope root ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=ROOT${stamp}`, ouPath: `/scope-${stamp}` } });
-    const child = await first.organizationalUnit.create({ data: { name: `Scope child ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=CHILD${stamp}`, ouPath: `${root.ouPath}/child`, parentId: root.id } });
+    const child = await first.organizationalUnit.create({ data: { name: `Scope child ${stamp}`, type: 'OFFICE', distinguishedName: `OU=CHILD${stamp}`, ouPath: `${root.ouPath}/child`, parentId: root.id } });
     const outside = await first.organizationalUnit.create({ data: { name: `Scope outside ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=OUT${stamp}`, ouPath: `/outside-${stamp}` } });
     const category = await first.serviceCategory.create({ data: { name: `Recipient ${stamp}`, slug: `recipient-cat-${stamp}` } });
     const service = await first.service.create({ data: { name: `Recipient ${stamp}`, slug: `recipient-svc-${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE' } });
@@ -153,8 +153,8 @@ describeIfDatabase('SLA write coordination (integration)', () => {
     const calendar = await first.businessHoursCalendar.create({ data: { key: `recipient-${stamp}`, name: 'Recipient calendar', timezone: 'UTC', weeklyHours: {} } });
     const profile = await first.slaProfile.create({ data: { key: `recipient-${stamp}`, name: 'Recipient profile', calendarId: calendar.id } });
     const groupRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 0, targetGroupId: group.id } });
-    const ticket = { id: `recipient-ticket-${stamp}`, originUnitId: child.id, serviceId: service.id, assignedGroupId: group.id, assignedUserId: null } as never;
-    expect(await resolveSlaNotificationRecipients(first as never, { ticket, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${groupRule.id}` })).toEqual([active.id]);
+    const ticket = { id: `recipient-ticket-${stamp}`, originUnitId: child.id, serviceId: service.id, assignedGroupId: group.id, assignedUserId: null };
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket: ticket as never, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${groupRule.id}` })).toEqual([active.id]);
 
     const role = await first.role.create({ data: { key: `recipient-role-${stamp}`, name: 'Recipient role' } });
     await first.userRole.createMany({ data: [
@@ -162,11 +162,11 @@ describeIfDatabase('SLA write coordination (integration)', () => {
       { userId: outsideUser.id, roleId: role.id, organizationalUnitId: outside.id },
     ] });
     const roleRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 5, targetRole: role.key } });
-    expect(await resolveSlaNotificationRecipients(first as never, { ticket, event: ticketSystemEventActions.slaResolutionEscalated, messageBody: `${ticketSystemEventActions.slaResolutionEscalated}:${roleRule.id}` })).toEqual([active.id]);
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket: ticket as never, event: ticketSystemEventActions.slaResolutionEscalated, messageBody: `${ticketSystemEventActions.slaResolutionEscalated}:${roleRule.id}` })).toEqual([active.id]);
 
     const emptyRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 10, targetUserId: inactive.id } });
-    const emptyTicket = { ...ticket, id: `recipient-empty-${stamp}`, assignedGroupId: null, assignedUserId: null } as never;
-    expect(await resolveSlaNotificationRecipients(first as never, { ticket: emptyTicket, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${emptyRule.id}` })).toEqual([]);
+    const emptyTicket = { ...ticket, id: `recipient-empty-${stamp}`, assignedGroupId: null, assignedUserId: null };
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket: emptyTicket as never, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${emptyRule.id}` })).toEqual([]);
     expect(await first.auditLog.count({ where: { action: 'sla.escalation.audience_empty', entityId: emptyTicket.id } })).toBe(1);
   });
 
