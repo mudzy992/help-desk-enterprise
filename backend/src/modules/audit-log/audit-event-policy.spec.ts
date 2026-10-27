@@ -48,6 +48,21 @@ describe('canonical audit event policy', () => {
     })).not.toThrow();
   });
 
+  it.each([
+    [auditLogActions.configVersionActivated, auditLogEntityTypes.configVersion, { reason: 'release', version: 3, rollbackOfVersion: null }],
+    [auditLogActions.reportScheduleCreated, auditLogEntityTypes.reportSchedule, { name: 'Weekly', frequency: 'WEEKLY', sendTime: '08:00', sections: ['summary'], packKeys: [], recipientCount: 1, enabled: true }],
+    [auditLogActions.privacyRequestExtended, auditLogEntityTypes.dataSubjectRequest, { extendedDueAt: '2026-12-01T00:00:00.000Z' }],
+    [auditLogActions.assetTransferIssued, auditLogEntityTypes.assetTransfer, { number: 'AT-1', scenario: 'ASSIGN', assetCount: 1, fromUserId: null, toUserId: 'user-1' }],
+  ] as const)('accepts production metadata for %s', (action, entityType, metadata) => {
+    expect(() => prepareAuditEntry({
+      action,
+      entityType,
+      entityId: 'entity-1',
+      actorUserId: 'actor-1',
+      metadata,
+    })).not.toThrow();
+  });
+
   it('fails closed for oversized or excessively deep metadata', () => {
     expect(() => prepareAuditEntry({ ...valid, metadata: { after: { value: 'x'.repeat(17_000) } } })).toThrow('AUDIT_METADATA_SIZE_EXCEEDED');
     let deep: unknown = 'leaf';

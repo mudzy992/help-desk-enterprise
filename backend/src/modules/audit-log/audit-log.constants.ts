@@ -176,6 +176,10 @@ export const auditLogActions = {
   assetTransferSigned: 'asset.transfer.signed',
   assetTransferTemplateUploaded: 'asset.transfer.template_uploaded',
   assetSignatorySaved: 'asset.signatory.saved',
+  configVersionActivated: 'config_version.activate',
+  configVersionRolledBack: 'config_version.rollback',
+  configVersionExported: 'config_version.export',
+  configVersionImported: 'config_version.import',
   // Paket 3.3: problem management.
   problemCreated: 'problem.created',
   problemStatusChanged: 'problem.status_changed',
