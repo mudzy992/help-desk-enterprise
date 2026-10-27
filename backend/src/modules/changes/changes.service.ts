@@ -416,6 +416,7 @@ export class ChangesService {
         entityId: created.id,
         metadata: { sequence, type: input.type, risk, organizationalUnitId: unitId } as never,
         actorUserId: viewer.userId,
+        organizationalUnitId: unitId,
       });
       return created.id;
     });
@@ -696,6 +697,7 @@ export class ChangesService {
         entityId: id,
         metadata: { from, to: target, action: input.action, reason } as never,
         actorUserId: viewer.userId,
+        organizationalUnitId: current.organizationalUnitId,
       });
     });
     await this.afterAction(viewer, current, input, target);
