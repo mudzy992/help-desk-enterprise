@@ -27,6 +27,7 @@ function supportsCoordinatedTransaction(
 } {
   return (
     typeof (prisma as unknown as { $transaction?: unknown }).$transaction === 'function' &&
-    typeof (prisma as unknown as { $executeRaw?: unknown }).$executeRaw === 'function'
+    typeof (prisma as unknown as { $executeRaw?: unknown }).$executeRaw === 'function' &&
+    typeof (prisma as unknown as { $queryRaw?: unknown }).$queryRaw === 'function'
   );
 }

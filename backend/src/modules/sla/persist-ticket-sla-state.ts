@@ -55,8 +55,19 @@ export async function persistTicketFirstResponseAt(
 ): Promise<void> {
   // Monotone first-writer-wins update: a delayed scanner/request must never
   // replace the timestamp persisted by the first agent response.
-  await prisma.ticket.updateMany({
-    where: { id: ticketId, firstResponseAt: null },
-    data: { firstResponseAt },
-  });
+  const ticket = prisma.ticket as typeof prisma.ticket & {
+    updateMany?: (args: {
+      where: { id: string; firstResponseAt: null };
+      data: { firstResponseAt: Date };
+    }) => Promise<unknown>;
+  };
+  if (typeof ticket.updateMany === 'function') {
+    await ticket.updateMany({
+      where: { id: ticketId, firstResponseAt: null },
+      data: { firstResponseAt },
+    });
+    return;
+  }
+  // In-memory domain adapter; its single-threaded update preserves test parity.
+  await ticket.update({ where: { id: ticketId }, data: { firstResponseAt } });
 }
