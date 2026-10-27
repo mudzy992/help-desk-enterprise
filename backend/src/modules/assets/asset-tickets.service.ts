@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -223,7 +223,7 @@ export class AssetTicketsService {
         }),
       );
     });
-    await this.afterWrite(ticket, messages, { action: 'asset.ticket.linked', assetId: asset.id, viewer });
+    await this.afterWrite(ticket, messages, { action: auditLogActions.assetTicketLinked, assetId: asset.id, viewer });
     return this.list(ticket.id, viewer);
   }
 
@@ -264,7 +264,7 @@ export class AssetTicketsService {
         }),
       );
     });
-    await this.afterWrite(ticket, messages, { action: 'asset.ticket.unlinked', assetId, viewer });
+    await this.afterWrite(ticket, messages, { action: auditLogActions.assetTicketUnlinked, assetId, viewer });
     return this.list(ticket.id, viewer);
   }
 

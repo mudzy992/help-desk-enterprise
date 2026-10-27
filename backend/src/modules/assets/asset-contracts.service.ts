@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -95,7 +95,7 @@ export class AssetContractsService {
   private async audit(action: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>) {
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action,
-      entityType: auditLogEntityTypes.asset,
+      entityType: auditLogEntityTypes.assetContract,
       entityId,
       metadata: metadata as never,
       actorUserId: viewer.userId,
@@ -187,7 +187,7 @@ export class AssetContractsService {
       data: { ...this.validate(input), organizationalUnitId: input.organizationalUnitId },
       select: { id: true },
     });
-    await this.audit('asset.contract.created', created.id, viewer, { kind: input.kind });
+    await this.audit(auditLogActions.assetContractCreated, created.id, viewer, { kind: input.kind });
     return this.detail(created.id, viewer);
   }
 
@@ -207,7 +207,7 @@ export class AssetContractsService {
         ...(dateOnly(data.endsAt) !== dateOnly(current.endsAt) ? { remindersSent: [] } : {}),
       },
     });
-    await this.audit('asset.contract.updated', id, viewer, {});
+    await this.audit(auditLogActions.assetContractUpdated, id, viewer, {});
     return this.detail(id, viewer);
   }
 
@@ -215,7 +215,7 @@ export class AssetContractsService {
     const scope = await this.access.require(viewer, permissionKeys.assetContractManage);
     const current = await this.loadInScope(id, scope);
     await this.prisma.assetContract.delete({ where: { id } });
-    await this.audit('asset.contract.deleted', id, viewer, { supplier: current.supplier, items: current._count.items });
+    await this.audit(auditLogActions.assetContractDeleted, id, viewer, { supplier: current.supplier, items: current._count.items });
     return { deleted: true };
   }
 
@@ -242,7 +242,7 @@ export class AssetContractsService {
         },
       });
     });
-    await this.audit('asset.contract.item_added', id, viewer, { assetId });
+    await this.audit(auditLogActions.assetContractItemAdded, id, viewer, { assetId });
     return this.detail(id, viewer);
   }
 
@@ -264,7 +264,7 @@ export class AssetContractsService {
       return result.count;
     });
     if (removed === 0) throw new AssetError(assetErrorCodes.notFound);
-    await this.audit('asset.contract.item_removed', id, viewer, { assetId });
+    await this.audit(auditLogActions.assetContractItemRemoved, id, viewer, { assetId });
     return this.detail(id, viewer);
   }
 
