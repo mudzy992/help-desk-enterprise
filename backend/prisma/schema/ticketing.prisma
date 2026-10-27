@@ -85,6 +85,7 @@ model Ticket {
   breakGlassEvents     BreakGlassEvent[]
   guardrailClaims      GuardrailClaim[]
   slaState             TicketSlaState?
+  slaScanFailure       SlaScanFailure?
   notifications        Notification[]
   notificationDigestItems NotificationDigestItem[]
   forwardEvents        TicketForwardEvent[]

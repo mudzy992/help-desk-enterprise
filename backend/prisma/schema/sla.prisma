@@ -94,6 +94,21 @@ model TicketSlaState {
   @@index([respondedAt])
 }
 
+model SlaScanFailure {
+  id             String   @id @default(cuid())
+  ticketId       String   @unique
+  phase          String   @db.VarChar(16)
+  attempts       Int      @default(1)
+  lastError      String   @db.VarChar(1000)
+  nextAttemptAt  DateTime?
+  quarantinedAt  DateTime?
+  firstFailedAt  DateTime @default(now())
+  lastFailedAt   DateTime @default(now())
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([quarantinedAt, nextAttemptAt])
+}
+
 model SlaEscalationRule {
   id                   String   @id @default(cuid())
   slaProfileId         String
