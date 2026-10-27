@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Header, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { authorizationRoleKeys, permissionKeys } from '../authorization/authorization.constants';
@@ -20,6 +20,7 @@ export class SlaTimerConfigurationMigrationController {
   constructor(private readonly migrations: SlaTimerConfigurationMigrationService) {}
 
   @Post('preview')
+  @Header('Cache-Control', 'no-store')
   async preview(@Body() body: PreviewSlaTimerConfigurationMigrationDto) {
     try {
       return await this.migrations.preview(body);
@@ -29,6 +30,7 @@ export class SlaTimerConfigurationMigrationController {
   }
 
   @Post('apply')
+  @Header('Cache-Control', 'no-store')
   async apply(
     @Body() body: ApplySlaTimerConfigurationMigrationDto,
     @Req() request: AuthenticatedHttpRequest,
