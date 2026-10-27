@@ -347,7 +347,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.33 SLA resource-scope authorization — završen** na SHA `fc1936f`, CI `40554752106`.
 - SLA konfiguracija je formalizovana kao globalna administracijska granica: svih pet config kontrolera zahtijeva globalni assignment sa `sla.write`, bez cross-assignment scope kombinovanja; scoped administratori ne mogu mutirati niti čitati globalne resurse, historiju ili foreign escalation targete. Time je zatvoren `BA-sla-03`; dokaz je u [60-sla-global-administration-scope.md](implementation/60-sla-global-administration-scope.md).
 - Registar je sada **623 otvorena / 69 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.34 SLA DST-safe civil-time deadline engine (`BA-sla-04`)**.
+- **W5.34 SLA DST-safe civil-time deadline engine — završen** na SHA `1b1749b`, CI `40557025171`.
+- Civil-time konverzija sada enumerira IANA offset kandidate i potvrđuje round-trip; fold bira raniji instant, gap prvi naredni reprezentabilni minut, a add/count koriste stvarno protekle minute otvorenog lokalnog intervala. Sarajevo, New York i Lord Howe gap/fold matrica dokazuje monotonicity i add/count round-trip. Time je zatvoren `BA-sla-04`; dokaz je u [61-sla-dst-safe-civil-time.md](implementation/61-sla-dst-safe-civil-time.md).
+- Registar je sada **622 otvorena / 70 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.35 race-safe first SLA timer creation (`BA-sla-05`)**.
 
 ### Canonical primitive
 
