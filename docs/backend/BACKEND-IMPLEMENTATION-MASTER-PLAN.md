@@ -353,7 +353,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.35 race-safe first SLA timer creation — završen** na SHA `e7efb10`, CI `40559964964`.
 - Prvi timer koristi first-writer-wins upsert bez update overwritea; Prisma adapter `P2002` race reloaduje winner, dok druge greške ostaju vidljive. Two-client PostgreSQL test dokazuje jedan red, isti winner ID i kompletno neprepisano pobjedničko stanje. Time je zatvoren `BA-sla-05`; dokaz je u [62-sla-race-safe-first-timer.md](implementation/62-sla-race-safe-first-timer.md).
 - Registar je sada **621 otvoren / 71 zatvoren / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.36 self-healing SLA scheduler registration (`BA-sla-06`)**.
+- **W5.36 self-healing SLA scheduler registration — završen** na SHA `e588462`, CI `40561511177`.
+- Scheduler sada ostaje živ nakon prolaznog registration kvara, retrya sa bounded eksponencijalnim backoffom, periodično idempotentno vraća uklonjeni schedule i izlaže strukturirani readiness snapshot; shutdown uredno prekida timer. Time je zatvoren `BA-sla-06`; dokaz je u [63-sla-self-healing-scheduler-registration.md](implementation/63-sla-self-healing-scheduler-registration.md).
+- Registar je sada **620 otvorenih / 72 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.37 poison-isolated SLA scan/backfill batches (`BA-sla-07`)**.
 
 ### Canonical primitive
 
