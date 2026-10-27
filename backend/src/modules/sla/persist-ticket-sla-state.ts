@@ -54,18 +54,20 @@ export async function persistTicketSlaState(
   // Production Prisma translates this to a database-native conflict-safe
   // first-writer-wins operation. The empty update deliberately preserves every
   // field selected by the winner instead of applying the loser's stale state.
-  if (typeof delegate.upsert === 'function') {
-    return delegate.upsert({
-      where: { ticketId: state.ticketId },
-      create: { ticketId: state.ticketId, ...data },
-      update: {},
-    });
-  }
   try {
+    if (typeof delegate.upsert === 'function') {
+      return await delegate.upsert({
+        where: { ticketId: state.ticketId },
+        create: { ticketId: state.ticketId, ...data },
+        update: {},
+      });
+    }
     return (await delegate.create({
       data: { ticketId: state.ticketId, ...data },
     })) as TicketSlaStateRecord;
   } catch (error) {
+    // Prisma may emulate upsert as read/create with driver adapters. A parallel
+    // winner can therefore still surface P2002; reload it without overwriting.
     if (!isPrismaUniqueConstraintError(error)) {
       throw error;
     }

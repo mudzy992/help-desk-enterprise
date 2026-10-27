@@ -24,7 +24,7 @@ describe('persistTicketSlaState first creation', () => {
   it('reloads the winner after a P2002 in a legacy adapter', async () => {
     const winner = { ...state(), id: 'winner', updatedAt: new Date() };
     const delegate = {
-      create: jest.fn().mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' })),
+      upsert: jest.fn().mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' })),
       findUnique: jest.fn().mockResolvedValue(winner),
     };
     await expect(persistTicketSlaState({ ticketSlaState: delegate } as never, state())).resolves.toBe(winner);
