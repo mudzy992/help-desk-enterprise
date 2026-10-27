@@ -5,6 +5,8 @@ import { withTicketSlaWriteLock } from './with-ticket-sla-write-lock';
 import { withSlaProfileWriteLock } from './with-sla-profile-write-lock';
 import { seedStartingSlaProfiles } from './seed-starting-sla-profiles';
 import { startingSlaProfileKeys } from './starting-sla.constants';
+import { previewSlaTimerConfigurationMigration, SlaTimerConfigurationMigrationService } from './sla-timer-configuration-migration.service';
+import { defaultSlaConfiguration } from './create-sla-service-harness';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -108,6 +110,30 @@ describeIfDatabase('SLA write coordination (integration)', () => {
     expect(repaired.profiles.find((profile) => profile.key === 'INCIDENT'))
       .toMatchObject({ created: false, createdEscalationCount: 2 });
     expect(await first.slaEscalationRule.count({ where: { slaProfileId: incident.id } })).toBe(3);
+  });
+
+  it('previews and applies a bounded, audited configuration recompute', async () => {
+    const stamp = Date.now();
+    const calendar = await first.businessHoursCalendar.create({ data: { key: `migration-${stamp}`, name: 'Migration calendar', timezone: 'UTC', weeklyHours: { '1': [{ start: '00:00', end: '23:59' }], '2': [{ start: '00:00', end: '23:59' }], '3': [{ start: '00:00', end: '23:59' }], '4': [{ start: '00:00', end: '23:59' }], '5': [{ start: '00:00', end: '23:59' }] } } });
+    const profile = await first.slaProfile.create({ data: { key: `migration-${stamp}`, name: 'Migration profile', calendarId: calendar.id } });
+    const rule = await first.slaRule.create({ data: { slaProfileId: profile.id, priority: 'LOW', responseMinutes: 60, resolutionMinutes: 120, organizationalUnitId: null, serviceId: null } });
+    const unit = await first.organizationalUnit.create({ data: { name: `Migration ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=MIG${stamp}`, ouPath: `/migration-${stamp}` } });
+    const category = await first.serviceCategory.create({ data: { name: `Migration ${stamp}`, slug: `migration-cat-${stamp}` } });
+    const service = await first.service.create({ data: { name: `Migration ${stamp}`, slug: `migration-svc-${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE', slaProfileId: profile.id } });
+    const form = await first.formVersion.create({ data: { serviceId: service.id, version: 1, schema: {} } });
+    const requester = await first.user.create({ data: { email: `migration-${stamp}@example.test`, displayName: 'Migration proof' } });
+    const ticket = await first.ticket.create({ data: { ticketNumber: `MIG-${stamp}`, title: 'Migration proof', description: 'proof', formData: {}, priority: 'LOW', impact: 'LOW', urgency: 'LOW', status: 'PENDING', serviceId: service.id, formVersionId: form.id, requesterId: requester.id, originUnitId: unit.id } as never });
+    await first.ticketSlaState.create({ data: { ticketId: ticket.id, slaProfileId: profile.id, slaRuleId: rule.id, responseMinutes: 30, resolutionMinutes: 90, startedAt: ticket.createdAt, responseDueAt: new Date(ticket.createdAt.getTime() + 30 * 60_000), resolutionDueAt: new Date(ticket.createdAt.getTime() + 90 * 60_000), configurationVersion: 'old-version', configurationPolicy: 'GRANDFATHER' } });
+
+    const preview = await previewSlaTimerConfigurationMigration(first as never, { slaProfileId: profile.id, take: 1 });
+    expect(preview).toMatchObject({ scanned: 1, drifted: 1, unresolved: 0, unchanged: 0 });
+    const migrations = new SlaTimerConfigurationMigrationService(first as never, { load: async () => defaultSlaConfiguration } as never);
+    const applied = await migrations.apply({ slaProfileId: profile.id, take: 1, previewToken: preview.previewToken, reason: 'Apply approved SLA configuration', actorUserId: null });
+    expect(applied.migrated).toBe(1);
+    const migrated = await first.ticketSlaState.findUnique({ where: { ticketId: ticket.id } });
+    expect(migrated).toMatchObject({ responseMinutes: 60, resolutionMinutes: 120, configurationPolicy: 'RECOMPUTE' });
+    expect(migrated?.configurationVersion).toHaveLength(64);
+    expect(await first.changeLog.count({ where: { entityType: 'ticket_sla_configuration', entityId: migrated?.id } })).toBe(1);
   });
 
   it('does not globally serialize unrelated tickets', async () => {

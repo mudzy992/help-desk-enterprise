@@ -17,6 +17,7 @@ const notFoundCodes: readonly SlaErrorCode[] = [
   'SERVICE_NOT_FOUND',
   'ORGANIZATIONAL_UNIT_NOT_FOUND',
   'NO_MATCHING_RULE',
+  'STATE_NOT_FOUND',
 ];
 
 const conflictCodes: readonly SlaErrorCode[] = [
@@ -28,6 +29,7 @@ const conflictCodes: readonly SlaErrorCode[] = [
   'MAX_ESCALATION_LEVELS_EXCEEDED',
   'CALENDAR_IN_USE',
   'PROFILE_IN_USE',
+  'STALE_WRITE',
 ];
 
 const messages: Record<SlaErrorCode, string> = {
@@ -69,6 +71,8 @@ const messages: Record<SlaErrorCode, string> = {
     'Duplicate impact and urgency cells in the priority matrix patch',
   COMPLIANCE_RESOURCE_LIMIT_EXCEEDED:
     'SLA compliance result exceeds the configured resource budget',
+  STALE_WRITE: 'SLA timer migration preview is stale; run preview again',
+  STATE_NOT_FOUND: 'SLA timer state was not found',
   UNAVAILABLE: 'SLA configuration is unavailable',
 };
 

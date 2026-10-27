@@ -31,6 +31,8 @@ export type SlaErrorCode =
   | 'DUPLICATE_ESCALATION_OFFSET'
   | 'DUPLICATE_PRIORITY_MATRIX_CELL'
   | 'COMPLIANCE_RESOURCE_LIMIT_EXCEEDED'
+  | 'STALE_WRITE'
+  | 'STATE_NOT_FOUND'
   | 'UNAVAILABLE';
 
 export class SlaError extends Error {
