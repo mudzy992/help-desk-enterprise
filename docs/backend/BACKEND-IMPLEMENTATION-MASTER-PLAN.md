@@ -362,7 +362,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.38 concurrency-safe SLA rule/escalation invariants — završen** na SHA `4357ba3`, CI `40568593132`.
 - Profile-scoped transaction lock obuhvata invariant read/write i ChangeLog; DB unique indeksi garantuju null-safe rule effective key i escalation offset, dok zaključani count/create čuva max-level. Two-client PostgreSQL test dokazuje sve tri race granice. Time je zatvoren `BA-sla-08`; dokaz je u [65-sla-concurrent-rule-invariants.md](implementation/65-sla-concurrent-rule-invariants.md).
 - Registar je sada **618 otvorenih / 74 zatvorena / 692 ukupno**. Migracija `20271027190000_sla_rule_invariants` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.39 bounded SLA compliance aggregation (`BA-sla-09`)**.
+- **W5.39 bounded SLA compliance aggregation — završen** na SHA `6e22b2d`, CI `40570437083`.
+- PostgreSQL sada agregira profile/unit/service/group bez ticket-row materializacije u Nodeu, uz 365-day, 1.000-profile, 15.000-row, 4 MiB i 10 s budžete. Obavezni real-DB shard potvrđuje aggregate/procent ugovor. Time je zatvoren `BA-sla-09`; dokaz je u [66-sla-bounded-compliance-aggregation.md](implementation/66-sla-bounded-compliance-aggregation.md).
+- Registar je sada **617 otvorenih / 75 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.40 atomic and repairable SLA startup seed (`BA-sla-10`)**.
 
 ### Canonical primitive
 

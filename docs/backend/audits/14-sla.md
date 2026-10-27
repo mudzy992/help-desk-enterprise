@@ -130,7 +130,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | BA-sla-06 | P2       | Scheduler registration nema retry/reconciliation u živom procesu                      | zatvoreno |
 | BA-sla-07 | P2       | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove         | zatvoreno |
 | BA-sla-08 | P2       | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe               | zatvoreno |
-| BA-sla-09 | P2       | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju                 | otvoreno |
+| BA-sla-09 | P2       | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju                 | zatvoreno |
 | BA-sla-10 | P2       | Startup seed može duplirati/napola kreirati escalation ladder                         | otvoreno |
 | BA-sla-11 | P2       | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy   | otvoreno |
 | BA-sla-12 | P2       | Escalation recipienti ne garantuju aktivnog/scope-eligible primaoca                   | otvoreno |
@@ -267,6 +267,7 @@ Globalni acceptance:
 - `BA-sla-06` je zatvoren u W5.36 (`e588462`, CI `40561511177`). Registracija schedulera ima live exponential-backoff retry, periodični idempotentni reconciliation, strukturirani readiness snapshot i lifecycle-safe shutdown. Detaljni dokaz: [63-sla-self-healing-scheduler-registration.md](../implementation/63-sla-self-healing-scheduler-registration.md).
 - `BA-sla-07` je zatvoren u W5.37 (`3935807`, CI `40564945465`). Scan/backfill imaju per-ticket isolation, durable retry/quarantine state i query-level exclusion blocked redova; poison dokaz potvrđuje napredak healthy redova. Migracija `20271027180000_sla_scan_failure_quarantine` je obavezna pri releaseu. Detaljni dokaz: [64-sla-poison-isolated-batches.md](../implementation/64-sla-poison-isolated-batches.md).
 - `BA-sla-08` je zatvoren u W5.38 (`4357ba3`, CI `40568593132`). Profile-scoped transaction lock i DB unique indeksi štite rule effective key, escalation offset i max-level pod konkurentnim create/update zahtjevima. Migracija `20271027190000_sla_rule_invariants` je obavezna pri releaseu. Detaljni dokaz: [65-sla-concurrent-rule-invariants.md](../implementation/65-sla-concurrent-rule-invariants.md).
+- `BA-sla-09` je zatvoren u W5.39 (`6e22b2d`, CI `40570437083`). Compliance se agregira u PostgreSQL-u bez ticket-row materializacije, uz period/profile/aggregate-row/response-byte/transaction-time budžete i obavezni real-DB dokaz. Detaljni dokaz: [66-sla-bounded-compliance-aggregation.md](../implementation/66-sla-bounded-compliance-aggregation.md).
 
 ## 18. Konačna presuda i pretpostavke
 
