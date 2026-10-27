@@ -371,7 +371,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.41 versioned SLA timer configuration and deterministic recompute — završen** na SHA rasponu `b7bb1db`–`e7222be`, CI `40580180368`.
 - Timeri sada nose immutable rule/calendar snapshot i verziju; grandfather runtime ne čita naknadno izmijenjen kalendar, a globalno autorizovani preview/apply workflow radi cursor batcheve do 100 redova uz stale-token zaštitu, ticket lock, reason/actor audit i determinističan recompute. Migracija `20271027200000_sla_timer_configuration_snapshot` je korisnički potvrđena kao primijenjena. Time je zatvoren `BA-sla-11`; dokaz je u [68-sla-versioned-timer-configuration.md](implementation/68-sla-versioned-timer-configuration.md).
 - Registar je sada **615 otvorenih / 77 zatvorenih / 692 ukupno**.
-- Sljedeći paket je **Val 5 / W5.42 active and scope-eligible SLA escalation recipients (`BA-sla-12`)**.
+- **W5.42 active and scope-eligible SLA escalation recipients — završen** na SHA `7fced76`, `bf956b2` i `5499a2c`, CI `40584535451`.
+- Explicit user, role, group i on-call publike sada filtriraju active/anonymized status, membership te OU/service scope; prazna publika koristi scope-eligible handler fallback ili kanonski audit alarm. PostgreSQL test potvrđuje inactive i sibling-OU odbijanje i empty-audience audit. Time je zatvoren `BA-sla-12`; dokaz je u [69-sla-active-scoped-escalation-recipients.md](implementation/69-sla-active-scoped-escalation-recipients.md).
+- Registar je sada **614 otvorenih / 78 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.43 scope-aware and paginated SLA administration reads (`BA-sla-13`)**.
 
 ### Canonical primitive
 
