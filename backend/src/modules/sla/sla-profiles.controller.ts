@@ -28,7 +28,7 @@ import { readSlaMutationContext } from './read-sla-mutation-context';
 import { readSlaReadScope } from './sla-read-scope';
 import { SlaListQueryDto } from './dto/sla-list-query.dto';
 import { SlaProfilesService } from './sla-profiles.service';
-import type { SlaChangeLogResponse, SlaProfileResponse } from './sla.types';
+import type { SlaChangeLogResponse, SlaPage, SlaProfileResponse } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('sla/profiles')

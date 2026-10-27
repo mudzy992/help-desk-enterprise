@@ -8,10 +8,7 @@ import {
   type PatchPriorityMatrixInput,
 } from './patch-priority-matrix';
 import { slaChangeLogEntityTypes } from './sla.constants';
-import type {
-  SlaChangeLogResponse,
-  SlaMutationContext,
-} from './sla.types';
+import type { SlaMutationContext } from './sla.types';
 
 @Injectable()
 export class PriorityMatrixService {
@@ -30,7 +27,7 @@ export class PriorityMatrixService {
     );
   }
 
-  listChanges(): Promise<readonly SlaChangeLogResponse[]> {
+  listChanges(): Promise<Awaited<ReturnType<typeof listSlaChangeLogs>>> {
     return executeSlaOperation(() =>
       listSlaChangeLogs(this.prisma, {
         entityType: slaChangeLogEntityTypes.priorityMatrix,

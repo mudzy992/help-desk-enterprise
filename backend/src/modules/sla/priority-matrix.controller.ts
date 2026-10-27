@@ -12,8 +12,10 @@ import {
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import {
+  authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
+import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
@@ -21,7 +23,7 @@ import { PatchPriorityMatrixDto } from './dto/priority-matrix.dto';
 import type { PriorityMatrixResponse } from './list-priority-matrix';
 import { PriorityMatrixService } from './priority-matrix.service';
 import { readSlaMutationContext } from './read-sla-mutation-context';
-import type { SlaChangeLogResponse } from './sla.types';
+import type { SlaChangeLogResponse, SlaPage } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('priority-matrix')
@@ -49,7 +51,7 @@ export class PriorityMatrixController {
 
   @Get('changes')
   @RequirePermissions(permissionKeys.slaRead)
-  listChanges(): Promise<readonly SlaChangeLogResponse[]> {
+  listChanges(): Promise<SlaPage<SlaChangeLogResponse>> {
     return this.priorityMatrixService.listChanges();
   }
 

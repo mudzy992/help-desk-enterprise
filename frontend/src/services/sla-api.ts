@@ -46,8 +46,10 @@ async function fetchAllSlaPages<T>(path: string): Promise<readonly T[]> {
   let cursor: string | null = null;
   do {
     const separator = path.includes("?") ? "&" : "?";
-    const cursorQuery = cursor === null ? "" : `&cursor=${encodeURIComponent(cursor)}`;
-    const page = await apiRequest<SlaPage<T>>(`${path}${separator}take=${slaPageSize}${cursorQuery}`);
+    const cursorQuery: string = cursor === null ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+    const page: SlaPage<T> = await apiRequest<SlaPage<T>>(
+      `${path}${separator}take=${slaPageSize}${cursorQuery}`,
+    );
     items.push(...page.items);
     cursor = page.hasMore ? page.nextCursor : null;
   } while (cursor !== null);

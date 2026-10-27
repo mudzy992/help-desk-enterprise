@@ -34,8 +34,8 @@ export async function readInstallSlaReviewStatus(
 export async function findStartingCalendar(prisma: PrismaService) {
   const calendars = await listBusinessHoursCalendars(prisma);
   return (
-    calendars.find((entry) => entry.key === startingSlaCalendarKey) ??
-    calendars[0] ??
+    calendars.items.find((entry) => entry.key === startingSlaCalendarKey) ??
+    calendars.items[0] ??
     null
   );
 }
