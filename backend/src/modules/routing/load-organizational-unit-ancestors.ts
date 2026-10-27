@@ -3,6 +3,12 @@ import { RoutingError } from './routing.error';
 import type { OrganizationalUnitAncestor } from './routing.types';
 
 export const maximumRoutingAncestorDepth = 256;
+export const routingAncestorCycleMessage = 'ROUTING_ANCESTOR_CYCLE';
+export const routingAncestorMissingParentMessage = 'ROUTING_ANCESTOR_MISSING_PARENT';
+
+function ancestorIntegrityError(message: string): RoutingError {
+  return new RoutingError('UNAVAILABLE', message);
+}
 
 export async function loadOrganizationalUnitAncestors(
   prisma: PrismaService,
@@ -17,7 +23,7 @@ export async function loadOrganizationalUnitAncestors(
       throw new RoutingError('UNAVAILABLE', 'ROUTING_ANCESTOR_DEPTH_EXCEEDED');
     }
     if (seen.has(currentId)) {
-      break;
+      throw ancestorIntegrityError(routingAncestorCycleMessage);
     }
     seen.add(currentId);
     const current: OrganizationalUnitAncestor | null =
@@ -29,7 +35,7 @@ export async function loadOrganizationalUnitAncestors(
       if (chain.length === 0) {
         throw new RoutingError('ORIGIN_UNIT_NOT_FOUND');
       }
-      break;
+      throw ancestorIntegrityError(routingAncestorMissingParentMessage);
     }
     chain.push(current);
     currentId = current.parentId;
@@ -44,17 +50,26 @@ export function walkOrganizationalUnitAncestors(
 ): readonly OrganizationalUnitAncestor[] {
   const chain: OrganizationalUnitAncestor[] = [];
   const seen = new Set<string>();
-  let current = unitById.get(originUnitId);
-  while (current !== undefined) {
-    if (seen.has(current.id)) {
-      break;
+  let currentId: string | null = originUnitId;
+
+  while (currentId !== null) {
+    if (chain.length >= maximumRoutingAncestorDepth) {
+      throw new RoutingError('UNAVAILABLE', 'ROUTING_ANCESTOR_DEPTH_EXCEEDED');
     }
-    seen.add(current.id);
+    if (seen.has(currentId)) {
+      throw ancestorIntegrityError(routingAncestorCycleMessage);
+    }
+    seen.add(currentId);
+    const current = unitById.get(currentId);
+    if (current === undefined) {
+      if (chain.length === 0) {
+        throw new RoutingError('ORIGIN_UNIT_NOT_FOUND');
+      }
+      throw ancestorIntegrityError(routingAncestorMissingParentMessage);
+    }
     chain.push(current);
-    if (current.parentId === null) {
-      break;
-    }
-    current = unitById.get(current.parentId);
+    currentId = current.parentId;
   }
+
   return chain;
 }

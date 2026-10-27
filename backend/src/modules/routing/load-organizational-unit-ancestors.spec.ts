@@ -2,6 +2,9 @@ import { RoutingError } from './routing.error';
 import {
   loadOrganizationalUnitAncestors,
   maximumRoutingAncestorDepth,
+  routingAncestorCycleMessage,
+  routingAncestorMissingParentMessage,
+  walkOrganizationalUnitAncestors,
 } from './load-organizational-unit-ancestors';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -72,6 +75,64 @@ describe('loadOrganizationalUnitAncestors', () => {
       'missing',
     )).rejects.toMatchObject({ code: 'ORIGIN_UNIT_NOT_FOUND' });
     expect(findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when a persisted parent reference is missing', async () => {
+    const units = new Map([
+      ['leaf', { id: 'leaf', parentId: 'missing-parent', ouPath: '/Root/Leaf' }],
+    ]);
+    const findUnique = jest.fn(async ({ where }: { where: { id: string } }) =>
+      units.get(where.id) ?? null,
+    );
+
+    await expect(loadOrganizationalUnitAncestors(
+      { organizationalUnit: { findUnique } } as never,
+      'leaf',
+    )).rejects.toEqual(
+      new RoutingError('UNAVAILABLE', routingAncestorMissingParentMessage),
+    );
+    expect(findUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails closed when the persisted ancestor chain contains a cycle', async () => {
+    const units = new Map([
+      ['leaf', { id: 'leaf', parentId: 'parent', ouPath: '/Root/Leaf' }],
+      ['parent', { id: 'parent', parentId: 'leaf', ouPath: '/Root' }],
+    ]);
+    const findUnique = jest.fn(async ({ where }: { where: { id: string } }) =>
+      units.get(where.id) ?? null,
+    );
+
+    await expect(loadOrganizationalUnitAncestors(
+      { organizationalUnit: { findUnique } } as never,
+      'leaf',
+    )).rejects.toEqual(
+      new RoutingError('UNAVAILABLE', routingAncestorCycleMessage),
+    );
+    expect(findUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    {
+      name: 'missing parent',
+      units: [
+        ['leaf', { id: 'leaf', parentId: 'missing-parent', ouPath: '/Root/Leaf' }],
+      ] as const,
+      message: routingAncestorMissingParentMessage,
+    },
+    {
+      name: 'cycle',
+      units: [
+        ['leaf', { id: 'leaf', parentId: 'parent', ouPath: '/Root/Leaf' }],
+        ['parent', { id: 'parent', parentId: 'leaf', ouPath: '/Root' }],
+      ] as const,
+      message: routingAncestorCycleMessage,
+    },
+  ])('fails closed for $name in an in-memory coverage walk', ({ units, message }) => {
+    expect(() => walkOrganizationalUnitAncestors(
+      'leaf',
+      new Map<string, { id: string; parentId: string | null; ouPath: string }>(units),
+    )).toThrow(new RoutingError('UNAVAILABLE', message));
   });
 
   it('fails closed when the ancestor depth budget is exhausted', async () => {
