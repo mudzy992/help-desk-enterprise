@@ -356,7 +356,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.36 self-healing SLA scheduler registration — završen** na SHA `e588462`, CI `40561511177`.
 - Scheduler sada ostaje živ nakon prolaznog registration kvara, retrya sa bounded eksponencijalnim backoffom, periodično idempotentno vraća uklonjeni schedule i izlaže strukturirani readiness snapshot; shutdown uredno prekida timer. Time je zatvoren `BA-sla-06`; dokaz je u [63-sla-self-healing-scheduler-registration.md](implementation/63-sla-self-healing-scheduler-registration.md).
 - Registar je sada **620 otvorenih / 72 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.37 poison-isolated SLA scan/backfill batches (`BA-sla-07`)**.
+- **W5.37 poison-isolated SLA scan/backfill batches — završen** na SHA `3935807`, CI `40564945465`.
+- Scan i backfill imaju per-ticket failure isolation, durable retry/quarantine zapis, exponential retry, treći-kvar quarantine, success cleanup i DB-level izostavljanje blocked ticketa prije batch limita. Time je zatvoren `BA-sla-07`; dokaz je u [64-sla-poison-isolated-batches.md](implementation/64-sla-poison-isolated-batches.md).
+- Registar je sada **619 otvorenih / 73 zatvorena / 692 ukupno**. Migracija `20271027180000_sla_scan_failure_quarantine` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.38 concurrency-safe SLA rule/escalation invariants (`BA-sla-08`)**.
 
 ### Canonical primitive
 

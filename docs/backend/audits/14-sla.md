@@ -128,7 +128,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | BA-sla-04 | P1       | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu      | zatvoreno |
 | BA-sla-05 | P2       | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha          | zatvoreno |
 | BA-sla-06 | P2       | Scheduler registration nema retry/reconciliation u živom procesu                      | zatvoreno |
-| BA-sla-07 | P2       | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove         | otvoreno |
+| BA-sla-07 | P2       | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove         | zatvoreno |
 | BA-sla-08 | P2       | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe               | otvoreno |
 | BA-sla-09 | P2       | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju                 | otvoreno |
 | BA-sla-10 | P2       | Startup seed može duplirati/napola kreirati escalation ladder                         | otvoreno |
@@ -265,6 +265,7 @@ Globalni acceptance:
 - `BA-sla-04` je zatvoren u W5.34 (`1b1749b`, CI `40557025171`). Civil-time resolver potvrđuje IANA offset kandidate round-tripom, ima eksplicitnu earlier-fold/later-gap politiku i održava monotone add/count invariante kroz Sarajevo, New York i Lord Howe tranzicije. Detaljni dokaz: [61-sla-dst-safe-civil-time.md](../implementation/61-sla-dst-safe-civil-time.md).
 - `BA-sla-05` je zatvoren u W5.35 (`e7efb10`, CI `40559964964`). First-writer-wins upsert ne prepisuje winner state, adapter-level `P2002` reloaduje winner, a two-client PostgreSQL test dokazuje jedan timer i idempotentan rezultat. Detaljni dokaz: [62-sla-race-safe-first-timer.md](../implementation/62-sla-race-safe-first-timer.md).
 - `BA-sla-06` je zatvoren u W5.36 (`e588462`, CI `40561511177`). Registracija schedulera ima live exponential-backoff retry, periodični idempotentni reconciliation, strukturirani readiness snapshot i lifecycle-safe shutdown. Detaljni dokaz: [63-sla-self-healing-scheduler-registration.md](../implementation/63-sla-self-healing-scheduler-registration.md).
+- `BA-sla-07` je zatvoren u W5.37 (`3935807`, CI `40564945465`). Scan/backfill imaju per-ticket isolation, durable retry/quarantine state i query-level exclusion blocked redova; poison dokaz potvrđuje napredak healthy redova. Migracija `20271027180000_sla_scan_failure_quarantine` je obavezna pri releaseu. Detaljni dokaz: [64-sla-poison-isolated-batches.md](../implementation/64-sla-poison-isolated-batches.md).
 
 ## 18. Konačna presuda i pretpostavke
 

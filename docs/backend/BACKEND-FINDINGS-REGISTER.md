@@ -162,7 +162,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-04` | P1 | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu | zatvoreno | [61-sla-dst-safe-civil-time.md](implementation/61-sla-dst-safe-civil-time.md) |
 | 14 | `sla` | `BA-sla-05` | P2 | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha | zatvoreno | [62-sla-race-safe-first-timer.md](implementation/62-sla-race-safe-first-timer.md) |
 | 14 | `sla` | `BA-sla-06` | P2 | Scheduler registration nema retry/reconciliation u živom procesu | zatvoreno | [63-sla-self-healing-scheduler-registration.md](implementation/63-sla-self-healing-scheduler-registration.md) |
-| 14 | `sla` | `BA-sla-07` | P2 | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-07` | P2 | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove | zatvoreno | [64-sla-poison-isolated-batches.md](implementation/64-sla-poison-isolated-batches.md) |
 | 14 | `sla` | `BA-sla-08` | P2 | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-09` | P2 | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-10` | P2 | Startup seed može duplirati/napola kreirati escalation ladder | otvoreno | [14-sla.md](audits/14-sla.md) |
