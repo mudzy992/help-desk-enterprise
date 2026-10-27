@@ -34,6 +34,6 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe('20271026140000_routing_change_log_scope');
+    expect(expectedSchemaMigration).toBe('20271027180000_sla_scan_failure_quarantine');
   });
 });
