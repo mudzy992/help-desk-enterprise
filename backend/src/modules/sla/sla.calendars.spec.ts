@@ -42,7 +42,7 @@ describe('SlaCalendarsService', () => {
     );
     expect(updated.name).toBe('BH Standard (rev)');
     expect(updated.holidays.map((holiday) => holiday.date)).toEqual(['2026-03-01']);
-    expect(await calendars.list()).toHaveLength(1);
+    expect((await calendars.list()).items).toHaveLength(1);
   });
 
   it('rejects overlapping weekly hours and duplicate keys', async () => {

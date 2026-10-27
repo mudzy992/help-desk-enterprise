@@ -6,6 +6,7 @@ export const permissionKeys = {
   serviceAvailabilityWrite: "service.availability.write",
   routingWrite: "routing.write",
   groupManage: "group.manage",
+  slaRead: "sla.read",
   slaWrite: "sla.write",
   settingsWrite: "settings.write",
   configVersionImport: "config.version.import",

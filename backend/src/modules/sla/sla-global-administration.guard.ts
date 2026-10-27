@@ -22,8 +22,10 @@ export class SlaGlobalAdministrationGuard implements CanActivate {
     const requiredPermission = readRequest ? permissionKeys.slaRead : permissionKeys.slaWrite;
     const globallyAuthorized = principal.assignments.some(
       (assignment) =>
-        assignment.permissionKeys.includes(requiredPermission) &&
-        (readRequest || (assignment.organizationalUnitId === null && assignment.serviceId === null)),
+        (assignment.permissionKeys.includes(requiredPermission) ||
+          (readRequest && assignment.permissionKeys.includes(permissionKeys.slaWrite))) &&
+        (readRequest ||
+          (assignment.organizationalUnitId === null && assignment.serviceId === null)),
     );
     if (!globallyAuthorized) {
       throw new ForbiddenException({

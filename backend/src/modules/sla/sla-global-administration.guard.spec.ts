@@ -35,7 +35,7 @@ describe('SlaGlobalAdministrationGuard', () => {
   it.each([
     ['OU-scoped rule create', context({ method: 'POST', organizationalUnitId: 'ou-foreign' })],
     ['service-scoped profile update', context({ method: 'PATCH', serviceId: 'service-foreign' })],
-    ['OU-scoped list/change-log read', context({ method: 'GET', organizationalUnitId: 'ou-foreign' })],
+    ['read without sla.read or sla.write', context({ method: 'GET', organizationalUnitId: 'ou-foreign', permissionKeys: [] })],
     ['global mutation assignment without sla.write', context({ method: 'DELETE', permissionKeys: [] })],
   ])('denies %s', (_label, execution) => {
     expect(() => guard.canActivate(execution)).toThrow(ForbiddenException);
@@ -44,6 +44,11 @@ describe('SlaGlobalAdministrationGuard', () => {
   it('allows a global assignment with the operation permission', () => {
     expect(guard.canActivate(context({ method: 'POST' }))).toBe(true);
     expect(guard.canActivate(context({ method: 'GET' }))).toBe(true);
+  });
+
+  it('allows an OU-scoped read assignment without granting mutations', () => {
+    expect(guard.canActivate(context({ method: 'GET', organizationalUnitId: 'ou-a', permissionKeys: [permissionKeys.slaRead] }))).toBe(true);
+    expect(() => guard.canActivate(context({ method: 'PATCH', organizationalUnitId: 'ou-a', permissionKeys: [permissionKeys.slaRead] }))).toThrow(ForbiddenException);
   });
 
   it('preserves the explicit SuperAdmin bypass', () => {

@@ -79,7 +79,7 @@ beforeEach(() => {
   matrixMock.mockReset();
   updateCalendarMock.mockReset();
   patchMatrixMock.mockReset();
-  calendarsMock.mockResolvedValue([standardCalendar]);
+  calendarsMock.mockResolvedValue({ items: [standardCalendar], total: 1, hasMore: false, nextCursor: null });
   matrixMock.mockResolvedValue(matrix as never);
   updateCalendarMock.mockResolvedValue(standardCalendar);
   patchMatrixMock.mockResolvedValue(matrix as never);
@@ -170,7 +170,7 @@ describe('InstallSlaReviewService', () => {
 
   it('says so when the deployment seeded no calendar to change', async () => {
     const { service } = await createService();
-    calendarsMock.mockResolvedValue([]);
+    calendarsMock.mockResolvedValue({ items: [], total: 0, hasMore: false, nextCursor: null });
 
     const error = await service
       .save({ outcome: 'adjusted', calendar: { isActive: false } })

@@ -14,6 +14,7 @@ export function createInMemoryCalendarDelegate(
   return {
     findUnique: async ({ where }: { where: { id?: string; key?: string } }) =>
       findCalendar(calendars, where),
+    count: async () => calendars.size,
     findMany: async () =>
       [...calendars.values()].sort((left, right) =>
         left.name.localeCompare(right.name),
