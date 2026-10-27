@@ -42,18 +42,21 @@ export function countBusinessMinutes(
       cursor = fromCivilMinutes(local, intervalStart, calendar.timezone);
       continue;
     }
-    const endLocal = getZonedCivilTime(end, calendar.timezone);
-    const sameDay = toDateKey(local) === toDateKey(endLocal);
-    const available = toMinutes(open.end) - currentMinutes;
-    const untilEnd = sameDay
-      ? Math.max(0, civilMinutesOfDay(endLocal) - currentMinutes)
-      : available;
-    const consumed = Math.min(available, untilEnd);
+    const intervalEnd = fromCivilMinutes(
+      local,
+      toMinutes(open.end),
+      calendar.timezone,
+    );
+    const segmentEnd = Math.min(intervalEnd.getTime(), end.getTime());
+    const consumed = Math.max(
+      0,
+      Math.floor((segmentEnd - cursor.getTime()) / 60_000),
+    );
     if (consumed <= 0) {
       break;
     }
     counted += consumed;
-    cursor = fromCivilMinutes(local, currentMinutes + consumed, calendar.timezone);
+    cursor = new Date(cursor.getTime() + consumed * 60_000);
   }
   return counted;
 }

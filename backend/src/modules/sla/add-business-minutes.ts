@@ -43,10 +43,24 @@ export function addBusinessMinutes(
       cursor = fromCivilMinutes(local, intervalStart, calendar.timezone);
       continue;
     }
-    const available = toMinutes(open.end) - currentMinutes;
+    const intervalEnd = fromCivilMinutes(
+      local,
+      toMinutes(open.end),
+      calendar.timezone,
+    );
+    const available = Math.max(
+      0,
+      Math.floor((intervalEnd.getTime() - cursor.getTime()) / 60_000),
+    );
+    if (available === 0) {
+      cursor = startOfNextCivilDay(local, calendar.timezone);
+      continue;
+    }
     const consumed = Math.min(available, remaining);
     remaining -= consumed;
-    cursor = fromCivilMinutes(local, currentMinutes + consumed, calendar.timezone);
+    // Business minutes are elapsed real minutes while the local interval is
+    // open. This skips nonexistent gap minutes and counts both fold occurrences.
+    cursor = new Date(cursor.getTime() + consumed * 60_000);
   }
   if (remaining > 0) {
     throw new SlaError('CALENDAR_HAS_NO_BUSINESS_HOURS');

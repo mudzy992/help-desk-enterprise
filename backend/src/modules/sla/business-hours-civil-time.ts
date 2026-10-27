@@ -66,7 +66,48 @@ export function getZonedCivilTime(date: Date, timeZone: string): ZonedCivilTime 
 }
 
 export function fromZonedCivilTime(local: ZonedCivilTime, timeZone: string): Date {
-  const utcGuess = Date.UTC(
+  const localEpoch = civilEpoch(local);
+  const offsets = new Set<number>();
+  // Offset transitions are bounded far below this window in the IANA database.
+  // Sampling both sides discovers both offsets of a fold and the post-gap offset.
+  for (let hours = -36; hours <= 36; hours += 6) {
+    const instant = new Date(localEpoch + hours * 60 * 60 * 1000);
+    offsets.add(civilEpoch(getZonedCivilTime(instant, timeZone)) - instant.getTime());
+  }
+  const candidates = [...offsets]
+    .map((offset) => new Date(localEpoch - offset))
+    .filter((candidate) => sameCivilMinute(getZonedCivilTime(candidate, timeZone), local))
+    .sort((left, right) => left.getTime() - right.getTime());
+  if (candidates[0] !== undefined) {
+    // Explicit fold policy: choose the earlier occurrence.
+    return candidates[0];
+  }
+  // Explicit gap policy: advance to the first representable civil minute.
+  // The cap is fail-closed and comfortably covers all IANA offset jumps.
+  for (let minutes = 1; minutes <= 24 * 60; minutes += 1) {
+    const shifted = new Date(localEpoch + minutes * 60_000);
+    const shiftedLocal: ZonedCivilTime = {
+      year: shifted.getUTCFullYear(),
+      month: shifted.getUTCMonth() + 1,
+      day: shifted.getUTCDate(),
+      hour: shifted.getUTCHours(),
+      minute: shifted.getUTCMinutes(),
+    };
+    const resolved = [...offsets]
+      .map((offset) => new Date(shifted.getTime() - offset))
+      .filter((candidate) =>
+        sameCivilMinute(getZonedCivilTime(candidate, timeZone), shiftedLocal),
+      )
+      .sort((left, right) => left.getTime() - right.getTime())[0];
+    if (resolved !== undefined) {
+      return resolved;
+    }
+  }
+  throw new RangeError(`Unable to resolve civil time in ${timeZone}`);
+}
+
+function civilEpoch(local: ZonedCivilTime): number {
+  return Date.UTC(
     local.year,
     local.month - 1,
     local.day,
@@ -74,16 +115,16 @@ export function fromZonedCivilTime(local: ZonedCivilTime, timeZone: string): Dat
     local.minute,
     0,
   );
-  const asTimeZone = getZonedCivilTime(new Date(utcGuess), timeZone);
-  const asTimeZoneUtc = Date.UTC(
-    asTimeZone.year,
-    asTimeZone.month - 1,
-    asTimeZone.day,
-    asTimeZone.hour,
-    asTimeZone.minute,
-    0,
+}
+
+function sameCivilMinute(left: ZonedCivilTime, right: ZonedCivilTime): boolean {
+  return (
+    left.year === right.year &&
+    left.month === right.month &&
+    left.day === right.day &&
+    left.hour === right.hour &&
+    left.minute === right.minute
   );
-  return new Date(utcGuess - (asTimeZoneUtc - utcGuess));
 }
 
 export function civilMinutesOfDay(local: Pick<ZonedCivilTime, 'hour' | 'minute'>): number {
