@@ -122,8 +122,8 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 
 | ID        | Severity | Nalaz                                                                                 | Status   |
 | --------- | -------- | ------------------------------------------------------------------------------------- | -------- |
-| BA-sla-01 | P1       | State marker se persistira prije eventa pa retry trajno gubi breach/escalation signal | otvoreno |
-| BA-sla-02 | P1       | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje         | otvoreno |
+| BA-sla-01 | P1       | State marker se persistira prije eventa pa retry trajno gubi breach/escalation signal | zatvoreno |
+| BA-sla-02 | P1       | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje         | zatvoreno |
 | BA-sla-03 | P1       | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete                  | otvoreno |
 | BA-sla-04 | P1       | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu      | otvoreno |
 | BA-sla-05 | P2       | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha          | otvoreno |
@@ -260,6 +260,7 @@ Globalni acceptance:
 ## 17.1 Status implementacije
 
 - `BA-sla-01` je zatvoren u W5.31 (`9d00bb0`, CI `40547086540`). SLA state i runtime outbox intent sada se zapisuju atomski; zasebni retryable dispatcher koristi stabilan ticket/clock/transition/rule dedupe ključ i idempotentni sistemski event. Detaljni dokaz: [58-sla-durable-runtime-signal.md](../implementation/58-sla-durable-runtime-signal.md).
+- `BA-sla-02` je zatvoren u W5.32 (`9181872`, CI `40552249815`). Jedinstveni per-ticket PostgreSQL transaction lock obuhvata scanner i lifecycle read/evaluate/write ciklus, first response je monotoni conditional write, a obavezni two-client shard dokazuje serijalizaciju bez globalnog blokiranja. Detaljni dokaz: [59-sla-concurrent-write-coordination.md](../implementation/59-sla-concurrent-write-coordination.md).
 
 ## 18. Konačna presuda i pretpostavke
 

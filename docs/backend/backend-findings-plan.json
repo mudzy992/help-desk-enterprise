@@ -4412,7 +4412,7 @@
     {
       "id": "BA-sla-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "14-sla.md",
       "owner": "WS-F",
       "wave": 5
@@ -4420,7 +4420,7 @@
     {
       "id": "BA-sla-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "14-sla.md",
       "owner": "WS-F",
       "wave": 5

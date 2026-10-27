@@ -341,7 +341,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.31 SLA durable breach/escalation signal — završen** na SHA `9d00bb0`, CI `40547086540`.
 - SLA state i deterministički runtime intent sada se zapisuju u istoj PostgreSQL transakciji; zasebni reconciler pruža lease/retry/dead-letter delivery, a stabilni ticket/clock/transition/rule ključ i idempotentni system-event uklanjaju trajni gubitak i logičke duplikate. Time je zatvoren `BA-sla-01`; dokaz je u [58-sla-durable-runtime-signal.md](implementation/58-sla-durable-runtime-signal.md).
 - Registar je sada **625 otvorenih / 67 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.32 SLA concurrent scan/lifecycle coordination (`BA-sla-02`)**.
+- **W5.32 SLA concurrent scan/lifecycle coordination — završen** na SHA `9181872`, CI `40552249815`.
+- PostgreSQL transaction-scoped ticket lock sada serijalizuje cijeli scanner/request read-evaluate-write ciklus, state i outbox intent ostaju u istoj transakciji, a first-response timestamp koristi monotoni conditional write. Obavezni two-client PostgreSQL shard dokazuje per-ticket serijalizaciju bez globalnog blokiranja. Time je zatvoren `BA-sla-02`; dokaz je u [59-sla-concurrent-write-coordination.md](implementation/59-sla-concurrent-write-coordination.md).
+- Registar je sada **624 otvorena / 68 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.33 SLA resource-scope authorization (`BA-sla-03`)**.
 
 ### Canonical primitive
 
