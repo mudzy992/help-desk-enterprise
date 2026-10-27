@@ -111,6 +111,27 @@ describe('seedStartingSlaProfiles', () => {
     }
   });
 
+  it('repairs a partially created escalation ladder without duplicating its surviving level', async () => {
+    const prisma = prismaFrom(createInMemorySlaPrisma());
+    const first = await seedStartingSlaProfiles(prisma);
+    const incident = first.profiles.find((profile) => profile.key === 'INCIDENT');
+    const ladder = await prisma.slaEscalationRule.findMany({
+      where: { slaProfileId: incident?.id },
+    });
+    for (const rule of ladder.filter((item) => item.triggerOffsetMinutes !== 30)) {
+      await prisma.slaEscalationRule.delete({ where: { id: rule.id } });
+    }
+
+    const repaired = await seedStartingSlaProfiles(prisma);
+    expect(repaired.profiles.find((profile) => profile.key === 'INCIDENT'))
+      .toMatchObject({ created: false, createdEscalationCount: 2 });
+    const repairedLadder = await prisma.slaEscalationRule.findMany({
+      where: { slaProfileId: incident?.id },
+    });
+    expect(repairedLadder.map((item) => item.triggerOffsetMinutes).sort((a, b) => a - b))
+      .toEqual([0, 30, 120]);
+  });
+
   it('keeps existing profile rules and calendar relations', async () => {
     const memory = createInMemorySlaPrisma();
     const prisma = prismaFrom(memory);

@@ -1,11 +1,9 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { createSlaProfile } from './create-sla-profile';
 import { ensureStartingSlaEscalations } from './ensure-starting-sla-escalations';
 import { requireBusinessHoursCalendar } from './load-business-hours-calendar';
 import { matchesSlaRuleKey } from './normalize-sla-rule-values';
 import { changeLogActions, recordSlaChange } from './record-sla-change';
 import { slaChangeLogEntityTypes, slaConstants } from './sla.constants';
-import { SlaError } from './sla.error';
 import {
   startingSlaSeedContext,
   startingSlaSeedReason,
@@ -15,7 +13,7 @@ import {
   businessMinutesPerStandardDay,
   toStartingSlaMinutes,
 } from './to-starting-sla-minutes';
-import { toRuleSnapshot } from './to-sla-snapshots';
+import { toProfileSnapshot, toRuleSnapshot } from './to-sla-snapshots';
 import type {
   BusinessHoursCalendarRecord,
   SlaProfileRecord,
@@ -68,31 +66,25 @@ async function createStartingSlaProfile(
   definition: StartingSlaProfileDefinition,
   calendarId: string,
 ): Promise<SlaProfileRecord> {
-  try {
-    return await createSlaProfile(
-      prisma,
-      {
-        key: definition.key,
-        name: definition.name,
-        description: null,
-        calendarId,
-        isActive: true,
-        reason: startingSlaSeedReason,
-      },
-      startingSlaSeedContext,
-    );
-  } catch (error) {
-    if (!(error instanceof SlaError) || error.code !== 'DUPLICATE_KEY') {
-      throw error;
-    }
-    const raced = await prisma.slaProfile.findUnique({
-      where: { key: definition.key },
-    });
-    if (raced === null) {
-      throw error;
-    }
-    return raced;
-  }
+  const created = await prisma.slaProfile.create({
+    data: {
+      key: definition.key,
+      name: definition.name,
+      description: null,
+      calendarId,
+      isActive: true,
+    },
+  });
+  await recordSlaChange(prisma, {
+    action: changeLogActions.create,
+    entityType: slaChangeLogEntityTypes.profile,
+    entityId: created.id,
+    reason: startingSlaSeedReason,
+    before: {},
+    after: toProfileSnapshot(created),
+    actorUserId: startingSlaSeedContext.actorUserId,
+  });
+  return created;
 }
 
 async function ensureStartingSlaRules(
@@ -137,16 +129,14 @@ async function persistStartingSlaRule(
   prisma: PrismaService,
   data: Omit<SlaRuleRecord, 'id' | 'createdAt' | 'updatedAt'>,
 ): Promise<void> {
-  await prisma.$transaction(async (transaction) => {
-    const created = await transaction.slaRule.create({ data });
-    await recordSlaChange(transaction as PrismaService, {
-      action: changeLogActions.create,
-      entityType: slaChangeLogEntityTypes.rule,
-      entityId: created.id,
-      reason: startingSlaSeedReason,
-      before: {},
-      after: toRuleSnapshot(created),
-      actorUserId: startingSlaSeedContext.actorUserId,
-    });
+  const created = await prisma.slaRule.create({ data });
+  await recordSlaChange(prisma, {
+    action: changeLogActions.create,
+    entityType: slaChangeLogEntityTypes.rule,
+    entityId: created.id,
+    reason: startingSlaSeedReason,
+    before: {},
+    after: toRuleSnapshot(created),
+    actorUserId: startingSlaSeedContext.actorUserId,
   });
 }

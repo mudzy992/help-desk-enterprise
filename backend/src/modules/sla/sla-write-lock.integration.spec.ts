@@ -3,6 +3,8 @@ import { PrismaClient } from '../../generated/prisma/client';
 import { persistTicketSlaState } from './persist-ticket-sla-state';
 import { withTicketSlaWriteLock } from './with-ticket-sla-write-lock';
 import { withSlaProfileWriteLock } from './with-sla-profile-write-lock';
+import { seedStartingSlaProfiles } from './seed-starting-sla-profiles';
+import { startingSlaProfileKeys } from './starting-sla.constants';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -82,6 +84,30 @@ describeIfDatabase('SLA write coordination (integration)', () => {
     ]);
     expect(maxResults.filter(Boolean)).toHaveLength(1);
     expect(await first.slaEscalationRule.count({ where: { slaProfileId: profile.id } })).toBe(2);
+  });
+
+  it('atomically serializes concurrent starting-profile seed and repairs partial ladders', async () => {
+    await Promise.all([
+      seedStartingSlaProfiles(first as never),
+      seedStartingSlaProfiles(second as never),
+    ]);
+    const profiles = await first.slaProfile.findMany({
+      where: { key: { in: [...startingSlaProfileKeys] } },
+    });
+    expect(profiles).toHaveLength(startingSlaProfileKeys.length);
+    for (const profile of profiles) {
+      expect(await first.slaRule.count({ where: { slaProfileId: profile.id } })).toBe(4);
+      expect(await first.slaEscalationRule.count({ where: { slaProfileId: profile.id } })).toBe(3);
+    }
+
+    const incident = profiles.find((profile) => profile.key === 'INCIDENT')!;
+    await first.slaEscalationRule.deleteMany({
+      where: { slaProfileId: incident.id, triggerOffsetMinutes: { in: [0, 120] } },
+    });
+    const repaired = await seedStartingSlaProfiles(first as never);
+    expect(repaired.profiles.find((profile) => profile.key === 'INCIDENT'))
+      .toMatchObject({ created: false, createdEscalationCount: 2 });
+    expect(await first.slaEscalationRule.count({ where: { slaProfileId: incident.id } })).toBe(3);
   });
 
   it('does not globally serialize unrelated tickets', async () => {

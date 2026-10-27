@@ -3,6 +3,7 @@ import { ensureStartingBusinessHoursCalendar } from './ensure-starting-business-
 import { ensureStartingSlaProfile } from './ensure-starting-sla-profile';
 import { startingSlaProfileDefinitions } from './starting-sla.constants';
 import type { StartingSlaProfileEnsureResult } from './ensure-starting-sla-profile';
+import { withStartingSlaProfileSeedLock } from './with-starting-sla-profile-seed-lock';
 
 export type StartingSlaSeedResult = {
   readonly calendarId: string;
@@ -18,7 +19,9 @@ export async function seedStartingSlaProfiles(
   const profiles: StartingSlaProfileEnsureResult[] = [];
   for (const definition of startingSlaProfileDefinitions) {
     profiles.push(
-      await ensureStartingSlaProfile(prisma, definition, calendar.calendar),
+      await withStartingSlaProfileSeedLock(prisma, definition.key, (transaction) =>
+        ensureStartingSlaProfile(transaction, definition, calendar.calendar),
+      ),
     );
   }
   return {
