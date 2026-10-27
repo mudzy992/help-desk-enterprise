@@ -166,7 +166,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-08` | P2 | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe | zatvoreno | [65-sla-concurrent-rule-invariants.md](implementation/65-sla-concurrent-rule-invariants.md) |
 | 14 | `sla` | `BA-sla-09` | P2 | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju | zatvoreno | [66-sla-bounded-compliance-aggregation.md](implementation/66-sla-bounded-compliance-aggregation.md) |
 | 14 | `sla` | `BA-sla-10` | P2 | Startup seed može duplirati/napola kreirati escalation ladder | zatvoreno | [67-sla-atomic-repairable-startup-seed.md](implementation/67-sla-atomic-repairable-startup-seed.md) |
-| 14 | `sla` | `BA-sla-11` | P2 | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-11` | P2 | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy | zatvoreno | [68-sla-versioned-timer-configuration.md](implementation/68-sla-versioned-timer-configuration.md) |
 | 14 | `sla` | `BA-sla-12` | P2 | Escalation recipienti ne garantuju aktivnog/scope-eligible primaoca | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-13` | P3 | Admin read/change-log liste su globalne, role-only i nepaginirane | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-14` | P3 | Compliance i resolution ponavljano učitavaju široke OU/profile skupove | otvoreno | [14-sla.md](audits/14-sla.md) |

@@ -132,7 +132,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | BA-sla-08 | P2       | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe               | zatvoreno |
 | BA-sla-09 | P2       | Compliance neograničeno učitava cijeli OU/time-window skup u memoriju                 | zatvoreno |
 | BA-sla-10 | P2       | Startup seed može duplirati/napola kreirati escalation ladder                         | zatvoreno |
-| BA-sla-11 | P2       | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy   | otvoreno |
+| BA-sla-11 | P2       | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy   | zatvoreno |
 | BA-sla-12 | P2       | Escalation recipienti ne garantuju aktivnog/scope-eligible primaoca                   | otvoreno |
 | BA-sla-13 | P3       | Admin read/change-log liste su globalne, role-only i nepaginirane                     | otvoreno |
 | BA-sla-14 | P3       | Compliance i resolution ponavljano učitavaju široke OU/profile skupove                | otvoreno |
@@ -269,6 +269,7 @@ Globalni acceptance:
 - `BA-sla-08` je zatvoren u W5.38 (`4357ba3`, CI `40568593132`). Profile-scoped transaction lock i DB unique indeksi štite rule effective key, escalation offset i max-level pod konkurentnim create/update zahtjevima. Migracija `20271027190000_sla_rule_invariants` je obavezna pri releaseu. Detaljni dokaz: [65-sla-concurrent-rule-invariants.md](../implementation/65-sla-concurrent-rule-invariants.md).
 - `BA-sla-09` je zatvoren u W5.39 (`6e22b2d`, CI `40570437083`). Compliance se agregira u PostgreSQL-u bez ticket-row materializacije, uz period/profile/aggregate-row/response-byte/transaction-time budžete i obavezni real-DB dokaz. Detaljni dokaz: [66-sla-bounded-compliance-aggregation.md](../implementation/66-sla-bounded-compliance-aggregation.md).
 - `BA-sla-10` je zatvoren u W5.40 (`e47a774`, CI `40572931191`). Starting profile seed sada koristi jednu profile-level transakciju i key-based advisory lock, a parcijalni escalation ladder reparira po očekivanim offsetima. Paralelni startup i repair potvrđeni su na stvarnom PostgreSQL-u. Detaljni dokaz: [67-sla-atomic-repairable-startup-seed.md](../implementation/67-sla-atomic-repairable-startup-seed.md).
+- `BA-sla-11` je zatvoren u W5.41 (`b7bb1db`–`e7222be`, CI `40580180368`). Timeri čuvaju immutable rule/calendar snapshot i SHA-256 verziju, grandfather runtime koristi snapshot, a profile-scoped preview/apply workflow radi najviše 100 redova po cursor batchu uz stale token, ticket lock, reason/actor audit i deterministični recompute. Migracija `20271027200000_sla_timer_configuration_snapshot` je korisnički potvrđena kao primijenjena. Detaljni dokaz: [68-sla-versioned-timer-configuration.md](../implementation/68-sla-versioned-timer-configuration.md).
 
 ## 18. Konačna presuda i pretpostavke
 

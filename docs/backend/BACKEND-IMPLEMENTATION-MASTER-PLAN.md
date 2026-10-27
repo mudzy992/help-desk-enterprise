@@ -368,7 +368,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.40 atomic and repairable SLA startup seed — završen** na SHA `e47a774`, CI `40572931191`.
 - Starting profile seed sada atomično upisuje profil/rules/escalations/audit pod key-based advisory lockom, a parcijalne laddere reparira po offsetu; konkurentni startup i repair dokazani su na stvarnom PostgreSQL-u. Time je zatvoren `BA-sla-10`; dokaz je u [67-sla-atomic-repairable-startup-seed.md](implementation/67-sla-atomic-repairable-startup-seed.md).
 - Registar je sada **616 otvorenih / 76 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.41 versioned SLA timer configuration and deterministic recompute (`BA-sla-11`)**.
+- **W5.41 versioned SLA timer configuration and deterministic recompute — završen** na SHA rasponu `b7bb1db`–`e7222be`, CI `40580180368`.
+- Timeri sada nose immutable rule/calendar snapshot i verziju; grandfather runtime ne čita naknadno izmijenjen kalendar, a globalno autorizovani preview/apply workflow radi cursor batcheve do 100 redova uz stale-token zaštitu, ticket lock, reason/actor audit i determinističan recompute. Migracija `20271027200000_sla_timer_configuration_snapshot` je korisnički potvrđena kao primijenjena. Time je zatvoren `BA-sla-11`; dokaz je u [68-sla-versioned-timer-configuration.md](implementation/68-sla-versioned-timer-configuration.md).
+- Registar je sada **615 otvorenih / 77 zatvorenih / 692 ukupno**.
+- Sljedeći paket je **Val 5 / W5.42 active and scope-eligible SLA escalation recipients (`BA-sla-12`)**.
 
 ### Canonical primitive
 
