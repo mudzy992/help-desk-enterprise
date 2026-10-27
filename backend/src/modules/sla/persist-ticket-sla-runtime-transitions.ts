@@ -12,15 +12,21 @@ import type { SlaEscalationRuleRecord, TicketSlaStateRecord } from './ticket-sla
 
 export const slaRuntimeEventOutboxTopic = 'sla.runtime.events';
 
+type RuntimeTransitionInput = {
+  readonly ticketId: string;
+  readonly previous: Pick<TicketSlaStateRecord, 'isResponseBreached' | 'isResolutionBreached' | 'isResponseAtRisk' | 'isResolutionAtRisk' | 'firedEscalationKeys'>;
+  readonly next: Omit<TicketSlaStateRecord, 'updatedAt'>;
+  readonly rules: readonly SlaEscalationRuleRecord[];
+};
+
 export async function persistTicketSlaRuntimeTransitions(
   prisma: PrismaService,
-  input: {
-    readonly ticketId: string;
-    readonly previous: Pick<TicketSlaStateRecord, 'isResponseBreached' | 'isResolutionBreached' | 'isResponseAtRisk' | 'isResolutionAtRisk' | 'firedEscalationKeys'>;
-    readonly next: Omit<TicketSlaStateRecord, 'updatedAt'>;
-    readonly rules: readonly SlaEscalationRuleRecord[];
-  },
+  input: RuntimeTransitionInput,
+  transaction?: Prisma.TransactionClient,
 ): Promise<TicketSlaStateRecord> {
+  if (transaction !== undefined) {
+    return persistAndEnqueue(prisma, transaction, input);
+  }
   // The in-memory domain harness has no durable outbox. Keep its synchronous
   // adapter explicit; production Prisma always exposes outboxMessage.
   if (!hasDurableOutbox(prisma)) {
@@ -30,19 +36,30 @@ export async function persistTicketSlaRuntimeTransitions(
   }
 
   const outbox = new TransactionalOutboxService(prisma);
-  return prisma.$transaction(async (transaction) => {
-    const client = transaction as unknown as PrismaService;
-    const persisted = await persistTicketSlaState(client, input.next);
-    const intents = collectTicketSlaRuntimeEventIntents({ ...input, next: persisted });
-    for (const event of intents) {
-      await outbox.enqueue(transaction as Prisma.TransactionClient, {
-        topic: slaRuntimeEventOutboxTopic,
-        dedupeKey: dedupeKey(event),
-        payload: toJson(event),
-      });
-    }
-    return persisted;
-  });
+  return prisma.$transaction((tx) => persistAndEnqueue(
+    tx as unknown as PrismaService,
+    tx,
+    input,
+    outbox,
+  ));
+}
+
+async function persistAndEnqueue(
+  client: PrismaService,
+  transaction: Prisma.TransactionClient,
+  input: RuntimeTransitionInput,
+  outbox = new TransactionalOutboxService(client),
+): Promise<TicketSlaStateRecord> {
+  const persisted = await persistTicketSlaState(client, input.next);
+  const intents = collectTicketSlaRuntimeEventIntents({ ...input, next: persisted });
+  for (const event of intents) {
+    await outbox.enqueue(transaction, {
+      topic: slaRuntimeEventOutboxTopic,
+      dedupeKey: dedupeKey(event),
+      payload: toJson(event),
+    });
+  }
+  return persisted;
 }
 
 function hasDurableOutbox(prisma: PrismaService): boolean {

@@ -53,8 +53,10 @@ export async function persistTicketFirstResponseAt(
   ticketId: string,
   firstResponseAt: Date,
 ): Promise<void> {
-  await prisma.ticket.update({
-    where: { id: ticketId },
+  // Monotone first-writer-wins update: a delayed scanner/request must never
+  // replace the timestamp persisted by the first agent response.
+  await prisma.ticket.updateMany({
+    where: { id: ticketId, firstResponseAt: null },
     data: { firstResponseAt },
   });
 }

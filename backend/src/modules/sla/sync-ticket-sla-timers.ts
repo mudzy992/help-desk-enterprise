@@ -1,3 +1,4 @@
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { applyDueSlaEscalations } from './apply-due-sla-escalations';
 import { applyTicketSlaPause } from './apply-ticket-sla-pause';
@@ -34,6 +35,28 @@ export async function syncTicketSlaTimers(
   if (!input.configuration.enabled) {
     return null;
   }
+  if (supportsCoordinatedTransaction(prisma)) {
+    return prisma.$transaction(async (transaction) => {
+      // A transaction-scoped advisory lock serializes the scanner and every
+      // request/lifecycle writer for one ticket without blocking other tickets.
+      await transaction.$executeRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${input.ticket.id}, 0))`,
+      );
+      return syncTicketSlaTimersLocked(
+        transaction as unknown as PrismaService,
+        input,
+        transaction,
+      );
+    });
+  }
+  return syncTicketSlaTimersLocked(prisma, input);
+}
+
+async function syncTicketSlaTimersLocked(
+  prisma: PrismaService,
+  input: SyncTicketSlaTimersInput,
+  transaction?: Prisma.TransactionClient,
+): Promise<TicketSlaStateRecord | null> {
   const now = input.now ?? new Date();
   const existing = await loadTicketSlaState(prisma, input.ticket.id);
   const previousMarks = existing ?? emptyTicketSlaRuntimeMarks;
@@ -75,7 +98,7 @@ export async function syncTicketSlaTimers(
         configuration: input.configuration,
       }),
     },
-  });
+  }, transaction);
   if (
     persisted.respondedAt !== null &&
     input.ticket.firstResponseAt === null
@@ -83,6 +106,21 @@ export async function syncTicketSlaTimers(
     await persistTicketFirstResponseAt(prisma, input.ticket.id, now);
   }
   return persisted;
+}
+
+function supportsCoordinatedTransaction(
+  prisma: PrismaService,
+): prisma is PrismaService & {
+  $transaction: <T>(
+    callback: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ) => Promise<T>;
+} {
+  return (
+    typeof (prisma as unknown as { $transaction?: unknown }).$transaction ===
+      'function' &&
+    typeof (prisma as unknown as { $executeRaw?: unknown }).$executeRaw ===
+      'function'
+  );
 }
 
 async function loadCalendarForState(
