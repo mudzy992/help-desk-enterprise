@@ -18,6 +18,7 @@ export async function recordTicketSlaRuntimeEvent(
     readonly after: TicketSlaStateRecord;
     readonly extraAfter?: { readonly [key: string]: JsonValue };
     readonly escalationRuleId?: string | null;
+    readonly idempotencyKey?: string;
   },
 ): Promise<void> {
   await recordSlaChange(prisma, {
@@ -37,6 +38,7 @@ export async function recordTicketSlaRuntimeEvent(
     action: input.action,
     actorUserId: null,
     detail: input.escalationRuleId ?? null,
+    idempotencyKey: input.idempotencyKey,
   });
   const ticket = await prisma.ticket.findUnique({
     where: { id: input.ticketId },

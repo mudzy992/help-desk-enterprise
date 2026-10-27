@@ -3,10 +3,7 @@ import { applyDueSlaEscalations } from './apply-due-sla-escalations';
 import { applyTicketSlaPause } from './apply-ticket-sla-pause';
 import { applyTicketSlaResume } from './apply-ticket-sla-resume';
 import type { BusinessMinutesCalendar } from './business-hours-civil-time';
-import {
-  emitTicketSlaRuntimeEvents,
-  emptyTicketSlaRuntimeMarks,
-} from './emit-ticket-sla-runtime-events';
+import { emptyTicketSlaRuntimeMarks } from './emit-ticket-sla-runtime-events';
 import { evaluateTicketSlaAtRisk } from './evaluate-ticket-sla-at-risk';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import {
@@ -24,8 +21,8 @@ import {
 import {
   loadTicketSlaState,
   persistTicketFirstResponseAt,
-  persistTicketSlaState,
 } from './persist-ticket-sla-state';
+import { persistTicketSlaRuntimeTransitions } from './persist-ticket-sla-runtime-transitions';
 import { recomputeTicketSlaTargets } from './recompute-ticket-sla-targets';
 import { startTicketSlaTimers } from './start-ticket-sla-timers';
 import type { SyncTicketSlaTimersInput, TicketSlaStateRecord } from './ticket-sla.types';
@@ -63,22 +60,21 @@ export async function syncTicketSlaTimers(
     input.configuration,
     now,
   );
-  const persisted = await persistTicketSlaState(prisma, {
-    ...next,
-    // Phase 2.1: one column tells the scanner when to come back. Every write
-    // path (ticket event, scan, creation) goes through here.
-    nextDueAt: computeSlaNextDueAt({
-      state: next,
-      rules,
-      calendar,
-      configuration: input.configuration,
-    }),
-  });
-  await emitTicketSlaRuntimeEvents(prisma, {
+  const persisted = await persistTicketSlaRuntimeTransitions(prisma, {
     ticketId: input.ticket.id,
     previous: previousMarks,
-    next: persisted,
     rules,
+    next: {
+      ...next,
+      // Phase 2.1: one column tells the scanner when to come back. Every write
+      // path (ticket event, scan, creation) goes through here.
+      nextDueAt: computeSlaNextDueAt({
+        state: next,
+        rules,
+        calendar,
+        configuration: input.configuration,
+      }),
+    },
   });
   if (
     persisted.respondedAt !== null &&

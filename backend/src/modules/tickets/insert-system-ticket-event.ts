@@ -8,6 +8,7 @@ export async function insertSystemTicketEvent(
     readonly action: string;
     readonly actorUserId: string | null;
     readonly detail?: string | null;
+    readonly idempotencyKey?: string;
   },
 ): Promise<TicketMessageRecord> {
   const body =
@@ -16,12 +17,24 @@ export async function insertSystemTicketEvent(
     input.detail.length > 0
       ? `${input.action}:${input.detail}`
       : input.action;
-  return prisma.ticketMessage.create({
-    data: {
-      ticketId: input.ticketId,
-      type: 'SYSTEM_EVENT',
-      body,
-      authorUserId: input.actorUserId,
-    },
-  }) as Promise<TicketMessageRecord>;
+  const data = {
+    ticketId: input.ticketId,
+    type: 'SYSTEM_EVENT' as const,
+    body,
+    authorUserId: input.actorUserId,
+    idempotencyKey: input.idempotencyKey,
+  };
+  if (input.idempotencyKey !== undefined) {
+    return prisma.ticketMessage.upsert({
+      where: {
+        ticketId_idempotencyKey: {
+          ticketId: input.ticketId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+      create: data,
+      update: {},
+    }) as Promise<TicketMessageRecord>;
+  }
+  return prisma.ticketMessage.create({ data }) as Promise<TicketMessageRecord>;
 }

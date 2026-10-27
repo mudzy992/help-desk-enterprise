@@ -1,4 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import type { JsonValue } from '../change-log/change-log.types';
 import { recordTicketSlaRuntimeEvent } from './record-ticket-sla-runtime-event';
 import { parseSlaEscalationKey } from './select-due-sla-escalations';
 import { defaultSlaEscalationRuleId, slaChangeLogReasons, slaSystemEventActions } from './sla.constants';
@@ -13,6 +14,16 @@ type RuntimeMarks = Pick<
   | 'firedEscalationKeys'
 >;
 
+export type TicketSlaRuntimeEventIntent = {
+  readonly ticketId: string;
+  readonly reason: string;
+  readonly action: string;
+  readonly before: TicketSlaStateRecord;
+  readonly after: TicketSlaStateRecord;
+  readonly extraAfter?: { readonly [key: string]: JsonValue };
+  readonly escalationRuleId?: string | null;
+};
+
 export const emptyTicketSlaRuntimeMarks: RuntimeMarks = {
   isResponseBreached: false,
   isResolutionBreached: false,
@@ -21,56 +32,40 @@ export const emptyTicketSlaRuntimeMarks: RuntimeMarks = {
   firedEscalationKeys: [],
 };
 
-export async function emitTicketSlaRuntimeEvents(
-  prisma: PrismaService,
-  input: {
-    readonly ticketId: string;
-    readonly previous: RuntimeMarks;
-    readonly next: TicketSlaStateRecord;
-    readonly rules: readonly SlaEscalationRuleRecord[];
-  },
-): Promise<void> {
-  await emitAtRiskTransitions(prisma, input);
-  if (!input.previous.isResponseBreached && input.next.isResponseBreached) {
-    await recordTicketSlaRuntimeEvent(prisma, {
-      ticketId: input.ticketId,
-      reason: slaChangeLogReasons.responseBreached,
-      action: slaSystemEventActions.responseBreached,
-      before: { ...input.next, ...input.previous },
-      after: input.next,
-    });
+export function collectTicketSlaRuntimeEventIntents(input: {
+  readonly ticketId: string;
+  readonly previous: RuntimeMarks;
+  readonly next: TicketSlaStateRecord;
+  readonly rules: readonly SlaEscalationRuleRecord[];
+}): readonly TicketSlaRuntimeEventIntent[] {
+  const intents: TicketSlaRuntimeEventIntent[] = [];
+  const responseBreachesNow = !input.previous.isResponseBreached && input.next.isResponseBreached;
+  const resolutionBreachesNow = !input.previous.isResolutionBreached && input.next.isResolutionBreached;
+  if (!input.previous.isResponseAtRisk && input.next.isResponseAtRisk && !responseBreachesNow) {
+    intents.push(intent(input, slaChangeLogReasons.responseAtRisk, slaSystemEventActions.responseAtRisk));
   }
-  if (!input.previous.isResolutionBreached && input.next.isResolutionBreached) {
-    await recordTicketSlaRuntimeEvent(prisma, {
-      ticketId: input.ticketId,
-      reason: slaChangeLogReasons.resolutionBreached,
-      action: slaSystemEventActions.resolutionBreached,
-      before: { ...input.next, ...input.previous },
-      after: input.next,
-    });
+  if (!input.previous.isResolutionAtRisk && input.next.isResolutionAtRisk && !resolutionBreachesNow) {
+    intents.push(intent(input, slaChangeLogReasons.resolutionAtRisk, slaSystemEventActions.resolutionAtRisk));
+  }
+  if (responseBreachesNow) {
+    intents.push(intent(input, slaChangeLogReasons.responseBreached, slaSystemEventActions.responseBreached));
+  }
+  if (resolutionBreachesNow) {
+    intents.push(intent(input, slaChangeLogReasons.resolutionBreached, slaSystemEventActions.resolutionBreached));
   }
   const previousKeys = new Set(input.previous.firedEscalationKeys);
   for (const key of input.next.firedEscalationKeys) {
-    if (previousKeys.has(key)) {
-      continue;
-    }
+    if (previousKeys.has(key)) continue;
     const parsed = parseSlaEscalationKey(key);
-    if (parsed === null) {
-      continue;
-    }
+    if (parsed === null) continue;
     const rule = findRule(input.rules, parsed.ruleId, input.next);
-    await recordTicketSlaRuntimeEvent(prisma, {
-      ticketId: input.ticketId,
-      reason:
-        parsed.kind === 'response'
-          ? slaChangeLogReasons.responseEscalated
-          : slaChangeLogReasons.resolutionEscalated,
-      action:
-        parsed.kind === 'response'
-          ? slaSystemEventActions.responseEscalated
-          : slaSystemEventActions.resolutionEscalated,
+    intents.push({
+      ...intent(
+        input,
+        parsed.kind === 'response' ? slaChangeLogReasons.responseEscalated : slaChangeLogReasons.resolutionEscalated,
+        parsed.kind === 'response' ? slaSystemEventActions.responseEscalated : slaSystemEventActions.resolutionEscalated,
+      ),
       before: { ...input.next, firedEscalationKeys: [...previousKeys] },
-      after: input.next,
       escalationRuleId: rule.id,
       extraAfter: {
         kind: parsed.kind,
@@ -82,49 +77,35 @@ export async function emitTicketSlaRuntimeEvents(
       },
     });
   }
+  return intents;
 }
 
-async function emitAtRiskTransitions(
+export async function emitTicketSlaRuntimeEvents(
   prisma: PrismaService,
   input: {
     readonly ticketId: string;
     readonly previous: RuntimeMarks;
     readonly next: TicketSlaStateRecord;
+    readonly rules: readonly SlaEscalationRuleRecord[];
   },
 ): Promise<void> {
-  // A clock that breaches in this same evaluation skips its "at risk" event: the
-  // scanner (or a late run) flips both at once, and a warning next to the breach
-  // is noise — staging 2026-09-25 counted ~22 notifications per breached ticket.
-  const responseBreachesNow =
-    !input.previous.isResponseBreached && input.next.isResponseBreached;
-  const resolutionBreachesNow =
-    !input.previous.isResolutionBreached && input.next.isResolutionBreached;
-  if (
-    !input.previous.isResponseAtRisk &&
-    input.next.isResponseAtRisk &&
-    !responseBreachesNow
-  ) {
-    await recordTicketSlaRuntimeEvent(prisma, {
-      ticketId: input.ticketId,
-      reason: slaChangeLogReasons.responseAtRisk,
-      action: slaSystemEventActions.responseAtRisk,
-      before: { ...input.next, ...input.previous },
-      after: input.next,
-    });
+  for (const event of collectTicketSlaRuntimeEventIntents(input)) {
+    await recordTicketSlaRuntimeEvent(prisma, event);
   }
-  if (
-    !input.previous.isResolutionAtRisk &&
-    input.next.isResolutionAtRisk &&
-    !resolutionBreachesNow
-  ) {
-    await recordTicketSlaRuntimeEvent(prisma, {
-      ticketId: input.ticketId,
-      reason: slaChangeLogReasons.resolutionAtRisk,
-      action: slaSystemEventActions.resolutionAtRisk,
-      before: { ...input.next, ...input.previous },
-      after: input.next,
-    });
-  }
+}
+
+function intent(
+  input: { readonly ticketId: string; readonly previous: RuntimeMarks; readonly next: TicketSlaStateRecord },
+  reason: string,
+  action: string,
+): TicketSlaRuntimeEventIntent {
+  return {
+    ticketId: input.ticketId,
+    reason,
+    action,
+    before: { ...input.next, ...input.previous },
+    after: input.next,
+  };
 }
 
 function findRule(
@@ -133,9 +114,7 @@ function findRule(
   state: TicketSlaStateRecord,
 ): SlaEscalationRuleRecord {
   const match = rules.find((rule) => rule.id === ruleId);
-  if (match !== undefined) {
-    return match;
-  }
+  if (match !== undefined) return match;
   return {
     id: ruleId === defaultSlaEscalationRuleId ? defaultSlaEscalationRuleId : ruleId,
     slaProfileId: state.slaProfileId ?? '',
