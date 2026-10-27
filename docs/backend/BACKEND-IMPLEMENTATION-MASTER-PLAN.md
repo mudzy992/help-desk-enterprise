@@ -344,7 +344,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.32 SLA concurrent scan/lifecycle coordination — završen** na SHA `9181872`, CI `40552249815`.
 - PostgreSQL transaction-scoped ticket lock sada serijalizuje cijeli scanner/request read-evaluate-write ciklus, state i outbox intent ostaju u istoj transakciji, a first-response timestamp koristi monotoni conditional write. Obavezni two-client PostgreSQL shard dokazuje per-ticket serijalizaciju bez globalnog blokiranja. Time je zatvoren `BA-sla-02`; dokaz je u [59-sla-concurrent-write-coordination.md](implementation/59-sla-concurrent-write-coordination.md).
 - Registar je sada **624 otvorena / 68 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.33 SLA resource-scope authorization (`BA-sla-03`)**.
+- **W5.33 SLA resource-scope authorization — završen** na SHA `fc1936f`, CI `40554752106`.
+- SLA konfiguracija je formalizovana kao globalna administracijska granica: svih pet config kontrolera zahtijeva globalni assignment sa `sla.write`, bez cross-assignment scope kombinovanja; scoped administratori ne mogu mutirati niti čitati globalne resurse, historiju ili foreign escalation targete. Time je zatvoren `BA-sla-03`; dokaz je u [60-sla-global-administration-scope.md](implementation/60-sla-global-administration-scope.md).
+- Registar je sada **623 otvorena / 69 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.34 SLA DST-safe civil-time deadline engine (`BA-sla-04`)**.
 
 ### Canonical primitive
 

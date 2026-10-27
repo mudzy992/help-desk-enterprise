@@ -124,7 +124,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | --------- | -------- | ------------------------------------------------------------------------------------- | -------- |
 | BA-sla-01 | P1       | State marker se persistira prije eventa pa retry trajno gubi breach/escalation signal | zatvoreno |
 | BA-sla-02 | P1       | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje         | zatvoreno |
-| BA-sla-03 | P1       | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete                  | otvoreno |
+| BA-sla-03 | P1       | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete                  | zatvoreno |
 | BA-sla-04 | P1       | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu      | otvoreno |
 | BA-sla-05 | P2       | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha          | otvoreno |
 | BA-sla-06 | P2       | Scheduler registration nema retry/reconciliation u živom procesu                      | otvoreno |
@@ -261,6 +261,7 @@ Globalni acceptance:
 
 - `BA-sla-01` je zatvoren u W5.31 (`9d00bb0`, CI `40547086540`). SLA state i runtime outbox intent sada se zapisuju atomski; zasebni retryable dispatcher koristi stabilan ticket/clock/transition/rule dedupe ključ i idempotentni sistemski event. Detaljni dokaz: [58-sla-durable-runtime-signal.md](../implementation/58-sla-durable-runtime-signal.md).
 - `BA-sla-02` je zatvoren u W5.32 (`9181872`, CI `40552249815`). Jedinstveni per-ticket PostgreSQL transaction lock obuhvata scanner i lifecycle read/evaluate/write ciklus, first response je monotoni conditional write, a obavezni two-client shard dokazuje serijalizaciju bez globalnog blokiranja. Detaljni dokaz: [59-sla-concurrent-write-coordination.md](../implementation/59-sla-concurrent-write-coordination.md).
+- `BA-sla-03` je zatvoren u W5.33 (`fc1936f`, CI `40554752106`). SLA konfiguracija je eksplicitno globalna administracijska granica; svi config kontroleri zahtijevaju globalni `sla.write` assignment, dok scoped administratori ne mogu pristupiti globalnim/foreign resursima, historiji ni targetima. Detaljni dokaz: [60-sla-global-administration-scope.md](../implementation/60-sla-global-administration-scope.md).
 
 ## 18. Konačna presuda i pretpostavke
 

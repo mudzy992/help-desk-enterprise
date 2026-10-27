@@ -158,7 +158,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 13 | `routing` | `BA-routing-11` | P3 | Kritične scoped/race/load grane nemaju izvršiv dokaz | zatvoreno | [13-routing.md](audits/13-routing.md) |
 | 14 | `sla` | `BA-sla-01` | P1 | State marker se persistira prije eventa pa retry trajno gubi breach/escalation signal | zatvoreno | [58-sla-durable-runtime-signal.md](implementation/58-sla-durable-runtime-signal.md) |
 | 14 | `sla` | `BA-sla-02` | P1 | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje | zatvoreno | [59-sla-concurrent-write-coordination.md](implementation/59-sla-concurrent-write-coordination.md) |
-| 14 | `sla` | `BA-sla-03` | P1 | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-03` | P1 | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete | zatvoreno | [60-sla-global-administration-scope.md](implementation/60-sla-global-administration-scope.md) |
 | 14 | `sla` | `BA-sla-04` | P1 | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-05` | P2 | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-06` | P2 | Scheduler registration nema retry/reconciliation u živom procesu | otvoreno | [14-sla.md](audits/14-sla.md) |
