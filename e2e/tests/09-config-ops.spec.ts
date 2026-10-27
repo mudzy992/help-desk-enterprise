@@ -30,9 +30,19 @@ test.describe("09 config ops", () => {
     await page.getByRole("button", { name: /Activate|Aktiviraj/i }).click();
     const confirmation = page.getByRole("alertdialog");
     await expect(confirmation).toBeVisible();
+    const activationResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes(`/config-versions/${created.id}/activate`),
+    );
     await confirmation
       .getByRole("button", { name: /Activate|Aktiviraj/i })
       .click();
+    const activationResponse = await activationResponsePromise;
+    expect(
+      activationResponse.ok(),
+      `activation failed (${activationResponse.status()}): ${await activationResponse.text()}`,
+    ).toBe(true);
     await expect(confirmation).toBeHidden();
     await expect
       .poll(async () => {
