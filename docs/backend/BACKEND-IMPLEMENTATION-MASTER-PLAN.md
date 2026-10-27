@@ -359,7 +359,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.37 poison-isolated SLA scan/backfill batches — završen** na SHA `3935807`, CI `40564945465`.
 - Scan i backfill imaju per-ticket failure isolation, durable retry/quarantine zapis, exponential retry, treći-kvar quarantine, success cleanup i DB-level izostavljanje blocked ticketa prije batch limita. Time je zatvoren `BA-sla-07`; dokaz je u [64-sla-poison-isolated-batches.md](implementation/64-sla-poison-isolated-batches.md).
 - Registar je sada **619 otvorenih / 73 zatvorena / 692 ukupno**. Migracija `20271027180000_sla_scan_failure_quarantine` je obavezna ručna release-migrator radnja.
-- Sljedeći paket je **Val 5 / W5.38 concurrency-safe SLA rule/escalation invariants (`BA-sla-08`)**.
+- **W5.38 concurrency-safe SLA rule/escalation invariants — završen** na SHA `4357ba3`, CI `40568593132`.
+- Profile-scoped transaction lock obuhvata invariant read/write i ChangeLog; DB unique indeksi garantuju null-safe rule effective key i escalation offset, dok zaključani count/create čuva max-level. Two-client PostgreSQL test dokazuje sve tri race granice. Time je zatvoren `BA-sla-08`; dokaz je u [65-sla-concurrent-rule-invariants.md](implementation/65-sla-concurrent-rule-invariants.md).
+- Registar je sada **618 otvorenih / 74 zatvorena / 692 ukupno**. Migracija `20271027190000_sla_rule_invariants` je obavezna ručna release-migrator radnja.
+- Sljedeći paket je **Val 5 / W5.39 bounded SLA compliance aggregation (`BA-sla-09`)**.
 
 ### Canonical primitive
 
