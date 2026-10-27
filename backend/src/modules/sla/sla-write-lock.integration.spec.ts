@@ -7,6 +7,8 @@ import { seedStartingSlaProfiles } from './seed-starting-sla-profiles';
 import { startingSlaProfileKeys } from './starting-sla.constants';
 import { previewSlaTimerConfigurationMigration, SlaTimerConfigurationMigrationService } from './sla-timer-configuration-migration.service';
 import { defaultSlaConfiguration } from './create-sla-service-harness';
+import { resolveSlaNotificationRecipients } from '../notifications/fan-out/resolve-sla-notification-recipients';
+import { ticketSystemEventActions } from '../tickets/collaboration.constants';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -134,6 +136,38 @@ describeIfDatabase('SLA write coordination (integration)', () => {
     expect(migrated).toMatchObject({ responseMinutes: 60, resolutionMinutes: 120, configurationPolicy: 'RECOMPUTE' });
     expect(migrated?.configurationVersion).toHaveLength(64);
     expect(await first.changeLog.count({ where: { entityType: 'ticket_sla_configuration', entityId: migrated?.id } })).toBe(1);
+  });
+
+  it('filters inactive and out-of-scope escalation recipients on PostgreSQL', async () => {
+    const stamp = Date.now();
+    const root = await first.organizationalUnit.create({ data: { name: `Scope root ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=ROOT${stamp}`, ouPath: `/scope-${stamp}` } });
+    const child = await first.organizationalUnit.create({ data: { name: `Scope child ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=CHILD${stamp}`, ouPath: `${root.ouPath}/child`, parentId: root.id } });
+    const outside = await first.organizationalUnit.create({ data: { name: `Scope outside ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=OUT${stamp}`, ouPath: `/outside-${stamp}` } });
+    const category = await first.serviceCategory.create({ data: { name: `Recipient ${stamp}`, slug: `recipient-cat-${stamp}` } });
+    const service = await first.service.create({ data: { name: `Recipient ${stamp}`, slug: `recipient-svc-${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE' } });
+    const group = await first.group.create({ data: { key: `recipient-${stamp}`, name: 'Recipient group', organizationalUnitId: root.id } });
+    const active = await first.user.create({ data: { email: `recipient-active-${stamp}@example.test`, displayName: 'Active recipient', organizationalUnitId: child.id } });
+    const inactive = await first.user.create({ data: { email: `recipient-inactive-${stamp}@example.test`, displayName: 'Inactive recipient', organizationalUnitId: child.id, isActive: false } });
+    const outsideUser = await first.user.create({ data: { email: `recipient-outside-${stamp}@example.test`, displayName: 'Outside recipient', organizationalUnitId: outside.id } });
+    await first.groupMember.createMany({ data: [{ groupId: group.id, userId: active.id }, { groupId: group.id, userId: inactive.id }] });
+    const calendar = await first.businessHoursCalendar.create({ data: { key: `recipient-${stamp}`, name: 'Recipient calendar', timezone: 'UTC', weeklyHours: {} } });
+    const profile = await first.slaProfile.create({ data: { key: `recipient-${stamp}`, name: 'Recipient profile', calendarId: calendar.id } });
+    const groupRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 0, targetGroupId: group.id } });
+    const ticket = { id: `recipient-ticket-${stamp}`, originUnitId: child.id, serviceId: service.id, assignedGroupId: group.id, assignedUserId: null } as never;
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${groupRule.id}` })).toEqual([active.id]);
+
+    const role = await first.role.create({ data: { key: `recipient-role-${stamp}`, name: 'Recipient role' } });
+    await first.userRole.createMany({ data: [
+      { userId: active.id, roleId: role.id, organizationalUnitId: root.id },
+      { userId: outsideUser.id, roleId: role.id, organizationalUnitId: outside.id },
+    ] });
+    const roleRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 5, targetRole: role.key } });
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket, event: ticketSystemEventActions.slaResolutionEscalated, messageBody: `${ticketSystemEventActions.slaResolutionEscalated}:${roleRule.id}` })).toEqual([active.id]);
+
+    const emptyRule = await first.slaEscalationRule.create({ data: { slaProfileId: profile.id, triggerOffsetMinutes: 10, targetUserId: inactive.id } });
+    const emptyTicket = { ...ticket, id: `recipient-empty-${stamp}`, assignedGroupId: null, assignedUserId: null } as never;
+    expect(await resolveSlaNotificationRecipients(first as never, { ticket: emptyTicket, event: ticketSystemEventActions.slaResponseEscalated, messageBody: `${ticketSystemEventActions.slaResponseEscalated}:${emptyRule.id}` })).toEqual([]);
+    expect(await first.auditLog.count({ where: { action: 'sla.escalation.audience_empty', entityId: emptyTicket.id } })).toBe(1);
   });
 
   it('does not globally serialize unrelated tickets', async () => {

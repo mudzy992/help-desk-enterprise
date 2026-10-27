@@ -150,6 +150,7 @@ export const auditLogActions = {
   onCallCalendarTokenRotated: 'oncall.calendar_token.rotated',
   onCallCalendarTokenRevoked: 'oncall.calendar_token.revoked',
   onCallEscalationNotified: 'oncall.escalation.notified',
+  slaEscalationAudienceEmpty: 'sla.escalation.audience_empty',
   // Paket 2.9 (K2): announcements.
   announcementCreated: 'announcement.created',
   announcementUpdated: 'announcement.updated',

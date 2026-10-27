@@ -15,7 +15,13 @@ function fakePrisma() {
       slaEscalationRule: {
         findUnique: async () => ({ targetGroupId: 'g1', targetRole: null, targetUserId: null, targetOnCall: true }),
       },
+      organizationalUnit: { findUnique: async () => ({ ouPath: '/it' }) },
+      group: { findUnique: async () => ({ organizationalUnitId: 'ou-it' }) },
       groupMember: { findMany: async () => [{ userId: 'a' }, { userId: 'b' }] },
+      user: {
+        findMany: async ({ where }: { where: { id: { in: readonly string[] } } }) =>
+          where.id.in.map((id) => ({ id, isActive: true, anonymizedAt: null })),
+      },
       $executeRaw: async () => 0,
       auditLog: { findFirst: async () => null, create: async (args: unknown) => audit.push(args) },
     },
@@ -23,7 +29,10 @@ function fakePrisma() {
 }
 
 const input = {
-  ticket: { id: 't1', assignedUserId: null, assignedGroupId: 'g1' } as never,
+  ticket: {
+    id: 't1', assignedUserId: null, assignedGroupId: 'g1',
+    originUnitId: 'ou-it', serviceId: 'service-1',
+  } as never,
   event: ticketSystemEventActions.slaResponseEscalated,
   messageBody: `${ticketSystemEventActions.slaResponseEscalated}:rule-1`,
 };
