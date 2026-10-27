@@ -219,6 +219,13 @@ export type SlaChangeLogResponse = {
   readonly diff: ChangeLogDiffPayload;
 };
 
+export type SlaPage<T> = {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export type SlaTargetsResponse = {
   readonly slaProfileId: string;
   readonly slaRuleId: string;

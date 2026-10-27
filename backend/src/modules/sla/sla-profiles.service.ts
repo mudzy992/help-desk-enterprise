@@ -13,21 +13,26 @@ import type {
   SlaChangeLogResponse,
   SlaMutationContext,
   SlaProfileResponse,
+  SlaPage,
   UpdateProfileInput,
 } from './sla.types';
+import type { SlaReadScope } from './sla-read-scope';
+import { requireSlaProfileReadScope } from './require-sla-read-scope';
 
 @Injectable()
 export class SlaProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(): Promise<readonly SlaProfileResponse[]> {
-    return executeSlaOperation(async () =>
-      toSlaProfileResponses(this.prisma, await listSlaProfiles(this.prisma)),
-    );
+  list(input?: { readonly scope?: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaProfileResponse>> {
+    return executeSlaOperation(async () => {
+      const page = await listSlaProfiles(this.prisma, input);
+      return { ...page, items: await toSlaProfileResponses(this.prisma, page.items) };
+    });
   }
 
-  get(profileId: string): Promise<SlaProfileResponse> {
+  get(profileId: string, scope?: SlaReadScope): Promise<SlaProfileResponse> {
     return executeSlaOperation(async () => {
+      if (scope !== undefined) await requireSlaProfileReadScope(this.prisma, profileId, scope);
       const [response] = await toSlaProfileResponses(this.prisma, [
         await requireSlaProfile(this.prisma, profileId),
       ]);
@@ -73,12 +78,15 @@ export class SlaProfilesService {
     );
   }
 
-  listChanges(profileId: string): Promise<readonly SlaChangeLogResponse[]> {
-    return executeSlaOperation(() =>
-      listSlaChangeLogs(this.prisma, {
+  listChanges(profileId: string, input: { readonly scope: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaChangeLogResponse>> {
+    return executeSlaOperation(async () => {
+      await requireSlaProfileReadScope(this.prisma, profileId, input.scope);
+      return listSlaChangeLogs(this.prisma, {
         entityType: slaChangeLogEntityTypes.profile,
         entityId: profileId,
-      }),
-    );
+        cursor: input.cursor,
+        take: input.take,
+      });
+    });
   }
 }

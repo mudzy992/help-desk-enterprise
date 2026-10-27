@@ -18,14 +18,12 @@ export class SlaGlobalAdministrationGuard implements CanActivate {
     if (principal.roleKeys.includes(authorizationRoleKeys.superAdmin)) {
       return true;
     }
-    // The permission catalogue currently exposes one SLA administration
-    // capability. Reads of configuration/history are administration too.
-    const requiredPermission = permissionKeys.slaWrite;
+    const readRequest = request.method?.toUpperCase() === 'GET';
+    const requiredPermission = readRequest ? permissionKeys.slaRead : permissionKeys.slaWrite;
     const globallyAuthorized = principal.assignments.some(
       (assignment) =>
-        assignment.organizationalUnitId === null &&
-        assignment.serviceId === null &&
-        assignment.permissionKeys.includes(requiredPermission),
+        assignment.permissionKeys.includes(requiredPermission) &&
+        (readRequest || (assignment.organizationalUnitId === null && assignment.serviceId === null)),
     );
     if (!globallyAuthorized) {
       throw new ForbiddenException({

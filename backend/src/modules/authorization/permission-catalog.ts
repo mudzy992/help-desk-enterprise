@@ -112,6 +112,11 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Manage service availability windows and downtime.',
   },
   {
+    key: permissionKeys.slaRead,
+    categoryId: permissionCategoryIds.sla,
+    description: 'View SLA configuration and change history within assigned scope.',
+  },
+  {
     key: permissionKeys.slaWrite,
     categoryId: permissionCategoryIds.sla,
     description:

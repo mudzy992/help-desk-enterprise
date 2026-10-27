@@ -17,11 +17,9 @@ import {
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import {
-  authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { ChangeReasonDto } from './dto/change-reason.dto';
@@ -32,9 +30,12 @@ import {
   UpdateSlaRuleDto,
 } from './dto/rule.dto';
 import { readSlaMutationContext } from './read-sla-mutation-context';
+import { readSlaReadScope } from './sla-read-scope';
+import { SlaListQueryDto } from './dto/sla-list-query.dto';
 import { SlaRulesService } from './sla-rules.service';
 import type {
   SlaChangeLogResponse,
+  SlaPage,
   SlaRuleResponse,
   SlaTargetsResponse,
 } from './sla.types';
@@ -42,7 +43,7 @@ import type {
 @AdminConfigDomains('sla')
 @Controller('sla/rules')
 @UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
-@RequireRoles(authorizationRoleKeys.admin)
+@RequirePermissions(permissionKeys.slaRead)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -63,8 +64,8 @@ export class SlaRulesController {
   }
 
   @Get()
-  list(@Query() query: ListSlaRulesQueryDto): Promise<readonly SlaRuleResponse[]> {
-    return this.slaRulesService.list(query.slaProfileId);
+  list(@Query() query: ListSlaRulesQueryDto, @Req() request: AuthenticatedHttpRequest): Promise<SlaPage<SlaRuleResponse>> {
+    return this.slaRulesService.list(query.slaProfileId, { ...query, scope: readSlaReadScope(request) });
   }
 
   @Get('resolve')
@@ -77,13 +78,15 @@ export class SlaRulesController {
   @Get(':ruleId/changes')
   listChanges(
     @Param('ruleId') ruleId: string,
-  ): Promise<readonly SlaChangeLogResponse[]> {
-    return this.slaRulesService.listChanges(ruleId);
+    @Query() query: SlaListQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<SlaPage<SlaChangeLogResponse>> {
+    return this.slaRulesService.listChanges(ruleId, { ...query, scope: readSlaReadScope(request) });
   }
 
   @Get(':ruleId')
-  get(@Param('ruleId') ruleId: string): Promise<SlaRuleResponse> {
-    return this.slaRulesService.get(ruleId);
+  get(@Param('ruleId') ruleId: string, @Req() request: AuthenticatedHttpRequest): Promise<SlaRuleResponse> {
+    return this.slaRulesService.get(ruleId, readSlaReadScope(request));
   }
 
   @Patch(':ruleId')

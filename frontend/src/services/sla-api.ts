@@ -32,8 +32,30 @@ export type {
   WeeklyHours,
 } from "@/services/sla-types";
 
+export type SlaPage<T> = {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
+const slaPageSize = 100;
+
+async function fetchAllSlaPages<T>(path: string): Promise<readonly T[]> {
+  const items: T[] = [];
+  let cursor: string | null = null;
+  do {
+    const separator = path.includes("?") ? "&" : "?";
+    const cursorQuery = cursor === null ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+    const page = await apiRequest<SlaPage<T>>(`${path}${separator}take=${slaPageSize}${cursorQuery}`);
+    items.push(...page.items);
+    cursor = page.hasMore ? page.nextCursor : null;
+  } while (cursor !== null);
+  return items;
+}
+
 export function listSlaCalendars(): Promise<readonly BusinessHoursCalendar[]> {
-  return apiRequest("/sla/calendars");
+  return fetchAllSlaPages("/sla/calendars");
 }
 
 export function createSlaCalendar(
@@ -65,11 +87,11 @@ export function deleteSlaCalendar(calendarId: string, reason: string): Promise<v
 }
 
 export function listSlaCalendarChanges(calendarId: string): Promise<readonly SlaChangeLogEntry[]> {
-  return apiRequest(`/sla/calendars/${calendarId}/changes`);
+  return fetchAllSlaPages(`/sla/calendars/${calendarId}/changes`);
 }
 
 export function listSlaProfiles(): Promise<readonly SlaProfile[]> {
-  return apiRequest("/sla/profiles");
+  return fetchAllSlaPages("/sla/profiles");
 }
 
 export function createSlaProfile(
@@ -102,11 +124,11 @@ export function deleteSlaProfile(profileId: string, reason: string): Promise<voi
 }
 
 export function listSlaProfileChanges(profileId: string): Promise<readonly SlaChangeLogEntry[]> {
-  return apiRequest(`/sla/profiles/${profileId}/changes`);
+  return fetchAllSlaPages(`/sla/profiles/${profileId}/changes`);
 }
 
 export function listSlaRules(slaProfileId: string): Promise<readonly SlaRule[]> {
-  return apiRequest(`/sla/rules?slaProfileId=${encodeURIComponent(slaProfileId)}`);
+  return fetchAllSlaPages(`/sla/rules?slaProfileId=${encodeURIComponent(slaProfileId)}`);
 }
 
 export function createSlaRule(
@@ -133,13 +155,13 @@ export function deleteSlaRule(ruleId: string, reason: string): Promise<void> {
 }
 
 export function listSlaRuleChanges(ruleId: string): Promise<readonly SlaChangeLogEntry[]> {
-  return apiRequest(`/sla/rules/${ruleId}/changes`);
+  return fetchAllSlaPages(`/sla/rules/${ruleId}/changes`);
 }
 
 export function listSlaEscalationRules(
   slaProfileId: string,
 ): Promise<readonly SlaEscalationRule[]> {
-  return apiRequest(`/sla/escalation-rules?slaProfileId=${encodeURIComponent(slaProfileId)}`);
+  return fetchAllSlaPages(`/sla/escalation-rules?slaProfileId=${encodeURIComponent(slaProfileId)}`);
 }
 
 export function createSlaEscalationRule(

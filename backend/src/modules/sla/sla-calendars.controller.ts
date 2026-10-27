@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -16,11 +17,9 @@ import {
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import {
-  authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import {
@@ -29,16 +28,19 @@ import {
 } from './dto/calendar.dto';
 import { ChangeReasonDto } from './dto/change-reason.dto';
 import { readSlaMutationContext } from './read-sla-mutation-context';
+import { readSlaReadScope } from './sla-read-scope';
+import { SlaListQueryDto } from './dto/sla-list-query.dto';
 import { SlaCalendarsService } from './sla-calendars.service';
 import type {
   BusinessHoursCalendarResponse,
   SlaChangeLogResponse,
+  SlaPage,
 } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('sla/calendars')
 @UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
-@RequireRoles(authorizationRoleKeys.admin)
+@RequirePermissions(permissionKeys.slaRead)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -59,22 +61,25 @@ export class SlaCalendarsController {
   }
 
   @Get()
-  list(): Promise<readonly BusinessHoursCalendarResponse[]> {
-    return this.slaCalendarsService.list();
+  list(@Query() query: SlaListQueryDto, @Req() request: AuthenticatedHttpRequest): Promise<SlaPage<BusinessHoursCalendarResponse>> {
+    return this.slaCalendarsService.list({ ...query, scope: readSlaReadScope(request) });
   }
 
   @Get(':calendarId/changes')
   listChanges(
     @Param('calendarId') calendarId: string,
-  ): Promise<readonly SlaChangeLogResponse[]> {
-    return this.slaCalendarsService.listChanges(calendarId);
+    @Query() query: SlaListQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<SlaPage<SlaChangeLogResponse>> {
+    return this.slaCalendarsService.listChanges(calendarId, { ...query, scope: readSlaReadScope(request) });
   }
 
   @Get(':calendarId')
   get(
     @Param('calendarId') calendarId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<BusinessHoursCalendarResponse> {
-    return this.slaCalendarsService.get(calendarId);
+    return this.slaCalendarsService.get(calendarId, readSlaReadScope(request));
   }
 
   @Patch(':calendarId')

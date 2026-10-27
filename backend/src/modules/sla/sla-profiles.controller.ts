@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -16,23 +17,23 @@ import {
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import {
-  authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { ChangeReasonDto } from './dto/change-reason.dto';
 import { CreateSlaProfileDto, UpdateSlaProfileDto } from './dto/profile.dto';
 import { readSlaMutationContext } from './read-sla-mutation-context';
+import { readSlaReadScope } from './sla-read-scope';
+import { SlaListQueryDto } from './dto/sla-list-query.dto';
 import { SlaProfilesService } from './sla-profiles.service';
 import type { SlaChangeLogResponse, SlaProfileResponse } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('sla/profiles')
 @UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
-@RequireRoles(authorizationRoleKeys.admin)
+@RequirePermissions(permissionKeys.slaRead)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -53,20 +54,22 @@ export class SlaProfilesController {
   }
 
   @Get()
-  list(): Promise<readonly SlaProfileResponse[]> {
-    return this.slaProfilesService.list();
+  list(@Query() query: SlaListQueryDto, @Req() request: AuthenticatedHttpRequest): Promise<SlaPage<SlaProfileResponse>> {
+    return this.slaProfilesService.list({ ...query, scope: readSlaReadScope(request) });
   }
 
   @Get(':profileId/changes')
   listChanges(
     @Param('profileId') profileId: string,
-  ): Promise<readonly SlaChangeLogResponse[]> {
-    return this.slaProfilesService.listChanges(profileId);
+    @Query() query: SlaListQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<SlaPage<SlaChangeLogResponse>> {
+    return this.slaProfilesService.listChanges(profileId, { ...query, scope: readSlaReadScope(request) });
   }
 
   @Get(':profileId')
-  get(@Param('profileId') profileId: string): Promise<SlaProfileResponse> {
-    return this.slaProfilesService.get(profileId);
+  get(@Param('profileId') profileId: string, @Req() request: AuthenticatedHttpRequest): Promise<SlaProfileResponse> {
+    return this.slaProfilesService.get(profileId, readSlaReadScope(request));
   }
 
   @Patch(':profileId')

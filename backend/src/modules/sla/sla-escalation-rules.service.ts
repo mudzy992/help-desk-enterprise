@@ -18,8 +18,11 @@ import type {
   SlaChangeLogResponse,
   SlaEscalationRuleResponse,
   SlaMutationContext,
+  SlaPage,
   UpdateEscalationRuleInput,
 } from './sla.types';
+import type { SlaReadScope } from './sla-read-scope';
+import { requireSlaEscalationRuleReadScope } from './require-sla-read-scope';
 
 @Injectable()
 export class SlaEscalationRulesService {
@@ -28,20 +31,19 @@ export class SlaEscalationRulesService {
     private readonly configurationLoader: SlaConfigurationLoader,
   ) {}
 
-  list(slaProfileId: string): Promise<readonly SlaEscalationRuleResponse[]> {
-    return executeSlaOperation(async () =>
-      toSlaEscalationRuleResponses(
-        await listSlaEscalationRules(this.prisma, slaProfileId),
-      ),
-    );
+  list(slaProfileId: string, input?: { readonly scope?: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaEscalationRuleResponse>> {
+    return executeSlaOperation(async () => {
+      const page = await listSlaEscalationRules(this.prisma, slaProfileId, input);
+      return { ...page, items: toSlaEscalationRuleResponses(page.items) };
+    });
   }
 
-  get(ruleId: string): Promise<SlaEscalationRuleResponse> {
+  get(ruleId: string, scope?: SlaReadScope): Promise<SlaEscalationRuleResponse> {
     return executeSlaOperation(async () => {
+      if (scope !== undefined) await requireSlaEscalationRuleReadScope(this.prisma, ruleId, scope);
       const rule = await requireSlaEscalationRule(this.prisma, ruleId);
-      const response = toSlaEscalationRuleResponses(
-        await listSlaEscalationRules(this.prisma, rule.slaProfileId),
-      ).find((item) => item.id === ruleId);
+      const page = await listSlaEscalationRules(this.prisma, rule.slaProfileId, { take: 100 });
+      const response = toSlaEscalationRuleResponses(page.items).find((item) => item.id === ruleId);
       if (response === undefined) {
         throw new SlaError('ESCALATION_RULE_NOT_FOUND');
       }
@@ -85,12 +87,15 @@ export class SlaEscalationRulesService {
     );
   }
 
-  listChanges(ruleId: string): Promise<readonly SlaChangeLogResponse[]> {
-    return executeSlaOperation(() =>
-      listSlaChangeLogs(this.prisma, {
+  listChanges(ruleId: string, input: { readonly scope: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaChangeLogResponse>> {
+    return executeSlaOperation(async () => {
+      await requireSlaEscalationRuleReadScope(this.prisma, ruleId, input.scope);
+      return listSlaChangeLogs(this.prisma, {
         entityType: slaChangeLogEntityTypes.escalationRule,
         entityId: ruleId,
-      }),
-    );
+        cursor: input.cursor,
+        take: input.take,
+      });
+    });
   }
 }
