@@ -8,6 +8,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/principal-context/user-role-constraint-migration.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/idempotency/request-idempotency.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/outbox/transactional-outbox.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/sla/sla-write-lock.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/database-lock/database-lock.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/bulk-command/bulk-command.integration.spec.ts"));

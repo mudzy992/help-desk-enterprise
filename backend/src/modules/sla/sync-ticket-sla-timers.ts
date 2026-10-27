@@ -1,4 +1,4 @@
-import { Prisma } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { applyDueSlaEscalations } from './apply-due-sla-escalations';
 import { applyTicketSlaPause } from './apply-ticket-sla-pause';
@@ -27,6 +27,7 @@ import { persistTicketSlaRuntimeTransitions } from './persist-ticket-sla-runtime
 import { recomputeTicketSlaTargets } from './recompute-ticket-sla-targets';
 import { startTicketSlaTimers } from './start-ticket-sla-timers';
 import type { SyncTicketSlaTimersInput, TicketSlaStateRecord } from './ticket-sla.types';
+import { withTicketSlaWriteLock } from './with-ticket-sla-write-lock';
 
 export async function syncTicketSlaTimers(
   prisma: PrismaService,
@@ -35,21 +36,11 @@ export async function syncTicketSlaTimers(
   if (!input.configuration.enabled) {
     return null;
   }
-  if (supportsCoordinatedTransaction(prisma)) {
-    return prisma.$transaction(async (transaction) => {
-      // A transaction-scoped advisory lock serializes the scanner and every
-      // request/lifecycle writer for one ticket without blocking other tickets.
-      await transaction.$executeRaw(
-        Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${input.ticket.id}, 0))`,
-      );
-      return syncTicketSlaTimersLocked(
-        transaction as unknown as PrismaService,
-        input,
-        transaction,
-      );
-    });
-  }
-  return syncTicketSlaTimersLocked(prisma, input);
+  return withTicketSlaWriteLock(
+    prisma,
+    input.ticket.id,
+    (client, transaction) => syncTicketSlaTimersLocked(client, input, transaction),
+  );
 }
 
 async function syncTicketSlaTimersLocked(
@@ -106,21 +97,6 @@ async function syncTicketSlaTimersLocked(
     await persistTicketFirstResponseAt(prisma, input.ticket.id, now);
   }
   return persisted;
-}
-
-function supportsCoordinatedTransaction(
-  prisma: PrismaService,
-): prisma is PrismaService & {
-  $transaction: <T>(
-    callback: (transaction: Prisma.TransactionClient) => Promise<T>,
-  ) => Promise<T>;
-} {
-  return (
-    typeof (prisma as unknown as { $transaction?: unknown }).$transaction ===
-      'function' &&
-    typeof (prisma as unknown as { $executeRaw?: unknown }).$executeRaw ===
-      'function'
-  );
 }
 
 async function loadCalendarForState(
