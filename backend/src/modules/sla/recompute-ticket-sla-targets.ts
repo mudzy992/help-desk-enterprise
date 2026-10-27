@@ -1,7 +1,9 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { addBusinessMinutes } from './add-business-minutes';
 import type { BusinessMinutesCalendar } from './business-hours-civil-time';
 import { resolveMatchingSlaRule } from './resolve-matching-sla-rule';
+import { createSlaConfigurationSnapshot, slaConfigurationPolicies } from './sla-configuration-snapshot';
 import type { SlaRuleRecord } from './sla.types';
 import type { TicketSlaStateRecord, TicketSlaTicketRef } from './ticket-sla.types';
 
@@ -21,6 +23,7 @@ export async function recomputeTicketSlaTargets(
   state: TicketSlaStateRecord,
   ticket: TicketSlaTicketRef,
   calendar: BusinessMinutesCalendar | null,
+  appliedAt = new Date(),
 ): Promise<TicketSlaStateRecord> {
   if (state.slaProfileId === null || calendar === null) {
     return state;
@@ -36,7 +39,14 @@ export async function recomputeTicketSlaTargets(
   if (rule === null) {
     return state;
   }
-  return applyRecomputedSlaRule(state, rule, calendar);
+  const applied = createSlaConfigurationSnapshot(rule, calendar);
+  return {
+    ...applyRecomputedSlaRule(state, rule, calendar),
+    configurationVersion: applied.version,
+    configurationSnapshot: applied.snapshot as unknown as Prisma.JsonValue,
+    configurationAppliedAt: appliedAt,
+    configurationPolicy: slaConfigurationPolicies.recompute,
+  };
 }
 
 export function applyRecomputedSlaRule(

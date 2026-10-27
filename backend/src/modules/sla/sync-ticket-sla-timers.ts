@@ -13,6 +13,7 @@ import {
   isSlaTerminalStatus,
 } from './is-sla-pause-status';
 import { computeSlaNextDueAt } from './compute-sla-next-due-at';
+import { parseSlaConfigurationCalendar } from './sla-configuration-snapshot';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
 import { loadSlaEscalationRules } from './load-sla-escalation-rules';
 import {
@@ -60,7 +61,7 @@ async function syncTicketSlaTimersLocked(
   const calendar = await loadCalendarForState(prisma, started);
   const state =
     input.event === 'priority_changed' && existing !== null
-      ? await recomputeTicketSlaTargets(prisma, started, input.ticket, calendar)
+      ? await recomputeTicketSlaTargets(prisma, started, input.ticket, calendar, now)
       : started;
   const rules = await loadSlaEscalationRules(prisma, state.slaProfileId);
   const next = applyDueSlaEscalations(
@@ -103,6 +104,8 @@ async function loadCalendarForState(
   prisma: PrismaService,
   state: TicketSlaStateRecord,
 ): Promise<BusinessMinutesCalendar | null> {
+  const snapshotted = parseSlaConfigurationCalendar(state.configurationSnapshot);
+  if (snapshotted !== null) return snapshotted;
   if (state.slaProfileId === null) {
     return null;
   }

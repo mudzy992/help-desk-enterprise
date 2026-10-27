@@ -61,6 +61,10 @@ export type TicketSlaStateRecord = {
    * write; the scanner reads only `nextDueAt <= now()`.
    */
   readonly nextDueAt: Date | null;
+  readonly configurationVersion?: string | null;
+  readonly configurationSnapshot?: import('../../generated/prisma/client').Prisma.JsonValue | null;
+  readonly configurationAppliedAt?: Date | null;
+  readonly configurationPolicy?: string;
   readonly updatedAt: Date;
 };
 

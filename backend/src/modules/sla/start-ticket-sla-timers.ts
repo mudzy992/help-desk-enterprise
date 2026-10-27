@@ -7,6 +7,8 @@ import { isSlaPauseStatus } from './is-sla-pause-status';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
 import { persistTicketSlaState } from './persist-ticket-sla-state';
 import { resolveMatchingSlaRule } from './resolve-matching-sla-rule';
+import type { Prisma } from '../../generated/prisma/client';
+import { createSlaConfigurationSnapshot, slaConfigurationPolicies } from './sla-configuration-snapshot';
 import type { SlaConfiguration, SlaRuleRecord } from './sla.types';
 import type { TicketSlaStateRecord, TicketSlaTicketRef } from './ticket-sla.types';
 
@@ -46,6 +48,7 @@ export async function startTicketSlaTimers(
   }
   const startedAt = ticket.createdAt;
   const paused = isSlaPauseStatus(ticket.status, configuration);
+  const appliedConfiguration = createSlaConfigurationSnapshot(rule, calendar);
   const fresh = evaluateTicketSlaAtRisk(
     evaluateTicketSlaBreach(
       {
@@ -71,6 +74,10 @@ export async function startTicketSlaTimers(
         isResolutionAtRisk: false,
         firedEscalationKeys: [],
         nextDueAt: null,
+        configurationVersion: appliedConfiguration.version,
+        configurationSnapshot: appliedConfiguration.snapshot as unknown as Prisma.JsonValue,
+        configurationAppliedAt: now,
+        configurationPolicy: slaConfigurationPolicies.grandfather,
       },
       now,
     ),

@@ -37,6 +37,12 @@ export async function persistTicketSlaState(
     firedEscalationKeys: [...(state.firedEscalationKeys ?? [])],
     // Phase 2.1: the scheduling column the scanner filters on.
     nextDueAt: state.nextDueAt,
+    ...(state.configurationVersion !== undefined ? {
+      configurationVersion: state.configurationVersion,
+      configurationSnapshot: state.configurationSnapshot,
+      configurationAppliedAt: state.configurationAppliedAt,
+      configurationPolicy: state.configurationPolicy,
+    } : {}),
   };
   if (state.id !== undefined && state.id.length > 0) {
     return (await prisma.ticketSlaState.update({
