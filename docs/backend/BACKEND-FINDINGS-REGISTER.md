@@ -160,7 +160,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-02` | P1 | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje | zatvoreno | [59-sla-concurrent-write-coordination.md](implementation/59-sla-concurrent-write-coordination.md) |
 | 14 | `sla` | `BA-sla-03` | P1 | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete | zatvoreno | [60-sla-global-administration-scope.md](implementation/60-sla-global-administration-scope.md) |
 | 14 | `sla` | `BA-sla-04` | P1 | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu | zatvoreno | [61-sla-dst-safe-civil-time.md](implementation/61-sla-dst-safe-civil-time.md) |
-| 14 | `sla` | `BA-sla-05` | P2 | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-05` | P2 | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha | zatvoreno | [62-sla-race-safe-first-timer.md](implementation/62-sla-race-safe-first-timer.md) |
 | 14 | `sla` | `BA-sla-06` | P2 | Scheduler registration nema retry/reconciliation u živom procesu | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-07` | P2 | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-08` | P2 | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe | otvoreno | [14-sla.md](audits/14-sla.md) |

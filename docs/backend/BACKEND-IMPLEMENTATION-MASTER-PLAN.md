@@ -350,7 +350,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.34 SLA DST-safe civil-time deadline engine — završen** na SHA `1b1749b`, CI `40557025171`.
 - Civil-time konverzija sada enumerira IANA offset kandidate i potvrđuje round-trip; fold bira raniji instant, gap prvi naredni reprezentabilni minut, a add/count koriste stvarno protekle minute otvorenog lokalnog intervala. Sarajevo, New York i Lord Howe gap/fold matrica dokazuje monotonicity i add/count round-trip. Time je zatvoren `BA-sla-04`; dokaz je u [61-sla-dst-safe-civil-time.md](implementation/61-sla-dst-safe-civil-time.md).
 - Registar je sada **622 otvorena / 70 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.35 race-safe first SLA timer creation (`BA-sla-05`)**.
+- **W5.35 race-safe first SLA timer creation — završen** na SHA `e7efb10`, CI `40559964964`.
+- Prvi timer koristi first-writer-wins upsert bez update overwritea; Prisma adapter `P2002` race reloaduje winner, dok druge greške ostaju vidljive. Two-client PostgreSQL test dokazuje jedan red, isti winner ID i kompletno neprepisano pobjedničko stanje. Time je zatvoren `BA-sla-05`; dokaz je u [62-sla-race-safe-first-timer.md](implementation/62-sla-race-safe-first-timer.md).
+- Registar je sada **621 otvoren / 71 zatvoren / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.36 self-healing SLA scheduler registration (`BA-sla-06`)**.
 
 ### Canonical primitive
 

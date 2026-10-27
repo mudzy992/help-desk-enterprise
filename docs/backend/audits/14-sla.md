@@ -126,7 +126,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | BA-sla-02 | P1       | Scanner i lifecycle bez concurrency protokola gube/dupliraju state i događaje         | zatvoreno |
 | BA-sla-03 | P1       | Scoped `sla.write` omogućava globalne SLA mutacije i foreign targete                  | zatvoreno |
 | BA-sla-04 | P1       | DST civil-time konverzija može dati deadline prije starta ili preskočiti sedmicu      | zatvoreno |
-| BA-sla-05 | P2       | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha          | otvoreno |
+| BA-sla-05 | P2       | Paralelni prvi timer start vraća unique grešku umjesto idempotentnog uspjeha          | zatvoreno |
 | BA-sla-06 | P2       | Scheduler registration nema retry/reconciliation u živom procesu                      | otvoreno |
 | BA-sla-07 | P2       | Jedan poison state prekida scan/backfill batch i ponavlja već obrađene redove         | otvoreno |
 | BA-sla-08 | P2       | Rule/escalation uniqueness i max-level invariante nisu concurrency-safe               | otvoreno |
@@ -263,6 +263,7 @@ Globalni acceptance:
 - `BA-sla-02` je zatvoren u W5.32 (`9181872`, CI `40552249815`). Jedinstveni per-ticket PostgreSQL transaction lock obuhvata scanner i lifecycle read/evaluate/write ciklus, first response je monotoni conditional write, a obavezni two-client shard dokazuje serijalizaciju bez globalnog blokiranja. Detaljni dokaz: [59-sla-concurrent-write-coordination.md](../implementation/59-sla-concurrent-write-coordination.md).
 - `BA-sla-03` je zatvoren u W5.33 (`fc1936f`, CI `40554752106`). SLA konfiguracija je eksplicitno globalna administracijska granica; svi config kontroleri zahtijevaju globalni `sla.write` assignment, dok scoped administratori ne mogu pristupiti globalnim/foreign resursima, historiji ni targetima. Detaljni dokaz: [60-sla-global-administration-scope.md](../implementation/60-sla-global-administration-scope.md).
 - `BA-sla-04` je zatvoren u W5.34 (`1b1749b`, CI `40557025171`). Civil-time resolver potvrđuje IANA offset kandidate round-tripom, ima eksplicitnu earlier-fold/later-gap politiku i održava monotone add/count invariante kroz Sarajevo, New York i Lord Howe tranzicije. Detaljni dokaz: [61-sla-dst-safe-civil-time.md](../implementation/61-sla-dst-safe-civil-time.md).
+- `BA-sla-05` je zatvoren u W5.35 (`e7efb10`, CI `40559964964`). First-writer-wins upsert ne prepisuje winner state, adapter-level `P2002` reloaduje winner, a two-client PostgreSQL test dokazuje jedan timer i idempotentan rezultat. Detaljni dokaz: [62-sla-race-safe-first-timer.md](../implementation/62-sla-race-safe-first-timer.md).
 
 ## 18. Konačna presuda i pretpostavke
 
