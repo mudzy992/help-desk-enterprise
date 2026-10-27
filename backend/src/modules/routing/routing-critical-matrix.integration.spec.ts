@@ -34,7 +34,7 @@ describeIfDatabase('routing critical PostgreSQL matrix', () => {
       data: {
         id: rootId,
         name: 'Routing matrix root',
-        type: 'COMPANY',
+        type: 'DIRECTORATE',
         distinguishedName: `OU=Routing matrix ${stamp}`,
         ouPath: `/Routing matrix ${stamp}`,
       },
@@ -44,7 +44,7 @@ describeIfDatabase('routing critical PostgreSQL matrix', () => {
         {
           id: scopedId,
           name: 'Scoped',
-          type: 'DEPARTMENT',
+          type: 'SERVICE',
           distinguishedName: `OU=Scoped,OU=Routing matrix ${stamp}`,
           ouPath: `/Routing matrix ${stamp}/Scoped`,
           parentId: rootId,
@@ -52,7 +52,7 @@ describeIfDatabase('routing critical PostgreSQL matrix', () => {
         {
           id: foreignId,
           name: 'Foreign',
-          type: 'DEPARTMENT',
+          type: 'SERVICE',
           distinguishedName: `OU=Foreign,OU=Routing matrix ${stamp}`,
           ouPath: `/Routing matrix ${stamp}/Foreign`,
           parentId: rootId,
@@ -98,7 +98,7 @@ describeIfDatabase('routing critical PostgreSQL matrix', () => {
     const units = Array.from({ length: 120 }, (_, index) => ({
       id: `routing-deep-${stamp}-${index.toString().padStart(3, '0')}`,
       name: `Deep ${index}`,
-      type: 'DEPARTMENT' as const,
+      type: 'SERVICE' as const,
       distinguishedName: `OU=Deep ${index},OU=Routing matrix ${stamp}`,
       ouPath: `/Routing matrix ${stamp}/Deep/${index.toString().padStart(3, '0')}`,
       parentId: rootId,
