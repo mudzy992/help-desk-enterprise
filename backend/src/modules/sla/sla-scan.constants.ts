@@ -14,3 +14,6 @@ export const slaScanJobAttempts = 2;
 export const slaScanJobBackoffMilliseconds = 5_000;
 export const slaScanCompletedJobsToKeep = 20;
 export const slaScanFailedJobsToKeep = 50;
+export const slaScanRegistrationRetryBaseMilliseconds = 1_000;
+export const slaScanRegistrationRetryMaximumMilliseconds = 60_000;
+export const slaScanRegistrationReconcileMilliseconds = 60_000;
