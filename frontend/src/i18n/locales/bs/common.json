@@ -360,6 +360,7 @@
             "oncall_calendar_token_rotated": "Token kalendara dežurstava — rotiran",
             "oncall_calendar_token_revoked": "Token kalendara dežurstava — opozvan",
             "oncall_escalation_notified": "Eskalacija dežurstva — obavijest poslana",
+            "sla_escalation_audience_empty": "SLA eskalacija — nema podobnog primaoca",
             "announcement_created": "Najava — kreiran",
             "announcement_updated": "Najava — ažuriran",
             "announcement_published": "Najava — objavljena",

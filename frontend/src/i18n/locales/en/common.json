@@ -358,6 +358,7 @@
             "oncall_calendar_token_rotated": "On-call calendar token — rotated",
             "oncall_calendar_token_revoked": "On-call calendar token — revoked",
             "oncall_escalation_notified": "On-call escalation — notified",
+            "sla_escalation_audience_empty": "SLA escalation — no eligible recipient",
             "announcement_created": "Announcement — created",
             "announcement_updated": "Announcement — updated",
             "announcement_published": "Announcement — published",

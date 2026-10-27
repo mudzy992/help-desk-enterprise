@@ -109,6 +109,7 @@ export const knownAuditActions = [
   "oncall.calendar_token.rotated",
   "oncall.calendar_token.revoked",
   "oncall.escalation.notified",
+  "sla.escalation.audience_empty",
   "announcement.created",
   "announcement.updated",
   "announcement.published",

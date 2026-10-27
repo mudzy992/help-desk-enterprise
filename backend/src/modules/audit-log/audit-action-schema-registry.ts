@@ -122,6 +122,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.onCallCalendarTokenRotated]: schema([]),
   [auditLogActions.onCallCalendarTokenRevoked]: schema([]),
   [auditLogActions.onCallEscalationNotified]: schema(['groupId', 'ruleId', 'userId']),
+  [auditLogActions.slaEscalationAudienceEmpty]: schema(['organizationalUnitId', 'reason', 'ruleId', 'serviceId']),
   [auditLogActions.announcementCreated]: schema(['severity', 'title']),
   [auditLogActions.announcementUpdated]: schema(['status', 'version']),
   [auditLogActions.announcementPublished]: schema(['audienceSize', 'endsAt', 'startsAt']),
