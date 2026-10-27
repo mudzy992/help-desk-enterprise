@@ -49,7 +49,12 @@ export class HttpRequestExceptionFilter implements ExceptionFilter {
       const detail = exception instanceof Error
         ? (exception.stack ?? exception.message)
         : String(exception);
-      this.logger.error(`requestId=${requestId} unhandled_http_exception status=${status}`, detail);
+      // Keep the diagnostic in the primary message. ConsoleLogger treats trailing
+      // string arguments as logger context in some Nest versions/adapters, which
+      // can hide the actual stack from container logs.
+      this.logger.error(
+        `requestId=${requestId} unhandled_http_exception status=${status}\n${detail}`,
+      );
     }
     if (status === 503 && !(exception instanceof HttpException)) {
       response.setHeader('Retry-After', '2');
