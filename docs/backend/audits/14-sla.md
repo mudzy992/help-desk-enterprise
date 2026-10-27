@@ -257,6 +257,10 @@ Globalni acceptance:
 | BA-sla-15 | log/backlog bez delivery/integrity SLO-a           | 0–6   |
 | BA-sla-16 | Jest compile blokada i nedostajuća matrica         | 0–6   |
 
+## 17.1 Status implementacije
+
+- `BA-sla-01` je zatvoren u W5.31 (`9d00bb0`, CI `40547086540`). SLA state i runtime outbox intent sada se zapisuju atomski; zasebni retryable dispatcher koristi stabilan ticket/clock/transition/rule dedupe ključ i idempotentni sistemski event. Detaljni dokaz: [58-sla-durable-runtime-signal.md](../implementation/58-sla-durable-runtime-signal.md).
+
 ## 18. Konačna presuda i pretpostavke
 
 SLA domena ima široku funkcionalnu osnovu i više dobrih bounded/audit elemenata, ali trenutno nije pouzdana granica za exactly-once poslovne obaveze: state i delivery su razdvojeni, konkurentni writeri nisu koordinirani, scope permissiona se ne primjenjuje, a DST jezgra može proizvesti nemoguć deadline. Zato je iskren baseline **5,09/10**.

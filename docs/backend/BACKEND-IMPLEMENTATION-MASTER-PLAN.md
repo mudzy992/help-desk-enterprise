@@ -338,7 +338,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.30 izvršiva routing kritična matrica — završen** na SHA `6457460`, CI `40524653649`.
 - Obavezni izolovani generated-Prisma/PostgreSQL shard sada dokazuje scoped page/total bez foreign redova, parent fallback na velikom OU datasetu i concurrent optimistic update sa tačno jednim pobjednikom i ChangeLog zapisom. Time je zatvoren `BA-routing-11`; dokaz je u [57-routing-critical-postgresql-matrix.md](implementation/57-routing-critical-postgresql-matrix.md).
 - Registar je sada **626 otvorenih / 66 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.31 SLA durable breach/escalation signal (`BA-sla-01`)**.
+- **W5.31 SLA durable breach/escalation signal — završen** na SHA `9d00bb0`, CI `40547086540`.
+- SLA state i deterministički runtime intent sada se zapisuju u istoj PostgreSQL transakciji; zasebni reconciler pruža lease/retry/dead-letter delivery, a stabilni ticket/clock/transition/rule ključ i idempotentni system-event uklanjaju trajni gubitak i logičke duplikate. Time je zatvoren `BA-sla-01`; dokaz je u [58-sla-durable-runtime-signal.md](implementation/58-sla-durable-runtime-signal.md).
+- Registar je sada **625 otvorenih / 67 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.32 SLA concurrent scan/lifecycle coordination (`BA-sla-02`)**.
 
 ### Canonical primitive
 
