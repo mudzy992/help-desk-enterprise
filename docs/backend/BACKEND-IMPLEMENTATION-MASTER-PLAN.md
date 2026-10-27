@@ -335,7 +335,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.29 fail-closed OU ancestor integrity — završen** na SHA `361c52e`, CI `40521917956`.
 - DB-backed resolution i in-memory coverage walker više ne skraćuju oštećen OU ancestor lanac: cycle, missing parent i depth overflow vraćaju stabilan fail-closed integrity signal. Time je zatvoren `BA-routing-10`; dokaz je u [56-routing-ou-ancestor-integrity.md](implementation/56-routing-ou-ancestor-integrity.md).
 - Registar je sada **627 otvorenih / 65 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.30 izvršiva routing kritična matrica (`BA-routing-11`)**.
+- **W5.30 izvršiva routing kritična matrica — završen** na SHA `6457460`, CI `40524653649`.
+- Obavezni izolovani generated-Prisma/PostgreSQL shard sada dokazuje scoped page/total bez foreign redova, parent fallback na velikom OU datasetu i concurrent optimistic update sa tačno jednim pobjednikom i ChangeLog zapisom. Time je zatvoren `BA-routing-11`; dokaz je u [57-routing-critical-postgresql-matrix.md](implementation/57-routing-critical-postgresql-matrix.md).
+- Registar je sada **626 otvorenih / 66 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.31 SLA durable breach/escalation signal (`BA-sla-01`)**.
 
 ### Canonical primitive
 

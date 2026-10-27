@@ -121,7 +121,7 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | BA-routing-08 | P2       | Concurrent update je neoznačeni last-write-wins                 | zatvoreno |
 | BA-routing-09 | P3       | Coverage matrica nema item/byte/runtime budžet                  | zatvoreno |
 | BA-routing-10 | P3       | OU cycle/missing parent se tiho tretira kao kraj lanca          | zatvoreno |
-| BA-routing-11 | P3       | Kritične scoped/race/load grane nemaju izvršiv dokaz            | otvoreno |
+| BA-routing-11 | P3       | Kritične scoped/race/load grane nemaju izvršiv dokaz            | zatvoreno |
 
 ## 11. Detaljni nalazi
 
@@ -198,6 +198,8 @@ Ancestor walker prekida na cycle ili missing parent bez greške. Resolution tada
 ### BA-routing-11 — Nedostaje izvršiva kritična matrica
 
 Svih osam suiteova je lokalno compile-blocked. Postojeći fixture je pretežno global-reader happy path i nema foreign group, scoped pagination, deleted history, concurrent update ni large-tree test. Dodati generated-Prisma PostgreSQL suite i obavezni CI shard. **P3, M/L, routing/QA.**
+
+**Closeout:** W5.30 (`6457460`), zeleni CI `40524653649`; obavezni izolovani generated-Prisma/PostgreSQL shard sada dokazuje scoped keyset page/total bez foreign redova, parent fallback uz veliki OU dataset te concurrent optimistic update sa jednim pobjednikom i jednim ChangeLog zapisom. Harness test zaključava prisustvo suitea u CI integration matrici, a postojeći fokusirani suiteovi pokrivaju foreign target, activation, deleted history, budget i malformed ancestor grane. Dokaz: [57-routing-critical-postgresql-matrix.md](../implementation/57-routing-critical-postgresql-matrix.md). Paket nema novu DB migraciju.
 
 ## 12. Baseline score
 
