@@ -44,7 +44,7 @@ export class StatusIncidentStartDeliveryService {
     const policy = await loadNotificationPreferencePolicy(this.settings);
     let cursor: string | null = null;
     for (;;) {
-      const users = await this.prisma.user.findMany({
+      const users: Array<{ id: string }> = await this.prisma.user.findMany({
         where: {
           isActive: true,
           id: { ...(cursor === null ? {} : { gt: cursor }), not: payload.actorUserId },
