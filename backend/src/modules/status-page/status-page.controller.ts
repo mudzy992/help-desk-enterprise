@@ -10,8 +10,8 @@ import { statusViewerOf } from './status-viewer';
 /**
  * Paket 2.7 (§8): the status page for signed-in users. Reading is open to
  * every signed-in user (requesters see ALL_USERS incidents only); managing
- * incidents needs `status.incidents.manage`; linking a ticket needs staff
- * access to that ticket (checked in the service, like any ticket write).
+ * incidents needs resource-scoped `status.incidents.manage`; linking or
+ * unlinking also requires staff access to the ticket, so both resources pass.
  */
 @Controller('status')
 // Mutation scope is resolved against all incident services inside StatusIncidentsService.

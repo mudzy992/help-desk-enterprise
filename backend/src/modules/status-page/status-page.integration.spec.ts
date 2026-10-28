@@ -179,12 +179,20 @@ describeIfDatabase('status page (integration)', () => {
     await expect(incidents.edit(ids.staffIncident, { impact: 'DOWN' }, scopedActor)).rejects.toMatchObject({ status: 404 });
     await expect(incidents.addUpdate(ids.staffIncident, { status: 'IDENTIFIED', message: 'Neovlašten update' }, scopedActor)).rejects.toMatchObject({ status: 404 });
     await expect(incidents.resolvePreview(ids.staffIncident, scopedActor)).rejects.toMatchObject({ status: 404 });
+    const linksBefore = await prisma.ticketIncidentLink.count({ where: { ticketId: ids.ticket } });
+    const eventsBefore = await prisma.ticketMessage.count({ where: { ticketId: ids.ticket, type: 'SYSTEM_EVENT' } });
+    await expect(incidents.linkTicket(ids.staffIncident, ids.ticket, scopedActor)).rejects.toMatchObject({ status: 404 });
+    await expect(incidents.unlinkTicket(ids.staffIncident, ids.ticket, scopedActor)).rejects.toMatchObject({ status: 404 });
+    expect(await prisma.ticketIncidentLink.count({ where: { ticketId: ids.ticket } })).toBe(linksBefore);
+    expect(await prisma.ticketMessage.count({ where: { ticketId: ids.ticket, type: 'SYSTEM_EVENT' } })).toBe(eventsBefore);
 
     const own = await incidents.create(
       { title: 'VPN scoped', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Dozvoljen scoped incident' },
       scopedActor,
     );
     ids.scopedIncident = own.id;
+    await expect(incidents.linkTicket(own.id, ids.ticket, scopedActor)).resolves.toEqual({ linked: true });
+    await expect(incidents.unlinkTicket(own.id, ids.ticket, scopedActor)).resolves.toEqual({ unlinked: true });
     await expect(incidents.edit(own.id, { serviceIds: [ids.vpn, ids.mail] }, scopedActor)).rejects.toMatchObject({ status: 403 });
     await expect(incidents.addUpdate(own.id, { status: 'IDENTIFIED', message: 'Scoped update prolazi' }, scopedActor)).resolves.toEqual({ notified: 0 });
     await expect(

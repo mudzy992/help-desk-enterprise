@@ -34,6 +34,9 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
             : [{ ticketId: 't1' }, { ticketId: 't2' }],
         ),
       ),
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
       count: jest.fn().mockResolvedValue(2),
     },
     serviceIncidentSubscription: {
@@ -86,6 +89,34 @@ describe('StatusIncidentsService.addUpdate', () => {
     });
     expect(authorization.authorizeResource).toHaveBeenCalledTimes(2);
     expect((prisma.serviceIncident as { updateMany: jest.Mock }).updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each(['link', 'unlink'] as const)('conceals a foreign incident before %s ticket authorization or writes', async (operation) => {
+    const { service, prisma, authorization } = build(open);
+    authorization.authorizeResource.mockResolvedValue({ allowed: false, reason: 'NO_MATCHING_PERMISSION_SCOPE' });
+    const assertStaffTicket = jest.fn();
+    (service as unknown as { assertStaffTicket: typeof assertStaffTicket }).assertStaffTicket = assertStaffTicket;
+
+    const command = operation === 'link'
+      ? service.linkTicket('i1', 'ticket-1', actor)
+      : service.unlinkTicket('i1', 'ticket-1', actor);
+    await expect(command).rejects.toMatchObject({ response: { code: 'INCIDENT_NOT_FOUND' } });
+    expect(assertStaffTicket).not.toHaveBeenCalled();
+    expect((prisma.ticketIncidentLink as { create: jest.Mock }).create).not.toHaveBeenCalled();
+    expect((prisma.ticketIncidentLink as { deleteMany: jest.Mock }).deleteMany).not.toHaveBeenCalled();
+    expect(insertSystemTicketEvent).not.toHaveBeenCalled();
+  });
+
+  it('requires both incident manage authority and staff ticket access before linking', async () => {
+    const { service, prisma } = build(open);
+    const ticketDenied = new Error('ticket denied');
+    const assertStaffTicket = jest.fn().mockRejectedValue(ticketDenied);
+    (service as unknown as { assertStaffTicket: typeof assertStaffTicket }).assertStaffTicket = assertStaffTicket;
+
+    await expect(service.linkTicket('i1', 'ticket-1', actor)).rejects.toBe(ticketDenied);
+    expect(assertStaffTicket).toHaveBeenCalledWith('ticket-1', actor);
+    expect((prisma.ticketIncidentLink as { create: jest.Mock }).create).not.toHaveBeenCalled();
+    expect(insertSystemTicketEvent).not.toHaveBeenCalled();
   });
 
   it('rejects moving backwards', async () => {

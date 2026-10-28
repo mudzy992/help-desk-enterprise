@@ -267,6 +267,9 @@ export class StatusIncidentsService {
 
   /** Staff on a ticket they can work on; AGENT needs no extra permission (§9). */
   async linkTicket(incidentId: string, ticketId: string, actor: PrivacyActor): Promise<{ readonly linked: boolean }> {
+    // A cross-domain link requires authority over both resources. Check the
+    // incident first and conceal foreign incident IDs before loading content.
+    await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
     const incident = await this.load(incidentId);
     if (incident.status === 'RESOLVED') {
       throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident cannot take new tickets' });
@@ -296,6 +299,7 @@ export class StatusIncidentsService {
   }
 
   async unlinkTicket(incidentId: string, ticketId: string, actor: PrivacyActor): Promise<{ readonly unlinked: boolean }> {
+    await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
     const incident = await this.load(incidentId);
     await this.assertStaffTicket(ticketId, actor);
     return this.prisma.$transaction(async (transaction) => {
