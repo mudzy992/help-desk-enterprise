@@ -1,6 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
 import { loadBoundedSlaCompliance } from './load-bounded-sla-compliance';
+import { collectSlaObservability } from './collect-sla-observability';
+import { slaRuntimeEventOutboxTopic } from './persist-ticket-sla-runtime-transitions';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -23,11 +25,17 @@ describeIfDatabase('bounded SLA compliance aggregation (integration)', () => {
     const outOfScopeProfile = await prisma.slaProfile.create({ data: { key: `compliance-other-${stamp}`, name: 'Other scope', calendarId: calendar.id } });
     const completion = new Date('2026-10-20T12:00:00Z');
     const ticket = await prisma.ticket.create({ data: { ticketNumber: `C-${stamp}`, title: 'Compliance', description: 'proof', formData: {}, priority: 'LOW', impact: 'LOW', urgency: 'LOW', status: 'RESOLVED', resolvedAt: completion, serviceId: service.id, formVersionId: form.id, requesterId: requester.id, originUnitId: unit.id } as never });
-    await prisma.ticketSlaState.create({ data: { ticketId: ticket.id, slaProfileId: profile.id, startedAt: new Date('2026-10-19T12:00:00Z'), isResponseBreached: false, isResolutionBreached: true } });
+    await prisma.ticketSlaState.create({ data: { ticketId: ticket.id, slaProfileId: profile.id, startedAt: new Date('2026-10-19T12:00:00Z'), responseDueAt: new Date('2026-10-18T12:00:00Z'), isResponseBreached: false, isResolutionBreached: true } });
+    await prisma.outboxMessage.create({ data: { topic: slaRuntimeEventOutboxTopic, dedupeKey: `observe-${stamp}`, payload: {}, payloadHash: 'a'.repeat(64), expiresAt: new Date('2026-11-01T00:00:00Z') } });
     const result = await loadBoundedSlaCompliance(prisma as never, { organizationalUnitIds: [unit.id], window: { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-10-31T23:59:59Z') } });
     expect(result.profiles.find((row) => row.slaProfileId === profile.id)).toMatchObject({ sampleCount: 1, responseCompliancePercent: 100, resolutionCompliancePercent: 0 });
     expect(result.profiles.some((row) => row.slaProfileId === outOfScopeProfile.id)).toBe(false);
     expect(result.byUnit).toEqual(expect.arrayContaining([expect.objectContaining({ dimensionId: unit.id, sampleCount: 1 })]));
     expect(result.byService).toEqual(expect.arrayContaining([expect.objectContaining({ dimensionId: service.id, sampleCount: 1 })]));
+    const metrics = await collectSlaObservability(prisma as never, { now: new Date('2026-10-20T13:00:00Z'), schedulerRegistered: true });
+    expect(metrics.transitionOutbox.pending).toBeGreaterThanOrEqual(1);
+    expect(metrics.invalidDueBeforeStart).toBeGreaterThanOrEqual(1);
+    expect(metrics.configurationDrift).toBeGreaterThanOrEqual(1);
+    expect(metrics.schedulerRegistered).toBe(true);
   });
 });

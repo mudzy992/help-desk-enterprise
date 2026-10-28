@@ -18,6 +18,8 @@ import { login429WindowMinutes, type OpsSignals, type QueueSignal, type Schedule
 import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
 import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
 import { OpsStateStore } from './ops-state.store';
+import { collectSlaObservability } from '../sla/collect-sla-observability';
+import { slaScanQueueName, slaScanSchedulerId } from '../sla/sla-scan.constants';
 
 /**
  * Paket 2.7 (§4): gathers one round of signals in the worker. Every probe has
@@ -66,6 +68,17 @@ export class OpsSignalCollector implements OnModuleDestroy {
     const auditWebhookPendingSinceMs = database === 'ok' ? await this.auditWebhookPendingSince() : null;
     // Incident 2026-10-16: outbound mail paused by the provider (daily quota).
     const mailProviderBlock = redis === 'ok' ? await this.mailProviderBlock() : null;
+    const sla = database === 'ok'
+      ? await withTimeout(
+          () => collectSlaObservability(this.prisma, {
+            now,
+            schedulerRegistered: bull === null
+              ? null
+              : bull.schedulers.some((scheduler) => scheduler.queue === slaScanQueueName && scheduler.schedulerId === slaScanSchedulerId),
+          }),
+          opsProbeTimeouts.databaseMs,
+        ).catch(() => null)
+      : null;
     return {
       nowMs,
       database,
@@ -84,6 +97,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       captchaSkippedLastHour,
       auditWebhookPendingSinceMs,
       mailProviderBlock,
+      sla,
     };
   }
 

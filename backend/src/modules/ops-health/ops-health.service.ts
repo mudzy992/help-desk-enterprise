@@ -149,6 +149,7 @@ export class OpsHealthService {
         state: lateIds.has(`${scheduler.queue}/${scheduler.schedulerId}`) ? ('late' as const) : ('on_time' as const),
       })),
       queues: signals?.queues ?? [],
+      sla: signals?.sla ?? null,
       dlq: {
         integrationDlq: signals?.integrationDlq ?? null,
         growth: snapshot?.dlqGrowth ?? null,

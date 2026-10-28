@@ -1,4 +1,5 @@
 import { opsAlertKeys, type OpsAlertKey, type OpsAlertSeverity } from './ops-alert-catalog';
+import type { SlaObservabilitySignal } from '../sla/collect-sla-observability';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -91,6 +92,8 @@ export type OpsSignals = {
    * or `null` when the provider accepts mail. Read from Redis; a read failure is
    * `null`, so an unknown state never opens the alarm.
    */
+  /** SLA delivery, backlog, scheduler and timer-integrity metrics; null when DB probing failed. */
+  readonly sla?: SlaObservabilitySignal | null;
   readonly mailProviderBlock: {
     readonly reason: string;
     readonly openedAtMs: number;
