@@ -194,6 +194,8 @@ jobs:
         run: npm run test:safety-net:compile
       - name: Verify API/worker/scheduler/shutdown wiring
         run: npm run test:wiring
+      - name: Run executable SLA failure/concurrency/scope/DST matrix
+        run: npm run test:sla:matrix
       - run: npm test -- --ci --coverage=false
 
   backend-integration:
