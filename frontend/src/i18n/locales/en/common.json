@@ -958,6 +958,7 @@
           "problem_sweep_hourly": "Problem due-date scan",
           "report_schedules_5min": "Scheduled report delivery",
           "sla_scan_every_minute": "SLA scan and escalations",
+          "status_incident_start_delivery_every_minute": "Status incident start notifications",
           "ticket_archive_quarter_hourly": "Closed-ticket archiving",
           "ticket_time_tracking_sweep_5min": "Open time-entry cleanup",
           "unrouted_sweep_quarter_hourly": "Unrouted-ticket processing",

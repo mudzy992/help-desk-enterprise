@@ -965,6 +965,7 @@
           "problem_sweep_hourly": "Provjera rokova problema",
           "report_schedules_5min": "Izvršavanje zakazanih izvještaja",
           "sla_scan_every_minute": "SLA provjera i eskalacije",
+          "status_incident_start_delivery_every_minute": "Obavijesti o početku status incidenta",
           "ticket_archive_quarter_hourly": "Arhiviranje zatvorenih tiketa",
           "ticket_time_tracking_sweep_5min": "Zatvaranje otvorenih mjerenja vremena",
           "unrouted_sweep_quarter_hourly": "Obrada neusmjerenih tiketa",
