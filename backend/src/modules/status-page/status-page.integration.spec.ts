@@ -251,7 +251,7 @@ describeIfDatabase('status page (integration)', () => {
     const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
     const result = await incidents.addUpdate(ids.incident, { status: 'RESOLVED', message: 'Certifikat obnovljen' }, operator);
     expect(result.notified).toBe(0);
-    expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentResolutionDeliveryTopic, dedupeKey: ids.incident, status: 'PENDING' } })).toBe(1);
+    expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentResolutionDeliveryTopic, dedupeKey: `resolution:${ids.incident}`, status: 'PENDING' } })).toBe(1);
     expect(await startDelivery.runSweep()).toBe(1);
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
     expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore + 1);

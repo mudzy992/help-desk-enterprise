@@ -234,7 +234,7 @@ export class StatusIncidentsService {
       if (resolving && input.notifyOnResolve !== false) {
         await this.outbox.enqueue(transaction as never, {
           topic: statusIncidentResolutionDeliveryTopic,
-          dedupeKey: current.id,
+          dedupeKey: `resolution:${current.id}`,
           payload: {
             incidentId: current.id,
             actorUserId: actor.principal.subjectId,
