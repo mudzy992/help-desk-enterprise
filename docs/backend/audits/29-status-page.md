@@ -124,7 +124,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | ----------------- | -------- | ---------------------------------------------------------------------------------------------- | -------- |
 | BA-status-page-01 | P1       | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters               | zatvoreno |
 | BA-status-page-02 | P1       | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima       | zatvoreno |
-| BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | otvoreno |
+| BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | zatvoreno |
 | BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | otvoreno |
 | BA-status-page-05 | P1       | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno |
 | BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | otvoreno |
@@ -218,3 +218,7 @@ Na SHA `e60e997`, uz potpuno zeleni CI `40732153002`, status viewer razdvaja glo
 ## Implementacijski closeout — W6.2 (`BA-status-page-02`, `BA-status-page-09`)
 
 Na SHA `55a5de0` i korekciji testnog dokaza `d51ecb6`, uz potpuno zeleni CI `40735765271`, create/edit/update/resolve-preview koriste centralni `AuthorizationService.authorizeResource` nad svakim incident servisom. Foreign mutation je skrivena not-found granicom, dok create i pokušaj dodavanja foreign service ID-a fail-closed odbijaju zahtjev. Stvarni PostgreSQL cross-service scenarij potvrđuje i pozitivnu i negativnu putanju. Link/unlink ostaju u zasebnom `BA-status-page-07` opsegu. Dokaz: [75-status-page-resource-scoped-mutations.md](../implementation/75-status-page-resource-scoped-mutations.md). Paket nema DB migraciju.
+
+## Implementacijski closeout — W6.3 (`BA-status-page-03`)
+
+Na SHA `77c6662`, audit-schema korekciji `6fedf3a` i testnoj izolaciji `deb23bd`, uz potpuno zeleni CI `40760712472`, `ALL_USERS → STAFF_ONLY` atomski opoziva postojeće subscriptione. Edit, subscribe i resolve dijele per-incident PostgreSQL advisory lock, subscribe koristi resource-aware viewer predikat, a audit bilježi samo broj opozvanih redova. Stvarni PostgreSQL dokaz potvrđuje da requester i foreign-service staff ne mogu ponovo subscribeati niti dobiti interni resolution sadržaj, dok odgovarajući scoped staff može. Dokaz: [76-status-page-visibility-transition-subscription-revocation.md](../implementation/76-status-page-visibility-transition-subscription-revocation.md). Paket nema DB migraciju.
