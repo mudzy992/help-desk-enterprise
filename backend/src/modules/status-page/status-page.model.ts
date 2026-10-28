@@ -23,6 +23,10 @@ export const statusPageLimits = {
   ticketsPerCreateMax: 100,
   openIncidentsListed: 100,
   historyIncidentsListed: 200,
+  /** Nested overview payload and explicit timeline page sizes. */
+  timelineUpdatesEmbedded: 20,
+  timelineUpdatesPageDefault: 50,
+  timelineUpdatesPageMax: 100,
   plannedWindowDays: 14,
   /** Public page: responses cached per process, requests limited per IP. */
   publicCacheMs: 30_000,

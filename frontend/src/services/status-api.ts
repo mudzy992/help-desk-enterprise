@@ -32,8 +32,10 @@ export type Incident = {
   readonly startedAt: string;
   readonly resolvedAt: string | null;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
-  /** Newest first. */
+  /** Newest first; overview embeds a bounded first page. */
   readonly updates: readonly IncidentUpdate[];
+  readonly updatesHasMore?: boolean;
+  readonly updatesNextCursor?: string | null;
   readonly linkedTicketCount: number | null;
   readonly subscriberCount: number | null;
   readonly subscribed: boolean;
@@ -136,6 +138,16 @@ export function postIncidentUpdate(
   },
 ): Promise<{ readonly notified: number }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/updates`, json("POST", input));
+}
+export function listIncidentTimeline(
+  incidentId: string,
+  input: { readonly cursor?: string; readonly take?: number } = {},
+): Promise<{ readonly items: readonly IncidentUpdate[]; readonly hasMore: boolean; readonly nextCursor: string | null }> {
+  const query = new URLSearchParams();
+  if (input.cursor !== undefined) query.set("cursor", input.cursor);
+  if (input.take !== undefined) query.set("take", String(input.take));
+  const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+  return apiRequest(`/status/incidents/${id(incidentId)}/timeline${suffix}`);
 }
 export function getResolvePreview(incidentId: string): Promise<ResolvePreview> {
   return apiRequest(`/status/incidents/${id(incidentId)}/resolve-preview`);

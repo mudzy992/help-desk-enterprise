@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, Patch, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
-import { AddIncidentUpdateDto, CreateIncidentDto, LinkTicketDto, UpdateIncidentDto } from './status-page.dto';
+import { AddIncidentUpdateDto, CreateIncidentDto, IncidentTimelineQueryDto, LinkTicketDto, UpdateIncidentDto } from './status-page.dto';
 import { StatusIncidentsService } from './status-incidents.service';
 import { StatusPageService } from './status-page.service';
 import { statusViewerOf } from './status-viewer';
@@ -67,6 +67,13 @@ export class StatusPageController {
   @HttpCode(200)
   addUpdate(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: AddIncidentUpdateDto) {
     return this.incidents.addUpdate(id, body, privacyActorOf(request));
+  }
+
+  @Get('incidents/:id/timeline')
+  @Header('Cache-Control', 'no-store')
+  timeline(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Query() query: IncidentTimelineQueryDto) {
+    const actor = privacyActorOf(request);
+    return this.page.timeline(id, statusViewerOf(request, actor.principal.subjectId), query);
   }
 
   @Get('incidents/:id/resolve-preview')

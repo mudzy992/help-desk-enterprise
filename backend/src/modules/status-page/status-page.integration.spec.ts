@@ -229,6 +229,37 @@ describeIfDatabase('status page (integration)', () => {
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
   });
 
+  it('bounds embedded timelines and keyset-paginates the complete timeline', async () => {
+    const created = await incidents.create(
+      { title: 'Duga vremenska linija', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Početna objava' },
+      operator,
+    );
+    await prisma.serviceIncidentUpdate.createMany({
+      data: Array.from({ length: 24 }, (_, index) => ({
+        incidentId: created.id,
+        status: 'INVESTIGATING',
+        message: `Objava ${index + 1}`,
+        authorUserId: ids.op,
+        createdAt: new Date(Date.now() + index * 1_000),
+      })),
+    });
+    const embedded = await page.incident(created.id, staffView);
+    expect(embedded.updates).toHaveLength(20);
+    expect(embedded.updatesHasMore).toBe(true);
+    expect(embedded.updatesNextCursor).toBe(embedded.updates.at(-1)?.id);
+
+    const first = await page.timeline(created.id, staffView, { take: 10 });
+    expect(first.items).toHaveLength(10);
+    expect(first.hasMore).toBe(true);
+    const second = await page.timeline(created.id, staffView, { take: 10, cursor: first.nextCursor ?? undefined });
+    expect(second.items).toHaveLength(10);
+    expect(new Set([...first.items, ...second.items].map((item) => item.id)).size).toBe(20);
+    const tail = await page.timeline(created.id, staffView, { take: 10, cursor: second.nextCursor ?? undefined });
+    expect(tail.items).toHaveLength(5);
+    expect(tail).toMatchObject({ hasMore: false, nextCursor: null });
+    await expect(page.timeline(created.id, mailScopedView, { take: 10 })).rejects.toMatchObject({ status: 404 });
+  });
+
   it('links a ticket once and writes a staff-only system event', async () => {
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: true });
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: false });

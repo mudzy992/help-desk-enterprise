@@ -92,6 +92,8 @@ export function toPublicStatusPage(view: StatusPageView): PublicStatusPage {
       createdAt: update.createdAt,
       authorName: null,
     })),
+    updatesHasMore: incident.updatesHasMore,
+    updatesNextCursor: incident.updatesNextCursor,
     linkedTicketCount: null,
     subscriberCount: null,
     subscribed: false,

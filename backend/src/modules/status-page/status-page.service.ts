@@ -51,6 +51,9 @@ export type IncidentView = {
   readonly resolvedAt: string | null;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   readonly updates: readonly IncidentUpdateView[];
+  /** The embedded overview is deliberately bounded; use the timeline endpoint for older entries. */
+  readonly updatesHasMore: boolean;
+  readonly updatesNextCursor: string | null;
   /** Staff only (null for requesters and the public page). */
   readonly linkedTicketCount: number | null;
   readonly subscriberCount: number | null;
@@ -265,6 +268,38 @@ export class StatusPageService {
     return found;
   }
 
+  async timeline(
+    id: string,
+    viewer: StatusViewer,
+    input: { readonly cursor?: string; readonly take: number },
+  ): Promise<{ readonly items: readonly IncidentUpdateView[]; readonly hasMore: boolean; readonly nextCursor: string | null }> {
+    const visible = await this.prisma.serviceIncident.findFirst({
+      where: withIncidentVisibility({ id }, viewer) as never,
+      select: { id: true },
+    });
+    if (visible === null) throw new NotFoundException({ code: 'INCIDENT_NOT_FOUND', message: 'Incident not found' });
+    const rows = await this.prisma.serviceIncidentUpdate.findMany({
+      where: { incidentId: id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: input.take + 1,
+      ...(input.cursor === undefined ? {} : { cursor: { id: input.cursor }, skip: 1 }),
+      select: { id: true, status: true, message: true, createdAt: true, authorUserId: true },
+    });
+    const hasMore = rows.length > input.take;
+    const page = hasMore ? rows.slice(0, input.take) : rows;
+    const authorIds = viewer.isStaff
+      ? [...new Set(page.map((update) => update.authorUserId).filter((authorId): authorId is string => authorId !== null))]
+      : [];
+    const authors = authorIds.length === 0
+      ? new Map<string, string>()
+      : new Map((await this.prisma.user.findMany({ where: { id: { in: authorIds } }, select: { id: true, displayName: true } })).map((user) => [user.id, user.displayName]));
+    return {
+      items: page.map((update) => toIncidentUpdateView(update, viewer, authors)),
+      hasMore,
+      nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
+    };
+  }
+
   private async loadIncidents(where: Record<string, unknown>, viewer: StatusViewer, take: number): Promise<IncidentView[]> {
     const rows = (await this.prisma.serviceIncident.findMany({
       where: where as never,
@@ -280,7 +315,11 @@ export class StatusPageService {
         startedAt: true,
         resolvedAt: true,
         services: { select: { service: { select: { id: true, name: true } } } },
-        updates: { orderBy: { createdAt: 'desc' }, select: { id: true, status: true, message: true, createdAt: true, authorUserId: true } },
+        updates: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: statusPageLimits.timelineUpdatesEmbedded + 1,
+          select: { id: true, status: true, message: true, createdAt: true, authorUserId: true },
+        },
         _count: { select: { tickets: true, subscriptions: true } },
         subscriptions: { where: { userId: viewer.userId ?? '__none__' }, select: { userId: true } },
       },
@@ -343,16 +382,29 @@ export function toIncidentView(row: IncidentRecord, viewer: StatusViewer, author
     startedAt: row.startedAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
     services: row.services.map((entry) => entry.service).sort((left, right) => left.name.localeCompare(right.name)),
-    updates: row.updates.map((update) => ({
-      id: update.id,
-      status: update.status,
-      message: update.message,
-      createdAt: update.createdAt.toISOString(),
-      authorName: viewer.isStaff && update.authorUserId !== null ? (authors.get(update.authorUserId) ?? null) : null,
-    })),
+    updates: row.updates.slice(0, statusPageLimits.timelineUpdatesEmbedded).map((update) => toIncidentUpdateView(update, viewer, authors)),
+    updatesHasMore: row.updates.length > statusPageLimits.timelineUpdatesEmbedded,
+    updatesNextCursor:
+      row.updates.length > statusPageLimits.timelineUpdatesEmbedded
+        ? (row.updates.at(statusPageLimits.timelineUpdatesEmbedded - 1)?.id ?? null)
+        : null,
     linkedTicketCount: viewer.isStaff ? row._count.tickets : null,
     subscriberCount: viewer.isStaff ? row._count.subscriptions : null,
     subscribed: row.subscriptions.length > 0,
+  };
+}
+
+function toIncidentUpdateView(
+  update: { readonly id: string; readonly status: string; readonly message: string; readonly createdAt: Date; readonly authorUserId: string | null },
+  viewer: StatusViewer,
+  authors: ReadonlyMap<string, string>,
+): IncidentUpdateView {
+  return {
+    id: update.id,
+    status: update.status,
+    message: update.message,
+    createdAt: update.createdAt.toISOString(),
+    authorName: viewer.isStaff && update.authorUserId !== null ? (authors.get(update.authorUserId) ?? null) : null,
   };
 }
 

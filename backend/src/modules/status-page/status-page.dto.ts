@@ -7,9 +7,12 @@ import {
   IsBoolean,
   IsIn,
   IsISO8601,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 import {
@@ -142,4 +145,19 @@ export class IncidentHistoryQueryDto {
   @IsOptional()
   @IsIn(['open', 'resolved', 'all'])
   scope?: 'open' | 'resolved' | 'all';
+}
+
+export class IncidentTimelineQueryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(statusPageLimits.timelineUpdatesPageMax)
+  take: number = statusPageLimits.timelineUpdatesPageDefault;
 }
