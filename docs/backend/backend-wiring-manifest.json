@@ -9655,7 +9655,8 @@
         "AssetRemindersWorkerModule",
         "AssetDirectorySyncWorkerModule",
         "ProblemSweepWorkerModule",
-        "ChangeSweepWorkerModule"
+        "ChangeSweepWorkerModule",
+        "StatusPageWorkerModule"
       ],
       "controllers": [],
       "providers": [

@@ -27,6 +27,7 @@ import { TimeTrackingSweepWorkerModule } from './modules/tickets/time-tracking/t
 import { UnroutedSweepWorkerModule } from './modules/tickets/unrouted/unrouted-sweep-worker.module';
 import { DirectorySyncWorkerModule } from './modules/directory-sync/ldaps/directory-sync-worker.module';
 import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/waiting-for-user-worker.module';
+import { StatusPageWorkerModule } from './modules/status-page/status-page-worker.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     AssetDirectorySyncWorkerModule,
     ProblemSweepWorkerModule,
     ChangeSweepWorkerModule,
+    StatusPageWorkerModule,
   ],
   providers: [WorkerScheduleReconcilerService],
 })

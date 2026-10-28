@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
@@ -16,15 +17,13 @@ import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import type { AddIncidentUpdateDto, CreateIncidentDto, UpdateIncidentDto } from './status-page.dto';
+import { statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
 import { withIncidentVisibility, type StatusViewer } from './status-page.service';
 import {
   isIncidentStatusTransitionAllowed,
   openIncidentStatuses,
-  statusPageLimits,
   type IncidentStatus,
 } from './status-page.model';
-
-const openTicketStatuses = ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_USER'] as const;
 
 type IncidentRow = {
   id: string;
@@ -59,6 +58,7 @@ export type IncidentNotifyResult = { readonly notified: number };
 @Injectable()
 export class StatusIncidentsService {
   private readonly logger = new Logger(StatusIncidentsService.name);
+  private readonly outbox: TransactionalOutboxService;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -66,7 +66,9 @@ export class StatusIncidentsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly authorization: AuthorizationService,
-  ) {}
+  ) {
+    this.outbox = new TransactionalOutboxService(prisma);
+  }
 
   async create(input: CreateIncidentDto, actor: PrivacyActor, now: Date = new Date()): Promise<{ readonly id: string; readonly notified: number }> {
     const serviceIds = await this.assertServices(input.serviceIds);
@@ -111,13 +113,18 @@ export class StatusIncidentsService {
         requestId: actor.requestId,
         organizationalUnitId: null,
       });
+      if (input.notifyOpenTicketHolders === true && visibility === 'ALL_USERS') {
+        await this.outbox.enqueue(transaction as never, {
+          topic: statusIncidentStartDeliveryTopic,
+          dedupeKey: created.id,
+          payload: { incidentId: created.id, actorUserId: actor.principal.subjectId, serviceIds },
+          maxAttempts: 25,
+        });
+      }
       return created;
     });
-    const notified =
-      input.notifyOpenTicketHolders === true && visibility === 'ALL_USERS'
-        ? await this.notifyStart(incident, serviceIds, actor.principal.subjectId)
-        : 0;
-    return { id: incident.id, notified };
+    // Delivery is durable and asynchronous; `notified` now reports synchronous writes only.
+    return { id: incident.id, notified: 0 };
   }
 
   async edit(id: string, input: UpdateIncidentDto, actor: PrivacyActor): Promise<void> {
@@ -412,17 +419,6 @@ export class StatusIncidentsService {
       select: { ticket: { select: { requesterId: true } } },
     });
     return [...new Set(rows.map((row) => row.ticket.requesterId))];
-  }
-
-  private async notifyStart(incident: IncidentRow, serviceIds: readonly string[], actorUserId: string): Promise<number> {
-    const rows = await this.prisma.ticket.findMany({
-      where: { serviceId: { in: [...serviceIds] }, status: { in: [...openTicketStatuses] }, requester: { isActive: true } },
-      select: { requesterId: true },
-      distinct: ['requesterId'],
-      take: statusPageLimits.startNotifyMaxRecipients,
-    });
-    const recipients = rows.map((row) => row.requesterId).filter((userId) => userId !== actorUserId);
-    return this.fanOut(recipients, notificationTypes.statusIncidentStarted, incident, incident.title, `status-incident-start:${incident.id}`);
   }
 
   private async notifyResolved(incident: IncidentRow, message: string, actorUserId: string, now: Date): Promise<number> {

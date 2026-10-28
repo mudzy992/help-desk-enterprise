@@ -6,6 +6,7 @@
  * exercised.
  */
 import { PrismaPg } from '@prisma/adapter-pg';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaClient } from '../../generated/prisma/client';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationService } from '../authorization/authorization.service';
@@ -14,6 +15,8 @@ import type { PrivacyActor } from '../privacy/privacy-actor';
 import { loadOpenIncidentImpacts } from '../service-catalog/load-open-incident-impacts';
 import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/parse-service-availability-configuration';
 import { StatusIncidentsService } from './status-incidents.service';
+import { statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
 import { StatusPageService, type StatusViewer } from './status-page.service';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -23,6 +26,7 @@ describeIfDatabase('status page (integration)', () => {
   jest.setTimeout(120_000);
   let prisma: PrismaClient;
   let incidents: StatusIncidentsService;
+  let startDelivery: StatusIncidentStartDeliveryService;
   let page: StatusPageService;
   const stamp = Date.now();
   const ids: Record<string, string> = {};
@@ -60,6 +64,7 @@ describeIfDatabase('status page (integration)', () => {
       prisma as never,
     );
     incidents = new StatusIncidentsService(prisma as never, settings as never, {} as never, {} as never, authorization);
+    startDelivery = new StatusIncidentStartDeliveryService(prisma as never, new TransactionalOutboxService(prisma as never), settings as never);
     // Ticket access is not under test here.
     (incidents as unknown as { assertStaffTicket: () => Promise<void> }).assertStaffTicket = async () => undefined;
     const { now: _now, ...bundle } = defaultServiceAvailabilityEvaluationContext();
@@ -131,7 +136,9 @@ describeIfDatabase('status page (integration)', () => {
       operator,
     );
     ids.incident = created.id;
-    expect(created.notified).toBe(1);
+    expect(created.notified).toBe(0);
+    expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentStartDeliveryTopic, dedupeKey: created.id, status: 'PENDING' } })).toBe(1);
+    expect(await startDelivery.runSweep()).toBe(1);
     expect(await notificationsFor(ids.requester, 'status.incidentStarted')).toBe(1);
     expect(await notificationsFor(ids.closedRequester, 'status.incidentStarted')).toBe(0);
 
