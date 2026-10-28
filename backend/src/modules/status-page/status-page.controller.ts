@@ -92,7 +92,7 @@ export class StatusPageController {
   subscribe(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
     const actor = privacyActorOf(request);
     const viewer = statusViewerOf(request, actor.principal.subjectId);
-    return this.incidents.subscribe(id, actor.principal.subjectId, viewer.isStaff);
+    return this.incidents.subscribe(id, { ...viewer, userId: actor.principal.subjectId });
   }
 
   @Delete('incidents/:id/subscription')

@@ -16,6 +16,7 @@ import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import type { AddIncidentUpdateDto, CreateIncidentDto, UpdateIncidentDto } from './status-page.dto';
+import { withIncidentVisibility, type StatusViewer } from './status-page.service';
 import {
   isIncidentStatusTransitionAllowed,
   openIncidentStatuses,
@@ -139,6 +140,12 @@ export class StatusIncidentsService {
       .map(([key]) => key);
     if (changed.length === 0) return;
     await this.prisma.$transaction(async (transaction) => {
+      await lockStatusIncident(transaction as never, id);
+      const locked = await transaction.serviceIncident.findUnique({ where: { id }, select: { visibility: true, status: true } });
+      if (locked === null) throw notFound();
+      if (locked.status === 'RESOLVED') {
+        throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident can no longer be edited' });
+      }
       await transaction.serviceIncident.update({
         where: { id },
         data: {
@@ -148,6 +155,10 @@ export class StatusIncidentsService {
           ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
         },
       });
+      const revokedSubscriptions =
+        locked.visibility === 'ALL_USERS' && input.visibility === 'STAFF_ONLY'
+          ? await transaction.serviceIncidentSubscription.deleteMany({ where: { incidentId: id } })
+          : { count: 0 };
       if (serviceIds !== undefined) {
         await transaction.serviceIncidentService.deleteMany({ where: { incidentId: id, serviceId: { notIn: serviceIds } } });
         await transaction.serviceIncidentService.createMany({
@@ -162,7 +173,8 @@ export class StatusIncidentsService {
         metadata: {
           changed,
           ...(input.impact === undefined ? {} : { impact: { from: current.impact, to: input.impact } }),
-          ...(input.visibility === undefined ? {} : { visibility: { from: current.visibility, to: input.visibility } }),
+          ...(input.visibility === undefined ? {} : { visibility: { from: locked.visibility, to: input.visibility } }),
+          ...(revokedSubscriptions.count === 0 ? {} : { revokedSubscriptions: revokedSubscriptions.count }),
           ...(serviceIds === undefined ? {} : { serviceIds }),
         },
         actorUserId: actor.principal.subjectId,
@@ -177,6 +189,7 @@ export class StatusIncidentsService {
     await this.requireManageServices(await this.incidentServiceIds(id), actor, true);
     const resolving = input.status === 'RESOLVED';
     const incident = await this.prisma.$transaction(async (transaction) => {
+      await lockStatusIncident(transaction as never, id);
       const current = (await transaction.serviceIncident.findUnique({ where: { id }, select: incidentSelect })) as IncidentRow | null;
       if (current === null) throw notFound();
       if (!isIncidentStatusTransitionAllowed(current.status as IncidentStatus, input.status)) {
@@ -295,19 +308,25 @@ export class StatusIncidentsService {
     });
   }
 
-  /** "Notify me when resolved" - only for incidents the viewer can see. */
-  async subscribe(incidentId: string, userId: string, canSeeStaffOnly: boolean): Promise<{ readonly subscribed: true }> {
-    const incident = await this.load(incidentId);
-    if (incident.visibility === 'STAFF_ONLY' && !canSeeStaffOnly) throw notFound();
-    if (incident.status === 'RESOLVED') {
-      throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'The incident is already resolved' });
-    }
-    await this.prisma.serviceIncidentSubscription.upsert({
-      where: { incidentId_userId: { incidentId, userId } },
-      create: { incidentId, userId },
-      update: {},
+  /** "Notify me when resolved" - serialized with visibility transitions. */
+  async subscribe(incidentId: string, viewer: StatusViewer & { readonly userId: string }): Promise<{ readonly subscribed: true }> {
+    return this.prisma.$transaction(async (transaction) => {
+      await lockStatusIncident(transaction as never, incidentId);
+      const incident = await transaction.serviceIncident.findFirst({
+        where: withIncidentVisibility({ id: incidentId }, viewer) as never,
+        select: { status: true },
+      });
+      if (incident === null) throw notFound();
+      if (incident.status === 'RESOLVED') {
+        throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'The incident is already resolved' });
+      }
+      await transaction.serviceIncidentSubscription.upsert({
+        where: { incidentId_userId: { incidentId, userId: viewer.userId } },
+        create: { incidentId, userId: viewer.userId },
+        update: {},
+      });
+      return { subscribed: true };
     });
-    return { subscribed: true };
   }
 
   async unsubscribe(incidentId: string, userId: string): Promise<{ readonly subscribed: false }> {
@@ -461,6 +480,10 @@ export class StatusIncidentsService {
     }
     return sent;
   }
+}
+
+async function lockStatusIncident(transaction: { readonly $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<unknown> }, incidentId: string): Promise<void> {
+  await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`status-incident:${incidentId}`}, 0))`;
 }
 
 /** `<incidentId>|<title>` - the client links the id and shows the title. */

@@ -21,6 +21,7 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
   const prisma: Record<string, unknown> = {
     serviceIncident: {
       findUnique: jest.fn().mockResolvedValue(incident),
+      update: jest.fn().mockResolvedValue(incident),
       updateMany: jest.fn().mockResolvedValue({ count: options.moved ?? 1 }),
     },
     serviceIncidentUpdate: { create: jest.fn().mockResolvedValue({}) },
@@ -37,9 +38,11 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
     },
     serviceIncidentSubscription: {
       findMany: jest.fn().mockResolvedValue([{ userId: 'sub1' }, { userId: 'op' }]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
       updateMany: jest.fn().mockResolvedValue({ count: 2 }),
     },
   };
+  prisma.$executeRaw = jest.fn().mockResolvedValue(1);
   prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
   const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
   const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, {} as never, authorization as never);
@@ -59,6 +62,13 @@ const open = {
 
 describe('StatusIncidentsService.addUpdate', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('revokes subscriptions in the same transaction as an ALL_USERS to STAFF_ONLY edit', async () => {
+    const { service, prisma } = build(open);
+    await service.edit('i1', { visibility: 'STAFF_ONLY' }, actor);
+    expect((prisma.serviceIncidentSubscription as { deleteMany: jest.Mock }).deleteMany).toHaveBeenCalledWith({ where: { incidentId: 'i1' } });
+    expect(lastAudit()).toMatchObject({ metadata: { visibility: { from: 'ALL_USERS', to: 'STAFF_ONLY' }, revokedSubscriptions: 2 } });
+  });
 
   it('requires manage permission for every incident service before mutation', async () => {
     const { service, prisma, authorization } = build(open);

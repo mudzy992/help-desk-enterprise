@@ -160,7 +160,7 @@ describeIfDatabase('status page (integration)', () => {
     expect((await page.page(requesterView)).activeIncidents.map((incident) => incident.id)).not.toContain(created.id);
     expect((await page.page(staffView)).activeIncidents.map((incident) => incident.id)).toContain(created.id);
     expect((await loadOpenIncidentImpacts(prisma as never, [ids.mail])).size).toBe(0);
-    await expect(incidents.subscribe(created.id, ids.requester, false)).rejects.toMatchObject({ status: 404 });
+    await expect(incidents.subscribe(created.id, requesterView as StatusViewer & { userId: string })).rejects.toMatchObject({ status: 404 });
     expect((await page.openForService(ids.mail, requesterView)).length).toBe(0);
   });
 
@@ -186,7 +186,7 @@ describeIfDatabase('status page (integration)', () => {
   });
 
   it('enforces service-scoped STAFF_ONLY reads across overview, incident and service paths', async () => {
-    await incidents.subscribe(ids.staffIncident, ids.subscriber, true);
+    await incidents.subscribe(ids.staffIncident, { ...mailScopedView, userId: ids.subscriber });
 
     const mailOverview = await page.page(mailScopedView);
     const visible = mailOverview.activeIncidents.find((incident) => incident.id === ids.staffIncident);
@@ -200,6 +200,27 @@ describeIfDatabase('status page (integration)', () => {
     await expect(page.incident(ids.staffIncident, vpnScopedView)).rejects.toMatchObject({ status: 404 });
   });
 
+  it('atomically revokes public subscribers when visibility becomes STAFF_ONLY', async () => {
+    const created = await incidents.create(
+      { title: 'Visibility transition', impact: 'DEGRADED', serviceIds: [ids.mail], message: 'Public update' },
+      operator,
+    );
+    await incidents.subscribe(created.id, requesterView as StatusViewer & { userId: string });
+    expect(await prisma.serviceIncidentSubscription.count({ where: { incidentId: created.id } })).toBe(1);
+
+    await incidents.edit(created.id, { visibility: 'STAFF_ONLY' }, operator);
+    expect(await prisma.serviceIncidentSubscription.count({ where: { incidentId: created.id } })).toBe(0);
+    await expect(incidents.subscribe(created.id, requesterView as StatusViewer & { userId: string })).rejects.toMatchObject({ status: 404 });
+    await expect(incidents.subscribe(created.id, { ...vpnScopedView, userId: ids.scoped })).rejects.toMatchObject({ status: 404 });
+
+    await incidents.subscribe(created.id, { ...mailScopedView, userId: ids.subscriber });
+    const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
+    const subscriberBefore = await notificationsFor(ids.subscriber, 'status.incidentResolved');
+    await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Internal resolution' }, operator);
+    expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore);
+    expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
+  });
+
   it('links a ticket once and writes a staff-only system event', async () => {
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: true });
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: false });
@@ -211,8 +232,8 @@ describeIfDatabase('status page (integration)', () => {
   });
 
   it('previews and resolves: subscribers and linked requesters, each once, subscriptions marked', async () => {
-    await incidents.subscribe(ids.incident, ids.subscriber, false);
-    await incidents.subscribe(ids.incident, ids.requester, false);
+    await incidents.subscribe(ids.incident, { ...requesterView, userId: ids.subscriber });
+    await incidents.subscribe(ids.incident, requesterView as StatusViewer & { userId: string });
     expect((await page.incident(ids.incident, { userId: ids.subscriber, isStaff: false, canManage: false })).subscribed).toBe(true);
     expect(await incidents.resolvePreview(ids.incident, operator)).toEqual({ subscribers: 2, requesters: 1, recipients: 2, linkedTickets: 1 });
 
