@@ -62,6 +62,7 @@ const open = {
   visibility: 'ALL_USERS',
   startedAt: new Date('2026-01-01T10:00:00Z'),
   resolvedAt: null,
+  updatedAt: new Date('2026-01-01T10:00:00Z'),
 };
 
 describe('StatusIncidentsService.addUpdate', () => {

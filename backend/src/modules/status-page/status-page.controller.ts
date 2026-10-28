@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Headers, HttpCode, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
@@ -59,8 +59,13 @@ export class StatusPageController {
 
   @Patch('incidents/:id')
   @HttpCode(204)
-  async edit(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: UpdateIncidentDto) {
-    await this.incidents.edit(id, body, privacyActorOf(request));
+  async edit(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Body() body: UpdateIncidentDto,
+    @Headers('if-match') revision?: string,
+  ) {
+    await this.incidents.edit(id, body, privacyActorOf(request), requiredRevision(revision));
   }
 
   @Post('incidents/:id/updates')
@@ -84,14 +89,24 @@ export class StatusPageController {
 
   @Post('incidents/:id/tickets')
   @HttpCode(200)
-  linkTicket(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: LinkTicketDto) {
-    return this.incidents.linkTicket(id, body.ticketId, privacyActorOf(request));
+  linkTicket(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Body() body: LinkTicketDto,
+    @Headers('if-match') revision?: string,
+  ) {
+    return this.incidents.linkTicket(id, body.ticketId, privacyActorOf(request), requiredRevision(revision));
   }
 
   @Delete('incidents/:id/tickets/:ticketId')
   @HttpCode(200)
-  unlinkTicket(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('ticketId') ticketId: string) {
-    return this.incidents.unlinkTicket(id, ticketId, privacyActorOf(request));
+  unlinkTicket(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Param('ticketId') ticketId: string,
+    @Headers('if-match') revision?: string,
+  ) {
+    return this.incidents.unlinkTicket(id, ticketId, privacyActorOf(request), requiredRevision(revision));
   }
 
   @Post('incidents/:id/subscription')
@@ -107,4 +122,11 @@ export class StatusPageController {
   unsubscribe(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
     return this.incidents.unsubscribe(id, privacyActorOf(request).principal.subjectId);
   }
+}
+
+function requiredRevision(value: string | undefined): string {
+  if (value === undefined || value.length === 0 || Number.isNaN(Date.parse(value))) {
+    throw new BadRequestException({ code: 'INCIDENT_REVISION_REQUIRED', message: 'A valid If-Match incident revision is required' });
+  }
+  return value;
 }

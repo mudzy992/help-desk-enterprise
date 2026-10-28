@@ -49,6 +49,8 @@ export type IncidentView = {
   readonly visibility: string;
   readonly startedAt: string;
   readonly resolvedAt: string | null;
+  /** Optimistic concurrency token for edit/link lifecycle commands. */
+  readonly revision: string;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   readonly updates: readonly IncidentUpdateView[];
   /** The embedded overview is deliberately bounded; use the timeline endpoint for older entries. */
@@ -88,6 +90,7 @@ type IncidentRecord = {
   visibility: string;
   startedAt: Date;
   resolvedAt: Date | null;
+  updatedAt: Date;
   services: Array<{ service: { id: string; name: string } }>;
   updates: Array<{ id: string; status: string; message: string; createdAt: Date; authorUserId: string | null }>;
   _count: { tickets: number; subscriptions: number };
@@ -314,6 +317,7 @@ export class StatusPageService {
         visibility: true,
         startedAt: true,
         resolvedAt: true,
+        updatedAt: true,
         services: { select: { service: { select: { id: true, name: true } } } },
         updates: {
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -381,6 +385,7 @@ export function toIncidentView(row: IncidentRecord, viewer: StatusViewer, author
     visibility: row.visibility,
     startedAt: row.startedAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    revision: row.updatedAt.toISOString(),
     services: row.services.map((entry) => entry.service).sort((left, right) => left.name.localeCompare(right.name)),
     updates: row.updates.slice(0, statusPageLimits.timelineUpdatesEmbedded).map((update) => toIncidentUpdateView(update, viewer, authors)),
     updatesHasMore: row.updates.length > statusPageLimits.timelineUpdatesEmbedded,

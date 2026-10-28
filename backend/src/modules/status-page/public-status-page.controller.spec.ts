@@ -10,6 +10,7 @@ const incident = (id: string, visibility: string): IncidentView => ({
   visibility,
   startedAt: '2026-01-01T00:00:00.000Z',
   resolvedAt: null,
+  revision: '2026-01-01T00:00:00.000Z',
   services: [],
   updates: [{ id: 'up', status: 'INVESTIGATING', message: 'm', createdAt: '2026-01-01T00:00:00.000Z', authorName: 'Agent Name' }],
   updatesHasMore: false,

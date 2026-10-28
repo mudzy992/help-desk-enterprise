@@ -84,6 +84,7 @@ export function toPublicStatusPage(view: StatusPageView): PublicStatusPage {
     visibility: incident.visibility,
     startedAt: incident.startedAt,
     resolvedAt: incident.resolvedAt,
+    revision: incident.revision,
     services: incident.services.map((service) => ({ id: service.id, name: service.name })),
     updates: incident.updates.map((update) => ({
       id: update.id,

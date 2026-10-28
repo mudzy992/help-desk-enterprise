@@ -269,6 +269,27 @@ describeIfDatabase('status page (integration)', () => {
     await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Testna vremenska linija je zatvorena', notifyOnResolve: false }, operator);
   });
 
+  it('rejects stale concurrent edits and stale links after resolution', async () => {
+    const created = await incidents.create(
+      { title: 'Concurrency incident', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Concurrency test' },
+      operator,
+    );
+    const revision = (await page.incident(created.id, staffView)).revision;
+    const outcomes = await Promise.allSettled([
+      incidents.edit(created.id, { title: 'Concurrent winner A' }, operator, revision),
+      incidents.edit(created.id, { title: 'Concurrent winner B' }, operator, revision),
+    ]);
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    const rejected = outcomes.find((outcome): outcome is PromiseRejectedResult => outcome.status === 'rejected');
+    expect(rejected?.reason).toMatchObject({ status: 409, response: { code: 'INCIDENT_CHANGED' } });
+
+    const beforeResolve = (await page.incident(created.id, staffView)).revision;
+    await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Concurrency test resolved', notifyOnResolve: false }, operator);
+    const linksBefore = await prisma.ticketIncidentLink.count({ where: { incidentId: created.id } });
+    await expect(incidents.linkTicket(created.id, ids.ticket, operator, beforeResolve)).rejects.toMatchObject({ status: 409 });
+    expect(await prisma.ticketIncidentLink.count({ where: { incidentId: created.id } })).toBe(linksBefore);
+  });
+
   it('links a ticket once and writes a staff-only system event', async () => {
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: true });
     expect(await incidents.linkTicket(ids.incident, ids.ticket, operator)).toEqual({ linked: false });

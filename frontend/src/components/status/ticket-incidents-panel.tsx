@@ -237,7 +237,11 @@ export function TicketIncidentsPanel({
                 onClick={() =>
                   void run(
                     `link:${choice}:${ticketId}`,
-                    () => linkTicketToIncident(choice, ticketId),
+                    () => {
+                      const selected = candidates.find((incident) => incident.id === choice);
+                      if (selected === undefined) throw new Error("Incident selection is stale");
+                      return linkTicketToIncident(choice, ticketId, selected.revision);
+                    },
                     t("status.ticketPanel.linked"),
                   )
                 }
@@ -266,7 +270,7 @@ export function TicketIncidentsPanel({
           const incidentId = unlinkTarget.id;
           void run(
             `unlink:${incidentId}:${ticketId}`,
-            () => unlinkTicketFromIncident(incidentId, ticketId),
+            () => unlinkTicketFromIncident(incidentId, ticketId, unlinkTarget.revision),
             t("status.ticketPanel.unlinked"),
           ).then((succeeded) => {
             if (succeeded) setUnlinkTarget(null);

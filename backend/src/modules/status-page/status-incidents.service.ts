@@ -30,6 +30,7 @@ type IncidentRow = {
   visibility: string;
   startedAt: Date;
   resolvedAt: Date | null;
+  updatedAt: Date;
 };
 
 const incidentSelect = {
@@ -41,6 +42,7 @@ const incidentSelect = {
   visibility: true,
   startedAt: true,
   resolvedAt: true,
+  updatedAt: true,
 } as const;
 
 export type IncidentNotifyResult = { readonly notified: number };
@@ -121,7 +123,7 @@ export class StatusIncidentsService {
     return { id: incident.id, notified: 0 };
   }
 
-  async edit(id: string, input: UpdateIncidentDto, actor: PrivacyActor): Promise<void> {
+  async edit(id: string, input: UpdateIncidentDto, actor: PrivacyActor, expectedRevision?: string): Promise<void> {
     const current = await this.load(id);
     const currentServiceIds = await this.incidentServiceIds(id);
     await this.requireManageServices(currentServiceIds, actor, true);
@@ -142,20 +144,23 @@ export class StatusIncidentsService {
     if (changed.length === 0) return;
     await this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, id);
-      const locked = await transaction.serviceIncident.findUnique({ where: { id }, select: { visibility: true, status: true } });
+      const locked = await transaction.serviceIncident.findUnique({ where: { id }, select: { visibility: true, status: true, updatedAt: true } });
       if (locked === null) throw notFound();
       if (locked.status === 'RESOLVED') {
         throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident can no longer be edited' });
       }
-      await transaction.serviceIncident.update({
-        where: { id },
+      assertIncidentRevision(locked.updatedAt, expectedRevision ?? current.updatedAt.toISOString());
+      const edited = await transaction.serviceIncident.updateMany({
+        where: { id, status: { not: 'RESOLVED' }, updatedAt: locked.updatedAt },
         data: {
+          updatedAt: new Date(),
           ...(input.title === undefined ? {} : { title: input.title }),
           ...(input.titleEn === undefined ? {} : { titleEn: input.titleEn }),
           ...(input.impact === undefined ? {} : { impact: input.impact }),
           ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
         },
       });
+      if (edited.count === 0) throw incidentChanged();
       const revokedSubscriptions =
         locked.visibility === 'ALL_USERS' && input.visibility === 'STAFF_ONLY'
           ? await transaction.serviceIncidentSubscription.deleteMany({ where: { incidentId: id } })
@@ -266,7 +271,7 @@ export class StatusIncidentsService {
   }
 
   /** Staff on a ticket they can work on; AGENT needs no extra permission (§9). */
-  async linkTicket(incidentId: string, ticketId: string, actor: PrivacyActor): Promise<{ readonly linked: boolean }> {
+  async linkTicket(incidentId: string, ticketId: string, actor: PrivacyActor, expectedRevision?: string): Promise<{ readonly linked: boolean }> {
     // A cross-domain link requires authority over both resources. Check the
     // incident first and conceal foreign incident IDs before loading content.
     await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
@@ -276,8 +281,18 @@ export class StatusIncidentsService {
     }
     await this.assertStaffTicket(ticketId, actor);
     return this.prisma.$transaction(async (transaction) => {
+      await lockStatusIncident(transaction as never, incidentId);
+      const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { status: true, updatedAt: true } });
+      if (locked === null) throw notFound();
+      if (locked.status === 'RESOLVED') throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident cannot take new tickets' });
+      assertIncidentRevision(locked.updatedAt, expectedRevision ?? incident.updatedAt.toISOString());
       const existing = await transaction.ticketIncidentLink.findUnique({ where: { ticketId_incidentId: { ticketId, incidentId } } });
       if (existing !== null) return { linked: false };
+      const claimed = await transaction.serviceIncident.updateMany({
+        where: { id: incidentId, status: { not: 'RESOLVED' }, updatedAt: locked.updatedAt },
+        data: { updatedAt: new Date() },
+      });
+      if (claimed.count === 0) throw incidentChanged();
       await transaction.ticketIncidentLink.create({ data: { ticketId, incidentId, linkedByUserId: actor.principal.subjectId } });
       await insertSystemTicketEvent(transaction as never, {
         ticketId,
@@ -298,13 +313,22 @@ export class StatusIncidentsService {
     });
   }
 
-  async unlinkTicket(incidentId: string, ticketId: string, actor: PrivacyActor): Promise<{ readonly unlinked: boolean }> {
+  async unlinkTicket(incidentId: string, ticketId: string, actor: PrivacyActor, expectedRevision?: string): Promise<{ readonly unlinked: boolean }> {
     await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
     const incident = await this.load(incidentId);
     await this.assertStaffTicket(ticketId, actor);
     return this.prisma.$transaction(async (transaction) => {
+      await lockStatusIncident(transaction as never, incidentId);
+      const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { updatedAt: true } });
+      if (locked === null) throw notFound();
+      assertIncidentRevision(locked.updatedAt, expectedRevision ?? incident.updatedAt.toISOString());
       const removed = await transaction.ticketIncidentLink.deleteMany({ where: { ticketId, incidentId } });
       if (removed.count === 0) return { unlinked: false };
+      const claimed = await transaction.serviceIncident.updateMany({
+        where: { id: incidentId, updatedAt: locked.updatedAt },
+        data: { updatedAt: new Date() },
+      });
+      if (claimed.count === 0) throw incidentChanged();
       await insertSystemTicketEvent(transaction as never, {
         ticketId,
         action: ticketSystemEventActions.incidentUnlinked,
@@ -444,6 +468,14 @@ function eventDetail(incident: Pick<IncidentRow, 'id' | 'title'>): string {
 
 function truncate(value: string, max: number): string {
   return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
+}
+
+function assertIncidentRevision(actual: Date, expected: string): void {
+  if (actual.toISOString() !== expected) throw incidentChanged();
+}
+
+function incidentChanged(): ConflictException {
+  return new ConflictException({ code: 'INCIDENT_CHANGED', message: 'The incident was changed meanwhile; reload and try again' });
 }
 
 function notFound(): NotFoundException {

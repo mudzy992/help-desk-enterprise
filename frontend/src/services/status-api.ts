@@ -31,6 +31,7 @@ export type Incident = {
   readonly visibility: IncidentVisibility;
   readonly startedAt: string;
   readonly resolvedAt: string | null;
+  readonly revision: string;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   /** Newest first; overview embeds a bounded first page. */
   readonly updates: readonly IncidentUpdate[];
@@ -126,8 +127,15 @@ export function createIncident(
 ): Promise<{ readonly id: string; readonly notified: number }> {
   return apiRequest("/status/incidents", json("POST", input));
 }
-export function editIncident(incidentId: string, input: EditIncidentInput): Promise<void> {
-  return apiRequest(`/status/incidents/${id(incidentId)}`, json("PATCH", input));
+export function editIncident(
+  incidentId: string,
+  revision: string,
+  input: EditIncidentInput,
+): Promise<void> {
+  return apiRequest(`/status/incidents/${id(incidentId)}`, {
+    ...json("PATCH", input),
+    headers: { "If-Match": revision },
+  });
 }
 export function postIncidentUpdate(
   incidentId: string,
@@ -159,14 +167,22 @@ export function getResolvePreview(incidentId: string): Promise<ResolvePreview> {
 export function linkTicketToIncident(
   incidentId: string,
   ticketId: string,
+  revision: string,
 ): Promise<{ readonly linked: boolean }> {
-  return apiRequest(`/status/incidents/${id(incidentId)}/tickets`, json("POST", { ticketId }));
+  return apiRequest(`/status/incidents/${id(incidentId)}/tickets`, {
+    ...json("POST", { ticketId }),
+    headers: { "If-Match": revision },
+  });
 }
 export function unlinkTicketFromIncident(
   incidentId: string,
   ticketId: string,
+  revision: string,
 ): Promise<{ readonly unlinked: boolean }> {
-  return apiRequest(`/status/incidents/${id(incidentId)}/tickets/${id(ticketId)}`, json("DELETE"));
+  return apiRequest(`/status/incidents/${id(incidentId)}/tickets/${id(ticketId)}`, {
+    ...json("DELETE"),
+    headers: { "If-Match": revision },
+  });
 }
 export function subscribeToIncident(incidentId: string): Promise<{ readonly subscribed: true }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/subscription`, json("POST"));

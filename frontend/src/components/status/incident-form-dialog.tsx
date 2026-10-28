@@ -180,7 +180,7 @@ export function IncidentFormDialog({
                 .join(" · ") || undefined,
           });
         } else {
-          await editIncident(editing.id, {
+          await editIncident(editing.id, editing.revision, {
             title: title.trim(),
             titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
             impact,
