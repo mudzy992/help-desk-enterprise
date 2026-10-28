@@ -377,7 +377,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.43 scope-aware and paginated SLA administration reads — završen** na SHA rasponu `33a3f09`–`dc72754`, CI `40697181339`.
 - `sla.read`, principal-derived OU/service scope, DB-level filtering, fail-closed single-resource/change-log odluke i bounded cursor page envelope sada pokrivaju profile, kalendare, pravila i escalation pravila. PostgreSQL test potvrđuje globalni i dozvoljeni OU/service rezultat, sibling/cross-service odbijanje i cursor granice. Time je zatvoren `BA-sla-13`; dokaz je u [70-sla-scoped-paginated-administration-reads.md](implementation/70-sla-scoped-paginated-administration-reads.md).
 - Registar je sada **613 otvorenih / 79 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.44 scope-aware descendant/profile lookup optimization (`BA-sla-14`)**.
+- **W5.44 scope-aware descendant/profile lookup optimization — završen** na SHA `97a5b45`, CI `40699122969`.
+- Compliance sada radi DB-level exact/subtree OU query umjesto globalnog direktorijskog loada, a profile metadata učitava samo za profile prisutne u scoped aggregate/row rezultatu. Globalni zero-sample profili više se ne vraćaju bez policy osnove. Time je zatvoren `BA-sla-14`; dokaz je u [71-sla-scoped-descendant-profile-lookups.md](implementation/71-sla-scoped-descendant-profile-lookups.md).
+- Registar je sada **612 otvorenih / 80 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.45 SLA delivery and integrity observability (`BA-sla-15`)**.
 
 ### Canonical primitive
 

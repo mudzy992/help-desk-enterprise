@@ -135,7 +135,7 @@ E2E 07 pokriva due polja i OU compliance; 42 calendar CRUD/matrix UX; 50 reason 
 | BA-sla-11 | P2       | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy   | zatvoreno |
 | BA-sla-12 | P2       | Escalation recipienti ne garantuju aktivnog/scope-eligible primaoca                   | zatvoreno |
 | BA-sla-13 | P3       | Admin read/change-log liste su globalne, role-only i nepaginirane                     | zatvoreno |
-| BA-sla-14 | P3       | Compliance i resolution ponavljano učitavaju široke OU/profile skupove                | otvoreno |
+| BA-sla-14 | P3       | Compliance i resolution ponavljano učitavaju široke OU/profile skupove                | zatvoreno |
 | BA-sla-15 | P3       | Observability nema per-failure/outbox lag/recipient-empty/DST integrity metrike       | otvoreno |
 | BA-sla-16 | P3       | Kritična failure/concurrency/scope/DST test matrica nije izvršiva ni kompletna        | otvoreno |
 
