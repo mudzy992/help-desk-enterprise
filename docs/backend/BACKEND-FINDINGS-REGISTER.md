@@ -748,13 +748,15 @@ W6.6 je na SHA `73dfa9d` + `f7944af`, finalni CI `40773764675`, zatvorio `BA-sta
 
 W6.7 je na SHA `aa92ed9`, finalni CI `40775040580`, zatvorio `BA-status-page-07`. Link/unlink sada zahtijeva i resource-scoped incident manage odluku nad svim servisima i postojeći staff ticket pristup; foreign incident se prikriva prije sadržaja i side effecta. Detalji su u [80-status-page-dual-resource-ticket-link-authorization.md](implementation/80-status-page-dual-resource-ticket-link-authorization.md). Paket nema novu DB migraciju.
 
+W6.8 je na SHA `92ec430`, finalni CI `40777527352`, zatvorio `BA-status-page-08`. Postojeći `updatedAt` je revision token; edit/link/unlink zahtijevaju `If-Match`, dijele advisory lock i rade CAS, pa stale edit/link fail-closed završava bez parcijalnih side effecta. Detalji su u [81-status-page-optimistic-lifecycle-concurrency.md](implementation/81-status-page-optimistic-lifecycle-concurrency.md). Paket nema novu DB migraciju.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **602**
-- Zatvoreno: **90** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **601**
+- Zatvoreno: **91** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

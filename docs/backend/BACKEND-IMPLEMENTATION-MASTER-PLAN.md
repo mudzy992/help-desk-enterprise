@@ -407,7 +407,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.7 incident/ticket dual-resource link authorization — završen** na SHA `aa92ed9`, finalni CI `40775040580`.
 - Link/unlink sada zahtijeva resource-scoped manage odluku nad svim incident servisima i postojeći staff ticket pristup; foreign incident je concealed prije sadržaja i bilo kojeg side effecta. Time je zatvoren `BA-status-page-07`; dokaz je u [80-status-page-dual-resource-ticket-link-authorization.md](implementation/80-status-page-dual-resource-ticket-link-authorization.md).
 - Registar je sada **602 otvorena / 90 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.8 optimistic incident edit/link lifecycle concurrency za `BA-status-page-08`**.
+- **W6.8 optimistic incident edit/link lifecycle concurrency — završen** na SHA `92ec430`, finalni CI `40777527352`.
+- Postojeći `updatedAt` je izložen kao revision; edit/link/unlink zahtijevaju `If-Match`, koriste zajednički advisory lock i CAS, a frontend propagira učitani token. Time je zatvoren `BA-status-page-08`; dokaz je u [81-status-page-optimistic-lifecycle-concurrency.md](implementation/81-status-page-optimistic-lifecycle-concurrency.md).
+- Registar je sada **601 otvoren / 91 zatvoren / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.9 bounded SQL uptime aggregation i status-page catalog/window granice za `BA-status-page-10`**.
 
 ### Canonical primitive
 
