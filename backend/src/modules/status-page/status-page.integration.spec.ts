@@ -231,7 +231,7 @@ describeIfDatabase('status page (integration)', () => {
 
   it('bounds embedded timelines and keyset-paginates the complete timeline', async () => {
     const created = await incidents.create(
-      { title: 'Duga vremenska linija', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Početna objava' },
+      { title: 'Duga vremenska linija', impact: 'DEGRADED', visibility: 'STAFF_ONLY', serviceIds: [ids.vpn], message: 'Početna objava' },
       operator,
     );
     await prisma.serviceIncidentUpdate.createMany({
@@ -258,6 +258,7 @@ describeIfDatabase('status page (integration)', () => {
     expect(tail.items).toHaveLength(5);
     expect(tail).toMatchObject({ hasMore: false, nextCursor: null });
     await expect(page.timeline(created.id, mailScopedView, { take: 10 })).rejects.toMatchObject({ status: 404 });
+    await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Testna vremenska linija je zatvorena', notifyOnResolve: false }, operator);
   });
 
   it('links a ticket once and writes a staff-only system event', async () => {

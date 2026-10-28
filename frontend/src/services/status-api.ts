@@ -142,7 +142,11 @@ export function postIncidentUpdate(
 export function listIncidentTimeline(
   incidentId: string,
   input: { readonly cursor?: string; readonly take?: number } = {},
-): Promise<{ readonly items: readonly IncidentUpdate[]; readonly hasMore: boolean; readonly nextCursor: string | null }> {
+): Promise<{
+  readonly items: readonly IncidentUpdate[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+}> {
   const query = new URLSearchParams();
   if (input.cursor !== undefined) query.set("cursor", input.cursor);
   if (input.take !== undefined) query.set("take", String(input.take));
