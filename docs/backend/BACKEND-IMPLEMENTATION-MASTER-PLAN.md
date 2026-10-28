@@ -380,7 +380,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.44 scope-aware descendant/profile lookup optimization — završen** na SHA `97a5b45`, CI `40699122969`.
 - Compliance sada radi DB-level exact/subtree OU query umjesto globalnog direktorijskog loada, a profile metadata učitava samo za profile prisutne u scoped aggregate/row rezultatu. Globalni zero-sample profili više se ne vraćaju bez policy osnove. Time je zatvoren `BA-sla-14`; dokaz je u [71-sla-scoped-descendant-profile-lookups.md](implementation/71-sla-scoped-descendant-profile-lookups.md).
 - Registar je sada **612 otvorenih / 80 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.45 SLA delivery and integrity observability (`BA-sla-15`)**.
+- **W5.45 SLA delivery and integrity observability — završen** na SHA `c1ae4d1` i `faee216`, CI `40702205171`.
+- System Health snapshot sada izlaže SLA transition outbox backlog/latency/dead-letter, empty fan-out, due scan age/backlog/retry/quarantine, scheduler registration, configuration drift i due-before-start integrity metrike. PostgreSQL dokaz potvrđuje pending outbox, drift i invalid due detekciju. Time je zatvoren `BA-sla-15`; dokaz je u [72-sla-delivery-integrity-observability.md](implementation/72-sla-delivery-integrity-observability.md).
+- Registar je sada **611 otvorenih / 81 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.46 executable SLA failure/concurrency/scope/DST test matrix (`BA-sla-16`)**.
 
 ### Canonical primitive
 
