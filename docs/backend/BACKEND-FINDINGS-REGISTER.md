@@ -403,7 +403,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-02` | P1 | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-03` | P1 | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-05` | P1 | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-05` | P1 | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-06` | P2 | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-07` | P2 | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-08` | P2 | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -741,6 +741,8 @@ W6.3 je na SHA `77c6662`, `6fedf3a` i `deb23bd`, finalni CI `40760712472`, zatvo
 ## Implementacijska napomena — Backend Val 6 / W6.4
 
 W6.4 je na SHA `4ea6fad`, `7575f0b`, `cab7d18` i `e97b685`, finalni CI `40766102694`, zatvorio `BA-status-page-04`. Start delivery je transactional-outbox intent koji worker obrađuje stabilno keyset-paginirano bez ukupnog limita, uz retry/dead-letter/replay, recipient dedupe i visibility recheck. Detalji su u [77-status-page-durable-paginated-start-delivery.md](implementation/77-status-page-durable-paginated-start-delivery.md). Paket nema DB migraciju.
+
+W6.5 je na SHA `88d7050` + `2ef9877`, finalni CI `40770312995`, zatvorio `BA-status-page-05`. Resolution delivery je atomarni outbox intent; worker bounded/keyset paginira subscribere i linked requestere, koristi per-recipient dedupe i ne označava neuspjelu subscription kao notified. Detalji su u [78-status-page-durable-resolution-delivery.md](implementation/78-status-page-durable-resolution-delivery.md). Paket nema novu DB migraciju.
 
 ## Kontrolni zbir
 

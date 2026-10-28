@@ -398,7 +398,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.4 durable paginated status-incident start delivery — završen** na SHA `4ea6fad` + `7575f0b` + `cab7d18` + `e97b685`, finalni CI `40766102694`.
 - Create atomski upisuje outbox intent; worker keyset-paginira bez ukupnog capa uz retry/dead-letter/replay, dedupe i visibility recheck. Time je zatvoren `BA-status-page-04`; dokaz je u [77-status-page-durable-paginated-start-delivery.md](implementation/77-status-page-durable-paginated-start-delivery.md).
 - Registar je sada **605 otvorenih / 87 zatvorenih / 692 ukupno**; koristi se postojeći outbox i nema nove migracije.
-- Sljedeći paket je **Val 6 / W6.5 durable bounded status-incident resolution delivery (`BA-status-page-05`)**.
+- **W6.5 durable bounded status-incident resolution delivery — završen** na SHA `88d7050` + `2ef9877`, finalni CI `40770312995`.
+- Resolution status, update, ticket eventi, audit i delivery intent sada se atomarno commitaju; worker keyset-paginira subscribere i linked requestere u batchu 250, koristi deterministički recipient dedupe i postavlja `notifiedAt` samo poslije uspješne ili policy-terminalne obrade. Time je zatvoren `BA-status-page-05`; dokaz je u [78-status-page-durable-resolution-delivery.md](implementation/78-status-page-durable-resolution-delivery.md).
+- Registar je sada **604 otvorena / 88 zatvorenih / 692 ukupno**; koristi se postojeći outbox i nema nove migracije.
+- Sljedeći paket je **Val 6 / W6.6 bounded status-incident timeline reads (`BA-status-page-06`)**.
 
 ### Canonical primitive
 
