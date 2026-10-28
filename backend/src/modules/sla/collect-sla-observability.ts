@@ -21,11 +21,11 @@ export async function collectSlaObservability(
   const hourAgo = new Date(input.now.getTime() - 3_600_000);
   const [pending, failed, oldestPending, latencyRows, emptyLastHour, failedLastHour, dueBacklog, oldestDue, retryPending, quarantined, configurationDrift, invalidDueBeforeStart] = await Promise.all([
     prisma.outboxMessage.count({ where: { topic: slaRuntimeEventOutboxTopic, status: { in: ['PENDING', 'PROCESSING'] } } }),
-    prisma.outboxMessage.count({ where: { topic: slaRuntimeEventOutboxTopic, status: 'FAILED' } }),
+    prisma.outboxMessage.count({ where: { topic: slaRuntimeEventOutboxTopic, status: 'DEAD_LETTER' } }),
     prisma.outboxMessage.findFirst({ where: { topic: slaRuntimeEventOutboxTopic, status: { in: ['PENDING', 'PROCESSING'] } }, orderBy: { createdAt: 'asc' }, select: { createdAt: true } }),
-    prisma.$queryRaw<LatencyRow[]>(Prisma.sql`SELECT MAX(EXTRACT(EPOCH FROM ("completedAt" - "createdAt")))::float8 AS "maxSeconds" FROM "OutboxMessage" WHERE "topic" = ${slaRuntimeEventOutboxTopic} AND "status" = 'COMPLETED' AND "completedAt" >= ${hourAgo}`),
+    prisma.$queryRaw<LatencyRow[]>(Prisma.sql`SELECT MAX(EXTRACT(EPOCH FROM ("completedAt" - "createdAt")))::float8 AS "maxSeconds" FROM "OutboxMessage" WHERE "topic" = ${slaRuntimeEventOutboxTopic} AND "status" = 'SUCCEEDED' AND "completedAt" >= ${hourAgo}`),
     prisma.auditLog.count({ where: { action: 'sla.escalation.audience_empty', createdAt: { gte: hourAgo } } }),
-    prisma.outboxMessage.count({ where: { topic: slaRuntimeEventOutboxTopic, status: 'FAILED', updatedAt: { gte: hourAgo } } }),
+    prisma.outboxMessage.count({ where: { topic: slaRuntimeEventOutboxTopic, status: 'DEAD_LETTER', updatedAt: { gte: hourAgo } } }),
     prisma.ticketSlaState.count({ where: { resolutionCompletedAt: null, nextDueAt: { lte: input.now } } }),
     prisma.ticketSlaState.findFirst({ where: { resolutionCompletedAt: null, nextDueAt: { lte: input.now } }, orderBy: { nextDueAt: 'asc' }, select: { nextDueAt: true } }),
     prisma.slaScanFailure.count({ where: { quarantinedAt: null } }),
