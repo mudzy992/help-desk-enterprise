@@ -43,9 +43,10 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
     },
   };
   prisma.$executeRaw = jest.fn().mockResolvedValue(1);
+  prisma.$queryRaw = jest.fn().mockResolvedValue([{ id: 'outbox-1' }]);
   prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
   const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
-  const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, {} as never, authorization as never);
+  const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization as never);
   return { service, prisma, authorization };
 }
 
@@ -99,28 +100,29 @@ describe('StatusIncidentsService.addUpdate', () => {
     });
   });
 
-  it('resolving notifies subscribers and linked requesters once, never the actor', async () => {
+  it('commits one durable resolution intent instead of synchronous fan-out', async () => {
     const { service, prisma } = build(open);
     const result = await service.addUpdate('i1', { status: 'RESOLVED', message: 'Popravljeno' }, actor, new Date('2026-01-01T12:00:00Z'));
-    const recipients = (persistInAppNotification as jest.Mock).mock.calls.map((call) => call[1].userId).sort();
-    expect(recipients).toEqual(['req1', 'sub1']);
-    expect(result.notified).toBe(2);
+    expect(result.notified).toBe(0);
+    expect(persistInAppNotification).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(insertSystemTicketEvent).toHaveBeenCalledTimes(2);
     expect(lastAudit()).toMatchObject({ action: 'status.incident.resolved', metadata: { durationMinutes: 120 } });
-    expect((prisma.serviceIncidentSubscription as { updateMany: jest.Mock }).updateMany).toHaveBeenCalled();
+    expect((prisma.serviceIncidentSubscription as { updateMany: jest.Mock }).updateMany).not.toHaveBeenCalled();
   });
 
-  it('STAFF_ONLY resolution notifies subscribers only', async () => {
-    const { service } = build({ ...open, visibility: 'STAFF_ONLY' });
+  it('queues STAFF_ONLY resolution for subscriber-only worker delivery', async () => {
+    const { service, prisma } = build({ ...open, visibility: 'STAFF_ONLY' });
     await service.addUpdate('i1', { status: 'RESOLVED', message: 'Popravljeno' }, actor);
-    const recipients = (persistInAppNotification as jest.Mock).mock.calls.map((call) => call[1].userId);
-    expect(recipients).toEqual(['sub1']);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(persistInAppNotification).not.toHaveBeenCalled();
   });
 
   it('notifyOnResolve=false resolves silently', async () => {
-    const { service } = build(open);
+    const { service, prisma } = build(open);
     const result = await service.addUpdate('i1', { status: 'RESOLVED', message: 'ok', notifyOnResolve: false }, actor);
     expect(result.notified).toBe(0);
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(persistInAppNotification).not.toHaveBeenCalled();
   });
 

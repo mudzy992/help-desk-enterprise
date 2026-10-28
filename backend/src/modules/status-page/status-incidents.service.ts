@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -6,18 +6,14 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationService } from '../authorization/authorization.service';
-import { notificationTypes, type NotificationType } from '../notifications/notifications.constants';
-import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
-import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
 import type { PrivacyActor } from '../privacy/privacy-actor';
-import { SettingsService } from '../settings/settings.service';
 import { ticketSystemEventActions } from '../tickets/collaboration.constants';
 import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import type { AddIncidentUpdateDto, CreateIncidentDto, UpdateIncidentDto } from './status-page.dto';
-import { statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
 import { withIncidentVisibility, type StatusViewer } from './status-page.service';
 import {
   isIncidentStatusTransitionAllowed,
@@ -57,12 +53,10 @@ export type IncidentNotifyResult = { readonly notified: number };
  */
 @Injectable()
 export class StatusIncidentsService {
-  private readonly logger = new Logger(StatusIncidentsService.name);
   private readonly outbox: TransactionalOutboxService;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly settings: SettingsService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly authorization: AuthorizationService,
@@ -195,7 +189,7 @@ export class StatusIncidentsService {
   async addUpdate(id: string, input: AddIncidentUpdateDto, actor: PrivacyActor, now: Date = new Date()): Promise<IncidentNotifyResult> {
     await this.requireManageServices(await this.incidentServiceIds(id), actor, true);
     const resolving = input.status === 'RESOLVED';
-    const incident = await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, id);
       const current = (await transaction.serviceIncident.findUnique({ where: { id }, select: incidentSelect })) as IncidentRow | null;
       if (current === null) throw notFound();
@@ -237,10 +231,21 @@ export class StatusIncidentsService {
         requestId: actor.requestId,
         organizationalUnitId: null,
       });
-      return current;
+      if (resolving && input.notifyOnResolve !== false) {
+        await this.outbox.enqueue(transaction as never, {
+          topic: statusIncidentResolutionDeliveryTopic,
+          dedupeKey: current.id,
+          payload: {
+            incidentId: current.id,
+            actorUserId: actor.principal.subjectId,
+            message: truncate(input.message, 200),
+            resolvedAt: now.toISOString(),
+          },
+          maxAttempts: 25,
+        });
+      }
     });
-    if (!resolving || input.notifyOnResolve === false) return { notified: 0 };
-    return { notified: await this.notifyResolved(incident, input.message, actor.principal.subjectId, now) };
+    return { notified: 0 };
   }
 
   /** How many people a resolution would notify - the preview before confirming (§8.3). */
@@ -421,61 +426,7 @@ export class StatusIncidentsService {
     return [...new Set(rows.map((row) => row.ticket.requesterId))];
   }
 
-  private async notifyResolved(incident: IncidentRow, message: string, actorUserId: string, now: Date): Promise<number> {
-    const [subscribers, requesters] = await Promise.all([
-      this.pendingSubscriberIds(incident.id),
-      incident.visibility === 'ALL_USERS' ? this.linkedRequesterIds(incident.id) : Promise.resolve([]),
-    ]);
-    const recipients = [...new Set([...subscribers, ...requesters])].filter((userId) => userId !== actorUserId);
-    const body = `${incident.title} — ${truncate(message, 200)}`;
-    const notified = await this.fanOut(recipients, notificationTypes.statusIncidentResolved, incident, body, `status-incident-resolved:${incident.id}`);
-    await this.prisma.serviceIncidentSubscription
-      .updateMany({ where: { incidentId: incident.id, notifiedAt: null }, data: { notifiedAt: now } })
-      .catch((error: unknown) => this.logger.warn(`status_incident_subscriptions_mark_failed incident=${incident.id} reason=${String(error)}`));
-    return notified;
-  }
 
-  private async fanOut(
-    userIds: readonly string[],
-    type: NotificationType,
-    incident: IncidentRow,
-    body: string,
-    dedupePrefix: string,
-  ): Promise<number> {
-    if (userIds.length === 0) return 0;
-    const policy = await loadNotificationPreferencePolicy(this.settings);
-    let sent = 0;
-    for (const userId of userIds) {
-      try {
-        const created = await persistInAppNotification(
-          this.prisma,
-          {
-            userId,
-            type,
-            title: type === notificationTypes.statusIncidentStarted ? 'notifications.items.statusIncidentStarted' : 'notifications.items.statusIncidentResolved',
-            body: truncate(body, 400),
-            ticketId: null,
-            payload: {
-              ticketId: '',
-              ticketNumber: '',
-              event: type,
-              messageId: dedupePrefix,
-              actorUserId: null,
-              confidential: false,
-              incidentId: incident.id,
-              impact: incident.impact,
-            } as never,
-            dedupeKey: `${dedupePrefix}:${userId}`,
-          },
-          policy,
-        );
-        if (created !== null) sent += 1;
-      } catch (error) {
-        this.logger.warn(`status_incident_notify_failed incident=${incident.id} reason=${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-    return sent;
-  }
 }
 
 async function lockStatusIncident(transaction: { readonly $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<unknown> }, incidentId: string): Promise<void> {

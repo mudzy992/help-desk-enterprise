@@ -15,7 +15,7 @@ import type { PrivacyActor } from '../privacy/privacy-actor';
 import { loadOpenIncidentImpacts } from '../service-catalog/load-open-incident-impacts';
 import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/parse-service-availability-configuration';
 import { StatusIncidentsService } from './status-incidents.service';
-import { statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
 import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
 import { StatusPageService, type StatusViewer } from './status-page.service';
 
@@ -63,7 +63,7 @@ describeIfDatabase('status page (integration)', () => {
       } as never,
       prisma as never,
     );
-    incidents = new StatusIncidentsService(prisma as never, settings as never, {} as never, {} as never, authorization);
+    incidents = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization);
     startDelivery = new StatusIncidentStartDeliveryService(prisma as never, new TransactionalOutboxService(prisma as never), settings as never);
     // Ticket access is not under test here.
     (incidents as unknown as { assertStaffTicket: () => Promise<void> }).assertStaffTicket = async () => undefined;
@@ -223,7 +223,8 @@ describeIfDatabase('status page (integration)', () => {
     await incidents.subscribe(created.id, { ...mailScopedView, userId: ids.subscriber });
     const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
     const subscriberBefore = await notificationsFor(ids.subscriber, 'status.incidentResolved');
-    await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Internal resolution' }, operator);
+    expect(await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Internal resolution' }, operator)).toEqual({ notified: 0 });
+    expect(await startDelivery.runSweep()).toBe(1);
     expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore);
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
   });
@@ -249,7 +250,9 @@ describeIfDatabase('status page (integration)', () => {
     const subscriberBefore = await notificationsFor(ids.subscriber, 'status.incidentResolved');
     const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
     const result = await incidents.addUpdate(ids.incident, { status: 'RESOLVED', message: 'Certifikat obnovljen' }, operator);
-    expect(result.notified).toBe(2);
+    expect(result.notified).toBe(0);
+    expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentResolutionDeliveryTopic, dedupeKey: ids.incident, status: 'PENDING' } })).toBe(1);
+    expect(await startDelivery.runSweep()).toBe(1);
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
     expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore + 1);
     const pending = await prisma.serviceIncidentSubscription.count({ where: { incidentId: ids.incident, notifiedAt: null } });
