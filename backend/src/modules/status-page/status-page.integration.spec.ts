@@ -239,10 +239,12 @@ describeIfDatabase('status page (integration)', () => {
 
     await incidents.addUpdate(ids.incident, { status: 'IDENTIFIED', message: 'Uzrok: certifikat' }, operator);
     await expect(incidents.addUpdate(ids.incident, { status: 'INVESTIGATING', message: 'nazad' }, operator)).rejects.toMatchObject({ status: 409 });
+    const subscriberBefore = await notificationsFor(ids.subscriber, 'status.incidentResolved');
+    const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
     const result = await incidents.addUpdate(ids.incident, { status: 'RESOLVED', message: 'Certifikat obnovljen' }, operator);
     expect(result.notified).toBe(2);
-    expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(1);
-    expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(1);
+    expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
+    expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore + 1);
     const pending = await prisma.serviceIncidentSubscription.count({ where: { incidentId: ids.incident, notifiedAt: null } });
     expect(pending).toBe(0);
     const events = await prisma.ticketMessage.findMany({ where: { ticketId: ids.ticket, type: 'SYSTEM_EVENT' }, select: { body: true } });
