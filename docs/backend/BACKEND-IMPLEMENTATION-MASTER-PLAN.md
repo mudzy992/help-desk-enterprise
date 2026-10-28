@@ -383,7 +383,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.45 SLA delivery and integrity observability — završen** na SHA `c1ae4d1` i `faee216`, CI `40702205171`.
 - System Health snapshot sada izlaže SLA transition outbox backlog/latency/dead-letter, empty fan-out, due scan age/backlog/retry/quarantine, scheduler registration, configuration drift i due-before-start integrity metrike. PostgreSQL dokaz potvrđuje pending outbox, drift i invalid due detekciju. Time je zatvoren `BA-sla-15`; dokaz je u [72-sla-delivery-integrity-observability.md](implementation/72-sla-delivery-integrity-observability.md).
 - Registar je sada **611 otvorenih / 81 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.46 executable SLA failure/concurrency/scope/DST test matrix (`BA-sla-16`)**.
+- **W5.46 executable SLA failure/concurrency/scope/DST test matrix — završen** na SHA `9ba00dd`, CI `40704810126`.
+- Verzionarni matrix inventariše 20 kritičnih specova u failure, concurrency, scope, DST, fake-clock i PostgreSQL kategorijama, fail-closed provjerava fajlove i CI preduvjete te ima zaseban generated-Prisma unit gate i real-DB shard. Time je zatvoren `BA-sla-16`; dokaz je u [73-sla-executable-critical-test-matrix.md](implementation/73-sla-executable-critical-test-matrix.md).
+- Registar je sada **610 otvorenih / 82 zatvorenih / 692 ukupno**; SLA audit jedinica nema otvorenih nalaza, a paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.1 status-page authorization and public-boundary hardening (`BA-status-page-01`)**.
 
 ### Canonical primitive
 

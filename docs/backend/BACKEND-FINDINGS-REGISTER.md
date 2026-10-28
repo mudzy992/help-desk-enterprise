@@ -171,7 +171,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-13` | P3 | Admin read/change-log liste su globalne, role-only i nepaginirane | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-14` | P3 | Compliance i resolution ponavljano učitavaju široke OU/profile skupove | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-15` | P3 | Observability nema per-failure/outbox lag/recipient-empty/DST integrity metrike | zatvoreno | [14-sla.md](audits/14-sla.md) |
-| 14 | `sla` | `BA-sla-16` | P3 | Kritična failure/concurrency/scope/DST test matrica nije izvršiva ni kompletna | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-16` | P3 | Kritična failure/concurrency/scope/DST test matrica nije izvršiva ni kompletna | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 15 | `service-catalog` | `BA-service-catalog-01` | P1 | Form schema se može izmijeniti nakon što je ticket veže zbog TOCTOU immutable provjere | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-02` | P1 | Config activation/rollback zaobilazi form/lifecycle invariante i historijsku immutable zaštitu | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-03` | P1 | Admin regex pattern omogućava requester-triggered catastrophic backtracking/ReDoS | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
