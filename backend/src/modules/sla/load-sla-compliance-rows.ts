@@ -23,8 +23,11 @@ export type SlaComplianceRows = {
 
 export async function loadSlaComplianceProfiles(
   prisma: PrismaService,
+  profileIds: readonly string[],
 ): Promise<readonly { readonly id: string; readonly key: string; readonly name: string }[]> {
+  if (profileIds.length === 0) return [];
   return prisma.slaProfile.findMany({
+    where: { id: { in: [...new Set(profileIds)] } },
     select: { id: true, key: true, name: true },
     orderBy: { key: 'asc' },
   });

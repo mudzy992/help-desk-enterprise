@@ -39,8 +39,11 @@ export class SlaComplianceService {
       );
     }
     // Explicit compatibility path for the deterministic in-memory domain harness.
-    const profiles = await loadSlaComplianceProfiles(this.prisma);
     const { rows, openBreached } = await loadSlaComplianceRows(this.prisma, { window, organizationalUnitIds });
+    const profiles = await loadSlaComplianceProfiles(
+      this.prisma,
+      rows.map((row) => row.slaProfileId),
+    );
     return aggregateSlaCompliance({ profiles, rows, window, openBreached });
   }
 }

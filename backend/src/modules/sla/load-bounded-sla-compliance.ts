@@ -25,12 +25,7 @@ export async function loadBoundedSlaCompliance(
   prisma: PrismaService,
   input: { readonly window: SlaComplianceWindow; readonly organizationalUnitIds: readonly string[] },
 ): Promise<SlaComplianceResponse> {
-  const profiles = await prisma.slaProfile.findMany({
-    select: { id: true, key: true, name: true }, orderBy: { key: 'asc' },
-    take: maximumSlaComplianceProfiles + 1,
-  }) as SlaComplianceProfileMeta[];
-  if (profiles.length > maximumSlaComplianceProfiles) throw new SlaError('COMPLIANCE_RESOURCE_LIMIT_EXCEEDED');
-  if (input.organizationalUnitIds.length === 0) return emptyResponse(profiles, input.window);
+  if (input.organizationalUnitIds.length === 0) return emptyResponse([], input.window);
   const units = Prisma.join(input.organizationalUnitIds);
   const aggregates = await prisma.$queryRaw<AggregateRow[]>(Prisma.sql`
     WITH eligible AS (
@@ -61,6 +56,14 @@ export async function loadBoundedSlaCompliance(
       LIMIT ${maximumSlaComplianceAggregateRows + 1}
   `);
   if (aggregates.length > maximumSlaComplianceAggregateRows) throw new SlaError('COMPLIANCE_RESOURCE_LIMIT_EXCEEDED');
+  const profileIds = [...new Set(aggregates.map((row) => row.slaProfileId))];
+  if (profileIds.length > maximumSlaComplianceProfiles) throw new SlaError('COMPLIANCE_RESOURCE_LIMIT_EXCEEDED');
+  const profiles = profileIds.length === 0 ? [] : await prisma.slaProfile.findMany({
+    where: { id: { in: profileIds } },
+    select: { id: true, key: true, name: true },
+    orderBy: { key: 'asc' },
+    take: maximumSlaComplianceProfiles,
+  }) as SlaComplianceProfileMeta[];
   const [response, resolution] = await Promise.all([
     prisma.ticketSlaState.count({ where: { isResponseBreached: true, ticket: { is: { originUnitId: { in: [...input.organizationalUnitIds] }, status: { in: ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_USER'] } } } } }),
     prisma.ticketSlaState.count({ where: { isResolutionBreached: true, ticket: { is: { originUnitId: { in: [...input.organizationalUnitIds] }, status: { in: ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_USER'] } } } } }),

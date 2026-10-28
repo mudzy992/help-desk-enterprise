@@ -5,29 +5,22 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 describe('resolveSlaComplianceUnitScope', () => {
-  it('includes the selected OU and descendants, but excludes sibling branches', async () => {
-    const prisma = {
-      organizationalUnit: {
-        findMany: jest.fn(async () => [
-          { id: 'root', ouPath: '/root' },
-          { id: 'child', ouPath: '/root/child' },
-          { id: 'grandchild', ouPath: '/root/child/grandchild' },
-          { id: 'sibling', ouPath: '/sibling' },
-        ]),
-      },
-    };
-
-    await expect(
-      resolveSlaComplianceUnitScope(prisma as never, 'child'),
-    ).resolves.toEqual(['child', 'grandchild']);
+  it('queries only the selected OU subtree and excludes sibling branches at DB level', async () => {
+    const findUnique = jest.fn(async () => ({ ouPath: '/root/child' }));
+    const findMany = jest.fn(async () => [{ id: 'child' }, { id: 'grandchild' }]);
+    const prisma = { organizationalUnit: { findUnique, findMany } };
+    await expect(resolveSlaComplianceUnitScope(prisma as never, 'child')).resolves.toEqual(['child', 'grandchild']);
+    expect(findUnique).toHaveBeenCalledWith({ where: { id: 'child' }, select: { ouPath: true } });
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { OR: [{ id: 'child' }, { ouPath: { startsWith: '/root/child/' } }] },
+      select: { id: true },
+    }));
   });
 
-  it('returns an empty scope for an unknown unit', async () => {
-    const prisma = {
-      organizationalUnit: { findMany: jest.fn(async () => []) },
-    };
-    await expect(
-      resolveSlaComplianceUnitScope(prisma as never, 'missing'),
-    ).resolves.toEqual([]);
+  it('returns an empty scope without a descendant query for an unknown unit', async () => {
+    const findMany = jest.fn();
+    const prisma = { organizationalUnit: { findUnique: jest.fn(async () => null), findMany } };
+    await expect(resolveSlaComplianceUnitScope(prisma as never, 'missing')).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
   });
 });

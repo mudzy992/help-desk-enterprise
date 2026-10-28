@@ -15,7 +15,10 @@ describe('bounded SLA compliance aggregation', () => {
     expect(result.profiles[0]).toMatchObject({ sampleCount: 4, responseCompliancePercent: 75, resolutionCompliancePercent: 50 });
     expect(result.byService).toHaveLength(1);
     expect(result.openBreached).toEqual({ response: 2, resolution: 1 });
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 1001 }));
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: { in: ['p1'] } },
+      take: 1000,
+    }));
   });
 
   it('fails closed when aggregate cardinality exceeds the output budget', async () => {
