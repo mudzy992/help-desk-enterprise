@@ -15,14 +15,14 @@ describeIfDatabase('scoped paginated SLA administration reads (integration)', ()
   it('proves global, OU/service, sibling denial and stable cursor boundaries in PostgreSQL', async () => {
     const stamp = Date.now();
     const root = await prisma.organizationalUnit.create({ data: { name: `SLA root ${stamp}`, type: 'DIRECTORATE', distinguishedName: `OU=SlaRoot${stamp}`, ouPath: `/sla-${stamp}/` } });
-    const child = await prisma.organizationalUnit.create({ data: { name: `SLA child ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=SlaChild${stamp}`, ouPath: `/sla-${stamp}/child/`, parentId: root.id } });
-    const sibling = await prisma.organizationalUnit.create({ data: { name: `SLA sibling ${stamp}`, type: 'DEPARTMENT', distinguishedName: `OU=SlaSibling${stamp}`, ouPath: `/sibling-${stamp}/`, parentId: root.id } });
+    const child = await prisma.organizationalUnit.create({ data: { name: `SLA child ${stamp}`, type: 'SERVICE', distinguishedName: `OU=SlaChild${stamp}`, ouPath: `/sla-${stamp}/child/`, parentId: root.id } });
+    const sibling = await prisma.organizationalUnit.create({ data: { name: `SLA sibling ${stamp}`, type: 'SERVICE', distinguishedName: `OU=SlaSibling${stamp}`, ouPath: `/sibling-${stamp}/`, parentId: root.id } });
     const category = await prisma.serviceCategory.create({ data: { name: `SLA scope ${stamp}`, slug: `sla-scope-${stamp}` } });
     const service = await prisma.service.create({ data: { name: `SLA allowed ${stamp}`, slug: `sla-allowed-${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE' } });
     const otherService = await prisma.service.create({ data: { name: `SLA denied ${stamp}`, slug: `sla-denied-${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE' } });
     const calendar = await prisma.businessHoursCalendar.create({ data: { key: `scope-${stamp}`, name: `Scope ${stamp}`, timezone: 'UTC', weeklyHours: {} } });
     const profile = await prisma.slaProfile.create({ data: { key: `scope-${stamp}`, name: `Scope ${stamp}`, calendarId: calendar.id } });
-    const priorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const;
+    const priorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
     const [globalRule, childRule, siblingRule, serviceRule, otherServiceRule] = await Promise.all([
       prisma.slaRule.create({ data: { slaProfileId: profile.id, priority: priorities[0], responseMinutes: 10, resolutionMinutes: 20 } }),
       prisma.slaRule.create({ data: { slaProfileId: profile.id, priority: priorities[1], responseMinutes: 10, resolutionMinutes: 20, organizationalUnitId: child.id } }),
