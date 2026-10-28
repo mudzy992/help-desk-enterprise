@@ -106,7 +106,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.opsAlertTestSent]: schema(['channels']),
   [auditLogActions.opsDlqBaselineAcknowledged]: schema(['failedByQueue', 'integrationDlq']),
   [auditLogActions.statusIncidentCreated]: schema(['impact', 'linkedTickets', 'notify', 'serviceIds', 'visibility']),
-  [auditLogActions.statusIncidentEdited]: schema(['changed', 'impact', 'serviceIds', 'visibility']),
+  [auditLogActions.statusIncidentEdited]: schema(['changed', 'impact', 'revokedSubscriptions', 'serviceIds', 'visibility']),
   [auditLogActions.statusIncidentUpdatePosted]: schema(['from', 'to']),
   [auditLogActions.statusIncidentResolved]: schema(['durationMinutes', 'from', 'to']),
   [auditLogActions.statusIncidentTicketLinked]: schema(['ticketId']),
