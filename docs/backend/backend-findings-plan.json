@@ -4580,7 +4580,7 @@
     {
       "id": "BA-status-page-06",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "29-status-page.md",
       "owner": "WS-D",
       "wave": 6

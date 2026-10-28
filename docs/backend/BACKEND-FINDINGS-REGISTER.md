@@ -404,7 +404,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-03` | P1 | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-05` | P1 | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-06` | P2 | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-06` | P2 | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-07` | P2 | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-08` | P2 | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-09` | P2 | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -750,7 +750,7 @@ W6.5 je na SHA `88d7050` + `2ef9877`, finalni CI `40770312995`, zatvorio `BA-sta
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **605**
-- Zatvoreno: **87** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **603**
+- Zatvoreno: **89** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

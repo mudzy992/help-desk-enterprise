@@ -127,7 +127,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | zatvoreno |
 | BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | zatvoreno |
 | BA-status-page-05 | P1       | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | zatvoreno |
-| BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | otvoreno |
+| BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | zatvoreno |
 | BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | otvoreno |
 | BA-status-page-08 | P2       | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom                          | otvoreno |
 | BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
@@ -145,6 +145,10 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 ### W6.5 closeout — `BA-status-page-05`
 
 Resolution više ne fan-outa notificatione u API requestu: ista transakcija koja postavlja `RESOLVED`, zapisuje update, ticket evente i audit sada upisuje deduplicirani `status.incident.resolution` outbox intent. Postojeći worker u stranicama od 250 keyset-paginira pending subscriptione i, samo za `ALL_USERS`, aktivne povezane requestere; actor se terminalno preskače, a requester notification ima deterministički per-recipient dedupe. Subscription dobija `notifiedAt` tek poslije uspješnog persistencea ili actor-self terminalnog skipa. Recipient exception ostavlja taj i sve neobrađene redove pending i obara outbox pokušaj radi retryja. `notifyOnResolve=false` ostaje silent bez intenta. Direktni failure test, stvarni PostgreSQL outbox/worker scenario i kompletni CI `40770312995` su zeleni; dokaz je [78-status-page-durable-resolution-delivery.md](../implementation/78-status-page-durable-resolution-delivery.md). Paket nema novu DB migraciju.
+
+### W6.6 closeout — `BA-status-page-06`
+
+Overview, service, ticket i detail readovi sada ugrađuju najviše 20 najnovijih timeline updateova i jedan probe red, uz `updatesHasMore` i `updatesNextCursor`. Novi autentificirani timeline endpoint primjenjuje isti incident visibility policy, validira `take` do 100 i vraća stabilne `createdAt DESC, id DESC` keyset stranice sa `hasMore`/`nextCursor` ugovorom; author lookup je ograničen na trenutnu stranicu, a public/requester redakcija je očuvana. Unit dokaz i stvarni PostgreSQL scenario sa 25 updateova i stranicama 10 + 10 + 5 prošli su u finalnom CI-ju `40773764675`; dokaz je [79-status-page-bounded-timeline-reads.md](../implementation/79-status-page-bounded-timeline-reads.md). Paket nema novu DB migraciju.
 
 ## 14. Ključne korekcije
 
