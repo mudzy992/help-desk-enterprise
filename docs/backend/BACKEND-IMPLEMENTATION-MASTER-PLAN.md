@@ -395,7 +395,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.3 status-page visibility-transition subscriber revocation — završen** na SHA `77c6662` + `6fedf3a` + `deb23bd`, finalni CI `40760712472`.
 - `ALL_USERS → STAFF_ONLY` atomski opoziva subscriptione; edit, resource-aware subscribe i resolve dijele per-incident advisory lock. Time je zatvoren `BA-status-page-03`; dokaz je u [76-status-page-visibility-transition-subscription-revocation.md](implementation/76-status-page-visibility-transition-subscription-revocation.md).
 - Registar je sada **606 otvorenih / 86 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.4 durable paginated status-incident start delivery (`BA-status-page-04`)**.
+- **W6.4 durable paginated status-incident start delivery — završen** na SHA `4ea6fad` + `7575f0b` + `cab7d18` + `e97b685`, finalni CI `40766102694`.
+- Create atomski upisuje outbox intent; worker keyset-paginira bez ukupnog capa uz retry/dead-letter/replay, dedupe i visibility recheck. Time je zatvoren `BA-status-page-04`; dokaz je u [77-status-page-durable-paginated-start-delivery.md](implementation/77-status-page-durable-paginated-start-delivery.md).
+- Registar je sada **605 otvorenih / 87 zatvorenih / 692 ukupno**; koristi se postojeći outbox i nema nove migracije.
+- Sljedeći paket je **Val 6 / W6.5 durable bounded status-incident resolution delivery (`BA-status-page-05`)**.
 
 ### Canonical primitive
 

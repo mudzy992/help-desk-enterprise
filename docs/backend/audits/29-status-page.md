@@ -125,7 +125,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-01 | P1       | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters               | zatvoreno |
 | BA-status-page-02 | P1       | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima       | zatvoreno |
 | BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | zatvoreno |
-| BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | otvoreno |
+| BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | zatvoreno |
 | BA-status-page-05 | P1       | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno |
 | BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | otvoreno |
 | BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | otvoreno |
@@ -222,3 +222,7 @@ Na SHA `55a5de0` i korekciji testnog dokaza `d51ecb6`, uz potpuno zeleni CI `407
 ## Implementacijski closeout — W6.3 (`BA-status-page-03`)
 
 Na SHA `77c6662`, audit-schema korekciji `6fedf3a` i testnoj izolaciji `deb23bd`, uz potpuno zeleni CI `40760712472`, `ALL_USERS → STAFF_ONLY` atomski opoziva postojeće subscriptione. Edit, subscribe i resolve dijele per-incident PostgreSQL advisory lock, subscribe koristi resource-aware viewer predikat, a audit bilježi samo broj opozvanih redova. Stvarni PostgreSQL dokaz potvrđuje da requester i foreign-service staff ne mogu ponovo subscribeati niti dobiti interni resolution sadržaj, dok odgovarajući scoped staff može. Dokaz: [76-status-page-visibility-transition-subscription-revocation.md](../implementation/76-status-page-visibility-transition-subscription-revocation.md). Paket nema DB migraciju.
+
+## Implementacijski closeout — W6.4 (`BA-status-page-04`)
+
+Na SHA `4ea6fad` uz korekcije `7575f0b`, `cab7d18` i `e97b685`, finalni CI `40766102694`, create atomski upisuje `status.incident.start` transactional-outbox intent. Worker keyset-paginira aktivne requestere otvorenih ticketa u batchu 250 bez ukupnog capa, koristi deterministic recipient dedupe, durable retry/dead-letter/replay i otkazuje javni delivery ako visibility postane `STAFF_ONLY`. Worker wiring i lokalizovani admin scheduler katalog su zaključani testovima. Dokaz: [77-status-page-durable-paginated-start-delivery.md](../implementation/77-status-page-durable-paginated-start-delivery.md). Paket koristi postojeći outbox i nema DB migraciju.

@@ -402,7 +402,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-01` | P1 | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-02` | P1 | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-03` | P1 | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-05` | P1 | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-06` | P2 | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-07` | P2 | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -738,13 +738,17 @@ W6.2 je na SHA `55a5de0` i korekciji `d51ecb6`, finalni CI `40735765271`, zatvor
 
 W6.3 je na SHA `77c6662`, `6fedf3a` i `deb23bd`, finalni CI `40760712472`, zatvorio `BA-status-page-03`. Visibility restriction atomski opoziva subscriptione, subscribe koristi resource-aware viewer, a per-incident advisory lock zatvara subscribe/edit/resolve race. Detalji su u [76-status-page-visibility-transition-subscription-revocation.md](implementation/76-status-page-visibility-transition-subscription-revocation.md). Paket nema DB migraciju.
 
+## Implementacijska napomena — Backend Val 6 / W6.4
+
+W6.4 je na SHA `4ea6fad`, `7575f0b`, `cab7d18` i `e97b685`, finalni CI `40766102694`, zatvorio `BA-status-page-04`. Start delivery je transactional-outbox intent koji worker obrađuje stabilno keyset-paginirano bez ukupnog limita, uz retry/dead-letter/replay, recipient dedupe i visibility recheck. Detalji su u [77-status-page-durable-paginated-start-delivery.md](implementation/77-status-page-durable-paginated-start-delivery.md). Paket nema DB migraciju.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **606**
-- Zatvoreno: **86** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **605**
+- Zatvoreno: **87** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**
