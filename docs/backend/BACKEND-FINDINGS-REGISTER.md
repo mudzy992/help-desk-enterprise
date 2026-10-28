@@ -400,14 +400,14 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 28 | `announcements` | `BA-announcements-18` | P3 | Nema cursor/hasMore za archive/manage/pending niti stabilan tie-break order | otvoreno | [28-announcements.md](audits/28-announcements.md) |
 | 28 | `announcements` | `BA-announcements-19` | P3 | Delivery suite je compile-blocked; nema concurrency/Redis/SMTP/large-audience testa | otvoreno | [28-announcements.md](audits/28-announcements.md) |
 | 29 | `status-page` | `BA-status-page-01` | P1 | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-02` | P1 | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-02` | P1 | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-03` | P1 | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-05` | P1 | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-06` | P2 | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-07` | P2 | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-08` | P2 | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom | otvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-09` | P2 | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-09` | P2 | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-10` | P2 | Uptime spans, active services i downtime windows su neograničeno učitani | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-11` | P2 | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-12` | P2 | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -730,13 +730,17 @@ W2.7 je na SHA `c78c445`, CI `40128598505`, zatvorio `BA-docs-01`, `BA-settings-
 
 W6.1 je na SHA `e60e997`, CI `40732153002`, zatvorio `BA-status-page-01`. Scoped AGENT/ADMIN više ne dobija globalni STAFF_ONLY read; overview, incident, service i ticket-linked put koriste istu service-resource granicu, a public sanitizer je allowlist projekcija. Stvarni PostgreSQL cross-service dokaz je zelen; detalji su u [74-status-page-resource-aware-staff-reads.md](implementation/74-status-page-resource-aware-staff-reads.md). Paket nema DB migraciju.
 
+## Implementacijska napomena — Backend Val 6 / W6.2
+
+W6.2 je na SHA `55a5de0` i korekciji `d51ecb6`, finalni CI `40735765271`, zatvorio `BA-status-page-02` i `BA-status-page-09`. Centralni resource policy sada provjerava svaki trenutni i ciljni incident servis za create/edit/update/resolve-preview, uz stvarni PostgreSQL cross-service dokaz. Detalji su u [75-status-page-resource-scoped-mutations.md](implementation/75-status-page-resource-scoped-mutations.md). Paket nema DB migraciju.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **609**
-- Zatvoreno: **83** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **607**
+- Zatvoreno: **85** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

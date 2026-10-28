@@ -123,14 +123,14 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | ID                | Severity | Nalaz                                                                                          | Status   |
 | ----------------- | -------- | ---------------------------------------------------------------------------------------------- | -------- |
 | BA-status-page-01 | P1       | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters               | zatvoreno |
-| BA-status-page-02 | P1       | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima       | otvoreno |
+| BA-status-page-02 | P1       | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima       | zatvoreno |
 | BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | otvoreno |
 | BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | otvoreno |
 | BA-status-page-05 | P1       | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | otvoreno |
 | BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | otvoreno |
 | BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | otvoreno |
 | BA-status-page-08 | P2       | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom                          | otvoreno |
-| BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | otvoreno |
+| BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
 | BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | otvoreno |
 | BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | otvoreno |
 | BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | otvoreno |
@@ -214,3 +214,7 @@ Modul ima dobar public sanitizer, transition CAS i transakcijsku ticket/audit in
 ## Implementacijski closeout — W6.1 (`BA-status-page-01`)
 
 Na SHA `e60e997`, uz potpuno zeleni CI `40732153002`, status viewer razdvaja globalni staff od service/OU-scoped assignmenta. Jedinstveni resource-aware query predikat pokriva overview, history, incident, service i ticket-linked read; OU-only assignment ostaje fail-closed jer incident nema OU dimenziju, a STAFF_ONLY sa više servisa zahtijeva scope nad svakim servisom. Imena autora i counters koriste istu odluku. Public sanitizer je eksplicitna allowlist projekcija. Direktna matrica i stvarni PostgreSQL cross-service test potvrđuju negativnu granicu. Dokaz: [74-status-page-resource-aware-staff-reads.md](../implementation/74-status-page-resource-aware-staff-reads.md). Paket nema DB migraciju.
+
+## Implementacijski closeout — W6.2 (`BA-status-page-02`, `BA-status-page-09`)
+
+Na SHA `55a5de0` i korekciji testnog dokaza `d51ecb6`, uz potpuno zeleni CI `40735765271`, create/edit/update/resolve-preview koriste centralni `AuthorizationService.authorizeResource` nad svakim incident servisom. Foreign mutation je skrivena not-found granicom, dok create i pokušaj dodavanja foreign service ID-a fail-closed odbijaju zahtjev. Stvarni PostgreSQL cross-service scenarij potvrđuje i pozitivnu i negativnu putanju. Link/unlink ostaju u zasebnom `BA-status-page-07` opsegu. Dokaz: [75-status-page-resource-scoped-mutations.md](../implementation/75-status-page-resource-scoped-mutations.md). Paket nema DB migraciju.

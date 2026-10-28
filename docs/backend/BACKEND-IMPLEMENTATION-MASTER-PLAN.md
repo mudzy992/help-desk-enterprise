@@ -389,7 +389,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.1 status-page resource-aware STAFF_ONLY read granica — završen** na SHA `e60e997`, CI `40732153002`.
 - Service-scoped staff odluka sada fail-closed pokriva overview, incident, service i ticket-linked read, autore i counters; public sanitizer koristi eksplicitnu allowlist projekciju. Time je zatvoren `BA-status-page-01`; dokaz je u [74-status-page-resource-aware-staff-reads.md](implementation/74-status-page-resource-aware-staff-reads.md).
 - Registar je sada **609 otvorenih / 83 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.2 status-page resource-scoped mutation authorization (`BA-status-page-02`)**.
+- **W6.2 status-page resource-scoped mutation authorization — završen** na SHA `55a5de0` + `d51ecb6`, finalni CI `40735765271`.
+- Centralni resource policy sada provjerava svaki trenutni i ciljni servis za create/edit/update/resolve-preview, uz foreign not-found granicu i stvarni PostgreSQL cross-service dokaz. Time su zatvoreni `BA-status-page-02` i preklopljeni `BA-status-page-09`; dokaz je u [75-status-page-resource-scoped-mutations.md](implementation/75-status-page-resource-scoped-mutations.md).
+- Registar je sada **607 otvorenih / 85 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.3 status-page visibility-transition subscriber revocation (`BA-status-page-03`)**.
 
 ### Canonical primitive
 
