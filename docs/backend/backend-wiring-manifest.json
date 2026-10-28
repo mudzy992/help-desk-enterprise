@@ -7875,13 +7875,11 @@
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
-      "methodGuards": [
-        "RoleGuard"
-      ],
+      "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "status-page",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard"
     },
     {
       "source": "backend/src/modules/status-page/status-page.controller.ts",
@@ -7907,13 +7905,11 @@
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
-      "methodGuards": [
-        "RoleGuard"
-      ],
+      "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "status-page",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard"
     },
     {
       "source": "backend/src/modules/status-page/status-page.controller.ts",
@@ -7924,13 +7920,11 @@
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
-      "methodGuards": [
-        "RoleGuard"
-      ],
+      "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "status-page",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard"
     },
     {
       "source": "backend/src/modules/status-page/status-page.controller.ts",
@@ -8001,13 +7995,11 @@
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
-      "methodGuards": [
-        "RoleGuard"
-      ],
+      "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "status-page",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard"
     },
     {
       "source": "backend/src/modules/status-page/status-page.controller.ts",

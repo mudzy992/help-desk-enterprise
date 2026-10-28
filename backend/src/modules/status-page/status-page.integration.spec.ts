@@ -180,6 +180,9 @@ describeIfDatabase('status page (integration)', () => {
     ids.scopedIncident = own.id;
     await expect(incidents.edit(own.id, { serviceIds: [ids.vpn, ids.mail] }, scopedActor)).rejects.toMatchObject({ status: 403 });
     await expect(incidents.addUpdate(own.id, { status: 'IDENTIFIED', message: 'Scoped update prolazi' }, scopedActor)).resolves.toEqual({ notified: 0 });
+    await expect(
+      incidents.addUpdate(own.id, { status: 'RESOLVED', message: 'Scoped incident zatvoren', notifyOnResolve: false }, scopedActor),
+    ).resolves.toEqual({ notified: 0 });
   });
 
   it('enforces service-scoped STAFF_ONLY reads across overview, incident and service paths', async () => {
