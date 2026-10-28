@@ -4508,7 +4508,7 @@
     {
       "id": "BA-sla-13",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "14-sla.md",
       "owner": "WS-F",
       "wave": 5

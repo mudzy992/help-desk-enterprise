@@ -168,7 +168,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-10` | P2 | Startup seed može duplirati/napola kreirati escalation ladder | zatvoreno | [67-sla-atomic-repairable-startup-seed.md](implementation/67-sla-atomic-repairable-startup-seed.md) |
 | 14 | `sla` | `BA-sla-11` | P2 | Aktivni timeri nemaju config verziju, migration ni determinističan recompute policy | zatvoreno | [68-sla-versioned-timer-configuration.md](implementation/68-sla-versioned-timer-configuration.md) |
 | 14 | `sla` | `BA-sla-12` | P2 | Escalation recipienti ne garantuju aktivnog/scope-eligible primaoca | zatvoreno | [69-sla-active-scoped-escalation-recipients.md](implementation/69-sla-active-scoped-escalation-recipients.md) |
-| 14 | `sla` | `BA-sla-13` | P3 | Admin read/change-log liste su globalne, role-only i nepaginirane | otvoreno | [14-sla.md](audits/14-sla.md) |
+| 14 | `sla` | `BA-sla-13` | P3 | Admin read/change-log liste su globalne, role-only i nepaginirane | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-14` | P3 | Compliance i resolution ponavljano učitavaju široke OU/profile skupove | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-15` | P3 | Observability nema per-failure/outbox lag/recipient-empty/DST integrity metrike | otvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-16` | P3 | Kritična failure/concurrency/scope/DST test matrica nije izvršiva ni kompletna | otvoreno | [14-sla.md](audits/14-sla.md) |

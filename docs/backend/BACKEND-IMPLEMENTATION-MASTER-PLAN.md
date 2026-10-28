@@ -374,7 +374,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.42 active and scope-eligible SLA escalation recipients — završen** na SHA `7fced76`, `bf956b2` i `5499a2c`, CI `40584535451`.
 - Explicit user, role, group i on-call publike sada filtriraju active/anonymized status, membership te OU/service scope; prazna publika koristi scope-eligible handler fallback ili kanonski audit alarm. PostgreSQL test potvrđuje inactive i sibling-OU odbijanje i empty-audience audit. Time je zatvoren `BA-sla-12`; dokaz je u [69-sla-active-scoped-escalation-recipients.md](implementation/69-sla-active-scoped-escalation-recipients.md).
 - Registar je sada **614 otvorenih / 78 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 5 / W5.43 scope-aware and paginated SLA administration reads (`BA-sla-13`)**.
+- **W5.43 scope-aware and paginated SLA administration reads — završen** na SHA rasponu `33a3f09`–`dc72754`, CI `40697181339`.
+- `sla.read`, principal-derived OU/service scope, DB-level filtering, fail-closed single-resource/change-log odluke i bounded cursor page envelope sada pokrivaju profile, kalendare, pravila i escalation pravila. PostgreSQL test potvrđuje globalni i dozvoljeni OU/service rezultat, sibling/cross-service odbijanje i cursor granice. Time je zatvoren `BA-sla-13`; dokaz je u [70-sla-scoped-paginated-administration-reads.md](implementation/70-sla-scoped-paginated-administration-reads.md).
+- Registar je sada **613 otvorenih / 79 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 5 / W5.44 scope-aware descendant/profile lookup optimization (`BA-sla-14`)**.
 
 ### Canonical primitive
 
