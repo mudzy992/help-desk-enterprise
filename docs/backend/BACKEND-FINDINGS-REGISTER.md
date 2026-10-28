@@ -399,7 +399,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 28 | `announcements` | `BA-announcements-17` | P3 | Retention je best-effort, guta grešku i zavisi od aktivnog sweepa | otvoreno | [28-announcements.md](audits/28-announcements.md) |
 | 28 | `announcements` | `BA-announcements-18` | P3 | Nema cursor/hasMore za archive/manage/pending niti stabilan tie-break order | otvoreno | [28-announcements.md](audits/28-announcements.md) |
 | 28 | `announcements` | `BA-announcements-19` | P3 | Delivery suite je compile-blocked; nema concurrency/Redis/SMTP/large-audience testa | otvoreno | [28-announcements.md](audits/28-announcements.md) |
-| 29 | `status-page` | `BA-status-page-01` | P1 | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-01` | P1 | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-02` | P1 | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-03` | P1 | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-04` | P1 | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -726,13 +726,17 @@ W2.6 je na SHA `52b5f1af95e7c650cfecef91a88a602edd5279e8`, CI `40127087672`, zat
 
 W2.7 je na SHA `c78c445`, CI `40128598505`, zatvorio `BA-docs-01`, `BA-settings-05` i `BA-config-versioning-01/02`. Globalni docs/settings/config readovi sada koriste katalogizovane permission capabilityje i odbijaju OU/service scoped grantove; detalji su u [08-global-read-permission-boundaries.md](implementation/08-global-read-permission-boundaries.md).
 
+## Implementacijska napomena — Backend Val 6 / W6.1
+
+W6.1 je na SHA `e60e997`, CI `40732153002`, zatvorio `BA-status-page-01`. Scoped AGENT/ADMIN više ne dobija globalni STAFF_ONLY read; overview, incident, service i ticket-linked put koriste istu service-resource granicu, a public sanitizer je allowlist projekcija. Stvarni PostgreSQL cross-service dokaz je zelen; detalji su u [74-status-page-resource-aware-staff-reads.md](implementation/74-status-page-resource-aware-staff-reads.md). Paket nema DB migraciju.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **648**
-- Zatvoreno: **44** (`BA-audit-log-11`, `BA-audit-log-10`, `BA-audit-log-09`, `BA-audit-log-07`, `BA-audit-log-06`, `BA-authorization-01/02`, `BA-config-versioning-01/02`, `BA-docs-01`, `BA-rbac-04`, `BA-security-01`, `BA-settings-05`, `BA-tickets-01/02/03/04/05/06/07/08`, `BA-users-04/05`, `BA-xcut-01/02/03/04/05/06/07/09/10/17/23/24/29/30/31`)
+- Otvoreno: **609**
+- Zatvoreno: **83** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

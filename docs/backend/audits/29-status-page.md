@@ -122,7 +122,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 
 | ID                | Severity | Nalaz                                                                                          | Status   |
 | ----------------- | -------- | ---------------------------------------------------------------------------------------------- | -------- |
-| BA-status-page-01 | P1       | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters               | otvoreno |
+| BA-status-page-01 | P1       | Scoped AGENT/ADMIN role globalno otkriva STAFF_ONLY incidente, autore i counters               | zatvoreno |
 | BA-status-page-02 | P1       | Scoped manage permission postaje globalna mutation dozvola nad svim service incidentima       | otvoreno |
 | BA-status-page-03 | P1       | ALL_USERS→STAFF_ONLY ne revokea subscribera; resolution mu otkriva interni title/message       | otvoreno |
 | BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | otvoreno |
@@ -210,3 +210,7 @@ Regenerisan Prisma client; svih 5 suiteova; Postgres concurrency/volume, Redis/c
 10. Svih 5 suiteova i scope/classification/concurrency/failure/perf E2E prolaze.
 
 Modul ima dobar public sanitizer, transition CAS i transakcijsku ticket/audit integraciju, ali globalizovani scope, STAFF_ONLY subscriber leak i nedurable notification fan-out sprečavaju enterprise ocjenu. Iskren ponderisani baseline je **4,11/10**.
+
+## Implementacijski closeout — W6.1 (`BA-status-page-01`)
+
+Na SHA `e60e997`, uz potpuno zeleni CI `40732153002`, status viewer razdvaja globalni staff od service/OU-scoped assignmenta. Jedinstveni resource-aware query predikat pokriva overview, history, incident, service i ticket-linked read; OU-only assignment ostaje fail-closed jer incident nema OU dimenziju, a STAFF_ONLY sa više servisa zahtijeva scope nad svakim servisom. Imena autora i counters koriste istu odluku. Public sanitizer je eksplicitna allowlist projekcija. Direktna matrica i stvarni PostgreSQL cross-service test potvrđuju negativnu granicu. Dokaz: [74-status-page-resource-aware-staff-reads.md](../implementation/74-status-page-resource-aware-staff-reads.md). Paket nema DB migraciju.

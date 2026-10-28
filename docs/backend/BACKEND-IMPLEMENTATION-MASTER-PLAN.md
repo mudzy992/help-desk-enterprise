@@ -386,7 +386,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.46 executable SLA failure/concurrency/scope/DST test matrix — završen** na SHA `9ba00dd`, CI `40704810126`.
 - Verzionarni matrix inventariše 20 kritičnih specova u failure, concurrency, scope, DST, fake-clock i PostgreSQL kategorijama, fail-closed provjerava fajlove i CI preduvjete te ima zaseban generated-Prisma unit gate i real-DB shard. Time je zatvoren `BA-sla-16`; dokaz je u [73-sla-executable-critical-test-matrix.md](implementation/73-sla-executable-critical-test-matrix.md).
 - Registar je sada **610 otvorenih / 82 zatvorenih / 692 ukupno**; SLA audit jedinica nema otvorenih nalaza, a paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.1 status-page authorization and public-boundary hardening (`BA-status-page-01`)**.
+- **W6.1 status-page resource-aware STAFF_ONLY read granica — završen** na SHA `e60e997`, CI `40732153002`.
+- Service-scoped staff odluka sada fail-closed pokriva overview, incident, service i ticket-linked read, autore i counters; public sanitizer koristi eksplicitnu allowlist projekciju. Time je zatvoren `BA-status-page-01`; dokaz je u [74-status-page-resource-aware-staff-reads.md](implementation/74-status-page-resource-aware-staff-reads.md).
+- Registar je sada **609 otvorenih / 83 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.2 status-page resource-scoped mutation authorization (`BA-status-page-02`)**.
 
 ### Canonical primitive
 
