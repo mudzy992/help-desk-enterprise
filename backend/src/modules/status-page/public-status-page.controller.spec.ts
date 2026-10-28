@@ -25,7 +25,7 @@ describe('toPublicStatusPage', () => {
       canManage: true,
       affectedServiceCount: 1,
       categories: [],
-      activeIncidents: [incident('a', 'ALL_USERS'), incident('b', 'STAFF_ONLY')],
+      activeIncidents: [{ ...incident('a', 'ALL_USERS'), futureInternalField: 'secret' } as IncidentView, incident('b', 'STAFF_ONLY')],
       planned: [],
       history: [incident('c', 'STAFF_ONLY')],
     };
@@ -34,6 +34,7 @@ describe('toPublicStatusPage', () => {
     expect(result.history).toEqual([]);
     expect(result.activeIncidents[0]).toMatchObject({ linkedTicketCount: null, subscriberCount: null, subscribed: false });
     expect(result.activeIncidents[0].updates[0].authorName).toBeNull();
+    expect(result.activeIncidents[0]).not.toHaveProperty('futureInternalField');
     expect(result).not.toHaveProperty('canManage');
     expect(result.configuration).toEqual({ historyDays: 90, showUptimePercent: true });
   });

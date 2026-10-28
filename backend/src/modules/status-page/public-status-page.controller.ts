@@ -76,8 +76,22 @@ export type PublicStatusPage = Omit<StatusPageView, 'canManage' | 'configuration
 /** Strips everything that is not meant for anonymous readers, even if the query changes later. */
 export function toPublicStatusPage(view: StatusPageView): PublicStatusPage {
   const clean = (incident: IncidentView): IncidentView => ({
-    ...incident,
-    updates: incident.updates.map((update) => ({ ...update, authorName: null })),
+    id: incident.id,
+    title: incident.title,
+    titleEn: incident.titleEn,
+    impact: incident.impact,
+    status: incident.status,
+    visibility: incident.visibility,
+    startedAt: incident.startedAt,
+    resolvedAt: incident.resolvedAt,
+    services: incident.services.map((service) => ({ id: service.id, name: service.name })),
+    updates: incident.updates.map((update) => ({
+      id: update.id,
+      status: update.status,
+      message: update.message,
+      createdAt: update.createdAt,
+      authorName: null,
+    })),
     linkedTicketCount: null,
     subscriberCount: null,
     subscribed: false,

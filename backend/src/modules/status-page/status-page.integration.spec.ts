@@ -26,6 +26,8 @@ describeIfDatabase('status page (integration)', () => {
   let operator: PrivacyActor;
   let requesterView: StatusViewer;
   let staffView: StatusViewer;
+  let vpnScopedView: StatusViewer;
+  let mailScopedView: StatusViewer;
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
@@ -77,6 +79,8 @@ describeIfDatabase('status page (integration)', () => {
     operator = { principal: { subjectId: op.id }, requestId: null, sessionId: null } as unknown as PrivacyActor;
     requesterView = { userId: requester.id, isStaff: false, canManage: false };
     staffView = { userId: op.id, isStaff: true, canManage: true };
+    vpnScopedView = { userId: op.id, isStaff: true, canManage: false, staffScope: { global: false, serviceIds: [vpn.id], organizationalUnitPaths: [] } };
+    mailScopedView = { userId: op.id, isStaff: true, canManage: false, staffScope: { global: false, serviceIds: [mail.id], organizationalUnitPaths: [] } };
   });
 
   afterAll(async () => {
@@ -130,6 +134,21 @@ describeIfDatabase('status page (integration)', () => {
     expect((await loadOpenIncidentImpacts(prisma as never, [ids.mail])).size).toBe(0);
     await expect(incidents.subscribe(created.id, ids.requester, false)).rejects.toMatchObject({ status: 404 });
     expect((await page.openForService(ids.mail, requesterView)).length).toBe(0);
+  });
+
+  it('enforces service-scoped STAFF_ONLY reads across overview, incident and service paths', async () => {
+    await incidents.subscribe(ids.staffIncident, ids.subscriber, true);
+
+    const mailOverview = await page.page(mailScopedView);
+    const visible = mailOverview.activeIncidents.find((incident) => incident.id === ids.staffIncident);
+    expect(visible).toMatchObject({ subscriberCount: 1 });
+    expect(visible?.updates[0].authorName).toBe('Operater');
+    expect((await page.openForService(ids.mail, mailScopedView)).map((incident) => incident.id)).toContain(ids.staffIncident);
+    expect((await page.incident(ids.staffIncident, mailScopedView)).id).toBe(ids.staffIncident);
+
+    expect((await page.page(vpnScopedView)).activeIncidents.map((incident) => incident.id)).not.toContain(ids.staffIncident);
+    expect(await page.openForService(ids.mail, vpnScopedView)).toEqual([]);
+    await expect(page.incident(ids.staffIncident, vpnScopedView)).rejects.toMatchObject({ status: 404 });
   });
 
   it('links a ticket once and writes a staff-only system event', async () => {

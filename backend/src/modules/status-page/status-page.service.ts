@@ -16,13 +16,21 @@ import {
 } from './status-page.model';
 
 /** Who is reading: requesters never see STAFF_ONLY incidents or author names (§8.1). */
+export type StatusViewerScope = {
+  readonly global: boolean;
+  readonly serviceIds: readonly string[];
+  readonly organizationalUnitPaths: readonly string[];
+};
+
 export type StatusViewer = {
   readonly userId: string | null;
   readonly isStaff: boolean;
   readonly canManage: boolean;
+  /** Undefined keeps internal/test callers backwards-compatible; request viewers always set it. */
+  readonly staffScope?: StatusViewerScope | null;
 };
 
-export const anonymousViewer: StatusViewer = { userId: null, isStaff: false, canManage: false };
+export const anonymousViewer: StatusViewer = { userId: null, isStaff: false, canManage: false, staffScope: null };
 
 export type IncidentUpdateView = {
   readonly id: string;
@@ -108,7 +116,6 @@ export class StatusPageService {
       throw new NotFoundException({ code: 'STATUS_PAGE_DISABLED', message: 'The status page is disabled' });
     }
     const historyStart = new Date(now.getTime() - configuration.historyDays * 86_400_000);
-    const visibility = viewer.isStaff ? undefined : 'ALL_USERS';
     const [availabilityBundle, services, active, history, windows] = await Promise.all([
       this.availabilityConfigurationLoader.load(),
       this.prisma.service.findMany({
@@ -121,9 +128,9 @@ export class StatusPageService {
         },
         orderBy: [{ name: 'asc' }],
       }),
-      this.loadIncidents({ status: { in: [...openIncidentStatuses] }, ...(visibility === undefined ? {} : { visibility }) }, viewer, statusPageLimits.openIncidentsListed),
+      this.loadIncidents(withIncidentVisibility({ status: { in: [...openIncidentStatuses] } }, viewer), viewer, statusPageLimits.openIncidentsListed),
       this.loadIncidents(
-        { status: 'RESOLVED', resolvedAt: { gte: historyStart }, ...(visibility === undefined ? {} : { visibility }) },
+        withIncidentVisibility({ status: 'RESOLVED', resolvedAt: { gte: historyStart } }, viewer),
         viewer,
         statusPageLimits.historyIncidentsListed,
       ),
@@ -214,11 +221,13 @@ export class StatusPageService {
   /** Open incidents on a service - the banner when opening a new ticket (§8.3). */
   async openForService(serviceId: string, viewer: StatusViewer): Promise<readonly IncidentView[]> {
     return this.loadIncidents(
-      {
-        status: { in: [...openIncidentStatuses] },
-        services: { some: { serviceId } },
-        ...(viewer.isStaff ? {} : { visibility: 'ALL_USERS' }),
-      },
+      withIncidentVisibility(
+        {
+          status: { in: [...openIncidentStatuses] },
+          services: { some: { serviceId } },
+        },
+        viewer,
+      ),
       viewer,
       20,
     );
@@ -241,9 +250,9 @@ export class StatusPageService {
     } catch (error) {
       throw mapTicketError(error);
     }
-    const effectiveViewer: StatusViewer = { ...viewer, isStaff: staff };
+    const effectiveViewer = statusViewerForTicket(viewer, staff);
     const incidents = await this.loadIncidents(
-      { tickets: { some: { ticketId } }, ...(staff ? {} : { visibility: 'ALL_USERS' }) },
+      withIncidentVisibility({ tickets: { some: { ticketId } } }, effectiveViewer),
       effectiveViewer,
       20,
     );
@@ -251,7 +260,7 @@ export class StatusPageService {
   }
 
   async incident(id: string, viewer: StatusViewer): Promise<IncidentView> {
-    const [found] = await this.loadIncidents({ id, ...(viewer.isStaff ? {} : { visibility: 'ALL_USERS' }) }, viewer, 1);
+    const [found] = await this.loadIncidents(withIncidentVisibility({ id }, viewer), viewer, 1);
     if (found === undefined) throw new NotFoundException({ code: 'INCIDENT_NOT_FOUND', message: 'Incident not found' });
     return found;
   }
@@ -290,6 +299,37 @@ export class StatusPageService {
           );
     return rows.map((row) => toIncidentView(row, viewer, authors));
   }
+}
+
+export function statusViewerForTicket(viewer: StatusViewer, hasStaffTicketAccess: boolean): StatusViewer {
+  // Ticket access authorizes the ticket panel, not unrelated status resources.
+  return { ...viewer, isStaff: hasStaffTicketAccess && viewer.isStaff };
+}
+
+export function withIncidentVisibility(where: Record<string, unknown>, viewer: StatusViewer): Record<string, unknown> {
+  if (!viewer.isStaff) return { AND: [where, { visibility: 'ALL_USERS' }] };
+  // Internal callers predating scoped viewers are explicitly global; HTTP viewers always carry a scope.
+  if (viewer.staffScope === undefined || viewer.staffScope?.global === true) return where;
+  const scope = viewer.staffScope;
+  if (scope === null) return { AND: [where, { visibility: 'ALL_USERS' }] };
+  // Status incidents are service resources and carry no organizational-unit dimension.
+  // An OU-only assignment therefore cannot be projected onto them without broadening access.
+  const serviceScope = scope.serviceIds.length === 0 ? [] : [{ id: { in: [...scope.serviceIds] } }];
+  if (serviceScope.length === 0) return { AND: [where, { visibility: 'ALL_USERS' }] };
+  return {
+    AND: [
+      where,
+      {
+        OR: [
+          { visibility: 'ALL_USERS' },
+          {
+            visibility: 'STAFF_ONLY',
+            services: { some: {}, every: { service: { OR: serviceScope } } },
+          },
+        ],
+      },
+    ],
+  };
 }
 
 export function toIncidentView(row: IncidentRecord, viewer: StatusViewer, authors: ReadonlyMap<string, string>): IncidentView {
