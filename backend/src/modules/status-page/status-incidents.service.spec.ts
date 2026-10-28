@@ -24,6 +24,7 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
       updateMany: jest.fn().mockResolvedValue({ count: options.moved ?? 1 }),
     },
     serviceIncidentUpdate: { create: jest.fn().mockResolvedValue({}) },
+    serviceIncidentService: { findMany: jest.fn().mockResolvedValue([{ serviceId: 'service-a' }]) },
     ticketIncidentLink: {
       findMany: jest.fn().mockImplementation((args: { select: Record<string, unknown> }) =>
         Promise.resolve(
@@ -40,8 +41,9 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
     },
   };
   prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
-  const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, {} as never);
-  return { service, prisma };
+  const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
+  const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, {} as never, authorization as never);
+  return { service, prisma, authorization };
 }
 
 const open = {
@@ -57,6 +59,23 @@ const open = {
 
 describe('StatusIncidentsService.addUpdate', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('requires manage permission for every incident service before mutation', async () => {
+    const { service, prisma, authorization } = build(open);
+    (prisma.serviceIncidentService as { findMany: jest.Mock }).findMany.mockResolvedValue([
+      { serviceId: 'service-a' },
+      { serviceId: 'service-b' },
+    ]);
+    authorization.authorizeResource
+      .mockResolvedValueOnce({ allowed: true, reason: 'SERVICE_ASSIGNMENT_ALLOWED' })
+      .mockResolvedValueOnce({ allowed: false, reason: 'NO_MATCHING_PERMISSION_SCOPE' });
+
+    await expect(service.addUpdate('i1', { status: 'MONITORING', message: 'Pratimo' }, actor)).rejects.toMatchObject({
+      response: { code: 'INCIDENT_NOT_FOUND' },
+    });
+    expect(authorization.authorizeResource).toHaveBeenCalledTimes(2);
+    expect((prisma.serviceIncident as { updateMany: jest.Mock }).updateMany).not.toHaveBeenCalled();
+  });
 
   it('rejects moving backwards', async () => {
     const { service } = build(open);

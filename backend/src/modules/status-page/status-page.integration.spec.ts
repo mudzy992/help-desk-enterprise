@@ -7,6 +7,9 @@
  */
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { AuthorizationService } from '../authorization/authorization.service';
+import type { AuthorizationContext } from '../authorization/authorization.types';
 import type { PrivacyActor } from '../privacy/privacy-actor';
 import { loadOpenIncidentImpacts } from '../service-catalog/load-open-incident-impacts';
 import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/parse-service-availability-configuration';
@@ -32,7 +35,31 @@ describeIfDatabase('status page (integration)', () => {
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
     const settings = { getSetting: async () => undefined };
-    incidents = new StatusIncidentsService(prisma as never, settings as never, {} as never, {} as never);
+    const authorization = new AuthorizationService(
+      {
+        loadBySubjectId: async (subjectId: string): Promise<AuthorizationContext | null> => {
+          if (subjectId === ids.op) {
+            return {
+              subjectId,
+              isLocalOnly: true,
+              isSuperAdmin: false,
+              assignments: [{ roleKey: 'ADMIN', permissionKeys: [permissionKeys.statusIncidentsManage], organizationalUnitId: null, organizationalUnitPath: null, serviceId: null }],
+            };
+          }
+          if (subjectId === ids.scoped) {
+            return {
+              subjectId,
+              isLocalOnly: true,
+              isSuperAdmin: false,
+              assignments: [{ roleKey: 'ADMIN', permissionKeys: [permissionKeys.statusIncidentsManage], organizationalUnitId: null, organizationalUnitPath: null, serviceId: ids.vpn }],
+            };
+          }
+          return null;
+        },
+      } as never,
+      prisma as never,
+    );
+    incidents = new StatusIncidentsService(prisma as never, settings as never, {} as never, {} as never, authorization);
     // Ticket access is not under test here.
     (incidents as unknown as { assertStaffTicket: () => Promise<void> }).assertStaffTicket = async () => undefined;
     const { now: _now, ...bundle } = defaultServiceAvailabilityEvaluationContext();
@@ -52,6 +79,7 @@ describeIfDatabase('status page (integration)', () => {
     const mail = await prisma.service.create({ data: { name: 'E-mail', slug: `mail${stamp}`, categoryId: category.id, lifecycle: 'ACTIVE' } });
     const form = await prisma.formVersion.create({ data: { serviceId: vpn.id, version: 1, schema: {} } });
     const op = await prisma.user.create({ data: { email: `op${stamp}@x.ba`, displayName: 'Operater' } });
+    const scoped = await prisma.user.create({ data: { email: `scoped${stamp}@x.ba`, displayName: 'VPN administrator' } });
     const requester = await prisma.user.create({ data: { email: `req${stamp}@x.ba`, displayName: 'Podnosilac' } });
     const closedRequester = await prisma.user.create({ data: { email: `closed${stamp}@x.ba`, displayName: 'Zatvoren' } });
     const subscriber = await prisma.user.create({ data: { email: `sub${stamp}@x.ba`, displayName: 'Pretplatnik' } });
@@ -75,7 +103,7 @@ describeIfDatabase('status page (integration)', () => {
     const open = await ticket('1', requester.id, 'IN_PROGRESS');
     await ticket('2', requester.id, 'IN_PROGRESS');
     await ticket('3', closedRequester.id, 'CLOSED');
-    Object.assign(ids, { vpn: vpn.id, mail: mail.id, op: op.id, requester: requester.id, closedRequester: closedRequester.id, subscriber: subscriber.id, ticket: open.id });
+    Object.assign(ids, { vpn: vpn.id, mail: mail.id, op: op.id, scoped: scoped.id, requester: requester.id, closedRequester: closedRequester.id, subscriber: subscriber.id, ticket: open.id });
     operator = { principal: { subjectId: op.id }, requestId: null, sessionId: null } as unknown as PrivacyActor;
     requesterView = { userId: requester.id, isStaff: false, canManage: false };
     staffView = { userId: op.id, isStaff: true, canManage: true };
@@ -136,6 +164,24 @@ describeIfDatabase('status page (integration)', () => {
     expect((await page.openForService(ids.mail, requesterView)).length).toBe(0);
   });
 
+  it('enforces status.incidents.manage against every affected service on real PostgreSQL', async () => {
+    const scopedActor = { principal: { subjectId: ids.scoped }, requestId: 'scope-it', sessionId: null } as unknown as PrivacyActor;
+    await expect(
+      incidents.create({ title: 'Mail foreign', impact: 'DEGRADED', serviceIds: [ids.mail], message: 'Ne smije proći' }, scopedActor),
+    ).rejects.toMatchObject({ status: 403, response: { code: 'INCIDENT_MANAGE_FORBIDDEN' } });
+    await expect(incidents.edit(ids.staffIncident, { impact: 'DOWN' }, scopedActor)).rejects.toMatchObject({ status: 404 });
+    await expect(incidents.addUpdate(ids.staffIncident, { status: 'IDENTIFIED', message: 'Neovlašten update' }, scopedActor)).rejects.toMatchObject({ status: 404 });
+    await expect(incidents.resolvePreview(ids.staffIncident, scopedActor)).rejects.toMatchObject({ status: 404 });
+
+    const own = await incidents.create(
+      { title: 'VPN scoped', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Dozvoljen scoped incident' },
+      scopedActor,
+    );
+    ids.scopedIncident = own.id;
+    await expect(incidents.edit(own.id, { serviceIds: [ids.vpn, ids.mail] }, scopedActor)).rejects.toMatchObject({ status: 403 });
+    await expect(incidents.addUpdate(own.id, { status: 'IDENTIFIED', message: 'Scoped update prolazi' }, scopedActor)).resolves.toEqual({ notified: 0 });
+  });
+
   it('enforces service-scoped STAFF_ONLY reads across overview, incident and service paths', async () => {
     await incidents.subscribe(ids.staffIncident, ids.subscriber, true);
 
@@ -165,7 +211,7 @@ describeIfDatabase('status page (integration)', () => {
     await incidents.subscribe(ids.incident, ids.subscriber, false);
     await incidents.subscribe(ids.incident, ids.requester, false);
     expect((await page.incident(ids.incident, { userId: ids.subscriber, isStaff: false, canManage: false })).subscribed).toBe(true);
-    expect(await incidents.resolvePreview(ids.incident)).toEqual({ subscribers: 2, requesters: 1, recipients: 2, linkedTickets: 1 });
+    expect(await incidents.resolvePreview(ids.incident, operator)).toEqual({ subscribers: 2, requesters: 1, recipients: 2, linkedTickets: 1 });
 
     await incidents.addUpdate(ids.incident, { status: 'IDENTIFIED', message: 'Uzrok: certifikat' }, operator);
     await expect(incidents.addUpdate(ids.incident, { status: 'INVESTIGATING', message: 'nazad' }, operator)).rejects.toMatchObject({ status: 409 });

@@ -1,9 +1,6 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, Patch, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { permissionKeys } from '../authorization/authorization.constants';
-import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RoleGuard } from '../authorization/role.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { AddIncidentUpdateDto, CreateIncidentDto, LinkTicketDto, UpdateIncidentDto } from './status-page.dto';
 import { StatusIncidentsService } from './status-incidents.service';
@@ -17,7 +14,7 @@ import { statusViewerOf } from './status-viewer';
  * access to that ticket (checked in the service, like any ticket write).
  */
 @Controller('status')
-// RoleGuard denies routes without a requirement, so it guards the manage routes only.
+// Mutation scope is resolved against all incident services inside StatusIncidentsService.
 @UseGuards(SessionAuthenticationGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class StatusPageController {
@@ -56,34 +53,26 @@ export class StatusPageController {
   }
 
   @Post('incidents')
-  @UseGuards(RoleGuard)
-  @RequirePermissions(permissionKeys.statusIncidentsManage)
   create(@Req() request: AuthenticatedHttpRequest, @Body() body: CreateIncidentDto) {
     return this.incidents.create(body, privacyActorOf(request));
   }
 
   @Patch('incidents/:id')
   @HttpCode(204)
-  @UseGuards(RoleGuard)
-  @RequirePermissions(permissionKeys.statusIncidentsManage)
   async edit(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: UpdateIncidentDto) {
     await this.incidents.edit(id, body, privacyActorOf(request));
   }
 
   @Post('incidents/:id/updates')
   @HttpCode(200)
-  @UseGuards(RoleGuard)
-  @RequirePermissions(permissionKeys.statusIncidentsManage)
   addUpdate(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: AddIncidentUpdateDto) {
     return this.incidents.addUpdate(id, body, privacyActorOf(request));
   }
 
   @Get('incidents/:id/resolve-preview')
   @Header('Cache-Control', 'no-store')
-  @UseGuards(RoleGuard)
-  @RequirePermissions(permissionKeys.statusIncidentsManage)
-  resolvePreview(@Param('id') id: string) {
-    return this.incidents.resolvePreview(id);
+  resolvePreview(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return this.incidents.resolvePreview(id, privacyActorOf(request));
   }
 
   @Post('incidents/:id/tickets')

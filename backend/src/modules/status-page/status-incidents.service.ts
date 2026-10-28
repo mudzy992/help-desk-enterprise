@@ -3,6 +3,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { AuthorizationService } from '../authorization/authorization.service';
 import { notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
@@ -62,10 +64,12 @@ export class StatusIncidentsService {
     private readonly settings: SettingsService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   async create(input: CreateIncidentDto, actor: PrivacyActor, now: Date = new Date()): Promise<{ readonly id: string; readonly notified: number }> {
     const serviceIds = await this.assertServices(input.serviceIds);
+    await this.requireManageServices(serviceIds, actor);
     const startedAt = input.startedAt === undefined ? now : new Date(input.startedAt);
     if (startedAt.getTime() > now.getTime() + 60_000) {
       throw new BadRequestException({ code: 'INCIDENT_START_IN_FUTURE', message: 'An incident cannot start in the future' });
@@ -117,10 +121,13 @@ export class StatusIncidentsService {
 
   async edit(id: string, input: UpdateIncidentDto, actor: PrivacyActor): Promise<void> {
     const current = await this.load(id);
+    const currentServiceIds = await this.incidentServiceIds(id);
+    await this.requireManageServices(currentServiceIds, actor, true);
     if (current.status === 'RESOLVED') {
       throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident can no longer be edited' });
     }
     const serviceIds = input.serviceIds === undefined ? undefined : await this.assertServices(input.serviceIds);
+    if (serviceIds !== undefined) await this.requireManageServices(serviceIds, actor);
     const changed = Object.entries({
       title: input.title,
       titleEn: input.titleEn,
@@ -167,6 +174,7 @@ export class StatusIncidentsService {
 
   /** A timeline entry; RESOLVED closes the incident and notifies (§8.3). */
   async addUpdate(id: string, input: AddIncidentUpdateDto, actor: PrivacyActor, now: Date = new Date()): Promise<IncidentNotifyResult> {
+    await this.requireManageServices(await this.incidentServiceIds(id), actor, true);
     const resolving = input.status === 'RESOLVED';
     const incident = await this.prisma.$transaction(async (transaction) => {
       const current = (await transaction.serviceIncident.findUnique({ where: { id }, select: incidentSelect })) as IncidentRow | null;
@@ -216,8 +224,9 @@ export class StatusIncidentsService {
   }
 
   /** How many people a resolution would notify - the preview before confirming (§8.3). */
-  async resolvePreview(id: string): Promise<{ readonly subscribers: number; readonly requesters: number; readonly recipients: number; readonly linkedTickets: number }> {
+  async resolvePreview(id: string, actor: PrivacyActor): Promise<{ readonly subscribers: number; readonly requesters: number; readonly recipients: number; readonly linkedTickets: number }> {
     const incident = await this.load(id);
+    await this.requireManageServices(await this.incidentServiceIds(id), actor, true);
     const [subscribers, requesters, linkedTickets] = await Promise.all([
       this.pendingSubscriberIds(id),
       incident.visibility === 'ALL_USERS' ? this.linkedRequesterIds(id) : Promise.resolve([]),
@@ -312,6 +321,35 @@ export class StatusIncidentsService {
     const row = (await this.prisma.serviceIncident.findUnique({ where: { id }, select: incidentSelect })) as IncidentRow | null;
     if (row === null) throw notFound();
     return row;
+  }
+
+  private async incidentServiceIds(incidentId: string): Promise<string[]> {
+    const rows = await this.prisma.serviceIncidentService.findMany({ where: { incidentId }, select: { serviceId: true } });
+    if (rows.length === 0) throw notFound();
+    return rows.map((row) => row.serviceId);
+  }
+
+  private async requireManageServices(serviceIds: readonly string[], actor: PrivacyActor, concealIncident = false): Promise<void> {
+    if (serviceIds.length === 0) {
+      if (concealIncident) throw notFound();
+      throw new ForbiddenException({ code: 'INCIDENT_MANAGE_FORBIDDEN', message: 'The incident is outside the allowed service scope' });
+    }
+    const decisions = await Promise.all(
+      [...new Set(serviceIds)].map((serviceId) =>
+        this.authorization.authorizeResource({
+          principal: actor.principal,
+          permissionKey: permissionKeys.statusIncidentsManage,
+          ownerUserId: null,
+          organizationalUnitId: null,
+          serviceId,
+          allowOwner: false,
+        }),
+      ),
+    );
+    if (decisions.some((decision) => !decision.allowed)) {
+      if (concealIncident) throw notFound();
+      throw new ForbiddenException({ code: 'INCIDENT_MANAGE_FORBIDDEN', message: 'The incident is outside the allowed service scope' });
+    }
   }
 
   private async assertServices(ids: readonly string[]): Promise<string[]> {
