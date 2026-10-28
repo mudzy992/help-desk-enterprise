@@ -128,7 +128,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-04 | P1       | Start notification terminalno odsijeca primatelje nakon 2.000 bez cursora/backloga             | zatvoreno |
 | BA-status-page-05 | P1       | Resolution fan-out je unbounded i sve subscriptione označi notified i nakon pojedinačnog pada | zatvoreno |
 | BA-status-page-06 | P2       | Incident timeline nested read nema limit; do 300 incidenata može učitati sve updateove         | zatvoreno |
-| BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | otvoreno |
+| BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | zatvoreno |
 | BA-status-page-08 | P2       | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom                          | otvoreno |
 | BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
 | BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | otvoreno |
@@ -149,6 +149,10 @@ Resolution više ne fan-outa notificatione u API requestu: ista transakcija koja
 ### W6.6 closeout — `BA-status-page-06`
 
 Overview, service, ticket i detail readovi sada ugrađuju najviše 20 najnovijih timeline updateova i jedan probe red, uz `updatesHasMore` i `updatesNextCursor`. Novi autentificirani timeline endpoint primjenjuje isti incident visibility policy, validira `take` do 100 i vraća stabilne `createdAt DESC, id DESC` keyset stranice sa `hasMore`/`nextCursor` ugovorom; author lookup je ograničen na trenutnu stranicu, a public/requester redakcija je očuvana. Unit dokaz i stvarni PostgreSQL scenario sa 25 updateova i stranicama 10 + 10 + 5 prošli su u finalnom CI-ju `40773764675`; dokaz je [79-status-page-bounded-timeline-reads.md](../implementation/79-status-page-bounded-timeline-reads.md). Paket nema novu DB migraciju.
+
+### W6.7 closeout — `BA-status-page-07`
+
+Link i unlink sada zahtijevaju dvije nezavisne resource odluke: actor mora imati `status.incidents.manage` nad svakim servisom incidenta i staff pristup ticketu. Incident scope provjera se izvršava prva i foreign incident prikriva 404 granicom prije ticket authorizationa, title read-a, relation write-a, audita ili system eventa. Unit matrix i stvarni PostgreSQL VPN-scoped administrator scenario potvrđuju negativni cross-service link/unlink bez side effecta i pozitivni same-service tok; kompletni CI `40775040580` je zelen. Dokaz je [80-status-page-dual-resource-ticket-link-authorization.md](../implementation/80-status-page-dual-resource-ticket-link-authorization.md). Paket nema novu DB migraciju.
 
 ## 14. Ključne korekcije
 

@@ -404,7 +404,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.6 bounded status-incident timeline reads — završen** na SHA `73dfa9d` + `f7944af`, finalni CI `40773764675`.
 - Incident list readovi sada ugrađuju latest-20 timeline sa pagination metadata, dok novi visibility-scoped endpoint stabilno keyset-paginira kompletnu historiju u validiranim stranicama do 100. Time je zatvoren `BA-status-page-06`; dokaz je u [79-status-page-bounded-timeline-reads.md](implementation/79-status-page-bounded-timeline-reads.md).
 - Registar je sada **603 otvorena / 89 zatvorenih / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.7 incident/ticket dual-resource authorization za link/unlink (`BA-status-page-07`)**.
+- **W6.7 incident/ticket dual-resource link authorization — završen** na SHA `aa92ed9`, finalni CI `40775040580`.
+- Link/unlink sada zahtijeva resource-scoped manage odluku nad svim incident servisima i postojeći staff ticket pristup; foreign incident je concealed prije sadržaja i bilo kojeg side effecta. Time je zatvoren `BA-status-page-07`; dokaz je u [80-status-page-dual-resource-ticket-link-authorization.md](implementation/80-status-page-dual-resource-ticket-link-authorization.md).
+- Registar je sada **602 otvorena / 90 zatvorenih / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.8 optimistic incident edit/link lifecycle concurrency za `BA-status-page-08`**.
 
 ### Canonical primitive
 

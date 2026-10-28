@@ -744,13 +744,17 @@ W6.4 je na SHA `4ea6fad`, `7575f0b`, `cab7d18` i `e97b685`, finalni CI `40766102
 
 W6.5 je na SHA `88d7050` + `2ef9877`, finalni CI `40770312995`, zatvorio `BA-status-page-05`. Resolution delivery je atomarni outbox intent; worker bounded/keyset paginira subscribere i linked requestere, koristi per-recipient dedupe i ne označava neuspjelu subscription kao notified. Detalji su u [78-status-page-durable-resolution-delivery.md](implementation/78-status-page-durable-resolution-delivery.md). Paket nema novu DB migraciju.
 
+W6.6 je na SHA `73dfa9d` + `f7944af`, finalni CI `40773764675`, zatvorio `BA-status-page-06`. Incident list readovi ugrađuju najviše 20 updateova uz pagination metadata, a visibility-scoped timeline endpoint keyset-paginira kompletnu historiju sa validiranim maksimumom 100. Detalji su u [79-status-page-bounded-timeline-reads.md](implementation/79-status-page-bounded-timeline-reads.md). Paket nema novu DB migraciju.
+
+W6.7 je na SHA `aa92ed9`, finalni CI `40775040580`, zatvorio `BA-status-page-07`. Link/unlink sada zahtijeva i resource-scoped incident manage odluku nad svim servisima i postojeći staff ticket pristup; foreign incident se prikriva prije sadržaja i side effecta. Detalji su u [80-status-page-dual-resource-ticket-link-authorization.md](implementation/80-status-page-dual-resource-ticket-link-authorization.md). Paket nema novu DB migraciju.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **603**
-- Zatvoreno: **89** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **602**
+- Zatvoreno: **90** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**
