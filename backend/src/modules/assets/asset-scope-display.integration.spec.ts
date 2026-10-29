@@ -150,7 +150,8 @@ describeIfDatabase('asset relation and contract display scope (integration)', ()
         data: { fromAssetId: rootAsset.id, toAssetId: visibleChild.id, kind: 'DEPENDS_ON' },
       }),
       prisma.assetRelation.create({
-        data: { fromAssetId: visibleChild.id, toAssetId: rootAsset.id, kind: 'INSTALLED_ON' },
+        // Keep the display fixture acyclic while still exercising the incoming direction.
+        data: { fromAssetId: visibleChild.id, toAssetId: rootAsset.id, kind: 'CONNECTED_TO' },
       }),
       prisma.assetRelation.create({
         data: { fromAssetId: rootAsset.id, toAssetId: foreignOutgoing.id, kind: 'RUNS_ON' },

@@ -46,6 +46,15 @@ describe('asset relation database conflict mapping (W7.6)', () => {
         constraint: assetRelationDirectedAcyclicConstraint,
       }),
     ).toBe(true);
+    expect(
+      isAssetRelationCycleConflict({
+        code: 'P2004',
+        meta: {
+          code: '23514',
+          message: `${assetRelationDirectedAcyclicConstraint}: directed asset relations must remain acyclic`,
+        },
+      }),
+    ).toBe(true);
   });
 
   it('does not misclassify unrelated uniqueness or check failures', () => {

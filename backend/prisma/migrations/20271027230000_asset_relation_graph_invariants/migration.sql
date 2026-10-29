@@ -140,7 +140,7 @@ BEGIN
   INTO creates_cycle;
 
   IF creates_cycle THEN
-    RAISE EXCEPTION 'directed asset relations must remain acyclic'
+    RAISE EXCEPTION 'AssetRelation_directed_acyclic: directed asset relations must remain acyclic'
       USING ERRCODE = '23514',
             CONSTRAINT = 'AssetRelation_directed_acyclic',
             TABLE = 'AssetRelation';
