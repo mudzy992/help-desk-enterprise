@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Delete, Get, Header, Headers, Ht
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
-import { AddIncidentUpdateDto, CreateIncidentDto, IncidentTimelineQueryDto, LinkTicketDto, UpdateIncidentDto } from './status-page.dto';
+import { AddIncidentUpdateDto, CreateIncidentDto, IncidentListQueryDto, IncidentTimelineQueryDto, LinkTicketDto, UpdateIncidentDto } from './status-page.dto';
 import { StatusIncidentsService } from './status-incidents.service';
 import { StatusPageService } from './status-page.service';
 import { statusViewerOf } from './status-viewer';
@@ -25,9 +25,14 @@ export class StatusPageController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  overview(@Req() request: AuthenticatedHttpRequest) {
+  overview(@Req() request: AuthenticatedHttpRequest, @Query() activeQuery: IncidentListQueryDto, @Query() historyQuery: IncidentListQueryDto) {
     const actor = privacyActorOf(request);
-    return this.page.page(statusViewerOf(request, actor.principal.subjectId));
+    return this.page.page(
+      statusViewerOf(request, actor.principal.subjectId),
+      new Date(),
+      activeQuery,
+      historyQuery,
+    );
   }
 
   @Get('incidents/:id')

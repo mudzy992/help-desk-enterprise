@@ -1,9 +1,10 @@
-import { Controller, Get, HttpException, HttpStatus, Inject, NotFoundException, Optional, Req, Res } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus, Inject, NotFoundException, Optional, Query, Req, Res } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import { anonymousViewer, StatusPageService, type IncidentView, type StatusPageView } from './status-page.service';
 import { statusPageLimits } from './status-page.model';
 import { StatusPagePublicCacheService } from './status-page-public-cache.service';
+import { IncidentListQueryDto } from './status-page.dto';
 
 type PublicRequest = { readonly ip?: string; readonly socket?: { readonly remoteAddress?: string | null } };
 type HeaderResponse = { setHeader(name: string, value: string): void };
@@ -26,7 +27,12 @@ export class PublicStatusPageController {
   ) {}
 
   @Get()
-  async overview(@Req() request: PublicRequest, @Res({ passthrough: true }) response: HeaderResponse): Promise<PublicStatusPage> {
+  async overview(
+    @Req() request: PublicRequest,
+    @Res({ passthrough: true }) response: HeaderResponse,
+    @Query() activeQuery: IncidentListQueryDto,
+    @Query() historyQuery: IncidentListQueryDto,
+  ): Promise<PublicStatusPage> {
     const ip = this.clientIp(request);
     await this.limit(ip);
     const configuration = await this.page.loadConfiguration();
@@ -42,7 +48,7 @@ export class PublicStatusPageController {
       return JSON.parse(cached) as PublicStatusPage;
     }
 
-    const body = toPublicStatusPage(await this.page.page(anonymousViewer, new Date()));
+    const body = toPublicStatusPage(await this.page.page(anonymousViewer, new Date(), activeQuery, historyQuery));
     await this.cache.setPage(version, JSON.stringify(body));
     response.setHeader('Cache-Control', `public, max-age=${statusPageLimits.publicCacheMs / 1000}`);
     return body;

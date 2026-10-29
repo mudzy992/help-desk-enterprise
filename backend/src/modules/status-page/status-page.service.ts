@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -8,8 +8,8 @@ import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import { StatusPageConfigurationLoader, type StatusPageConfiguration } from './status-page.configuration';
+import { IncidentListQueryDto } from './status-page.dto';
 import {
-  openIncidentStatuses,
   statusPageLimits,
   worstAvailability,
   type ServiceAvailabilityValue,
@@ -79,8 +79,12 @@ export type StatusPageView = {
   readonly plannedHasMore: boolean;
   readonly categories: ReadonlyArray<{ readonly id: string | null; readonly name: string | null; readonly services: readonly StatusServiceView[] }>;
   readonly activeIncidents: readonly IncidentView[];
+  readonly activeHasMore: boolean;
+  readonly activeNextCursor: string | null;
   readonly planned: ReadonlyArray<{ readonly serviceId: string; readonly serviceName: string; readonly startsAt: string; readonly endsAt: string; readonly message: string | null }>;
   readonly history: readonly IncidentView[];
+  readonly historyHasMore: boolean;
+  readonly historyNextCursor: string | null;
 };
 
 type IncidentRecord = {
@@ -118,12 +122,19 @@ export class StatusPageService {
     return this.configurationLoader.load();
   }
 
-  async page(viewer: StatusViewer, now: Date = new Date()): Promise<StatusPageView> {
+  async page(
+    viewer: StatusViewer,
+    now: Date = new Date(),
+    activeQuery?: IncidentListQueryDto,
+    historyQuery?: IncidentListQueryDto,
+  ): Promise<StatusPageView> {
     const configuration = await this.configurationLoader.load();
     if (!configuration.enabled && !viewer.canManage) {
       throw new NotFoundException({ code: 'STATUS_PAGE_DISABLED', message: 'The status page is disabled' });
     }
     const historyStart = new Date(now.getTime() - configuration.historyDays * 86_400_000);
+    const activeTake = activeQuery?.take ?? statusPageLimits.openIncidentsListed;
+    const historyTake = historyQuery?.take ?? statusPageLimits.historyIncidentsListed;
     const [availabilityBundle, services, active, history, windows] = await Promise.all([
       this.availabilityConfigurationLoader.load(),
       this.prisma.service.findMany({
@@ -137,11 +148,17 @@ export class StatusPageService {
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
         take: statusPageLimits.activeServicesListed + 1,
       }),
-      this.loadIncidents(withIncidentVisibility({ status: { in: [...openIncidentStatuses] } }, viewer), viewer, statusPageLimits.openIncidentsListed),
+      this.loadIncidents(
+        withIncidentVisibility({ status: { in: [...openIncidentStatuses] } }, viewer),
+        viewer,
+        activeTake,
+        activeQuery?.cursor,
+      ),
       this.loadIncidents(
         withIncidentVisibility({ status: 'RESOLVED', resolvedAt: { gte: historyStart } }, viewer),
         viewer,
-        statusPageLimits.historyIncidentsListed,
+        historyTake,
+        historyQuery?.cursor,
       ),
       this.prisma.serviceDowntimeWindow.findMany({
         where: {
@@ -167,12 +184,15 @@ export class StatusPageService {
     const boundedServices = servicesHasMore ? services.slice(0, statusPageLimits.activeServicesListed) : services;
     const plannedHasMore = windows.length > statusPageLimits.downtimeWindowsListed;
     const boundedWindows = plannedHasMore ? windows.slice(0, statusPageLimits.downtimeWindowsListed) : windows;
+
+    const activePage = paginateIncidents(active, activeTake);
+    const historyPage = paginateIncidents(history, historyTake);
     const uptimeByService = configuration.showUptimePercent
       ? await loadUptimePercentByService(this.prisma, boundedServices.map((service) => service.id), historyStart, now)
       : new Map<string, number>();
     const windowsByService = groupBy(boundedWindows, (row) => row.serviceId, (row) => row);
     const incidentsByService = new Map<string, IncidentView[]>();
-    for (const incident of active) {
+    for (const incident of activePage.items) {
       for (const service of incident.services) {
         incidentsByService.set(service.id, [...(incidentsByService.get(service.id) ?? []), incident]);
       }
@@ -216,7 +236,9 @@ export class StatusPageService {
       categories: [...categories.values()]
         .sort((left, right) => left.sortOrder - right.sortOrder || (left.name ?? '').localeCompare(right.name ?? ''))
         .map(({ id, name, services: list }) => ({ id, name, services: list })),
-      activeIncidents: active,
+      activeIncidents: activePage.items,
+      activeHasMore: activePage.hasMore,
+      activeNextCursor: activePage.nextCursor,
       planned: boundedWindows
         .filter((window) => window.startsAt.getTime() > now.getTime())
         .map((window) => ({
@@ -226,13 +248,15 @@ export class StatusPageService {
           endsAt: window.endsAt.toISOString(),
           message: window.message.length > 0 ? window.message : null,
         })),
-      history,
+      history: historyPage.items,
+      historyHasMore: historyPage.hasMore,
+      historyNextCursor: historyPage.nextCursor,
     };
   }
 
   /** Open incidents on a service - the banner when opening a new ticket (§8.3). */
   async openForService(serviceId: string, viewer: StatusViewer): Promise<readonly IncidentView[]> {
-    return this.loadIncidents(
+    const page = await this.loadIncidents(
       withIncidentVisibility(
         {
           status: { in: [...openIncidentStatuses] },
@@ -243,6 +267,7 @@ export class StatusPageService {
       viewer,
       20,
     );
+    return page.items;
   }
 
   /**
@@ -263,16 +288,17 @@ export class StatusPageService {
       throw mapTicketError(error);
     }
     const effectiveViewer = statusViewerForTicket(viewer, staff);
-    const incidents = await this.loadIncidents(
+    const incidentsPage = await this.loadIncidents(
       withIncidentVisibility({ tickets: { some: { ticketId } } }, effectiveViewer),
       effectiveViewer,
       20,
     );
-    return { staff, incidents };
+    return { staff, incidents: incidentsPage.items };
   }
 
   async incident(id: string, viewer: StatusViewer): Promise<IncidentView> {
-    const [found] = await this.loadIncidents(withIncidentVisibility({ id }, viewer), viewer, 1);
+    const page = await this.loadIncidents(withIncidentVisibility({ id }, viewer), viewer, 1);
+    const found = page.items[0];
     if (found === undefined) throw new NotFoundException({ code: 'INCIDENT_NOT_FOUND', message: 'Incident not found' });
     return found;
   }
@@ -309,11 +335,17 @@ export class StatusPageService {
     };
   }
 
-  private async loadIncidents(where: Record<string, unknown>, viewer: StatusViewer, take: number): Promise<IncidentView[]> {
+  private async loadIncidents(
+    where: Record<string, unknown>,
+    viewer: StatusViewer,
+    take: number,
+    cursor?: string,
+  ): Promise<{ readonly items: readonly IncidentView[]; readonly hasMore: boolean; readonly nextCursor: string | null }> {
     const rows = (await this.prisma.serviceIncident.findMany({
       where: where as never,
-      orderBy: [{ startedAt: 'desc' }],
-      take,
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      take: take + 1,
+      ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
       select: {
         id: true,
         title: true,
@@ -346,7 +378,8 @@ export class StatusPageService {
               user.displayName,
             ]),
           );
-    return rows.map((row) => toIncidentView(row, viewer, authors));
+    const views = rows.map((row) => toIncidentView(row, viewer, authors));
+    return paginateIncidents(views, take);
   }
 }
 
@@ -473,4 +506,18 @@ function groupBy<T, V>(rows: readonly T[], key: (row: T) => string, value: (row:
   const map = new Map<string, V[]>();
   for (const row of rows) map.set(key(row), [...(map.get(key(row)) ?? []), value(row)]);
   return map;
+}
+
+/** Keyset pagination: fetch take+1 rows, return take with hasMore/nextCursor from stable (startedAt desc, id desc) order. */
+function paginateIncidents<T extends { readonly id: string }>(
+  rows: readonly T[],
+  take: number,
+): { readonly items: readonly T[]; readonly hasMore: boolean; readonly nextCursor: string | null } {
+  const hasMore = rows.length > take;
+  const items = hasMore ? rows.slice(0, take) : rows;
+  return {
+    items,
+    hasMore,
+    nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+  };
 }

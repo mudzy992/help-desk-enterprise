@@ -29,10 +29,14 @@ describe('toPublicStatusPage', () => {
       affectedServiceCount: 1,
       servicesHasMore: false,
       plannedHasMore: false,
+      activeHasMore: false,
+      activeNextCursor: null,
       categories: [],
       activeIncidents: [{ ...incident('a', 'ALL_USERS'), futureInternalField: 'secret' } as IncidentView, incident('b', 'STAFF_ONLY')],
       planned: [],
       history: [incident('c', 'STAFF_ONLY')],
+      historyHasMore: false,
+      historyNextCursor: null,
     };
     const result = toPublicStatusPage(view);
     expect(result.activeIncidents.map((entry) => entry.id)).toEqual(['a']);

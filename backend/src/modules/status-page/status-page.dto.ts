@@ -161,3 +161,19 @@ export class IncidentTimelineQueryDto {
   @Max(statusPageLimits.timelineUpdatesPageMax)
   take: number = statusPageLimits.timelineUpdatesPageDefault;
 }
+
+/** Cursor pagination for the capped open and history incident lists. */
+export class IncidentListQueryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(statusPageLimits.incidentListPageMax)
+  take?: number;
+}

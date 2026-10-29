@@ -21,8 +21,11 @@ export const statusPageLimits = {
   messageMax: 4000,
   servicesMax: 50,
   ticketsPerCreateMax: 100,
+  /** Capped open and history incident lists - callers page with cursor/take. */
   openIncidentsListed: 100,
   historyIncidentsListed: 200,
+  /** Max page size a client may request for open/history lists. */
+  incidentListPageMax: 100,
   /** Explicit response budgets for catalog and current/future downtime windows. */
   activeServicesListed: 500,
   downtimeWindowsListed: 1_000,
