@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../common/prisma/prisma.service';
+import type { PrismaClient } from '../../../generated/prisma/client';
 import type { RetentionCategory } from '../privacy.constants';
 import { retentionRedactionMarker } from './retention-executors';
 
@@ -14,7 +14,7 @@ const statusIncidentBatch = 50;
  * kept so reports and uptime history remain consistent.
  */
 export function createStatusIncidentRetentionExecutor(
-  prisma: PrismaService,
+  prisma: PrismaClient,
 ): { readonly category: RetentionCategory; preview(cutoff: Date): Promise<import('./retention-executors').RetentionPreview>; executeBatch(cutoff: Date): Promise<import('./retention-executors').RetentionBatch> } {
   const category: RetentionCategory = 'statusIncidents';
 

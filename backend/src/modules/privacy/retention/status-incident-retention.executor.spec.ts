@@ -66,7 +66,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
     const prisma = buildPrisma(incidents, updates);
     const executor = createStatusIncidentRetentionExecutor(prisma);
     const preview = await executor.preview(cutoff);
-    expect(preview.count).toBe(5); // 2 incidents + 3 updates
+    expect(preview.count).toBe(3); // 1 incident (i1) + 2 updates (u1, u2 on i1)
   });
 
   it('executeBatch redacts incident title/author and sets retentionArchivedAt', async () => {
@@ -79,7 +79,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
     const prisma = buildPrisma(incidents, updates);
     const executor = createStatusIncidentRetentionExecutor(prisma);
     const batch = await executor.executeBatch(cutoff);
-    expect(batch.items).toBe(3); // 1 incident + 1 update + ... actually 1 incident + 1 update = 2, but we count updates + incidents
+    expect(batch.items).toBe(2); // 1 incident + 1 update
     expect(prisma.serviceIncident.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
