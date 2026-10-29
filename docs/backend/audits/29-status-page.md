@@ -136,7 +136,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-16 | P3       | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker                      | zatvoreno |
 | BA-status-page-17 | P3       | Edit audit/revision ne omogućava rekonstrukciju title/service promjena                          | zatvoreno |
 | BA-status-page-18 | P3       | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole                 | zatvoreno |
-| BA-status-page-19 | P3       | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje   | otvoreno |
+| BA-status-page-19 | P3       | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje   | zatvoreno |
 
 ### W6.5 closeout — `BA-status-page-05`
 
@@ -185,6 +185,10 @@ Na SHA `ebd937a`, uz zeleni backend build + test i frontend build + test, `edit`
 ### W6.16 closeout — `BA-status-page-18`
 
 Na SHA `f8a76f9`, uz zeleni backend build + test i frontend build + test, `create` transakcija ograničava backdating incidentnog početka. `startedAt` stariji od `maxStartedAtBackdateDays` (30 dana) bez `startedAtReason` baca `INCIDENT_BACKDATE_REQUIRES_REASON` (400). Audit zapisuje `backdated: true`, `backdatedDays` i `backdatedReason` kada se primeni. Time je zatvoren `BA-status-page-18`. Nema nove DB migracije.
+
+### W6.17 closeout — `BA-status-page-19`
+
+Na SHA `8c7344e`, kompletni CI `40895868319` je zelen. Failure matrica pokriva 404 za nepostojeći incident, 409 za izmjenu resolved incidenta, 400 kada edit ruta nema `If-Match`, 404 za nepostojeći ticket link i 409 za subscribe na resolved incident. Stvarni PostgreSQL testovi potvrđuju da dva paralelna create-a na istom servisu uspiju i da se 100 kreiranih incidenata čita unutar `statusPageLimits.openIncidentsListed` budžeta. CI analiza je našla i ispravila audit-schema neslaganje: servis je zapisivao `services` delta, dok je allowlist dopuštala samo `serviceIds`; dodatno je test delta-e izolovan na novi incident, pa provjerava stvarni add/remove umjesto naslijeđenog stanja iz prethodnog testa. Time je zatvoren `BA-status-page-19`. Nema nove DB migracije.
 
 ## 14. Ključne korekcije
 
