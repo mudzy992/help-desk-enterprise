@@ -82,9 +82,7 @@ Audit ne zapisuje free text, što smanjuje PII replike. Ipak nema edit revisiona
 
 ## 10. Privacy i retention
 
-Model čuva slobodni title/message, authorUserId, subscriber userId, linkedByUserId i ticket relacije. User cascade čisti subscription, dok author/link actor postaje implicitno problematičan jer nema deklarisan FK u prikazanom modelu. Nije pronađen status-incident retention/anonymization flow. History endpoint prikazuje samo konfigurisan period, ali DB čuva incidente/updateove/linkove/subscriptions neograničeno.
-
-Potrebna je matrica za incident content, author identity, subscription/delivery state, ticket system event i audit. Legal hold, incident deletion/tombstone, user anonymization i public content takedown nisu formalizovani.
+W6.13 dodaje `statusIncidents` retention kategoriju u noćni retention sweep. RESOLVED incidenti stariji od konfiguranog perioda (`private.privacy.retention.statusIncidentsDays`, minimum 180 dana, default 0/onemogućen) se arhiviraju: `title`/`titleEn` i `createdByUserId` se redaktuju na `[redacted]`/null, `retentionArchivedAt` se postavlja, a povezano `ServiceIncidentUpdate` (poruka + autor), `TicketIncidentLink` (linkedByUserId) i `ServiceIncidentSubscription` (userId) se brisu ili redaktuju. Incident skelet (id, status, datumi, brojač servisa) se zadržava tako da izvještaji i uptime istorija ostaju konzistentni. Kategorija zahteva dry run pre prvog izvršenja (isto kao attachments/ticketContent/audit). Legal hold, puni incident brisanje/tombstone i public content takedown ostaju za buduće pakete. Dokaz je [86-status-page-retention-and-anonymization.md](../implementation/86-status-page-retention-and-anonymization.md). Paket carries **jednu novu DB migraciju** (`20271027210000_status_page_retention`) koju treba ručno pokrenuti pri releaseu/redeployu.
 
 ## 11. Testovi i E2E
 
@@ -134,8 +132,8 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | zatvoreno |
 | BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | zatvoreno |
 | BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | zatvoreno |
-| BA-status-page-15 | P2       | Incident/update/link/subscription retention i anonymization nisu formalizovani                  | otvoreno |
-| BA-status-page-16 | P3       | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker                      | otvoreno |
+| BA-status-page-15 | P2       | Incident/update/link/subscription retention i anonymization nisu formalizovani                  | zatvoreno |
+| BA-status-page-16 | P3       | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker                      | zatvoreno |
 | BA-status-page-17 | P3       | Edit audit/revision ne omogućava rekonstrukciju title/service promjena                          | otvoreno |
 | BA-status-page-18 | P3       | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole                 | otvoreno |
 | BA-status-page-19 | P3       | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje   | otvoreno |
@@ -171,6 +169,14 @@ Ticket autorizacija za incident create/link/unlink više nije N+1 pre-check izva
 ### W6.12 closeout — `BA-status-page-13` i `BA-status-page-14`
 
 Javni status endpoint sada koristi trust-proxy-aware IP za rate limiting (Express `trust proxy` kada je podešen, inače connection `remoteAddress`), a Redis greška više nije fail-open već fail-closed (429). Shared Redis cache (`status:public:page:v{version}`) zamjenjuje per-process Map; verzija se inkrementira na svakoj incident mutaciji (create/edit/resolve/link/unlink), tako sve instance invalidiraju cache Odmah. Dokaz je u [85-status-page-public-endpoint-hardening.md](../implementation/85-status-page-public-endpoint-hardening.md). Paket nema novu DB migraciju.
+
+### W6.13 closeout — `BA-status-page-15`
+
+Status-page retention i anonymization su formalizovani kroz novu `statusIncidents` retention kategoriju u noćnom sweepu. RESOLVED incidenti stariji od konfiguranog perioda (minimum 180 dana, default onemogućeno) se arhiviraju: naslov i autor se redaktuju, `retentionArchivedAt` se postavlja, a povezani updateovi (poruka + autor), ticket linkovi (linkedByUserId) i subscriptione (userId) se brisu/redaktuju. Incident skelet se zadržava za izvještaje i uptime. Kategorija zahteva dry run pre prvog izvršenja. Pokretanje carries novu DB migraciju `20271027210000_status_page_retention` (`retentionArchivedAt` na `ServiceIncident`, `contentRedactedAt` na `ServiceIncidentUpdate`) koju treba ručno pokrenuti pri releaseu/redeployu. Dokaz je [86-status-page-retention-and-anonymization.md](../implementation/86-status-page-retention-and-anonymization.md).
+
+### W6.14 closeout — `BA-status-page-16`
+
+Na SHA `882aceb`, uz zeleni backend build + test i frontend build + test, open i history incidentne liste na status stranici dobijaju keyset paginaciju. `page()` prima opcione `activeQuery`/`historyQuery` sa `cursor` i `take` (maksimalno 100 po stranici), orderuje po `[{ startedAt: 'desc' }, { id: 'desc' }]` (stabilan ID tie-breaker), vraća `take+1` redova i izračunava `hasMore`/`nextCursor`. Odgovor dobija `activeHasMore`/`activeNextCursor` i `historyHasMore`/`historyNextCursor`. OpenForService i forTicket ostaju na fiksnoj stranici 20 (banner/panel casos), a `incident()` vraća jedan red. Javni endpoint (`PublicStatusPage`) prosleđuje nova polja bez otkrivanja staff podataka. Nema nove DB migracije.
 
 ## 14. Ključne korekcije
 

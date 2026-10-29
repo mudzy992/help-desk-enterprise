@@ -2,7 +2,8 @@
 
 **Status:** audit baseline — implementacija nije započeta  
 **Datum:** 2026-10-23  
-**Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)
+**Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)  
+**Trenutno:** 594 otvorenih / 98 zatvorena / 692 ukupno
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -413,8 +414,8 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-12` | P2 | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-13` | P2 | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-14` | P2 | Process-local public cache nema mutation invalidation ni multi-instance koherenciju | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-15` | P2 | Incident/update/link/subscription retention i anonymization nisu formalizovani | otvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-16` | P3 | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-15` | P2 | Incident/update/link/subscription retention i anonymization nisu formalizovani | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-16` | P3 | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-17` | P3 | Edit audit/revision ne omogućava rekonstrukciju title/service promjena | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-18` | P3 | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-19` | P3 | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -758,13 +759,15 @@ W6.11 je na SHA `c0865e01cc08c034470f2a457264a924756a45e2`, finalni CI `40838417
 
 W6.12 je na SHA `6a719b9`, finalni CI `40843156212`, zatvorio `BA-status-page-13` i `BA-status-page-14`. Javni status endpoint koristi trust-proxy-aware IP za rate limiting sa fail-closed ponašanjem kada Redis nije dostupan, a shared Redis cache sa verzijom ključa invalidira se na svakoj incident mutaciji. Detalji su u [85-status-page-public-endpoint-hardening.md](implementation/85-status-page-public-endpoint-hardening.md). Paket nema nove DB migracije.
 
+W6.13 je na SHA `fa7e80a`, zatvorio `BA-status-page-15`. Status-page retention i anonymization su formalizovani kroz novu `statusIncidents` retention kategoriju; RESOLVED incidenti stariji od konfiguranog perioda (min 180 dana, default onemogućeno) se arhiviraju sa redaktovanim naslovom/autorom i `retentionArchivedAt`, a povezani updateovi, ticket linkovi i subscriptione se brisu/redaktuju. Pokretanje carries novu DB migraciju `20271027210000_status_page_retention` koju treba ručno pokrenuti pri releaseu/redeployu. Detalji su u [86-status-page-retention-and-anonymization.md](implementation/86-status-page-retention-and-anonymization.md).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **596**
-- Zatvoreno: **96** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **595**
+- Zatvoreno: **97** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**
