@@ -120,7 +120,7 @@ describe("settings registry translations (5.3.4)", () => {
     // `private.install.checklistDismissedAt` flag of the post-install
     // checklist); a regression in the reader must fail loudly instead of
     // silently passing because it found nothing to check.
-    expect(allKeys).toHaveLength(514);
+    expect(allKeys).toHaveLength(515);
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");
     // Nine pairs ship today: SMTP, Edge extension and Teams each have three.
