@@ -2593,6 +2593,7 @@
         "private.privacy.retention.requestRegisterDays": "How many days closed data subject requests are kept; 0 disables the purge. The default five years matches the usual proof-of-processing requirements.",
         "private.privacy.retention.runAtLocalTime": "Local time (HH:mm, Europe/Sarajevo) of the nightly retention run. Put it outside working hours and away from other nightly jobs.",
         "private.privacy.retention.maxMinutesPerNight": "Longest duration of the nightly retention run in minutes (5-240). A short budget keeps the job predictable, but large backlogs then take several nights.",
+        "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived. Title, author, timeline updates, ticket links and subscriptions are redacted or removed; the incident skeleton is kept for reports. 0 disables archiving. Minimum 180 days.",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate (30-3650). Too short a period may catch someone returning from leave.",
         "private.privacy.anonymization.requireSecondApprover": "When on, anonymization needs a second SUPER_ADMIN approval (four eyes). Enable it whenever more than one person holds that right.",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "When on, deleting the attachments the person uploaded is pre-selected, so anonymization starts from the stricter choice. The operator can still uncheck it.",
