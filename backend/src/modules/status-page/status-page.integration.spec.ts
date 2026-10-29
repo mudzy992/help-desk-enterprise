@@ -12,6 +12,7 @@ import { loadOpenIncidentImpacts } from '../service-catalog/load-open-incident-i
 import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/parse-service-availability-configuration';
 import { StatusIncidentsService } from './status-incidents.service';
 import { StatusPageService, type StatusViewer } from './status-page.service';
+import { statusPageLimits } from './status-page.model';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -184,7 +185,6 @@ describeIfDatabase('status page (integration)', () => {
     });
     expect(audit?.metadata).toMatchObject({ changed: ['impact', 'services'], impact: { from: 'DEGRADED', to: 'DOWN' } });
   });
-});
 
   it('failure matrix: concurrent creates on same incident services do not corrupt state', async () => {
     const outcomes = await Promise.allSettled([
