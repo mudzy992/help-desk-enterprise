@@ -71,6 +71,14 @@ export class CreateIncidentDto {
   @IsISO8601({ strict: true })
   startedAt?: string;
 
+  /** Reason for backdating the incident start; required when startedAt is more than 30 days in the past. */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(10)
+  @MaxLength(1000)
+  startedAtReason?: string;
+
   /** In-app notice to users with an open ticket on the services (§8.3). */
   @IsOptional()
   @Type(() => Boolean)

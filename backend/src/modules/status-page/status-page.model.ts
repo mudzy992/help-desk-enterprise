@@ -39,6 +39,8 @@ export const statusPageLimits = {
   publicRequestsPerMinute: 60,
   /** Notifications on incident start: users with an open ticket on the services. */
   startNotifyMaxRecipients: 2_000,
+  /** Maximum days an incident start can be backdated without additional justification. */
+  maxStartedAtBackdateDays: 30,
 } as const;
 
 /**

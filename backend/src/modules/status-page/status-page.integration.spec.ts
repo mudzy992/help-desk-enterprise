@@ -432,4 +432,48 @@ describeIfDatabase('status page (integration)', () => {
       services: { added: [ids.mail], removed: [] },
     });
   });
+
+  it('rejects backdating beyond 30 days without a reason', async () => {
+    const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
+    await expect(
+      incidents.create(
+        { title: 'Backdated incident', impact: 'DOWN', serviceIds: [ids.vpn], message: 'Stariji incident', startedAt: fortyDaysAgo.toISOString() },
+        operator,
+      ),
+    ).rejects.toMatchObject({ status: 400, response: { code: 'INCIDENT_BACKDATE_REQUIRES_REASON' } });
+  });
+
+  it('allows backdating beyond 30 days with a reason and records it in audit', async () => {
+    const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
+    const created = await incidents.create(
+      { title: 'Backdated incident', impact: 'DOWN', serviceIds: [ids.vpn], message: 'Stariji incident', startedAt: fortyDaysAgo.toISOString(), startedAtReason: 'Outage started before monitoring detected it' },
+      operator,
+    );
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: 'status.incident.created' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: { metadata: true },
+    });
+    expect(audits[0]?.metadata).toMatchObject({
+      backdated: true,
+      backdatedDays: 40,
+      backdatedReason: 'Outage started before monitoring detected it',
+    });
+  });
+
+  it('allows backdating within 30 days without a reason', async () => {
+    const twentyDaysAgo = new Date(Date.now() - 20 * 86_400_000);
+    const created = await incidents.create(
+      { title: 'Recent backdate', impact: 'DOWN', serviceIds: [ids.vpn], message: 'Nedavni incident', startedAt: twentyDaysAgo.toISOString() },
+      operator,
+    );
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: 'status.incident.created' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: { metadata: true },
+    });
+    expect(audits[0]?.metadata.backdated).toBeUndefined();
+  });
 });

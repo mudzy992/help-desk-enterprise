@@ -228,6 +228,63 @@ describe('StatusIncidentsService.edit audit reconstruction (BA-status-page-17)',
   });
 });
 
+describe('StatusIncidentsService.create backdating guard (BA-status-page-18)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('allows creating an incident with startedAt now', async () => {
+    const { service, prisma } = build(open);
+    await service.create(
+      { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message' },
+      actor,
+    );
+    expect((prisma.serviceIncident as { create: jest.Mock }).create).toHaveBeenCalledTimes(1);
+    expect(lastAudit().metadata.backdated).toBeUndefined();
+  });
+
+  it('allows backdating within 30 days without a reason', async () => {
+    const { service } = build(open);
+    const thirtyDaysAgo = new Date(Date.now() - 29 * 86_400_000);
+    await service.create(
+      { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: thirtyDaysAgo.toISOString() },
+      actor,
+    );
+    expect((prisma.serviceIncident as { create: jest.Mock }).create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects backdating beyond 30 days without a reason', async () => {
+    const { service } = build(open);
+    const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
+    await expect(
+      service.create(
+        { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: fortyDaysAgo.toISOString() },
+        actor,
+      ),
+    ).rejects.toMatchObject({ status: 400, response: { code: 'INCIDENT_BACKDATE_REQUIRES_REASON' } });
+  });
+
+  it('allows backdating beyond 30 days with a reason', async () => {
+    const { service } = build(open);
+    const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
+    await service.create(
+      { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: fortyDaysAgo.toISOString(), startedAtReason: 'Outage started before monitoring detected it' },
+      actor,
+    );
+    expect((prisma.serviceIncident as { create: jest.Mock }).create).toHaveBeenCalledTimes(1);
+    expect(lastAudit().metadata).toMatchObject({ backdated: true, backdatedDays: 40 });
+  });
+
+  it('rejects future start dates', async () => {
+    const { service } = build(open);
+    const tomorrow = new Date(Date.now() + 2 * 3_600_000);
+    await expect(
+      service.create(
+        { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: tomorrow.toISOString() },
+        actor,
+      ),
+    ).rejects.toMatchObject({ status: 400, response: { code: 'INCIDENT_START_IN_FUTURE' } });
+  });
+});
+
 function lastAudit() {
   const calls = (recordAuditEntry as jest.Mock).mock.calls;
   return calls[calls.length - 1][1];

@@ -24,6 +24,7 @@ import { withIncidentVisibility, type StatusViewer } from './status-page.service
 import {
   isIncidentStatusTransitionAllowed,
   openIncidentStatuses,
+  statusPageLimits,
   type IncidentStatus,
 } from './status-page.model';
 
@@ -80,6 +81,13 @@ export class StatusIncidentsService {
     if (startedAt.getTime() > now.getTime() + 60_000) {
       throw new BadRequestException({ code: 'INCIDENT_START_IN_FUTURE', message: 'An incident cannot start in the future' });
     }
+    const backdatedDays = Math.round((now.getTime() - startedAt.getTime()) / 86_400_000);
+    if (backdatedDays > statusPageLimits.maxStartedAtBackdateDays && !input.startedAtReason) {
+      throw new BadRequestException({
+        code: 'INCIDENT_BACKDATE_REQUIRES_REASON',
+        message: `Incidents started more than ${statusPageLimits.maxStartedAtBackdateDays} days ago require a reason`,
+      });
+    }
     const ticketIds = [...new Set(input.ticketIds ?? [])];
     const visibility = input.visibility ?? 'ALL_USERS';
     const incident = await this.prisma.$transaction(async (transaction) => {
@@ -111,7 +119,16 @@ export class StatusIncidentsService {
         action: auditLogActions.statusIncidentCreated,
         entityType: auditLogEntityTypes.statusIncident,
         entityId: created.id,
-        metadata: { impact: created.impact, visibility, serviceIds, linkedTickets: ticketIds.length, notify: input.notifyOpenTicketHolders === true },
+        metadata: {
+          impact: created.impact,
+          visibility,
+          serviceIds,
+          linkedTickets: ticketIds.length,
+          notify: input.notifyOpenTicketHolders === true,
+          ...(backdatedDays > statusPageLimits.maxStartedAtBackdateDays
+            ? { backdated: true, backdatedDays, backdatedReason: input.startedAtReason }
+            : {}),
+        },
         actorUserId: actor.principal.subjectId,
         requestId: actor.requestId,
         organizationalUnitId: null,
