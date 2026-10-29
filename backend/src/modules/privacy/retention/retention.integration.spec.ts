@@ -56,6 +56,7 @@ describeIfDatabase('retention (integration)', () => {
         sessions: 90,
         emailDeliveries: 180,
         requestRegister: 365,
+        statusIncidents: 0,
         ...overrides,
       },
     }) as unknown as PrivacyConfiguration;
