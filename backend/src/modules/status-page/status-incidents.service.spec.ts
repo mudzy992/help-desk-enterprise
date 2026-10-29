@@ -51,7 +51,7 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
   };
   prisma.$executeRaw = jest.fn().mockResolvedValue(1);
   prisma.$queryRaw = jest.fn().mockResolvedValue([{ id: 'outbox-1' }]);
-  prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
+  prisma.$transaction = jest.fn((callback: (tx: unknown) => unknown) => callback(prisma));
   const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
   const accessPolicies = { bind: jest.fn().mockResolvedValue({ actorUserId: 'op' }) };
   const publicCache = { getVersion: jest.fn().mockResolvedValue(0), bumpVersion: jest.fn().mockResolvedValue(undefined) };
