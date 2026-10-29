@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.4 završen; W7.5 sljedeći).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.5 završen; W7.6 sljedeći).
 
 ### Redoslijed
 
@@ -438,7 +438,7 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 ## 8. Val 7 — domain workflows
 
 **Status:** u toku; audit plan svrstava jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7.<br>
-**Stanje nakon W7.4:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, W7.2 jedan asset graph nalaz, W7.3 jedan asset CAS nalaz, a W7.4 `BA-assets-04` reminder delivery nalaz; 19 P1 ostaje otvoreno. Svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
+**Stanje nakon W7.5:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, W7.2 jedan asset graph nalaz, W7.3 jedan asset CAS nalaz, a W7.4 `BA-assets-04` reminder delivery nalaz; 19 P1 ostaje otvoreno. W7.5 zatvorio je P2 `BA-assets-05` i ne mijenja P1 zbir. Svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
 
 ### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
 
@@ -473,8 +473,18 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Backend build/lint/test, PostgreSQL+Redis integration, frontend, docs guard, container/supply-chain i CI gate prošli su. E2E critical flows/install wizard su preskočeni po push triggeru; image vulnerability enforcement step je skipped uz actionable high/critical count nula. Lokalni targeted Jest bio je blokiran nedostajućim generated Prisma clientom; CI ga je generisao i backend suite je prošao.
 - Nema DB migracije. `BA-assets-10` scheduler recovery i `BA-assets-11` durable extra-email delivery ostaju otvoreni; zatvaranje jednog paketa ne mijenja susjedne nalaze. Detaljan dokaz je u [90-assets-reminder-delivery.md](implementation/90-assets-reminder-delivery.md).
 
-### Sljedeći paket — W7.5
+### W7.5 — DB invariant za unique custom asset atribute — završeno
 
-Nastaviti sa `BA-assets-05` (P2): ukloniti query-before-write race za unique custom JSON atribut DB-zaštićenom canonical vrijednošću/constraintom, uz migration/rollback plan i direktni PostgreSQL concurrency acceptance. Paket nije započet u W7.4 closeoutu. Ne zatvarati `BA-assets-10/11` ili druge susjedne nalaze bez vlastitog scopea i dokaza.
+- Kodni commit i finalni testani SHA su `c9773edb259756dc34b0dceb59522a4770b2ee7f`; CI [`40942023054`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40942023054) je zelen. Zatvoren je samo `BA-assets-05` (P2).
+- `AssetUniqueAttributeValue` čuva PostgreSQL `lower()` canonical vrijednost, uz unique `(attributeId, canonicalValue)` indeks, composite asset/definition type FKs i equality `CHECK`. Triggeri održavaju redove pri asset JSON writeovima te katalog insert/isUnique/archive/key promjenama; pre-insert type-scoped advisory lock serializira novu definiciju naspram asset writeova. Manual/import pre-checkovi čitaju normalizovanu tabelu, a matching DB `P2002`/`23505` ostaje postojeća `attributeNotUnique` API greška.
+- Migracija `20271027220000_asset_unique_attribute_values` ima duplicate preflight, backfill i trigger instalaciju pod jednim transaction/table-lock boundaryjem; postojeći duplikati fail-closed zaustavljaju migraciju prije commita.
+- Sedam real-PostgreSQL acceptance scenarija pokriva direktne paralelne writeove, manual create/update i paralelni update, manual/import race u oba ishoda, import UPSERT update te uniqueness/archive togglove. Unit classifier ima 4 testa. Detaljni rollout, migration i rollback plan je u [91-assets-unique-custom-attribute-constraint.md](implementation/91-assets-unique-custom-attribute-constraint.md).
+- CI backend build/test (uključujući Prisma validate/generate), PostgreSQL+Redis migration replay/integration, frontend, docs guard, container/supply-chain i CI gate su prošli. Push workflow je preskočio `E2E critical flows` i `E2E install wizard`; vulnerability-enforcement korak je preskočen jer je output count bio 0. Nema neuspjelog W7.5 CI pokušaja.
+- Lokalni sandbox nema PostgreSQL/Docker niti generisani Prisma client; engine download za `prisma format` bio je blokiran TLS-om, pa lokalni build nije mogao kompajlirati cascade greške od nedostajućih generated tipova. Ciljani unit/lint/migration-policy/integration-harness checks su prošli; CI je pružio punu schema/build/PostgreSQL potvrdu. Lint je imao samo tri nepovezana postojeća SLA `no-explicit-any` upozorenja.
+- Migracija je additive i stari application code ne čita novu tabelu, pa app rollback može ostaviti trigger/table sloj netaknutim. Ako treba potpuno uklanjanje nakon uspješne migracije, to ide kao zasebna forward-only cleanup migracija uz zaustavljene writeove i backup; `prisma migrate resolve --rolled-back` koristi se samo za failed migration, ne za već uspješno primijenjenu. Redoslijed i SQL su u closeoutu.
+
+### Sljedeći paket — W7.6
+
+**`BA-assets-06` (P2):** zatvoriti paralelni relation-cycle/symmetric-insert graph invariant uz DB concurrency acceptance i migration/rollback plan. Paket nije započet; ne preuzimati `BA-assets-08` primary ticket link ili druge susjedne nalaze bez vlastitog scopea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

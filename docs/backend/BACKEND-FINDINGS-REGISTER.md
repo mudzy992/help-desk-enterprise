@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.4 je zatvorio `BA-assets-04`; W7.5 `BA-assets-05` je sljedeći<br>
+**Status:** audit baseline + djelimična implementacija — W7.5 je zatvorio samo `BA-assets-05`; W7.6 `BA-assets-06` je sljedeći<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-29<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 585 otvorenih / 107 zatvorenih / 692 ukupno<br>
-**Napomena:** zbir je nastavak prethodnog W7 closeout agregata; preegzistentna razlika između headline zbira i nekih pojedinačnih status redova ostaje za zasebnu registry-reconciliation fazu.
+**Trenutno:** 584 otvorenih / 108 zatvorenih / 692 ukupno<br>
+**Napomena:** zbir nastavlja deklarisani agregat iz prethodnog W7 closeouta nakon jednog zatvaranja; preegzistentna razlika između agregata i statusa pojedinačnih redova/traceability plana ostaje zasebna registry-reconciliation obaveza.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -278,7 +278,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-02` | P1 | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-04` | P1 | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-06` | P2 | Parallel relation cycle/symmetric insert može prekršiti graph invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-07` | P2 | Per-user license assignment nema user OU/scope kompatibilnost | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-08` | P2 | Ticket primary link nema partial unique/locking invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -769,13 +769,15 @@ W7.2 je na finalnom kodnom SHA `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`, uz ze
 
 W7.3 je na finalnom testanom SHA `4ecbed60244c9da33d3c91fc693f5fac6120399b`, uz zeleni CI `40930141682`, zatvorio samo `BA-assets-03` (implementacijski commit `8f929e0ce8b3bf922ab80e80b5141da20ad2a86a`; dodatni acceptance-test commit `4ecbed60244c9da33d3c91fc693f5fac6120399b`). Status/assign/unassign koriste expected-version CAS nad ID-jem, verzijom, statusom i holderom; generalni asset PUT sada zahtijeva verziju, čime je obrađena i audit §4 napomena o opcionalnom versionu. PostgreSQL suite dokazuje stale/paralelne zahtjeve, uključujući da racing stale retirement ne očisti holdera, ne obriše device-license assignment i ne emituje unassign/license-release event. Detalji: [89-assets-version-cas.md](implementation/89-assets-version-cas.md). Nema nove DB migracije.
 
+W7.5 je na testanom SHA `c9773edb259756dc34b0dceb59522a4770b2ee7f`, uz zeleni CI `40942023054`, zatvorio samo `BA-assets-05` (P2). Canonical custom vrijednosti se održavaju u `AssetUniqueAttributeValue` i štite DB unique indeksom; migracija uključuje duplicate preflight, backfill, type-consistent composite FKs i Asset/catalog trigger protokol. Sedam real-PostgreSQL acceptance scenarija i CI release-migration replay prošli su; detalji, rollback i lokalna ograničenja su u [91-assets-unique-custom-attribute-constraint.md](implementation/91-assets-unique-custom-attribute-constraint.md). `BA-assets-06`–`BA-assets-19` ostaju otvoreni.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **586**
-- Zatvoreno: **106** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **584**
+- Zatvoreno: **108** (deklarisani W7 agregat nakon W7.5; izvorni redovi i machine-readable plan zadržavaju preegzistentno drugačiju raspodjelu statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**
