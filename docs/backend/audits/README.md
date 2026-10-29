@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-10-29<br>
-**Aktivna implementacija:** Val 7 / W7; W7.1–W7.5 zatvoreni, W7.6 (`BA-assets-06`) sljedeći (još nezapočet).
+**Aktivna implementacija:** Val 7 / W7; W7.1–W7.6 zatvoreni, W7.7 (`BA-assets-07`) sljedeći planirani paket (još nezapočet).
 
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; tekući open/closed status je u [globalnom registru](../BACKEND-FINDINGS-REGISTER.md).
 

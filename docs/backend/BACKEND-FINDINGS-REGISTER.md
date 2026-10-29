@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.5 je zatvorio samo `BA-assets-05`; W7.6 `BA-assets-06` je sljedeći<br>
+**Status:** audit baseline + djelimična implementacija — W7.5 je zatvorio `BA-assets-05`, W7.6 `BA-assets-06`; sljedeći je planirani W7.7 `BA-assets-07`<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-29<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 584 otvorenih / 108 zatvorenih / 692 ukupno<br>
-**Napomena:** zbir nastavlja deklarisani agregat iz prethodnog W7 closeouta nakon jednog zatvaranja; preegzistentna razlika između agregata i statusa pojedinačnih redova/traceability plana ostaje zasebna registry-reconciliation obaveza.
+**Trenutno:** 583 otvorenih / 109 zatvorenih / 692 ukupno<br>
+**Napomena:** zbir nastavlja deklarisani agregat iz prethodnog W7 closeouta nakon W7.6 zatvaranja; preegzistentna razlika između agregata i statusa pojedinačnih redova/traceability plana ostaje zasebna registry-reconciliation obaveza.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -279,7 +279,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-04` | P1 | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-06` | P2 | Parallel relation cycle/symmetric insert može prekršiti graph invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-06` | P2 | Parallel relation cycle/symmetric insert može prekršiti graph invariant | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-07` | P2 | Per-user license assignment nema user OU/scope kompatibilnost | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-08` | P2 | Ticket primary link nema partial unique/locking invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-09` | P2 | Directory single-flight lock je samo in-memory po procesu | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -771,13 +771,15 @@ W7.3 je na finalnom testanom SHA `4ecbed60244c9da33d3c91fc693f5fac6120399b`, uz 
 
 W7.5 je na testanom SHA `c9773edb259756dc34b0dceb59522a4770b2ee7f`, uz zeleni CI `40942023054`, zatvorio samo `BA-assets-05` (P2). Canonical custom vrijednosti se održavaju u `AssetUniqueAttributeValue` i štite DB unique indeksom; migracija uključuje duplicate preflight, backfill, type-consistent composite FKs i Asset/catalog trigger protokol. Sedam real-PostgreSQL acceptance scenarija i CI release-migration replay prošli su; detalji, rollback i lokalna ograničenja su u [91-assets-unique-custom-attribute-constraint.md](implementation/91-assets-unique-custom-attribute-constraint.md). `BA-assets-06`–`BA-assets-19` ostaju otvoreni.
 
+W7.6 na testanom SHA `d4f0a5b980d6a1527486ad97a604ff8869be7f37`, uz zeleni CI [`40950115033`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40950115033), zatvorio je samo `BA-assets-06` (P2). PostgreSQL sada radi directed-cycle serialization/guard i canonical unordered `CONNECTED_TO` uniqueness; šest direktnih acceptance scenarija i migration replay prošli su. Preflight, repair i rollback procedura je u [92-assets-relation-graph-invariants.md](implementation/92-assets-relation-graph-invariants.md). `BA-assets-07`–`BA-assets-19` ostaju otvoreni; W7.7 (`BA-assets-07`) je sljedeći planirani paket, još nezapočet.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **584**
-- Zatvoreno: **108** (deklarisani W7 agregat nakon W7.5; izvorni redovi i machine-readable plan zadržavaju preegzistentno drugačiju raspodjelu statusa)
+- Otvoreno: **583**
+- Zatvoreno: **109** (deklarisani W7 agregat nakon W7.6; izvorni redovi i machine-readable plan zadržavaju preegzistentno drugačiju raspodjelu statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**
