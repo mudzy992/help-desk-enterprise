@@ -68,9 +68,9 @@ Potrebna je durable delivery-run/outbox tabela, recipient cursor/state, bounded 
 
 ## 8. Public endpoint, cache i rate limit
 
-Public je default-off; configuration read fallback nikada ne uključuje public. Controller prije cachea ponovo provjerava enabled/public. `toPublicStatusPage` dodatno uklanja STAFF_ONLY, author names, counters i subscribed stanje, što je dobar defense-in-depth. Redis rate limit je 60/IP/min, a bez Redisa postoji bounded memory fallback.
+Public je default-off; configuration read fallback nikada ne uključuje public. Controller prije cachea ponovo provjerava enabled/public. `toPublicStatusPage` dodatno uklanja STAFF_ONLY, author names, counters i subscribed stanje, što je dobar defense-in-depth. Rate limit je 60/IP/min kroz Redis sa fail-closed ponašanjem (Redis greška → 429, ne propust); bez Redisa postoji bounded memory fallback. IP se izravlja trust-proxy-aware: kada Express `trust proxy` je podešen, koristi se verifikovani `request.ip`, inače connection `remoteAddress`.
 
-`request.ip` sigurnost zavisi od trust-proxy konfiguracije. Pogrešna konfiguracija može sve korisnike grupisati iza reverse proxy IP-a ili vjerovati spoofovanom forwarded IP-u. Redis failure fail-open je namjeran zbog 30s cachea, ali dopušta bandwidth/serialization abuse. Cache je process-local: svaki API instance radi vlastiti DB refresh, a javni odgovor može do 30s ostati stale nakon incident edit/withdraw/visibility promjene. Za incident status to mora biti eksplicitno odobren stale SLA; preporučljiv je shared cache + mutation invalidation/tag/version.
+Javni odgovor koristi shared Redis cache sa verzijom ključa (`status:public:cache:version`). Svaka incident mutacija (create/edit/resolve/link/unlink) inkrementira verziju, što sve instance invalidira odmah umesto čekanja 30s TTL. Cache degrades na per-process recompute kada Redis nije dostupan.
 
 Javni response objavljuje service IDs/names, planned downtime message i ALL_USERS timeline. To je namjerna funkcija, ali content authoring treba upozorenje/classification i test da ticket IDs, interni linkovi ili tajne ne ulaze u slobodni tekst.
 
@@ -132,8 +132,8 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | zatvoreno |
 | BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | zatvoreno |
 | BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | zatvoreno |
-| BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | otvoreno |
-| BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | otvoreno |
+| BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | zatvoreno |
+| BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | zatvoreno |
 | BA-status-page-15 | P2       | Incident/update/link/subscription retention i anonymization nisu formalizovani                  | otvoreno |
 | BA-status-page-16 | P3       | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker                      | otvoreno |
 | BA-status-page-17 | P3       | Edit audit/revision ne omogućava rekonstrukciju title/service promjena                          | otvoreno |
@@ -163,6 +163,14 @@ Aktivni catalog i downtime windows sada imaju determinističke probe budžete 50
 ### W6.10 closeout — `BA-status-page-11`
 
 Resolution transakcija više ne čita sve ticket linkove niti piše event po ticketu. Ona atomski upisuje poseban `status.incident.resolution-ticket-events` outbox intent; worker keyset-paginira `ticketId` u batchu 250 bez ukupnog capa i koristi postojeći `insertSystemTicketEvent` sa determinističkim per-ticket idempotency ključem. `notifyOnResolve=false` i dalje ne kreira recipient-notification intent, ali poslovni ticket eventi ostaju durable. Unit dokaz sa 252 linka i stvarni PostgreSQL outbox/worker scenario su zeleni u finalnom CI-ju `40836850142`. U istom closeoutu Node base digest je podignut na 22.23.4 radi tri novoprijavljena CVE-a i finalni image scan je zelen. Dokaz je [83-status-page-durable-bounded-resolution-ticket-events.md](../implementation/83-status-page-durable-bounded-resolution-ticket-events.md). Paket nema novu DB migraciju.
+
+### W6.11 closeout — `BA-status-page-12`
+
+Ticket autorizacija za incident create/link/unlink više nije N+1 pre-check izvan transakcije. `assertStaffTickets` izvrši jedinstvenu deterministic `FOR SHARE` stavku nad svim traženim ticket redovima unutar iste transakcije koja zaključava incident, verifikuje da svi postoje (inače 404 bez commitovanja), koristi jednu policy snapshot i zahteva `staff` visibility za svaki ticket. Link/unlink koriste isti batch pristup nakon incident locka. Dokaz je [84-status-page-transactional-batched-ticket-authorization.md](../implementation/84-status-page-transactional-batched-ticket-authorization.md). Paket nema novu DB migraciju.
+
+### W6.12 closeout — `BA-status-page-13` i `BA-status-page-14`
+
+Javni status endpoint sada koristi trust-proxy-aware IP za rate limiting (Express `trust proxy` kada je podešen, inače connection `remoteAddress`), a Redis greška više nije fail-open već fail-closed (429). Shared Redis cache (`status:public:page:v{version}`) zamjenjuje per-process Map; verzija se inkrementira na svakoj incident mutaciji (create/edit/resolve/link/unlink), tako sve instance invalidiraju cache Odmah. Dokaz je u [85-status-page-public-endpoint-hardening.md](../implementation/85-status-page-public-endpoint-hardening.md). Paket nema novu DB migraciju.
 
 ## 14. Ključne korekcije
 

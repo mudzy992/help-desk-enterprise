@@ -418,8 +418,11 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Registar je sada **598 otvorenih / 94 zatvorena / 692 ukupno**; paket nema novu migraciju.
 - **W6.11 transaction-safe batched ticket authorization za status incident create/link (`BA-status-page-12`) — završen** na SHA `c0865e01cc08c034470f2a457264a924756a45e2`, finalni CI `40838417016`.
 - Ticket autorizacija se sada izvršava unutar incident transakcije: per-incident advisory lock, deterministic `FOR SHARE` batch nad ticket redovima, jedna policy snapshot i `staff` verification za svaki ticket; nedostajući ticket baca 404 bez commitovanja. Time je zatvoren `BA-status-page-12`; dokaz je u [84-status-page-transactional-batched-ticket-authorization.md](implementation/84-status-page-transactional-batched-ticket-authorization.md).
-- Registar je sada **598 otvorenih / 94 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket (W6.12) se odabire iz preostalih status-page P2 nalaza nakon detaljne analize: **BA-status-page-13** (public rate limit zavisi od trust-proxy/IP i Redis fail-open), **BA-status-page-14** (process-local public cache bez invalidation i multi-instance koherencije) ili **BA-status-page-15** (incident/update/link/subscription retention i anonymization nisu formalizovani). Konačan izbor i naslov se šalju korisniku nakon završetka W6.11 dokaza.
+- Registar je sada **596 otvorenih / 96 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- **W6.12 public status page endpoint hardening (`BA-status-page-13`, `BA-status-page-14`) — završen** na SHA `6a719b9`, finalni CI `40843156212`.
+- Javni status endpoint koristi trust-proxy-aware IP za rate limiting sa fail-closed ponašanjem kada Redis nije dostupan, a shared Redis cache sa verzijom ključa invalidira se na svakoj incident mutaciji. Time su zatvoreni `BA-status-page-13` i `BA-status-page-14`; dokaz je u [85-status-page-public-endpoint-hardening.md](implementation/85-status-page-public-endpoint-hardening.md).
+- Registar je sada **596 otvorenih / 96 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket (W6.13) se odabire iz preostalih status-page P2 nalaza: **BA-status-page-15** (incident/update/link/subscription retention i anonymization nisu formalizovani) je najverovatniji kandidat, sa mogućnošćem produženog opsega na P3 nalaze `BA-status-page-16`/`-17`/`-18` ili `-19` ako tim to odobri. Konačan izbor i naslov se šalju korisniku nakon W6.12 closeouta.
 
 ### Canonical primitive
 
