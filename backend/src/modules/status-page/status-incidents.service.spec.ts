@@ -25,10 +25,11 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
       findUnique: jest.fn().mockResolvedValue(incident),
       update: jest.fn().mockResolvedValue(incident),
       updateMany: jest.fn().mockResolvedValue({ count: options.moved ?? 1 }),
+      create: jest.fn().mockResolvedValue({ ...incident, id: 'new-incident-id' }),
     },
     serviceIncidentUpdate: { create: jest.fn().mockResolvedValue({}) },
     service: { findMany: jest.fn().mockImplementation(({ where }: { where: { id: { in: string[] } } }) => Promise.resolve((where.id.in ?? []).map((id) => ({ id })))) },
-    serviceIncidentService: { findMany: jest.fn().mockResolvedValue([{ serviceId: 'service-a' }]) },
+    serviceIncidentService: { findMany: jest.fn().mockResolvedValue([{ serviceId: 'service-a' }]), deleteMany: jest.fn().mockResolvedValue({ count: 0 }), createMany: jest.fn().mockResolvedValue({ count: 0 }) },
     ticketIncidentLink: {
       findMany: jest.fn().mockImplementation((args: { select: Record<string, unknown> }) =>
         Promise.resolve(
