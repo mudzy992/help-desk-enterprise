@@ -5,9 +5,10 @@ name: CI
 #     subset (~10-15 min). All three are required status checks on `master`, and
 #     every one of them is created on every PR — a docs-only PR therefore also
 #     reports them, so no required check can stay "Expected" and block a merge.
-#   * push to master -> backend + frontend only. Docs-only commits are skipped
-#     (paths-ignore); a code push no longer drags the ~35-60 min E2E job along,
-#     because the stack it would test is being rebuilt by Coolify at that moment.
+#   * push to `main` and the designated Arena implementation branches -> backend
+#     + frontend only. Docs-only commits are skipped (paths-ignore); a code push
+#     no longer drags the ~35-60 min E2E job along, because the stack it would
+#     test is being rebuilt by Coolify at that moment.
 #   * schedule (nightly) -> the full 71-test E2E run on a quiet stack.
 #   * workflow_dispatch -> triage: `specs=10,18,22`, `retries: 0`,
 #     `max_failures: 8` turn a red run into minutes instead of ~35.
@@ -20,7 +21,11 @@ on:
     # TEMPORARY Arena implementation branches use push as their CI evidence
     # because they are intentionally kept open without a pull request. Remove
     # these branch entries before merging the completed implementation.
-    branches: [main, master, arena/7a60171e-help-desk-enterprise, arena/bd31e07b-help-desk-enterprise]
+    branches:
+      - main
+      - arena/7a60171e-help-desk-enterprise
+      - arena/bd31e07b-help-desk-enterprise
+      - arena/298fb5c9-help-desk-enterprise
     # A commit that only touches documentation cannot change product behaviour..
     # Note: this filter is deliberately NOT on `pull_request` (see above).
     paths-ignore:
