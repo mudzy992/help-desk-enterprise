@@ -54,6 +54,7 @@ describe('canonical audit event policy', () => {
     [auditLogActions.privacyRequestExtended, auditLogEntityTypes.dataSubjectRequest, { extendedDueAt: '2026-12-01T00:00:00.000Z' }, undefined],
     [auditLogActions.assetTransferIssued, auditLogEntityTypes.assetTransfer, { number: 'AT-1', scenario: 'ASSIGN', assetCount: 1, fromUserId: null, toUserId: 'user-1' }, undefined],
     [auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, { key: 'laptop', attribute: 'serial', created: true }, undefined],
+    [auditLogActions.statusIncidentEdited, auditLogEntityTypes.statusIncident, { changed: ['services'], services: { added: ['service-1'], removed: [] } }, undefined],
     [auditLogActions.assetRetired, auditLogEntityTypes.asset, { assetTag: 'A-1', reason: 'obsolete', releasedLicenses: 1 }, 'ou-1'],
     [auditLogActions.changeCreated, auditLogEntityTypes.change, { sequence: 1, type: 'NORMAL', risk: 'LOW', organizationalUnitId: 'ou-1' }, 'ou-1'],
   ] as const)('accepts production metadata for %s', (action, entityType, metadata, organizationalUnitId) => {
