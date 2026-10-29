@@ -413,7 +413,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.9 bounded SQL uptime aggregation i catalog/window resource budžeti — završen** na SHA `b0cb593`, finalni CI `40832485277`.
 - Catalog i downtime windows koriste determinističke probe limite i `hasMore` ugovor sa UI upozorenjem; uptime overlap union se agregira u PostgreSQL-u i vraća najviše jedan red po bounded servisu. Time je zatvoren `BA-status-page-10`; dokaz je u [82-status-page-bounded-sql-uptime-and-catalog.md](implementation/82-status-page-bounded-sql-uptime-and-catalog.md).
 - Registar je sada **600 otvorenih / 92 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.10 bounded incident-resolution ticket event delivery za `BA-status-page-11`**.
+- **W6.10 durable bounded incident-resolution ticket event delivery — završen** na SHA `0900d97` uz supply-chain korekcije `cb52204` + `e98ecab`, finalni CI `40836850142`.
+- Resolution transakcija upisuje poseban event outbox intent; worker keyset-paginira ticket linkove po 250 bez ukupnog capa, a postojeći per-ticket idempotency ugovor čini retry/replay sigurnim. Time je zatvoren `BA-status-page-11`; dokaz je u [83-status-page-durable-bounded-resolution-ticket-events.md](implementation/83-status-page-durable-bounded-resolution-ticket-events.md).
+- Registar je sada **599 otvorenih / 93 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.11 transaction-safe batched ticket authorization za status incident create/link (`BA-status-page-12`)**.
 
 ### Canonical primitive
 

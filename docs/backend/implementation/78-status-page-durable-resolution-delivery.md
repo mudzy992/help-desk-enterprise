@@ -17,7 +17,7 @@ Resolution je nakon DB commita sinhrono i neograničeno učitavao sve pending su
 - Svaki subscription dobija vlastitu terminalnu odluku: `notifiedAt` se postavlja tek nakon uspješnog notification persistencea ili nakon namjernog actor-self skipa. Ako persistence baci grešku, taj red ostaje pending i cijeli durable intent ide na retry.
 - Povezani requesteri se zasebno keyset-paginiraju po `User.id`; deterministic notification dedupe po incidentu i korisniku čini ponovljeni parent delivery sigurnim.
 - `STAFF_ONLY` resolution ne enumerira linked requestere, nego samo aktuelne subscriptione koji su prošli W6.3 visibility/re-subscribe granicu.
-- `notifyOnResolve=false` ne kreira outbox intent.
+- `notifyOnResolve=false` ne kreira recipient-notification outbox intent; W6.10 naknadno je uveo odvojeni poslovni ticket-event intent koji ne obavještava korisnike.
 - Worker ponovo učitava incident i obrađuje intent samo ako incident stvarno postoji i ima `RESOLVED` status.
 
 ## Testni dokaz

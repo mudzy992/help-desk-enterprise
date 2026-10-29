@@ -409,7 +409,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-08` | P2 | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-09` | P2 | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-10` | P2 | Uptime spans, active services i downtime windows su neograničeno učitani | otvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-11` | P2 | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-11` | P2 | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-12` | P2 | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-13` | P2 | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-14` | P2 | Process-local public cache nema mutation invalidation ni multi-instance koherenciju | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -751,6 +751,8 @@ W6.7 je na SHA `aa92ed9`, finalni CI `40775040580`, zatvorio `BA-status-page-07`
 W6.8 je na SHA `92ec430`, finalni CI `40777527352`, zatvorio `BA-status-page-08`. Postojeći `updatedAt` je revision token; edit/link/unlink zahtijevaju `If-Match`, dijele advisory lock i rade CAS, pa stale edit/link fail-closed završava bez parcijalnih side effecta. Detalji su u [81-status-page-optimistic-lifecycle-concurrency.md](implementation/81-status-page-optimistic-lifecycle-concurrency.md). Paket nema novu DB migraciju.
 
 W6.9 je na SHA `b0cb593`, finalni CI `40832485277`, zatvorio `BA-status-page-10`. Catalog/windows imaju determinističke 500+1/1.000+1 budžete i vidljive `hasMore` signale, a SQL overlap-island agregacija vraća najviše jedan uptime red po bounded servisu. Detalji su u [82-status-page-bounded-sql-uptime-and-catalog.md](implementation/82-status-page-bounded-sql-uptime-and-catalog.md). Paket nema novu DB migraciju.
+
+W6.10 je na SHA `0900d97` uz supply-chain korekcije `cb52204` i `e98ecab`, finalni CI `40836850142`, zatvorio `BA-status-page-11`. Resolution atomski upisuje poseban ticket-event outbox intent; worker keyset-paginira linkove po 250 i koristi per-ticket idempotency. Detalji su u [83-status-page-durable-bounded-resolution-ticket-events.md](implementation/83-status-page-durable-bounded-resolution-ticket-events.md). Paket nema novu DB migraciju.
 
 ## Kontrolni zbir
 

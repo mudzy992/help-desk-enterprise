@@ -132,7 +132,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-08 | P2       | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom                          | zatvoreno |
 | BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
 | BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | zatvoreno |
-| BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | otvoreno |
+| BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | zatvoreno |
 | BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | otvoreno |
 | BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | otvoreno |
 | BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | otvoreno |
@@ -144,7 +144,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 
 ### W6.5 closeout — `BA-status-page-05`
 
-Resolution više ne fan-outa notificatione u API requestu: ista transakcija koja postavlja `RESOLVED`, zapisuje update, ticket evente i audit sada upisuje deduplicirani `status.incident.resolution` outbox intent. Postojeći worker u stranicama od 250 keyset-paginira pending subscriptione i, samo za `ALL_USERS`, aktivne povezane requestere; actor se terminalno preskače, a requester notification ima deterministički per-recipient dedupe. Subscription dobija `notifiedAt` tek poslije uspješnog persistencea ili actor-self terminalnog skipa. Recipient exception ostavlja taj i sve neobrađene redove pending i obara outbox pokušaj radi retryja. `notifyOnResolve=false` ostaje silent bez intenta. Direktni failure test, stvarni PostgreSQL outbox/worker scenario i kompletni CI `40770312995` su zeleni; dokaz je [78-status-page-durable-resolution-delivery.md](../implementation/78-status-page-durable-resolution-delivery.md). Paket nema novu DB migraciju.
+Resolution više ne fan-outa notificatione u API requestu: ista transakcija koja postavlja `RESOLVED`, zapisuje update, ticket evente i audit sada upisuje deduplicirani `status.incident.resolution` outbox intent. Postojeći worker u stranicama od 250 keyset-paginira pending subscriptione i, samo za `ALL_USERS`, aktivne povezane requestere; actor se terminalno preskače, a requester notification ima deterministički per-recipient dedupe. Subscription dobija `notifiedAt` tek poslije uspješnog persistencea ili actor-self terminalnog skipa. Recipient exception ostavlja taj i sve neobrađene redove pending i obara outbox pokušaj radi retryja. `notifyOnResolve=false` ostaje silent bez recipient-notification intenta; W6.10 zasebno durabilizira obavezne ticket lifecycle evente. Direktni failure test, stvarni PostgreSQL outbox/worker scenario i kompletni CI `40770312995` su zeleni; dokaz je [78-status-page-durable-resolution-delivery.md](../implementation/78-status-page-durable-resolution-delivery.md). Paket nema novu DB migraciju.
 
 ### W6.6 closeout — `BA-status-page-06`
 
@@ -161,6 +161,10 @@ Incident read sada izlaže postojeći `updatedAt` kao ISO `revision`, a HTTP edi
 ### W6.9 closeout — `BA-status-page-10`
 
 Aktivni catalog i downtime windows sada imaju determinističke probe budžete 500+1 i 1.000+1 te response `servicesHasMore`/`plannedHasMore`; UI truncation prikazuje lokalizovano upozorenje. Uptime više ne materijalizuje incident spanove u Node: parametrizovani PostgreSQL CTE reže intervale na history prozor, window funkcijom formira overlap islands i vraća najviše jedan downtime aggregate po bounded servisu. Stvarni PostgreSQL dokaz sa dva preklopljena intervala vraća 25% za tri sata union downtimea u četverosatnom prozoru; kompletni CI `40832485277` je zelen. Dokaz je [82-status-page-bounded-sql-uptime-and-catalog.md](../implementation/82-status-page-bounded-sql-uptime-and-catalog.md). Paket nema novu DB migraciju.
+
+### W6.10 closeout — `BA-status-page-11`
+
+Resolution transakcija više ne čita sve ticket linkove niti piše event po ticketu. Ona atomski upisuje poseban `status.incident.resolution-ticket-events` outbox intent; worker keyset-paginira `ticketId` u batchu 250 bez ukupnog capa i koristi postojeći `insertSystemTicketEvent` sa determinističkim per-ticket idempotency ključem. `notifyOnResolve=false` i dalje ne kreira recipient-notification intent, ali poslovni ticket eventi ostaju durable. Unit dokaz sa 252 linka i stvarni PostgreSQL outbox/worker scenario su zeleni u finalnom CI-ju `40836850142`. U istom closeoutu Node base digest je podignut na 22.23.4 radi tri novoprijavljena CVE-a i finalni image scan je zelen. Dokaz je [83-status-page-durable-bounded-resolution-ticket-events.md](../implementation/83-status-page-durable-bounded-resolution-ticket-events.md). Paket nema novu DB migraciju.
 
 ## 14. Ključne korekcije
 
