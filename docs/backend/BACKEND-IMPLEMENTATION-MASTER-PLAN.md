@@ -415,8 +415,11 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Registar je sada **600 otvorenih / 92 zatvorena / 692 ukupno**; paket nema novu migraciju.
 - **W6.10 durable bounded incident-resolution ticket event delivery — završen** na SHA `0900d97` uz supply-chain korekcije `cb52204` + `e98ecab`, finalni CI `40836850142`.
 - Resolution transakcija upisuje poseban event outbox intent; worker keyset-paginira ticket linkove po 250 bez ukupnog capa, a postojeći per-ticket idempotency ugovor čini retry/replay sigurnim. Time je zatvoren `BA-status-page-11`; dokaz je u [83-status-page-durable-bounded-resolution-ticket-events.md](implementation/83-status-page-durable-bounded-resolution-ticket-events.md).
-- Registar je sada **599 otvorenih / 93 zatvorena / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.11 transaction-safe batched ticket authorization za status incident create/link (`BA-status-page-12`)**.
+- Registar je sada **598 otvorenih / 94 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- **W6.11 transaction-safe batched ticket authorization za status incident create/link (`BA-status-page-12`) — završen** na SHA `c0865e01cc08c034470f2a457264a924756a45e2`, finalni CI `40838417016`.
+- Ticket autorizacija se sada izvršava unutar incident transakcije: per-incident advisory lock, deterministic `FOR SHARE` batch nad ticket redovima, jedna policy snapshot i `staff` verification za svaki ticket; nedostajući ticket baca 404 bez commitovanja. Time je zatvoren `BA-status-page-12`; dokaz je u [84-status-page-transactional-batched-ticket-authorization.md](implementation/84-status-page-transactional-batched-ticket-authorization.md).
+- Registar je sada **598 otvorenih / 94 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket (W6.12) se odabire iz preostalih status-page P2 nalaza nakon detaljne analize: **BA-status-page-13** (public rate limit zavisi od trust-proxy/IP i Redis fail-open), **BA-status-page-14** (process-local public cache bez invalidation i multi-instance koherencije) ili **BA-status-page-15** (incident/update/link/subscription retention i anonymization nisu formalizovani). Konačan izbor i naslov se šalju korisniku nakon završetka W6.11 dokaza.
 
 ### Canonical primitive
 

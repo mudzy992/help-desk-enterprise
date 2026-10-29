@@ -410,7 +410,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-09` | P2 | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-10` | P2 | Uptime spans, active services i downtime windows su neograničeno učitani | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-11` | P2 | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-12` | P2 | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-12` | P2 | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-13` | P2 | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-14` | P2 | Process-local public cache nema mutation invalidation ni multi-instance koherenciju | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-15` | P2 | Incident/update/link/subscription retention i anonymization nisu formalizovani | otvoreno | [29-status-page.md](audits/29-status-page.md) |
@@ -754,13 +754,15 @@ W6.9 je na SHA `b0cb593`, finalni CI `40832485277`, zatvorio `BA-status-page-10`
 
 W6.10 je na SHA `0900d97` uz supply-chain korekcije `cb52204` i `e98ecab`, finalni CI `40836850142`, zatvorio `BA-status-page-11`. Resolution atomski upisuje poseban ticket-event outbox intent; worker keyset-paginira linkove po 250 i koristi per-ticket idempotency. Detalji su u [83-status-page-durable-bounded-resolution-ticket-events.md](implementation/83-status-page-durable-bounded-resolution-ticket-events.md). Paket nema novu DB migraciju.
 
+W6.11 je na SHA `c0865e01cc08c034470f2a457264a924756a45e2`, finalni CI `40838417016`, zatvorio `BA-status-page-12`. Ticket autorizacija se sada izvršava unutar incident transakcije: per-incident advisory lock, deterministic `FOR SHARE` batch nad ticket redovima, jedna policy snapshot i `staff` verification za svaki ticket; nedostajući ticket baca 404 bez commitovanja. Detalji su u [84-status-page-transactional-batched-ticket-authorization.md](implementation/84-status-page-transactional-batched-ticket-authorization.md). Paket nema nove DB migracije.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **600**
-- Zatvoreno: **92** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **598**
+- Zatvoreno: **94** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

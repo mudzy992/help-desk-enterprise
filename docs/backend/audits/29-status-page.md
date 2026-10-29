@@ -76,9 +76,7 @@ Javni response objavljuje service IDs/names, planned downtime message i ALL_USER
 
 ## 9. Ticket integracija i audit
 
-Create može vezati najviše 100 tiketa i prije transakcije svaki prolazi centralni `loadAccessibleTicket` sa staff visibilityjem. Link/unlink isto provjerava ticket. System event i audit su u istoj transakciji sa relacijom. Ovo je jaka integracijska osnova.
-
-N+1 authorization do 100 ticket IDs povećava latency i race prozor prije transakcije. Ticket access može biti revokean između pre-checka i writea. Potreban je batch access evaluator/snapshot ili ponovna scoped provjera u transakciji. Resolve u transakciji iterira sve linkove i piše event po tiketu bez limita; iako create capuje 100, kasniji link endpoint može neograničeno povećati broj linkova. Resolution transakcija može postati veoma velika.
+Create može vezati najviše 100 tiketa. Svaki ticket se autorizuje unutar iste transakcije koja zaključava incident i upisuje link: `assertStaffTickets` izvrši jedinstvenu deterministic `FOR SHARE` stavku nad svim traženim ticket redovima, verifikuje da svi postoje (inače 404 bez commitovanja), koristi jednu policy snapshot i zahteva `staff` visibility za svaki ticket. Link/unlink koriste isti batch pristup nakon incident locka. System event i audit su u istoj transakciji sa relacijom. Ovo je jaka integracijska osnova; W6.11 zatvara N+1 pre-check race prozor iz `BA-status-page-12`. Resolve transakcija više ne iterira sve linkove niti piše event po tiketu — W6.10 upisuje poseban durable ticket-event outbox intent koji worker keyset-paginira po 250 sa per-ticket idempotency ključem.
 
 Audit ne zapisuje free text, što smanjuje PII replike. Ipak nema edit revisiona, pa audit `changed` + from/to samo za impact/visibility nije dovoljan za rekonstrukciju service/title promjene.
 
@@ -133,7 +131,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
 | BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | zatvoreno |
 | BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | zatvoreno |
-| BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | otvoreno |
+| BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | zatvoreno |
 | BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | otvoreno |
 | BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | otvoreno |
 | BA-status-page-15 | P2       | Incident/update/link/subscription retention i anonymization nisu formalizovani                  | otvoreno |
