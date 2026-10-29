@@ -143,7 +143,7 @@ export function ContractDetailSheet({
                 <h3 id="contract-items-title" className="text-[13px] font-semibold text-foreground">
                   {t("assets.contracts.itemsTitle", { count: contract.items.length })}
                 </h3>
-                {contract.items.length === 0 ? (
+                {contract.items.length === 0 && contract.hiddenItemsCount === 0 ? (
                   <p className={hintClassName}>{t("assets.contracts.noItems")}</p>
                 ) : null}
                 <ul className="grid gap-1">
@@ -188,6 +188,11 @@ export function ContractDetailSheet({
                     </li>
                   ))}
                 </ul>
+                {contract.hiddenItemsCount > 0 ? (
+                  <p className={hintClassName}>
+                    {t("assets.impact.hidden", { count: contract.hiddenItemsCount })}
+                  </p>
+                ) : null}
                 {canManage ? (
                   <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
                     <Input

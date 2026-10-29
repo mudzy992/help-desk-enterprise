@@ -209,6 +209,7 @@ export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   readonly attributeDefinitions: readonly AssetAttributeDefinition[];
   readonly attributes: Readonly<Record<string, unknown>>;
   readonly relations: readonly AssetRelation[];
+  readonly relationHiddenCount: number;
   readonly tickets: {
     readonly total: number;
     readonly open: number;

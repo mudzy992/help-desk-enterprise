@@ -114,41 +114,50 @@ export function AssetRelationsPanel({
           }
         />
         <div className="p-4">
-          {asset.relations.length === 0 ? (
+          {asset.relations.length === 0 && asset.relationHiddenCount === 0 ? (
             <EmptyState
               icon={<Network size={18} />}
               title={t("assets.relations.emptyTitle")}
               body={t("assets.relations.emptyBody")}
             />
           ) : (
-            <ul className="grid gap-2">
-              {asset.relations.map((relation) => (
-                <li
-                  key={relation.id}
-                  className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]"
-                >
-                  <span className="grid min-w-0 gap-0.5">
-                    <span className="text-[11.5px] text-muted-foreground">
-                      {t(assetRelationKindKeys[relation.kind][relation.direction])}
-                    </span>
-                    <AssetChip asset={relation.asset} />
-                  </span>
-                  {asset.canManage ? (
-                    <button
-                      type="button"
-                      className={rowActionButtonClassName}
-                      aria-label={t("assets.relations.remove", { name: relation.asset.assetTag })}
-                      onClick={() => {
-                        setRemoveError(null);
-                        setRemoving(relation);
-                      }}
+            <>
+              {asset.relations.length > 0 ? (
+                <ul className="grid gap-2">
+                  {asset.relations.map((relation) => (
+                    <li
+                      key={relation.id}
+                      className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]"
                     >
-                      <Trash2 size={14} aria-hidden="true" />
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+                      <span className="grid min-w-0 gap-0.5">
+                        <span className="text-[11.5px] text-muted-foreground">
+                          {t(assetRelationKindKeys[relation.kind][relation.direction])}
+                        </span>
+                        <AssetChip asset={relation.asset} />
+                      </span>
+                      {asset.canManage ? (
+                        <button
+                          type="button"
+                          className={rowActionButtonClassName}
+                          aria-label={t("assets.relations.remove", { name: relation.asset.assetTag })}
+                          onClick={() => {
+                            setRemoveError(null);
+                            setRemoving(relation);
+                          }}
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {asset.relationHiddenCount > 0 ? (
+                <p className={`mt-2 ${hintClassName}`}>
+                  {t("assets.impact.hidden", { count: asset.relationHiddenCount })}
+                </p>
+              ) : null}
+            </>
           )}
         </div>
       </Card>

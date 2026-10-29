@@ -45,6 +45,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/privacy/anonymization/anonymization.integration.spec.ts",
   "src/modules/privacy/export/export.integration.spec.ts",
   "src/modules/status-page/status-page.integration.spec.ts",
+  "src/modules/assets/asset-scope-display.integration.spec.ts",
   "src/modules/ops-health/ops-alert.engine.integration.spec.ts",
 ]);
 

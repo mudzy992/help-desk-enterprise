@@ -92,6 +92,7 @@ export type AssetContractItem = {
 };
 
 export type AssetContractDetail = AssetContractItem & {
+  readonly hiddenItemsCount: number;
   readonly items: readonly {
     readonly id: string;
     readonly assetTag: string;

@@ -382,8 +382,8 @@ export class AssetsService {
         },
       },
     });
-    const [relations, ticketStats, recentTickets, frequent, manageScope] = await Promise.all([
-      this.relationsOf(id),
+    const [relationResult, ticketStats, recentTickets, frequent, manageScope] = await Promise.all([
+      this.relationsOf(id, scope),
       this.ticketStats(id),
       this.recentTickets(id, viewer),
       this.frequentFailure(id),
@@ -420,7 +420,8 @@ export class AssetsService {
           archived: attribute.archivedAt !== null,
         })),
       attributes: values,
-      relations,
+      relations: relationResult.items,
+      relationHiddenCount: relationResult.hidden,
       tickets: { ...ticketStats, recent: recentTickets },
       frequentFailure: frequent,
       canManage,
@@ -854,16 +855,39 @@ export class AssetsService {
       select: { fromAssetId: true, toAssetId: true, kind: true },
     });
 
-  private async relationsOf(assetId: string) {
+  private async relationsOf(assetId: string, scope: AssetScope) {
+    const unitWhere = unitScopeWhere(scope);
     const summary = { select: { id: true, assetTag: true, name: true, status: true, type: { select: { icon: true, nameBs: true, nameEn: true } } } };
-    const [outgoing, incoming] = await Promise.all([
-      this.prisma.assetRelation.findMany({ where: { fromAssetId: assetId }, include: { to: summary }, orderBy: { createdAt: 'asc' } }),
-      this.prisma.assetRelation.findMany({ where: { toAssetId: assetId }, include: { from: summary }, orderBy: { createdAt: 'asc' } }),
+    const relatedAssetWhere = unitWhere === null
+      ? null
+      : { organizationalUnit: unitWhere as Prisma.OrganizationalUnitWhereInput };
+    const outgoingWhere: Prisma.AssetRelationWhereInput = {
+      fromAssetId: assetId,
+      ...(relatedAssetWhere === null ? {} : { to: relatedAssetWhere }),
+    };
+    const incomingWhere: Prisma.AssetRelationWhereInput = {
+      toAssetId: assetId,
+      ...(relatedAssetWhere === null ? {} : { from: relatedAssetWhere }),
+    };
+    const hiddenCountPromise = scope.all
+      ? Promise.resolve(null)
+      : Promise.all([
+          this.prisma.assetRelation.count({ where: { fromAssetId: assetId } }),
+          this.prisma.assetRelation.count({ where: { toAssetId: assetId } }),
+        ]);
+    const [outgoing, incoming, totalCounts] = await Promise.all([
+      this.prisma.assetRelation.findMany({ where: outgoingWhere, include: { to: summary }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.assetRelation.findMany({ where: incomingWhere, include: { from: summary }, orderBy: { createdAt: 'asc' } }),
+      hiddenCountPromise,
     ]);
-    return [
+    const items = [
       ...outgoing.map((relation) => ({ id: relation.id, kind: relation.kind, direction: 'out' as const, asset: relation.to })),
       ...incoming.map((relation) => ({ id: relation.id, kind: relation.kind, direction: 'in' as const, asset: relation.from })),
     ];
+    const hidden = totalCounts === null
+      ? 0
+      : Math.max(0, totalCounts[0] - outgoing.length) + Math.max(0, totalCounts[1] - incoming.length);
+    return { items, hidden };
   }
 
   async addRelation(id: string, input: { toAssetId: string; kind: AssetRelationKindValue }, viewer: AssetViewer) {

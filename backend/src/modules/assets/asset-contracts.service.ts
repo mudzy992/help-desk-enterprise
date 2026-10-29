@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
@@ -141,24 +142,37 @@ export class AssetContractsService {
   async detail(id: string, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetRead);
     const row = await this.loadInScope(id, scope);
-    const items = await this.prisma.assetContractItem.findMany({
-      where: { contractId: id },
-      take: assetContractLimits.itemsPerContract,
-      include: {
-        asset: {
-          select: { id: true, assetTag: true, name: true, status: true, organizationalUnit: { select: { ouPath: true } } },
+    const unitWhere = unitScopeWhere(scope);
+    const itemsWhere: Prisma.AssetContractItemWhereInput = {
+      contractId: id,
+      ...(unitWhere === null
+        ? {}
+        : { asset: { organizationalUnit: unitWhere as Prisma.OrganizationalUnitWhereInput } }),
+    };
+    const visibleCountPromise = scope.all
+      ? Promise.resolve(row._count.items)
+      : this.prisma.assetContractItem.count({ where: itemsWhere });
+    const [items, visibleItemCount] = await Promise.all([
+      this.prisma.assetContractItem.findMany({
+        where: itemsWhere,
+        take: assetContractLimits.itemsPerContract,
+        include: {
+          asset: { select: { id: true, assetTag: true, name: true, status: true } },
         },
-      },
-      orderBy: { asset: { assetTag: 'asc' } },
-    });
+        orderBy: { asset: { assetTag: 'asc' } },
+      }),
+      visibleCountPromise,
+    ]);
     return {
       ...this.toItem(row),
+      itemCount: visibleItemCount,
+      hiddenItemsCount: Math.max(0, row._count.items - visibleItemCount),
       items: items.map((item) => ({
         id: item.asset.id,
         assetTag: item.asset.assetTag,
         name: item.asset.name,
         status: item.asset.status,
-        canOpen: isPathInScope(scope, item.asset.organizationalUnit.ouPath),
+        canOpen: true,
       })),
     };
   }
