@@ -139,7 +139,9 @@ export function AssetRelationsPanel({
                         <button
                           type="button"
                           className={rowActionButtonClassName}
-                          aria-label={t("assets.relations.remove", { name: relation.asset.assetTag })}
+                          aria-label={t("assets.relations.remove", {
+                            name: relation.asset.assetTag,
+                          })}
                           onClick={() => {
                             setRemoveError(null);
                             setRemoving(relation);
