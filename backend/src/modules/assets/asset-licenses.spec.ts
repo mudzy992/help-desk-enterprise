@@ -1,6 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { decryptLicenseKey, encryptLicenseKey, readLicenseKeyCipherKey } from './asset-license-cipher';
-import { licenseAssignmentTarget, licenseCompliance } from './asset-licenses.service';
+import {
+  canViewLicenseUserAssignment,
+  isLicenseUserAssignmentCompatible,
+  licenseAssignmentTarget,
+  licenseCompliance,
+} from './asset-licenses.service';
 
 describe('licences (paket 3.2 §9)', () => {
   it('counts seats except for site licences and flags over-allocation', () => {
@@ -14,6 +19,21 @@ describe('licences (paket 3.2 §9)', () => {
     expect(licenseAssignmentTarget('PER_USER')).toBe('user');
     expect(licenseAssignmentTarget('SUBSCRIPTION')).toBe('either');
     expect(licenseAssignmentTarget('SITE')).toBe('none');
+  });
+
+  it('treats the license OU and its descendants as compatible, not parents or prefix siblings', () => {
+    expect(isLicenseUserAssignmentCompatible('/org/root', '/org/root')).toBe(true);
+    expect(isLicenseUserAssignmentCompatible('/org/root/team/member', '/org/root')).toBe(true);
+    expect(isLicenseUserAssignmentCompatible('/org', '/org/root')).toBe(false);
+    expect(isLicenseUserAssignmentCompatible('/org/rooted', '/org/root')).toBe(false);
+    expect(isLicenseUserAssignmentCompatible(null, '/org/root')).toBe(false);
+  });
+
+  it('shows a user assignment only inside both reader scope and license OU', () => {
+    const readScope = { all: false as const, paths: ['/org/root/team'] };
+    expect(canViewLicenseUserAssignment('/org/root/team/member', '/org/root', readScope)).toBe(true);
+    expect(canViewLicenseUserAssignment('/org/root/other/member', '/org/root', readScope)).toBe(false);
+    expect(canViewLicenseUserAssignment('/org/foreign/member', '/org/root', { all: true })).toBe(false);
   });
 
   it('encrypts keys with a key derived from MFA_ENCRYPTION_KEY', () => {

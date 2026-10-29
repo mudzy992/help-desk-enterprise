@@ -46,6 +46,7 @@ export type SoftwareLicenseItem = {
 
 export type SoftwareLicenseDetail = SoftwareLicenseItem & {
   readonly assignmentTarget: "asset" | "user" | "either" | "none";
+  readonly hiddenAssignmentsCount: number;
   readonly assignments: readonly {
     readonly id: string;
     readonly assignedAt: string;

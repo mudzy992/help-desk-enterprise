@@ -332,6 +332,16 @@ export class AssetsController {
     return runAsset(() => this.licenses.create(body, this.viewer(request)));
   }
 
+  @Get('licenses/:licenseId/users')
+  @Header('Cache-Control', 'no-store')
+  licenseUserCandidates(
+    @Param('licenseId') licenseId: string,
+    @Query('search') search = '',
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return runAsset(() => this.licenses.searchUserCandidates(licenseId, search.slice(0, 120), this.viewer(request)));
+  }
+
   @Get('licenses/:licenseId')
   @Header('Cache-Control', 'no-store')
   license(@Param('licenseId') licenseId: string, @Req() request: AuthenticatedHttpRequest) {

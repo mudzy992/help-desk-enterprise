@@ -78,8 +78,8 @@ export const queryKeys = {
       ? (["assets", "lookup", search] as const)
       : (["assets", "lookup", search, contextId] as const),
   assetUsers: (search: string) => ["assets", "users", search] as const,
-  assetLicenseCandidates: (target: string, search: string) =>
-    ["assets", "license-candidates", target, search] as const,
+  assetLicenseCandidates: (licenseId: string, target: string, search: string) =>
+    ["assets", "license-candidates", licenseId, target, search] as const,
   assetContractCandidates: (search: string) => ["assets", "contract-candidates", search] as const,
   adminSecurityRateLimits: ["admin", "security", "rate-limits"] as const,
   adminSecurityMetricsPrefix: ["admin", "security", "metrics"] as const,

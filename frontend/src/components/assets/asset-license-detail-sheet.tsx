@@ -28,7 +28,7 @@ import {
   lookupAssets,
   releaseLicense,
   revealLicenseKey,
-  searchAssetUsers,
+  searchLicenseUsers,
   type SoftwareLicenseItem,
 } from "@/services/assets-api";
 import { useCommercialSearch } from "./use-commercial-search";
@@ -86,7 +86,7 @@ export function LicenseDetailSheet({
         ? "asset"
         : target;
   const candidatesQuery = useQuery({
-    queryKey: queryKeys.assetLicenseCandidates(effectiveTarget, search),
+    queryKey: queryKeys.assetLicenseCandidates(licenseId ?? "", effectiveTarget, search),
     queryFn: async () =>
       effectiveTarget === "asset"
         ? (await lookupAssets(search)).items.map((item) => ({
@@ -94,7 +94,7 @@ export function LicenseDetailSheet({
             title: `${item.assetTag} · ${item.name}`,
             subtitle: item.assignedUser?.displayName ?? "",
           }))
-        : (await searchAssetUsers(search)).items.map((item) => ({
+        : (await searchLicenseUsers(licenseId ?? "", search)).items.map((item) => ({
             id: item.id,
             title: item.displayName,
             subtitle: item.email,
@@ -202,7 +202,9 @@ export function LicenseDetailSheet({
                 {license.assignmentTarget === "none" ? (
                   <p className={hintClassName}>{t("assets.licenses.siteHint")}</p>
                 ) : null}
-                {license.assignments.length === 0 && license.assignmentTarget !== "none" ? (
+                {license.assignments.length === 0 &&
+                license.hiddenAssignmentsCount === 0 &&
+                license.assignmentTarget !== "none" ? (
                   <p className={hintClassName}>{t("assets.licenses.noAssignments")}</p>
                 ) : null}
                 <ul className="grid gap-1">
@@ -249,6 +251,13 @@ export function LicenseDetailSheet({
                     </li>
                   ))}
                 </ul>
+                {license.hiddenAssignmentsCount > 0 ? (
+                  <p className={hintClassName}>
+                    {t("assets.licenses.hiddenAssignments", {
+                      count: license.hiddenAssignmentsCount,
+                    })}
+                  </p>
+                ) : null}
                 {canManage && license.assignmentTarget !== "none" ? (
                   <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
                     {license.assignmentTarget === "either" ? (

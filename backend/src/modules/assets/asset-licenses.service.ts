@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
@@ -12,6 +13,7 @@ import {
   AssetError,
   assetContractLimits,
   assetErrorCodes,
+  assetLimits,
   assetEventActions,
   softwareLicenseKinds,
   type SoftwareLicenseKindValue,
@@ -87,10 +89,26 @@ export function licenseAssignmentTarget(kind: SoftwareLicenseKindValue): 'asset'
   }
 }
 
+/** A user target must belong to the licence OU or one of its descendants. */
+export function isLicenseUserAssignmentCompatible(userOuPath: string | null, licenseOuPath: string): boolean {
+  return isPathInScope({ all: false, paths: [licenseOuPath] }, userOuPath);
+}
+
+/** Do not return target-user PII unless the reader can read both the user and licence OU. */
+export function canViewLicenseUserAssignment(
+  userOuPath: string | null,
+  licenseOuPath: string,
+  readScope: AssetScope,
+): boolean {
+  return isPathInScope(readScope, userOuPath) && isLicenseUserAssignmentCompatible(userOuPath, licenseOuPath);
+}
+
 /**
  * Paket 3.2 (§9): software licences. Reading needs `asset.read`, writing
- * `asset.license.manage`, both limited to the licence's unit. The key is
- * encrypted at rest, never listed or exported, and every reveal is audited.
+ * `asset.license.manage`, both limited to the licence's unit. Per-user targets
+ * must also be visible to the reader and lie in the licence OU subtree; detail
+ * redacts legacy/moved targets that no longer satisfy those boundaries. The
+ * key is encrypted at rest, never listed or exported, and every reveal is audited.
  */
 @Injectable()
 export class AssetLicensesService {
@@ -170,19 +188,75 @@ export class AssetLicensesService {
       take: assetContractLimits.assignmentsPerLicense,
       include: {
         asset: { select: { id: true, assetTag: true, name: true } },
-        user: { select: { id: true, displayName: true, email: true, isActive: true } },
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+            isActive: true,
+            organizationalUnit: { select: { ouPath: true } },
+          },
+        },
       },
     });
+    const visibleAssignments = assignments.filter(
+      (assignment) =>
+        assignment.user === null ||
+        canViewLicenseUserAssignment(assignment.user.organizationalUnit?.ouPath ?? null, row.organizationalUnit.ouPath, scope),
+    );
     return {
       ...this.toItem(row),
       assignmentTarget: licenseAssignmentTarget(row.kind),
-      assignments: assignments.map((assignment) => ({
+      assignments: visibleAssignments.map((assignment) => ({
         id: assignment.id,
         assignedAt: assignment.assignedAt.toISOString(),
         asset: assignment.asset,
-        user: assignment.user,
+        user:
+          assignment.user === null
+            ? null
+            : {
+                id: assignment.user.id,
+                displayName: assignment.user.displayName,
+                email: assignment.user.email,
+                isActive: assignment.user.isActive,
+              },
       })),
+      // Includes both scope-hidden targets and rows omitted by the per-license cap.
+      hiddenAssignmentsCount: Math.max(0, row._count.assignments - visibleAssignments.length),
     };
+  }
+
+  /** User picker for this licence; never returns candidates outside either OU boundary. */
+  async searchUserCandidates(id: string, search: string, viewer: AssetViewer) {
+    const manageScope = await this.access.require(viewer, permissionKeys.assetLicenseManage);
+    const license = await this.loadInScope(id, manageScope);
+    const readScope = await this.access.require(viewer, permissionKeys.assetRead);
+    const text = search.trim();
+    if (text.length < assetLimits.searchMin) return { items: [] };
+
+    const licenseUnitWhere = unitScopeWhere({ all: false, paths: [license.organizationalUnit.ouPath] });
+    const readUnitWhere = unitScopeWhere(readScope);
+    const organizationalUnitWhere: Prisma.OrganizationalUnitWhereInput = {
+      AND: [
+        ...(licenseUnitWhere === null ? [] : [licenseUnitWhere as Prisma.OrganizationalUnitWhereInput]),
+        ...(readUnitWhere === null ? [] : [readUnitWhere as Prisma.OrganizationalUnitWhereInput]),
+      ],
+    };
+    const users = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        anonymizedAt: null,
+        organizationalUnit: organizationalUnitWhere,
+        OR: [
+          { displayName: { contains: text, mode: 'insensitive' } },
+          { email: { contains: text, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, displayName: true, email: true },
+      orderBy: { displayName: 'asc' },
+      take: 20,
+    });
+    return { items: users };
   }
 
   private validate(input: SaveLicenseInput) {
@@ -229,8 +303,11 @@ export class AssetLicensesService {
   async update(id: string, input: SaveLicenseInput, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetLicenseManage);
     const current = await this.loadInScope(id, scope);
-    if (input.organizationalUnitId !== current.organizationalUnit.id) {
-      await this.access.requireUnitInScope(scope, input.organizationalUnitId);
+    const unitChanged = input.organizationalUnitId !== current.organizationalUnit.id;
+    let nextUnitPath = current.organizationalUnit.ouPath;
+    if (unitChanged) {
+      const nextUnit = await this.access.requireUnitInScope(scope, input.organizationalUnitId);
+      nextUnitPath = nextUnit.ouPath;
     }
     const data = this.validate(input);
     const target = licenseAssignmentTarget(data.kind);
@@ -243,6 +320,19 @@ export class AssetLicensesService {
         },
       });
       if (wrong > 0) throw new AssetError(assetErrorCodes.licenseAssignmentInvalid, 'kind');
+    }
+    if (unitChanged && current._count.assignments > 0) {
+      const userAssignments = await this.prisma.licenseAssignment.findMany({
+        where: { licenseId: id, userId: { not: null } },
+        select: { user: { select: { organizationalUnit: { select: { ouPath: true } } } } },
+      });
+      if (
+        userAssignments.some((assignment) =>
+          !isLicenseUserAssignmentCompatible(assignment.user?.organizationalUnit?.ouPath ?? null, nextUnitPath),
+        )
+      ) {
+        throw new AssetError(assetErrorCodes.licenseAssignmentInvalid, 'organizationalUnitId');
+      }
     }
     await this.prisma.softwareLicense.update({
       where: { id },
@@ -304,8 +394,17 @@ export class AssetLicensesService {
       if (asset.retiredAt !== null) throw new AssetError(assetErrorCodes.readOnly);
     }
     if (userId) {
-      const user = await this.prisma.user.findFirst({ where: { id: userId, isActive: true, anonymizedAt: null }, select: { id: true } });
-      if (user === null) throw new AssetError(assetErrorCodes.userNotFound);
+      const readScope = await this.access.scope(viewer, permissionKeys.assetRead);
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId, isActive: true, anonymizedAt: null },
+        select: { id: true, organizationalUnit: { select: { ouPath: true } } },
+      });
+      const userOuPath = user?.organizationalUnit?.ouPath ?? null;
+      // Hide users outside the caller's read scope as if they did not exist.
+      if (user === null || !isPathInScope(readScope, userOuPath)) throw new AssetError(assetErrorCodes.userNotFound);
+      if (!isLicenseUserAssignmentCompatible(userOuPath, license.organizationalUnit.ouPath)) {
+        throw new AssetError(assetErrorCodes.licenseAssignmentInvalid, 'organizationalUnitId');
+      }
     }
     const existing = await this.prisma.licenseAssignment.findFirst({
       where: { licenseId: id, ...(assetId ? { assetId } : { userId }) },

@@ -1,5 +1,6 @@
 import { buildCommercialListQuery, jsonBody } from "./http";
 import { apiRequest } from "@/services/api";
+import type { AssetUserSummary } from "./types";
 import type {
   ContractListFilters,
   LicenseListFilters,
@@ -25,6 +26,13 @@ export function listLicenses(
 
 export function getLicense(id: string): Promise<SoftwareLicenseDetail> {
   return apiRequest(licensePath(id));
+}
+
+export function searchLicenseUsers(
+  id: string,
+  search: string,
+): Promise<{ readonly items: readonly AssetUserSummary[] }> {
+  return apiRequest(`${licensePath(id)}/users?search=${encodeURIComponent(search)}`);
 }
 
 export function createLicense(input: SoftwareLicenseInput): Promise<{ readonly id: string }> {
