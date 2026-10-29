@@ -58,6 +58,8 @@ Finalni CI [`40956304026`](https://github.com/mudzy992/help-desk-enterprise/acti
 
 Dodatne lokalne provjere: frontend `npm run lint` i `npm run build` su prošli; Prettier i `i18n:check` su prošli; `npm run test:integration-harness` 3/3, `npm run wiring:check` i `npm run wiring:test` 6/6 te migration policy check za 97 migracija i testovi 2/2 su prošli. Backend `npm run lint` nema grešaka, ali prijavljuje tri postojeća `no-explicit-any` upozorenja u nepovezanom `sla-scan-failure-quarantine.spec.ts`. Lokalni ciljani Jest nije mogao tipizirati Prisma delegate jer sandbox nema generisani Prisma client; CI ga je generisao i pokrenuo puni backend suite. Lokalni Prisma engine download nije ponavljan.
 
+Dokumentacijski closeout je zaseban, docs-only commit. Repository CI namjerno ignoriše push koji mijenja samo `docs/**` i Markdown fajlove (`paths-ignore`); zato za taj commit nije generisan dodatni GitHub run. Završni closeout sadržaj je lokalno prošao `node scripts/check-docs-content.mjs` (32 stranice, 8 prevoda, 10 provjera), guard testove 9/9, `npm run audit:traceability` (692/692), traceability testove 5/5, JSON parse i `git diff --check`. Behavior/build/PostgreSQL dokaz ostaje zeleni code CI iznad.
+
 ## Registar nalaza
 
 - Zatvoren je samo `BA-assets-07` (P2).
