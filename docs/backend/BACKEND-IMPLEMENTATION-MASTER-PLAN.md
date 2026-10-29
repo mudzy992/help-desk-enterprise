@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.6 završen; W7.7 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.7 završen; W7.8 je sljedeći planirani paket).
 
 ### Redoslijed
 
@@ -491,10 +491,19 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Šest direktnih PostgreSQL acceptance scenarija pokriva opposing/tročlane paralelne directed writeove, reverse `CONNECTED_TO` race, multi-row cycle rollback, dugi cycle iznad app depth limita i postojeći API duplicate behavior. Dodani su classifier unit testovi i suite runner registracija; postojeći W7.2 fixture je samo preuređen da bude acikličan uz isti scope cilj.
 - CI `40947909645` prvo je otkrio raniji fixture sa suprotnim directed edgeovima; `40949108693` zatim je otkrio Prisma adapter `P2039` mapping i pogrešno očekivanje broja winnera u trostrukom cycleu. Oba issuea su korigovana; finalni `40950115033` je zelen za backend build/lint/test, migration replay i PostgreSQL+Redis suites, frontend, docs guard, container/supply-chain i CI gate. Push workflow je preskočio E2E jobove; zero high/critical image enforcement je `skipped` jer je scanner count bio nula.
 - Lokalni sandbox nema PostgreSQL/Docker; ciljane unit/runtime contract testovi (8/8), integration harness (3/3), migration policy (97 migracija), targeted lint/format prošli su. Potpuni rollout/pre-flight/repair/rollback SQL je u [92-assets-relation-graph-invariants.md](implementation/92-assets-relation-graph-invariants.md).
-- Deklarisani registry poslije W7.6: **583 otvorena / 109 zatvorenih / 692 ukupno**; ranije postojeće odstupanje prema source statusima i machine-readable planu nije reconciliato. `BA-assets-07`–`BA-assets-19` ostaju otvoreni.
+- Deklarisani registry na W7.6 checkpointu: **583 otvorena / 109 zatvorenih / 692 ukupno**; ranije postojeće odstupanje prema source statusima i machine-readable planu nije reconciliato. U tom checkpointu `BA-assets-07`–`BA-assets-19` su ostali otvoreni.
 
-### Sljedeći planirani paket — W7.7
+### W7.7 — per-user license OU/scope kompatibilnost — završeno
 
-**`BA-assets-07` (P2):** per-user license assignment OU/scope kompatibilnost. Paket nije započet; ne preuzimati `BA-assets-08` primary ticket link ni druge susjedne nalaze bez vlastitog scopea.
+- Zatvoren je samo `BA-assets-07` (P2). Finalni testani SHA `55fb782d02a4ccfecf4553c8d7fbfa9a6a41016b`; CI [`40956304026`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40956304026) je zelen. Feature commit je `bc7906795e83e4eb9dd25319234e33ddf4bb441d`, a `55fb782` sadrži integration fixture/wiring manifest korekciju.
+- Korisnik mora biti u `asset.read` reader scopeu i u OU licence ili njenom slash-delimited potomku. Per-license picker i detail koriste isti kriterij; detail rediguje legacy/moved user targete, a OU promjena licence se odbija ako bi postojeću user dodjelu ostavila van subtreea.
+- Sedam real-PostgreSQL acceptance scenarija pokriva picker, dozvoljenu potomnu OU, sibling rejection, foreign 404, legacy PII redakciju, licencu koja bi stradala OU promjenom i redakciju nakon promjene OU korisnika. Nije mijenjan asset-target cross-OU kriterij.
+- Nema Prisma schema promjene ni DB migracije. Detaljni acceptance, API/rollout/rollback i CI evidence je u [93-assets-license-ou-scope.md](implementation/93-assets-license-ou-scope.md).
+- Prvi CI `40955264212` pao je zbog našeg integration fixture tipa (`unitPath: null`) i nedostajućeg wiring snapshota; oba su ispravljena, a finalni `40956304026` je zelen. Push workflow je preskočio E2E jobove i image vulnerability enforcement korak je `skipped` nakon scan koraka.
+- Deklarisani registry poslije W7.7: **582 otvorena / 110 zatvorenih / 692 ukupno**; 19 početnih P1 nalaza u Valu 7 ostaje otvoreno. Machine-readable statusi su 585 open / 96 closed / 11 historijskih redova; preegzistentna razlika ostaje reconciliation obaveza.
+
+### Sljedeći planirani paket — W7.8
+
+**`BA-assets-08` (P2):** DB/concurrency invariant za ticket primary link. Paket nije započet; ne preuzimati `BA-assets-09` directory single-flight lock ni druge susjedne nalaze bez vlastitog scopea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
