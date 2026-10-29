@@ -233,6 +233,8 @@ model AssetRelation {
   @@index([toAssetId])
 }
 
+/// PostgreSQL migration 20271028000000 adds a database-only partial unique index,
+/// per-ticket write lock and deferred exact-one-primary check.
 model TicketAsset {
   ticketId       String
   assetId        String

@@ -1,6 +1,6 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { TicketsError } from '../tickets.error';
-import { applyAssetTypeRouting, resolveCreateTicketAsset } from './resolve-create-ticket-asset';
+import { applyAssetTypeRouting, linkCreatedTicketAsset, resolveCreateTicketAsset } from './resolve-create-ticket-asset';
 import { copyTicketAssets } from './transfer-ticket-assets';
 
 function settingsPrisma(settings: Record<string, unknown>, asset: unknown) {
@@ -55,10 +55,50 @@ describe('resolveCreateTicketAsset (paket 3.2 §8)', () => {
   });
 });
 
+describe('linkCreatedTicketAsset (primary link lock)', () => {
+  it('locks the freshly created ticket before inserting its primary equipment link', async () => {
+    const order: string[] = [];
+    const prisma = {
+      $queryRaw: jest.fn(async () => {
+        order.push('ticket-lock');
+        return [{ id: 't1' }];
+      }),
+      ticketAsset: {
+        create: jest.fn(async () => {
+          order.push('ticket-asset');
+          return {};
+        }),
+      },
+      assetEvent: {
+        create: jest.fn(async () => {
+          order.push('asset-event');
+          return {};
+        }),
+      },
+    } as unknown as PrismaService;
+
+    await linkCreatedTicketAsset(prisma, {
+      ticketId: 't1',
+      ticketNumber: 'T-1',
+      asset: { id: 'a1', assetTag: 'IT-1', routingGroupId: null },
+      actorUserId: 'u1',
+    });
+
+    expect(order).toEqual(['ticket-lock', 'ticket-asset', 'asset-event']);
+    expect(prisma.ticketAsset.create).toHaveBeenCalledWith({
+      data: { ticketId: 't1', assetId: 'a1', isPrimary: true, linkedByUserId: 'u1' },
+    });
+  });
+});
+
 describe('copyTicketAssets (merge/split)', () => {
   function linkPrisma(rows: Record<string, { assetId: string; isPrimary: boolean }[]>) {
     const created: unknown[] = [];
+    const rawQuery = jest.fn(async (_strings: TemplateStringsArray, ...values: unknown[]) =>
+      ((values[0] as string[] | undefined) ?? []).map((id) => ({ id })),
+    );
     const prisma = {
+      $queryRaw: rawQuery,
       ticketAsset: {
         findMany: jest.fn(({ where }: { where: { ticketId: string } }) => Promise.resolve(rows[where.ticketId] ?? [])),
         create: jest.fn(({ data }: { data: unknown }) => {

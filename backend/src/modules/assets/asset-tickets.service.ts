@@ -16,6 +16,7 @@ import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 import type { TicketPersistedMessageSink } from '../tickets/collaboration.types';
 import type { TicketRecord } from '../tickets/tickets.types';
 import { AssetAccessService } from './asset-access.service';
+import { lockTicketAssetPrimaryGroups } from './asset-ticket-primary-lock';
 import { isPathInScope, viewerHasPermission, type AssetViewer } from './asset-viewer';
 import { AssetError, assetErrorCodes } from './assets.constants';
 
@@ -192,6 +193,8 @@ export class AssetTicketsService {
     const asset = await this.loadAssetInReadScope(input.assetId, viewer);
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
+      const lockedTickets = await lockTicketAssetPrimaryGroups(transaction, [ticket.id]);
+      if (!lockedTickets.has(ticket.id)) throw new AssetError(assetErrorCodes.notFound);
       const existing = await transaction.ticketAsset.findUnique({
         where: { ticketId_assetId: { ticketId: ticket.id, assetId: asset.id } },
       });
@@ -231,6 +234,8 @@ export class AssetTicketsService {
     const ticket = await this.requireEditable(ticketId, viewer);
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
+      const lockedTickets = await lockTicketAssetPrimaryGroups(transaction, [ticket.id]);
+      if (!lockedTickets.has(ticket.id)) throw new AssetError(assetErrorCodes.notFound);
       const link = await transaction.ticketAsset.findUnique({
         where: { ticketId_assetId: { ticketId: ticket.id, assetId } },
         include: { asset: { select: { assetTag: true, name: true } } },
@@ -239,7 +244,10 @@ export class AssetTicketsService {
       await transaction.ticketAsset.delete({ where: { ticketId_assetId: { ticketId: ticket.id, assetId } } });
       if (link.isPrimary) {
         // Keep one primary while links remain: the oldest one takes over.
-        const next = await transaction.ticketAsset.findFirst({ where: { ticketId: ticket.id }, orderBy: { linkedAt: 'asc' } });
+        const next = await transaction.ticketAsset.findFirst({
+          where: { ticketId: ticket.id },
+          orderBy: [{ linkedAt: 'asc' }, { assetId: 'asc' }],
+        });
         if (next !== null) {
           await transaction.ticketAsset.update({
             where: { ticketId_assetId: { ticketId: ticket.id, assetId: next.assetId } },
@@ -271,6 +279,8 @@ export class AssetTicketsService {
   async setPrimary(ticketId: string, assetId: string, viewer: AssetViewer): Promise<TicketAssetsView> {
     const ticket = await this.requireEditable(ticketId, viewer);
     await this.prisma.$transaction(async (transaction) => {
+      const lockedTickets = await lockTicketAssetPrimaryGroups(transaction, [ticket.id]);
+      if (!lockedTickets.has(ticket.id)) throw new AssetError(assetErrorCodes.notFound);
       const link = await transaction.ticketAsset.findUnique({ where: { ticketId_assetId: { ticketId: ticket.id, assetId } } });
       if (link === null) throw new AssetError(assetErrorCodes.notFound);
       await transaction.ticketAsset.updateMany({ where: { ticketId: ticket.id }, data: { isPrimary: false } });

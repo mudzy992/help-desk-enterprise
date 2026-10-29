@@ -1,4 +1,5 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { lockTicketAssetPrimaryGroups } from '../../assets/asset-ticket-primary-lock';
 
 type AssetDelegates = { ticketAsset?: unknown };
 
@@ -15,6 +16,9 @@ export async function copyTicketAssets(
   actorUserId: string | null,
 ): Promise<number> {
   if ((tx as unknown as AssetDelegates).ticketAsset === undefined) return 0;
+  // Only the destination needs a write lock: the source is read from one
+  // PostgreSQL statement snapshot and remains protected by the DB invariant.
+  await lockTicketAssetPrimaryGroups(tx, [toTicketId]);
   const source = await tx.ticketAsset.findMany({
     where: { ticketId: fromTicketId },
     select: { assetId: true, isPrimary: true },

@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '../generated/prisma/client';
+import type { PrismaService } from '../common/prisma/prisma.service';
+import { lockTicketAssetPrimaryGroups } from '../modules/assets/asset-ticket-primary-lock';
 
 /*
   Paket 3.2 (§15): demo inventory for trying the module out (also while it is
@@ -24,16 +26,48 @@ async function remove(prisma: PrismaClient): Promise<void> {
   const assetIds = assets.map((asset) => asset.id);
   const licenses = await prisma.softwareLicense.findMany({ where: { notes: marker }, select: { id: true } });
   const contracts = await prisma.assetContract.findMany({ where: { notes: marker }, select: { id: true } });
-  await prisma.$transaction([
-    prisma.licenseAssignment.deleteMany({ where: { OR: [{ licenseId: { in: licenses.map((row) => row.id) } }, { assetId: { in: assetIds } }] } }),
-    prisma.softwareLicense.deleteMany({ where: { id: { in: licenses.map((row) => row.id) } } }),
-    prisma.assetContractItem.deleteMany({ where: { OR: [{ contractId: { in: contracts.map((row) => row.id) } }, { assetId: { in: assetIds } }] } }),
-    prisma.assetContract.deleteMany({ where: { id: { in: contracts.map((row) => row.id) } } }),
-    prisma.assetRelation.deleteMany({ where: { OR: [{ fromAssetId: { in: assetIds } }, { toAssetId: { in: assetIds } }] } }),
-    prisma.ticketAsset.deleteMany({ where: { assetId: { in: assetIds } } }),
-    prisma.assetEvent.deleteMany({ where: { assetId: { in: assetIds } } }),
-    prisma.asset.deleteMany({ where: { id: { in: assetIds } } }),
-  ]);
+  await prisma.$transaction(async (transaction) => {
+    await transaction.licenseAssignment.deleteMany({
+      where: { OR: [{ licenseId: { in: licenses.map((row) => row.id) } }, { assetId: { in: assetIds } }] },
+    });
+    await transaction.softwareLicense.deleteMany({ where: { id: { in: licenses.map((row) => row.id) } } });
+    await transaction.assetContractItem.deleteMany({
+      where: { OR: [{ contractId: { in: contracts.map((row) => row.id) } }, { assetId: { in: assetIds } }] },
+    });
+    await transaction.assetContract.deleteMany({ where: { id: { in: contracts.map((row) => row.id) } } });
+    await transaction.assetRelation.deleteMany({ where: { OR: [{ fromAssetId: { in: assetIds } }, { toAssetId: { in: assetIds } }] } });
+
+    if (assetIds.length > 0) {
+      const affectedTickets = await transaction.ticketAsset.findMany({
+        where: { assetId: { in: assetIds } },
+        select: { ticketId: true },
+      });
+      const affectedTicketIds = [...new Set(affectedTickets.map((link) => link.ticketId))];
+      await lockTicketAssetPrimaryGroups(transaction as unknown as Pick<PrismaService, '$queryRaw'>, affectedTicketIds);
+      const primaryLinks = await transaction.ticketAsset.findMany({
+        where: { assetId: { in: assetIds }, isPrimary: true },
+        select: { ticketId: true },
+      });
+      for (const ticketId of [...new Set(primaryLinks.map((link) => link.ticketId))]) {
+        const replacement = await transaction.ticketAsset.findFirst({
+          where: { ticketId, assetId: { notIn: assetIds } },
+          orderBy: [{ linkedAt: 'asc' }, { assetId: 'asc' }],
+          select: { assetId: true },
+        });
+        if (replacement !== null) {
+          await transaction.ticketAsset.updateMany({ where: { ticketId, isPrimary: true }, data: { isPrimary: false } });
+          await transaction.ticketAsset.update({
+            where: { ticketId_assetId: { ticketId, assetId: replacement.assetId } },
+            data: { isPrimary: true },
+          });
+        }
+      }
+      await transaction.ticketAsset.deleteMany({ where: { assetId: { in: assetIds } } });
+    }
+
+    await transaction.assetEvent.deleteMany({ where: { assetId: { in: assetIds } } });
+    await transaction.asset.deleteMany({ where: { id: { in: assetIds } } });
+  });
   // Children first (the tree is Restrict on delete).
   for (let pass = 0; pass < 6; pass += 1) {
     const locations = await prisma.assetLocation.findMany({ where: { code: { startsWith: 'DEMO-' }, children: { none: {} }, assets: { none: {} } }, select: { id: true } });
@@ -211,7 +245,29 @@ async function seed(prisma: PrismaClient): Promise<number> {
   if (firstLaptop?.userId) {
     const tickets = await prisma.ticket.findMany({ where: { requesterId: firstLaptop.userId }, select: { id: true }, orderBy: { createdAt: 'desc' }, take: 3 });
     if (tickets.length > 0) {
-      await prisma.ticketAsset.createMany({ data: tickets.map((ticket, index) => ({ ticketId: ticket.id, assetId: firstLaptop.id, isPrimary: index === 0 })), skipDuplicates: true });
+      await prisma.$transaction(async (transaction) => {
+        await lockTicketAssetPrimaryGroups(
+          transaction as unknown as Pick<PrismaService, '$queryRaw'>,
+          tickets.map((ticket) => ticket.id),
+        );
+        for (const ticket of tickets) {
+          const existing = await transaction.ticketAsset.findUnique({
+            where: { ticketId_assetId: { ticketId: ticket.id, assetId: firstLaptop.id } },
+          });
+          if (existing !== null) continue;
+          const currentPrimary = await transaction.ticketAsset.findFirst({
+            where: { ticketId: ticket.id, isPrimary: true },
+            select: { assetId: true },
+          });
+          await transaction.ticketAsset.create({
+            data: {
+              ticketId: ticket.id,
+              assetId: firstLaptop.id,
+              isPrimary: currentPrimary === null,
+            },
+          });
+        }
+      });
     }
   }
 

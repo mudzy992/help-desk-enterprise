@@ -1,4 +1,5 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { lockTicketAssetPrimaryGroups } from '../../assets/asset-ticket-primary-lock';
 import { settingKeys } from '../../settings/setting-keys';
 import { TicketsError } from '../tickets.error';
 
@@ -64,6 +65,7 @@ export async function linkCreatedTicketAsset(
   transaction: PrismaService,
   input: { readonly ticketId: string; readonly ticketNumber: string; readonly asset: CreateTicketAsset; readonly actorUserId: string },
 ) {
+  await lockTicketAssetPrimaryGroups(transaction, [input.ticketId]);
   await transaction.ticketAsset.create({
     data: { ticketId: input.ticketId, assetId: input.asset.id, isPrimary: true, linkedByUserId: input.actorUserId },
   });
