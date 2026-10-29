@@ -20,7 +20,7 @@ import { StatusIncidentsService } from './status-incidents.service';
 const actor = { principal: { subjectId: 'op' }, requestId: 'r1', sessionId: null } as unknown as PrivacyActor;
 
 function build(incident: Record<string, unknown>, options: { moved?: number } = {}) {
-  const prisma: Record<string, unknown> = {
+  const prisma: Record<string, jest.Mock | Record<string, jest.Mock>> = {
     serviceIncident: {
       findUnique: jest.fn().mockResolvedValue(incident),
       update: jest.fn().mockResolvedValue(incident),
@@ -193,7 +193,7 @@ describe('StatusIncidentsService.edit audit reconstruction (BA-status-page-17)',
   beforeEach(() => jest.clearAllMocks());
 
   it('records title and titleEn from/to in audit metadata', async () => {
-    const { service, prisma } = build(open);
+    const { service } = build(open);
     await service.edit('i1', { title: 'VPN outage', titleEn: 'VPN outage' }, actor);
     expect(lastAudit()).toMatchObject({
       metadata: {
