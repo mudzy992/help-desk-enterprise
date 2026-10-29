@@ -5,15 +5,15 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`; `BA-assets-08`–`BA-assets-19` ostaju otvoreni.
+**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, a W7.8 samo `BA-assets-08`; `BA-assets-09`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
 `assets` je širok CMDB domen: tipovi i custom atributi, lokacije, asset CRUD/status/custody, relacije i impact, ticket veze, licence i ugovori, spreadsheet import/export, directory sync, transferi sa DOCX/signed kopijom te expiry reminders. Pozitivna osnova je značajna: OU subtree filteri i not-found direct-ID semantika, optimistic version kod općeg edita i transfera, transactional asset eventi, AES-GCM ključevi, formula escaping, apply-time scope revalidacija, frozen transfer snapshot, DB sekvenca, ClamAV i contained storage path.
 
-Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su zatvorili sva četiri; W7.5 je zasebno zatvorio P2 DB invariant za unique custom JSON atribut, a W7.6 P2 DB graph invariant za directed cycles i simetrične `CONNECTED_TO` duplikate. Preostali assets nalazi ostaju zasebni i otvoreni.
+Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su zatvorili sva četiri; W7.5 je zasebno zatvorio P2 DB invariant za unique custom JSON atribut, W7.6 P2 DB graph invariant za directed cycles i simetrične `CONNECTED_TO` duplikate, W7.7 per-user license OU/scope, a W7.8 ticket primary-link invariant. Preostali assets nalazi ostaju zasebni i otvoreni.
 
-Dodatni nalazi uključuju cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; asset-target cross-OU semantika ostaje otvorena. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.7 closeout dokazi su evidentirani na kraju ovog dokumenta.
+Dodatni nalazi uključuju cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; W7.8 je zatvorio samo ticket primary-link invariant; asset-target cross-OU semantika ostaje otvorena. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.8 closeout dokazi su evidentirani na kraju ovog dokumenta.
 
 ## 2. Scope i inventar
 
@@ -71,7 +71,7 @@ Liste koriste hard `listMax`; assignmenti, contract itemi i asset-card licence/u
 
 Ticket access koristi centralni ticket policy. Edit je staff-only, zahtijeva `asset.read`, odbija closed/archived/merged ticket, asset mora biti u read scopeu, a limit je 20. Link/unlink upisuju asset event i ticket system event.
 
-Pravilo „tačno jedan primary dok postoje linkovi“ nije DB invariant. Link/set-primary rade `updateMany(false)` pa `create/update(true)`, a unlink bira oldest. Paralelni link, set-primary, split/merge ili unlink tokovi mogu ostaviti više primarnih ili nijedan; Prisma transakcija bez row locka/serializable izolacije to ne sprječava. Potreban je partial unique indeks za `isPrimary=true`, ticket row lock i deterministična repair/reconciliation putanja.
+Baseline nije imao DB invariant za pravilo „tačno jedan primary dok postoje linkovi“: link/set-primary rade `updateMany(false)` pa `create/update(true)`, a unlink bira oldest. Paralelni link, set-primary, split/merge ili unlink tokovi mogli su ostaviti više primarnih ili nijedan; obična Prisma transakcija to nije sprječavala. W7.8 je zatvorio `BA-assets-08` partial unique indeksom, parent-ticket row lockom, deferred provjerom tačno jednog primary reda na commit-u i fail-closed preflightom s determinističnim legacy reconciliationom. Direktni PostgreSQL dokaz i rollback SQL su u [W7.8 closeoutu](../implementation/94-assets-ticket-primary-invariant.md).
 
 ## 8. Import/export i resource granice
 
@@ -161,7 +161,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | BA-assets-05 | P2       | Unique custom JSON atribut je read-before-write bez DB zaštite                                | zatvoreno |
 | BA-assets-06 | P2       | Parallel relation cycle/symmetric insert može prekršiti graph invariant                        | zatvoreno |
 | BA-assets-07 | P2       | Per-user license assignment nema user OU/scope kompatibilnost                                 | zatvoreno |
-| BA-assets-08 | P2       | Ticket primary link nema partial unique/locking invariant                                     | otvoreno |
+| BA-assets-08 | P2       | Ticket primary link nema partial unique/locking invariant                                     | zatvoreno |
 | BA-assets-09 | P2       | Directory single-flight lock je samo in-memory po procesu                                     | otvoreno |
 | BA-assets-10 | P2       | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | otvoreno |
 | BA-assets-11 | P2       | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status                  | otvoreno |
@@ -184,8 +184,8 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 - **07:** zatvoreno u W7.7 za per-user target — korisnik mora biti u `asset.read` scopeu i OU subtree licence; kandidat-picker i detail primjenjuju iste granice, a promjena OU licence ne smije ostaviti dodjelu izvan subtreea. Asset-target cross-OU semantika ostaje izvan closurea. Detalj u [W7.7 implementacijskom dokazu](../implementation/93-assets-license-ou-scope.md).
 - **11:** ostaje otvoreno — dodatni interni email i dalje nema durable delivery red/status ni per-address dedupe; W7.4 ga ne preuzima kao primarni transport niti zatvara ovaj nalaz.
 - **05–06:** normalizovane unique attribute vrijednosti i canonical relation edge/invariant uz DB constraint/locking.
-- **07:** user/asset target mora biti u dozvoljenom OU modelu licence; detail redakcija.
-- **08:** partial unique primary indeks, ticket lock/serializable update i repair job.
+- **07:** per-user license target OU/scope je zatvoren u W7.7; asset-target cross-OU semantika ostaje otvorena.
+- **08:** zatvoreno u W7.8 — partial unique indeks, parent-ticket lock, deferred exact-one provjera i deterministična legacy reconciliation procedura.
 - **09–10:** distributed sync lease, run state, periodični repeatable-job reconcile i health gate.
 - **12:** transactional audit ili durable post-commit outbox za filesystem operacije.
 - **13:** APPLYING lease sa run tokenom, retry/reconcile i dokumentovanom all-or-nothing semantikom.
@@ -252,7 +252,7 @@ Regenerisan Prisma client; svih 13 direktnih suiteova; Postgres concurrency, Red
 9. Import JSON, transfer snapshot i signed fajl imaju retention/anonymization/orphan lifecycle.
 10. Liste ne trunciraju tiho, health signalizira drift, a kompletni unit/integration/E2E testovi prolaze.
 
-Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet sigurnosti i osnovnom OU modelu. W7.1–W7.4 su zatvorili četiri početna P1 nalaza, W7.5 je uklonio race za unique custom JSON atribut, W7.6 je zatvorio directed-cycle/symmetric-edge DB race, a W7.7 per-user license OU/scope nalaz. Asset-target cross-OU semantika, drugi DB invarianti, scheduler recovery, audit i lifecycle nalazi i dalje znače da modul nije production-grade enterprise CMDB. Iskren početni baseline ostaje **4,59/10**.
+Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet sigurnosti i osnovnom OU modelu. W7.1–W7.4 su zatvorili četiri početna P1 nalaza, W7.5 je uklonio race za unique custom JSON atribut, W7.6 je zatvorio directed-cycle/symmetric-edge DB race, W7.7 per-user license OU/scope nalaz, a W7.8 ticket primary-link invariant. Asset-target cross-OU semantika, drugi DB invarianti, scheduler recovery, audit i lifecycle nalazi i dalje znače da modul nije production-grade enterprise CMDB. Iskren početni baseline ostaje **4,59/10**.
 
 ## 20. Implementacijski closeout — W7.1 (`BA-assets-01`)
 
@@ -296,4 +296,16 @@ W7.7 zatvorio je samo `BA-assets-07` (P2). OU kompatibilnost prati postojeći sl
 
 Sedam direktnih PostgreSQL scenarija pokriva picker, valjanog child-OU korisnika, sibling target rejection, out-of-read-scope 404, redakciju legacy PII, blokadu license OU premještanja i redakciju nakon user OU promjene. Feature commit je `bc7906795e83e4eb9dd25319234e33ddf4bb441d`; test/wiring correction i finalni testani SHA su `55fb782d02a4ccfecf4553c8d7fbfa9a6a41016b`. CI [`40956304026`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40956304026) je zelen za Prisma validate/generate, backend build/lint/test, PostgreSQL+Redis migration replay/integration, frontend build/test, docs guard, container/supply-chain i CI gate. Prvi CI `40955264212` otkrio je tipnu grešku u integration viewer fixtureu i nedostajući wiring snapshot; oba su ispravljena prije finalnog gatea. Push workflow je preskočio E2E jobove, a image vulnerability enforcement step je `skipped` nakon scan koraka.
 
-Nema Prisma schema promjene, DB migracije, preflighta, backfilla ni cleanup-a. Lokalni backend Jest bio je blokiran nedostajućim generated Prisma clientom; CI je generisao client i izvršio testove. Potpuni rollout, API, testni, registry i rollback dokaz je u [93-assets-license-ou-scope.md](../implementation/93-assets-license-ou-scope.md). `BA-assets-08`–`BA-assets-19` ostaju otvoreni; W7.8 (`BA-assets-08`) primary ticket-link invariant je sljedeći paket i nije započet.
+Nema Prisma schema kolona ni backfill migracije. Lokalni backend Jest bio je blokiran nedostajućim generated Prisma clientom; CI je generisao client i izvršio testove. Potpuni rollout, API, testni, registry i rollback dokaz je u [93-assets-license-ou-scope.md](../implementation/93-assets-license-ou-scope.md). `BA-assets-08`–`BA-assets-19` ostali su otvoreni na W7.7 checkpointu; W7.8 je kasnije zatvorio samo `BA-assets-08`.
+
+## 27. Implementacijski closeout — W7.8 (`BA-assets-08`)
+
+W7.8 zatvorio je samo `BA-assets-08` (P2). Migracija `20271028000000_asset_ticket_primary_invariant` radi fail-closed preflight pod `TicketAsset` table lockom; zatim dodaje partial unique indeks za najviše jedan `isPrimary=true`, `BEFORE` trigger koji serijalizuje promjene parent `Ticket` redom, te deferred constraint trigger koji na commit-u zahtijeva tačno jedan primary dok god postoje linkovi. Aplikacijski lock se uzima prije čitanja skupa linkova u link/unlink/set-primary tokovima i prije kopiranja veza pri merge/split operacijama. Deterministični fallback koristi najstariji `linkedAt`, zatim `assetId`.
+
+Osam direktnih PostgreSQL acceptance scenarija pokriva odbijanje linka bez primary reda, partial-unique odbijanje duplog primaryja, validnu atomic primary promjenu i rollback invalidnog stanja, paralelne application linkove, konkurentne direktne DB primary inserte, `setPrimary`/unlink fallback, merge/split copy uz postojeći primary i Ticket cascade delete. Suite je dodat u izolovani integration runner. Demo-seed create/remove tokovi su prilagođeni novom invariant-u; nijedna HTTP ruta ni scope/authorization semantika nisu mijenjane.
+
+Implementacijski commit je `f9a90ba057b612451a5f4868947ce32a0e73ef43`; zeleni CI [`40962089973`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40962089973) na istom SHA-u pokrio je Prisma validate/generate, backend build/lint/test, PostgreSQL+Redis migracijski replay i real suites, frontend, docs guard, container/supply-chain i CI gate. Lokalno su prošli backend lint (0 grešaka; tri postojeća `no-explicit-any` upozorenja u nepovezanom SLA specu), wiring check i testovi (614 ruta; 6/6), migration policy za 98 migracija i testovi 2/2, integration harness 3/3, te `git diff --check`. Lokalni Jest nije pokretan jer sandbox nema generated Prisma client; CI ga je generisao i izvršio backend suite. Push trigger je preskočio E2E jobove; image vulnerability enforcement korak je `skipped` jer je scanner actionable count bio 0. Nije bilo neuspjelog W7.8 CI pokušaja.
+
+Nema schema kolone niti backfill-a. Migracija odbija deployment ako preflight nađe ticket bez tačno jednog primary reda; ne prepravlja tiho stare podatke. [W7.8 closeout](../implementation/94-assets-ticket-primary-invariant.md) sadrži preflight, deterministični repair SQL, rollout, failed-migration recovery i rollback. Aplikacijski rollback ostavlja DB guardove; uklanjanje nakon uspješno primijenjene migracije ide isključivo kroz zasebnu forward cleanup migraciju. Eventualna pre-deploy reconciliation ostaje validna i ne vraća se na poznato neispravno stanje.
+
+`BA-assets-09`–`BA-assets-19` ostaju otvoreni; W7.9 (`BA-assets-09`, directory single-flight lock) je sljedeći paket i nije započet.

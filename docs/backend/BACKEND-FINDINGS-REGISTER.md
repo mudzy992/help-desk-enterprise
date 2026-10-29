@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.6 je zatvorio `BA-assets-06`, W7.7 samo `BA-assets-07`; sljedeći je planirani W7.8 `BA-assets-08`<br>
+**Status:** audit baseline + djelimična implementacija — W7.7 je zatvorio `BA-assets-07`, W7.8 samo `BA-assets-08`; sljedeći je planirani W7.9 `BA-assets-09`<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-29<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 582 otvorena / 110 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.7; machine-readable source redovi prikazuju 585 otvorenih / 96 zatvorenih / 11 historijskih statusa. Preegzistentna razlika prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
+**Trenutno:** 581 otvoren / 111 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.8; machine-readable source redovi prikazuju 584 otvorena / 97 zatvorenih / 11 historijskih statusa. Preegzistentna razlika prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -281,7 +281,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-06` | P2 | Parallel relation cycle/symmetric insert može prekršiti graph invariant | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-07` | P2 | Per-user license assignment nema user OU/scope kompatibilnost | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-08` | P2 | Ticket primary link nema partial unique/locking invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-08` | P2 | Ticket primary link nema partial unique/locking invariant | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-09` | P2 | Directory single-flight lock je samo in-memory po procesu | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-10` | P2 | Directory i reminder scheduler nemaju Redis-loss reconciliation | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-11` | P2 | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -773,7 +773,9 @@ W7.5 je na testanom SHA `c9773edb259756dc34b0dceb59522a4770b2ee7f`, uz zeleni CI
 
 W7.6 na testanom SHA `d4f0a5b980d6a1527486ad97a604ff8869be7f37`, uz zeleni CI [`40950115033`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40950115033), zatvorio je samo `BA-assets-06` (P2). PostgreSQL sada radi directed-cycle serialization/guard i canonical unordered `CONNECTED_TO` uniqueness; šest direktnih acceptance scenarija i migration replay prošli su. Preflight, repair i rollback procedura je u [92-assets-relation-graph-invariants.md](implementation/92-assets-relation-graph-invariants.md).
 
-W7.7 na finalnom testanom SHA `55fb782d02a4ccfecf4553c8d7fbfa9a6a41016b`, uz zeleni CI [`40956304026`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40956304026), zatvorio je samo `BA-assets-07` (P2). Per-user dodjele i candidate picker poštuju callerov `asset.read` scope i OU licence subtree; detail rediguje legacy/neusklađene korisnike, a license OU se ne može premjestiti preko postojeće kompatibilne dodjele. Sedam real-PostgreSQL acceptance scenarija, backend/frontend suiteovi i migration replay prošli su; nema schema promjene ni DB migracije. Detaljan rollout/rollback dokaz je u [93-assets-license-ou-scope.md](implementation/93-assets-license-ou-scope.md). `BA-assets-08`–`BA-assets-19` ostaju otvoreni; W7.8 (`BA-assets-08`) je sljedeći paket i nije započet.
+W7.7 na finalnom testanom SHA `55fb782d02a4ccfecf4553c8d7fbfa9a6a41016b`, uz zeleni CI [`40956304026`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40956304026), zatvorio je samo `BA-assets-07` (P2). Per-user dodjele i candidate picker poštuju callerov `asset.read` scope i OU licence subtree; detail rediguje legacy/neusklađene korisnike, a license OU se ne može premjestiti preko postojeće kompatibilne dodjele. Sedam real-PostgreSQL acceptance scenarija, backend/frontend suiteovi i migration replay prošli su; nema schema promjene ni DB migracije. Detaljan rollout/rollback dokaz je u [93-assets-license-ou-scope.md](implementation/93-assets-license-ou-scope.md). Na W7.7 checkpointu `BA-assets-08`–`BA-assets-19` su ostali otvoreni.
+
+W7.8 na finalnom testanom SHA `f9a90ba057b612451a5f4868947ce32a0e73ef43`, uz zeleni CI [`40962089973`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40962089973), zatvorio je samo `BA-assets-08` (P2). Migracija `20271028000000_asset_ticket_primary_invariant` fail-closed provjerava postojeće primary stanje, uvodi partial unique indeks, parent-ticket lock trigger i deferred exact-one constraint trigger; aplikacijski link/unlink/set-primary/merge/split tokovi zaključavaju target prije čitanja. Osam real-PostgreSQL acceptance scenarija i migration replay su prošli. Nema Prisma kolone ni automatskog backfill-a; deterministična reconciliation i rollback procedura je u [94-assets-ticket-primary-invariant.md](implementation/94-assets-ticket-primary-invariant.md). `BA-assets-09`–`BA-assets-19` ostaju otvoreni; W7.9 (`BA-assets-09`, directory single-flight lock) je sljedeći paket i nije započet.
 
 ## Kontrolni zbir
 
@@ -781,7 +783,7 @@ W7.7 na finalnom testanom SHA `55fb782d02a4ccfecf4553c8d7fbfa9a6a41016b`, uz zel
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **582**
-- Zatvoreno: **110** (deklarisani W7 agregat nakon W7.7; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **581**
+- Zatvoreno: **111** (deklarisani W7 agregat nakon W7.8; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

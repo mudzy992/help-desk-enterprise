@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.7 završen; W7.8 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.8 završen; W7.9 je sljedeći planirani paket).
 
 ### Redoslijed
 
@@ -502,8 +502,19 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Prvi CI `40955264212` pao je zbog našeg integration fixture tipa (`unitPath: null`) i nedostajućeg wiring snapshota; oba su ispravljena, a finalni `40956304026` je zelen. Push workflow je preskočio E2E jobove i image vulnerability enforcement korak je `skipped` nakon scan koraka.
 - Deklarisani registry poslije W7.7: **582 otvorena / 110 zatvorenih / 692 ukupno**; 19 početnih P1 nalaza u Valu 7 ostaje otvoreno. Machine-readable statusi su 585 open / 96 closed / 11 historijskih redova; preegzistentna razlika ostaje reconciliation obaveza.
 
-### Sljedeći planirani paket — W7.8
+### W7.8 — ticket primary-link invariant — završeno
 
-**`BA-assets-08` (P2):** DB/concurrency invariant za ticket primary link. Paket nije započet; ne preuzimati `BA-assets-09` directory single-flight lock ni druge susjedne nalaze bez vlastitog scopea.
+- Zatvoren je samo `BA-assets-08` (P2). Finalni testani SHA i implementacijski commit `f9a90ba057b612451a5f4868947ce32a0e73ef43`; CI [`40962089973`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40962089973) je zelen.
+- Migracija `20271028000000_asset_ticket_primary_invariant` radi `SHARE ROW EXCLUSIVE` preflight lock i odbija deploy ako ticket link grupa nema tačno jedan primary red. Dodaje partial unique index za `isPrimary=true`, BEFORE row trigger koji zaključava parent ticket, te deferrable/deferred constraint trigger koji provjerava exact-one cardinality na transaction commit-u.
+- `AssetTicketsService` zaključava ticket prije link-count/read i unlink/set-primary mutacija; merge/split copy zaključava destination prije čitanja, a ticket-create, demo seed i demo remove putanje poštuju isti invariant. Unlink fallback je determinističan (`linkedAt`, zatim `assetId`). Nisu mijenjani HTTP rute ni authorization/scope ugovori.
+- Osam real-PostgreSQL acceptance scenarija pokriva invalidni finalni count, unique index, atomic switch, application/DB concurrency, unlink promotion, merge/split copy i ticket cascade. Suite je uključen u isolated integration runner.
+- Migracija ne mijenja Prisma kolone niti radi backfill. Fail-closed preflight i deterministic repair SQL za eventualno postojeće nekonzistentne redove, rollback SQL i operativni redoslijed su u [94-assets-ticket-primary-invariant.md](implementation/94-assets-ticket-primary-invariant.md). Prisma runtime schema sentinel je pomjeren na ovu zadnju migraciju.
+- CI `40962089973` je prošao Prisma validate/generate, backend build/lint/test, PostgreSQL+Redis replay/integration, frontend, docs guard, container/supply-chain i CI gate. E2E jobovi su preskočeni na pushu, a image vulnerability enforcement korak `skipped` jer je scanner actionable count bio 0; nije bilo neuspjelog W7.8 CI pokušaja.
+- Lokalni backend lint je imao 0 grešaka i tri postojeća `no-explicit-any` upozorenja u nepovezanom SLA specu. Wiring check/test (614 ruta, 6/6), integration harness (3/3), migration policy (98 migracija, 2/2) i `git diff --check` su prošli. Lokalni Jest nije pokretan jer generated Prisma client nije dostupan; CI ga je generisao i pokrenuo suiteove.
+- Deklarisani registry poslije W7.8: **581 otvoren / 111 zatvorenih / 692 ukupno**; machine-readable statusi su 584 open / 97 closed / 11 historijskih redova, uz preegzistentnu reconciliation razliku. 19 početnih P1 nalaza u Valu 7 ostaje otvoreno.
+
+### Sljedeći planirani paket — W7.9
+
+**`BA-assets-09` (P2):** directory sync single-flight lock je samo in-memory po procesu. Paket nije započet; ne preuzimati `BA-assets-10` scheduler Redis-loss reconciliation ni druge susjedne nalaze bez vlastitog scopea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
