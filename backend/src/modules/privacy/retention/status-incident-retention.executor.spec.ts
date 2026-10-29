@@ -37,6 +37,14 @@ describe('createStatusIncidentRetentionExecutor', () => {
   const cutoff = new Date('2026-04-29T10:00:00Z'); // 180 days ago
 
   const buildPrisma = (incidents: TestIncident[], updates: TestUpdate[]): MockPrisma => {
+    const dueIncidentIds = incidents
+      .filter(
+        (i) => i.status === 'RESOLVED' && i.resolvedAt && i.resolvedAt < cutoff && !i.retentionArchivedAt,
+      )
+      .sort((a: TestIncident, b: TestIncident) => (a.resolvedAt ?? new Date(0)).getTime() - (b.resolvedAt ?? new Date(0)).getTime())
+      .slice(0, 50)
+      .map((i) => i.id);
+
     const prisma: MockPrisma = {
       serviceIncident: {
         count: jest.fn(),
@@ -52,39 +60,19 @@ describe('createStatusIncidentRetentionExecutor', () => {
       serviceIncidentSubscription: { deleteMany: jest.fn() },
       $transaction: jest.fn(async (callback: (tx: MockPrisma) => unknown) => callback(prisma)),
     };
-    prisma.serviceIncident.count.mockResolvedValue(
-      incidents.filter(
-        (i) => i.status === 'RESOLVED' && i.resolvedAt && i.resolvedAt < cutoff && !i.retentionArchivedAt,
-      ).length,
-    );
+    prisma.serviceIncident.count.mockResolvedValue(dueIncidentIds.length);
     prisma.serviceIncidentUpdate.count.mockResolvedValue(
-      updates.filter(
-        (u) =>
-          incidents.some(
-            (i) => i.id === u.incidentId && i.status === 'RESOLVED' && i.resolvedAt && i.resolvedAt < cutoff && !i.retentionArchivedAt,
-          ) && !u.contentRedactedAt,
-      ).length,
+      updates.filter((u) => dueIncidentIds.includes(u.incidentId) && !u.contentRedactedAt).length,
     );
     prisma.serviceIncident.findMany.mockResolvedValue(
-      incidents
-        .filter(
-          (i) => i.status === 'RESOLVED' && i.resolvedAt && i.resolvedAt < cutoff && !i.retentionArchivedAt,
-        )
-        .sort((a: TestIncident, b: TestIncident) => (a.resolvedAt ?? new Date(0)).getTime() - (b.resolvedAt ?? new Date(0)).getTime())
-        .slice(0, 50)
-        .map((i) => ({ id: i.id, resolvedAt: i.resolvedAt })),
+      dueIncidentIds.map((id) => ({ id, resolvedAt: incidents.find((i) => i.id === id)?.resolvedAt ?? null })),
     );
     prisma.serviceIncidentUpdate.findMany.mockResolvedValue(
-      updates
-        .filter((u) => incidentIds(prisma).includes(u.incidentId) && !u.contentRedactedAt)
-        .map((u) => ({ id: u.id })),
+      updates.filter((u) => dueIncidentIds.includes(u.incidentId) && !u.contentRedactedAt).map((u) => ({ id: u.id })),
     );
-    prisma.serviceIncident.updateMany.mockResolvedValue({ count: incidents.length });
+    prisma.serviceIncident.updateMany.mockResolvedValue({ count: dueIncidentIds.length });
     return prisma;
   };
-
-  const incidentIds = (prisma: MockPrisma): string[] =>
-    (prisma.serviceIncident.findMany as jest.Mock).mock.results[0]?.value.map((i: { id: string }) => i.id) ?? [];
 
   it('category is statusIncidents', () => {
     const executor = createStatusIncidentRetentionExecutor({} as never);
